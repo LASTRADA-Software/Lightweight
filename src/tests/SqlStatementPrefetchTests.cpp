@@ -122,6 +122,40 @@ SqlStatement MakePerRowStatement()
     return stmt;
 }
 
+// Strips the server's CHAR(N)/NCHAR(N) right-padding (trailing ASCII spaces) so a fixed-width
+// column's value compares equal regardless of how much padding the driver returned it with.
+std::optional<std::string> TrimRight(std::optional<std::string> value)
+{
+    if (!value.has_value())
+        return std::nullopt;
+    while (!value->empty() && value->back() == ' ')
+        value->pop_back();
+    return value;
+}
+
+// Unwraps a RowArrayCursor cell known to be non-NULL (e.g. the primary key column, or a text
+// column the test never inserts NULL into), REQUIRE-ing that first. The explicit if-with-throw is
+// what clang-tidy's bugprone-unchecked-optional-access analysis recognizes as a null check —
+// REQUIRE alone is a macro it cannot reason about (see the same pattern in SqlGuidTests.cpp's
+// RequireParsed).
+std::int64_t RequireI64(RowArrayCursor const& cursor, std::size_t row, SQLUSMALLINT column)
+{
+    auto const value = cursor.GetI64(row, column);
+    REQUIRE(value.has_value());
+    if (!value.has_value())
+        throw std::runtime_error("REQUIRE failed but flow continued"); // unreachable
+    return *value;
+}
+
+std::string RequireString(RowArrayCursor const& cursor, std::size_t row, SQLUSMALLINT column)
+{
+    auto value = cursor.GetString(row, column);
+    REQUIRE(value.has_value());
+    if (!value.has_value())
+        throw std::runtime_error("REQUIRE failed but flow continued"); // unreachable
+    return std::move(*value);
+}
+
 } // namespace
 
 TEST_CASE_METHOD(SqlTestFixture, "Prefetch: raw GetColumn loop collapses round-trips", "[prefetch]")
@@ -542,6 +576,272 @@ TEST_CASE_METHOD(SqlTestFixture, "Prefetch: GUID column round-trips", "[prefetch
     }
     CHECK(actual == expected);
     REQUIRE(actual.size() == rowCount);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Prefetch: RowArrayCursor bulk-reads fixed-width CHAR/NCHAR columns", "[prefetch]")
+{
+    // Fixed-width text (CHAR(N)/NCHAR(N)) is excluded from the transparent automatic prefetch gate
+    // (PrefetchableSqlType in SqlStatement.cpp) and always falls back to per-row SQLGetData there.
+    // RowArrayCursor — the actual bulk block-fetch mechanism reachable via ExecuteBatchFetch — binds
+    // and reads fixed-width text directly, independent of that gate. This pins that a bulk fetch of
+    // CHAR(N)/NCHAR(N) columns, including NULLs and the server's right-padding, is byte-identical to
+    // the trusted per-row reference.
+    auto stmt = SqlStatement {};
+
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("PrefetchFixedWidth")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .Column("Code", SqlColumnTypeDefinitions::Char { 8 })       // narrow fixed-width, right-padded
+            .Column("WideCode", SqlColumnTypeDefinitions::NChar { 8 }); // wide fixed-width, right-padded
+    });
+
+    constexpr std::size_t rowCount = TestPrefetchDepth + 6;
+    stmt.Prepare(stmt.Query("PrefetchFixedWidth")
+                     .Insert()
+                     .Set("Id", SqlWildcard)
+                     .Set("Code", SqlWildcard)
+                     .Set("WideCode", SqlWildcard));
+    for (auto const i: std::views::iota(std::size_t { 1 }, rowCount + 1))
+    {
+        // Every 4th row is NULL in both fixed-width columns; the rest carry a short value shorter
+        // than the column's declared width, so the server's right-padding is actually exercised.
+        if (i % 4 == 0)
+            (void) stmt.Execute(static_cast<std::int64_t>(i), std::optional<std::string> {}, std::optional<std::string> {});
+        else
+            (void) stmt.Execute(static_cast<std::int64_t>(i),
+                                std::optional<std::string> { std::format("C{}", i % 100) },
+                                std::optional<std::string> { std::format("W{}", i % 100) });
+    }
+
+    // Trusted reference: the classic per-row SQLGetData path. SqlTrimmedFixedString strips the
+    // server's CHAR(N) right-padding on the narrow column; the wide column is read as plain
+    // std::string (already-proven UTF-16 -> UTF-8 conversion) and trimmed manually here to mirror
+    // RowArrayCursor::GetString's own trailing-space trim below, since SqlTrimmedWideFixedString's
+    // GetColumn does not currently apply its trim (a separate, pre-existing gap outside this test's
+    // scope — see SqlDataBinder<Utf16StringType>::GetColumn in BasicStringBinder.hpp).
+    using Row = std::tuple<std::int64_t, std::optional<std::string>, std::optional<std::string>>;
+    auto readPerRow = [&]() {
+        std::vector<Row> rows;
+        auto reference = MakePerRowStatement();
+        auto cursor =
+            reference.ExecuteDirect(R"(SELECT "Id", "Code", "WideCode" FROM "PrefetchFixedWidth" ORDER BY "Id")"sv);
+        while (cursor.FetchRow())
+        {
+            auto const id = cursor.GetColumn<std::int64_t>(1);
+            auto const code = cursor.GetNullableColumn<SqlTrimmedFixedString<8>>(2);
+            auto const wideCode = TrimRight(cursor.GetNullableColumn<std::string>(3));
+            rows.emplace_back(
+                id, code.has_value() ? std::optional<std::string> { code->ToStringView() } : std::nullopt, wideCode);
+        }
+        return rows;
+    };
+    auto const expected = readPerRow();
+    REQUIRE(expected.size() == rowCount);
+
+    // RowArrayCursor directly — the bulk block-fetch mechanism under test.
+    std::vector<Row> actual;
+    {
+        auto cursor = stmt.ExecuteBatchFetch(R"(SELECT "Id", "Code", "WideCode" FROM "PrefetchFixedWidth" ORDER BY "Id")"sv,
+                                             TestPrefetchDepth);
+
+        // Confirm the columns actually bound as text (Char/WChar), not silently as something else.
+        // Which of Char/WChar a driver picks for a given declared SQL type is driver-specific and does
+        // not affect correctness (RowArrayCursor::GetString normalizes both to UTF-8) — e.g. SQLite3's
+        // ODBC driver reports CHAR(N) as WChar on Windows but as Char on Linux, and NCHAR(N) the other
+        // way around on Linux vs Windows. Accept either for both columns; only the byte-identity check
+        // below actually matters.
+        auto const isTextlike = [](RowArrayCursor::BoundType type) {
+            return type == RowArrayCursor::BoundType::Char || type == RowArrayCursor::BoundType::WChar;
+        };
+        CHECK(isTextlike(cursor.ColumnBoundType(2)));
+        CHECK(isTextlike(cursor.ColumnBoundType(3)));
+
+        std::size_t blocks = 0;
+        for (auto rowsInBlock = cursor.FetchArray(); rowsInBlock > 0; rowsInBlock = cursor.FetchArray())
+        {
+            ++blocks;
+            for (auto const row: std::views::iota(std::size_t { 0 }, rowsInBlock))
+            {
+                auto const id = RequireI64(cursor, row, 1);
+                // Trim the CHAR(8)/NCHAR(8) driver padding to compare against the trimmed reference.
+                auto code = TrimRight(cursor.GetString(row, 2));
+                auto wideCode = TrimRight(cursor.GetString(row, 3));
+                actual.emplace_back(id, std::move(code), std::move(wideCode));
+            }
+        }
+        CHECK(blocks >= 2); // crossed at least one block boundary — genuinely block-fetched, not one row
+    }
+
+    REQUIRE(actual.size() == rowCount);
+    CHECK(actual == expected); // byte-identical to the trusted per-row path, including NULLs and padding
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Prefetch: RowArrayCursor bulk-reads a fixed-width value that fills its full capacity",
+                 "[prefetch]")
+{
+    // Regression sibling to #485 (BasicStringBinder::OutputColumn off-by-one on BufferLength) for the
+    // RowArrayCursor bulk path: a value with NO trailing padding — it fills CHAR(N)/NCHAR(N) exactly —
+    // must not lose its last character to a buffer sized for the terminator alone.
+    auto stmt = SqlStatement {};
+
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("PrefetchFixedFull")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .Column("Code", SqlColumnTypeDefinitions::Char { 8 })
+            .Column("WideCode", SqlColumnTypeDefinitions::NChar { 8 });
+    });
+
+    constexpr std::size_t rowCount = TestPrefetchDepth + 6;
+    stmt.Prepare(stmt.Query("PrefetchFixedFull")
+                     .Insert()
+                     .Set("Id", SqlWildcard)
+                     .Set("Code", SqlWildcard)
+                     .Set("WideCode", SqlWildcard));
+    for (auto const i: std::views::iota(std::size_t { 1 }, rowCount + 1))
+    {
+        // Every value is exactly 8 chars — fills CHAR(8)/NCHAR(8) with no padding at all.
+        auto const code = std::format("{:08}", i % 100'000'000);
+        (void) stmt.Execute(static_cast<std::int64_t>(i), code, code);
+    }
+
+    auto readPerRow = [&]() {
+        std::vector<std::tuple<std::int64_t, std::string, std::string>> rows;
+        auto reference = MakePerRowStatement();
+        auto cursor = reference.ExecuteDirect(R"(SELECT "Id", "Code", "WideCode" FROM "PrefetchFixedFull" ORDER BY "Id")"sv);
+        while (cursor.FetchRow())
+        {
+            auto const id = cursor.GetColumn<std::int64_t>(1);
+            auto const code = cursor.GetColumn<SqlTrimmedFixedString<8>>(2);
+            auto const wideCode = *TrimRight(cursor.GetColumn<std::string>(3));
+            rows.emplace_back(id, std::string { code.ToStringView() }, wideCode);
+        }
+        return rows;
+    };
+    auto const expected = readPerRow();
+    REQUIRE(expected.size() == rowCount);
+
+    std::vector<std::tuple<std::int64_t, std::string, std::string>> actual;
+    {
+        auto cursor = stmt.ExecuteBatchFetch(R"(SELECT "Id", "Code", "WideCode" FROM "PrefetchFixedFull" ORDER BY "Id")"sv,
+                                             TestPrefetchDepth);
+        for (auto rowsInBlock = cursor.FetchArray(); rowsInBlock > 0; rowsInBlock = cursor.FetchArray())
+            for (auto const row: std::views::iota(std::size_t { 0 }, rowsInBlock))
+                actual.emplace_back(
+                    RequireI64(cursor, row, 1), RequireString(cursor, row, 2), RequireString(cursor, row, 3));
+    }
+
+    REQUIRE(actual.size() == rowCount);
+    for (std::size_t i = 0; i < rowCount; ++i)
+    {
+        CHECK(std::get<0>(actual[i]) == std::get<0>(expected[i]));
+        CHECK(std::get<1>(actual[i]) == std::get<1>(expected[i])); // full 8 chars, not truncated to 7
+        CHECK(std::get<2>(actual[i]) == std::get<2>(expected[i]));
+        CHECK(std::get<1>(actual[i]).size() == 8);
+        CHECK(std::get<2>(actual[i]).size() == 8);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Prefetch: RowArrayCursor distinguishes NULL from empty string in fixed-width columns",
+                 "[prefetch]")
+{
+    // NULL and "" are distinct SQL values; a bulk fetch must not collapse one into the other (e.g. by
+    // treating an all-blank buffer as NULL, or a NULL indicator as an empty-but-non-null string).
+    auto stmt = SqlStatement {};
+
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("PrefetchFixedEmptyVsNull")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .Column("Code", SqlColumnTypeDefinitions::Char { 8 })
+            .Column("WideCode", SqlColumnTypeDefinitions::NChar { 8 });
+    });
+
+    constexpr std::size_t rowCount = TestPrefetchDepth + 6;
+    stmt.Prepare(stmt.Query("PrefetchFixedEmptyVsNull")
+                     .Insert()
+                     .Set("Id", SqlWildcard)
+                     .Set("Code", SqlWildcard)
+                     .Set("WideCode", SqlWildcard));
+    for (auto const i: std::views::iota(std::size_t { 1 }, rowCount + 1))
+    {
+        // Every 3rd row is NULL, every other 3rd row is an empty string, the rest carry a short value.
+        if (i % 3 == 0)
+            (void) stmt.Execute(static_cast<std::int64_t>(i), std::optional<std::string> {}, std::optional<std::string> {});
+        else if (i % 3 == 1)
+            (void) stmt.Execute(static_cast<std::int64_t>(i), std::string {}, std::string {});
+        else
+            (void) stmt.Execute(static_cast<std::int64_t>(i), std::format("C{}", i), std::format("W{}", i));
+    }
+
+    auto cursor = stmt.ExecuteBatchFetch(
+        R"(SELECT "Id", "Code", "WideCode" FROM "PrefetchFixedEmptyVsNull" ORDER BY "Id")"sv, TestPrefetchDepth);
+
+    std::size_t rowsSeen = 0;
+    for (auto rowsInBlock = cursor.FetchArray(); rowsInBlock > 0; rowsInBlock = cursor.FetchArray())
+    {
+        for (auto const row: std::views::iota(std::size_t { 0 }, rowsInBlock))
+        {
+            auto const id = RequireI64(cursor, row, 1);
+            ++rowsSeen;
+
+            if (id % 3 == 0)
+            {
+                // NULL: the indicator must say so, and GetString must not fabricate a value.
+                CHECK(cursor.IsCellNull(row, 2));
+                CHECK(cursor.IsCellNull(row, 3));
+                CHECK_FALSE(cursor.GetString(row, 2).has_value());
+                CHECK_FALSE(cursor.GetString(row, 3).has_value());
+            }
+            else if (id % 3 == 1)
+            {
+                // Empty string, server-padded to CHAR(8)/NCHAR(8): NOT null, and trims down to "".
+                CHECK_FALSE(cursor.IsCellNull(row, 2));
+                CHECK_FALSE(cursor.IsCellNull(row, 3));
+                CHECK(TrimRight(cursor.GetString(row, 2)) == std::optional<std::string> { "" });
+                CHECK(TrimRight(cursor.GetString(row, 3)) == std::optional<std::string> { "" });
+            }
+            else
+            {
+                CHECK(TrimRight(cursor.GetString(row, 2)) == std::optional<std::string> { std::format("C{}", id) });
+                CHECK(TrimRight(cursor.GetString(row, 3)) == std::optional<std::string> { std::format("W{}", id) });
+            }
+        }
+    }
+    CHECK(rowsSeen == rowCount);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Prefetch: RowArrayCursor bulk-reads fixed-width columns within a single block",
+                 "[prefetch]")
+{
+    // The other fixed-width tests deliberately cross a block boundary; this pins the same correctness
+    // for a result set that fits in a single FetchArray() call (arrayDepth > rowCount), so the
+    // single-block code paths (no continuation, no second SQLGetData) are exercised too.
+    auto stmt = SqlStatement {};
+
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("PrefetchFixedSingleBlock")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .Column("Code", SqlColumnTypeDefinitions::Char { 8 });
+    });
+
+    constexpr std::size_t rowCount = 5; // well under TestPrefetchDepth
+    stmt.Prepare(stmt.Query("PrefetchFixedSingleBlock").Insert().Set("Id", SqlWildcard).Set("Code", SqlWildcard));
+    for (auto const i: std::views::iota(std::size_t { 1 }, rowCount + 1))
+        (void) stmt.Execute(static_cast<std::int64_t>(i), std::format("C{}", i));
+
+    auto cursor =
+        stmt.ExecuteBatchFetch(R"(SELECT "Id", "Code" FROM "PrefetchFixedSingleBlock" ORDER BY "Id")"sv, TestPrefetchDepth);
+
+    auto const rowsInFirstBlock = cursor.FetchArray();
+    REQUIRE(rowsInFirstBlock == rowCount); // the whole result set fit in one block
+    for (auto const row: std::views::iota(std::size_t { 0 }, rowsInFirstBlock))
+    {
+        auto const id = RequireI64(cursor, row, 1);
+        CHECK(TrimRight(cursor.GetString(row, 2)) == std::optional<std::string> { std::format("C{}", id) });
+    }
+    CHECK(cursor.FetchArray() == 0); // no more rows
 }
 
 // Opt-in micro-benchmark: per-row SQLFetch vs transparent block-prefetch over a large result set.

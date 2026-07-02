@@ -927,3 +927,52 @@ jobs:
           ./out/build/clang-${{ matrix.sanitizer }}/src/tests/LightweightTest --test-env=sqlite3
 
   # }}}
+  # {{{ Coverage
+  coverage:
+    name: "Code coverage"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Fetch tags
+        run: git fetch --prune --unshallow --tags
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: "ccache-ubuntu2404-clang-coverage"
+          max-size: 256M
+      - name: "update APT database"
+        run: sudo apt -q update
+      - name: Install Clang
+        run: |
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh ${{ env.CLANG_TOOLS_VERSION }}
+      - name: "install dependencies"
+        # Rename the libsqliteodbc driver section to match the Windows driver
+        # name so the shared .test-env.yml works on both platforms.
+        run: |
+          sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev libzip-dev lcov
+          sudo sed -i 's/^\[SQLite3\]$/[SQLite3 ODBC Driver]/' /etc/odbcinst.ini
+      - name: "cmake"
+        run: |
+          cmake --preset clang-coverage \
+                -D CMAKE_CXX_COMPILER=clang++-${{ env.CLANG_TOOLS_VERSION }} \
+                -D CMAKE_C_COMPILER=clang-${{ env.CLANG_TOOLS_VERSION }}
+      - name: "build"
+        run: cmake --build --preset clang-coverage -- -j$(nproc)
+      # The `coverage` target (cmake/Coverage.cmake) runs the suite against sqlite3/postgres/mssql
+      # (the latter two tolerate connection failure via `|| true`) and captures lcov data. Only
+      # sqlite3 is reachable in this job (no Docker services here), matching the "Sanitizers" job's
+      # scope — the full 3-database matrix is exercised, uninstrumented, by dbms_test_matrix; this
+      # job's purpose is a coverage percentage, not additional correctness coverage.
+      - name: "Run tests and generate lcov report"
+        run: cmake --build --preset clang-coverage --target coverage
+      - name: "Upload coverage to Codecov"
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./out/build/clang-coverage/coverage/coverage.info
+          fail_ci_if_error: false
+          verbose: true
+
+  # }}}

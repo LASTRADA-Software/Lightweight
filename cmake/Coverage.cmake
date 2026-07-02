@@ -56,7 +56,22 @@ endif()
 # For Clang, we need to use llvm-cov gcov instead of gcov
 set(GCOV_TOOL_OPTION "")
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    find_program(LLVM_COV_PATH llvm-cov)
+    # apt.llvm.org's installer (llvm.sh) only ever installs version-suffixed binaries
+    # (llvm-cov-22, never a bare llvm-cov symlink), so an unversioned lookup silently
+    # fails and lcov falls back to the system gcov (from GCC), which cannot parse
+    # Clang's gcov-compatible data format ("Incompatible GCC/GCOV version" from
+    # geninfo). Try the version matching the active compiler first, then fall back
+    # to a few recent majors and finally the unversioned name for other toolchains
+    # (e.g. Homebrew LLVM on macOS, which does install a bare llvm-cov).
+    if(CMAKE_CXX_COMPILER_VERSION)
+        string(REGEX MATCH "^[0-9]+" LLVM_COV_VERSION_SUFFIX "${CMAKE_CXX_COMPILER_VERSION}")
+    endif()
+    find_program(LLVM_COV_PATH
+        NAMES
+            "llvm-cov-${LLVM_COV_VERSION_SUFFIX}"
+            llvm-cov-22 llvm-cov-21 llvm-cov-20 llvm-cov-19 llvm-cov-18
+            llvm-cov
+    )
     if(LLVM_COV_PATH)
         # Create a wrapper script for llvm-cov gcov
         set(GCOV_WRAPPER_SCRIPT "${CMAKE_BINARY_DIR}/llvm-gcov-wrapper.sh")
