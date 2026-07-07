@@ -1742,6 +1742,10 @@ namespace
             return { .value = maxLength, .unit = Unit::Characters };
         if (dataType == "varchar" || dataType == "char")
             return { .value = maxLength, .unit = Unit::Bytes };
+        // PostgreSQL's INFORMATION_SCHEMA reports the SQL-standard type names, and its
+        // length semantics are characters (PostgreSQL enforces VARCHAR(n) as n characters).
+        if (dataType == "character varying" || dataType == "character")
+            return { .value = maxLength, .unit = Unit::Characters };
         return { .value = 0, .unit = Unit::Characters };
     }
 
