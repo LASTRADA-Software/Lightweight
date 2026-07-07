@@ -201,6 +201,97 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Aggregate", "[SqlQueryB
         QueryExpectations::All(R"(SELECT MAX("Table"."field1") AS "aggregateValue" FROM "Table")"));
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Field qualified star and alias", "[SqlQueryBuilder]")
+{
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            return q.FromTable("Users")
+                .Select()
+                .Field(SqlQualifiedTableColumnName { .tableName = "Users", .columnName = "name" })
+                .As("userName")
+                .Field(SqlQualifiedTableColumnName { .tableName = "Users", .columnName = "*" })
+                .All();
+        },
+        QueryExpectations::All(R"(SELECT "Users"."name" AS "userName", "Users".* FROM "Users")"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Fields from vector", "[SqlQueryBuilder]")
+{
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            auto const names = std::vector<std::string_view> { "id", "name" };
+            return q.FromTable("Users").Select().Fields(names).Fields(names, "Users").All();
+        },
+        QueryExpectations::All(R"(SELECT "id", "name", "Users"."id", "Users"."name" FROM "Users")"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select const overloads", "[SqlQueryBuilder]")
+{
+    // The const-qualified builder methods delegate to their mutable counterparts
+    // so query composition can flow through a const reference.
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            auto const names = std::vector<std::string_view> { "name" };
+            auto const qualifiedNames = std::vector<SqlQualifiedTableColumnName> {
+                { .tableName = "Users", .columnName = "region" },
+            };
+            auto starter = q.FromTable("Users").Select();
+            auto& builder = starter.Field("id");
+            return std::as_const(builder)
+                .Field("email")
+                .As("mail")
+                .Field(SqlQualifiedTableColumnName { .tableName = "Users", .columnName = "city" })
+                .Field(Aggregate::Min("age"))
+                .As("minAge")
+                .Fields(names)
+                .Fields(names, "Users")
+                .Fields({ "zip" }, "Users")
+                .Fields(std::span<SqlQualifiedTableColumnName const> { qualifiedNames })
+                .Fields({ SqlQualifiedTableColumnName { .tableName = "Users", .columnName = "state" } })
+                .All();
+        },
+        QueryExpectations::All(R"(SELECT "id", "email" AS "mail", "Users"."city", MIN("age") AS "minAge", )"
+                               R"("name", "Users"."name", "Users"."zip", "Users"."region", "Users"."state" FROM "Users")"));
+
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            auto starter = q.FromTable("Users").Select();
+            auto& builder = starter.Field("id");
+            return std::as_const(builder).Count();
+        },
+        QueryExpectations::All(R"(SELECT COUNT(*) FROM "Users")"));
+
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            auto starter = q.FromTable("Users").Select();
+            auto& builder = starter.Field("id").OrderBy("id");
+            return std::as_const(builder).First();
+        },
+        QueryExpectations {
+            .sqlite = R"(SELECT "id" FROM "Users"
+                         ORDER BY "id" ASC LIMIT 1)",
+            .postgres = R"(SELECT "id" FROM "Users"
+                           ORDER BY "id" ASC LIMIT 1)",
+            .sqlServer = R"(SELECT TOP 1 "id" FROM "Users"
+                            ORDER BY "id" ASC)",
+        });
+
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            auto starter = q.FromTable("Users").Select();
+            auto& builder = starter.Field("id").OrderBy("id");
+            return std::as_const(builder).Range(10, 5);
+        },
+        QueryExpectations {
+            .sqlite = R"(SELECT "id" FROM "Users"
+                         ORDER BY "id" ASC LIMIT 5 OFFSET 10)",
+            .postgres = R"(SELECT "id" FROM "Users"
+                           ORDER BY "id" ASC LIMIT 5 OFFSET 10)",
+            .sqlServer = R"(SELECT "id" FROM "Users"
+                            ORDER BY "id" ASC OFFSET 10 ROWS FETCH NEXT 5 ROWS ONLY)",
+        });
+}
+
 struct Users
 {
     int id;
@@ -1721,5 +1812,169 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder: construct string out of query
         auto queryString = query.ToSql();
 
         CHECK(queryString == R"(SELECT "FirstName", "LastName" FROM "Employees")");
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryFormatter.ColumnType per dialect", "[SqlQueryFormatter]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    struct ColumnTypeExpectation
+    {
+        SqlColumnTypeDefinition type;
+        std::string_view sqlite;
+        std::string_view postgres;
+        std::string_view sqlServer;
+    };
+
+    static auto const expectations = std::array {
+        ColumnTypeExpectation { .type = Bigint {}, .sqlite = "BIGINT", .postgres = "BIGINT", .sqlServer = "BIGINT" },
+        ColumnTypeExpectation { .type = Binary { 16 }, .sqlite = "BLOB", .postgres = "BYTEA", .sqlServer = "VARBINARY(16)" },
+        ColumnTypeExpectation { .type = Binary { 0 }, .sqlite = "BLOB", .postgres = "BYTEA", .sqlServer = "VARBINARY(MAX)" },
+        ColumnTypeExpectation { .type = Bool {}, .sqlite = "BOOLEAN", .postgres = "BOOLEAN", .sqlServer = "BIT" },
+        ColumnTypeExpectation { .type = Char { 10 }, .sqlite = "CHAR(10)", .postgres = "CHAR(10)", .sqlServer = "CHAR(10)" },
+        ColumnTypeExpectation { .type = Date {}, .sqlite = "DATE", .postgres = "DATE", .sqlServer = "DATE" },
+        ColumnTypeExpectation {
+            .type = DateTime {}, .sqlite = "DATETIME", .postgres = "TIMESTAMP", .sqlServer = "DATETIME" },
+        ColumnTypeExpectation { .type = Decimal { .precision = 10, .scale = 2 },
+                                .sqlite = "DECIMAL(10, 2)",
+                                .postgres = "DECIMAL(10, 2)",
+                                .sqlServer = "DECIMAL(10, 2)" },
+        ColumnTypeExpectation { .type = Guid {}, .sqlite = "GUID", .postgres = "UUID", .sqlServer = "UNIQUEIDENTIFIER" },
+        ColumnTypeExpectation { .type = Integer {}, .sqlite = "INTEGER", .postgres = "INTEGER", .sqlServer = "INTEGER" },
+        ColumnTypeExpectation { .type = NChar { 5 }, .sqlite = "NCHAR(5)", .postgres = "CHAR(5)", .sqlServer = "NCHAR(5)" },
+        ColumnTypeExpectation {
+            .type = NVarchar { 50 }, .sqlite = "NVARCHAR(50)", .postgres = "VARCHAR(50)", .sqlServer = "NVARCHAR(50)" },
+        ColumnTypeExpectation {
+            .type = NVarchar { 0 }, .sqlite = "NVARCHAR(0)", .postgres = "TEXT", .sqlServer = "NVARCHAR(MAX)" },
+        ColumnTypeExpectation { .type = Real {}, .sqlite = "REAL", .postgres = "REAL", .sqlServer = "REAL" },
+        ColumnTypeExpectation {
+            .type = Real { .precision = 53 }, .sqlite = "REAL", .postgres = "DOUBLE PRECISION", .sqlServer = "FLOAT(53)" },
+        ColumnTypeExpectation { .type = Smallint {}, .sqlite = "SMALLINT", .postgres = "SMALLINT", .sqlServer = "SMALLINT" },
+        ColumnTypeExpectation { .type = Text {}, .sqlite = "TEXT", .postgres = "TEXT", .sqlServer = "VARCHAR(MAX)" },
+        ColumnTypeExpectation { .type = Time {}, .sqlite = "TIME", .postgres = "TIME", .sqlServer = "TIME" },
+        ColumnTypeExpectation {
+            .type = Timestamp {}, .sqlite = "TIMESTAMP", .postgres = "TIMESTAMP", .sqlServer = "TIMESTAMP" },
+        ColumnTypeExpectation { .type = Tinyint {}, .sqlite = "TINYINT", .postgres = "SMALLINT", .sqlServer = "TINYINT" },
+        ColumnTypeExpectation {
+            .type = VarBinary { 100 }, .sqlite = "VARBINARY(100)", .postgres = "BYTEA", .sqlServer = "VARBINARY(100)" },
+        ColumnTypeExpectation {
+            .type = Varchar { 80 }, .sqlite = "VARCHAR(80)", .postgres = "VARCHAR(80)", .sqlServer = "VARCHAR(80)" },
+        ColumnTypeExpectation {
+            .type = Varchar { 0 }, .sqlite = "VARCHAR(0)", .postgres = "TEXT", .sqlServer = "VARCHAR(MAX)" },
+    };
+
+    for (auto const& expectation: expectations)
+    {
+        CHECK(SqlQueryFormatter::Sqlite().ColumnType(expectation.type) == expectation.sqlite);
+        CHECK(SqlQueryFormatter::PostgrSQL().ColumnType(expectation.type) == expectation.postgres);
+        CHECK(SqlQueryFormatter::SqlServer().ColumnType(expectation.type) == expectation.sqlServer);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryFormatter.SetDefaultSchemaStatement and QueryServerVersion", "[SqlQueryFormatter]")
+{
+    CHECK(SqlQueryFormatter::PostgrSQL().SetDefaultSchemaStatement("app") == R"(SET search_path TO "app", public)");
+    CHECK(SqlQueryFormatter::PostgrSQL().SetDefaultSchemaStatement("").empty());
+
+    CHECK(SqlQueryFormatter::Sqlite().QueryServerVersion() == "SELECT sqlite_version()");
+    CHECK(SqlQueryFormatter::PostgrSQL().QueryServerVersion() == "SELECT version()");
+    CHECK(SqlQueryFormatter::SqlServer().QueryServerVersion() == "SELECT @@VERSION");
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "AlterTable foreign keys and IfExists guards SQL", "[SqlQueryBuilder][Migration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    SECTION("AddForeignKey")
+    {
+        CheckSqlQueryBuilder(
+            [](SqlQueryBuilder& q) {
+                auto migration = q.Migration();
+                migration.AlterTable("Orders").AddForeignKey(
+                    "user_id", SqlForeignKeyReferenceDefinition { .tableName = "Users", .columnName = "id" });
+                return migration.GetPlan();
+            },
+            QueryExpectations {
+                .sqlite = R"sql(
+                    -- LIGHTWEIGHT_SQLITE_GUARD: ADD_FOREIGN_KEY "Orders" "user_id" "Users" "id"
+                    -- ALTER TABLE "Orders" ADD CONSTRAINT "FK_Orders_user_id" FOREIGN KEY ("user_id") REFERENCES "Users"("id");
+                )sql",
+                .postgres = R"sql(DO $$ BEGIN ALTER TABLE "Orders" ADD CONSTRAINT "FK_Orders_user_id" )sql"
+                            R"sql(FOREIGN KEY ("user_id") REFERENCES "Users"("id"); )sql"
+                            R"sql(EXCEPTION WHEN duplicate_object THEN NULL; END $$;)sql",
+                .sqlServer = R"sql(IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Orders_user_id') )sql"
+                             R"sql(ALTER TABLE "Orders" ADD CONSTRAINT "FK_Orders_user_id" )sql"
+                             R"sql(FOREIGN KEY ("user_id") REFERENCES "Users"("id");)sql",
+            });
+    }
+
+    SECTION("DropForeignKey")
+    {
+        CheckSqlQueryBuilder(
+            [](SqlQueryBuilder& q) {
+                auto migration = q.Migration();
+                migration.AlterTable("Orders").DropForeignKey("user_id");
+                return migration.GetPlan();
+            },
+            QueryExpectations {
+                .sqlite = R"sql(
+                    -- LIGHTWEIGHT_SQLITE_GUARD: DROP_FOREIGN_KEY "Orders" "user_id"
+                    -- ALTER TABLE "Orders" DROP CONSTRAINT "FK_Orders_user_id";
+                )sql",
+                .postgres = R"sql(ALTER TABLE "Orders" DROP CONSTRAINT "FK_Orders_user_id";)sql",
+                .sqlServer = R"sql(ALTER TABLE "Orders" DROP CONSTRAINT "FK_Orders_user_id";)sql",
+            });
+    }
+
+    SECTION("AddColumnIfNotExists and DropColumnIfExists")
+    {
+        CheckSqlQueryBuilder(
+            [](SqlQueryBuilder& q) {
+                auto migration = q.Migration();
+                migration.AlterTable("Orders").AddColumnIfNotExists("note", Varchar { 50 }).DropColumnIfExists("legacy");
+                return migration.GetPlan();
+            },
+            QueryExpectations {
+                .sqlite = R"sql(
+                    -- LIGHTWEIGHT_SQLITE_GUARD: ADD_COLUMN_IF_NOT_EXISTS "Orders" "note"
+                    ALTER TABLE "Orders" ADD COLUMN "note" VARCHAR(50) NOT NULL;
+                    -- LIGHTWEIGHT_SQLITE_GUARD: DROP_COLUMN_IF_EXISTS "Orders" "legacy"
+                    ALTER TABLE "Orders" DROP COLUMN "legacy";
+                )sql",
+                .postgres = R"sql(
+                    ALTER TABLE "Orders" ADD COLUMN IF NOT EXISTS "note" VARCHAR(50) NOT NULL;
+                    ALTER TABLE "Orders" DROP COLUMN IF EXISTS "legacy";
+                )sql",
+                .sqlServer =
+                    "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('\"Orders\"') AND name = 'note')\n"
+                    "ALTER TABLE \"Orders\" ADD \"note\" VARCHAR(50) NOT NULL;\n"
+                    "IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('\"Orders\"') AND name = 'legacy')\n"
+                    "ALTER TABLE \"Orders\" DROP COLUMN \"legacy\";",
+            });
+    }
+
+    SECTION("DropIndex and DropIndexIfExists")
+    {
+        CheckSqlQueryBuilder(
+            [](SqlQueryBuilder& q) {
+                auto migration = q.Migration();
+                migration.AlterTable("Orders").DropIndex("user_id").DropIndexIfExists("email");
+                return migration.GetPlan();
+            },
+            QueryExpectations {
+                .sqlite = R"sql(
+                    DROP INDEX "Orders_user_id_index";
+                    DROP INDEX IF EXISTS "Orders_email_index";
+                )sql",
+                .postgres = R"sql(
+                    DROP INDEX "Orders_user_id_index";
+                    DROP INDEX IF EXISTS "Orders_email_index";
+                )sql",
+                .sqlServer = "DROP INDEX \"Orders_user_id_index\";\n"
+                             "IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'Orders_email_index' AND object_id = "
+                             "OBJECT_ID('Orders'))\n"
+                             "DROP INDEX \"Orders_email_index\" ON \"Orders\";",
+            });
     }
 }

@@ -3078,3 +3078,159 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     auto const sqls = manager.PreviewPendingMigrations();
     CHECK(sqls.empty());
 }
+
+// ================================================================================================
+// Virtual applied migrations overlay
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Virtual applied migrations overlay", "[SqlMigration]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    mgr.CreateMigrationHistory();
+
+    fold_test::FoldStub<20'11'01'00'00'01> m1 { "one", [](SqlMigrationQueryBuilder& plan) {
+                                                   plan.CreateTable("vam_a").PrimaryKey("id", Bigint());
+                                               } };
+    fold_test::FoldStub<20'11'01'00'00'02> m2 { "two", [](SqlMigrationQueryBuilder& plan) {
+                                                   plan.CreateTable("vam_b").PrimaryKey("id", Bigint());
+                                               } };
+
+    REQUIRE(mgr.GetPending().size() == 2);
+
+    // Marking the first migration as virtually applied removes it from the pending
+    // set and surfaces it through GetAppliedMigrationIds without touching the DB.
+    auto const virtualIds = std::array { SqlMigration::MigrationTimestamp { 20'11'01'00'00'01ULL } };
+    mgr.AddVirtualAppliedMigrations(virtualIds);
+
+    auto const pending = mgr.GetPending();
+    REQUIRE(pending.size() == 1);
+    CHECK(pending.front()->GetTimestamp().value == 20'11'01'00'00'02ULL);
+    CHECK(std::ranges::contains(mgr.GetAppliedMigrationIds(), virtualIds[0]));
+
+    // Adding the same timestamp again (plus an unsorted duplicate batch) keeps the
+    // overlay deduplicated.
+    auto const duplicates = std::array {
+        SqlMigration::MigrationTimestamp { 20'11'01'00'00'01ULL },
+        SqlMigration::MigrationTimestamp { 20'11'01'00'00'01ULL },
+    };
+    mgr.AddVirtualAppliedMigrations(duplicates);
+    CHECK(std::ranges::count(mgr.GetAppliedMigrationIds(), virtualIds[0]) == 1);
+
+    // An empty batch is a no-op.
+    mgr.AddVirtualAppliedMigrations({});
+    CHECK(mgr.GetPending().size() == 1);
+
+    // Clearing the overlay restores both migrations as pending.
+    mgr.ClearVirtualAppliedMigrations();
+    CHECK(mgr.GetPending().size() == 2);
+}
+
+// ================================================================================================
+// Plan folding: rename table, drop table side effects, index folding
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: rename table rewrites FK references and indexes", "[SqlMigration][Fold]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+
+    fold_test::FoldStub<20'11'02'00'00'01> m1 { "create users + orders", [](SqlMigrationQueryBuilder& plan) {
+                                                   plan.CreateTable("users").PrimaryKey("id", Bigint());
+                                                   plan.CreateTable("orders")
+                                                       .PrimaryKey("id", Bigint())
+                                                       .RequiredForeignKey("user_id",
+                                                                           Bigint(),
+                                                                           SqlForeignKeyReferenceDefinition {
+                                                                               .tableName = "users", .columnName = "id" });
+                                               } };
+    fold_test::FoldStub<20'11'02'00'00'02> m2 { "index users.id", [](SqlMigrationQueryBuilder& plan) {
+                                                   plan.AlterTable("users").AddIndex("id");
+                                               } };
+    fold_test::FoldStub<20'11'02'00'00'03> m3 { "rename users", [](SqlMigrationQueryBuilder& plan) {
+                                                   plan.AlterTable("users").RenameTo("accounts");
+                                               } };
+
+    auto const fold = mgr.FoldRegisteredMigrations(SqlQueryFormatter::Sqlite());
+
+    auto const accountsKey = SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = "accounts" };
+    auto const usersKey = SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = "users" };
+    REQUIRE(fold.tables.contains(accountsKey));
+    CHECK_FALSE(fold.tables.contains(usersKey));
+    CHECK(std::ranges::contains(fold.creationOrder, accountsKey));
+
+    // The FK in orders must now reference the renamed table.
+    auto const ordersIt =
+        fold.tables.find(SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = "orders" });
+    REQUIRE(ordersIt != fold.tables.end());
+    auto const userIdColumn =
+        std::ranges::find_if(ordersIt->second.columns, [](SqlColumnDeclaration const& c) { return c.name == "user_id"; });
+    REQUIRE(userIdColumn != ordersIt->second.columns.end());
+    REQUIRE(userIdColumn->foreignKey.has_value());
+    CHECK(userIdColumn->foreignKey->tableName == "accounts");
+
+    // The index hosted on the renamed table follows it.
+    REQUIRE(fold.indexes.size() == 1);
+    CHECK(fold.indexes.front().tableName == "accounts");
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: drop table resets inbound FKs and data steps", "[SqlMigration][Fold]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+
+    fold_test::FoldStub<20'11'03'00'00'01> m1 {
+        "create users + orders + seed",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("users").PrimaryKey("id", Bigint()).Column("name", Varchar(50));
+            plan.CreateTable("orders")
+                .PrimaryKey("id", Bigint())
+                .RequiredForeignKey(
+                    "user_id", Bigint(), SqlForeignKeyReferenceDefinition { .tableName = "users", .columnName = "id" });
+            plan.Insert("users").Set("name", "seed"sv);
+        }
+    };
+    fold_test::FoldStub<20'11'03'00'00'02> m2 { "drop users",
+                                                [](SqlMigrationQueryBuilder& plan) { plan.DropTable("users"); } };
+
+    auto const fold = mgr.FoldRegisteredMigrations(SqlQueryFormatter::Sqlite());
+
+    CHECK_FALSE(fold.tables.contains(SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = "users" }));
+
+    // The inline FK declaration in orders is reset, and the seed insert targeting
+    // the dropped table is erased from the folded data steps.
+    auto const ordersIt =
+        fold.tables.find(SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = "orders" });
+    REQUIRE(ordersIt != fold.tables.end());
+    auto const userIdColumn =
+        std::ranges::find_if(ordersIt->second.columns, [](SqlColumnDeclaration const& c) { return c.name == "user_id"; });
+    REQUIRE(userIdColumn != ordersIt->second.columns.end());
+    CHECK_FALSE(userIdColumn->foreignKey.has_value());
+    CHECK(fold.dataSteps.empty());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: conditional column and index commands", "[SqlMigration][Fold]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+
+    fold_test::FoldStub<20'11'04'00'00'01> m1 { "create t", [](SqlMigrationQueryBuilder& plan) {
+                                                   plan.CreateTable("cond_t").PrimaryKey("id", Bigint());
+                                               } };
+    fold_test::FoldStub<20'11'04'00'00'02> m2 { "conditional churn", [](SqlMigrationQueryBuilder& plan) {
+                                                   // Second AddColumnIfNotExists for the same column must be a fold no-op.
+                                                   plan.AlterTable("cond_t").AddColumnIfNotExists("extra", Varchar(50));
+                                                   plan.AlterTable("cond_t").AddColumnIfNotExists("extra", Varchar(50));
+                                                   plan.AlterTable("cond_t").AddIndex("extra");
+                                                   plan.AlterTable("cond_t").DropIndex("extra");
+                                                   plan.AlterTable("cond_t").DropColumnIfExists("extra");
+                                               } };
+
+    auto const fold = mgr.FoldRegisteredMigrations(SqlQueryFormatter::Sqlite());
+
+    auto const it = fold.tables.find(SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = "cond_t" });
+    REQUIRE(it != fold.tables.end());
+    REQUIRE(it->second.columns.size() == 1);
+    CHECK(it->second.columns[0].name == "id");
+    CHECK(fold.indexes.empty());
+}
