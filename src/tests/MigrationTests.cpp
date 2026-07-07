@@ -3320,3 +3320,81 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "RewriteChecksums reports and repairs 
     REQUIRE(repair.entries.size() == 1);
     CHECK(mgr.RewriteChecksums(/*dryRun=*/true).entries.empty());
 }
+
+TEST_CASE("ToSql: lup-truncate clips wide-string and SqlText variants, also on UPDATE", "[SqlMigration][compat]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    using Lightweight::MigrationRenderContext;
+    using Lightweight::SqlColumnDeclaration;
+    using Lightweight::SqlCreateTablePlan;
+    using Lightweight::SqlInsertDataPlan;
+    using Lightweight::SqlMigrationPlanElement;
+    using Lightweight::SqlUpdateDataPlan;
+
+    Lightweight::SqlServerQueryFormatter const formatter;
+    MigrationRenderContext context;
+    context.lupTruncate = true;
+
+    SqlCreateTablePlan const create {
+        .schemaName = "",
+        .tableName = "T",
+        .columns = { SqlColumnDeclaration { .name = "n", .type = NVarchar { 5 } } },
+        .foreignKeys = {},
+        .ifNotExists = false,
+    };
+    (void) Lightweight::ToSql(formatter, SqlMigrationPlanElement { create }, context);
+
+    CapturingWarningLogger capture;
+
+    auto const renderInsert = [&](Lightweight::SqlVariant value) {
+        SqlInsertDataPlan const insert {
+            .schemaName = "",
+            .tableName = "T",
+            .columns = { { "n", std::move(value) } },
+        };
+        auto const sql = Lightweight::ToSql(formatter, SqlMigrationPlanElement { insert }, context);
+        REQUIRE(sql.size() == 1);
+        return sql[0];
+    };
+
+    SECTION("u16string value")
+    {
+        auto const sql = renderInsert(Lightweight::SqlVariant { std::u16string { u"hellooo" } });
+        CHECK(sql.contains("hello"));
+        CHECK(!sql.contains("hellooo"));
+    }
+
+    SECTION("u16string_view value")
+    {
+        auto const sql = renderInsert(Lightweight::SqlVariant { std::u16string_view { u"hellooo" } });
+        CHECK(sql.contains("hello"));
+        CHECK(!sql.contains("hellooo"));
+    }
+
+    SECTION("string_view value")
+    {
+        auto const sql = renderInsert(Lightweight::SqlVariant { std::string_view { "hellooo" } });
+        CHECK(sql.contains("hello"));
+        CHECK(!sql.contains("hellooo"));
+    }
+
+    SECTION("SqlText value")
+    {
+        auto const sql = renderInsert(Lightweight::SqlVariant { Lightweight::SqlText { "hellooo" } });
+        CHECK(sql.contains("hello"));
+        CHECK(!sql.contains("hellooo"));
+    }
+
+    SECTION("UPDATE set-columns are clipped too")
+    {
+        SqlUpdateDataPlan const update {
+            .schemaName = "",
+            .tableName = "T",
+            .setColumns = { { "n", Lightweight::SqlVariant { std::string { "hellooo" } } } },
+        };
+        auto const sql = Lightweight::ToSql(formatter, SqlMigrationPlanElement { update }, context);
+        REQUIRE(sql.size() == 1);
+        CHECK(sql[0].contains("hello"));
+        CHECK(!sql[0].contains("hellooo"));
+    }
+}
