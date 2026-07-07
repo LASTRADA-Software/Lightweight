@@ -3627,3 +3627,45 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: not-required column and FK-colu
     CHECK(std::ranges::contains(names, "parent_id"));
     CHECK(std::ranges::contains(names, "opt_parent_id"));
 }
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: upgrades drifted varchar columns cross-backend",
+                 "[SqlMigration][UnicodeUpgrade]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    mgr.CreateMigrationHistory();
+
+    // Live table deliberately created with a narrow (non-Unicode) column...
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& m) {
+        m.CreateTable("uu_generic").PrimaryKey("id", Bigint()).Column("note", Varchar(40));
+    });
+
+    // ...while the registered migration declares the wide type: that's the drift
+    // UnicodeUpgradeTables exists to repair.
+    fold_test::FoldStub<20'11'08'00'00'01> decl {
+        "declare wide",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("uu_generic").PrimaryKey("id", Bigint()).Column("note", NVarchar(40));
+        }
+    };
+
+    auto const dry = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    CHECK(dry.wasDryRun);
+    REQUIRE_FALSE(dry.columns.empty());
+
+    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    CHECK_FALSE(result.wasDryRun);
+    REQUIRE_FALSE(result.columns.empty());
+
+    // After the real run the drift is gone — except on SQLite, whose ODBC driver
+    // cannot distinguish VARCHAR from NVARCHAR in live metadata (see the
+    // roundtrip test above), so the reader keeps reporting the narrow type.
+    if (stmt.Connection().ServerType() != SqlServerType::SQLITE)
+        CHECK(mgr.UnicodeUpgradeTables(/*dryRun=*/true).columns.empty());
+
+    // The upgraded table must stay usable.
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "uu_generic" ("id", "note") VALUES (1, 'ok'))");
+    CHECK(stmt.ExecuteDirectScalar<long long>(R"(SELECT COUNT(*) FROM "uu_generic")").value_or(0) == 1);
+}

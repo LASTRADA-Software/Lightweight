@@ -535,3 +535,35 @@ TEST_CASE_METHOD(SqlTestFixture, "ODBC assumption: BOOLEAN column reports SQL_BI
     });
     CHECK(FetchConciseType(stmt, R"(SELECT "flag" FROM "AssumeBool")", 1) == SQL_BIT);
 }
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches BIGINT columns and untyped NULL literals", "[SqlVariant]")
+{
+    auto stmt = SqlStatement {};
+
+    // Untyped NULL literal: SQLite reports SQL_TYPE_NULL as the column type.
+    {
+        auto cursor = stmt.ExecuteDirect("SELECT NULL");
+        REQUIRE(cursor.FetchRow());
+        SqlVariant nullValue;
+        // GetColumn returns false for NULL values by convention.
+        CHECK_FALSE(cursor.GetColumn(1, &nullValue));
+        CHECK(nullValue.IsNull());
+    }
+
+    // BIGINT columns: the SQLite driver reports the C type id (SQL_C_SBIGINT)
+    // in the type slot, which SqlVariant must treat as the equivalent SQL type.
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.DropTableIfExists("variant_bigint");
+        migration.CreateTable("variant_bigint")
+            .PrimaryKey("id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("big", SqlColumnTypeDefinitions::Bigint {});
+    });
+    stmt.Prepare(R"(INSERT INTO "variant_bigint" ("id", "big") VALUES (?, ?))");
+    (void) stmt.Execute(1, 1'234'567'890'123LL);
+
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "big" FROM "variant_bigint")");
+    REQUIRE(cursor.FetchRow());
+    SqlVariant big;
+    CHECK(cursor.GetColumn(1, &big));
+    CHECK(big.TryGetLongLong().value_or(0) == 1'234'567'890'123LL);
+}
