@@ -3653,17 +3653,28 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
 
     auto const dry = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
     CHECK(dry.wasDryRun);
-    REQUIRE_FALSE(dry.columns.empty());
 
-    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
-    CHECK_FALSE(result.wasDryRun);
-    REQUIRE_FALSE(result.columns.empty());
+    if (stmt.Connection().ServerType() == SqlServerType::POSTGRESQL)
+    {
+        // psqlODBC (Unicode driver) reports VARCHAR columns as wide types and
+        // PostgreSQL stores all strings as UTF-8, so there is no narrow/wide
+        // drift to repair — the correct result is "nothing to do".
+        CHECK(dry.columns.empty());
+    }
+    else
+    {
+        REQUIRE_FALSE(dry.columns.empty());
 
-    // After the real run the drift is gone — except on SQLite, whose ODBC driver
-    // cannot distinguish VARCHAR from NVARCHAR in live metadata (see the
-    // roundtrip test above), so the reader keeps reporting the narrow type.
-    if (stmt.Connection().ServerType() != SqlServerType::SQLITE)
-        CHECK(mgr.UnicodeUpgradeTables(/*dryRun=*/true).columns.empty());
+        auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+        CHECK_FALSE(result.wasDryRun);
+        REQUIRE_FALSE(result.columns.empty());
+
+        // After the real run the drift is gone — except on SQLite, whose ODBC
+        // driver cannot distinguish VARCHAR from NVARCHAR in live metadata (see
+        // the roundtrip test above), so the reader keeps reporting the narrow type.
+        if (stmt.Connection().ServerType() != SqlServerType::SQLITE)
+            CHECK(mgr.UnicodeUpgradeTables(/*dryRun=*/true).columns.empty());
+    }
 
     // The upgraded table must stay usable.
     (void) stmt.ExecuteDirect(R"(INSERT INTO "uu_generic" ("id", "note") VALUES (1, 'ok'))");
