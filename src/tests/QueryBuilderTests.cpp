@@ -1978,3 +1978,41 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable foreign keys and IfExists guards SQ
             });
     }
 }
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlServer StringLiteral encodes non-ASCII via NCHAR expressions", "[SqlQueryFormatter]")
+{
+    auto const& formatter = SqlQueryFormatter::SqlServer();
+
+    CHECK(formatter.StringLiteral("ä").contains("NCHAR(228)"));  // 2-byte UTF-8 sequence
+    CHECK(formatter.StringLiteral("€").contains("NCHAR(8364)")); // 3-byte UTF-8 sequence
+
+    // Supplementary-plane codepoints render as a UTF-16 surrogate pair.
+    auto const emoji = formatter.StringLiteral("\U0001F600");
+    CHECK(emoji.contains("NCHAR(55357)"));
+    CHECK(emoji.contains("NCHAR(56832)"));
+
+    // A stray continuation byte must not derail the encoder.
+    CHECK_FALSE(formatter.StringLiteral("\x80").empty());
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "AlterTable index commands honour schema qualification", "[SqlQueryFormatter]")
+{
+    auto const commands = std::vector<SqlAlterTableCommand> {
+        SqlAlterTableCommands::AddIndex { .columnName = "c", .unique = true },
+        SqlAlterTableCommands::DropIndex { .columnName = "c" },
+        SqlAlterTableCommands::DropIndexIfExists { .columnName = "c" },
+    };
+
+    // SQLite has no schema-qualified DDL; it must still emit statements without
+    // choking on the schema argument. PostgreSQL and SQL Server must qualify.
+    auto const sqliteSqls = SqlQueryFormatter::Sqlite().AlterTable("myschema", "T", commands);
+    REQUIRE(!sqliteSqls.empty());
+
+    for (auto const* formatter: { &SqlQueryFormatter::PostgrSQL(), &SqlQueryFormatter::SqlServer() })
+    {
+        auto const sqls = formatter->AlterTable("myschema", "T", commands);
+        REQUIRE(!sqls.empty());
+        for (auto const& sql: sqls)
+            CHECK(sql.contains("myschema"));
+    }
+}

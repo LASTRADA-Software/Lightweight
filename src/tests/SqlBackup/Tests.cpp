@@ -1886,3 +1886,68 @@ TEST_CASE("SqlBackup: Schema-only restore from full backup", "[SqlBackup]")
 }
 
 // NOLINTEND(bugprone-unchecked-optional-access)
+
+TEST_CASE("SqlBackup: PK-range windows fall back to single-row path for non-arrayable columns", "[SqlBackup]")
+{
+    using namespace SqlColumnTypeDefinitions;
+    ScopedFileRemoved const backupFileCleaner { BackupFile };
+
+    // Same multi-window shape as above (25 rows, rowsPerChunk=10 -> 3 windows), but
+    // with a binary column the RowArrayCursor cannot array-fetch — every window must
+    // transparently take the single-row fallback path.
+    {
+        SqlConnection conn;
+        conn.Connect(GetConnectionString());
+        SqlStatement stmt { conn };
+        stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+            migration.DropTableIfExists("pk_fallback");
+            migration.CreateTable("pk_fallback")
+                .PrimaryKey("id", Integer {})
+                .Column("payload", Binary {})
+                .Column("content", Varchar { 64 });
+        });
+        uint8_t const rawBinary[] = { 0x01, 0x00, 0xFF, 0x10 };
+        SqlDynamicBinary<1024> const binaryData { rawBinary };
+        stmt.Prepare("INSERT INTO pk_fallback (id, payload, content) VALUES (?, ?, ?)");
+        for (int i = 1; i <= 25; ++i)
+            (void) stmt.Execute(i, binaryData, std::format("row{}", i));
+    }
+
+    std::atomic<int> errors { 0 };
+    LambdaProgressManager pm { [&](SqlBackup::Progress const& p) {
+        if (p.state == SqlBackup::Progress::State::Error)
+        {
+            ++errors;
+            std::cerr << "Backup Error: " << p.message << "\n";
+        }
+    } };
+    auto backupSettings = SqlBackup::BackupSettings {};
+    backupSettings.rowsPerChunk = 10;
+    REQUIRE_NOTHROW(SqlBackup::Backup(BackupFile, GetConnectionString(), 4, pm, {}, "pk_fallback", {}, backupSettings));
+    CHECK(errors.load() == 0);
+
+    {
+        SqlConnection conn;
+        conn.Connect(GetConnectionString());
+        SqlStatement stmt { conn };
+        stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) { migration.DropTable("pk_fallback"); });
+    }
+    LambdaProgressManager restorePm { [&](SqlBackup::Progress const& p) {
+        if (p.state == SqlBackup::Progress::State::Error)
+        {
+            ++errors;
+            std::cerr << "Restore Error: " << p.message << "\n";
+        }
+    } };
+    REQUIRE_NOTHROW(SqlBackup::Restore(BackupFile, GetConnectionString(), 4, restorePm));
+    CHECK(errors.load() == 0);
+
+    SqlConnection conn;
+    conn.Connect(GetConnectionString());
+    SqlStatement stmt { conn };
+    REQUIRE(stmt.ExecuteDirectScalar<long long>("SELECT COUNT(*) FROM pk_fallback") == 25);
+    REQUIRE(stmt.ExecuteDirectScalar<std::string>("SELECT content FROM pk_fallback WHERE id = 17") == "row17");
+    auto const payload = stmt.ExecuteDirectScalar<SqlDynamicBinary<1024>>("SELECT payload FROM pk_fallback WHERE id = 17");
+    uint8_t const rawExpected[] = { 0x01, 0x00, 0xFF, 0x10 };
+    CHECK(payload == SqlDynamicBinary<1024> { rawExpected });
+}

@@ -350,12 +350,15 @@ TEST_CASE_METHOD(SqlTestFixture, "HasOneThrough", "[DataMapper][relations]")
         CHECK(supplier1.accountHistory.Record() == accountHistory1);
     }
 
-    // SECTION("Auto loading")
-    // {
-    //     dm.ConfigureRelationAutoLoading(supplier1);
+    SECTION("Auto loading")
+    {
+        // Use a freshly queried record so the relation starts unloaded and the
+        // access below goes through the LoadHasOneThroughByPK auto-loader.
+        auto supplier = dm.QuerySingle<Suppliers>(supplier1.id.Value()).value();
+        dm.ConfigureRelationAutoLoading(supplier);
 
-    //     CHECK(supplier1.accountHistory.Record() == accountHistory1);
-    // }
+        CHECK(supplier.accountHistory.Record() == accountHistory1);
+    }
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "BelongsToChain", "[DataMapper][relations]")
