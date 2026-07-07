@@ -1,0 +1,25 @@
+# Codecov configuration.
+#
+# The coverage job uploads one lcov tracefile per database/driver combination
+# (flags: sqlite3, postgres, mssql2022_odbc18, mssql2017_odbc17); Codecov
+# merges all uploads of a commit, so the headline number is the union across
+# databases and ODBC driver versions.
+#
+# The report is scoped to the library itself. The dbtool/ddl2cpp CLI binaries
+# under src/tools are exercised too (test_dbtool.py runs inside the coverage
+# targets), but their argument-parsing/terminal-UI plumbing is not part of the
+# library surface and would otherwise dilute the headline number.
+ignore:
+  - "src/tools/**"
+  - "src/tests/**"
+  - "src/examples/**"
+  - "src/benchmark/**"
+
+coverage:
+  status:
+    project:
+      default:
+        target: 90%
+    patch:
+      default:
+        informational: true

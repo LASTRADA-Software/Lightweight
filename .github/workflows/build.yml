@@ -951,7 +951,7 @@ jobs:
         # Rename the libsqliteodbc driver section to match the Windows driver
         # name so the shared .test-env.yml works on both platforms.
         run: |
-          sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev libzip-dev lcov odbc-postgresql
+          sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev libzip-dev lcov odbc-postgresql python3-yaml
           sudo sed -i 's/^\[SQLite3\]$/[SQLite3 ODBC Driver]/' /etc/odbcinst.ini
       - name: "Install MS SQL ODBC drivers (17 + 18)"
         # Both driver generations, so coverage includes the Driver 17 and

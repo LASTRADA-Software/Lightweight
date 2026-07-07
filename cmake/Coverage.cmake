@@ -119,17 +119,38 @@ endfunction()
 set(COVERAGE_TEST_ENVIRONMENTS "sqlite3;postgres;mssql2022;mssql2017_odbc17"
     CACHE STRING "Test environments for which per-environment coverage-<env> targets are created")
 
-# Defines target coverage-<env>: zero the counters, run the suite against a
+# Defines target coverage-<env>: zero the counters, run the unit test suite
+# and (when the tools are built) the dbtool integration suite against a
 # single --test-env, and capture a filtered tracefile at coverage/<env>.info.
-# Unlike the combined `coverage` target, the test run is strict — an
+# Unlike the combined `coverage` target, the test runs are strict — an
 # unreachable database fails the target instead of silently producing a
 # tracefile that under-reports coverage.
+#
+# The per-env tracefiles deliberately carry no branch data (BRDA records):
+# they are what CI uploads to Codecov, and Codecov counts a line with any
+# untaken branch as "partial" (excluded from the headline percentage), which
+# misrepresents C++ line coverage. Branch coverage remains available locally
+# through the combined `coverage` HTML target.
 function(_add_coverage_env_target TEST_TARGET TEST_ENV)
+    set(DBTOOL_COVERAGE_COMMANDS "")
+    if(TARGET dbtool AND TARGET dummy_migration_plugin AND Python3_EXECUTABLE)
+        set(DBTOOL_COVERAGE_COMMANDS
+            COMMAND ${CMAKE_COMMAND} -E echo "Running dbtool tests for coverage - ${TEST_ENV}..."
+            COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/src/tests/test_dbtool.py
+                --dbtool $<TARGET_FILE:dbtool>
+                --plugins-dir $<TARGET_FILE_DIR:dummy_migration_plugin>
+                --test-env ${TEST_ENV}
+        )
+        set(DBTOOL_COVERAGE_DEPENDS dbtool dummy_migration_plugin dummy_migration_plugin_2)
+    endif()
+
     add_custom_target(coverage-${TEST_ENV}
         COMMAND ${LCOV_PATH} --zerocounters --directory ${CMAKE_BINARY_DIR} ${GCOV_TOOL_OPTION}
 
         COMMAND ${CMAKE_COMMAND} -E echo "Running tests for coverage - ${TEST_ENV}..."
         COMMAND $<TARGET_FILE:${TEST_TARGET}> --test-env=${TEST_ENV}
+
+        ${DBTOOL_COVERAGE_COMMANDS}
 
         # `format` is ignored because Clang emits gcov records at line 0 for
         # coroutine helper functions (__await_suspend_wrapper__*), which
@@ -139,7 +160,6 @@ function(_add_coverage_env_target TEST_TARGET TEST_ENV)
             --directory ${CMAKE_BINARY_DIR}
             --output-file ${COVERAGE_OUTPUT_DIR}/${TEST_ENV}.info
             --ignore-errors mismatch,inconsistent,format
-            --rc branch_coverage=1
             ${GCOV_TOOL_OPTION}
 
         COMMAND ${LCOV_PATH}
@@ -151,13 +171,12 @@ function(_add_coverage_env_target TEST_TARGET TEST_ENV)
             "*/Catch2/*"
             --output-file ${COVERAGE_OUTPUT_DIR}/${TEST_ENV}.info
             --ignore-errors unused,inconsistent,format
-            --rc branch_coverage=1
             ${GCOV_TOOL_OPTION}
 
         COMMAND ${LCOV_PATH} --summary ${COVERAGE_OUTPUT_DIR}/${TEST_ENV}.info
-            --ignore-errors inconsistent,format --rc branch_coverage=1
+            --ignore-errors inconsistent,format
 
-        DEPENDS ${TEST_TARGET}
+        DEPENDS ${TEST_TARGET} ${DBTOOL_COVERAGE_DEPENDS}
         COMMENT "Generating ${TEST_ENV} coverage tracefile"
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
