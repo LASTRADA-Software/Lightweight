@@ -270,3 +270,39 @@ TEST_CASE("MakeColumnTypeFromMssqlSysType maps identifier and temporal types", "
     CHECK(Map("timestamp", 8) == SqlColumnTypeDefinition { VarBinary { .size = 8 } });
     CHECK(Map("rowversion", 8) == SqlColumnTypeDefinition { VarBinary { .size = 8 } });
 }
+
+// ================================================================================================
+// ReadAllTables — composite primary keys and multi-column (unique) indexes
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadAllTables reports composite keys and multi-column indexes", "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("SchemaProbe")
+            .PrimaryKey("pk_b", SqlColumnTypeDefinitions::Integer {})
+            .PrimaryKey("pk_a", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("val_one", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("val_two", SqlColumnTypeDefinitions::Integer {});
+    });
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateUniqueIndex("SchemaProbe_multi_index", "SchemaProbe", { "val_one", "val_two" });
+    });
+
+    auto const tables = SqlSchema::ReadAllTables(stmt, stmt.Connection().DatabaseName(), /*schema=*/"");
+    auto const probe = std::ranges::find_if(tables, [](SqlSchema::Table const& t) { return t.name == "SchemaProbe"; });
+    REQUIRE(probe != tables.end());
+
+    // Composite primary key columns come back in declaration (key-sequence) order.
+    REQUIRE(probe->primaryKeys.size() == 2);
+    CHECK(probe->primaryKeys[0] == "pk_b");
+    CHECK(probe->primaryKeys[1] == "pk_a");
+
+    // The multi-column unique index is reported with both columns in order and
+    // is not confused with the implicit primary-key index.
+    auto const index = std::ranges::find_if(probe->indexes, [](auto const& idx) { return idx.columns.size() == 2; });
+    REQUIRE(index != probe->indexes.end());
+    CHECK(index->columns[0] == "val_one");
+    CHECK(index->columns[1] == "val_two");
+    CHECK(index->isUnique);
+}

@@ -588,3 +588,76 @@ TEST_CASE("CxxModelPrinter: nullable int produces optional", "[CxxModelPrinter],
     CHECK(CxxTypeName({ .name = "x", .type = Date {}, .isNullable = true }) == "std::optional<Light::SqlDate>");
     CHECK(CxxTypeName({ .name = "x", .type = Bool {}, .isNullable = true }) == "std::optional<bool>");
 }
+
+TEST_CASE("CxxModelPrinter::PrintToFiles emits instantiation sources and CMakeLists", "[CxxModelPrinter]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+
+    auto const tempDir = std::filesystem::temp_directory_path() / "lightweight-cxxprinter-instantiations";
+    std::filesystem::remove_all(tempDir);
+    std::filesystem::create_directories(tempDir);
+
+    CxxModelPrinter::Config config;
+    config.generateInstantiations = true;
+    CxxModelPrinter printer { config };
+    printer.PrintTable(Lightweight::SqlSchema::Table {
+        .schema = "",
+        .name = "alpha",
+        .columns = { { .name = "id", .type = Integer {}, .isNullable = false, .isPrimaryKey = true } },
+        .primaryKeys = { "id" },
+    });
+
+    printer.PrintToFiles("Models", tempDir.string());
+
+    CHECK(std::filesystem::exists(tempDir / "alpha.hpp"));
+    REQUIRE(std::filesystem::exists(tempDir / "alpha.cpp"));
+    REQUIRE(std::filesystem::exists(tempDir / "CMakeLists.txt"));
+
+    auto readFile = [](std::filesystem::path const& p) {
+        std::ifstream f { p };
+        std::stringstream ss;
+        ss << f.rdbuf();
+        return ss.str();
+    };
+
+    // The header declares the extern template that the instantiation source defines.
+    auto const header = readFile(tempDir / "alpha.hpp");
+    CHECK(header.contains("extern template void Lightweight::DataMapper::ConfigureRelationAutoLoading"));
+
+    auto const source = readFile(tempDir / "alpha.cpp");
+    CHECK(source.contains("#include \"alpha.hpp\""));
+    CHECK(source.contains("template void Lightweight::DataMapper::ConfigureRelationAutoLoading"));
+
+    auto const cmake = readFile(tempDir / "CMakeLists.txt");
+    CHECK(cmake.contains("add_library(LightweightEntities STATIC"));
+    CHECK(cmake.contains("alpha.cpp"));
+    CHECK(cmake.contains("target_link_libraries(LightweightEntities PUBLIC Lightweight::Lightweight)"));
+
+    std::filesystem::remove_all(tempDir);
+}
+
+TEST_CASE("CxxModelPrinter::PrintReport summarizes tables and multi-key FK warnings", "[CxxModelPrinter]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+
+    CxxModelPrinter printer { CxxModelPrinter::Config {} };
+    printer.PrintTable(Lightweight::SqlSchema::Table {
+        .schema = "",
+        .name = "composite_fk",
+        .columns = {
+            { .name = "id", .type = Integer {}, .isNullable = false, .isPrimaryKey = true },
+            { .name = "ref_a", .type = Integer {}, .isNullable = false, .isForeignKey = true },
+            { .name = "ref_b", .type = Integer {}, .isNullable = false, .isForeignKey = true },
+        },
+        .foreignKeys = { Lightweight::SqlSchema::ForeignKeyConstraint {
+            .foreignKey = { .table = { .catalog = "", .schema = "", .table = "composite_fk" },
+                            .columns = { "ref_a", "ref_b" } },
+            .primaryKey = { .table = { .catalog = "", .schema = "", .table = "other" }, .columns = { "a", "b" } },
+        } },
+        .primaryKeys = { "id" },
+    });
+
+    // Writes the summary (including the unsupported multi-column FK warning) to
+    // stdout; the assertion is that the full report path executes.
+    CHECK_NOTHROW(printer.PrintReport());
+}

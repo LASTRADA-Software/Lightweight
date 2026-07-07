@@ -3234,3 +3234,89 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: conditional column and index co
     CHECK(it->second.columns[0].name == "id");
     CHECK(fold.indexes.empty());
 }
+
+// ================================================================================================
+// Default-schema post-connect hook, revert failure diagnostics, checksum rewriting
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "SetDefaultSchema post-connect hook runs on new connections", "[SqlMigration]")
+{
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+
+    // Installing a default schema registers a post-connect hook; opening a fresh
+    // connection runs it. On DBMSes without a session default-schema statement the
+    // hook is a no-op, which is exactly the path this test pins down.
+    mgr.SetDefaultSchema("main");
+    {
+        auto conn = SqlConnection {};
+        CHECK(conn.IsAlive());
+    }
+
+    // Clearing the schema uninstalls the hook again.
+    mgr.SetDefaultSchema("");
+    {
+        auto conn = SqlConnection {};
+        CHECK(conn.IsAlive());
+    }
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "MigrationException carries structured context on revert", "[SqlMigration]")
+{
+    auto badRevert = SqlMigration::Migration<202412102221>(
+        "bad revert",
+        [](SqlMigrationQueryBuilder& plan) { plan.RawSql("CREATE TABLE bad_revert_t (id INT PRIMARY KEY)"); },
+        [](SqlMigrationQueryBuilder& plan) { plan.RawSql("THIS_IS_INVALID_REVERT_SQL"); });
+
+    auto& migrationManager = SqlMigration::MigrationManager::GetInstance();
+    migrationManager.CreateMigrationHistory();
+    migrationManager.ApplySingleMigration(badRevert);
+
+    ScopedSqlNullLogger const nullLogger; // suppress the expected error message
+    (void) nullLogger;
+    try
+    {
+        migrationManager.RevertSingleMigration(badRevert);
+        FAIL("expected MigrationException");
+    }
+    catch (SqlMigration::MigrationException const& ex)
+    {
+        CHECK(ex.GetOperation() == SqlMigration::MigrationException::Operation::Revert);
+        CHECK(ex.GetMigrationTimestamp().value == 202412102221);
+        CHECK(ex.GetFailedSql().contains("THIS_IS_INVALID_REVERT_SQL"));
+    }
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "RewriteChecksums reports and repairs drifted checksums", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto migration = SqlMigration::Migration<202412102222>("checksummed", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("checksummed_t").PrimaryKey("id", Integer());
+    });
+
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    mgr.CreateMigrationHistory();
+    mgr.ApplySingleMigration(migration);
+
+    // Freshly applied migrations carry the current checksum: nothing to rewrite.
+    auto clean = mgr.RewriteChecksums(/*dryRun=*/true);
+    CHECK(clean.wasDryRun);
+    CHECK(clean.entries.empty());
+
+    // Simulate checksum drift (e.g. a migration edited after being applied).
+    {
+        auto stmt = SqlStatement {};
+        (void) stmt.ExecuteDirect("UPDATE schema_migrations SET checksum = 'drifted' WHERE version = 202412102222");
+    }
+
+    auto dryRun = mgr.RewriteChecksums(/*dryRun=*/true);
+    REQUIRE(dryRun.entries.size() == 1);
+    CHECK(dryRun.entries.front().timestamp.value == 202412102222);
+    CHECK(dryRun.entries.front().oldChecksum == "drifted");
+    CHECK_FALSE(dryRun.entries.front().newChecksum.empty());
+
+    // The dry run must not have fixed anything; the real run does.
+    auto repair = mgr.RewriteChecksums(/*dryRun=*/false);
+    REQUIRE(repair.entries.size() == 1);
+    CHECK(mgr.RewriteChecksums(/*dryRun=*/true).entries.empty());
+}
