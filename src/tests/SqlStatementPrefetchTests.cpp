@@ -894,8 +894,8 @@ TEST_CASE_METHOD(SqlTestFixture, "Prefetch: SqlVariantRowCursor reads temporal a
 
     stmt.Prepare(R"(INSERT INTO "prefetch_temporal" ("id", "d", "ts", "g") VALUES (?, ?, ?, ?))");
     auto const guid = SqlGuid::Create();
-    for (int i = 1; i <= static_cast<int>(rowCount); ++i)
-        (void) stmt.Execute(i,
+    for (auto const i: std::views::iota(std::size_t { 1 }, rowCount + 1))
+        (void) stmt.Execute(static_cast<int>(i),
                             SqlDate { std::chrono::year { 2024 }, std::chrono::month { 6 }, std::chrono::day { 15 } },
                             SqlDateTime { std::chrono::year { 2024 },
                                           std::chrono::month { 6 },

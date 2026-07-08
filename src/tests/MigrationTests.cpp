@@ -3167,7 +3167,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: rename table rewrites FK refere
         std::ranges::find_if(ordersIt->second.columns, [](SqlColumnDeclaration const& c) { return c.name == "user_id"; });
     REQUIRE(userIdColumn != ordersIt->second.columns.end());
     REQUIRE(userIdColumn->foreignKey.has_value());
-    CHECK(userIdColumn->foreignKey->tableName == "accounts");
+    CHECK(userIdColumn->foreignKey.value_or(SqlForeignKeyReferenceDefinition {}).tableName == "accounts");
 
     // The index hosted on the renamed table follows it.
     REQUIRE(fold.indexes.size() == 1);
@@ -3391,6 +3391,11 @@ TEST_CASE("ToSql: lup-truncate clips wide-string and SqlText variants, also on U
             .schemaName = "",
             .tableName = "T",
             .setColumns = { { "n", Lightweight::SqlVariant { std::string { "hellooo" } } } },
+            .setExpressions = {},
+            .whereColumn = {},
+            .whereOp = {},
+            .whereValue = {},
+            .whereExpression = {},
         };
         auto const sql = Lightweight::ToSql(formatter, SqlMigrationPlanElement { update }, context);
         REQUIRE(sql.size() == 1);
@@ -3533,7 +3538,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "RevertToMigration reports structured 
     auto const result = mgr.RevertToMigration(SqlMigration::MigrationTimestamp { 0 });
 
     REQUIRE(result.failedAt.has_value());
-    CHECK(result.failedAt->value == 202412102250);
+    CHECK(result.failedAt.value_or(SqlMigration::MigrationTimestamp {}).value == 202412102250);
     CHECK(result.failedTitle == "bad revert to");
     CHECK(result.failedSql.contains("THIS_IS_INVALID_REVERT_TO_SQL"));
     CHECK_FALSE(result.errorMessage.empty());
@@ -3556,7 +3561,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "RevertToMigration fails on applied-bu
 
     auto const result = mgr.RevertToMigration(SqlMigration::MigrationTimestamp { 0 });
     REQUIRE(result.failedAt.has_value());
-    CHECK(result.failedAt->value == 202412102251);
+    CHECK(result.failedAt.value_or(SqlMigration::MigrationTimestamp {}).value == 202412102251);
     CHECK(result.errorMessage.contains("not found"));
 }
 
@@ -3660,6 +3665,15 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
         // PostgreSQL stores all strings as UTF-8, so there is no narrow/wide
         // drift to repair — the correct result is "nothing to do".
         CHECK(dry.columns.empty());
+    }
+    else if (stmt.Connection().ServerType() == SqlServerType::SQLITE && dry.columns.empty())
+    {
+        // The SQLite ODBC driver's Unicode build (the stock Windows DLL) reports
+        // every text column as a wide type, so — as with psqlODBC — no narrow/wide
+        // drift is observable and "nothing to do" is the correct result. The ANSI
+        // build (typical on Linux) reports the declared narrow type and takes the
+        // upgrade path below.
+        SUCCEED();
     }
     else
     {
