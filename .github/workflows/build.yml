@@ -951,8 +951,18 @@ jobs:
         # Rename the libsqliteodbc driver section to match the Windows driver
         # name so the shared .test-env.yml works on both platforms.
         run: |
-          sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev libzip-dev lcov
+          sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev libzip-dev lcov odbc-postgresql python3-yaml
           sudo sed -i 's/^\[SQLite3\]$/[SQLite3 ODBC Driver]/' /etc/odbcinst.ini
+      - name: "Install MS SQL ODBC drivers (17 + 18)"
+        # Both driver generations, so coverage includes the Driver 17 and
+        # Driver 18 code paths (mirrors dbms_test_matrix).
+        run: |
+          curl https://packages.microsoft.com/keys/microsoft.asc | sudo tee /etc/apt/trusted.gpg.d/microsoft.asc
+          sudo add-apt-repository "$(wget -qO- https://packages.microsoft.com/config/ubuntu/20.04/prod.list)"
+          sudo apt update
+          sudo ACCEPT_EULA=y DEBIAN_FRONTEND=noninteractive apt install -y msodbcsql17 mssql-tools18
+      - name: "Start Docker databases"
+        run: python3 ./scripts/tests/docker-databases.py --start --wait mssql2022 mssql2017 postgres
       - name: "cmake"
         run: |
           cmake --preset clang-coverage \
@@ -960,19 +970,50 @@ jobs:
                 -D CMAKE_C_COMPILER=clang-${{ env.CLANG_TOOLS_VERSION }}
       - name: "build"
         run: cmake --build --preset clang-coverage -- -j$(nproc)
-      # The `coverage` target (cmake/Coverage.cmake) runs the suite against sqlite3/postgres/mssql
-      # (the latter two tolerate connection failure via `|| true`) and captures lcov data. Only
-      # sqlite3 is reachable in this job (no Docker services here), matching the "Sanitizers" job's
-      # scope — the full 3-database matrix is exercised, uninstrumented, by dbms_test_matrix; this
-      # job's purpose is a coverage percentage, not additional correctness coverage.
-      - name: "Run tests and generate lcov report"
-        run: cmake --build --preset clang-coverage --target coverage
-      - name: "Upload coverage to Codecov"
+      # Each coverage-<env> target (cmake/Coverage.cmake) zeroes the gcov
+      # counters, runs the suite against one database/driver combination, and
+      # captures a per-environment lcov tracefile. Every tracefile is uploaded
+      # to Codecov under its own flag; Codecov merges all uploads of a commit
+      # into the combined report, so the headline number is the union across
+      # databases and ODBC driver versions, while the flags break coverage
+      # down per environment. The env/driver combinations mirror ones already
+      # validated by dbms_test_matrix: mssql2022 via ODBC Driver 18, mssql2017
+      # via ODBC Driver 17.
+      - name: "Run tests and generate lcov report (SQLite3)"
+        run: cmake --build --preset clang-coverage --target coverage-sqlite3
+      - name: "Run tests and generate lcov report (PostgreSQL)"
+        run: cmake --build --preset clang-coverage --target coverage-postgres
+      - name: "Run tests and generate lcov report (MSSQL 2022, ODBC Driver 18)"
+        run: cmake --build --preset clang-coverage --target coverage-mssql2022
+      - name: "Run tests and generate lcov report (MSSQL 2017, ODBC Driver 17)"
+        run: cmake --build --preset clang-coverage --target coverage-mssql2017_odbc17
+      - name: "Upload SQLite3 coverage to Codecov"
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./out/build/clang-coverage/coverage/coverage.info
+          files: ./out/build/clang-coverage/coverage/sqlite3.info
+          flags: sqlite3
           fail_ci_if_error: false
-          verbose: true
+      - name: "Upload PostgreSQL coverage to Codecov"
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./out/build/clang-coverage/coverage/postgres.info
+          flags: postgres
+          fail_ci_if_error: false
+      - name: "Upload MSSQL 2022 (Driver 18) coverage to Codecov"
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./out/build/clang-coverage/coverage/mssql2022.info
+          flags: mssql2022_odbc18
+          fail_ci_if_error: false
+      - name: "Upload MSSQL 2017 (Driver 17) coverage to Codecov"
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./out/build/clang-coverage/coverage/mssql2017_odbc17.info
+          flags: mssql2017_odbc17
+          fail_ci_if_error: false
 
   # }}}

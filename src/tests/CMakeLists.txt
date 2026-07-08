@@ -149,14 +149,16 @@ install(FILES test_dbtool.py DESTINATION ${CMAKE_INSTALL_DATADIR}/Lightweight/te
 add_subdirectory(dummy_migration_plugin)
 add_subdirectory(dummy_migration_plugin_2)
 
-# Enable coverage instrumentation and add coverage targets
+# Register dbtool integration test
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+
+# Enable coverage instrumentation and add coverage targets. This must come
+# after find_package(Python3): the per-environment coverage targets run the
+# dbtool integration suite (test_dbtool.py) via Python3_EXECUTABLE.
 if(ENABLE_COVERAGE)
     enable_coverage_for_target(LightweightTest)
     add_coverage_targets(LightweightTest)
 endif()
-
-# Register dbtool integration test
-find_package(Python3 REQUIRED COMPONENTS Interpreter)
 if(WIN32)
     set(SQLITE_DRIVER_NAME "{SQLite3 ODBC Driver}")
 else()

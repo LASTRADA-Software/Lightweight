@@ -7,7 +7,12 @@
 #   enable_coverage_for_target(TARGET) - Enable coverage for a specific target
 #
 # Targets:
-#   coverage        - Run tests and generate HTML coverage report
+#   coverage        - Run tests against all databases and generate HTML coverage report
+#   coverage-<env>  - Run tests against one test environment (see
+#                     COVERAGE_TEST_ENVIRONMENTS) and capture a per-environment
+#                     lcov tracefile at coverage/<env>.info. CI uploads each
+#                     tracefile to Codecov under its own flag; Codecov merges
+#                     all flagged uploads of a commit into the combined report.
 #   coverage-clean  - Clean coverage data files
 #
 # Requirements:
@@ -107,6 +112,76 @@ function(enable_coverage_for_target TARGET)
     message(STATUS "[Coverage] Enabled for target: ${TARGET}")
 endfunction()
 
+# Test environments (see scripts/tests/.test-env.yml) that get a dedicated
+# coverage-<env> target each. The default set matches the CI coverage job:
+# all three DBMS, with MS SQL exercised through both Microsoft-supported ODBC
+# driver generations (Driver 18 against 2022, Driver 17 against 2017).
+set(COVERAGE_TEST_ENVIRONMENTS "sqlite3;postgres;mssql2022;mssql2017_odbc17"
+    CACHE STRING "Test environments for which per-environment coverage-<env> targets are created")
+
+# Defines target coverage-<env>: zero the counters, run the unit test suite
+# and (when the tools are built) the dbtool integration suite against a
+# single --test-env, and capture a filtered tracefile at coverage/<env>.info.
+# Unlike the combined `coverage` target, the test runs are strict — an
+# unreachable database fails the target instead of silently producing a
+# tracefile that under-reports coverage.
+#
+# The per-env tracefiles deliberately carry no branch data (BRDA records):
+# they are what CI uploads to Codecov, and Codecov counts a line with any
+# untaken branch as "partial" (excluded from the headline percentage), which
+# misrepresents C++ line coverage. Branch coverage remains available locally
+# through the combined `coverage` HTML target.
+function(_add_coverage_env_target TEST_TARGET TEST_ENV)
+    set(DBTOOL_COVERAGE_COMMANDS "")
+    if(TARGET dbtool AND TARGET dummy_migration_plugin AND Python3_EXECUTABLE)
+        set(DBTOOL_COVERAGE_COMMANDS
+            COMMAND ${CMAKE_COMMAND} -E echo "Running dbtool tests for coverage - ${TEST_ENV}..."
+            COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/src/tests/test_dbtool.py
+                --dbtool $<TARGET_FILE:dbtool>
+                --plugins-dir $<TARGET_FILE_DIR:dummy_migration_plugin>
+                --test-env ${TEST_ENV}
+        )
+        set(DBTOOL_COVERAGE_DEPENDS dbtool dummy_migration_plugin dummy_migration_plugin_2)
+    endif()
+
+    add_custom_target(coverage-${TEST_ENV}
+        COMMAND ${LCOV_PATH} --zerocounters --directory ${CMAKE_BINARY_DIR} ${GCOV_TOOL_OPTION}
+
+        COMMAND ${CMAKE_COMMAND} -E echo "Running tests for coverage - ${TEST_ENV}..."
+        COMMAND $<TARGET_FILE:${TEST_TARGET}> --test-env=${TEST_ENV}
+
+        ${DBTOOL_COVERAGE_COMMANDS}
+
+        # `format` is ignored because Clang emits gcov records at line 0 for
+        # coroutine helper functions (__await_suspend_wrapper__*), which
+        # lcov >= 2.x otherwise treats as a hard error.
+        COMMAND ${LCOV_PATH}
+            --capture
+            --directory ${CMAKE_BINARY_DIR}
+            --output-file ${COVERAGE_OUTPUT_DIR}/${TEST_ENV}.info
+            --ignore-errors mismatch,inconsistent,format
+            ${GCOV_TOOL_OPTION}
+
+        COMMAND ${LCOV_PATH}
+            --remove ${COVERAGE_OUTPUT_DIR}/${TEST_ENV}.info
+            "/usr/*"
+            "${CMAKE_BINARY_DIR}/_deps/*"
+            "${CMAKE_SOURCE_DIR}/src/tests/*"
+            "*/catch2/*"
+            "*/Catch2/*"
+            --output-file ${COVERAGE_OUTPUT_DIR}/${TEST_ENV}.info
+            --ignore-errors unused,inconsistent,format
+            ${GCOV_TOOL_OPTION}
+
+        COMMAND ${LCOV_PATH} --summary ${COVERAGE_OUTPUT_DIR}/${TEST_ENV}.info
+            --ignore-errors inconsistent,format
+
+        DEPENDS ${TEST_TARGET} ${DBTOOL_COVERAGE_DEPENDS}
+        COMMENT "Generating ${TEST_ENV} coverage tracefile"
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    )
+endfunction()
+
 # Function to add coverage targets (call this after defining test targets)
 function(add_coverage_targets TEST_TARGET)
     if(NOT LCOV_PATH OR NOT GENHTML_PATH)
@@ -116,6 +191,10 @@ function(add_coverage_targets TEST_TARGET)
 
     # Create coverage output directory
     file(MAKE_DIRECTORY ${COVERAGE_OUTPUT_DIR})
+
+    foreach(TEST_ENV IN LISTS COVERAGE_TEST_ENVIRONMENTS)
+        _add_coverage_env_target(${TEST_TARGET} ${TEST_ENV})
+    endforeach()
 
     # Target to clean coverage data
     add_custom_target(coverage-clean
@@ -130,20 +209,25 @@ function(add_coverage_targets TEST_TARGET)
         # Reset coverage counters
         COMMAND ${LCOV_PATH} --zerocounters --directory ${CMAKE_BINARY_DIR} ${GCOV_TOOL_OPTION}
 
-        # Run the tests against all supported databases
+        # Run the tests against all supported databases. gcov counters (.gcda)
+        # accumulate across runs, so the single capture below is the union of
+        # everything each database exercised. Unreachable databases are
+        # tolerated (|| true) for local convenience; CI uses the strict
+        # per-environment coverage-<env> targets instead.
         COMMAND ${CMAKE_COMMAND} -E echo "Running tests for coverage - SQLite3..."
         COMMAND $<TARGET_FILE:${TEST_TARGET}> --test-env=sqlite3 || true
         COMMAND ${CMAKE_COMMAND} -E echo "Running tests for coverage - PostgreSQL..."
         COMMAND $<TARGET_FILE:${TEST_TARGET}> --test-env=postgres || true
-        COMMAND ${CMAKE_COMMAND} -E echo "Running tests for coverage - MSSQL..."
-        COMMAND $<TARGET_FILE:${TEST_TARGET}> --test-env=mssql || true
+        COMMAND ${CMAKE_COMMAND} -E echo "Running tests for coverage - MSSQL 2022..."
+        COMMAND $<TARGET_FILE:${TEST_TARGET}> --test-env=mssql2022 || true
 
-        # Capture coverage data
+        # Capture coverage data (`format` ignored for Clang's line-0 coroutine
+        # helper records, see _add_coverage_env_target above)
         COMMAND ${LCOV_PATH}
             --capture
             --directory ${CMAKE_BINARY_DIR}
             --output-file ${COVERAGE_INFO_FILE}
-            --ignore-errors mismatch,inconsistent
+            --ignore-errors mismatch,inconsistent,format
             --rc branch_coverage=1
             ${GCOV_TOOL_OPTION}
 
@@ -156,7 +240,7 @@ function(add_coverage_targets TEST_TARGET)
             "*/catch2/*"
             "*/Catch2/*"
             --output-file ${COVERAGE_INFO_FILE}
-            --ignore-errors unused,inconsistent
+            --ignore-errors unused,inconsistent,format
             --rc branch_coverage=1
             ${GCOV_TOOL_OPTION}
 
@@ -168,13 +252,13 @@ function(add_coverage_targets TEST_TARGET)
             --legend
             --show-details
             --branch-coverage
-            --ignore-errors inconsistent
+            --ignore-errors inconsistent,format
             --rc branch_coverage=1
 
         # Print summary
         COMMAND ${CMAKE_COMMAND} -E echo ""
         COMMAND ${CMAKE_COMMAND} -E echo "Coverage report generated at: ${COVERAGE_HTML_DIR}/index.html"
-        COMMAND ${LCOV_PATH} --summary ${COVERAGE_INFO_FILE} --ignore-errors inconsistent --rc branch_coverage=1
+        COMMAND ${LCOV_PATH} --summary ${COVERAGE_INFO_FILE} --ignore-errors inconsistent,format --rc branch_coverage=1
 
         DEPENDS ${TEST_TARGET}
         COMMENT "Generating code coverage report"

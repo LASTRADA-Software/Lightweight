@@ -3078,3 +3078,619 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     auto const sqls = manager.PreviewPendingMigrations();
     CHECK(sqls.empty());
 }
+
+// ================================================================================================
+// Virtual applied migrations overlay
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Virtual applied migrations overlay", "[SqlMigration]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    mgr.CreateMigrationHistory();
+
+    fold_test::FoldStub<20'11'01'00'00'01> m1 { "one", [](SqlMigrationQueryBuilder& plan) {
+                                                   plan.CreateTable("vam_a").PrimaryKey("id", Bigint());
+                                               } };
+    fold_test::FoldStub<20'11'01'00'00'02> m2 { "two", [](SqlMigrationQueryBuilder& plan) {
+                                                   plan.CreateTable("vam_b").PrimaryKey("id", Bigint());
+                                               } };
+
+    REQUIRE(mgr.GetPending().size() == 2);
+
+    // Marking the first migration as virtually applied removes it from the pending
+    // set and surfaces it through GetAppliedMigrationIds without touching the DB.
+    auto const virtualIds = std::array { SqlMigration::MigrationTimestamp { 20'11'01'00'00'01ULL } };
+    mgr.AddVirtualAppliedMigrations(virtualIds);
+
+    auto const pending = mgr.GetPending();
+    REQUIRE(pending.size() == 1);
+    CHECK(pending.front()->GetTimestamp().value == 20'11'01'00'00'02ULL);
+    CHECK(std::ranges::contains(mgr.GetAppliedMigrationIds(), virtualIds[0]));
+
+    // Adding the same timestamp again (plus an unsorted duplicate batch) keeps the
+    // overlay deduplicated.
+    auto const duplicates = std::array {
+        SqlMigration::MigrationTimestamp { 20'11'01'00'00'01ULL },
+        SqlMigration::MigrationTimestamp { 20'11'01'00'00'01ULL },
+    };
+    mgr.AddVirtualAppliedMigrations(duplicates);
+    CHECK(std::ranges::count(mgr.GetAppliedMigrationIds(), virtualIds[0]) == 1);
+
+    // An empty batch is a no-op.
+    mgr.AddVirtualAppliedMigrations({});
+    CHECK(mgr.GetPending().size() == 1);
+
+    // Clearing the overlay restores both migrations as pending.
+    mgr.ClearVirtualAppliedMigrations();
+    CHECK(mgr.GetPending().size() == 2);
+}
+
+// ================================================================================================
+// Plan folding: rename table, drop table side effects, index folding
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: rename table rewrites FK references and indexes", "[SqlMigration][Fold]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+
+    fold_test::FoldStub<20'11'02'00'00'01> m1 { "create users + orders", [](SqlMigrationQueryBuilder& plan) {
+                                                   plan.CreateTable("users").PrimaryKey("id", Bigint());
+                                                   plan.CreateTable("orders")
+                                                       .PrimaryKey("id", Bigint())
+                                                       .RequiredForeignKey("user_id",
+                                                                           Bigint(),
+                                                                           SqlForeignKeyReferenceDefinition {
+                                                                               .tableName = "users", .columnName = "id" });
+                                               } };
+    fold_test::FoldStub<20'11'02'00'00'02> m2 { "index users.id", [](SqlMigrationQueryBuilder& plan) {
+                                                   plan.AlterTable("users").AddIndex("id");
+                                               } };
+    fold_test::FoldStub<20'11'02'00'00'03> m3 { "rename users", [](SqlMigrationQueryBuilder& plan) {
+                                                   plan.AlterTable("users").RenameTo("accounts");
+                                               } };
+
+    auto const fold = mgr.FoldRegisteredMigrations(SqlQueryFormatter::Sqlite());
+
+    auto const accountsKey = SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = "accounts" };
+    auto const usersKey = SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = "users" };
+    REQUIRE(fold.tables.contains(accountsKey));
+    CHECK_FALSE(fold.tables.contains(usersKey));
+    CHECK(std::ranges::contains(fold.creationOrder, accountsKey));
+
+    // The FK in orders must now reference the renamed table.
+    auto const ordersIt =
+        fold.tables.find(SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = "orders" });
+    REQUIRE(ordersIt != fold.tables.end());
+    auto const userIdColumn =
+        std::ranges::find_if(ordersIt->second.columns, [](SqlColumnDeclaration const& c) { return c.name == "user_id"; });
+    REQUIRE(userIdColumn != ordersIt->second.columns.end());
+    REQUIRE(userIdColumn->foreignKey.has_value());
+    CHECK(userIdColumn->foreignKey.value_or(SqlForeignKeyReferenceDefinition {}).tableName == "accounts");
+
+    // The index hosted on the renamed table follows it.
+    REQUIRE(fold.indexes.size() == 1);
+    CHECK(fold.indexes.front().tableName == "accounts");
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: drop table resets inbound FKs and data steps", "[SqlMigration][Fold]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+
+    fold_test::FoldStub<20'11'03'00'00'01> m1 {
+        "create users + orders + seed",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("users").PrimaryKey("id", Bigint()).Column("name", Varchar(50));
+            plan.CreateTable("orders")
+                .PrimaryKey("id", Bigint())
+                .RequiredForeignKey(
+                    "user_id", Bigint(), SqlForeignKeyReferenceDefinition { .tableName = "users", .columnName = "id" });
+            plan.Insert("users").Set("name", "seed"sv);
+        }
+    };
+    fold_test::FoldStub<20'11'03'00'00'02> m2 { "drop users",
+                                                [](SqlMigrationQueryBuilder& plan) { plan.DropTable("users"); } };
+
+    auto const fold = mgr.FoldRegisteredMigrations(SqlQueryFormatter::Sqlite());
+
+    CHECK_FALSE(fold.tables.contains(SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = "users" }));
+
+    // The inline FK declaration in orders is reset, and the seed insert targeting
+    // the dropped table is erased from the folded data steps.
+    auto const ordersIt =
+        fold.tables.find(SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = "orders" });
+    REQUIRE(ordersIt != fold.tables.end());
+    auto const userIdColumn =
+        std::ranges::find_if(ordersIt->second.columns, [](SqlColumnDeclaration const& c) { return c.name == "user_id"; });
+    REQUIRE(userIdColumn != ordersIt->second.columns.end());
+    CHECK_FALSE(userIdColumn->foreignKey.has_value());
+    CHECK(fold.dataSteps.empty());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: conditional column and index commands", "[SqlMigration][Fold]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+
+    fold_test::FoldStub<20'11'04'00'00'01> m1 { "create t", [](SqlMigrationQueryBuilder& plan) {
+                                                   plan.CreateTable("cond_t").PrimaryKey("id", Bigint());
+                                               } };
+    fold_test::FoldStub<20'11'04'00'00'02> m2 { "conditional churn", [](SqlMigrationQueryBuilder& plan) {
+                                                   // Second AddColumnIfNotExists for the same column must be a fold no-op.
+                                                   plan.AlterTable("cond_t").AddColumnIfNotExists("extra", Varchar(50));
+                                                   plan.AlterTable("cond_t").AddColumnIfNotExists("extra", Varchar(50));
+                                                   plan.AlterTable("cond_t").AddIndex("extra");
+                                                   plan.AlterTable("cond_t").DropIndex("extra");
+                                                   plan.AlterTable("cond_t").DropColumnIfExists("extra");
+                                               } };
+
+    auto const fold = mgr.FoldRegisteredMigrations(SqlQueryFormatter::Sqlite());
+
+    auto const it = fold.tables.find(SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = "cond_t" });
+    REQUIRE(it != fold.tables.end());
+    REQUIRE(it->second.columns.size() == 1);
+    CHECK(it->second.columns[0].name == "id");
+    CHECK(fold.indexes.empty());
+}
+
+// ================================================================================================
+// Default-schema post-connect hook, revert failure diagnostics, checksum rewriting
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "SetDefaultSchema post-connect hook runs on new connections", "[SqlMigration]")
+{
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+
+    // Installing a default schema registers a post-connect hook; opening a fresh
+    // connection runs it. On DBMSes without a session default-schema statement the
+    // hook is a no-op, which is exactly the path this test pins down.
+    mgr.SetDefaultSchema("main");
+    {
+        auto conn = SqlConnection {};
+        CHECK(conn.IsAlive());
+    }
+
+    // Clearing the schema uninstalls the hook again.
+    mgr.SetDefaultSchema("");
+    {
+        auto conn = SqlConnection {};
+        CHECK(conn.IsAlive());
+    }
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "MigrationException carries structured context on revert", "[SqlMigration]")
+{
+    auto badRevert = SqlMigration::Migration<202412102221>(
+        "bad revert",
+        [](SqlMigrationQueryBuilder& plan) { plan.RawSql("CREATE TABLE bad_revert_t (id INT PRIMARY KEY)"); },
+        [](SqlMigrationQueryBuilder& plan) { plan.RawSql("THIS_IS_INVALID_REVERT_SQL"); });
+
+    auto& migrationManager = SqlMigration::MigrationManager::GetInstance();
+    migrationManager.CreateMigrationHistory();
+    migrationManager.ApplySingleMigration(badRevert);
+
+    ScopedSqlNullLogger const nullLogger; // suppress the expected error message
+    (void) nullLogger;
+    try
+    {
+        migrationManager.RevertSingleMigration(badRevert);
+        FAIL("expected MigrationException");
+    }
+    catch (SqlMigration::MigrationException const& ex)
+    {
+        CHECK(ex.GetOperation() == SqlMigration::MigrationException::Operation::Revert);
+        CHECK(ex.GetMigrationTimestamp().value == 202412102221);
+        CHECK(ex.GetFailedSql().contains("THIS_IS_INVALID_REVERT_SQL"));
+    }
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "RewriteChecksums reports and repairs drifted checksums", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto migration = SqlMigration::Migration<202412102222>("checksummed", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("checksummed_t").PrimaryKey("id", Integer());
+    });
+
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    mgr.CreateMigrationHistory();
+    mgr.ApplySingleMigration(migration);
+
+    // Freshly applied migrations carry the current checksum: nothing to rewrite.
+    auto clean = mgr.RewriteChecksums(/*dryRun=*/true);
+    CHECK(clean.wasDryRun);
+    CHECK(clean.entries.empty());
+
+    // Simulate checksum drift (e.g. a migration edited after being applied).
+    {
+        auto stmt = SqlStatement {};
+        (void) stmt.ExecuteDirect("UPDATE schema_migrations SET checksum = 'drifted' WHERE version = 202412102222");
+    }
+
+    auto dryRun = mgr.RewriteChecksums(/*dryRun=*/true);
+    REQUIRE(dryRun.entries.size() == 1);
+    CHECK(dryRun.entries.front().timestamp.value == 202412102222);
+    CHECK(dryRun.entries.front().oldChecksum == "drifted");
+    CHECK_FALSE(dryRun.entries.front().newChecksum.empty());
+
+    // The dry run must not have fixed anything; the real run does.
+    auto repair = mgr.RewriteChecksums(/*dryRun=*/false);
+    REQUIRE(repair.entries.size() == 1);
+    CHECK(mgr.RewriteChecksums(/*dryRun=*/true).entries.empty());
+}
+
+TEST_CASE("ToSql: lup-truncate clips wide-string and SqlText variants, also on UPDATE", "[SqlMigration][compat]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    using Lightweight::MigrationRenderContext;
+    using Lightweight::SqlColumnDeclaration;
+    using Lightweight::SqlCreateTablePlan;
+    using Lightweight::SqlInsertDataPlan;
+    using Lightweight::SqlMigrationPlanElement;
+    using Lightweight::SqlUpdateDataPlan;
+
+    Lightweight::SqlServerQueryFormatter const formatter;
+    MigrationRenderContext context;
+    context.lupTruncate = true;
+
+    SqlCreateTablePlan const create {
+        .schemaName = "",
+        .tableName = "T",
+        .columns = { SqlColumnDeclaration { .name = "n", .type = NVarchar { 5 } } },
+        .foreignKeys = {},
+        .ifNotExists = false,
+    };
+    (void) Lightweight::ToSql(formatter, SqlMigrationPlanElement { create }, context);
+
+    CapturingWarningLogger capture;
+
+    auto const renderInsert = [&](Lightweight::SqlVariant value) {
+        SqlInsertDataPlan const insert {
+            .schemaName = "",
+            .tableName = "T",
+            .columns = { { "n", std::move(value) } },
+        };
+        auto const sql = Lightweight::ToSql(formatter, SqlMigrationPlanElement { insert }, context);
+        REQUIRE(sql.size() == 1);
+        return sql[0];
+    };
+
+    SECTION("u16string value")
+    {
+        auto const sql = renderInsert(Lightweight::SqlVariant { std::u16string { u"hellooo" } });
+        CHECK(sql.contains("hello"));
+        CHECK(!sql.contains("hellooo"));
+    }
+
+    SECTION("u16string_view value")
+    {
+        auto const sql = renderInsert(Lightweight::SqlVariant { std::u16string_view { u"hellooo" } });
+        CHECK(sql.contains("hello"));
+        CHECK(!sql.contains("hellooo"));
+    }
+
+    SECTION("string_view value")
+    {
+        auto const sql = renderInsert(Lightweight::SqlVariant { std::string_view { "hellooo" } });
+        CHECK(sql.contains("hello"));
+        CHECK(!sql.contains("hellooo"));
+    }
+
+    SECTION("SqlText value")
+    {
+        auto const sql = renderInsert(Lightweight::SqlVariant { Lightweight::SqlText { "hellooo" } });
+        CHECK(sql.contains("hello"));
+        CHECK(!sql.contains("hellooo"));
+    }
+
+    SECTION("UPDATE set-columns are clipped too")
+    {
+        SqlUpdateDataPlan const update {
+            .schemaName = "",
+            .tableName = "T",
+            .setColumns = { { "n", Lightweight::SqlVariant { std::string { "hellooo" } } } },
+            .setExpressions = {},
+            .whereColumn = {},
+            .whereOp = {},
+            .whereValue = {},
+            .whereExpression = {},
+        };
+        auto const sql = Lightweight::ToSql(formatter, SqlMigrationPlanElement { update }, context);
+        REQUIRE(sql.size() == 1);
+        CHECK(sql[0].contains("hello"));
+        CHECK(!sql[0].contains("hellooo"));
+    }
+}
+
+// ================================================================================================
+// Foreign-key alterations through the migration executor (SQLite guard → table rebuild)
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "AddForeignKey and DropForeignKey run through the executor", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto createPair = SqlMigration::Migration<202412102230>("create fk pair", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("fk_parent").PrimaryKey("id", Bigint());
+        plan.CreateTable("fk_child")
+            .PrimaryKey("id", Bigint())
+            .RequiredForeignKey(
+                "parent_id", Bigint(), SqlForeignKeyReferenceDefinition { .tableName = "fk_parent", .columnName = "id" });
+        plan.Insert("fk_parent").Set("id", 1);
+        plan.Insert("fk_child").Set("id", 10).Set("parent_id", 1);
+    });
+    // On SQLite both commands trigger the in-place table rebuild recipe; on the
+    // other DBMSes they render as ALTER TABLE DROP/ADD CONSTRAINT.
+    auto dropFk = SqlMigration::Migration<202412102231>(
+        "drop fk", [](SqlMigrationQueryBuilder& plan) { plan.AlterTable("fk_child").DropForeignKey("parent_id"); });
+    auto addFk = SqlMigration::Migration<202412102232>("re-add fk", [](SqlMigrationQueryBuilder& plan) {
+        plan.AlterTable("fk_child")
+            .AddForeignKey("parent_id", SqlForeignKeyReferenceDefinition { .tableName = "fk_parent", .columnName = "id" });
+    });
+
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    mgr.CreateMigrationHistory();
+    REQUIRE(mgr.ApplyPendingMigrations() == 3);
+
+    // The rebuild must preserve the seeded rows.
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    CHECK(stmt.ExecuteDirectScalar<long long>(R"(SELECT COUNT(*) FROM "fk_child")").value_or(0) == 1);
+    CHECK(stmt.ExecuteDirectScalar<long long>(R"(SELECT "parent_id" FROM "fk_child")").value_or(0) == 1);
+}
+
+// ================================================================================================
+// Plan folding: foreign-key commands
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: alter-table foreign-key commands", "[SqlMigration][Fold]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+
+    fold_test::FoldStub<20'11'05'00'00'01> m1 { "create pair", [](SqlMigrationQueryBuilder& plan) {
+                                                   plan.CreateTable("ffk_parent").PrimaryKey("id", Bigint());
+                                                   plan.CreateTable("ffk_child")
+                                                       .PrimaryKey("id", Bigint())
+                                                       .Column("parent_id", Bigint())
+                                                       .Column("region_a", Bigint())
+                                                       .Column("region_b", Bigint());
+                                               } };
+    fold_test::FoldStub<20'11'05'00'00'02> m2 { "fk churn", [](SqlMigrationQueryBuilder& plan) {
+                                                   plan.AlterTable("ffk_child")
+                                                       .AddForeignKey("parent_id",
+                                                                      SqlForeignKeyReferenceDefinition {
+                                                                          .tableName = "ffk_parent", .columnName = "id" })
+                                                       .AddCompositeForeignKey(
+                                                           { "region_a", "region_b" }, "ffk_parent", { "id", "id" });
+                                                   plan.AlterTable("ffk_child").DropForeignKey("parent_id");
+                                               } };
+
+    auto const fold = mgr.FoldRegisteredMigrations(SqlQueryFormatter::Sqlite());
+
+    auto const it =
+        fold.tables.find(SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = "ffk_child" });
+    REQUIRE(it != fold.tables.end());
+    // The single-column FK was added then dropped; only the composite FK survives the fold.
+    REQUIRE(it->second.compositeForeignKeys.size() == 1);
+    CHECK(it->second.compositeForeignKeys.front().columns == std::vector<std::string> { "region_a", "region_b" });
+    CHECK(it->second.compositeForeignKeys.front().referencedTableName == "ffk_parent");
+}
+
+// ================================================================================================
+// lup-truncate width lookup against the live INFORMATION_SCHEMA
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "lup-truncate resolves unknown widths from the live schema",
+                 "[SqlMigration][compat]")
+{
+    using namespace SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    mgr.CreateMigrationHistory();
+
+    mgr.SetCompatPolicy(
+        [](SqlMigration::MigrationBase const&) { return std::set<std::string> { std::string(CompatFlagLupTruncateName) }; });
+
+    // First apply run: create the narrow column. The render context dies with it.
+    auto create = SqlMigration::Migration<202412102240>("create narrow", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("lup_live").PrimaryKey("id", Bigint()).Column("n", NVarchar(5));
+    });
+    REQUIRE(mgr.ApplyPendingMigrations() == 1);
+
+    // Second apply run: the INSERT's column width is unknown to the fresh context,
+    // so the width lookup queries INFORMATION_SCHEMA.COLUMNS on the live database.
+    // On DBMSes without INFORMATION_SCHEMA (SQLite) the lookup failure is swallowed
+    // and the value passes through unclipped, which SQLite accepts.
+    auto insert = SqlMigration::Migration<202412102241>("oversize insert", [](SqlMigrationQueryBuilder& plan) {
+        plan.Insert("lup_live").Set("id", 1).Set("n", "hellooo"sv);
+    });
+    REQUIRE(mgr.ApplyPendingMigrations() == 1);
+
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    auto const stored = stmt.ExecuteDirectScalar<std::string>(R"(SELECT "n" FROM "lup_live")").value_or("");
+    if (stmt.Connection().ServerType() == SqlServerType::SQLITE)
+        CHECK(stored == "hellooo"); // no width metadata -> unclipped, SQLite tolerates overlength
+    else
+        CHECK(stored == "hello"); // clipped to the live column's declared width
+
+    mgr.SetCompatPolicy({});
+}
+
+// ================================================================================================
+// RevertToMigration failure reporting
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "RevertToMigration reports structured failure details", "[SqlMigration]")
+{
+    auto badRevert = SqlMigration::Migration<202412102250>(
+        "bad revert to",
+        [](SqlMigrationQueryBuilder& plan) { plan.RawSql("CREATE TABLE bad_revert_to_t (id INT PRIMARY KEY)"); },
+        [](SqlMigrationQueryBuilder& plan) { plan.RawSql("THIS_IS_INVALID_REVERT_TO_SQL"); });
+
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    mgr.CreateMigrationHistory();
+    REQUIRE(mgr.ApplyPendingMigrations() == 1);
+
+    ScopedSqlNullLogger const nullLogger;
+    (void) nullLogger;
+    auto const result = mgr.RevertToMigration(SqlMigration::MigrationTimestamp { 0 });
+
+    REQUIRE(result.failedAt.has_value());
+    CHECK(result.failedAt.value_or(SqlMigration::MigrationTimestamp {}).value == 202412102250);
+    CHECK(result.failedTitle == "bad revert to");
+    CHECK(result.failedSql.contains("THIS_IS_INVALID_REVERT_TO_SQL"));
+    CHECK_FALSE(result.errorMessage.empty());
+    CHECK_FALSE(result.sqlState.empty());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "RevertToMigration fails on applied-but-unregistered migration", "[SqlMigration]")
+{
+    auto migration = SqlMigration::Migration<202412102251>(
+        "vanishing",
+        [](SqlMigrationQueryBuilder& plan) { plan.RawSql("CREATE TABLE vanish_t (id INT PRIMARY KEY)"); },
+        [](SqlMigrationQueryBuilder& plan) { plan.RawSql("DROP TABLE vanish_t"); });
+
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    mgr.CreateMigrationHistory();
+    REQUIRE(mgr.ApplyPendingMigrations() == 1);
+
+    // Simulate a stale binary: the migration is recorded as applied but no longer registered.
+    mgr.RemoveAllMigrations();
+
+    auto const result = mgr.RevertToMigration(SqlMigration::MigrationTimestamp { 0 });
+    REQUIRE(result.failedAt.has_value());
+    CHECK(result.failedAt.value_or(SqlMigration::MigrationTimestamp {}).value == 202412102251);
+    CHECK(result.errorMessage.contains("not found"));
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Virtual applied migrations persist to history on write", "[SqlMigration]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    mgr.CreateMigrationHistory();
+
+    fold_test::FoldStub<20'11'06'00'00'01> m1 { "virtually applied", [](SqlMigrationQueryBuilder& plan) {
+                                                   plan.CreateTable("vp_a").PrimaryKey("id", Bigint());
+                                               } };
+    fold_test::FoldStub<20'11'06'00'00'02> m2 { "really applied", [](SqlMigrationQueryBuilder& plan) {
+                                                   plan.CreateTable("vp_b").PrimaryKey("id", Bigint());
+                                               } };
+
+    auto const virtualIds = std::array { SqlMigration::MigrationTimestamp { 20'11'06'00'00'01ULL } };
+    mgr.AddVirtualAppliedMigrations(virtualIds);
+
+    // Applying the remaining pending migration also drains the overlay into the
+    // history table, so the virtual timestamp survives a cleared overlay.
+    REQUIRE(mgr.ApplyPendingMigrations() == 1);
+    mgr.ClearVirtualAppliedMigrations();
+
+    auto const applied = mgr.GetAppliedMigrationIds();
+    CHECK(std::ranges::contains(applied, SqlMigration::MigrationTimestamp { 20'11'06'00'00'01ULL }));
+    CHECK(std::ranges::contains(applied, SqlMigration::MigrationTimestamp { 20'11'06'00'00'02ULL }));
+
+    // The virtually-applied migration must never have been executed: its table
+    // does not exist, while the really-applied one does.
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    CHECK(stmt.ExecuteDirectScalar<long long>(R"(SELECT COUNT(*) FROM "vp_b")").value_or(-1) == 0);
+    CHECK_THROWS(stmt.ExecuteDirectScalar<long long>(R"(SELECT COUNT(*) FROM "vp_a")"));
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: not-required column and FK-column variants", "[SqlMigration][Fold]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+
+    fold_test::FoldStub<20'11'07'00'00'01> m1 {
+        "builder variants",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("bv_parent").PrimaryKey("id", Bigint());
+            plan.CreateTable("bv_t").PrimaryKey("id", Bigint());
+            plan.AlterTable("bv_t")
+                .AddNotRequiredColumnIfNotExists("opt_note", Varchar(40))
+                .AddForeignKeyColumn(
+                    "parent_id", Bigint(), SqlForeignKeyReferenceDefinition { .tableName = "bv_parent", .columnName = "id" })
+                .AddNotRequiredForeignKeyColumn(
+                    "opt_parent_id",
+                    Bigint(),
+                    SqlForeignKeyReferenceDefinition { .tableName = "bv_parent", .columnName = "id" });
+        }
+    };
+
+    auto const fold = mgr.FoldRegisteredMigrations(SqlQueryFormatter::Sqlite());
+    auto const it = fold.tables.find(SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = "bv_t" });
+    REQUIRE(it != fold.tables.end());
+
+    auto const names = [&] {
+        auto v = std::vector<std::string> {};
+        for (auto const& c: it->second.columns)
+            v.push_back(c.name);
+        return v;
+    }();
+    CHECK(std::ranges::contains(names, "opt_note"));
+    CHECK(std::ranges::contains(names, "parent_id"));
+    CHECK(std::ranges::contains(names, "opt_parent_id"));
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: upgrades drifted varchar columns cross-backend",
+                 "[SqlMigration][UnicodeUpgrade]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    mgr.CreateMigrationHistory();
+
+    // Live table deliberately created with a narrow (non-Unicode) column...
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& m) {
+        m.CreateTable("uu_generic").PrimaryKey("id", Bigint()).Column("note", Varchar(40));
+    });
+
+    // ...while the registered migration declares the wide type: that's the drift
+    // UnicodeUpgradeTables exists to repair.
+    fold_test::FoldStub<20'11'08'00'00'01> decl {
+        "declare wide",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("uu_generic").PrimaryKey("id", Bigint()).Column("note", NVarchar(40));
+        }
+    };
+
+    auto const dry = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    CHECK(dry.wasDryRun);
+
+    if (stmt.Connection().ServerType() == SqlServerType::POSTGRESQL)
+    {
+        // psqlODBC (Unicode driver) reports VARCHAR columns as wide types and
+        // PostgreSQL stores all strings as UTF-8, so there is no narrow/wide
+        // drift to repair — the correct result is "nothing to do".
+        CHECK(dry.columns.empty());
+    }
+    else if (stmt.Connection().ServerType() == SqlServerType::SQLITE && dry.columns.empty())
+    {
+        // The SQLite ODBC driver's Unicode build (the stock Windows DLL) reports
+        // every text column as a wide type, so — as with psqlODBC — no narrow/wide
+        // drift is observable and "nothing to do" is the correct result. The ANSI
+        // build (typical on Linux) reports the declared narrow type and takes the
+        // upgrade path below.
+        SUCCEED();
+    }
+    else
+    {
+        REQUIRE_FALSE(dry.columns.empty());
+
+        auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+        CHECK_FALSE(result.wasDryRun);
+        REQUIRE_FALSE(result.columns.empty());
+
+        // After the real run the drift is gone — except on SQLite, whose ODBC
+        // driver cannot distinguish VARCHAR from NVARCHAR in live metadata (see
+        // the roundtrip test above), so the reader keeps reporting the narrow type.
+        if (stmt.Connection().ServerType() != SqlServerType::SQLITE)
+            CHECK(mgr.UnicodeUpgradeTables(/*dryRun=*/true).columns.empty());
+    }
+
+    // The upgraded table must stay usable.
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "uu_generic" ("id", "note") VALUES (1, 'ok'))");
+    CHECK(stmt.ExecuteDirectScalar<long long>(R"(SELECT COUNT(*) FROM "uu_generic")").value_or(0) == 1);
+}

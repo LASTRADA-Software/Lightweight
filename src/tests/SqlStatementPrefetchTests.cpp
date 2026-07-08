@@ -874,3 +874,48 @@ TEST_CASE_METHOD(SqlTestFixture, "Prefetch benchmark", "[.][prefetchbench]")
 
     CHECK(slow == quick);
 }
+
+TEST_CASE_METHOD(SqlTestFixture, "Prefetch: SqlVariantRowCursor reads temporal and GUID columns", "[prefetch]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    constexpr std::size_t rowCount = TestPrefetchDepth + 5;
+
+    auto stmt = SqlStatement {};
+    stmt.Connection().SetDefaultPrefetchDepth(TestPrefetchDepth);
+
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.DropTableIfExists("prefetch_temporal");
+        migration.CreateTable("prefetch_temporal")
+            .PrimaryKey("id", Integer {})
+            .RequiredColumn("d", Date {})
+            .RequiredColumn("ts", DateTime {})
+            .RequiredColumn("g", Guid {});
+    });
+
+    stmt.Prepare(R"(INSERT INTO "prefetch_temporal" ("id", "d", "ts", "g") VALUES (?, ?, ?, ?))");
+    auto const guid = SqlGuid::Create();
+    for (auto const i: std::views::iota(std::size_t { 1 }, rowCount + 1))
+        (void) stmt.Execute(static_cast<int>(i),
+                            SqlDate { std::chrono::year { 2024 }, std::chrono::month { 6 }, std::chrono::day { 15 } },
+                            SqlDateTime { std::chrono::year { 2024 },
+                                          std::chrono::month { 6 },
+                                          std::chrono::day { 15 },
+                                          std::chrono::hours { 12 },
+                                          std::chrono::minutes { 30 },
+                                          std::chrono::seconds { 45 } },
+                            guid);
+
+    // Reading DATE / TIMESTAMP / GUID cells through the variant row cursor takes
+    // the temporal and GUID arms of the prefetch variant dispatch.
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "id", "d", "ts", "g" FROM "prefetch_temporal" ORDER BY "id")");
+    std::size_t seen = 0;
+    for (auto const& row: SqlVariantRowCursor { std::move(cursor) })
+    {
+        ++seen;
+        REQUIRE(row.size() == 4);
+        CHECK_FALSE(row[1].IsNull());
+        CHECK_FALSE(row[2].IsNull());
+        CHECK_FALSE(row[3].IsNull());
+    }
+    CHECK(seen == rowCount);
+}

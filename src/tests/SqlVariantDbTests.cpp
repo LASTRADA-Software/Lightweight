@@ -395,22 +395,49 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches DECIMAL columns by scale", 
     stmt.MigrateDirect([](auto& migration) {
         migration.CreateTable("Money")
             .RequiredColumn("scale0", SqlColumnTypeDefinitions::Decimal { .precision = 15, .scale = 0 })
+            .RequiredColumn("scale1", SqlColumnTypeDefinitions::Decimal { .precision = 15, .scale = 1 })
             .RequiredColumn("scale2", SqlColumnTypeDefinitions::Decimal { .precision = 15, .scale = 2 })
-            .RequiredColumn("scale6", SqlColumnTypeDefinitions::Decimal { .precision = 15, .scale = 6 });
+            .RequiredColumn("scale3", SqlColumnTypeDefinitions::Decimal { .precision = 15, .scale = 3 })
+            .RequiredColumn("scale4", SqlColumnTypeDefinitions::Decimal { .precision = 15, .scale = 4 })
+            .RequiredColumn("scale5", SqlColumnTypeDefinitions::Decimal { .precision = 15, .scale = 5 })
+            .RequiredColumn("scale6", SqlColumnTypeDefinitions::Decimal { .precision = 15, .scale = 6 })
+            .RequiredColumn("scale7", SqlColumnTypeDefinitions::Decimal { .precision = 15, .scale = 7 })
+            .RequiredColumn("scale8", SqlColumnTypeDefinitions::Decimal { .precision = 15, .scale = 8 });
     });
 
-    stmt.Prepare(R"(INSERT INTO "Money" ("scale0", "scale2", "scale6") VALUES (?, ?, ?))");
-    (void) stmt.Execute(SqlNumeric<15, 0> { 12345.0 }, SqlNumeric<15, 2> { 99.50 }, SqlNumeric<15, 6> { 0.123456 });
+    stmt.Prepare(
+        R"(INSERT INTO "Money" ("scale0", "scale1", "scale2", "scale3", "scale4", "scale5", "scale6", "scale7", "scale8")
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?))");
+    (void) stmt.Execute(SqlNumeric<15, 0> { 12345.0 },
+                        SqlNumeric<15, 1> { 7.5 },
+                        SqlNumeric<15, 2> { 99.50 },
+                        SqlNumeric<15, 3> { 1.125 },
+                        SqlNumeric<15, 4> { 2.0625 },
+                        SqlNumeric<15, 5> { 3.03125 },
+                        SqlNumeric<15, 6> { 0.123456 },
+                        SqlNumeric<15, 7> { 0.1234567 },
+                        SqlNumeric<15, 8> { 0.12345678 });
 
-    auto cursor = stmt.ExecuteDirect(R"(SELECT "scale0", "scale2", "scale6" FROM "Money")");
+    auto cursor = stmt.ExecuteDirect(
+        R"(SELECT "scale0", "scale1", "scale2", "scale3", "scale4", "scale5", "scale6", "scale7", "scale8" FROM "Money")");
     REQUIRE(cursor.FetchRow());
 
-    SqlVariant v0;
-    SqlVariant v2;
-    SqlVariant v6;
-    CHECK(cursor.GetColumn(1, &v0));
-    CHECK(cursor.GetColumn(2, &v2));
-    CHECK(cursor.GetColumn(3, &v6));
+    // MSSQL's SQLGetData requires strictly ascending column access, so fetch all
+    // nine scales in order; every arm of the DECIMAL scale dispatch executes.
+    auto fetchVariant = [&](SQLUSMALLINT column) {
+        SqlVariant v;
+        CHECK(cursor.GetColumn(column, &v));
+        return v;
+    };
+    auto const v0 = fetchVariant(1);
+    auto const v1 = fetchVariant(2);
+    auto const v2 = fetchVariant(3);
+    auto const v3 = fetchVariant(4);
+    auto const v4 = fetchVariant(5);
+    auto const v5 = fetchVariant(6);
+    auto const v6 = fetchVariant(7);
+    auto const v7 = fetchVariant(8);
+    auto const v8 = fetchVariant(9);
 
     // scale=0 returns the unscaled value as a 64-bit integer regardless of dialect.
     CHECK(v0.TryGetLongLong().value_or(0) == 12345);
@@ -435,6 +462,12 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches DECIMAL columns by scale", 
         };
         CHECK_THAT(asDouble(v2).value_or(0.0), Catch::Matchers::WithinAbs(99.50, 1e-6));
         CHECK_THAT(asDouble(v6).value_or(0.0), Catch::Matchers::WithinAbs(0.123456, 1e-9));
+        CHECK_THAT(asDouble(v1).value_or(0.0), Catch::Matchers::WithinAbs(7.5, 1e-6));
+        CHECK_THAT(asDouble(v3).value_or(0.0), Catch::Matchers::WithinAbs(1.125, 1e-6));
+        CHECK_THAT(asDouble(v4).value_or(0.0), Catch::Matchers::WithinAbs(2.0625, 1e-6));
+        CHECK_THAT(asDouble(v5).value_or(0.0), Catch::Matchers::WithinAbs(3.03125, 1e-6));
+        CHECK_THAT(asDouble(v7).value_or(0.0), Catch::Matchers::WithinAbs(0.1234567, 1e-7));
+        CHECK_THAT(asDouble(v8).value_or(0.0), Catch::Matchers::WithinAbs(0.12345678, 1e-8));
     }
 }
 
@@ -501,4 +534,36 @@ TEST_CASE_METHOD(SqlTestFixture, "ODBC assumption: BOOLEAN column reports SQL_BI
         migration.CreateTable("AssumeBool").RequiredColumn("flag", SqlColumnTypeDefinitions::Bool {});
     });
     CHECK(FetchConciseType(stmt, R"(SELECT "flag" FROM "AssumeBool")", 1) == SQL_BIT);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches BIGINT columns and untyped NULL literals", "[SqlVariant]")
+{
+    auto stmt = SqlStatement {};
+
+    // Untyped NULL literal: SQLite reports SQL_TYPE_NULL as the column type.
+    {
+        auto cursor = stmt.ExecuteDirect("SELECT NULL");
+        REQUIRE(cursor.FetchRow());
+        SqlVariant nullValue;
+        // GetColumn returns false for NULL values by convention.
+        CHECK_FALSE(cursor.GetColumn(1, &nullValue));
+        CHECK(nullValue.IsNull());
+    }
+
+    // BIGINT columns: the SQLite driver reports the C type id (SQL_C_SBIGINT)
+    // in the type slot, which SqlVariant must treat as the equivalent SQL type.
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.DropTableIfExists("variant_bigint");
+        migration.CreateTable("variant_bigint")
+            .PrimaryKey("id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("big", SqlColumnTypeDefinitions::Bigint {});
+    });
+    stmt.Prepare(R"(INSERT INTO "variant_bigint" ("id", "big") VALUES (?, ?))");
+    (void) stmt.Execute(1, 1'234'567'890'123LL);
+
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "big" FROM "variant_bigint")");
+    REQUIRE(cursor.FetchRow());
+    SqlVariant big;
+    CHECK(cursor.GetColumn(1, &big));
+    CHECK(big.TryGetLongLong().value_or(0) == 1'234'567'890'123LL);
 }
