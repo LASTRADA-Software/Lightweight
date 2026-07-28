@@ -193,7 +193,7 @@ struct Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;</div><p>Represent
 <p>Precision is <em>exactly</em> the total number of digits in the number, including the digits after the decimal point.</p>
 <p>Scale is the number of digits after the decimal point, and may be anywhere in <code>[0, Precision]</code>. <code>Scale == Precision</code> denotes a purely fractional number, e.g. <code><a class="el" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html">SqlNumeric</a>&lt;4, 4&gt;</code> covers <code>[0.0000, 0.9999]</code> — the C++ equivalent of SQL's <code>DECIMAL(4, 4)</code>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00096">96</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00102">102</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="ac25fd62d99efe8fd5998d92a2ef95e8a" name="ac25fd62d99efe8fd5998d92a2ef95e8a"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ac25fd62d99efe8fd5998d92a2ef95e8a">&#9670;&#160;</a></span>SqlNumeric() <span class="overload">[1/2]</span></h2>
@@ -223,9 +223,9 @@ template&lt;std::size_t ThePrecision, std::size_t TheScale&gt; </div>
 
 <p>Constructs a numeric from a floating point value. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00142">142</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00148">148</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00157">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::assign()</a>.</p>
+<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00163">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::assign()</a>.</p>
 
 </div>
 </div>
@@ -257,7 +257,7 @@ template&lt;std::size_t ThePrecision, std::size_t TheScale&gt; </div>
 
 <p>Constructs a numeric from a SQL_NUMERIC_STRUCT. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00148">148</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00154">154</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
 
 </div>
 </div>
@@ -290,11 +290,11 @@ template&lt;std::size_t ThePrecision, std::size_t TheScale&gt; </div>
 
 <p>Assigns a value to the numeric. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00157">157</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00163">163</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00127">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::nativeValue</a>, <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00099">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::Precision</a>, <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00102">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::Scale</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00124">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::sqlValue</a>.</p>
+<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00133">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::nativeValue</a>, <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00105">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::Precision</a>, <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00108">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::Scale</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00130">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::sqlValue</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00177">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::operator=()</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00142">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::SqlNumeric()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00183">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::operator=()</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00148">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::SqlNumeric()</a>.</p>
 
 </div>
 </div>
@@ -326,9 +326,9 @@ template&lt;std::size_t ThePrecision, std::size_t TheScale&gt; </div>
 
 <p>Assigns a floating point value to the numeric. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00177">177</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00183">183</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00157">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::assign()</a>.</p>
+<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00163">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::assign()</a>.</p>
 
 </div>
 </div>
@@ -359,11 +359,11 @@ template&lt;std::size_t ThePrecision, std::size_t TheScale&gt; </div>
 
 <p>Converts the numeric to an unscaled integer value. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00184">184</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00190">190</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00127">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::nativeValue</a>, <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00102">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::Scale</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00124">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::sqlValue</a>.</p>
+<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00133">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::nativeValue</a>, <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00108">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::Scale</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00130">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::sqlValue</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00211">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToDouble()</a>, <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00205">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToFloat()</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00217">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToLongDouble()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00217">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToDouble()</a>, <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00211">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToFloat()</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00223">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToLongDouble()</a>.</p>
 
 </div>
 </div>
@@ -394,11 +394,11 @@ template&lt;std::size_t ThePrecision, std::size_t TheScale&gt; </div>
 
 <p>Converts the numeric to a floating point value. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00205">205</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00211">211</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00124">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::sqlValue</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00184">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToUnscaledValue()</a>.</p>
+<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00130">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::sqlValue</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00190">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToUnscaledValue()</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00223">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::operator float()</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00259">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::operator==()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00229">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::operator float()</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00265">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::operator==()</a>.</p>
 
 </div>
 </div>
@@ -429,11 +429,11 @@ template&lt;std::size_t ThePrecision, std::size_t TheScale&gt; </div>
 
 <p>Converts the numeric to a double precision floating point value. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00211">211</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00217">217</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00124">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::sqlValue</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00184">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToUnscaledValue()</a>.</p>
+<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00130">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::sqlValue</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00190">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToUnscaledValue()</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00229">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::operator double()</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00251">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::operator&lt;=&gt;()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00235">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::operator double()</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00257">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::operator&lt;=&gt;()</a>.</p>
 
 </div>
 </div>
@@ -464,11 +464,11 @@ template&lt;std::size_t ThePrecision, std::size_t TheScale&gt; </div>
 
 <p>Converts the numeric to a long double precision floating point value. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00217">217</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00223">223</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00124">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::sqlValue</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00184">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToUnscaledValue()</a>.</p>
+<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00130">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::sqlValue</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00190">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToUnscaledValue()</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00235">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::operator long double()</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00241">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToString()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00241">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::operator long double()</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00247">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToString()</a>.</p>
 
 </div>
 </div>
@@ -499,9 +499,9 @@ template&lt;std::size_t ThePrecision, std::size_t TheScale&gt; </div>
 
 <p>Converts the numeric to a floating point value. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00223">223</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00229">229</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00205">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToFloat()</a>.</p>
+<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00211">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToFloat()</a>.</p>
 
 </div>
 </div>
@@ -532,9 +532,9 @@ template&lt;std::size_t ThePrecision, std::size_t TheScale&gt; </div>
 
 <p>Converts the numeric to a double precision floating point value. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00229">229</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00235">235</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00211">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToDouble()</a>.</p>
+<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00217">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToDouble()</a>.</p>
 
 </div>
 </div>
@@ -565,9 +565,9 @@ template&lt;std::size_t ThePrecision, std::size_t TheScale&gt; </div>
 
 <p>Converts the numeric to a long double precision floating point value. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00235">235</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00241">241</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00217">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToLongDouble()</a>.</p>
+<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00223">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToLongDouble()</a>.</p>
 
 </div>
 </div>
@@ -598,9 +598,9 @@ template&lt;std::size_t ThePrecision, std::size_t TheScale&gt; </div>
 
 <p>Converts the numeric to a string. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00241">241</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00247">247</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00102">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::Scale</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00217">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToLongDouble()</a>.</p>
+<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00108">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::Scale</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00223">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToLongDouble()</a>.</p>
 
 </div>
 </div>
@@ -632,9 +632,9 @@ template&lt;std::size_t ThePrecision, std::size_t TheScale&gt; </div>
 <p>Three-way comparison operator.</p>
 <p>Comparing two <code><a class="el" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html">SqlNumeric</a></code> values yields <code>std::partial_ordering</code> because the underlying conversion to <code>double</code> admits NaN inputs. In practice every value produced by this type is finite, so the result is totally ordered. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00251">251</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00257">257</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00211">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToDouble()</a>.</p>
+<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00217">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToDouble()</a>.</p>
 
 </div>
 </div>
@@ -668,9 +668,9 @@ template&lt;std::size_t OtherPrecision, std::size_t OtherScale&gt; </div>
 
 <p>Equality comparison operator. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00259">259</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00265">265</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00205">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToFloat()</a>.</p>
+<p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00211">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToFloat()</a>.</p>
 
 </div>
 </div>
@@ -699,9 +699,9 @@ template&lt;std::size_t ThePrecision, std::size_t TheScale&gt; </div>
 
 <p>Number of total digits. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00099">99</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00105">105</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00157">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::assign()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00163">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::assign()</a>.</p>
 
 </div>
 </div>
@@ -729,9 +729,9 @@ template&lt;std::size_t ThePrecision, std::size_t TheScale&gt; </div>
 
 <p>Number of digits after the decimal point. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00102">102</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00108">108</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00157">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::assign()</a>, <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00241">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToString()</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00184">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToUnscaledValue()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00163">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::assign()</a>, <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00247">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToString()</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00190">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToUnscaledValue()</a>.</p>
 
 </div>
 </div>
@@ -759,7 +759,7 @@ template&lt;std::size_t ThePrecision, std::size_t TheScale&gt; </div>
 
 <p>The SQL column type definition for this numeric type. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00105">105</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00111">111</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
 
 </div>
 </div>
@@ -779,9 +779,9 @@ template&lt;std::size_t ThePrecision, std::size_t TheScale&gt; </div>
 
 <p>The SQL numeric struct for ODBC binding. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00124">124</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00130">130</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00157">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::assign()</a>, <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00211">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToDouble()</a>, <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00205">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToFloat()</a>, <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00217">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToLongDouble()</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00184">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToUnscaledValue()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00163">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::assign()</a>, <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00217">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToDouble()</a>, <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00211">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToFloat()</a>, <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00223">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToLongDouble()</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00190">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToUnscaledValue()</a>.</p>
 
 </div>
 </div>
@@ -801,9 +801,9 @@ template&lt;std::size_t ThePrecision, std::size_t TheScale&gt; </div>
 
 <p>Cached native value for drivers without SQL_NUMERIC_STRUCT support. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00127">127</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00133">133</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00157">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::assign()</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00184">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToUnscaledValue()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00163">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::assign()</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00190">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToUnscaledValue()</a>.</p>
 
 </div>
 </div>
