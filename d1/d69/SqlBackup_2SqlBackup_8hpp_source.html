@@ -453,22 +453,35 @@ $(document).ready(function(){initNavTree('d1/d69/SqlBackup_2SqlBackup_8hpp_sourc
 <div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span>                             RetrySettings <span class="keyword">const</span>&amp; retrySettings,</div>
 <div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span>                             RestoreSettings <span class="keyword">const</span>&amp; restoreSettings);</div>
 <div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span><span class="comment"></span> </div>
-<div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span><span class="comment">/// Creates the metadata JSON content.</span></div>
-<div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span><span class="comment">///</span></div>
-<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span><span class="comment">/// @param connectionString the connection string used to connect to the database.</span></div>
-<div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span><span class="comment">/// @param tables the list of tables to backup.</span></div>
-<div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span><span class="comment">/// @param schema the database schema used for these tables (optional).</span></div>
-<div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span><span class="comment"></span>LIGHTWEIGHT_API std::string CreateMetadata(SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
-<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span>                                           SqlSchema::TableList <span class="keyword">const</span>&amp; tables,</div>
-<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span>                                           std::string <span class="keyword">const</span>&amp; schema = {});</div>
-<div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span><span class="comment"></span> </div>
-<div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span><span class="comment">/// Parses the metadata JSON content and returns a map of table info.</span></div>
-<div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span><span class="comment">///</span></div>
-<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span><span class="comment">/// @param metadataJson content of the metadata.json file.</span></div>
-<div class="line"><a id="l00340" name="l00340"></a><span class="lineno">  340</span><span class="comment"></span>LIGHTWEIGHT_API std::map&lt;std::string, TableInfo&gt; ParseSchema(std::string_view metadataJson,</div>
-<div class="line"><a id="l00341" name="l00341"></a><span class="lineno">  341</span>                                                             ProgressManager* progress = <span class="keyword">nullptr</span>);</div>
-<div class="line"><a id="l00342" name="l00342"></a><span class="lineno">  342</span> </div>
-<div class="line"><a id="l00343" name="l00343"></a><span class="lineno">  343</span>} <span class="comment">// namespace Lightweight::SqlBackup</span></div>
+<div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span><span class="comment">/// Returns a copy of `connectionString` with the values of `PWD=` and</span></div>
+<div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span><span class="comment">/// `Password=` attributes replaced by `***`.</span></div>
+<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span><span class="comment">///</span></div>
+<div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span><span class="comment">/// Matching is case-insensitive and a match must start at the beginning or</span></div>
+<div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span><span class="comment">/// immediately after a `;`; the redacted value runs to the next `;` or</span></div>
+<div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span><span class="comment">/// end-of-string. Applied by CreateMetadata() so a secretRef-resolved plaintext</span></div>
+<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span><span class="comment">/// password never lands in an archive&#39;s metadata.json (mirrors dbtool&#39;s</span></div>
+<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span><span class="comment">/// `list-profiles` redaction).</span></div>
+<div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span><span class="comment">///</span></div>
+<div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span><span class="comment">/// @param connectionString Raw ODBC connection string.</span></div>
+<div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span><span class="comment">/// @return The connection string with password values masked.</span></div>
+<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span><span class="comment"></span>[[nodiscard]] LIGHTWEIGHT_API std::string RedactConnectionStringSecrets(std::string_view connectionString);</div>
+<div class="line"><a id="l00340" name="l00340"></a><span class="lineno">  340</span><span class="comment"></span> </div>
+<div class="line"><a id="l00341" name="l00341"></a><span class="lineno">  341</span><span class="comment">/// Creates the metadata JSON content.</span></div>
+<div class="line"><a id="l00342" name="l00342"></a><span class="lineno">  342</span><span class="comment">///</span></div>
+<div class="line"><a id="l00343" name="l00343"></a><span class="lineno">  343</span><span class="comment">/// @param connectionString the connection string used to connect to the database.</span></div>
+<div class="line"><a id="l00344" name="l00344"></a><span class="lineno">  344</span><span class="comment">/// @param tables the list of tables to backup.</span></div>
+<div class="line"><a id="l00345" name="l00345"></a><span class="lineno">  345</span><span class="comment">/// @param schema the database schema used for these tables (optional).</span></div>
+<div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span><span class="comment"></span>LIGHTWEIGHT_API std::string CreateMetadata(SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
+<div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span>                                           SqlSchema::TableList <span class="keyword">const</span>&amp; tables,</div>
+<div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span>                                           std::string <span class="keyword">const</span>&amp; schema = {});</div>
+<div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span><span class="comment"></span> </div>
+<div class="line"><a id="l00350" name="l00350"></a><span class="lineno">  350</span><span class="comment">/// Parses the metadata JSON content and returns a map of table info.</span></div>
+<div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span><span class="comment">///</span></div>
+<div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span><span class="comment">/// @param metadataJson content of the metadata.json file.</span></div>
+<div class="line"><a id="l00353" name="l00353"></a><span class="lineno">  353</span><span class="comment"></span>LIGHTWEIGHT_API std::map&lt;std::string, TableInfo&gt; ParseSchema(std::string_view metadataJson,</div>
+<div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span>                                                             ProgressManager* progress = <span class="keyword">nullptr</span>);</div>
+<div class="line"><a id="l00355" name="l00355"></a><span class="lineno">  355</span> </div>
+<div class="line"><a id="l00356" name="l00356"></a><span class="lineno">  356</span>} <span class="comment">// namespace Lightweight::SqlBackup</span></div>
 <div class="ttc" id="aclassLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager_html"><div class="ttname"><a href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html">Lightweight::SqlBackup::ErrorTrackingProgressManager</a></div><div class="ttdoc">Base class for progress managers that tracks errors automatically.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00242">SqlBackup.hpp:243</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager_html_a522f8b5d94a8744bdf7c9b6cc1c01fa8"><div class="ttname"><a href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#a522f8b5d94a8744bdf7c9b6cc1c01fa8">Lightweight::SqlBackup::ErrorTrackingProgressManager::ErrorCount</a></div><div class="ttdeci">size_t ErrorCount() const noexcept override</div><div class="ttdoc">Returns the number of errors encountered during the operation.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00251">SqlBackup.hpp:251</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager_html_aaaac5355924f8867dac6c7b106cc44fb"><div class="ttname"><a href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#aaaac5355924f8867dac6c7b106cc44fb">Lightweight::SqlBackup::ErrorTrackingProgressManager::Update</a></div><div class="ttdeci">void Update(Progress const &amp;progress) override</div><div class="ttdoc">Gets called when the progress of an individual backup/restore operation changes.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00245">SqlBackup.hpp:245</a></div></div>
