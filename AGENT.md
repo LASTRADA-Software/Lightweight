@@ -209,6 +209,50 @@ If a database is **deliberately** skipped (e.g., feature genuinely doesn't apply
 
 When touching anything in `DataBinder/`, also exercise both `u8`/`u16`/`wchar_t` paths (the `WideChar` typedef in `Utils.hpp` selects the platform-appropriate UTF-16 code unit). See `.agent/testing.md` and `.agent/databases.md` for deeper guidance.
 
+### Testing every database is not enough — test the compiler CI actually uses
+
+The database legs in CI do **not** run the binary you built locally with `clang-debug`. `dbms_test_matrix`
+downloads the `ubuntu2404-tests` artifact, which `ubuntu_build_cc_matrix` uploads only from the **GCC 14 /
+`gcc-release`** leg (`.github/workflows/build.yml`). So every `Tests (SQLite3 | MS SQL Server … | PostgreSQL)`
+job runs a **GCC release** build, while the documented local flow above runs a **Clang debug** build. Passing
+all three databases under Clang therefore proves less than it looks.
+
+That gap is not theoretical. It has produced a "green locally, red in CI" failure where every SQL Server leg
+failed 106+ test cases while Clang passed all three databases:
+
+```cpp
+// Argument evaluation order is unspecified. GetColumn() maps onto SQLGetData, and the
+// SQL Server driver rejects out-of-order retrieval — so this is fine under Clang
+// (left-to-right) and raises 07009 Invalid Descriptor Index under GCC (right-to-left).
+result.emplace_back(cursor.GetColumn<std::string>(1), cursor.GetColumn<std::string>(2));
+```
+
+Unspecified evaluation order, signed-overflow and aliasing assumptions, `-O2`-only warnings, and anything
+guarded by `NDEBUG` all differ between the two. Before claiming done, build and run the suite at least once
+with GCC:
+
+```sh
+cmake --preset gcc-release && cmake --build --preset gcc-release -j
+./out/build/gcc-release/src/tests/LightweightTest --test-env=mssql2022   # and sqlite3, postgres
+```
+
+`gcc-debug` is an acceptable substitute when you need assertions, but it is not what CI ships — prefer
+`gcc-release` for the final check. State in the PR summary which compilers you ran, not just which databases.
+
+### Two build configurations no preset covers
+
+Both are exercised by exactly one CI job each, and neither is reachable from any local `*-debug` preset — so
+a change can be clean under `clang-debug` and still break the build:
+
+- **C++20 modules** (`ddl2cpp` job): `cmake --preset gcc-release -D LIGHTWEIGHT_BUILD_MODULES=ON`, building the
+  `chinook` target. A module interface may not export or reference an entity with **internal linkage**, so a
+  namespace-scope `constexpr` in a public header must be `inline constexpr` — plain `constexpr` implies `const`
+  implies internal linkage, and the module build rejects it. Run this configuration whenever you add a
+  namespace-scope constant, variable template, or non-`inline` function to a public header.
+- **C++26 reflection** (`C++26 reflection implementation` job): builds with `LIGHTWEIGHT_CXX26_REFLECTION`. The
+  reflection and non-reflection branches of `DataMapper` diverge, so a guard added to one is not automatically
+  present in the other — check both when editing any member-enumeration code path.
+
 ### Documentation code snippets must stay test-backed
 
 `docs/sql-to-lightweight.md` tags each C++ example with `<!-- snippet: <id> -->`; the identical code lives in `src/tests/DocExampleTests.cpp` between `//! [<id>]` markers, where it is compiled and executed against every DBMS. `scripts/check-doc-snippets.py` (run in the `check_docs` CI job) fails if the two drift. When you change such an example, edit the `//! [<id>]` region first, copy the same lines into the doc block, then run `python3 scripts/check-doc-snippets.py`. Prefer this snippet-backed pattern for any new SQL/DataMapper usage examples you add to `docs/`.
@@ -243,6 +287,10 @@ Add the capability check to `SqlQueryFormatter` (e.g., `bool SupportsX() const`)
 1. Run `clang-format` on every changed `.hpp` / `.cpp` (project `.clang-format`).
 2. Build the relevant preset (`clang-debug` for full coverage of warnings + clang-tidy + ASan/UBSan; `clangcl-debug` if Windows-side changes). Resolve all warnings — `PEDANTIC_COMPILER_WERROR` is on.
 3. **Run the full test suite against every supported database.** At minimum: `sqlite3`, `mssql2022`, `postgres`. Use `scripts/tests/docker-databases.py --start --wait mssql2022 postgres` to spin up the non-SQLite containers. Document any DB skipped with the reason.
+   Then **repeat at least one database run under `gcc-release`** — that is the binary CI's database legs actually
+   execute, and Clang-only validation has shipped MSSQL-wide failures before. See "Testing every database is not
+   enough" above. If you added a namespace-scope entity to a public header, also build
+   `gcc-release -D LIGHTWEIGHT_BUILD_MODULES=ON`.
 4. Run `clang-tidy` (it runs automatically under `clang-debug`); fix every finding at the source — never `NOLINT`.
 5. If touching public headers or user-visible behaviour, update `docs/` (`data-binder.md`, `sql-migrations.md`, `dbtool.md`, `usage.md`, `how-to.md`, `best-practices.md`, etc.).
 6. Run the sanitizer presets when relevant (`clang-asan-ubsan`, `clang-tsan`) — required for changes touching pools, threading, or raw buffer arithmetic.
@@ -252,3 +300,5 @@ Add the capability check to `SqlQueryFormatter` (e.g., `bool SupportsX() const`)
    - **Risk assessment** — what could break per DBMS, threading, ABI, ODBC version compatibility.
    - **Code coverage** — results from `clang-coverage` if coverage was a goal.
    - **Databases tested** — explicit list with versions (`sqlite3`, `mssql2022 (Docker)`, `postgres (Docker 16.4)`).
+   - **Compilers tested** — explicit list (e.g. `clang-debug`, `gcc-release`). "All three databases" under one
+     compiler is not full coverage; see step 3.
