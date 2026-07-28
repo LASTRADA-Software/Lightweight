@@ -92,7 +92,9 @@ namespace
 {
 
 /// Installs itself as the active SqlLogger for its lifetime and records every SQL statement seen.
-// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
+///
+/// Copying or moving would leave two objects believing they own the logger slot, so both are deleted
+/// rather than suppressing the clang-tidy special-member-function warning.
 class ScopedSqlQueryRecorder: public SqlLogger::Null
 {
   public:
@@ -100,6 +102,11 @@ class ScopedSqlQueryRecorder: public SqlLogger::Null
     {
         SqlLogger::SetLogger(*this);
     }
+
+    ScopedSqlQueryRecorder(ScopedSqlQueryRecorder const&) = delete;
+    ScopedSqlQueryRecorder(ScopedSqlQueryRecorder&&) = delete;
+    ScopedSqlQueryRecorder& operator=(ScopedSqlQueryRecorder const&) = delete;
+    ScopedSqlQueryRecorder& operator=(ScopedSqlQueryRecorder&&) = delete;
 
     ~ScopedSqlQueryRecorder() override
     {
@@ -204,7 +211,9 @@ TEST_CASE_METHOD(SqlTestFixture,
 
         auto recordedQueries = std::vector<std::string> {};
         {
-            auto const recorder = ScopedSqlQueryRecorder {};
+            // Not const: the logger callbacks mutate the recorder through the non-const SqlLogger&
+            // installed in its constructor, and modifying a const object is undefined behaviour.
+            auto recorder = ScopedSqlQueryRecorder {};
             std::ignore = department.employees.Count();
             recordedQueries = recorder.Queries();
         }
