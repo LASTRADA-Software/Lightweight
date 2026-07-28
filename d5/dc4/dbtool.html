@@ -108,7 +108,6 @@ Installation</h1>
 <h2><a class="anchor" id="pre-built-installers"></a>
 Pre-built installers</h2>
 <p>Released artifacts ship <code>dbtool</code> and <code>dbtool-gui</code> together with every runtime DLL or shared object they need. They do <b>not</b> include an ODBC driver — you must install the appropriate driver for your database separately (e.g., Microsoft ODBC Driver for SQL Server, PostgreSQL ODBC, or SQLite ODBC).</p>
-<p><code>dbtool-gui</code> additionally offers <b>managed backups</b>: pick a single folder on the Settings page and the Backups page keeps one <code>&lt;profile&gt;.zip</code> per configured profile there, with one-click "back up all", safe atomic overwrite, and restore into any profile or an ad-hoc connection string. See <code>src/tools/dbtool-gui/README.md</code> for details; this is a GUI-only convenience layer over the same <code>backup</code>/<code>restore</code> primitives described below.</p>
 <table class="markdownTable">
 <tr class="markdownTableHead">
 <th class="markdownTableHeadNone">Platform   </th><th class="markdownTableHeadNone">Artifact   </th><th class="markdownTableHeadNone">Install command    </th></tr>
