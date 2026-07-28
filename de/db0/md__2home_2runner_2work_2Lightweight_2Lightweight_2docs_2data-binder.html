@@ -186,25 +186,6 @@ GetColumn()</h1>
 Inspect()</h1>
 <p>The <code>Inspect()</code> function is used to provide a human-readable representation of the custom type.</p>
 <p>This function should be used purely for debugging purposes.</p>
-<h1><a class="anchor" id="sqlnumericprecision-scale-precision-limits"></a>
-&lt;tt&gt;SqlNumeric&lt;Precision, Scale&gt;&lt;/tt&gt; precision limits</h1>
-<p><code>Precision</code> is a count of <b>decimal digits</b> and may be at most <code>Lightweight::SqlMaxNumericPrecision</code> (38) — the number of decimal digits that fit into the 16-byte mantissa of ODBC's <code>SQL_NUMERIC_STRUCT</code>. This covers the widest <code>DECIMAL</code>/<code>NUMERIC</code> MS SQL Server and PostgreSQL accept, and in particular MS SQL Server's <code>money</code> (<code>DECIMAL(19, 4)</code>), which <code>ddl2cpp</code> emits as <code>Light::SqlNumeric&lt;19, 4&gt;</code>.</p>
-<p><code>Scale</code> counts the digits after the decimal point and may be anywhere in <code>[0, Precision]</code>. <code>Scale == Precision</code> is the purely fractional case: <code>SqlNumeric&lt;4, 4&gt;</code> is SQL's <code>DECIMAL(4, 4)</code> and covers <code>[0.0000, 0.9999]</code>.</p>
-<p>Note that <code>SQL_MAX_NUMERIC_LEN</code> (16) is a <em>byte</em> count, not a digit count — do not use it as a precision bound.</p>
-<h2><a class="anchor" id="how-many-of-those-digits-actually-survive-a-round-trip"></a>
-How many of those digits actually survive a round-trip</h2>
-<p>Declaring a wide <code>Precision</code> does not by itself guarantee that every digit is transferred. What you can rely on:</p>
-<ul>
-<li><b>Up to <code>std::numeric_limits&lt;double&gt;::digits10</code> (15) significant decimal digits: exact everywhere.</b> Every backend and driver combination round-trips such a value unchanged.</li>
-<li><p class="startli"><b>Beyond 15 significant digits: only on the native <code>SQL_C_NUMERIC</code> path.</b> Two independent things can narrow the value to a <code>double</code> (≈15 significant digits):</p><ul>
-<li>The binder deliberately falls back to <code>SQL_C_DOUBLE</code> for SQLite and MS SQL Server, whose drivers do not handle <code>SQL_NUMERIC_STRUCT</code> usably (see <code>NativeNumericSupportIsBroken</code>).</li>
-<li>Some driver <em>builds</em> narrow internally even on the native path. The psqlODBC that ships for Windows converts through a <code>double</code> before filling <code>SQL_NUMERIC_STRUCT</code>, so a 19-digit value comes back as the mantissa of its nearest <code>double</code>; the Linux build of the same driver transfers the mantissa verbatim.</li>
-</ul>
-<p class="startli">In practice, PostgreSQL on Linux is the combination where the full 38-digit width is carried today.</p>
-</li>
-</ul>
-<p>Two further limits are independent of the driver: assigning from a <code>float</code>/<code>double</code> (the only value-setting API besides fetching) is bounded by that floating-point type, and on toolchains without <code>__int128</code> (notably MSVC) the unscaled value is handled as <code>int64_t</code>, capping it at 63 bits (~18-19 digits).</p>
-<p>If you need exactness above 15 digits on an arbitrary backend, read the column as a string instead.</p>
 <h1><a class="anchor" id="how-sqlvariant-decides-which-alternative-to-fill"></a>
 How &lt;tt&gt;SqlVariant&lt;/tt&gt; decides which alternative to fill</h1>
 <p><code>SqlDataBinder&lt;SqlVariant&gt;::GetColumn</code> queries the driver for **<code>SQL_DESC_CONCISE_TYPE</code>** and dispatches into the matching variant alternative based on the concise ODBC SQL type code.</p>

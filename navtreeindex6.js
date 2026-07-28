@@ -145,14 +145,12 @@ var NAVTREEINDEX6 =
 "de/dae/classLightweight_1_1SqlFixedString.html#afd8c0ca721e73dec7a44330c9fdd2e63":[14,0,5,29],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html":[6],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#custom-column-data-type-binder-example":[6,0],
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#driver-specific-connection-string-requirements":[6,7],
+"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#driver-specific-connection-string-requirements":[6,6],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#getcolumn":[6,3],
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-many-of-those-digits-actually-survive-a-round-trip":[6,5,0],
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-sqlvariant-decides-which-alternative-to-fill":[6,6],
+"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-sqlvariant-decides-which-alternative-to-fill":[6,5],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inputparameter":[6,1],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inspect":[6,4],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#outputcolumn":[6,2],
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#sqlnumericprecision-scale-precision-limits":[6,5],
 "de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html":[16,0,0,16,0],
 "de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#a122267596e346b15d075ca4c347ac97d":[16,0,0,16,0,1],
 "de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#ab3f4130283fddc423a1911a3962e739c":[16,0,0,16,0,0],
@@ -249,5 +247,7 @@ var NAVTREEINDEX6 =
 "df/d7c/structLightweight_1_1SqlGuid.html":[14,0,6],
 "df/d7c/structLightweight_1_1SqlGuid.html#a1927d5c3a5abada31a6f812f0c96d103":[14,0,6,2],
 "df/d7c/structLightweight_1_1SqlGuid.html#a3cf0cf7460e1bf1ac7e36b6153941544":[14,0,6,1],
-"df/d7c/structLightweight_1_1SqlGuid.html#a725a19be99e81a3c3a478777cc048422":[14,0,6,4]
+"df/d7c/structLightweight_1_1SqlGuid.html#a725a19be99e81a3c3a478777cc048422":[14,0,6,4],
+"df/d7c/structLightweight_1_1SqlGuid.html#a938d38326b32d8949207090b1fca26d0":[14,0,6,3],
+"df/d7c/structLightweight_1_1SqlGuid.html#abc3fab606715de2437552cc0f585359e":[14,0,6,5]
 };
