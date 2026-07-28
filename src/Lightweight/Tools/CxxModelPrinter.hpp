@@ -77,6 +77,19 @@ class CxxModelPrinter
                                 UnicodeTextColumnOverrides const& unicodeTextColumnOverrides,
                                 size_t sqlFixedStringMaxSize);
 
+    /// Renders the `// NOTE:` comment block to emit above a generated member for a `DECIMAL`
+    /// column whose declared precision is wider than what `SqlDataBinder<SqlNumeric<P, S>>` can
+    /// actually deliver.
+    ///
+    /// The emitted `Light::SqlNumeric<P, S>` carries the column's declared precision, but the
+    /// transfer does not always carry the matching number of digits, and nothing at the call site
+    /// says so. Rather than silently generating a lossy record, state the limit where a ddl2cpp
+    /// consumer reads it — in the generated header itself.
+    ///
+    /// @param column Column to describe; non-`DECIMAL` columns and narrow ones yield no note.
+    /// @return The note, each line already indented and newline-terminated, or an empty string.
+    [[nodiscard]] static std::string MakeDecimalPrecisionNote(SqlSchema::Column const& column);
+
     [[nodiscard]] std::optional<std::string> MapColumnNameOverride(SqlSchema::FullyQualifiedTableName const& tableName,
                                                                    std::string const& columnName) const;
 

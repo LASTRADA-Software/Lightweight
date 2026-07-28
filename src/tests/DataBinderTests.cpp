@@ -568,6 +568,13 @@ constexpr double SqlNumericDoubleFallbackTolerance = [] {
 // 19-digit value arrives as the mantissa of its nearest double), while the Linux build hands over
 // the mantissa verbatim. The strict assertion below is therefore scoped to where the guarantee is
 // actually verified instead of being relaxed everywhere to whatever the weakest driver delivers.
+//
+// NB: `false` here does *not* mean "assert nothing". The narrowed branch still checks the sign and
+// the exact integral digits (see the round-trip test below), which is what a lost or corrupted
+// mantissa would break. The carrier's own guarantee — every digit up to SqlMaxNumericPrecision
+// survives ToUnscaledValue()/ToString() — is driver-independent and is asserted without a database
+// in "SqlNumeric renders every digit up to SqlMaxNumericPrecision exactly" (SqlNumericTests.cpp),
+// which runs on every platform including the int64_t-carrier ones.
 constexpr bool SqlNumericNativeMantissaIsLossless =
 #if defined(_WIN32)
     false;
@@ -575,45 +582,87 @@ constexpr bool SqlNumericNativeMantissaIsLossless =
     true;
 #endif
 
-TEST_CASE_METHOD(SqlTestFixture, "SqlNumeric.MoneyPrecision", "[SqlDataBinder],[SqlNumeric]")
+// Scale used by the maximum-precision probe below. Small enough that the integral part of the probe
+// value stays within `std::numeric_limits<double>::digits10`, so that part is exact on every
+// transfer path and can be asserted as a string even where the mantissa is narrowed.
+constexpr std::size_t SqlNumericProbeScale = 4;
+
+// The digits of the probe value: `1234567890123...`, truncated to `precision` digits. A repeating
+// ramp rather than all-nines so that a dropped or reordered digit is visible in the failure output.
+static std::string MakeNumericProbeDigits(std::size_t precision)
 {
-    // MS SQL Server's `money` is DECIMAL(19, 4) and ddl2cpp maps it to SqlNumeric<19, 4>. Verify
-    // that such a column can be declared, written and read back (issue #519). The value is written
-    // through a plain SQL literal so that the stored value carries all 19 digits, independently of
-    // what the C++ side can express.
+    std::string digits;
+    for (auto const index: std::views::iota(std::size_t { 0 }, precision))
+        digits.push_back(static_cast<char>('0' + ((index + 1) % 10)));
+    return digits;
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlNumeric.MaxPrecisionRoundTrip", "[SqlDataBinder],[SqlNumeric]")
+{
+    // Round-trips a value at exactly `SqlMaxNumericPrecision` through a real driver. Nothing below
+    // this width exercises the two limits the bound is derived from: the unscaled carrier (an
+    // `int64_t` where the toolchain has no 128-bit integer) and the `long double` every accessor
+    // but ToUnscaledValue() divides through. Before the bound was corrected, `SqlNumeric<19, 4>`
+    // compiled on MSVC and turned the `money` maximum into its own negation.
+    //
+    // The precision is taken from the bound rather than hard-coded at 19, so the test measures the
+    // actual maximum on whichever toolchain is running it (19 with __int128, 18 without) instead of
+    // failing to instantiate on half of them. Where the bound is 19 this is exactly MS SQL Server's
+    // `money`, DECIMAL(19, 4), which is what ddl2cpp emits (issue #519).
+    constexpr auto precision = SqlMaxNumericPrecision;
+    constexpr auto scale = SqlNumericProbeScale;
+    using Probe = SqlNumeric<precision, scale>;
+
+    auto const digits = MakeNumericProbeDigits(precision);
+    auto const integralDigits = digits.substr(0, precision - scale);
+    auto const expectedText = std::format("{}.{}", integralDigits, digits.substr(precision - scale));
+    auto const expectedValue = std::stod(expectedText);
+
+    // The integral part must stay inside double's exact range for the assertions below to be
+    // deterministic on the narrowed transfer paths.
+    REQUIRE(integralDigits.size() <= static_cast<std::size_t>(std::numeric_limits<double>::digits10));
+
     auto stmt = SqlStatement {};
     stmt.MigrateDirect([](auto& migration) {
-        migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::Decimal { .precision = 19, .scale = 4 });
+        migration.CreateTable("Test").Column("Value",
+                                             SqlColumnTypeDefinitions::Decimal { .precision = precision, .scale = scale });
     });
 
-    (void) stmt.ExecuteDirect(R"(INSERT INTO "Test" ("Value") VALUES (123456789012345.6789))");
+    // Written as a plain SQL literal so the stored value carries all `precision` digits regardless
+    // of what the C++ side can express.
+    (void) stmt.ExecuteDirect(std::format(R"(INSERT INTO "Test" ("Value") VALUES ({}))", expectedText));
 
-    auto const received = stmt.ExecuteDirectScalar<SqlNumeric<19, 4>>(stmt.Query("Test").Select().Field("Value").All());
+    auto const received = stmt.ExecuteDirectScalar<Probe>(stmt.Query("Test").Select().Field("Value").All());
     REQUIRE(received.has_value());
 
     // NOLINTBEGIN(bugprone-unchecked-optional-access) - guarded by the REQUIRE above
 
-    // How many of the 19 digits survive is a property of the *binding*, not of the declared
-    // precision, so gate on exactly the predicate the binder itself uses, plus the driver-build
-    // caveat above.
-    if (!SqlDataBinder<SqlNumeric<19, 4>>::NativeNumericSupportIsBroken(stmt.Connection().ServerType())
+    // How many of the digits survive is a property of the *binding*, not of the declared precision,
+    // so gate on exactly the predicate the binder itself uses, plus the driver-build caveat above.
+    if (!SqlDataBinder<Probe>::NativeNumericSupportIsBroken(stmt.Connection().ServerType())
         && SqlNumericNativeMantissaIsLossless)
     {
-        // Native SQL_C_NUMERIC (PostgreSQL on Linux): the whole 128-bit mantissa is transferred, so
-        // all 19 significant digits come back exactly. This is what makes SqlNumeric<19, 4> — and
-        // hence a precision cap of SqlMaxNumericPrecision rather than SQL_MAX_NUMERIC_LEN — worth
-        // having: SqlNumeric<16, 4> could not express this value at all.
-        CHECK(static_cast<long long>(received->ToUnscaledValue()) == 1234567890123456789LL);
-        CHECK(received->ToString() == "123456789012345.6789");
+        // Native SQL_C_NUMERIC (PostgreSQL on Linux): the mantissa is transferred verbatim, so every
+        // digit comes back exactly. This is what the bound buys — one digit more and ToString()
+        // would already be wrong.
+        // The unscaled value is a `__int128` on this path, which std::format does not handle; at
+        // `precision <= 19` digits its magnitude always fits a std::uint64_t, so narrow it there.
+        CHECK(std::format("{}", static_cast<std::uint64_t>(received->ToUnscaledValue())) == digits);
+        CHECK(received->ToString() == expectedText);
     }
     else
     {
         // Either the SQL_C_DOUBLE fallback (SQLite, MS SQL Server) or a driver that narrows through
-        // a double on the native path (Windows psqlODBC). In both cases only the leading `digits10`
-        // significant digits are meaningful. This is a property of the transfer, not of the declared
-        // precision: SqlNumeric<16, 4> loses exactly the same digits.
-        CHECK_THAT(received->ToDouble(),
-                   Catch::Matchers::WithinRel(123456789012345.6789, SqlNumericDoubleFallbackTolerance));
+        // a double on the native path (Windows psqlODBC). Only the leading `digits10` significant
+        // digits are meaningful — but that is still a concrete claim, not a free pass:
+        //
+        //   - the sign must survive (the int64_t-overflow defect flipped it),
+        //   - the integral digits must be *exactly* right (they fit digits10 by construction, and
+        //     ToString() rounds only the fractional part, so this cannot round-trip-round away),
+        //   - the value must agree to within one unit in the last digit a double defines.
+        CHECK(received->ToDouble() > 0.0);
+        CHECK(received->ToString().starts_with(integralDigits + "."));
+        CHECK_THAT(received->ToDouble(), Catch::Matchers::WithinRel(expectedValue, SqlNumericDoubleFallbackTolerance));
     }
 
     // NOLINTEND(bugprone-unchecked-optional-access)

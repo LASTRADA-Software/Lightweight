@@ -26,18 +26,61 @@ namespace Lightweight
 #endif
 // clang-format on
 
-/// Number of decimal digits that fit into the mantissa of an ODBC `SQL_NUMERIC_STRUCT`.
+namespace detail
+{
+
+    /// Number of whole decimal digits that fit into a binary magnitude of `bits` bits.
+    ///
+    /// `floor(bits * log10(2))`, evaluated with integer arithmetic (`log10(2) ~= 0.30103`) so that
+    /// it stays usable in a constant expression without pulling in `<cmath>` at compile time.
+    ///
+    /// @param bits Width of the binary magnitude, excluding any sign bit.
+    /// @return Number of decimal digits that magnitude represents without loss.
+    [[nodiscard]] constexpr std::size_t DecimalDigitsForBits(std::size_t bits) noexcept
+    {
+        return (bits * 30103) / 100'000;
+    }
+
+} // namespace detail
+
+/// Widest `Precision` a `SqlNumeric` may declare, in decimal digits.
 ///
-/// `SQL_MAX_NUMERIC_LEN` is the size *in bytes* of `SQL_NUMERIC_STRUCT::val` (16 bytes, i.e. a
-/// 128-bit unsigned mantissa) — it is not a maximum decimal precision. The number of decimal
-/// digits that can be stored is `floor(bits * log10(2))`, computed here with integer arithmetic
-/// (`log10(2) ~= 0.30103`) so it stays usable in a constant expression: 128 bits -> 38 digits,
-/// which is also the maximum `DECIMAL`/`NUMERIC` precision of MS SQL Server and PostgreSQL.
+/// This is deliberately *not* derived from `SQL_MAX_NUMERIC_LEN`. That macro is the size **in
+/// bytes** of `SQL_NUMERIC_STRUCT::val` (16, i.e. a 128-bit mantissa), not a decimal precision, so
+/// the historical `static_assert(Precision <= SQL_MAX_NUMERIC_LEN)` was a category error that
+/// rejected perfectly ordinary columns such as `DECIMAL(18, 2)`.
+///
+/// Bounding by the mantissa's theoretical capacity instead (128 bits -> 38 digits) would be the
+/// same category error in the other direction: 38 is what the ODBC *struct* could hold, not what
+/// this implementation can carry. Two things narrow it:
+///
+/// - **The unscaled carrier.** `assign()` and `ToUnscaledValue()` keep `value * 10^Scale` in a
+///   `LIGHTWEIGHT_INT128_T` where the toolchain offers a 128-bit integer, and in an `int64_t`
+///   otherwise — MSVC and clang-cl both take the latter path. A signed 64-bit carrier holds
+///   `DecimalDigitsForBits(63)` == 18 digits. At `Precision == 19` the conversion overflows:
+///   MS SQL Server's `money` maximum 922337203685477.5807 has the unscaled value
+///   9223372036854775808, one past `INT64_MAX`, so the `static_cast<int64_t>` of that
+///   floating-point value is an out-of-range conversion — undefined behaviour, which on x86-64
+///   yields `INT64_MIN` and renders as -922337203685477.5808, sign flipped.
+/// - **The readable width.** Every accessor except `ToUnscaledValue()` — `ToFloat`, `ToDouble`,
+///   `ToLongDouble` and therefore `ToString` — divides through `long double`, so no more digits can
+///   be read back than that type's significand holds. On the 80-bit x87 `long double` that is
+///   `DecimalDigitsForBits(64)` == 19; a fetched `SqlNumeric<20, 0>` holding 99999999999999999999
+///   already prints as 100000000000000000000.
+///
+/// Hence 18 without a 128-bit carrier and 19 with one. `DECIMAL(18, s)` compiles everywhere and
+/// `money` (`DECIMAL(19, 4)`) compiles wherever `__int128` exists; a wider column must be read as a
+/// string. `docs/data-binder.md` tabulates what each accessor delivers below that bound.
 ///
 /// NB: `inline` is load-bearing. At namespace scope `constexpr` implies `const`, hence internal
 /// linkage, and an exported template in the module interface (`SqlNumeric`, via its static_assert)
 /// may not reference an internal-linkage entity.
-inline constexpr std::size_t SqlMaxNumericPrecision = (std::size_t { SQL_MAX_NUMERIC_LEN } * 8 * 30103) / 100'000;
+inline constexpr std::size_t SqlMaxNumericPrecision =
+#if defined(LIGHTWEIGHT_INT128_T)
+    detail::DecimalDigitsForBits(64); // 19 — bounded by the `long double` significand every accessor divides through
+#else
+    detail::DecimalDigitsForBits(63); // 18 — bounded by the `int64_t` magnitude that carries the unscaled value
+#endif
 
 /// Represents a fixed-point number with a given precision and scale.
 ///
@@ -62,8 +105,15 @@ struct SqlNumeric
     static constexpr auto ColumnType = SqlColumnTypeDefinitions::Decimal { .precision = Precision, .scale = TheScale };
 
     static_assert(Precision > 0, "A fixed-point number must have at least one digit.");
+    // NB: This bound is 19 where the toolchain has a 128-bit integer and 18 where it does not
+    // (MSVC, clang-cl), so `SqlNumeric<19, 4>` — what ddl2cpp emits for MS SQL Server's `money` —
+    // is a compile error on those toolchains. That asymmetry is deliberate: on an `int64_t`
+    // carrier a 19-digit unscaled value overflows, and the resulting out-of-range conversion is
+    // undefined behaviour that silently flips the sign of the value. Failing to build is the
+    // strictly better of the two. See SqlMaxNumericPrecision for the derivation.
     static_assert(Precision <= SqlMaxNumericPrecision,
-                  "Precision is a count of decimal digits and must fit into the SQL_NUMERIC_STRUCT mantissa.");
+                  "Precision exceeds the number of decimal digits this implementation can carry. Read the column as a "
+                  "string instead, or narrow the column.");
     // `DECIMAL(p, s)` requires 0 <= s <= p; `s == p` denotes a purely fractional number (e.g.
     // DECIMAL(4, 4) holds [0, 1) with four fractional digits) and is legal in every supported
     // backend. No conversion path here needs an integral digit: the value is kept as the unscaled

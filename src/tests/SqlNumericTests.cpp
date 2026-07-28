@@ -8,7 +8,11 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <compare>
+#include <cstdint>
+#include <cstring>
 #include <format>
+#include <ranges>
+#include <string>
 
 using namespace Lightweight;
 
@@ -112,23 +116,68 @@ TEST_CASE("SqlNumeric ColumnType matches template arguments", "[SqlNumeric]")
     CHECK(col.scale == 4);
 }
 
-TEST_CASE("SqlNumeric supports the full decimal precision of the ODBC mantissa", "[SqlNumeric]")
+TEST_CASE("SqlMaxNumericPrecision is the width this implementation can carry", "[SqlNumeric]")
 {
-    // SQL_MAX_NUMERIC_LEN is the mantissa size in *bytes* (16), not a digit count. 16 bytes hold a
-    // 128-bit unsigned integer, i.e. 38 full decimal digits — which is also the maximum DECIMAL
-    // precision of MS SQL Server and PostgreSQL.
-    STATIC_CHECK(SqlMaxNumericPrecision == 38);
+    // SQL_MAX_NUMERIC_LEN is the mantissa size in *bytes* (16), not a digit count, so the historical
+    // `Precision <= SQL_MAX_NUMERIC_LEN` was a category error that rejected DECIMAL(18, 2). But the
+    // mantissa's 38-digit capacity is not the bound either — see the derivation on
+    // SqlMaxNumericPrecision. Two things narrow it, and the bound is the tighter of the two:
+    //
+    //   - the unscaled carrier: `int64_t` (18 digits) without a 128-bit integer type,
+    //   - the readable width: `long double`, which every accessor but ToUnscaledValue() divides
+    //     through (19 digits on the 80-bit x87 long double).
+    STATIC_CHECK(detail::DecimalDigitsForBits(63) == 18);  // int64_t magnitude
+    STATIC_CHECK(detail::DecimalDigitsForBits(64) == 19);  // x87 long double significand
+    STATIC_CHECK(detail::DecimalDigitsForBits(127) == 38); // __int128 magnitude — deliberately NOT the bound
 
-    // MS SQL Server's `money` is DECIMAL(19, 4); it must be expressible.
+#if defined(LIGHTWEIGHT_INT128_T)
+    STATIC_CHECK(SqlMaxNumericPrecision == 19);
+
+    // MS SQL Server's `money` is DECIMAL(19, 4); here it must be expressible.
     STATIC_CHECK(SqlNumeric<19, 4>::Precision == 19);
     STATIC_CHECK(SqlNumeric<19, 4>::Scale == 4);
     STATIC_CHECK(SqlNumeric<19, 4>::ColumnType.precision == 19);
+#else
+    // Without a 128-bit integer the unscaled value is carried by an `int64_t`, whose magnitude
+    // holds 18 digits. `SqlNumeric<19, 4>` at the `money` maximum would need an unscaled
+    // 9223372036854775808 — one past INT64_MAX — and the out-of-range float-to-int conversion is
+    // undefined behaviour that flips the sign on x86-64. Rejecting it at compile time is the point.
+    STATIC_CHECK(SqlMaxNumericPrecision == 18);
+#endif
 
-    // ... as must the widest DECIMAL either server supports.
-    STATIC_CHECK(SqlNumeric<SqlMaxNumericPrecision, 10>::Precision == 38);
+    // DECIMAL(18, s), the widest column that works on every supported toolchain.
+    STATIC_CHECK(SqlNumeric<18, 4>::Precision == 18);
 
-    SqlNumeric<19, 4> const money { 1234567890.1234 };
-    CHECK(money.ToString() == "1234567890.1234");
+    SqlNumeric<SqlMaxNumericPrecision, 4> const widest { 1234567890.1234 };
+    CHECK(widest.ToString() == "1234567890.1234");
+}
+
+TEST_CASE("SqlNumeric renders every digit up to SqlMaxNumericPrecision exactly", "[SqlNumeric]")
+{
+    // The bound's whole purpose: at SqlMaxNumericPrecision the worst case — an all-nines mantissa,
+    // the largest value the precision admits — must still round-trip through ToUnscaledValue() and
+    // render exactly via ToString(). One digit more and it does not, which is why the bound is
+    // where it is. Values are injected through the SQL_NUMERIC_STRUCT constructor because that is
+    // the state a native SQL_C_NUMERIC fetch leaves behind (nativeValue == 0, mantissa verbatim);
+    // going through `assign()` would measure the `double` argument instead.
+    constexpr auto precision = SqlMaxNumericPrecision;
+
+    auto allNines = std::uint64_t { 0 };
+    for ([[maybe_unused]] auto const digit: std::views::iota(std::size_t { 0 }, precision))
+        allNines = (allNines * 10) + 9;
+
+    auto raw = SQL_NUMERIC_STRUCT {};
+    raw.precision = static_cast<SQLCHAR>(precision);
+    raw.scale = 0;
+    raw.sign = 1;
+    std::memcpy(static_cast<void*>(raw.val), &allNines, sizeof(allNines));
+
+    SqlNumeric<precision, 0> const widest { raw };
+    auto const expected = std::string(precision, '9');
+    CHECK(widest.ToString() == expected);
+    // The unscaled value is a `__int128` where one exists, which std::format does not handle; at
+    // `precision <= 19` digits its magnitude always fits a std::uint64_t, so narrow it there.
+    CHECK(std::format("{}", static_cast<std::uint64_t>(widest.ToUnscaledValue())) == expected);
 }
 
 TEST_CASE("SqlNumeric supports a purely fractional Scale == Precision", "[SqlNumeric]")

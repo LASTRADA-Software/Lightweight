@@ -2,8 +2,12 @@
 
 #include "CxxModelPrinter.hpp"
 
+#include <Lightweight/DataBinder/SqlNumeric.hpp>
+
 #include <array>
 #include <fstream>
+#include <limits>
+#include <variant>
 
 using namespace std::string_view_literals;
 
@@ -386,6 +390,49 @@ SqlSchema::ForeignKeyConstraint const& CxxModelPrinter::GetForeignKey(
                     column.foreignKeyConstraint->foreignKey.table)); // NOLINT(bugprone-unchecked-optional-access)
 }
 
+std::string CxxModelPrinter::MakeDecimalPrecisionNote(SqlSchema::Column const& column)
+{
+    auto const* const decimal = std::get_if<SqlColumnTypeDefinitions::Decimal>(&column.type);
+    if (decimal == nullptr)
+        return {};
+
+    // Number of significant decimal digits an IEEE-754 double preserves. `SqlNumeric`'s binder
+    // deliberately routes SQLite and MS SQL Server through SQL_C_DOUBLE (see
+    // `NativeNumericSupportIsBroken`), so on those backends this is all a value carries — no
+    // matter how wide the column was declared.
+    constexpr auto fallbackDigits = static_cast<std::size_t>(std::numeric_limits<double>::digits10);
+
+    // Widest precision `SqlNumeric` accepts on a toolchain without a 128-bit integer (MSVC,
+    // clang-cl), where the unscaled value is carried by an `int64_t`. This is deliberately *not*
+    // `SqlMaxNumericPrecision`: that is the bound of whichever toolchain built ddl2cpp, while the
+    // generated header may well be compiled by another one.
+    constexpr auto portablePrecision = detail::DecimalDigitsForBits(63);
+
+    std::string note;
+
+    if (decimal->precision > fallbackDigits)
+        note += std::format("    // NOTE: DECIMAL({}, {}) declares {} digits, but SqlNumeric transfers this column through\n"
+                            "    //       SQL_C_DOUBLE on SQLite and MS SQL Server, which carries only {}. The low {}\n"
+                            "    //       digit(s) are lost silently there — e.g. MS SQL Server reads its own `money`\n"
+                            "    //       maximum 922337203685477.5807 back as 922337203685477.6250. Read the column as\n"
+                            "    //       a string if those digits matter. See docs/data-binder.md.\n",
+                            decimal->precision,
+                            decimal->scale,
+                            decimal->precision,
+                            fallbackDigits,
+                            decimal->precision - fallbackDigits);
+
+    if (decimal->precision > portablePrecision)
+        note += std::format("    // NOTE: SqlNumeric<{}, {}> requires a toolchain with a 128-bit integer type. It does\n"
+                            "    //       not compile with MSVC or clang-cl, whose {}-digit int64_t carrier cannot hold\n"
+                            "    //       the unscaled value.\n",
+                            decimal->precision,
+                            decimal->scale,
+                            portablePrecision);
+
+    return note;
+}
+
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 std::string CxxModelPrinter::MakeType(
     SqlSchema::Column const& column,
@@ -715,6 +762,7 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table)
         {
             auto const emittedName = uniqueMemberNameBuilder.DeclareName(memberName);
             definition.members.emplace_back(emittedName, column.name);
+            definition.text << MakeDecimalPrecisionNote(column);
             definition.text << std::format(
                 "    Light::Field<{}{}{}> {};", type, primaryKeyPart(), aliasName(column.name), emittedName);
             if (column.isForeignKey)
@@ -726,6 +774,7 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table)
         // Fallback: Handle the column as a regular field.
         auto const emittedName = uniqueMemberNameBuilder.DeclareName(memberName);
         definition.members.emplace_back(emittedName, column.name);
+        definition.text << MakeDecimalPrecisionNote(column);
         definition.text << std::format("    Light::Field<{}{}> {};", type, aliasName(column.name), emittedName);
         if (column.isForeignKey)
             definition.text << std::format(" // NB: This is also a foreign key");

@@ -120,24 +120,57 @@ This function should be used purely for debugging purposes.
 
 ## `SqlNumeric<Precision, Scale>` precision limits
 
-`Precision` is a count of **decimal digits** and may be at most
-`Lightweight::SqlMaxNumericPrecision` (38) — the number of decimal digits that fit
-into the 16-byte mantissa of ODBC's `SQL_NUMERIC_STRUCT`. This covers the widest
-`DECIMAL`/`NUMERIC` MS SQL Server and PostgreSQL accept, and in particular MS SQL
-Server's `money` (`DECIMAL(19, 4)`), which `ddl2cpp` emits as
-`Light::SqlNumeric<19, 4>`.
+`Precision` is a count of **decimal digits**. It may be at most
+`Lightweight::SqlMaxNumericPrecision`, which is **19** where the toolchain provides a
+128-bit integer type and **18** where it does not (MSVC and clang-cl):
+
+| Toolchain | `SqlMaxNumericPrecision` | Widest column |
+|-----------|--------------------------|---------------|
+| GCC / Clang (`__int128` available) | 19 | `DECIMAL(19, s)` — including MS SQL Server's `money` |
+| MSVC, clang-cl (no `__int128`)     | 18 | `DECIMAL(18, s)` |
 
 `Scale` counts the digits after the decimal point and may be anywhere in
 `[0, Precision]`. `Scale == Precision` is the purely fractional case: `SqlNumeric<4, 4>`
 is SQL's `DECIMAL(4, 4)` and covers `[0.0000, 0.9999]`.
 
-Note that `SQL_MAX_NUMERIC_LEN` (16) is a *byte* count, not a digit count — do not
-use it as a precision bound.
+Note that `SQL_MAX_NUMERIC_LEN` (16) is a *byte* count, not a digit count — do not use
+it as a precision bound. It is the size of `SQL_NUMERIC_STRUCT::val`, a 128-bit
+mantissa, which is 38 decimal digits. **38 is not the bound either**: it is what the
+ODBC struct could hold, not what this implementation delivers. Two things narrow it:
 
-### How many of those digits actually survive a round-trip
+- **The unscaled carrier.** `assign()` and `ToUnscaledValue()` keep `value * 10^Scale`
+  in a `__int128` where one exists and in an `int64_t` otherwise. A signed 64-bit
+  carrier holds 18 digits. At `Precision == 19` it overflows — `money`'s maximum
+  `922337203685477.5807` has the unscaled value `9223372036854775808`, one past
+  `INT64_MAX` — and the out-of-range floating-to-integer conversion is undefined
+  behaviour, which on x86-64 yields `INT64_MIN` and renders as
+  `-922337203685477.5808`, sign flipped.
+- **The readable width.** Every accessor except `ToUnscaledValue()` divides through
+  `long double`, so no more digits can be *read back* than that type's significand
+  holds — 19 on the 80-bit x87 `long double`. A fetched `SqlNumeric<20, 0>` holding
+  `99999999999999999999` already prints as `100000000000000000000`.
+
+A column wider than the bound must be read as a string.
+
+### What each accessor delivers
+
+Even inside the bound the accessors do not all carry the same number of digits. For a
+value obtained by fetching (i.e. one whose mantissa arrived intact):
+
+| Accessor | Significant digits | Notes |
+|----------|--------------------|-------|
+| `ToUnscaledValue()` | up to `Precision` | The only accessor that does not go through a floating-point type. |
+| `ToString()`, `ToLongDouble()` | bounded by `long double` | 19 with the x87 80-bit `long double` (Linux/GCC/Clang on x86-64); **15 where `long double` is a `double`** — MSVC, and Clang on Apple Silicon. |
+| `ToDouble()`, `operator<=>` | 15 | `std::numeric_limits<double>::digits10`. |
+| `ToFloat()`, `operator==` | **7** | `std::numeric_limits<float>::digits10`. `operator==` compares via `ToFloat()`, so `SqlNumeric<19, 4>` values `1234567890.1234` and `1234567890.9999` compare **equal**. Compare `ToUnscaledValue()` if you need exactness. |
+
+So on MSVC, `SqlNumeric<18, 2>` is accepted and `ToUnscaledValue()` returns all 18
+digits, but `ToString()` renders only the leading 15 correctly.
+
+### How many of those digits survive a round-trip
 
 Declaring a wide `Precision` does not by itself guarantee that every digit is
-transferred. What you can rely on:
+*transferred*. What you can rely on:
 
 - **Up to `std::numeric_limits<double>::digits10` (15) significant decimal digits:
   exact everywhere.** Every backend and driver combination round-trips such a value
@@ -146,19 +179,21 @@ transferred. What you can rely on:
   independent things can narrow the value to a `double` (≈15 significant digits):
   - The binder deliberately falls back to `SQL_C_DOUBLE` for SQLite and MS SQL Server,
     whose drivers do not handle `SQL_NUMERIC_STRUCT` usably (see
-    `NativeNumericSupportIsBroken`).
+    `NativeNumericSupportIsBroken`). This is why MS SQL Server's own `money` loses
+    precision on MS SQL Server: its maximum `922337203685477.5807` reads back as
+    `922337203685477.6250`.
   - Some driver *builds* narrow internally even on the native path. The psqlODBC that
     ships for Windows converts through a `double` before filling `SQL_NUMERIC_STRUCT`,
     so a 19-digit value comes back as the mantissa of its nearest `double`; the Linux
     build of the same driver transfers the mantissa verbatim.
 
-  In practice, PostgreSQL on Linux is the combination where the full 38-digit width is
-  carried today.
+  PostgreSQL on Linux is therefore the only combination that carries a full 19-digit
+  value end to end today.
 
-Two further limits are independent of the driver: assigning from a `float`/`double`
-(the only value-setting API besides fetching) is bounded by that floating-point type,
-and on toolchains without `__int128` (notably MSVC) the unscaled value is handled as
-`int64_t`, capping it at 63 bits (~18-19 digits).
+One further limit is independent of the driver: assigning from a `float`/`double` — the
+only value-setting API besides fetching — is bounded by that floating-point type, so
+`SqlNumeric<19, 4> { 922337203685477.5807 }` already holds `922337203685477.6250`
+before any database is involved.
 
 If you need exactness above 15 digits on an arbitrary backend, read the column as a
 string instead.

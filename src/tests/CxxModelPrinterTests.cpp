@@ -13,7 +13,10 @@
 
 #include <filesystem>
 #include <fstream>
+#include <ranges>
 #include <sstream>
+#include <string>
+#include <string_view>
 
 using Lightweight::Tools::CxxModelPrinter;
 
@@ -224,18 +227,86 @@ TEST_CASE("CxxModelPrinter::MakeType: money maps to a type SqlNumeric accepts", 
     using namespace Lightweight::SqlColumnTypeDefinitions;
 
     // MS SQL Server reports `money` as DECIMAL(19, 4) and `smallmoney` as DECIMAL(10, 4); the
-    // emitted type must carry those exact values *and* be instantiable (issue #519 hit a
-    // SqlNumeric static_assert that compared decimal digits against a byte count).
+    // emitted type must carry those exact values (issue #519 hit a SqlNumeric static_assert that
+    // compared decimal digits against a byte count).
     CHECK(CxxTypeName({ .name = "price", .type = Decimal { .precision = 19, .scale = 4 }, .isNullable = false })
           == "Light::SqlNumeric<19, 4>");
     CHECK(CxxTypeName({ .name = "price", .type = Decimal { .precision = 10, .scale = 4 }, .isNullable = false })
           == "Light::SqlNumeric<10, 4>");
-    STATIC_CHECK(Lightweight::SqlNumeric<19, 4>::Precision <= Lightweight::SqlMaxNumericPrecision);
 
-    // The widest DECIMAL MS SQL Server / PostgreSQL support is also representable.
+    // `money` is instantiable wherever the toolchain has a 128-bit integer type. Where it does not
+    // (MSVC, clang-cl) the emitted record is a compile error rather than a silently sign-flipped
+    // value — MakeDecimalPrecisionNote() says so in the generated header, see below.
+#if defined(LIGHTWEIGHT_INT128_T)
+    STATIC_CHECK(Lightweight::SqlNumeric<19, 4>::Precision <= Lightweight::SqlMaxNumericPrecision);
+#endif
+
+    // ddl2cpp still emits the column's declared precision verbatim, even where that is wider than
+    // SqlNumeric accepts: truncating it here would silently misdescribe the schema, and the note
+    // emitted alongside the member explains what the transfer actually delivers.
     CHECK(CxxTypeName({ .name = "huge", .type = Decimal { .precision = 38, .scale = 10 }, .isNullable = false })
           == "Light::SqlNumeric<38, 10>");
-    STATIC_CHECK(Lightweight::SqlNumeric<38, 10>::Precision <= Lightweight::SqlMaxNumericPrecision);
+}
+
+TEST_CASE("CxxModelPrinter::MakeDecimalPrecisionNote", "[CxxModelPrinter],[MakeType]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+
+    // Anything a double carries losslessly needs no note.
+    CHECK(CxxModelPrinter::MakeDecimalPrecisionNote(
+              { .name = "amount", .type = Decimal { .precision = 15, .scale = 2 }, .isNullable = false })
+              .empty());
+    // Non-decimal columns are none of this function's business.
+    CHECK(CxxModelPrinter::MakeDecimalPrecisionNote({ .name = "id", .type = Integer {}, .isNullable = false }).empty());
+
+    // 16..18 digits: the SQL_C_DOUBLE fallback loses the low digits on SQLite and MS SQL Server,
+    // but the type itself is instantiable everywhere — one note, not two.
+    auto const wide = CxxModelPrinter::MakeDecimalPrecisionNote(
+        { .name = "amount", .type = Decimal { .precision = 18, .scale = 2 }, .isNullable = false });
+    CHECK(wide.contains("SQL_C_DOUBLE"));
+    CHECK(wide.contains("DECIMAL(18, 2)"));
+    CHECK(!wide.contains("128-bit"));
+
+    // `money`: both hazards apply.
+    auto const money = CxxModelPrinter::MakeDecimalPrecisionNote(
+        { .name = "price", .type = Decimal { .precision = 19, .scale = 4 }, .isNullable = false });
+    CHECK(money.contains("SQL_C_DOUBLE"));
+    CHECK(money.contains("922337203685477.6250"));
+    CHECK(money.contains("SqlNumeric<19, 4> requires a toolchain with a 128-bit integer type"));
+
+    // Every emitted line is a properly indented comment, so it can be dropped into a struct body.
+    for (auto const line: std::views::split(std::string_view { money }, '\n'))
+    {
+        auto const text = std::string_view { line.begin(), line.end() };
+        CHECK((text.empty() || text.starts_with("    //")));
+    }
+}
+
+TEST_CASE("CxxModelPrinter: emits the precision note next to a money member", "[CxxModelPrinter]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    CxxModelPrinter printer { CxxModelPrinter::Config {} };
+
+    printer.PrintTable(Lightweight::SqlSchema::Table {
+        .schema = "",
+        .name = "invoices",
+        .columns = { { .name = "id", .type = Integer {}, .isNullable = false, .isPrimaryKey = true },
+                     { .name = "total", .type = Decimal { .precision = 19, .scale = 4 }, .isNullable = false },
+                     { .name = "tax_rate", .type = Decimal { .precision = 5, .scale = 4 }, .isNullable = false } },
+        .primaryKeys = { "id" },
+    });
+
+    auto const output = printer.HeaderFileForTheTable("Models", "invoices");
+
+    // The note precedes the member it describes, and only that member.
+    auto const notePosition = output.find("// NOTE: DECIMAL(19, 4)");
+    REQUIRE(notePosition != std::string::npos);
+    auto const memberPosition = output.find("Light::SqlNumeric<19, 4>");
+    REQUIRE(memberPosition != std::string::npos);
+    CHECK(notePosition < memberPosition);
+
+    // DECIMAL(5, 4) fits a double comfortably and must not be annotated.
+    CHECK(!output.contains("// NOTE: DECIMAL(5, 4)"));
 }
 
 TEST_CASE("CxxModelPrinter::MakeType: date/time/timestamp/guid/binary", "[CxxModelPrinter],[MakeType]")
