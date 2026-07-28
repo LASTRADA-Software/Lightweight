@@ -106,7 +106,6 @@ Create or Modife database schema</h1>
 <li><code>PrimaryKeyWithAutoIncrement( std::string columnName, SqlColumnTypeDefinition columnType )</code><ul>
 <li>create primary key column in the database with automatic indexing</li>
 <li>Second parameter has a default value <code>SqlColumnTypeDefinitions::Bigint</code></li>
-<li>The declared integer width is preserved per DBMS: SQL Server emits <code>&lt;type&gt; IDENTITY(1,1)</code> and PostgreSQL emits the matching serial pseudo-type (<code>Bigint</code> → <code>BIGSERIAL</code>, <code>Integer</code> → <code>SERIAL</code>, <code>Smallint</code>/<code>Tinyint</code> → <code>SMALLSERIAL</code>). SQLite is the exception — <code>AUTOINCREMENT</code> is only valid on an <code>INTEGER PRIMARY KEY</code>, which is a 64-bit rowid alias there, so the column is always <code>INTEGER</code>.</li>
 </ul>
 </li>
 <li><code>Column(std::string columnName, SqlColumnTypeDefinition columnType)</code>, <code>Column(SqlColumnDeclaration column)</code><ul>
