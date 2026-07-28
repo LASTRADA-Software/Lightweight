@@ -1,7 +1,5 @@
 var NAVTREEINDEX4 =
 {
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#aa82cdee7e05bc78bca8345a4bebea3fd":[16,0,0,60,12],
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#ab39585d3fa5fcd921a0e46afb27ff8d7":[16,0,0,60,26],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#ab9502d79df4bc885858166ea11c493a0":[16,0,0,60,22],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#abf21ac12103c4b8224cc68fb0cc114c0":[16,0,0,60,0],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#aca7467c2f31b7913a2971b20b67df5a6":[16,0,0,60,2],
@@ -249,5 +247,7 @@ var NAVTREEINDEX4 =
 "da/dd4/structLightweight_1_1Zip_1_1ZipError.html#a36fb2dfc5fee2d41462a563316f12754":[16,0,0,5,3,2],
 "da/dd4/structLightweight_1_1Zip_1_1ZipError.html#aae4162b3c01ffe80286bdf62a5561472":[16,0,0,5,3,1],
 "da/df2/classLightweight_1_1SqlRequireLoadedError.html":[14,2,5],
-"da/df2/classLightweight_1_1SqlRequireLoadedError.html#a96304f8f159d5cdd3ef3a0065a464ca2":[14,2,5,0]
+"da/df2/classLightweight_1_1SqlRequireLoadedError.html#a96304f8f159d5cdd3ef3a0065a464ca2":[14,2,5,0],
+"da/df4/classLightweight_1_1HasMany.html":[14,2,7],
+"da/df4/classLightweight_1_1HasMany.html#a09781261bf364bf63b828563ef5d7f7c":[14,2,7,2]
 };

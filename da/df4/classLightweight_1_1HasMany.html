@@ -186,12 +186,10 @@ constexpr bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator!=<
 <div class="textblock"><div class="compoundTemplParams">template&lt;typename OtherRecord&gt;<br />
 class Lightweight::HasMany&lt; OtherRecord &gt;</div><p>This HasMany&lt;OtherRecord&gt; represents a simple one-to-many relationship between two records. </p>
 <p>The HasMany&lt;OtherRecord&gt; is a member of the "one" side of the relationship.</p>
-<p><code>OtherRecord</code> must declare exactly one <code><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents a one-to-one relationship.">BelongsTo</a></code> member that points back to this "one" side. That member is located by matching the relationship <em>type</em>, not by its position in either record, so the two relationship members may be declared at any index. Declaring no such <code><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents a one-to-one relationship.">BelongsTo</a></code>, or more than one (which would make the inverse ambiguous), is a compile-time error.</p>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="../../d7/d2f/group__DataMapper.html#ga46c51cfa406c6c71501722b5f48e4759" title="Member index, within ChildRecord, of the unique BelongsTo member that points back to OwnerRecord.">InverseBelongsToIndexOf</a></dd>
-<dd>
-<a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a>, <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a>, <a class="el" href="../../de/d73/classLightweight_1_1HasManyThrough.html" title="This API represents a many-to-many relationship between two records through a third record.">HasManyThrough</a> </dd></dl>
+<p>This implemenation of <code><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html" title="This HasMany&lt;OtherRecord&gt; represents a simple one-to-many relationship between two records.">HasMany</a>&lt;OtherRecord&gt;</code> must have only one <code><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents a one-to-one relationship.">BelongsTo</a></code> member that points back to this "one" side.</p>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a>, <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a>, <a class="el" href="../../de/d73/classLightweight_1_1HasManyThrough.html" title="This API represents a many-to-many relationship between two records through a third record.">HasManyThrough</a> </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00037">37</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00033">33</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 </div><h2 class="groupheader">Member Typedef Documentation</h2>
 <a id="aa55567dd568d83b2bf1a17980f856553" name="aa55567dd568d83b2bf1a17980f856553"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aa55567dd568d83b2bf1a17980f856553">&#9670;&#160;</a></span>ReferencedRecord</h2>
@@ -209,7 +207,7 @@ template&lt;typename OtherRecord &gt; </div>
 
 <p>The record type of the "many" side of the relationship. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00041">41</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00037">37</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -229,7 +227,7 @@ template&lt;typename OtherRecord &gt; </div>
 
 <p>The list of records on the "many" side of the relationship. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00044">44</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00040">40</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -249,7 +247,7 @@ template&lt;typename OtherRecord &gt; </div>
 
 <p>Record type of the "many" side of the relationship. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00047">47</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00043">43</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -269,7 +267,7 @@ template&lt;typename OtherRecord &gt; </div>
 
 <p>Iterator type for the list of records. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00050">50</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00046">46</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -289,7 +287,7 @@ template&lt;typename OtherRecord &gt; </div>
 
 <p>Const iterator type for the list of records. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00053">53</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00049">49</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -321,7 +319,7 @@ template&lt;typename OtherRecord &gt; </div>
 
 <p>Retrieves the list of loaded records. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00190">190</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00186">186</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -352,7 +350,7 @@ template&lt;typename OtherRecord &gt; </div>
 
 <p>Retrieves the list of records as mutable reference. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00169">169</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00165">165</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -379,7 +377,7 @@ template&lt;typename Callable &gt; </div>
 <p>Iterates over the list of records and calls the given callable for each record. </p>
 <dl class="section note"><dt>Note</dt><dd>Use this method if you want to iterate over all records but do not need to store them all in memory, e.g. because the full data set wuold be too large. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00177">177</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00173">173</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -411,7 +409,7 @@ template&lt;typename OtherRecord &gt; </div>
 
 <p>Emplaces the given list of records. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00161">161</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00157">157</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -442,7 +440,7 @@ template&lt;typename OtherRecord &gt; </div>
 
 <p>Retrieves the number of records in this 1-to-many relationship. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00197">197</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00193">193</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -473,7 +471,7 @@ template&lt;typename OtherRecord &gt; </div>
 
 <p>Checks if this 1-to-many relationship is empty. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00209">209</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00205">205</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -514,7 +512,7 @@ template&lt;typename OtherRecord &gt; </div>
 <dd>
 This method will throw if the index is out of bounds. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00215">215</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00211">211</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -555,7 +553,7 @@ template&lt;typename OtherRecord &gt; </div>
 <dd>
 This method will throw if the index is out of bounds. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00222">222</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00218">218</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -596,7 +594,7 @@ template&lt;typename OtherRecord &gt; </div>
 <dd>
 This method will NOT throw if the index is out of bounds. The behaviour is undefined. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00229">229</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00225">225</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -637,7 +635,7 @@ template&lt;typename OtherRecord &gt; </div>
 <dd>
 This method will NOT throw if the index is out of bounds. The behaviour is undefined. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00236">236</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00232">232</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -668,7 +666,7 @@ template&lt;typename OtherRecord &gt; </div>
 
 <p>Returns an iterator to the beginning of the record list. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00243">243</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00239">239</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -699,7 +697,7 @@ template&lt;typename OtherRecord &gt; </div>
 
 <p>Returns an iterator to the end of the record list. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00253">253</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00249">249</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -730,7 +728,7 @@ template&lt;typename OtherRecord &gt; </div>
 
 <p>Returns a const iterator to the beginning of the record list. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00263">263</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00259">259</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -761,7 +759,7 @@ template&lt;typename OtherRecord &gt; </div>
 
 <p>Returns a const iterator to the end of the record list. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00273">273</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00269">269</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -793,7 +791,7 @@ template&lt;typename OtherRecord &gt; </div>
 
 <p>Used internally to configure on-demand loading of the records. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00148">148</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00144">144</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02865">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>.</p>
 
