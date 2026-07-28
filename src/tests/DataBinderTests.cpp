@@ -540,6 +540,37 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlNumeric.StoreAndLoad", "[SqlDataBinder],[Sq
     // NOLINTEND(bugprone-unchecked-optional-access)
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlNumeric.MoneyPrecision", "[SqlDataBinder],[SqlNumeric]")
+{
+    // MS SQL Server's `money` is DECIMAL(19, 4) and ddl2cpp maps it to SqlNumeric<19, 4>. Verify
+    // that such a column can be declared, written and read back (issue #519). The value is written
+    // through a plain SQL literal so that the stored value carries all 19 digits, independently of
+    // what the C++ side can express.
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::Decimal { .precision = 19, .scale = 4 });
+    });
+
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "Test" ("Value") VALUES (123456789012345.6789))");
+
+    auto const received = stmt.ExecuteDirectScalar<SqlNumeric<19, 4>>(stmt.Query("Test").Select().Field("Value").All());
+    REQUIRE(received.has_value());
+
+    if (stmt.Connection().ServerType() == SqlServerType::POSTGRESQL)
+    {
+        // PostgreSQL's driver supports SQL_C_NUMERIC, so the full 19-digit mantissa survives.
+        CHECK(received->ToString() == "123456789012345.6789"); // NOLINT(bugprone-unchecked-optional-access)
+    }
+    else
+    {
+        // SQLite and MS SQL Server fall back to SQL_C_DOUBLE (see NativeNumericSupportIsBroken),
+        // which carries ~15 significant decimal digits. The value is therefore only approximate —
+        // a pre-existing property of that fallback, not of the declared precision.
+        CHECK_THAT(received->ToDouble(), // NOLINT(bugprone-unchecked-optional-access)
+                   Catch::Matchers::WithinRel(123456789012345.6789, 1e-15));
+    }
+}
+
 TEST_CASE("SqlDateTime construction", "[SqlDataBinder],[SqlDateTime]")
 {
     namespace chrono = std::chrono;

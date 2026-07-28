@@ -118,6 +118,24 @@ The `Inspect()` function is used to provide a human-readable representation of t
 
 This function should be used purely for debugging purposes.
 
+## `SqlNumeric<Precision, Scale>` precision limits
+
+`Precision` is a count of **decimal digits** and may be at most
+`Lightweight::SqlMaxNumericPrecision` (38) — the number of decimal digits that fit
+into the 16-byte mantissa of ODBC's `SQL_NUMERIC_STRUCT`. This covers the widest
+`DECIMAL`/`NUMERIC` MS SQL Server and PostgreSQL accept, and in particular MS SQL
+Server's `money` (`DECIMAL(19, 4)`), which `ddl2cpp` emits as
+`Light::SqlNumeric<19, 4>`.
+
+Note that `SQL_MAX_NUMERIC_LEN` (16) is a *byte* count, not a digit count — do not
+use it as a precision bound.
+
+The value itself is only carried at full width where the driver supports
+`SQL_C_NUMERIC`. Against SQLite and MS SQL Server the binder falls back to
+`SQL_C_DOUBLE` (see `NativeNumericSupportIsBroken`), which preserves roughly 15
+significant decimal digits regardless of the declared precision. Assigning from a
+`float`/`double` is likewise limited by that floating-point type.
+
 ## How `SqlVariant` decides which alternative to fill
 
 `SqlDataBinder<SqlVariant>::GetColumn` queries the driver for

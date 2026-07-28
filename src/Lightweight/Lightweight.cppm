@@ -159,6 +159,7 @@ using Lightweight::SqlLockFailureReason;
 using Lightweight::SqlLogger;
 using Lightweight::SqlMaxDynamicAnsiString;
 using Lightweight::SqlMaxDynamicWideString;
+using Lightweight::SqlMaxNumericPrecision;
 using Lightweight::SqlMigrationDeleteBuilder;
 using Lightweight::SqlMigrationInsertBuilder;
 using Lightweight::SqlMigrationPlan;

@@ -112,6 +112,25 @@ TEST_CASE("SqlNumeric ColumnType matches template arguments", "[SqlNumeric]")
     CHECK(col.scale == 4);
 }
 
+TEST_CASE("SqlNumeric supports the full decimal precision of the ODBC mantissa", "[SqlNumeric]")
+{
+    // SQL_MAX_NUMERIC_LEN is the mantissa size in *bytes* (16), not a digit count. 16 bytes hold a
+    // 128-bit unsigned integer, i.e. 38 full decimal digits — which is also the maximum DECIMAL
+    // precision of MS SQL Server and PostgreSQL.
+    STATIC_CHECK(SqlMaxNumericPrecision == 38);
+
+    // MS SQL Server's `money` is DECIMAL(19, 4); it must be expressible.
+    STATIC_CHECK(SqlNumeric<19, 4>::Precision == 19);
+    STATIC_CHECK(SqlNumeric<19, 4>::Scale == 4);
+    STATIC_CHECK(SqlNumeric<19, 4>::ColumnType.precision == 19);
+
+    // ... as must the widest DECIMAL either server supports.
+    STATIC_CHECK(SqlNumeric<SqlMaxNumericPrecision, 10>::Precision == 38);
+
+    SqlNumeric<19, 4> const money { 1234567890.1234 };
+    CHECK(money.ToString() == "1234567890.1234");
+}
+
 TEST_CASE("SqlNumeric ToUnscaledValue scales by 10^Scale", "[SqlNumeric]")
 {
     SqlNumeric<10, 2> const n { 1.23 };

@@ -9,6 +9,7 @@
 #include <expected>
 #include <filesystem>
 #include <map>
+#include <set>
 #include <string>
 #include <unordered_set>
 #include <utility>
@@ -92,7 +93,10 @@ class CxxModelPrinter
     struct TableInfo
     {
         std::stringstream text;
-        std::vector<std::string> requiredTables;
+        /// Headers this record depends on, one entry per *distinct* referenced table. A table with
+        /// several foreign-key columns pointing at the same target must still be included once, so
+        /// this is a set (which also gives the emitted `#include` block a stable, sorted order).
+        std::set<std::string> requiredTables;
         std::string structName;                                   //< C++ struct name (possibly aliased).
         std::vector<std::pair<std::string, std::string>> members; //< (emitted member id, SQL column name), in order.
     };

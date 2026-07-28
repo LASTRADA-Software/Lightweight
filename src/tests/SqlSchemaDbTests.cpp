@@ -8,6 +8,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <variant>
 
 using namespace Lightweight;
 
@@ -513,4 +514,69 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlTestFixture::DropTableRecursively: diamond 
     CHECK_FALSE(TableExists(stmt, "DiaLeft"));
     CHECK_FALSE(TableExists(stmt, "DiaRight"));
     CHECK_FALSE(TableExists(stmt, "DiaLeaf"));
+}
+
+// ================================================================================================
+// MS SQL Server type reporting (regression coverage for issue #519)
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadAllTables reports money as DECIMAL(19, 4)", "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::SQLITE);
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::POSTGRESQL);
+
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "MoneyProbe" ("price" money NOT NULL, "small" smallmoney NULL))");
+
+    auto const tables = SqlSchema::ReadAllTables(stmt, stmt.Connection().DatabaseName(), /*schema=*/"");
+    auto const probe = std::ranges::find_if(tables, [](SqlSchema::Table const& t) { return t.name == "MoneyProbe"; });
+    REQUIRE(probe != tables.end());
+    REQUIRE(probe->columns.size() == 2);
+
+    // `money` is DECIMAL(19, 4) and `smallmoney` is DECIMAL(10, 4). Both must be reported with
+    // their true precision — the emitted SqlNumeric<19, 4> has to be a legal instantiation.
+    using Lightweight::SqlColumnTypeDefinitions::Decimal;
+    REQUIRE(std::holds_alternative<Decimal>(probe->columns[0].type));
+    CHECK(std::get<Decimal>(probe->columns[0].type).precision == 19);
+    CHECK(std::get<Decimal>(probe->columns[0].type).scale == 4);
+    REQUIRE(std::holds_alternative<Decimal>(probe->columns[1].type));
+    CHECK(std::get<Decimal>(probe->columns[1].type).precision == 10);
+    CHECK(std::get<Decimal>(probe->columns[1].type).scale == 4);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadAllTables resolves MS SQL Server alias types", "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::SQLITE);
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::POSTGRESQL);
+
+    // A column declared with an alias type (or with the built-in `sysname` alias) must be
+    // reported as its base type. Reporting the alias name would drop the column into the
+    // unmapped-type fallback, which mistakes an nvarchar(N) for a non-Unicode string of
+    // 2*N bytes.
+    (void) stmt.ExecuteDirect(R"(DROP TABLE IF EXISTS "AliasProbe")"); // may survive a failed run
+    (void) stmt.ExecuteDirect(R"(DROP TYPE IF EXISTS "LightweightAliasNVarchar")");
+    (void) stmt.ExecuteDirect(R"(DROP TYPE IF EXISTS "LightweightAliasVarchar")");
+    (void) stmt.ExecuteDirect(R"(CREATE TYPE "LightweightAliasNVarchar" FROM nvarchar(50) NULL)");
+    (void) stmt.ExecuteDirect(R"(CREATE TYPE "LightweightAliasVarchar" FROM varchar(100) NULL)");
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "AliasProbe" ("wide" "LightweightAliasNVarchar" NULL,
+                                                            "ansi" "LightweightAliasVarchar" NULL,
+                                                            "name" sysname NULL))");
+
+    auto const tables = SqlSchema::ReadAllTables(stmt, stmt.Connection().DatabaseName(), /*schema=*/"");
+    auto const probe = std::ranges::find_if(tables, [](SqlSchema::Table const& t) { return t.name == "AliasProbe"; });
+    REQUIRE(probe != tables.end());
+    REQUIRE(probe->columns.size() == 3);
+
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    REQUIRE(std::holds_alternative<NVarchar>(probe->columns[0].type));
+    CHECK(std::get<NVarchar>(probe->columns[0].type).size == 50); // characters, not bytes
+    REQUIRE(std::holds_alternative<Varchar>(probe->columns[1].type));
+    CHECK(std::get<Varchar>(probe->columns[1].type).size == 100);
+    REQUIRE(std::holds_alternative<NVarchar>(probe->columns[2].type)); // sysname == nvarchar(128)
+    CHECK(std::get<NVarchar>(probe->columns[2].type).size == 128);
+
+    (void) stmt.ExecuteDirect(R"(DROP TABLE "AliasProbe")");
+    (void) stmt.ExecuteDirect(R"(DROP TYPE IF EXISTS "LightweightAliasNVarchar")");
+    (void) stmt.ExecuteDirect(R"(DROP TYPE IF EXISTS "LightweightAliasVarchar")");
 }

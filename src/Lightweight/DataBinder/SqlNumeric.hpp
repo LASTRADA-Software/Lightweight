@@ -26,6 +26,15 @@ namespace Lightweight
 #endif
 // clang-format on
 
+/// Number of decimal digits that fit into the mantissa of an ODBC `SQL_NUMERIC_STRUCT`.
+///
+/// `SQL_MAX_NUMERIC_LEN` is the size *in bytes* of `SQL_NUMERIC_STRUCT::val` (16 bytes, i.e. a
+/// 128-bit unsigned mantissa) — it is not a maximum decimal precision. The number of decimal
+/// digits that can be stored is `floor(bits * log10(2))`, computed here with integer arithmetic
+/// (`log10(2) ~= 0.30103`) so it stays usable in a constant expression: 128 bits -> 38 digits,
+/// which is also the maximum `DECIMAL`/`NUMERIC` precision of MS SQL Server and PostgreSQL.
+constexpr std::size_t SqlMaxNumericPrecision = (std::size_t { SQL_MAX_NUMERIC_LEN } * 8 * 30103) / 100'000;
+
 /// Represents a fixed-point number with a given precision and scale.
 ///
 /// Precision is *exactly* the total number of digits in the number,
@@ -46,7 +55,8 @@ struct SqlNumeric
     /// The SQL column type definition for this numeric type.
     static constexpr auto ColumnType = SqlColumnTypeDefinitions::Decimal { .precision = Precision, .scale = TheScale };
 
-    static_assert(Precision <= SQL_MAX_NUMERIC_LEN);
+    static_assert(Precision <= SqlMaxNumericPrecision,
+                  "Precision is a count of decimal digits and must fit into the SQL_NUMERIC_STRUCT mantissa.");
     static_assert(Scale < Precision);
 
     /// The SQL numeric struct for ODBC binding.

@@ -219,6 +219,25 @@ TEST_CASE("CxxModelPrinter::MakeType: decimal", "[CxxModelPrinter],[MakeType]")
           == "Light::SqlNumeric<10, 2>");
 }
 
+TEST_CASE("CxxModelPrinter::MakeType: money maps to a type SqlNumeric accepts", "[CxxModelPrinter],[MakeType]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+
+    // MS SQL Server reports `money` as DECIMAL(19, 4) and `smallmoney` as DECIMAL(10, 4); the
+    // emitted type must carry those exact values *and* be instantiable (issue #519 hit a
+    // SqlNumeric static_assert that compared decimal digits against a byte count).
+    CHECK(CxxTypeName({ .name = "price", .type = Decimal { .precision = 19, .scale = 4 }, .isNullable = false })
+          == "Light::SqlNumeric<19, 4>");
+    CHECK(CxxTypeName({ .name = "price", .type = Decimal { .precision = 10, .scale = 4 }, .isNullable = false })
+          == "Light::SqlNumeric<10, 4>");
+    STATIC_CHECK(Lightweight::SqlNumeric<19, 4>::Precision <= Lightweight::SqlMaxNumericPrecision);
+
+    // The widest DECIMAL MS SQL Server / PostgreSQL support is also representable.
+    CHECK(CxxTypeName({ .name = "huge", .type = Decimal { .precision = 38, .scale = 10 }, .isNullable = false })
+          == "Light::SqlNumeric<38, 10>");
+    STATIC_CHECK(Lightweight::SqlNumeric<38, 10>::Precision <= Lightweight::SqlMaxNumericPrecision);
+}
+
 TEST_CASE("CxxModelPrinter::MakeType: date/time/timestamp/guid/binary", "[CxxModelPrinter],[MakeType]")
 {
     using namespace Lightweight::SqlColumnTypeDefinitions;
@@ -404,6 +423,61 @@ TEST_CASE("CxxModelPrinter: emits Description for a keyed table with a relation"
     CHECK(output.contains("using Members = Lightweight::RecordMemberList<&Models::Orders::id, &Models::Orders::customer>;"));
     // ...and the resolved SQL column names, where the relation keeps its real foreign-key column name.
     CHECK(output.contains(R"(FieldNames = { "id", "customer_id" };)"));
+}
+
+// Counts the non-overlapping occurrences of `needle` in `haystack`.
+static std::size_t CountOccurrences(std::string_view haystack, std::string_view needle)
+{
+    if (needle.empty())
+        return 0;
+
+    std::size_t count = 0;
+    for (auto offset = haystack.find(needle); offset != std::string_view::npos;
+         offset = haystack.find(needle, offset + needle.size()))
+        ++count;
+    return count;
+}
+
+TEST_CASE("CxxModelPrinter: emits one #include per distinct foreign-key target", "[CxxModelPrinter]")
+{
+    // A table may reference the same target table from many foreign-key columns (e.g. several
+    // lookup references). The generated header must include the target's header exactly once.
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    CxxModelPrinter printer { CxxModelPrinter::Config {} };
+
+    auto const foreignKeyTo = [](std::string_view column, std::string_view target) {
+        return Lightweight::SqlSchema::ForeignKeyConstraint {
+            .foreignKey = { .table = { .catalog = "", .schema = "", .table = "orders" },
+                            .columns = { std::string { column } } },
+            .primaryKey = { .table = { .catalog = "", .schema = "", .table = std::string { target } }, .columns = { "id" } },
+        };
+    };
+
+    printer.PrintTable(Lightweight::SqlSchema::Table {
+        .schema = "",
+        .name = "orders",
+        .columns = { { .name = "id", .type = Integer {}, .isNullable = false, .isPrimaryKey = true },
+                     { .name = "lookup_a_id", .type = Integer {}, .isNullable = false, .isForeignKey = true },
+                     { .name = "lookup_b_id", .type = Integer {}, .isNullable = false, .isForeignKey = true },
+                     { .name = "lookup_c_id", .type = Integer {}, .isNullable = false, .isForeignKey = true },
+                     { .name = "customer_id", .type = Integer {}, .isNullable = false, .isForeignKey = true } },
+        .foreignKeys = { foreignKeyTo("lookup_a_id", "lookup"),
+                         foreignKeyTo("lookup_b_id", "lookup"),
+                         foreignKeyTo("lookup_c_id", "lookup"),
+                         foreignKeyTo("customer_id", "customers") },
+        .primaryKeys = { "id" },
+    });
+
+    auto const output = printer.HeaderFileForTheTable("Models", "orders");
+
+    CHECK(CountOccurrences(output, R"(#include "lookup.hpp")") == 1);
+    CHECK(CountOccurrences(output, R"(#include "customers.hpp")") == 1);
+
+    // All four relations are still emitted as members, each with its own name.
+    CHECK(output.contains("Light::BelongsTo<&lookup::id, std::nullopt> lookupA;"));
+    CHECK(output.contains("Light::BelongsTo<&lookup::id, std::nullopt> lookupB;"));
+    CHECK(output.contains("Light::BelongsTo<&lookup::id, std::nullopt> lookupC;"));
+    CHECK(output.contains("Light::BelongsTo<&customers::id, std::nullopt> customer;"));
 }
 
 TEST_CASE("CxxModelPrinter::ResolveOrderAndPrintTable: orders by foreign-key dependencies", "[CxxModelPrinter]")

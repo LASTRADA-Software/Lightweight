@@ -335,8 +335,7 @@ std::string CxxModelPrinter::HeaderFileForTheTable(std::string_view modelNamespa
     output << "#pragma once\n";
     output << "\n";
 
-    auto requiredTables = _definitions[tableName].requiredTables;
-    std::ranges::sort(requiredTables);
+    auto const& requiredTables = _definitions[tableName].requiredTables;
     for (auto const& requiredTable: requiredTables)
         output << std::format("#include \"{}.hpp\"\n", requiredTable);
     if (!std::empty(requiredTables))
@@ -705,7 +704,7 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table)
                     }(),
                     emittedName);
                 definition.members.emplace_back(emittedName, column.name);
-                definition.requiredTables.emplace_back(std::move(foreignTableName));
+                definition.requiredTables.emplace(std::move(foreignTableName));
                 ++_numberOfForeignKeysListed;
                 continue;
             }
