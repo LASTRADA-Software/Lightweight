@@ -203,6 +203,8 @@ var group__DataMapper =
     [ "Lightweight::EnumerateRecordMembers", "d7/d2f/group__DataMapper.html#ga04a45404bac144fc1e6e60af1954cd32", null ],
     [ "Lightweight::EnumerateRecordMembers", "d7/d2f/group__DataMapper.html#gaed659f3e0250fbf17e02847b27900b1d", null ],
     [ "Lightweight::FoldRecordMembers", "d7/d2f/group__DataMapper.html#ga2975e6fdc555f7eb9883bee6f207d064", null ],
+    [ "Lightweight::InverseBelongsToIndexOf", "d7/d2f/group__DataMapper.html#ga46c51cfa406c6c71501722b5f48e4759", null ],
+    [ "Lightweight::InverseBelongsToFieldNameOf", "d7/d2f/group__DataMapper.html#gadc7f7e8cd3ffcb4517a52407aa517761", null ],
     [ "Lightweight::RecordStorageFieldCount", "d7/d2f/group__DataMapper.html#gac7df2f7b61cdd663f50496fe92c80a73", null ],
     [ "Lightweight::HasPrimaryKey", "d7/d2f/group__DataMapper.html#gae0874e29a73741a5badb14bacafae06e", null ],
     [ "Lightweight::HasAutoIncrementPrimaryKey", "d7/d2f/group__DataMapper.html#ga1e58d42e8c42aa174027b744d8eb78e0", null ],
