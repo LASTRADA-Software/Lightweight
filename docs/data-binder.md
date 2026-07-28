@@ -127,14 +127,41 @@ into the 16-byte mantissa of ODBC's `SQL_NUMERIC_STRUCT`. This covers the widest
 Server's `money` (`DECIMAL(19, 4)`), which `ddl2cpp` emits as
 `Light::SqlNumeric<19, 4>`.
 
+`Scale` counts the digits after the decimal point and may be anywhere in
+`[0, Precision]`. `Scale == Precision` is the purely fractional case: `SqlNumeric<4, 4>`
+is SQL's `DECIMAL(4, 4)` and covers `[0.0000, 0.9999]`.
+
 Note that `SQL_MAX_NUMERIC_LEN` (16) is a *byte* count, not a digit count — do not
 use it as a precision bound.
 
-The value itself is only carried at full width where the driver supports
-`SQL_C_NUMERIC`. Against SQLite and MS SQL Server the binder falls back to
-`SQL_C_DOUBLE` (see `NativeNumericSupportIsBroken`), which preserves roughly 15
-significant decimal digits regardless of the declared precision. Assigning from a
-`float`/`double` is likewise limited by that floating-point type.
+### How many of those digits actually survive a round-trip
+
+Declaring a wide `Precision` does not by itself guarantee that every digit is
+transferred. What you can rely on:
+
+- **Up to `std::numeric_limits<double>::digits10` (15) significant decimal digits:
+  exact everywhere.** Every backend and driver combination round-trips such a value
+  unchanged.
+- **Beyond 15 significant digits: only on the native `SQL_C_NUMERIC` path.** Two
+  independent things can narrow the value to a `double` (≈15 significant digits):
+  - The binder deliberately falls back to `SQL_C_DOUBLE` for SQLite and MS SQL Server,
+    whose drivers do not handle `SQL_NUMERIC_STRUCT` usably (see
+    `NativeNumericSupportIsBroken`).
+  - Some driver *builds* narrow internally even on the native path. The psqlODBC that
+    ships for Windows converts through a `double` before filling `SQL_NUMERIC_STRUCT`,
+    so a 19-digit value comes back as the mantissa of its nearest `double`; the Linux
+    build of the same driver transfers the mantissa verbatim.
+
+  In practice, PostgreSQL on Linux is the combination where the full 38-digit width is
+  carried today.
+
+Two further limits are independent of the driver: assigning from a `float`/`double`
+(the only value-setting API besides fetching) is bounded by that floating-point type,
+and on toolchains without `__int128` (notably MSVC) the unscaled value is handled as
+`int64_t`, capping it at 63 bits (~18-19 digits).
+
+If you need exactness above 15 digits on an arbitrary backend, read the column as a
+string instead.
 
 ## How `SqlVariant` decides which alternative to fill
 

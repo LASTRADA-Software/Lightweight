@@ -540,6 +540,41 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlNumeric.StoreAndLoad", "[SqlDataBinder],[Sq
     // NOLINTEND(bugprone-unchecked-optional-access)
 }
 
+// Largest relative error a value may carry after a round-trip through the `SQL_C_DOUBLE` fallback
+// of `SqlDataBinder<SqlNumeric<P, S>>`.
+//
+// That path stores the value in an IEEE-754 double, which by definition carries only
+// `std::numeric_limits<double>::digits10` (15) significant decimal digits; digit 16 and beyond are
+// not defined. The bound is therefore one unit in the last *defined* significant digit, which for a
+// decimal mantissa in [1, 10) is at most `10^-(digits10 - 1)` == 1e-14. It is stated per unit and
+// not per half unit because the round-trip rounds at that granularity more than once — the driver's
+// decimal-to-double conversion, the multiply by 10^Scale in ToUnscaledValue(), the 128-bit-to-double
+// conversion and the final divide — so a single half-ulp claim would not hold by construction.
+//
+// The bound is deliberately independent of any observed error: exceeding it means the fallback lost
+// a significant digit that a double is documented to preserve, which is a real defect.
+constexpr double SqlNumericDoubleFallbackTolerance = [] {
+    auto tolerance = 1.0;
+    for ([[maybe_unused]] auto const digit: std::views::iota(1, std::numeric_limits<double>::digits10))
+        tolerance /= 10.0;
+    return tolerance;
+}();
+
+// Whether the driver in use transfers a numeric's full mantissa through `SQL_C_NUMERIC`.
+//
+// `SqlDataBinder<SqlNumeric<..>>::NativeNumericSupportIsBroken()` decides the binding path from
+// `SqlServerType` alone, but losslessness is really a property of the *driver build*: the psqlODBC
+// that ships for Windows converts the value via a double before filling `SQL_NUMERIC_STRUCT` (a
+// 19-digit value arrives as the mantissa of its nearest double), while the Linux build hands over
+// the mantissa verbatim. The strict assertion below is therefore scoped to where the guarantee is
+// actually verified instead of being relaxed everywhere to whatever the weakest driver delivers.
+constexpr bool SqlNumericNativeMantissaIsLossless =
+#if defined(_WIN32)
+    false;
+#else
+    true;
+#endif
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlNumeric.MoneyPrecision", "[SqlDataBinder],[SqlNumeric]")
 {
     // MS SQL Server's `money` is DECIMAL(19, 4) and ddl2cpp maps it to SqlNumeric<19, 4>. Verify
@@ -556,19 +591,72 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlNumeric.MoneyPrecision", "[SqlDataBinder],[
     auto const received = stmt.ExecuteDirectScalar<SqlNumeric<19, 4>>(stmt.Query("Test").Select().Field("Value").All());
     REQUIRE(received.has_value());
 
-    if (stmt.Connection().ServerType() == SqlServerType::POSTGRESQL)
+    // NOLINTBEGIN(bugprone-unchecked-optional-access) - guarded by the REQUIRE above
+
+    // How many of the 19 digits survive is a property of the *binding*, not of the declared
+    // precision, so gate on exactly the predicate the binder itself uses, plus the driver-build
+    // caveat above.
+    if (!SqlDataBinder<SqlNumeric<19, 4>>::NativeNumericSupportIsBroken(stmt.Connection().ServerType())
+        && SqlNumericNativeMantissaIsLossless)
     {
-        // PostgreSQL's driver supports SQL_C_NUMERIC, so the full 19-digit mantissa survives.
-        CHECK(received->ToString() == "123456789012345.6789"); // NOLINT(bugprone-unchecked-optional-access)
+        // Native SQL_C_NUMERIC (PostgreSQL on Linux): the whole 128-bit mantissa is transferred, so
+        // all 19 significant digits come back exactly. This is what makes SqlNumeric<19, 4> — and
+        // hence a precision cap of SqlMaxNumericPrecision rather than SQL_MAX_NUMERIC_LEN — worth
+        // having: SqlNumeric<16, 4> could not express this value at all.
+        CHECK(static_cast<long long>(received->ToUnscaledValue()) == 1234567890123456789LL);
+        CHECK(received->ToString() == "123456789012345.6789");
     }
     else
     {
-        // SQLite and MS SQL Server fall back to SQL_C_DOUBLE (see NativeNumericSupportIsBroken),
-        // which carries ~15 significant decimal digits. The value is therefore only approximate —
-        // a pre-existing property of that fallback, not of the declared precision.
-        CHECK_THAT(received->ToDouble(), // NOLINT(bugprone-unchecked-optional-access)
-                   Catch::Matchers::WithinRel(123456789012345.6789, 1e-15));
+        // Either the SQL_C_DOUBLE fallback (SQLite, MS SQL Server) or a driver that narrows through
+        // a double on the native path (Windows psqlODBC). In both cases only the leading `digits10`
+        // significant digits are meaningful. This is a property of the transfer, not of the declared
+        // precision: SqlNumeric<16, 4> loses exactly the same digits.
+        CHECK_THAT(received->ToDouble(),
+                   Catch::Matchers::WithinRel(123456789012345.6789, SqlNumericDoubleFallbackTolerance));
     }
+
+    // NOLINTEND(bugprone-unchecked-optional-access)
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlNumeric.Digits10AreExactOnEveryBackend", "[SqlDataBinder],[SqlNumeric]")
+{
+    // Pins the accuracy floor that `docs/data-binder.md` promises for the SQL_C_DOUBLE fallback:
+    // a value that fits into std::numeric_limits<double>::digits10 (15) significant decimal digits
+    // round-trips *exactly*, on every backend and regardless of which binding path is taken.
+    // 12345678901.2345 is 11 integral + 4 fractional = 15 significant digits.
+    STATIC_CHECK(std::numeric_limits<double>::digits10 == 15);
+
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::Decimal { .precision = 15, .scale = 4 });
+    });
+
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "Test" ("Value") VALUES (12345678901.2345))");
+
+    auto const received = stmt.ExecuteDirectScalar<SqlNumeric<15, 4>>(stmt.Query("Test").Select().Field("Value").All());
+    REQUIRE(received.has_value());
+    CHECK(received->ToString() == "12345678901.2345"); // NOLINT(bugprone-unchecked-optional-access)
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlNumeric.PurelyFractional", "[SqlDataBinder],[SqlNumeric]")
+{
+    // DECIMAL(4, 4) — every digit sits after the decimal point, so the column holds [0, 1).
+    // `SqlNumeric<4, 4>` used to be rejected by a `static_assert(Scale < Precision)` (issue #519).
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::Decimal { .precision = 4, .scale = 4 });
+    });
+
+    auto const inputValue = SqlNumeric<4, 4> { 0.1234 };
+    stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
+    (void) stmt.Execute(inputValue);
+
+    auto const received = stmt.ExecuteDirectScalar<SqlNumeric<4, 4>>(stmt.Query("Test").Select().Field("Value").All());
+    REQUIRE(received.has_value());
+    CHECK(received->ToString() == "0.1234");                                    // NOLINT(bugprone-unchecked-optional-access)
+    CHECK_THAT(received->ToDouble(), Catch::Matchers::WithinAbs(0.1234, 1e-9)); // NOLINT(bugprone-unchecked-optional-access)
+    CHECK(static_cast<long long>(received->ToUnscaledValue()) == 1234);         // NOLINT(bugprone-unchecked-optional-access)
 }
 
 TEST_CASE("SqlDateTime construction", "[SqlDataBinder],[SqlDateTime]")

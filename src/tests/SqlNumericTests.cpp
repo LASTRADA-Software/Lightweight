@@ -131,6 +131,34 @@ TEST_CASE("SqlNumeric supports the full decimal precision of the ODBC mantissa",
     CHECK(money.ToString() == "1234567890.1234");
 }
 
+TEST_CASE("SqlNumeric supports a purely fractional Scale == Precision", "[SqlNumeric]")
+{
+    // `DECIMAL(4, 4)` is legal SQL: four digits, all of them after the decimal point, i.e. the
+    // value range [0.0000, 0.9999]. No conversion path needs an integral digit.
+    STATIC_CHECK(SqlNumeric<4, 4>::Precision == 4);
+    STATIC_CHECK(SqlNumeric<4, 4>::Scale == 4);
+    STATIC_CHECK(SqlNumeric<4, 4>::ColumnType.precision == 4);
+    STATIC_CHECK(SqlNumeric<4, 4>::ColumnType.scale == 4);
+
+    SqlNumeric<4, 4> const fraction { 0.1234 };
+    CHECK(fraction.ToString() == "0.1234");
+    CHECK(static_cast<long long>(fraction.ToUnscaledValue()) == 1234);
+    CHECK_THAT(fraction.ToDouble(), Catch::Matchers::WithinAbs(0.1234, 1e-9));
+    CHECK_THAT(fraction.ToFloat(), Catch::Matchers::WithinAbs(0.1234F, 1e-6F));
+
+    // The boundaries of the range, and the negative half.
+    CHECK(SqlNumeric<4, 4>(0.9999).ToString() == "0.9999");
+    CHECK(SqlNumeric<4, 4>(0.0).ToString() == "0.0000");
+    CHECK(SqlNumeric<4, 4>(-0.1234).ToString() == "-0.1234");
+
+    // Ordering and equality keep working across the fractional-only form.
+    CHECK(SqlNumeric<4, 4>(0.1234) < SqlNumeric<4, 4>(0.5678));
+    CHECK(SqlNumeric<4, 4>(0.1234) == SqlNumeric<8, 4>(0.1234));
+
+    // Scale == Precision at the widest supported precision is fine too.
+    STATIC_CHECK(SqlNumeric<SqlMaxNumericPrecision, SqlMaxNumericPrecision>::Scale == SqlMaxNumericPrecision);
+}
+
 TEST_CASE("SqlNumeric ToUnscaledValue scales by 10^Scale", "[SqlNumeric]")
 {
     SqlNumeric<10, 2> const n { 1.23 };

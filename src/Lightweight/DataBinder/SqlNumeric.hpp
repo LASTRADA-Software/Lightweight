@@ -40,7 +40,9 @@ constexpr std::size_t SqlMaxNumericPrecision = (std::size_t { SQL_MAX_NUMERIC_LE
 /// Precision is *exactly* the total number of digits in the number,
 /// including the digits after the decimal point.
 ///
-/// Scale is the number of digits after the decimal point.
+/// Scale is the number of digits after the decimal point, and may be anywhere in `[0, Precision]`.
+/// `Scale == Precision` denotes a purely fractional number, e.g. `SqlNumeric<4, 4>` covers
+/// `[0.0000, 0.9999]` — the C++ equivalent of SQL's `DECIMAL(4, 4)`.
 ///
 /// @ingroup DataTypes
 template <std::size_t ThePrecision, std::size_t TheScale>
@@ -55,9 +57,14 @@ struct SqlNumeric
     /// The SQL column type definition for this numeric type.
     static constexpr auto ColumnType = SqlColumnTypeDefinitions::Decimal { .precision = Precision, .scale = TheScale };
 
+    static_assert(Precision > 0, "A fixed-point number must have at least one digit.");
     static_assert(Precision <= SqlMaxNumericPrecision,
                   "Precision is a count of decimal digits and must fit into the SQL_NUMERIC_STRUCT mantissa.");
-    static_assert(Scale < Precision);
+    // `DECIMAL(p, s)` requires 0 <= s <= p; `s == p` denotes a purely fractional number (e.g.
+    // DECIMAL(4, 4) holds [0, 1) with four fractional digits) and is legal in every supported
+    // backend. No conversion path here needs an integral digit: the value is kept as the unscaled
+    // integer `value * 10^Scale`, and every accessor divides that by `10^Scale` again.
+    static_assert(Scale <= Precision, "Scale counts digits after the decimal point and cannot exceed Precision.");
 
     /// The SQL numeric struct for ODBC binding.
     SQL_NUMERIC_STRUCT sqlValue {};
