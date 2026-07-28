@@ -112,6 +112,14 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
     /// a 32-bit `integer` column that caps at 2^31-1 and no longer matches `BIGINT` foreign keys
     /// referencing it.
     ///
+    /// @note `Smallint` and `Tinyint` map onto `SMALLSERIAL`, whose underlying `smallint` caps at
+    ///       32767 — declaring a narrow auto-increment key buys a correspondingly narrow key space.
+    /// @note A declared type with no integer equivalent at all (`Guid`, `Varchar`, `Decimal`, ...)
+    ///       falls through to `SERIAL`, i.e. it is silently coerced to a 32-bit integer column.
+    ///       PostgreSQL accepts that DDL, so the mismatch only surfaces later when reading the
+    ///       column back into the declared C++ type. Auto-increment is only meaningful on an
+    ///       integer key; prefer rejecting such records at the call site.
+    ///
     /// @param type The declared column type.
     /// @return The serial pseudo-type to emit; `SERIAL` for any type without a narrower or wider
     ///         serial equivalent.

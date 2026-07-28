@@ -510,10 +510,26 @@ dbtool restore --input backup.zip --jobs 4
 
 ### Checksum Mismatches
 
-If `dbtool status` reports checksum mismatches:
-- A migration was modified after it was applied
-- This may indicate the database schema is out of sync with the code
-- Review the changes and consider creating a new migration instead
+If `dbtool status` reports checksum mismatches, there are two quite different causes — check the
+second one first, because it is benign and easy to mistake for the first.
+
+**1. You upgraded Lightweight and the generated SQL changed.** The checksum is computed over the SQL
+text that the *formatter* renders for a migration, not over your C++ source. So a library release that
+changes emitted DDL re-hashes every already-applied migration that uses the affected construct, even
+though nobody touched the migration. Example: the PostgreSQL formatter now emits `BIGSERIAL` instead of
+`SERIAL` for a `Bigint` auto-increment key, so every PostgreSQL migration using
+`PrimaryKeyWithAutoIncrement` reports a mismatch after upgrading past that change. Nothing is out of
+sync and nothing
+breaks — mismatches are reported, not enforced. Confirm the mismatching migrations are exactly the ones
+touched by the release, then re-baseline:
+
+```bash
+dbtool rewrite-checksums          # rewrites schema_migrations.checksum to match current code
+```
+
+**2. A migration really was modified after it was applied.** Then the database schema may genuinely be
+out of sync with the code. Review the change and create a new migration instead of editing the old one;
+do **not** run `rewrite-checksums`, which would erase the evidence.
 
 ### Lock Acquisition Failed
 
