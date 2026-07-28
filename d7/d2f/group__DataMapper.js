@@ -2,7 +2,6 @@ var group__DataMapper =
 [
     [ "Lightweight::DataMapperRecord", "de/d36/conceptLightweight_1_1DataMapperRecord.html", null ],
     [ "Lightweight::FieldWithStorage", "dd/da7/conceptLightweight_1_1FieldWithStorage.html", null ],
-    [ "Lightweight::RecordColumnMember", "d7/dfd/conceptLightweight_1_1RecordColumnMember.html", null ],
     [ "Lightweight::HasDescription", "d2/d93/conceptLightweight_1_1HasDescription.html", null ],
     [ "Lightweight::BelongsTo< TheReferencedField, ColumnNameOverrideString, Nullable >", "d0/df7/classLightweight_1_1BelongsTo.html", [
       [ "ReferencedRecord", "d0/df7/classLightweight_1_1BelongsTo.html#ae3deecf75fdd98c06884f76ce07f077b", null ],
@@ -204,7 +203,6 @@ var group__DataMapper =
     [ "Lightweight::EnumerateRecordMembers", "d7/d2f/group__DataMapper.html#ga04a45404bac144fc1e6e60af1954cd32", null ],
     [ "Lightweight::EnumerateRecordMembers", "d7/d2f/group__DataMapper.html#gaed659f3e0250fbf17e02847b27900b1d", null ],
     [ "Lightweight::FoldRecordMembers", "d7/d2f/group__DataMapper.html#ga2975e6fdc555f7eb9883bee6f207d064", null ],
-    [ "Lightweight::RecordColumnCount", "d7/d2f/group__DataMapper.html#gaf1b5baa8cd89f93da2a5cfb28d0c334c", null ],
     [ "Lightweight::RecordStorageFieldCount", "d7/d2f/group__DataMapper.html#gac7df2f7b61cdd663f50496fe92c80a73", null ],
     [ "Lightweight::HasPrimaryKey", "d7/d2f/group__DataMapper.html#gae0874e29a73741a5badb14bacafae06e", null ],
     [ "Lightweight::HasAutoIncrementPrimaryKey", "d7/d2f/group__DataMapper.html#ga1e58d42e8c42aa174027b744d8eb78e0", null ],

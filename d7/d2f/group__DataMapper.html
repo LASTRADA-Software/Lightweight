@@ -110,9 +110,6 @@ Concepts</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">concept &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/da7/conceptLightweight_1_1FieldWithStorage.html">Lightweight::FieldWithStorage</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">concept &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/dfd/conceptLightweight_1_1RecordColumnMember.html">Lightweight::RecordColumnMember</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Requires that T maps onto a column of its record's table. <br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">concept &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d93/conceptLightweight_1_1HasDescription.html">Lightweight::HasDescription</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Satisfied when a Description specialization exists for the given record type. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -195,10 +192,6 @@ Functions</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
 Variables</h2></td></tr>
-<tr class="memitem:gaf1b5baa8cd89f93da2a5cfb28d0c334c" id="r_gaf1b5baa8cd89f93da2a5cfb28d0c334c"><td class="memTemplParams" colspan="2">template&lt;typename Record &gt; </td></tr>
-<tr class="memitem:gaf1b5baa8cd89f93da2a5cfb28d0c334c"><td class="memTemplItemLeft" align="right" valign="top">constexpr size_t&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#gaf1b5baa8cd89f93da2a5cfb28d0c334c">Lightweight::RecordColumnCount</a></td></tr>
-<tr class="memdesc:gaf1b5baa8cd89f93da2a5cfb28d0c334c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents the number of members of a record that map onto a column of a result set.  <br /></td></tr>
-<tr class="separator:gaf1b5baa8cd89f93da2a5cfb28d0c334c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gac7df2f7b61cdd663f50496fe92c80a73" id="r_gac7df2f7b61cdd663f50496fe92c80a73"><td class="memTemplParams" colspan="2">template&lt;typename Record &gt; </td></tr>
 <tr class="memitem:gac7df2f7b61cdd663f50496fe92c80a73"><td class="memTemplItemLeft" align="right" valign="top">constexpr size_t&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#gac7df2f7b61cdd663f50496fe92c80a73">Lightweight::RecordStorageFieldCount</a></td></tr>
 <tr class="separator:gac7df2f7b61cdd663f50496fe92c80a73"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -327,11 +320,11 @@ template&lt;typename Record &gt; </div>
 </div><div class="memdoc">
 <p>Returns the first primary key field of the record. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00208">208</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00178">178</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00181">Lightweight::EnumerateRecordMembers()</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02886">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01856">Lightweight::DataMapper::Create()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02865">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01866">Lightweight::DataMapper::Create()</a>.</p>
 
 </div>
 </div>
@@ -408,7 +401,7 @@ template&lt;typename Record , typename Callable &gt; </div>
 
 <p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00181">181</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02886">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02037">Lightweight::DataMapper::Delete()</a>, <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00208">Lightweight::GetPrimaryKeyField()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02750">Lightweight::DataMapper::LoadRelations()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02805">Lightweight::DataMapper::SetId()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02373">Lightweight::DataMapper::SetModifiedState()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01911">Lightweight::DataMapper::Update()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02865">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02030">Lightweight::DataMapper::Delete()</a>, <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00178">Lightweight::GetPrimaryKeyField()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02729">Lightweight::DataMapper::LoadRelations()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02784">Lightweight::DataMapper::SetId()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02352">Lightweight::DataMapper::SetModifiedState()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01921">Lightweight::DataMapper::Update()</a>.</p>
 
 </div>
 </div>
@@ -532,43 +525,6 @@ template&lt;typename Record , typename Callable , typename ResultType &gt; </div
 </div>
 </div>
 <h2 class="groupheader">Variable Documentation</h2>
-<a id="gaf1b5baa8cd89f93da2a5cfb28d0c334c" name="gaf1b5baa8cd89f93da2a5cfb28d0c334c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gaf1b5baa8cd89f93da2a5cfb28d0c334c">&#9670;&#160;</a></span>RecordColumnCount</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;typename Record &gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">constexpr size_t Lightweight::RecordColumnCount</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">constexpr</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<b>Initial value:</b><div class="fragment"><div class="line">=</div>
-<div class="line">    FoldRecordMembers&lt;Record&gt;(<span class="keywordtype">size_t</span> { 0 }, []&lt;<span class="keywordtype">size_t</span> I, <span class="keyword">typename</span> <a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field</a>&gt;(<span class="keywordtype">size_t</span> <span class="keyword">const</span> accum) <span class="keyword">constexpr</span> {</div>
-<div class="line">        <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (<a class="code hl_concept" href="../../d7/dfd/conceptLightweight_1_1RecordColumnMember.html">RecordColumnMember&lt;Field&gt;</a>)</div>
-<div class="line">            <span class="keywordflow">return</span> accum + 1;</div>
-<div class="line">        <span class="keywordflow">else</span></div>
-<div class="line">            <span class="keywordflow">return</span> accum;</div>
-<div class="line">    })</div>
-<div class="ttc" id="aconceptLightweight_1_1RecordColumnMember_html"><div class="ttname"><a href="../../d7/dfd/conceptLightweight_1_1RecordColumnMember.html">Lightweight::RecordColumnMember</a></div><div class="ttdoc">Requires that T maps onto a column of its record's table.</div><div class="ttdef"><b>Definition</b> <a href="../../d3/d6b/Record_8hpp_source.html#l00143">Record.hpp:143</a></div></div>
-</div><!-- fragment -->
-<p>Represents the number of members of a record that map onto a column of a result set. </p>
-<p>This is the width the record occupies in a projection built from the <code>RecordColumnMember</code> concept (e.g. <code><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a7baedc7ddf58b2b9b1beb1dbfae43c17" title="Adds a sequence of columns to the SELECT clause.">SqlSelectQueryBuilder::Fields</a></code>), and therefore the amount by which the index must be advanced to reach the first column of the record that follows it in a multi-record projection. It differs from <code>RecordMemberCount</code> exactly by the number of relation members (<a class="el" href="../../da/df4/classLightweight_1_1HasMany.html" title="This HasMany&lt;OtherRecord&gt; represents a simple one-to-many relationship between two records.">HasMany</a>, <a class="el" href="../../de/d73/classLightweight_1_1HasManyThrough.html" title="This API represents a many-to-many relationship between two records through a third record.">HasManyThrough</a>, <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html" title="Represents a one-to-one relationship through a join table.">HasOneThrough</a>, ...), which have no column of their own. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00155">155</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
-
-</div>
-</div>
 <a id="gac7df2f7b61cdd663f50496fe92c80a73" name="gac7df2f7b61cdd663f50496fe92c80a73"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#gac7df2f7b61cdd663f50496fe92c80a73">&#9670;&#160;</a></span>RecordStorageFieldCount</h2>
 
@@ -600,7 +556,7 @@ template&lt;typename Record &gt; </div>
 <div class="ttc" id="aconceptLightweight_1_1FieldWithStorage_html"><div class="ttname"><a href="../../dd/da7/conceptLightweight_1_1FieldWithStorage.html">Lightweight::FieldWithStorage</a></div><div class="ttdef"><b>Definition</b> <a href="../../d3/d6b/Record_8hpp_source.html#l00124">Record.hpp:124</a></div></div>
 </div><!-- fragment --><p>Represents the number of fields with storage in a record. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00167">167</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00137">137</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
 
 </div>
 </div>
@@ -628,7 +584,7 @@ template&lt;typename T &gt; </div>
 
 <p>Tests if the given record type does contain a primary key. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00195">195</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00165">165</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
 
 </div>
 </div>
@@ -658,7 +614,7 @@ template&lt;typename T &gt; </div>
 </div><!-- fragment -->
 <p>Tests if the given record type does contain an auto increment primary key. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00201">201</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00171">171</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
 
 </div>
 </div>
@@ -721,7 +677,7 @@ template&lt;std::size_t I, typename Record &gt; </div>
 
 <p>Returns the SQL field name of the given field index in the record. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00269">269</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00261">261</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
 
 </div>
 </div>
@@ -749,7 +705,7 @@ template&lt;typename Record &gt; </div>
 
 <p>Holds the SQL tabl ename for the given record type. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00275">275</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00267">267</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00832">Lightweight::SqlWhereClauseBuilder&lt; Derived &gt;::InnerJoin()</a>.</p>
 
@@ -784,7 +740,7 @@ template&lt;auto ReferencedField&gt; </div>
 <div class="line"> </div>
 <div class="line">    .columnName = FieldNameOf&lt;ReferencedField&gt;,</div>
 <div class="line">}</div>
-<div class="ttc" id="agroup__DataMapper_html_ga2bf8fa94d9c5b41f9a1045395403ccab"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#ga2bf8fa94d9c5b41f9a1045395403ccab">Lightweight::RecordTableName</a></div><div class="ttdeci">constexpr std::string_view RecordTableName</div><div class="ttdoc">Holds the SQL tabl ename for the given record type.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d09/Utils_8hpp_source.html#l00275">Utils.hpp:275</a></div></div>
+<div class="ttc" id="agroup__DataMapper_html_ga2bf8fa94d9c5b41f9a1045395403ccab"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#ga2bf8fa94d9c5b41f9a1045395403ccab">Lightweight::RecordTableName</a></div><div class="ttdeci">constexpr std::string_view RecordTableName</div><div class="ttdoc">Holds the SQL tabl ename for the given record type.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d09/Utils_8hpp_source.html#l00267">Utils.hpp:267</a></div></div>
 </div><!-- fragment -->
 <p>Holds the fully qualified column reference (table + column) for the given field. </p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
@@ -798,7 +754,7 @@ template&lt;auto ReferencedField&gt; </div>
 <div class="line"><span class="keyword">static_assert</span>(ref.columnName == <span class="stringliteral">&quot;id&quot;</span>);</div>
 </div><!-- fragment --><p>The result is an <code><a class="el" href="../../db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html" title="SqlQualifiedTableColumnName represents a column name qualified with a table name.">SqlQualifiedTableColumnName</a></code> accepted by every column-name entry point in the builder (<code><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a></code>, <code>Fields</code>, <code>Where</code>, <code>OrderBy</code>, <code>GroupBy</code>, <code>Aggregate::*</code>, joins). The builder applies the quoting. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00351">351</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00343">343</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
 
 </div>
 </div>
