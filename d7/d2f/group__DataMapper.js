@@ -2,7 +2,6 @@ var group__DataMapper =
 [
     [ "Lightweight::DataMapperRecord", "de/d36/conceptLightweight_1_1DataMapperRecord.html", null ],
     [ "Lightweight::FieldWithStorage", "dd/da7/conceptLightweight_1_1FieldWithStorage.html", null ],
-    [ "Lightweight::RecordColumnMember", "d7/dfd/conceptLightweight_1_1RecordColumnMember.html", null ],
     [ "Lightweight::HasDescription", "d2/d93/conceptLightweight_1_1HasDescription.html", null ],
     [ "Lightweight::BelongsTo< TheReferencedField, ColumnNameOverrideString, Nullable >", "d0/df7/classLightweight_1_1BelongsTo.html", [
       [ "ReferencedRecord", "d0/df7/classLightweight_1_1BelongsTo.html#ae3deecf75fdd98c06884f76ce07f077b", null ],

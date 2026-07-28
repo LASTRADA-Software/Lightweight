@@ -20,6 +20,7 @@ var searchData=
   ['hook_17',['Optional Post-Init Hook',['../d5/dc4/dbtool.html#optional-post-init-hook',1,'']]],
   ['hour_18',['hour',['../d6/dfa/structLightweight_1_1SqlDateTime.html#a6cc185c14476e3a2aad0db9a1bf52622',1,'Lightweight::SqlDateTime']]],
   ['how_20it_20works_19',['SQL Backup: How It Works',['../dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html',1,'']]],
-  ['how_20to_20',['How to',['../d1/dde/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2how-to.html',1,'']]],
-  ['how_20tt_20sqlvariant_20tt_20decides_20which_20alternative_20to_20fill_21',['How &lt;tt&gt;SqlVariant&lt;/tt&gt; decides which alternative to fill',['../de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-sqlvariant-decides-which-alternative-to-fill',1,'']]]
+  ['how_20many_20of_20those_20digits_20actually_20survive_20a_20round_20trip_20',['How many of those digits actually survive a round-trip',['../de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-many-of-those-digits-actually-survive-a-round-trip',1,'']]],
+  ['how_20to_21',['How to',['../d1/dde/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2how-to.html',1,'']]],
+  ['how_20tt_20sqlvariant_20tt_20decides_20which_20alternative_20to_20fill_22',['How &lt;tt&gt;SqlVariant&lt;/tt&gt; decides which alternative to fill',['../de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-sqlvariant-decides-which-alternative-to-fill',1,'']]]
 ];
