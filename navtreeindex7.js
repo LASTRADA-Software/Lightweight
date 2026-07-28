@@ -1,5 +1,7 @@
 var NAVTREEINDEX7 =
 {
+"df/d7c/structLightweight_1_1SqlGuid.html#a938d38326b32d8949207090b1fca26d0":[14,0,6,3],
+"df/d7c/structLightweight_1_1SqlGuid.html#abc3fab606715de2437552cc0f585359e":[14,0,6,5],
 "df/d7c/structLightweight_1_1SqlGuid.html#ae7573accb00b48a05d2b8085f14483c5":[14,0,6,0],
 "df/d7d/SqlOdbcWide_8hpp_source.html":[17,0,1,22],
 "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html":[14,3,6,3],
@@ -57,8 +59,8 @@ var NAVTREEINDEX7 =
 "functions_e.html":[16,2,0,5],
 "functions_enum.html":[16,2,4],
 "functions_f.html":[16,2,0,6],
-"functions_func.html":[16,2,1],
 "functions_func.html":[16,2,1,0],
+"functions_func.html":[16,2,1],
 "functions_func_b.html":[16,2,1,1],
 "functions_func_c.html":[16,2,1,2],
 "functions_func_d.html":[16,2,1,3],
@@ -126,8 +128,8 @@ var NAVTREEINDEX7 =
 "functions_z.html":[16,2,0,24],
 "functions_~.html":[16,2,0,25],
 "hierarchy.html":[16,1],
-"index.html":[0],
 "index.html":[],
+"index.html":[0],
 "index.html#building-with-c20-modules":[0,7],
 "index.html#compile-using-c26-reflection-support":[0,6],
 "index.html#foreign-keys-relation":[0,3,1],
