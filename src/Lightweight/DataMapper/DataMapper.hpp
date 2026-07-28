@@ -584,14 +584,18 @@ class DataMapper
     [[nodiscard]] static std::string BuildFullyQualifiedFieldList()
     {
         std::string fields;
-        EnumerateRecordMembers<Record>([&fields]<size_t I, typename Field>() {
-            if (!fields.empty())
-                fields += ", ";
-            fields += '"';
-            fields += RecordTableName<Record>;
-            fields += "\".\"";
-            fields += FieldNameAt<I, Record>;
-            fields += '"';
+        EnumerateRecordMembers<Record>([&fields]<size_t I, typename FieldType>() {
+            // Relations (HasMany, HasManyThrough, HasOneThrough, ...) have no column of their own.
+            if constexpr (RecordColumnMember<FieldType>)
+            {
+                if (!fields.empty())
+                    fields += ", ";
+                fields += '"';
+                fields += RecordTableName<Record>;
+                fields += "\".\"";
+                fields += FieldNameAt<I, Record>;
+                fields += '"';
+            }
         });
         return fields;
     }
@@ -966,9 +970,11 @@ namespace detail
     {
         EnumerateRecordMembers<ElementMask>(
             record, [reader = &reader, &indexFromQuery]<size_t I, typename Field>(Field& field) mutable {
-                ++indexFromQuery;
+                // Only members that map onto a column consume a result set index — relations
+                // (HasMany, HasManyThrough, HasOneThrough, ...) are not part of the projection.
                 if constexpr (IsField<Field>)
                 {
+                    ++indexFromQuery;
                     if constexpr (Field::IsOptional)
                         field.MutableValue() =
                             reader->GetNullableColumn<typename Field::ValueType::value_type>(indexFromQuery);
@@ -977,6 +983,7 @@ namespace detail
                 }
                 else if constexpr (SqlGetColumnNativeType<Field>)
                 {
+                    ++indexFromQuery;
                     if constexpr (IsOptionalBelongsTo<Field>)
                         field = reader->GetNullableColumn<typename Field::BaseType>(indexFromQuery);
                     else
@@ -1942,12 +1949,17 @@ void DataMapper::Update(Record& record)
     }
 #else
     EnumerateRecordMembers(record, [&query]<size_t I, typename FieldType>(FieldType const& field) {
-        if (field.IsModified())
-            query.Set(FieldNameAt<I, Record>, SqlWildcard);
         // for some reason compiler do not want to properly deduce FieldType, so here we
         // directly infer the type from the Record type and index
-        if constexpr (IsPrimaryKey<RecordMemberTypeOf<I, Record>>)
-            std::ignore = query.Where(FieldNameAt<I, Record>, SqlWildcard);
+        using MemberType = RecordMemberTypeOf<I, Record>;
+        // Relations (HasMany, HasManyThrough, HasOneThrough, ...) have no column of their own.
+        if constexpr (FieldWithStorage<MemberType>)
+        {
+            if (field.IsModified())
+                query.Set(FieldNameAt<I, Record>, SqlWildcard);
+            if constexpr (IsPrimaryKey<MemberType>)
+                std::ignore = query.Where(FieldNameAt<I, Record>, SqlWildcard);
+        }
     });
 #endif
     _stmt.Prepare(query);
@@ -1957,25 +1969,37 @@ void DataMapper::Update(Record& record)
 #if defined(LIGHTWEIGHT_CXX26_REFLECTION)
     template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
     {
-        if (record.[:el:].IsModified())
+        using FieldType = typename[:std::meta::type_of(el):];
+        // Relations (HasMany, HasManyThrough, HasOneThrough, ...) have no column of their own.
+        if constexpr (FieldWithStorage<FieldType>)
         {
-            _stmt.BindInputParameter(i++, record.[:el:].Value(), FieldNameOf<el>);
+            if (record.[:el:].IsModified())
+            {
+                _stmt.BindInputParameter(i++, record.[:el:].Value(), FieldNameOf<el>);
+            }
         }
     }
 
     template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
     {
         using FieldType = typename[:std::meta::type_of(el):];
-        if constexpr (FieldType::IsPrimaryKey)
+        if constexpr (FieldWithStorage<FieldType>)
         {
-            _stmt.BindInputParameter(i++, record.[:el:].Value(), FieldNameOf<el>);
+            if constexpr (FieldType::IsPrimaryKey)
+            {
+                _stmt.BindInputParameter(i++, record.[:el:].Value(), FieldNameOf<el>);
+            }
         }
     }
 #else
     // Bind the SET clause
     EnumerateRecordMembers(record, [this, &i]<size_t I, typename FieldType>(FieldType const& field) {
-        if (field.IsModified())
-            _stmt.BindInputParameter(i++, field.Value(), FieldNameAt<I, Record>);
+        // Relations (HasMany, HasManyThrough, HasOneThrough, ...) have no column of their own.
+        if constexpr (FieldWithStorage<RecordMemberTypeOf<I, Record>>)
+        {
+            if (field.IsModified())
+                _stmt.BindInputParameter(i++, field.Value(), FieldNameAt<I, Record>);
+        }
     });
 
     // Bind the WHERE clause
@@ -2041,8 +2065,10 @@ std::size_t DataMapper::Delete(Record const& record)
     template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
     {
         using FieldType = typename[:std::meta::type_of(el):];
-        if constexpr (FieldType::IsPrimaryKey)
-            std::ignore = query.Where(FieldNameOf<el>, SqlWildcard);
+        // Relations (HasMany, HasManyThrough, HasOneThrough, ...) have no column of their own.
+        if constexpr (FieldWithStorage<FieldType>)
+            if constexpr (FieldType::IsPrimaryKey)
+                std::ignore = query.Where(FieldNameOf<el>, SqlWildcard);
     }
 #else
     EnumerateRecordMembers(record, [&query]<size_t I, typename FieldType>(FieldType const& /*field*/) {
@@ -2058,9 +2084,12 @@ std::size_t DataMapper::Delete(Record const& record)
     template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
     {
         using FieldType = typename[:std::meta::type_of(el):];
-        if constexpr (FieldType::IsPrimaryKey)
+        if constexpr (FieldWithStorage<FieldType>)
         {
-            _stmt.BindInputParameter(i++, record.[:el:].Value(), FieldNameOf<el>);
+            if constexpr (FieldType::IsPrimaryKey)
+            {
+                _stmt.BindInputParameter(i++, record.[:el:].Value(), FieldNameOf<el>);
+            }
         }
     }
 #else

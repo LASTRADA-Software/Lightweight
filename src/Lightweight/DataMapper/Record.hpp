@@ -130,6 +130,18 @@ concept FieldWithStorage = requires(T const& field, T& mutableField) {
     // clang-format on
 };
 
+/// @brief Requires that T maps onto a column of its record's table.
+///
+/// This is satisfied by fields with storage (Field, BelongsTo) as well as by plain record members
+/// that are directly bindable as an output column (a record may be a plain struct of bindable
+/// members). Relation members (HasMany, HasManyThrough, HasOneThrough, ...) have no column of their
+/// own and therefore must be skipped by every column-enumerating code path, such as the projection
+/// of a SELECT statement.
+///
+/// @ingroup DataMapper
+template <typename T>
+concept RecordColumnMember = FieldWithStorage<T> || SqlOutputColumnBinder<T>;
+
 /// Represents the number of fields with storage in a record.
 ///
 /// @ingroup DataMapper
