@@ -33,7 +33,11 @@ namespace Lightweight
 /// digits that can be stored is `floor(bits * log10(2))`, computed here with integer arithmetic
 /// (`log10(2) ~= 0.30103`) so it stays usable in a constant expression: 128 bits -> 38 digits,
 /// which is also the maximum `DECIMAL`/`NUMERIC` precision of MS SQL Server and PostgreSQL.
-constexpr std::size_t SqlMaxNumericPrecision = (std::size_t { SQL_MAX_NUMERIC_LEN } * 8 * 30103) / 100'000;
+///
+/// NB: `inline` is load-bearing. At namespace scope `constexpr` implies `const`, hence internal
+/// linkage, and an exported template in the module interface (`SqlNumeric`, via its static_assert)
+/// may not reference an internal-linkage entity.
+inline constexpr std::size_t SqlMaxNumericPrecision = (std::size_t { SQL_MAX_NUMERIC_LEN } * 8 * 30103) / 100'000;
 
 /// Represents a fixed-point number with a given precision and scale.
 ///
