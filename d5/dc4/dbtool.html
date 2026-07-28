@@ -441,11 +441,10 @@ Connection Errors</h2>
 </ul>
 <h2><a class="anchor" id="checksum-mismatches"></a>
 Checksum Mismatches</h2>
-<p>If <code>dbtool status</code> reports checksum mismatches:</p><ul>
-<li>A migration was modified after it was applied</li>
-<li>This may indicate the database schema is out of sync with the code</li>
-<li>Review the changes and consider creating a new migration instead</li>
-</ul>
+<p>If <code>dbtool status</code> reports checksum mismatches, there are two quite different causes — check the second one first, because it is benign and easy to mistake for the first.</p>
+<p><b>1. You upgraded Lightweight and the generated SQL changed.</b> The checksum is computed over the SQL text that the <em>formatter</em> renders for a migration, not over your C++ source. So a library release that changes emitted DDL re-hashes every already-applied migration that uses the affected construct, even though nobody touched the migration. Example: the PostgreSQL formatter now emits <code>BIGSERIAL</code> instead of <code>SERIAL</code> for a <code>Bigint</code> auto-increment key, so every PostgreSQL migration using <code>PrimaryKeyWithAutoIncrement</code> reports a mismatch after upgrading past that change. Nothing is out of sync and nothing breaks — mismatches are reported, not enforced. Confirm the mismatching migrations are exactly the ones touched by the release, then re-baseline:</p>
+<div class="fragment"><div class="line">dbtool rewrite-checksums          # rewrites schema_migrations.checksum to match current code</div>
+</div><!-- fragment --><p><b>2. A migration really was modified after it was applied.</b> Then the database schema may genuinely be out of sync with the code. Review the change and create a new migration instead of editing the old one; do <b>not</b> run <code>rewrite-checksums</code>, which would erase the evidence.</p>
 <h2><a class="anchor" id="lock-acquisition-failed"></a>
 Lock Acquisition Failed</h2>
 <p>If migration locking fails:</p><ul>
