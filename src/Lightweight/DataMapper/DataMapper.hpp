@@ -790,7 +790,7 @@ namespace detail
     }
 
     template <typename Record, std::size_t... Is>
-    constexpr bool CanRowWiseFetchRecordImpl(std::index_sequence<Is...>)
+    constexpr bool CanRowWiseFetchRecordImpl(std::index_sequence<Is...> /*indices*/)
     {
         // The row-strided indicator slots are addressed at i * sizeof(Record); they must stay SQLLEN
         // aligned, so sizeof(Record) must be a multiple of alignof(SQLLEN) (mirrors the write-side
@@ -855,7 +855,7 @@ namespace detail
     }
 
     template <typename Record, std::size_t... Is>
-    constexpr bool RecordHasNarrowFixedStringColumnImpl(std::index_sequence<Is...>)
+    constexpr bool RecordHasNarrowFixedStringColumnImpl(std::index_sequence<Is...> /*indices*/)
     {
         return (ColumnIsNarrowFixedString<RecordMemberTypeOf<Is, Record>>() || ...);
     }
@@ -899,7 +899,8 @@ namespace detail
     };
 
     template <typename First, typename Second, std::size_t... Fs, std::size_t... Ss>
-    constexpr bool CanRowWiseFetchTupleImpl(std::index_sequence<Fs...>, std::index_sequence<Ss...>)
+    constexpr bool CanRowWiseFetchTupleImpl(std::index_sequence<Fs...> /*firstIndices*/,
+                                            std::index_sequence<Ss...> /*secondIndices*/)
     {
         return (sizeof(std::tuple<First, Second>) % alignof(SQLLEN) == 0)
                && (RowWiseColumnAcceptable<RecordMemberTypeOf<Fs, First>>() && ...)
