@@ -133,6 +133,15 @@ qt_add_executable(dbtool-gui
     main.cpp
 )
 
+# Windows: supply our own application manifest instead of the one Qt's
+# `qt_add_executable` auto-generates. Qt 6.11.x emits `requestedExecutionLevel`
+# under a prefixed `asm.v2` namespace, which the Windows activation-context
+# loader rejects ("side-by-side configuration is incorrect"). Handing the
+# linker a valid manifest overrides Qt's broken default. No-op elsewhere.
+if(WIN32)
+    target_sources(dbtool-gui PRIVATE dbtool-gui.manifest)
+endif()
+
 target_link_libraries(dbtool-gui PRIVATE
     dbtool-gui-lib
     dbtool-gui-libplugin
