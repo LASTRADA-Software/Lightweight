@@ -50,14 +50,13 @@ struct Employee
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
     Field<SqlAnsiString<30>> firstName {};
-
-    // FK -> Departments.id. A HasMany and its inverse BelongsTo are matched by field
-    // position, so this member sits at the same index as Department::employees above.
-    BelongsTo<&Department::id, SqlRealName { "department_id" }, SqlNullable::Null> department {};
-
     Field<SqlAnsiString<30>> lastName {};
     Field<int> salary {};
     Field<std::optional<int>> age {};
+
+    // FK -> Departments.id. The inverse of Department::employees is matched by relationship
+    // type, so the two members may be declared at any position in their records.
+    BelongsTo<&Department::id, SqlRealName { "department_id" }, SqlNullable::Null> department {};
 };
 ```
 

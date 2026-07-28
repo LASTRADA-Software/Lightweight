@@ -24,8 +24,12 @@ namespace Lightweight
 ///
 /// The HasMany<OtherRecord> is a member of the "one" side of the relationship.
 ///
-/// This implemenation of `HasMany<OtherRecord>` must have only one `BelongsTo` member
-/// that points back to this "one" side.
+/// `OtherRecord` must declare exactly one `BelongsTo` member that points back to this "one" side.
+/// That member is located by matching the relationship *type*, not by its position in either record,
+/// so the two relationship members may be declared at any index. Declaring no such `BelongsTo`, or
+/// more than one (which would make the inverse ambiguous), is a compile-time error.
+///
+/// @see InverseBelongsToIndexOf
 ///
 /// @see DataMapper, Field, HasManyThrough
 /// @ingroup DataMapper

@@ -3,12 +3,14 @@
 #pragma once
 
 #include "../Utils.hpp"
+#include "BelongsTo.hpp"
 #include "Field.hpp"
 
 #include <reflection-cpp/reflection.hpp>
 
 #include <concepts>
 #include <limits>
+#include <string_view>
 
 namespace Lightweight
 {
@@ -103,6 +105,99 @@ namespace details
 /// Reflects the primary key type of the given record.
 template <typename Record>
 using RecordPrimaryKeyType = details::RecordPrimaryKeyTypeHelper<Record>::type;
+
+namespace detail
+{
+
+    /// @brief Outcome of scanning a child record for the `BelongsTo` members pointing back to an owner record.
+    struct InverseBelongsToLookup
+    {
+        /// Member index of the first matching `BelongsTo`, or `RecordMemberCount` if there is none.
+        size_t index {};
+
+        /// Number of matching `BelongsTo` members found.
+        size_t count {};
+    };
+
+    /// @brief Scans @p ChildRecord for all `BelongsTo` members whose referenced record is @p OwnerRecord.
+    ///
+    /// @tparam OwnerRecord The record on the "one" side of a one-to-many relationship.
+    /// @tparam ChildRecord The record on the "many" side, holding the foreign key.
+    /// @return The index of the first match and how many matches exist.
+    template <typename OwnerRecord, typename ChildRecord>
+    constexpr InverseBelongsToLookup FindInverseBelongsTo()
+    {
+        return FoldRecordMembers<ChildRecord>(
+            InverseBelongsToLookup { .index = RecordMemberCount<ChildRecord>, .count = 0 },
+            []<size_t I, typename MemberType>(InverseBelongsToLookup const accum) constexpr -> InverseBelongsToLookup {
+                // The two conditions must nest: `MemberType::ReferencedRecord` does not exist on plain
+                // fields, and `&&` inside a single `if constexpr` would still instantiate it.
+                if constexpr (IsBelongsTo<MemberType>)
+                {
+                    if constexpr (std::same_as<typename MemberType::ReferencedRecord, OwnerRecord>)
+                        return { .index = accum.count == 0 ? I : accum.index, .count = accum.count + 1 };
+                    else
+                        return accum;
+                }
+                else
+                    return accum;
+            });
+    }
+
+    /// @brief Resolves - and validates - the inverse `BelongsTo` member of a one-to-many relationship.
+    ///
+    /// Instantiating this template fails to compile when @p ChildRecord does not declare exactly one
+    /// `BelongsTo` member referencing @p OwnerRecord. The compiler's instantiation backtrace names both
+    /// record types.
+    ///
+    /// @tparam OwnerRecord The record on the "one" side of the relationship (declaring the `HasMany`).
+    /// @tparam ChildRecord The record on the "many" side of the relationship (declaring the `BelongsTo`).
+    template <typename OwnerRecord, typename ChildRecord>
+    struct InverseBelongsToResolver
+    {
+        /// The raw lookup result for @p OwnerRecord within @p ChildRecord.
+        static constexpr InverseBelongsToLookup Lookup = FindInverseBelongsTo<OwnerRecord, ChildRecord>();
+
+        static_assert(Lookup.count != 0,
+                      "HasMany<ChildRecord> requires ChildRecord to declare a BelongsTo member referencing the "
+                      "owning record's primary key. No such member was found. "
+                      "See the instantiation backtrace below for the two record types involved.");
+
+        static_assert(Lookup.count <= 1,
+                      "HasMany<ChildRecord> requires ChildRecord to declare exactly one BelongsTo member "
+                      "referencing the owning record's primary key, but multiple were found, making the inverse "
+                      "relationship ambiguous. "
+                      "See the instantiation backtrace below for the two record types involved.");
+
+        /// Member index of the inverse `BelongsTo` inside @p ChildRecord.
+        /// Clamped to 0 on failure so that the two static_asserts above are the only diagnostics emitted.
+        static constexpr size_t Index = Lookup.count == 1 ? Lookup.index : 0;
+    };
+
+} // namespace detail
+
+/// @brief Member index, within @p ChildRecord, of the unique `BelongsTo` member that points back to @p OwnerRecord.
+///
+/// This is how a `HasMany<ChildRecord>` on @p OwnerRecord locates its foreign key column: by matching the
+/// relationship *type*, never by member position. Using it is a hard compile-time error when @p ChildRecord
+/// declares no such `BelongsTo`, or more than one (ambiguous inverse).
+///
+/// @tparam OwnerRecord The record on the "one" side of the relationship (declaring the `HasMany`).
+/// @tparam ChildRecord The record on the "many" side of the relationship (declaring the `BelongsTo`).
+///
+/// @ingroup DataMapper
+template <typename OwnerRecord, typename ChildRecord>
+constexpr size_t InverseBelongsToIndexOf = detail::InverseBelongsToResolver<OwnerRecord, ChildRecord>::Index;
+
+/// @brief SQL column name of the foreign key that links @p ChildRecord back to @p OwnerRecord.
+///
+/// @tparam OwnerRecord The record on the "one" side of the relationship (declaring the `HasMany`).
+/// @tparam ChildRecord The record on the "many" side of the relationship (declaring the `BelongsTo`).
+///
+/// @ingroup DataMapper
+template <typename OwnerRecord, typename ChildRecord>
+constexpr std::string_view InverseBelongsToFieldNameOf =
+    FieldNameAt<InverseBelongsToIndexOf<OwnerRecord, ChildRecord>, ChildRecord>;
 
 /// @brief Maps the fields of the given record to the target that supports the operator[].
 template <typename Record, typename TargetMappable>

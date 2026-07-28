@@ -62,6 +62,8 @@ using Lightweight::HasPrimaryKey;
 using Lightweight::IndexType;
 using Lightweight::Int128; // the unscaled carrier in SqlNumeric::ToUnscaledValue()'s return type
 using Lightweight::Int64DataBinderHelper;
+using Lightweight::InverseBelongsToFieldNameOf;
+using Lightweight::InverseBelongsToIndexOf;
 using Lightweight::IsAutoIncrementPrimaryKey;
 using Lightweight::IsBelongsTo;
 using Lightweight::IsField;

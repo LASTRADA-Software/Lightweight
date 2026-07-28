@@ -14,9 +14,13 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <cstdint>
 #include <deque>
+#include <optional>
 #include <set>
+#include <string>
 #include <string_view>
+#include <vector>
 
 using namespace std::string_view_literals;
 using namespace std::string_literals;
@@ -41,6 +45,176 @@ std::ostream& operator<<(std::ostream& os, User const& record)
 std::ostream& operator<<(std::ostream& os, Email const& record)
 {
     return os << DataMapper::Inspect(record);
+}
+
+// Regression coverage for issue #515: a HasMany must locate its inverse BelongsTo by relationship
+// *type*, never by member position. These two records deliberately declare their relation members
+// at different indices: MisalignedDepartment::employees is member 2, while
+// MisalignedEmployee::department is member 5. Before the fix, the generated WHERE clause took the
+// column name from member 2 of the child record ("lastName") and the relation silently returned
+// no rows at all.
+struct MisalignedEmployee;
+
+struct MisalignedDepartment
+{
+    static constexpr std::string_view TableName = "MisalignedDepartments";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {}; // 0
+    Field<SqlAnsiString<40>> name {};                           // 1
+    HasMany<MisalignedEmployee> employees {};                   // 2
+};
+
+struct MisalignedEmployee
+{
+    static constexpr std::string_view TableName = "MisalignedEmployees";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};                                                    // 0
+    Field<SqlAnsiString<30>> firstName {};                                                                         // 1
+    Field<SqlAnsiString<30>> lastName {};                                                                          // 2
+    Field<int> salary {};                                                                                          // 3
+    Field<std::optional<int>> age {};                                                                              // 4
+    BelongsTo<Member(MisalignedDepartment::id), SqlRealName { "department_id" }, SqlNullable::Null> department {}; // 5
+};
+
+// Member 2 of the child record - the index the old positional lookup reused from the owner's
+// HasMany - is a plain column. Picking it for the WHERE clause is exactly the reported bug.
+static_assert(FieldNameAt<2, MisalignedEmployee> == "lastName"sv);
+
+// The inverse BelongsTo is found by type, at its own index - not at the HasMany's index.
+static_assert(InverseBelongsToIndexOf<MisalignedDepartment, MisalignedEmployee> == 5);
+static_assert(InverseBelongsToFieldNameOf<MisalignedDepartment, MisalignedEmployee> == "department_id"sv);
+
+// The pre-existing, accidentally index-aligned User/Email pair must keep resolving to the same column.
+static_assert(InverseBelongsToIndexOf<User, Email> == 2);
+static_assert(InverseBelongsToFieldNameOf<User, Email> == "user_id"sv);
+
+namespace
+{
+
+/// Installs itself as the active SqlLogger for its lifetime and records every SQL statement seen.
+// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
+class ScopedSqlQueryRecorder: public SqlLogger::Null
+{
+  public:
+    ScopedSqlQueryRecorder()
+    {
+        SqlLogger::SetLogger(*this);
+    }
+
+    ~ScopedSqlQueryRecorder() override
+    {
+        SqlLogger::SetLogger(_previousLogger);
+    }
+
+    void OnPrepare(std::string_view const& query) override
+    {
+        _queries.emplace_back(query);
+    }
+
+    void OnExecuteDirect(std::string_view const& query) override
+    {
+        _queries.emplace_back(query);
+    }
+
+    /// The SQL statements recorded so far, in order.
+    [[nodiscard]] std::vector<std::string> const& Queries() const noexcept
+    {
+        return _queries;
+    }
+
+  private:
+    SqlLogger& _previousLogger = SqlLogger::GetLogger();
+    std::vector<std::string> _queries;
+};
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "HasMany resolves its inverse BelongsTo by type, not by member index",
+                 "[DataMapper][relations][HasMany]")
+{
+    auto dm = DataMapper();
+    dm.CreateTables<MisalignedDepartment, MisalignedEmployee>();
+
+    auto engineering = MisalignedDepartment { .name = "Engineering" };
+    dm.Create<DataMapperOptions { .loadRelations = false }>(engineering);
+
+    auto sales = MisalignedDepartment { .name = "Sales" };
+    dm.Create<DataMapperOptions { .loadRelations = false }>(sales);
+
+    dm.CreateExplicit(MisalignedEmployee {
+        .firstName = "Alice", .lastName = "Anders", .salary = 50'000, .age = 30, .department = engineering });
+    dm.CreateExplicit(MisalignedEmployee {
+        .firstName = "Bob", .lastName = "Brown", .salary = 60'000, .age = 40, .department = engineering });
+    dm.CreateExplicit(
+        MisalignedEmployee { .firstName = "Carol", .lastName = "Clark", .salary = 55'000, .age = 35, .department = sales });
+
+    SECTION("Count")
+    {
+        auto department = dm.QuerySingle<MisalignedDepartment>(engineering.id).value();
+        CHECK(department.employees.Count() == 2);
+        CHECK_FALSE(department.employees.IsEmpty());
+
+        auto other = dm.QuerySingle<MisalignedDepartment>(sales.id).value();
+        CHECK(other.employees.Count() == 1);
+    }
+
+    SECTION("All")
+    {
+        auto department = dm.QuerySingle<MisalignedDepartment>(engineering.id).value();
+        auto const& employees = department.employees.All();
+        REQUIRE(employees.size() == 2);
+
+        auto const lastNames = std::set<std::string> { std::string(employees[0]->lastName.Value()),
+                                                       std::string(employees[1]->lastName.Value()) };
+        CHECK(lastNames == std::set<std::string> { "Anders", "Brown" });
+
+        for (auto const& employee: employees)
+            CHECK(employee->department.Value().value() == engineering.id.Value());
+    }
+
+    SECTION("Each")
+    {
+        auto department = dm.QuerySingle<MisalignedDepartment>(engineering.id).value();
+        auto collectedLastNames = std::set<std::string> {};
+        department.employees.Each(
+            [&](MisalignedEmployee const& employee) { collectedLastNames.emplace(employee.lastName.Value()); });
+        CHECK(collectedLastNames == std::set<std::string> { "Anders", "Brown" });
+    }
+
+    SECTION("Range-based for loop")
+    {
+        auto department = dm.QuerySingle<MisalignedDepartment>(sales.id).value();
+        auto collectedLastNames = std::set<std::string> {};
+        for (auto const& employee: department.employees)
+            collectedLastNames.emplace(employee->lastName.Value());
+        CHECK(collectedLastNames == std::set<std::string> { "Clark" });
+    }
+
+    SECTION("LoadRelations")
+    {
+        auto department = dm.QuerySingle<MisalignedDepartment>(engineering.id).value();
+        dm.LoadRelations(department);
+        CHECK(department.employees.All().size() == 2);
+    }
+
+    SECTION("Emitted SQL filters on the foreign key column")
+    {
+        auto department = dm.QuerySingle<MisalignedDepartment>(engineering.id).value();
+
+        auto recordedQueries = std::vector<std::string> {};
+        {
+            auto const recorder = ScopedSqlQueryRecorder {};
+            std::ignore = department.employees.Count();
+            recordedQueries = recorder.Queries();
+        }
+
+        REQUIRE(!recordedQueries.empty());
+        auto const& countQuery = recordedQueries.back();
+        INFO("Recorded query: " << countQuery);
+        CHECK(countQuery.contains(R"("department_id")"));
+        CHECK_FALSE(countQuery.contains(R"("lastName")"));
+    }
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "BelongsTo", "[DataMapper][relations]")

@@ -57,14 +57,13 @@ struct Employee
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
     Field<SqlAnsiString<30>> firstName {};
-
-    // FK -> Departments.id. A HasMany and its inverse BelongsTo are matched by field
-    // position, so this member sits at the same index as Department::employees above.
-    BelongsTo<&Department::id, SqlRealName { "department_id" }, SqlNullable::Null> department {};
-
     Field<SqlAnsiString<30>> lastName {};
     Field<int> salary {};
     Field<std::optional<int>> age {};
+
+    // FK -> Departments.id. The inverse of Department::employees is matched by relationship
+    // type, so the two members may be declared at any position in their records.
+    BelongsTo<&Department::id, SqlRealName { "department_id" }, SqlNullable::Null> department {};
 };
 //! [doc-schema]
 
@@ -116,15 +115,15 @@ inline SeededCompany SeedCompany(DataMapper& dm)
     dm.Create(sales);
 
     auto alice =
-        Employee { .firstName = "Alice", .department = engineering, .lastName = "Anders", .salary = 50'000, .age = 30 };
+        Employee { .firstName = "Alice", .lastName = "Anders", .salary = 50'000, .age = 30, .department = engineering };
     dm.Create(alice);
-    auto bob = Employee { .firstName = "Bob", .department = engineering, .lastName = "Brown", .salary = 60'000, .age = 40 };
+    auto bob = Employee { .firstName = "Bob", .lastName = "Brown", .salary = 60'000, .age = 40, .department = engineering };
     dm.Create(bob);
-    auto carol = Employee { .firstName = "Carol", .department = sales, .lastName = "Clark", .salary = 55'000, .age = 35 };
+    auto carol = Employee { .firstName = "Carol", .lastName = "Clark", .salary = 55'000, .age = 35, .department = sales };
     dm.Create(carol);
-    auto dave = Employee { .firstName = "Dave", .department = sales, .lastName = "Davis", .salary = 70'000, .age = 50 };
+    auto dave = Employee { .firstName = "Dave", .lastName = "Davis", .salary = 70'000, .age = 50, .department = sales };
     dm.Create(dave);
-    auto erin = Employee { .firstName = "Erin", .department = engineering, .lastName = "Evans", .salary = 45'000 };
+    auto erin = Employee { .firstName = "Erin", .lastName = "Evans", .salary = 45'000, .department = engineering };
     dm.Create(erin);
 
     return { .engineering = engineering, .sales = sales };

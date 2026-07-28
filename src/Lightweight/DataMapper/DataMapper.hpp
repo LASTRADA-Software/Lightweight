@@ -621,7 +621,7 @@ class DataMapper
     template <typename FieldType>
     std::optional<typename FieldType::ReferencedRecord> LoadBelongsTo(FieldType::ValueType value);
 
-    template <size_t FieldIndex, typename Record, typename OtherRecord>
+    template <typename Record, typename OtherRecord>
     void LoadHasMany(Record& record, HasMany<OtherRecord>& field);
 
     template <typename ReferencedRecord, typename ThroughRecord, typename Record>
@@ -630,10 +630,10 @@ class DataMapper
     template <typename ReferencedRecord, typename ThroughRecord, typename Record>
     void LoadHasManyThrough(Record& record, HasManyThrough<ReferencedRecord, ThroughRecord>& field);
 
-    template <size_t FieldIndex, typename Record, typename OtherRecord, typename Callable>
+    template <typename Record, typename OtherRecord, typename Callable>
     void CallOnHasMany(Record& record, Callable const& callback);
 
-    template <size_t FieldIndex, typename OtherRecord>
+    template <typename OwnerRecord, typename OtherRecord>
     SqlSelectQueryBuilder BuildHasManySelectQuery();
 
     template <typename ReferencedRecord, typename ThroughRecord, typename Record, typename Callable>
@@ -2469,7 +2469,7 @@ std::optional<typename FieldType::ReferencedRecord> DataMapper::LoadBelongsTo(Fi
     return record;
 }
 
-template <size_t FieldIndex, typename Record, typename OtherRecord, typename Callable>
+template <typename Record, typename OtherRecord, typename Callable>
 void DataMapper::CallOnHasMany(Record& record, Callable const& callback)
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
@@ -2490,13 +2490,13 @@ void DataMapper::CallOnHasMany(Record& record, Callable const& callback)
                                      }
                                  });
                          })
-                         .Where(FieldNameAt<FieldIndex, ReferencedRecord>, SqlWildcard)
+                         .Where(InverseBelongsToFieldNameOf<Record, ReferencedRecord>, SqlWildcard)
                          .OrderBy(FieldNameAt<RecordPrimaryKeyIndex<ReferencedRecord>, ReferencedRecord>);
         callback(query, primaryKeyField);
     });
 }
 
-template <size_t FieldIndex, typename OtherRecord>
+template <typename OwnerRecord, typename OtherRecord>
 SqlSelectQueryBuilder DataMapper::BuildHasManySelectQuery()
 {
     return _connection.Query(RecordTableName<OtherRecord>)
@@ -2507,11 +2507,11 @@ SqlSelectQueryBuilder DataMapper::BuildHasManySelectQuery()
                     q.Field(FieldNameAt<I, OtherRecord>);
             });
         })
-        .Where(FieldNameAt<FieldIndex, OtherRecord>, SqlWildcard)
+        .Where(InverseBelongsToFieldNameOf<OwnerRecord, OtherRecord>, SqlWildcard)
         .OrderBy(FieldNameAt<RecordPrimaryKeyIndex<OtherRecord>, OtherRecord>);
 }
 
-template <size_t FieldIndex, typename Record, typename OtherRecord>
+template <typename Record, typename OtherRecord>
 void DataMapper::LoadHasMany(Record& record, HasMany<OtherRecord>& field)
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
@@ -2520,7 +2520,7 @@ void DataMapper::LoadHasMany(Record& record, HasMany<OtherRecord>& field)
     ZoneScopedN("DataMapper::LoadHasMany");
     ZoneTextObject(RecordTableName<OtherRecord>);
 
-    CallOnHasMany<FieldIndex, Record, OtherRecord>(record, [&](SqlSelectQueryBuilder selectQuery, auto& primaryKeyField) {
+    CallOnHasMany<Record, OtherRecord>(record, [&](SqlSelectQueryBuilder selectQuery, auto& primaryKeyField) {
         field.Emplace(detail::ToSharedPtrList(Query<OtherRecord>(selectQuery.All(), primaryKeyField.Value())));
     });
 }
@@ -2768,7 +2768,7 @@ void DataMapper::LoadRelations(Record& record)
         }
         else if constexpr (IsHasMany<FieldType>)
         {
-            LoadHasMany<el>(record, record.[:el:]);
+            LoadHasMany(record, record.[:el:]);
         }
         else if constexpr (IsHasOneThrough<FieldType>)
         {
@@ -2787,7 +2787,7 @@ void DataMapper::LoadRelations(Record& record)
         }
         else if constexpr (IsHasMany<FieldType>)
         {
-            LoadHasMany<FieldIndex>(record, field);
+            LoadHasMany(record, field);
         }
         else if constexpr (IsHasOneThrough<FieldType>)
         {
@@ -2909,7 +2909,7 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
                 hasMany.SetAutoLoader(typename FieldType::Loader {
                     .count = [pkValue]() -> size_t {
                         DataMapper& dm = DataMapper::AcquireThreadLocal();
-                        auto selectQuery = dm.BuildHasManySelectQuery<FieldIndex, ReferencedRecord>();
+                        auto selectQuery = dm.BuildHasManySelectQuery<Record, ReferencedRecord>();
                         dm._stmt.Prepare(selectQuery.Count());
                         SqlResultCursor cursor = dm._stmt.Execute(pkValue);
                         size_t count = 0;
@@ -2919,13 +2919,13 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
                     },
                     .all = [pkValue]() -> FieldType::ReferencedRecordList {
                         DataMapper& dm = DataMapper::AcquireThreadLocal();
-                        auto selectQuery = dm.BuildHasManySelectQuery<FieldIndex, ReferencedRecord>();
+                        auto selectQuery = dm.BuildHasManySelectQuery<Record, ReferencedRecord>();
                         return detail::ToSharedPtrList(dm.Query<ReferencedRecord>(selectQuery.All(), pkValue));
                     },
                     .each =
                         [pkValue](auto const& each) {
                             DataMapper& dm = DataMapper::AcquireThreadLocal();
-                            auto selectQuery = dm.BuildHasManySelectQuery<FieldIndex, ReferencedRecord>();
+                            auto selectQuery = dm.BuildHasManySelectQuery<Record, ReferencedRecord>();
                             auto stmt = SqlStatement { dm._connection };
                             stmt.Prepare(selectQuery.All());
                             auto cursor = stmt.Execute(pkValue);
