@@ -2,6 +2,11 @@
 
 #pragma once
 
+// <sql.h> below needs the Windows prelude established first — see the note in Utils.hpp.
+#if defined(_WIN32) || defined(_WIN64)
+    #include <Windows.h>
+#endif
+
 #include "DataBinder/UnicodeConverter.hpp"
 
 #include <string>
