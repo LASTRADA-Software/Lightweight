@@ -752,7 +752,17 @@ class SqlTestFixture
                                            "FROM sys.foreign_keys AS fk WHERE fk.referenced_object_id = OBJECT_ID('{}')",
                                            qualifiedName));
         while (cursor.FetchRow())
-            result.emplace_back(cursor.GetColumn<std::string>(1), cursor.GetColumn<std::string>(2));
+        {
+            // Retrieve strictly in ascending column order and in separate statements. GetColumn()
+            // maps onto SQLGetData, and the SQL Server ODBC driver does not support out-of-order
+            // retrieval — asking for column 2 before column 1 fails with
+            // "07009 Invalid Descriptor Index". Passing both calls as arguments to a single
+            // emplace_back() would leave their relative order unspecified, which really does differ
+            // between compilers (Clang evaluates left-to-right here, GCC right-to-left).
+            auto referencingTable = cursor.GetColumn<std::string>(1);
+            auto constraintName = cursor.GetColumn<std::string>(2);
+            result.emplace_back(std::move(referencingTable), std::move(constraintName));
+        }
         return result;
     }
 
