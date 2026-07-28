@@ -204,7 +204,7 @@ std::vector<IndexInfo> GetIndexes(SqlStatement& stmt,
 } // namespace
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-TEST_CASE("SqlBackup: Index Restoration", "[SqlBackup][Indexes]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Index Restoration", "[SqlBackup][Indexes]")
 {
     auto const testDir = std::filesystem::current_path() / "test_output" / "IndexRestore";
     if (std::filesystem::exists(testDir))

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "../Utils.hpp"
+
 #include <Lightweight/SqlBackup.hpp>
 #include <Lightweight/SqlConnectInfo.hpp>
 #include <Lightweight/SqlConnection.hpp>
@@ -58,7 +60,7 @@ struct SilentProgressManager: SqlBackup::ProgressManager
 
 } // namespace
 
-TEST_CASE("SqlBackup: Composite Primary Key Order", "[SqlBackup][MultiPk]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Composite Primary Key Order", "[SqlBackup][MultiPk]")
 {
     ScopedFileRemoved const backupFileCleaner { BackupFile };
 
