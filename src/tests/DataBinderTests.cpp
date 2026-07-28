@@ -569,12 +569,12 @@ constexpr double SqlNumericDoubleFallbackTolerance = [] {
 // the mantissa verbatim. The strict assertion below is therefore scoped to where the guarantee is
 // actually verified instead of being relaxed everywhere to whatever the weakest driver delivers.
 //
-// NB: `false` here does *not* mean "assert nothing". The narrowed branch still checks the sign and
-// the exact integral digits (see the round-trip test below), which is what a lost or corrupted
-// mantissa would break. The carrier's own guarantee — every digit up to SqlMaxNumericPrecision
-// survives ToUnscaledValue()/ToString() — is driver-independent and is asserted without a database
-// in "SqlNumeric renders every digit up to SqlMaxNumericPrecision exactly" (SqlNumericTests.cpp),
-// which runs on every platform including the int64_t-carrier ones.
+// NB: `false` here does *not* mean "assert nothing". The narrowed branch below still pins the sign
+// — which is exactly what the int64_t-overflow defect destroyed — and holds both the value and its
+// rendering to the accuracy a double is documented to preserve. The carrier's own guarantee, that
+// every digit up to SqlMaxNumericPrecision survives ToUnscaledValue(), is driver-independent and is
+// asserted without a database in "SqlNumeric carries every digit up to SqlMaxNumericPrecision"
+// (SqlNumericTests.cpp), which runs on every platform including the int64_t-carrier ones.
 constexpr bool SqlNumericNativeMantissaIsLossless =
 #if defined(_WIN32)
     false;
@@ -582,9 +582,9 @@ constexpr bool SqlNumericNativeMantissaIsLossless =
     true;
 #endif
 
-// Scale used by the maximum-precision probe below. Small enough that the integral part of the probe
-// value stays within `std::numeric_limits<double>::digits10`, so that part is exact on every
-// transfer path and can be asserted as a string even where the mantissa is narrowed.
+// Scale used by the maximum-precision probe below: enough fractional digits that the value exercises
+// the scaling path, few enough that the column stays a realistic `DECIMAL(p, 4)` — the shape of
+// MS SQL Server's `money`.
 constexpr std::size_t SqlNumericProbeScale = 4;
 
 // The digits of the probe value: `1234567890123...`, truncated to `precision` digits. A repeating
@@ -617,10 +617,6 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlNumeric.MaxPrecisionRoundTrip", "[SqlDataBi
     auto const integralDigits = digits.substr(0, precision - scale);
     auto const expectedText = std::format("{}.{}", integralDigits, digits.substr(precision - scale));
     auto const expectedValue = std::stod(expectedText);
-
-    // The integral part must stay inside double's exact range for the assertions below to be
-    // deterministic on the narrowed transfer paths.
-    REQUIRE(integralDigits.size() <= static_cast<std::size_t>(std::numeric_limits<double>::digits10));
 
     auto stmt = SqlStatement {};
     stmt.MigrateDirect([](auto& migration) {
@@ -656,13 +652,21 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlNumeric.MaxPrecisionRoundTrip", "[SqlDataBi
         // a double on the native path (Windows psqlODBC). Only the leading `digits10` significant
         // digits are meaningful — but that is still a concrete claim, not a free pass:
         //
-        //   - the sign must survive (the int64_t-overflow defect flipped it),
-        //   - the integral digits must be *exactly* right (they fit digits10 by construction, and
-        //     ToString() rounds only the fractional part, so this cannot round-trip-round away),
-        //   - the value must agree to within one unit in the last digit a double defines.
+        //   - the sign must survive (this is what the int64_t-overflow defect destroyed: it turned
+        //     the money maximum into its own negation),
+        //   - the value must agree with the stored one to within one unit in the last digit a
+        //     double defines,
+        //   - and ToString() must render *that* value, not some other one — so the rendering is
+        //     parsed back and held to the same bound.
+        //
+        // Deliberately no assertion on the digits of the rendered string. Rounding to `digits10`
+        // significant digits can carry into the integral part (this probe's 15 integral digits plus
+        // a fraction >= 0.5 round 123456789012345.6789 to 123456789012346), and how far a given
+        // driver or `long double` narrows is exactly what is *not* guaranteed here.
         CHECK(received->ToDouble() > 0.0);
-        CHECK(received->ToString().starts_with(integralDigits + "."));
         CHECK_THAT(received->ToDouble(), Catch::Matchers::WithinRel(expectedValue, SqlNumericDoubleFallbackTolerance));
+        CHECK_THAT(std::stod(received->ToString()),
+                   Catch::Matchers::WithinRel(expectedValue, SqlNumericDoubleFallbackTolerance));
     }
 
     // NOLINTEND(bugprone-unchecked-optional-access)

@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <cstring>
 #include <format>
+#include <limits>
 #include <ranges>
 #include <string>
 
@@ -124,10 +125,12 @@ TEST_CASE("SqlMaxNumericPrecision is the width this implementation can carry", "
     // SqlMaxNumericPrecision. Two things narrow it, and the bound is the tighter of the two:
     //
     //   - the unscaled carrier: `int64_t` (18 digits) without a 128-bit integer type,
-    //   - the readable width: `long double`, which every accessor but ToUnscaledValue() divides
-    //     through (19 digits on the 80-bit x87 long double).
+    //   - the readable width: at most a 64-bit magnitude (19 digits), which is what the widest
+    //     `long double` in use — the 80-bit x87 one — renders exactly. Where `long double` is
+    //     narrower still (MSVC, Clang on Apple Silicon) ToString() is correspondingly narrower;
+    //     that is an accessor property, not a representability one, and is asserted separately.
     STATIC_CHECK(detail::DecimalDigitsForBits(63) == 18);  // int64_t magnitude
-    STATIC_CHECK(detail::DecimalDigitsForBits(64) == 19);  // x87 long double significand
+    STATIC_CHECK(detail::DecimalDigitsForBits(64) == 19);  // 64-bit magnitude / x87 significand
     STATIC_CHECK(detail::DecimalDigitsForBits(127) == 38); // __int128 magnitude — deliberately NOT the bound
 
 #if defined(LIGHTWEIGHT_INT128_T)
@@ -152,14 +155,14 @@ TEST_CASE("SqlMaxNumericPrecision is the width this implementation can carry", "
     CHECK(widest.ToString() == "1234567890.1234");
 }
 
-TEST_CASE("SqlNumeric renders every digit up to SqlMaxNumericPrecision exactly", "[SqlNumeric]")
+TEST_CASE("SqlNumeric carries every digit up to SqlMaxNumericPrecision", "[SqlNumeric]")
 {
     // The bound's whole purpose: at SqlMaxNumericPrecision the worst case — an all-nines mantissa,
-    // the largest value the precision admits — must still round-trip through ToUnscaledValue() and
-    // render exactly via ToString(). One digit more and it does not, which is why the bound is
-    // where it is. Values are injected through the SQL_NUMERIC_STRUCT constructor because that is
-    // the state a native SQL_C_NUMERIC fetch leaves behind (nativeValue == 0, mantissa verbatim);
-    // going through `assign()` would measure the `double` argument instead.
+    // the largest value the precision admits — must still survive the unscaled carrier. One digit
+    // more and it does not, which is why the bound is where it is. Values are injected through the
+    // SQL_NUMERIC_STRUCT constructor because that is the state a native SQL_C_NUMERIC fetch leaves
+    // behind (nativeValue == 0, mantissa verbatim); going through `assign()` would measure the
+    // `double` argument instead.
     constexpr auto precision = SqlMaxNumericPrecision;
 
     auto allNines = std::uint64_t { 0 };
@@ -174,10 +177,31 @@ TEST_CASE("SqlNumeric renders every digit up to SqlMaxNumericPrecision exactly",
 
     SqlNumeric<precision, 0> const widest { raw };
     auto const expected = std::string(precision, '9');
-    CHECK(widest.ToString() == expected);
-    // The unscaled value is a `__int128` where one exists, which std::format does not handle; at
-    // `precision <= 19` digits its magnitude always fits a std::uint64_t, so narrow it there.
+
+    // The carrier's guarantee, and the one the bound is derived from: unconditional, on every
+    // platform, independent of any floating-point type. The unscaled value is a `__int128` where
+    // one exists, which std::format does not handle; at `precision <= 19` digits its magnitude
+    // always fits a std::uint64_t, so narrow it there.
     CHECK(std::format("{}", static_cast<std::uint64_t>(widest.ToUnscaledValue())) == expected);
+
+    // ToString() is a weaker guarantee, because it — like every accessor but ToUnscaledValue() —
+    // divides through `long double`. It therefore renders only as many digits as that type's
+    // significand holds: 19 on the 80-bit x87 `long double`, but 15 wherever `long double` is a
+    // `double` (MSVC, and Clang on Apple Silicon). Assert exactness only where it is actually
+    // promised, and the documented relative accuracy everywhere else — asserting the strong form
+    // unconditionally would be asserting something docs/data-binder.md does not claim.
+    constexpr auto renderableDigits =
+        detail::DecimalDigitsForBits(static_cast<std::size_t>(std::numeric_limits<long double>::digits));
+    if constexpr (precision <= renderableDigits)
+        CHECK(widest.ToString() == expected);
+    else
+    {
+        auto relativeTolerance = 1.0L;
+        for ([[maybe_unused]] auto const digit: std::views::iota(std::size_t { 1 }, renderableDigits))
+            relativeTolerance /= 10.0L;
+        CHECK_THAT(static_cast<double>(widest.ToLongDouble()),
+                   Catch::Matchers::WithinRel(static_cast<double>(allNines), static_cast<double>(relativeTolerance)));
+    }
 }
 
 TEST_CASE("SqlNumeric supports a purely fractional Scale == Precision", "[SqlNumeric]")

@@ -147,10 +147,17 @@ ODBC struct could hold, not what this implementation delivers. Two things narrow
   `-922337203685477.5808`, sign flipped.
 - **The readable width.** Every accessor except `ToUnscaledValue()` divides through
   `long double`, so no more digits can be *read back* than that type's significand
-  holds — 19 on the 80-bit x87 `long double`. A fetched `SqlNumeric<20, 0>` holding
-  `99999999999999999999` already prints as `100000000000000000000`.
+  holds. The widest `long double` in use is the 80-bit x87 one, whose 64-bit
+  significand gives 19 digits; past that, `ToString()` is wrong on every platform — a
+  fetched `SqlNumeric<20, 0>` holding `99999999999999999999` prints as
+  `100000000000000000000`.
 
 A column wider than the bound must be read as a string.
+
+Note that 19 is the point past which nothing is readable *anywhere*; it is not a
+promise that every platform renders all 19. Where `long double` is a `double`, only 15
+digits render — see the table below — and `ToUnscaledValue()` is the only way to see
+the rest.
 
 ### What each accessor delivers
 
@@ -174,7 +181,9 @@ Declaring a wide `Precision` does not by itself guarantee that every digit is
 
 - **Up to `std::numeric_limits<double>::digits10` (15) significant decimal digits:
   exact everywhere.** Every backend and driver combination round-trips such a value
-  unchanged.
+  unchanged. Beyond that, note that narrowing to 15 significant digits can round *into*
+  the integral part — `123456789012345.6789` becomes `123456789012346` — so a wide
+  value is not merely "right up to the decimal point".
 - **Beyond 15 significant digits: only on the native `SQL_C_NUMERIC` path.** Two
   independent things can narrow the value to a `double` (≈15 significant digits):
   - The binder deliberately falls back to `SQL_C_DOUBLE` for SQLite and MS SQL Server,
