@@ -111,7 +111,6 @@ var NAVTREE =
       [ "OutputColumn()", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#outputcolumn", null ],
       [ "GetColumn()", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#getcolumn", null ],
       [ "Inspect()", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inspect", null ],
-      [ "<tt>SqlNumeric<Precision, Scale></tt> precision limits", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#sqlnumericprecision-scale-precision-limits", null ],
       [ "How <tt>SqlVariant</tt> decides which alternative to fill", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-sqlvariant-decides-which-alternative-to-fill", null ],
       [ "Driver-specific connection-string requirements", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#driver-specific-connection-string-requirements", null ]
     ] ],
@@ -290,7 +289,7 @@ var NAVTREEINDEX =
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#ab9502d79df4bc885858166ea11c493a0",
 "da/df4/classLightweight_1_1HasMany.html#a09fad713034eccede8096fbe4235a95d",
 "de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#aae4fefe001ee5316395f9e475aca1a05",
-"df/d7c/structLightweight_1_1SqlGuid.html#abc3fab606715de2437552cc0f585359e"
+"df/d7c/structLightweight_1_1SqlGuid.html#ae7573accb00b48a05d2b8085f14483c5"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

@@ -186,11 +186,6 @@ GetColumn()</h1>
 Inspect()</h1>
 <p>The <code>Inspect()</code> function is used to provide a human-readable representation of the custom type.</p>
 <p>This function should be used purely for debugging purposes.</p>
-<h1><a class="anchor" id="sqlnumericprecision-scale-precision-limits"></a>
-&lt;tt&gt;SqlNumeric&lt;Precision, Scale&gt;&lt;/tt&gt; precision limits</h1>
-<p><code>Precision</code> is a count of <b>decimal digits</b> and may be at most <code>Lightweight::SqlMaxNumericPrecision</code> (38) — the number of decimal digits that fit into the 16-byte mantissa of ODBC's <code>SQL_NUMERIC_STRUCT</code>. This covers the widest <code>DECIMAL</code>/<code>NUMERIC</code> MS SQL Server and PostgreSQL accept, and in particular MS SQL Server's <code>money</code> (<code>DECIMAL(19, 4)</code>), which <code>ddl2cpp</code> emits as <code>Light::SqlNumeric&lt;19, 4&gt;</code>.</p>
-<p>Note that <code>SQL_MAX_NUMERIC_LEN</code> (16) is a <em>byte</em> count, not a digit count — do not use it as a precision bound.</p>
-<p>The value itself is only carried at full width where the driver supports <code>SQL_C_NUMERIC</code>. Against SQLite and MS SQL Server the binder falls back to <code>SQL_C_DOUBLE</code> (see <code>NativeNumericSupportIsBroken</code>), which preserves roughly 15 significant decimal digits regardless of the declared precision. Assigning from a <code>float</code>/<code>double</code> is likewise limited by that floating-point type.</p>
 <h1><a class="anchor" id="how-sqlvariant-decides-which-alternative-to-fill"></a>
 How &lt;tt&gt;SqlVariant&lt;/tt&gt; decides which alternative to fill</h1>
 <p><code>SqlDataBinder&lt;SqlVariant&gt;::GetColumn</code> queries the driver for **<code>SQL_DESC_CONCISE_TYPE</code>** and dispatches into the matching variant alternative based on the concise ODBC SQL type code.</p>
