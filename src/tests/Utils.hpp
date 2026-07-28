@@ -17,9 +17,11 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdint>
 #include <filesystem>
 #include <format>
 #include <mutex>
+#include <optional>
 #include <ostream>
 #include <ranges>
 #include <set>
@@ -636,6 +638,13 @@ class SqlTestFixture
     /// visited set see two different tables and defeat the cycle detection, so both sides are
     /// normalized to the form the emitted @c DROP @c TABLE statement uses.
     ///
+    /// @note This makes the traversal blind to schemas: two same-named tables in different
+    ///       schemas (@c dbo.Foo and @c sales.Foo) collapse into one visited entry, so only
+    ///       whichever the connection's default schema resolves gets dropped and the other
+    ///       survives. The fixture is single-schema by construction — @ref GetAllTableNames
+    ///       queries only the default schema — so this cannot arise today, and the drop
+    ///       statement itself was already schema-blind before the visited set existed.
+    ///
     /// @param name The table name to normalize.
     /// @return @p name with catalog and schema cleared.
     static Lightweight::SqlSchema::FullyQualifiedTableName CanonicalTableName(
@@ -677,93 +686,108 @@ class SqlTestFixture
         state.dropped.emplace_back(canonicalTable);
     }
 
+    /// RAII switch that suspends SQLite's foreign-key enforcement for its lifetime.
+    ///
+    /// Mirrors the library-internal guard in @c SqlMigration.cpp, which lives in an anonymous
+    /// namespace inside that translation unit and is therefore not reachable from here. The
+    /// contract worth copying verbatim: read the previous value and restore *that* (a caller may
+    /// deliberately have enforcement off), release the read cursor before issuing the next
+    /// statement (reusing a statement with an open cursor is an invalid-cursor-state error on the
+    /// SQLite ODBC driver), and never let the destructor throw.
+    ///
+    /// On every other backend the constructor is a no-op, because they express cascading drops in
+    /// the DDL itself — see @ref DropTableBreakingCycles.
+    class SqliteForeignKeysGuard
+    {
+      public:
+        /// @param connection The connection whose foreign-key enforcement to suspend.
+        explicit SqliteForeignKeysGuard(Lightweight::SqlConnection& connection):
+            _connection { connection }
+        {
+            // Capability check rather than a server-type test: SQLite is the backend that rebuilds
+            // tables for schema changes, and the only one whose formatter ignores `cascade`.
+            if (!connection.RequiresTableRebuildForSchemaChange())
+                return;
+
+            auto enabled = false;
+            {
+                auto stmt = Lightweight::SqlStatement { connection };
+                auto cursor = stmt.ExecuteDirect("PRAGMA foreign_keys");
+                enabled = cursor.FetchRow() && cursor.GetColumn<int64_t>(1) != 0;
+            }
+            if (!enabled)
+                return; // Already off — leave it that way, and restore nothing.
+
+            auto stmt = Lightweight::SqlStatement { connection };
+            (void) stmt.ExecuteDirect("PRAGMA foreign_keys = OFF");
+            _restore = true;
+        }
+
+        ~SqliteForeignKeysGuard()
+        {
+            if (!_restore)
+                return;
+            try
+            {
+                auto stmt = Lightweight::SqlStatement { _connection };
+                (void) stmt.ExecuteDirect("PRAGMA foreign_keys = ON");
+            }
+            catch (...)
+            {
+                WarnRestoreFailed();
+            }
+        }
+
+        SqliteForeignKeysGuard(SqliteForeignKeysGuard const&) = delete;
+        SqliteForeignKeysGuard& operator=(SqliteForeignKeysGuard const&) = delete;
+        SqliteForeignKeysGuard(SqliteForeignKeysGuard&&) = delete;
+        SqliteForeignKeysGuard& operator=(SqliteForeignKeysGuard&&) = delete;
+
+      private:
+        /// Reports a failed restore.
+        ///
+        /// A destructor must not propagate, but silently leaving foreign-key enforcement disabled
+        /// would turn every later foreign-key assertion into a false pass — so the failure is
+        /// routed to the active logger instead of being dropped. Marked @c noexcept so the "must
+        /// not throw" requirement is enforced by the language rather than by a second empty
+        /// @c catch block.
+        static void WarnRestoreFailed() noexcept
+        {
+            Lightweight::SqlLogger::GetLogger().OnWarning(
+                "SqliteForeignKeysGuard: failed to restore PRAGMA foreign_keys = ON");
+        }
+
+        Lightweight::SqlConnection& _connection;
+        bool _restore = false;
+    };
+
     /// Executes the @c DROP @c TABLE for @p table.
+    ///
+    /// The dialect lives in @c SqlQueryFormatter::DropTable, which already knows how each backend
+    /// spells a cascading drop — PostgreSQL appends @c CASCADE, SQL Server emits dynamic SQL that
+    /// drops every incoming foreign key through @c sys.foreign_keys first. Only SQLite needs
+    /// anything here, because it has neither @c CASCADE nor @c DROP @c CONSTRAINT and its formatter
+    /// consequently ignores the flag; suspending foreign-key enforcement is the one remaining way
+    /// to drop a table that closes a cycle.
     ///
     /// @param stmt        Statement to execute the DDL on.
     /// @param table       The table to drop.
-    /// @param closesCycle When true, @p table is still referenced by a table that cannot be
-    ///                    dropped beforehand because it sits on the same foreign-key cycle. The
-    ///                    referencing constraints are then removed (or their enforcement
-    ///                    suspended) using whatever the backend offers:
-    ///                    PostgreSQL drops them along with the table via @c CASCADE, SQL Server
-    ///                    needs an explicit @c ALTER @c TABLE @c DROP @c CONSTRAINT per incoming
-    ///                    foreign key, and SQLite — which has no @c DROP @c CONSTRAINT at all —
-    ///                    only needs its per-connection @c PRAGMA @c foreign_keys switched off
-    ///                    for the duration of the drop.
+    /// @param closesCycle When true, @p table is still referenced by a table that cannot be dropped
+    ///                    beforehand because it sits on the same foreign-key cycle, so the
+    ///                    referencing constraints have to be broken as part of the drop.
     static void DropTableBreakingCycles(Lightweight::SqlStatement& stmt,
                                         Lightweight::SqlSchema::FullyQualifiedTableName const& table,
                                         bool closesCycle)
     {
-        using Lightweight::SqlServerType;
+        auto foreignKeysGuard = std::optional<SqliteForeignKeysGuard> {};
+        if (closesCycle)
+            foreignKeysGuard.emplace(stmt.Connection());
 
-        auto const dropStatement = std::format("DROP TABLE IF EXISTS \"{}\"", table.table);
-        switch (stmt.Connection().ServerType())
-        {
-            case SqlServerType::POSTGRESQL:
-                // CASCADE drops the *constraints* referencing this table (not the tables
-                // themselves), which is exactly what breaking a cycle needs.
-                (void) stmt.ExecuteDirect(dropStatement + " CASCADE");
-                return;
-            case SqlServerType::SQLITE:
-                if (!closesCycle)
-                    break;
-                // SQLite cannot drop a single constraint, but foreign key enforcement is a
-                // per-connection switch, and the implicit row removal of DROP TABLE is the only
-                // thing it would trip over here.
-                (void) stmt.ExecuteDirect("PRAGMA foreign_keys = OFF");
-                (void) stmt.ExecuteDirect(dropStatement);
-                (void) stmt.ExecuteDirect("PRAGMA foreign_keys = ON");
-                return;
-            case SqlServerType::MICROSOFT_SQL:
-                if (!closesCycle)
-                    break;
-                for (auto const& [referencingTable, constraintName]: MssqlIncomingForeignKeys(stmt, table))
-                    (void) stmt.ExecuteDirect(
-                        std::format("ALTER TABLE {} DROP CONSTRAINT {}", referencingTable, constraintName));
-                break;
-            case SqlServerType::MYSQL:
-                if (!closesCycle)
-                    break;
-                // MySQL/MariaDB refuse to drop a referenced parent table; the check is a
-                // session-level switch, mirroring the SQLite approach above.
-                (void) stmt.ExecuteDirect("SET FOREIGN_KEY_CHECKS = 0");
-                (void) stmt.ExecuteDirect(dropStatement);
-                (void) stmt.ExecuteDirect("SET FOREIGN_KEY_CHECKS = 1");
-                return;
-            case SqlServerType::UNKNOWN:
-                break;
-        }
-        (void) stmt.ExecuteDirect(dropStatement);
-    }
-
-    /// Looks up every foreign key pointing at @p table on SQL Server.
-    ///
-    /// @param stmt  Statement to query @c sys.foreign_keys through.
-    /// @param table The referenced (primary key side) table.
-    /// @return Pairs of (bracket-quoted referencing table, bracket-quoted constraint name).
-    static std::vector<std::pair<std::string, std::string>> MssqlIncomingForeignKeys(
-        Lightweight::SqlStatement& stmt, Lightweight::SqlSchema::FullyQualifiedTableName const& table)
-    {
-        auto const qualifiedName = table.schema.empty() ? table.table : std::format("{}.{}", table.schema, table.table);
-        auto result = std::vector<std::pair<std::string, std::string>> {};
-        auto cursor =
-            stmt.ExecuteDirect(std::format("SELECT QUOTENAME(OBJECT_SCHEMA_NAME(fk.parent_object_id)) + '.' + "
-                                           "QUOTENAME(OBJECT_NAME(fk.parent_object_id)), QUOTENAME(fk.name) "
-                                           "FROM sys.foreign_keys AS fk WHERE fk.referenced_object_id = OBJECT_ID('{}')",
-                                           qualifiedName));
-        while (cursor.FetchRow())
-        {
-            // Retrieve strictly in ascending column order and in separate statements. GetColumn()
-            // maps onto SQLGetData, and the SQL Server ODBC driver does not support out-of-order
-            // retrieval — asking for column 2 before column 1 fails with
-            // "07009 Invalid Descriptor Index". Passing both calls as arguments to a single
-            // emplace_back() would leave their relative order unspecified, which really does differ
-            // between compilers (Clang evaluates left-to-right here, GCC right-to-left).
-            auto referencingTable = cursor.GetColumn<std::string>(1);
-            auto constraintName = cursor.GetColumn<std::string>(2);
-            result.emplace_back(std::move(referencingTable), std::move(constraintName));
-        }
-        return result;
+        // An empty schema means "the connection's default schema", which is what the formatter
+        // resolves it to — deliberately not a hard-coded "dbo".
+        for (auto const& query: stmt.Connection().QueryFormatter().DropTable(
+                 /*schema=*/"", table.table, /*ifExists=*/true, /*cascade=*/closesCycle))
+            (void) stmt.ExecuteDirect(query);
     }
 
     static void DropTableIfExists(Lightweight::SqlConnection& conn, std::string const& tableName)
