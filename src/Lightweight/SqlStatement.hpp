@@ -15,6 +15,7 @@
 #include "DataBinder/SqlNumeric.hpp"
 #include "DataBinder/StringInterface.hpp"
 #include "DataBinder/UnicodeConverter.hpp"
+#include "DataMapper/Record.hpp"
 #include "SqlConnection.hpp"
 #include "SqlQuery.hpp"
 #include "SqlQueryFormatter.hpp"
@@ -928,9 +929,20 @@ class SqlRowIterator
         {
             auto res = T {};
 
-            EnumerateRecordMembers(res, [this]<size_t I>(auto&& value) {
-                auto tmp = _cursor->GetColumn<typename RecordMemberTypeOf<I, value_type>::ValueType>(I + 1);
-                value = tmp;
+            // begin() projects the record via Select().Fields<T>(), which emits one column per
+            // RecordColumnMember. Enumerate by column position rather than by member position, so that
+            // relation members (HasMany, HasManyThrough, HasOneThrough, ...) neither need a column nor
+            // shift the ones that follow them.
+            SQLUSMALLINT columnIndex = 0;
+            EnumerateRecordMembers(res, [this, &columnIndex]<size_t I, typename FieldType>(FieldType& value) {
+                if constexpr (RecordColumnMember<FieldType>)
+                {
+                    ++columnIndex;
+                    if constexpr (FieldWithStorage<FieldType>)
+                        value = _cursor->GetColumn<typename FieldType::ValueType>(columnIndex);
+                    else
+                        value = _cursor->GetColumn<FieldType>(columnIndex);
+                }
             });
 
             return res;
@@ -1067,8 +1079,12 @@ void SqlStatement::BindOutputColumnsToRecord(Records*... records)
         SQLUSMALLINT i = 0;
         ((EnumerateRecordMembers(*records,
                                  [this, &i]<size_t I, typename FieldType>(FieldType& value) {
-                                     ++i;
-                                     this->RecordPrefetchOutputColumn<FieldType>(i, &value);
+                                     // Only members mapping onto a column occupy a result set index.
+                                     if constexpr (RecordColumnMember<FieldType>)
+                                     {
+                                         ++i;
+                                         this->RecordPrefetchOutputColumn<FieldType>(i, &value);
+                                     }
                                  })),
          ...);
         return;
@@ -1079,9 +1095,13 @@ void SqlStatement::BindOutputColumnsToRecord(Records*... records)
     SQLUSMALLINT i = 0;
     ((EnumerateRecordMembers(*records,
                              [this, &i]<size_t I, typename FieldType>(FieldType& value) {
-                                 ++i;
-                                 RequireSuccess(SqlDataBinder<FieldType>::OutputColumn(
-                                     m_hStmt, i, &value, GetIndicatorForColumn(i), *this));
+                                 // Only members mapping onto a column occupy a result set index.
+                                 if constexpr (RecordColumnMember<FieldType>)
+                                 {
+                                     ++i;
+                                     RequireSuccess(SqlDataBinder<FieldType>::OutputColumn(
+                                         m_hStmt, i, &value, GetIndicatorForColumn(i), *this));
+                                 }
                              })),
      ...);
 }

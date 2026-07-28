@@ -943,7 +943,9 @@ TEST_CASE_METHOD(SqlTestFixture, "Record with HasMany: fluent Query", "[DataMapp
     {
         auto logger = ScopedQueryRecordingLogger {};
 
-        auto const records = dm.Query<Issue517Parent>().All(); // Used to throw "no such column".
+        // Used to throw "no such column". ORDER BY, because a bare All() leaves the row order
+        // unspecified and the ordering is incidental to what this checks.
+        auto const records = dm.Query<Issue517Parent>().OrderBy(FieldNameOf<Member(Issue517Parent::id)>).All();
 
         CHECK_FALSE(logger.AnyQueryContains("children"));
         REQUIRE(records.size() == 2);
@@ -1015,6 +1017,91 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK(records[0].name.Value() == "acme");
     CHECK(records[0].counter.Value() == 2);
     CHECK(records[0].children.Count() == 1);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Record with HasMany in the middle: SqlRowIterator",
+                 "[DataMapper][relations][HasMany][SqlRowIterator][regression]")
+{
+    auto dm = DataMapper();
+    dm.CreateTables<Issue517MidParent, Issue517MidChild>();
+
+    dm.CreateExplicit(Issue517MidParent { .name = "acme", .counter = 7 });
+
+    // SqlRowIterator::begin() projects via Select().Fields<T>(), so operator*() must read by column
+    // position too. Reading by member position used to not even compile here (HasMany has no
+    // ValueType) and would otherwise have read `counter` out of the `name` column.
+    auto rows = std::vector<Issue517MidParent> {};
+    for (auto&& row: SqlRowIterator<Issue517MidParent>(dm.Connection()))
+        rows.emplace_back(row);
+
+    REQUIRE(rows.size() == 1);
+    CHECK(rows[0].name.Value() == "acme");
+    CHECK(rows[0].counter.Value() == 7);
+}
+
+// A two-record JOIN projection where the *first* record carries a relation member. Fields<A, B>()
+// emits one column per column-mapping member, so the second record starts after A's *columns*; an
+// offset computed from RecordMemberCount would place B one column too far to the right and make every
+// one of its fields read the neighbouring column (or run off the end of the result set — observed as
+// `07009 Invalid Descriptor Index` on MS SQL Server).
+struct Issue517JoinChild;
+
+struct Issue517JoinParent
+{
+    static constexpr std::string_view TableName = "Issue517JoinParent";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    HasMany<Issue517JoinChild> children {};
+    Field<SqlAnsiString<32>> name {};
+};
+
+struct Issue517JoinChild
+{
+    static constexpr std::string_view TableName = "Issue517JoinChild";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    BelongsTo<Member(Issue517JoinParent::id)> parent {};
+    Field<SqlAnsiString<32>> title {};
+};
+
+// The projection is 2 (parent) + 3 (child) = 5 columns wide, not 3 + 3.
+static_assert(RecordMemberCount<Issue517JoinParent> == 3);
+static_assert(RecordColumnCount<Issue517JoinParent> == 2);
+static_assert(RecordColumnCount<Issue517JoinChild> == 3);
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Record with HasMany: two-record JOIN projection offset",
+                 "[DataMapper][relations][HasMany][regression]")
+{
+    auto dm = DataMapper();
+    dm.CreateTables<Issue517JoinParent, Issue517JoinChild>();
+
+    auto parent = Issue517JoinParent { .name = SqlAnsiString<32> { "acme" } };
+    dm.Create(parent);
+    dm.CreateExplicit(Issue517JoinChild { .parent = parent.id.Value(), .title = SqlAnsiString<32> { "widget" } });
+
+    auto const query = dm.FromTable(RecordTableName<Issue517JoinParent>)
+                           .Select()
+                           .Fields<Issue517JoinParent, Issue517JoinChild>()
+                           .InnerJoin<Member(Issue517JoinChild::parent), Member(Issue517JoinParent::id)>()
+                           .OrderBy(SqlQualifiedTableColumnName {
+                               .tableName = RecordTableName<Issue517JoinChild>,
+                               .columnName = FieldNameOf<Member(Issue517JoinChild::id)>,
+                           })
+                           .All();
+
+    CHECK_FALSE(query.ToSql().contains("children"));
+
+    // Used to read the second record starting one column too far right (relation member counted).
+    auto const records = dm.Query<Issue517JoinParent, Issue517JoinChild>(query);
+
+    REQUIRE(records.size() == 1);
+    auto const& [loadedParent, loadedChild] = records[0];
+    CHECK(loadedParent.id.Value() == parent.id.Value());
+    CHECK(loadedParent.name.Value() == "acme");
+    CHECK(loadedChild.parent.Value() == parent.id.Value());
+    CHECK(loadedChild.title.Value() == "widget");
 }
 
 // NOLINTEND(bugprone-unchecked-optional-access)
