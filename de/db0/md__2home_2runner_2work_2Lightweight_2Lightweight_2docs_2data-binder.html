@@ -204,7 +204,7 @@ Inspect()</h1>
 <li><b>The readable width.</b> Every accessor except <code>ToUnscaledValue()</code> divides through <code>long double</code>, so no more digits can be <em>read back</em> than that type's significand holds. The widest <code>long double</code> in use is the 80-bit x87 one, whose 64-bit significand gives 19 digits; past that, <code>ToString()</code> is wrong on every platform — a fetched <code>SqlNumeric&lt;20, 0&gt;</code> holding <code>99999999999999999999</code> prints as <code>100000000000000000000</code>.</li>
 </ul>
 <p>A column wider than the bound must be read as a string.</p>
-<p>Note that 19 is the point past which nothing is readable <em>anywhere</em>; it is not a promise that every platform renders all 19. Where <code>long double</code> is a <code>double</code>, only 15 digits render — see the table below — and <code>ToUnscaledValue()</code> is the only way to see the rest.</p>
+<p>Note that 19 is the point past which nothing is readable <em>anywhere</em>; it is not a promise that any given platform renders 19. How many digits <code>ToString()</code> delivers depends both on the width of <code>long double</code> (53 bits on MSVC and on Clang for Apple Silicon) and on the standard library's formatter, which narrows to <code>double</code> on some toolchains even where the type is wider. The only width guaranteed everywhere is <code>std::numeric_limits&lt;double&gt;::digits10</code> (15); above it, <code>ToUnscaledValue()</code> is the only accessor you can rely on.</p>
 <h2><a class="anchor" id="what-each-accessor-delivers"></a>
 What each accessor delivers</h2>
 <p>Even inside the bound the accessors do not all carry the same number of digits. For a value obtained by fetching (i.e. one whose mantissa arrived intact):</p>
@@ -214,13 +214,13 @@ What each accessor delivers</h2>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>ToUnscaledValue()</code>   </td><td class="markdownTableBodyNone">up to <code>Precision</code>   </td><td class="markdownTableBodyNone">The only accessor that does not go through a floating-point type.    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>ToString()</code>, <code>ToLongDouble()</code>   </td><td class="markdownTableBodyNone">bounded by <code>long double</code>   </td><td class="markdownTableBodyNone">19 with the x87 80-bit <code>long double</code> (Linux/GCC/Clang on x86-64); <b>15 where <code>long double</code> is a <code>double</code></b> — MSVC, and Clang on Apple Silicon.    </td></tr>
+<td class="markdownTableBodyNone"><code>ToString()</code>, <code>ToLongDouble()</code>   </td><td class="markdownTableBodyNone">15 guaranteed; up to 19 in practice   </td><td class="markdownTableBodyNone">Bounded by <code>long double</code> <em>and</em> by the standard library's formatter for it. At most 19 (x87 80-bit); <b>15 where <code>long double</code> is a <code>double</code></b> (MSVC, Clang on Apple Silicon) and on toolchains whose formatter narrows to <code>double</code>. Treat anything above 15 as a bonus, not a contract.    </td></tr>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>ToDouble()</code>, <code>operator&lt;=&gt;</code>   </td><td class="markdownTableBodyNone">15   </td><td class="markdownTableBodyNone"><code>std::numeric_limits&lt;double&gt;::digits10</code>.    </td></tr>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>ToFloat()</code>, <code>operator==</code>   </td><td class="markdownTableBodyNone"><b>7</b>   </td><td class="markdownTableBodyNone"><code>std::numeric_limits&lt;float&gt;::digits10</code>. <code>operator==</code> compares via <code>ToFloat()</code>, so <code>SqlNumeric&lt;19, 4&gt;</code> values <code>1234567890.1234</code> and <code>1234567890.9999</code> compare <b>equal</b>. Compare <code>ToUnscaledValue()</code> if you need exactness.   </td></tr>
 </table>
-<p>So on MSVC, <code>SqlNumeric&lt;18, 2&gt;</code> is accepted and <code>ToUnscaledValue()</code> returns all 18 digits, but <code>ToString()</code> renders only the leading 15 correctly.</p>
+<p>So on MSVC, <code>SqlNumeric&lt;18, 2&gt;</code> is accepted and <code>ToUnscaledValue()</code> returns all 18 digits, but <code>ToString()</code> renders only the leading 15 correctly. If you need more than 15 digits out of a <code>SqlNumeric</code>, read <code>ToUnscaledValue()</code> and scale it yourself.</p>
 <h2><a class="anchor" id="how-many-of-those-digits-survive-a-round-trip"></a>
 How many of those digits survive a round-trip</h2>
 <p>Declaring a wide <code>Precision</code> does not by itself guarantee that every digit is <em>transferred</em>. What you can rely on:</p>
