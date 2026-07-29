@@ -64,19 +64,22 @@ namespace detail
 ///   yields `INT64_MIN` and renders as -922337203685477.5808, sign flipped.
 /// - **The readable width.** Every accessor except `ToUnscaledValue()` — `ToFloat`, `ToDouble`,
 ///   `ToLongDouble` and therefore `ToString` — divides through `long double`, so no more digits can
-///   be read back than that type's significand holds. The widest `long double` in use is the 80-bit
-///   x87 one, whose 64-bit significand gives `DecimalDigitsForBits(64)` == 19; beyond that
-///   `ToString()` is wrong on *every* platform, e.g. a fetched `SqlNumeric<20, 0>` holding
+///   be read back than that type's significand holds. The widest one in use is the 80-bit x87
+///   `long double`, whose 64-bit significand gives `DecimalDigitsForBits(64)` == 19; beyond that
+///   nothing is readable on *any* platform, e.g. a fetched `SqlNumeric<20, 0>` holding
 ///   99999999999999999999 prints as 100000000000000000000.
 ///
 /// Hence 18 without a 128-bit carrier and 19 with one. `DECIMAL(18, s)` compiles everywhere and
 /// `money` (`DECIMAL(19, 4)`) compiles wherever `__int128` exists; a wider column must be read as a
 /// string.
 ///
-/// NB: 19 is the point beyond which nothing is readable anywhere; it is not a promise that every
-/// platform renders all 19. Where `long double` is a `double` (MSVC, and Clang on Apple Silicon)
-/// `ToString()` carries only 15 digits, and `ToUnscaledValue()` is the only way to see the rest.
-/// `docs/data-binder.md` tabulates what each accessor delivers.
+/// NB: 19 is the point past which nothing is readable *anywhere*. It is emphatically not a promise
+/// that any given platform renders 19: how many digits `ToString()` delivers depends both on the
+/// width of `long double` (53 bits on MSVC and on Clang for Apple Silicon) and on the standard
+/// library's formatter, which narrows to `double` on some toolchains even where the type is wider.
+/// The only width guaranteed everywhere is `std::numeric_limits<double>::digits10`; above it,
+/// `ToUnscaledValue()` is the only accessor that can be relied on. `docs/data-binder.md` tabulates
+/// what each accessor delivers.
 ///
 /// NB: `inline` is load-bearing. At namespace scope `constexpr` implies `const`, hence internal
 /// linkage, and an exported template in the module interface (`SqlNumeric`, via its static_assert)

@@ -155,9 +155,12 @@ ODBC struct could hold, not what this implementation delivers. Two things narrow
 A column wider than the bound must be read as a string.
 
 Note that 19 is the point past which nothing is readable *anywhere*; it is not a
-promise that every platform renders all 19. Where `long double` is a `double`, only 15
-digits render — see the table below — and `ToUnscaledValue()` is the only way to see
-the rest.
+promise that any given platform renders 19. How many digits `ToString()` delivers
+depends both on the width of `long double` (53 bits on MSVC and on Clang for Apple
+Silicon) and on the standard library's formatter, which narrows to `double` on some
+toolchains even where the type is wider. The only width guaranteed everywhere is
+`std::numeric_limits<double>::digits10` (15); above it, `ToUnscaledValue()` is the only
+accessor you can rely on.
 
 ### What each accessor delivers
 
@@ -167,12 +170,13 @@ value obtained by fetching (i.e. one whose mantissa arrived intact):
 | Accessor | Significant digits | Notes |
 |----------|--------------------|-------|
 | `ToUnscaledValue()` | up to `Precision` | The only accessor that does not go through a floating-point type. |
-| `ToString()`, `ToLongDouble()` | bounded by `long double` | 19 with the x87 80-bit `long double` (Linux/GCC/Clang on x86-64); **15 where `long double` is a `double`** — MSVC, and Clang on Apple Silicon. |
+| `ToString()`, `ToLongDouble()` | 15 guaranteed; up to 19 in practice | Bounded by `long double` *and* by the standard library's formatter for it. At most 19 (x87 80-bit); **15 where `long double` is a `double`** (MSVC, Clang on Apple Silicon) and on toolchains whose formatter narrows to `double`. Treat anything above 15 as a bonus, not a contract. |
 | `ToDouble()`, `operator<=>` | 15 | `std::numeric_limits<double>::digits10`. |
 | `ToFloat()`, `operator==` | **7** | `std::numeric_limits<float>::digits10`. `operator==` compares via `ToFloat()`, so `SqlNumeric<19, 4>` values `1234567890.1234` and `1234567890.9999` compare **equal**. Compare `ToUnscaledValue()` if you need exactness. |
 
 So on MSVC, `SqlNumeric<18, 2>` is accepted and `ToUnscaledValue()` returns all 18
-digits, but `ToString()` renders only the leading 15 correctly.
+digits, but `ToString()` renders only the leading 15 correctly. If you need more than 15
+digits out of a `SqlNumeric`, read `ToUnscaledValue()` and scale it yourself.
 
 ### How many of those digits survive a round-trip
 

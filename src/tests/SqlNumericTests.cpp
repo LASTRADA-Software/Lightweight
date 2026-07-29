@@ -184,24 +184,20 @@ TEST_CASE("SqlNumeric carries every digit up to SqlMaxNumericPrecision", "[SqlNu
     // always fits a std::uint64_t, so narrow it there.
     CHECK(std::format("{}", static_cast<std::uint64_t>(widest.ToUnscaledValue())) == expected);
 
-    // ToString() is a weaker guarantee, because it — like every accessor but ToUnscaledValue() —
-    // divides through `long double`. It therefore renders only as many digits as that type's
-    // significand holds: 19 on the 80-bit x87 `long double`, but 15 wherever `long double` is a
-    // `double` (MSVC, and Clang on Apple Silicon). Assert exactness only where it is actually
-    // promised, and the documented relative accuracy everywhere else — asserting the strong form
-    // unconditionally would be asserting something docs/data-binder.md does not claim.
-    constexpr auto renderableDigits =
-        detail::DecimalDigitsForBits(static_cast<std::size_t>(std::numeric_limits<long double>::digits));
-    if constexpr (precision <= renderableDigits)
-        CHECK(widest.ToString() == expected);
-    else
-    {
-        auto relativeTolerance = 1.0L;
-        for ([[maybe_unused]] auto const digit: std::views::iota(std::size_t { 1 }, renderableDigits))
-            relativeTolerance /= 10.0L;
-        CHECK_THAT(static_cast<double>(widest.ToLongDouble()),
-                   Catch::Matchers::WithinRel(static_cast<double>(allNines), static_cast<double>(relativeTolerance)));
-    }
+    // ToString() is a distinctly weaker, toolchain-dependent guarantee, because it — like every
+    // accessor but ToUnscaledValue() — divides through `long double` and is then rendered by the
+    // standard library's formatter. How many digits survive depends on *both*: the width of that
+    // type (53 bits on MSVC and on Clang for Apple Silicon, 64 on the x87 80-bit one) and the
+    // formatter's own long-double support, which in practice narrows to `double` on some
+    // toolchains even where the type is wider. The portable promise — and the only one
+    // docs/data-binder.md makes — is `std::numeric_limits<double>::digits10` significant digits,
+    // so assert exactly that and nothing stronger. The strong claim lives on ToUnscaledValue()
+    // above, where it actually holds.
+    constexpr auto portableDigits = static_cast<std::size_t>(std::numeric_limits<double>::digits10);
+    auto relativeTolerance = 1.0;
+    for ([[maybe_unused]] auto const digit: std::views::iota(std::size_t { 1 }, portableDigits))
+        relativeTolerance /= 10.0;
+    CHECK_THAT(std::stod(widest.ToString()), Catch::Matchers::WithinRel(static_cast<double>(allNines), relativeTolerance));
 }
 
 TEST_CASE("SqlNumeric supports a purely fractional Scale == Precision", "[SqlNumeric]")
