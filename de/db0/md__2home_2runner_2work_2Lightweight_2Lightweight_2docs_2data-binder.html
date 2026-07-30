@@ -186,55 +186,6 @@ GetColumn()</h1>
 Inspect()</h1>
 <p>The <code>Inspect()</code> function is used to provide a human-readable representation of the custom type.</p>
 <p>This function should be used purely for debugging purposes.</p>
-<h1><a class="anchor" id="sqlnumericprecision-scale-precision-limits"></a>
-&lt;tt&gt;SqlNumeric&lt;Precision, Scale&gt;&lt;/tt&gt; precision limits</h1>
-<p><code>Precision</code> is a count of <b>decimal digits</b>. It may be at most <code>Lightweight::SqlMaxNumericPrecision</code>, which is <b>19</b> where the toolchain provides a 128-bit integer type and <b>18</b> where it does not (MSVC and clang-cl):</p>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">Toolchain   </th><th class="markdownTableHeadNone"><code>SqlMaxNumericPrecision</code>   </th><th class="markdownTableHeadNone">Widest column    </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">GCC / Clang (<code>__int128</code> available)   </td><td class="markdownTableBodyNone">19   </td><td class="markdownTableBodyNone"><code>DECIMAL(19, s)</code> — including MS SQL Server's <code>money</code>    </td></tr>
-<tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone">MSVC, clang-cl (no <code>__int128</code>)   </td><td class="markdownTableBodyNone">18   </td><td class="markdownTableBodyNone"><code>DECIMAL(18, s)</code>   </td></tr>
-</table>
-<p><code>Scale</code> counts the digits after the decimal point and may be anywhere in <code>[0, Precision]</code>. <code>Scale == Precision</code> is the purely fractional case: <code>SqlNumeric&lt;4, 4&gt;</code> is SQL's <code>DECIMAL(4, 4)</code> and covers <code>[0.0000, 0.9999]</code>.</p>
-<p>Note that <code>SQL_MAX_NUMERIC_LEN</code> (16) is a <em>byte</em> count, not a digit count — do not use it as a precision bound. It is the size of <code>SQL_NUMERIC_STRUCT::val</code>, a 128-bit mantissa, which is 38 decimal digits. <b>38 is not the bound either</b>: it is what the ODBC struct could hold, not what this implementation delivers. Two things narrow it:</p>
-<ul>
-<li><b>The unscaled carrier.</b> <code>assign()</code> and <code>ToUnscaledValue()</code> keep <code>value * 10^Scale</code> in a <code>__int128</code> where one exists and in an <code>int64_t</code> otherwise. A signed 64-bit carrier holds 18 digits. At <code>Precision == 19</code> it overflows — <code>money</code>'s maximum <code>922337203685477.5807</code> has the unscaled value <code>9223372036854775808</code>, one past <code>INT64_MAX</code> — and the out-of-range floating-to-integer conversion is undefined behaviour, which on x86-64 yields <code>INT64_MIN</code> and renders as <code>-922337203685477.5808</code>, sign flipped.</li>
-<li><b>The readable width.</b> Every accessor except <code>ToUnscaledValue()</code> divides through <code>long double</code>, so no more digits can be <em>read back</em> than that type's significand holds. The widest <code>long double</code> in use is the 80-bit x87 one, whose 64-bit significand gives 19 digits; past that, <code>ToString()</code> is wrong on every platform — a fetched <code>SqlNumeric&lt;20, 0&gt;</code> holding <code>99999999999999999999</code> prints as <code>100000000000000000000</code>.</li>
-</ul>
-<p>A column wider than the bound must be read as a string.</p>
-<p>Note that 19 is the point past which nothing is readable <em>anywhere</em>; it is not a promise that any given platform renders 19. How many digits <code>ToString()</code> delivers depends both on the width of <code>long double</code> (53 bits on MSVC and on Clang for Apple Silicon) and on the standard library's formatter, which narrows to <code>double</code> on some toolchains even where the type is wider. The only width guaranteed everywhere is <code>std::numeric_limits&lt;double&gt;::digits10</code> (15); above it, <code>ToUnscaledValue()</code> is the only accessor you can rely on.</p>
-<h2><a class="anchor" id="what-each-accessor-delivers"></a>
-What each accessor delivers</h2>
-<p>Even inside the bound the accessors do not all carry the same number of digits. For a value obtained by fetching (i.e. one whose mantissa arrived intact):</p>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">Accessor   </th><th class="markdownTableHeadNone">Significant digits   </th><th class="markdownTableHeadNone">Notes    </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>ToUnscaledValue()</code>   </td><td class="markdownTableBodyNone">up to <code>Precision</code>   </td><td class="markdownTableBodyNone">The only accessor that does not go through a floating-point type.    </td></tr>
-<tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>ToString()</code>, <code>ToLongDouble()</code>   </td><td class="markdownTableBodyNone">15 guaranteed; up to 19 in practice   </td><td class="markdownTableBodyNone">Bounded by <code>long double</code> <em>and</em> by the standard library's formatter for it. At most 19 (x87 80-bit); <b>15 where <code>long double</code> is a <code>double</code></b> (MSVC, Clang on Apple Silicon) and on toolchains whose formatter narrows to <code>double</code>. Treat anything above 15 as a bonus, not a contract.    </td></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>ToDouble()</code>, <code>operator&lt;=&gt;</code>   </td><td class="markdownTableBodyNone">15   </td><td class="markdownTableBodyNone"><code>std::numeric_limits&lt;double&gt;::digits10</code>.    </td></tr>
-<tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>ToFloat()</code>, <code>operator==</code>   </td><td class="markdownTableBodyNone"><b>7</b>   </td><td class="markdownTableBodyNone"><code>std::numeric_limits&lt;float&gt;::digits10</code>. <code>operator==</code> compares via <code>ToFloat()</code>, so <code>SqlNumeric&lt;19, 4&gt;</code> values <code>1234567890.1234</code> and <code>1234567890.9999</code> compare <b>equal</b>. Compare <code>ToUnscaledValue()</code> if you need exactness.   </td></tr>
-</table>
-<p>So on MSVC, <code>SqlNumeric&lt;18, 2&gt;</code> is accepted and <code>ToUnscaledValue()</code> returns all 18 digits, but <code>ToString()</code> renders only the leading 15 correctly. If you need more than 15 digits out of a <code>SqlNumeric</code>, read <code>ToUnscaledValue()</code> and scale it yourself.</p>
-<h2><a class="anchor" id="how-many-of-those-digits-survive-a-round-trip"></a>
-How many of those digits survive a round-trip</h2>
-<p>Declaring a wide <code>Precision</code> does not by itself guarantee that every digit is <em>transferred</em>. What you can rely on:</p>
-<ul>
-<li><b>Up to <code>std::numeric_limits&lt;double&gt;::digits10</code> (15) significant decimal digits: exact everywhere.</b> Every backend and driver combination round-trips such a value unchanged. Beyond that, note that narrowing to 15 significant digits can round <em>into</em> the integral part — <code>123456789012345.6789</code> becomes <code>123456789012346</code> — so a wide value is not merely "right up to the decimal point".</li>
-<li><p class="startli"><b>Beyond 15 significant digits: only on the native <code>SQL_C_NUMERIC</code> path.</b> Two independent things can narrow the value to a <code>double</code> (≈15 significant digits):</p><ul>
-<li>The binder deliberately falls back to <code>SQL_C_DOUBLE</code> for SQLite and MS SQL Server, whose drivers do not handle <code>SQL_NUMERIC_STRUCT</code> usably (see <code>NativeNumericSupportIsBroken</code>). This is why MS SQL Server's own <code>money</code> loses precision on MS SQL Server: its maximum <code>922337203685477.5807</code> reads back as <code>922337203685477.6250</code>.</li>
-<li>Some driver <em>builds</em> narrow internally even on the native path. The psqlODBC that ships for Windows converts through a <code>double</code> before filling <code>SQL_NUMERIC_STRUCT</code>, so a 19-digit value comes back as the mantissa of its nearest <code>double</code>; the Linux build of the same driver transfers the mantissa verbatim.</li>
-</ul>
-<p class="startli">PostgreSQL on Linux is therefore the only combination that carries a full 19-digit value end to end today.</p>
-</li>
-</ul>
-<p>One further limit is independent of the driver: assigning from a <code>float</code>/<code>double</code> — the only value-setting API besides fetching — is bounded by that floating-point type, so <code>SqlNumeric&lt;19, 4&gt; { 922337203685477.5807 }</code> already holds <code>922337203685477.6250</code> before any database is involved.</p>
-<p>If you need exactness above 15 digits on an arbitrary backend, read the column as a string instead.</p>
 <h1><a class="anchor" id="how-sqlvariant-decides-which-alternative-to-fill"></a>
 How &lt;tt&gt;SqlVariant&lt;/tt&gt; decides which alternative to fill</h1>
 <p><code>SqlDataBinder&lt;SqlVariant&gt;::GetColumn</code> queries the driver for **<code>SQL_DESC_CONCISE_TYPE</code>** and dispatches into the matching variant alternative based on the concise ODBC SQL type code.</p>

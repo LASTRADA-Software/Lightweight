@@ -1,5 +1,6 @@
 var NAVTREEINDEX3 =
 {
+"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ac85b084f4a20e01ccf53de588f5e0e02":[14,4,3,9],
 "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ac8acfa239959c3a361aae62ddac1df04":[14,4,3,21],
 "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#acbcd0741a62d955a0e7e56ec7f264499":[14,4,3,46],
 "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ad63ee3002c9921bfb053c5b611d6511b":[14,4,3,1],
@@ -248,6 +249,5 @@ var NAVTREEINDEX3 =
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a9b5cc394c01daeccdafb032bd2da9003":[16,0,0,60,24],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a9d7c9b20efff3182019134922431f9dd":[16,0,0,60,21],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#aa1f92ce1316d440b0f318c9b57807bd8":[16,0,0,60,17],
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#aa82cdee7e05bc78bca8345a4bebea3fd":[16,0,0,60,12],
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#ab39585d3fa5fcd921a0e46afb27ff8d7":[16,0,0,60,26]
+"d8/df7/classLightweight_1_1SqlQueryFormatter.html#aa82cdee7e05bc78bca8345a4bebea3fd":[16,0,0,60,12]
 };
