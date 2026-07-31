@@ -37,6 +37,7 @@ Lightweight is exercised against three databases in CI (`.github/workflows/build
   - **Newline translation**: `psqlODBC` defaults to LF↔CRLF translation. The project's test connection strings disable it explicitly (commit `f311cb9f`); preserve that in any new test-env entry, or character-data round-trips with embedded newlines will silently mutate.
   - **Unicode round-trip**: `SQL_C_WCHAR` (UTF-16) is the binding type that round-trips reliably across all DataBinder paths (commit `894c67c7`); avoid `SQL_C_CHAR` for non-ASCII strings unless you've validated the driver actually transcodes.
   - `SERIAL` columns: detect via `nextval(` in the captured default value (see `PostgreSqlFormatter::BuildColumnDefinition`); restored backups carry the sequence default rather than `AUTO_INCREMENT`.
+  - Serial width follows the declared type (`PostgreSqlFormatter::SerialColumnType`): `Bigint` → `BIGSERIAL`, `Integer` → `SERIAL`, `Smallint`/`Tinyint` → `SMALLSERIAL`. PostgreSQL derives the underlying integer width from the serial spelling, so a hard-coded `SERIAL` silently caps a 64-bit key at 2^31-1 (issue #521).
   - Identifier quoting uses `"`. Folding to lowercase happens for unquoted identifiers — the formatter quotes everything to keep behaviour consistent.
   - `SELECT lastval();` retrieves the last inserted id (formatter override). Race-prone if multiple clients insert into different sequences simultaneously — call it inside the same session right after the insert.
 

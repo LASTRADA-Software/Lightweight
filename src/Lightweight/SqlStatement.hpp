@@ -1481,7 +1481,7 @@ SQLLEN* SqlStatement::BindRowWiseOutputColumn(SQLUSMALLINT column, void* base0, 
 
     if constexpr (SqlIsStdOptional<ValueType>)
     {
-        using Inner = typename ValueType::value_type;
+        using Inner = ValueType::value_type;
         auto* const optBytes = static_cast<std::byte*>(base0);
         // Pre-engage every row's optional so its contained storage is valid to bind into; rows that come
         // back NULL are reset to std::nullopt in FinalizeRowWiseOutputColumn.
@@ -1511,7 +1511,7 @@ void SqlStatement::FinalizeRowWiseOutputColumn(void* base0,
 
     if constexpr (SqlIsStdOptional<ValueType>)
     {
-        using Inner = typename ValueType::value_type;
+        using Inner = ValueType::value_type;
         auto* const optBytes = static_cast<std::byte*>(base0);
         for (auto const i: std::views::iota(std::size_t { 0 }, rowCount))
         {
@@ -1519,8 +1519,14 @@ void SqlStatement::FinalizeRowWiseOutputColumn(void* base0,
             if (indicatorAt(i) == SQL_NULL_DATA)
                 optional->reset();
             else if constexpr (IsSqlFixedString<Inner>)
+            {
                 // Engaged char fixed string: set its length and trim, matching the single-row binder.
-                SqlBasicStringOperations<Inner>::PostProcessOutputColumn(std::addressof(**optional), indicatorAt(i));
+                // BindRowWiseOutputColumn pre-engages every row and only the NULL branch above ever
+                // disengages one, so this holds unconditionally — tested anyway to keep the access
+                // provably safe rather than invariant-dependent.
+                if (optional->has_value())
+                    SqlBasicStringOperations<Inner>::PostProcessOutputColumn(std::addressof(**optional), indicatorAt(i));
+            }
             // Engaged fixed-width inner: already materialized in place, nothing more to do.
         }
     }

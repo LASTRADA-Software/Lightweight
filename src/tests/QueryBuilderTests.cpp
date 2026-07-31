@@ -1325,8 +1325,10 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable with PrimaryKeyWithAutoIncrement",
                                 "pk" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT
                             );
                            )sql",
+            // PrimaryKeyWithAutoIncrement defaults to Bigint, so PostgreSQL must emit the 64-bit
+            // BIGSERIAL — plain SERIAL would silently cap the key at 2^31-1 (issue #521).
             .postgres = R"sql(CREATE TABLE "Test" (
-                                "pk" SERIAL NOT NULL PRIMARY KEY
+                                "pk" BIGSERIAL NOT NULL PRIMARY KEY
                             );
                            )sql",
             .sqlServer = R"sql(CREATE TABLE "Test" (
@@ -1334,6 +1336,65 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable with PrimaryKeyWithAutoIncrement",
                             );
                            )sql",
         });
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "CreateTable with PrimaryKeyWithAutoIncrement honours the declared integer width",
+                 "[SqlQueryBuilder][Migration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    // The auto-increment column type must track the declared C++ field width on every DBMS.
+    // SQLite is the documented exception: AUTOINCREMENT is only valid on an INTEGER PRIMARY KEY,
+    // which is a 64-bit rowid alias there anyway.
+    auto const check =
+        [](SqlColumnTypeDefinition columnType, std::string_view postgresType, std::string_view sqlServerType) {
+            auto const postgres = std::format(R"sql(CREATE TABLE "Test" (
+                                                        "pk" {} NOT NULL PRIMARY KEY
+                                                    );
+                                              )sql",
+                                              postgresType);
+            auto const sqlServer = std::format(R"sql(CREATE TABLE "Test" (
+                                                         "pk" {} NOT NULL IDENTITY(1,1) PRIMARY KEY
+                                                     );
+                                               )sql",
+                                               sqlServerType);
+            CheckSqlQueryBuilder(
+                [columnType](SqlQueryBuilder& q) {
+                    auto migration = q.Migration();
+                    migration.CreateTable("Test").PrimaryKeyWithAutoIncrement("pk", columnType);
+                    return migration.GetPlan();
+                },
+                QueryExpectations {
+                    .sqlite = R"sql(CREATE TABLE "Test" (
+                                        "pk" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT
+                                    );
+                                   )sql",
+                    .postgres = postgres,
+                    .sqlServer = sqlServer,
+                });
+        };
+
+    SECTION("Bigint")
+    {
+        check(Bigint {}, "BIGSERIAL", "BIGINT");
+    }
+
+    SECTION("Integer")
+    {
+        check(Integer {}, "SERIAL", "INTEGER");
+    }
+
+    SECTION("Smallint")
+    {
+        check(Smallint {}, "SMALLSERIAL", "SMALLINT");
+    }
+
+    SECTION("Tinyint")
+    {
+        // PostgreSQL has no 1-byte integer type; SMALLSERIAL is the narrowest serial available.
+        check(Tinyint {}, "SMALLSERIAL", "TINYINT");
+    }
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "CreateTable with Index", "[SqlQueryBuilder][Migration]")
@@ -1410,7 +1471,7 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable complex demo", "[SqlQueryBuilder][
                 )sql",
             .postgres = R"sql(
                     CREATE TABLE "Test" (
-                        "a" SERIAL NOT NULL PRIMARY KEY,
+                        "a" BIGSERIAL NOT NULL PRIMARY KEY,
                         "b" VARCHAR(32) NOT NULL UNIQUE,
                         "c" TIMESTAMP,
                         "d" VARCHAR(255)

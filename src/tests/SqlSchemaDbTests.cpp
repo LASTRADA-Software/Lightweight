@@ -182,6 +182,87 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::MakeCreateTablePlan (TableList) pro
 }
 
 // ================================================================================================
+// Auto-increment primary keys must keep the integer width the record declared.
+//
+// Regression guard for issue #521: the PostgreSQL formatter used to emit a hard-coded SERIAL
+// (32-bit) for every auto-increment column, so a Field<int64_t, PrimaryKey::ServerSideAutoIncrement>
+// silently became an `integer` column. The SQL-generation tests could not catch that on their own
+// because they asserted the generated text; this one reads the type back out of the live catalog.
+// ================================================================================================
+
+namespace
+{
+
+/// Reads the live type of a single column back from the database catalog.
+SqlColumnTypeDefinition LiveColumnType(SqlStatement& stmt, std::string_view tableName, std::string_view columnName)
+{
+    auto const tables = SqlSchema::ReadAllTables(stmt, stmt.Connection().DatabaseName(), /*schema=*/"");
+    auto const table = std::ranges::find_if(tables, [&](SqlSchema::Table const& t) { return t.name == tableName; });
+    REQUIRE(table != tables.end());
+
+    auto const column =
+        std::ranges::find_if(table->columns, [&](SqlSchema::Column const& c) { return c.name == columnName; });
+    REQUIRE(column != table->columns.end());
+    CHECK(column->isPrimaryKey);
+    return column->type;
+}
+
+/// Asserts the live column type is the 64-bit integer the caller declared.
+///
+/// SQLite is the one exception: AUTOINCREMENT is only valid on an INTEGER PRIMARY KEY, which is a
+/// 64-bit rowid alias there, so the narrower-looking type name carries no loss of range.
+void CheckIsSixtyFourBitKey(SqlServerType serverType, SqlColumnTypeDefinition const& type)
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    if (serverType == SqlServerType::SQLITE)
+        CHECK(std::holds_alternative<Integer>(type));
+    else
+        CHECK(std::holds_alternative<Bigint>(type));
+}
+
+} // namespace
+
+// NB: Reflected record types must have external linkage, so this one cannot live in the anonymous
+// namespace above.
+struct WideKeyedRecord
+{
+    static constexpr std::string_view TableName = "WideKeyed";
+
+    Field<int64_t, PrimaryKey::ServerSideAutoIncrement> id;
+    Field<SqlAnsiString<32>> name;
+};
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlSchema: auto-increment primary key keeps its declared integer width",
+                 "[SqlSchema][Migration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("WideKeyed")
+            .PrimaryKeyWithAutoIncrement("id", Bigint {})
+            .RequiredColumn("name", Varchar { 32 });
+    });
+
+    CheckIsSixtyFourBitKey(stmt.Connection().ServerType(), LiveColumnType(stmt, "WideKeyed", "id"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlSchema: DataMapper-created auto-increment primary key keeps its declared integer width",
+                 "[SqlSchema][DataMapper][Migration]")
+{
+    // The reproduction from issue #521: the record declares a 64-bit key, so the created column
+    // must be 64-bit wide as well.
+    auto dm = DataMapper {};
+    dm.CreateTable<WideKeyedRecord>();
+
+    auto stmt = SqlStatement {};
+    CheckIsSixtyFourBitKey(stmt.Connection().ServerType(), LiveColumnType(stmt, "WideKeyed", "id"));
+}
+
+// ================================================================================================
 // MakeColumnTypeFromMssqlSysType — pure-function mapping (no DB connection required)
 //
 // Verifies the batched MSSQL schema reader maps sys.types.name (+ max_length/precision/scale

@@ -83,7 +83,7 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
         bool const isAutoIncrement = column.primaryKey == SqlPrimaryKeyType::AUTO_INCREMENT || isAutoIncrementViaDefault;
 
         if (isAutoIncrement)
-            sqlQueryString << "SERIAL";
+            sqlQueryString << SerialColumnType(column.type);
         else
             sqlQueryString << ColumnType(column.type);
 
@@ -103,6 +103,39 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
             sqlQueryString << " DEFAULT " << column.defaultValue;
 
         return sqlQueryString.str();
+    }
+
+    /// Maps a declared integer column type onto the matching PostgreSQL auto-increment pseudo-type.
+    ///
+    /// PostgreSQL picks the underlying integer width from the serial spelling, so the width must
+    /// follow the declared type. Emitting a plain `SERIAL` for a `Bigint` key would silently create
+    /// a 32-bit `integer` column that caps at 2^31-1 and no longer matches `BIGINT` foreign keys
+    /// referencing it.
+    ///
+    /// @note `Smallint` and `Tinyint` map onto `SMALLSERIAL`, whose underlying `smallint` caps at
+    ///       32767 — declaring a narrow auto-increment key buys a correspondingly narrow key space.
+    /// @note A declared type with no integer equivalent at all (`Guid`, `Varchar`, `Decimal`, ...)
+    ///       falls through to `SERIAL`, i.e. it is silently coerced to a 32-bit integer column.
+    ///       PostgreSQL accepts that DDL, so the mismatch only surfaces later when reading the
+    ///       column back into the declared C++ type. Auto-increment is only meaningful on an
+    ///       integer key; prefer rejecting such records at the call site.
+    ///
+    /// @param type The declared column type.
+    /// @return The serial pseudo-type to emit; `SERIAL` for any type without a narrower or wider
+    ///         serial equivalent.
+    [[nodiscard]] static std::string_view SerialColumnType(SqlColumnTypeDefinition const& type)
+    {
+        using namespace SqlColumnTypeDefinitions;
+
+        return std::visit(detail::overloaded {
+                              [](Bigint const&) -> std::string_view { return "BIGSERIAL"; },
+                              [](Smallint const&) -> std::string_view { return "SMALLSERIAL"; },
+                              // NB: PostgreSQL has no 1-byte integer type, so the narrowest
+                              // available serial is used here, matching ColumnType(Tinyint).
+                              [](Tinyint const&) -> std::string_view { return "SMALLSERIAL"; },
+                              [](auto const&) -> std::string_view { return "SERIAL"; },
+                          },
+                          type);
     }
 
     [[nodiscard]] std::string ColumnType(SqlColumnTypeDefinition const& type) const override

@@ -13,6 +13,16 @@ Available functions:
   - `PrimaryKeyWithAutoIncrement( std::string columnName, SqlColumnTypeDefinition columnType )`
     + create primary key column in the database with automatic indexing 
     + Second parameter has a default value `SqlColumnTypeDefinitions::Bigint`
+    + The declared integer width is preserved per DBMS: SQL Server emits `<type> IDENTITY(1,1)` and
+      PostgreSQL emits the matching serial pseudo-type (`Bigint` → `BIGSERIAL`, `Integer` → `SERIAL`,
+      `Smallint`/`Tinyint` → `SMALLSERIAL`). SQLite is the exception — `AUTOINCREMENT` is only valid on
+      an `INTEGER PRIMARY KEY`, which is a 64-bit rowid alias there, so the column is always `INTEGER`.
+    + Because the width now follows the declaration, a narrow declared type buys a narrow key space:
+      `Smallint`/`Tinyint` cap at 32767 rows on both PostgreSQL (`smallserial`) and SQL Server
+      (`SMALLINT IDENTITY`). Declare `Bigint` (the default) unless you specifically want that limit.
+    + Upgrading to a Lightweight version that changes the emitted DDL text also changes the checksum
+      stored for migrations that were already applied — see
+      [dbtool: Checksum Mismatches](dbtool.md#checksum-mismatches).
   - `Column(std::string columnName, SqlColumnTypeDefinition columnType)`, `Column(SqlColumnDeclaration column)`
     + create a column specified by a name and type
     + for precise control on the column specification `SqlColumnDeclaration` can be used as an argument. 

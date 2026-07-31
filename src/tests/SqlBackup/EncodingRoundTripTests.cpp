@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "../Utils.hpp"
 #include "TestHelpers.hpp"
 
 #include <Lightweight/SqlBackup.hpp>
@@ -50,7 +51,13 @@ std::u16string const WideValue = u"Grüße — café 😀"; // U+1F600 is a surr
 //   - ASCII text in a narrow Varchar column,
 //   - non-ASCII / code-page bytes in a narrow Varchar column (byte-exact), and
 //   - Unicode (incl. a supplementary-plane code point) in a wide NVarchar column.
-TEST_CASE("SqlBackup: round-trip preserves ASCII / code-page / Unicode text", "[SqlBackup][Encoding]")
+// Derives from SqlTestFixture so the database contains nothing but this test's own table: Backup()
+// captures the *whole* database, and the fixture drops every table in its constructor. Without it
+// the backup also picks up whatever tables previously-run tests left behind — including ones that
+// deliberately hold values wider than their declared column width (legal on SQLite/PostgreSQL,
+// which use character semantics), which RowArrayCursor rejects when the driver-reported column size
+// is smaller than the stored value.
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: round-trip preserves ASCII / code-page / Unicode text", "[SqlBackup][Encoding]")
 {
     using namespace SqlColumnTypeDefinitions;
 
