@@ -91,7 +91,7 @@ void VerifyDatabase()
 
 } // namespace
 
-TEST_CASE("SqlBackup: Backup and Restore", "[SqlBackup]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Backup and Restore", "[SqlBackup]")
 {
     ScopedFileRemoved const backupFileCleaner { BackupFile };
 
@@ -375,7 +375,7 @@ void VerifyComplexDatabase()
 
 } // namespace
 
-TEST_CASE("SqlBackup: Complex Types", "[SqlBackup]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Complex Types", "[SqlBackup]")
 {
     auto const backupFileCleaner = ScopedFileRemoved { BackupFile };
     ScopedFileRemoved { BackupFile }.RemoveIfExists();
@@ -439,7 +439,7 @@ TEST_CASE("SqlBackup: Schema Parsing with Unknown Type", "[SqlBackup]")
     REQUIRE(std::holds_alternative<SqlColumnTypeDefinitions::Text>(schema.at("test_table").columns[1].type));
 }
 
-TEST_CASE("SqlBackup: Corner Cases", "[SqlBackup]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Corner Cases", "[SqlBackup]")
 {
     using namespace SqlColumnTypeDefinitions;
 
@@ -509,7 +509,7 @@ TEST_CASE("SqlBackup: Corner Cases", "[SqlBackup]")
     REQUIRE(stmt.ExecuteDirectScalar<std::string>("SELECT txt FROM corner_cases WHERE id=4") == "");
 }
 
-TEST_CASE("SqlBackup: Concurrent Restore", "[SqlBackup]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Concurrent Restore", "[SqlBackup]")
 {
     using namespace SqlColumnTypeDefinitions;
 
@@ -576,7 +576,7 @@ TEST_CASE("SqlBackup: Concurrent Restore", "[SqlBackup]")
     }
 }
 
-TEST_CASE("SqlBackup: MsgPack Backup and Restore", "[SqlBackup]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: MsgPack Backup and Restore", "[SqlBackup]")
 {
     auto const backupFileCleaner = ScopedFileRemoved { BackupFile };
 
@@ -610,7 +610,7 @@ TEST_CASE("SqlBackup: MsgPack Backup and Restore", "[SqlBackup]")
     VerifyComplexDatabase();
 }
 
-TEST_CASE("SqlBackup: Table With Spaces", "[SqlBackup]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Table With Spaces", "[SqlBackup]")
 {
     using namespace SqlColumnTypeDefinitions;
 
@@ -667,7 +667,7 @@ TEST_CASE("SqlBackup: Table With Spaces", "[SqlBackup]")
     }
 }
 
-TEST_CASE("SqlBackup: DateTime Columns", "[SqlBackup]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: DateTime Columns", "[SqlBackup]")
 {
     // This test validates backup/restore of DateTime columns.
     // DateTime columns require special handling to avoid ODBC driver issues:
@@ -778,7 +778,7 @@ TEST_CASE("SqlBackup: DateTime Columns", "[SqlBackup]")
     }
 }
 
-TEST_CASE("SqlBackup: Date Columns", "[SqlBackup]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Date Columns", "[SqlBackup]")
 {
     // This test validates backup/restore of Date columns.
     // Date columns require special handling to bind using SQL_TYPE_DATE.
@@ -875,7 +875,7 @@ TEST_CASE("SqlBackup: Date Columns", "[SqlBackup]")
     }
 }
 
-TEST_CASE("SqlBackup: Time Columns", "[SqlBackup]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Time Columns", "[SqlBackup]")
 {
     // This test validates backup/restore of Time columns.
     // Time columns require special handling to bind using SQL_TYPE_TIME.
@@ -1049,7 +1049,7 @@ TEST_CASE("SqlBackup: Time Columns", "[SqlBackup]")
     }
 }
 
-TEST_CASE("SqlBackup: Decimal Precision", "[SqlBackup]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Decimal Precision", "[SqlBackup]")
 {
     // This test validates that high-precision Decimal values are preserved during backup/restore.
     // Decimal columns are now read as strings (not doubles) during backup to preserve full precision.
@@ -1265,7 +1265,7 @@ TEST_CASE("SqlBackup: Compression Method Support", "[SqlBackup]")
     }
 }
 
-TEST_CASE("SqlBackup: Backup with Custom Compression", "[SqlBackup]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Backup with Custom Compression", "[SqlBackup]")
 {
     using namespace SqlColumnTypeDefinitions;
 
@@ -1415,7 +1415,7 @@ TEST_CASE("SqlBackup: Backup with Table Filter", "[SqlBackup]")
 // Retry Settings Tests
 // =============================================================================
 
-TEST_CASE("SqlBackup: RetrySettings configuration", "[SqlBackup]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: RetrySettings configuration", "[SqlBackup]")
 {
     // Test that RetrySettings can be configured and used
     SqlBackup::RetrySettings settings {
@@ -1662,7 +1662,7 @@ TEST_CASE("SqlBackup: ParseSchema with binary column markers", "[SqlBackup]")
 // Format Version Validation Tests
 // =============================================================================
 
-TEST_CASE("SqlBackup: Restore rejects unsupported format version", "[SqlBackup]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Restore rejects unsupported format version", "[SqlBackup]")
 {
     // First create a valid backup
     ScopedFileRemoved const backupFileCleaner { BackupFile };
@@ -1770,7 +1770,7 @@ TEST_CASE("SqlBackup: Restore rejects unsupported format version", "[SqlBackup]"
 // Schema-only Backup / Restore Tests
 // =============================================================================
 
-TEST_CASE("SqlBackup: Schema-only Backup and Restore", "[SqlBackup]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Schema-only Backup and Restore", "[SqlBackup]")
 {
     ScopedFileRemoved const backupFileCleaner { BackupFile };
 
@@ -1846,7 +1846,7 @@ TEST_CASE("SqlBackup: Schema-only Backup and Restore", "[SqlBackup]")
     REQUIRE(count == 0);
 }
 
-TEST_CASE("SqlBackup: Schema-only restore from full backup", "[SqlBackup]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Schema-only restore from full backup", "[SqlBackup]")
 {
     ScopedFileRemoved const backupFileCleaner { BackupFile };
 

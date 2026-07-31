@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "../Utils.hpp"
 #include "TestHelpers.hpp"
 
 #include <Lightweight/SqlBackup.hpp>
@@ -37,7 +38,7 @@ SqlConnectionString const& GetConnectionString()
 // The existing SqlBackup tests cover Integer + Varchar + Binary + NVarchar, but never a
 // Tinyint, Smallint, Bigint, Real, Bool, Char, NChar, Text in the same metadata pass, so
 // those serializer branches stay cold in coverage. This single test fixes that.
-TEST_CASE("SqlBackup: round-trip every supported column type", "[SqlBackup][AllTypes]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: round-trip every supported column type", "[SqlBackup][AllTypes]")
 {
     using namespace SqlColumnTypeDefinitions;
 

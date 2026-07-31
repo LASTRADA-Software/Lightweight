@@ -72,7 +72,7 @@ struct ScopedFileRemoved
 
 } // namespace
 
-TEST_CASE("SqlBackup: Foreign Key Restoration", "[SqlBackup]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Foreign Key Restoration", "[SqlBackup]")
 {
     using namespace SqlColumnTypeDefinitions;
 
@@ -165,7 +165,7 @@ TEST_CASE("SqlBackup: Foreign Key Restoration", "[SqlBackup]")
     }
 }
 
-TEST_CASE("SqlBackup: Robustness Types and Nulls", "[SqlBackup]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Robustness Types and Nulls", "[SqlBackup]")
 {
     using namespace SqlColumnTypeDefinitions;
 
@@ -279,7 +279,7 @@ TEST_CASE("SqlBackup: Robustness Types and Nulls", "[SqlBackup]")
     }
 }
 
-TEST_CASE("SqlBackup: Constraints and Defaults", "[SqlBackup]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Constraints and Defaults", "[SqlBackup]")
 {
     using namespace SqlColumnTypeDefinitions;
 

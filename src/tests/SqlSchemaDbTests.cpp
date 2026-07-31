@@ -387,3 +387,130 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadAllTables reports composite key
     CHECK(index->columns[1] == "val_two");
     CHECK(index->isUnique);
 }
+
+// ================================================================================================
+// SqlTestFixture::DropTableRecursively — foreign-key graphs that are not trees
+// ================================================================================================
+
+namespace
+{
+
+SqlSchema::FullyQualifiedTableName TableNamed(std::string name)
+{
+    return SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = std::move(name) };
+}
+
+/// Builds `CREATE TABLE "<table>" ("id" INT NOT NULL PRIMARY KEY, "ref_<t>" INT REFERENCES "<t>"("id"), ...)`.
+/// Plain ANSI DDL, accepted verbatim by SQLite, SQL Server and PostgreSQL alike.
+///
+/// @param table            Name of the table to create.
+/// @param referencedTables Tables to declare an inline foreign key against, one column each.
+/// @return The CREATE TABLE statement.
+std::string CreateTableReferencingSql(std::string_view table, std::vector<std::string_view> const& referencedTables)
+{
+    auto sql = std::format(R"(CREATE TABLE "{}" ("id" INT NOT NULL PRIMARY KEY)", table);
+    for (auto const& referenced: referencedTables)
+        sql += std::format(R"(, "ref_{0}" INT REFERENCES "{0}"("id"))", referenced);
+    sql += ')';
+    return sql;
+}
+
+/// @return Whether @p table is currently present in the connection's default schema.
+bool TableExists(SqlStatement& stmt, std::string_view table)
+{
+    auto const tableNames = SqlTestFixture::GetAllTableNames(stmt);
+    return std::ranges::find(tableNames, table) != tableNames.end();
+}
+
+/// @return How often @p table appears in @p dropped.
+size_t CountDropped(std::vector<SqlSchema::FullyQualifiedTableName> const& dropped, std::string_view table)
+{
+    return static_cast<size_t>(std::ranges::count_if(dropped, [&](auto const& name) { return name.table == table; }));
+}
+
+/// @return The position of @p table within @p dropped; fails the test when it is absent.
+size_t DropIndexOf(std::vector<SqlSchema::FullyQualifiedTableName> const& dropped, std::string_view table)
+{
+    auto const it = std::ranges::find_if(dropped, [&](auto const& name) { return name.table == table; });
+    REQUIRE(it != dropped.end());
+    return static_cast<size_t>(std::ranges::distance(dropped.begin(), it));
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlTestFixture::DropTableRecursively: self-referencing foreign key", "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+
+    // Chinook's Employee.ReportsTo in miniature: the table is its own dependant. Following that
+    // edge blindly recurses until the stack is exhausted.
+    (void) stmt.ExecuteDirect(CreateTableReferencingSql("SelfRef", { "SelfRef" }));
+
+    auto const dropped = SqlTestFixture::DropTableRecursively(stmt, TableNamed("SelfRef"));
+
+    CHECK(dropped.size() == 1);
+    CHECK(CountDropped(dropped, "SelfRef") == 1);
+    CHECK_FALSE(TableExists(stmt, "SelfRef"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlTestFixture::DropTableRecursively: two-table foreign-key cycle", "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+
+    if (stmt.Connection().ServerType() == SqlServerType::SQLITE)
+    {
+        // SQLite resolves foreign-key targets lazily, so a forward reference is legal here — and
+        // it has to be, because SQLite has no ALTER TABLE ... ADD CONSTRAINT to fall back on.
+        (void) stmt.ExecuteDirect(CreateTableReferencingSql("CycleA", { "CycleB" }));
+        (void) stmt.ExecuteDirect(CreateTableReferencingSql("CycleB", { "CycleA" }));
+    }
+    else
+    {
+        (void) stmt.ExecuteDirect(R"(CREATE TABLE "CycleA" ("id" INT NOT NULL PRIMARY KEY, "ref_CycleB" INT))");
+        (void) stmt.ExecuteDirect(CreateTableReferencingSql("CycleB", { "CycleA" }));
+        (void) stmt.ExecuteDirect(R"(ALTER TABLE "CycleA" ADD CONSTRAINT "FK_CycleA_CycleB" )"
+                                  R"(FOREIGN KEY ("ref_CycleB") REFERENCES "CycleB"("id"))");
+    }
+
+    auto const dropped = SqlTestFixture::DropTableRecursively(stmt, TableNamed("CycleA"));
+
+    CHECK(dropped.size() == 2);
+    CHECK(CountDropped(dropped, "CycleA") == 1);
+    CHECK(CountDropped(dropped, "CycleB") == 1);
+    CHECK_FALSE(TableExists(stmt, "CycleA"));
+    CHECK_FALSE(TableExists(stmt, "CycleB"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlTestFixture::DropTableRecursively: diamond drops each table once", "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+
+    // DiaRoot <- DiaLeft, DiaRight <- DiaLeaf: two independent paths reach DiaLeaf. On top of
+    // that DiaLeft references DiaRoot through *two* separate constraints, so DiaRoot's dependant
+    // list names DiaLeft twice — the shape that makes the redundant descent observable.
+    (void) stmt.ExecuteDirect(CreateTableReferencingSql("DiaRoot", {}));
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "DiaLeft" ("id" INT NOT NULL PRIMARY KEY, )"
+                              R"("ref_a" INT REFERENCES "DiaRoot"("id"), )"
+                              R"("ref_b" INT REFERENCES "DiaRoot"("id")))");
+    (void) stmt.ExecuteDirect(CreateTableReferencingSql("DiaRight", { "DiaRoot" }));
+    (void) stmt.ExecuteDirect(CreateTableReferencingSql("DiaLeaf", { "DiaLeft", "DiaRight" }));
+
+    auto const dropped = SqlTestFixture::DropTableRecursively(stmt, TableNamed("DiaRoot"));
+
+    // Four tables, four drops — DiaLeft and DiaLeaf are reached twice each but must be
+    // dropped only once.
+    CHECK(dropped.size() == 4);
+    CHECK(CountDropped(dropped, "DiaLeft") == 1);
+    CHECK(CountDropped(dropped, "DiaLeaf") == 1);
+
+    // Dependants are still dropped before what they depend on.
+    CHECK(DropIndexOf(dropped, "DiaLeaf") < DropIndexOf(dropped, "DiaLeft"));
+    CHECK(DropIndexOf(dropped, "DiaLeaf") < DropIndexOf(dropped, "DiaRight"));
+    CHECK(DropIndexOf(dropped, "DiaLeft") < DropIndexOf(dropped, "DiaRoot"));
+    CHECK(DropIndexOf(dropped, "DiaRight") < DropIndexOf(dropped, "DiaRoot"));
+
+    CHECK_FALSE(TableExists(stmt, "DiaRoot"));
+    CHECK_FALSE(TableExists(stmt, "DiaLeft"));
+    CHECK_FALSE(TableExists(stmt, "DiaRight"));
+    CHECK_FALSE(TableExists(stmt, "DiaLeaf"));
+}

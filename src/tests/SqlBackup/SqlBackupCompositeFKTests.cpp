@@ -75,7 +75,7 @@ struct LambdaProgressManager: SqlBackup::ProgressManager
 
 } // namespace
 
-TEST_CASE("SqlBackup: Composite Foreign Keys", "[SqlBackup][ForeignKeys]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Composite Foreign Keys", "[SqlBackup][ForeignKeys]")
 {
     auto const testDir = std::filesystem::current_path() / "test_output" / "CompositeFK";
     if (std::filesystem::exists(testDir))

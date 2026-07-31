@@ -140,7 +140,7 @@ TEST_CASE("SqlBackup: Error counting in ProgressManager", "[SqlBackup][Productio
     REQUIRE(pm.ErrorCount() == 2);
 }
 
-TEST_CASE("SqlBackup: Format version in metadata", "[SqlBackup][ProductionReadiness]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Format version in metadata", "[SqlBackup][ProductionReadiness]")
 {
     ScopedFileRemoved const backupFileCleaner { BackupFile };
     SetupTestTable();
@@ -174,7 +174,7 @@ TEST_CASE("SqlBackup: Format version in metadata", "[SqlBackup][ProductionReadin
     REQUIRE(metadata["format_version"] == "1.0");
 }
 
-TEST_CASE("SqlBackup: Checksums in backup", "[SqlBackup][ProductionReadiness]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Checksums in backup", "[SqlBackup][ProductionReadiness]")
 {
     ScopedFileRemoved const backupFileCleaner { BackupFile };
     SetupTestTable();
@@ -213,7 +213,7 @@ TEST_CASE("SqlBackup: Checksums in backup", "[SqlBackup][ProductionReadiness]")
     REQUIRE(!checksums["files"].empty());
 }
 
-TEST_CASE("SqlBackup: Filter tables in restore", "[SqlBackup][ProductionReadiness]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Filter tables in restore", "[SqlBackup][ProductionReadiness]")
 {
     using namespace SqlColumnTypeDefinitions;
 
