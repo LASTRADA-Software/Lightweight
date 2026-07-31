@@ -88,6 +88,8 @@ using Lightweight::ParseConnectionString;
 using Lightweight::PostgreSqlFormatter;
 using Lightweight::PrimaryKey;
 using Lightweight::QualifiedColumnName;
+using Lightweight::RecordColumnCount;
+using Lightweight::RecordColumnMember;
 using Lightweight::RecordPrimaryKeyIndex;
 using Lightweight::RecordPrimaryKeyOf;
 using Lightweight::RecordPrimaryKeyType;

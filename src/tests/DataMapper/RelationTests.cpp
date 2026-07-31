@@ -823,4 +823,285 @@ TEST_CASE("HasOneThrough: operator* returns the loaded record by reference", "[H
     CHECK(deref.credit_rating.Value() == 42);
 }
 
+// ================================================================================================
+// Regression tests for issue #517: members without storage (HasMany and friends) must be skipped
+// by *every* column-enumerating code path. DataMapper::Update() used to fail to compile on such a
+// record, and the fluent DataMapper::Query<T>() projected the relation member into the SELECT
+// list, which the database rejected with "no such column".
+// ================================================================================================
+
+/// Records the SQL statements a test triggers, so a query can be asserted on its emitted text.
+class ScopedQueryRecordingLogger final: public SqlLogger::Null
+{
+  public:
+    ScopedQueryRecordingLogger()
+    {
+        SqlLogger::SetLogger(*this);
+    }
+
+    ScopedQueryRecordingLogger(ScopedQueryRecordingLogger const&) = delete;
+    ScopedQueryRecordingLogger(ScopedQueryRecordingLogger&&) = delete;
+    ScopedQueryRecordingLogger& operator=(ScopedQueryRecordingLogger const&) = delete;
+    ScopedQueryRecordingLogger& operator=(ScopedQueryRecordingLogger&&) = delete;
+
+    ~ScopedQueryRecordingLogger() override
+    {
+        SqlLogger::SetLogger(_previousLogger);
+    }
+
+    void OnPrepare(std::string_view const& query) override
+    {
+        _queries.emplace_back(query);
+    }
+
+    void OnExecuteDirect(std::string_view const& query) override
+    {
+        _queries.emplace_back(query);
+    }
+
+    /// The SQL statements recorded so far.
+    [[nodiscard]] std::vector<std::string> const& Queries() const noexcept
+    {
+        return _queries;
+    }
+
+    /// Tests whether any recorded query contains @p needle.
+    [[nodiscard]] bool AnyQueryContains(std::string_view needle) const
+    {
+        return std::ranges::any_of(_queries, [needle](std::string const& query) { return query.contains(needle); });
+    }
+
+  private:
+    std::vector<std::string> _queries;
+    SqlLogger& _previousLogger = SqlLogger::GetLogger();
+};
+
+struct Issue517Child;
+
+struct Issue517Parent
+{
+    static constexpr std::string_view TableName = "Issue517Parent";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "id" }> id {};
+    Field<SqlAnsiString<32>, SqlRealName { "name" }> name {};
+    HasMany<Issue517Child> children {};
+};
+
+struct Issue517Child
+{
+    static constexpr std::string_view TableName = "Issue517Child";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "id" }> id {};
+    Field<int, SqlRealName { "n" }> n {};
+    BelongsTo<Member(Issue517Parent::id), SqlRealName { "parent_id" }> parent {};
+};
+
+static_assert(RecordStorageFieldCount<Issue517Parent> == 2);
+static_assert(RecordMemberCount<Issue517Parent> == 3);
+
+TEST_CASE_METHOD(SqlTestFixture, "Record with HasMany: Update", "[DataMapper][relations][HasMany][regression]")
+{
+    auto dm = DataMapper();
+    dm.CreateTables<Issue517Parent, Issue517Child>();
+
+    auto parent = Issue517Parent { .name = SqlAnsiString<32> { "acme" } };
+    dm.Create(parent);
+
+    dm.CreateExplicit(Issue517Child { .n = 1, .parent = parent.id.Value() });
+
+    auto loaded = dm.QuerySingle<Issue517Parent>(parent.id.Value()).value();
+    REQUIRE(loaded.name.Value() == "acme");
+
+    loaded.name = SqlAnsiString<32> { "beta" };
+
+    auto const recordedQueries = [&] {
+        auto logger = ScopedQueryRecordingLogger {};
+        dm.Update(loaded); // Used to not even compile (issue #517).
+        return logger.Queries();
+    }();
+
+    // The relation member must not appear in the UPDATE statement.
+    CHECK(std::ranges::none_of(
+        recordedQueries, [](std::string const& query) { return query.contains("UPDATE") && query.contains("children"); }));
+
+    auto const reloaded = dm.QuerySingle<Issue517Parent>(parent.id.Value()).value();
+    CHECK(reloaded.id.Value() == parent.id.Value());
+    CHECK(reloaded.name.Value() == "beta");
+    CHECK(reloaded.children.Count() == 1);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Record with HasMany: fluent Query", "[DataMapper][relations][HasMany][regression]")
+{
+    auto dm = DataMapper();
+    dm.CreateTables<Issue517Parent, Issue517Child>();
+
+    auto parent = Issue517Parent { .name = SqlAnsiString<32> { "acme" } };
+    dm.Create(parent);
+    dm.CreateExplicit(Issue517Parent { .name = SqlAnsiString<32> { "globex" } });
+
+    SECTION("All")
+    {
+        auto logger = ScopedQueryRecordingLogger {};
+
+        // Used to throw "no such column". ORDER BY, because a bare All() leaves the row order
+        // unspecified and the ordering is incidental to what this checks.
+        auto const records = dm.Query<Issue517Parent>().OrderBy(FieldNameOf<Member(Issue517Parent::id)>).All();
+
+        CHECK_FALSE(logger.AnyQueryContains("children"));
+        REQUIRE(records.size() == 2);
+        CHECK(records[0].name.Value() == "acme");
+        CHECK(records[1].name.Value() == "globex");
+    }
+
+    SECTION("First and Count")
+    {
+        auto const first = dm.Query<Issue517Parent>().Where(FieldNameOf<Member(Issue517Parent::name)>, "=", "acme").First();
+        REQUIRE(first.has_value());
+        CHECK(first->id.Value() == parent.id.Value());
+        CHECK(dm.Query<Issue517Parent>().Count() == 2);
+    }
+
+    SECTION("Query builder Fields<>() skips the relation member")
+    {
+        auto const sql =
+            dm.Connection().Query(RecordTableName<Issue517Parent>).Select().Fields<Issue517Parent>().All().ToSql();
+        CHECK_FALSE(sql.contains("children"));
+        CHECK(sql.contains("\"name\""));
+    }
+}
+
+// Same as above, but with the relation member in the *middle* of the record, so that skipping it
+// must not shift the column indices of the members following it. The dynamic string field forces
+// the GetAllColumns() code path on MS SQL Server (bound columns may need to grow there).
+struct Issue517MidChild;
+
+struct Issue517MidParent
+{
+    static constexpr std::string_view TableName = "Issue517MidParent";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    HasMany<Issue517MidChild> children {};
+    Field<std::string> name {};
+    Field<int> counter {};
+};
+
+struct Issue517MidChild
+{
+    static constexpr std::string_view TableName = "Issue517MidChild";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    BelongsTo<Member(Issue517MidParent::id)> parent {};
+};
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Record with HasMany in the middle: Update and fluent Query",
+                 "[DataMapper][relations][HasMany][regression]")
+{
+    auto dm = DataMapper();
+    dm.CreateTables<Issue517MidParent, Issue517MidChild>();
+
+    auto parent = Issue517MidParent { .name = "acme", .counter = 1 };
+    dm.Create(parent);
+    dm.CreateExplicit(Issue517MidChild { .parent = parent.id.Value() });
+
+    auto loaded = dm.QuerySingle<Issue517MidParent>(parent.id.Value()).value();
+    CHECK(loaded.name.Value() == "acme");
+    CHECK(loaded.counter.Value() == 1);
+
+    loaded.counter = 2;
+    dm.Update(loaded);
+
+    auto const records = dm.Query<Issue517MidParent>().All();
+    REQUIRE(records.size() == 1);
+    CHECK(records[0].id.Value() == parent.id.Value());
+    CHECK(records[0].name.Value() == "acme");
+    CHECK(records[0].counter.Value() == 2);
+    CHECK(records[0].children.Count() == 1);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Record with HasMany in the middle: SqlRowIterator",
+                 "[DataMapper][relations][HasMany][SqlRowIterator][regression]")
+{
+    auto dm = DataMapper();
+    dm.CreateTables<Issue517MidParent, Issue517MidChild>();
+
+    dm.CreateExplicit(Issue517MidParent { .name = "acme", .counter = 7 });
+
+    // SqlRowIterator::begin() projects via Select().Fields<T>(), so operator*() must read by column
+    // position too. Reading by member position used to not even compile here (HasMany has no
+    // ValueType) and would otherwise have read `counter` out of the `name` column.
+    auto rows = std::vector<Issue517MidParent> {};
+    for (auto&& row: SqlRowIterator<Issue517MidParent>(dm.Connection()))
+        rows.emplace_back(row);
+
+    REQUIRE(rows.size() == 1);
+    CHECK(rows[0].name.Value() == "acme");
+    CHECK(rows[0].counter.Value() == 7);
+}
+
+// A two-record JOIN projection where the *first* record carries a relation member. Fields<A, B>()
+// emits one column per column-mapping member, so the second record starts after A's *columns*; an
+// offset computed from RecordMemberCount would place B one column too far to the right and make every
+// one of its fields read the neighbouring column (or run off the end of the result set — observed as
+// `07009 Invalid Descriptor Index` on MS SQL Server).
+struct Issue517JoinChild;
+
+struct Issue517JoinParent
+{
+    static constexpr std::string_view TableName = "Issue517JoinParent";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    HasMany<Issue517JoinChild> children {};
+    Field<SqlAnsiString<32>> name {};
+};
+
+struct Issue517JoinChild
+{
+    static constexpr std::string_view TableName = "Issue517JoinChild";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    BelongsTo<Member(Issue517JoinParent::id)> parent {};
+    Field<SqlAnsiString<32>> title {};
+};
+
+// The projection is 2 (parent) + 3 (child) = 5 columns wide, not 3 + 3.
+static_assert(RecordMemberCount<Issue517JoinParent> == 3);
+static_assert(RecordColumnCount<Issue517JoinParent> == 2);
+static_assert(RecordColumnCount<Issue517JoinChild> == 3);
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Record with HasMany: two-record JOIN projection offset",
+                 "[DataMapper][relations][HasMany][regression]")
+{
+    auto dm = DataMapper();
+    dm.CreateTables<Issue517JoinParent, Issue517JoinChild>();
+
+    auto parent = Issue517JoinParent { .name = SqlAnsiString<32> { "acme" } };
+    dm.Create(parent);
+    dm.CreateExplicit(Issue517JoinChild { .parent = parent.id.Value(), .title = SqlAnsiString<32> { "widget" } });
+
+    auto const query = dm.FromTable(RecordTableName<Issue517JoinParent>)
+                           .Select()
+                           .Fields<Issue517JoinParent, Issue517JoinChild>()
+                           .InnerJoin<Member(Issue517JoinChild::parent), Member(Issue517JoinParent::id)>()
+                           .OrderBy(SqlQualifiedTableColumnName {
+                               .tableName = RecordTableName<Issue517JoinChild>,
+                               .columnName = FieldNameOf<Member(Issue517JoinChild::id)>,
+                           })
+                           .All();
+
+    CHECK_FALSE(query.ToSql().contains("children"));
+
+    // Used to read the second record starting one column too far right (relation member counted).
+    auto const records = dm.Query<Issue517JoinParent, Issue517JoinChild>(query);
+
+    REQUIRE(records.size() == 1);
+    auto const& [loadedParent, loadedChild] = records[0];
+    CHECK(loadedParent.id.Value() == parent.id.Value());
+    CHECK(loadedParent.name.Value() == "acme");
+    CHECK(loadedChild.parent.Value() == parent.id.Value());
+    CHECK(loadedChild.title.Value() == "widget");
+}
+
 // NOLINTEND(bugprone-unchecked-optional-access)

@@ -130,6 +130,36 @@ concept FieldWithStorage = requires(T const& field, T& mutableField) {
     // clang-format on
 };
 
+/// @brief Requires that T maps onto a column of its record's table.
+///
+/// This is satisfied by fields with storage (Field, BelongsTo) as well as by plain record members
+/// that are directly bindable as an output column (a record may be a plain struct of bindable
+/// members). Relation members (HasMany, HasManyThrough, HasOneThrough, ...) have no column of their
+/// own and therefore must be skipped by every column-enumerating code path, such as the projection
+/// of a SELECT statement.
+///
+/// @ingroup DataMapper
+template <typename T>
+concept RecordColumnMember = FieldWithStorage<T> || SqlOutputColumnBinder<T>;
+
+/// @brief Represents the number of members of a record that map onto a column of a result set.
+///
+/// This is the width the record occupies in a projection built from the @c RecordColumnMember
+/// concept (e.g. @c SqlSelectQueryBuilder::Fields), and therefore the amount by which the index must be
+/// advanced to reach the first column of the record that follows it in a multi-record projection.
+/// It differs from @c RecordMemberCount exactly by the number of relation members (HasMany,
+/// HasManyThrough, HasOneThrough, ...), which have no column of their own.
+///
+/// @ingroup DataMapper
+template <typename Record>
+constexpr size_t RecordColumnCount =
+    FoldRecordMembers<Record>(size_t { 0 }, []<size_t I, typename Field>(size_t const accum) constexpr {
+        if constexpr (RecordColumnMember<Field>)
+            return accum + 1;
+        else
+            return accum;
+    });
+
 /// Represents the number of fields with storage in a record.
 ///
 /// @ingroup DataMapper

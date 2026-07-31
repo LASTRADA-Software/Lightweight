@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "../DataMapper/Record.hpp"
 #include "../SqlQueryFormatter.hpp"
 #include "../Utils.hpp"
 #include "Core.hpp"
@@ -281,25 +282,31 @@ inline LIGHTWEIGHT_FORCE_INLINE SqlSelectQueryBuilder& SqlSelectQueryBuilder::Bu
 template <typename FirstRecord, typename... MoreRecords>
 inline LIGHTWEIGHT_FORCE_INLINE SqlSelectQueryBuilder& SqlSelectQueryBuilder::Fields()
 {
+    // Relations (HasMany, HasManyThrough, HasOneThrough, ...) have no column of their own and
+    // must not be projected into the SELECT clause.
     if constexpr (sizeof...(MoreRecords) == 0)
     {
-        EnumerateRecordMembers<FirstRecord>(
-            [&]<size_t FieldIndex, typename FieldType>() { Field(FieldNameAt<FieldIndex, FirstRecord>); });
+        EnumerateRecordMembers<FirstRecord>([&]<size_t FieldIndex, typename FieldType>() {
+            if constexpr (RecordColumnMember<FieldType>)
+                Field(FieldNameAt<FieldIndex, FirstRecord>);
+        });
     }
     else
     {
         EnumerateRecordMembers<FirstRecord>([&]<size_t FieldIndex, typename FieldType>() {
-            Field(SqlQualifiedTableColumnName {
-                .tableName = RecordTableName<FirstRecord>,
-                .columnName = FieldNameAt<FieldIndex, FirstRecord>,
-            });
+            if constexpr (RecordColumnMember<FieldType>)
+                Field(SqlQualifiedTableColumnName {
+                    .tableName = RecordTableName<FirstRecord>,
+                    .columnName = FieldNameAt<FieldIndex, FirstRecord>,
+                });
         });
 
         (EnumerateRecordMembers<MoreRecords>([&]<size_t FieldIndex, typename FieldType>() {
-             Field(SqlQualifiedTableColumnName {
-                 .tableName = RecordTableName<MoreRecords>,
-                 .columnName = FieldNameAt<FieldIndex, MoreRecords>,
-             });
+             if constexpr (RecordColumnMember<FieldType>)
+                 Field(SqlQualifiedTableColumnName {
+                     .tableName = RecordTableName<MoreRecords>,
+                     .columnName = FieldNameAt<FieldIndex, MoreRecords>,
+                 });
          }),
          ...);
     }

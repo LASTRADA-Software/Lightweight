@@ -584,14 +584,18 @@ class DataMapper
     [[nodiscard]] static std::string BuildFullyQualifiedFieldList()
     {
         std::string fields;
-        EnumerateRecordMembers<Record>([&fields]<size_t I, typename Field>() {
-            if (!fields.empty())
-                fields += ", ";
-            fields += '"';
-            fields += RecordTableName<Record>;
-            fields += "\".\"";
-            fields += FieldNameAt<I, Record>;
-            fields += '"';
+        EnumerateRecordMembers<Record>([&fields]<size_t I, typename FieldType>() {
+            // Relations (HasMany, HasManyThrough, HasOneThrough, ...) have no column of their own.
+            if constexpr (RecordColumnMember<FieldType>)
+            {
+                if (!fields.empty())
+                    fields += ", ";
+                fields += '"';
+                fields += RecordTableName<Record>;
+                fields += "\".\"";
+                fields += FieldNameAt<I, Record>;
+                fields += '"';
+            }
         });
         return fields;
     }
@@ -967,9 +971,21 @@ namespace detail
     {
         EnumerateRecordMembers<ElementMask>(
             record, [reader = &reader, &indexFromQuery]<size_t I, typename Field>(Field& field) mutable {
-                ++indexFromQuery;
+                // Only members that map onto a column consume a result set index — relations
+                // (HasMany, HasManyThrough, HasOneThrough, ...) are not part of the projection.
+                //
+                // The projection side (RecordColumnMember, see SqlSelectQueryBuilder::Fields and
+                // DataMapper::BuildFullyQualifiedFieldList) and this read side must classify every
+                // member identically; a member that only one of them counts silently shifts the index
+                // of every column following it. Both predicates ultimately ask whether SqlDataBinder<T>
+                // is usable as a column, so pin them together here rather than letting them drift.
+                static_assert(RecordColumnMember<Field> == (IsField<Field> || SqlGetColumnNativeType<Field>),
+                              "Record member is projected but not readable (or readable but not projected). "
+                              "A SqlDataBinder<T> used as a record member must provide both OutputColumn() "
+                              "and GetColumn().");
                 if constexpr (IsField<Field>)
                 {
+                    ++indexFromQuery;
                     if constexpr (Field::IsOptional)
                         field.MutableValue() =
                             reader->GetNullableColumn<typename Field::ValueType::value_type>(indexFromQuery);
@@ -978,6 +994,7 @@ namespace detail
                 }
                 else if constexpr (SqlGetColumnNativeType<Field>)
                 {
+                    ++indexFromQuery;
                     if constexpr (IsOptionalBelongsTo<Field>)
                         field = reader->GetNullableColumn<typename Field::BaseType>(indexFromQuery);
                     else
@@ -999,41 +1016,11 @@ namespace detail
     {
         auto& [firstRecord, secondRecord] = record;
 
-        EnumerateRecordMembers(firstRecord, [reader = &reader]<size_t I, typename Field>(Field& field) mutable {
-            if constexpr (IsField<Field>)
-            {
-                if constexpr (Field::IsOptional)
-                    field.MutableValue() = reader->GetNullableColumn<typename Field::ValueType::value_type>(I + 1);
-                else
-                    field.MutableValue() = reader->GetColumn<typename Field::ValueType>(I + 1);
-            }
-            else if constexpr (SqlGetColumnNativeType<Field>)
-            {
-                if constexpr (Field::IsOptional)
-                    field = reader->GetNullableColumn<typename Field::BaseType>(I + 1);
-                else
-                    field = reader->GetColumn<Field>(I + 1);
-            }
-        });
-
-        EnumerateRecordMembers(secondRecord, [reader = &reader]<size_t I, typename Field>(Field& field) mutable {
-            if constexpr (IsField<Field>)
-            {
-                if constexpr (Field::IsOptional)
-                    field.MutableValue() = reader->GetNullableColumn<typename Field::ValueType::value_type>(
-                        RecordMemberCount<FirstRecord> + I + 1);
-                else
-                    field.MutableValue() =
-                        reader->GetColumn<typename Field::ValueType>(RecordMemberCount<FirstRecord> + I + 1);
-            }
-            else if constexpr (SqlGetColumnNativeType<Field>)
-            {
-                if constexpr (Field::IsOptional)
-                    field = reader->GetNullableColumn<typename Field::BaseType>(RecordMemberCount<FirstRecord> + I + 1);
-                else
-                    field = reader->GetColumn<Field>(RecordMemberCount<FirstRecord> + I + 1);
-            }
-        });
+        // Both sub-records are read through the single-record overload, so relation members are skipped
+        // (rather than indexed by member position) on both sides. The second sub-record starts after the
+        // *columns* the first one projects, which is RecordColumnCount, not RecordMemberCount.
+        GetAllColumns(reader, firstRecord, 0);
+        GetAllColumns(reader, secondRecord, static_cast<SQLUSMALLINT>(RecordColumnCount<FirstRecord>));
     }
 
     template <typename Record>
@@ -1547,7 +1534,10 @@ void SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecord>, QueryOption
         if (canSafelyBindAll)
         {
             detail::BindAllOutputColumnsWithOffset(reader, firstRecord, 1);
-            detail::BindAllOutputColumnsWithOffset(reader, secondRecord, 1 + RecordMemberCount<FirstRecord>);
+            // The second sub-record starts after the *columns* projected for the first one; relation
+            // members are not projected, so RecordMemberCount would over-count here.
+            detail::BindAllOutputColumnsWithOffset(
+                reader, secondRecord, static_cast<SQLUSMALLINT>(1 + RecordColumnCount<FirstRecord>));
         }
 
         if (!reader.FetchRow())
@@ -1943,12 +1933,17 @@ void DataMapper::Update(Record& record)
     }
 #else
     EnumerateRecordMembers(record, [&query]<size_t I, typename FieldType>(FieldType const& field) {
-        if (field.IsModified())
-            query.Set(FieldNameAt<I, Record>, SqlWildcard);
         // for some reason compiler do not want to properly deduce FieldType, so here we
         // directly infer the type from the Record type and index
-        if constexpr (IsPrimaryKey<RecordMemberTypeOf<I, Record>>)
-            std::ignore = query.Where(FieldNameAt<I, Record>, SqlWildcard);
+        using MemberType = RecordMemberTypeOf<I, Record>;
+        // Relations (HasMany, HasManyThrough, HasOneThrough, ...) have no column of their own.
+        if constexpr (FieldWithStorage<MemberType>)
+        {
+            if (field.IsModified())
+                query.Set(FieldNameAt<I, Record>, SqlWildcard);
+            if constexpr (IsPrimaryKey<MemberType>)
+                std::ignore = query.Where(FieldNameAt<I, Record>, SqlWildcard);
+        }
     });
 #endif
     _stmt.Prepare(query);
@@ -1958,25 +1953,37 @@ void DataMapper::Update(Record& record)
 #if defined(LIGHTWEIGHT_CXX26_REFLECTION)
     template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
     {
-        if (record.[:el:].IsModified())
+        using FieldType = typename[:std::meta::type_of(el):];
+        // Relations (HasMany, HasManyThrough, HasOneThrough, ...) have no column of their own.
+        if constexpr (FieldWithStorage<FieldType>)
         {
-            _stmt.BindInputParameter(i++, record.[:el:].Value(), FieldNameOf<el>);
+            if (record.[:el:].IsModified())
+            {
+                _stmt.BindInputParameter(i++, record.[:el:].Value(), FieldNameOf<el>);
+            }
         }
     }
 
     template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
     {
         using FieldType = typename[:std::meta::type_of(el):];
-        if constexpr (FieldType::IsPrimaryKey)
+        if constexpr (FieldWithStorage<FieldType>)
         {
-            _stmt.BindInputParameter(i++, record.[:el:].Value(), FieldNameOf<el>);
+            if constexpr (FieldType::IsPrimaryKey)
+            {
+                _stmt.BindInputParameter(i++, record.[:el:].Value(), FieldNameOf<el>);
+            }
         }
     }
 #else
     // Bind the SET clause
     EnumerateRecordMembers(record, [this, &i]<size_t I, typename FieldType>(FieldType const& field) {
-        if (field.IsModified())
-            _stmt.BindInputParameter(i++, field.Value(), FieldNameAt<I, Record>);
+        // Relations (HasMany, HasManyThrough, HasOneThrough, ...) have no column of their own.
+        if constexpr (FieldWithStorage<RecordMemberTypeOf<I, Record>>)
+        {
+            if (field.IsModified())
+                _stmt.BindInputParameter(i++, field.Value(), FieldNameAt<I, Record>);
+        }
     });
 
     // Bind the WHERE clause
@@ -2042,8 +2049,10 @@ std::size_t DataMapper::Delete(Record const& record)
     template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
     {
         using FieldType = typename[:std::meta::type_of(el):];
-        if constexpr (FieldType::IsPrimaryKey)
-            std::ignore = query.Where(FieldNameOf<el>, SqlWildcard);
+        // Relations (HasMany, HasManyThrough, HasOneThrough, ...) have no column of their own.
+        if constexpr (FieldWithStorage<FieldType>)
+            if constexpr (FieldType::IsPrimaryKey)
+                std::ignore = query.Where(FieldNameOf<el>, SqlWildcard);
     }
 #else
     EnumerateRecordMembers(record, [&query]<size_t I, typename FieldType>(FieldType const& /*field*/) {
@@ -2059,9 +2068,12 @@ std::size_t DataMapper::Delete(Record const& record)
     template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
     {
         using FieldType = typename[:std::meta::type_of(el):];
-        if constexpr (FieldType::IsPrimaryKey)
+        if constexpr (FieldWithStorage<FieldType>)
         {
-            _stmt.BindInputParameter(i++, record.[:el:].Value(), FieldNameOf<el>);
+            if constexpr (FieldType::IsPrimaryKey)
+            {
+                _stmt.BindInputParameter(i++, record.[:el:].Value(), FieldNameOf<el>);
+            }
         }
     }
 #else
@@ -2092,16 +2104,21 @@ std::optional<Record> DataMapper::QuerySingle(PrimaryKeyTypes&&... primaryKeys)
     // first storage field via the returned Builder&, then reuse that pointer.
     auto selectStarter = _connection.Query(RecordTableName<Record>).Select();
     SqlSelectQueryBuilder* queryBuilder = nullptr;
+    // Project exactly the members the read side (detail::ReadSingleResult) consumes as columns —
+    // FieldWithStorage alone would drop plain bindable members such as `std::string note;`.
     EnumerateRecordMembers<Record>([&]<size_t I, typename FieldType>() {
-        if constexpr (FieldWithStorage<FieldType>)
+        if constexpr (RecordColumnMember<FieldType>)
         {
             if (queryBuilder == nullptr)
                 queryBuilder = &selectStarter.Field(FieldNameAt<I, Record>);
             else
                 queryBuilder->Field(FieldNameAt<I, Record>);
 
-            if constexpr (FieldType::IsPrimaryKey)
-                std::ignore = queryBuilder->Where(FieldNameAt<I, Record>, SqlWildcard);
+            if constexpr (FieldWithStorage<FieldType>)
+            {
+                if constexpr (FieldType::IsPrimaryKey)
+                    std::ignore = queryBuilder->Where(FieldNameAt<I, Record>, SqlWildcard);
+            }
         }
     });
 
@@ -2132,8 +2149,9 @@ std::optional<Record> DataMapper::QuerySingle(SqlSelectQueryBuilder selectQuery,
     ZoneScopedN("DataMapper::QuerySingle(Builder)");
     ZoneTextObject(RecordTableName<Record>);
 
+    // Same projection predicate as the read side; see the note in QuerySingle(PrimaryKeyTypes...).
     EnumerateRecordMembers<Record>([&]<size_t I, typename FieldType>() {
-        if constexpr (FieldWithStorage<FieldType>)
+        if constexpr (RecordColumnMember<FieldType>)
             selectQuery.Field(SqlQualifiedTableColumnName { RecordTableName<Record>, FieldNameAt<I, Record> });
     });
     auto const composedSql = selectQuery.First().ToSql();
@@ -2234,13 +2252,16 @@ std::vector<std::tuple<First, Second, Rest...>> DataMapper::Query(SqlSelectQuery
     _stmt.Prepare(tupleSql);
     auto reader = _stmt.Execute();
 
+    // The 1-based result set index of the first column belonging to the I-th sub-record. The projection
+    // (SqlSelectQueryBuilder::Fields<Records...>) emits one entry per RecordColumnMember, so relation
+    // members contribute no column and RecordMemberCount would over-count the preceding sub-records.
     constexpr auto calculateOffset = []<size_t I, typename Tuple>() {
         size_t offset = 1;
 
         if constexpr (I > 0)
         {
             [&]<size_t... Indices>(std::index_sequence<Indices...>) {
-                ((Indices < I ? (offset += RecordMemberCount<std::tuple_element_t<Indices, Tuple>>) : 0), ...);
+                ((Indices < I ? (offset += RecordColumnCount<std::tuple_element_t<Indices, Tuple>>) : 0), ...);
             }(std::make_index_sequence<I> {});
         }
         return offset;

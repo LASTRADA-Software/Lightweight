@@ -2,6 +2,14 @@
 
 #pragma once
 
+// <sql.h> below is not self-contained on Windows: the SDK's <sqltypes.h> resolves SQLLEN/SQLULEN/
+// SQLHWND/GUID against the Windows prelude, so <Windows.h> has to come first. Every other header
+// here that reaches an ODBC header opens with the same block; without it this header would only
+// compile when some other header happened to establish the prelude earlier in the translation unit.
+#if defined(_WIN32) || defined(_WIN64)
+    #include <Windows.h>
+#endif
+
 #include "Api.hpp"
 #include "Description.hpp"
 
