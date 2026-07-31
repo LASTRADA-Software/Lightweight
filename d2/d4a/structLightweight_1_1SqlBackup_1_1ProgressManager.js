@@ -11,6 +11,5 @@ var structLightweight_1_1SqlBackup_1_1ProgressManager =
     [ "ErrorCount", "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a4e2b371cc4658c3e205254cb2623ae3b", null ],
     [ "SetTotalItems", "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a08cc3c2379421f95a3215486a10f48f8", null ],
     [ "AddTotalItems", "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#ad960d5dc5e9cb104a5cfa7dbc07971be", null ],
-    [ "OnItemsProcessed", "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a91bfca7ee0426ab2e20aa926dc627293", null ],
-    [ "SetTotalTables", "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a12d42709c2340a72d2739a77957894b6", null ]
+    [ "OnItemsProcessed", "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a91bfca7ee0426ab2e20aa926dc627293", null ]
 ];

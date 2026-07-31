@@ -151,8 +151,6 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>AllDone</b> (
 <tr class="separator:ad960d5dc5e9cb104a5cfa7dbc07971be"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a91bfca7ee0426ab2e20aa926dc627293" id="r_a91bfca7ee0426ab2e20aa926dc627293"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a91bfca7ee0426ab2e20aa926dc627293">OnItemsProcessed</a> (size_t count)</td></tr>
 <tr class="separator:a91bfca7ee0426ab2e20aa926dc627293"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a12d42709c2340a72d2739a77957894b6" id="r_a12d42709c2340a72d2739a77957894b6"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a12d42709c2340a72d2739a77957894b6">SetTotalTables</a> (size_t totalTables)</td></tr>
-<tr class="separator:a12d42709c2340a72d2739a77957894b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>The interface for progress updates. </p>
@@ -348,42 +346,6 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>AllDone</b> (
 </dl>
 
 <p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00235">235</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
-
-</div>
-</div>
-<a id="a12d42709c2340a72d2739a77957894b6" name="a12d42709c2340a72d2739a77957894b6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a12d42709c2340a72d2739a77957894b6">&#9670;&#160;</a></span>SetTotalTables()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">virtual void Lightweight::SqlBackup::ProgressManager::SetTotalTables </td>
-          <td>(</td>
-          <td class="paramtype">size_t&#160;</td>
-          <td class="paramname"><em>totalTables</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>Announces how many tables the operation will process, once, before any per-table <code><a class="el" href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a288e37cbeb6478a6b73c04d26dbc3d3d" title="Gets called when the progress of an individual backup/restore operation changes.">Update()</a></code> is emitted.</p>
-<p>Backup knows the complete table set after its schema scan and Restore after reading the archive manifest, i.e. both know the denominator before any data moves. Without this hook a consumer can only count the distinct table names it has seen so far, so a progress readout of the form "processed / total" has a total that climbs as tables are discovered — the GUI's per-table panel showed "12 / 12" then "12 / 47" then "12 / 700" on the same run, which reads as the job getting bigger rather than as progress being made.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">totalTables</td><td>Number of tables that will be processed. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00253">253</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>
