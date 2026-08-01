@@ -121,13 +121,18 @@ This function should be used purely for debugging purposes.
 ## `SqlNumeric<Precision, Scale>` precision limits
 
 `Precision` is a count of **decimal digits**. It may be at most
-`Lightweight::SqlMaxNumericPrecision`, which is **19** where the toolchain provides a
-128-bit integer type and **18** where it does not (MSVC and clang-cl):
+`Lightweight::SqlMaxNumericPrecision`, which is **19 on every supported toolchain**:
 
 | Toolchain | `SqlMaxNumericPrecision` | Widest column |
 |-----------|--------------------------|---------------|
-| GCC / Clang (`__int128` available) | 19 | `DECIMAL(19, s)` — including MS SQL Server's `money` |
-| MSVC, clang-cl (no `__int128`)     | 18 | `DECIMAL(18, s)` |
+| GCC / Clang (native `__int128`)         | 19 | `DECIMAL(19, s)` — including MS SQL Server's `money` |
+| MSVC, clang-cl (software `Int128Soft`)  | 19 | `DECIMAL(19, s)` — including MS SQL Server's `money` |
+
+The bound is deliberately toolchain-independent. A column's precision comes from the
+database schema, so a `ddl2cpp`-generated record has to compile wherever it is consumed —
+a header that builds under GCC and fails under MSVC would make the generator useless.
+`Lightweight::Int128`, the type that carries the unscaled value, is `__int128_t` where the
+compiler has one and a software stand-in (`detail::Int128Soft`) where it does not.
 
 `Scale` counts the digits after the decimal point and may be anywhere in
 `[0, Precision]`. `Scale == Precision` is the purely fractional case: `SqlNumeric<4, 4>`
@@ -136,31 +141,15 @@ is SQL's `DECIMAL(4, 4)` and covers `[0.0000, 0.9999]`.
 Note that `SQL_MAX_NUMERIC_LEN` (16) is a *byte* count, not a digit count — do not use
 it as a precision bound. It is the size of `SQL_NUMERIC_STRUCT::val`, a 128-bit
 mantissa, which is 38 decimal digits. **38 is not the bound either**: it is what the
-ODBC struct could hold, not what this implementation delivers. Two things narrow it:
-
-- **The unscaled carrier.** `assign()` and `ToUnscaledValue()` keep `value * 10^Scale`
-  in a `__int128` where one exists and in an `int64_t` otherwise. A signed 64-bit
-  carrier holds 18 digits. At `Precision == 19` it overflows — `money`'s maximum
-  `922337203685477.5807` has the unscaled value `9223372036854775808`, one past
-  `INT64_MAX` — and the out-of-range floating-to-integer conversion is undefined
-  behaviour, which on x86-64 yields `INT64_MIN` and renders as
-  `-922337203685477.5808`, sign flipped.
-- **The readable width.** Every accessor except `ToUnscaledValue()` divides through
-  `long double`, so no more digits can be *read back* than that type's significand
-  holds. The widest `long double` in use is the 80-bit x87 one, whose 64-bit
-  significand gives 19 digits; past that, `ToString()` is wrong on every platform — a
-  fetched `SqlNumeric<20, 0>` holding `99999999999999999999` prints as
-  `100000000000000000000`.
+ODBC struct could hold, not what this implementation can read back. What narrows it is
+the **readable width** — every accessor except `ToUnscaledValue()` and `ToString()`
+divides through `long double`, so no more digits can be read back through those than that
+type's significand holds. The widest `long double` in use is the 80-bit x87 one, whose
+64-bit significand gives 19 digits; past that nothing is readable on any platform — a
+fetched `SqlNumeric<20, 0>` holding `99999999999999999999` would come back as
+`100000000000000000000`.
 
 A column wider than the bound must be read as a string.
-
-Note that 19 is the point past which nothing is readable *anywhere*; it is not a
-promise that any given platform renders 19. How many digits `ToString()` delivers
-depends both on the width of `long double` (53 bits on MSVC and on Clang for Apple
-Silicon) and on the standard library's formatter, which narrows to `double` on some
-toolchains even where the type is wider. The only width guaranteed everywhere is
-`std::numeric_limits<double>::digits10` (15); above it, `ToUnscaledValue()` is the only
-accessor you can rely on.
 
 ### What each accessor delivers
 
@@ -169,14 +158,19 @@ value obtained by fetching (i.e. one whose mantissa arrived intact):
 
 | Accessor | Significant digits | Notes |
 |----------|--------------------|-------|
-| `ToUnscaledValue()` | up to `Precision` | The only accessor that does not go through a floating-point type. |
-| `ToString()`, `ToLongDouble()` | 15 guaranteed; up to 19 in practice | Bounded by `long double` *and* by the standard library's formatter for it. At most 19 (x87 80-bit); **15 where `long double` is a `double`** (MSVC, Clang on Apple Silicon) and on toolchains whose formatter narrows to `double`. Treat anything above 15 as a bonus, not a contract. |
+| `ToUnscaledValue()` | up to `Precision` | Returns `Lightweight::Int128`. The only accessor that yields the raw integer. |
+| `ToString()` | up to `Precision` | Rendered from the unscaled integer, not by formatting a `long double`, so every digit survives on every toolchain. |
+| `ToLongDouble()` | 15 guaranteed; up to 19 in practice | Bounded by `long double`: at most 19 (x87 80-bit); **15 where `long double` is a `double`** (MSVC, Clang on Apple Silicon). |
 | `ToDouble()`, `operator<=>` | 15 | `std::numeric_limits<double>::digits10`. |
 | `ToFloat()`, `operator==` | **7** | `std::numeric_limits<float>::digits10`. `operator==` compares via `ToFloat()`, so `SqlNumeric<19, 4>` values `1234567890.1234` and `1234567890.9999` compare **equal**. Compare `ToUnscaledValue()` if you need exactness. |
 
-So on MSVC, `SqlNumeric<18, 2>` is accepted and `ToUnscaledValue()` returns all 18
-digits, but `ToString()` renders only the leading 15 correctly. If you need more than 15
-digits out of a `SqlNumeric`, read `ToUnscaledValue()` and scale it yourself.
+So `ToUnscaledValue()` and `ToString()` are exact to the declared precision everywhere,
+including MSVC; the floating-point accessors are not. If you need more than 15 digits out
+of a `SqlNumeric`, use one of those two rather than `ToDouble()`.
+
+Neither `Int128` implementation is formattable by `std::format` (the native `__int128_t`
+is not either), so render an unscaled value with
+`Lightweight::detail::Int128ToString(value.ToUnscaledValue())`, or just use `ToString()`.
 
 ### How many of those digits survive a round-trip
 

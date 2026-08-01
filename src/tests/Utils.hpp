@@ -137,13 +137,15 @@ namespace std
 template <std::size_t Precision, std::size_t Scale>
 std::ostream& operator<<(std::ostream& os, Lightweight::SqlNumeric<Precision, Scale> const& value)
 {
+    // The unscaled value is a 128-bit integer, which std::format handles for neither the native
+    // __int128_t nor the software stand-in — render it through the carrier's own formatter.
     return os << std::format("SqlNumeric<{}, {}>({}, {}, {}, {})",
                              Precision,
                              Scale,
                              value.sqlValue.sign,
                              value.sqlValue.precision,
                              value.sqlValue.scale,
-                             value.ToUnscaledValue());
+                             Lightweight::detail::Int128ToString(value.ToUnscaledValue()));
 }
 } // namespace std
 

@@ -402,11 +402,10 @@ std::string CxxModelPrinter::MakeDecimalPrecisionNote(SqlSchema::Column const& c
     // matter how wide the column was declared.
     constexpr auto fallbackDigits = static_cast<std::size_t>(std::numeric_limits<double>::digits10);
 
-    // Widest precision `SqlNumeric` accepts on a toolchain without a 128-bit integer (MSVC,
-    // clang-cl), where the unscaled value is carried by an `int64_t`. This is deliberately *not*
-    // `SqlMaxNumericPrecision`: that is the bound of whichever toolchain built ddl2cpp, while the
-    // generated header may well be compiled by another one.
-    constexpr auto portablePrecision = detail::DecimalDigitsForBits(63);
+    // Widest precision `SqlNumeric` accepts. This is toolchain-independent — `Int128` supplies a
+    // software 128-bit carrier where the compiler has no native one — so it is equally the bound of
+    // whichever toolchain built ddl2cpp and of whichever one compiles the generated header.
+    constexpr auto maxPrecision = SqlMaxNumericPrecision;
 
     std::string note;
 
@@ -422,13 +421,13 @@ std::string CxxModelPrinter::MakeDecimalPrecisionNote(SqlSchema::Column const& c
                             fallbackDigits,
                             decimal->precision - fallbackDigits);
 
-    if (decimal->precision > portablePrecision)
-        note += std::format("    // NOTE: SqlNumeric<{}, {}> requires a toolchain with a 128-bit integer type. It does\n"
-                            "    //       not compile with MSVC or clang-cl, whose {}-digit int64_t carrier cannot hold\n"
-                            "    //       the unscaled value.\n",
+    if (decimal->precision > maxPrecision)
+        note += std::format("    // NOTE: SqlNumeric<{}, {}> does not compile: {} digits exceed the {} this implementation\n"
+                            "    //       can carry. Read this column as a string instead, or narrow it.\n",
                             decimal->precision,
                             decimal->scale,
-                            portablePrecision);
+                            decimal->precision,
+                            maxPrecision);
 
     return note;
 }

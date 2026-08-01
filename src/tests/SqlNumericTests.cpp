@@ -17,6 +17,29 @@
 
 using namespace Lightweight;
 
+namespace
+{
+
+/// Builds a `SqlNumeric<Precision, Scale>` from its unscaled mantissa, reproducing the state a
+/// native SQL_C_NUMERIC fetch leaves behind (nativeValue == 0, mantissa verbatim). Constructing
+/// through `assign()` instead would measure a `double` argument and lose the low digits.
+///
+/// @param unscaled The mantissa, i.e. the represented value scaled by 10^Scale.
+/// @param positive Whether the value is non-negative.
+/// @return The numeric carrying exactly @p unscaled.
+template <std::size_t Precision, std::size_t Scale>
+SqlNumeric<Precision, Scale> ExactNumeric(std::uint64_t unscaled, bool positive = true)
+{
+    auto raw = SQL_NUMERIC_STRUCT {};
+    raw.precision = static_cast<SQLCHAR>(Precision);
+    raw.scale = static_cast<SQLSCHAR>(Scale);
+    raw.sign = static_cast<SQLCHAR>(positive ? 1 : 0);
+    std::memcpy(static_cast<void*>(raw.val), &unscaled, sizeof(unscaled));
+    return SqlNumeric<Precision, Scale> { raw };
+}
+
+} // namespace
+
 // ================================================================================================
 // SqlNumeric construction & conversion (no DB required)
 // ================================================================================================
@@ -122,37 +145,98 @@ TEST_CASE("SqlMaxNumericPrecision is the width this implementation can carry", "
     // SQL_MAX_NUMERIC_LEN is the mantissa size in *bytes* (16), not a digit count, so the historical
     // `Precision <= SQL_MAX_NUMERIC_LEN` was a category error that rejected DECIMAL(18, 2). But the
     // mantissa's 38-digit capacity is not the bound either — see the derivation on
-    // SqlMaxNumericPrecision. Two things narrow it, and the bound is the tighter of the two:
-    //
-    //   - the unscaled carrier: `int64_t` (18 digits) without a 128-bit integer type,
-    //   - the readable width: at most a 64-bit magnitude (19 digits), which is what the widest
-    //     `long double` in use — the 80-bit x87 one — renders exactly. Where `long double` is
-    //     narrower still (MSVC, Clang on Apple Silicon) ToString() is correspondingly narrower;
-    //     that is an accessor property, not a representability one, and is asserted separately.
-    STATIC_CHECK(detail::DecimalDigitsForBits(63) == 18);  // int64_t magnitude
+    // SqlMaxNumericPrecision. What narrows it is the readable width: at most a 64-bit magnitude
+    // (19 digits), which is what the widest `long double` in use — the 80-bit x87 one — renders.
+    // Where `long double` is narrower still (MSVC, Clang on Apple Silicon) the *floating-point*
+    // accessors are correspondingly narrower; ToString() and ToUnscaledValue() are not, because
+    // neither goes through one. That is an accessor property, asserted separately below.
+    STATIC_CHECK(detail::DecimalDigitsForBits(63) == 18);  // int64_t magnitude — no longer the bound
     STATIC_CHECK(detail::DecimalDigitsForBits(64) == 19);  // 64-bit magnitude / x87 significand
     STATIC_CHECK(detail::DecimalDigitsForBits(127) == 38); // __int128 magnitude — deliberately NOT the bound
 
-#if defined(LIGHTWEIGHT_INT128_T)
+    // The bound is the *same on every toolchain*. This is the property that matters: a column's
+    // precision comes from the database schema, so a ddl2cpp-generated record must compile
+    // regardless of which compiler builds the client. `Int128` supplies a software 128-bit carrier
+    // where the compiler has no native one, which is what makes this unconditional — before that,
+    // the bound was 18 under MSVC/clang-cl and 19 elsewhere.
     STATIC_CHECK(SqlMaxNumericPrecision == 19);
 
-    // MS SQL Server's `money` is DECIMAL(19, 4); here it must be expressible.
+    // MS SQL Server's `money` is DECIMAL(19, 4), and it is expressible everywhere.
     STATIC_CHECK(SqlNumeric<19, 4>::Precision == 19);
     STATIC_CHECK(SqlNumeric<19, 4>::Scale == 4);
     STATIC_CHECK(SqlNumeric<19, 4>::ColumnType.precision == 19);
-#else
-    // Without a 128-bit integer the unscaled value is carried by an `int64_t`, whose magnitude
-    // holds 18 digits. `SqlNumeric<19, 4>` at the `money` maximum would need an unscaled
-    // 9223372036854775808 — one past INT64_MAX — and the out-of-range float-to-int conversion is
-    // undefined behaviour that flips the sign on x86-64. Rejecting it at compile time is the point.
-    STATIC_CHECK(SqlMaxNumericPrecision == 18);
-#endif
 
-    // DECIMAL(18, s), the widest column that works on every supported toolchain.
     STATIC_CHECK(SqlNumeric<18, 4>::Precision == 18);
 
     SqlNumeric<SqlMaxNumericPrecision, 4> const widest { 1234567890.1234 };
     CHECK(widest.ToString() == "1234567890.1234");
+}
+
+TEST_CASE("SqlNumeric carries money's full range on every toolchain", "[SqlNumeric]")
+{
+    // The regression this whole change is about. MS SQL Server's `money` spans
+    // -922337203685477.5808 .. 922337203685477.5807, i.e. unscaled values of exactly INT64_MIN and
+    // INT64_MAX. The negative endpoint has magnitude 9223372036854775808 — one past INT64_MAX — so
+    // with the previous `int64_t` carrier `assign()`'s float-to-int conversion was out of range
+    // (undefined behaviour) and on x86-64 produced INT64_MIN, rendering the value sign-flipped. With
+    // a 128-bit carrier on every toolchain both endpoints round-trip.
+    //
+    // Injected through the SQL_NUMERIC_STRUCT constructor because that is the state a native
+    // SQL_C_NUMERIC fetch leaves behind: mantissa verbatim, nativeValue still zero. Note that the
+    // mantissa is a *magnitude* — SQL_NUMERIC_STRUCT carries the sign in its own field.
+    auto raw = SQL_NUMERIC_STRUCT {};
+    raw.precision = 19;
+    raw.scale = 4;
+
+    // The positive endpoint: 922337203685477.5807, unscaled magnitude INT64_MAX.
+    constexpr auto maxMagnitude = std::uint64_t { 9'223'372'036'854'775'807ULL };
+    raw.sign = 1; // positive
+    std::memcpy(static_cast<void*>(raw.val), &maxMagnitude, sizeof(maxMagnitude));
+
+    SqlNumeric<19, 4> const money { raw };
+    CHECK(detail::Int128ToString(money.ToUnscaledValue()) == "9223372036854775807");
+    CHECK(money.ToString() == "922337203685477.5807");
+    CHECK(money.ToString().front() != '-'); // the sign flip this guards against
+
+    // The negative endpoint: -922337203685477.5808, unscaled magnitude 2^63 — one past INT64_MAX,
+    // which is precisely the value the old carrier could not hold.
+    constexpr auto minMagnitude = std::uint64_t { 9'223'372'036'854'775'808ULL };
+    raw.sign = 0; // negative
+    std::memcpy(static_cast<void*>(raw.val), &minMagnitude, sizeof(minMagnitude));
+
+    SqlNumeric<19, 4> const negativeMoney { raw };
+    CHECK(detail::Int128ToString(negativeMoney.ToUnscaledValue()) == "-9223372036854775808");
+    CHECK(negativeMoney.ToString() == "-922337203685477.5808");
+
+    // The same endpoint reached through assign() rather than a native fetch — this is the path that
+    // performed the out-of-range conversion. `long double` is 53-bit on MSVC so the low digits are
+    // not expected to survive here; what must survive is the *sign*, which UB used to invert.
+    SqlNumeric<19, 4> const assigned { -922337203685477.5808 };
+    CHECK(assigned.ToString().front() == '-');
+    CHECK(assigned.ToDouble() < 0.0);
+}
+
+TEST_CASE("SqlNumeric::ToString renders exactly, without a floating-point detour", "[SqlNumeric]")
+{
+    // ToString() formats from the unscaled integer rather than from ToLongDouble(), so all 19 digits
+    // survive on every toolchain — including MSVC, whose `long double` is 53 bits and would have
+    // dropped the low four here.
+    // 19 significant digits, scale 0 — the widest integral value the type admits.
+    CHECK(ExactNumeric<19, 0>(9'999'999'999'999'999'999ULL).ToString() == "9999999999999999999");
+
+    // 19 digits with a scale, i.e. the `money` shape.
+    CHECK(ExactNumeric<19, 4>(1'234'567'890'123'456'789ULL).ToString() == "123456789012345.6789");
+
+    // Scale == Precision: no integral digit at all, so the renderer must pad a leading zero.
+    CHECK(ExactNumeric<19, 19>(1'234'567'890'123'456'789ULL).ToString() == "0.1234567890123456789");
+
+    // A value needing interior zero padding between the point and the first significant digit.
+    CHECK(ExactNumeric<10, 4>(1ULL).ToString() == "0.0001");
+    CHECK(ExactNumeric<10, 4>(1ULL, /*positive=*/false).ToString() == "-0.0001");
+
+    // Zero renders with the full complement of fractional digits, not as a bare "0".
+    CHECK(ExactNumeric<10, 4>(0ULL).ToString() == "0.0000");
+    CHECK(ExactNumeric<10, 0>(0ULL).ToString() == "0");
 }
 
 TEST_CASE("SqlNumeric carries every digit up to SqlMaxNumericPrecision", "[SqlNumeric]")
@@ -169,35 +253,28 @@ TEST_CASE("SqlNumeric carries every digit up to SqlMaxNumericPrecision", "[SqlNu
     for ([[maybe_unused]] auto const digit: std::views::iota(std::size_t { 0 }, precision))
         allNines = (allNines * 10) + 9;
 
-    auto raw = SQL_NUMERIC_STRUCT {};
-    raw.precision = static_cast<SQLCHAR>(precision);
-    raw.scale = 0;
-    raw.sign = 1;
-    std::memcpy(static_cast<void*>(raw.val), &allNines, sizeof(allNines));
-
-    SqlNumeric<precision, 0> const widest { raw };
+    SqlNumeric<precision, 0> const widest = ExactNumeric<precision, 0>(allNines);
     auto const expected = std::string(precision, '9');
 
     // The carrier's guarantee, and the one the bound is derived from: unconditional, on every
-    // platform, independent of any floating-point type. The unscaled value is a `__int128` where
-    // one exists, which std::format does not handle; at `precision <= 19` digits its magnitude
-    // always fits a std::uint64_t, so narrow it there.
-    CHECK(std::format("{}", static_cast<std::uint64_t>(widest.ToUnscaledValue())) == expected);
+    // platform, independent of any floating-point type.
+    CHECK(detail::Int128ToString(widest.ToUnscaledValue()) == expected);
 
-    // ToString() is a distinctly weaker, toolchain-dependent guarantee, because it — like every
-    // accessor but ToUnscaledValue() — divides through `long double` and is then rendered by the
-    // standard library's formatter. How many digits survive depends on *both*: the width of that
-    // type (53 bits on MSVC and on Clang for Apple Silicon, 64 on the x87 80-bit one) and the
-    // formatter's own long-double support, which in practice narrows to `double` on some
-    // toolchains even where the type is wider. The portable promise — and the only one
-    // docs/data-binder.md makes — is `std::numeric_limits<double>::digits10` significant digits,
-    // so assert exactly that and nothing stronger. The strong claim lives on ToUnscaledValue()
-    // above, where it actually holds.
+    // ToString() carries the same guarantee, because it renders from that integer rather than from
+    // ToLongDouble(). It used to be strictly weaker — divided through `long double` and handed to
+    // the standard library's formatter, so how many digits survived depended both on that type's
+    // width (53 bits on MSVC and on Clang for Apple Silicon, 64 on the x87 80-bit one) and on the
+    // formatter's own long-double support, which narrows to `double` on some toolchains regardless.
+    CHECK(widest.ToString() == expected);
+
+    // The floating-point accessors remain the weaker, toolchain-dependent path — they genuinely do
+    // divide through `long double`, and that has not changed. The portable promise for them is
+    // `std::numeric_limits<double>::digits10` significant digits, so assert exactly that.
     constexpr auto portableDigits = static_cast<std::size_t>(std::numeric_limits<double>::digits10);
     auto relativeTolerance = 1.0;
     for ([[maybe_unused]] auto const digit: std::views::iota(std::size_t { 1 }, portableDigits))
         relativeTolerance /= 10.0;
-    CHECK_THAT(std::stod(widest.ToString()), Catch::Matchers::WithinRel(static_cast<double>(allNines), relativeTolerance));
+    CHECK_THAT(widest.ToDouble(), Catch::Matchers::WithinRel(static_cast<double>(allNines), relativeTolerance));
 }
 
 TEST_CASE("SqlNumeric supports a purely fractional Scale == Precision", "[SqlNumeric]")

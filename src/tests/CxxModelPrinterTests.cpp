@@ -234,12 +234,10 @@ TEST_CASE("CxxModelPrinter::MakeType: money maps to a type SqlNumeric accepts", 
     CHECK(CxxTypeName({ .name = "price", .type = Decimal { .precision = 10, .scale = 4 }, .isNullable = false })
           == "Light::SqlNumeric<10, 4>");
 
-    // `money` is instantiable wherever the toolchain has a 128-bit integer type. Where it does not
-    // (MSVC, clang-cl) the emitted record is a compile error rather than a silently sign-flipped
-    // value — MakeDecimalPrecisionNote() says so in the generated header, see below.
-#if defined(LIGHTWEIGHT_INT128_T)
+    // `money` is instantiable on every supported toolchain — unconditionally, which is the point:
+    // the generated header must compile regardless of which compiler consumes it, and `Int128`
+    // supplies a software 128-bit carrier where the compiler has no native one.
     STATIC_CHECK(Lightweight::SqlNumeric<19, 4>::Precision <= Lightweight::SqlMaxNumericPrecision);
-#endif
 
     // ddl2cpp still emits the column's declared precision verbatim, even where that is wider than
     // SqlNumeric accepts: truncating it here would silently misdescribe the schema, and the note
@@ -259,20 +257,28 @@ TEST_CASE("CxxModelPrinter::MakeDecimalPrecisionNote", "[CxxModelPrinter],[MakeT
     // Non-decimal columns are none of this function's business.
     CHECK(CxxModelPrinter::MakeDecimalPrecisionNote({ .name = "id", .type = Integer {}, .isNullable = false }).empty());
 
-    // 16..18 digits: the SQL_C_DOUBLE fallback loses the low digits on SQLite and MS SQL Server,
+    // 16..19 digits: the SQL_C_DOUBLE fallback loses the low digits on SQLite and MS SQL Server,
     // but the type itself is instantiable everywhere — one note, not two.
     auto const wide = CxxModelPrinter::MakeDecimalPrecisionNote(
         { .name = "amount", .type = Decimal { .precision = 18, .scale = 2 }, .isNullable = false });
     CHECK(wide.contains("SQL_C_DOUBLE"));
     CHECK(wide.contains("DECIMAL(18, 2)"));
-    CHECK(!wide.contains("128-bit"));
+    CHECK(!wide.contains("does not compile"));
 
-    // `money`: both hazards apply.
+    // `money` (DECIMAL(19, 4)) is at the bound, so only the transfer-precision note applies. It is
+    // instantiable on every toolchain, so no "does not compile" note is emitted for it any more.
     auto const money = CxxModelPrinter::MakeDecimalPrecisionNote(
         { .name = "price", .type = Decimal { .precision = 19, .scale = 4 }, .isNullable = false });
     CHECK(money.contains("SQL_C_DOUBLE"));
     CHECK(money.contains("922337203685477.6250"));
-    CHECK(money.contains("SqlNumeric<19, 4> requires a toolchain with a 128-bit integer type"));
+    CHECK(!money.contains("does not compile"));
+
+    // Past the bound both hazards apply: the column cannot be expressed as a SqlNumeric at all.
+    auto const huge = CxxModelPrinter::MakeDecimalPrecisionNote(
+        { .name = "huge", .type = Decimal { .precision = 38, .scale = 10 }, .isNullable = false });
+    CHECK(huge.contains("SQL_C_DOUBLE"));
+    CHECK(huge.contains("SqlNumeric<38, 10> does not compile"));
+    CHECK(huge.contains("Read this column as a string"));
 
     // Every emitted line is a properly indented comment, so it can be dropped into a struct body.
     for (auto const line: std::views::split(std::string_view { money }, '\n'))
