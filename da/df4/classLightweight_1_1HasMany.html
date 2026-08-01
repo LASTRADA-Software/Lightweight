@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Lightweight: Lightweight::HasMany&lt; OtherRecord &gt; Class Template Reference</title>
+<title>Lightweight: Lightweight::HasMany&lt; OtherRecord, TheInverseSelector &gt; Class Template Reference</title>
 <link href="../../tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="../../jquery.js"></script>
 <script type="text/javascript" src="../../dynsections.js"></script>
@@ -93,8 +93,9 @@ $(document).ready(function(){initNavTree('da/df4/classLightweight_1_1HasMany.htm
   <div class="summary">
 <a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
+<a href="#pub-static-attribs">Static Public Attributes</a> &#124;
 <a href="../../d3/d4e/classLightweight_1_1HasMany-members.html">List of all members</a>  </div>
-  <div class="headertitle"><div class="title">Lightweight::HasMany&lt; OtherRecord &gt; Class Template Reference<div class="ingroups"><a class="el" href="../../d7/d2f/group__DataMapper.html">Data Mapper</a></div></div></div>
+  <div class="headertitle"><div class="title">Lightweight::HasMany&lt; OtherRecord, TheInverseSelector &gt; Class Template Reference<div class="ingroups"><a class="el" href="../../d7/d2f/group__DataMapper.html">Data Mapper</a></div></div></div>
 </div><!--header-->
 <div class="contents">
 
@@ -105,206 +106,239 @@ $(document).ready(function(){initNavTree('da/df4/classLightweight_1_1HasMany.htm
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:aa55567dd568d83b2bf1a17980f856553" id="r_aa55567dd568d83b2bf1a17980f856553"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#aa55567dd568d83b2bf1a17980f856553">ReferencedRecord</a> = OtherRecord</td></tr>
-<tr class="memdesc:aa55567dd568d83b2bf1a17980f856553"><td class="mdescLeft">&#160;</td><td class="mdescRight">The record type of the "many" side of the relationship.  <br /></td></tr>
-<tr class="separator:aa55567dd568d83b2bf1a17980f856553"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5a29a6068f166f0e54fb24c548fdb2bb" id="r_a5a29a6068f166f0e54fb24c548fdb2bb"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a5a29a6068f166f0e54fb24c548fdb2bb">ReferencedRecordList</a> = std::vector&lt; std::shared_ptr&lt; OtherRecord &gt; &gt;</td></tr>
-<tr class="memdesc:a5a29a6068f166f0e54fb24c548fdb2bb"><td class="mdescLeft">&#160;</td><td class="mdescRight">The list of records on the "many" side of the relationship.  <br /></td></tr>
-<tr class="separator:a5a29a6068f166f0e54fb24c548fdb2bb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a09781261bf364bf63b828563ef5d7f7c" id="r_a09781261bf364bf63b828563ef5d7f7c"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a09781261bf364bf63b828563ef5d7f7c">value_type</a> = OtherRecord</td></tr>
-<tr class="memdesc:a09781261bf364bf63b828563ef5d7f7c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Record type of the "many" side of the relationship.  <br /></td></tr>
-<tr class="separator:a09781261bf364bf63b828563ef5d7f7c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4208c7230c0ba0e12997bf6c2ce0775c" id="r_a4208c7230c0ba0e12997bf6c2ce0775c"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a4208c7230c0ba0e12997bf6c2ce0775c">iterator</a> = ReferencedRecordList::iterator</td></tr>
-<tr class="memdesc:a4208c7230c0ba0e12997bf6c2ce0775c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Iterator type for the list of records.  <br /></td></tr>
-<tr class="separator:a4208c7230c0ba0e12997bf6c2ce0775c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a817d4e3c44dfd053546805cd77b5ed77" id="r_a817d4e3c44dfd053546805cd77b5ed77"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a817d4e3c44dfd053546805cd77b5ed77">const_iterator</a> = ReferencedRecordList::const_iterator</td></tr>
-<tr class="memdesc:a817d4e3c44dfd053546805cd77b5ed77"><td class="mdescLeft">&#160;</td><td class="mdescRight">Const iterator type for the list of records.  <br /></td></tr>
-<tr class="separator:a817d4e3c44dfd053546805cd77b5ed77"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a64f0bce1911a2b64ef588a53319b631d" id="r_a64f0bce1911a2b64ef588a53319b631d"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a64f0bce1911a2b64ef588a53319b631d">ReferencedRecord</a> = OtherRecord</td></tr>
+<tr class="memdesc:a64f0bce1911a2b64ef588a53319b631d"><td class="mdescLeft">&#160;</td><td class="mdescRight">The record type of the "many" side of the relationship.  <br /></td></tr>
+<tr class="separator:a64f0bce1911a2b64ef588a53319b631d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adf7fa16a2675805c7efd66dbae4e867f" id="r_adf7fa16a2675805c7efd66dbae4e867f"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#adf7fa16a2675805c7efd66dbae4e867f">ReferencedRecordList</a> = std::vector&lt; std::shared_ptr&lt; OtherRecord &gt; &gt;</td></tr>
+<tr class="memdesc:adf7fa16a2675805c7efd66dbae4e867f"><td class="mdescLeft">&#160;</td><td class="mdescRight">The list of records on the "many" side of the relationship.  <br /></td></tr>
+<tr class="separator:adf7fa16a2675805c7efd66dbae4e867f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abfd68589b8a929ab84222686cbb692dd" id="r_abfd68589b8a929ab84222686cbb692dd"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#abfd68589b8a929ab84222686cbb692dd">value_type</a> = OtherRecord</td></tr>
+<tr class="memdesc:abfd68589b8a929ab84222686cbb692dd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Record type of the "many" side of the relationship.  <br /></td></tr>
+<tr class="separator:abfd68589b8a929ab84222686cbb692dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2d4265d39feb3dabf87480af2a6503d8" id="r_a2d4265d39feb3dabf87480af2a6503d8"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a2d4265d39feb3dabf87480af2a6503d8">iterator</a> = ReferencedRecordList::iterator</td></tr>
+<tr class="memdesc:a2d4265d39feb3dabf87480af2a6503d8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Iterator type for the list of records.  <br /></td></tr>
+<tr class="separator:a2d4265d39feb3dabf87480af2a6503d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4dc6838deb95d12a735c7028f56a6ef7" id="r_a4dc6838deb95d12a735c7028f56a6ef7"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a4dc6838deb95d12a735c7028f56a6ef7">const_iterator</a> = ReferencedRecordList::const_iterator</td></tr>
+<tr class="memdesc:a4dc6838deb95d12a735c7028f56a6ef7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Const iterator type for the list of records.  <br /></td></tr>
+<tr class="separator:a4dc6838deb95d12a735c7028f56a6ef7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:acea92f62bbba17fef8765578507e62e4" id="r_acea92f62bbba17fef8765578507e62e4"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a5a29a6068f166f0e54fb24c548fdb2bb">ReferencedRecordList</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#acea92f62bbba17fef8765578507e62e4">All</a> () const noexcept</td></tr>
-<tr class="memdesc:acea92f62bbba17fef8765578507e62e4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the list of loaded records.  <br /></td></tr>
-<tr class="separator:acea92f62bbba17fef8765578507e62e4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a48da79f7712889cd21441431df7f7efc" id="r_a48da79f7712889cd21441431df7f7efc"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a5a29a6068f166f0e54fb24c548fdb2bb">ReferencedRecordList</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a48da79f7712889cd21441431df7f7efc">All</a> () noexcept</td></tr>
-<tr class="memdesc:a48da79f7712889cd21441431df7f7efc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the list of records as mutable reference.  <br /></td></tr>
-<tr class="separator:a48da79f7712889cd21441431df7f7efc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a543f2454721d934c47a6cf3b63459c6d" id="r_a543f2454721d934c47a6cf3b63459c6d"><td class="memTemplParams" colspan="2">template&lt;typename Callable &gt; </td></tr>
-<tr class="memitem:a543f2454721d934c47a6cf3b63459c6d"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a543f2454721d934c47a6cf3b63459c6d">Each</a> (Callable const &amp;callable)</td></tr>
-<tr class="memdesc:a543f2454721d934c47a6cf3b63459c6d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Iterates over the list of records and calls the given callable for each record.  <br /></td></tr>
-<tr class="separator:a543f2454721d934c47a6cf3b63459c6d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6c010832e211e504a027747b239b4817" id="r_a6c010832e211e504a027747b239b4817"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a5a29a6068f166f0e54fb24c548fdb2bb">ReferencedRecordList</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a6c010832e211e504a027747b239b4817">Emplace</a> (<a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a5a29a6068f166f0e54fb24c548fdb2bb">ReferencedRecordList</a> &amp;&amp;records) noexcept</td></tr>
-<tr class="memdesc:a6c010832e211e504a027747b239b4817"><td class="mdescLeft">&#160;</td><td class="mdescRight">Emplaces the given list of records.  <br /></td></tr>
-<tr class="separator:a6c010832e211e504a027747b239b4817"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a58ce8f9453b1f4b666fb325f30085641" id="r_a58ce8f9453b1f4b666fb325f30085641"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a58ce8f9453b1f4b666fb325f30085641">Count</a> () const noexcept</td></tr>
-<tr class="memdesc:a58ce8f9453b1f4b666fb325f30085641"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the number of records in this 1-to-many relationship.  <br /></td></tr>
-<tr class="separator:a58ce8f9453b1f4b666fb325f30085641"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6940bf064197ff19dc320fcdfa927707" id="r_a6940bf064197ff19dc320fcdfa927707"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a6940bf064197ff19dc320fcdfa927707">IsEmpty</a> () const noexcept</td></tr>
-<tr class="memdesc:a6940bf064197ff19dc320fcdfa927707"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if this 1-to-many relationship is empty.  <br /></td></tr>
-<tr class="separator:a6940bf064197ff19dc320fcdfa927707"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:adb89edafa7435160b169cae7a7f095a5" id="r_adb89edafa7435160b169cae7a7f095a5"><td class="memItemLeft" align="right" valign="top">OtherRecord const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#adb89edafa7435160b169cae7a7f095a5">At</a> (std::size_t index) const</td></tr>
-<tr class="memdesc:adb89edafa7435160b169cae7a7f095a5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record at the given index.  <br /></td></tr>
-<tr class="separator:adb89edafa7435160b169cae7a7f095a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a888c5731befb0482adb368e8f3794cd1" id="r_a888c5731befb0482adb368e8f3794cd1"><td class="memItemLeft" align="right" valign="top">OtherRecord &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a888c5731befb0482adb368e8f3794cd1">At</a> (std::size_t index)</td></tr>
-<tr class="memdesc:a888c5731befb0482adb368e8f3794cd1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record at the given index.  <br /></td></tr>
-<tr class="separator:a888c5731befb0482adb368e8f3794cd1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad61f5d9a2f12fe8aa41569414ca4c62e" id="r_ad61f5d9a2f12fe8aa41569414ca4c62e"><td class="memItemLeft" align="right" valign="top">OtherRecord const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#ad61f5d9a2f12fe8aa41569414ca4c62e">operator[]</a> (std::size_t index) const</td></tr>
-<tr class="memdesc:ad61f5d9a2f12fe8aa41569414ca4c62e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record at the given index.  <br /></td></tr>
-<tr class="separator:ad61f5d9a2f12fe8aa41569414ca4c62e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1b7c609252ab35ebd0201fcc45c7607c" id="r_a1b7c609252ab35ebd0201fcc45c7607c"><td class="memItemLeft" align="right" valign="top">OtherRecord &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a1b7c609252ab35ebd0201fcc45c7607c">operator[]</a> (std::size_t index)</td></tr>
-<tr class="memdesc:a1b7c609252ab35ebd0201fcc45c7607c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record at the given index.  <br /></td></tr>
-<tr class="separator:a1b7c609252ab35ebd0201fcc45c7607c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a09fad713034eccede8096fbe4235a95d" id="r_a09fad713034eccede8096fbe4235a95d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a4208c7230c0ba0e12997bf6c2ce0775c">iterator</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a09fad713034eccede8096fbe4235a95d">begin</a> () noexcept</td></tr>
-<tr class="memdesc:a09fad713034eccede8096fbe4235a95d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns an iterator to the beginning of the record list.  <br /></td></tr>
-<tr class="separator:a09fad713034eccede8096fbe4235a95d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a666c433d8ecb4a438dc9abd68fa80832" id="r_a666c433d8ecb4a438dc9abd68fa80832"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a4208c7230c0ba0e12997bf6c2ce0775c">iterator</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a666c433d8ecb4a438dc9abd68fa80832">end</a> () noexcept</td></tr>
-<tr class="memdesc:a666c433d8ecb4a438dc9abd68fa80832"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns an iterator to the end of the record list.  <br /></td></tr>
-<tr class="separator:a666c433d8ecb4a438dc9abd68fa80832"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5b005973fe09241b614bd10fc1dd5c64" id="r_a5b005973fe09241b614bd10fc1dd5c64"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a817d4e3c44dfd053546805cd77b5ed77">const_iterator</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a5b005973fe09241b614bd10fc1dd5c64">begin</a> () const noexcept</td></tr>
-<tr class="memdesc:a5b005973fe09241b614bd10fc1dd5c64"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a const iterator to the beginning of the record list.  <br /></td></tr>
-<tr class="separator:a5b005973fe09241b614bd10fc1dd5c64"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aaf64250cb0af278b7ff5a6f38d8c3b43" id="r_aaf64250cb0af278b7ff5a6f38d8c3b43"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a817d4e3c44dfd053546805cd77b5ed77">const_iterator</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#aaf64250cb0af278b7ff5a6f38d8c3b43">end</a> () const noexcept</td></tr>
-<tr class="memdesc:aaf64250cb0af278b7ff5a6f38d8c3b43"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a const iterator to the end of the record list.  <br /></td></tr>
-<tr class="separator:aaf64250cb0af278b7ff5a6f38d8c3b43"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a775da7a442608a68d554b13659b29dbc" id="r_a775da7a442608a68d554b13659b29dbc"><td class="memItemLeft" align="right" valign="top"><a id="a775da7a442608a68d554b13659b29dbc" name="a775da7a442608a68d554b13659b29dbc"></a>
+<tr class="memitem:a9152f1313bd2e4a5de902fc8e11c1dda" id="r_a9152f1313bd2e4a5de902fc8e11c1dda"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#adf7fa16a2675805c7efd66dbae4e867f">ReferencedRecordList</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a9152f1313bd2e4a5de902fc8e11c1dda">All</a> () const noexcept</td></tr>
+<tr class="memdesc:a9152f1313bd2e4a5de902fc8e11c1dda"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the list of loaded records.  <br /></td></tr>
+<tr class="separator:a9152f1313bd2e4a5de902fc8e11c1dda"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adbdce22c6eff72c4204e78ffb6b9b447" id="r_adbdce22c6eff72c4204e78ffb6b9b447"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#adf7fa16a2675805c7efd66dbae4e867f">ReferencedRecordList</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#adbdce22c6eff72c4204e78ffb6b9b447">All</a> () noexcept</td></tr>
+<tr class="memdesc:adbdce22c6eff72c4204e78ffb6b9b447"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the list of records as mutable reference.  <br /></td></tr>
+<tr class="separator:adbdce22c6eff72c4204e78ffb6b9b447"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2f9bf91b16596812acff9cf53c522310" id="r_a2f9bf91b16596812acff9cf53c522310"><td class="memTemplParams" colspan="2">template&lt;typename Callable &gt; </td></tr>
+<tr class="memitem:a2f9bf91b16596812acff9cf53c522310"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a2f9bf91b16596812acff9cf53c522310">Each</a> (Callable const &amp;callable)</td></tr>
+<tr class="memdesc:a2f9bf91b16596812acff9cf53c522310"><td class="mdescLeft">&#160;</td><td class="mdescRight">Iterates over the list of records and calls the given callable for each record.  <br /></td></tr>
+<tr class="separator:a2f9bf91b16596812acff9cf53c522310"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afefaf546a1594762fd0836f988374963" id="r_afefaf546a1594762fd0836f988374963"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#adf7fa16a2675805c7efd66dbae4e867f">ReferencedRecordList</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#afefaf546a1594762fd0836f988374963">Emplace</a> (<a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#adf7fa16a2675805c7efd66dbae4e867f">ReferencedRecordList</a> &amp;&amp;records) noexcept</td></tr>
+<tr class="memdesc:afefaf546a1594762fd0836f988374963"><td class="mdescLeft">&#160;</td><td class="mdescRight">Emplaces the given list of records.  <br /></td></tr>
+<tr class="separator:afefaf546a1594762fd0836f988374963"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6941f2a1e60d4d4166a4b3394f066b3a" id="r_a6941f2a1e60d4d4166a4b3394f066b3a"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a6941f2a1e60d4d4166a4b3394f066b3a">Count</a> () const noexcept</td></tr>
+<tr class="memdesc:a6941f2a1e60d4d4166a4b3394f066b3a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the number of records in this 1-to-many relationship.  <br /></td></tr>
+<tr class="separator:a6941f2a1e60d4d4166a4b3394f066b3a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae47768e025f17d4693590441c495c042" id="r_ae47768e025f17d4693590441c495c042"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#ae47768e025f17d4693590441c495c042">IsEmpty</a> () const noexcept</td></tr>
+<tr class="memdesc:ae47768e025f17d4693590441c495c042"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if this 1-to-many relationship is empty.  <br /></td></tr>
+<tr class="separator:ae47768e025f17d4693590441c495c042"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a11ea8a3b03758e086abf2643c34da70d" id="r_a11ea8a3b03758e086abf2643c34da70d"><td class="memItemLeft" align="right" valign="top">OtherRecord const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a11ea8a3b03758e086abf2643c34da70d">At</a> (std::size_t index) const</td></tr>
+<tr class="memdesc:a11ea8a3b03758e086abf2643c34da70d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record at the given index.  <br /></td></tr>
+<tr class="separator:a11ea8a3b03758e086abf2643c34da70d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6075386eef78a9d44b0c550c09943199" id="r_a6075386eef78a9d44b0c550c09943199"><td class="memItemLeft" align="right" valign="top">OtherRecord &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a6075386eef78a9d44b0c550c09943199">At</a> (std::size_t index)</td></tr>
+<tr class="memdesc:a6075386eef78a9d44b0c550c09943199"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record at the given index.  <br /></td></tr>
+<tr class="separator:a6075386eef78a9d44b0c550c09943199"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a98565450c593eea389e2cbee809012ea" id="r_a98565450c593eea389e2cbee809012ea"><td class="memItemLeft" align="right" valign="top">OtherRecord const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a98565450c593eea389e2cbee809012ea">operator[]</a> (std::size_t index) const</td></tr>
+<tr class="memdesc:a98565450c593eea389e2cbee809012ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record at the given index.  <br /></td></tr>
+<tr class="separator:a98565450c593eea389e2cbee809012ea"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a201e9d6dd6aa3f6566b0239ec1386ee7" id="r_a201e9d6dd6aa3f6566b0239ec1386ee7"><td class="memItemLeft" align="right" valign="top">OtherRecord &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a201e9d6dd6aa3f6566b0239ec1386ee7">operator[]</a> (std::size_t index)</td></tr>
+<tr class="memdesc:a201e9d6dd6aa3f6566b0239ec1386ee7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record at the given index.  <br /></td></tr>
+<tr class="separator:a201e9d6dd6aa3f6566b0239ec1386ee7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1ea2d23759159f0355db0936e1b89de3" id="r_a1ea2d23759159f0355db0936e1b89de3"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a2d4265d39feb3dabf87480af2a6503d8">iterator</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a1ea2d23759159f0355db0936e1b89de3">begin</a> () noexcept</td></tr>
+<tr class="memdesc:a1ea2d23759159f0355db0936e1b89de3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns an iterator to the beginning of the record list.  <br /></td></tr>
+<tr class="separator:a1ea2d23759159f0355db0936e1b89de3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a16f7ccff8b6fd6b12405ae2078ee0f61" id="r_a16f7ccff8b6fd6b12405ae2078ee0f61"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a2d4265d39feb3dabf87480af2a6503d8">iterator</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a16f7ccff8b6fd6b12405ae2078ee0f61">end</a> () noexcept</td></tr>
+<tr class="memdesc:a16f7ccff8b6fd6b12405ae2078ee0f61"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns an iterator to the end of the record list.  <br /></td></tr>
+<tr class="separator:a16f7ccff8b6fd6b12405ae2078ee0f61"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a276fd031667aedcdc6fd916b4953c654" id="r_a276fd031667aedcdc6fd916b4953c654"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a4dc6838deb95d12a735c7028f56a6ef7">const_iterator</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a276fd031667aedcdc6fd916b4953c654">begin</a> () const noexcept</td></tr>
+<tr class="memdesc:a276fd031667aedcdc6fd916b4953c654"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a const iterator to the beginning of the record list.  <br /></td></tr>
+<tr class="separator:a276fd031667aedcdc6fd916b4953c654"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a819a43a3dd42a480c053cde0f4de70b7" id="r_a819a43a3dd42a480c053cde0f4de70b7"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a4dc6838deb95d12a735c7028f56a6ef7">const_iterator</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a819a43a3dd42a480c053cde0f4de70b7">end</a> () const noexcept</td></tr>
+<tr class="memdesc:a819a43a3dd42a480c053cde0f4de70b7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a const iterator to the end of the record list.  <br /></td></tr>
+<tr class="separator:a819a43a3dd42a480c053cde0f4de70b7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a30bb38715a56039b54ebe7ab7cad0d30" id="r_a30bb38715a56039b54ebe7ab7cad0d30"><td class="memItemLeft" align="right" valign="top"><a id="a30bb38715a56039b54ebe7ab7cad0d30" name="a30bb38715a56039b54ebe7ab7cad0d30"></a>
 constexpr std::weak_ordering&#160;</td><td class="memItemRight" valign="bottom"><b>operator&lt;=&gt;</b> (<a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">HasMany</a> const &amp;other) const noexcept=default</td></tr>
-<tr class="memdesc:a775da7a442608a68d554b13659b29dbc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Three-way comparison operator. <br /></td></tr>
-<tr class="separator:a775da7a442608a68d554b13659b29dbc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a564d21742243532360d4569b851bd354" id="r_a564d21742243532360d4569b851bd354"><td class="memItemLeft" align="right" valign="top"><a id="a564d21742243532360d4569b851bd354" name="a564d21742243532360d4569b851bd354"></a>
+<tr class="memdesc:a30bb38715a56039b54ebe7ab7cad0d30"><td class="mdescLeft">&#160;</td><td class="mdescRight">Three-way comparison operator. <br /></td></tr>
+<tr class="separator:a30bb38715a56039b54ebe7ab7cad0d30"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a912f7efdc0849850402f16a9f74ce6e8" id="r_a912f7efdc0849850402f16a9f74ce6e8"><td class="memItemLeft" align="right" valign="top"><a id="a912f7efdc0849850402f16a9f74ce6e8" name="a912f7efdc0849850402f16a9f74ce6e8"></a>
 constexpr bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator==</b> (<a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">HasMany</a> const &amp;other) const noexcept=default</td></tr>
-<tr class="memdesc:a564d21742243532360d4569b851bd354"><td class="mdescLeft">&#160;</td><td class="mdescRight">Equality comparison operator. <br /></td></tr>
-<tr class="separator:a564d21742243532360d4569b851bd354"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa8e4dc55a2bc1c4c28425ef62bb380f3" id="r_aa8e4dc55a2bc1c4c28425ef62bb380f3"><td class="memItemLeft" align="right" valign="top"><a id="aa8e4dc55a2bc1c4c28425ef62bb380f3" name="aa8e4dc55a2bc1c4c28425ef62bb380f3"></a>
+<tr class="memdesc:a912f7efdc0849850402f16a9f74ce6e8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Equality comparison operator. <br /></td></tr>
+<tr class="separator:a912f7efdc0849850402f16a9f74ce6e8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a79b236d81a5c14a1d182f38259eaec3d" id="r_a79b236d81a5c14a1d182f38259eaec3d"><td class="memItemLeft" align="right" valign="top"><a id="a79b236d81a5c14a1d182f38259eaec3d" name="a79b236d81a5c14a1d182f38259eaec3d"></a>
 constexpr bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator!=</b> (<a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">HasMany</a> const &amp;other) const noexcept=default</td></tr>
-<tr class="memdesc:aa8e4dc55a2bc1c4c28425ef62bb380f3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Inequality comparison operator. <br /></td></tr>
-<tr class="separator:aa8e4dc55a2bc1c4c28425ef62bb380f3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abb98fe47a6104b8952edc629b7918328" id="r_abb98fe47a6104b8952edc629b7918328"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#abb98fe47a6104b8952edc629b7918328">SetAutoLoader</a> (Loader loader) noexcept</td></tr>
-<tr class="memdesc:abb98fe47a6104b8952edc629b7918328"><td class="mdescLeft">&#160;</td><td class="mdescRight">Used internally to configure on-demand loading of the records.  <br /></td></tr>
-<tr class="separator:abb98fe47a6104b8952edc629b7918328"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memdesc:a79b236d81a5c14a1d182f38259eaec3d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Inequality comparison operator. <br /></td></tr>
+<tr class="separator:a79b236d81a5c14a1d182f38259eaec3d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac2b0a1f7b093b6f2b6b217b1c2c6953e" id="r_ac2b0a1f7b093b6f2b6b217b1c2c6953e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#ac2b0a1f7b093b6f2b6b217b1c2c6953e">SetAutoLoader</a> (Loader loader) noexcept</td></tr>
+<tr class="memdesc:ac2b0a1f7b093b6f2b6b217b1c2c6953e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Used internally to configure on-demand loading of the records.  <br /></td></tr>
+<tr class="separator:ac2b0a1f7b093b6f2b6b217b1c2c6953e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-attribs" name="pub-static-attribs"></a>
+Static Public Attributes</h2></td></tr>
+<tr class="memitem:acf8b94ea7bc852c0efda2938c51de430" id="r_acf8b94ea7bc852c0efda2938c51de430"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#acf8b94ea7bc852c0efda2938c51de430">InverseSelector</a> = TheInverseSelector</td></tr>
+<tr class="memdesc:acf8b94ea7bc852c0efda2938c51de430"><td class="mdescLeft">&#160;</td><td class="mdescRight">Singles out the foreign key of <code>OtherRecord</code> that backs this relationship.  <br /></td></tr>
+<tr class="separator:acf8b94ea7bc852c0efda2938c51de430"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><div class="compoundTemplParams">template&lt;typename OtherRecord&gt;<br />
-class Lightweight::HasMany&lt; OtherRecord &gt;</div><p>This HasMany&lt;OtherRecord&gt; represents a simple one-to-many relationship between two records. </p>
+<div class="textblock"><div class="compoundTemplParams">template&lt;typename OtherRecord, auto TheInverseSelector = AutoDetectRelation&gt;<br />
+class Lightweight::HasMany&lt; OtherRecord, TheInverseSelector &gt;</div><p>This HasMany&lt;OtherRecord&gt; represents a simple one-to-many relationship between two records. </p>
 <p>The HasMany&lt;OtherRecord&gt; is a member of the "one" side of the relationship.</p>
-<p>This implemenation of <code><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html" title="This HasMany&lt;OtherRecord&gt; represents a simple one-to-many relationship between two records.">HasMany</a>&lt;OtherRecord&gt;</code> must have only one <code><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents a one-to-one relationship.">BelongsTo</a></code> member that points back to this "one" side.</p>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a>, <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a>, <a class="el" href="../../de/d73/classLightweight_1_1HasManyThrough.html" title="This API represents a many-to-many relationship between two records through a third record.">HasManyThrough</a> </dd></dl>
+<p><code>OtherRecord</code> must declare a <code><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents a one-to-one relationship.">BelongsTo</a></code> member that points back to this "one" side. That member is located by matching the relationship <em>type</em>, not by its position in either record, so the two relationship members may be declared at any index. Declaring no such <code><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents a one-to-one relationship.">BelongsTo</a></code> is a compile-time error.</p>
+<p>When <code>OtherRecord</code> holds more than one foreign key into this record's table - say a meeting that references the same person table both as its organizer and as whoever writes the minutes - the inverse is ambiguous. Name the foreign key column through <code>TheInverseSelector</code> to single one out:</p>
+<div class="fragment"><div class="line"><span class="keyword">struct </span>Meeting;</div>
+<div class="line"><span class="keyword">struct </span>Human</div>
+<div class="line">{</div>
+<div class="line">    <a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field&lt;int, PrimaryKey::AutoAssign&gt;</a> id;</div>
+<div class="line">    <a class="code hl_class" href="../../da/df4/classLightweight_1_1HasMany.html">HasMany</a>&lt;Meeting, <a class="code hl_struct" href="../../d7/d13/structLightweight_1_1SqlRealName.html">SqlRealName</a> { <span class="stringliteral">&quot;organizer_id&quot;</span> }&gt; organizedMeetings;</div>
+<div class="line">    <a class="code hl_class" href="../../da/df4/classLightweight_1_1HasMany.html">HasMany</a>&lt;Meeting, <a class="code hl_struct" href="../../d7/d13/structLightweight_1_1SqlRealName.html">SqlRealName</a> { <span class="stringliteral">&quot;minute_taker_id&quot;</span> }&gt; minutedMeetings;</div>
+<div class="line">};</div>
+<div class="line"><span class="keyword">struct </span>Meeting</div>
+<div class="line">{</div>
+<div class="line">    Field&lt;int, PrimaryKey::AutoAssign&gt; id;</div>
+<div class="line">    BelongsTo&lt;&amp;Human::id, SqlRealName { <span class="stringliteral">&quot;organizer_id&quot;</span> }&gt; organizer;</div>
+<div class="line">    BelongsTo&lt;&amp;Human::id, SqlRealName { <span class="stringliteral">&quot;minute_taker_id&quot;</span> }, SqlNullable::Null&gt; minuteTaker;</div>
+<div class="line">};</div>
+<div class="ttc" id="aclassLightweight_1_1HasMany_html"><div class="ttname"><a href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a></div><div class="ttdoc">This HasMany&lt;OtherRecord&gt; represents a simple one-to-many relationship between two records.</div><div class="ttdef"><b>Definition</b> <a href="../../d8/deb/HasMany_8hpp_source.html#l00063">HasMany.hpp:64</a></div></div>
+<div class="ttc" id="astructLightweight_1_1Field_html"><div class="ttname"><a href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a></div><div class="ttdoc">Represents a single column in a table.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00083">Field.hpp:84</a></div></div>
+<div class="ttc" id="astructLightweight_1_1SqlRealName_html"><div class="ttname"><a href="../../d7/d13/structLightweight_1_1SqlRealName.html">Lightweight::SqlRealName</a></div><div class="ttdoc">Helper class, used to represent a real SQL column names as template arguments.</div><div class="ttdef"><b>Definition</b> <a href="../../d0/dd1/SqlRealName_8hpp_source.html#l00014">SqlRealName.hpp:15</a></div></div>
+</div><!-- fragment --><p>A meeting with <em>many</em> attendees is a many-to-many instead - see <code><a class="el" href="../../de/d73/classLightweight_1_1HasManyThrough.html" title="This API represents a many-to-many relationship between two records through a third record.">HasManyThrough</a></code>. The worked example in <code>docs/sql-to-lightweight.md</code> combines both shapes.</p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">OtherRecord</td><td>The record type on the "many" side of the relationship. </td></tr>
+    <tr><td class="paramname">TheInverseSelector</td><td>Singles out one of several foreign keys, see RelationSelector.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="../../d7/d2f/group__DataMapper.html#ga7b84626d1250c3ca3c55faec551337d4" title="Member index, within ChildRecord, of the BelongsTo member that points back to OwnerRecord.">InverseBelongsToIndexOf</a>, RelationSelector</dd>
+<dd>
+<a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a>, <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a>, <a class="el" href="../../de/d73/classLightweight_1_1HasManyThrough.html" title="This API represents a many-to-many relationship between two records through a third record.">HasManyThrough</a> </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00033">33</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00063">63</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 </div><h2 class="groupheader">Member Typedef Documentation</h2>
-<a id="aa55567dd568d83b2bf1a17980f856553" name="aa55567dd568d83b2bf1a17980f856553"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa55567dd568d83b2bf1a17980f856553">&#9670;&#160;</a></span>ReferencedRecord</h2>
+<a id="a64f0bce1911a2b64ef588a53319b631d" name="a64f0bce1911a2b64ef588a53319b631d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a64f0bce1911a2b64ef588a53319b631d">&#9670;&#160;</a></span>ReferencedRecord</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherRecord &gt; </div>
+template&lt;typename OtherRecord , auto TheInverseSelector = AutoDetectRelation&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">using <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord &gt;::ReferencedRecord =  OtherRecord</td>
+          <td class="memname">using <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord, TheInverseSelector &gt;::ReferencedRecord =  OtherRecord</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 <p>The record type of the "many" side of the relationship. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00037">37</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00071">71</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a5a29a6068f166f0e54fb24c548fdb2bb" name="a5a29a6068f166f0e54fb24c548fdb2bb"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5a29a6068f166f0e54fb24c548fdb2bb">&#9670;&#160;</a></span>ReferencedRecordList</h2>
+<a id="adf7fa16a2675805c7efd66dbae4e867f" name="adf7fa16a2675805c7efd66dbae4e867f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adf7fa16a2675805c7efd66dbae4e867f">&#9670;&#160;</a></span>ReferencedRecordList</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherRecord &gt; </div>
+template&lt;typename OtherRecord , auto TheInverseSelector = AutoDetectRelation&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">using <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord &gt;::ReferencedRecordList =  std::vector&lt;std::shared_ptr&lt;OtherRecord&gt; &gt;</td>
+          <td class="memname">using <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord, TheInverseSelector &gt;::ReferencedRecordList =  std::vector&lt;std::shared_ptr&lt;OtherRecord&gt; &gt;</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 <p>The list of records on the "many" side of the relationship. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00040">40</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00077">77</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a09781261bf364bf63b828563ef5d7f7c" name="a09781261bf364bf63b828563ef5d7f7c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a09781261bf364bf63b828563ef5d7f7c">&#9670;&#160;</a></span>value_type</h2>
+<a id="abfd68589b8a929ab84222686cbb692dd" name="abfd68589b8a929ab84222686cbb692dd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abfd68589b8a929ab84222686cbb692dd">&#9670;&#160;</a></span>value_type</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherRecord &gt; </div>
+template&lt;typename OtherRecord , auto TheInverseSelector = AutoDetectRelation&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">using <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord &gt;::value_type =  OtherRecord</td>
+          <td class="memname">using <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord, TheInverseSelector &gt;::value_type =  OtherRecord</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 <p>Record type of the "many" side of the relationship. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00043">43</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00080">80</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a4208c7230c0ba0e12997bf6c2ce0775c" name="a4208c7230c0ba0e12997bf6c2ce0775c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4208c7230c0ba0e12997bf6c2ce0775c">&#9670;&#160;</a></span>iterator</h2>
+<a id="a2d4265d39feb3dabf87480af2a6503d8" name="a2d4265d39feb3dabf87480af2a6503d8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2d4265d39feb3dabf87480af2a6503d8">&#9670;&#160;</a></span>iterator</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherRecord &gt; </div>
+template&lt;typename OtherRecord , auto TheInverseSelector = AutoDetectRelation&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">using <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord &gt;::iterator =  ReferencedRecordList::iterator</td>
+          <td class="memname">using <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord, TheInverseSelector &gt;::iterator =  ReferencedRecordList::iterator</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 <p>Iterator type for the list of records. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00046">46</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00083">83</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a817d4e3c44dfd053546805cd77b5ed77" name="a817d4e3c44dfd053546805cd77b5ed77"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a817d4e3c44dfd053546805cd77b5ed77">&#9670;&#160;</a></span>const_iterator</h2>
+<a id="a4dc6838deb95d12a735c7028f56a6ef7" name="a4dc6838deb95d12a735c7028f56a6ef7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4dc6838deb95d12a735c7028f56a6ef7">&#9670;&#160;</a></span>const_iterator</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherRecord &gt; </div>
+template&lt;typename OtherRecord , auto TheInverseSelector = AutoDetectRelation&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">using <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord &gt;::const_iterator =  ReferencedRecordList::const_iterator</td>
+          <td class="memname">using <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord, TheInverseSelector &gt;::const_iterator =  ReferencedRecordList::const_iterator</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 <p>Const iterator type for the list of records. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00049">49</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00086">86</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
-<a id="acea92f62bbba17fef8765578507e62e4" name="acea92f62bbba17fef8765578507e62e4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#acea92f62bbba17fef8765578507e62e4">&#9670;&#160;</a></span>All() <span class="overload">[1/2]</span></h2>
+<a id="a9152f1313bd2e4a5de902fc8e11c1dda" name="a9152f1313bd2e4a5de902fc8e11c1dda"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9152f1313bd2e4a5de902fc8e11c1dda">&#9670;&#160;</a></span>All() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherRecord &gt; </div>
+template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">HasMany</a>&lt; OtherRecord &gt;<a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a5a29a6068f166f0e54fb24c548fdb2bb">::ReferencedRecordList</a> const  &amp; <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord &gt;::All </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">HasMany</a>&lt; OtherRecord, <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#acf8b94ea7bc852c0efda2938c51de430">InverseSelector</a> &gt;<a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#adf7fa16a2675805c7efd66dbae4e867f">::ReferencedRecordList</a> const  &amp; <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord, <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#acf8b94ea7bc852c0efda2938c51de430">InverseSelector</a> &gt;::All </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -319,23 +353,23 @@ template&lt;typename OtherRecord &gt; </div>
 
 <p>Retrieves the list of loaded records. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00186">186</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00242">242</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a48da79f7712889cd21441431df7f7efc" name="a48da79f7712889cd21441431df7f7efc"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a48da79f7712889cd21441431df7f7efc">&#9670;&#160;</a></span>All() <span class="overload">[2/2]</span></h2>
+<a id="adbdce22c6eff72c4204e78ffb6b9b447" name="adbdce22c6eff72c4204e78ffb6b9b447"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adbdce22c6eff72c4204e78ffb6b9b447">&#9670;&#160;</a></span>All() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherRecord &gt; </div>
+template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">HasMany</a>&lt; OtherRecord &gt;<a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a5a29a6068f166f0e54fb24c548fdb2bb">::ReferencedRecordList</a> &amp; <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord &gt;::All </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">HasMany</a>&lt; OtherRecord, <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#acf8b94ea7bc852c0efda2938c51de430">InverseSelector</a> &gt;<a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#adf7fa16a2675805c7efd66dbae4e867f">::ReferencedRecordList</a> &amp; <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord, <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#acf8b94ea7bc852c0efda2938c51de430">InverseSelector</a> &gt;::All </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -350,22 +384,22 @@ template&lt;typename OtherRecord &gt; </div>
 
 <p>Retrieves the list of records as mutable reference. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00165">165</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00219">219</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a543f2454721d934c47a6cf3b63459c6d" name="a543f2454721d934c47a6cf3b63459c6d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a543f2454721d934c47a6cf3b63459c6d">&#9670;&#160;</a></span>Each()</h2>
+<a id="a2f9bf91b16596812acff9cf53c522310" name="a2f9bf91b16596812acff9cf53c522310"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2f9bf91b16596812acff9cf53c522310">&#9670;&#160;</a></span>Each()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherRecord &gt; </div>
+template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 <div class="memtemplate">
 template&lt;typename Callable &gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">void <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord &gt;::Each </td>
+          <td class="memname">void <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord, <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#acf8b94ea7bc852c0efda2938c51de430">InverseSelector</a> &gt;::Each </td>
           <td>(</td>
           <td class="paramtype">Callable const &amp;&#160;</td>
           <td class="paramname"><em>callable</em></td><td>)</td>
@@ -377,25 +411,25 @@ template&lt;typename Callable &gt; </div>
 <p>Iterates over the list of records and calls the given callable for each record. </p>
 <dl class="section note"><dt>Note</dt><dd>Use this method if you want to iterate over all records but do not need to store them all in memory, e.g. because the full data set wuold be too large. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00173">173</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00227">227</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a6c010832e211e504a027747b239b4817" name="a6c010832e211e504a027747b239b4817"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6c010832e211e504a027747b239b4817">&#9670;&#160;</a></span>Emplace()</h2>
+<a id="afefaf546a1594762fd0836f988374963" name="afefaf546a1594762fd0836f988374963"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afefaf546a1594762fd0836f988374963">&#9670;&#160;</a></span>Emplace()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherRecord &gt; </div>
+template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">HasMany</a>&lt; OtherRecord &gt;<a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a5a29a6068f166f0e54fb24c548fdb2bb">::ReferencedRecordList</a> &amp; <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord &gt;::Emplace </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">HasMany</a>&lt; OtherRecord, <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#acf8b94ea7bc852c0efda2938c51de430">InverseSelector</a> &gt;<a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#adf7fa16a2675805c7efd66dbae4e867f">::ReferencedRecordList</a> &amp; <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord, <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#acf8b94ea7bc852c0efda2938c51de430">InverseSelector</a> &gt;::Emplace </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a5a29a6068f166f0e54fb24c548fdb2bb">ReferencedRecordList</a> &amp;&amp;&#160;</td>
+          <td class="paramtype"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#adf7fa16a2675805c7efd66dbae4e867f">ReferencedRecordList</a> &amp;&amp;&#160;</td>
           <td class="paramname"><em>records</em></td><td>)</td>
           <td></td>
         </tr>
@@ -409,23 +443,23 @@ template&lt;typename OtherRecord &gt; </div>
 
 <p>Emplaces the given list of records. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00157">157</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00210">210</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a58ce8f9453b1f4b666fb325f30085641" name="a58ce8f9453b1f4b666fb325f30085641"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a58ce8f9453b1f4b666fb325f30085641">&#9670;&#160;</a></span>Count()</h2>
+<a id="a6941f2a1e60d4d4166a4b3394f066b3a" name="a6941f2a1e60d4d4166a4b3394f066b3a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6941f2a1e60d4d4166a4b3394f066b3a">&#9670;&#160;</a></span>Count()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherRecord &gt; </div>
+template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE std::size_t <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord &gt;::Count </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE std::size_t <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord, <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#acf8b94ea7bc852c0efda2938c51de430">InverseSelector</a> &gt;::Count </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -440,23 +474,23 @@ template&lt;typename OtherRecord &gt; </div>
 
 <p>Retrieves the number of records in this 1-to-many relationship. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00193">193</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00249">249</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a6940bf064197ff19dc320fcdfa927707" name="a6940bf064197ff19dc320fcdfa927707"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6940bf064197ff19dc320fcdfa927707">&#9670;&#160;</a></span>IsEmpty()</h2>
+<a id="ae47768e025f17d4693590441c495c042" name="ae47768e025f17d4693590441c495c042"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae47768e025f17d4693590441c495c042">&#9670;&#160;</a></span>IsEmpty()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherRecord &gt; </div>
+template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE bool <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord &gt;::IsEmpty </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE bool <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord, <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#acf8b94ea7bc852c0efda2938c51de430">InverseSelector</a> &gt;::IsEmpty </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -471,23 +505,23 @@ template&lt;typename OtherRecord &gt; </div>
 
 <p>Checks if this 1-to-many relationship is empty. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00205">205</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00261">261</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
-<a id="adb89edafa7435160b169cae7a7f095a5" name="adb89edafa7435160b169cae7a7f095a5"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#adb89edafa7435160b169cae7a7f095a5">&#9670;&#160;</a></span>At() <span class="overload">[1/2]</span></h2>
+<a id="a11ea8a3b03758e086abf2643c34da70d" name="a11ea8a3b03758e086abf2643c34da70d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a11ea8a3b03758e086abf2643c34da70d">&#9670;&#160;</a></span>At() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherRecord &gt; </div>
+template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE OtherRecord const  &amp; <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord &gt;::At </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE OtherRecord const  &amp; <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord, <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#acf8b94ea7bc852c0efda2938c51de430">InverseSelector</a> &gt;::At </td>
           <td>(</td>
           <td class="paramtype">std::size_t&#160;</td>
           <td class="paramname"><em>index</em></td><td>)</td>
@@ -512,23 +546,23 @@ template&lt;typename OtherRecord &gt; </div>
 <dd>
 This method will throw if the index is out of bounds. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00211">211</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00267">267</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a888c5731befb0482adb368e8f3794cd1" name="a888c5731befb0482adb368e8f3794cd1"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a888c5731befb0482adb368e8f3794cd1">&#9670;&#160;</a></span>At() <span class="overload">[2/2]</span></h2>
+<a id="a6075386eef78a9d44b0c550c09943199" name="a6075386eef78a9d44b0c550c09943199"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6075386eef78a9d44b0c550c09943199">&#9670;&#160;</a></span>At() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherRecord &gt; </div>
+template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE OtherRecord &amp; <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord &gt;::At </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE OtherRecord &amp; <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord, <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#acf8b94ea7bc852c0efda2938c51de430">InverseSelector</a> &gt;::At </td>
           <td>(</td>
           <td class="paramtype">std::size_t&#160;</td>
           <td class="paramname"><em>index</em></td><td>)</td>
@@ -553,23 +587,23 @@ template&lt;typename OtherRecord &gt; </div>
 <dd>
 This method will throw if the index is out of bounds. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00218">218</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00274">274</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
-<a id="ad61f5d9a2f12fe8aa41569414ca4c62e" name="ad61f5d9a2f12fe8aa41569414ca4c62e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad61f5d9a2f12fe8aa41569414ca4c62e">&#9670;&#160;</a></span>operator[]() <span class="overload">[1/2]</span></h2>
+<a id="a98565450c593eea389e2cbee809012ea" name="a98565450c593eea389e2cbee809012ea"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a98565450c593eea389e2cbee809012ea">&#9670;&#160;</a></span>operator[]() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherRecord &gt; </div>
+template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE OtherRecord const  &amp; <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord &gt;::operator[] </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE OtherRecord const  &amp; <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord, <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#acf8b94ea7bc852c0efda2938c51de430">InverseSelector</a> &gt;::operator[] </td>
           <td>(</td>
           <td class="paramtype">std::size_t&#160;</td>
           <td class="paramname"><em>index</em></td><td>)</td>
@@ -594,23 +628,23 @@ template&lt;typename OtherRecord &gt; </div>
 <dd>
 This method will NOT throw if the index is out of bounds. The behaviour is undefined. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00225">225</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00281">281</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a1b7c609252ab35ebd0201fcc45c7607c" name="a1b7c609252ab35ebd0201fcc45c7607c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1b7c609252ab35ebd0201fcc45c7607c">&#9670;&#160;</a></span>operator[]() <span class="overload">[2/2]</span></h2>
+<a id="a201e9d6dd6aa3f6566b0239ec1386ee7" name="a201e9d6dd6aa3f6566b0239ec1386ee7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a201e9d6dd6aa3f6566b0239ec1386ee7">&#9670;&#160;</a></span>operator[]() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherRecord &gt; </div>
+template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE OtherRecord &amp; <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord &gt;::operator[] </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE OtherRecord &amp; <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord, <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#acf8b94ea7bc852c0efda2938c51de430">InverseSelector</a> &gt;::operator[] </td>
           <td>(</td>
           <td class="paramtype">std::size_t&#160;</td>
           <td class="paramname"><em>index</em></td><td>)</td>
@@ -635,23 +669,23 @@ template&lt;typename OtherRecord &gt; </div>
 <dd>
 This method will NOT throw if the index is out of bounds. The behaviour is undefined. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00232">232</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00288">288</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a09fad713034eccede8096fbe4235a95d" name="a09fad713034eccede8096fbe4235a95d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a09fad713034eccede8096fbe4235a95d">&#9670;&#160;</a></span>begin() <span class="overload">[1/2]</span></h2>
+<a id="a1ea2d23759159f0355db0936e1b89de3" name="a1ea2d23759159f0355db0936e1b89de3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1ea2d23759159f0355db0936e1b89de3">&#9670;&#160;</a></span>begin() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherRecord &gt; </div>
+template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">HasMany</a>&lt; OtherRecord &gt;<a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a4208c7230c0ba0e12997bf6c2ce0775c">::iterator</a> <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord &gt;::begin </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">HasMany</a>&lt; OtherRecord, <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#acf8b94ea7bc852c0efda2938c51de430">InverseSelector</a> &gt;<a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a2d4265d39feb3dabf87480af2a6503d8">::iterator</a> <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord, <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#acf8b94ea7bc852c0efda2938c51de430">InverseSelector</a> &gt;::begin </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -666,23 +700,23 @@ template&lt;typename OtherRecord &gt; </div>
 
 <p>Returns an iterator to the beginning of the record list. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00239">239</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00296">296</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a666c433d8ecb4a438dc9abd68fa80832" name="a666c433d8ecb4a438dc9abd68fa80832"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a666c433d8ecb4a438dc9abd68fa80832">&#9670;&#160;</a></span>end() <span class="overload">[1/2]</span></h2>
+<a id="a16f7ccff8b6fd6b12405ae2078ee0f61" name="a16f7ccff8b6fd6b12405ae2078ee0f61"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a16f7ccff8b6fd6b12405ae2078ee0f61">&#9670;&#160;</a></span>end() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherRecord &gt; </div>
+template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">HasMany</a>&lt; OtherRecord &gt;<a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a4208c7230c0ba0e12997bf6c2ce0775c">::iterator</a> <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord &gt;::end </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">HasMany</a>&lt; OtherRecord, <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#acf8b94ea7bc852c0efda2938c51de430">InverseSelector</a> &gt;<a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a2d4265d39feb3dabf87480af2a6503d8">::iterator</a> <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord, <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#acf8b94ea7bc852c0efda2938c51de430">InverseSelector</a> &gt;::end </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -697,23 +731,23 @@ template&lt;typename OtherRecord &gt; </div>
 
 <p>Returns an iterator to the end of the record list. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00249">249</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00307">307</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a5b005973fe09241b614bd10fc1dd5c64" name="a5b005973fe09241b614bd10fc1dd5c64"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5b005973fe09241b614bd10fc1dd5c64">&#9670;&#160;</a></span>begin() <span class="overload">[2/2]</span></h2>
+<a id="a276fd031667aedcdc6fd916b4953c654" name="a276fd031667aedcdc6fd916b4953c654"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a276fd031667aedcdc6fd916b4953c654">&#9670;&#160;</a></span>begin() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherRecord &gt; </div>
+template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">HasMany</a>&lt; OtherRecord &gt;<a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a817d4e3c44dfd053546805cd77b5ed77">::const_iterator</a> <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord &gt;::begin </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">HasMany</a>&lt; OtherRecord, <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#acf8b94ea7bc852c0efda2938c51de430">InverseSelector</a> &gt;<a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a4dc6838deb95d12a735c7028f56a6ef7">::const_iterator</a> <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord, <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#acf8b94ea7bc852c0efda2938c51de430">InverseSelector</a> &gt;::begin </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -728,23 +762,23 @@ template&lt;typename OtherRecord &gt; </div>
 
 <p>Returns a const iterator to the beginning of the record list. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00259">259</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00318">318</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
-<a id="aaf64250cb0af278b7ff5a6f38d8c3b43" name="aaf64250cb0af278b7ff5a6f38d8c3b43"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aaf64250cb0af278b7ff5a6f38d8c3b43">&#9670;&#160;</a></span>end() <span class="overload">[2/2]</span></h2>
+<a id="a819a43a3dd42a480c053cde0f4de70b7" name="a819a43a3dd42a480c053cde0f4de70b7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a819a43a3dd42a480c053cde0f4de70b7">&#9670;&#160;</a></span>end() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherRecord &gt; </div>
+template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">HasMany</a>&lt; OtherRecord &gt;<a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a817d4e3c44dfd053546805cd77b5ed77">::const_iterator</a> <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord &gt;::end </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">HasMany</a>&lt; OtherRecord, <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#acf8b94ea7bc852c0efda2938c51de430">InverseSelector</a> &gt;<a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a4dc6838deb95d12a735c7028f56a6ef7">::const_iterator</a> <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord, <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#acf8b94ea7bc852c0efda2938c51de430">InverseSelector</a> &gt;::end </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -759,23 +793,23 @@ template&lt;typename OtherRecord &gt; </div>
 
 <p>Returns a const iterator to the end of the record list. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00269">269</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00330">330</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
-<a id="abb98fe47a6104b8952edc629b7918328" name="abb98fe47a6104b8952edc629b7918328"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#abb98fe47a6104b8952edc629b7918328">&#9670;&#160;</a></span>SetAutoLoader()</h2>
+<a id="ac2b0a1f7b093b6f2b6b217b1c2c6953e" name="ac2b0a1f7b093b6f2b6b217b1c2c6953e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac2b0a1f7b093b6f2b6b217b1c2c6953e">&#9670;&#160;</a></span>SetAutoLoader()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherRecord &gt; </div>
+template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE void <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord &gt;::SetAutoLoader </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE void <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord, <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#acf8b94ea7bc852c0efda2938c51de430">InverseSelector</a> &gt;::SetAutoLoader </td>
           <td>(</td>
           <td class="paramtype">Loader&#160;</td>
           <td class="paramname"><em>loader</em></td><td>)</td>
@@ -791,9 +825,38 @@ template&lt;typename OtherRecord &gt; </div>
 
 <p>Used internally to configure on-demand loading of the records. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00144">144</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00195">195</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02887">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02854">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>.</p>
+
+</div>
+</div>
+<h2 class="groupheader">Member Data Documentation</h2>
+<a id="acf8b94ea7bc852c0efda2938c51de430" name="acf8b94ea7bc852c0efda2938c51de430"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acf8b94ea7bc852c0efda2938c51de430">&#9670;&#160;</a></span>InverseSelector</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename OtherRecord , auto TheInverseSelector = AutoDetectRelation&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr auto <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord, TheInverseSelector &gt;::InverseSelector = TheInverseSelector</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Singles out the foreign key of <code>OtherRecord</code> that backs this relationship. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00074">74</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>

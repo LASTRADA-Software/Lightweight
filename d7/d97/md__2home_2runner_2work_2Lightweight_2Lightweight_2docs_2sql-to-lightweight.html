@@ -133,17 +133,16 @@ The example schema</h1>
 <div class="line"> </div>
 <div class="line">    <a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field&lt;uint64_t, PrimaryKey::ServerSideAutoIncrement&gt;</a> <span class="keywordtype">id</span> {};</div>
 <div class="line">    <a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field&lt;SqlAnsiString&lt;30&gt;</a>&gt; firstName {};</div>
-<div class="line"> </div>
-<div class="line">    <span class="comment">// FK -&gt; Departments.id. A HasMany and its inverse BelongsTo are matched by field</span></div>
-<div class="line">    <span class="comment">// position, so this member sits at the same index as Department::employees above.</span></div>
-<div class="line">    <a class="code hl_class" href="../../d0/df7/classLightweight_1_1BelongsTo.html">BelongsTo</a>&lt;&amp;Department::id, <a class="code hl_struct" href="../../d7/d13/structLightweight_1_1SqlRealName.html">SqlRealName</a> { <span class="stringliteral">&quot;department_id&quot;</span> }, SqlNullable::Null&gt; department {};</div>
-<div class="line"> </div>
 <div class="line">    <a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field&lt;SqlAnsiString&lt;30&gt;</a>&gt; lastName {};</div>
 <div class="line">    <a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field&lt;int&gt;</a> salary {};</div>
 <div class="line">    <a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field&lt;std::optional&lt;int&gt;</a>&gt; age {};</div>
+<div class="line"> </div>
+<div class="line">    <span class="comment">// FK -&gt; Departments.id. The inverse of Department::employees is matched by relationship</span></div>
+<div class="line">    <span class="comment">// type, so the two members may be declared at any position in their records.</span></div>
+<div class="line">    <a class="code hl_class" href="../../d0/df7/classLightweight_1_1BelongsTo.html">BelongsTo</a>&lt;&amp;Department::id, <a class="code hl_struct" href="../../d7/d13/structLightweight_1_1SqlRealName.html">SqlRealName</a> { <span class="stringliteral">&quot;department_id&quot;</span> }, SqlNullable::Null&gt; department {};</div>
 <div class="line">};</div>
 <div class="ttc" id="aclassLightweight_1_1BelongsTo_html"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html">Lightweight::BelongsTo</a></div><div class="ttdoc">Represents a one-to-one relationship.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00056">BelongsTo.hpp:57</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1HasMany_html"><div class="ttname"><a href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a></div><div class="ttdoc">This HasMany&lt;OtherRecord&gt; represents a simple one-to-many relationship between two records.</div><div class="ttdef"><b>Definition</b> <a href="../../d8/deb/HasMany_8hpp_source.html#l00033">HasMany.hpp:34</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1HasMany_html"><div class="ttname"><a href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a></div><div class="ttdoc">This HasMany&lt;OtherRecord&gt; represents a simple one-to-many relationship between two records.</div><div class="ttdef"><b>Definition</b> <a href="../../d8/deb/HasMany_8hpp_source.html#l00063">HasMany.hpp:64</a></div></div>
 <div class="ttc" id="astructLightweight_1_1Field_html"><div class="ttname"><a href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a></div><div class="ttdoc">Represents a single column in a table.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00083">Field.hpp:84</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlRealName_html"><div class="ttname"><a href="../../d7/d13/structLightweight_1_1SqlRealName.html">Lightweight::SqlRealName</a></div><div class="ttdoc">Helper class, used to represent a real SQL column names as template arguments.</div><div class="ttdef"><b>Definition</b> <a href="../../d0/dd1/SqlRealName_8hpp_source.html#l00014">SqlRealName.hpp:15</a></div></div>
 </div><!-- fragment --><p><code>Field&lt;T&gt;</code> declares a column; the second template argument customises it (<code>PrimaryKey::ServerSideAutoIncrement</code> lets the database assign the id, a <code>SqlRealName { "..." }</code> overrides the column name, etc.). <code>FieldNameOf&lt;&amp;Employee::salary&gt;</code> yields the column name (<code>"salary"</code>, or the <code>SqlRealName</code> override) and <code>FullyQualifiedNameOf&lt;&amp;Employee::salary&gt;</code> yields <code>"Employees"."salary"</code> — use these instead of hand-writing column-name strings so a rename is caught at compile time.</p>
@@ -445,6 +444,152 @@ Relationships</h1>
 <div class="line">        std::println(<span class="stringliteral">&quot;  {}&quot;</span>, emp-&gt;lastName.Value());</div>
 <div class="line">}</div>
 </div><!-- fragment --><p>When the <code>BelongsTo</code> is <b>mandatory</b> (omit <code>SqlNullable::Null</code>), the parent is reached with the cleaner <code>employee.department-&gt;name</code> / <code>*employee.department</code>. Query with <code>DataMapperOptions { .loadRelations = false }</code> when you do not want relations populated; accessing an unloaded relation then throws rather than issuing a query. <code>HasManyThrough&lt;Other, Through&gt;</code> and <code>HasOneThrough&lt;...&gt;</code> model many-to-many / one-through relationships across a junction table.</p>
+<h2><a class="anchor" id="several-foreign-keys-into-the-same-table"></a>
+Several foreign keys into the same table</h2>
+<p>A relation finds its counterpart by matching the relationship <em>type</em>, so the two members may sit at any index in their records. That leaves one case undecidable: a record holding <b>more than one</b> foreign key into the same table - a meeting referencing the person table both as its organizer and as whoever writes the minutes. Which of the two a <code>HasMany&lt;Meeting&gt;</code> means cannot be guessed, and guessing wrong returns wrong rows silently, so it is a compile error.</p>
+<p>Name the foreign key column to resolve it. Take a schema with both shapes at once: two direct roles on the meeting itself, and any number of attendees through a join table.</p>
+<div class="fragment"><div class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> <span class="stringliteral">&quot;Humans&quot;</span> (</div>
+<div class="line">    <span class="stringliteral">&quot;id&quot;</span>   <span class="keywordtype">BIGINT</span> <span class="keyword">PRIMARY</span> KEY AUTOINCREMENT,</div>
+<div class="line">    <span class="stringliteral">&quot;name&quot;</span> <span class="keywordtype">VARCHAR</span>(<span class="stringliteral">30</span>) <span class="keyword">NOT</span> <span class="stringliteral">NULL</span></div>
+<div class="line">);</div>
+<div class="line"> </div>
+<div class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> <span class="stringliteral">&quot;Meetings&quot;</span> (</div>
+<div class="line">    <span class="stringliteral">&quot;id&quot;</span>              <span class="keywordtype">BIGINT</span> <span class="keyword">PRIMARY</span> KEY AUTOINCREMENT,</div>
+<div class="line">    <span class="stringliteral">&quot;topic&quot;</span>           <span class="keywordtype">VARCHAR</span>(<span class="stringliteral">40</span>) <span class="keyword">NOT</span> <span class="stringliteral">NULL</span>,</div>
+<div class="line">    <span class="stringliteral">&quot;organizer_id&quot;</span>    <span class="keywordtype">BIGINT</span> <span class="keyword">NOT</span> <span class="stringliteral">NULL</span> <span class="keyword">REFERENCES</span> <span class="stringliteral">&quot;Humans&quot;</span>(<span class="stringliteral">&quot;id&quot;</span>),</div>
+<div class="line">    <span class="stringliteral">&quot;minute_taker_id&quot;</span> <span class="keywordtype">BIGINT</span>          <span class="keyword">REFERENCES</span> <span class="stringliteral">&quot;Humans&quot;</span>(<span class="stringliteral">&quot;id&quot;</span>)</div>
+<div class="line">);</div>
+<div class="line"> </div>
+<div class="line"><span class="comment">-- One row per person per meeting: the many-to-many that gives a meeting many attendees.</span></div>
+<div class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> <span class="stringliteral">&quot;Attendances&quot;</span> (</div>
+<div class="line">    <span class="stringliteral">&quot;id&quot;</span>         <span class="keywordtype">BIGINT</span> <span class="keyword">PRIMARY</span> KEY AUTOINCREMENT,</div>
+<div class="line">    <span class="stringliteral">&quot;meeting_id&quot;</span> <span class="keywordtype">BIGINT</span> <span class="keyword">NOT</span> <span class="stringliteral">NULL</span> <span class="keyword">REFERENCES</span> <span class="stringliteral">&quot;Meetings&quot;</span>(<span class="stringliteral">&quot;id&quot;</span>),</div>
+<div class="line">    <span class="stringliteral">&quot;human_id&quot;</span>   <span class="keywordtype">BIGINT</span> <span class="keyword">NOT</span> <span class="stringliteral">NULL</span> <span class="keyword">REFERENCES</span> <span class="stringliteral">&quot;Humans&quot;</span>(<span class="stringliteral">&quot;id&quot;</span>)</div>
+<div class="line">);</div>
+</div><!-- fragment --><div class="fragment"><div class="line"><span class="keyword">struct </span>Meeting;</div>
+<div class="line"><span class="keyword">struct </span>Attendance;</div>
+<div class="line"> </div>
+<div class="line"><span class="keyword">struct </span>Human</div>
+<div class="line">{</div>
+<div class="line">    <span class="keyword">static</span> <span class="keyword">constexpr</span> std::string_view TableName = <span class="stringliteral">&quot;Humans&quot;</span>;</div>
+<div class="line"> </div>
+<div class="line">    <a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field&lt;uint64_t, PrimaryKey::ServerSideAutoIncrement&gt;</a> <span class="keywordtype">id</span> {};</div>
+<div class="line">    <a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field&lt;SqlAnsiString&lt;30&gt;</a>&gt; name {};</div>
+<div class="line"> </div>
+<div class="line">    <span class="comment">// Two columns of Meetings point back here, so each relation names the one it means.</span></div>
+<div class="line">    <a class="code hl_class" href="../../da/df4/classLightweight_1_1HasMany.html">HasMany</a>&lt;Meeting, <a class="code hl_struct" href="../../d7/d13/structLightweight_1_1SqlRealName.html">SqlRealName</a> { <span class="stringliteral">&quot;organizer_id&quot;</span> }&gt; organizedMeetings {};</div>
+<div class="line">    <a class="code hl_class" href="../../da/df4/classLightweight_1_1HasMany.html">HasMany</a>&lt;Meeting, <a class="code hl_struct" href="../../d7/d13/structLightweight_1_1SqlRealName.html">SqlRealName</a> { <span class="stringliteral">&quot;minute_taker_id&quot;</span> }&gt; minutedMeetings {};</div>
+<div class="line"> </div>
+<div class="line">    <span class="comment">// Attendance is a plain many-to-many, so no selector is needed here.</span></div>
+<div class="line">    <a class="code hl_class" href="../../de/d73/classLightweight_1_1HasManyThrough.html">HasManyThrough&lt;Meeting, Attendance&gt;</a> attendedMeetings {};</div>
+<div class="line">};</div>
+<div class="line"> </div>
+<div class="line"><span class="keyword">struct </span>Meeting</div>
+<div class="line">{</div>
+<div class="line">    <span class="keyword">static</span> <span class="keyword">constexpr</span> std::string_view TableName = <span class="stringliteral">&quot;Meetings&quot;</span>;</div>
+<div class="line"> </div>
+<div class="line">    <a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field&lt;uint64_t, PrimaryKey::ServerSideAutoIncrement&gt;</a> <span class="keywordtype">id</span> {};</div>
+<div class="line">    <a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field&lt;SqlAnsiString&lt;40&gt;</a>&gt; topic {};</div>
+<div class="line"> </div>
+<div class="line">    <span class="comment">// Each foreign key names its own column - exactly as it would without the second one.</span></div>
+<div class="line">    <a class="code hl_class" href="../../d0/df7/classLightweight_1_1BelongsTo.html">BelongsTo</a>&lt;&amp;Human::id, <a class="code hl_struct" href="../../d7/d13/structLightweight_1_1SqlRealName.html">SqlRealName</a> { <span class="stringliteral">&quot;organizer_id&quot;</span> }&gt; organizer {};</div>
+<div class="line">    <a class="code hl_class" href="../../d0/df7/classLightweight_1_1BelongsTo.html">BelongsTo</a>&lt;&amp;Human::id, <a class="code hl_struct" href="../../d7/d13/structLightweight_1_1SqlRealName.html">SqlRealName</a> { <span class="stringliteral">&quot;minute_taker_id&quot;</span> }, SqlNullable::Null&gt; minuteTaker {};</div>
+<div class="line"> </div>
+<div class="line">    <span class="comment">// Any number of attendees, through the join record below.</span></div>
+<div class="line">    <a class="code hl_class" href="../../de/d73/classLightweight_1_1HasManyThrough.html">HasManyThrough&lt;Human, Attendance&gt;</a> attendees {};</div>
+<div class="line">};</div>
+<div class="line"> </div>
+<div class="line"><span class="keyword">struct </span>Attendance</div>
+<div class="line">{</div>
+<div class="line">    <span class="keyword">static</span> <span class="keyword">constexpr</span> std::string_view TableName = <span class="stringliteral">&quot;Attendances&quot;</span>;</div>
+<div class="line"> </div>
+<div class="line">    <a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field&lt;uint64_t, PrimaryKey::ServerSideAutoIncrement&gt;</a> <span class="keywordtype">id</span> {};</div>
+<div class="line">    <a class="code hl_class" href="../../d0/df7/classLightweight_1_1BelongsTo.html">BelongsTo</a>&lt;&amp;Meeting::id, <a class="code hl_struct" href="../../d7/d13/structLightweight_1_1SqlRealName.html">SqlRealName</a> { <span class="stringliteral">&quot;meeting_id&quot;</span> }&gt; meeting {};</div>
+<div class="line">    <a class="code hl_class" href="../../d0/df7/classLightweight_1_1BelongsTo.html">BelongsTo</a>&lt;&amp;Human::id, <a class="code hl_struct" href="../../d7/d13/structLightweight_1_1SqlRealName.html">SqlRealName</a> { <span class="stringliteral">&quot;human_id&quot;</span> }&gt; human {};</div>
+<div class="line">};</div>
+<div class="ttc" id="aclassLightweight_1_1HasManyThrough_html"><div class="ttname"><a href="../../de/d73/classLightweight_1_1HasManyThrough.html">Lightweight::HasManyThrough</a></div><div class="ttdoc">This API represents a many-to-many relationship between two records through a third record.</div><div class="ttdef"><b>Definition</b> <a href="../../da/daf/HasManyThrough_8hpp_source.html#l00054">HasManyThrough.hpp:55</a></div></div>
+</div><!-- fragment --><p>Only the two ambiguous relations carry a selector; <code>attendedMeetings</code> and <code>attendees</code> resolve on their own, because <code>Attendance</code> holds exactly one foreign key into each table. The <code>BelongsTo</code> side never changes - it already names its own column.</p>
+<p>The selector is the <em>SQL column name</em>, not a pointer to the member: the two records reference each other, so neither type is complete where the other is declared. A name that matches no <code>BelongsTo</code> into that table is a compile error, so a typo cannot go unnoticed.</p>
+<h3><a class="anchor" id="writing-the-rows"></a>
+Writing the rows</h3>
+<p>Assigning a record to a <code>BelongsTo</code> copies its primary key, so relationships are set by handing over the record itself. Attendees are rows in the join table:</p>
+<div class="fragment"><div class="line">dm.CreateTables&lt;Human, Meeting, Attendance&gt;();</div>
+<div class="line"> </div>
+<div class="line"><span class="keyword">auto</span> alice = Human { .name = <span class="stringliteral">&quot;Alice&quot;</span> };</div>
+<div class="line"><span class="keyword">auto</span> bob = Human { .name = <span class="stringliteral">&quot;Bob&quot;</span> };</div>
+<div class="line"><span class="keyword">auto</span> carol = Human { .name = <span class="stringliteral">&quot;Carol&quot;</span> };</div>
+<div class="line"><span class="keywordflow">for</span> (<span class="keyword">auto</span>* human: { &amp;alice, &amp;bob, &amp;carol })</div>
+<div class="line">    dm.Create(*human);</div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// Alice calls the planning meeting; Bob writes the minutes.</span></div>
+<div class="line"><span class="keyword">auto</span> planning = Meeting { .topic = <span class="stringliteral">&quot;Planning&quot;</span>, .organizer = alice, .minuteTaker = bob };</div>
+<div class="line">dm.Create(planning);</div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// All three of them attend it - one join row per attendee.</span></div>
+<div class="line"><span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; attendee: { alice, bob, carol })</div>
+<div class="line">    dm.CreateExplicit(Attendance { .meeting = planning, .human = attendee });</div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// Carol runs the retrospective, nobody takes minutes, and only Alice joins her.</span></div>
+<div class="line"><span class="keyword">auto</span> retro = Meeting { .topic = <span class="stringliteral">&quot;Retrospective&quot;</span>, .organizer = carol };</div>
+<div class="line">dm.Create(retro);</div>
+<div class="line"><span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; attendee: { carol, alice })</div>
+<div class="line">    dm.CreateExplicit(Attendance { .meeting = retro, .human = attendee });</div>
+</div><!-- fragment --><p><code>dm.Create()</code> writes the record and fills its generated primary key back in, which is what makes <code>planning</code> usable as a foreign key on the very next line. Use <code>dm.CreateExplicit()</code> for rows you do not need to keep, such as the join rows above.</p>
+<h3><a class="anchor" id="reading-them-back"></a>
+Reading them back</h3>
+<div class="fragment"><div class="line"><span class="comment">// Read a meeting with everyone involved in it.</span></div>
+<div class="line"><span class="keyword">auto</span> meeting = dm.QuerySingle&lt;Meeting&gt;(planningId).value();</div>
+<div class="line">dm.ConfigureRelationAutoLoading(meeting);</div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// A mandatory BelongsTo dereferences straight through.</span></div>
+<div class="line">std::println(<span class="stringliteral">&quot;{} - organized by {}&quot;</span>, meeting.topic.Value(), meeting.organizer-&gt;name.Value());</div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// A nullable one yields an optional instead.</span></div>
+<div class="line"><span class="keywordflow">if</span> (<span class="keyword">auto</span> <span class="keyword">const</span> scribe = meeting.minuteTaker.Record().transform(Unwrap))</div>
+<div class="line">    std::println(<span class="stringliteral">&quot;  minutes by {}&quot;</span>, scribe-&gt;name.Value());</div>
+<div class="line"> </div>
+<div class="line">std::println(<span class="stringliteral">&quot;  {} attendees:&quot;</span>, meeting.attendees.Count());</div>
+<div class="line"><span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; attendee: meeting.attendees.All())</div>
+<div class="line">    std::println(<span class="stringliteral">&quot;    {}&quot;</span>, attendee-&gt;name.Value());</div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// And the same relationships read from the other side.</span></div>
+<div class="line"><span class="keyword">auto</span> human = dm.QuerySingle&lt;Human&gt;(aliceId).value();</div>
+<div class="line">dm.ConfigureRelationAutoLoading(human);</div>
+<div class="line">std::println(<span class="stringliteral">&quot;{} organized {}, minuted {} and attended {} meeting(s)&quot;</span>,</div>
+<div class="line">             human.name.Value(),</div>
+<div class="line">             human.organizedMeetings.Count(),</div>
+<div class="line">             human.minutedMeetings.Count(),</div>
+<div class="line">             human.attendedMeetings.Count());</div>
+</div><!-- fragment --><p>which prints:</p>
+<div class="fragment"><div class="line">Planning - organized by Alice</div>
+<div class="line">  minutes by Bob</div>
+<div class="line">  3 attendees:</div>
+<div class="line">    Alice</div>
+<div class="line">    Bob</div>
+<div class="line">    Carol</div>
+<div class="line">Alice organized 1, minuted 0 and attended 2 meeting(s)</div>
+</div><!-- fragment --><p>Each relation queries only its own foreign key: <code>organizedMeetings</code> filters on <code>organizer_id</code>, <code>minutedMeetings</code> on <code>minute_taker_id</code>, and <code>attendees</code> joins through <code>Attendances</code>. <code>Count()</code> costs a <code>SELECT COUNT(*)</code> without materialising the rows, and <code>Each()</code> streams them when the full set would be too large to hold.</p>
+<h3><a class="anchor" id="self-referential-relationships"></a>
+Self-referential relationships</h3>
+<p>When both foreign keys of a join record point at the <em>same</em> table - people who know other people - neither end can be resolved automatically, so <code>HasManyThrough</code> takes both column names: first the one pointing back at the record owning the relation, then the one pointing at the record it reaches.</p>
+<div class="fragment"><div class="line"><span class="keyword">struct </span>Friendship;</div>
+<div class="line"> </div>
+<div class="line"><span class="keyword">struct </span>Person</div>
+<div class="line">{</div>
+<div class="line">    <a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field&lt;uint64_t, PrimaryKey::ServerSideAutoIncrement&gt;</a> id;</div>
+<div class="line">    <a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field&lt;SqlAnsiString&lt;30&gt;</a>&gt; name;</div>
+<div class="line"> </div>
+<div class="line">    <span class="comment">//                                          this person -.    .- the friend</span></div>
+<div class="line">    <a class="code hl_class" href="../../de/d73/classLightweight_1_1HasManyThrough.html">HasManyThrough</a>&lt;Person, Friendship, <a class="code hl_struct" href="../../d7/d13/structLightweight_1_1SqlRealName.html">SqlRealName</a> { <span class="stringliteral">&quot;a_id&quot;</span> }, <a class="code hl_struct" href="../../d7/d13/structLightweight_1_1SqlRealName.html">SqlRealName</a> { <span class="stringliteral">&quot;b_id&quot;</span> }&gt; friends;</div>
+<div class="line">};</div>
+<div class="line"> </div>
+<div class="line"><span class="keyword">struct </span>Friendship</div>
+<div class="line">{</div>
+<div class="line">    <a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field&lt;uint64_t, PrimaryKey::ServerSideAutoIncrement&gt;</a> id;</div>
+<div class="line">    <a class="code hl_class" href="../../d0/df7/classLightweight_1_1BelongsTo.html">BelongsTo</a>&lt;&amp;Person::id, <a class="code hl_struct" href="../../d7/d13/structLightweight_1_1SqlRealName.html">SqlRealName</a> { <span class="stringliteral">&quot;a_id&quot;</span> }&gt; a;</div>
+<div class="line">    <a class="code hl_class" href="../../d0/df7/classLightweight_1_1BelongsTo.html">BelongsTo</a>&lt;&amp;Person::id, <a class="code hl_struct" href="../../d7/d13/structLightweight_1_1SqlRealName.html">SqlRealName</a> { <span class="stringliteral">&quot;b_id&quot;</span> }&gt; b;</div>
+<div class="line">};</div>
+</div><!-- fragment --><p>Swapping the two selectors reverses the direction the relation reads. <code>HasOneThrough</code> takes the same pair. Records with a single foreign key per relationship need no selector at all - resolution stays automatic, and every schema that compiled before this feature existed still does.</p>
 <hr  />
 <h1><a class="anchor" id="create-table"></a>
 CREATE TABLE</h1>
