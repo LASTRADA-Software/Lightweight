@@ -676,49 +676,79 @@ TEST_CASE_METHOD(SqlTestFixture, "Doc.Meetings", "[DocExample]")
 
     //! [doc-meeting-read]
     // Read a meeting with everyone involved in it.
-    auto meeting = dm.QuerySingle<Meeting>(planningId).value();
-    dm.ConfigureRelationAutoLoading(meeting);
+    if (auto meeting = dm.QuerySingle<Meeting>(planningId))
+    {
+        dm.ConfigureRelationAutoLoading(*meeting);
 
-    // A mandatory BelongsTo dereferences straight through.
-    std::println("{} - organized by {}", meeting.topic.Value(), meeting.organizer->name.Value());
+        // A mandatory BelongsTo dereferences straight through.
+        std::println("{} - organized by {}", meeting->topic.Value(), meeting->organizer->name.Value());
 
-    // A nullable one yields an optional instead.
-    if (auto const scribe = meeting.minuteTaker.Record().transform(Unwrap))
-        std::println("  minutes by {}", scribe->name.Value());
+        // A nullable one yields an optional instead.
+        if (auto const scribe = meeting->minuteTaker.Record().transform(Unwrap))
+            std::println("  minutes by {}", scribe->name.Value());
 
-    std::println("  {} attendees:", meeting.attendees.Count());
-    for (auto const& attendee: meeting.attendees.All())
-        std::println("    {}", attendee->name.Value());
+        std::println("  {} attendees:", meeting->attendees.Count());
+        for (auto const& attendee: meeting->attendees.All())
+            std::println("    {}", attendee->name.Value());
+    }
 
     // And the same relationships read from the other side.
-    auto human = dm.QuerySingle<Human>(aliceId).value();
-    dm.ConfigureRelationAutoLoading(human);
-    std::println("{} organized {}, minuted {} and attended {} meeting(s)",
-                 human.name.Value(),
-                 human.organizedMeetings.Count(),
-                 human.minutedMeetings.Count(),
-                 human.attendedMeetings.Count());
+    if (auto human = dm.QuerySingle<Human>(aliceId))
+    {
+        dm.ConfigureRelationAutoLoading(*human);
+        std::println("{} organized {}, minuted {} and attended {} meeting(s)",
+                     human->name.Value(),
+                     human->organizedMeetings.Count(),
+                     human->minutedMeetings.Count(),
+                     human->attendedMeetings.Count());
+    }
     //! [doc-meeting-read]
 
-    CHECK(meeting.organizer->name.Value() == "Alice");
-    CHECK(meeting.minuteTaker.Record().transform(Unwrap)->name.Value() == "Bob");
-    CHECK(meeting.attendees.Count() == 3);
+    auto meeting = dm.QuerySingle<Meeting>(planningId);
+    REQUIRE(meeting.has_value());
+    if (meeting)
+    {
+        dm.ConfigureRelationAutoLoading(*meeting);
+        CHECK(meeting->organizer->name.Value() == "Alice");
+        CHECK(meeting->attendees.Count() == 3);
+
+        auto const scribe = meeting->minuteTaker.Record().transform(Unwrap);
+        REQUIRE(scribe.has_value());
+        if (scribe)
+            CHECK(scribe->name.Value() == "Bob");
+    }
 
     // Alice organized "Planning", minuted nothing, and attended both meetings.
-    CHECK(human.organizedMeetings.Count() == 1);
-    CHECK(human.minutedMeetings.Count() == 0);
-    CHECK(human.attendedMeetings.Count() == 2);
+    auto human = dm.QuerySingle<Human>(aliceId);
+    REQUIRE(human.has_value());
+    if (human)
+    {
+        dm.ConfigureRelationAutoLoading(*human);
+        CHECK(human->organizedMeetings.Count() == 1);
+        CHECK(human->minutedMeetings.Count() == 0);
+        CHECK(human->attendedMeetings.Count() == 2);
+    }
 
-    auto bobLoaded = dm.QuerySingle<Human>(bob.id.Value()).value();
-    dm.ConfigureRelationAutoLoading(bobLoaded);
-    CHECK(bobLoaded.organizedMeetings.Count() == 0);
-    CHECK(bobLoaded.minutedMeetings.Count() == 1);
-    CHECK(bobLoaded.attendedMeetings.Count() == 1);
+    auto bobLoaded = dm.QuerySingle<Human>(bob.id.Value());
+    REQUIRE(bobLoaded.has_value());
+    if (bobLoaded)
+    {
+        dm.ConfigureRelationAutoLoading(*bobLoaded);
+        CHECK(bobLoaded->organizedMeetings.Count() == 0);
+        CHECK(bobLoaded->minutedMeetings.Count() == 1);
+        CHECK(bobLoaded->attendedMeetings.Count() == 1);
+    }
 
-    auto retroLoaded = dm.QuerySingle<Meeting>(retro.id.Value()).value();
-    dm.ConfigureRelationAutoLoading(retroLoaded);
-    CHECK(retroLoaded.attendees.Count() == 2);
-    CHECK_FALSE(retroLoaded.minuteTaker.Record().transform(Unwrap).has_value());
+    // The retrospective has no minute taker - a NULL foreign key loads as an empty optional, and
+    // does so without logging a failure.
+    auto retroLoaded = dm.QuerySingle<Meeting>(retro.id.Value());
+    REQUIRE(retroLoaded.has_value());
+    if (retroLoaded)
+    {
+        dm.ConfigureRelationAutoLoading(*retroLoaded);
+        CHECK(retroLoaded->attendees.Count() == 2);
+        CHECK_FALSE(retroLoaded->minuteTaker.Record().transform(Unwrap).has_value());
+    }
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "Doc.DDL", "[DocExample]")

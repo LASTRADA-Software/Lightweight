@@ -703,28 +703,32 @@ not need to keep, such as the join rows above.
 <!-- snippet: doc-meeting-read -->
 ```cpp
 // Read a meeting with everyone involved in it.
-auto meeting = dm.QuerySingle<Meeting>(planningId).value();
-dm.ConfigureRelationAutoLoading(meeting);
+if (auto meeting = dm.QuerySingle<Meeting>(planningId))
+{
+    dm.ConfigureRelationAutoLoading(*meeting);
 
-// A mandatory BelongsTo dereferences straight through.
-std::println("{} - organized by {}", meeting.topic.Value(), meeting.organizer->name.Value());
+    // A mandatory BelongsTo dereferences straight through.
+    std::println("{} - organized by {}", meeting->topic.Value(), meeting->organizer->name.Value());
 
-// A nullable one yields an optional instead.
-if (auto const scribe = meeting.minuteTaker.Record().transform(Unwrap))
-    std::println("  minutes by {}", scribe->name.Value());
+    // A nullable one yields an optional instead.
+    if (auto const scribe = meeting->minuteTaker.Record().transform(Unwrap))
+        std::println("  minutes by {}", scribe->name.Value());
 
-std::println("  {} attendees:", meeting.attendees.Count());
-for (auto const& attendee: meeting.attendees.All())
-    std::println("    {}", attendee->name.Value());
+    std::println("  {} attendees:", meeting->attendees.Count());
+    for (auto const& attendee: meeting->attendees.All())
+        std::println("    {}", attendee->name.Value());
+}
 
 // And the same relationships read from the other side.
-auto human = dm.QuerySingle<Human>(aliceId).value();
-dm.ConfigureRelationAutoLoading(human);
-std::println("{} organized {}, minuted {} and attended {} meeting(s)",
-             human.name.Value(),
-             human.organizedMeetings.Count(),
-             human.minutedMeetings.Count(),
-             human.attendedMeetings.Count());
+if (auto human = dm.QuerySingle<Human>(aliceId))
+{
+    dm.ConfigureRelationAutoLoading(*human);
+    std::println("{} organized {}, minuted {} and attended {} meeting(s)",
+                 human->name.Value(),
+                 human->organizedMeetings.Count(),
+                 human->minutedMeetings.Count(),
+                 human->attendedMeetings.Count());
+}
 ```
 
 which prints:
@@ -770,8 +774,15 @@ struct Friendship
 };
 ```
 
-Swapping the two selectors reverses the direction the relation reads. `HasOneThrough` takes the same
-pair. Records with a single foreign key per relationship need no selector at all - resolution stays
+Swapping the two selectors reverses the direction the relation reads: with `"b_id"` first and
+`"a_id"` second, `friends` walks the friendships from the other end.
+
+`HasOneThrough` also takes two selectors, but they name columns on *different* records: the first one
+is the column on the join record pointing back at the owner (same as above), the second is the column
+on the *referenced* record pointing at the join record. Passing two join-record column names there is
+a compile error, not a silently reversed relation.
+
+Records with a single foreign key per relationship need no selector at all - resolution stays
 automatic, and every schema that compiled before this feature existed still does.
 
 ---

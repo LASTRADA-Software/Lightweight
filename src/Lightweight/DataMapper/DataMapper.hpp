@@ -2474,6 +2474,11 @@ std::optional<typename FieldType::ReferencedRecord> DataMapper::LoadBelongsTo(Fi
 
     std::optional<ReferencedRecord> record { std::nullopt };
 
+    // A NULL foreign key references nothing - that is the relation being empty, not a failed load.
+    if constexpr (FieldType::IsOptional)
+        if (!value.has_value())
+            return record;
+
 #if defined(LIGHTWEIGHT_CXX26_REFLECTION)
     auto constexpr ctx = std::meta::access_context::current();
     template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^ReferencedRecord, ctx)))
