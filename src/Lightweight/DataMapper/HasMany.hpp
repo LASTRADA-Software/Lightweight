@@ -30,8 +30,8 @@ namespace Lightweight
 /// error.
 ///
 /// When `OtherRecord` holds more than one foreign key into this record's table - say a meeting that
-/// references the same person table as both its organizer and its attendee - the inverse is ambiguous.
-/// Name the foreign key column through @p TheInverseSelector to single one out:
+/// references the same person table both as its organizer and as whoever writes the minutes - the
+/// inverse is ambiguous. Name the foreign key column through @p TheInverseSelector to single one out:
 ///
 /// @code
 /// struct Meeting;
@@ -39,15 +39,18 @@ namespace Lightweight
 /// {
 ///     Field<int, PrimaryKey::AutoAssign> id;
 ///     HasMany<Meeting, SqlRealName { "organizer_id" }> organizedMeetings;
-///     HasMany<Meeting, SqlRealName { "attendee_id" }> attendedMeetings;
+///     HasMany<Meeting, SqlRealName { "minute_taker_id" }> minutedMeetings;
 /// };
 /// struct Meeting
 /// {
 ///     Field<int, PrimaryKey::AutoAssign> id;
 ///     BelongsTo<&Human::id, SqlRealName { "organizer_id" }> organizer;
-///     BelongsTo<&Human::id, SqlRealName { "attendee_id" }> attendee;
+///     BelongsTo<&Human::id, SqlRealName { "minute_taker_id" }, SqlNullable::Null> minuteTaker;
 /// };
 /// @endcode
+///
+/// A meeting with *many* attendees is a many-to-many instead - see `HasManyThrough`. The worked
+/// example in `docs/sql-to-lightweight.md` combines both shapes.
 ///
 /// @tparam OtherRecord The record type on the "many" side of the relationship.
 /// @tparam TheInverseSelector Singles out one of several foreign keys, see @ref RelationSelector.

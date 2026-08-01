@@ -75,6 +75,50 @@ struct DepartmentHeadcount
 };
 //! [doc-custom-result-struct]
 
+//! [doc-meeting-schema]
+struct Meeting;
+struct Attendance;
+
+struct Human
+{
+    static constexpr std::string_view TableName = "Humans";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<SqlAnsiString<30>> name {};
+
+    // Two columns of Meetings point back here, so each relation names the one it means.
+    HasMany<Meeting, SqlRealName { "organizer_id" }> organizedMeetings {};
+    HasMany<Meeting, SqlRealName { "minute_taker_id" }> minutedMeetings {};
+
+    // Attendance is a plain many-to-many, so no selector is needed here.
+    HasManyThrough<Meeting, Attendance> attendedMeetings {};
+};
+
+struct Meeting
+{
+    static constexpr std::string_view TableName = "Meetings";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<SqlAnsiString<40>> topic {};
+
+    // Each foreign key names its own column - exactly as it would without the second one.
+    BelongsTo<&Human::id, SqlRealName { "organizer_id" }> organizer {};
+    BelongsTo<&Human::id, SqlRealName { "minute_taker_id" }, SqlNullable::Null> minuteTaker {};
+
+    // Any number of attendees, through the join record below.
+    HasManyThrough<Human, Attendance> attendees {};
+};
+
+struct Attendance
+{
+    static constexpr std::string_view TableName = "Attendances";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    BelongsTo<&Meeting::id, SqlRealName { "meeting_id" }> meeting {};
+    BelongsTo<&Human::id, SqlRealName { "human_id" }> human {};
+};
+//! [doc-meeting-schema]
+
 // Record used by the conditional-WHERE example.
 struct Events
 {
@@ -597,6 +641,84 @@ TEST_CASE_METHOD(SqlTestFixture, "Doc.Relationships", "[DocExample]")
         dm.ConfigureRelationAutoLoading(*reloaded);
         CHECK(reloaded->employees.Count() == 3);
     }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Doc.Meetings", "[DocExample]")
+{
+    auto dm = DataMapper();
+
+    //! [doc-meeting-create]
+    dm.CreateTables<Human, Meeting, Attendance>();
+
+    auto alice = Human { .name = "Alice" };
+    auto bob = Human { .name = "Bob" };
+    auto carol = Human { .name = "Carol" };
+    for (auto* human: { &alice, &bob, &carol })
+        dm.Create(*human);
+
+    // Alice calls the planning meeting; Bob writes the minutes.
+    auto planning = Meeting { .topic = "Planning", .organizer = alice, .minuteTaker = bob };
+    dm.Create(planning);
+
+    // All three of them attend it - one join row per attendee.
+    for (auto const& attendee: { alice, bob, carol })
+        dm.CreateExplicit(Attendance { .meeting = planning, .human = attendee });
+
+    // Carol runs the retrospective, nobody takes minutes, and only Alice joins her.
+    auto retro = Meeting { .topic = "Retrospective", .organizer = carol };
+    dm.Create(retro);
+    for (auto const& attendee: { carol, alice })
+        dm.CreateExplicit(Attendance { .meeting = retro, .human = attendee });
+    //! [doc-meeting-create]
+
+    auto const planningId = planning.id.Value();
+    auto const aliceId = alice.id.Value();
+
+    //! [doc-meeting-read]
+    // Read a meeting with everyone involved in it.
+    auto meeting = dm.QuerySingle<Meeting>(planningId).value();
+    dm.ConfigureRelationAutoLoading(meeting);
+
+    // A mandatory BelongsTo dereferences straight through.
+    std::println("{} - organized by {}", meeting.topic.Value(), meeting.organizer->name.Value());
+
+    // A nullable one yields an optional instead.
+    if (auto const scribe = meeting.minuteTaker.Record().transform(Unwrap))
+        std::println("  minutes by {}", scribe->name.Value());
+
+    std::println("  {} attendees:", meeting.attendees.Count());
+    for (auto const& attendee: meeting.attendees.All())
+        std::println("    {}", attendee->name.Value());
+
+    // And the same relationships read from the other side.
+    auto human = dm.QuerySingle<Human>(aliceId).value();
+    dm.ConfigureRelationAutoLoading(human);
+    std::println("{} organized {}, minuted {} and attended {} meeting(s)",
+                 human.name.Value(),
+                 human.organizedMeetings.Count(),
+                 human.minutedMeetings.Count(),
+                 human.attendedMeetings.Count());
+    //! [doc-meeting-read]
+
+    CHECK(meeting.organizer->name.Value() == "Alice");
+    CHECK(meeting.minuteTaker.Record().transform(Unwrap)->name.Value() == "Bob");
+    CHECK(meeting.attendees.Count() == 3);
+
+    // Alice organized "Planning", minuted nothing, and attended both meetings.
+    CHECK(human.organizedMeetings.Count() == 1);
+    CHECK(human.minutedMeetings.Count() == 0);
+    CHECK(human.attendedMeetings.Count() == 2);
+
+    auto bobLoaded = dm.QuerySingle<Human>(bob.id.Value()).value();
+    dm.ConfigureRelationAutoLoading(bobLoaded);
+    CHECK(bobLoaded.organizedMeetings.Count() == 0);
+    CHECK(bobLoaded.minutedMeetings.Count() == 1);
+    CHECK(bobLoaded.attendedMeetings.Count() == 1);
+
+    auto retroLoaded = dm.QuerySingle<Meeting>(retro.id.Value()).value();
+    dm.ConfigureRelationAutoLoading(retroLoaded);
+    CHECK(retroLoaded.attendees.Count() == 2);
+    CHECK_FALSE(retroLoaded.minuteTaker.Record().transform(Unwrap).has_value());
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "Doc.DDL", "[DocExample]")
