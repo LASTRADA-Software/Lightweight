@@ -77,13 +77,7 @@ var NAVTREE =
       ] ],
       [ "UPDATE", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#update", null ],
       [ "DELETE", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#delete", null ],
-      [ "Relationships", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#relationships", [
-        [ "Several foreign keys into the same table", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#several-foreign-keys-into-the-same-table", [
-          [ "Writing the rows", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#writing-the-rows", null ],
-          [ "Reading them back", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#reading-them-back", null ],
-          [ "Self-referential relationships", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#self-referential-relationships", null ]
-        ] ]
-      ] ],
+      [ "Relationships", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#relationships", null ],
       [ "CREATE TABLE", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#create-table", null ],
       [ "Transactions", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#transactions", null ],
       [ "Mapping a custom result shape", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#mapping-a-custom-result-shape", null ],
@@ -117,6 +111,10 @@ var NAVTREE =
       [ "OutputColumn()", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#outputcolumn", null ],
       [ "GetColumn()", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#getcolumn", null ],
       [ "Inspect()", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inspect", null ],
+      [ "<tt>SqlNumeric<Precision, Scale></tt> precision limits", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#sqlnumericprecision-scale-precision-limits", [
+        [ "What each accessor delivers", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#what-each-accessor-delivers", null ],
+        [ "How many of those digits survive a round-trip", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-many-of-those-digits-survive-a-round-trip", null ]
+      ] ],
       [ "How <tt>SqlVariant</tt> decides which alternative to fill", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-sqlvariant-decides-which-alternative-to-fill", null ],
       [ "Driver-specific connection-string requirements", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#driver-specific-connection-string-requirements", null ]
     ] ],
@@ -289,13 +287,13 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dd0/structLightweight_1_1Field.html#a8429602c0af011bde772fa07baa6243e",
-"d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#aba0b0aa6a40a801a06a53e274847bcf7",
-"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ac8acfa239959c3a361aae62ddac1df04",
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a747bb2c6c82c186199ebfc698e4d5c3a",
-"da/dce/StdOptional_8hpp_source.html",
-"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6b49922eb4ac9d74b7f67cb41d6fd111",
-"df/d63/classLightweight_1_1HasOneThrough.html#a9e0826de9b51227d10bbf2c01b35dab6"
+"d2/dd0/structLightweight_1_1Field.html#a757ce7d3d9533493051cd9b402482b41",
+"d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#ab5ca6b248b7df350cc640d419e2737fd",
+"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ac85b084f4a20e01ccf53de588f5e0e02",
+"d8/df7/classLightweight_1_1SqlQueryFormatter.html#aa1f92ce1316d440b0f318c9b57807bd8",
+"da/df2/classLightweight_1_1SqlRequireLoadedError.html#a96304f8f159d5cdd3ef3a0065a464ca2",
+"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a9c013abb15b8ebeadb694c1ee463bff4",
+"df/d7c/structLightweight_1_1SqlGuid.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

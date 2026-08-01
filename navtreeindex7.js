@@ -1,9 +1,5 @@
 var NAVTREEINDEX7 =
 {
-"df/d63/classLightweight_1_1HasOneThrough.html#a9e0826de9b51227d10bbf2c01b35dab6":[14,2,11,8],
-"df/d63/classLightweight_1_1HasOneThrough.html#ac71f1a56f529bae1d312aedb9d213f7e":[14,2,11,2],
-"df/d63/classLightweight_1_1HasOneThrough.html#ad9288087a03c708a3fe14821ed4b133a":[14,2,11,5],
-"df/d63/classLightweight_1_1HasOneThrough.html#ae607b8fc016cd3b794c5e91e20b7039c":[14,2,11,10],
 "df/d7c/structLightweight_1_1SqlGuid.html":[14,0,6],
 "df/d7c/structLightweight_1_1SqlGuid.html#a1927d5c3a5abada31a6f812f0c96d103":[14,0,6,2],
 "df/d7c/structLightweight_1_1SqlGuid.html#a3cf0cf7460e1bf1ac7e36b6153941544":[14,0,6,1],
@@ -43,7 +39,7 @@ var NAVTREEINDEX7 =
 "df/db1/classLightweight_1_1Async_1_1IResumeScheduler.html":[16,0,0,0,4],
 "df/db1/classLightweight_1_1Async_1_1IResumeScheduler.html#a61affb71e9dfa363e87514d23d32d5bf":[16,0,0,0,4,0],
 "df/db7/QueryBuilders_8hpp_source.html":[17,0,1,2,9],
-"df/dcd/UnicodeConverter_8hpp_source.html":[17,0,1,1,21],
+"df/dcd/UnicodeConverter_8hpp_source.html":[17,0,1,1,22],
 "dir_02b8df35666f4569a051687d37d57615.html":[17,0,1,7],
 "dir_07cc544e6394bf3dfdd028b8dfeac742.html":[17,0,1],
 "dir_20a36fc8a4949d7efb0c8c5bf02352ee.html":[17,0,1,3],
