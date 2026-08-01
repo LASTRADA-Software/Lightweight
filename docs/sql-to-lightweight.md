@@ -579,6 +579,79 @@ cleaner `employee.department->name` / `*employee.department`. Query with
 unloaded relation then throws rather than issuing a query. `HasManyThrough<Other, Through>` and
 `HasOneThrough<...>` model many-to-many / one-through relationships across a junction table.
 
+### Several foreign keys into the same table
+
+A relation finds its counterpart by matching the relationship *type*, so the two members may sit at
+any index in their records. That leaves one case undecidable: a record holding **more than one**
+foreign key into the same table - a meeting referencing the person table as both its organizer and
+its attendee. Which of the two a `HasMany<Meeting>` means cannot be guessed, and guessing wrong
+returns wrong rows silently, so it is a compile error.
+
+Name the foreign key column to resolve it:
+
+```sql
+CREATE TABLE "Meetings" (
+    "id"           BIGINT PRIMARY KEY AUTOINCREMENT,
+    "topic"        VARCHAR(40) NOT NULL,
+    "organizer_id" BIGINT REFERENCES "Humans"("id"),
+    "attendee_id"  BIGINT REFERENCES "Humans"("id")
+);
+```
+
+```cpp
+struct Meeting;
+
+struct Human
+{
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id;
+    Field<SqlAnsiString<30>> name;
+
+    HasMany<Meeting, SqlRealName { "organizer_id" }> organizedMeetings;
+    HasMany<Meeting, SqlRealName { "attendee_id" }> attendedMeetings;
+};
+
+struct Meeting
+{
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id;
+    Field<SqlAnsiString<40>> topic;
+
+    // The BelongsTo side needs no change - each already names its own column.
+    BelongsTo<&Human::id, SqlRealName { "organizer_id" }> organizer;
+    BelongsTo<&Human::id, SqlRealName { "attendee_id" }> attendee;
+};
+```
+
+The selector is the *SQL column name*, not a pointer to the member: the two records reference each
+other, so neither type is complete where the other is declared. A name that matches no `BelongsTo`
+into that table is a compile error, so a typo cannot go unnoticed.
+
+The same applies to `HasManyThrough` and `HasOneThrough`, which take two selectors - the join
+record's foreign key pointing back at the owning record, and the one pointing at the referenced
+record. A self-referential many-to-many needs both, since both of the join record's foreign keys
+point at the same table:
+
+```cpp
+struct Friendship;
+
+struct Person
+{
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id;
+    Field<SqlAnsiString<30>> name;
+
+    //                                          this person -.    .- the friend
+    HasManyThrough<Person, Friendship, SqlRealName { "a_id" }, SqlRealName { "b_id" }> friends;
+};
+
+struct Friendship
+{
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id;
+    BelongsTo<&Person::id, SqlRealName { "a_id" }> a;
+    BelongsTo<&Person::id, SqlRealName { "b_id" }> b;
+};
+```
+
+Records with a single foreign key per relationship need no selector - resolution stays automatic.
+
 ---
 
 ## CREATE TABLE

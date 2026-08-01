@@ -88,6 +88,107 @@ static_assert(InverseBelongsToFieldNameOf<MisalignedDepartment, MisalignedEmploy
 static_assert(InverseBelongsToIndexOf<User, Email> == 2);
 static_assert(InverseBelongsToFieldNameOf<User, Email> == "user_id"sv);
 
+// A record holding two foreign keys into the *same* table. Auto-detection cannot pick between them -
+// that is a compile error - so each HasMany names the foreign key column it belongs to.
+struct Meeting;
+
+struct Human
+{
+    static constexpr std::string_view TableName = "Humans";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<SqlAnsiString<30>> name {};
+    HasMany<Meeting, SqlRealName { "organizer_id" }> organizedMeetings {};
+    HasMany<Meeting, SqlRealName { "attendee_id" }> attendedMeetings {};
+};
+
+struct Meeting
+{
+    static constexpr std::string_view TableName = "Meetings";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<SqlAnsiString<40>> topic {};
+    BelongsTo<Member(Human::id), SqlRealName { "organizer_id" }> organizer {};
+    BelongsTo<Member(Human::id), SqlRealName { "attendee_id" }> attendee {};
+};
+
+std::ostream& operator<<(std::ostream& os, Meeting const& record)
+{
+    return os << DataMapper::Inspect(record);
+}
+
+// Each HasMany resolves to its own foreign key, not merely to the first one declared.
+static_assert(InverseBelongsToIndexOf<Human, Meeting, SqlRealName { "organizer_id" }> == 2);
+static_assert(InverseBelongsToIndexOf<Human, Meeting, SqlRealName { "attendee_id" }> == 3);
+static_assert(InverseBelongsToFieldNameOf<Human, Meeting, SqlRealName { "attendee_id" }> == "attendee_id"sv);
+
+// A self-referential many-to-many: both foreign keys of the join record point at the same table, so
+// both ends of the relationship have to be named.
+struct Buddyship;
+
+struct Buddy
+{
+    static constexpr std::string_view TableName = "Buddies";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<SqlAnsiString<30>> name {};
+    HasManyThrough<Buddy, Buddyship, SqlRealName { "a_id" }, SqlRealName { "b_id" }> buddies {};
+};
+
+struct Buddyship
+{
+    static constexpr std::string_view TableName = "Buddyships";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    BelongsTo<Member(Buddy::id), SqlRealName { "a_id" }> a {};
+    BelongsTo<Member(Buddy::id), SqlRealName { "b_id" }> b {};
+};
+
+std::ostream& operator<<(std::ostream& os, Buddy const& record)
+{
+    return os << DataMapper::Inspect(record);
+}
+
+// A through-relationship whose three records have differently named primary keys at differing member
+// indices. Resolving any of them by reusing another record's primary key index - as the through-
+// relation loaders used to - names a column of the wrong table.
+struct ShopOrder;
+struct ShopOrderLine;
+
+struct Shop
+{
+    static constexpr std::string_view TableName = "Shops";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "shop_key" }> shopKey {}; // 0
+    Field<SqlAnsiString<20>> name {};                                                            // 1
+    HasOneThrough<ShopOrderLine, ShopOrder> firstOrderLine {};                                   // 2
+};
+
+struct ShopOrder
+{
+    static constexpr std::string_view TableName = "ShopOrders";
+
+    Field<SqlAnsiString<20>> reference {};                                // 0
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> order_key {};    // 1 - PK is NOT at index 0
+    BelongsTo<Member(Shop::shopKey), SqlRealName { "shop_key" }> shop {}; // 2
+};
+
+struct ShopOrderLine
+{
+    static constexpr std::string_view TableName = "ShopOrderLines";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "line_key" }> lineKey {}; // 0
+    Field<SqlAnsiString<20>> article {};                                                         // 1
+    BelongsTo<Member(ShopOrder::order_key), SqlRealName { "order_key" }> order {};               // 2
+};
+
+// The three primary keys sit at different indices and carry different names; a positional lookup
+// would silently produce "shop_key" where "order_key" is meant, and vice versa.
+static_assert(RecordPrimaryKeyIndex<Shop> == 0);
+static_assert(RecordPrimaryKeyIndex<ShopOrder> == 1);
+static_assert(InverseBelongsToFieldNameOf<Shop, ShopOrder> == "shop_key"sv);
+static_assert(InverseBelongsToFieldNameOf<ShopOrder, ShopOrderLine> == "order_key"sv);
+
 namespace
 {
 
@@ -224,6 +325,135 @@ TEST_CASE_METHOD(SqlTestFixture,
         CHECK(countQuery.contains(R"("department_id")"));
         CHECK_FALSE(countQuery.contains(R"("lastName")"));
     }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "HasMany distinguishes two foreign keys into the same table",
+                 "[DataMapper][relations][HasMany]")
+{
+    auto dm = DataMapper();
+    dm.CreateTables<Human, Meeting>();
+
+    auto alice = Human { .name = "Alice" };
+    dm.Create<DataMapperOptions { .loadRelations = false }>(alice);
+
+    auto bob = Human { .name = "Bob" };
+    dm.Create<DataMapperOptions { .loadRelations = false }>(bob);
+
+    // Alice organizes two meetings and attends one; Bob attends the other two.
+    dm.CreateExplicit(Meeting { .topic = "Planning", .organizer = alice, .attendee = bob });
+    dm.CreateExplicit(Meeting { .topic = "Retro", .organizer = alice, .attendee = bob });
+    dm.CreateExplicit(Meeting { .topic = "One-on-one", .organizer = bob, .attendee = alice });
+
+    SECTION("Each relation counts only its own foreign key")
+    {
+        auto const aliceLoaded = dm.QuerySingle<Human>(alice.id).value();
+        CHECK(aliceLoaded.organizedMeetings.Count() == 2);
+        CHECK(aliceLoaded.attendedMeetings.Count() == 1);
+
+        auto const bobLoaded = dm.QuerySingle<Human>(bob.id).value();
+        CHECK(bobLoaded.organizedMeetings.Count() == 1);
+        CHECK(bobLoaded.attendedMeetings.Count() == 2);
+    }
+
+    SECTION("Each relation loads the rows of its own foreign key")
+    {
+        auto aliceLoaded = dm.QuerySingle<Human>(alice.id).value();
+
+        auto organized = std::set<std::string> {};
+        for (auto const& meeting: aliceLoaded.organizedMeetings.All())
+            organized.emplace(meeting->topic.Value());
+        CHECK(organized == std::set<std::string> { "Planning", "Retro" });
+
+        auto attended = std::set<std::string> {};
+        for (auto const& meeting: aliceLoaded.attendedMeetings.All())
+            attended.emplace(meeting->topic.Value());
+        CHECK(attended == std::set<std::string> { "One-on-one" });
+    }
+
+    SECTION("Emitted SQL filters on the named foreign key column")
+    {
+        auto human = dm.QuerySingle<Human>(alice.id).value();
+
+        auto recordedQueries = std::vector<std::string> {};
+        {
+            auto recorder = ScopedSqlQueryRecorder {};
+            std::ignore = human.attendedMeetings.Count();
+            recordedQueries = recorder.Queries();
+        }
+
+        REQUIRE(!recordedQueries.empty());
+        auto const& countQuery = recordedQueries.back();
+        INFO("Recorded query: " << countQuery);
+        CHECK(countQuery.contains(R"("attendee_id")"));
+        CHECK_FALSE(countQuery.contains(R"("organizer_id")"));
+    }
+
+    SECTION("LoadRelations fills both relations independently")
+    {
+        auto human = dm.QuerySingle<Human>(bob.id).value();
+        dm.LoadRelations(human);
+        CHECK(human.organizedMeetings.All().size() == 1);
+        CHECK(human.attendedMeetings.All().size() == 2);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "HasManyThrough resolves a self-referential join record",
+                 "[DataMapper][relations][HasManyThrough]")
+{
+    auto dm = DataMapper();
+    dm.CreateTables<Buddy, Buddyship>();
+
+    auto alice = Buddy { .name = "Alice" };
+    dm.Create<DataMapperOptions { .loadRelations = false }>(alice);
+    auto bob = Buddy { .name = "Bob" };
+    dm.Create<DataMapperOptions { .loadRelations = false }>(bob);
+    auto carol = Buddy { .name = "Carol" };
+    dm.Create<DataMapperOptions { .loadRelations = false }>(carol);
+
+    // Alice knows Bob and Carol; Bob knows nobody in the "a" role.
+    dm.CreateExplicit(Buddyship { .a = alice, .b = bob });
+    dm.CreateExplicit(Buddyship { .a = alice, .b = carol });
+
+    SECTION("Count follows the named direction")
+    {
+        auto const aliceLoaded = dm.QuerySingle<Buddy>(alice.id).value();
+        CHECK(aliceLoaded.buddies.Count() == 2);
+
+        auto const bobLoaded = dm.QuerySingle<Buddy>(bob.id).value();
+        CHECK(bobLoaded.buddies.Count() == 0);
+    }
+
+    SECTION("All returns the other side of the relationship, never the record itself")
+    {
+        auto aliceLoaded = dm.QuerySingle<Buddy>(alice.id).value();
+
+        auto names = std::set<std::string> {};
+        for (auto const& buddy: aliceLoaded.buddies.All())
+            names.emplace(buddy->name.Value());
+
+        CHECK(names == std::set<std::string> { "Bob", "Carol" });
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Through-relations resolve each primary key on its own record",
+                 "[DataMapper][relations][HasOneThrough]")
+{
+    auto dm = DataMapper();
+    dm.CreateTables<Shop, ShopOrder, ShopOrderLine>();
+
+    auto shop = Shop { .name = "Corner" };
+    dm.Create<DataMapperOptions { .loadRelations = false }>(shop);
+
+    auto order = ShopOrder { .reference = "ORD-1", .shop = shop };
+    dm.Create<DataMapperOptions { .loadRelations = false }>(order);
+
+    dm.CreateExplicit(ShopOrderLine { .article = "Widget", .order = order });
+
+    auto const shopLoaded = dm.QuerySingle<Shop>(shop.shopKey).value();
+    CHECK(shopLoaded.firstOrderLine.Record().article.Value() == "Widget");
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "BelongsTo", "[DataMapper][relations]")

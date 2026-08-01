@@ -10,6 +10,7 @@
 
 #include <concepts>
 #include <limits>
+#include <optional>
 #include <string_view>
 
 namespace Lightweight
@@ -106,8 +107,48 @@ namespace details
 template <typename Record>
 using RecordPrimaryKeyType = details::RecordPrimaryKeyTypeHelper<Record>::type;
 
+/// @brief Selector value meaning "resolve the relationship automatically; the match must be unique".
+///
+/// This is the default for every relationship selector. Pass a `SqlRealName` instead to name the
+/// foreign key column explicitly, which is required when a record holds more than one foreign key
+/// into the same table.
+///
+/// @ingroup DataMapper
+inline constexpr std::nullopt_t AutoDetectRelation = std::nullopt;
+
+/// @brief Constrains what may be used to single out one of several foreign keys into the same table.
+///
+/// Two forms are accepted:
+/// - `std::nullopt` (`AutoDetectRelation`) - resolve automatically; ambiguity is a compile error.
+/// - a `SqlRealName` (or anything convertible to `std::string_view`) - the SQL column name of the
+///   foreign key to use.
+///
+/// A relationship selector must stay inert at *declaration* time: the two records of a relationship
+/// reference each other, so neither is complete where the other is declared. That rules out
+/// pointer-to-member selectors and is why the foreign key is named by its column.
+///
+/// @ingroup DataMapper
+template <auto Selector>
+concept RelationSelector =
+    std::same_as<std::remove_cvref_t<decltype(Selector)>, std::nullopt_t> || requires { std::string_view { Selector }; };
+
 namespace detail
 {
+
+    /// @brief Tests whether member @p I of @p Record is singled out by @p Selector.
+    ///
+    /// @tparam Selector The relationship selector, see @ref RelationSelector.
+    /// @tparam I Member index within @p Record.
+    /// @tparam Record The record holding the foreign key.
+    /// @return `true` when the selector accepts the member.
+    template <auto Selector, size_t I, typename Record>
+    constexpr bool RelationSelectorMatches()
+    {
+        if constexpr (std::same_as<std::remove_cvref_t<decltype(Selector)>, std::nullopt_t>)
+            return true;
+        else
+            return Lightweight::FieldNameAt<I, Record> == std::string_view { Selector };
+    }
 
     /// @brief Outcome of scanning a child record for the `BelongsTo` members pointing back to an owner record.
     struct InverseBelongsToLookup
@@ -117,25 +158,37 @@ namespace detail
 
         /// Number of matching `BelongsTo` members found.
         size_t count {};
+
+        /// Number of `BelongsTo` members referencing the owner record, before the selector was applied.
+        size_t candidates {};
     };
 
-    /// @brief Scans @p ChildRecord for all `BelongsTo` members whose referenced record is @p OwnerRecord.
+    /// @brief Scans @p ChildRecord for the `BelongsTo` members whose referenced record is @p OwnerRecord.
     ///
     /// @tparam OwnerRecord The record on the "one" side of a one-to-many relationship.
     /// @tparam ChildRecord The record on the "many" side, holding the foreign key.
-    /// @return The index of the first match and how many matches exist.
-    template <typename OwnerRecord, typename ChildRecord>
+    /// @tparam Selector Singles out one of several foreign keys, see @ref RelationSelector.
+    /// @return The index of the first match, how many matches exist, and how many candidates the
+    ///         selector had to choose from.
+    template <typename OwnerRecord, typename ChildRecord, auto Selector = AutoDetectRelation>
     constexpr InverseBelongsToLookup FindInverseBelongsTo()
     {
         return FoldRecordMembers<ChildRecord>(
-            InverseBelongsToLookup { .index = RecordMemberCount<ChildRecord>, .count = 0 },
+            InverseBelongsToLookup { .index = RecordMemberCount<ChildRecord>, .count = 0, .candidates = 0 },
             []<size_t I, typename MemberType>(InverseBelongsToLookup const accum) constexpr -> InverseBelongsToLookup {
                 // The two conditions must nest: `MemberType::ReferencedRecord` does not exist on plain
                 // fields, and `&&` inside a single `if constexpr` would still instantiate it.
                 if constexpr (IsBelongsTo<MemberType>)
                 {
                     if constexpr (std::same_as<typename MemberType::ReferencedRecord, OwnerRecord>)
-                        return { .index = accum.count == 0 ? I : accum.index, .count = accum.count + 1 };
+                    {
+                        if constexpr (RelationSelectorMatches<Selector, I, ChildRecord>())
+                            return { .index = accum.count == 0 ? I : accum.index,
+                                     .count = accum.count + 1,
+                                     .candidates = accum.candidates + 1 };
+                        else
+                            return { .index = accum.index, .count = accum.count, .candidates = accum.candidates + 1 };
+                    }
                     else
                         return accum;
                 }
@@ -144,60 +197,71 @@ namespace detail
             });
     }
 
-    /// @brief Resolves - and validates - the inverse `BelongsTo` member of a one-to-many relationship.
+    /// @brief Resolves - and validates - the inverse `BelongsTo` member of a relationship.
     ///
-    /// Instantiating this template fails to compile when @p ChildRecord does not declare exactly one
-    /// `BelongsTo` member referencing @p OwnerRecord. The compiler's instantiation backtrace names both
-    /// record types.
+    /// Instantiating this template fails to compile unless @p ChildRecord declares exactly one
+    /// `BelongsTo` member that references @p OwnerRecord and is accepted by @p Selector. The compiler's
+    /// instantiation backtrace names the record types involved.
     ///
-    /// @tparam OwnerRecord The record on the "one" side of the relationship (declaring the `HasMany`).
-    /// @tparam ChildRecord The record on the "many" side of the relationship (declaring the `BelongsTo`).
-    template <typename OwnerRecord, typename ChildRecord>
+    /// @tparam OwnerRecord The record being referenced (the "one" side of the relationship).
+    /// @tparam ChildRecord The record holding the foreign key (the "many" side).
+    /// @tparam Selector Singles out one of several foreign keys, see @ref RelationSelector.
+    template <typename OwnerRecord, typename ChildRecord, auto Selector = AutoDetectRelation>
+        requires RelationSelector<Selector>
     struct InverseBelongsToResolver
     {
         /// The raw lookup result for @p OwnerRecord within @p ChildRecord.
-        static constexpr InverseBelongsToLookup Lookup = FindInverseBelongsTo<OwnerRecord, ChildRecord>();
+        static constexpr InverseBelongsToLookup Lookup = FindInverseBelongsTo<OwnerRecord, ChildRecord, Selector>();
 
-        static_assert(Lookup.count != 0,
-                      "HasMany<ChildRecord> requires ChildRecord to declare a BelongsTo member referencing the "
-                      "owning record's primary key. No such member was found. "
+        static_assert(Lookup.candidates != 0,
+                      "This relationship requires the referencing record to declare a BelongsTo member pointing at "
+                      "the referenced record's primary key. No such member was found. "
+                      "See the instantiation backtrace below for the two record types involved.");
+
+        static_assert(Lookup.candidates == 0 || Lookup.count != 0,
+                      "No BelongsTo member matches the foreign key column named by this relationship. The referencing "
+                      "record does declare a BelongsTo pointing at the referenced record, but none of them uses that "
+                      "column name - check the SqlRealName spelling on both sides. "
                       "See the instantiation backtrace below for the two record types involved.");
 
         static_assert(Lookup.count <= 1,
-                      "HasMany<ChildRecord> requires ChildRecord to declare exactly one BelongsTo member "
-                      "referencing the owning record's primary key, but multiple were found, making the inverse "
-                      "relationship ambiguous. "
+                      "This relationship is ambiguous: the referencing record declares more than one BelongsTo member "
+                      "pointing at the referenced record's primary key. Name the foreign key column to disambiguate, "
+                      "e.g. HasMany<Child, SqlRealName { \"owner_id\" }>. "
                       "See the instantiation backtrace below for the two record types involved.");
 
         /// Member index of the inverse `BelongsTo` inside @p ChildRecord.
-        /// Clamped to 0 on failure so that the two static_asserts above are the only diagnostics emitted.
+        /// Clamped to 0 on failure so that the static_asserts above are the only diagnostics emitted.
         static constexpr size_t Index = Lookup.count == 1 ? Lookup.index : 0;
     };
 
 } // namespace detail
 
-/// @brief Member index, within @p ChildRecord, of the unique `BelongsTo` member that points back to @p OwnerRecord.
+/// @brief Member index, within @p ChildRecord, of the `BelongsTo` member that points back to @p OwnerRecord.
 ///
-/// This is how a `HasMany<ChildRecord>` on @p OwnerRecord locates its foreign key column: by matching the
-/// relationship *type*, never by member position. Using it is a hard compile-time error when @p ChildRecord
-/// declares no such `BelongsTo`, or more than one (ambiguous inverse).
+/// This is how `HasMany`, `HasManyThrough` and `HasOneThrough` locate their foreign key column: by matching
+/// the relationship *type*, never by member position. Using it is a hard compile-time error when
+/// @p ChildRecord declares no such `BelongsTo`, or when it declares more than one and @p Selector does not
+/// single out exactly one of them.
 ///
-/// @tparam OwnerRecord The record on the "one" side of the relationship (declaring the `HasMany`).
-/// @tparam ChildRecord The record on the "many" side of the relationship (declaring the `BelongsTo`).
+/// @tparam OwnerRecord The record being referenced (the "one" side of the relationship).
+/// @tparam ChildRecord The record holding the foreign key (the "many" side).
+/// @tparam Selector Singles out one of several foreign keys, see @ref RelationSelector.
 ///
 /// @ingroup DataMapper
-template <typename OwnerRecord, typename ChildRecord>
-constexpr size_t InverseBelongsToIndexOf = detail::InverseBelongsToResolver<OwnerRecord, ChildRecord>::Index;
+template <typename OwnerRecord, typename ChildRecord, auto Selector = AutoDetectRelation>
+constexpr size_t InverseBelongsToIndexOf = detail::InverseBelongsToResolver<OwnerRecord, ChildRecord, Selector>::Index;
 
 /// @brief SQL column name of the foreign key that links @p ChildRecord back to @p OwnerRecord.
 ///
-/// @tparam OwnerRecord The record on the "one" side of the relationship (declaring the `HasMany`).
-/// @tparam ChildRecord The record on the "many" side of the relationship (declaring the `BelongsTo`).
+/// @tparam OwnerRecord The record being referenced (the "one" side of the relationship).
+/// @tparam ChildRecord The record holding the foreign key (the "many" side).
+/// @tparam Selector Singles out one of several foreign keys, see @ref RelationSelector.
 ///
 /// @ingroup DataMapper
-template <typename OwnerRecord, typename ChildRecord>
+template <typename OwnerRecord, typename ChildRecord, auto Selector = AutoDetectRelation>
 constexpr std::string_view InverseBelongsToFieldNameOf =
-    FieldNameAt<InverseBelongsToIndexOf<OwnerRecord, ChildRecord>, ChildRecord>;
+    FieldNameAt<InverseBelongsToIndexOf<OwnerRecord, ChildRecord, Selector>, ChildRecord>;
 
 /// @brief Maps the fields of the given record to the target that supports the operator[].
 template <typename Record, typename TargetMappable>
