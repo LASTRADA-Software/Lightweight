@@ -165,9 +165,11 @@ TEST_CASE("Int128Soft converts to floating point", "[Int128]")
     CHECK_THAT(twoPow64.To<double>(), Catch::Matchers::WithinRel(18446744073709551616.0, 1e-15));
     CHECK_THAT(static_cast<double>(-twoPow64), Catch::Matchers::WithinRel(-18446744073709551616.0, 1e-15));
 
-    // The round trip through `long double` for a value at the precision bound.
+    // The round trip through `long double` for a value at the precision bound. 2^63 is a power of
+    // two, hence exactly representable in every floating-point format, so this holds even where
+    // `long double` is narrow (MSVC) or emulated at 53 bits (the CI SQLite3 leg runs under Valgrind).
     auto const moneyMax = Int128Soft { 9'223'372'036'854'775'808.0L };
-    CHECK_THAT(static_cast<double>(moneyMax.To<long double>()), Catch::Matchers::WithinRel(9223372036854775808.0, 1e-15));
+    CHECK(static_cast<double>(moneyMax.To<long double>()) == 9223372036854775808.0);
 }
 
 TEST_CASE("Int128Soft narrows to 64-bit like a native __int128_t does", "[Int128]")
@@ -252,9 +254,14 @@ TEST_CASE("Int128Soft agrees with the native __int128_t", "[Int128]")
         // Same decimal rendering...
         CHECK(ToDecimalString(soft) == detail::Int128ToString(native));
 
-        // ...same floating-point image...
-        CHECK_THAT(static_cast<double>(soft.To<long double>()),
-                   Catch::Matchers::WithinRel(static_cast<double>(static_cast<long double>(native)), 1e-15));
+        // ...same floating-point image. Compared via `double` rather than `long double`: the CI
+        // SQLite3 leg runs the suite under Valgrind, which does not emulate the x87 80-bit
+        // `long double` faithfully. Under it the *native* `__int128_t -> long double` conversion
+        // (`__floattixf`) returns 0 for small negative values — verified by reproducing this exact
+        // failure for -1 and -42 under `valgrind` locally — so a `long double` comparison fails on
+        // the reference side while the shim is correct. `double` is exact for every probe value
+        // below (both sides round identically, even at 1e30) and is emulated faithfully.
+        CHECK(soft.To<double>() == static_cast<double>(native));
 
         // ...same 16-byte little-endian representation, which is what gets memcpy'd into ODBC.
         auto softBytes = std::array<unsigned char, 16> {};
