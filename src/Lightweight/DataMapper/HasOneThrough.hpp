@@ -21,7 +21,7 @@ namespace Lightweight
 ///
 /// Both foreign keys are located by matching the relationship *type*. When either record holds more
 /// than one foreign key into the same table, name the column to single one out - see
-/// @ref RelationSelector and the example on @ref HasManyThrough.
+/// the RelationSelector concept and the example on @ref HasManyThrough.
 ///
 /// @tparam OtherTable The record type reached through the join table.
 /// @tparam ThroughTable The join record type, holding a foreign key back to the owning record.

@@ -53,7 +53,7 @@ namespace Lightweight
 /// example in `docs/sql-to-lightweight.md` combines both shapes.
 ///
 /// @tparam OtherRecord The record type on the "many" side of the relationship.
-/// @tparam TheInverseSelector Singles out one of several foreign keys, see @ref RelationSelector.
+/// @tparam TheInverseSelector Singles out one of several foreign keys, see the RelationSelector concept.
 ///
 /// @see InverseBelongsToIndexOf, RelationSelector
 ///

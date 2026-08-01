@@ -137,7 +137,7 @@ namespace detail
 
     /// @brief Tests whether member @p I of @p Record is singled out by @p Selector.
     ///
-    /// @tparam Selector The relationship selector, see @ref RelationSelector.
+    /// @tparam Selector The relationship selector, see the RelationSelector concept.
     /// @tparam I Member index within @p Record.
     /// @tparam Record The record holding the foreign key.
     /// @return `true` when the selector accepts the member.
@@ -167,7 +167,7 @@ namespace detail
     ///
     /// @tparam OwnerRecord The record on the "one" side of a one-to-many relationship.
     /// @tparam ChildRecord The record on the "many" side, holding the foreign key.
-    /// @tparam Selector Singles out one of several foreign keys, see @ref RelationSelector.
+    /// @tparam Selector Singles out one of several foreign keys, see the RelationSelector concept.
     /// @return The index of the first match, how many matches exist, and how many candidates the
     ///         selector had to choose from.
     template <typename OwnerRecord, typename ChildRecord, auto Selector = AutoDetectRelation>
@@ -205,7 +205,7 @@ namespace detail
     ///
     /// @tparam OwnerRecord The record being referenced (the "one" side of the relationship).
     /// @tparam ChildRecord The record holding the foreign key (the "many" side).
-    /// @tparam Selector Singles out one of several foreign keys, see @ref RelationSelector.
+    /// @tparam Selector Singles out one of several foreign keys, see the RelationSelector concept.
     template <typename OwnerRecord, typename ChildRecord, auto Selector = AutoDetectRelation>
         requires RelationSelector<Selector>
     struct InverseBelongsToResolver
@@ -246,7 +246,7 @@ namespace detail
 ///
 /// @tparam OwnerRecord The record being referenced (the "one" side of the relationship).
 /// @tparam ChildRecord The record holding the foreign key (the "many" side).
-/// @tparam Selector Singles out one of several foreign keys, see @ref RelationSelector.
+/// @tparam Selector Singles out one of several foreign keys, see the RelationSelector concept.
 ///
 /// @ingroup DataMapper
 template <typename OwnerRecord, typename ChildRecord, auto Selector = AutoDetectRelation>
@@ -256,7 +256,7 @@ constexpr size_t InverseBelongsToIndexOf = detail::InverseBelongsToResolver<Owne
 ///
 /// @tparam OwnerRecord The record being referenced (the "one" side of the relationship).
 /// @tparam ChildRecord The record holding the foreign key (the "many" side).
-/// @tparam Selector Singles out one of several foreign keys, see @ref RelationSelector.
+/// @tparam Selector Singles out one of several foreign keys, see the RelationSelector concept.
 ///
 /// @ingroup DataMapper
 template <typename OwnerRecord, typename ChildRecord, auto Selector = AutoDetectRelation>
