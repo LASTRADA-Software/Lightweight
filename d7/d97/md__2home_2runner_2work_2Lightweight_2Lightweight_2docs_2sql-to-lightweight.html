@@ -538,28 +538,32 @@ Writing the rows</h3>
 <h3><a class="anchor" id="reading-them-back"></a>
 Reading them back</h3>
 <div class="fragment"><div class="line"><span class="comment">// Read a meeting with everyone involved in it.</span></div>
-<div class="line"><span class="keyword">auto</span> meeting = dm.QuerySingle&lt;Meeting&gt;(planningId).value();</div>
-<div class="line">dm.ConfigureRelationAutoLoading(meeting);</div>
+<div class="line"><span class="keywordflow">if</span> (<span class="keyword">auto</span> meeting = dm.QuerySingle&lt;Meeting&gt;(planningId))</div>
+<div class="line">{</div>
+<div class="line">    dm.ConfigureRelationAutoLoading(*meeting);</div>
 <div class="line"> </div>
-<div class="line"><span class="comment">// A mandatory BelongsTo dereferences straight through.</span></div>
-<div class="line">std::println(<span class="stringliteral">&quot;{} - organized by {}&quot;</span>, meeting.topic.Value(), meeting.organizer-&gt;name.Value());</div>
+<div class="line">    <span class="comment">// A mandatory BelongsTo dereferences straight through.</span></div>
+<div class="line">    std::println(<span class="stringliteral">&quot;{} - organized by {}&quot;</span>, meeting-&gt;topic.Value(), meeting-&gt;organizer-&gt;name.Value());</div>
 <div class="line"> </div>
-<div class="line"><span class="comment">// A nullable one yields an optional instead.</span></div>
-<div class="line"><span class="keywordflow">if</span> (<span class="keyword">auto</span> <span class="keyword">const</span> scribe = meeting.minuteTaker.Record().transform(Unwrap))</div>
-<div class="line">    std::println(<span class="stringliteral">&quot;  minutes by {}&quot;</span>, scribe-&gt;name.Value());</div>
+<div class="line">    <span class="comment">// A nullable one yields an optional instead.</span></div>
+<div class="line">    <span class="keywordflow">if</span> (<span class="keyword">auto</span> <span class="keyword">const</span> scribe = meeting-&gt;minuteTaker.Record().transform(Unwrap))</div>
+<div class="line">        std::println(<span class="stringliteral">&quot;  minutes by {}&quot;</span>, scribe-&gt;name.Value());</div>
 <div class="line"> </div>
-<div class="line">std::println(<span class="stringliteral">&quot;  {} attendees:&quot;</span>, meeting.attendees.Count());</div>
-<div class="line"><span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; attendee: meeting.attendees.All())</div>
-<div class="line">    std::println(<span class="stringliteral">&quot;    {}&quot;</span>, attendee-&gt;name.Value());</div>
+<div class="line">    std::println(<span class="stringliteral">&quot;  {} attendees:&quot;</span>, meeting-&gt;attendees.Count());</div>
+<div class="line">    <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; attendee: meeting-&gt;attendees.All())</div>
+<div class="line">        std::println(<span class="stringliteral">&quot;    {}&quot;</span>, attendee-&gt;name.Value());</div>
+<div class="line">}</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// And the same relationships read from the other side.</span></div>
-<div class="line"><span class="keyword">auto</span> human = dm.QuerySingle&lt;Human&gt;(aliceId).value();</div>
-<div class="line">dm.ConfigureRelationAutoLoading(human);</div>
-<div class="line">std::println(<span class="stringliteral">&quot;{} organized {}, minuted {} and attended {} meeting(s)&quot;</span>,</div>
-<div class="line">             human.name.Value(),</div>
-<div class="line">             human.organizedMeetings.Count(),</div>
-<div class="line">             human.minutedMeetings.Count(),</div>
-<div class="line">             human.attendedMeetings.Count());</div>
+<div class="line"><span class="keywordflow">if</span> (<span class="keyword">auto</span> human = dm.QuerySingle&lt;Human&gt;(aliceId))</div>
+<div class="line">{</div>
+<div class="line">    dm.ConfigureRelationAutoLoading(*human);</div>
+<div class="line">    std::println(<span class="stringliteral">&quot;{} organized {}, minuted {} and attended {} meeting(s)&quot;</span>,</div>
+<div class="line">                 human-&gt;name.Value(),</div>
+<div class="line">                 human-&gt;organizedMeetings.Count(),</div>
+<div class="line">                 human-&gt;minutedMeetings.Count(),</div>
+<div class="line">                 human-&gt;attendedMeetings.Count());</div>
+<div class="line">}</div>
 </div><!-- fragment --><p>which prints:</p>
 <div class="fragment"><div class="line">Planning - organized by Alice</div>
 <div class="line">  minutes by Bob</div>
@@ -589,7 +593,9 @@ Self-referential relationships</h3>
 <div class="line">    <a class="code hl_class" href="../../d0/df7/classLightweight_1_1BelongsTo.html">BelongsTo</a>&lt;&amp;Person::id, <a class="code hl_struct" href="../../d7/d13/structLightweight_1_1SqlRealName.html">SqlRealName</a> { <span class="stringliteral">&quot;a_id&quot;</span> }&gt; a;</div>
 <div class="line">    <a class="code hl_class" href="../../d0/df7/classLightweight_1_1BelongsTo.html">BelongsTo</a>&lt;&amp;Person::id, <a class="code hl_struct" href="../../d7/d13/structLightweight_1_1SqlRealName.html">SqlRealName</a> { <span class="stringliteral">&quot;b_id&quot;</span> }&gt; b;</div>
 <div class="line">};</div>
-</div><!-- fragment --><p>Swapping the two selectors reverses the direction the relation reads. <code>HasOneThrough</code> takes the same pair. Records with a single foreign key per relationship need no selector at all - resolution stays automatic, and every schema that compiled before this feature existed still does.</p>
+</div><!-- fragment --><p>Swapping the two selectors reverses the direction the relation reads: with <code>"b_id"</code> first and <code>"a_id"</code> second, <code>friends</code> walks the friendships from the other end.</p>
+<p><code>HasOneThrough</code> also takes two selectors, but they name columns on <em>different</em> records: the first one is the column on the join record pointing back at the owner (same as above), the second is the column on the <em>referenced</em> record pointing at the join record. Passing two join-record column names there is a compile error, not a silently reversed relation.</p>
+<p>Records with a single foreign key per relationship need no selector at all - resolution stays automatic, and every schema that compiled before this feature existed still does.</p>
 <hr  />
 <h1><a class="anchor" id="create-table"></a>
 CREATE TABLE</h1>
