@@ -133,325 +133,327 @@ $(document).ready(function(){initNavTree('d0/dc4/Int128_8hpp_source.html','../..
 <div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span><span class="comment">    /// `money` column (`DECIMAL(19, 4)`) would compile under GCC/Clang and fail under MSVC. A schema is a</span></div>
 <div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span><span class="comment">    /// property of the database, not of the compiler that happens to build the client.</span></div>
 <div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span><span class="comment">    /// The operation set is deliberately minimal — construction from and conversion to the floating-point</span></div>
-<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span><span class="comment">    /// types, negation, comparison, and decimal rendering — because that is all `SqlNumeric` needs. It is</span></div>
-<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span><span class="comment">    /// not a general-purpose big integer: there is no multiplication, no division by another `Int128Soft`,</span></div>
-<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span><span class="comment">    /// and no bitwise interface beyond what the conversions require.</span></div>
-<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span><span class="comment">    /// Representation is sign-magnitude-free two&#39;s complement across a low/high pair, matching the</span></div>
-<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span><span class="comment">    /// little-endian layout of `SQL_NUMERIC_STRUCT::val` so that a `std::memcpy` in either direction is a</span></div>
-<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span><span class="comment">    /// faithful round-trip.</span></div>
-<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span><span class="comment"></span>    <span class="keyword">struct </span>Int128Soft</div>
-<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>    {<span class="comment"></span></div>
-<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span><span class="comment">        /// Low 64 bits of the two&#39;s-complement magnitude.</span></div>
-<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span><span class="comment"></span>        std::uint64_t low {};</div>
-<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span><span class="comment"></span> </div>
-<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span><span class="comment">        /// High 64 bits of the two&#39;s-complement magnitude, including the sign bit.</span></div>
-<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span><span class="comment"></span>        std::uint64_t high {};</div>
-<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span><span class="comment"></span> </div>
-<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span><span class="comment">        /// Default-constructs a zero value.</span></div>
-<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span><span class="comment"></span>        <span class="keyword">constexpr</span> Int128Soft() noexcept = default;</div>
-<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span><span class="comment"></span> </div>
-<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span><span class="comment">        /// Constructs from a signed 64-bit integer, sign-extending into the high word.</span></div>
-<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span><span class="comment">        /// @param value Value to widen.</span></div>
-<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span><span class="comment"></span>        constexpr Int128Soft(std::int64_t value) noexcept: <span class="comment">// NOLINT(google-explicit-constructor)</span></div>
-<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>            low { <span class="keyword">static_cast&lt;</span>std::uint64_t<span class="keyword">&gt;</span>(value) },</div>
-<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>            high { value &lt; 0 ? ~std::uint64_t { 0 } : std::uint64_t { 0 } }</div>
-<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span>        {</div>
-<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span>        }</div>
-<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span><span class="comment"></span> </div>
-<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span><span class="comment">        /// Constructs from an unsigned 64-bit integer, zero-extending into the high word.</span></div>
-<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span><span class="comment">        /// @param value Value to widen.</span></div>
-<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span><span class="comment"></span>        <span class="keyword">constexpr</span> Int128Soft(std::uint64_t value) <span class="keyword">noexcept</span>: <span class="comment">// NOLINT(google-explicit-constructor)</span></div>
-<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>            low { value }</div>
-<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span>        {</div>
-<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>        }</div>
-<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span><span class="comment"></span> </div>
-<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span><span class="comment">        /// Constructs from an explicit low/high word pair.</span></div>
-<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span><span class="comment">        /// @param lowWord Low 64 bits.</span></div>
-<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span><span class="comment">        /// @param highWord High 64 bits, including the sign bit.</span></div>
-<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span><span class="comment"></span>        <span class="keyword">constexpr</span> Int128Soft(std::uint64_t lowWord, std::uint64_t highWord) <span class="keyword">noexcept</span>:</div>
-<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>            low { lowWord },</div>
-<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span>            high { highWord }</div>
-<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span>        {</div>
-<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>        }</div>
-<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span><span class="comment"></span> </div>
-<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span><span class="comment">        /// Constructs from a floating-point value by truncation toward zero.</span></div>
-<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span><span class="comment">        ///</span></div>
-<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span><span class="comment">        /// Values whose magnitude is at or beyond 2^127 saturate to the corresponding extreme rather than</span></div>
-<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span><span class="comment">        /// invoking the undefined behaviour an out-of-range `static_cast` to an integer type would. That</span></div>
-<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span><span class="comment">        /// is the whole point of routing through this type: the `int64_t` fallback it replaces silently</span></div>
-<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span><span class="comment">        /// flipped the sign of `money`&#39;s maximum on x86-64.</span></div>
-<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span><span class="comment">        ///</span></div>
-<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span><span class="comment">        /// @param value Value to truncate. Must be finite; NaN yields zero.</span></div>
-<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span><span class="comment"></span>        <span class="keyword">template</span> &lt;std::<span class="keywordtype">float</span>ing_po<span class="keywordtype">int</span> T&gt;</div>
-<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span>        <span class="keyword">constexpr</span> <span class="keyword">explicit</span> Int128Soft(T value) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>        {</div>
-<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span>            <span class="keywordflow">if</span> (!(value == value)) <span class="comment">// NaN — no meaningful integer image.</span></div>
-<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span>                <span class="keywordflow">return</span>;</div>
-<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span> </div>
-<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>            <span class="keyword">auto</span> <span class="keyword">const</span> negative = value &lt; T { 0 };</div>
-<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span>            <span class="keyword">auto</span> magnitude = negative ? -value : value;</div>
-<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span> </div>
-<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>            <span class="comment">// 2^127, the first magnitude a signed 128-bit integer cannot represent. Computed by repeated</span></div>
-<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span>            <span class="comment">// doubling so it stays exact in every floating-point format (2^127 is a power of two, hence</span></div>
-<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>            <span class="comment">// representable in all of them, but a literal would depend on the type&#39;s width).</span></div>
-<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span>            <span class="keyword">auto</span> limit = T { 1 };</div>
-<div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span>            <span class="keywordflow">for</span> (<span class="keyword">auto</span> bit = 0; bit != 127; ++bit)</div>
-<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span>                limit *= T { 2 };</div>
-<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span> </div>
-<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span>            <span class="keywordflow">if</span> (magnitude &gt;= limit)</div>
-<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span>            {</div>
-<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>                <span class="comment">// Saturate: -2^127 .. 2^127-1.</span></div>
-<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>                low = negative ? std::uint64_t { 0 } : ~std::uint64_t { 0 };</div>
-<div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span>                high = negative ? (std::uint64_t { 1 } &lt;&lt; 63) : (~std::uint64_t { 0 } &gt;&gt; 1);</div>
-<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>                <span class="keywordflow">return</span>;</div>
-<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span>            }</div>
-<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span> </div>
-<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span>            <span class="comment">// Split into two 64-bit halves. `magnitude / 2^64` truncated is the high word; the remainder</span></div>
-<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span>            <span class="comment">// is the low word. Both subexpressions are exact: the quotient is &lt; 2^63 and the remainder is</span></div>
-<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span>            <span class="comment">// recovered by subtraction rather than by a second division.</span></div>
-<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span>            <span class="keyword">auto</span> divisor = T { 1 };</div>
-<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>            <span class="keywordflow">for</span> (<span class="keyword">auto</span> bit = 0; bit != 64; ++bit)</div>
-<div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span>                divisor *= T { 2 };</div>
-<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span> </div>
-<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>            <span class="keyword">auto</span> <span class="keyword">const</span> highPart = std::trunc(magnitude / divisor);</div>
-<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span>            <span class="keyword">auto</span> <span class="keyword">const</span> lowPart = std::trunc(magnitude - (highPart * divisor));</div>
-<div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span> </div>
-<div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>            low = <span class="keyword">static_cast&lt;</span>std::uint64_t<span class="keyword">&gt;</span>(lowPart);</div>
-<div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span>            high = <span class="keyword">static_cast&lt;</span>std::uint64_t<span class="keyword">&gt;</span>(highPart);</div>
-<div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span> </div>
-<div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span>            <span class="keywordflow">if</span> (negative)</div>
-<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span>                *<span class="keyword">this</span> = -*<span class="keyword">this</span>;</div>
-<div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span>        }</div>
-<div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span><span class="comment"></span> </div>
-<div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span><span class="comment">        /// @return `true` if the value is negative.</span></div>
-<div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span><span class="comment"></span>        [[nodiscard]] <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> IsNegative() const noexcept</div>
-<div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span>        {</div>
-<div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span>            <span class="keywordflow">return</span> (high &gt;&gt; 63) != 0;</div>
-<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>        }</div>
-<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span><span class="comment"></span> </div>
-<div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span><span class="comment">        /// Negates the value (two&#39;s complement).</span></div>
-<div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span><span class="comment">        /// @return The additive inverse. `-(-2^127)` saturates to itself, as it does for every two&#39;s-complement type.</span></div>
-<div class="line"><a id="l00136" name="l00136"></a><span class="lineno">  136</span><span class="comment"></span>        [[nodiscard]] <span class="keyword">constexpr</span> Int128Soft operator-() const noexcept</div>
-<div class="line"><a id="l00137" name="l00137"></a><span class="lineno">  137</span>        {</div>
-<div class="line"><a id="l00138" name="l00138"></a><span class="lineno">  138</span>            <span class="keyword">auto</span> <span class="keyword">const</span> invertedLow = ~low;</div>
-<div class="line"><a id="l00139" name="l00139"></a><span class="lineno">  139</span>            <span class="keyword">auto</span> <span class="keyword">const</span> invertedHigh = ~high;</div>
-<div class="line"><a id="l00140" name="l00140"></a><span class="lineno">  140</span>            <span class="keyword">auto</span> <span class="keyword">const</span> carriedLow = invertedLow + 1;</div>
-<div class="line"><a id="l00141" name="l00141"></a><span class="lineno">  141</span>            <span class="keyword">auto</span> <span class="keyword">const</span> carriedHigh = invertedHigh + (carriedLow &lt; invertedLow ? 1 : 0);</div>
-<div class="line"><a id="l00142" name="l00142"></a><span class="lineno">  142</span>            <span class="keywordflow">return</span> { carriedLow, carriedHigh };</div>
-<div class="line"><a id="l00143" name="l00143"></a><span class="lineno">  143</span>        }</div>
-<div class="line"><a id="l00144" name="l00144"></a><span class="lineno">  144</span><span class="comment"></span> </div>
-<div class="line"><a id="l00145" name="l00145"></a><span class="lineno">  145</span><span class="comment">        /// @return The value unchanged (provided for symmetry with `operator-`).</span></div>
-<div class="line"><a id="l00146" name="l00146"></a><span class="lineno">  146</span><span class="comment"></span>        [[nodiscard]] <span class="keyword">constexpr</span> Int128Soft operator+() const noexcept</div>
-<div class="line"><a id="l00147" name="l00147"></a><span class="lineno">  147</span>        {</div>
-<div class="line"><a id="l00148" name="l00148"></a><span class="lineno">  148</span>            <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
-<div class="line"><a id="l00149" name="l00149"></a><span class="lineno">  149</span>        }</div>
-<div class="line"><a id="l00150" name="l00150"></a><span class="lineno">  150</span><span class="comment"></span> </div>
-<div class="line"><a id="l00151" name="l00151"></a><span class="lineno">  151</span><span class="comment">        /// Converts to a floating-point type.</span></div>
-<div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span><span class="comment">        ///</span></div>
-<div class="line"><a id="l00153" name="l00153"></a><span class="lineno">  153</span><span class="comment">        /// Precision is bounded by the target type&#39;s significand, exactly as it is for the native</span></div>
-<div class="line"><a id="l00154" name="l00154"></a><span class="lineno">  154</span><span class="comment">        /// `__int128_t` this stands in for.</span></div>
-<div class="line"><a id="l00155" name="l00155"></a><span class="lineno">  155</span><span class="comment">        ///</span></div>
-<div class="line"><a id="l00156" name="l00156"></a><span class="lineno">  156</span><span class="comment">        /// @tparam T Target floating-point type.</span></div>
-<div class="line"><a id="l00157" name="l00157"></a><span class="lineno">  157</span><span class="comment">        /// @return The value as `T`, rounded to that type&#39;s precision.</span></div>
-<div class="line"><a id="l00158" name="l00158"></a><span class="lineno">  158</span><span class="comment"></span>        <span class="keyword">template</span> &lt;std::<span class="keywordtype">float</span>ing_po<span class="keywordtype">int</span> T&gt;</div>
-<div class="line"><a id="l00159" name="l00159"></a><span class="lineno">  159</span>        [[nodiscard]] <span class="keyword">constexpr</span> T To() const noexcept</div>
-<div class="line"><a id="l00160" name="l00160"></a><span class="lineno">  160</span>        {</div>
-<div class="line"><a id="l00161" name="l00161"></a><span class="lineno">  161</span>            <span class="keyword">auto</span> <span class="keyword">const</span> negative = IsNegative();</div>
-<div class="line"><a id="l00162" name="l00162"></a><span class="lineno">  162</span>            <span class="keyword">auto</span> <span class="keyword">const</span> magnitude = negative ? -*this : *<span class="keyword">this</span>;</div>
-<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span> </div>
-<div class="line"><a id="l00164" name="l00164"></a><span class="lineno">  164</span>            <span class="keyword">auto</span> scale = T { 1 };</div>
-<div class="line"><a id="l00165" name="l00165"></a><span class="lineno">  165</span>            <span class="keywordflow">for</span> (<span class="keyword">auto</span> bit = 0; bit != 64; ++bit)</div>
-<div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span>                scale *= T { 2 };</div>
-<div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span> </div>
-<div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span>            <span class="keyword">auto</span> <span class="keyword">const</span> result = (<span class="keyword">static_cast&lt;</span>T<span class="keyword">&gt;</span>(magnitude.high) * scale) + <span class="keyword">static_cast&lt;</span>T<span class="keyword">&gt;</span>(magnitude.low);</div>
-<div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span>            <span class="keywordflow">return</span> negative ? -result : result;</div>
-<div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span>        }</div>
-<div class="line"><a id="l00171" name="l00171"></a><span class="lineno">  171</span><span class="comment"></span> </div>
-<div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span><span class="comment">        /// @return The value as a `float`.</span></div>
-<div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span><span class="comment"></span>        [[nodiscard]] <span class="keyword">constexpr</span> <span class="keyword">explicit</span> <span class="keyword">operator</span> float() const noexcept</div>
-<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span>        {</div>
-<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span>            <span class="keywordflow">return</span> To&lt;float&gt;();</div>
-<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span>        }</div>
-<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span><span class="comment"></span> </div>
-<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span><span class="comment">        /// @return The value as a `double`.</span></div>
-<div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span><span class="comment"></span>        [[nodiscard]] <span class="keyword">constexpr</span> <span class="keyword">explicit</span> <span class="keyword">operator</span> double() const noexcept</div>
-<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span>        {</div>
-<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span>            <span class="keywordflow">return</span> To&lt;double&gt;();</div>
-<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span>        }</div>
-<div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span><span class="comment"></span> </div>
-<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span><span class="comment">        /// @return The value as a `long double`.</span></div>
-<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span><span class="comment"></span>        [[nodiscard]] <span class="keyword">constexpr</span> <span class="keyword">explicit</span> <span class="keyword">operator</span> <span class="keywordtype">long</span> double() const noexcept</div>
-<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>        {</div>
-<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>            <span class="keywordflow">return</span> To&lt;long double&gt;();</div>
-<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>        }</div>
-<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span><span class="comment"></span> </div>
-<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span><span class="comment">        /// Narrows to a signed 64-bit integer, truncating the high word.</span></div>
-<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span><span class="comment">        /// @return The low 64 bits reinterpreted as signed, matching `static_cast&lt;int64_t&gt;` on a native `__int128_t`.</span></div>
-<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span><span class="comment"></span>        [[nodiscard]] <span class="keyword">constexpr</span> <span class="keyword">explicit</span> <span class="keyword">operator</span> std::int64_t() const noexcept</div>
-<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>        {</div>
-<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span>            <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>std::int64_t<span class="keyword">&gt;</span>(low);</div>
-<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span>        }</div>
-<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span><span class="comment"></span> </div>
-<div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span><span class="comment">        /// Narrows to an unsigned 64-bit integer, truncating the high word.</span></div>
-<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span><span class="comment">        /// @return The low 64 bits, matching `static_cast&lt;uint64_t&gt;` on a native `__int128_t`.</span></div>
-<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span><span class="comment"></span>        [[nodiscard]] <span class="keyword">constexpr</span> <span class="keyword">explicit</span> <span class="keyword">operator</span> std::uint64_t() const noexcept</div>
-<div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span>        {</div>
-<div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span>            <span class="keywordflow">return</span> low;</div>
-<div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span>        }</div>
-<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span><span class="comment"></span> </div>
-<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span><span class="comment">        /// Narrows to a signed 32-bit integer, truncating.</span></div>
-<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span><span class="comment"></span>        [[nodiscard]] <span class="keyword">constexpr</span> <span class="keyword">explicit</span> <span class="keyword">operator</span> std::int32_t() const noexcept</div>
-<div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span>        {</div>
-<div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span>            <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>std::int32_t<span class="keyword">&gt;</span>(low);</div>
-<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span>        }</div>
-<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span><span class="comment"></span> </div>
-<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span><span class="comment">        /// Equality comparison.</span></div>
-<div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span><span class="comment"></span>        [[nodiscard]] <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> operator==(Int128Soft <span class="keyword">const</span>&amp; other) <span class="keyword">const</span> <span class="keyword">noexcept</span> = <span class="keywordflow">default</span>;</div>
-<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span><span class="comment"></span> </div>
-<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span><span class="comment">        /// Three-way comparison, signed.</span></div>
-<div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span><span class="comment">        /// @param other Value to compare against.</span></div>
-<div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span><span class="comment">        /// @return The ordering of `*this` relative to `other`.</span></div>
-<div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span><span class="comment"></span>        [[nodiscard]] <span class="keyword">constexpr</span> std::strong_ordering operator&lt;=&gt;(Int128Soft <span class="keyword">const</span>&amp; other) <span class="keyword">const</span> <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span>        {</div>
-<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span>            <span class="keywordflow">if</span> (<span class="keyword">auto</span> <span class="keyword">const</span> negative = IsNegative(); negative != other.IsNegative())</div>
-<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>                <span class="keywordflow">return</span> negative ? std::strong_ordering::less : std::strong_ordering::greater;</div>
-<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span> </div>
-<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>            <span class="keywordflow">if</span> (high != other.high)</div>
-<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>                <span class="keywordflow">return</span> high &lt;=&gt; other.high;</div>
-<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span> </div>
-<div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span>            <span class="keywordflow">return</span> low &lt;=&gt; other.low;</div>
-<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span>        }</div>
-<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span>    };</div>
-<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span><span class="comment"></span> </div>
-<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span><span class="comment">    /// Renders a software 128-bit integer in base 10.</span></div>
-<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span><span class="comment">    /// `std::format` has no support for 128-bit integers — not even for the native `__int128_t` — so</span></div>
-<div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span><span class="comment">    /// decimal rendering is done here by schoolbook long division over 32-bit limbs.</span></div>
-<div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span><span class="comment">    /// @param value Value to render.</span></div>
-<div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span><span class="comment">    /// @return Decimal representation, with a leading &#39;-&#39; for negative values.</span></div>
-<div class="line"><a id="l00235" name="l00235"></a><span class="lineno">  235</span><span class="comment"></span>    [[nodiscard]] <span class="keyword">inline</span> std::string ToDecimalString(Int128Soft value) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span>    {</div>
-<div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span>        <span class="keywordflow">if</span> (value == Int128Soft {})</div>
-<div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span>            <span class="keywordflow">return</span> <span class="stringliteral">&quot;0&quot;</span>;</div>
-<div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span> </div>
-<div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span>        <span class="keyword">auto</span> <span class="keyword">const</span> negative = value.IsNegative();</div>
+<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span><span class="comment">    /// @see Int128, SqlMaxNumericPrecision</span></div>
+<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span><span class="comment">    /// The operation set is deliberately minimal — construction from and conversion to the floating-point</span></div>
+<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span><span class="comment">    /// types, negation, comparison, and decimal rendering — because that is all `SqlNumeric` needs. It is</span></div>
+<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span><span class="comment">    /// not a general-purpose big integer: there is no multiplication, no division by another `Int128Soft`,</span></div>
+<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span><span class="comment">    /// and no bitwise interface beyond what the conversions require.</span></div>
+<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span><span class="comment">    /// Representation is sign-magnitude-free two&#39;s complement across a low/high pair, matching the</span></div>
+<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span><span class="comment">    /// little-endian layout of `SQL_NUMERIC_STRUCT::val` so that a `std::memcpy` in either direction is a</span></div>
+<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span><span class="comment">    /// faithful round-trip.</span></div>
+<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span><span class="comment"></span>    <span class="keyword">struct </span>Int128Soft</div>
+<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>    {<span class="comment"></span></div>
+<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span><span class="comment">        /// Low 64 bits of the two&#39;s-complement magnitude.</span></div>
+<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span><span class="comment"></span>        std::uint64_t low {};</div>
+<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span><span class="comment"></span> </div>
+<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span><span class="comment">        /// High 64 bits of the two&#39;s-complement magnitude, including the sign bit.</span></div>
+<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span><span class="comment"></span>        std::uint64_t high {};</div>
+<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span><span class="comment"></span> </div>
+<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span><span class="comment">        /// Default-constructs a zero value.</span></div>
+<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span><span class="comment"></span>        <span class="keyword">constexpr</span> Int128Soft() noexcept = default;</div>
+<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span><span class="comment"></span> </div>
+<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span><span class="comment">        /// Constructs from a signed 64-bit integer, sign-extending into the high word.</span></div>
+<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span><span class="comment">        /// @param value Value to widen.</span></div>
+<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span><span class="comment"></span>        constexpr Int128Soft(std::int64_t value) noexcept: <span class="comment">// NOLINT(google-explicit-constructor)</span></div>
+<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span>            low { <span class="keyword">static_cast&lt;</span>std::uint64_t<span class="keyword">&gt;</span>(value) },</div>
+<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span>            high { value &lt; 0 ? ~std::uint64_t { 0 } : std::uint64_t { 0 } }</div>
+<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span>        {</div>
+<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span>        }</div>
+<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span><span class="comment"></span> </div>
+<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span><span class="comment">        /// Constructs from an unsigned 64-bit integer, zero-extending into the high word.</span></div>
+<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span><span class="comment">        /// @param value Value to widen.</span></div>
+<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span><span class="comment"></span>        <span class="keyword">constexpr</span> Int128Soft(std::uint64_t value) <span class="keyword">noexcept</span>: <span class="comment">// NOLINT(google-explicit-constructor)</span></div>
+<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>            low { value }</div>
+<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span>        {</div>
+<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>        }</div>
+<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span><span class="comment"></span> </div>
+<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span><span class="comment">        /// Constructs from an explicit low/high word pair.</span></div>
+<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span><span class="comment">        /// @param lowWord Low 64 bits.</span></div>
+<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span><span class="comment">        /// @param highWord High 64 bits, including the sign bit.</span></div>
+<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span><span class="comment"></span>        <span class="keyword">constexpr</span> Int128Soft(std::uint64_t lowWord, std::uint64_t highWord) <span class="keyword">noexcept</span>:</div>
+<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span>            low { lowWord },</div>
+<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>            high { highWord }</div>
+<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span>        {</div>
+<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span>        }</div>
+<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span><span class="comment"></span> </div>
+<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span><span class="comment">        /// Constructs from a floating-point value by truncation toward zero.</span></div>
+<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span><span class="comment">        ///</span></div>
+<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span><span class="comment">        /// Values whose magnitude is at or beyond 2^127 saturate to the corresponding extreme rather than</span></div>
+<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span><span class="comment">        /// invoking the undefined behaviour an out-of-range `static_cast` to an integer type would. That</span></div>
+<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span><span class="comment">        /// is a large part of the point of routing through this type: a narrower carrier makes the</span></div>
+<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span><span class="comment">        /// conversion of `money`&#39;s maximum out of range, and on x86-64 that silently flips its sign.</span></div>
+<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span><span class="comment">        ///</span></div>
+<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span><span class="comment">        /// @param value Value to truncate. Must be finite; NaN yields zero.</span></div>
+<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span><span class="comment"></span>        <span class="keyword">template</span> &lt;std::<span class="keywordtype">float</span>ing_po<span class="keywordtype">int</span> T&gt;</div>
+<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span>        <span class="keyword">constexpr</span> <span class="keyword">explicit</span> Int128Soft(T value) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span>        {</div>
+<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>            <span class="keywordflow">if</span> (!(value == value)) <span class="comment">// NaN — no meaningful integer image.</span></div>
+<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>                <span class="keywordflow">return</span>;</div>
+<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span> </div>
+<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>            <span class="keyword">auto</span> <span class="keyword">const</span> negative = value &lt; T { 0 };</div>
+<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>            <span class="keyword">auto</span> magnitude = negative ? -value : value;</div>
+<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span> </div>
+<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>            <span class="comment">// 2^127, the first magnitude a signed 128-bit integer cannot represent. Computed by repeated</span></div>
+<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span>            <span class="comment">// doubling so it stays exact in every floating-point format (2^127 is a power of two, hence</span></div>
+<div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span>            <span class="comment">// representable in all of them, but a literal would depend on the type&#39;s width).</span></div>
+<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span>            <span class="keyword">auto</span> limit = T { 1 };</div>
+<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span>            <span class="keywordflow">for</span> (<span class="keyword">auto</span> bit = 0; bit != 127; ++bit)</div>
+<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span>                limit *= T { 2 };</div>
+<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span> </div>
+<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>            <span class="keywordflow">if</span> (magnitude &gt;= limit)</div>
+<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>            {</div>
+<div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span>                <span class="comment">// Saturate: -2^127 .. 2^127-1.</span></div>
+<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>                low = negative ? std::uint64_t { 0 } : ~std::uint64_t { 0 };</div>
+<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span>                high = negative ? (std::uint64_t { 1 } &lt;&lt; 63) : (~std::uint64_t { 0 } &gt;&gt; 1);</div>
+<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span>                <span class="keywordflow">return</span>;</div>
+<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span>            }</div>
+<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span> </div>
+<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span>            <span class="comment">// Split into two 64-bit halves. `magnitude / 2^64` truncated is the high word; the remainder</span></div>
+<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span>            <span class="comment">// is the low word. Both subexpressions are exact: the quotient is &lt; 2^63 and the remainder is</span></div>
+<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>            <span class="comment">// recovered by subtraction rather than by a second division.</span></div>
+<div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span>            <span class="keyword">auto</span> divisor = T { 1 };</div>
+<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span>            <span class="keywordflow">for</span> (<span class="keyword">auto</span> bit = 0; bit != 64; ++bit)</div>
+<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>                divisor *= T { 2 };</div>
+<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span> </div>
+<div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span>            <span class="keyword">auto</span> <span class="keyword">const</span> highPart = std::trunc(magnitude / divisor);</div>
+<div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>            <span class="keyword">auto</span> <span class="keyword">const</span> lowPart = std::trunc(magnitude - (highPart * divisor));</div>
+<div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span> </div>
+<div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span>            low = <span class="keyword">static_cast&lt;</span>std::uint64_t<span class="keyword">&gt;</span>(lowPart);</div>
+<div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span>            high = <span class="keyword">static_cast&lt;</span>std::uint64_t<span class="keyword">&gt;</span>(highPart);</div>
+<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span> </div>
+<div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span>            <span class="keywordflow">if</span> (negative)</div>
+<div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span>                *<span class="keyword">this</span> = -*<span class="keyword">this</span>;</div>
+<div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span>        }</div>
+<div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span><span class="comment"></span> </div>
+<div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span><span class="comment">        /// @return `true` if the value is negative.</span></div>
+<div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span><span class="comment"></span>        [[nodiscard]] <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> IsNegative() const noexcept</div>
+<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>        {</div>
+<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span>            <span class="keywordflow">return</span> (high &gt;&gt; 63) != 0;</div>
+<div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span>        }</div>
+<div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span><span class="comment"></span> </div>
+<div class="line"><a id="l00136" name="l00136"></a><span class="lineno">  136</span><span class="comment">        /// Negates the value (two&#39;s complement).</span></div>
+<div class="line"><a id="l00137" name="l00137"></a><span class="lineno">  137</span><span class="comment">        /// @return The additive inverse. `-(-2^127)` saturates to itself, as it does for every two&#39;s-complement type.</span></div>
+<div class="line"><a id="l00138" name="l00138"></a><span class="lineno">  138</span><span class="comment"></span>        [[nodiscard]] <span class="keyword">constexpr</span> Int128Soft operator-() const noexcept</div>
+<div class="line"><a id="l00139" name="l00139"></a><span class="lineno">  139</span>        {</div>
+<div class="line"><a id="l00140" name="l00140"></a><span class="lineno">  140</span>            <span class="keyword">auto</span> <span class="keyword">const</span> invertedLow = ~low;</div>
+<div class="line"><a id="l00141" name="l00141"></a><span class="lineno">  141</span>            <span class="keyword">auto</span> <span class="keyword">const</span> invertedHigh = ~high;</div>
+<div class="line"><a id="l00142" name="l00142"></a><span class="lineno">  142</span>            <span class="keyword">auto</span> <span class="keyword">const</span> carriedLow = invertedLow + 1;</div>
+<div class="line"><a id="l00143" name="l00143"></a><span class="lineno">  143</span>            <span class="keyword">auto</span> <span class="keyword">const</span> carriedHigh = invertedHigh + (carriedLow &lt; invertedLow ? 1 : 0);</div>
+<div class="line"><a id="l00144" name="l00144"></a><span class="lineno">  144</span>            <span class="keywordflow">return</span> { carriedLow, carriedHigh };</div>
+<div class="line"><a id="l00145" name="l00145"></a><span class="lineno">  145</span>        }</div>
+<div class="line"><a id="l00146" name="l00146"></a><span class="lineno">  146</span><span class="comment"></span> </div>
+<div class="line"><a id="l00147" name="l00147"></a><span class="lineno">  147</span><span class="comment">        /// @return The value unchanged (provided for symmetry with `operator-`).</span></div>
+<div class="line"><a id="l00148" name="l00148"></a><span class="lineno">  148</span><span class="comment"></span>        [[nodiscard]] <span class="keyword">constexpr</span> Int128Soft operator+() const noexcept</div>
+<div class="line"><a id="l00149" name="l00149"></a><span class="lineno">  149</span>        {</div>
+<div class="line"><a id="l00150" name="l00150"></a><span class="lineno">  150</span>            <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a id="l00151" name="l00151"></a><span class="lineno">  151</span>        }</div>
+<div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span><span class="comment"></span> </div>
+<div class="line"><a id="l00153" name="l00153"></a><span class="lineno">  153</span><span class="comment">        /// Converts to a floating-point type.</span></div>
+<div class="line"><a id="l00154" name="l00154"></a><span class="lineno">  154</span><span class="comment">        ///</span></div>
+<div class="line"><a id="l00155" name="l00155"></a><span class="lineno">  155</span><span class="comment">        /// Precision is bounded by the target type&#39;s significand, exactly as it is for the native</span></div>
+<div class="line"><a id="l00156" name="l00156"></a><span class="lineno">  156</span><span class="comment">        /// `__int128_t` this stands in for.</span></div>
+<div class="line"><a id="l00157" name="l00157"></a><span class="lineno">  157</span><span class="comment">        ///</span></div>
+<div class="line"><a id="l00158" name="l00158"></a><span class="lineno">  158</span><span class="comment">        /// @tparam T Target floating-point type.</span></div>
+<div class="line"><a id="l00159" name="l00159"></a><span class="lineno">  159</span><span class="comment">        /// @return The value as `T`, rounded to that type&#39;s precision.</span></div>
+<div class="line"><a id="l00160" name="l00160"></a><span class="lineno">  160</span><span class="comment"></span>        <span class="keyword">template</span> &lt;std::<span class="keywordtype">float</span>ing_po<span class="keywordtype">int</span> T&gt;</div>
+<div class="line"><a id="l00161" name="l00161"></a><span class="lineno">  161</span>        [[nodiscard]] <span class="keyword">constexpr</span> T To() const noexcept</div>
+<div class="line"><a id="l00162" name="l00162"></a><span class="lineno">  162</span>        {</div>
+<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span>            <span class="keyword">auto</span> <span class="keyword">const</span> negative = IsNegative();</div>
+<div class="line"><a id="l00164" name="l00164"></a><span class="lineno">  164</span>            <span class="keyword">auto</span> <span class="keyword">const</span> magnitude = negative ? -*this : *<span class="keyword">this</span>;</div>
+<div class="line"><a id="l00165" name="l00165"></a><span class="lineno">  165</span> </div>
+<div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span>            <span class="keyword">auto</span> scale = T { 1 };</div>
+<div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span>            <span class="keywordflow">for</span> (<span class="keyword">auto</span> bit = 0; bit != 64; ++bit)</div>
+<div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span>                scale *= T { 2 };</div>
+<div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span> </div>
+<div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span>            <span class="keyword">auto</span> <span class="keyword">const</span> result = (<span class="keyword">static_cast&lt;</span>T<span class="keyword">&gt;</span>(magnitude.high) * scale) + <span class="keyword">static_cast&lt;</span>T<span class="keyword">&gt;</span>(magnitude.low);</div>
+<div class="line"><a id="l00171" name="l00171"></a><span class="lineno">  171</span>            <span class="keywordflow">return</span> negative ? -result : result;</div>
+<div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span>        }</div>
+<div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span><span class="comment"></span> </div>
+<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span><span class="comment">        /// @return The value as a `float`.</span></div>
+<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span><span class="comment"></span>        [[nodiscard]] <span class="keyword">constexpr</span> <span class="keyword">explicit</span> <span class="keyword">operator</span> float() const noexcept</div>
+<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span>        {</div>
+<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span>            <span class="keywordflow">return</span> To&lt;float&gt;();</div>
+<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span>        }</div>
+<div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span><span class="comment"></span> </div>
+<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span><span class="comment">        /// @return The value as a `double`.</span></div>
+<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span><span class="comment"></span>        [[nodiscard]] <span class="keyword">constexpr</span> <span class="keyword">explicit</span> <span class="keyword">operator</span> double() const noexcept</div>
+<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span>        {</div>
+<div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span>            <span class="keywordflow">return</span> To&lt;double&gt;();</div>
+<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>        }</div>
+<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span><span class="comment"></span> </div>
+<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span><span class="comment">        /// @return The value as a `long double`.</span></div>
+<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span><span class="comment"></span>        [[nodiscard]] <span class="keyword">constexpr</span> <span class="keyword">explicit</span> <span class="keyword">operator</span> <span class="keywordtype">long</span> double() const noexcept</div>
+<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>        {</div>
+<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span>            <span class="keywordflow">return</span> To&lt;long double&gt;();</div>
+<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span>        }</div>
+<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span><span class="comment"></span> </div>
+<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span><span class="comment">        /// Narrows to a signed 64-bit integer, truncating the high word.</span></div>
+<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span><span class="comment">        /// @return The low 64 bits reinterpreted as signed, matching `static_cast&lt;int64_t&gt;` on a native `__int128_t`.</span></div>
+<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span><span class="comment"></span>        [[nodiscard]] <span class="keyword">constexpr</span> <span class="keyword">explicit</span> <span class="keyword">operator</span> std::int64_t() const noexcept</div>
+<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span>        {</div>
+<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span>            <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>std::int64_t<span class="keyword">&gt;</span>(low);</div>
+<div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span>        }</div>
+<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span><span class="comment"></span> </div>
+<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span><span class="comment">        /// Narrows to an unsigned 64-bit integer, truncating the high word.</span></div>
+<div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span><span class="comment">        /// @return The low 64 bits, matching `static_cast&lt;uint64_t&gt;` on a native `__int128_t`.</span></div>
+<div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span><span class="comment"></span>        [[nodiscard]] <span class="keyword">constexpr</span> <span class="keyword">explicit</span> <span class="keyword">operator</span> std::uint64_t() const noexcept</div>
+<div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span>        {</div>
+<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span>            <span class="keywordflow">return</span> low;</div>
+<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span>        }</div>
+<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span><span class="comment"></span> </div>
+<div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span><span class="comment">        /// Narrows to a signed 32-bit integer, truncating.</span></div>
+<div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span><span class="comment"></span>        [[nodiscard]] <span class="keyword">constexpr</span> <span class="keyword">explicit</span> <span class="keyword">operator</span> std::int32_t() const noexcept</div>
+<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span>        {</div>
+<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span>            <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>std::int32_t<span class="keyword">&gt;</span>(low);</div>
+<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span>        }</div>
+<div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span><span class="comment"></span> </div>
+<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span><span class="comment">        /// Equality comparison.</span></div>
+<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span><span class="comment"></span>        [[nodiscard]] <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> operator==(Int128Soft <span class="keyword">const</span>&amp; other) <span class="keyword">const</span> <span class="keyword">noexcept</span> = <span class="keywordflow">default</span>;</div>
+<div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span><span class="comment"></span> </div>
+<div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span><span class="comment">        /// Three-way comparison, signed.</span></div>
+<div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span><span class="comment">        /// @param other Value to compare against.</span></div>
+<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span><span class="comment">        /// @return The ordering of `*this` relative to `other`.</span></div>
+<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span><span class="comment"></span>        [[nodiscard]] <span class="keyword">constexpr</span> std::strong_ordering operator&lt;=&gt;(Int128Soft <span class="keyword">const</span>&amp; other) <span class="keyword">const</span> <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>        {</div>
+<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>            <span class="keywordflow">if</span> (<span class="keyword">auto</span> <span class="keyword">const</span> negative = IsNegative(); negative != other.IsNegative())</div>
+<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>                <span class="keywordflow">return</span> negative ? std::strong_ordering::less : std::strong_ordering::greater;</div>
+<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span> </div>
+<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>            <span class="keywordflow">if</span> (high != other.high)</div>
+<div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span>                <span class="keywordflow">return</span> high &lt;=&gt; other.high;</div>
+<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span> </div>
+<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span>            <span class="keywordflow">return</span> low &lt;=&gt; other.low;</div>
+<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span>        }</div>
+<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span>    };</div>
+<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span><span class="comment"></span> </div>
+<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span><span class="comment">    /// Renders a software 128-bit integer in base 10.</span></div>
+<div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span><span class="comment">    /// `std::format` has no support for 128-bit integers — not even for the native `__int128_t` — so</span></div>
+<div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span><span class="comment">    /// decimal rendering is done here by schoolbook long division over 32-bit limbs.</span></div>
+<div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00235" name="l00235"></a><span class="lineno">  235</span><span class="comment">    /// @param value Value to render.</span></div>
+<div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span><span class="comment">    /// @return Decimal representation, with a leading &#39;-&#39; for negative values.</span></div>
+<div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span><span class="comment"></span>    [[nodiscard]] <span class="keyword">inline</span> std::string ToDecimalString(Int128Soft value) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span>    {</div>
+<div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span>        <span class="keywordflow">if</span> (value == Int128Soft {})</div>
+<div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span>            <span class="keywordflow">return</span> <span class="stringliteral">&quot;0&quot;</span>;</div>
 <div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span> </div>
-<div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span>        <span class="comment">// Work on the magnitude as an unsigned 128-bit pair. Negating the most-negative value overflows</span></div>
-<div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span>        <span class="comment">// back to itself, but its two&#39;s-complement bit pattern is exactly the unsigned magnitude 2^127,</span></div>
-<div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span>        <span class="comment">// so treating the words as unsigned below is correct for it too.</span></div>
-<div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span>        <span class="keyword">auto</span> <span class="keyword">const</span> magnitude = negative ? -value : value;</div>
-<div class="line"><a id="l00246" name="l00246"></a><span class="lineno">  246</span>        <span class="keyword">auto</span> low = magnitude.low;</div>
-<div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span>        <span class="keyword">auto</span> high = magnitude.high;</div>
-<div class="line"><a id="l00248" name="l00248"></a><span class="lineno">  248</span> </div>
-<div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span>        <span class="comment">// Divide repeatedly by 10^9, peeling off nine digits per pass. The divisor has to stay below</span></div>
-<div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span>        <span class="comment">// 2^32: each step of the long division forms `(remainder &lt;&lt; 32) | limb`, and that only fits a</span></div>
-<div class="line"><a id="l00251" name="l00251"></a><span class="lineno">  251</span>        <span class="comment">// std::uint64_t while `remainder &lt; divisor &lt;= 2^32`. (10^19 would be the largest power of ten a</span></div>
-<div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span>        <span class="comment">// std::uint64_t *holds*, but its remainders overflow that shift — the digits then come out</span></div>
-<div class="line"><a id="l00253" name="l00253"></a><span class="lineno">  253</span>        <span class="comment">// scrambled, which is exactly what the round-trip tests catch.)</span></div>
-<div class="line"><a id="l00254" name="l00254"></a><span class="lineno">  254</span>        <span class="keyword">constexpr</span> <span class="keyword">auto</span> chunkDivisor = std::uint64_t { 1&#39;000&#39;000&#39;000ULL };</div>
-<div class="line"><a id="l00255" name="l00255"></a><span class="lineno">  255</span>        <span class="keyword">constexpr</span> <span class="keyword">auto</span> chunkDigits = 9;</div>
-<div class="line"><a id="l00256" name="l00256"></a><span class="lineno">  256</span> </div>
-<div class="line"><a id="l00257" name="l00257"></a><span class="lineno">  257</span>        <span class="keyword">auto</span> chunks = std::string {};</div>
+<div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span>        <span class="keyword">auto</span> <span class="keyword">const</span> negative = value.IsNegative();</div>
+<div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span> </div>
+<div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span>        <span class="comment">// Work on the magnitude as an unsigned 128-bit pair. Negating the most-negative value overflows</span></div>
+<div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span>        <span class="comment">// back to itself, but its two&#39;s-complement bit pattern is exactly the unsigned magnitude 2^127,</span></div>
+<div class="line"><a id="l00246" name="l00246"></a><span class="lineno">  246</span>        <span class="comment">// so treating the words as unsigned below is correct for it too.</span></div>
+<div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span>        <span class="keyword">auto</span> <span class="keyword">const</span> magnitude = negative ? -value : value;</div>
+<div class="line"><a id="l00248" name="l00248"></a><span class="lineno">  248</span>        <span class="keyword">auto</span> low = magnitude.low;</div>
+<div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span>        <span class="keyword">auto</span> high = magnitude.high;</div>
+<div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span> </div>
+<div class="line"><a id="l00251" name="l00251"></a><span class="lineno">  251</span>        <span class="comment">// Divide repeatedly by 10^9, peeling off nine digits per pass. The divisor has to stay below</span></div>
+<div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span>        <span class="comment">// 2^32: each step of the long division forms `(remainder &lt;&lt; 32) | limb`, and that only fits a</span></div>
+<div class="line"><a id="l00253" name="l00253"></a><span class="lineno">  253</span>        <span class="comment">// std::uint64_t while `remainder &lt; divisor &lt;= 2^32`. (10^19 would be the largest power of ten a</span></div>
+<div class="line"><a id="l00254" name="l00254"></a><span class="lineno">  254</span>        <span class="comment">// std::uint64_t *holds*, but its remainders overflow that shift — the digits then come out</span></div>
+<div class="line"><a id="l00255" name="l00255"></a><span class="lineno">  255</span>        <span class="comment">// scrambled, which is exactly what the round-trip tests catch.)</span></div>
+<div class="line"><a id="l00256" name="l00256"></a><span class="lineno">  256</span>        <span class="keyword">constexpr</span> <span class="keyword">auto</span> chunkDivisor = std::uint64_t { 1&#39;000&#39;000&#39;000ULL };</div>
+<div class="line"><a id="l00257" name="l00257"></a><span class="lineno">  257</span>        <span class="keyword">constexpr</span> <span class="keyword">auto</span> chunkDigits = 9;</div>
 <div class="line"><a id="l00258" name="l00258"></a><span class="lineno">  258</span> </div>
-<div class="line"><a id="l00259" name="l00259"></a><span class="lineno">  259</span>        <span class="keywordflow">while</span> (high != 0 || low != 0)</div>
-<div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span>        {</div>
-<div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span>            <span class="keyword">auto</span> remainder = std::uint64_t { 0 };</div>
-<div class="line"><a id="l00262" name="l00262"></a><span class="lineno">  262</span> </div>
-<div class="line"><a id="l00263" name="l00263"></a><span class="lineno">  263</span>            <span class="keyword">auto</span> <span class="keyword">const</span> limbs = std::array&lt;std::uint32_t, 4&gt; {</div>
-<div class="line"><a id="l00264" name="l00264"></a><span class="lineno">  264</span>                <span class="keyword">static_cast&lt;</span>std::uint32_t<span class="keyword">&gt;</span>(high &gt;&gt; 32),</div>
-<div class="line"><a id="l00265" name="l00265"></a><span class="lineno">  265</span>                <span class="keyword">static_cast&lt;</span>std::uint32_t<span class="keyword">&gt;</span>(high &amp; 0xFFFF&#39;FFFFULL),</div>
-<div class="line"><a id="l00266" name="l00266"></a><span class="lineno">  266</span>                <span class="keyword">static_cast&lt;</span>std::uint32_t<span class="keyword">&gt;</span>(low &gt;&gt; 32),</div>
-<div class="line"><a id="l00267" name="l00267"></a><span class="lineno">  267</span>                <span class="keyword">static_cast&lt;</span>std::uint32_t<span class="keyword">&gt;</span>(low &amp; 0xFFFF&#39;FFFFULL),</div>
-<div class="line"><a id="l00268" name="l00268"></a><span class="lineno">  268</span>            };</div>
-<div class="line"><a id="l00269" name="l00269"></a><span class="lineno">  269</span> </div>
-<div class="line"><a id="l00270" name="l00270"></a><span class="lineno">  270</span>            <span class="keyword">auto</span> quotientLimbs = std::array&lt;std::uint32_t, 4&gt; {};</div>
+<div class="line"><a id="l00259" name="l00259"></a><span class="lineno">  259</span>        <span class="keyword">auto</span> chunks = std::string {};</div>
+<div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span> </div>
+<div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span>        <span class="keywordflow">while</span> (high != 0 || low != 0)</div>
+<div class="line"><a id="l00262" name="l00262"></a><span class="lineno">  262</span>        {</div>
+<div class="line"><a id="l00263" name="l00263"></a><span class="lineno">  263</span>            <span class="keyword">auto</span> remainder = std::uint64_t { 0 };</div>
+<div class="line"><a id="l00264" name="l00264"></a><span class="lineno">  264</span> </div>
+<div class="line"><a id="l00265" name="l00265"></a><span class="lineno">  265</span>            <span class="keyword">auto</span> <span class="keyword">const</span> limbs = std::array&lt;std::uint32_t, 4&gt; {</div>
+<div class="line"><a id="l00266" name="l00266"></a><span class="lineno">  266</span>                <span class="keyword">static_cast&lt;</span>std::uint32_t<span class="keyword">&gt;</span>(high &gt;&gt; 32),</div>
+<div class="line"><a id="l00267" name="l00267"></a><span class="lineno">  267</span>                <span class="keyword">static_cast&lt;</span>std::uint32_t<span class="keyword">&gt;</span>(high &amp; 0xFFFF&#39;FFFFULL),</div>
+<div class="line"><a id="l00268" name="l00268"></a><span class="lineno">  268</span>                <span class="keyword">static_cast&lt;</span>std::uint32_t<span class="keyword">&gt;</span>(low &gt;&gt; 32),</div>
+<div class="line"><a id="l00269" name="l00269"></a><span class="lineno">  269</span>                <span class="keyword">static_cast&lt;</span>std::uint32_t<span class="keyword">&gt;</span>(low &amp; 0xFFFF&#39;FFFFULL),</div>
+<div class="line"><a id="l00270" name="l00270"></a><span class="lineno">  270</span>            };</div>
 <div class="line"><a id="l00271" name="l00271"></a><span class="lineno">  271</span> </div>
-<div class="line"><a id="l00272" name="l00272"></a><span class="lineno">  272</span>            <span class="keywordflow">for</span> (<span class="keyword">auto</span> index = std::size_t { 0 }; index != limbs.size(); ++index)</div>
-<div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span>            {</div>
-<div class="line"><a id="l00274" name="l00274"></a><span class="lineno">  274</span>                <span class="comment">// `remainder &lt; 10^9 &lt; 2^32`, so `(remainder &lt;&lt; 32) | limb` stays within 64 bits.</span></div>
-<div class="line"><a id="l00275" name="l00275"></a><span class="lineno">  275</span>                <span class="keyword">auto</span> <span class="keyword">const</span> dividend = (remainder &lt;&lt; 32) | limbs[index];</div>
-<div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span>                quotientLimbs[index] = <span class="keyword">static_cast&lt;</span>std::uint32_t<span class="keyword">&gt;</span>(dividend / chunkDivisor);</div>
-<div class="line"><a id="l00277" name="l00277"></a><span class="lineno">  277</span>                remainder = dividend % chunkDivisor;</div>
-<div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span>            }</div>
-<div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span> </div>
-<div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span>            high = (<span class="keyword">static_cast&lt;</span>std::uint64_t<span class="keyword">&gt;</span>(quotientLimbs[0]) &lt;&lt; 32) | quotientLimbs[1];</div>
-<div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span>            low = (<span class="keyword">static_cast&lt;</span>std::uint64_t<span class="keyword">&gt;</span>(quotientLimbs[2]) &lt;&lt; 32) | quotientLimbs[3];</div>
-<div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span> </div>
-<div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span>            <span class="comment">// Emit this chunk&#39;s digits least-significant first; they are zero-padded unless this was the</span></div>
-<div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span>            <span class="comment">// final (most significant) chunk, whose padding is trimmed after the loop.</span></div>
-<div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span>            <span class="keywordflow">for</span> (<span class="keyword">auto</span> digit = 0; digit != chunkDigits; ++digit)</div>
-<div class="line"><a id="l00286" name="l00286"></a><span class="lineno">  286</span>            {</div>
-<div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span>                chunks.push_back(<span class="keyword">static_cast&lt;</span><span class="keywordtype">char</span><span class="keyword">&gt;</span>(<span class="charliteral">&#39;0&#39;</span> + <span class="keyword">static_cast&lt;</span><span class="keywordtype">char</span><span class="keyword">&gt;</span>(remainder % 10)));</div>
-<div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span>                remainder /= 10;</div>
-<div class="line"><a id="l00289" name="l00289"></a><span class="lineno">  289</span>            }</div>
-<div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span>        }</div>
-<div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span> </div>
-<div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span>        <span class="comment">// Drop the zero padding of the most significant chunk, then reverse into print order.</span></div>
-<div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span>        <span class="keywordflow">while</span> (chunks.size() &gt; 1 &amp;&amp; chunks.back() == <span class="charliteral">&#39;0&#39;</span>)</div>
-<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span>            chunks.pop_back();</div>
-<div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span> </div>
-<div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span>        <span class="keywordflow">if</span> (negative)</div>
-<div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span>            chunks.push_back(<span class="charliteral">&#39;-&#39;</span>);</div>
-<div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span> </div>
-<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span>        <span class="keywordflow">return</span> std::string { chunks.rbegin(), chunks.rend() };</div>
-<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span>    }</div>
-<div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span> </div>
-<div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span>} <span class="comment">// namespace detail</span></div>
-<div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span><span class="comment"></span> </div>
-<div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span><span class="comment">/// The unscaled carrier `SqlNumeric` keeps `value * 10^Scale` in: a signed 128-bit integer on every</span></div>
-<div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span><span class="comment">/// supported toolchain.</span></div>
-<div class="line"><a id="l00306" name="l00306"></a><span class="lineno">  306</span><span class="comment">///</span></div>
-<div class="line"><a id="l00307" name="l00307"></a><span class="lineno">  307</span><span class="comment">/// Where the compiler provides `__int128_t` that is used directly, so nothing changes for GCC and</span></div>
-<div class="line"><a id="l00308" name="l00308"></a><span class="lineno">  308</span><span class="comment">/// Clang. MSVC and clang-cl get `detail::Int128Soft`, a software stand-in with the same width and the</span></div>
-<div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span><span class="comment">/// same conversion behaviour. Both are 16 bytes and little-endian, matching `SQL_NUMERIC_STRUCT::val`</span></div>
-<div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span><span class="comment">/// byte for byte.</span></div>
-<div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span><span class="comment"></span><span class="preprocessor">#if defined(LIGHTWEIGHT_HAVE_NATIVE_INT128)</span></div>
-<div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span><span class="keyword">using </span>Int128 = __int128_t;</div>
-<div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span><span class="preprocessor">#else</span></div>
-<div class="line"><a id="l00314" name="l00314"></a><span class="lineno">  314</span><span class="keyword">using </span>Int128 = detail::Int128Soft;</div>
-<div class="line"><a id="l00315" name="l00315"></a><span class="lineno">  315</span><span class="preprocessor">#endif</span></div>
-<div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span> </div>
-<div class="line"><a id="l00317" name="l00317"></a><span class="lineno">  317</span><span class="keyword">static_assert</span>(<span class="keyword">sizeof</span>(Int128) == 16, <span class="stringliteral">&quot;The unscaled carrier must be exactly as wide as SQL_NUMERIC_STRUCT::val.&quot;</span>);</div>
+<div class="line"><a id="l00272" name="l00272"></a><span class="lineno">  272</span>            <span class="keyword">auto</span> quotientLimbs = std::array&lt;std::uint32_t, 4&gt; {};</div>
+<div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span> </div>
+<div class="line"><a id="l00274" name="l00274"></a><span class="lineno">  274</span>            <span class="keywordflow">for</span> (<span class="keyword">auto</span> index = std::size_t { 0 }; index != limbs.size(); ++index)</div>
+<div class="line"><a id="l00275" name="l00275"></a><span class="lineno">  275</span>            {</div>
+<div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span>                <span class="comment">// `remainder &lt; 10^9 &lt; 2^32`, so `(remainder &lt;&lt; 32) | limb` stays within 64 bits.</span></div>
+<div class="line"><a id="l00277" name="l00277"></a><span class="lineno">  277</span>                <span class="keyword">auto</span> <span class="keyword">const</span> dividend = (remainder &lt;&lt; 32) | limbs[index];</div>
+<div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span>                quotientLimbs[index] = <span class="keyword">static_cast&lt;</span>std::uint32_t<span class="keyword">&gt;</span>(dividend / chunkDivisor);</div>
+<div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span>                remainder = dividend % chunkDivisor;</div>
+<div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span>            }</div>
+<div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span> </div>
+<div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span>            high = (<span class="keyword">static_cast&lt;</span>std::uint64_t<span class="keyword">&gt;</span>(quotientLimbs[0]) &lt;&lt; 32) | quotientLimbs[1];</div>
+<div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span>            low = (<span class="keyword">static_cast&lt;</span>std::uint64_t<span class="keyword">&gt;</span>(quotientLimbs[2]) &lt;&lt; 32) | quotientLimbs[3];</div>
+<div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span> </div>
+<div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span>            <span class="comment">// Emit this chunk&#39;s digits least-significant first; they are zero-padded unless this was the</span></div>
+<div class="line"><a id="l00286" name="l00286"></a><span class="lineno">  286</span>            <span class="comment">// final (most significant) chunk, whose padding is trimmed after the loop.</span></div>
+<div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span>            <span class="keywordflow">for</span> (<span class="keyword">auto</span> digit = 0; digit != chunkDigits; ++digit)</div>
+<div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span>            {</div>
+<div class="line"><a id="l00289" name="l00289"></a><span class="lineno">  289</span>                chunks.push_back(<span class="keyword">static_cast&lt;</span><span class="keywordtype">char</span><span class="keyword">&gt;</span>(<span class="charliteral">&#39;0&#39;</span> + <span class="keyword">static_cast&lt;</span><span class="keywordtype">char</span><span class="keyword">&gt;</span>(remainder % 10)));</div>
+<div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span>                remainder /= 10;</div>
+<div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span>            }</div>
+<div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span>        }</div>
+<div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span> </div>
+<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span>        <span class="comment">// Drop the zero padding of the most significant chunk, then reverse into print order.</span></div>
+<div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span>        <span class="keywordflow">while</span> (chunks.size() &gt; 1 &amp;&amp; chunks.back() == <span class="charliteral">&#39;0&#39;</span>)</div>
+<div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span>            chunks.pop_back();</div>
+<div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span> </div>
+<div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span>        <span class="keywordflow">if</span> (negative)</div>
+<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span>            chunks.push_back(<span class="charliteral">&#39;-&#39;</span>);</div>
+<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span> </div>
+<div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span>        <span class="keywordflow">return</span> std::string { chunks.rbegin(), chunks.rend() };</div>
+<div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span>    }</div>
+<div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span> </div>
+<div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span>} <span class="comment">// namespace detail</span></div>
+<div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span><span class="comment"></span> </div>
+<div class="line"><a id="l00306" name="l00306"></a><span class="lineno">  306</span><span class="comment">/// The unscaled carrier `SqlNumeric` keeps `value * 10^Scale` in: a signed 128-bit integer on every</span></div>
+<div class="line"><a id="l00307" name="l00307"></a><span class="lineno">  307</span><span class="comment">/// supported toolchain.</span></div>
+<div class="line"><a id="l00308" name="l00308"></a><span class="lineno">  308</span><span class="comment">///</span></div>
+<div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span><span class="comment">/// Where the compiler provides `__int128_t` that is used directly, so nothing changes for GCC and</span></div>
+<div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span><span class="comment">/// Clang. MSVC and clang-cl get `detail::Int128Soft`, a software stand-in with the same width and the</span></div>
+<div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span><span class="comment">/// same conversion behaviour. Both are 16 bytes and little-endian, matching `SQL_NUMERIC_STRUCT::val`</span></div>
+<div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span><span class="comment">/// byte for byte.</span></div>
+<div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span><span class="comment"></span><span class="preprocessor">#if defined(LIGHTWEIGHT_HAVE_NATIVE_INT128)</span></div>
+<div class="line"><a id="l00314" name="l00314"></a><span class="lineno">  314</span><span class="keyword">using </span>Int128 = __int128_t;</div>
+<div class="line"><a id="l00315" name="l00315"></a><span class="lineno">  315</span><span class="preprocessor">#else</span></div>
+<div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span><span class="keyword">using </span>Int128 = detail::Int128Soft;</div>
+<div class="line"><a id="l00317" name="l00317"></a><span class="lineno">  317</span><span class="preprocessor">#endif</span></div>
 <div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span> </div>
-<div class="line"><a id="l00319" name="l00319"></a><span class="lineno">  319</span><span class="keyword">namespace </span>detail</div>
-<div class="line"><a id="l00320" name="l00320"></a><span class="lineno">  320</span>{</div>
-<div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span><span class="comment"></span> </div>
-<div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span><span class="comment">    /// Renders the unscaled carrier in base 10, whichever of the two implementations it is.</span></div>
-<div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span><span class="comment">    /// `std::format` supports neither `__int128_t` nor `Int128Soft`, so both paths are handled here.</span></div>
+<div class="line"><a id="l00319" name="l00319"></a><span class="lineno">  319</span><span class="keyword">static_assert</span>(<span class="keyword">sizeof</span>(Int128) == 16, <span class="stringliteral">&quot;The unscaled carrier must be exactly as wide as SQL_NUMERIC_STRUCT::val.&quot;</span>);</div>
+<div class="line"><a id="l00320" name="l00320"></a><span class="lineno">  320</span> </div>
+<div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span><span class="keyword">namespace </span>detail</div>
+<div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span>{</div>
+<div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span><span class="comment"></span> </div>
+<div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span><span class="comment">    /// Renders the unscaled carrier in base 10, whichever of the two implementations it is.</span></div>
 <div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span><span class="comment">    /// @param value Value to render.</span></div>
-<div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span><span class="comment">    /// @return Decimal representation, with a leading &#39;-&#39; for negative values.</span></div>
-<div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span><span class="comment"></span>    [[nodiscard]] <span class="keyword">inline</span> std::string Int128ToString(Int128 value) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span>    {</div>
-<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span><span class="preprocessor">#if defined(LIGHTWEIGHT_HAVE_NATIVE_INT128)</span></div>
-<div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span>        <span class="keyword">auto</span> <span class="keyword">const</span> negative = value &lt; 0;</div>
-<div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span>        <span class="keyword">auto</span> magnitude = <span class="keyword">static_cast&lt;</span>__uint128_t<span class="keyword">&gt;</span>(negative ? -value : value);</div>
-<div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span> </div>
-<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span>        <span class="keywordflow">if</span> (magnitude == 0)</div>
-<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span>            <span class="keywordflow">return</span> <span class="stringliteral">&quot;0&quot;</span>;</div>
-<div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span> </div>
-<div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span>        <span class="keyword">auto</span> reversed = std::string {};</div>
-<div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span>        <span class="keywordflow">while</span> (magnitude != 0)</div>
-<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span>        {</div>
-<div class="line"><a id="l00340" name="l00340"></a><span class="lineno">  340</span>            reversed.push_back(<span class="keyword">static_cast&lt;</span><span class="keywordtype">char</span><span class="keyword">&gt;</span>(<span class="charliteral">&#39;0&#39;</span> + <span class="keyword">static_cast&lt;</span><span class="keywordtype">char</span><span class="keyword">&gt;</span>(magnitude % 10)));</div>
-<div class="line"><a id="l00341" name="l00341"></a><span class="lineno">  341</span>            magnitude /= 10;</div>
-<div class="line"><a id="l00342" name="l00342"></a><span class="lineno">  342</span>        }</div>
-<div class="line"><a id="l00343" name="l00343"></a><span class="lineno">  343</span>        <span class="keywordflow">if</span> (negative)</div>
-<div class="line"><a id="l00344" name="l00344"></a><span class="lineno">  344</span>            reversed.push_back(<span class="charliteral">&#39;-&#39;</span>);</div>
-<div class="line"><a id="l00345" name="l00345"></a><span class="lineno">  345</span> </div>
-<div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span>        <span class="keywordflow">return</span> std::string { reversed.rbegin(), reversed.rend() };</div>
-<div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span><span class="preprocessor">#else</span></div>
-<div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span>        <span class="keywordflow">return</span> ToDecimalString(value);</div>
-<div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span><span class="preprocessor">#endif</span></div>
-<div class="line"><a id="l00350" name="l00350"></a><span class="lineno">  350</span>    }</div>
-<div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span> </div>
-<div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span>} <span class="comment">// namespace detail</span></div>
+<div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span><span class="comment">    /// `std::format` supports neither `__int128_t` nor `Int128Soft`, so both paths are handled here.</span></div>
+<div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span><span class="comment">    /// @param value Value to render.</span></div>
+<div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span><span class="comment">    /// @return Decimal representation, with a leading &#39;-&#39; for negative values.</span></div>
+<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span><span class="comment"></span>    [[nodiscard]] <span class="keyword">inline</span> std::string Int128ToString(Int128 value) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span>    {</div>
+<div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span><span class="preprocessor">#if defined(LIGHTWEIGHT_HAVE_NATIVE_INT128)</span></div>
+<div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span>        <span class="keyword">auto</span> <span class="keyword">const</span> negative = value &lt; 0;</div>
+<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span>        <span class="keyword">auto</span> magnitude = <span class="keyword">static_cast&lt;</span>__uint128_t<span class="keyword">&gt;</span>(negative ? -value : value);</div>
+<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span> </div>
+<div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span>        <span class="keywordflow">if</span> (magnitude == 0)</div>
+<div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span>            <span class="keywordflow">return</span> <span class="stringliteral">&quot;0&quot;</span>;</div>
+<div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span> </div>
+<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span>        <span class="keyword">auto</span> reversed = std::string {};</div>
+<div class="line"><a id="l00340" name="l00340"></a><span class="lineno">  340</span>        <span class="keywordflow">while</span> (magnitude != 0)</div>
+<div class="line"><a id="l00341" name="l00341"></a><span class="lineno">  341</span>        {</div>
+<div class="line"><a id="l00342" name="l00342"></a><span class="lineno">  342</span>            reversed.push_back(<span class="keyword">static_cast&lt;</span><span class="keywordtype">char</span><span class="keyword">&gt;</span>(<span class="charliteral">&#39;0&#39;</span> + <span class="keyword">static_cast&lt;</span><span class="keywordtype">char</span><span class="keyword">&gt;</span>(magnitude % 10)));</div>
+<div class="line"><a id="l00343" name="l00343"></a><span class="lineno">  343</span>            magnitude /= 10;</div>
+<div class="line"><a id="l00344" name="l00344"></a><span class="lineno">  344</span>        }</div>
+<div class="line"><a id="l00345" name="l00345"></a><span class="lineno">  345</span>        <span class="keywordflow">if</span> (negative)</div>
+<div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span>            reversed.push_back(<span class="charliteral">&#39;-&#39;</span>);</div>
+<div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span> </div>
+<div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span>        <span class="keywordflow">return</span> std::string { reversed.rbegin(), reversed.rend() };</div>
+<div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span><span class="preprocessor">#else</span></div>
+<div class="line"><a id="l00350" name="l00350"></a><span class="lineno">  350</span>        <span class="keywordflow">return</span> ToDecimalString(value);</div>
+<div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span>    }</div>
 <div class="line"><a id="l00353" name="l00353"></a><span class="lineno">  353</span> </div>
-<div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span>} <span class="comment">// namespace detail</span></div>
+<div class="line"><a id="l00355" name="l00355"></a><span class="lineno">  355</span> </div>
+<div class="line"><a id="l00356" name="l00356"></a><span class="lineno">  356</span>} <span class="comment">// namespace Lightweight</span></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
