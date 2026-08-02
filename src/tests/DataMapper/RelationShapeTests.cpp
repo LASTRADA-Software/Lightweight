@@ -24,6 +24,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <set>
+#include <stdexcept>
 #include <string>
 
 using namespace Lightweight;
@@ -32,15 +33,21 @@ using namespace Lightweight;
 ///
 /// `REQUIRE(x.has_value()); x->member` reads naturally but spreads the check and the access across two
 /// statements, which `bugprone-unchecked-optional-access` cannot follow - it flags every subsequent
-/// `x->`. Unwrapping through this helper keeps the check and the dereference in one expression, so the
-/// analyser can verify it. Preferred over sprinkling NOLINT, which would only hide the diagnostic.
+/// `x->`. Routing every unwrap through this one helper keeps that pattern out of the tests entirely.
+///
+/// The throw, rather than relying on the `REQUIRE` above it, is what makes the access provably safe:
+/// Catch2's `REQUIRE` expands to a loop the analyser cannot prove exits, so it does not count as a
+/// guard. Throwing first means the dereference is unconditionally reachable only when a value is
+/// present. Catch2 reports an escaped exception as a test failure, so the diagnostic is equivalent -
+/// and this is a real guarantee rather than a NOLINT hiding the question.
 ///
 /// @param value The optional to unwrap.
 /// @return A reference to the contained value.
 template <typename T>
 [[nodiscard]] T const& ValueOf(std::optional<T> const& value)
 {
-    REQUIRE(value.has_value());
+    if (!value.has_value())
+        throw std::runtime_error("Expected the optional to hold a value.");
     return *value;
 }
 
@@ -52,7 +59,8 @@ template <typename T>
 template <typename T>
 [[nodiscard]] T& ValueOf(std::optional<T>& value)
 {
-    REQUIRE(value.has_value());
+    if (!value.has_value())
+        throw std::runtime_error("Expected the optional to hold a value.");
     return *value;
 }
 
@@ -580,7 +588,8 @@ TEST_CASE_METHOD(SqlTestFixture, "LoadRelations on a record without a BelongsTo"
     b.a = a;
     dm.Create(b);
 
-    auto loadedA = dm.QuerySingle<ChainA>(a.id.Value()).value();
+    auto loadedAOpt = dm.QuerySingle<ChainA>(a.id.Value());
+    auto& loadedA = ValueOf(loadedAOpt);
     dm.LoadRelations(loadedA);
     REQUIRE(loadedA.bs.All().size() == 1);
     CHECK(loadedA.bs.At(0).label.Value() == "b");
@@ -609,7 +618,8 @@ TEST_CASE_METHOD(SqlTestFixture, "LoadRelations fills a non-nullable BelongsTo",
 
     // ChainB carries both a BelongsTo (upwards) and a HasMany (downwards), so one call exercises both
     // branches of the member enumeration.
-    auto loadedB = dm.QuerySingle<ChainB>(b.id.Value()).value();
+    auto loadedBOpt = dm.QuerySingle<ChainB>(b.id.Value());
+    auto& loadedB = ValueOf(loadedBOpt);
     dm.LoadRelations(loadedB);
 
     CHECK(loadedB.cs.All().size() == 1);
@@ -645,7 +655,8 @@ TEST_CASE_METHOD(SqlTestFixture,
     auto orphan = OptionalChild { .name = "orphan" };
     dm.Create(orphan);
 
-    auto loadedAttached = dm.QuerySingle<OptionalChild>(attached.id.Value()).value();
+    auto loadedAttachedOpt = dm.QuerySingle<OptionalChild>(attached.id.Value());
+    auto& loadedAttached = ValueOf(loadedAttachedOpt);
     dm.LoadRelations(loadedAttached);
     CHECK(ValueOf(loadedAttached.parent.Value()) == parent.id.Value());
     // For an optional relationship Record() yields an optional over a reference_wrapper, hence .get().
@@ -655,7 +666,8 @@ TEST_CASE_METHOD(SqlTestFixture,
     // The NULL foreign key has nothing to load. It must remain unset - not resolved to some arbitrary
     // row - and asking for the record must report emptiness rather than throwing, because an unset
     // optional relationship is legitimate rather than an error.
-    auto loadedOrphan = dm.QuerySingle<OptionalChild>(orphan.id.Value()).value();
+    auto loadedOrphanOpt = dm.QuerySingle<OptionalChild>(orphan.id.Value());
+    auto& loadedOrphan = ValueOf(loadedOrphanOpt);
     dm.LoadRelations(loadedOrphan);
     CHECK_FALSE(loadedOrphan.parent.Value().has_value());
     CHECK_FALSE(loadedOrphan.parent.Record().has_value());
