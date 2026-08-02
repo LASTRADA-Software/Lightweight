@@ -55,18 +55,31 @@ using namespace std::string_view_literals;
 //     };
 //
 // and merely *constructing* one overflows the stack. Reduced to its minimum, the trigger needs
-// neither `HasMany`, nor a DataMapper, nor a database:
+// neither `HasMany`, nor a DataMapper, nor a database, nor a string field:
 //
-//   - `sizeof(TreeNode)` alone is fine and reports 64, so the class layout is not the recursion.
-//   - Default-constructing a `TreeNode` in a test body crashes before the body's first statement
-//     runs, i.e. during static initialisation of the translation unit.
+//   - `sizeof(TreeNode)` is a well-behaved 64 bytes, and a function that only *mentions* the type
+//     (sizeof, member enumeration) compiles clean and runs. So the class layout is fine.
+//   - Adding a single `TreeNode` object to a function body - on the stack *or* on the heap via
+//     make_unique - makes clang-cl report a frame size of ~1.8e16 bytes for the *enclosing*
+//     function: `warning: stack frame size (17717667280454008) exceeds limit (4294967295)
+//     [-Wframe-larger-than]`. That is ~2^54, an overflowed computation, not a real frame.
+//   - At runtime that function faults on entry, before its first statement, which is why no output
+//     appears no matter where the printf goes.
+//   - Under cdb the fault is `Stack overflow - code c00000fd` with a stack only *eight* frames
+//     deep, one of which consumes ~570 KB of the 1 MB stack. So this is not runaway recursion at
+//     run time; it is a single frame the compiler sized wrongly.
 //   - The identical record with its `BelongsTo` pointing at a *different* type - the pattern every
-//     pre-existing test uses - constructs and assigns fine. The self-reference is the whole
-//     difference.
+//     pre-existing test uses - is fine. The self-reference is the whole difference.
 //
-// `BelongsTo` owns a `std::unique_ptr<ReferencedRecord>`, so a self-referential instantiation makes
-// the record reachable from itself; some member of the surrounding machinery instantiated over that
-// cycle has no base case. Where exactly is for the fix to establish.
+// So the defect is a compile-time size/instantiation blow-up over the self-referential type, which
+// the code generator then turns into an impossible stack allocation. Ruled out by isolated
+// reproduction (each of these compiles and runs correctly on its own, so none is sufficient):
+// `BelongsTo`'s variadic converting constructor, the
+// ConfigureRelationAutoLoading -> LoadBelongsTo -> QuerySingle -> ConfigureRelationAutoLoading
+// template cycle, `std::function<std::optional<Record>()>` held by value inside the record it
+// returns, and reflection-cpp's `CountMembers` probe against a constructor that absorbs `AnyType`.
+// The interaction of several of these is the likely cause; pinning it needs a debug build with
+// symbols, which did not fit in the available disk space.
 //
 // Kept as a compiled-out block rather than a `[!mayfail]` test: a stack overflow in static
 // initialisation aborts the whole binary, so an enabled version would take all ~1300 unrelated test
@@ -253,9 +266,9 @@ TEST_CASE("Self-referential BelongsTo is unusable", "[DataMapper][relations][sel
     // Placeholder that keeps the defect visible in the test report while the block above cannot be
     // compiled. `[!shouldfail]` inverts the result, so this passes the run *because* it fails - and
     // starts failing the moment someone deletes it without re-enabling the block.
-    FAIL("A record whose BelongsTo names its own type overflows the stack on construction; the "
-         "self-referential shape tests in RelationShapeTests.cpp are compiled out. See the comment "
-         "block above this test.");
+    FAIL("A record whose BelongsTo names its own type makes clang-cl compute a ~1.8e16-byte stack "
+         "frame for any function holding one, which faults on entry. The self-referential shape "
+         "tests in RelationShapeTests.cpp are compiled out. See the comment block above this test.");
 }
 
 // ================================================================================================
