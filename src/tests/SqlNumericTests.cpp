@@ -142,23 +142,23 @@ TEST_CASE("SqlNumeric ColumnType matches template arguments", "[SqlNumeric]")
 
 TEST_CASE("SqlMaxNumericPrecision is the width this implementation can carry", "[SqlNumeric]")
 {
-    // SQL_MAX_NUMERIC_LEN is the mantissa size in *bytes* (16), not a digit count, so the historical
-    // `Precision <= SQL_MAX_NUMERIC_LEN` was a category error that rejected DECIMAL(18, 2). But the
-    // mantissa's 38-digit capacity is not the bound either — see the derivation on
-    // SqlMaxNumericPrecision. What narrows it is the readable width: at most a 64-bit magnitude
-    // (19 digits), which is what the widest `long double` in use — the 80-bit x87 one — renders.
-    // Where `long double` is narrower still (MSVC, Clang on Apple Silicon) the *floating-point*
-    // accessors are correspondingly narrower; ToString() and ToUnscaledValue() are not, because
-    // neither goes through one. That is an accessor property, asserted separately below.
-    STATIC_CHECK(detail::DecimalDigitsForBits(63) == 18);  // int64_t magnitude — no longer the bound
+    // SQL_MAX_NUMERIC_LEN is the mantissa size in *bytes* (16), not a digit count, so comparing a
+    // digit count against it is a category error that rejects DECIMAL(18, 2). But the mantissa's
+    // 38-digit capacity is not the bound either — see the derivation on SqlMaxNumericPrecision.
+    // What narrows it is the readable width: at most a 64-bit magnitude (19 digits), which is what
+    // the widest `long double` in use — the 80-bit x87 one — renders. Where `long double` is
+    // narrower still (MSVC, Clang on Apple Silicon) the *floating-point* accessors are
+    // correspondingly narrower; ToString() and ToUnscaledValue() are not, because neither goes
+    // through one. That is an accessor property, asserted separately below.
+    STATIC_CHECK(detail::DecimalDigitsForBits(63) == 18);  // int64_t magnitude — deliberately NOT the bound
     STATIC_CHECK(detail::DecimalDigitsForBits(64) == 19);  // 64-bit magnitude / x87 significand
     STATIC_CHECK(detail::DecimalDigitsForBits(127) == 38); // __int128 magnitude — deliberately NOT the bound
 
     // The bound is the *same on every toolchain*. This is the property that matters: a column's
     // precision comes from the database schema, so a ddl2cpp-generated record must compile
     // regardless of which compiler builds the client. `Int128` supplies a software 128-bit carrier
-    // where the compiler has no native one, which is what makes this unconditional — before that,
-    // the bound was 18 under MSVC/clang-cl and 19 elsewhere.
+    // where the compiler has no native one, which is what makes this unconditional: without it the
+    // bound would be 18 under MSVC/clang-cl and 19 elsewhere.
     STATIC_CHECK(SqlMaxNumericPrecision == 19);
 
     // MS SQL Server's `money` is DECIMAL(19, 4), and it is expressible everywhere.
@@ -174,12 +174,12 @@ TEST_CASE("SqlMaxNumericPrecision is the width this implementation can carry", "
 
 TEST_CASE("SqlNumeric carries money's full range on every toolchain", "[SqlNumeric]")
 {
-    // The regression this whole change is about. MS SQL Server's `money` spans
-    // -922337203685477.5808 .. 922337203685477.5807, i.e. unscaled values of exactly INT64_MIN and
-    // INT64_MAX. The negative endpoint has magnitude 9223372036854775808 — one past INT64_MAX — so
-    // with the previous `int64_t` carrier `assign()`'s float-to-int conversion was out of range
-    // (undefined behaviour) and on x86-64 produced INT64_MIN, rendering the value sign-flipped. With
-    // a 128-bit carrier on every toolchain both endpoints round-trip.
+    // MS SQL Server's `money` spans -922337203685477.5808 .. 922337203685477.5807, i.e. unscaled
+    // values of exactly INT64_MIN and INT64_MAX. The negative endpoint has magnitude
+    // 9223372036854775808 — one past INT64_MAX — so with an `int64_t` carrier `assign()`'s
+    // float-to-int conversion is out of range (undefined behaviour) and on x86-64 yields INT64_MIN,
+    // rendering the value sign-flipped. With a 128-bit carrier on every toolchain both endpoints
+    // round-trip.
     //
     // Injected through the SQL_NUMERIC_STRUCT constructor because that is the state a native
     // SQL_C_NUMERIC fetch leaves behind: mantissa verbatim, nativeValue still zero. Note that the
@@ -199,7 +199,7 @@ TEST_CASE("SqlNumeric carries money's full range on every toolchain", "[SqlNumer
     CHECK(money.ToString().front() != '-'); // the sign flip this guards against
 
     // The negative endpoint: -922337203685477.5808, unscaled magnitude 2^63 — one past INT64_MAX,
-    // which is precisely the value the old carrier could not hold.
+    // which is precisely the value a 64-bit carrier cannot hold.
     constexpr auto minMagnitude = std::uint64_t { 9'223'372'036'854'775'808ULL };
     raw.sign = 0; // negative
     std::memcpy(static_cast<void*>(raw.val), &minMagnitude, sizeof(minMagnitude));
@@ -208,9 +208,10 @@ TEST_CASE("SqlNumeric carries money's full range on every toolchain", "[SqlNumer
     CHECK(detail::Int128ToString(negativeMoney.ToUnscaledValue()) == "-9223372036854775808");
     CHECK(negativeMoney.ToString() == "-922337203685477.5808");
 
-    // The same endpoint reached through assign() rather than a native fetch — this is the path that
-    // performed the out-of-range conversion. `long double` is 53-bit on MSVC so the low digits are
-    // not expected to survive here; what must survive is the *sign*, which UB used to invert.
+    // The same endpoint reached through assign() rather than a native fetch — this is the path
+    // where a narrow carrier makes the conversion out of range. `long double` is 53-bit on MSVC so
+    // the low digits are not expected to survive here; what must survive is the *sign*, which that
+    // UB inverts.
     SqlNumeric<19, 4> const assigned { -922337203685477.5808 };
     CHECK(assigned.ToString().front() == '-');
     CHECK(assigned.ToDouble() < 0.0);
@@ -219,8 +220,8 @@ TEST_CASE("SqlNumeric carries money's full range on every toolchain", "[SqlNumer
 TEST_CASE("SqlNumeric::ToString renders exactly, without a floating-point detour", "[SqlNumeric]")
 {
     // ToString() formats from the unscaled integer rather than from ToLongDouble(), so all 19 digits
-    // survive on every toolchain — including MSVC, whose `long double` is 53 bits and would have
-    // dropped the low four here.
+    // survive on every toolchain — including MSVC, whose `long double` is 53 bits and would drop the
+    // low four here.
     // 19 significant digits, scale 0 — the widest integral value the type admits.
     CHECK(ExactNumeric<19, 0>(9'999'999'999'999'999'999ULL).ToString() == "9999999999999999999");
 
@@ -261,14 +262,15 @@ TEST_CASE("SqlNumeric carries every digit up to SqlMaxNumericPrecision", "[SqlNu
     CHECK(detail::Int128ToString(widest.ToUnscaledValue()) == expected);
 
     // ToString() carries the same guarantee, because it renders from that integer rather than from
-    // ToLongDouble(). It used to be strictly weaker — divided through `long double` and handed to
-    // the standard library's formatter, so how many digits survived depended both on that type's
-    // width (53 bits on MSVC and on Clang for Apple Silicon, 64 on the x87 80-bit one) and on the
-    // formatter's own long-double support, which narrows to `double` on some toolchains regardless.
+    // ToLongDouble(). Dividing through `long double` and handing the result to the standard
+    // library's formatter would be strictly weaker: how many digits survive would depend both on
+    // that type's width (53 bits on MSVC and on Clang for Apple Silicon, 64 on the x87 80-bit one)
+    // and on the formatter's own long-double support, which narrows to `double` on some toolchains
+    // regardless.
     CHECK(widest.ToString() == expected);
 
-    // The floating-point accessors remain the weaker, toolchain-dependent path — they genuinely do
-    // divide through `long double`, and that has not changed. The portable promise for them is
+    // The floating-point accessors are the weaker, toolchain-dependent path — they genuinely do
+    // divide through `long double`. The portable promise for them is
     // `std::numeric_limits<double>::digits10` significant digits, so assert exactly that.
     constexpr auto portableDigits = static_cast<std::size_t>(std::numeric_limits<double>::digits10);
     auto relativeTolerance = 1.0;

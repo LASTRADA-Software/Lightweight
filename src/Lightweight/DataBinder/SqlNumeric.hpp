@@ -49,30 +49,30 @@ namespace detail
 /// under MSVC and clang-cl as well.
 ///
 /// The bound is deliberately *not* derived from `SQL_MAX_NUMERIC_LEN`. That macro is the size **in
-/// bytes** of `SQL_NUMERIC_STRUCT::val` (16, i.e. a 128-bit mantissa), not a decimal precision, so
-/// the historical `static_assert(Precision <= SQL_MAX_NUMERIC_LEN)` was a category error that
-/// rejected perfectly ordinary columns such as `DECIMAL(18, 2)`.
+/// bytes** of `SQL_NUMERIC_STRUCT::val` (16, i.e. a 128-bit mantissa), not a decimal precision;
+/// comparing a digit count against it is a category error that rejects perfectly ordinary columns
+/// such as `DECIMAL(18, 2)`.
 ///
-/// Bounding by the mantissa's theoretical capacity instead (128 bits -> 38 digits) would be the
-/// same category error in the other direction: 38 is what the ODBC *struct* could hold, not what
-/// this implementation can read back. What narrows it is the **readable width**: every accessor
-/// except `ToUnscaledValue()` — `ToFloat`, `ToDouble`, `ToLongDouble` and therefore `ToString` —
-/// divides through `long double`, so no more digits can be read back than that type's significand
-/// holds. The widest one in use is the 80-bit x87 `long double`, whose 64-bit significand gives
-/// `DecimalDigitsForBits(64)` == 19; beyond that nothing is readable on *any* platform, e.g. a
-/// fetched `SqlNumeric<20, 0>` holding 99999999999999999999 prints as 100000000000000000000.
+/// Bounding by the mantissa's theoretical capacity instead (128 bits -> 38 digits) is the same
+/// category error in the other direction: 38 is what the ODBC *struct* can hold, not what this
+/// implementation can read back. What narrows it is the **readable width**: every accessor except
+/// `ToUnscaledValue()` and `ToString()` — that is, `ToFloat`, `ToDouble` and `ToLongDouble` —
+/// divides through `long double`, so no more digits can be read back through those than that
+/// type's significand holds. The widest one in use is the 80-bit x87 `long double`, whose 64-bit
+/// significand gives `DecimalDigitsForBits(64)` == 19; beyond that nothing is readable on *any*
+/// platform, e.g. a fetched `SqlNumeric<20, 0>` holding 99999999999999999999 reads back as
+/// 100000000000000000000.
 ///
 /// Hence 19, everywhere. `DECIMAL(18, s)` and MS SQL Server's `money` (`DECIMAL(19, 4)`) both
 /// compile on every supported toolchain; a wider column must be read as a string.
 ///
 /// NB: 19 is the point past which nothing is readable *anywhere*. It is emphatically not a promise
-/// that any given platform renders 19 through the floating-point accessors: how many digits
-/// `ToString()` delivers depends both on the width of `long double` (53 bits on MSVC and on Clang
-/// for Apple Silicon) and on the standard library's formatter, which narrows to `double` on some
-/// toolchains even where the type is wider. The only width guaranteed everywhere is
-/// `std::numeric_limits<double>::digits10`; above it, `ToUnscaledValue()` is the only accessor that
-/// can be relied on — and it now carries all 19 digits on every toolchain, which it previously did
-/// not. `docs/data-binder.md` tabulates what each accessor delivers.
+/// that any given platform delivers 19 digits through the *floating-point* accessors: those are
+/// bounded by the width of `long double`, which is 53 bits on MSVC and on Clang for Apple Silicon.
+/// The width they guarantee everywhere is `std::numeric_limits<double>::digits10`. Above that,
+/// `ToUnscaledValue()` and `ToString()` are the accessors to rely on: neither divides through a
+/// floating-point type, so both carry all 19 digits on every toolchain.
+/// `docs/data-binder.md` tabulates what each accessor delivers.
 ///
 /// NB: `inline` is load-bearing. At namespace scope `constexpr` implies `const`, hence internal
 /// linkage, and an exported template in the module interface (`SqlNumeric`, via its static_assert)
@@ -162,8 +162,8 @@ struct SqlNumeric
         auto const unscaledValue = std::roundl(static_cast<long double>(std::abs(inputValue) * std::powl(10.0L, Scale)));
 
         // `Int128` is 128 bits wide on every toolchain, so the unscaled value of even the widest
-        // declarable precision fits without the out-of-range conversion the old `int64_t` fallback
-        // performed. `sqlValue.val` is little-endian and exactly this wide (asserted above).
+        // declarable precision fits, and the conversion stays in range. `sqlValue.val` is
+        // little-endian and exactly this wide (asserted above).
         auto const num = static_cast<Int128>(unscaledValue);
         std::memcpy(sqlValue.val, &num, sizeof(num));
     }
@@ -177,8 +177,9 @@ struct SqlNumeric
 
     /// Converts the numeric to an unscaled integer value.
     ///
-    /// This is the only accessor that does not divide through a floating-point type, and therefore
-    /// the only one that carries every digit up to `SqlMaxNumericPrecision` on every toolchain.
+    /// Along with `ToString()`, which renders from this value, it is one of the two accessors that
+    /// do not divide through a floating-point type, and therefore carries every digit up to
+    /// `SqlMaxNumericPrecision` on every toolchain. The floating-point accessors do not.
     ///
     /// @return `value * 10^Scale` as a signed 128-bit integer.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE Int128 ToUnscaledValue() const noexcept
@@ -234,7 +235,7 @@ struct SqlNumeric
     /// Converts the numeric to a string, exactly.
     ///
     /// Rendered from the unscaled integer rather than by formatting `ToLongDouble()`, so every digit
-    /// the carrier holds survives on every toolchain. Formatting through `long double` used to drop
+    /// the carrier holds survives on every toolchain. Formatting through `long double` would drop
     /// the low digits wherever that type is narrow (53 bits on MSVC and on Clang for Apple Silicon)
     /// or wherever the standard library's formatter narrows to `double` regardless.
     ///

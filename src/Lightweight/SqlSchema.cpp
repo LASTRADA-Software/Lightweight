@@ -1433,10 +1433,9 @@ namespace detail
                     // some special handling of weird types
                     // NB: `money` needs no fixup: the driver reports its true COLUMN_SIZE /
                     // DECIMAL_DIGITS (19 / 4 on MS SQL Server), which is exactly what
-                    // MakeColumnTypeFromNative turns into Decimal { 19, 4 } above. An older
-                    // revision overwrote the precision with SQL_MAX_NUMERIC_LEN to dodge a
-                    // (since corrected) SqlNumeric precision cap, at the cost of reporting a
-                    // wrong precision and scale to every consumer of SqlSchema::Column.
+                    // MakeColumnTypeFromNative turns into Decimal { 19, 4 } above. Overwriting
+                    // the precision here would report a wrong precision and scale to every
+                    // consumer of SqlSchema::Column.
                     if (column.dialectDependantTypeString == "float" || column.dialectDependantTypeString == "FLOAT"
                         || column.dialectDependantTypeString == "real" || column.dialectDependantTypeString == "REAL")
                     {

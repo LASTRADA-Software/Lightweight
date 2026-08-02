@@ -227,8 +227,8 @@ TEST_CASE("CxxModelPrinter::MakeType: money maps to a type SqlNumeric accepts", 
     using namespace Lightweight::SqlColumnTypeDefinitions;
 
     // MS SQL Server reports `money` as DECIMAL(19, 4) and `smallmoney` as DECIMAL(10, 4); the
-    // emitted type must carry those exact values (issue #519 hit a SqlNumeric static_assert that
-    // compared decimal digits against a byte count).
+    // emitted type must carry those exact values. Bounding Precision by a byte count rather than a
+    // digit count rejects both (issue #519).
     CHECK(CxxTypeName({ .name = "price", .type = Decimal { .precision = 19, .scale = 4 }, .isNullable = false })
           == "Light::SqlNumeric<19, 4>");
     CHECK(CxxTypeName({ .name = "price", .type = Decimal { .precision = 10, .scale = 4 }, .isNullable = false })
@@ -265,8 +265,8 @@ TEST_CASE("CxxModelPrinter::MakeDecimalPrecisionNote", "[CxxModelPrinter],[MakeT
     CHECK(wide.contains("DECIMAL(18, 2)"));
     CHECK(!wide.contains("does not compile"));
 
-    // `money` (DECIMAL(19, 4)) is at the bound, so only the transfer-precision note applies. It is
-    // instantiable on every toolchain, so no "does not compile" note is emitted for it any more.
+    // `money` (DECIMAL(19, 4)) is at the bound, so only the transfer-precision note applies: it is
+    // instantiable on every toolchain, so no "does not compile" note is emitted for it.
     auto const money = CxxModelPrinter::MakeDecimalPrecisionNote(
         { .name = "price", .type = Decimal { .precision = 19, .scale = 4 }, .isNullable = false });
     CHECK(money.contains("SQL_C_DOUBLE"));

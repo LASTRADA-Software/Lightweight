@@ -32,8 +32,8 @@ namespace
 {
 
 /// The largest unscaled value MS SQL Server's `money` (DECIMAL(19, 4)) can hold: 922337203685477.5807
-/// scaled by 10^4. This is the value that motivated the whole change — it is one past INT64_MAX, so
-/// the previous `int64_t` carrier turned it into INT64_MIN and rendered it sign-flipped.
+/// scaled by 10^4. This is the value the carrier's width is chosen for — it is one past INT64_MAX,
+/// so an `int64_t` carrier turns it into INT64_MIN and renders it sign-flipped.
 constexpr auto MoneyMaxUnscaled = std::uint64_t { 9'223'372'036'854'775'808ULL };
 
 } // namespace
@@ -112,7 +112,7 @@ TEST_CASE("Int128Soft orders signed values correctly", "[Int128]")
 TEST_CASE("Int128Soft converts from floating point without overflow", "[Int128]")
 {
     // The motivating case: `money`'s maximum unscaled value is one past INT64_MAX. An int64_t
-    // carrier made this UB (sign-flipped on x86-64); the 128-bit carrier represents it exactly.
+    // carrier makes this UB (sign-flipped on x86-64); the 128-bit carrier represents it exactly.
     auto const moneyMax = Int128Soft { 9'223'372'036'854'775'808.0L };
     CHECK(ToDecimalString(moneyMax) == "9223372036854775808");
     CHECK_FALSE(moneyMax.IsNegative());
@@ -133,10 +133,10 @@ TEST_CASE("Int128Soft converts from floating point without overflow", "[Int128]"
 
 TEST_CASE("Int128Soft saturates rather than invoking UB on out-of-range floats", "[Int128]")
 {
-    // An out-of-range float-to-integer conversion is undefined behaviour; the whole reason this type
-    // exists is that the old carrier performed one silently. Beyond the representable range the
-    // result must be the clamped extreme, and — critically — must keep the sign of the input rather
-    // than flipping it the way the int64_t overflow did.
+    // An out-of-range float-to-integer conversion is undefined behaviour, and saturating instead is
+    // a large part of why this type exists. Beyond the representable range the result must be the
+    // clamped extreme, and — critically — must keep the sign of the input rather than flipping it
+    // the way an int64_t overflow does.
     auto const huge = Int128Soft { 1.0e40L };
     CHECK_FALSE(huge.IsNegative());
     CHECK(ToDecimalString(huge) == "170141183460469231731687303715884105727"); // 2^127 - 1

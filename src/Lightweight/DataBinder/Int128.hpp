@@ -33,6 +33,8 @@ namespace detail
     /// `money` column (`DECIMAL(19, 4)`) would compile under GCC/Clang and fail under MSVC. A schema is a
     /// property of the database, not of the compiler that happens to build the client.
     ///
+    /// @see Int128, SqlMaxNumericPrecision
+    ///
     /// The operation set is deliberately minimal — construction from and conversion to the floating-point
     /// types, negation, comparison, and decimal rendering — because that is all `SqlNumeric` needs. It is
     /// not a general-purpose big integer: there is no multiplication, no division by another `Int128Soft`,
@@ -80,8 +82,8 @@ namespace detail
         ///
         /// Values whose magnitude is at or beyond 2^127 saturate to the corresponding extreme rather than
         /// invoking the undefined behaviour an out-of-range `static_cast` to an integer type would. That
-        /// is the whole point of routing through this type: the `int64_t` fallback it replaces silently
-        /// flipped the sign of `money`'s maximum on x86-64.
+        /// is a large part of the point of routing through this type: a narrower carrier makes the
+        /// conversion of `money`'s maximum out of range, and on x86-64 that silently flips its sign.
         ///
         /// @param value Value to truncate. Must be finite; NaN yields zero.
         template <std::floating_point T>

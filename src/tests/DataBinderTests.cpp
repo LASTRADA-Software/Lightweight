@@ -570,11 +570,11 @@ constexpr double SqlNumericDoubleFallbackTolerance = [] {
 // actually verified instead of being relaxed everywhere to whatever the weakest driver delivers.
 //
 // NB: `false` here does *not* mean "assert nothing". The narrowed branch below still pins the sign
-// — which is exactly what the int64_t-overflow defect destroyed — and holds both the value and its
+// — which is exactly what an int64_t-carrier overflow destroys — and holds both the value and its
 // rendering to the accuracy a double is documented to preserve. The carrier's own guarantee, that
 // every digit up to SqlMaxNumericPrecision survives ToUnscaledValue(), is driver-independent and is
 // asserted without a database in "SqlNumeric carries every digit up to SqlMaxNumericPrecision"
-// (SqlNumericTests.cpp), which runs on every platform including the int64_t-carrier ones.
+// (SqlNumericTests.cpp), which runs on every platform.
 constexpr bool SqlNumericNativeMantissaIsLossless =
 #if defined(_WIN32)
     false;
@@ -600,15 +600,13 @@ static std::string MakeNumericProbeDigits(std::size_t precision)
 TEST_CASE_METHOD(SqlTestFixture, "SqlNumeric.MaxPrecisionRoundTrip", "[SqlDataBinder],[SqlNumeric]")
 {
     // Round-trips a value at exactly `SqlMaxNumericPrecision` through a real driver. Nothing below
-    // this width exercises the two limits the bound is derived from: the unscaled carrier (an
-    // `int64_t` where the toolchain has no 128-bit integer) and the `long double` every accessor
-    // but ToUnscaledValue() divides through. Before the bound was corrected, `SqlNumeric<19, 4>`
-    // compiled on MSVC and turned the `money` maximum into its own negation.
+    // this width exercises the two limits the bound is derived from: the width of the unscaled
+    // carrier, and the `long double` every accessor but ToUnscaledValue() and ToString() divides
+    // through.
     //
-    // The precision is taken from the bound rather than hard-coded at 19, so the test measures the
-    // actual maximum on whichever toolchain is running it (19 with __int128, 18 without) instead of
-    // failing to instantiate on half of them. Where the bound is 19 this is exactly MS SQL Server's
-    // `money`, DECIMAL(19, 4), which is what ddl2cpp emits (issue #519).
+    // The precision is taken from the bound rather than hard-coded at 19 so that the test follows
+    // the bound if it ever moves. The bound is 19 on every toolchain, which makes this exactly
+    // MS SQL Server's `money`, DECIMAL(19, 4) — what ddl2cpp emits (issue #519).
     constexpr auto precision = SqlMaxNumericPrecision;
     constexpr auto scale = SqlNumericProbeScale;
     using Probe = SqlNumeric<precision, scale>;
@@ -652,7 +650,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlNumeric.MaxPrecisionRoundTrip", "[SqlDataBi
         // a double on the native path (Windows psqlODBC). Only the leading `digits10` significant
         // digits are meaningful — but that is still a concrete claim, not a free pass:
         //
-        //   - the sign must survive (this is what the int64_t-overflow defect destroyed: it turned
+        //   - the sign must survive (this is what an int64_t-carrier overflow destroys: it turns
         //     the money maximum into its own negation),
         //   - the value must agree with the stored one to within one unit in the last digit a
         //     double defines,
@@ -695,7 +693,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlNumeric.Digits10AreExactOnEveryBackend", "[
 TEST_CASE_METHOD(SqlTestFixture, "SqlNumeric.PurelyFractional", "[SqlDataBinder],[SqlNumeric]")
 {
     // DECIMAL(4, 4) — every digit sits after the decimal point, so the column holds [0, 1).
-    // `SqlNumeric<4, 4>` used to be rejected by a `static_assert(Scale < Precision)` (issue #519).
+    // `SqlNumeric<4, 4>` is a legal instantiation: Scale may equal Precision (issue #519).
     auto stmt = SqlStatement {};
     stmt.MigrateDirect([](auto& migration) {
         migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::Decimal { .precision = 4, .scale = 4 });
