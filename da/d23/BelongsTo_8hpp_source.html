@@ -437,183 +437,208 @@ $(document).ready(function(){initNavTree('da/d23/BelongsTo_8hpp_source.html','..
 <div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span>    }</div>
 </div>
 <div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span><span class="comment"></span> </div>
-<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span><span class="comment">    /// Binds the foreign key value to the given output column index on the statement.</span></div>
-<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span><span class="comment"></span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Stmt&gt;</div>
-<div class="foldopen" id="foldopen00301" data-start="{" data-end="}">
-<div class="line"><a id="l00301" name="l00301"></a><span class="lineno"><a class="line" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a66c1e50850fd6fd28cff5136c7a5445d">  301</a></span>    LIGHTWEIGHT_FORCE_INLINE <span class="keywordtype">void</span> <a class="code hl_function" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a66c1e50850fd6fd28cff5136c7a5445d">BindOutputColumn</a>(SQLSMALLINT outputIndex, Stmt&amp; stmt)</div>
-<div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span>    {</div>
-<div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span>        stmt.BindOutputColumn(outputIndex, &amp;_referencedFieldValue);</div>
-<div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span>    }</div>
+<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span><span class="comment">    /// Adopts an eagerly fetched referenced record, marking the relationship loaded.</span></div>
+<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span><span class="comment">    /// This is the sink for a record that was already read from the database, as opposed to</span></div>
+<div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span><span class="comment">    /// `operator=(ReferencedRecord&amp;)`, which *establishes* the relationship and therefore rewrites</span></div>
+<div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span><span class="comment">    /// the foreign key and sets the modified flag. Here the foreign key is already whatever the row</span></div>
+<div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span><span class="comment">    /// said it was, so it is deliberately left untouched and the field stays unmodified - adopting a</span></div>
+<div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span><span class="comment">    /// fetched value is not a pending change to be written back.</span></div>
+<div class="line"><a id="l00306" name="l00306"></a><span class="lineno">  306</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00307" name="l00307"></a><span class="lineno">  307</span><span class="comment">    /// An empty @p record leaves the relationship unloaded rather than clearing the foreign key: a</span></div>
+<div class="line"><a id="l00308" name="l00308"></a><span class="lineno">  308</span><span class="comment">    /// mandatory relationship whose target row is missing is a data-integrity problem to be</span></div>
+<div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span><span class="comment">    /// surfaced by the accessor, not silently turned into NULL.</span></div>
+<div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span><span class="comment">    /// @param record The fetched record, or `std::nullopt` if the referenced row was absent.</span></div>
+<div class="foldopen" id="foldopen00312" data-start="{" data-end="}">
+<div class="line"><a id="l00312" name="l00312"></a><span class="lineno"><a class="line" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a07472abfd8c6bcd51dc60e7970be3c45">  312</a></span><span class="comment"></span>    LIGHTWEIGHT_FORCE_INLINE <span class="keywordtype">void</span> <a class="code hl_function" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a07472abfd8c6bcd51dc60e7970be3c45">AdoptFetchedRecord</a>(std::optional&lt;ReferencedRecord&gt; record)</div>
+<div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span>    {</div>
+<div class="line"><a id="l00314" name="l00314"></a><span class="lineno">  314</span>        <span class="keywordflow">if</span> (!record.has_value())</div>
+<div class="line"><a id="l00315" name="l00315"></a><span class="lineno">  315</span>            <span class="keywordflow">return</span>;</div>
+<div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span> </div>
+<div class="line"><a id="l00317" name="l00317"></a><span class="lineno">  317</span>        _record = std::make_unique&lt;ReferencedRecord&gt;(std::move(record).value());</div>
+<div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span>        _loaded = <span class="keyword">true</span>;</div>
+<div class="line"><a id="l00319" name="l00319"></a><span class="lineno">  319</span>    }</div>
 </div>
-<div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span><span class="comment"></span> </div>
-<div class="line"><a id="l00306" name="l00306"></a><span class="lineno">  306</span><span class="comment">    /// Three-way comparison operator.</span></div>
-<div class="foldopen" id="foldopen00307" data-start="{" data-end="}">
-<div class="line"><a id="l00307" name="l00307"></a><span class="lineno"><a class="line" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1723d02f7e1d3be3ee1e77d9ac5ae167">  307</a></span><span class="comment"></span>    std::weak_ordering <a class="code hl_function" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1723d02f7e1d3be3ee1e77d9ac5ae167">operator&lt;=&gt;</a>(<a class="code hl_class" href="../../d0/df7/classLightweight_1_1BelongsTo.html">BelongsTo</a> <span class="keyword">const</span>&amp; other) <span class="keyword">const</span> <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00308" name="l00308"></a><span class="lineno">  308</span>    {</div>
-<div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span>        <span class="keywordflow">return</span> _referencedFieldValue &lt;=&gt; other.Value();</div>
-<div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span>    }</div>
+<div class="line"><a id="l00320" name="l00320"></a><span class="lineno">  320</span><span class="comment"></span> </div>
+<div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span><span class="comment">    /// Binds the foreign key value to the given output column index on the statement.</span></div>
+<div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span><span class="comment"></span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Stmt&gt;</div>
+<div class="foldopen" id="foldopen00323" data-start="{" data-end="}">
+<div class="line"><a id="l00323" name="l00323"></a><span class="lineno"><a class="line" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a66c1e50850fd6fd28cff5136c7a5445d">  323</a></span>    LIGHTWEIGHT_FORCE_INLINE <span class="keywordtype">void</span> <a class="code hl_function" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a66c1e50850fd6fd28cff5136c7a5445d">BindOutputColumn</a>(SQLSMALLINT outputIndex, Stmt&amp; stmt)</div>
+<div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span>    {</div>
+<div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span>        stmt.BindOutputColumn(outputIndex, &amp;_referencedFieldValue);</div>
+<div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span>    }</div>
 </div>
-<div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span><span class="comment"></span> </div>
-<div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span><span class="comment">    /// Three-way comparison operator with a Field.</span></div>
-<div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span><span class="comment"></span>    <span class="keyword">template</span> &lt;detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKey::No&gt;</div>
-<div class="foldopen" id="foldopen00314" data-start="{" data-end="}">
-<div class="line"><a id="l00314" name="l00314"></a><span class="lineno"><a class="line" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a11fdb1398451c02280672eddd7e05fef">  314</a></span>    std::weak_ordering <a class="code hl_function" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a11fdb1398451c02280672eddd7e05fef">operator&lt;=&gt;</a>(<a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field&lt;T, IsPrimaryKeyValue&gt;</a> <span class="keyword">const</span>&amp; other) <span class="keyword">const</span> <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00315" name="l00315"></a><span class="lineno">  315</span>    {</div>
-<div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span>        <span class="keywordflow">return</span> _referencedFieldValue &lt;=&gt; other.Value();</div>
-<div class="line"><a id="l00317" name="l00317"></a><span class="lineno">  317</span>    }</div>
+<div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span><span class="comment"></span> </div>
+<div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span><span class="comment">    /// Three-way comparison operator.</span></div>
+<div class="foldopen" id="foldopen00329" data-start="{" data-end="}">
+<div class="line"><a id="l00329" name="l00329"></a><span class="lineno"><a class="line" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1723d02f7e1d3be3ee1e77d9ac5ae167">  329</a></span><span class="comment"></span>    std::weak_ordering <a class="code hl_function" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1723d02f7e1d3be3ee1e77d9ac5ae167">operator&lt;=&gt;</a>(<a class="code hl_class" href="../../d0/df7/classLightweight_1_1BelongsTo.html">BelongsTo</a> <span class="keyword">const</span>&amp; other) <span class="keyword">const</span> <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span>    {</div>
+<div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span>        <span class="keywordflow">return</span> _referencedFieldValue &lt;=&gt; other.Value();</div>
+<div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span>    }</div>
 </div>
-<div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span><span class="comment"></span> </div>
-<div class="line"><a id="l00319" name="l00319"></a><span class="lineno">  319</span><span class="comment">    /// Equality comparison operator.</span></div>
-<div class="foldopen" id="foldopen00320" data-start="{" data-end="}">
-<div class="line"><a id="l00320" name="l00320"></a><span class="lineno"><a class="line" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1040f31d8b0158e36c49b25db5e67de3">  320</a></span><span class="comment"></span>    <span class="keywordtype">bool</span> <a class="code hl_function" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1040f31d8b0158e36c49b25db5e67de3">operator==</a>(<a class="code hl_class" href="../../d0/df7/classLightweight_1_1BelongsTo.html">BelongsTo</a> <span class="keyword">const</span>&amp; other) <span class="keyword">const</span> <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span>    {</div>
-<div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span>        <span class="keywordflow">return</span> (_referencedFieldValue &lt;=&gt; other.Value()) == std::weak_ordering::equivalent;</div>
-<div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span>    }</div>
+<div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span><span class="comment"></span> </div>
+<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span><span class="comment">    /// Three-way comparison operator with a Field.</span></div>
+<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span><span class="comment"></span>    <span class="keyword">template</span> &lt;detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKey::No&gt;</div>
+<div class="foldopen" id="foldopen00336" data-start="{" data-end="}">
+<div class="line"><a id="l00336" name="l00336"></a><span class="lineno"><a class="line" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a11fdb1398451c02280672eddd7e05fef">  336</a></span>    std::weak_ordering <a class="code hl_function" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a11fdb1398451c02280672eddd7e05fef">operator&lt;=&gt;</a>(<a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field&lt;T, IsPrimaryKeyValue&gt;</a> <span class="keyword">const</span>&amp; other) <span class="keyword">const</span> <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span>    {</div>
+<div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span>        <span class="keywordflow">return</span> _referencedFieldValue &lt;=&gt; other.Value();</div>
+<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span>    }</div>
 </div>
-<div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span><span class="comment"></span> </div>
-<div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span><span class="comment">    /// Inequality comparison operator.</span></div>
-<div class="foldopen" id="foldopen00326" data-start="{" data-end="}">
-<div class="line"><a id="l00326" name="l00326"></a><span class="lineno"><a class="line" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1732c9864e67d23aaeea0ad7dff81ec3">  326</a></span><span class="comment"></span>    <span class="keywordtype">bool</span> <a class="code hl_function" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1732c9864e67d23aaeea0ad7dff81ec3">operator!=</a>(<a class="code hl_class" href="../../d0/df7/classLightweight_1_1BelongsTo.html">BelongsTo</a> <span class="keyword">const</span>&amp; other) <span class="keyword">const</span> <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span>    {</div>
-<div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span>        <span class="keywordflow">return</span> (_referencedFieldValue &lt;=&gt; other.Value()) != std::weak_ordering::equivalent;</div>
-<div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span>    }</div>
+<div class="line"><a id="l00340" name="l00340"></a><span class="lineno">  340</span><span class="comment"></span> </div>
+<div class="line"><a id="l00341" name="l00341"></a><span class="lineno">  341</span><span class="comment">    /// Equality comparison operator.</span></div>
+<div class="foldopen" id="foldopen00342" data-start="{" data-end="}">
+<div class="line"><a id="l00342" name="l00342"></a><span class="lineno"><a class="line" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1040f31d8b0158e36c49b25db5e67de3">  342</a></span><span class="comment"></span>    <span class="keywordtype">bool</span> <a class="code hl_function" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1040f31d8b0158e36c49b25db5e67de3">operator==</a>(<a class="code hl_class" href="../../d0/df7/classLightweight_1_1BelongsTo.html">BelongsTo</a> <span class="keyword">const</span>&amp; other) <span class="keyword">const</span> <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00343" name="l00343"></a><span class="lineno">  343</span>    {</div>
+<div class="line"><a id="l00344" name="l00344"></a><span class="lineno">  344</span>        <span class="keywordflow">return</span> (_referencedFieldValue &lt;=&gt; other.Value()) == std::weak_ordering::equivalent;</div>
+<div class="line"><a id="l00345" name="l00345"></a><span class="lineno">  345</span>    }</div>
 </div>
-<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span><span class="comment"></span> </div>
-<div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span><span class="comment">    /// Equality comparison operator with a Field.</span></div>
-<div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span><span class="comment"></span>    <span class="keyword">template</span> &lt;detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKey::No&gt;</div>
-<div class="foldopen" id="foldopen00333" data-start="{" data-end="}">
-<div class="line"><a id="l00333" name="l00333"></a><span class="lineno"><a class="line" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1271631698325fe984ca9ec9350ec8dd">  333</a></span>    <span class="keywordtype">bool</span> <a class="code hl_function" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1271631698325fe984ca9ec9350ec8dd">operator==</a>(<a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field&lt;T, IsPrimaryKeyValue&gt;</a> <span class="keyword">const</span>&amp; other) <span class="keyword">const</span> <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span>    {</div>
-<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span>        <span class="keywordflow">return</span> (_referencedFieldValue &lt;=&gt; other.Value()) == std::weak_ordering::equivalent;</div>
-<div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span>    }</div>
+<div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span><span class="comment"></span> </div>
+<div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span><span class="comment">    /// Inequality comparison operator.</span></div>
+<div class="foldopen" id="foldopen00348" data-start="{" data-end="}">
+<div class="line"><a id="l00348" name="l00348"></a><span class="lineno"><a class="line" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1732c9864e67d23aaeea0ad7dff81ec3">  348</a></span><span class="comment"></span>    <span class="keywordtype">bool</span> <a class="code hl_function" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1732c9864e67d23aaeea0ad7dff81ec3">operator!=</a>(<a class="code hl_class" href="../../d0/df7/classLightweight_1_1BelongsTo.html">BelongsTo</a> <span class="keyword">const</span>&amp; other) <span class="keyword">const</span> <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span>    {</div>
+<div class="line"><a id="l00350" name="l00350"></a><span class="lineno">  350</span>        <span class="keywordflow">return</span> (_referencedFieldValue &lt;=&gt; other.Value()) != std::weak_ordering::equivalent;</div>
+<div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span>    }</div>
 </div>
-<div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span><span class="comment"></span> </div>
-<div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span><span class="comment">    /// Inequality comparison operator with a Field.</span></div>
-<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span><span class="comment"></span>    <span class="keyword">template</span> &lt;detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKey::No&gt;</div>
-<div class="foldopen" id="foldopen00340" data-start="{" data-end="}">
-<div class="line"><a id="l00340" name="l00340"></a><span class="lineno"><a class="line" href="../../d0/df7/classLightweight_1_1BelongsTo.html#af764f7452bcd0b08a1bb855bbc303b44">  340</a></span>    <span class="keywordtype">bool</span> <a class="code hl_function" href="../../d0/df7/classLightweight_1_1BelongsTo.html#af764f7452bcd0b08a1bb855bbc303b44">operator!=</a>(<a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field&lt;T, IsPrimaryKeyValue&gt;</a> <span class="keyword">const</span>&amp; other) <span class="keyword">const</span> <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00341" name="l00341"></a><span class="lineno">  341</span>    {</div>
-<div class="line"><a id="l00342" name="l00342"></a><span class="lineno">  342</span>        <span class="keywordflow">return</span> (_referencedFieldValue &lt;=&gt; other.Value()) != std::weak_ordering::equivalent;</div>
-<div class="line"><a id="l00343" name="l00343"></a><span class="lineno">  343</span>    }</div>
+<div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span><span class="comment"></span> </div>
+<div class="line"><a id="l00353" name="l00353"></a><span class="lineno">  353</span><span class="comment">    /// Equality comparison operator with a Field.</span></div>
+<div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span><span class="comment"></span>    <span class="keyword">template</span> &lt;detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKey::No&gt;</div>
+<div class="foldopen" id="foldopen00355" data-start="{" data-end="}">
+<div class="line"><a id="l00355" name="l00355"></a><span class="lineno"><a class="line" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1271631698325fe984ca9ec9350ec8dd">  355</a></span>    <span class="keywordtype">bool</span> <a class="code hl_function" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1271631698325fe984ca9ec9350ec8dd">operator==</a>(<a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field&lt;T, IsPrimaryKeyValue&gt;</a> <span class="keyword">const</span>&amp; other) <span class="keyword">const</span> <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00356" name="l00356"></a><span class="lineno">  356</span>    {</div>
+<div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span>        <span class="keywordflow">return</span> (_referencedFieldValue &lt;=&gt; other.Value()) == std::weak_ordering::equivalent;</div>
+<div class="line"><a id="l00358" name="l00358"></a><span class="lineno">  358</span>    }</div>
 </div>
-<div class="line"><a id="l00344" name="l00344"></a><span class="lineno">  344</span> </div>
-<div class="line"><a id="l00345" name="l00345"></a><span class="lineno">  345</span>    <span class="keyword">struct </span>Loader</div>
-<div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span>    {</div>
-<div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span>        std::function&lt;std::optional&lt;ReferencedRecord&gt;()&gt; loadReference {};</div>
-<div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span>    };</div>
-<div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span><span class="comment"></span> </div>
-<div class="line"><a id="l00350" name="l00350"></a><span class="lineno">  350</span><span class="comment">    /// Used internally to configure on-demand loading of the record.</span></div>
-<div class="foldopen" id="foldopen00351" data-start="{" data-end="}">
-<div class="line"><a id="l00351" name="l00351"></a><span class="lineno"><a class="line" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ad47ae72f92dc24e787100cddd36f13b9">  351</a></span><span class="comment"></span>    <span class="keywordtype">void</span> <a class="code hl_function" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ad47ae72f92dc24e787100cddd36f13b9">SetAutoLoader</a>(Loader loader) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span>    {</div>
-<div class="line"><a id="l00353" name="l00353"></a><span class="lineno">  353</span>        _loader = std::move(loader);</div>
-<div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span>    }</div>
+<div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span><span class="comment"></span> </div>
+<div class="line"><a id="l00360" name="l00360"></a><span class="lineno">  360</span><span class="comment">    /// Inequality comparison operator with a Field.</span></div>
+<div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span><span class="comment"></span>    <span class="keyword">template</span> &lt;detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKey::No&gt;</div>
+<div class="foldopen" id="foldopen00362" data-start="{" data-end="}">
+<div class="line"><a id="l00362" name="l00362"></a><span class="lineno"><a class="line" href="../../d0/df7/classLightweight_1_1BelongsTo.html#af764f7452bcd0b08a1bb855bbc303b44">  362</a></span>    <span class="keywordtype">bool</span> <a class="code hl_function" href="../../d0/df7/classLightweight_1_1BelongsTo.html#af764f7452bcd0b08a1bb855bbc303b44">operator!=</a>(<a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field&lt;T, IsPrimaryKeyValue&gt;</a> <span class="keyword">const</span>&amp; other) <span class="keyword">const</span> <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span>    {</div>
+<div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span>        <span class="keywordflow">return</span> (_referencedFieldValue &lt;=&gt; other.Value()) != std::weak_ordering::equivalent;</div>
+<div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span>    }</div>
 </div>
-<div class="line"><a id="l00355" name="l00355"></a><span class="lineno">  355</span> </div>
-<div class="line"><a id="l00356" name="l00356"></a><span class="lineno">  356</span>  <span class="keyword">private</span>:</div>
-<div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span>    <span class="keywordtype">void</span> RequireLoaded()<span class="keyword"> const</span></div>
-<div class="line"><a id="l00358" name="l00358"></a><span class="lineno">  358</span><span class="keyword">    </span>{</div>
-<div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span>        <span class="keywordflow">if</span> (_loaded)</div>
-<div class="line"><a id="l00360" name="l00360"></a><span class="lineno">  360</span>            <span class="keywordflow">return</span>;</div>
-<div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span> </div>
-<div class="line"><a id="l00362" name="l00362"></a><span class="lineno">  362</span>        <span class="keywordflow">if</span> (_loader.loadReference)</div>
-<div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span>        {</div>
-<div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span>            <span class="keyword">auto</span> value = _loader.loadReference();</div>
-<div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span>            <span class="keywordflow">if</span> (value)</div>
-<div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span>            {</div>
-<div class="line"><a id="l00367" name="l00367"></a><span class="lineno">  367</span>                _record = std::make_unique&lt;ReferencedRecord&gt;(std::move(value.value()));</div>
-<div class="line"><a id="l00368" name="l00368"></a><span class="lineno">  368</span>                _loaded = <span class="keyword">true</span>;</div>
-<div class="line"><a id="l00369" name="l00369"></a><span class="lineno">  369</span>            }</div>
-<div class="line"><a id="l00370" name="l00370"></a><span class="lineno">  370</span>        }</div>
-<div class="line"><a id="l00371" name="l00371"></a><span class="lineno">  371</span> </div>
-<div class="line"><a id="l00372" name="l00372"></a><span class="lineno">  372</span>        <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (<a class="code hl_variable" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a494d69eaab98e062f64657adfe51938d">IsMandatory</a>)</div>
-<div class="line"><a id="l00373" name="l00373"></a><span class="lineno">  373</span>            <span class="keywordflow">if</span> (!_loaded)</div>
-<div class="line"><a id="l00374" name="l00374"></a><span class="lineno">  374</span>                <span class="keywordflow">throw</span> SqlRequireLoadedError(Reflection::TypeNameOf&lt;std::remove_cvref_t&lt;<span class="keyword">decltype</span>(*<span class="keyword">this</span>)&gt;&gt;);</div>
-<div class="line"><a id="l00375" name="l00375"></a><span class="lineno">  375</span>    }</div>
-<div class="line"><a id="l00376" name="l00376"></a><span class="lineno">  376</span> </div>
-<div class="line"><a id="l00377" name="l00377"></a><span class="lineno">  377</span>    <a class="code hl_typedef" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ac108395e0094203583b03b195284d6b2">ValueType</a> _referencedFieldValue {};</div>
-<div class="line"><a id="l00378" name="l00378"></a><span class="lineno">  378</span>    Loader _loader {};</div>
-<div class="line"><a id="l00379" name="l00379"></a><span class="lineno">  379</span>    <span class="keyword">mutable</span> <span class="keywordtype">bool</span> _loaded = <span class="keyword">false</span>;</div>
-<div class="line"><a id="l00380" name="l00380"></a><span class="lineno">  380</span>    <span class="keywordtype">bool</span> _modified = <span class="keyword">false</span>;</div>
-<div class="line"><a id="l00381" name="l00381"></a><span class="lineno">  381</span>    <span class="keyword">mutable</span> std::unique_ptr&lt;ReferencedRecord&gt; _record {};</div>
-<div class="line"><a id="l00382" name="l00382"></a><span class="lineno">  382</span>};</div>
+<div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span> </div>
+<div class="line"><a id="l00367" name="l00367"></a><span class="lineno">  367</span>    <span class="keyword">struct </span>Loader</div>
+<div class="line"><a id="l00368" name="l00368"></a><span class="lineno">  368</span>    {</div>
+<div class="line"><a id="l00369" name="l00369"></a><span class="lineno">  369</span>        std::function&lt;std::optional&lt;ReferencedRecord&gt;()&gt; loadReference {};</div>
+<div class="line"><a id="l00370" name="l00370"></a><span class="lineno">  370</span>    };</div>
+<div class="line"><a id="l00371" name="l00371"></a><span class="lineno">  371</span><span class="comment"></span> </div>
+<div class="line"><a id="l00372" name="l00372"></a><span class="lineno">  372</span><span class="comment">    /// Used internally to configure on-demand loading of the record.</span></div>
+<div class="foldopen" id="foldopen00373" data-start="{" data-end="}">
+<div class="line"><a id="l00373" name="l00373"></a><span class="lineno"><a class="line" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ad47ae72f92dc24e787100cddd36f13b9">  373</a></span><span class="comment"></span>    <span class="keywordtype">void</span> <a class="code hl_function" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ad47ae72f92dc24e787100cddd36f13b9">SetAutoLoader</a>(Loader loader) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00374" name="l00374"></a><span class="lineno">  374</span>    {</div>
+<div class="line"><a id="l00375" name="l00375"></a><span class="lineno">  375</span>        _loader = std::move(loader);</div>
+<div class="line"><a id="l00376" name="l00376"></a><span class="lineno">  376</span>    }</div>
 </div>
+<div class="line"><a id="l00377" name="l00377"></a><span class="lineno">  377</span> </div>
+<div class="line"><a id="l00378" name="l00378"></a><span class="lineno">  378</span>  <span class="keyword">private</span>:</div>
+<div class="line"><a id="l00379" name="l00379"></a><span class="lineno">  379</span>    <span class="keywordtype">void</span> RequireLoaded()<span class="keyword"> const</span></div>
+<div class="line"><a id="l00380" name="l00380"></a><span class="lineno">  380</span><span class="keyword">    </span>{</div>
+<div class="line"><a id="l00381" name="l00381"></a><span class="lineno">  381</span>        <span class="keywordflow">if</span> (_loaded)</div>
+<div class="line"><a id="l00382" name="l00382"></a><span class="lineno">  382</span>            <span class="keywordflow">return</span>;</div>
 <div class="line"><a id="l00383" name="l00383"></a><span class="lineno">  383</span> </div>
-<div class="line"><a id="l00384" name="l00384"></a><span class="lineno">  384</span><span class="keyword">template</span> &lt;auto ReferencedField, auto ColumnNameOverr<span class="keywordtype">id</span>eString, SqlNullable Nullable&gt;</div>
-<div class="line"><a id="l00385" name="l00385"></a><span class="lineno">  385</span>std::ostream&amp; operator&lt;&lt;(std::ostream&amp; os, BelongsTo&lt;ReferencedField, ColumnNameOverrideString, Nullable&gt; <span class="keyword">const</span>&amp; belongsTo)</div>
-<div class="line"><a id="l00386" name="l00386"></a><span class="lineno">  386</span>{</div>
-<div class="line"><a id="l00387" name="l00387"></a><span class="lineno">  387</span>    <span class="keywordflow">return</span> os &lt;&lt; belongsTo.Value();</div>
-<div class="line"><a id="l00388" name="l00388"></a><span class="lineno">  388</span>}</div>
-<div class="line"><a id="l00389" name="l00389"></a><span class="lineno">  389</span> </div>
-<div class="line"><a id="l00390" name="l00390"></a><span class="lineno">  390</span><span class="keyword">namespace </span>detail</div>
-<div class="line"><a id="l00391" name="l00391"></a><span class="lineno">  391</span>{</div>
-<div class="line"><a id="l00392" name="l00392"></a><span class="lineno">  392</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00393" name="l00393"></a><span class="lineno">  393</span>    <span class="keyword">struct </span>IsBelongsToType: std::false_type</div>
-<div class="line"><a id="l00394" name="l00394"></a><span class="lineno">  394</span>    {</div>
-<div class="line"><a id="l00395" name="l00395"></a><span class="lineno">  395</span>    };</div>
-<div class="line"><a id="l00396" name="l00396"></a><span class="lineno">  396</span> </div>
-<div class="line"><a id="l00397" name="l00397"></a><span class="lineno">  397</span>    <span class="keyword">template</span> &lt;auto ReferencedField, auto ColumnNameOverr<span class="keywordtype">id</span>eString, SqlNullable Nullable&gt;</div>
-<div class="line"><a id="l00398" name="l00398"></a><span class="lineno">  398</span>    <span class="keyword">struct </span>IsBelongsToType&lt;BelongsTo&lt;ReferencedField, ColumnNameOverrideString, Nullable&gt;&gt;: std::true_type</div>
-<div class="line"><a id="l00399" name="l00399"></a><span class="lineno">  399</span>    {</div>
-<div class="line"><a id="l00400" name="l00400"></a><span class="lineno">  400</span>    };</div>
-<div class="line"><a id="l00401" name="l00401"></a><span class="lineno">  401</span> </div>
-<div class="line"><a id="l00402" name="l00402"></a><span class="lineno">  402</span>} <span class="comment">// namespace detail</span></div>
-<div class="line"><a id="l00403" name="l00403"></a><span class="lineno">  403</span> </div>
-<div class="line"><a id="l00404" name="l00404"></a><span class="lineno">  404</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00405" name="l00405"></a><span class="lineno">  405</span><span class="keyword">constexpr</span> <span class="keywordtype">bool</span> IsBelongsTo = detail::IsBelongsToType&lt;std::remove_cvref_t&lt;T&gt;&gt;::value;</div>
-<div class="line"><a id="l00406" name="l00406"></a><span class="lineno">  406</span> </div>
-<div class="line"><a id="l00407" name="l00407"></a><span class="lineno">  407</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00408" name="l00408"></a><span class="lineno">  408</span><span class="keyword">concept </span>is_belongs_to = IsBelongsTo&lt;T&gt;;</div>
-<div class="line"><a id="l00409" name="l00409"></a><span class="lineno">  409</span> </div>
-<div class="line"><a id="l00410" name="l00410"></a><span class="lineno">  410</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00411" name="l00411"></a><span class="lineno">  411</span><span class="keyword">constexpr</span> <span class="keywordtype">bool</span> IsOptionalBelongsTo = <span class="keyword">false</span>;</div>
-<div class="line"><a id="l00412" name="l00412"></a><span class="lineno">  412</span> </div>
-<div class="line"><a id="l00413" name="l00413"></a><span class="lineno">  413</span><span class="keyword">template</span> &lt;is_be<span class="keywordtype">long</span>s_to T&gt;</div>
-<div class="line"><a id="l00414" name="l00414"></a><span class="lineno">  414</span><span class="keyword">constexpr</span> <span class="keywordtype">bool</span> IsOptionalBelongsTo&lt;T&gt; = T::IsOptional;</div>
-<div class="line"><a id="l00415" name="l00415"></a><span class="lineno">  415</span> </div>
-<div class="line"><a id="l00416" name="l00416"></a><span class="lineno">  416</span><span class="keyword">template</span> &lt;auto ReferencedField, auto ColumnNameOverr<span class="keywordtype">id</span>eString, SqlNullable Nullable&gt;</div>
-<div class="line"><a id="l00417" name="l00417"></a><span class="lineno">  417</span><span class="keyword">struct </span>SqlDataBinder&lt;BelongsTo&lt;ReferencedField, ColumnNameOverrideString, Nullable&gt;&gt;</div>
-<div class="line"><a id="l00418" name="l00418"></a><span class="lineno">  418</span>{</div>
-<div class="line"><a id="l00419" name="l00419"></a><span class="lineno">  419</span>    <span class="keyword">using </span>SelfType = BelongsTo&lt;ReferencedField, ColumnNameOverrideString, Nullable&gt;;</div>
-<div class="line"><a id="l00420" name="l00420"></a><span class="lineno">  420</span>    <span class="keyword">using </span>InnerType = SelfType::ValueType;</div>
-<div class="line"><a id="l00421" name="l00421"></a><span class="lineno">  421</span> </div>
-<div class="line"><a id="l00422" name="l00422"></a><span class="lineno">  422</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> ColumnType = SqlDataBinder&lt;InnerType&gt;::ColumnType;</div>
+<div class="line"><a id="l00384" name="l00384"></a><span class="lineno">  384</span>        <span class="keywordflow">if</span> (_loader.loadReference)</div>
+<div class="line"><a id="l00385" name="l00385"></a><span class="lineno">  385</span>        {</div>
+<div class="line"><a id="l00386" name="l00386"></a><span class="lineno">  386</span>            <span class="keyword">auto</span> value = _loader.loadReference();</div>
+<div class="line"><a id="l00387" name="l00387"></a><span class="lineno">  387</span>            <span class="keywordflow">if</span> (value)</div>
+<div class="line"><a id="l00388" name="l00388"></a><span class="lineno">  388</span>            {</div>
+<div class="line"><a id="l00389" name="l00389"></a><span class="lineno">  389</span>                _record = std::make_unique&lt;ReferencedRecord&gt;(std::move(value.value()));</div>
+<div class="line"><a id="l00390" name="l00390"></a><span class="lineno">  390</span>                _loaded = <span class="keyword">true</span>;</div>
+<div class="line"><a id="l00391" name="l00391"></a><span class="lineno">  391</span>            }</div>
+<div class="line"><a id="l00392" name="l00392"></a><span class="lineno">  392</span>        }</div>
+<div class="line"><a id="l00393" name="l00393"></a><span class="lineno">  393</span> </div>
+<div class="line"><a id="l00394" name="l00394"></a><span class="lineno">  394</span>        <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (<a class="code hl_variable" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a494d69eaab98e062f64657adfe51938d">IsMandatory</a>)</div>
+<div class="line"><a id="l00395" name="l00395"></a><span class="lineno">  395</span>            <span class="keywordflow">if</span> (!_loaded)</div>
+<div class="line"><a id="l00396" name="l00396"></a><span class="lineno">  396</span>                <span class="keywordflow">throw</span> SqlRequireLoadedError(Reflection::TypeNameOf&lt;std::remove_cvref_t&lt;<span class="keyword">decltype</span>(*<span class="keyword">this</span>)&gt;&gt;);</div>
+<div class="line"><a id="l00397" name="l00397"></a><span class="lineno">  397</span>    }</div>
+<div class="line"><a id="l00398" name="l00398"></a><span class="lineno">  398</span> </div>
+<div class="line"><a id="l00399" name="l00399"></a><span class="lineno">  399</span>    <a class="code hl_typedef" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ac108395e0094203583b03b195284d6b2">ValueType</a> _referencedFieldValue {};</div>
+<div class="line"><a id="l00400" name="l00400"></a><span class="lineno">  400</span>    Loader _loader {};</div>
+<div class="line"><a id="l00401" name="l00401"></a><span class="lineno">  401</span>    <span class="keyword">mutable</span> <span class="keywordtype">bool</span> _loaded = <span class="keyword">false</span>;</div>
+<div class="line"><a id="l00402" name="l00402"></a><span class="lineno">  402</span>    <span class="keywordtype">bool</span> _modified = <span class="keyword">false</span>;</div>
+<div class="line"><a id="l00403" name="l00403"></a><span class="lineno">  403</span>    <span class="keyword">mutable</span> std::unique_ptr&lt;ReferencedRecord&gt; _record {};</div>
+<div class="line"><a id="l00404" name="l00404"></a><span class="lineno">  404</span>};</div>
+</div>
+<div class="line"><a id="l00405" name="l00405"></a><span class="lineno">  405</span> </div>
+<div class="line"><a id="l00406" name="l00406"></a><span class="lineno">  406</span><span class="keyword">template</span> &lt;auto ReferencedField, auto ColumnNameOverr<span class="keywordtype">id</span>eString, SqlNullable Nullable&gt;</div>
+<div class="line"><a id="l00407" name="l00407"></a><span class="lineno">  407</span>std::ostream&amp; operator&lt;&lt;(std::ostream&amp; os, BelongsTo&lt;ReferencedField, ColumnNameOverrideString, Nullable&gt; <span class="keyword">const</span>&amp; belongsTo)</div>
+<div class="line"><a id="l00408" name="l00408"></a><span class="lineno">  408</span>{</div>
+<div class="line"><a id="l00409" name="l00409"></a><span class="lineno">  409</span>    <span class="keywordflow">return</span> os &lt;&lt; belongsTo.Value();</div>
+<div class="line"><a id="l00410" name="l00410"></a><span class="lineno">  410</span>}</div>
+<div class="line"><a id="l00411" name="l00411"></a><span class="lineno">  411</span> </div>
+<div class="line"><a id="l00412" name="l00412"></a><span class="lineno">  412</span><span class="keyword">namespace </span>detail</div>
+<div class="line"><a id="l00413" name="l00413"></a><span class="lineno">  413</span>{</div>
+<div class="line"><a id="l00414" name="l00414"></a><span class="lineno">  414</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00415" name="l00415"></a><span class="lineno">  415</span>    <span class="keyword">struct </span>IsBelongsToType: std::false_type</div>
+<div class="line"><a id="l00416" name="l00416"></a><span class="lineno">  416</span>    {</div>
+<div class="line"><a id="l00417" name="l00417"></a><span class="lineno">  417</span>    };</div>
+<div class="line"><a id="l00418" name="l00418"></a><span class="lineno">  418</span> </div>
+<div class="line"><a id="l00419" name="l00419"></a><span class="lineno">  419</span>    <span class="keyword">template</span> &lt;auto ReferencedField, auto ColumnNameOverr<span class="keywordtype">id</span>eString, SqlNullable Nullable&gt;</div>
+<div class="line"><a id="l00420" name="l00420"></a><span class="lineno">  420</span>    <span class="keyword">struct </span>IsBelongsToType&lt;BelongsTo&lt;ReferencedField, ColumnNameOverrideString, Nullable&gt;&gt;: std::true_type</div>
+<div class="line"><a id="l00421" name="l00421"></a><span class="lineno">  421</span>    {</div>
+<div class="line"><a id="l00422" name="l00422"></a><span class="lineno">  422</span>    };</div>
 <div class="line"><a id="l00423" name="l00423"></a><span class="lineno">  423</span> </div>
-<div class="line"><a id="l00424" name="l00424"></a><span class="lineno">  424</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,</div>
-<div class="line"><a id="l00425" name="l00425"></a><span class="lineno">  425</span>                                                             SQLUSMALLINT column,</div>
-<div class="line"><a id="l00426" name="l00426"></a><span class="lineno">  426</span>                                                             SelfType <span class="keyword">const</span>&amp; value,</div>
-<div class="line"><a id="l00427" name="l00427"></a><span class="lineno">  427</span>                                                             SqlDataBinderCallback&amp; cb)</div>
-<div class="line"><a id="l00428" name="l00428"></a><span class="lineno">  428</span>    {</div>
-<div class="line"><a id="l00429" name="l00429"></a><span class="lineno">  429</span>        <span class="keywordflow">return</span> SqlDataBinder&lt;InnerType&gt;::InputParameter(stmt, column, value.Value(), cb);</div>
-<div class="line"><a id="l00430" name="l00430"></a><span class="lineno">  430</span>    }</div>
+<div class="line"><a id="l00424" name="l00424"></a><span class="lineno">  424</span>} <span class="comment">// namespace detail</span></div>
+<div class="line"><a id="l00425" name="l00425"></a><span class="lineno">  425</span> </div>
+<div class="line"><a id="l00426" name="l00426"></a><span class="lineno">  426</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00427" name="l00427"></a><span class="lineno">  427</span><span class="keyword">constexpr</span> <span class="keywordtype">bool</span> IsBelongsTo = detail::IsBelongsToType&lt;std::remove_cvref_t&lt;T&gt;&gt;::value;</div>
+<div class="line"><a id="l00428" name="l00428"></a><span class="lineno">  428</span> </div>
+<div class="line"><a id="l00429" name="l00429"></a><span class="lineno">  429</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00430" name="l00430"></a><span class="lineno">  430</span><span class="keyword">concept </span>is_belongs_to = IsBelongsTo&lt;T&gt;;</div>
 <div class="line"><a id="l00431" name="l00431"></a><span class="lineno">  431</span> </div>
-<div class="line"><a id="l00432" name="l00432"></a><span class="lineno">  432</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN</div>
-<div class="line"><a id="l00433" name="l00433"></a><span class="lineno">  433</span>    OutputColumn(SQLHSTMT stmt, SQLUSMALLINT column, SelfType* result, SQLLEN* indicator, SqlDataBinderCallback&amp; cb)</div>
-<div class="line"><a id="l00434" name="l00434"></a><span class="lineno">  434</span>    {</div>
-<div class="line"><a id="l00435" name="l00435"></a><span class="lineno">  435</span>        <span class="keyword">auto</span> <span class="keyword">const</span> sqlReturn = SqlDataBinder&lt;InnerType&gt;::OutputColumn(stmt, column, &amp;result-&gt;MutableValue(), indicator, cb);</div>
-<div class="line"><a id="l00436" name="l00436"></a><span class="lineno">  436</span>        cb.PlanPostProcessOutputColumn([result]() { result-&gt;SetModified(<span class="keyword">true</span>); });</div>
-<div class="line"><a id="l00437" name="l00437"></a><span class="lineno">  437</span>        <span class="keywordflow">return</span> sqlReturn;</div>
-<div class="line"><a id="l00438" name="l00438"></a><span class="lineno">  438</span>    }</div>
-<div class="line"><a id="l00439" name="l00439"></a><span class="lineno">  439</span> </div>
-<div class="line"><a id="l00440" name="l00440"></a><span class="lineno">  440</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(</div>
-<div class="line"><a id="l00441" name="l00441"></a><span class="lineno">  441</span>        SQLHSTMT stmt, SQLUSMALLINT column, SelfType* result, SQLLEN* indicator, SqlDataBinderCallback <span class="keyword">const</span>&amp; cb) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00442" name="l00442"></a><span class="lineno">  442</span>    {</div>
-<div class="line"><a id="l00443" name="l00443"></a><span class="lineno">  443</span>        <span class="keyword">auto</span> <span class="keyword">const</span> sqlReturn = SqlDataBinder&lt;InnerType&gt;::GetColumn(stmt, column, &amp;result-&gt;MutableValue(), indicator, cb);</div>
-<div class="line"><a id="l00444" name="l00444"></a><span class="lineno">  444</span>        <span class="keywordflow">if</span> (SQL_SUCCEEDED(sqlReturn))</div>
-<div class="line"><a id="l00445" name="l00445"></a><span class="lineno">  445</span>            result-&gt;SetModified(<span class="keyword">true</span>);</div>
-<div class="line"><a id="l00446" name="l00446"></a><span class="lineno">  446</span>        <span class="keywordflow">return</span> sqlReturn;</div>
-<div class="line"><a id="l00447" name="l00447"></a><span class="lineno">  447</span>    }</div>
-<div class="line"><a id="l00448" name="l00448"></a><span class="lineno">  448</span>};</div>
-<div class="line"><a id="l00449" name="l00449"></a><span class="lineno">  449</span> </div>
-<div class="line"><a id="l00450" name="l00450"></a><span class="lineno">  450</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="line"><a id="l00432" name="l00432"></a><span class="lineno">  432</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00433" name="l00433"></a><span class="lineno">  433</span><span class="keyword">constexpr</span> <span class="keywordtype">bool</span> IsOptionalBelongsTo = <span class="keyword">false</span>;</div>
+<div class="line"><a id="l00434" name="l00434"></a><span class="lineno">  434</span> </div>
+<div class="line"><a id="l00435" name="l00435"></a><span class="lineno">  435</span><span class="keyword">template</span> &lt;is_be<span class="keywordtype">long</span>s_to T&gt;</div>
+<div class="line"><a id="l00436" name="l00436"></a><span class="lineno">  436</span><span class="keyword">constexpr</span> <span class="keywordtype">bool</span> IsOptionalBelongsTo&lt;T&gt; = T::IsOptional;</div>
+<div class="line"><a id="l00437" name="l00437"></a><span class="lineno">  437</span> </div>
+<div class="line"><a id="l00438" name="l00438"></a><span class="lineno">  438</span><span class="keyword">template</span> &lt;auto ReferencedField, auto ColumnNameOverr<span class="keywordtype">id</span>eString, SqlNullable Nullable&gt;</div>
+<div class="line"><a id="l00439" name="l00439"></a><span class="lineno">  439</span><span class="keyword">struct </span>SqlDataBinder&lt;BelongsTo&lt;ReferencedField, ColumnNameOverrideString, Nullable&gt;&gt;</div>
+<div class="line"><a id="l00440" name="l00440"></a><span class="lineno">  440</span>{</div>
+<div class="line"><a id="l00441" name="l00441"></a><span class="lineno">  441</span>    <span class="keyword">using </span>SelfType = BelongsTo&lt;ReferencedField, ColumnNameOverrideString, Nullable&gt;;</div>
+<div class="line"><a id="l00442" name="l00442"></a><span class="lineno">  442</span>    <span class="keyword">using </span>InnerType = SelfType::ValueType;</div>
+<div class="line"><a id="l00443" name="l00443"></a><span class="lineno">  443</span> </div>
+<div class="line"><a id="l00444" name="l00444"></a><span class="lineno">  444</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> ColumnType = SqlDataBinder&lt;InnerType&gt;::ColumnType;</div>
+<div class="line"><a id="l00445" name="l00445"></a><span class="lineno">  445</span> </div>
+<div class="line"><a id="l00446" name="l00446"></a><span class="lineno">  446</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,</div>
+<div class="line"><a id="l00447" name="l00447"></a><span class="lineno">  447</span>                                                             SQLUSMALLINT column,</div>
+<div class="line"><a id="l00448" name="l00448"></a><span class="lineno">  448</span>                                                             SelfType <span class="keyword">const</span>&amp; value,</div>
+<div class="line"><a id="l00449" name="l00449"></a><span class="lineno">  449</span>                                                             SqlDataBinderCallback&amp; cb)</div>
+<div class="line"><a id="l00450" name="l00450"></a><span class="lineno">  450</span>    {</div>
+<div class="line"><a id="l00451" name="l00451"></a><span class="lineno">  451</span>        <span class="keywordflow">return</span> SqlDataBinder&lt;InnerType&gt;::InputParameter(stmt, column, value.Value(), cb);</div>
+<div class="line"><a id="l00452" name="l00452"></a><span class="lineno">  452</span>    }</div>
+<div class="line"><a id="l00453" name="l00453"></a><span class="lineno">  453</span> </div>
+<div class="line"><a id="l00454" name="l00454"></a><span class="lineno">  454</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN</div>
+<div class="line"><a id="l00455" name="l00455"></a><span class="lineno">  455</span>    OutputColumn(SQLHSTMT stmt, SQLUSMALLINT column, SelfType* result, SQLLEN* indicator, SqlDataBinderCallback&amp; cb)</div>
+<div class="line"><a id="l00456" name="l00456"></a><span class="lineno">  456</span>    {</div>
+<div class="line"><a id="l00457" name="l00457"></a><span class="lineno">  457</span>        <span class="keyword">auto</span> <span class="keyword">const</span> sqlReturn = SqlDataBinder&lt;InnerType&gt;::OutputColumn(stmt, column, &amp;result-&gt;MutableValue(), indicator, cb);</div>
+<div class="line"><a id="l00458" name="l00458"></a><span class="lineno">  458</span>        cb.PlanPostProcessOutputColumn([result]() { result-&gt;SetModified(<span class="keyword">true</span>); });</div>
+<div class="line"><a id="l00459" name="l00459"></a><span class="lineno">  459</span>        <span class="keywordflow">return</span> sqlReturn;</div>
+<div class="line"><a id="l00460" name="l00460"></a><span class="lineno">  460</span>    }</div>
+<div class="line"><a id="l00461" name="l00461"></a><span class="lineno">  461</span> </div>
+<div class="line"><a id="l00462" name="l00462"></a><span class="lineno">  462</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(</div>
+<div class="line"><a id="l00463" name="l00463"></a><span class="lineno">  463</span>        SQLHSTMT stmt, SQLUSMALLINT column, SelfType* result, SQLLEN* indicator, SqlDataBinderCallback <span class="keyword">const</span>&amp; cb) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00464" name="l00464"></a><span class="lineno">  464</span>    {</div>
+<div class="line"><a id="l00465" name="l00465"></a><span class="lineno">  465</span>        <span class="keyword">auto</span> <span class="keyword">const</span> sqlReturn = SqlDataBinder&lt;InnerType&gt;::GetColumn(stmt, column, &amp;result-&gt;MutableValue(), indicator, cb);</div>
+<div class="line"><a id="l00466" name="l00466"></a><span class="lineno">  466</span>        <span class="keywordflow">if</span> (SQL_SUCCEEDED(sqlReturn))</div>
+<div class="line"><a id="l00467" name="l00467"></a><span class="lineno">  467</span>            result-&gt;SetModified(<span class="keyword">true</span>);</div>
+<div class="line"><a id="l00468" name="l00468"></a><span class="lineno">  468</span>        <span class="keywordflow">return</span> sqlReturn;</div>
+<div class="line"><a id="l00469" name="l00469"></a><span class="lineno">  469</span>    }</div>
+<div class="line"><a id="l00470" name="l00470"></a><span class="lineno">  470</span>};</div>
+<div class="line"><a id="l00471" name="l00471"></a><span class="lineno">  471</span> </div>
+<div class="line"><a id="l00472" name="l00472"></a><span class="lineno">  472</span>} <span class="comment">// namespace Lightweight</span></div>
 <div class="ttc" id="aclassLightweight_1_1BelongsTo_html"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html">Lightweight::BelongsTo</a></div><div class="ttdoc">Represents a one-to-one relationship.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00056">BelongsTo.hpp:57</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a0645bc64e5f24bf31241aac597cf45d6"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a0645bc64e5f24bf31241aac597cf45d6">Lightweight::BelongsTo::operator=</a></div><div class="ttdeci">BelongsTo &amp; operator=(BelongsTo &amp;&amp;other) noexcept</div><div class="ttdoc">Move assignment operator.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00191">BelongsTo.hpp:191</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a07472abfd8c6bcd51dc60e7970be3c45"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a07472abfd8c6bcd51dc60e7970be3c45">Lightweight::BelongsTo::AdoptFetchedRecord</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE void AdoptFetchedRecord(std::optional&lt; ReferencedRecord &gt; record)</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00312">BelongsTo.hpp:312</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a0acf3c5ded9575b9ff14df67d61f36b6"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a0acf3c5ded9575b9ff14df67d61f36b6">Lightweight::BelongsTo::IsAutoIncrementPrimaryKey</a></div><div class="ttdeci">static constexpr auto IsAutoIncrementPrimaryKey</div><div class="ttdoc">Indicates that a BelongsTo field is never an auto-increment primary key.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00101">BelongsTo.hpp:101</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a1040f31d8b0158e36c49b25db5e67de3"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1040f31d8b0158e36c49b25db5e67de3">Lightweight::BelongsTo::operator==</a></div><div class="ttdeci">bool operator==(BelongsTo const &amp;other) const noexcept</div><div class="ttdoc">Equality comparison operator.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00320">BelongsTo.hpp:320</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a11fdb1398451c02280672eddd7e05fef"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a11fdb1398451c02280672eddd7e05fef">Lightweight::BelongsTo::operator&lt;=&gt;</a></div><div class="ttdeci">std::weak_ordering operator&lt;=&gt;(Field&lt; T, IsPrimaryKeyValue &gt; const &amp;other) const noexcept</div><div class="ttdoc">Three-way comparison operator with a Field.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00314">BelongsTo.hpp:314</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a1271631698325fe984ca9ec9350ec8dd"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1271631698325fe984ca9ec9350ec8dd">Lightweight::BelongsTo::operator==</a></div><div class="ttdeci">bool operator==(Field&lt; T, IsPrimaryKeyValue &gt; const &amp;other) const noexcept</div><div class="ttdoc">Equality comparison operator with a Field.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00333">BelongsTo.hpp:333</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a1723d02f7e1d3be3ee1e77d9ac5ae167"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1723d02f7e1d3be3ee1e77d9ac5ae167">Lightweight::BelongsTo::operator&lt;=&gt;</a></div><div class="ttdeci">std::weak_ordering operator&lt;=&gt;(BelongsTo const &amp;other) const noexcept</div><div class="ttdoc">Three-way comparison operator.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00307">BelongsTo.hpp:307</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a1732c9864e67d23aaeea0ad7dff81ec3"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1732c9864e67d23aaeea0ad7dff81ec3">Lightweight::BelongsTo::operator!=</a></div><div class="ttdeci">bool operator!=(BelongsTo const &amp;other) const noexcept</div><div class="ttdoc">Inequality comparison operator.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00326">BelongsTo.hpp:326</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a1040f31d8b0158e36c49b25db5e67de3"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1040f31d8b0158e36c49b25db5e67de3">Lightweight::BelongsTo::operator==</a></div><div class="ttdeci">bool operator==(BelongsTo const &amp;other) const noexcept</div><div class="ttdoc">Equality comparison operator.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00342">BelongsTo.hpp:342</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a11fdb1398451c02280672eddd7e05fef"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a11fdb1398451c02280672eddd7e05fef">Lightweight::BelongsTo::operator&lt;=&gt;</a></div><div class="ttdeci">std::weak_ordering operator&lt;=&gt;(Field&lt; T, IsPrimaryKeyValue &gt; const &amp;other) const noexcept</div><div class="ttdoc">Three-way comparison operator with a Field.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00336">BelongsTo.hpp:336</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a1271631698325fe984ca9ec9350ec8dd"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1271631698325fe984ca9ec9350ec8dd">Lightweight::BelongsTo::operator==</a></div><div class="ttdeci">bool operator==(Field&lt; T, IsPrimaryKeyValue &gt; const &amp;other) const noexcept</div><div class="ttdoc">Equality comparison operator with a Field.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00355">BelongsTo.hpp:355</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a1723d02f7e1d3be3ee1e77d9ac5ae167"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1723d02f7e1d3be3ee1e77d9ac5ae167">Lightweight::BelongsTo::operator&lt;=&gt;</a></div><div class="ttdeci">std::weak_ordering operator&lt;=&gt;(BelongsTo const &amp;other) const noexcept</div><div class="ttdoc">Three-way comparison operator.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00329">BelongsTo.hpp:329</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a1732c9864e67d23aaeea0ad7dff81ec3"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1732c9864e67d23aaeea0ad7dff81ec3">Lightweight::BelongsTo::operator!=</a></div><div class="ttdeci">bool operator!=(BelongsTo const &amp;other) const noexcept</div><div class="ttdoc">Inequality comparison operator.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00348">BelongsTo.hpp:348</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a1c28877f40a726cdb837bf7fdb2f73da"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1c28877f40a726cdb837bf7fdb2f73da">Lightweight::BelongsTo::operator=</a></div><div class="ttdeci">BelongsTo &amp; operator=(SqlNullType) noexcept</div><div class="ttdoc">Assigns NULL to the relationship, clearing the loaded record.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00144">BelongsTo.hpp:144</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a1ea1e35fcc93942ed865c095b0546be9"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1ea1e35fcc93942ed865c095b0546be9">Lightweight::BelongsTo::BaseType</a></div><div class="ttdeci">std::remove_cvref_t&lt; decltype(std::declval&lt; ReferencedRecord &gt;().*ReferencedField)&gt;::ValueType BaseType</div><div class="ttdoc">Represents the base column type of the foreign key, matching the primary key of the other record.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00087">BelongsTo.hpp:87</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a21f8ee040039eae60a398ebb2864a7f7"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a21f8ee040039eae60a398ebb2864a7f7">Lightweight::BelongsTo::EmplaceRecord</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord &amp; EmplaceRecord()</div><div class="ttdoc">Emplaces a record into the relationship. This will mark the relationship as loaded.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00292">BelongsTo.hpp:292</a></div></div>
@@ -624,7 +649,7 @@ $(document).ready(function(){initNavTree('da/d23/BelongsTo_8hpp_source.html','..
 <div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a4e9194a29545106a3e2d973e5348884a"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a4e9194a29545106a3e2d973e5348884a">Lightweight::BelongsTo::operator!</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE constexpr bool operator!() const noexcept</div><div class="ttdoc">Checks if the field value is NULL.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00280">BelongsTo.hpp:280</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a521719bc0bb4200c39ecf0559bf1b967"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a521719bc0bb4200c39ecf0559bf1b967">Lightweight::BelongsTo::IsPrimaryKey</a></div><div class="ttdeci">static constexpr auto IsPrimaryKey</div><div class="ttdoc">Indicates that a BelongsTo field is never a primary key.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00099">BelongsTo.hpp:99</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a5b80be4794894b20d8838371fd6a50b5"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a5b80be4794894b20d8838371fd6a50b5">Lightweight::BelongsTo::operator=</a></div><div class="ttdeci">BelongsTo &amp; operator=(BelongsTo const &amp;other)</div><div class="ttdoc">Copy assignment operator.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00176">BelongsTo.hpp:176</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a66c1e50850fd6fd28cff5136c7a5445d"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a66c1e50850fd6fd28cff5136c7a5445d">Lightweight::BelongsTo::BindOutputColumn</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE void BindOutputColumn(SQLSMALLINT outputIndex, Stmt &amp;stmt)</div><div class="ttdoc">Binds the foreign key value to the given output column index on the statement.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00301">BelongsTo.hpp:301</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a66c1e50850fd6fd28cff5136c7a5445d"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a66c1e50850fd6fd28cff5136c7a5445d">Lightweight::BelongsTo::BindOutputColumn</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE void BindOutputColumn(SQLSMALLINT outputIndex, Stmt &amp;stmt)</div><div class="ttdoc">Binds the foreign key value to the given output column index on the statement.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00323">BelongsTo.hpp:323</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a760ee5ea51fd3c714f26a1d1f3366a37"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a760ee5ea51fd3c714f26a1d1f3366a37">Lightweight::BelongsTo::IsModified</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE constexpr bool IsModified() const noexcept</div><div class="ttdoc">Checks if the field is modified.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00213">BelongsTo.hpp:213</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a7e94600dce87ddf531eb86cae80d242d"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a7e94600dce87ddf531eb86cae80d242d">Lightweight::BelongsTo::operator-&gt;</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord * operator-&gt;(this Self &amp;&amp;self)</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00270">BelongsTo.hpp:270</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a946d91c2cd643b9a8cdbf4343aa19d63"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a946d91c2cd643b9a8cdbf4343aa19d63">Lightweight::BelongsTo::BelongsTo</a></div><div class="ttdeci">constexpr BelongsTo(BelongsTo &amp;&amp;other) noexcept</div><div class="ttdoc">Move constructor.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00134">BelongsTo.hpp:134</a></div></div>
@@ -635,13 +660,13 @@ $(document).ready(function(){initNavTree('da/d23/BelongsTo_8hpp_source.html','..
 <div class="ttc" id="aclassLightweight_1_1BelongsTo_html_ab487740598ec23b90ed15317feb34402"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#ab487740598ec23b90ed15317feb34402">Lightweight::BelongsTo::SetModified</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE constexpr void SetModified(bool value) noexcept</div><div class="ttdoc">Marks the field as modified or unmodified.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00207">BelongsTo.hpp:207</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1BelongsTo_html_ac108395e0094203583b03b195284d6b2"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#ac108395e0094203583b03b195284d6b2">Lightweight::BelongsTo::ValueType</a></div><div class="ttdeci">std::conditional_t&lt; Nullable==SqlNullable::Null, std::optional&lt; BaseType &gt;, BaseType &gt; ValueType</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00092">BelongsTo.hpp:92</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1BelongsTo_html_ac7ffef2eda6a8788b04130f8d7bbb9d3"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#ac7ffef2eda6a8788b04130f8d7bbb9d3">Lightweight::BelongsTo::Record</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE constexpr decltype(auto) Record(this Self &amp;&amp;self)</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00244">BelongsTo.hpp:244</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1BelongsTo_html_ad47ae72f92dc24e787100cddd36f13b9"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#ad47ae72f92dc24e787100cddd36f13b9">Lightweight::BelongsTo::SetAutoLoader</a></div><div class="ttdeci">void SetAutoLoader(Loader loader) noexcept</div><div class="ttdoc">Used internally to configure on-demand loading of the record.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00351">BelongsTo.hpp:351</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1BelongsTo_html_ad47ae72f92dc24e787100cddd36f13b9"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#ad47ae72f92dc24e787100cddd36f13b9">Lightweight::BelongsTo::SetAutoLoader</a></div><div class="ttdeci">void SetAutoLoader(Loader loader) noexcept</div><div class="ttdoc">Used internally to configure on-demand loading of the record.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00373">BelongsTo.hpp:373</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1BelongsTo_html_ad91ca65a07c80cf3aca3915a25723bae"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#ad91ca65a07c80cf3aca3915a25723bae">Lightweight::BelongsTo::BelongsTo</a></div><div class="ttdeci">constexpr BelongsTo(ReferencedRecord const &amp;other) noexcept</div><div class="ttdoc">Constructs a new BelongsTo from the given referenced record, copying its primary key.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00112">BelongsTo.hpp:112</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1BelongsTo_html_ae3deecf75fdd98c06884f76ce07f077b"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#ae3deecf75fdd98c06884f76ce07f077b">Lightweight::BelongsTo::ReferencedRecord</a></div><div class="ttdeci">MemberClassType&lt; decltype(TheReferencedField)&gt; ReferencedRecord</div><div class="ttdoc">Represents the record type of the other field.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00081">BelongsTo.hpp:81</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1BelongsTo_html_ae4362d1a9adf6898e7f4a86f76159808"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#ae4362d1a9adf6898e7f4a86f76159808">Lightweight::BelongsTo::Record</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const &amp; Record(this Self &amp;&amp;self)</div><div class="ttdoc">Retrieves a record from the relationship. When the record is not optional.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00234">BelongsTo.hpp:234</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1BelongsTo_html_ae99255eb66dea97a5c79c27d97691650"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#ae99255eb66dea97a5c79c27d97691650">Lightweight::BelongsTo::IsOptional</a></div><div class="ttdeci">static constexpr auto IsOptional</div><div class="ttdoc">Indicates whether this relationship is optional (nullable).</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00095">BelongsTo.hpp:95</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1BelongsTo_html_af155118dbe1564b30d9958d7d1753bd4"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#af155118dbe1564b30d9958d7d1753bd4">Lightweight::BelongsTo::ColumnNameOverride</a></div><div class="ttdeci">static constexpr std::string_view ColumnNameOverride</div><div class="ttdoc">If not an empty string, this value will be used as the column name in the database.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00063">BelongsTo.hpp:63</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1BelongsTo_html_af764f7452bcd0b08a1bb855bbc303b44"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#af764f7452bcd0b08a1bb855bbc303b44">Lightweight::BelongsTo::operator!=</a></div><div class="ttdeci">bool operator!=(Field&lt; T, IsPrimaryKeyValue &gt; const &amp;other) const noexcept</div><div class="ttdoc">Inequality comparison operator with a Field.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00340">BelongsTo.hpp:340</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1BelongsTo_html_af764f7452bcd0b08a1bb855bbc303b44"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#af764f7452bcd0b08a1bb855bbc303b44">Lightweight::BelongsTo::operator!=</a></div><div class="ttdeci">bool operator!=(Field&lt; T, IsPrimaryKeyValue &gt; const &amp;other) const noexcept</div><div class="ttdoc">Inequality comparison operator with a Field.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00362">BelongsTo.hpp:362</a></div></div>
 <div class="ttc" id="astructLightweight_1_1Field_html"><div class="ttname"><a href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a></div><div class="ttdoc">Represents a single column in a table.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00083">Field.hpp:84</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlNullType_html"><div class="ttname"><a href="../../da/d96/structLightweight_1_1SqlNullType.html">Lightweight::SqlNullType</a></div><div class="ttdef"><b>Definition</b> <a href="../../d3/de6/SqlNullValue_8hpp_source.html#l00013">SqlNullValue.hpp:14</a></div></div>
 </div><!-- fragment --></div><!-- contents -->

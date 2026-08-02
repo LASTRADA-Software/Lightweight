@@ -2905,7 +2905,7 @@ $(document).ready(function(){initNavTree('df/d4f/DataMapper_8hpp_source.html','.
 <div class="line"><a id="l02736" name="l02736"></a><span class="lineno"> 2736</span>        <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (IsBelongsTo&lt;FieldType&gt;)</div>
 <div class="line"><a id="l02737" name="l02737"></a><span class="lineno"> 2737</span>        {</div>
 <div class="line"><a id="l02738" name="l02738"></a><span class="lineno"> 2738</span>            <span class="keyword">auto</span>&amp; field = record.[:el:];</div>
-<div class="line"><a id="l02739" name="l02739"></a><span class="lineno"> 2739</span>            field = LoadBelongsTo&lt;FieldType&gt;(field.Value());</div>
+<div class="line"><a id="l02739" name="l02739"></a><span class="lineno"> 2739</span>            field.AdoptFetchedRecord(LoadBelongsTo&lt;FieldType&gt;(field.Value()));</div>
 <div class="line"><a id="l02740" name="l02740"></a><span class="lineno"> 2740</span>        }</div>
 <div class="line"><a id="l02741" name="l02741"></a><span class="lineno"> 2741</span>        <span class="keywordflow">else</span> <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (IsHasMany&lt;FieldType&gt;)</div>
 <div class="line"><a id="l02742" name="l02742"></a><span class="lineno"> 2742</span>        {</div>
@@ -2924,7 +2924,7 @@ $(document).ready(function(){initNavTree('df/d4f/DataMapper_8hpp_source.html','.
 <div class="line"><a id="l02755" name="l02755"></a><span class="lineno"> 2755</span>    <a class="code hl_function" href="../../d7/d2f/group__DataMapper.html#gaf264bb64d0d2c57aac9a058e4b9a2865">EnumerateRecordMembers</a>(record, [&amp;]&lt;<span class="keywordtype">size_t</span> FieldIndex, <span class="keyword">typename</span> FieldType&gt;(FieldType&amp; field) {</div>
 <div class="line"><a id="l02756" name="l02756"></a><span class="lineno"> 2756</span>        <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (IsBelongsTo&lt;FieldType&gt;)</div>
 <div class="line"><a id="l02757" name="l02757"></a><span class="lineno"> 2757</span>        {</div>
-<div class="line"><a id="l02758" name="l02758"></a><span class="lineno"> 2758</span>            field = LoadBelongsTo&lt;FieldType&gt;(field.Value());</div>
+<div class="line"><a id="l02758" name="l02758"></a><span class="lineno"> 2758</span>            field.AdoptFetchedRecord(LoadBelongsTo&lt;FieldType&gt;(field.Value()));</div>
 <div class="line"><a id="l02759" name="l02759"></a><span class="lineno"> 2759</span>        }</div>
 <div class="line"><a id="l02760" name="l02760"></a><span class="lineno"> 2760</span>        <span class="keywordflow">else</span> <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (IsHasMany&lt;FieldType&gt;)</div>
 <div class="line"><a id="l02761" name="l02761"></a><span class="lineno"> 2761</span>        {</div>

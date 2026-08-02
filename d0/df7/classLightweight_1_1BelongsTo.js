@@ -22,6 +22,7 @@ var classLightweight_1_1BelongsTo =
     [ "operator!", "d0/df7/classLightweight_1_1BelongsTo.html#a4e9194a29545106a3e2d973e5348884a", null ],
     [ "operator bool", "d0/df7/classLightweight_1_1BelongsTo.html#a209cea72fa9c9a68e4e7d16f8d1fdf9a", null ],
     [ "EmplaceRecord", "d0/df7/classLightweight_1_1BelongsTo.html#a21f8ee040039eae60a398ebb2864a7f7", null ],
+    [ "AdoptFetchedRecord", "d0/df7/classLightweight_1_1BelongsTo.html#a07472abfd8c6bcd51dc60e7970be3c45", null ],
     [ "BindOutputColumn", "d0/df7/classLightweight_1_1BelongsTo.html#a66c1e50850fd6fd28cff5136c7a5445d", null ],
     [ "operator<=>", "d0/df7/classLightweight_1_1BelongsTo.html#a1723d02f7e1d3be3ee1e77d9ac5ae167", null ],
     [ "operator<=>", "d0/df7/classLightweight_1_1BelongsTo.html#a11fdb1398451c02280672eddd7e05fef", null ],
