@@ -13,15 +13,9 @@
 // disambiguate several foreign keys into one table. What this file covers instead is the *shape of
 // the schema graph*: self-reference, depth, and nullability.
 //
-// Two defects are documented here as tests rather than as prose, so that a fix has an executable
-// definition of done and a regression re-breaks the build:
-//
-//   1. A record whose `BelongsTo` names its own enclosing type cannot be used at all - see
-//      "Self-reference" below. This is why the self-referential shape is declared but its tests are
-//      compiled out: the failure is a stack overflow during static initialisation, which takes the
-//      whole test binary down rather than failing one assertion, so `[!mayfail]` cannot contain it.
-//   2. `LoadRelations()` does not compile for any record holding a `BelongsTo` - see
-//      "LoadRelations".
+// The self-referential shape in the first section is guarded off under clang-cl, which miscompiles
+// it - the diagnosis is in the comment block above that guard. It compiles and passes under MSVC
+// `cl`, so the guard is keyed to the toolchain rather than the shape being unsupported.
 
 #include "../Utils.hpp"
 
@@ -44,50 +38,53 @@ using namespace std::string_view_literals;
 // `BelongsTo` contributing no `#include` of its own. So the generator emits this record; nothing
 // ever fed one to a DataMapper.
 //
-// DEFECT: it does not work. Declaring
+// The shape itself is sound: under MSVC `cl` the tests below pass, and `sizeof(TreeNode)` is a
+// well-behaved 120 bytes. What breaks is **clang-cl 22.1.3 code generation**, so the block is
+// guarded on that toolchain rather than removed.
 //
-//     struct TreeNode
-//     {
-//         Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-//         Field<SqlAnsiString<30>> name {};
-//         BelongsTo<Member(TreeNode::id), SqlRealName { "parent_id" }, SqlNullable::Null> parent {};
-//         HasMany<TreeNode> children {};
-//     };
+// Symptom under clang-cl: a function that constructs one of these records gets a nonsense frame
+// size, and faults in its own prologue.
 //
-// and merely *constructing* one overflows the stack. Reduced to its minimum, the trigger needs
-// neither `HasMany`, nor a DataMapper, nor a database, nor a string field:
+//     warning: stack frame size (18097232330883560) exceeds limit (4294967295)
+//              in 'CATCH2_INTERNAL_TEST_0' [-Wframe-larger-than]
 //
-//   - `sizeof(TreeNode)` is a well-behaved 64 bytes, and a function that only *mentions* the type
-//     (sizeof, member enumeration) compiles clean and runs. So the class layout is fine.
-//   - Adding a single `TreeNode` object to a function body - on the stack *or* on the heap via
-//     make_unique - makes clang-cl report a frame size of ~1.8e16 bytes for the *enclosing*
-//     function: `warning: stack frame size (17717667280454008) exceeds limit (4294967295)
-//     [-Wframe-larger-than]`. That is ~2^54, an overflowed computation, not a real frame.
-//   - At runtime that function faults on entry, before its first statement, which is why no output
-//     appears no matter where the printf goes.
-//   - Under cdb the fault is `Stack overflow - code c00000fd` with a stack only *eight* frames
-//     deep, one of which consumes ~570 KB of the 1 MB stack. So this is not runaway recursion at
-//     run time; it is a single frame the compiler sized wrongly.
-//   - The identical record with its `BelongsTo` pointing at a *different* type - the pattern every
-//     pre-existing test uses - is fine. The self-reference is the whole difference.
+// Established with cdb against a symbolised debug build:
 //
-// So the defect is a compile-time size/instantiation blow-up over the self-referential type, which
-// the code generator then turns into an impossible stack allocation. Ruled out by isolated
-// reproduction (each of these compiles and runs correctly on its own, so none is sufficient):
-// `BelongsTo`'s variadic converting constructor, the
-// ConfigureRelationAutoLoading -> LoadBelongsTo -> QuerySingle -> ConfigureRelationAutoLoading
-// template cycle, `std::function<std::optional<Record>()>` held by value inside the record it
-// returns, and reflection-cpp's `CountMembers` probe against a constructor that absorbs `AnyType`.
-// The interaction of several of these is the likely cause; pinning it needs a debug build with
-// symbols, which did not fit in the available disk space.
+//   - The fault is `Stack overflow (c00000fd)` in `__chkstk+0x37`, reached from
+//     `CATCH2_INTERNAL_TEST_0+0x10` - i.e. the stack probe in the *prologue*, before the body runs.
+//     That is why no printf ever appeared regardless of placement.
+//   - The stack is eight frames deep, not thousands, so nothing recurses at run time.
+//   - Disassembly of the prologue shows the frame size as a baked-in immediate with no relocation:
+//         movabsq $0x404b56408001e0, %rax ; callq __chkstk ; subq %rax, %rsp
+//   - Every other `movabsq` in the same function shares the high half (`0x404b5640_80…`) and differs
+//     only in the low bytes (0x1e0, 0x158, 0x4a, 0x140, 0x148, 0x1e8) - and those low values are
+//     plausible frame offsets. The high half also *changes between builds* (0x404b5640…,
+//     0x3ef21fe0…, 0x3ef26540…). So a small correct offset is being OR-ed with garbage, which is a
+//     miscompile, not a computed size.
+//   - `sizeof` alone is fine; heap-allocating instead of stack-allocating does not help, because it
+//     is the enclosing frame that is mis-sized, not the object.
+//   - The identical record whose `BelongsTo` points at a *different* type is fine on every
+//     toolchain, which is why no pre-existing test tripped this.
 //
-// Kept as a compiled-out block rather than a `[!mayfail]` test: a stack overflow in static
-// initialisation aborts the whole binary, so an enabled version would take all ~1300 unrelated test
-// cases with it. Re-enable this block together with the fix; the assertions are written to pass once
-// the shape works.
+// Also ruled out as sufficient causes, each by isolated reproduction that compiles and runs
+// correctly: `BelongsTo`'s variadic converting constructor; the
+// ConfigureRelationAutoLoading -> LoadBelongsTo -> QuerySingle cycle;
+// `std::function<std::optional<Record>()>` held by value inside the record it returns; and
+// reflection-cpp's `CountMembers` probe against a constructor that absorbs `AnyType`.
+//
+// So there is nothing to fix in Lightweight here. The remaining work is to reduce this to a
+// standalone case and report it upstream to LLVM, and meanwhile to keep the guard below so the
+// coverage runs on the toolchains that handle it. A compiled-out block rather than `[!mayfail]`
+// because a prologue fault aborts the whole binary, taking ~1300 unrelated cases with it.
 // ================================================================================================
 
-#if 0
+// clang-cl 22.1.3 miscompiles this shape: see the comment block above. MSVC cl and (per the isolated
+// repros) libstdc++/clang++ handle it correctly, so the tests run everywhere except clang-cl.
+#if defined(__clang__) && defined(_MSC_VER)
+    #define LIGHTWEIGHT_SELFREF_BELONGSTO_MISCOMPILED 1
+#endif
+
+#if !defined(LIGHTWEIGHT_SELFREF_BELONGSTO_MISCOMPILED)
 struct TreeNode
 {
     static constexpr std::string_view TableName = "TreeNodes";
@@ -196,7 +193,9 @@ TEST_CASE_METHOD(SqlTestFixture, "Self-referencing HasMany counts only direct ch
     CHECK(grandchild->children.Count() == 0);
 }
 
-TEST_CASE_METHOD(SqlTestFixture, "Self-referencing HasMany yields children through All()", "[DataMapper][relations][selfref]")
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Self-referencing HasMany yields children through All()",
+                 "[DataMapper][relations][selfref]")
 {
     auto dm = DataMapper {};
     dm.CreateTable<TreeNode>();
@@ -259,17 +258,21 @@ TEST_CASE_METHOD(SqlTestFixture, "A NULL foreign key is attributed to no parent"
     CHECK_FALSE(loadedOrphan->parent.Value().has_value());
     CHECK(loadedOrphan->children.Count() == 0);
 }
-#endif // self-referential BelongsTo is unusable - see the comment block above
+#endif // !LIGHTWEIGHT_SELFREF_BELONGSTO_MISCOMPILED
 
-TEST_CASE("Self-referential BelongsTo is unusable", "[DataMapper][relations][selfref][!shouldfail]")
+#if defined(LIGHTWEIGHT_SELFREF_BELONGSTO_MISCOMPILED)
+TEST_CASE("Self-referential BelongsTo is miscompiled by clang-cl", "[DataMapper][relations][selfref][!shouldfail]")
 {
-    // Placeholder that keeps the defect visible in the test report while the block above cannot be
-    // compiled. `[!shouldfail]` inverts the result, so this passes the run *because* it fails - and
-    // starts failing the moment someone deletes it without re-enabling the block.
-    FAIL("A record whose BelongsTo names its own type makes clang-cl compute a ~1.8e16-byte stack "
-         "frame for any function holding one, which faults on entry. The self-referential shape "
-         "tests in RelationShapeTests.cpp are compiled out. See the comment block above this test.");
+    // Placeholder that keeps the skipped coverage visible in the report on the one toolchain where it
+    // cannot be compiled. `[!shouldfail]` inverts the result, so this passes the run *because* it
+    // fails - and starts failing the moment the guard is removed without the coverage coming back.
+    //
+    // It is deliberately absent under MSVC cl, where the guarded tests above do run.
+    FAIL("clang-cl 22.1.3 computes a ~1.8e16-byte stack frame for any function constructing a record "
+         "whose BelongsTo names its own type, and faults in the prologue. The self-referential shape "
+         "tests are compiled out here but do run under MSVC cl. See the comment block above.");
 }
+#endif
 
 // ================================================================================================
 // Nullability, without a self-reference: two distinct tables, nullable foreign key.
