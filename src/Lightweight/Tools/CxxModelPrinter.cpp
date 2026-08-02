@@ -358,6 +358,19 @@ std::string CxxModelPrinter::HeaderFileForTheTable(std::string_view modelNamespa
         output << std::format("namespace {}\n{{\n", modelNamespace);
 
     output << "\n";
+
+    // Records named by an inverse or through relation are forward-declared rather than included: the
+    // child's header already includes this one, so including it back would be a cycle. Every relation
+    // stores its records indirectly, so a declaration suffices here.
+    auto const& forwardDeclared = _definitions[tableName].forwardDeclaredTables;
+    if (!forwardDeclared.empty())
+    {
+        for (auto const& declared: forwardDeclared)
+            if (declared != _definitions[tableName].structName)
+                output << std::format("struct {};\n", declared);
+        output << '\n';
+    }
+
     output << _definitions[tableName].text.str();
     if (!modelNamespace.empty())
         output << std::format("}} // end namespace {}\n", modelNamespace);
@@ -373,6 +386,180 @@ std::string CxxModelPrinter::HeaderFileForTheTable(std::string_view modelNamespa
             output << '\n' << externDecl;
 
     return output.str();
+}
+
+namespace
+{
+
+    /// @return `true` if @p constraint links exactly one column to exactly one column.
+    bool IsSingleColumn(SqlSchema::ForeignKeyConstraint const& constraint) noexcept
+    {
+        return constraint.foreignKey.columns.size() == 1 && constraint.primaryKey.columns.size() == 1;
+    }
+
+    /// Whether @p columnName is covered by a single-column unique index or UNIQUE constraint on @p table,
+    /// which is what makes a foreign key through it one-to-one rather than one-to-many.
+    ///
+    /// @param table Table owning the column.
+    /// @param columnName Column to test.
+    /// @return `true` if a value in that column identifies at most one row.
+    bool IsUniquelyIndexed(SqlSchema::Table const& table, std::string_view columnName)
+    {
+        auto const column = std::ranges::find_if(table.columns, [&](auto const& c) { return c.name == columnName; });
+        if (column != table.columns.end() && column->isUnique)
+            return true;
+
+        // A single-column primary key is unique too, as is any single-column unique index.
+        if (table.primaryKeys.size() == 1 && table.primaryKeys.front() == columnName)
+            return true;
+
+        return std::ranges::any_of(table.indexes, [&](SqlSchema::IndexDefinition const& index) {
+            return index.isUnique && index.columns.size() == 1 && index.columns.front() == columnName;
+        });
+    }
+
+    /// Whether @p table is a pure join table: exactly two single-column foreign keys pointing at two
+    /// distinct tables, and no columns of its own beyond those keys.
+    ///
+    /// A join table carrying extra payload columns is deliberately *not* treated as one. Such a table is
+    /// an entity in its own right - the association-object shape - and collapsing it into a
+    /// `HasManyThrough` would hide the payload, so it keeps its plain record plus `BelongsTo` members.
+    ///
+    /// @param table Candidate join table.
+    /// @return The two single-column foreign keys if it qualifies, `std::nullopt` otherwise.
+    std::optional<std::pair<SqlSchema::ForeignKeyConstraint, SqlSchema::ForeignKeyConstraint>> AsJoinTable(
+        SqlSchema::Table const& table)
+    {
+        auto singleColumnKeys = std::vector<SqlSchema::ForeignKeyConstraint> {};
+        for (auto const& constraint: table.foreignKeys)
+            if (IsSingleColumn(constraint))
+                singleColumnKeys.emplace_back(constraint);
+
+        if (singleColumnKeys.size() != 2 || table.foreignKeys.size() != 2)
+            return std::nullopt;
+
+        if (singleColumnKeys[0].primaryKey.table.table == singleColumnKeys[1].primaryKey.table.table)
+            return std::nullopt; // both keys point at the same table: not a two-sided join
+
+        // Every column must participate in one of the two foreign keys, or be part of the table's own
+        // key. Anything else is payload, which makes this an association object rather than a join table.
+        auto const isKeyColumn = [&](std::string const& name) {
+            return std::ranges::contains(singleColumnKeys[0].foreignKey.columns, name)
+                   || std::ranges::contains(singleColumnKeys[1].foreignKey.columns, name)
+                   || std::ranges::contains(table.primaryKeys, name);
+        };
+        if (!std::ranges::all_of(table.columns, [&](auto const& c) { return isKeyColumn(c.name); }))
+            return std::nullopt;
+
+        return std::pair { singleColumnKeys[0], singleColumnKeys[1] };
+    }
+
+} // namespace
+
+CxxModelPrinter::RelationPlan CxxModelPrinter::PlanRelations(std::vector<SqlSchema::Table> const& tables)
+{
+    auto plan = RelationPlan {};
+
+    auto const byName = [&](std::string_view name) -> SqlSchema::Table const* {
+        auto const it = std::ranges::find_if(tables, [&](auto const& t) { return t.name == name; });
+        return it != tables.end() ? &*it : nullptr;
+    };
+
+    // How many single-column foreign keys run from one table to another. A count above one makes the
+    // inverse ambiguous, so the selector naming the foreign key column becomes mandatory.
+    auto foreignKeyMultiplicity = std::map<std::pair<std::string, std::string>, size_t> {};
+    for (auto const& table: tables)
+        for (auto const& constraint: table.foreignKeys)
+            if (IsSingleColumn(constraint))
+                ++foreignKeyMultiplicity[{ table.name, constraint.primaryKey.table.table }];
+
+    auto const isAmbiguous = [&](std::string const& child, std::string const& owner) {
+        auto const it = foreignKeyMultiplicity.find({ child, owner });
+        return it != foreignKeyMultiplicity.end() && it->second > 1;
+    };
+
+    // Join tables are consumed as through-relations rather than contributing a HasMany of their own,
+    // so resolve them first and remember which tables they were.
+    auto joinTables = std::set<std::string> {};
+
+    for (auto const& table: tables)
+    {
+        auto const joinKeys = AsJoinTable(table);
+        if (!joinKeys.has_value())
+            continue;
+
+        joinTables.emplace(table.name);
+
+        auto const& [leftKey, rightKey] = *joinKeys;
+
+        // One through-relation on each side, each hopping to the other side's target.
+        auto const emitThrough = [&](SqlSchema::ForeignKeyConstraint const& ownerKey,
+                                     SqlSchema::ForeignKeyConstraint const& farKey) {
+            auto const& ownerTable = ownerKey.primaryKey.table.table;
+            auto const& farTable = farKey.primaryKey.table.table;
+
+            // Scalar when the join record's far-side key is uniquely indexed: at most one far row
+            // per join row, so the owner sees a single record rather than a collection.
+            auto const farIsUnique = IsUniquelyIndexed(table, farKey.foreignKey.columns.front());
+
+            plan[ownerTable].emplace_back(PlannedRelation {
+                .kind = farIsUnique ? PlannedRelation::Kind::HasOneThrough : PlannedRelation::Kind::HasManyThrough,
+                .ownerTable = ownerTable,
+                .referencedTable = farTable,
+                .throughTable = table.name,
+                .ownerForeignKeyColumn = ownerKey.foreignKey.columns.front(),
+                .referencedForeignKeyColumn = farKey.foreignKey.columns.front(),
+                .ownerSelectorRequired = isAmbiguous(table.name, ownerTable),
+                .referencedSelectorRequired = isAmbiguous(table.name, farTable),
+                // Named after the far table: `project.users` rather than `project.projectUsers`, since
+                // the join table is an implementation detail of the relation.
+                .memberName = farTable,
+            });
+        };
+
+        emitThrough(leftKey, rightKey);
+        emitThrough(rightKey, leftKey);
+    }
+
+    // Every remaining single-column foreign key yields an inverse collection on the referenced side.
+    for (auto const& table: tables)
+    {
+        if (joinTables.contains(table.name))
+            continue;
+
+        for (auto const& constraint: table.foreignKeys)
+        {
+            if (!IsSingleColumn(constraint))
+                continue; // composite: no BelongsTo either, so no inverse
+
+            auto const& ownerTable = constraint.primaryKey.table.table;
+            if (byName(ownerTable) == nullptr)
+                continue; // references a table outside the generated set
+
+            auto const& childColumn = constraint.foreignKey.columns.front();
+
+            // Scalar when the child's own foreign key is uniquely indexed: one child per owner.
+            auto const childIsUnique = IsUniquelyIndexed(table, childColumn);
+
+            plan[ownerTable].emplace_back(PlannedRelation {
+                .kind = childIsUnique ? PlannedRelation::Kind::HasOne : PlannedRelation::Kind::HasMany,
+                .ownerTable = ownerTable,
+                .referencedTable = table.name,
+                .throughTable = {},
+                .ownerForeignKeyColumn = childColumn,
+                .referencedForeignKeyColumn = {},
+                .ownerSelectorRequired = isAmbiguous(table.name, ownerTable),
+                .referencedSelectorRequired = false,
+                // Named after the child table. Where several foreign keys from the same child table
+                // land here the names would collide, so distinguish those by the foreign key column -
+                // which is exactly the set that also needs a selector.
+                .memberName =
+                    isAmbiguous(table.name, ownerTable) ? std::format("{}_{}", table.name, childColumn) : table.name,
+            });
+        }
+    }
+
+    return plan;
 }
 
 SqlSchema::ForeignKeyConstraint const& CxxModelPrinter::GetForeignKey(
@@ -580,6 +767,10 @@ std::optional<std::string> CxxModelPrinter::MapColumnNameOverride(SqlSchema::Ful
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void CxxModelPrinter::ResolveOrderAndPrintTable(std::vector<SqlSchema::Table> const& tables)
 {
+    // Inverse and through relations are a property of the whole schema, not of one table, so plan
+    // them once here and hand each table its own share below.
+    auto const relationPlan = PlanRelations(tables);
+
     std::unordered_map<size_t, std::optional<int>> numberOfForeignKeys;
     for (auto const idx: std::views::iota(static_cast<size_t>(0), tables.size()))
         numberOfForeignKeys[idx] = static_cast<int>(tables[idx].foreignKeys.size());
@@ -602,7 +793,9 @@ void CxxModelPrinter::ResolveOrderAndPrintTable(std::vector<SqlSchema::Table> co
     size_t numberOfPrintedTables = 0;
 
     auto const printTable = [&, this](size_t index, auto const& table) {
-        PrintTable(table);
+        static auto const noRelations = std::vector<PlannedRelation> {};
+        auto const planned = relationPlan.find(table.name);
+        PrintTable(table, planned != relationPlan.end() ? planned->second : noRelations);
         numberOfPrintedTables++;
         updateForeignKeyCountAfterPrinted(table);
         numberOfForeignKeys[index] = std::nullopt;
@@ -639,7 +832,7 @@ void CxxModelPrinter::ResolveOrderAndPrintTable(std::vector<SqlSchema::Table> co
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-void CxxModelPrinter::PrintTable(SqlSchema::Table const& table)
+void CxxModelPrinter::PrintTable(SqlSchema::Table const& table, std::vector<PlannedRelation> const& relationPlan)
 {
     auto& definition = _definitions[table.name];
     std::string cxxPrimaryKeys;
@@ -817,6 +1010,75 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table)
         (void) foreignKey; // TODO
     }
 
+    // Inverse and through relations. These come after the columns because they are not columns: they
+    // carry no storage of their own, and RecordColumnMember-based projections skip them.
+    if (!relationPlan.empty())
+        definition.text << '\n';
+
+    for (auto const& relation: relationPlan)
+    {
+        auto const referencedStruct = AliasTableName(relation.referencedTable);
+        auto const throughStruct = relation.throughTable.empty() ? std::string {} : AliasTableName(relation.throughTable);
+
+        // The relation names the other record but must not include its header: the child already
+        // includes this one, so including it back would be a cycle. A forward declaration is enough
+        // because every relation stores its records indirectly.
+        if (relation.referencedTable != table.name)
+            definition.forwardDeclaredTables.emplace(referencedStruct);
+        if (!throughStruct.empty() && relation.throughTable != table.name)
+            definition.forwardDeclaredTables.emplace(throughStruct);
+
+        auto const memberName = uniqueMemberNameBuilder.DeclareName(
+            SanitizeName(FormatName(StripSuffix(relation.memberName), _config.formatType)));
+
+        auto const ownerSelector = relation.ownerSelectorRequired
+                                       ? std::format(", Light::SqlRealName {{ \"{}\" }}", relation.ownerForeignKeyColumn)
+                                       : std::string {};
+
+        switch (relation.kind)
+        {
+            case PlannedRelation::Kind::HasOne:
+                // No HasOne type exists in the library, only HasOneThrough. Emit the collection form
+                // and say why, rather than silently pretending the relation is scalar.
+                definition.text << std::format("    // NOTE: {}.{} is uniquely indexed, so this relation holds at most\n"
+                                               "    //       one record. Lightweight has no HasOne type, so it is "
+                                               "emitted as a collection.\n",
+                                               relation.referencedTable,
+                                               relation.ownerForeignKeyColumn);
+                [[fallthrough]];
+            case PlannedRelation::Kind::HasMany:
+                definition.text << std::format(
+                    "    Light::HasMany<{}{}> {};\n", referencedStruct, ownerSelector, memberName);
+                break;
+
+            case PlannedRelation::Kind::HasOneThrough:
+                definition.text << std::format(
+                    "    Light::HasOneThrough<{}, {}{}{}> {};\n",
+                    referencedStruct,
+                    throughStruct,
+                    ownerSelector,
+                    relation.referencedSelectorRequired
+                        ? std::format(", Light::SqlRealName {{ \"{}\" }}", relation.referencedForeignKeyColumn)
+                        : std::string {},
+                    memberName);
+                break;
+
+            case PlannedRelation::Kind::HasManyThrough:
+                definition.text << std::format(
+                    "    Light::HasManyThrough<{}, {}{}{}> {};\n",
+                    referencedStruct,
+                    throughStruct,
+                    ownerSelector,
+                    relation.referencedSelectorRequired
+                        ? std::format(", Light::SqlRealName {{ \"{}\" }}", relation.referencedForeignKeyColumn)
+                        : std::string {},
+                    memberName);
+                break;
+        }
+
+        ++_numberOfRelationsListed;
+    }
+
     definition.text << "};\n\n";
 }
 
@@ -830,6 +1092,7 @@ void CxxModelPrinter::PrintReport()
     std::println("Columns listed          : {}", _numberOfColumnsListed);
     std::println("Foreign keys considered : {}", _numberOfForeignKeysListed);
     std::println("Foreign keys ignored    : {}", _warningOnUnsupportedMultiKeyForeignKey.size());
+    std::println("Inverse relations       : {}", _numberOfRelationsListed);
 
     if (!_warningOnUnsupportedMultiKeyForeignKey.empty() && !_config.suppressWarnings)
     {
