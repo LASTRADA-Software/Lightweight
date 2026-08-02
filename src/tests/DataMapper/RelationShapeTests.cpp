@@ -544,40 +544,79 @@ TEST_CASE_METHOD(SqlTestFixture, "LoadRelations on a record without a BelongsTo"
     CHECK(loadedA.bs.At(0).label.Value() == "b");
 }
 
-TEST_CASE("LoadRelations does not compile for a record holding a BelongsTo",
-          "[DataMapper][relations][LoadRelations][!shouldfail]")
+TEST_CASE_METHOD(SqlTestFixture, "LoadRelations fills a non-nullable BelongsTo", "[DataMapper][relations][LoadRelations]")
 {
-    // DEFECT, independent of the self-reference above and much wider in scope - it is *every* record
-    // holding a BelongsTo, nullable or not:
-    //
-    //   DataMapper.hpp(2758): error: no viable overloaded '='
-    //     field = LoadBelongsTo<FieldType>(field.Value());
-    //
-    // LoadBelongsTo() returns std::optional<ReferencedRecord>, while BelongsTo declares operator=
-    // only for SqlNullType, for ReferencedRecord&, and for another BelongsTo - an optional converts
-    // to none of them. So LoadRelations() instantiates only for records whose members are all plain
-    // Fields plus HasMany/HasManyThrough/HasOneThrough relations; add one BelongsTo and the call is
-    // ill-formed. LoadHasMany() is private, so there is no other public way to fill such a record's
-    // relations.
-    //
-    // Latent because all three pre-existing LoadRelations() call sites in RelationTests.cpp pass a
-    // record with no BelongsTo at all: MisalignedDepartment, Human and Suppliers each hold only
-    // Fields plus HasMany members. The nullable BelongsTo on MisalignedEmployee sits on the *child*,
-    // which LoadRelations never enumerates.
-    //
-    // Verified against both nullability flavours - OptionalChild (nullable) and ChainB
-    // (non-nullable) - so the fix must cover both. Enable these lines with it:
-    //
-    //     auto loadedB = dm.QuerySingle<ChainB>(b.id.Value()).value();
-    //     dm.LoadRelations(loadedB);
-    //     CHECK(loadedB.cs.All().size() == 1);
-    //     CHECK(loadedB.a.Value() == a.id.Value());
-    //
-    //     auto loadedChild = dm.QuerySingle<OptionalChild>(child.id.Value()).value();
-    //     dm.LoadRelations(loadedChild);
-    //     CHECK(loadedChild.parent.Value().has_value());
-    //
-    // `[!shouldfail]` because the failure is a hard compile error: it cannot be expressed as a
-    // running assertion, so the test stands in for it and keeps it in the report.
-    FAIL("LoadRelations() does not compile for any record holding a BelongsTo - see the comment above");
+    // Regression guard. LoadBelongsTo() returns std::optional<ReferencedRecord>, and BelongsTo has no
+    // operator= accepting one - assigning it directly made LoadRelations() ill-formed for *every*
+    // record holding a BelongsTo, nullable or not. It stayed latent because all three pre-existing
+    // call sites pass a record with no BelongsTo at all (MisalignedDepartment, Human, Suppliers).
+    // The fetched record is now adopted through BelongsTo::AdoptFetchedRecord().
+    auto dm = DataMapper {};
+    dm.CreateTable<ChainA>();
+    dm.CreateTable<ChainB>();
+    dm.CreateTable<ChainC>();
+
+    auto a = ChainA { .label = "a" };
+    dm.Create(a);
+    auto b = ChainB { .label = "b" };
+    b.a = a;
+    dm.Create(b);
+    auto c = ChainC { .label = "c" };
+    c.b = b;
+    dm.Create(c);
+
+    // ChainB carries both a BelongsTo (upwards) and a HasMany (downwards), so one call exercises both
+    // branches of the member enumeration.
+    auto loadedB = dm.QuerySingle<ChainB>(b.id.Value()).value();
+    dm.LoadRelations(loadedB);
+
+    CHECK(loadedB.cs.All().size() == 1);
+    CHECK(loadedB.a.Value() == a.id.Value());
+
+    // The BelongsTo is now loaded, so the referenced record is reachable through it. For a mandatory
+    // relationship Record() returns the record by reference and would throw if it were still
+    // unloaded, so reaching the label at all is the assertion that the adoption happened.
+    CHECK(loadedB.a.Record().label.Value() == "a");
+
+    // ...and adopting a fetched record is not a pending change: the foreign key was already whatever
+    // the row said, so the field must not come back marked modified.
+    CHECK_FALSE(loadedB.a.IsModified());
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "LoadRelations fills a nullable BelongsTo, and leaves an unset one alone",
+                 "[DataMapper][relations][LoadRelations][nullable]")
+{
+    // The nullable half of the same fix. A set foreign key must resolve to its record; an unset one
+    // must stay unloaded rather than being cleared or throwing.
+    auto dm = DataMapper {};
+    dm.CreateTable<OptionalParent>();
+    dm.CreateTable<OptionalChild>();
+
+    auto parent = OptionalParent { .name = "parent" };
+    dm.Create(parent);
+
+    auto attached = OptionalChild { .name = "attached" };
+    attached.parent = parent;
+    dm.Create(attached);
+
+    auto orphan = OptionalChild { .name = "orphan" };
+    dm.Create(orphan);
+
+    auto loadedAttached = dm.QuerySingle<OptionalChild>(attached.id.Value()).value();
+    dm.LoadRelations(loadedAttached);
+    REQUIRE(loadedAttached.parent.Value().has_value());
+    CHECK(loadedAttached.parent.Value().value() == parent.id.Value());
+    // For an optional relationship Record() yields an optional over a reference_wrapper, hence .get().
+    REQUIRE(loadedAttached.parent.Record().has_value());
+    CHECK(loadedAttached.parent.Record().value().get().name.Value() == "parent");
+    CHECK_FALSE(loadedAttached.parent.IsModified());
+
+    // The NULL foreign key has nothing to load. It must remain unset - not resolved to some arbitrary
+    // row - and asking for the record must report emptiness rather than throwing, because an unset
+    // optional relationship is legitimate rather than an error.
+    auto loadedOrphan = dm.QuerySingle<OptionalChild>(orphan.id.Value()).value();
+    dm.LoadRelations(loadedOrphan);
+    CHECK_FALSE(loadedOrphan.parent.Value().has_value());
+    CHECK_FALSE(loadedOrphan.parent.Record().has_value());
 }

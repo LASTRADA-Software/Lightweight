@@ -2736,7 +2736,7 @@ void DataMapper::LoadRelations(Record& record)
         if constexpr (IsBelongsTo<FieldType>)
         {
             auto& field = record.[:el:];
-            field = LoadBelongsTo<FieldType>(field.Value());
+            field.AdoptFetchedRecord(LoadBelongsTo<FieldType>(field.Value()));
         }
         else if constexpr (IsHasMany<FieldType>)
         {
@@ -2755,7 +2755,7 @@ void DataMapper::LoadRelations(Record& record)
     EnumerateRecordMembers(record, [&]<size_t FieldIndex, typename FieldType>(FieldType& field) {
         if constexpr (IsBelongsTo<FieldType>)
         {
-            field = LoadBelongsTo<FieldType>(field.Value());
+            field.AdoptFetchedRecord(LoadBelongsTo<FieldType>(field.Value()));
         }
         else if constexpr (IsHasMany<FieldType>)
         {
