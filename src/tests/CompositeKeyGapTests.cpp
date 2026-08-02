@@ -85,8 +85,8 @@ struct CkCompositeRecord
 {
     static constexpr std::string_view TableName = "CkComposite";
 
-    Field<int32_t, PrimaryKey::AutoAssign, SqlRealName { "tenant_id" }> tenantId {};
-    Field<int32_t, PrimaryKey::AutoAssign, SqlRealName { "entry_no" }> entryNo {};
+    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "tenant_id" }> tenantId {};
+    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "entry_no" }> entryNo {};
     Field<std::optional<SqlAnsiString<40>>, SqlRealName { "label" }> label {};
 };
 
@@ -95,8 +95,8 @@ struct CkParentRecord
 {
     static constexpr std::string_view TableName = "CkParent";
 
-    Field<int32_t, PrimaryKey::AutoAssign, SqlRealName { "part_a" }> partA {};
-    Field<int32_t, PrimaryKey::AutoAssign, SqlRealName { "part_b" }> partB {};
+    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "part_a" }> partA {};
+    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "part_b" }> partB {};
     Field<std::optional<SqlAnsiString<40>>, SqlRealName { "caption" }> caption {};
 };
 
@@ -122,7 +122,8 @@ TEST_CASE("Reflected identity covers every primary key member", "[CompositeKey][
     // added beside it reports the whole key.
     STATIC_CHECK(RecordPrimaryKeyCount<CkCompositeRecord> == 2);
     STATIC_CHECK(HasCompositePrimaryKey<CkCompositeRecord>);
-    STATIC_CHECK(std::same_as<RecordPrimaryKeyTuple<CkCompositeRecord>, std::tuple<int32_t, int32_t>>);
+    using CompositeKeyTuple = std::tuple<int32_t, int32_t>;
+    STATIC_CHECK(std::same_as<RecordPrimaryKeyTuple<CkCompositeRecord>, CompositeKeyTuple>);
 
     // The single-key helper still collapses to the first field, deliberately: making it a tuple would
     // change the shape of every existing caller, including CreateExplicit's return type.

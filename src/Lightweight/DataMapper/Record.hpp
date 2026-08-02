@@ -387,6 +387,35 @@ namespace detail
     };
 } // namespace detail
 
+namespace detail
+{
+    /// Number of members of @p Record declared as `PrimaryKey::AutoAssign`.
+    ///
+    /// Auto-assignment yields a single value that is then written into every primary key member, so more
+    /// than one such member cannot be honoured - see the static_assert in
+    /// `DataMapper::GenerateAutoAssignPrimaryKey`.
+    /// Whether `GenerateAutoAssignPrimaryKey` actually produces a value for @p FieldType.
+    ///
+    /// `PrimaryKey::AutoAssign` only generates for a GUID or an incrementable value; on any other type
+    /// (a string key, say) it silently generates nothing and the caller supplies the value. Only the
+    /// generating case can collide across several key members, so only it is counted.
+    template <typename ValueType>
+    concept IncrementableKeyValue = requires(ValueType value) { value + 1; };
+
+    template <typename FieldType>
+    concept GeneratesAutoAssignedKey = IsField<FieldType> && IsAutoAssignPrimaryKeyField<FieldType>::value
+                                       && IncrementableKeyValue<typename FieldType::ValueType>;
+
+    template <typename Record>
+    constexpr std::size_t AutoAssignPrimaryKeyFieldCount =
+        FoldRecordMembers<Record>(std::size_t { 0 }, []<std::size_t I, typename FieldType>(std::size_t const accum) {
+            if constexpr (GeneratesAutoAssignedKey<FieldType>)
+                return accum + 1;
+            else
+                return accum;
+        });
+} // namespace detail
+
 /// @brief The tuple of a record's primary key value types, in member declaration order.
 ///
 /// Unlike @ref RecordPrimaryKeyType, which names a single field's type, this covers composite keys:

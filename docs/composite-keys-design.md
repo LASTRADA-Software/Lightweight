@@ -1,7 +1,14 @@
 # Composite key support — design
 
-Status: **proposal.** Nothing implemented yet. The core mechanism below has been prototyped
-standalone and compiles; the integration has not been written.
+Status: **implemented.** `CompositeForeignKey` / `Connection` ship in
+`src/Lightweight/DataMapper/CompositeForeignKey.hpp`, with the additive identity helpers in
+`Record.hpp` and loading wired into both `ConfigureRelationAutoLoading` (lazy) and `LoadRelations`
+(eager). Coverage: `src/tests/CompositeForeignKeyTests.cpp`,
+`src/tests/CompositeKeyOrderingTests.cpp`, `src/tests/CompositeKeyGapTests.cpp`.
+
+Still open, and tracked in "Deferred" at the end: `ddl2cpp` generation, the inverse (`HasMany` over a
+composite relation), and multi-column `AutoAssign` semantics — the last of which is a **live
+limitation**, see the warning under "Declaring the referenced side".
 
 Two givens shape everything:
 
@@ -23,9 +30,9 @@ struct CkParent
 {
     static constexpr std::string_view TableName = "CkParent";
 
-    // One member per column. Both marked PrimaryKey - already legal today.
-    Field<int32_t, PrimaryKey::AutoAssign, SqlRealName{"part_a"}> partA;
-    Field<int32_t, PrimaryKey::AutoAssign, SqlRealName{"part_b"}> partB;
+    // One member per column, both primary keys. NOT AutoAssign - see the warning below.
+    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName{"part_a"}> partA;
+    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName{"part_b"}> partB;
     Field<std::optional<SqlAnsiString<40>>, SqlRealName{"caption"}> caption;
 };
 
@@ -55,6 +62,13 @@ CompositeForeignKey<Connection<&Leaf::a, &Hub::k1>,
                     Connection<&Leaf::c, &Hub::k3>> hub;
 ```
 
+> **Do not mark several key members `PrimaryKey::AutoAssign`.** Auto-assignment produces a single
+> value which `SetId()` then writes into *every* primary key member, so a composite key would receive
+> the same value in all of its columns. This is rejected at compile time by a `static_assert` in
+> `GenerateAutoAssignPrimaryKey`, for the value types auto-assignment actually generates (GUIDs and
+> incrementable ones). Declare composite key members without `AutoAssign` and set their values
+> yourself before calling `Create()`.
+
 ## Why the pairing matters
 
 Earlier drafts spelled the two sides as separate lists (`RecordMemberList<&Child::refA, &Child::refB>`
@@ -75,14 +89,19 @@ computes rather than restates:
 - `Child` — the owning record, from the `From` pointers.
 - the foreign key values, read through the `From` pointers.
 
-And it `static_assert`s, all three verified against a standalone prototype:
+And it `static_assert`s the following. The first four are checked in the class body; the last two are
+deferred to first use, because the declaring record is still incomplete while the relation is
+instantiated as one of its members and reflecting over it is not yet possible there:
 
 | Error | Caught |
 |---|---|
 | Connections pointing at *different* parent records | ✅ `"all connections must point at the same record"` |
 | Connections starting from different child records | ✅ same mechanism |
 | A pair whose field types differ (e.g. `int` wired to `long long`) | ✅ `"pairwise field types must match"` |
-| Right-hand member not marked `IsPrimaryKey` | ✅ (checkable, not yet prototyped) |
+| Right-hand member not marked `IsPrimaryKey` | ✅ |
+| Two connections naming the *same* referenced member | ✅ `"reference the same member of the referenced record"` |
+| Connections not covering the referenced record's whole key | ✅ (deferred to first use) |
+| A connection pairing a member with itself | ✅ (deferred to first use) |
 | Transposing two columns *of the same type* | ❌ — inexpressible to catch; but see below |
 
 The last row is the residual risk, and it is much smaller than with positional lists: a same-typed
@@ -107,9 +126,11 @@ Only the loaded target, as `HasOneThrough` does (`std::shared_ptr<Parent>`). The
 through the `From` pointers on demand:
 
 ```cpp
-// prototyped and working
-static auto ValuesOf(Child const& c) { return std::tuple { (c.*Cs::From).Value()... }; }
+static auto ValuesOf(Child const& c) { return std::tuple { Cs::FieldOf(c).Value()... }; }
 ```
+
+`FieldOf` wraps the member access so the C++26 reflection and non-reflection modes differ in exactly
+one place - the former splices the reflection, the latter dereferences a pointer-to-member.
 
 One copy of each value, in the `Field` that owns the column. Nothing to keep in sync.
 
@@ -138,11 +159,12 @@ The composite loader only has to pass every value instead of one — `std::apply
 - A transposed argument pair is well-formed, binds cleanly, and returns **a different row** — not an
   error. With same-typed key parts (the common case) nothing detects it.
 
-So the loader must not depend on connections being written in the parent's key order. It sorts the
-values itself: for each `Connection`, the `Into` pointer identifies the parent member, from which the
-member *index* is recovered; sorting the values by that index yields exactly the order
-`QuerySingle` will bind them in. Connections may then be listed in any order, and a transposition
-becomes impossible rather than merely detectable.
+So the loader must not depend on connections being written in the parent's key order. `OrderedValuesOf`
+*builds* the ordered tuple by slot: for each key position, the connection occupying it is found at
+compile time from the `Into` member indices, and its value is read directly. Building rather than
+assigning matters - permuting by assignment through a runtime-matched index would require every slot's
+assignment to be well-formed, which fails as soon as two key columns differ in type. Connections may
+therefore be listed in any order, and heterogeneous keys work.
 
 ### Navigation
 

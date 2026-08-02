@@ -19,6 +19,21 @@
 namespace Lightweight
 {
 
+namespace detail
+{
+    /// Extracts the member type from a pointer-to-member, without requiring the owning class to be
+    /// complete. `decltype(std::declval<Owner const&>().*Ptr)` would require completeness, which a
+    /// relation declared *inside* its own record cannot offer.
+    template <typename T>
+    struct MemberPointeeType;
+
+    template <typename Member, typename Owner>
+    struct MemberPointeeType<Member Owner::*>
+    {
+        using type = Member;
+    };
+} // namespace detail
+
 /// @brief One column pair of a composite foreign key: "this record's column references that one".
 ///
 /// Both endpoints are pointers-to-member, so the pairing is part of the type. That is the whole point:
@@ -59,11 +74,48 @@ struct Connection
     using IntoRecord = MemberClassType<decltype(IntoPtr)>;
 #endif
 
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
     /// The field type on this record's side, e.g. `Field<int32_t>`.
-    using FromField = std::remove_cvref_t<decltype(std::declval<FromRecord const&>().*FromPtr)>;
+    using FromField = std::remove_cvref_t<typename[:std::meta::type_of(FromPtr):]>;
 
     /// The field type on the referenced record's side.
-    using IntoField = std::remove_cvref_t<decltype(std::declval<IntoRecord const&>().*IntoPtr)>;
+    using IntoField = std::remove_cvref_t<typename[:std::meta::type_of(IntoPtr):]>;
+#else
+    /// The field type on this record's side, e.g. `Field<int32_t>`.
+    ///
+    /// Taken from the pointer-to-member's own type rather than from a `declval` of the owning record:
+    /// the declaring record is incomplete while this relation is instantiated as one of its members.
+    using FromField = std::remove_cvref_t<typename detail::MemberPointeeType<decltype(FromPtr)>::type>;
+
+    /// The field type on the referenced record's side.
+    using IntoField = std::remove_cvref_t<typename detail::MemberPointeeType<decltype(IntoPtr)>::type>;
+#endif
+
+    /// Reads this connection's field out of @p record.
+    ///
+    /// Wraps the member access so the two reflection modes differ in exactly one place: the
+    /// non-reflection branch uses a pointer-to-member, while the C++26 branch splices the reflection.
+    ///
+    /// @param record The record holding the foreign key.
+    /// @return A reference to the field.
+    template <typename RecordT = FromRecord>
+    [[nodiscard]] static auto const& FieldOf(RecordT const& record) noexcept
+    {
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+        return record.[:FromPtr:];
+#else
+        return record.*FromPtr;
+#endif
+    }
+
+    /// Member index of this record's foreign key member within its own record.
+    ///
+    /// A function rather than a variable: the declaring record is still incomplete while this relation
+    /// is instantiated as one of its members, so reflecting over it has to wait until first use.
+    [[nodiscard]] static consteval std::size_t FromMemberIndex() noexcept
+    {
+        return MemberIndexOf<FromPtr>;
+    }
 
     /// Member index of the referenced member within the referenced record.
     ///
@@ -115,8 +167,10 @@ concept ConnectionType = detail::IsConnectionType<std::remove_cvref_t<T>>::value
 /// @code
 /// struct Parent
 /// {
-///     Field<int32_t, PrimaryKey::AutoAssign, SqlRealName { "part_a" }> partA;
-///     Field<int32_t, PrimaryKey::AutoAssign, SqlRealName { "part_b" }> partB;
+///     // Composite key members must not be PrimaryKey::AutoAssign: auto-assignment yields one value
+///     // that would be written into every key member. See GenerateAutoAssignPrimaryKey.
+///     Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "part_a" }> partA;
+///     Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "part_b" }> partB;
 /// };
 /// struct Child
 /// {
@@ -163,8 +217,77 @@ class CompositeForeignKey
                   "A composite foreign key must reference primary key columns. "
                   "Check the PrimaryKey marker on the referenced record's members.");
 
+    // A foreign key pointing at its own record through the same member is degenerate: it would read a
+    // value out of a record and then look that same record up by it. Each endpoint on its own passes
+    // every check above, so the pairing has to be rejected explicitly.
+
+    // The permutation below ranks each connection by how many name an earlier referenced member, which
+    // is only a total ordering while those indices are distinct. Two connections naming the same
+    // referenced member would share a rank, leaving one key slot unwritten and binding a
+    // default-constructed value against a real predicate - a wrong-row lookup with no diagnostic.
+    static_assert(
+        []() consteval {
+            auto const indices = std::array { Connections::IntoMemberIndex... };
+            for (auto outer = std::size_t { 0 }; outer != indices.size(); ++outer)
+                for (auto inner = outer + 1; inner != indices.size(); ++inner)
+                    if (indices[outer] == indices[inner])
+                        return false;
+            return true;
+        }(),
+        "Two Connections of a composite foreign key reference the same member of the referenced "
+        "record. Each column of the key must be connected exactly once.");
+
+    // NB: the "connections cover the whole referenced key" check cannot live here. This class is
+    // instantiated while the *declaring* record is still incomplete - the relation is one of its
+    // members - and RecordPrimaryKeyCount reflects over the referenced record, which in a mutually
+    // referencing pair is equally incomplete at that point. It is therefore checked in
+    // AssertCoversReferencedKey() below, which runs from the value accessors, i.e. at first use, when
+    // both records are complete.
+
     /// The tuple of foreign key values, in the order the connections are declared.
     using ValueType = std::tuple<typename Connections::FromField::ValueType...>;
+
+  private:
+    /// Referenced member index of each connection, in declaration order.
+    static constexpr auto IntoIndices = std::array { Connections::IntoMemberIndex... };
+
+    /// Index of the connection whose referenced member comes @p Slot-th in the referenced record.
+    ///
+    /// Computed by counting how many connections name an earlier member, which is a total ranking
+    /// because the referenced indices are asserted pairwise distinct above.
+    template <std::size_t Slot>
+    static constexpr std::size_t ConnectionForSlot = []() consteval {
+        for (auto candidate = std::size_t { 0 }; candidate != Count; ++candidate)
+        {
+            auto rank = std::size_t { 0 };
+            for (auto const other: IntoIndices)
+                if (other < IntoIndices[candidate])
+                    ++rank;
+            if (rank == Slot)
+                return candidate;
+        }
+        return Count; // unreachable: the ranking is a bijection onto [0, Count)
+    }();
+
+    /// The connection occupying @p Slot of the referenced record's key order.
+    template <std::size_t Slot>
+    using ConnectionAtSlot = std::tuple_element_t<ConnectionForSlot<Slot>, std::tuple<Connections...>>;
+
+    /// Reads the value belonging in @p Slot straight out of the record's own field.
+    template <std::size_t Slot>
+    [[nodiscard]] static decltype(auto) ValueAtSlot(Child const& record)
+    {
+        return ConnectionAtSlot<Slot>::FieldOf(record).Value();
+    }
+
+  public:
+    /// The tuple of foreign key values, ordered to match the referenced record's key members.
+    ///
+    /// Differs from @ref ValueType whenever the connections are not written in the referenced record's
+    /// member order, and differs in *type* too when the key columns are heterogeneous.
+    using OrderedValueType = decltype([]<std::size_t... Slot>(std::index_sequence<Slot...>) {
+        return std::tuple<typename ConnectionAtSlot<Slot>::FromField::ValueType...> {};
+    }(std::index_sequence_for<Connections...> {}));
 
     /// Reads this record's foreign key values, in the order the connections are declared.
     ///
@@ -175,7 +298,30 @@ class CompositeForeignKey
     /// @return The values, in declaration order of the connections.
     [[nodiscard]] static ValueType ValuesOf(Child const& record)
     {
-        return ValueType { (record.*Connections::From).Value()... };
+        AssertCoversReferencedKey();
+        return ValueType { Connections::FieldOf(record).Value()... };
+    }
+
+    /// Checks that the connections cover the referenced record's whole primary key.
+    ///
+    /// Deferred to first use rather than asserted in the class body: at class-instantiation time the
+    /// referenced record can still be incomplete, so reflecting over its members is not yet possible.
+    /// A partial key would otherwise surface only as an argument-count mismatch thrown from the first
+    /// navigation, far from the declaration that caused it.
+    static constexpr void AssertCoversReferencedKey() noexcept
+    {
+        static_assert(Count == RecordPrimaryKeyCount<ReferencedRecord>,
+                      "A composite foreign key must connect every primary key column of the referenced "
+                      "record. Connecting only some of them cannot identify a row.");
+
+        // Also deferred, and for the same reason: recovering a member index reflects over the owning
+        // record. Only the same-record case can be degenerate - across records the two endpoints are
+        // different entities by construction.
+        static_assert(((!std::same_as<typename Connections::FromRecord, typename Connections::IntoRecord>
+                        || Connections::FromMemberIndex() != Connections::IntoMemberIndex)
+                       && ...),
+                      "A Connection must join two different members. Pairing a member with itself reads "
+                      "a value out of a record only to look the same record up by it.");
     }
 
     /// Reads this record's foreign key values, permuted into the referenced record's member order.
@@ -188,30 +334,17 @@ class CompositeForeignKey
     ///
     /// @param record The record holding the foreign key.
     /// @return The values, ordered to match the referenced record's primary key members.
-    [[nodiscard]] static ValueType OrderedValuesOf(Child const& record)
+    [[nodiscard]] static OrderedValueType OrderedValuesOf(Child const& record)
     {
-        auto values = ValuesOf(record);
-        auto ordered = values;
-
-        // Rank each connection by its referenced member index; the rank is the slot its value belongs
-        // in. Done over indices rather than by sorting a runtime container so the whole permutation is
-        // fixed at compile time for the common (already-ordered) case.
-        constexpr auto intoIndices = std::array { Connections::IntoMemberIndex... };
-
-        [&]<std::size_t... I>(std::index_sequence<I...>) {
-            (
-                [&] {
-                    // How many connections reference an earlier member than this one does.
-                    auto rank = std::size_t { 0 };
-                    for (auto const other: intoIndices)
-                        if (other < intoIndices[I])
-                            ++rank;
-                    AssignAt(ordered, rank, std::get<I>(values));
-                }(),
-                ...);
+        // The permutation is entirely a compile-time property of the connection list, so the ordered
+        // tuple is *built* by index rather than default-constructed and then assigned into. That keeps
+        // heterogeneous keys working - assigning through a runtime-matched index would require every
+        // slot's assignment to be well-formed, which fails as soon as two key columns differ in type -
+        // and it needs no default-constructible value type.
+        AssertCoversReferencedKey();
+        return [&]<std::size_t... Slot>(std::index_sequence<Slot...>) {
+            return OrderedValueType { ValueAtSlot<Slot>(record)... };
         }(std::index_sequence_for<Connections...> {});
-
-        return ordered;
     }
 
     /// @return The referenced record, loading it on first access.
@@ -263,19 +396,6 @@ class CompositeForeignKey
     }
 
   private:
-    /// Assigns @p value into the tuple slot at the runtime index @p slot.
-    ///
-    /// A tuple cannot be indexed at runtime, so the index is matched against the compile-time pack.
-    /// Every element of the permutation has the same type here - the static_asserts above guarantee
-    /// pairwise type equality - so only the matching slot is written.
-    template <typename Tuple, typename Value>
-    static constexpr void AssignAt(Tuple& tuple, std::size_t slot, Value const& value)
-    {
-        [&]<std::size_t... I>(std::index_sequence<I...>) {
-            (((I == slot) ? (void) (std::get<I>(tuple) = value) : (void) 0), ...);
-        }(std::make_index_sequence<std::tuple_size_v<Tuple>> {});
-    }
-
     void RequireLoaded() const
     {
         if (_record)

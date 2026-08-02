@@ -35,8 +35,8 @@ struct OrderedKey
 {
     static constexpr std::string_view TableName = "CkOrdered";
 
-    Field<int32_t, PrimaryKey::AutoAssign, SqlRealName { "key_first" }> keyFirst {};
-    Field<int32_t, PrimaryKey::AutoAssign, SqlRealName { "key_second" }> keySecond {};
+    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "key_first" }> keyFirst {};
+    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "key_second" }> keySecond {};
     Field<std::optional<SqlAnsiString<20>>, SqlRealName { "payload" }> payload {};
 };
 
@@ -47,8 +47,8 @@ struct ReversedKey
 {
     static constexpr std::string_view TableName = "CkOrdered";
 
-    Field<int32_t, PrimaryKey::AutoAssign, SqlRealName { "key_second" }> keySecond {};
-    Field<int32_t, PrimaryKey::AutoAssign, SqlRealName { "key_first" }> keyFirst {};
+    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "key_second" }> keySecond {};
+    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "key_first" }> keyFirst {};
     Field<std::optional<SqlAnsiString<20>>, SqlRealName { "payload" }> payload {};
 };
 

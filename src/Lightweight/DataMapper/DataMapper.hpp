@@ -622,6 +622,13 @@ class DataMapper
     template <typename FieldType>
     std::optional<typename FieldType::ReferencedRecord> LoadBelongsTo(FieldType::ValueType value);
 
+    /// Eagerly loads the record referenced by a composite foreign key.
+    ///
+    /// @param record The record holding the foreign key.
+    /// @param field The relation to fill.
+    template <typename Record, typename FieldType>
+    void LoadCompositeForeignKey(Record const& record, FieldType& field);
+
     template <typename Record, typename OtherRecord, auto InverseSelector>
     void LoadHasMany(Record& record, HasMany<OtherRecord, InverseSelector>& field);
 
@@ -1619,7 +1626,8 @@ std::string DataMapper::Inspect(Record const& record)
                 str += std::format("{} {} := {}", Reflection::TypeNameOf<Value>, name, value.InspectValue());
             }
         }
-        else if constexpr (!IsHasMany<Value> && !IsHasManyThrough<Value> && !IsHasOneThrough<Value> && !IsBelongsTo<Value>)
+        else if constexpr (!IsHasMany<Value> && !IsHasManyThrough<Value> && !IsHasOneThrough<Value> && !IsBelongsTo<Value>
+                           && !IsCompositeForeignKey<Value>)
             str += std::format("{} {} := {}", Reflection::TypeNameOf<Value>, name, value);
     });
     return "{\n" + std::move(str) + "\n}";
@@ -1671,6 +1679,17 @@ void DataMapper::CreateTables()
 template <typename Record>
 std::optional<RecordPrimaryKeyType<Record>> DataMapper::GenerateAutoAssignPrimaryKey(Record const& record)
 {
+    // Auto-assignment produces exactly one value, and SetId() writes it into *every* primary key
+    // member - so a record with several auto-assigned key members would silently receive the same value
+    // in all of them. A composite key must therefore be supplied explicitly rather than generated.
+    // Rejected here rather than in SetId(), which legitimately serves multi-key records whose values
+    // the caller provides.
+    static_assert(detail::AutoAssignPrimaryKeyFieldCount<Record> <= 1,
+                  "A record may declare at most one auto-assigned primary key member. Auto-assignment yields a "
+                  "single value that would be written into every key member, so a composite key cannot be "
+                  "generated - declare the key members without PrimaryKey::AutoAssign and set their values "
+                  "yourself before calling Create().");
+
     std::optional<RecordPrimaryKeyType<Record>> result;
     EnumerateRecordMembers(
         record, [this, &result]<size_t PrimaryKeyIndex, typename PrimaryKeyType>(PrimaryKeyType const& primaryKeyField) {
@@ -2465,6 +2484,34 @@ inline LIGHTWEIGHT_FORCE_INLINE void CallOnBelongsTo(Callable const& callable)
     });
 }
 
+template <typename Record, typename FieldType>
+void DataMapper::LoadCompositeForeignKey(Record const& record, FieldType& field)
+{
+    using ReferencedRecord = typename FieldType::ReferencedRecord;
+
+    ZoneScopedN("DataMapper::LoadCompositeForeignKey");
+    ZoneTextObject(RecordTableName<ReferencedRecord>);
+
+    // OrderedValuesOf() rather than ValuesOf(): QuerySingle emits one WHERE predicate per primary key
+    // member of the referenced record, in that record's member declaration order, and binds its
+    // arguments positionally - so the values have to be permuted into that order first. See
+    // CompositeKeyOrderingTests.cpp.
+    auto loaded = std::apply([this](auto const&... key) { return QuerySingle<ReferencedRecord>(key...); },
+                             FieldType::OrderedValuesOf(record));
+
+    // A missing target row leaves the relation unloaded rather than throwing here: eagerly loading a
+    // dangling foreign key is a data-integrity problem to surface at the accessor, which is where the
+    // lazy path reports it too.
+    if (!loaded)
+    {
+        SqlLogger::GetLogger().OnWarning(
+            std::format("Loading composite foreign key failed for {}", RecordTableName<ReferencedRecord>));
+        return;
+    }
+
+    field.EmplaceRecord(std::make_shared<ReferencedRecord>(std::move(*loaded)));
+}
+
 template <typename FieldType>
 std::optional<typename FieldType::ReferencedRecord> DataMapper::LoadBelongsTo(FieldType::ValueType value)
 {
@@ -2739,6 +2786,10 @@ void DataMapper::LoadRelations(Record& record)
             auto& field = record.[:el:];
             field.AdoptFetchedRecord(LoadBelongsTo<FieldType>(field.Value()));
         }
+        else if constexpr (IsCompositeForeignKey<FieldType>)
+        {
+            LoadCompositeForeignKey(record, record.[:el:]);
+        }
         else if constexpr (IsHasMany<FieldType>)
         {
             LoadHasMany(record, record.[:el:]);
@@ -2757,6 +2808,10 @@ void DataMapper::LoadRelations(Record& record)
         if constexpr (IsBelongsTo<FieldType>)
         {
             field.AdoptFetchedRecord(LoadBelongsTo<FieldType>(field.Value()));
+        }
+        else if constexpr (IsCompositeForeignKey<FieldType>)
+        {
+            LoadCompositeForeignKey(record, field);
         }
         else if constexpr (IsHasMany<FieldType>)
         {
@@ -2875,21 +2930,27 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
         {
             using ReferencedRecord = typename FieldType::ReferencedRecord;
 
-            // The key values are read out of the record's own Field members and captured by value, so
-            // the loader does not depend on the record still being alive at load time.
+            // The key is read out of the record's own Field members *at load time*, through the
+            // connections' member pointers, rather than snapshotted here. Snapshotting would make the
+            // relation resolve to whichever parent the key named when the record was configured, so
+            // repointing the foreign key afterwards would silently keep returning the old parent. The
+            // relation deliberately owns no copy of the key - the Field that owns each column is the
+            // single source of truth.
+            //
+            // Capturing the record by pointer is safe because it is the mapper's own stored record: the
+            // same lifetime the HasMany/HasOneThrough loaders already rely on. Unlike those, no value is
+            // copied out, so a moved-from record would be observed rather than a stale duplicate.
             //
             // OrderedValuesOf() - not ValuesOf() - because QuerySingle emits one WHERE predicate per
             // primary key member in the *referenced record's* member declaration order and binds its
             // arguments positionally. Passing them in connection-declaration order would bind each
             // value to the wrong predicate whenever the two orders differ, which with same-typed key
             // columns fetches a wrong row rather than failing. See CompositeKeyOrderingTests.cpp.
-            auto const keyValues = FieldType::OrderedValuesOf(record);
-
             field.SetAutoLoader(typename FieldType::Loader {
-                .loadReference = [keyValues]() -> std::shared_ptr<ReferencedRecord> {
+                .loadReference = [owner = &record]() -> std::shared_ptr<ReferencedRecord> {
                     DataMapper& dm = DataMapper::AcquireThreadLocal();
                     auto loaded = std::apply([&dm](auto const&... key) { return dm.QuerySingle<ReferencedRecord>(key...); },
-                                             keyValues);
+                                             FieldType::OrderedValuesOf(*owner));
                     if (!loaded)
                         return {};
                     return std::make_shared<ReferencedRecord>(std::move(*loaded));
