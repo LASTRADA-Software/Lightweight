@@ -4,5 +4,6 @@ var searchData=
   ['keeping_20these_20examples_20honest_1',['Keeping these examples honest',['../d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#keeping-these-examples-honest',1,'']]],
   ['key_2',['Performance Is Key',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#performance-is-key',1,'']]],
   ['key_20definition_3',['2.4 Foreign Key Definition',['../d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md24-foreign-key-definition',1,'']]],
-  ['keys_20relation_4',['Foreign keys relation',['../index.html#foreign-keys-relation',1,'']]]
+  ['keys_20into_20the_20same_20table_4',['Several foreign keys into the same table',['../d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#several-foreign-keys-into-the-same-table',1,'']]],
+  ['keys_20relation_5',['Foreign keys relation',['../index.html#foreign-keys-relation',1,'']]]
 ];

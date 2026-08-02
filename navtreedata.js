@@ -77,7 +77,13 @@ var NAVTREE =
       ] ],
       [ "UPDATE", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#update", null ],
       [ "DELETE", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#delete", null ],
-      [ "Relationships", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#relationships", null ],
+      [ "Relationships", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#relationships", [
+        [ "Several foreign keys into the same table", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#several-foreign-keys-into-the-same-table", [
+          [ "Writing the rows", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#writing-the-rows", null ],
+          [ "Reading them back", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#reading-them-back", null ],
+          [ "Self-referential relationships", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#self-referential-relationships", null ]
+        ] ]
+      ] ],
       [ "CREATE TABLE", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#create-table", null ],
       [ "Transactions", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#transactions", null ],
       [ "Mapping a custom result shape", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#mapping-a-custom-result-shape", null ],
@@ -290,10 +296,10 @@ var NAVTREEINDEX =
 "d2/dd0/structLightweight_1_1Field.html#a757ce7d3d9533493051cd9b402482b41",
 "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#ab5ca6b248b7df350cc640d419e2737fd",
 "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ac85b084f4a20e01ccf53de588f5e0e02",
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#aa1f92ce1316d440b0f318c9b57807bd8",
-"da/df2/classLightweight_1_1SqlRequireLoadedError.html#a96304f8f159d5cdd3ef3a0065a464ca2",
-"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a9c013abb15b8ebeadb694c1ee463bff4",
-"df/d7c/structLightweight_1_1SqlGuid.html"
+"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a725b026c92dcdf60b1a0ed60dc5b9a81",
+"da/dcb/structLightweight_1_1MigrationRenderContext_1_1ColumnKey.html#aa76a50dedd516dac82426e22a3e24265",
+"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6a4796d8ea43ac70f86a7ba4698aab15",
+"df/d63/classLightweight_1_1HasOneThrough.html#a4d341ebca31d87311f9342dccb7142ed"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

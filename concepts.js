@@ -2,6 +2,7 @@ var concepts =
 [
     [ "Lightweight", null, [
       [ "DataMapperRecord", "de/d36/conceptLightweight_1_1DataMapperRecord.html", null ],
+      [ "RelationSelector", "da/df2/conceptLightweight_1_1RelationSelector.html", null ],
       [ "FieldWithStorage", "dd/da7/conceptLightweight_1_1FieldWithStorage.html", null ],
       [ "RecordColumnMember", "d7/dfd/conceptLightweight_1_1RecordColumnMember.html", null ],
       [ "HasDescription", "d2/d93/conceptLightweight_1_1HasDescription.html", null ],
