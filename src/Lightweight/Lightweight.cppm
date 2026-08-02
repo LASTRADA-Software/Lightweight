@@ -60,6 +60,7 @@ using Lightweight::HasManyThrough;
 using Lightweight::HasOneThrough;
 using Lightweight::HasPrimaryKey;
 using Lightweight::IndexType;
+using Lightweight::Int128; // the unscaled carrier in SqlNumeric::ToUnscaledValue()'s return type
 using Lightweight::Int64DataBinderHelper;
 using Lightweight::IsAutoIncrementPrimaryKey;
 using Lightweight::IsBelongsTo;
@@ -159,6 +160,7 @@ using Lightweight::SqlLockFailureReason;
 using Lightweight::SqlLogger;
 using Lightweight::SqlMaxDynamicAnsiString;
 using Lightweight::SqlMaxDynamicWideString;
+using Lightweight::SqlMaxNumericPrecision;
 using Lightweight::SqlMigrationDeleteBuilder;
 using Lightweight::SqlMigrationInsertBuilder;
 using Lightweight::SqlMigrationPlan;

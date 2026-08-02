@@ -9,6 +9,7 @@
 #include <expected>
 #include <filesystem>
 #include <map>
+#include <set>
 #include <string>
 #include <unordered_set>
 #include <utility>
@@ -76,6 +77,19 @@ class CxxModelPrinter
                                 UnicodeTextColumnOverrides const& unicodeTextColumnOverrides,
                                 size_t sqlFixedStringMaxSize);
 
+    /// Renders the `// NOTE:` comment block to emit above a generated member for a `DECIMAL`
+    /// column whose declared precision is wider than what `SqlDataBinder<SqlNumeric<P, S>>` can
+    /// actually deliver.
+    ///
+    /// The emitted `Light::SqlNumeric<P, S>` carries the column's declared precision, but the
+    /// transfer does not always carry the matching number of digits, and nothing at the call site
+    /// says so. Rather than silently generating a lossy record, state the limit where a ddl2cpp
+    /// consumer reads it — in the generated header itself.
+    ///
+    /// @param column Column to describe; non-`DECIMAL` columns and narrow ones yield no note.
+    /// @return The note, each line already indented and newline-terminated, or an empty string.
+    [[nodiscard]] static std::string MakeDecimalPrecisionNote(SqlSchema::Column const& column);
+
     [[nodiscard]] std::optional<std::string> MapColumnNameOverride(SqlSchema::FullyQualifiedTableName const& tableName,
                                                                    std::string const& columnName) const;
 
@@ -92,7 +106,10 @@ class CxxModelPrinter
     struct TableInfo
     {
         std::stringstream text;
-        std::vector<std::string> requiredTables;
+        /// Headers this record depends on, one entry per *distinct* referenced table. A table with
+        /// several foreign-key columns pointing at the same target must still be included once, so
+        /// this is a set (which also gives the emitted `#include` block a stable, sorted order).
+        std::set<std::string> requiredTables;
         std::string structName;                                   //< C++ struct name (possibly aliased).
         std::vector<std::pair<std::string, std::string>> members; //< (emitted member id, SQL column name), in order.
     };

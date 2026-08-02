@@ -671,6 +671,10 @@ namespace
     struct MssqlColumnRow
     {
         std::string name;
+        /// Name of the underlying *system* type. For a column declared with an alias type
+        /// (`CREATE TYPE ... FROM nvarchar(50)`) or with `sysname`, this is the base type
+        /// (`nvarchar`), not the alias name — the alias name carries no type information and
+        /// would otherwise fall into the unmapped-type fallback.
         std::string sysTypeName;
         int maxLength = 0;
         int precision = 0;
@@ -719,10 +723,17 @@ namespace
         auto const schemaFilter = !schema.empty()
                                       ? std::format("WHERE SCHEMA_NAME(t.schema_id) = '{}'", EscapeSqlLiteral(schema))
                                       : std::string {};
+        // COALESCE(baseType.name, userType.name): alias types (`CREATE TYPE ... FROM nvarchar(50)`,
+        // and the built-in `sysname`) have a user_type_id of their own but carry the type
+        // information of their base system type. Resolving them here keeps a column declared with
+        // an alias type mapped exactly like the same column declared with its base type — the
+        // legacy SQLColumns path sees the resolved ODBC type as well. The LEFT JOIN keeps
+        // exotic/CLR types (whose system_type_id has no sys.types row of its own) in the result,
+        // falling back to their own name.
         auto const sql = std::format(R"(SELECT c.object_id,
                                                c.column_id,
                                                c.name,
-                                               ty.name,
+                                               COALESCE(bt.name, ty.name),
                                                CAST(c.max_length AS int),
                                                CAST(c.precision AS int),
                                                CAST(c.scale AS int),
@@ -732,6 +743,7 @@ namespace
                                         FROM sys.columns c
                                         INNER JOIN sys.tables t ON c.object_id = t.object_id
                                         INNER JOIN sys.types ty ON c.user_type_id = ty.user_type_id
+                                        LEFT JOIN sys.types bt ON ty.system_type_id = bt.user_type_id
                                         LEFT JOIN sys.default_constraints dc
                                                ON dc.parent_object_id = c.object_id
                                               AND dc.parent_column_id = c.column_id
@@ -1419,15 +1431,13 @@ namespace detail
                 try
                 {
                     // some special handling of weird types
-                    if (column.dialectDependantTypeString == "money")
-                    {
-                        // 0.123 -> decimalDigits = 3 size = 4
-                        // 100.123 -> decimalDigits = 3  size = 6
-                        column.size = column.decimalDigits;
-                        column.decimalDigits = SQL_MAX_NUMERIC_LEN;
-                    }
-                    else if (column.dialectDependantTypeString == "float" || column.dialectDependantTypeString == "FLOAT"
-                             || column.dialectDependantTypeString == "real" || column.dialectDependantTypeString == "REAL")
+                    // NB: `money` needs no fixup: the driver reports its true COLUMN_SIZE /
+                    // DECIMAL_DIGITS (19 / 4 on MS SQL Server), which is exactly what
+                    // MakeColumnTypeFromNative turns into Decimal { 19, 4 } above. Overwriting
+                    // the precision here would report a wrong precision and scale to every
+                    // consumer of SqlSchema::Column.
+                    if (column.dialectDependantTypeString == "float" || column.dialectDependantTypeString == "FLOAT"
+                        || column.dialectDependantTypeString == "real" || column.dialectDependantTypeString == "REAL")
                     {
                         column.type = SqlColumnTypeDefinitions::Real { .precision = 53 };
                         // column.size = 15; // Try letting it be default (from SQLColumns or 0)

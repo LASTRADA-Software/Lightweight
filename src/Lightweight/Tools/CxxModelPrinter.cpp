@@ -2,8 +2,12 @@
 
 #include "CxxModelPrinter.hpp"
 
+#include <Lightweight/DataBinder/SqlNumeric.hpp>
+
 #include <array>
 #include <fstream>
+#include <limits>
+#include <variant>
 
 using namespace std::string_view_literals;
 
@@ -335,8 +339,7 @@ std::string CxxModelPrinter::HeaderFileForTheTable(std::string_view modelNamespa
     output << "#pragma once\n";
     output << "\n";
 
-    auto requiredTables = _definitions[tableName].requiredTables;
-    std::ranges::sort(requiredTables);
+    auto const& requiredTables = _definitions[tableName].requiredTables;
     for (auto const& requiredTable: requiredTables)
         output << std::format("#include \"{}.hpp\"\n", requiredTable);
     if (!std::empty(requiredTables))
@@ -385,6 +388,48 @@ SqlSchema::ForeignKeyConstraint const& CxxModelPrinter::GetForeignKey(
         std::format("Foreign key not found for {} in table {}",
                     column.name,
                     column.foreignKeyConstraint->foreignKey.table)); // NOLINT(bugprone-unchecked-optional-access)
+}
+
+std::string CxxModelPrinter::MakeDecimalPrecisionNote(SqlSchema::Column const& column)
+{
+    auto const* const decimal = std::get_if<SqlColumnTypeDefinitions::Decimal>(&column.type);
+    if (decimal == nullptr)
+        return {};
+
+    // Number of significant decimal digits an IEEE-754 double preserves. `SqlNumeric`'s binder
+    // deliberately routes SQLite and MS SQL Server through SQL_C_DOUBLE (see
+    // `NativeNumericSupportIsBroken`), so on those backends this is all a value carries — no
+    // matter how wide the column was declared.
+    constexpr auto fallbackDigits = static_cast<std::size_t>(std::numeric_limits<double>::digits10);
+
+    // Widest precision `SqlNumeric` accepts. This is toolchain-independent — `Int128` supplies a
+    // software 128-bit carrier where the compiler has no native one — so it is equally the bound of
+    // whichever toolchain built ddl2cpp and of whichever one compiles the generated header.
+    constexpr auto maxPrecision = SqlMaxNumericPrecision;
+
+    std::string note;
+
+    if (decimal->precision > fallbackDigits)
+        note += std::format("    // NOTE: DECIMAL({}, {}) declares {} digits, but SqlNumeric transfers this column through\n"
+                            "    //       SQL_C_DOUBLE on SQLite and MS SQL Server, which carries only {}. The low {}\n"
+                            "    //       digit(s) are lost silently there — e.g. MS SQL Server reads its own `money`\n"
+                            "    //       maximum 922337203685477.5807 back as 922337203685477.6250. Read the column as\n"
+                            "    //       a string if those digits matter. See docs/data-binder.md.\n",
+                            decimal->precision,
+                            decimal->scale,
+                            decimal->precision,
+                            fallbackDigits,
+                            decimal->precision - fallbackDigits);
+
+    if (decimal->precision > maxPrecision)
+        note += std::format("    // NOTE: SqlNumeric<{}, {}> does not compile: {} digits exceed the {} this implementation\n"
+                            "    //       can carry. Read this column as a string instead, or narrow it.\n",
+                            decimal->precision,
+                            decimal->scale,
+                            decimal->precision,
+                            maxPrecision);
+
+    return note;
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -705,7 +750,7 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table)
                     }(),
                     emittedName);
                 definition.members.emplace_back(emittedName, column.name);
-                definition.requiredTables.emplace_back(std::move(foreignTableName));
+                definition.requiredTables.emplace(std::move(foreignTableName));
                 ++_numberOfForeignKeysListed;
                 continue;
             }
@@ -716,6 +761,7 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table)
         {
             auto const emittedName = uniqueMemberNameBuilder.DeclareName(memberName);
             definition.members.emplace_back(emittedName, column.name);
+            definition.text << MakeDecimalPrecisionNote(column);
             definition.text << std::format(
                 "    Light::Field<{}{}{}> {};", type, primaryKeyPart(), aliasName(column.name), emittedName);
             if (column.isForeignKey)
@@ -727,6 +773,7 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table)
         // Fallback: Handle the column as a regular field.
         auto const emittedName = uniqueMemberNameBuilder.DeclareName(memberName);
         definition.members.emplace_back(emittedName, column.name);
+        definition.text << MakeDecimalPrecisionNote(column);
         definition.text << std::format("    Light::Field<{}{}> {};", type, aliasName(column.name), emittedName);
         if (column.isForeignKey)
             definition.text << std::format(" // NB: This is also a foreign key");

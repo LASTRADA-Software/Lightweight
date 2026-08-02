@@ -13,7 +13,10 @@
 
 #include <filesystem>
 #include <fstream>
+#include <ranges>
 #include <sstream>
+#include <string>
+#include <string_view>
 
 using Lightweight::Tools::CxxModelPrinter;
 
@@ -219,6 +222,99 @@ TEST_CASE("CxxModelPrinter::MakeType: decimal", "[CxxModelPrinter],[MakeType]")
           == "Light::SqlNumeric<10, 2>");
 }
 
+TEST_CASE("CxxModelPrinter::MakeType: money maps to a type SqlNumeric accepts", "[CxxModelPrinter],[MakeType]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+
+    // MS SQL Server reports `money` as DECIMAL(19, 4) and `smallmoney` as DECIMAL(10, 4); the
+    // emitted type must carry those exact values. Bounding Precision by a byte count rather than a
+    // digit count rejects both (issue #519).
+    CHECK(CxxTypeName({ .name = "price", .type = Decimal { .precision = 19, .scale = 4 }, .isNullable = false })
+          == "Light::SqlNumeric<19, 4>");
+    CHECK(CxxTypeName({ .name = "price", .type = Decimal { .precision = 10, .scale = 4 }, .isNullable = false })
+          == "Light::SqlNumeric<10, 4>");
+
+    // `money` is instantiable on every supported toolchain — unconditionally, which is the point:
+    // the generated header must compile regardless of which compiler consumes it, and `Int128`
+    // supplies a software 128-bit carrier where the compiler has no native one.
+    STATIC_CHECK(Lightweight::SqlNumeric<19, 4>::Precision <= Lightweight::SqlMaxNumericPrecision);
+
+    // ddl2cpp still emits the column's declared precision verbatim, even where that is wider than
+    // SqlNumeric accepts: truncating it here would silently misdescribe the schema, and the note
+    // emitted alongside the member explains what the transfer actually delivers.
+    CHECK(CxxTypeName({ .name = "huge", .type = Decimal { .precision = 38, .scale = 10 }, .isNullable = false })
+          == "Light::SqlNumeric<38, 10>");
+}
+
+TEST_CASE("CxxModelPrinter::MakeDecimalPrecisionNote", "[CxxModelPrinter],[MakeType]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+
+    // Anything a double carries losslessly needs no note.
+    CHECK(CxxModelPrinter::MakeDecimalPrecisionNote(
+              { .name = "amount", .type = Decimal { .precision = 15, .scale = 2 }, .isNullable = false })
+              .empty());
+    // Non-decimal columns are none of this function's business.
+    CHECK(CxxModelPrinter::MakeDecimalPrecisionNote({ .name = "id", .type = Integer {}, .isNullable = false }).empty());
+
+    // 16..19 digits: the SQL_C_DOUBLE fallback loses the low digits on SQLite and MS SQL Server,
+    // but the type itself is instantiable everywhere — one note, not two.
+    auto const wide = CxxModelPrinter::MakeDecimalPrecisionNote(
+        { .name = "amount", .type = Decimal { .precision = 18, .scale = 2 }, .isNullable = false });
+    CHECK(wide.contains("SQL_C_DOUBLE"));
+    CHECK(wide.contains("DECIMAL(18, 2)"));
+    CHECK(!wide.contains("does not compile"));
+
+    // `money` (DECIMAL(19, 4)) is at the bound, so only the transfer-precision note applies: it is
+    // instantiable on every toolchain, so no "does not compile" note is emitted for it.
+    auto const money = CxxModelPrinter::MakeDecimalPrecisionNote(
+        { .name = "price", .type = Decimal { .precision = 19, .scale = 4 }, .isNullable = false });
+    CHECK(money.contains("SQL_C_DOUBLE"));
+    CHECK(money.contains("922337203685477.6250"));
+    CHECK(!money.contains("does not compile"));
+
+    // Past the bound both hazards apply: the column cannot be expressed as a SqlNumeric at all.
+    auto const huge = CxxModelPrinter::MakeDecimalPrecisionNote(
+        { .name = "huge", .type = Decimal { .precision = 38, .scale = 10 }, .isNullable = false });
+    CHECK(huge.contains("SQL_C_DOUBLE"));
+    CHECK(huge.contains("SqlNumeric<38, 10> does not compile"));
+    CHECK(huge.contains("Read this column as a string"));
+
+    // Every emitted line is a properly indented comment, so it can be dropped into a struct body.
+    for (auto const line: std::views::split(std::string_view { money }, '\n'))
+    {
+        auto const text = std::string_view { line.begin(), line.end() };
+        CHECK((text.empty() || text.starts_with("    //")));
+    }
+}
+
+TEST_CASE("CxxModelPrinter: emits the precision note next to a money member", "[CxxModelPrinter]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    CxxModelPrinter printer { CxxModelPrinter::Config {} };
+
+    printer.PrintTable(Lightweight::SqlSchema::Table {
+        .schema = "",
+        .name = "invoices",
+        .columns = { { .name = "id", .type = Integer {}, .isNullable = false, .isPrimaryKey = true },
+                     { .name = "total", .type = Decimal { .precision = 19, .scale = 4 }, .isNullable = false },
+                     { .name = "tax_rate", .type = Decimal { .precision = 5, .scale = 4 }, .isNullable = false } },
+        .primaryKeys = { "id" },
+    });
+
+    auto const output = printer.HeaderFileForTheTable("Models", "invoices");
+
+    // The note precedes the member it describes, and only that member.
+    auto const notePosition = output.find("// NOTE: DECIMAL(19, 4)");
+    REQUIRE(notePosition != std::string::npos);
+    auto const memberPosition = output.find("Light::SqlNumeric<19, 4>");
+    REQUIRE(memberPosition != std::string::npos);
+    CHECK(notePosition < memberPosition);
+
+    // DECIMAL(5, 4) fits a double comfortably and must not be annotated.
+    CHECK(!output.contains("// NOTE: DECIMAL(5, 4)"));
+}
+
 TEST_CASE("CxxModelPrinter::MakeType: date/time/timestamp/guid/binary", "[CxxModelPrinter],[MakeType]")
 {
     using namespace Lightweight::SqlColumnTypeDefinitions;
@@ -404,6 +500,61 @@ TEST_CASE("CxxModelPrinter: emits Description for a keyed table with a relation"
     CHECK(output.contains("using Members = Lightweight::RecordMemberList<&Models::Orders::id, &Models::Orders::customer>;"));
     // ...and the resolved SQL column names, where the relation keeps its real foreign-key column name.
     CHECK(output.contains(R"(FieldNames = { "id", "customer_id" };)"));
+}
+
+// Counts the non-overlapping occurrences of `needle` in `haystack`.
+static std::size_t CountOccurrences(std::string_view haystack, std::string_view needle)
+{
+    if (needle.empty())
+        return 0;
+
+    std::size_t count = 0;
+    for (auto offset = haystack.find(needle); offset != std::string_view::npos;
+         offset = haystack.find(needle, offset + needle.size()))
+        ++count;
+    return count;
+}
+
+TEST_CASE("CxxModelPrinter: emits one #include per distinct foreign-key target", "[CxxModelPrinter]")
+{
+    // A table may reference the same target table from many foreign-key columns (e.g. several
+    // lookup references). The generated header must include the target's header exactly once.
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    CxxModelPrinter printer { CxxModelPrinter::Config {} };
+
+    auto const foreignKeyTo = [](std::string_view column, std::string_view target) {
+        return Lightweight::SqlSchema::ForeignKeyConstraint {
+            .foreignKey = { .table = { .catalog = "", .schema = "", .table = "orders" },
+                            .columns = { std::string { column } } },
+            .primaryKey = { .table = { .catalog = "", .schema = "", .table = std::string { target } }, .columns = { "id" } },
+        };
+    };
+
+    printer.PrintTable(Lightweight::SqlSchema::Table {
+        .schema = "",
+        .name = "orders",
+        .columns = { { .name = "id", .type = Integer {}, .isNullable = false, .isPrimaryKey = true },
+                     { .name = "lookup_a_id", .type = Integer {}, .isNullable = false, .isForeignKey = true },
+                     { .name = "lookup_b_id", .type = Integer {}, .isNullable = false, .isForeignKey = true },
+                     { .name = "lookup_c_id", .type = Integer {}, .isNullable = false, .isForeignKey = true },
+                     { .name = "customer_id", .type = Integer {}, .isNullable = false, .isForeignKey = true } },
+        .foreignKeys = { foreignKeyTo("lookup_a_id", "lookup"),
+                         foreignKeyTo("lookup_b_id", "lookup"),
+                         foreignKeyTo("lookup_c_id", "lookup"),
+                         foreignKeyTo("customer_id", "customers") },
+        .primaryKeys = { "id" },
+    });
+
+    auto const output = printer.HeaderFileForTheTable("Models", "orders");
+
+    CHECK(CountOccurrences(output, R"(#include "lookup.hpp")") == 1);
+    CHECK(CountOccurrences(output, R"(#include "customers.hpp")") == 1);
+
+    // All four relations are still emitted as members, each with its own name.
+    CHECK(output.contains("Light::BelongsTo<&lookup::id, std::nullopt> lookupA;"));
+    CHECK(output.contains("Light::BelongsTo<&lookup::id, std::nullopt> lookupB;"));
+    CHECK(output.contains("Light::BelongsTo<&lookup::id, std::nullopt> lookupC;"));
+    CHECK(output.contains("Light::BelongsTo<&customers::id, std::nullopt> customer;"));
 }
 
 TEST_CASE("CxxModelPrinter::ResolveOrderAndPrintTable: orders by foreign-key dependencies", "[CxxModelPrinter]")

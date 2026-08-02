@@ -38,6 +38,7 @@ endif()
 set(HEADER_FILES
     DataBinder/BasicStringBinder.hpp
     DataBinder/Core.hpp
+    DataBinder/Int128.hpp
     DataBinder/Primitives.hpp
     DataBinder/SqlDate.hpp
     DataBinder/SqlDateTime.hpp
