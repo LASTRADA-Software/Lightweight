@@ -2,12 +2,13 @@
 
 ## Status
 
-`ddl2cpp` currently emits exactly one relation type: `Light::BelongsTo`, on the child side of a
-single-column foreign key. The inverse and through relations that `DataMapper` supports —
-`HasMany`, `HasManyThrough`, `HasOneThrough` — are never generated, so a generated model is
-navigable only from child to parent.
+`ddl2cpp` generates `Light::BelongsTo` on the child side of a single-column foreign key, and — as of
+the relation-generation work on this branch — the inverse and through relations too: `HasMany`,
+`HasManyThrough` and `HasOneThrough`. See `src/tests/CxxModelRelationTests.cpp` for the rule-by-rule
+coverage.
 
-This page records what a real production schema needs, and what is genuinely not representable.
+This page records what a real production schema needs, which shapes are deliberately *not* collapsed,
+and what remains genuinely not representable.
 
 > **Depends on the relation selectors from PR #528.** Generating inverse relations for a real schema
 > is impossible without them: this reference schema has table pairs joined by up to **55** foreign
@@ -18,15 +19,19 @@ This page records what a real production schema needs, and what is genuinely not
 > rather than from `master`, and must not merge ahead of it.
 
 There is also **no `HasOne`** type in the library — only `HasOneThrough`. A one-to-one relation that
-is *not* across a join table has no representation, so the plan below records it as
-`Kind::HasOne` and the emitter falls back to `HasMany` for it, with a note in the generated header.
-Adding a real `HasOne` is out of scope here.
+is *not* across a join table has no representation, so the planner records it as `Kind::HasOne` and
+the emitter falls back to `HasMany`, with a note in the generated header saying why. Adding a real
+`HasOne` is out of scope here.
+
+Composite foreign keys remain ungenerated, but are no longer inexpressible: see
+`docs/composite-keys-design.md` for `CompositeForeignKey` / `Connection`. Teaching the generator to
+emit them is the natural follow-up.
 
 ## Reference schema
 
-The numbers below come from the `konrad_english` database used by the Lastrada application
-(MS SQL Server 2022, single schema `lasa`), which is the largest schema this generator is pointed
-at in practice.
+The numbers below come from a large production schema (MS SQL Server 2022, single schema), the
+biggest this generator is pointed at in practice. Table and column names are not reproduced; only
+the structural shapes and their counts, which is what the generation rules are derived from.
 
 | Metric | Count |
 |--------|-------|
@@ -69,9 +74,12 @@ Of those, **84 also have a composite primary key**, which is the classic many-to
 Concrete examples, both two-column tables:
 
 ```
-XLAB_PROJECT_USER (PROJECT_NR -> XLAB_PROJECT, USER_NR -> XLAB_USER)
-MANDANT_KUNDE     (KUNDEN_NR  -> KUNDE,        MANDANT_NR -> MANDANTEN)
+project_user (project_id -> project, user_id -> user)
+tenant_customer (customer_id -> customer, tenant_id -> tenant)
 ```
+
+(Shapes reproduced with neutral names: two columns, each a single-column foreign key to a distinct
+table, composite primary key over exactly those two.)
 
 Each should yield a `HasManyThrough` on both referenced tables. Because both foreign keys of the
 join record point at *different* tables here, the selectors are only needed when a join table

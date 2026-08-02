@@ -8,15 +8,13 @@
 // other table.
 //
 // The shapes tested here are taken from the reference schema surveyed in
-// `docs/ddl2cpp-relation-generation.md` (the `konrad_english` database behind the Lastrada
-// application, 686 tables / 1860 foreign keys), reduced to the smallest fixtures that reproduce
-// each structural case found there:
+// `docs/ddl2cpp-relation-generation.md` (a large production schema, 686 tables / 1860 foreign keys),
+// reduced to the smallest fixtures that reproduce each structural case found there:
 //
 //   - a plain parent/child pair                          -> HasMany
 //   - two foreign keys from one child into one parent     -> HasMany + selector (that schema has a
 //                                                            pair joined by 55 foreign keys)
 //   - a two-column join table                            -> HasManyThrough on both sides
-//     (e.g. XLAB_PROJECT_USER, MANDANT_KUNDE)
 //   - a join table whose far key is uniquely indexed      -> HasOneThrough
 //   - a uniquely indexed child foreign key                -> one-to-one
 //   - a join table carrying payload columns               -> NOT a join table (association object)
@@ -219,8 +217,8 @@ TEST_CASE("PlanRelations: a composite unique index does not make a relation one-
 
 TEST_CASE("PlanRelations: a two-column join table yields HasManyThrough on both sides", "[CxxModelPrinter][relations]")
 {
-    // Modelled on XLAB_PROJECT_USER(PROJECT_NR -> XLAB_PROJECT, USER_NR -> XLAB_USER) from the
-    // reference schema: a composite primary key over exactly the two foreign keys, no payload.
+    // The join-table shape found repeatedly in the reference schema: a composite primary key over
+    // exactly the two foreign keys, and no payload columns.
     auto const tables = std::vector<Lightweight::SqlSchema::Table> {
         { .schema = "", .name = "project", .columns = { IdColumn() }, .primaryKeys = { "id" } },
         { .schema = "", .name = "user", .columns = { IdColumn() }, .primaryKeys = { "id" } },
