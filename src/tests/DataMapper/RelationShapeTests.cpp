@@ -27,6 +27,35 @@
 #include <string>
 
 using namespace Lightweight;
+
+/// Unwraps an optional that must hold a value, failing the test if it does not.
+///
+/// `REQUIRE(x.has_value()); x->member` reads naturally but spreads the check and the access across two
+/// statements, which `bugprone-unchecked-optional-access` cannot follow - it flags every subsequent
+/// `x->`. Unwrapping through this helper keeps the check and the dereference in one expression, so the
+/// analyser can verify it. Preferred over sprinkling NOLINT, which would only hide the diagnostic.
+///
+/// @param value The optional to unwrap.
+/// @return A reference to the contained value.
+template <typename T>
+[[nodiscard]] T const& ValueOf(std::optional<T> const& value)
+{
+    REQUIRE(value.has_value());
+    return *value;
+}
+
+/// Mutable overload, for the relation accessors that are not const (e.g. `HasMany::Each`, which loads
+/// on demand).
+///
+/// @param value The optional to unwrap.
+/// @return A reference to the contained value.
+template <typename T>
+[[nodiscard]] T& ValueOf(std::optional<T>& value)
+{
+    REQUIRE(value.has_value());
+    return *value;
+}
+
 using namespace std::string_view_literals;
 
 // ================================================================================================
@@ -151,20 +180,18 @@ TEST_CASE_METHOD(SqlTestFixture, "Self-referencing record round-trips its foreig
 
     auto const ids = MakeTree(dm);
 
-    auto const root = dm.QuerySingle<TreeNode>(ids.root);
-    REQUIRE(root.has_value());
-    CHECK(root->name.Value() == "root");
-    CHECK_FALSE(root->parent.Value().has_value());
+    auto rootOpt = dm.QuerySingle<TreeNode>(ids.root);
+    auto& root = ValueOf(rootOpt);
+    CHECK(root.name.Value() == "root");
+    CHECK_FALSE(root.parent.Value().has_value());
 
-    auto const childA = dm.QuerySingle<TreeNode>(ids.childA);
-    REQUIRE(childA.has_value());
-    REQUIRE(childA->parent.Value().has_value());
-    CHECK(childA->parent.Value().value() == ids.root);
+    auto childAOpt = dm.QuerySingle<TreeNode>(ids.childA);
+    auto& childA = ValueOf(childAOpt);
+    CHECK(ValueOf(childA.parent.Value()) == ids.root);
 
-    auto const grandchild = dm.QuerySingle<TreeNode>(ids.grandchild);
-    REQUIRE(grandchild.has_value());
-    REQUIRE(grandchild->parent.Value().has_value());
-    CHECK(grandchild->parent.Value().value() == ids.childA); // two levels down, not collapsed to the root
+    auto grandchildOpt = dm.QuerySingle<TreeNode>(ids.grandchild);
+    auto& grandchild = ValueOf(grandchildOpt);
+    CHECK(ValueOf(grandchild.parent.Value()) == ids.childA); // two levels down, not collapsed to the root
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "Self-referencing HasMany counts only direct children", "[DataMapper][relations][selfref]")
@@ -176,21 +203,21 @@ TEST_CASE_METHOD(SqlTestFixture, "Self-referencing HasMany counts only direct ch
 
     auto const ids = MakeTree(dm);
 
-    auto root = dm.QuerySingle<TreeNode>(ids.root);
-    REQUIRE(root.has_value());
-    CHECK(root->children.Count() == 2); // childA and childB - not the grandchild, not all four rows
+    auto rootOpt = dm.QuerySingle<TreeNode>(ids.root);
+    auto& root = ValueOf(rootOpt);
+    CHECK(root.children.Count() == 2); // childA and childB - not the grandchild, not all four rows
 
-    auto childA = dm.QuerySingle<TreeNode>(ids.childA);
-    REQUIRE(childA.has_value());
-    CHECK(childA->children.Count() == 1);
+    auto childAOpt = dm.QuerySingle<TreeNode>(ids.childA);
+    auto& childA = ValueOf(childAOpt);
+    CHECK(childA.children.Count() == 1);
 
-    auto childB = dm.QuerySingle<TreeNode>(ids.childB);
-    REQUIRE(childB.has_value());
-    CHECK(childB->children.Count() == 0); // a leaf
+    auto childBOpt = dm.QuerySingle<TreeNode>(ids.childB);
+    auto& childB = ValueOf(childBOpt);
+    CHECK(childB.children.Count() == 0); // a leaf
 
-    auto grandchild = dm.QuerySingle<TreeNode>(ids.grandchild);
-    REQUIRE(grandchild.has_value());
-    CHECK(grandchild->children.Count() == 0);
+    auto grandchildOpt = dm.QuerySingle<TreeNode>(ids.grandchild);
+    auto& grandchild = ValueOf(grandchildOpt);
+    CHECK(grandchild.children.Count() == 0);
 }
 
 TEST_CASE_METHOD(SqlTestFixture,
@@ -202,11 +229,11 @@ TEST_CASE_METHOD(SqlTestFixture,
 
     auto const ids = MakeTree(dm);
 
-    auto root = dm.QuerySingle<TreeNode>(ids.root);
-    REQUIRE(root.has_value());
+    auto rootOpt = dm.QuerySingle<TreeNode>(ids.root);
+    auto& root = ValueOf(rootOpt);
 
     auto names = std::set<std::string> {};
-    for (auto const& child: root->children.All())
+    for (auto const& child: root.children.All())
         names.emplace(child->name.Value());
 
     CHECK(names == std::set<std::string> { "childA", "childB" });
@@ -224,11 +251,11 @@ TEST_CASE_METHOD(SqlTestFixture, "Self-referencing HasMany is traversable with E
 
     auto const ids = MakeTree(dm);
 
-    auto root = dm.QuerySingle<TreeNode>(ids.root);
-    REQUIRE(root.has_value());
+    auto rootOpt = dm.QuerySingle<TreeNode>(ids.root);
+    auto& root = ValueOf(rootOpt);
 
     auto names = std::set<std::string> {};
-    root->children.Each([&](TreeNode const& child) { names.emplace(child.name.Value()); });
+    root.children.Each([&](TreeNode const& child) { names.emplace(child.name.Value()); });
 
     CHECK(names == std::set<std::string> { "childA", "childB" });
 }
@@ -248,15 +275,15 @@ TEST_CASE_METHOD(SqlTestFixture, "A NULL foreign key is attributed to no parent"
     auto orphan = TreeNode { .name = "orphan" }; // parent deliberately left unset
     dm.Create(orphan);
 
-    auto loadedRoot = dm.QuerySingle<TreeNode>(root.id.Value());
-    REQUIRE(loadedRoot.has_value());
-    CHECK(loadedRoot->children.Count() == 0);
-    CHECK(loadedRoot->children.All().empty());
+    auto loadedRootOpt = dm.QuerySingle<TreeNode>(root.id.Value());
+    auto& loadedRoot = ValueOf(loadedRootOpt);
+    CHECK(loadedRoot.children.Count() == 0);
+    CHECK(loadedRoot.children.All().empty());
 
-    auto loadedOrphan = dm.QuerySingle<TreeNode>(orphan.id.Value());
-    REQUIRE(loadedOrphan.has_value());
-    CHECK_FALSE(loadedOrphan->parent.Value().has_value());
-    CHECK(loadedOrphan->children.Count() == 0);
+    auto loadedOrphanOpt = dm.QuerySingle<TreeNode>(orphan.id.Value());
+    auto& loadedOrphan = ValueOf(loadedOrphanOpt);
+    CHECK_FALSE(loadedOrphan.parent.Value().has_value());
+    CHECK(loadedOrphan.children.Count() == 0);
 }
 #endif // !LIGHTWEIGHT_SELFREF_BELONGSTO_MISCOMPILED
 
@@ -318,24 +345,23 @@ TEST_CASE_METHOD(SqlTestFixture, "A NULL foreign key belongs to no parent", "[Da
     dm.Create(orphan);
 
     // The orphan must not be counted as a child of the only existing parent.
-    auto loadedParent = dm.QuerySingle<OptionalParent>(parent.id.Value());
-    REQUIRE(loadedParent.has_value());
-    CHECK(loadedParent->children.Count() == 1);
+    auto loadedParentOpt = dm.QuerySingle<OptionalParent>(parent.id.Value());
+    auto& loadedParent = ValueOf(loadedParentOpt);
+    CHECK(loadedParent.children.Count() == 1);
 
     auto names = std::set<std::string> {};
-    for (auto const& child: loadedParent->children.All())
+    for (auto const& child: loadedParent.children.All())
         names.emplace(child->name.Value());
     CHECK(names == std::set<std::string> { "attached" });
 
     // ...and the orphan reads back as genuinely unset, not as parent id 0.
-    auto loadedOrphan = dm.QuerySingle<OptionalChild>(orphan.id.Value());
-    REQUIRE(loadedOrphan.has_value());
-    CHECK_FALSE(loadedOrphan->parent.Value().has_value());
+    auto loadedOrphanOpt = dm.QuerySingle<OptionalChild>(orphan.id.Value());
+    auto& loadedOrphan = ValueOf(loadedOrphanOpt);
+    CHECK_FALSE(loadedOrphan.parent.Value().has_value());
 
-    auto loadedAttached = dm.QuerySingle<OptionalChild>(attached.id.Value());
-    REQUIRE(loadedAttached.has_value());
-    REQUIRE(loadedAttached->parent.Value().has_value());
-    CHECK(loadedAttached->parent.Value().value() == parent.id.Value());
+    auto loadedAttachedOpt = dm.QuerySingle<OptionalChild>(attached.id.Value());
+    auto& loadedAttached = ValueOf(loadedAttachedOpt);
+    CHECK(ValueOf(loadedAttached.parent.Value()) == parent.id.Value());
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "A nullable foreign key can be cleared", "[DataMapper][relations][nullable]")
@@ -353,20 +379,20 @@ TEST_CASE_METHOD(SqlTestFixture, "A nullable foreign key can be cleared", "[Data
     child.parent = parent;
     dm.Create(child);
 
-    auto beforeDetach = dm.QuerySingle<OptionalParent>(parent.id.Value());
-    REQUIRE(beforeDetach.has_value());
-    REQUIRE(beforeDetach->children.Count() == 1);
+    auto beforeDetachOpt = dm.QuerySingle<OptionalParent>(parent.id.Value());
+    auto& beforeDetach = ValueOf(beforeDetachOpt);
+    REQUIRE(beforeDetach.children.Count() == 1);
 
     child.parent = SqlNullValue;
     dm.Update(child);
 
-    auto afterDetach = dm.QuerySingle<OptionalParent>(parent.id.Value());
-    REQUIRE(afterDetach.has_value());
-    CHECK(afterDetach->children.Count() == 0);
+    auto afterDetachOpt = dm.QuerySingle<OptionalParent>(parent.id.Value());
+    auto& afterDetach = ValueOf(afterDetachOpt);
+    CHECK(afterDetach.children.Count() == 0);
 
-    auto detachedChild = dm.QuerySingle<OptionalChild>(child.id.Value());
-    REQUIRE(detachedChild.has_value());
-    CHECK_FALSE(detachedChild->parent.Value().has_value());
+    auto detachedChildOpt = dm.QuerySingle<OptionalChild>(child.id.Value());
+    auto& detachedChild = ValueOf(detachedChildOpt);
+    CHECK_FALSE(detachedChild.parent.Value().has_value());
 }
 
 // ================================================================================================
@@ -452,29 +478,29 @@ TEST_CASE_METHOD(SqlTestFixture, "Relations resolve along a four-table chain", "
     b2.a = a;
     dm.Create(b2);
 
-    auto loadedA = dm.QuerySingle<ChainA>(a.id.Value());
-    REQUIRE(loadedA.has_value());
-    CHECK(loadedA->bs.Count() == 2);
+    auto loadedAOpt = dm.QuerySingle<ChainA>(a.id.Value());
+    auto& loadedA = ValueOf(loadedAOpt);
+    CHECK(loadedA.bs.Count() == 2);
 
-    auto loadedB = dm.QuerySingle<ChainB>(b.id.Value());
-    REQUIRE(loadedB.has_value());
-    CHECK(loadedB->cs.Count() == 1);
-    CHECK(loadedB->a.Value() == a.id.Value());
+    auto loadedBOpt = dm.QuerySingle<ChainB>(b.id.Value());
+    auto& loadedB = ValueOf(loadedBOpt);
+    CHECK(loadedB.cs.Count() == 1);
+    CHECK(loadedB.a.Value() == a.id.Value());
 
-    auto loadedC = dm.QuerySingle<ChainC>(c.id.Value());
-    REQUIRE(loadedC.has_value());
-    CHECK(loadedC->ds.Count() == 1);
-    CHECK(loadedC->b.Value() == b.id.Value());
+    auto loadedCOpt = dm.QuerySingle<ChainC>(c.id.Value());
+    auto& loadedC = ValueOf(loadedCOpt);
+    CHECK(loadedC.ds.Count() == 1);
+    CHECK(loadedC.b.Value() == b.id.Value());
 
-    auto loadedD = dm.QuerySingle<ChainD>(d.id.Value());
-    REQUIRE(loadedD.has_value());
-    CHECK(loadedD->c.Value() == c.id.Value());
+    auto loadedDOpt = dm.QuerySingle<ChainD>(d.id.Value());
+    auto& loadedD = ValueOf(loadedDOpt);
+    CHECK(loadedD.c.Value() == c.id.Value());
 
     // The sibling branch has no C beneath it, which a hop ignoring its own foreign key would get
     // wrong by reporting the other branch's children.
-    auto loadedB2 = dm.QuerySingle<ChainB>(b2.id.Value());
-    REQUIRE(loadedB2.has_value());
-    CHECK(loadedB2->cs.Count() == 0);
+    auto loadedB2Opt = dm.QuerySingle<ChainB>(b2.id.Value());
+    auto& loadedB2 = ValueOf(loadedB2Opt);
+    CHECK(loadedB2.cs.Count() == 0);
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "Each level of a chain traverses independently", "[DataMapper][relations][chain]")
@@ -506,33 +532,33 @@ TEST_CASE_METHOD(SqlTestFixture, "Each level of a chain traverses independently"
     auto const [b1, c1, d1] = makeBranch("left");
     auto const [b2, c2, d2] = makeBranch("right");
 
-    auto loadedA = dm.QuerySingle<ChainA>(a.id.Value());
-    REQUIRE(loadedA.has_value());
-    CHECK(loadedA->bs.Count() == 2);
+    auto loadedAOpt = dm.QuerySingle<ChainA>(a.id.Value());
+    auto& loadedA = ValueOf(loadedAOpt);
+    CHECK(loadedA.bs.Count() == 2);
 
     // Each B sees exactly its own C, not both.
     for (auto const bId: { b1, b2 })
     {
-        auto loadedB = dm.QuerySingle<ChainB>(bId);
-        REQUIRE(loadedB.has_value());
-        CHECK(loadedB->cs.Count() == 1);
+        auto loadedBOpt = dm.QuerySingle<ChainB>(bId);
+        auto& loadedB = ValueOf(loadedBOpt);
+        CHECK(loadedB.cs.Count() == 1);
     }
 
     // ...and each C exactly its own D.
     for (auto const cId: { c1, c2 })
     {
-        auto loadedC = dm.QuerySingle<ChainC>(cId);
-        REQUIRE(loadedC.has_value());
-        CHECK(loadedC->ds.Count() == 1);
+        auto loadedCOpt = dm.QuerySingle<ChainC>(cId);
+        auto& loadedC = ValueOf(loadedCOpt);
+        CHECK(loadedC.ds.Count() == 1);
     }
 
-    auto loadedD1 = dm.QuerySingle<ChainD>(d1);
-    REQUIRE(loadedD1.has_value());
-    CHECK(loadedD1->c.Value() == c1);
+    auto loadedD1Opt = dm.QuerySingle<ChainD>(d1);
+    auto& loadedD1 = ValueOf(loadedD1Opt);
+    CHECK(loadedD1.c.Value() == c1);
 
-    auto loadedD2 = dm.QuerySingle<ChainD>(d2);
-    REQUIRE(loadedD2.has_value());
-    CHECK(loadedD2->c.Value() == c2);
+    auto loadedD2Opt = dm.QuerySingle<ChainD>(d2);
+    auto& loadedD2 = ValueOf(loadedD2Opt);
+    CHECK(loadedD2.c.Value() == c2);
 }
 
 // ================================================================================================
@@ -621,11 +647,9 @@ TEST_CASE_METHOD(SqlTestFixture,
 
     auto loadedAttached = dm.QuerySingle<OptionalChild>(attached.id.Value()).value();
     dm.LoadRelations(loadedAttached);
-    REQUIRE(loadedAttached.parent.Value().has_value());
-    CHECK(loadedAttached.parent.Value().value() == parent.id.Value());
+    CHECK(ValueOf(loadedAttached.parent.Value()) == parent.id.Value());
     // For an optional relationship Record() yields an optional over a reference_wrapper, hence .get().
-    REQUIRE(loadedAttached.parent.Record().has_value());
-    CHECK(loadedAttached.parent.Record().value().get().name.Value() == "parent");
+    CHECK(ValueOf(loadedAttached.parent.Record()).get().name.Value() == "parent");
     CHECK_FALSE(loadedAttached.parent.IsModified());
 
     // The NULL foreign key has nothing to load. It must remain unset - not resolved to some arbitrary

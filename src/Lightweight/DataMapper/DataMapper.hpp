@@ -2912,7 +2912,16 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
                             while (cursor.FetchRow())
                             {
                                 each(referencedRecord);
+
+                                // Reset before rebinding for the next row. The same record instance is
+                                // reused across rows, and a fetch does not necessarily overwrite the
+                                // whole of a variable-width buffer: a shorter value leaves the tail of
+                                // the previous one in place, so a string column can come back as a
+                                // blend of two rows. Assigning a fresh record clears every field's
+                                // buffer and indicator first.
+                                referencedRecord = ReferencedRecord {};
                                 dm.BindOutputColumns(referencedRecord, cursor);
+                                dm.ConfigureRelationAutoLoading(referencedRecord);
                             }
                         },
                 });
@@ -2997,7 +3006,14 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
                                 while (cursor.FetchRow())
                                 {
                                     each(referencedRecord);
+
+                                    // Reset before rebinding: see the matching comment in the HasMany
+                                    // loader above. Reusing one instance across rows lets a shorter
+                                    // value leave the tail of the previous one in a variable-width
+                                    // buffer.
+                                    referencedRecord = ReferencedRecord {};
                                     dm.BindOutputColumns(referencedRecord, cursor);
+                                    dm.ConfigureRelationAutoLoading(referencedRecord);
                                 }
                             });
                     },
