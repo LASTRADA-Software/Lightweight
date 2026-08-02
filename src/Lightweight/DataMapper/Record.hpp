@@ -12,6 +12,7 @@
 #include <limits>
 #include <optional>
 #include <string_view>
+#include <tuple>
 
 namespace Lightweight
 {
@@ -359,6 +360,96 @@ constexpr bool HasPrimaryKey = detail::CheckFieldProperty<[]<typename Field>() {
 template <typename T>
 constexpr bool HasAutoIncrementPrimaryKey =
     detail::CheckFieldProperty<[]<typename Field>() { return IsAutoIncrementPrimaryKey<Field>; }, T>;
+
+namespace detail
+{
+    /// Collects the value types of every `PrimaryKey` member of @p Record, in declaration order.
+    template <typename Record>
+    struct RecordPrimaryKeyTupleHelper
+    {
+        using type = decltype([]<std::size_t... I>(std::index_sequence<I...>) {
+            return std::tuple_cat([]<std::size_t J>() {
+                using FieldType = RecordMemberTypeOf<J, Record>;
+                // The two conditions must nest rather than share one `if constexpr`: `IsPrimaryKey` is
+                // not a member of the relation types (HasMany, CompositeForeignKey, ...), and `&&`
+                // inside a single condition would still instantiate the right-hand side for them.
+                if constexpr (IsField<FieldType>)
+                {
+                    if constexpr (FieldType::IsPrimaryKey)
+                        return std::tuple<typename FieldType::ValueType> {};
+                    else
+                        return std::tuple<> {};
+                }
+                else
+                    return std::tuple<> {};
+            }.template operator()<I>()...);
+        }(std::make_index_sequence<RecordMemberCount<Record>> {}));
+    };
+} // namespace detail
+
+/// @brief The tuple of a record's primary key value types, in member declaration order.
+///
+/// Unlike @ref RecordPrimaryKeyType, which names a single field's type, this covers composite keys:
+/// for a record with several members marked `PrimaryKey` it is a tuple of all of them. For a
+/// single-key record it is a one-element tuple.
+///
+/// Added alongside the single-key helpers rather than replacing them, so no existing caller changes
+/// behaviour; only composite-aware code reaches for this.
+///
+/// @ingroup DataMapper
+template <typename Record>
+using RecordPrimaryKeyTuple = typename detail::RecordPrimaryKeyTupleHelper<Record>::type;
+
+/// @brief Number of members of @p Record marked as a primary key.
+///
+/// One for an ordinary record, more for a composite key, zero for a keyless record.
+///
+/// @ingroup DataMapper
+template <typename Record>
+constexpr std::size_t RecordPrimaryKeyCount = std::tuple_size_v<RecordPrimaryKeyTuple<Record>>;
+
+/// @brief Whether @p Record's identity spans more than one column.
+///
+/// @ingroup DataMapper
+template <typename Record>
+constexpr bool HasCompositePrimaryKey = RecordPrimaryKeyCount<Record> > 1;
+
+/// @brief Reads every primary key value of @p record, in member declaration order.
+///
+/// This is the order a primary key lookup binds its arguments in, so the returned tuple can be applied
+/// straight to `QuerySingle`/`Update`/`Delete`.
+///
+/// @param record Record to read.
+/// @return The key values as a tuple.
+///
+/// @ingroup DataMapper
+template <typename Record>
+[[nodiscard]] RecordPrimaryKeyTuple<Record> GetPrimaryKeyFields(Record const& record)
+{
+    auto result = RecordPrimaryKeyTuple<Record> {};
+    auto slot = std::size_t { 0 };
+    EnumerateRecordMembers(record, [&]<size_t I, typename FieldType>(FieldType const& field) {
+        if constexpr (IsField<FieldType>)
+            if constexpr (FieldType::IsPrimaryKey)
+            {
+                // The tuple was built by walking the members in this same order, so the Nth key member
+                // corresponds to tuple element N. The tuple is heterogeneous, so the write is matched
+                // against the compile-time index and only the assignable slot is emitted.
+                [&]<std::size_t... J>(std::index_sequence<J...>) {
+                    (
+                        [&] {
+                            if constexpr (std::assignable_from<std::tuple_element_t<J, RecordPrimaryKeyTuple<Record>>&,
+                                                               typename FieldType::ValueType const&>)
+                                if (J == slot)
+                                    std::get<J>(result) = field.Value();
+                        }(),
+                        ...);
+                }(std::make_index_sequence<RecordPrimaryKeyCount<Record>> {});
+                ++slot;
+            }
+    });
+    return result;
+}
 
 /// Returns the first primary key field of the record.
 ///

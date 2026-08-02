@@ -10,6 +10,7 @@
 #include "../Utils.hpp"
 #include "BelongsTo.hpp"
 #include "CollectDifferences.hpp"
+#include "CompositeForeignKey.hpp"
 #include "Field.hpp"
 #include "HasMany.hpp"
 #include "HasManyThrough.hpp"
@@ -2867,6 +2868,31 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
                 .loadReference = [value = field.Value()]() -> std::optional<typename FieldType::ReferencedRecord> {
                     DataMapper& dm = DataMapper::AcquireThreadLocal();
                     return dm.LoadBelongsTo<FieldType>(value);
+                },
+            });
+        }
+        if constexpr (IsCompositeForeignKey<FieldType>)
+        {
+            using ReferencedRecord = typename FieldType::ReferencedRecord;
+
+            // The key values are read out of the record's own Field members and captured by value, so
+            // the loader does not depend on the record still being alive at load time.
+            //
+            // OrderedValuesOf() - not ValuesOf() - because QuerySingle emits one WHERE predicate per
+            // primary key member in the *referenced record's* member declaration order and binds its
+            // arguments positionally. Passing them in connection-declaration order would bind each
+            // value to the wrong predicate whenever the two orders differ, which with same-typed key
+            // columns fetches a wrong row rather than failing. See CompositeKeyOrderingTests.cpp.
+            auto const keyValues = FieldType::OrderedValuesOf(record);
+
+            field.SetAutoLoader(typename FieldType::Loader {
+                .loadReference = [keyValues]() -> std::shared_ptr<ReferencedRecord> {
+                    DataMapper& dm = DataMapper::AcquireThreadLocal();
+                    auto loaded = std::apply([&dm](auto const&... key) { return dm.QuerySingle<ReferencedRecord>(key...); },
+                                             keyValues);
+                    if (!loaded)
+                        return {};
+                    return std::make_shared<ReferencedRecord>(std::move(*loaded));
                 },
             });
         }

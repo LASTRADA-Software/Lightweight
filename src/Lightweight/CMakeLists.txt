@@ -65,6 +65,7 @@ set(HEADER_FILES
     SqlQuery/Update.hpp
 
     DataMapper/BelongsTo.hpp
+    DataMapper/CompositeForeignKey.hpp
     DataMapper/DataMapper.hpp
     DataMapper/Error.hpp
     DataMapper/Pool.hpp

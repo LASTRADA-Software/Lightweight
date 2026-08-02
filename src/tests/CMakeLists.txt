@@ -38,6 +38,9 @@ endif()
 set(SOURCE_FILES
     ConfigProfileStoreTests.cpp
     CoreTests.cpp
+    CompositeForeignKeyTests.cpp
+    CompositeKeyGapTests.cpp
+    CompositeKeyOrderingTests.cpp
     CxxModelPrinterTests.cpp
     CxxModelRelationTests.cpp
     DataBinderTests.cpp
