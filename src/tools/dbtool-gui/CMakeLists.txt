@@ -17,6 +17,25 @@
 # about what the source code actually depends on.
 find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Concurrent)
 
+# QuickShapes backs `import QtQuick.Shapes`, used by qml/Glyph.qml to draw the
+# GUI's icons as vector paths instead of emoji code points (emoji ignore
+# `color`, so they cannot follow the light/dark Theme palette, and their
+# metrics differ across the platforms this project's CI matrix builds for).
+#
+# It is deliberately NOT a REQUIRED component: on Qt 6.8 QuickShapes is still a
+# private module, shipping the library and the QtQuick/Shapes QML plugin but no
+# public `Qt6QuickShapesConfig.cmake` (only `Qt6QuickShapesPrivate`). Requiring
+# it there fails configuration outright. Qt promoted it to a public module in a
+# later release, where the target does exist.
+#
+# Nothing in C++ touches the QuickShapes API — the dependency is QML-only, and
+# `import QtQuick.Shapes` resolves from Qt's QML import path at runtime on both
+# versions. So we link the public target when it is available (keeping the
+# dependency explicit for deployment tooling like windeployqt) and simply skip
+# it when it is not. The `dbtool-gui-smoke` test launches the real binary and
+# would fail if the QML plugin were genuinely absent.
+find_package(Qt6 6.8 QUIET COMPONENTS QuickShapes)
+
 qt_standard_project_setup(REQUIRES 6.8)
 
 set(MIGRATIONS_GUI_CXX_SOURCES
@@ -25,6 +44,10 @@ set(MIGRATIONS_GUI_CXX_SOURCES
     BackupRunner.hpp
     BackupRunner.cpp
     LogLevel.hpp
+    ManagedBackupController.hpp
+    ManagedBackupController.cpp
+    ManagedBackupCore.hpp
+    ManagedBackupCore.cpp
     MigrationRunner.hpp
     MigrationRunner.cpp
     QmlProgressManager.hpp
@@ -36,6 +59,14 @@ set(MIGRATIONS_GUI_CXX_SOURCES
     ThemeController.hpp
     ThemeController.cpp
 
+    Models/BackupActiveTablesModel.hpp
+    Models/BackupActiveTablesModel.cpp
+    Models/BackupProfileFilterModel.hpp
+    Models/BackupProfileFilterModel.cpp
+    Models/BackupStatusListModel.hpp
+    Models/BackupStatusListModel.cpp
+    Models/BackupTableListModel.hpp
+    Models/BackupTableListModel.cpp
     Models/MigrationListModel.hpp
     Models/MigrationListModel.cpp
     Models/OdbcDataSourceListModel.hpp
@@ -53,7 +84,12 @@ set(MIGRATIONS_GUI_QML_FILES
     qml/SimpleView.qml
     qml/ExpertView.qml
     qml/Theme.qml
+    qml/Glyph.qml
+    qml/ProgressTrack.qml
+    qml/PageHeader.qml
+    qml/ProfileRow.qml
     qml/StatusPill.qml
+    qml/StatChip.qml
     qml/MigrationRow.qml
     qml/ReleaseGroup.qml
     qml/MigrationView.qml
@@ -65,7 +101,9 @@ set(MIGRATIONS_GUI_QML_FILES
     qml/SqlQueryPanel.qml
     qml/WheelScrollAmplifier.qml
     qml/ConnectionPanel.qml
-    qml/BackupRestoreDialog.qml
+    qml/BackupsPage.qml
+    qml/BackupDetailPanel.qml
+    qml/DestructiveWarningBanner.qml
     qml/SqlPreviewDialog.qml
     qml/ToolBar.qml
     qml/FilterTabs.qml
@@ -108,7 +146,10 @@ qt_add_qml_module(dbtool-gui-lib
     OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Lightweight/Migrations
 )
 
-target_include_directories(dbtool-gui-lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(dbtool-gui-lib
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Models
+)
 
 target_link_libraries(dbtool-gui-lib PUBLIC
     Lightweight
@@ -120,6 +161,14 @@ target_link_libraries(dbtool-gui-lib PUBLIC
     Qt6::QuickControls2
     Qt6::Concurrent
 )
+
+# Only present on Qt versions where QuickShapes is a public module — see the
+# `find_package(... QUIET COMPONENTS QuickShapes)` note at the top of this file.
+if(TARGET Qt6::QuickShapes)
+    target_link_libraries(dbtool-gui-lib PUBLIC Qt6::QuickShapes)
+endif()
+
+enable_coverage_for_target(dbtool-gui-lib)
 
 set_target_properties(dbtool-gui-lib PROPERTIES
     # Qt's camelCase signal/slot convention, unscoped Q_ENUMs, and
@@ -151,6 +200,41 @@ target_link_libraries(dbtool-gui PRIVATE
 # builds we keep a console so Qt warnings, QML error lines, and our own
 # stderr output land somewhere the developer can read — the GUI is useless
 # if it crashes silently while the event loop is still starting.
+# Embed a hand-written application manifest via an .rc RT_MANIFEST resource.
+#
+# WHY NOT let Qt generate one: qt_add_executable's Windows finaliser
+# (_qt_internal_finalize_windows_app) synthesises a `com.yourcompany.*`
+# manifest and hands it to the linker through lld-link's
+# `/MANIFEST:EMBED /MANIFESTINPUT:`. lld-link's manifest *merge* re-serialises
+# `<requestedExecutionLevel>` into the asm.v2 namespace
+# (`ms_asmv2:level="asInvoker"`). The Windows SxS loader only recognises that
+# attribute in asm.v3, so it reports "the required attribute level is missing
+# from element requestedExecutionLevel" and refuses to start the process — the
+# GUI never launches. Embedding through an .rc resource copies the manifest
+# bytes verbatim (no merge, no re-serialisation), so the namespaces survive.
+#
+# Providing our own `.manifest` in the target sources also trips Qt's
+# "Skipping manifest magic due to user specified manifest file" branch, so Qt
+# stops generating the broken one. See src/tools/dbtool-gui/dbtool-gui.manifest.
+if(WIN32)
+    target_sources(dbtool-gui PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/dbtool-gui.manifest
+        ${CMAKE_CURRENT_SOURCE_DIR}/dbtool-gui.rc
+    )
+    # The .manifest is present ONLY to trip Qt's "user specified manifest file"
+    # skip branch. It must NOT be fed to the linker as a /MANIFESTINPUT (that is
+    # the merge path that corrupts the namespaces) — the .rc embeds it instead.
+    # HEADER_FILE_ONLY keeps CMake from treating it as a manifest link input.
+    set_source_files_properties(
+        ${CMAKE_CURRENT_SOURCE_DIR}/dbtool-gui.manifest
+        PROPERTIES HEADER_FILE_ONLY TRUE
+    )
+    # Belt-and-braces: keep the linker from also generating/merging a manifest.
+    target_link_options(dbtool-gui PRIVATE
+        $<$<CXX_COMPILER_ID:MSVC,Clang>:/MANIFEST:NO>
+    )
+endif()
+
 set_target_properties(dbtool-gui PROPERTIES
     WIN32_EXECUTABLE $<NOT:$<CONFIG:Debug>>
     MACOSX_BUNDLE ON

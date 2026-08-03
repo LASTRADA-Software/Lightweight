@@ -11,6 +11,13 @@ find_package(Qt6 REQUIRED COMPONENTS Test QuickTest)
 qt_add_executable(dbtool-gui-tests
     main.cpp
     AppControllerTests.cpp
+    BackupActiveTablesModelTests.cpp
+    BackupProfileFilterModelTests.cpp
+    BackupStatusListModelTests.cpp
+    BackupTableListModelTests.cpp
+    ManagedBackupCoreTests.cpp
+    ManagedBackupControllerTests.cpp
+    RunnerBusyGuardTests.cpp
 )
 
 target_link_libraries(dbtool-gui-tests PRIVATE
@@ -27,6 +34,36 @@ set_target_properties(dbtool-gui-tests PROPERTIES
     # clang-tidy policy — opt out, like the executable does.
     CXX_CLANG_TIDY ""
 )
+
+# Embed a hand-written application manifest via an .rc RT_MANIFEST resource,
+# exactly like the `dbtool-gui` executable does (see ../CMakeLists.txt and
+# commit f60871ff for the full write-up). Without this, qt_add_executable's
+# Windows finaliser lets lld-link generate and *merge* its own manifest,
+# which re-serialises <requestedExecutionLevel> into the asm.v2 namespace.
+# The Windows SxS loader only accepts that attribute in asm.v3, so it refuses
+# to start the process at all — the test binary never even reaches main().
+# Embedding through an .rc resource instead copies the manifest bytes
+# verbatim, bypassing the broken merge path. The .rc reuses the SAME
+# ../dbtool-gui.manifest file (no test-specific content needed).
+if(WIN32)
+    target_sources(dbtool-gui-tests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../dbtool-gui.manifest
+        ${CMAKE_CURRENT_SOURCE_DIR}/dbtool-gui-tests.rc
+    )
+    # HEADER_FILE_ONLY keeps CMake from feeding the .manifest to the linker
+    # as a /MANIFESTINPUT (that's the merge path that corrupts the
+    # namespaces) — the .rc embeds it instead. Its mere presence in
+    # target_sources still trips Qt's "user specified manifest file" skip
+    # branch, so Qt stops generating its own broken one.
+    set_source_files_properties(
+        ${CMAKE_CURRENT_SOURCE_DIR}/../dbtool-gui.manifest
+        PROPERTIES HEADER_FILE_ONLY TRUE
+    )
+    # Belt-and-braces: keep the linker from also generating/merging a manifest.
+    target_link_options(dbtool-gui-tests PRIVATE
+        $<$<CXX_COMPILER_ID:MSVC,Clang>:/MANIFEST:NO>
+    )
+endif()
 
 # Stage the Qt offscreen + minimal platform plugins next to the test binary
 # so `QT_QPA_PLATFORM=offscreen` resolves without a display server. The same
@@ -74,6 +111,25 @@ target_link_libraries(dbtool-gui-qmltest PRIVATE
 set_target_properties(dbtool-gui-qmltest PROPERTIES
     CXX_CLANG_TIDY ""
 )
+
+# Same lld-link SxS manifest-merge bug as `dbtool-gui-tests` above (and the
+# `dbtool-gui` executable, commit f60871ff) — embed the shared manifest via
+# .rc RT_MANIFEST instead of letting Qt/lld-link generate+merge a corrupted
+# one, or this executable will refuse to start with a side-by-side
+# configuration error too.
+if(WIN32)
+    target_sources(dbtool-gui-qmltest PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../dbtool-gui.manifest
+        ${CMAKE_CURRENT_SOURCE_DIR}/dbtool-gui-tests.rc
+    )
+    set_source_files_properties(
+        ${CMAKE_CURRENT_SOURCE_DIR}/../dbtool-gui.manifest
+        PROPERTIES HEADER_FILE_ONLY TRUE
+    )
+    target_link_options(dbtool-gui-qmltest PRIVATE
+        $<$<CXX_COMPILER_ID:MSVC,Clang>:/MANIFEST:NO>
+    )
+endif()
 
 # Stage the Qt platform plugins next to the qmltest binary so it can launch
 # under `QT_QPA_PLATFORM=offscreen` from a clean install.

@@ -1,0 +1,13 @@
+// Embeds the application manifest as an RT_MANIFEST resource, verbatim.
+//
+// The resource compiler copies the referenced .manifest bytes untouched, so
+// the XML namespaces survive intact. This deliberately bypasses the linker's
+// /MANIFEST:EMBED merge path (lld-link), which re-serialises
+// <requestedExecutionLevel> into the asm.v2 namespace and makes the Windows
+// SxS loader reject the binary at startup. See CMakeLists.txt for the full
+// rationale.
+//
+// 1 is CREATEPROCESS_MANIFEST_RESOURCE_ID; 24 is RT_MANIFEST.
+#include <winuser.h>
+
+CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "dbtool-gui.manifest"
