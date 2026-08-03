@@ -10,6 +10,8 @@
 #include <array>
 #include <string_view>
 
+struct Invoiceline;
+
 struct Invoice final
 {
     static constexpr std::string_view TableName = "Invoice";
@@ -24,6 +26,8 @@ struct Invoice final
     Light::Field<std::optional<Light::SqlDynamicUtf16String<10>>, Light::SqlRealName { "BillingPostalCode" }>
         BillingPostalCode;
     Light::Field<Light::SqlNumeric<10, 2>, Light::SqlRealName { "Total" }> Total;
+
+    Light::HasMany<Invoiceline> InvoiceLine;
 };
 
 template <>
