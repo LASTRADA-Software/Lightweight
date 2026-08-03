@@ -11,14 +11,22 @@
 // rest of the process lifetime.
 
 #include "../AppController.hpp"
+#include "../BackupRunner.hpp"
 #include "../LogLevel.hpp"
+#include "../ManagedBackupController.hpp"
+#include "../MigrationRunner.hpp"
+
+#include <Lightweight/SqlBackup.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <filesystem>
+#include <fstream>
+#include <string>
 
 #include <QtCore/QString>
 #include <QtCore/QStringList>
+#include <QtCore/QTemporaryDir>
 #include <QtTest/QSignalSpy>
 
 namespace
@@ -150,4 +158,66 @@ TEST_CASE("releaseHighestTimestamp returns empty for an unknown release", "[dbto
     DbtoolGui::AppController controller;
     auto const ts = controller.releaseHighestTimestamp(QStringLiteral("v999.999.999"));
     CHECK(ts.isEmpty());
+}
+
+TEST_CASE("managedBackups is exposed and follows loadProfiles", "[dbtool-gui][AppController][managed-backup]")
+{
+    auto const fixturePath = FixturesDir() / "dbtool.yml";
+    DbtoolGui::AppController controller;
+    REQUIRE(controller.managedBackups() != nullptr);
+    CHECK(controller.managedBackups()->status()->rowCount() == 0);
+
+    REQUIRE(controller.loadProfiles(QString::fromStdString(fixturePath.string())));
+
+    CHECK(controller.managedBackups()->status()->rowCount() == controller.profiles()->rowCount());
+}
+
+TEST_CASE("the busy guard between the three runners is mutual", "[dbtool-gui][AppController][managed-backup][busy-guard]")
+{
+    // AppController wires each runner's busy probe to the other two. Before
+    // this, only the managed controller had a probe, so a migration or an
+    // ad-hoc restore could start *during* a managed backup and tear the
+    // archive that run was about to commit as "ok".
+    auto const fixturePath = FixturesDir() / "dbtool.yml";
+    QTemporaryDir dir;
+    DbtoolGui::AppController controller;
+    REQUIRE(controller.loadProfiles(QString::fromStdString(fixturePath.string())));
+
+    auto* managed = controller.managedBackups();
+    managed->setBackupFolder(dir.path());
+    // A stand-in operation keeps the run off any real database; all that
+    // matters here is that the managed controller reports Phase::Running.
+    managed->setBackupOperation(
+        [](std::filesystem::path const& file,
+           std::string const& /*connectionString*/,
+           std::string const& /*schema*/,
+           Lightweight::SqlBackup::ProgressManager& /*progress*/) { std::ofstream(file) << "archive"; });
+
+    QSignalSpy done(managed, &DbtoolGui::ManagedBackupController::finished);
+    managed->backupAll();
+    // The phase flips synchronously before the worker is dispatched, and the
+    // reset back to Idle is posted to this (GUI) thread — which cannot run
+    // while this test function does. So the state below is deterministic.
+    REQUIRE(managed->phase() == DbtoolGui::ManagedBackupController::Phase::Running);
+
+    QSignalSpy backupLogs(controller.backupRunner(), &DbtoolGui::BackupRunner::logLine);
+    controller.backupRunner()->runBackup(dir.path() + QStringLiteral("/adhoc.zip"));
+    CHECK(controller.backupRunner()->phase() == DbtoolGui::BackupRunner::Phase::Idle);
+    REQUIRE(backupLogs.count() == 1);
+    CHECK(backupLogs.first().at(0).toString().contains(QStringLiteral("busy")));
+
+    // The destructive direction: an ad-hoc restore must be refused too.
+    controller.backupRunner()->runRestore(dir.path() + QStringLiteral("/adhoc.zip"));
+    CHECK(controller.backupRunner()->phase() == DbtoolGui::BackupRunner::Phase::Idle);
+    CHECK(backupLogs.count() == 2);
+
+    // ... and so must a migration.
+    QSignalSpy migrationLogs(controller.runner(), &DbtoolGui::MigrationRunner::logLine);
+    controller.runner()->applyUpTo(QString {});
+    CHECK(controller.runner()->phase() == DbtoolGui::MigrationRunner::Phase::Idle);
+    REQUIRE(migrationLogs.count() == 1);
+    CHECK(migrationLogs.first().at(0).toString().contains(QStringLiteral("busy")));
+
+    REQUIRE((done.count() > 0 || done.wait(30000))); // drain the run before teardown
+    managed->setBackupFolder(QString {});
 }

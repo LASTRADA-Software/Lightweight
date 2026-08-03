@@ -12,6 +12,7 @@
 
 #include "BackupRunner.hpp"
 #include "LogLevel.hpp"
+#include "ManagedBackupController.hpp"
 #include "MigrationRunner.hpp"
 #include "Models/MigrationListModel.hpp"
 #include "Models/OdbcDataSourceListModel.hpp"
@@ -52,11 +53,7 @@ class AppController: public QObject
     Q_PROPERTY(ReleaseListModel* releases READ releases CONSTANT)
     Q_PROPERTY(MigrationRunner* runner READ runner CONSTANT)
     Q_PROPERTY(BackupRunner* backupRunner READ backupRunner CONSTANT)
-    /// Whether the experimental backup/restore UI surfaces are enabled.
-    /// Driven by the `--enable-backup-restore` CLI flag in `main.cpp`;
-    /// false by default. CONSTANT because the value is fixed at startup —
-    /// toggling at runtime is not supported.
-    Q_PROPERTY(bool backupRestoreEnabled READ backupRestoreEnabled CONSTANT)
+    Q_PROPERTY(DbtoolGui::ManagedBackupController* managedBackups READ managedBackups CONSTANT)
     /// Ad-hoc SQL execution helper exposed to the Expert view's SQL Query
     /// tab. Stays construction-empty until the user issues a query — picks
     /// up the global default connection string set by `connectToProfile`.
@@ -195,29 +192,24 @@ class AppController: public QObject
     {
         return &_backupRunner;
     }
-    [[nodiscard]] bool backupRestoreEnabled() const noexcept
+    /// The managed-backup-folder controller (one archive per profile, backed
+    /// by `ManagedBackupController`). Profiles and the busy probe are wired
+    /// up in the constructor / `loadProfiles`; QML binds to this directly.
+    [[nodiscard]] ManagedBackupController* managedBackups() noexcept
     {
-        return _backupRestoreEnabled;
+        return &_managedBackups;
     }
-
-    /// Seeds the initial value of `backupRestoreEnabled` before the QML
-    /// engine instantiates the singleton. Must be called before any QML
-    /// access to `AppController`. Mirrors `ThemeController::SeedInitialMode`.
-    /// @param enabled Whether backup/restore UI surfaces should be enabled.
-    static void SeedBackupRestoreEnabled(bool enabled) noexcept;
-
     /// Seeds the initial value of `_verbose` before the QML engine
     /// instantiates the singleton. Must be called before any QML access to
-    /// `AppController`. Mirrors `SeedBackupRestoreEnabled` so `main.cpp` can
-    /// thread the parsed `--verbose`/`-v` flag into the controller's first
+    /// `AppController`. Mirrors `ThemeController::SeedInitialMode`; threads
+    /// the parsed `--verbose`/`-v` flag into the controller's first
     /// `ReloadPlugins()`. Idempotent; later changes take effect on the next
     /// `ReloadPlugins()` only if the value is updated via `SetVerbose`.
     ///
     /// Calling `SeedVerbose(false)` is equivalent to not calling
     /// `SeedVerbose` at all — `_verbose` defaults to `false`. The `bool`
     /// argument exists so callers can forward a parsed CLI flag directly
-    /// (`SeedVerbose(parser.isSet(verboseOpt))`) without an explicit `if`,
-    /// matching the adjacent `SeedBackupRestoreEnabled` call site.
+    /// (`SeedVerbose(parser.isSet(verboseOpt))`) without an explicit `if`.
     ///
     /// @param enabled Whether shadow-plugin notices should be emitted via
     ///                `qInfo()`.
@@ -487,17 +479,22 @@ class AppController: public QObject
     /// the prior profile's DB exposed.
     void InvalidateConnectionTarget();
 
+    /// Re-reads the migration / release models from the manager after a run
+    /// that may have changed the database's applied-set (a finished migration
+    /// run, or a managed restore into the connected profile). A full `Refresh`
+    /// touches `schema_migrations` and throws on an unmanaged database, so it
+    /// falls back to a plugin-only refresh and surfaces the reason as a
+    /// warning. Always emits `migrationsChanged()`.
+    void RefreshMigrationModelsAfterRun();
+
     ProfileListModel _profiles;
     OdbcDataSourceListModel _odbcDataSources;
     MigrationListModel _migrations;
     ReleaseListModel _releases;
     MigrationRunner _runner;
     BackupRunner _backupRunner;
+    ManagedBackupController _managedBackups;
     SqlQueryRunner _sqlQueryRunner;
-
-    /// Gates the experimental backup/restore UI surfaces. Seeded from
-    /// `SeedBackupRestoreEnabled` at startup, then never changes.
-    bool _backupRestoreEnabled;
 
     Lightweight::Config::ProfileStore _store;
     QString _currentProfile;
