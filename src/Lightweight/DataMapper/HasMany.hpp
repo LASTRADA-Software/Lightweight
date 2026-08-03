@@ -24,17 +24,54 @@ namespace Lightweight
 ///
 /// The HasMany<OtherRecord> is a member of the "one" side of the relationship.
 ///
-/// This implemenation of `HasMany<OtherRecord>` must have only one `BelongsTo` member
-/// that points back to this "one" side.
+/// `OtherRecord` must declare a `BelongsTo` member that points back to this "one" side. That member is
+/// located by matching the relationship *type*, not by its position in either record, so the two
+/// relationship members may be declared at any index. Declaring no such `BelongsTo` is a compile-time
+/// error.
+///
+/// When `OtherRecord` holds more than one foreign key into this record's table - say a meeting that
+/// references the same person table both as its organizer and as whoever writes the minutes - the
+/// inverse is ambiguous. Name the foreign key column through @p TheInverseSelector to single one out:
+///
+/// @code
+/// struct Meeting;
+/// struct Human
+/// {
+///     Field<int, PrimaryKey::AutoAssign> id;
+///     HasMany<Meeting, SqlRealName { "organizer_id" }> organizedMeetings;
+///     HasMany<Meeting, SqlRealName { "minute_taker_id" }> minutedMeetings;
+/// };
+/// struct Meeting
+/// {
+///     Field<int, PrimaryKey::AutoAssign> id;
+///     BelongsTo<&Human::id, SqlRealName { "organizer_id" }> organizer;
+///     BelongsTo<&Human::id, SqlRealName { "minute_taker_id" }, SqlNullable::Null> minuteTaker;
+/// };
+/// @endcode
+///
+/// A meeting with *many* attendees is a many-to-many instead - see `HasManyThrough`. The worked
+/// example in `docs/sql-to-lightweight.md` combines both shapes.
+///
+/// @tparam OtherRecord The record type on the "many" side of the relationship.
+/// @tparam TheInverseSelector Singles out one of several foreign keys, see the RelationSelector concept.
+///
+/// @see InverseBelongsToIndexOf, RelationSelector
 ///
 /// @see DataMapper, Field, HasManyThrough
 /// @ingroup DataMapper
-template <typename OtherRecord>
+template <typename OtherRecord, auto TheInverseSelector = AutoDetectRelation>
 class HasMany
 {
+    static_assert(RelationSelector<TheInverseSelector>,
+                  "The second template argument of HasMany must be a foreign key column name (a SqlRealName) "
+                  "or std::nullopt to resolve the relationship automatically.");
+
   public:
     /// The record type of the "many" side of the relationship.
     using ReferencedRecord = OtherRecord;
+
+    /// Singles out the foreign key of `OtherRecord` that backs this relationship.
+    static constexpr auto InverseSelector = TheInverseSelector;
 
     /// The list of records on the "many" side of the relationship.
     using ReferencedRecordList = std::vector<std::shared_ptr<OtherRecord>>;
@@ -137,40 +174,57 @@ class HasMany
     std::optional<size_t> _count;
 };
 
-template <typename T>
-constexpr bool IsHasMany = IsSpecializationOf<HasMany, T>;
+namespace detail
+{
+    template <typename T>
+    struct IsHasManyType: std::false_type
+    {
+    };
 
-template <typename OtherRecord>
-inline LIGHTWEIGHT_FORCE_INLINE void HasMany<OtherRecord>::SetAutoLoader(Loader loader) noexcept
+    template <typename OtherRecord, auto InverseSelector>
+    struct IsHasManyType<HasMany<OtherRecord, InverseSelector>>: std::true_type
+    {
+    };
+
+} // namespace detail
+
+template <typename T>
+constexpr bool IsHasMany = detail::IsHasManyType<std::remove_cvref_t<T>>::value;
+
+template <typename OtherRecord, auto InverseSelector>
+inline LIGHTWEIGHT_FORCE_INLINE void HasMany<OtherRecord, InverseSelector>::SetAutoLoader(Loader loader) noexcept
 {
     _loader = std::move(loader);
 }
 
-template <typename OtherRecord>
-inline LIGHTWEIGHT_FORCE_INLINE void HasMany<OtherRecord>::RequireLoaded()
+template <typename OtherRecord, auto InverseSelector>
+inline LIGHTWEIGHT_FORCE_INLINE void HasMany<OtherRecord, InverseSelector>::RequireLoaded()
 {
     if (!_records)
         _records = _loader.all();
 }
 
-template <typename OtherRecord>
-inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord>::ReferencedRecordList& HasMany<OtherRecord>::Emplace(
-    ReferencedRecordList&& records) noexcept
+template <typename OtherRecord, auto InverseSelector>
+inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::ReferencedRecordList& HasMany<
+    OtherRecord,
+    InverseSelector>::Emplace(ReferencedRecordList&& records) noexcept
 {
     _records = { std::move(records) };
     return *_records;
 }
 
-template <typename OtherRecord>
-inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord>::ReferencedRecordList& HasMany<OtherRecord>::All() noexcept
+template <typename OtherRecord, auto InverseSelector>
+inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::ReferencedRecordList& HasMany<
+    OtherRecord,
+    InverseSelector>::All() noexcept
 {
     RequireLoaded();
     return *_records; // NOLINT(bugprone-unchecked-optional-access)
 }
 
-template <typename OtherRecord>
+template <typename OtherRecord, auto InverseSelector>
 template <typename Callable>
-void HasMany<OtherRecord>::Each(Callable const& callable)
+void HasMany<OtherRecord, InverseSelector>::Each(Callable const& callable)
 {
     if (!_records && _loader.each)
     {
@@ -182,61 +236,64 @@ void HasMany<OtherRecord>::Each(Callable const& callable)
         callable(*record);
 }
 
-template <typename OtherRecord>
-inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord>::ReferencedRecordList const& HasMany<OtherRecord>::All() const noexcept
+template <typename OtherRecord, auto InverseSelector>
+inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::ReferencedRecordList const& HasMany<
+    OtherRecord,
+    InverseSelector>::All() const noexcept
 {
     RequireLoaded();
     return *_records;
 }
 
-template <typename OtherRecord>
-inline LIGHTWEIGHT_FORCE_INLINE std::size_t HasMany<OtherRecord>::Count() const noexcept
+template <typename OtherRecord, auto InverseSelector>
+inline LIGHTWEIGHT_FORCE_INLINE std::size_t HasMany<OtherRecord, InverseSelector>::Count() const noexcept
 {
     if (_records)
         return _records->size();
 
     if (!_count && _loader.count)
-        const_cast<HasMany<OtherRecord>*>(this)->_count = _loader.count();
+        const_cast<HasMany<OtherRecord, InverseSelector>*>(this)->_count = _loader.count();
 
     return _count.value_or(0);
 }
 
-template <typename OtherRecord>
-inline LIGHTWEIGHT_FORCE_INLINE bool HasMany<OtherRecord>::IsEmpty() const noexcept
+template <typename OtherRecord, auto InverseSelector>
+inline LIGHTWEIGHT_FORCE_INLINE bool HasMany<OtherRecord, InverseSelector>::IsEmpty() const noexcept
 {
     return Count() == 0;
 }
 
-template <typename OtherRecord>
-inline LIGHTWEIGHT_FORCE_INLINE OtherRecord const& HasMany<OtherRecord>::At(std::size_t index) const
+template <typename OtherRecord, auto InverseSelector>
+inline LIGHTWEIGHT_FORCE_INLINE OtherRecord const& HasMany<OtherRecord, InverseSelector>::At(std::size_t index) const
 {
     RequireLoaded();
     return *_records->at(index); // NOLINT(bugprone-unchecked-optional-access)
 }
 
-template <typename OtherRecord>
-inline LIGHTWEIGHT_FORCE_INLINE OtherRecord& HasMany<OtherRecord>::At(std::size_t index)
+template <typename OtherRecord, auto InverseSelector>
+inline LIGHTWEIGHT_FORCE_INLINE OtherRecord& HasMany<OtherRecord, InverseSelector>::At(std::size_t index)
 {
     RequireLoaded();
     return *_records->at(index); // NOLINT(bugprone-unchecked-optional-access)
 }
 
-template <typename OtherRecord>
-inline LIGHTWEIGHT_FORCE_INLINE OtherRecord const& HasMany<OtherRecord>::operator[](std::size_t index) const
+template <typename OtherRecord, auto InverseSelector>
+inline LIGHTWEIGHT_FORCE_INLINE OtherRecord const& HasMany<OtherRecord, InverseSelector>::operator[](std::size_t index) const
 {
     RequireLoaded();
     return *(*_records)[index]; // NOLINT(bugprone-unchecked-optional-access)
 }
 
-template <typename OtherRecord>
-inline LIGHTWEIGHT_FORCE_INLINE OtherRecord& HasMany<OtherRecord>::operator[](std::size_t index)
+template <typename OtherRecord, auto InverseSelector>
+inline LIGHTWEIGHT_FORCE_INLINE OtherRecord& HasMany<OtherRecord, InverseSelector>::operator[](std::size_t index)
 {
     RequireLoaded();
     return *(*_records)[index]; // NOLINT(bugprone-unchecked-optional-access)
 }
 
-template <typename OtherRecord>
-inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord>::iterator HasMany<OtherRecord>::begin() noexcept
+template <typename OtherRecord, auto InverseSelector>
+inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::iterator HasMany<OtherRecord,
+                                                                                        InverseSelector>::begin() noexcept
 {
     RequireLoaded();
     if (_records)
@@ -245,8 +302,9 @@ inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord>::iterator HasMany<OtherReco
         return iterator {};
 }
 
-template <typename OtherRecord>
-inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord>::iterator HasMany<OtherRecord>::end() noexcept
+template <typename OtherRecord, auto InverseSelector>
+inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::iterator HasMany<OtherRecord,
+                                                                                        InverseSelector>::end() noexcept
 {
     RequireLoaded();
     if (_records)
@@ -255,8 +313,10 @@ inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord>::iterator HasMany<OtherReco
         return iterator {};
 }
 
-template <typename OtherRecord>
-inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord>::const_iterator HasMany<OtherRecord>::begin() const noexcept
+template <typename OtherRecord, auto InverseSelector>
+inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::const_iterator HasMany<OtherRecord,
+                                                                                              InverseSelector>::begin()
+    const noexcept
 {
     RequireLoaded();
     if (_records)
@@ -265,8 +325,10 @@ inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord>::const_iterator HasMany<Oth
         return const_iterator {};
 }
 
-template <typename OtherRecord>
-inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord>::const_iterator HasMany<OtherRecord>::end() const noexcept
+template <typename OtherRecord, auto InverseSelector>
+inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::const_iterator HasMany<OtherRecord,
+                                                                                              InverseSelector>::end()
+    const noexcept
 {
     RequireLoaded();
     if (_records)

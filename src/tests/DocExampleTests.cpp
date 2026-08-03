@@ -57,14 +57,13 @@ struct Employee
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
     Field<SqlAnsiString<30>> firstName {};
-
-    // FK -> Departments.id. A HasMany and its inverse BelongsTo are matched by field
-    // position, so this member sits at the same index as Department::employees above.
-    BelongsTo<&Department::id, SqlRealName { "department_id" }, SqlNullable::Null> department {};
-
     Field<SqlAnsiString<30>> lastName {};
     Field<int> salary {};
     Field<std::optional<int>> age {};
+
+    // FK -> Departments.id. The inverse of Department::employees is matched by relationship
+    // type, so the two members may be declared at any position in their records.
+    BelongsTo<&Department::id, SqlRealName { "department_id" }, SqlNullable::Null> department {};
 };
 //! [doc-schema]
 
@@ -75,6 +74,50 @@ struct DepartmentHeadcount
     int headcount = 0;
 };
 //! [doc-custom-result-struct]
+
+//! [doc-meeting-schema]
+struct Meeting;
+struct Attendance;
+
+struct Human
+{
+    static constexpr std::string_view TableName = "Humans";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<SqlAnsiString<30>> name {};
+
+    // Two columns of Meetings point back here, so each relation names the one it means.
+    HasMany<Meeting, SqlRealName { "organizer_id" }> organizedMeetings {};
+    HasMany<Meeting, SqlRealName { "minute_taker_id" }> minutedMeetings {};
+
+    // Attendance is a plain many-to-many, so no selector is needed here.
+    HasManyThrough<Meeting, Attendance> attendedMeetings {};
+};
+
+struct Meeting
+{
+    static constexpr std::string_view TableName = "Meetings";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<SqlAnsiString<40>> topic {};
+
+    // Each foreign key names its own column - exactly as it would without the second one.
+    BelongsTo<&Human::id, SqlRealName { "organizer_id" }> organizer {};
+    BelongsTo<&Human::id, SqlRealName { "minute_taker_id" }, SqlNullable::Null> minuteTaker {};
+
+    // Any number of attendees, through the join record below.
+    HasManyThrough<Human, Attendance> attendees {};
+};
+
+struct Attendance
+{
+    static constexpr std::string_view TableName = "Attendances";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    BelongsTo<&Meeting::id, SqlRealName { "meeting_id" }> meeting {};
+    BelongsTo<&Human::id, SqlRealName { "human_id" }> human {};
+};
+//! [doc-meeting-schema]
 
 // Record used by the conditional-WHERE example.
 struct Events
@@ -116,15 +159,15 @@ inline SeededCompany SeedCompany(DataMapper& dm)
     dm.Create(sales);
 
     auto alice =
-        Employee { .firstName = "Alice", .department = engineering, .lastName = "Anders", .salary = 50'000, .age = 30 };
+        Employee { .firstName = "Alice", .lastName = "Anders", .salary = 50'000, .age = 30, .department = engineering };
     dm.Create(alice);
-    auto bob = Employee { .firstName = "Bob", .department = engineering, .lastName = "Brown", .salary = 60'000, .age = 40 };
+    auto bob = Employee { .firstName = "Bob", .lastName = "Brown", .salary = 60'000, .age = 40, .department = engineering };
     dm.Create(bob);
-    auto carol = Employee { .firstName = "Carol", .department = sales, .lastName = "Clark", .salary = 55'000, .age = 35 };
+    auto carol = Employee { .firstName = "Carol", .lastName = "Clark", .salary = 55'000, .age = 35, .department = sales };
     dm.Create(carol);
-    auto dave = Employee { .firstName = "Dave", .department = sales, .lastName = "Davis", .salary = 70'000, .age = 50 };
+    auto dave = Employee { .firstName = "Dave", .lastName = "Davis", .salary = 70'000, .age = 50, .department = sales };
     dm.Create(dave);
-    auto erin = Employee { .firstName = "Erin", .department = engineering, .lastName = "Evans", .salary = 45'000 };
+    auto erin = Employee { .firstName = "Erin", .lastName = "Evans", .salary = 45'000, .department = engineering };
     dm.Create(erin);
 
     return { .engineering = engineering, .sales = sales };
@@ -597,6 +640,114 @@ TEST_CASE_METHOD(SqlTestFixture, "Doc.Relationships", "[DocExample]")
     {
         dm.ConfigureRelationAutoLoading(*reloaded);
         CHECK(reloaded->employees.Count() == 3);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Doc.Meetings", "[DocExample]")
+{
+    auto dm = DataMapper();
+
+    //! [doc-meeting-create]
+    dm.CreateTables<Human, Meeting, Attendance>();
+
+    auto alice = Human { .name = "Alice" };
+    auto bob = Human { .name = "Bob" };
+    auto carol = Human { .name = "Carol" };
+    for (auto* human: { &alice, &bob, &carol })
+        dm.Create(*human);
+
+    // Alice calls the planning meeting; Bob writes the minutes.
+    auto planning = Meeting { .topic = "Planning", .organizer = alice, .minuteTaker = bob };
+    dm.Create(planning);
+
+    // All three of them attend it - one join row per attendee.
+    for (auto const& attendee: { alice, bob, carol })
+        dm.CreateExplicit(Attendance { .meeting = planning, .human = attendee });
+
+    // Carol runs the retrospective, nobody takes minutes, and only Alice joins her.
+    auto retro = Meeting { .topic = "Retrospective", .organizer = carol };
+    dm.Create(retro);
+    for (auto const& attendee: { carol, alice })
+        dm.CreateExplicit(Attendance { .meeting = retro, .human = attendee });
+    //! [doc-meeting-create]
+
+    auto const planningId = planning.id.Value();
+    auto const aliceId = alice.id.Value();
+
+    //! [doc-meeting-read]
+    // Read a meeting with everyone involved in it.
+    if (auto meeting = dm.QuerySingle<Meeting>(planningId))
+    {
+        dm.ConfigureRelationAutoLoading(*meeting);
+
+        // A mandatory BelongsTo dereferences straight through.
+        std::println("{} - organized by {}", meeting->topic.Value(), meeting->organizer->name.Value());
+
+        // A nullable one yields an optional instead.
+        if (auto const scribe = meeting->minuteTaker.Record().transform(Unwrap))
+            std::println("  minutes by {}", scribe->name.Value());
+
+        std::println("  {} attendees:", meeting->attendees.Count());
+        for (auto const& attendee: meeting->attendees.All())
+            std::println("    {}", attendee->name.Value());
+    }
+
+    // And the same relationships read from the other side.
+    if (auto human = dm.QuerySingle<Human>(aliceId))
+    {
+        dm.ConfigureRelationAutoLoading(*human);
+        std::println("{} organized {}, minuted {} and attended {} meeting(s)",
+                     human->name.Value(),
+                     human->organizedMeetings.Count(),
+                     human->minutedMeetings.Count(),
+                     human->attendedMeetings.Count());
+    }
+    //! [doc-meeting-read]
+
+    auto meeting = dm.QuerySingle<Meeting>(planningId);
+    REQUIRE(meeting.has_value());
+    if (meeting)
+    {
+        dm.ConfigureRelationAutoLoading(*meeting);
+        CHECK(meeting->organizer->name.Value() == "Alice");
+        CHECK(meeting->attendees.Count() == 3);
+
+        auto const scribe = meeting->minuteTaker.Record().transform(Unwrap);
+        REQUIRE(scribe.has_value());
+        if (scribe)
+            CHECK(scribe->name.Value() == "Bob");
+    }
+
+    // Alice organized "Planning", minuted nothing, and attended both meetings.
+    auto human = dm.QuerySingle<Human>(aliceId);
+    REQUIRE(human.has_value());
+    if (human)
+    {
+        dm.ConfigureRelationAutoLoading(*human);
+        CHECK(human->organizedMeetings.Count() == 1);
+        CHECK(human->minutedMeetings.Count() == 0);
+        CHECK(human->attendedMeetings.Count() == 2);
+    }
+
+    auto bobLoaded = dm.QuerySingle<Human>(bob.id.Value());
+    REQUIRE(bobLoaded.has_value());
+    if (bobLoaded)
+    {
+        dm.ConfigureRelationAutoLoading(*bobLoaded);
+        CHECK(bobLoaded->organizedMeetings.Count() == 0);
+        CHECK(bobLoaded->minutedMeetings.Count() == 1);
+        CHECK(bobLoaded->attendedMeetings.Count() == 1);
+    }
+
+    // The retrospective has no minute taker - a NULL foreign key loads as an empty optional, and
+    // does so without logging a failure.
+    auto retroLoaded = dm.QuerySingle<Meeting>(retro.id.Value());
+    REQUIRE(retroLoaded.has_value());
+    if (retroLoaded)
+    {
+        dm.ConfigureRelationAutoLoading(*retroLoaded);
+        CHECK(retroLoaded->attendees.Count() == 2);
+        CHECK_FALSE(retroLoaded->minuteTaker.Record().transform(Unwrap).has_value());
     }
 }
 

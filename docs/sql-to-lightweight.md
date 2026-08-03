@@ -50,14 +50,13 @@ struct Employee
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
     Field<SqlAnsiString<30>> firstName {};
-
-    // FK -> Departments.id. A HasMany and its inverse BelongsTo are matched by field
-    // position, so this member sits at the same index as Department::employees above.
-    BelongsTo<&Department::id, SqlRealName { "department_id" }, SqlNullable::Null> department {};
-
     Field<SqlAnsiString<30>> lastName {};
     Field<int> salary {};
     Field<std::optional<int>> age {};
+
+    // FK -> Departments.id. The inverse of Department::employees is matched by relationship
+    // type, so the two members may be declared at any position in their records.
+    BelongsTo<&Department::id, SqlRealName { "department_id" }, SqlNullable::Null> department {};
 };
 ```
 
@@ -579,6 +578,212 @@ cleaner `employee.department->name` / `*employee.department`. Query with
 `DataMapperOptions { .loadRelations = false }` when you do not want relations populated; accessing an
 unloaded relation then throws rather than issuing a query. `HasManyThrough<Other, Through>` and
 `HasOneThrough<...>` model many-to-many / one-through relationships across a junction table.
+
+### Several foreign keys into the same table
+
+A relation finds its counterpart by matching the relationship *type*, so the two members may sit at
+any index in their records. That leaves one case undecidable: a record holding **more than one**
+foreign key into the same table - a meeting referencing the person table both as its organizer and
+as whoever writes the minutes. Which of the two a `HasMany<Meeting>` means cannot be guessed, and
+guessing wrong returns wrong rows silently, so it is a compile error.
+
+Name the foreign key column to resolve it. Take a schema with both shapes at once: two direct roles
+on the meeting itself, and any number of attendees through a join table.
+
+```sql
+CREATE TABLE "Humans" (
+    "id"   BIGINT PRIMARY KEY AUTOINCREMENT,
+    "name" VARCHAR(30) NOT NULL
+);
+
+CREATE TABLE "Meetings" (
+    "id"              BIGINT PRIMARY KEY AUTOINCREMENT,
+    "topic"           VARCHAR(40) NOT NULL,
+    "organizer_id"    BIGINT NOT NULL REFERENCES "Humans"("id"),
+    "minute_taker_id" BIGINT          REFERENCES "Humans"("id")
+);
+
+-- One row per person per meeting: the many-to-many that gives a meeting many attendees.
+CREATE TABLE "Attendances" (
+    "id"         BIGINT PRIMARY KEY AUTOINCREMENT,
+    "meeting_id" BIGINT NOT NULL REFERENCES "Meetings"("id"),
+    "human_id"   BIGINT NOT NULL REFERENCES "Humans"("id")
+);
+```
+
+<!-- snippet: doc-meeting-schema -->
+```cpp
+struct Meeting;
+struct Attendance;
+
+struct Human
+{
+    static constexpr std::string_view TableName = "Humans";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<SqlAnsiString<30>> name {};
+
+    // Two columns of Meetings point back here, so each relation names the one it means.
+    HasMany<Meeting, SqlRealName { "organizer_id" }> organizedMeetings {};
+    HasMany<Meeting, SqlRealName { "minute_taker_id" }> minutedMeetings {};
+
+    // Attendance is a plain many-to-many, so no selector is needed here.
+    HasManyThrough<Meeting, Attendance> attendedMeetings {};
+};
+
+struct Meeting
+{
+    static constexpr std::string_view TableName = "Meetings";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<SqlAnsiString<40>> topic {};
+
+    // Each foreign key names its own column - exactly as it would without the second one.
+    BelongsTo<&Human::id, SqlRealName { "organizer_id" }> organizer {};
+    BelongsTo<&Human::id, SqlRealName { "minute_taker_id" }, SqlNullable::Null> minuteTaker {};
+
+    // Any number of attendees, through the join record below.
+    HasManyThrough<Human, Attendance> attendees {};
+};
+
+struct Attendance
+{
+    static constexpr std::string_view TableName = "Attendances";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    BelongsTo<&Meeting::id, SqlRealName { "meeting_id" }> meeting {};
+    BelongsTo<&Human::id, SqlRealName { "human_id" }> human {};
+};
+```
+
+Only the two ambiguous relations carry a selector; `attendedMeetings` and `attendees` resolve on
+their own, because `Attendance` holds exactly one foreign key into each table. The `BelongsTo` side
+never changes - it already names its own column.
+
+The selector is the *SQL column name*, not a pointer to the member: the two records reference each
+other, so neither type is complete where the other is declared. A name that matches no `BelongsTo`
+into that table is a compile error, so a typo cannot go unnoticed.
+
+#### Writing the rows
+
+Assigning a record to a `BelongsTo` copies its primary key, so relationships are set by handing over
+the record itself. Attendees are rows in the join table:
+
+<!-- snippet: doc-meeting-create -->
+```cpp
+dm.CreateTables<Human, Meeting, Attendance>();
+
+auto alice = Human { .name = "Alice" };
+auto bob = Human { .name = "Bob" };
+auto carol = Human { .name = "Carol" };
+for (auto* human: { &alice, &bob, &carol })
+    dm.Create(*human);
+
+// Alice calls the planning meeting; Bob writes the minutes.
+auto planning = Meeting { .topic = "Planning", .organizer = alice, .minuteTaker = bob };
+dm.Create(planning);
+
+// All three of them attend it - one join row per attendee.
+for (auto const& attendee: { alice, bob, carol })
+    dm.CreateExplicit(Attendance { .meeting = planning, .human = attendee });
+
+// Carol runs the retrospective, nobody takes minutes, and only Alice joins her.
+auto retro = Meeting { .topic = "Retrospective", .organizer = carol };
+dm.Create(retro);
+for (auto const& attendee: { carol, alice })
+    dm.CreateExplicit(Attendance { .meeting = retro, .human = attendee });
+```
+
+`dm.Create()` writes the record and fills its generated primary key back in, which is what makes
+`planning` usable as a foreign key on the very next line. Use `dm.CreateExplicit()` for rows you do
+not need to keep, such as the join rows above.
+
+#### Reading them back
+
+<!-- snippet: doc-meeting-read -->
+```cpp
+// Read a meeting with everyone involved in it.
+if (auto meeting = dm.QuerySingle<Meeting>(planningId))
+{
+    dm.ConfigureRelationAutoLoading(*meeting);
+
+    // A mandatory BelongsTo dereferences straight through.
+    std::println("{} - organized by {}", meeting->topic.Value(), meeting->organizer->name.Value());
+
+    // A nullable one yields an optional instead.
+    if (auto const scribe = meeting->minuteTaker.Record().transform(Unwrap))
+        std::println("  minutes by {}", scribe->name.Value());
+
+    std::println("  {} attendees:", meeting->attendees.Count());
+    for (auto const& attendee: meeting->attendees.All())
+        std::println("    {}", attendee->name.Value());
+}
+
+// And the same relationships read from the other side.
+if (auto human = dm.QuerySingle<Human>(aliceId))
+{
+    dm.ConfigureRelationAutoLoading(*human);
+    std::println("{} organized {}, minuted {} and attended {} meeting(s)",
+                 human->name.Value(),
+                 human->organizedMeetings.Count(),
+                 human->minutedMeetings.Count(),
+                 human->attendedMeetings.Count());
+}
+```
+
+which prints:
+
+```
+Planning - organized by Alice
+  minutes by Bob
+  3 attendees:
+    Alice
+    Bob
+    Carol
+Alice organized 1, minuted 0 and attended 2 meeting(s)
+```
+
+Each relation queries only its own foreign key: `organizedMeetings` filters on `organizer_id`,
+`minutedMeetings` on `minute_taker_id`, and `attendees` joins through `Attendances`. `Count()` costs
+a `SELECT COUNT(*)` without materialising the rows, and `Each()` streams them when the full set
+would be too large to hold.
+
+#### Self-referential relationships
+
+When both foreign keys of a join record point at the *same* table - people who know other people -
+neither end can be resolved automatically, so `HasManyThrough` takes both column names: first the one
+pointing back at the record owning the relation, then the one pointing at the record it reaches.
+
+```cpp
+struct Friendship;
+
+struct Person
+{
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id;
+    Field<SqlAnsiString<30>> name;
+
+    //                                          this person -.    .- the friend
+    HasManyThrough<Person, Friendship, SqlRealName { "a_id" }, SqlRealName { "b_id" }> friends;
+};
+
+struct Friendship
+{
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id;
+    BelongsTo<&Person::id, SqlRealName { "a_id" }> a;
+    BelongsTo<&Person::id, SqlRealName { "b_id" }> b;
+};
+```
+
+Swapping the two selectors reverses the direction the relation reads: with `"b_id"` first and
+`"a_id"` second, `friends` walks the friendships from the other end.
+
+`HasOneThrough` also takes two selectors, but they name columns on *different* records: the first one
+is the column on the join record pointing back at the owner (same as above), the second is the column
+on the *referenced* record pointing at the join record. Passing two join-record column names there is
+a compile error, not a silently reversed relation.
+
+Records with a single foreign key per relationship need no selector at all - resolution stays
+automatic, and every schema that compiled before this feature existed still does.
 
 ---
 

@@ -296,6 +296,28 @@ class BelongsTo
         return *_record;
     }
 
+    /// Adopts an eagerly fetched referenced record, marking the relationship loaded.
+    ///
+    /// This is the sink for a record that was already read from the database, as opposed to
+    /// `operator=(ReferencedRecord&)`, which *establishes* the relationship and therefore rewrites
+    /// the foreign key and sets the modified flag. Here the foreign key is already whatever the row
+    /// said it was, so it is deliberately left untouched and the field stays unmodified - adopting a
+    /// fetched value is not a pending change to be written back.
+    ///
+    /// An empty @p record leaves the relationship unloaded rather than clearing the foreign key: a
+    /// mandatory relationship whose target row is missing is a data-integrity problem to be
+    /// surfaced by the accessor, not silently turned into NULL.
+    ///
+    /// @param record The fetched record, or `std::nullopt` if the referenced row was absent.
+    LIGHTWEIGHT_FORCE_INLINE void AdoptFetchedRecord(std::optional<ReferencedRecord> record)
+    {
+        if (!record.has_value())
+            return;
+
+        _record = std::make_unique<ReferencedRecord>(std::move(record).value());
+        _loaded = true;
+    }
+
     /// Binds the foreign key value to the given output column index on the statement.
     template <typename Stmt>
     LIGHTWEIGHT_FORCE_INLINE void BindOutputColumn(SQLSMALLINT outputIndex, Stmt& stmt)

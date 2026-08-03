@@ -5,6 +5,7 @@
 #include "../SqlStatement.hpp"
 #include "../Utils.hpp"
 #include "Error.hpp"
+#include "Record.hpp"
 
 #include <compare>
 #include <memory>
@@ -15,19 +16,42 @@ namespace Lightweight
 
 /// @brief Represents a one-to-one relationship through a join table.
 ///
-/// The `OtherField` parameter is the field in the join table that references the other record.
-/// The `ThroughField` parameter is the field in the join table that references the current record.
+/// The `OtherTable` parameter is the record reached through the join table.
+/// The `ThroughTable` parameter is the join table, which references the current record.
 ///
+/// Both foreign keys are located by matching the relationship *type*. When either record holds more
+/// than one foreign key into the same table, name the column to single one out - see
+/// the RelationSelector concept and the example on @ref HasManyThrough.
+///
+/// @tparam OtherTable The record type reached through the join table.
+/// @tparam ThroughTable The join record type, holding a foreign key back to the owning record.
+/// @tparam TheOwnerSelector Singles out the join record's foreign key pointing at the *owning* record.
+/// @tparam TheThroughSelector Singles out @p OtherTable's foreign key pointing at @p ThroughTable.
+///
+/// @see DataMapper, Field, HasManyThrough, RelationSelector
 /// @ingroup DataMapper
-template <typename OtherTable, typename ThroughTable>
+template <typename OtherTable,
+          typename ThroughTable,
+          auto TheOwnerSelector = AutoDetectRelation,
+          auto TheThroughSelector = AutoDetectRelation>
 class HasOneThrough
 {
+    static_assert(RelationSelector<TheOwnerSelector> && RelationSelector<TheThroughSelector>,
+                  "The selector template arguments of HasOneThrough must be foreign key column names "
+                  "(a SqlRealName) or std::nullopt to resolve the relationship automatically.");
+
   public:
     /// The record type of the "through" side of the relationship.
     using ThroughRecord = ThroughTable;
 
     /// The record type of the "Other" side of the relationship.
     using ReferencedRecord = OtherTable;
+
+    /// Singles out the join record's foreign key pointing at the record owning this relationship.
+    static constexpr auto OwnerSelector = TheOwnerSelector;
+
+    /// Singles out @ref ReferencedRecord's foreign key pointing at @ref ThroughRecord.
+    static constexpr auto ThroughSelector = TheThroughSelector;
 
     // clang-format off
 
@@ -103,8 +127,8 @@ namespace detail
     {
     };
 
-    template <typename OtherTable, typename ThroughTable>
-    struct IsHasOneThrough<HasOneThrough<OtherTable, ThroughTable>>: std::true_type
+    template <typename OtherTable, typename ThroughTable, auto OwnerSelector, auto ThroughSelector>
+    struct IsHasOneThrough<HasOneThrough<OtherTable, ThroughTable, OwnerSelector, ThroughSelector>>: std::true_type
     {
     };
 } // namespace detail

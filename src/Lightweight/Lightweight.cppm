@@ -37,6 +37,7 @@ export module Lightweight;
 export namespace Lightweight
 {
 using Lightweight::AliasedTableName;
+using Lightweight::AutoDetectRelation;
 using Lightweight::BelongsTo;
 using Lightweight::BuildConnectionString;
 using Lightweight::ConvertWindows1252ToUtf8;
@@ -62,6 +63,8 @@ using Lightweight::HasPrimaryKey;
 using Lightweight::IndexType;
 using Lightweight::Int128; // the unscaled carrier in SqlNumeric::ToUnscaledValue()'s return type
 using Lightweight::Int64DataBinderHelper;
+using Lightweight::InverseBelongsToFieldNameOf;
+using Lightweight::InverseBelongsToIndexOf;
 using Lightweight::IsAutoIncrementPrimaryKey;
 using Lightweight::IsBelongsTo;
 using Lightweight::IsField;
@@ -97,6 +100,7 @@ using Lightweight::RecordPrimaryKeyType;
 using Lightweight::RecordStorageFieldCount;
 using Lightweight::RecordTableName;
 using Lightweight::RecordWithStorageFields;
+using Lightweight::RelationSelector;
 using Lightweight::ReferencedFieldTypeOf;
 using Lightweight::RequireSuccess;
 using Lightweight::SqlAdvisoryLockHandler;

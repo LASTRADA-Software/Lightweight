@@ -155,6 +155,178 @@ TEST_CASE("CxxModelPrinter: simple table with default settings", "[CxxModelPrint
     )cpp"));
 }
 
+TEST_CASE("CxxModelPrinter: self-referencing foreign key becomes a BelongsTo", "[CxxModelPrinter]")
+{
+    // An employee reporting to another employee - the one self-reference in the Chinook schema, and
+    // the shape that used to degrade into a plain field, losing the relationship entirely.
+    auto const employeeTable =
+        Lightweight::SqlSchema::FullyQualifiedTableName { .catalog = "", .schema = "", .table = "employee" };
+
+    auto cxxModelPrinter = CxxModelPrinter { CxxModelPrinter::Config {} };
+
+    cxxModelPrinter.PrintTable(Lightweight::SqlSchema::Table {
+        .schema = "",
+        .name = "employee",
+        .columns = {
+            Lightweight::SqlSchema::Column {
+                .name = "id",
+                .type = Lightweight::SqlColumnTypeDefinitions::Integer {},
+                .isNullable = false,
+                .isPrimaryKey = true,
+            },
+            Lightweight::SqlSchema::Column {
+                .name = "reports_to",
+                .type = Lightweight::SqlColumnTypeDefinitions::Integer {},
+                .isNullable = true,
+                .isForeignKey = true,
+            },
+        },
+        .foreignKeys = {
+            Lightweight::SqlSchema::ForeignKeyConstraint {
+                .foreignKey = { .table = employeeTable, .columns = { "reports_to" } },
+                .primaryKey = { .table = employeeTable, .columns = { "id" } },
+            },
+        },
+    });
+
+    auto const generated = cxxModelPrinter.ToString("Test");
+    INFO("Generated:\n" << generated);
+
+    // The relationship is modelled, and the self-reference pulls in no include of its own.
+    CHECK(generated.contains("Light::BelongsTo<&employee::id"));
+    CHECK(generated.contains("Light::SqlNullable::Null> reportsTo;"));
+    CHECK_FALSE(generated.contains(R"(#include "employee.hpp")"));
+}
+
+TEST_CASE("CxxModelPrinter: self-reference declared before its primary key stays a plain field", "[CxxModelPrinter]")
+{
+    // A pointer-to-member may only name a member the compiler has already seen, so a self-referencing
+    // foreign key that precedes the primary key cannot become a BelongsTo. It must fall back rather
+    // than emit code that does not compile.
+    auto const nodeTable = Lightweight::SqlSchema::FullyQualifiedTableName { .catalog = "", .schema = "", .table = "node" };
+
+    auto cxxModelPrinter = CxxModelPrinter { CxxModelPrinter::Config {} };
+
+    cxxModelPrinter.PrintTable(Lightweight::SqlSchema::Table {
+        .schema = "",
+        .name = "node",
+        .columns = {
+            Lightweight::SqlSchema::Column {
+                .name = "parent_id",
+                .type = Lightweight::SqlColumnTypeDefinitions::Integer {},
+                .isNullable = true,
+                .isForeignKey = true,
+            },
+            Lightweight::SqlSchema::Column {
+                .name = "id",
+                .type = Lightweight::SqlColumnTypeDefinitions::Integer {},
+                .isNullable = false,
+                .isPrimaryKey = true,
+            },
+        },
+        .foreignKeys = {
+            Lightweight::SqlSchema::ForeignKeyConstraint {
+                .foreignKey = { .table = nodeTable, .columns = { "parent_id" } },
+                .primaryKey = { .table = nodeTable, .columns = { "id" } },
+            },
+        },
+    });
+
+    auto const generated = cxxModelPrinter.ToString("Test");
+    INFO("Generated:\n" << generated);
+
+    CHECK_FALSE(generated.contains("BelongsTo"));
+    CHECK(generated.contains("parentId"));
+}
+
+TEST_CASE("CxxModelPrinter: self-reference into a non-primary-key column stays a plain field", "[CxxModelPrinter]")
+{
+    // PostgreSQL and SQL Server allow a foreign key to target any UNIQUE NOT NULL column, but
+    // `BelongsTo` static_asserts that the member it points at is a primary key. Such a column has to
+    // fall back to a plain field rather than emit a struct that fails to compile.
+    auto const docTable = Lightweight::SqlSchema::FullyQualifiedTableName { .catalog = "", .schema = "", .table = "doc" };
+
+    auto cxxModelPrinter = CxxModelPrinter { CxxModelPrinter::Config {} };
+
+    cxxModelPrinter.PrintTable(Lightweight::SqlSchema::Table {
+        .schema = "",
+        .name = "doc",
+        .columns = {
+            Lightweight::SqlSchema::Column {
+                .name = "id",
+                .type = Lightweight::SqlColumnTypeDefinitions::Integer {},
+                .isNullable = false,
+                .isPrimaryKey = true,
+            },
+            Lightweight::SqlSchema::Column {
+                .name = "code",
+                .type = Lightweight::SqlColumnTypeDefinitions::Integer {},
+                .isNullable = false,
+            },
+            Lightweight::SqlSchema::Column {
+                .name = "parent_code",
+                .type = Lightweight::SqlColumnTypeDefinitions::Integer {},
+                .isNullable = true,
+                .isForeignKey = true,
+            },
+        },
+        .foreignKeys = {
+            Lightweight::SqlSchema::ForeignKeyConstraint {
+                .foreignKey = { .table = docTable, .columns = { "parent_code" } },
+                .primaryKey = { .table = docTable, .columns = { "code" } },
+            },
+        },
+    });
+
+    auto const generated = cxxModelPrinter.ToString("Test");
+    INFO("Generated:\n" << generated);
+
+    CHECK_FALSE(generated.contains("BelongsTo"));
+    CHECK(generated.contains("parentCode"));
+}
+
+TEST_CASE("CxxModelPrinter: self-reference names the primary key member as it was emitted", "[CxxModelPrinter]")
+{
+    // The primary key member is emitted through SanitizeName, so a column named after a C++ keyword
+    // becomes `class_`. The member pointer of the self-referencing BelongsTo must name that very
+    // identifier, not the raw column name.
+    auto const thingTable =
+        Lightweight::SqlSchema::FullyQualifiedTableName { .catalog = "", .schema = "", .table = "thing" };
+
+    auto cxxModelPrinter = CxxModelPrinter { CxxModelPrinter::Config {} };
+
+    cxxModelPrinter.PrintTable(Lightweight::SqlSchema::Table {
+        .schema = "",
+        .name = "thing",
+        .columns = {
+            Lightweight::SqlSchema::Column {
+                .name = "class",
+                .type = Lightweight::SqlColumnTypeDefinitions::Integer {},
+                .isNullable = false,
+                .isPrimaryKey = true,
+            },
+            Lightweight::SqlSchema::Column {
+                .name = "parent_class",
+                .type = Lightweight::SqlColumnTypeDefinitions::Integer {},
+                .isNullable = true,
+                .isForeignKey = true,
+            },
+        },
+        .foreignKeys = {
+            Lightweight::SqlSchema::ForeignKeyConstraint {
+                .foreignKey = { .table = thingTable, .columns = { "parent_class" } },
+                .primaryKey = { .table = thingTable, .columns = { "class" } },
+            },
+        },
+    });
+
+    auto const generated = cxxModelPrinter.ToString("Test");
+    INFO("Generated:\n" << generated);
+
+    CHECK(generated.contains("Light::BelongsTo<&thing::class_"));
+    CHECK_FALSE(generated.contains("&thing::class,"));
+}
+
 // ================================================================================================
 // CxxModelPrinter::SanitizeName: C++ reserved keyword handling
 // ================================================================================================

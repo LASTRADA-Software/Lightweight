@@ -16,7 +16,7 @@ struct Employee final
     Light::Field<Light::SqlDynamicUtf16String<20>, Light::SqlRealName { "LastName" }> LastName;
     Light::Field<Light::SqlDynamicUtf16String<20>, Light::SqlRealName { "FirstName" }> FirstName;
     Light::Field<std::optional<Light::SqlDynamicUtf16String<30>>, Light::SqlRealName { "Title" }> Title;
-    Light::Field<std::optional<int32_t>, Light::SqlRealName { "ReportsTo" }> ReportsTo; // NB: This is also a foreign key
+    Light::BelongsTo<&Employee::EmployeeId, Light::SqlRealName { "ReportsTo" }, Light::SqlNullable::Null> ReportsTo;
     Light::Field<std::optional<Light::SqlDateTime>, Light::SqlRealName { "BirthDate" }> BirthDate;
     Light::Field<std::optional<Light::SqlDateTime>, Light::SqlRealName { "HireDate" }> HireDate;
     Light::Field<std::optional<Light::SqlDynamicUtf16String<70>>, Light::SqlRealName { "Address" }> Address;

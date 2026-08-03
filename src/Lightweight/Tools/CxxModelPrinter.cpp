@@ -697,6 +697,26 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table)
         return false;
     };
 
+    // A self-referencing foreign key can be modelled as a `BelongsTo` only when the primary key it
+    // points at is declared *before* it: the member pointer names a member of the very struct being
+    // defined, which the compiler only accepts for members already seen. When the column order does
+    // not allow it, the column falls back to a plain field (see the fallback at the end of the loop).
+    auto const columnPosition = [&](std::string_view columnName) {
+        return std::ranges::find(table.columns, columnName, &SqlSchema::Column::name) - table.columns.begin();
+    };
+    auto const selfReferenceIsDeclarable = [&](auto const& column) {
+        auto const& foreignKey = GetForeignKey(column, table.foreignKeys);
+        if (foreignKey.primaryKey.columns.size() != 1)
+            return false;
+        // `BelongsTo` static_asserts that the member it points at is a primary key, so a self-reference
+        // into a merely UNIQUE column cannot be modelled as one.
+        auto const referenced =
+            std::ranges::find(table.columns, foreignKey.primaryKey.columns.at(0), &SqlSchema::Column::name);
+        if (referenced == table.columns.end() || !referenced->isPrimaryKey)
+            return false;
+        return referenced - table.columns.begin() < columnPosition(column.name);
+    };
+
     definition.structName = aliasTableName(table.name);
     definition.text << std::format("struct {} final\n", definition.structName);
     definition.text << std::format("{{\n");
@@ -720,7 +740,7 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table)
 
         ++_numberOfColumnsListed;
 
-        if (column.isForeignKey && !column.isPrimaryKey && !selfReferencing(column))
+        if (column.isForeignKey && !column.isPrimaryKey && (!selfReferencing(column) || selfReferenceIsDeclarable(column)))
         {
             auto const& foreignKey = GetForeignKey(column, table.foreignKeys);
             if (foreignKey.primaryKey.columns.size() == 1)
@@ -735,12 +755,21 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table)
                         })
                         .value();
                 auto const emittedName = uniqueMemberNameBuilder.DeclareName(relationName);
+                // For a self-reference the referenced primary key member was already emitted into this very
+                // struct, and sanitization or de-duplication may have changed its identifier - reuse the name
+                // it actually got instead of re-deriving it from the column name.
+                auto const referencedMemberName = [&] {
+                    auto const& referencedColumn = foreignKey.primaryKey.columns.at(0);
+                    if (selfReferencing(column))
+                        if (auto const member = std::ranges::find(
+                                definition.members, referencedColumn, &std::pair<std::string, std::string>::second);
+                            member != definition.members.end())
+                            return member->first;
+                    return FormatName(referencedColumn, _config.formatType);
+                }();
                 definition.text << std::format(
                     "    Light::BelongsTo<&{}{}{}> {};\n",
-                    [&] {
-                        return std::format(
-                            "{}::{}", foreignTableName, FormatName(foreignKey.primaryKey.columns.at(0), _config.formatType));
-                    }(),
+                    std::format("{}::{}", foreignTableName, referencedMemberName),
                     aliasNameOrNullopt(foreignKey.foreignKey.columns.at(0)),
                     [&] {
                         if (column.isNullable)
@@ -750,7 +779,9 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table)
                     }(),
                     emittedName);
                 definition.members.emplace_back(emittedName, column.name);
-                definition.requiredTables.emplace(std::move(foreignTableName));
+                // A self-reference needs no include: the referenced struct is the one being defined.
+                if (!selfReferencing(column))
+                    definition.requiredTables.emplace(std::move(foreignTableName));
                 ++_numberOfForeignKeysListed;
                 continue;
             }
