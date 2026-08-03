@@ -335,7 +335,6 @@ Rectangle {
                 CheckBox {
                     id: backupFirstCheckBox
                     text: qsTr("Back up database first")
-                    enabled: AppController.backupRestoreEnabled
                     checked: root.backupFirst
                     onCheckedChanged: root.backupFirst = checked
                     ToolTip.visible: hovered
@@ -349,6 +348,12 @@ Rectangle {
                     highlighted: true
                     font.pixelSize: 15
                     padding: 12
+                    // Mirrors the mutual busy guard in C++: a migration started
+                    // during a managed backup (or an ad-hoc backup/restore)
+                    // would rewrite the schema the archive is being read from.
+                    enabled: AppController.runner.phase === MigrationRunner.Idle
+                             && AppController.backupRunner.phase === BackupRunner.Idle
+                             && AppController.managedBackups.phase === ManagedBackupController.Idle
                     onClicked: {
                         root.lastResult = "none"
                         if (root.backupFirst) {
@@ -548,6 +553,9 @@ Rectangle {
                         text: qsTr("Retry")
                         highlighted: true
                         enabled: AppController.pendingCount > 0
+                                 && AppController.runner.phase === MigrationRunner.Idle
+                                 && AppController.backupRunner.phase === BackupRunner.Idle
+                                 && AppController.managedBackups.phase === ManagedBackupController.Idle
                         onClicked: {
                             root.lastResult = "none"
                             AppController.runner.applyUpTo("")

@@ -410,7 +410,7 @@ void RestoreIndexes(SqlConnectionString const& connectionString,
                     std::map<std::string, TableInfo> const& tableMap,
                     ProgressManager& progress)
 {
-    SqlConnection conn;
+    SqlConnection conn { std::nullopt };
     if (!conn.Connect(connectionString))
     {
         progress.Update({ .state = Progress::State::Error,
@@ -476,7 +476,7 @@ void ApplyDatabaseConstraints(SqlConnectionString const& connectionString,
                               std::map<std::string, TableInfo> const& tableMap,
                               ProgressManager& progress)
 {
-    SqlConnection conn;
+    SqlConnection conn { std::nullopt };
     if (!conn.Connect(connectionString))
     {
         progress.Update({ .state = Progress::State::Error,
@@ -722,7 +722,7 @@ std::set<std::string> RecreateDatabaseSchema(SqlConnectionString const& connecti
                                              std::map<std::string, TableInfo> const& tableMap,
                                              ProgressManager& progress)
 {
-    SqlConnection conn;
+    SqlConnection conn { std::nullopt };
     if (!conn.Connect(connectionString))
     {
         progress.Update({ .state = Progress::State::Error,

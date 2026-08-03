@@ -30,7 +30,7 @@ The `metadata.json` file is a JSON object with the following fields:
 | --- | --- | --- |
 | `format_version` | String | The backup format version (e.g., `1.0`). |
 | `creation_time` | ISO 8601 String | Timestamp of when the backup was created (e.g., `2024-01-01T12:00:00Z`). |
-| `original_connection_string` | String | The connection string used to create the backup. |
+| `original_connection_string` | String | The connection string used to create the backup, with `PWD`/`Password` attribute values redacted to `***`. Redaction parses the string attribute-wise and honours ODBC `{...}` quoting, so a brace-quoted password containing `;` (`PWD={pa;ss}`) is masked whole. Diagnostic only — it is not read back at restore time. |
 | `schema_name` | String | The database schema name (e.g., `dbo` for SQL Server). |
 | `server` | Object | Server identification information. |
 | `schema` | Array | A list of table definitions. |

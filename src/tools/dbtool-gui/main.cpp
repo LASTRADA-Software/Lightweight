@@ -123,18 +123,12 @@ int main(int argc, char* argv[])
         QStringLiteral("Color theme: dark, light, or system (follow the OS). Persisted across runs."),
         QStringLiteral("mode"));
     parser.addOption(themeOpt);
-    QCommandLineOption const enableBackupRestoreOpt(
-        QStringLiteral("enable-backup-restore"),
-        QStringLiteral("Enable the experimental backup/restore UI. "
-                       "Disabled by default — the feature is not yet fully implemented."));
-    parser.addOption(enableBackupRestoreOpt);
     QCommandLineOption const verboseOpt(
         { QStringLiteral("v"), QStringLiteral("verbose") },
         QStringLiteral("Emit informational messages (e.g. shadowed plugins) via qInfo() to stderr."));
     parser.addOption(verboseOpt);
     parser.process(app);
 
-    DbtoolGui::AppController::SeedBackupRestoreEnabled(parser.isSet(enableBackupRestoreOpt));
     DbtoolGui::AppController::SeedVerbose(parser.isSet(verboseOpt));
 
     // QSettings requires the organization/application names set above; the

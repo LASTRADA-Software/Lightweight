@@ -57,6 +57,21 @@ QtObject {
     readonly property color infoSoft:  dark ? "#1a345a" : "#dbeafe"
     readonly property color infoText:  dark ? "#93c5fd" : "#0a66d6"
 
+    // Shape scale. Radii were previously hard-coded per call site (6 for
+    // inputs and banners, 10 for panels, 999 for pills), which drifted as
+    // components were added. Naming them keeps a new component consistent by
+    // default and makes a global adjustment one edit.
+    readonly property real radiusSmall: 6   // inputs, banners, buttons, table rows
+    readonly property real radiusMedium: 8  // nested boxes
+    readonly property real radiusLarge: 12  // top-level panels
+    readonly property real radiusPill: 999  // pills and progress tracks
+
+    // Single elevation step, used to lift panels and raised buttons off the
+    // page. Kept to one level on purpose: a second shadow depth on a dense
+    // data UI reads as noise rather than hierarchy.
+    readonly property color shadow: dark ? Qt.rgba(0, 0, 0, 0.35)
+                                         : Qt.rgba(0.06, 0.09, 0.16, 0.05)
+
     // Monospace font fallback chain. Must be assigned via `font.families`
     // (the list-valued property) — `font.family` accepts only a single
     // family name and would treat a comma-joined string as one literal

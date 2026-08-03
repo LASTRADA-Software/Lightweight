@@ -55,6 +55,14 @@ class MigrationRunner: public QObject
 
     void SetManager(Lightweight::SqlMigration::MigrationManager* manager) noexcept;
 
+    /// Injects the "is some other runner busy?" probe consulted before any
+    /// *mutating* run (apply / rollback) starts. Migrations, ad-hoc backups
+    /// and managed backups all touch the same database, so a migration that
+    /// starts mid-backup tears the archive being written. Defaults to
+    /// "never busy". Dry-runs are read-only and are not gated.
+    /// @param probe Callable returning true to veto a new run.
+    void setBusyProbe(std::function<bool()> probe);
+
     /// Dry-run / apply up to an inclusive target timestamp. An empty or
     /// "0" target applies every pending migration — same semantics as
     /// `dbtool migrate`. Non-empty targets filter pending migrations to
@@ -112,7 +120,15 @@ class MigrationRunner: public QObject
   private:
     void Enqueue(std::function<void()> task);
 
+    /// Entry guard shared by every mutating run: refuses when no manager is
+    /// wired, a run is already in flight, or the busy probe vetoes (logging a
+    /// warning in the latter case so the refusal is visible).
+    /// @param what Short label used in the logged refusal message.
+    /// @return True when it is safe to start a run.
+    [[nodiscard]] bool CanStartMutatingRun(char const* what);
+
     Lightweight::SqlMigration::MigrationManager* _manager = nullptr;
+    std::function<bool()> _busyProbe;
     QThreadPool _pool;
     std::atomic<Phase> _phase { Phase::Idle };
     std::atomic<bool> _cancelRequested { false };

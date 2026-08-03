@@ -21,6 +21,13 @@ DLL or shared object they need. They do **not** include an ODBC driver — you
 must install the appropriate driver for your database separately (e.g.,
 Microsoft ODBC Driver for SQL Server, PostgreSQL ODBC, or SQLite ODBC).
 
+`dbtool-gui` additionally offers **managed backups**: pick a single folder on
+the Settings page and the Backups page keeps one `<profile>.zip` per
+configured profile there, with one-click "back up all", safe atomic
+overwrite, and restore into any profile or an ad-hoc connection string. See
+`src/tools/dbtool-gui/README.md` for details; this is a GUI-only convenience
+layer over the same `backup`/`restore` primitives described below.
+
 | Platform           | Artifact                          | Install command                                     |
 |--------------------|-----------------------------------|------------------------------------------------------|
 | Windows (x86_64)   | `Lightweight-<version>-win64.msi` | `msiexec /i Lightweight-<version>-win64.msi`         |

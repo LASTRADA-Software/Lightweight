@@ -236,6 +236,24 @@ struct ProgressManager
     {
         (void) count;
     }
+
+    /// Announces how many tables the operation will process, once, before any
+    /// per-table `Update()` is emitted.
+    ///
+    /// Backup knows the complete table set after its schema scan and Restore
+    /// after reading the archive manifest, i.e. both know the denominator before
+    /// any data moves. Without this hook a consumer can only count the distinct
+    /// table names it has seen so far, so a progress readout of the form
+    /// "processed / total" has a total that climbs as tables are discovered —
+    /// the GUI's per-table panel showed "12 / 12" then "12 / 47" then "12 / 700"
+    /// on the same run, which reads as the job getting bigger rather than as
+    /// progress being made.
+    ///
+    /// @param totalTables Number of tables that will be processed.
+    virtual void SetTotalTables(size_t totalTables)
+    {
+        (void) totalTables;
+    }
 };
 
 /// Base class for progress managers that tracks errors automatically.
@@ -324,6 +342,26 @@ LIGHTWEIGHT_API void Restore(std::filesystem::path const& inputFile,
                              std::string const& tableFilter,
                              RetrySettings const& retrySettings,
                              RestoreSettings const& restoreSettings);
+
+/// Returns a copy of `connectionString` with the values of `PWD=` and
+/// `Password=` attributes replaced by `***`.
+///
+/// The string is parsed attribute-wise (`KEY=VALUE` pairs separated by `;`)
+/// following ODBC's quoting rules, so redaction is not fooled by:
+/// - brace-quoted values — `PWD={pa;ss}` masks the whole `{...}` group,
+///   including the embedded `;`, and a `;` inside any other brace-quoted value
+///   (e.g. a driver name) does not start a new attribute;
+/// - whitespace after a separator — `...; PWD=secret` is still matched.
+///
+/// Key matching is case-insensitive and only ever matches a whole attribute
+/// name, never a substring of another key (`MyPWD=`) or of a value
+/// (`Database=PasswordVault`). Applied by CreateMetadata() so a
+/// secretRef-resolved plaintext password never lands in an archive's
+/// metadata.json (mirrors dbtool's `list-profiles` redaction).
+///
+/// @param connectionString Raw ODBC connection string.
+/// @return The connection string with password values masked.
+[[nodiscard]] LIGHTWEIGHT_API std::string RedactConnectionStringSecrets(std::string_view connectionString);
 
 /// Creates the metadata JSON content.
 ///

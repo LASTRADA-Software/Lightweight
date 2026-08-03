@@ -52,11 +52,6 @@ namespace
 
     AppController* g_instance = nullptr;
 
-    /// Initial value for `AppController::_backupRestoreEnabled`. Set by
-    /// `AppController::SeedBackupRestoreEnabled` from `main.cpp` after the
-    /// command line is parsed, and consumed by the singleton's constructor.
-    bool s_initialBackupRestoreEnabled = false;
-
     /// Initial value for `AppController::_verbose`. Mirror of the
     /// `--verbose`/`-v` CLI flag; consumed by the singleton's constructor.
     bool s_initialVerbose = false;
@@ -140,11 +135,6 @@ namespace
 
 } // namespace
 
-void AppController::SeedBackupRestoreEnabled(bool enabled) noexcept
-{
-    s_initialBackupRestoreEnabled = enabled;
-}
-
 void AppController::SeedVerbose(bool enabled) noexcept
 {
     s_initialVerbose = enabled;
@@ -152,12 +142,10 @@ void AppController::SeedVerbose(bool enabled) noexcept
 
 AppController::AppController(QObject* parent):
     QObject(parent),
-    _backupRestoreEnabled(s_initialBackupRestoreEnabled),
     _verbose(s_initialVerbose),
     _plugins(std::make_unique<PluginsBundle>())
 {
     _runner.SetManager(&Lightweight::SqlMigration::MigrationManager::GetInstance());
-    _backupRunner.setEnabled(_backupRestoreEnabled);
 
     QObject::connect(&_migrations, &MigrationListModel::selectionChanged, this, &AppController::selectionChanged);
 
@@ -217,6 +205,25 @@ AppController::AppController(QObject* parent):
     // events surface in the same feed as the startup banner.
     QObject::connect(&_runner, &MigrationRunner::logLine, this, &AppController::logLine);
     QObject::connect(&_backupRunner, &BackupRunner::logLine, this, &AppController::logLine);
+    QObject::connect(&_managedBackups, &ManagedBackupController::logLine, this, [this](QString const& line, LogLevel level) {
+        Log(level, line);
+    });
+    // The three runners all touch the same databases, so each refuses to start
+    // while either of the others is in flight. The guard MUST be mutual: a
+    // one-way probe (only managed backups checking the others) still lets a
+    // migration or an ad-hoc restore run *during* a managed backup, which
+    // produces a torn archive that is then committed and marked "ok".
+    _managedBackups.setBusyProbe([this] {
+        return _runner.phase() != MigrationRunner::Phase::Idle || _backupRunner.phase() != BackupRunner::Phase::Idle;
+    });
+    _runner.setBusyProbe([this] {
+        return _managedBackups.phase() != ManagedBackupController::Phase::Idle
+               || _backupRunner.phase() != BackupRunner::Phase::Idle;
+    });
+    _backupRunner.setBusyProbe([this] {
+        return _managedBackups.phase() != ManagedBackupController::Phase::Idle
+               || _runner.phase() != MigrationRunner::Phase::Idle;
+    });
     // After a run finishes, do one authoritative refresh. `Refresh` touches
     // schema_migrations and will throw on an unmanaged database — we fall
     // back to `RefreshPluginsOnly` in that case. An uncaught exception
@@ -228,28 +235,19 @@ AppController::AppController(QObject* parent):
             _lastFailedTimestamp.clear();
             _lastFailedTitle.clear();
         }
-        auto& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
-        try
-        {
-            _migrations.Refresh(manager);
-            _releases.Refresh(manager);
-        }
-        catch (std::exception const& e)
-        {
-            _lastWarning = QStringLiteral("Could not refresh migration list: %1").arg(ExceptionMessage(e));
-            emit lastWarningChanged();
-            try
-            {
-                _migrations.RefreshPluginsOnly(manager);
-                _releases.Refresh(manager);
-            }
-            catch (std::exception const&)
-            {
-                // Even the plugin-only refresh failed — leave the model alone.
-            }
-        }
-        emit migrationsChanged();
+        RefreshMigrationModelsAfterRun();
     });
+    // A managed restore rewrites the target database, so a restore into the
+    // connected profile leaves the migration list showing the pre-restore
+    // applied-set. Mirror the runner's post-run refresh so the list re-reads
+    // `schema_migrations` once the restore succeeds. Only on success and only
+    // while connected — an unconnected refresh has nothing new to read, and a
+    // failed run did not change the database.
+    QObject::connect(
+        &_managedBackups, &ManagedBackupController::finished, this, [this](bool ok, QString const& /*summary*/) {
+            if (ok && _connected)
+                RefreshMigrationModelsAfterRun();
+        });
 
     _fileWatcher = new QFileSystemWatcher(this);
     QObject::connect(_fileWatcher, &QFileSystemWatcher::fileChanged, this, &AppController::OnProfileFileChanged);
@@ -568,6 +566,7 @@ bool AppController::loadProfiles(QString const& path)
     }
     _store = std::move(*result);
     _profiles.ReplaceFrom(_store);
+    _managedBackups.setProfiles(_store.Profiles());
     if (_currentProfile.isEmpty())
         setCurrentProfile(QString::fromStdString(_store.DefaultProfileName()));
 
@@ -1208,6 +1207,35 @@ void AppController::InvalidateConnectionTarget()
     _connected = false;
     emit connectedChanged();
     LogInfo(QStringLiteral("Disconnected."));
+}
+
+void AppController::RefreshMigrationModelsAfterRun()
+{
+    // `Refresh` touches schema_migrations and will throw on an unmanaged
+    // database — we fall back to `RefreshPluginsOnly` in that case. An uncaught
+    // exception here would propagate into Qt's signal dispatcher and terminate
+    // the process (observed as `abort()` on Windows).
+    auto& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
+    try
+    {
+        _migrations.Refresh(manager);
+        _releases.Refresh(manager);
+    }
+    catch (std::exception const& e)
+    {
+        _lastWarning = QStringLiteral("Could not refresh migration list: %1").arg(ExceptionMessage(e));
+        emit lastWarningChanged();
+        try
+        {
+            _migrations.RefreshPluginsOnly(manager);
+            _releases.Refresh(manager);
+        }
+        catch (std::exception const&)
+        {
+            // Even the plugin-only refresh failed — leave the model alone.
+        }
+    }
+    emit migrationsChanged();
 }
 
 void AppController::ReloadPlugins()

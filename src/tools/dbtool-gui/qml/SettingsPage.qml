@@ -2,16 +2,18 @@
 //
 // Full-page settings view. Opened from the toolbar's Settings button (Expert
 // view only) and dismissed via the Done button which flips Main.qml's
-// `showSettings` flag back to false. Three sections, each rendered as a
+// `showSettings` flag back to false. Four sections, each rendered as a
 // `Card`:
 //
 //   1. Profiles file — TextField for the `dbtool.yml` path with Browse / Reset.
 //      Empty path means "use the platform default" — surfaced as placeholder.
 //   2. Plugins directory — reuses the existing `PluginsDirField` component.
-//   3. Theme — radio group bound to `ThemeController.mode`.
+//   3. Backups folder — TextField for the managed-backups output directory,
+//      with Browse / Reset. Empty means "use the platform default".
+//   4. Theme — radio group bound to `ThemeController.mode`.
 //
-// All three settings persist through QSettings (handled in C++): no save /
-// cancel here — every change is immediate, matching the rest of the GUI.
+// All settings persist through QSettings (handled in C++): no save / cancel
+// here — every change is immediate, matching the rest of the GUI.
 
 import QtQuick
 import QtQuick.Controls
@@ -144,7 +146,62 @@ Rectangle {
                 PluginsDirField { width: parent.width }
             }
 
-            // --- 3. Theme ---
+            // --- 3. Backups folder ---
+            Card {
+                Layout.fillWidth: true
+                Layout.leftMargin: 16
+                Layout.rightMargin: 16
+
+                Label {
+                    width: parent.width
+                    text: qsTr("Backups folder")
+                    color: Theme.text
+                    font.pixelSize: 14
+                    font.weight: Font.DemiBold
+                }
+                Label {
+                    width: parent.width
+                    text: qsTr("Folder that <b>Backup all</b> writes one archive per profile into. Leave empty to use the platform default.")
+                    color: Theme.textMuted
+                    font.pixelSize: 11
+                    wrapMode: Text.WordWrap
+                    textFormat: Text.RichText
+                }
+                Row {
+                    width: parent.width
+                    spacing: 6
+                    TextField {
+                        id: backupFolderField
+                        width: parent.width - backupBrowseButton.width - backupResetButton.width - 12
+                        placeholderText: AppController.managedBackups.defaultBackupFolder
+                        text: AppController.managedBackups.backupFolder
+                        font: Theme.monoFont(12)
+                        onEditingFinished: AppController.managedBackups.setBackupFolder(text)
+                    }
+                    Button {
+                        id: backupBrowseButton
+                        text: qsTr("Browse…")
+                        onClicked: backupFolderDialog.open()
+                    }
+                    Button {
+                        id: backupResetButton
+                        text: qsTr("Reset")
+                        onClicked: {
+                            backupFolderField.text = "";
+                            AppController.managedBackups.setBackupFolder("");
+                        }
+                    }
+                }
+                Label {
+                    width: parent.width
+                    text: qsTr("Default: %1").arg(AppController.managedBackups.defaultBackupFolder)
+                    color: Theme.textFaint
+                    font.pixelSize: 10
+                    elide: Text.ElideMiddle
+                }
+            }
+
+            // --- 4. Theme ---
             Card {
                 Layout.fillWidth: true
                 Layout.leftMargin: 16
@@ -215,6 +272,26 @@ Rectangle {
             const decoded = decodeURIComponent(localPath);
             storePathField.text = decoded;
             AppController.setProfileStorePath(decoded);
+        }
+    }
+
+    FolderDialog {
+        id: backupFolderDialog
+        title: qsTr("Select backups folder")
+        currentFolder: {
+            const cur = AppController.managedBackups.backupFolder.length > 0
+                ? AppController.managedBackups.backupFolder
+                : AppController.managedBackups.defaultBackupFolder;
+            return cur.length > 0 ? Qt.resolvedUrl("file:///" + cur) : "";
+        }
+        onAccepted: {
+            const url = selectedFolder.toString();
+            const localPath = Qt.platform.os === "windows"
+                ? url.replace(/^file:\/{2,3}/, "")
+                : url.replace(/^file:\/{2}/, "");
+            const decoded = decodeURIComponent(localPath);
+            backupFolderField.text = decoded;
+            AppController.managedBackups.setBackupFolder(decoded);
         }
     }
 }

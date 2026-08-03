@@ -105,6 +105,25 @@ void MigrationRunner::SetManager(Lightweight::SqlMigration::MigrationManager* ma
     _manager = manager;
 }
 
+void MigrationRunner::setBusyProbe(std::function<bool()> probe)
+{
+    _busyProbe = std::move(probe);
+}
+
+bool MigrationRunner::CanStartMutatingRun(char const* what)
+{
+    if (!_manager || phase() != Phase::Idle)
+        return false;
+    if (_busyProbe && _busyProbe())
+    {
+        emit logLine(
+            QStringLiteral("%1: another operation is busy (backup or restore in progress?).").arg(QLatin1String(what)),
+            LogLevel::Warning);
+        return false;
+    }
+    return true;
+}
+
 void MigrationRunner::Enqueue(std::function<void()> task)
 {
     _pool.start(new FunctionTask(std::move(task)));
@@ -264,7 +283,7 @@ void MigrationRunner::dryRunUpTo(QString const& targetTimestamp)
 
 void MigrationRunner::applyUpTo(QString const& targetTimestamp)
 {
-    if (!_manager || phase() != Phase::Idle)
+    if (!CanStartMutatingRun("Apply migrations"))
         return;
     SetPhase(Phase::Running);
     _cancelRequested.store(false, std::memory_order_release);
@@ -361,7 +380,7 @@ void MigrationRunner::dryRunSelected(QStringList const& timestamps)
 
 void MigrationRunner::applySelected(QStringList const& timestamps)
 {
-    if (!_manager || phase() != Phase::Idle)
+    if (!CanStartMutatingRun("Apply migrations"))
         return;
     SetPhase(Phase::Running);
     _cancelRequested.store(false, std::memory_order_release);
@@ -421,7 +440,7 @@ void MigrationRunner::applySelected(QStringList const& timestamps)
 
 void MigrationRunner::rollbackToRelease(QString const& version)
 {
-    if (!_manager || phase() != Phase::Idle)
+    if (!CanStartMutatingRun("Rollback"))
         return;
     SetPhase(Phase::Running);
     _cancelRequested.store(false, std::memory_order_release);

@@ -1,0 +1,24 @@
+// Embeds the application manifest as an RT_MANIFEST resource, verbatim, for
+// the dbtool-gui-tests and dbtool-gui-qmltest executables.
+//
+// WHY: qt_add_executable's Windows finaliser synthesises its own manifest
+// and hands it to the linker through lld-link's /MANIFEST:EMBED
+// /MANIFESTINPUT:. lld-link's manifest *merge* re-serialises
+// <requestedExecutionLevel> into the asm.v2 namespace, which the Windows SxS
+// loader rejects at process startup ("the required attribute level is
+// missing from element requestedExecutionLevel"). This is the same lld-link
+// bug already fixed for the `dbtool-gui` target (see commit f60871ff and
+// ../dbtool-gui.rc / ../CMakeLists.txt for the full rationale). Embedding the
+// manifest through an .rc resource instead copies the bytes verbatim (no
+// merge, no re-serialisation), so the namespaces survive and the test
+// executables can actually launch.
+//
+// The manifest itself is shared with the `dbtool-gui` executable — there is
+// nothing test-specific about it — so this .rc references the parent
+// directory's ../dbtool-gui.manifest rather than duplicating it. The RC
+// compiler resolves relative paths against the .rc file's own directory.
+//
+// 1 is CREATEPROCESS_MANIFEST_RESOURCE_ID; 24 is RT_MANIFEST.
+#include <winuser.h>
+
+CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "../dbtool-gui.manifest"

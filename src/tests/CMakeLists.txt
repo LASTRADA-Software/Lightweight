@@ -95,6 +95,7 @@ set(SOURCE_FILES
     SqlBackup/MsgPackChunkFormatsTests.cpp
     SqlBackup/MultiPkTests.cpp
     SqlBackup/Benchmarks.cpp
+    SqlBackup/MetadataRedactionTests.cpp
     SqlBackup/ParseSchemaTests.cpp
     SqlBackup/RobustnessTests.cpp
     SqlBackup/Sha256Tests.cpp

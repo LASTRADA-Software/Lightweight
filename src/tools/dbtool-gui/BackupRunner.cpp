@@ -64,13 +64,15 @@ namespace
             auto const level = p.state == Lightweight::SqlBackup::Progress::State::Error     ? LogLevel::Error
                                : p.state == Lightweight::SqlBackup::Progress::State::Warning ? LogLevel::Warning
                                                                                              : LogLevel::Info;
+            // Queue the signal by name directly on the target: the pointer is
+            // read now (on the worker thread), and the QString/LogLevel args
+            // are copied into the queued event. The manager is a stack local
+            // in runBackup()/runRestore() that may be destroyed the instant
+            // Backup()/Restore() returns, so capturing `this` in a deferred
+            // lambda (as an earlier version did) would dereference freed
+            // storage on the GUI thread. Nothing here outlives this call.
             QMetaObject::invokeMethod(
-                _target,
-                [this, msg, level] {
-                    QMetaObject::invokeMethod(
-                        _target, "logLine", Qt::DirectConnection, Q_ARG(QString, msg), Q_ARG(DbtoolGui::LogLevel, level));
-                },
-                Qt::QueuedConnection);
+                _target, "logLine", Qt::QueuedConnection, Q_ARG(QString, msg), Q_ARG(DbtoolGui::LogLevel, level));
         }
 
         void AllDone() override {}
@@ -112,14 +114,28 @@ void BackupRunner::setConnectionString(QString const& connectionString)
     _connectionString = connectionString;
 }
 
+void BackupRunner::setBusyProbe(std::function<bool()> probe)
+{
+    _busyProbe = std::move(probe);
+}
+
+bool BackupRunner::CanStartRun(char const* what)
+{
+    if (phase() != Phase::Idle)
+        return false;
+    if (_busyProbe && _busyProbe())
+    {
+        emit logLine(QStringLiteral("%1: another operation is busy (migration or managed backup in progress?).")
+                         .arg(QLatin1String(what)),
+                     LogLevel::Warning);
+        return false;
+    }
+    return true;
+}
+
 void BackupRunner::runBackup(QString const& outputFile)
 {
-    if (!_enabled)
-    {
-        qWarning() << "BackupRunner: backup/restore is disabled in this session.";
-        return;
-    }
-    if (phase() != Phase::Idle)
+    if (!CanStartRun("Backup"))
         return;
     _phase.store(Phase::Running, std::memory_order_release);
     emit phaseChanged();
@@ -156,12 +172,7 @@ void BackupRunner::runBackup(QString const& outputFile)
 
 void BackupRunner::runRestore(QString const& inputFile)
 {
-    if (!_enabled)
-    {
-        qWarning() << "BackupRunner: backup/restore is disabled in this session.";
-        return;
-    }
-    if (phase() != Phase::Idle)
+    if (!CanStartRun("Restore"))
         return;
     _phase.store(Phase::Running, std::memory_order_release);
     emit phaseChanged();
