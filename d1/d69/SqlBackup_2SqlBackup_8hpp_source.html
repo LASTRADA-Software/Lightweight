@@ -357,121 +357,161 @@ $(document).ready(function(){initNavTree('d1/d69/SqlBackup_2SqlBackup_8hpp_sourc
 <div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span>        (void) count;</div>
 <div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span>    }</div>
 </div>
-<div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span>};</div>
+<div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span><span class="comment"></span> </div>
+<div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span><span class="comment">    /// Announces how many tables the operation will process, once, before any</span></div>
+<div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span><span class="comment">    /// per-table `Update()` is emitted.</span></div>
+<div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span><span class="comment">    /// Backup knows the complete table set after its schema scan and Restore</span></div>
+<div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span><span class="comment">    /// after reading the archive manifest, i.e. both know the denominator before</span></div>
+<div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span><span class="comment">    /// any data moves. Without this hook a consumer can only count the distinct</span></div>
+<div class="line"><a id="l00246" name="l00246"></a><span class="lineno">  246</span><span class="comment">    /// table names it has seen so far, so a progress readout of the form</span></div>
+<div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span><span class="comment">    /// &quot;processed / total&quot; has a total that climbs as tables are discovered —</span></div>
+<div class="line"><a id="l00248" name="l00248"></a><span class="lineno">  248</span><span class="comment">    /// the GUI&#39;s per-table panel showed &quot;12 / 12&quot; then &quot;12 / 47&quot; then &quot;12 / 700&quot;</span></div>
+<div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span><span class="comment">    /// on the same run, which reads as the job getting bigger rather than as</span></div>
+<div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span><span class="comment">    /// progress being made.</span></div>
+<div class="line"><a id="l00251" name="l00251"></a><span class="lineno">  251</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span><span class="comment">    /// @param totalTables Number of tables that will be processed.</span></div>
+<div class="foldopen" id="foldopen00253" data-start="{" data-end="}">
+<div class="line"><a id="l00253" name="l00253"></a><span class="lineno"><a class="line" href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a12d42709c2340a72d2739a77957894b6">  253</a></span><span class="comment"></span>    <span class="keyword">virtual</span> <span class="keywordtype">void</span> <a class="code hl_function" href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a12d42709c2340a72d2739a77957894b6">SetTotalTables</a>(<span class="keywordtype">size_t</span> totalTables)</div>
+<div class="line"><a id="l00254" name="l00254"></a><span class="lineno">  254</span>    {</div>
+<div class="line"><a id="l00255" name="l00255"></a><span class="lineno">  255</span>        (void) totalTables;</div>
+<div class="line"><a id="l00256" name="l00256"></a><span class="lineno">  256</span>    }</div>
 </div>
-<div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span><span class="comment"></span> </div>
-<div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span><span class="comment">/// Base class for progress managers that tracks errors automatically.</span></div>
-<div class="foldopen" id="foldopen00242" data-start="{" data-end="};">
-<div class="line"><a id="l00242" name="l00242"></a><span class="lineno"><a class="line" href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html">  242</a></span><span class="comment"></span><span class="keyword">class </span><a class="code hl_class" href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html">ErrorTrackingProgressManager</a>: <span class="keyword">public</span> <a class="code hl_struct" href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html">ProgressManager</a></div>
-<div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span>{</div>
-<div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span>  <span class="keyword">public</span>:</div>
-<div class="foldopen" id="foldopen00245" data-start="{" data-end="}">
-<div class="line"><a id="l00245" name="l00245"></a><span class="lineno"><a class="line" href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#aaaac5355924f8867dac6c7b106cc44fb">  245</a></span>    <span class="keywordtype">void</span> <a class="code hl_function" href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#aaaac5355924f8867dac6c7b106cc44fb">Update</a>(<a class="code hl_struct" href="../../d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html">Progress</a> <span class="keyword">const</span>&amp; progress)<span class="keyword"> override</span></div>
-<div class="line"><a id="l00246" name="l00246"></a><span class="lineno">  246</span><span class="keyword">    </span>{</div>
-<div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span>        <span class="keywordflow">if</span> (progress.<a class="code hl_variable" href="../../d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#a7532c06b2575869bb04450eeb733ec24">state</a> == Progress::State::Error)</div>
-<div class="line"><a id="l00248" name="l00248"></a><span class="lineno">  248</span>            ++_errorCount;</div>
-<div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span>    }</div>
+<div class="line"><a id="l00257" name="l00257"></a><span class="lineno">  257</span>};</div>
 </div>
-<div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span> </div>
-<div class="foldopen" id="foldopen00251" data-start="{" data-end="}">
-<div class="line"><a id="l00251" name="l00251"></a><span class="lineno"><a class="line" href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#a522f8b5d94a8744bdf7c9b6cc1c01fa8">  251</a></span>    [[nodiscard]] <span class="keywordtype">size_t</span> <a class="code hl_function" href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#a522f8b5d94a8744bdf7c9b6cc1c01fa8">ErrorCount</a>() const noexcept<span class="keyword"> override</span></div>
-<div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span><span class="keyword">    </span>{</div>
-<div class="line"><a id="l00253" name="l00253"></a><span class="lineno">  253</span>        <span class="keywordflow">return</span> _errorCount;</div>
-<div class="line"><a id="l00254" name="l00254"></a><span class="lineno">  254</span>    }</div>
-</div>
-<div class="line"><a id="l00255" name="l00255"></a><span class="lineno">  255</span> </div>
-<div class="line"><a id="l00256" name="l00256"></a><span class="lineno">  256</span>  <span class="keyword">private</span>:</div>
-<div class="line"><a id="l00257" name="l00257"></a><span class="lineno">  257</span>    <span class="keywordtype">size_t</span> _errorCount = 0;</div>
-<div class="line"><a id="l00258" name="l00258"></a><span class="lineno">  258</span>};</div>
-</div>
-<div class="line"><a id="l00259" name="l00259"></a><span class="lineno">  259</span> </div>
-<div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span><span class="keyword">struct </span>NullProgressManager: ErrorTrackingProgressManager</div>
+<div class="line"><a id="l00258" name="l00258"></a><span class="lineno">  258</span><span class="comment"></span> </div>
+<div class="line"><a id="l00259" name="l00259"></a><span class="lineno">  259</span><span class="comment">/// Base class for progress managers that tracks errors automatically.</span></div>
+<div class="foldopen" id="foldopen00260" data-start="{" data-end="};">
+<div class="line"><a id="l00260" name="l00260"></a><span class="lineno"><a class="line" href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html">  260</a></span><span class="comment"></span><span class="keyword">class </span><a class="code hl_class" href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html">ErrorTrackingProgressManager</a>: <span class="keyword">public</span> <a class="code hl_struct" href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html">ProgressManager</a></div>
 <div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span>{</div>
-<div class="line"><a id="l00262" name="l00262"></a><span class="lineno">  262</span>    <span class="keywordtype">void</span> Update(Progress <span class="keyword">const</span>&amp; progress)<span class="keyword"> override</span></div>
-<div class="line"><a id="l00263" name="l00263"></a><span class="lineno">  263</span><span class="keyword">    </span>{</div>
-<div class="line"><a id="l00264" name="l00264"></a><span class="lineno">  264</span>        <a class="code hl_function" href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#aaaac5355924f8867dac6c7b106cc44fb">ErrorTrackingProgressManager::Update</a>(progress);</div>
-<div class="line"><a id="l00265" name="l00265"></a><span class="lineno">  265</span>    }</div>
-<div class="line"><a id="l00266" name="l00266"></a><span class="lineno">  266</span>    <span class="keywordtype">void</span> AllDone()<span class="keyword"> override </span>{}</div>
-<div class="line"><a id="l00267" name="l00267"></a><span class="lineno">  267</span>};</div>
-<div class="line"><a id="l00268" name="l00268"></a><span class="lineno">  268</span><span class="comment"></span> </div>
-<div class="line"><a id="l00269" name="l00269"></a><span class="lineno">  269</span><span class="comment">/// Backs up the database to a file.</span></div>
-<div class="line"><a id="l00270" name="l00270"></a><span class="lineno">  270</span><span class="comment">///</span></div>
-<div class="line"><a id="l00271" name="l00271"></a><span class="lineno">  271</span><span class="comment">/// @param outputFile the output file.</span></div>
-<div class="line"><a id="l00272" name="l00272"></a><span class="lineno">  272</span><span class="comment">/// @param connectionString the connection string used to connect to the database.</span></div>
-<div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span><span class="comment">/// @param concurrency the number of concurrent jobs.</span></div>
-<div class="line"><a id="l00274" name="l00274"></a><span class="lineno">  274</span><span class="comment">/// @param progress the progress manager to use for progress updates.</span></div>
-<div class="line"><a id="l00275" name="l00275"></a><span class="lineno">  275</span><span class="comment">/// @param schema the database schema to backup (optional).</span></div>
-<div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span><span class="comment">/// @param tableFilter comma-separated table filter patterns (default: &quot;*&quot; for all tables).</span></div>
-<div class="line"><a id="l00277" name="l00277"></a><span class="lineno">  277</span><span class="comment">///        Supports glob wildcards (* and ?) and schema.table notation.</span></div>
-<div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span><span class="comment">///        Examples: &quot;Users,Products&quot;, &quot;*_log&quot;, &quot;dbo.Users&quot;, &quot;sales.*&quot;</span></div>
-<div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span><span class="comment">/// @param retrySettings configuration for retry behavior on transient errors.</span></div>
-<div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span><span class="comment">/// @param backupSettings configuration for compression method, level, and chunk size.</span></div>
-<div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span><span class="comment"></span>LIGHTWEIGHT_API <span class="keywordtype">void</span> Backup(std::filesystem::path <span class="keyword">const</span>&amp; outputFile,</div>
-<div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span>                            SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
-<div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span>                            <span class="keywordtype">unsigned</span> concurrency,</div>
-<div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span>                            ProgressManager&amp; progress,</div>
-<div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span>                            std::string <span class="keyword">const</span>&amp; schema = {},</div>
-<div class="line"><a id="l00286" name="l00286"></a><span class="lineno">  286</span>                            std::string <span class="keyword">const</span>&amp; tableFilter = <span class="stringliteral">&quot;*&quot;</span>,</div>
-<div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span>                            RetrySettings <span class="keyword">const</span>&amp; retrySettings = {},</div>
-<div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span>                            BackupSettings <span class="keyword">const</span>&amp; backupSettings = {});</div>
-<div class="line"><a id="l00289" name="l00289"></a><span class="lineno">  289</span><span class="comment"></span> </div>
-<div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span><span class="comment">/// Restores the database from a file.</span></div>
-<div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span><span class="comment">///</span></div>
-<div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span><span class="comment">/// @param inputFile the input file.</span></div>
-<div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span><span class="comment">/// @param connectionString the connection string used to connect to the database.</span></div>
-<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span><span class="comment">/// @param concurrency the number of concurrent jobs.</span></div>
-<div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span><span class="comment">/// @param progress the progress manager to use for progress updates.</span></div>
-<div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span><span class="comment">/// @param schema the database schema to restore into (optional, overrides backup metadata).</span></div>
-<div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span><span class="comment">/// @param tableFilter comma-separated table filter patterns (default: &quot;*&quot; for all tables).</span></div>
-<div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span><span class="comment">///        Supports glob wildcards (* and ?) and schema.table notation.</span></div>
-<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span><span class="comment">///        Examples: &quot;Users,Products&quot;, &quot;*_log&quot;, &quot;dbo.Users&quot;, &quot;sales.*&quot;</span></div>
-<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span><span class="comment">/// @param retrySettings configuration for retry behavior on transient errors.</span></div>
-<div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span><span class="comment"></span>LIGHTWEIGHT_API <span class="keywordtype">void</span> Restore(std::filesystem::path <span class="keyword">const</span>&amp; inputFile,</div>
-<div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span>                             SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
-<div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span>                             <span class="keywordtype">unsigned</span> concurrency,</div>
-<div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span>                             ProgressManager&amp; progress,</div>
-<div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span>                             std::string <span class="keyword">const</span>&amp; schema = {},</div>
-<div class="line"><a id="l00306" name="l00306"></a><span class="lineno">  306</span>                             std::string <span class="keyword">const</span>&amp; tableFilter = <span class="stringliteral">&quot;*&quot;</span>,</div>
-<div class="line"><a id="l00307" name="l00307"></a><span class="lineno">  307</span>                             RetrySettings <span class="keyword">const</span>&amp; retrySettings = {});</div>
-<div class="line"><a id="l00308" name="l00308"></a><span class="lineno">  308</span><span class="comment"></span> </div>
-<div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span><span class="comment">/// Restores the database from a file with explicit memory management settings.</span></div>
-<div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span><span class="comment">///</span></div>
-<div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span><span class="comment">/// @param inputFile the input file.</span></div>
-<div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span><span class="comment">/// @param connectionString the connection string used to connect to the database.</span></div>
-<div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span><span class="comment">/// @param concurrency the number of concurrent jobs.</span></div>
-<div class="line"><a id="l00314" name="l00314"></a><span class="lineno">  314</span><span class="comment">/// @param progress the progress manager to use for progress updates.</span></div>
-<div class="line"><a id="l00315" name="l00315"></a><span class="lineno">  315</span><span class="comment">/// @param schema the database schema to restore into (optional, overrides backup metadata).</span></div>
-<div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span><span class="comment">/// @param tableFilter comma-separated table filter patterns (default: &quot;*&quot; for all tables).</span></div>
-<div class="line"><a id="l00317" name="l00317"></a><span class="lineno">  317</span><span class="comment">/// @param retrySettings configuration for retry behavior on transient errors.</span></div>
-<div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span><span class="comment">/// @param restoreSettings configuration for memory management during restore.</span></div>
+<div class="line"><a id="l00262" name="l00262"></a><span class="lineno">  262</span>  <span class="keyword">public</span>:</div>
+<div class="foldopen" id="foldopen00263" data-start="{" data-end="}">
+<div class="line"><a id="l00263" name="l00263"></a><span class="lineno"><a class="line" href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#aaaac5355924f8867dac6c7b106cc44fb">  263</a></span>    <span class="keywordtype">void</span> <a class="code hl_function" href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#aaaac5355924f8867dac6c7b106cc44fb">Update</a>(<a class="code hl_struct" href="../../d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html">Progress</a> <span class="keyword">const</span>&amp; progress)<span class="keyword"> override</span></div>
+<div class="line"><a id="l00264" name="l00264"></a><span class="lineno">  264</span><span class="keyword">    </span>{</div>
+<div class="line"><a id="l00265" name="l00265"></a><span class="lineno">  265</span>        <span class="keywordflow">if</span> (progress.<a class="code hl_variable" href="../../d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#a7532c06b2575869bb04450eeb733ec24">state</a> == Progress::State::Error)</div>
+<div class="line"><a id="l00266" name="l00266"></a><span class="lineno">  266</span>            ++_errorCount;</div>
+<div class="line"><a id="l00267" name="l00267"></a><span class="lineno">  267</span>    }</div>
+</div>
+<div class="line"><a id="l00268" name="l00268"></a><span class="lineno">  268</span> </div>
+<div class="foldopen" id="foldopen00269" data-start="{" data-end="}">
+<div class="line"><a id="l00269" name="l00269"></a><span class="lineno"><a class="line" href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#a522f8b5d94a8744bdf7c9b6cc1c01fa8">  269</a></span>    [[nodiscard]] <span class="keywordtype">size_t</span> <a class="code hl_function" href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#a522f8b5d94a8744bdf7c9b6cc1c01fa8">ErrorCount</a>() const noexcept<span class="keyword"> override</span></div>
+<div class="line"><a id="l00270" name="l00270"></a><span class="lineno">  270</span><span class="keyword">    </span>{</div>
+<div class="line"><a id="l00271" name="l00271"></a><span class="lineno">  271</span>        <span class="keywordflow">return</span> _errorCount;</div>
+<div class="line"><a id="l00272" name="l00272"></a><span class="lineno">  272</span>    }</div>
+</div>
+<div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span> </div>
+<div class="line"><a id="l00274" name="l00274"></a><span class="lineno">  274</span>  <span class="keyword">private</span>:</div>
+<div class="line"><a id="l00275" name="l00275"></a><span class="lineno">  275</span>    <span class="keywordtype">size_t</span> _errorCount = 0;</div>
+<div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span>};</div>
+</div>
+<div class="line"><a id="l00277" name="l00277"></a><span class="lineno">  277</span> </div>
+<div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span><span class="keyword">struct </span>NullProgressManager: ErrorTrackingProgressManager</div>
+<div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span>{</div>
+<div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span>    <span class="keywordtype">void</span> Update(Progress <span class="keyword">const</span>&amp; progress)<span class="keyword"> override</span></div>
+<div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span><span class="keyword">    </span>{</div>
+<div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span>        <a class="code hl_function" href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#aaaac5355924f8867dac6c7b106cc44fb">ErrorTrackingProgressManager::Update</a>(progress);</div>
+<div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span>    }</div>
+<div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span>    <span class="keywordtype">void</span> AllDone()<span class="keyword"> override </span>{}</div>
+<div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span>};</div>
+<div class="line"><a id="l00286" name="l00286"></a><span class="lineno">  286</span><span class="comment"></span> </div>
+<div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span><span class="comment">/// Backs up the database to a file.</span></div>
+<div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span><span class="comment">///</span></div>
+<div class="line"><a id="l00289" name="l00289"></a><span class="lineno">  289</span><span class="comment">/// @param outputFile the output file.</span></div>
+<div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span><span class="comment">/// @param connectionString the connection string used to connect to the database.</span></div>
+<div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span><span class="comment">/// @param concurrency the number of concurrent jobs.</span></div>
+<div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span><span class="comment">/// @param progress the progress manager to use for progress updates.</span></div>
+<div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span><span class="comment">/// @param schema the database schema to backup (optional).</span></div>
+<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span><span class="comment">/// @param tableFilter comma-separated table filter patterns (default: &quot;*&quot; for all tables).</span></div>
+<div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span><span class="comment">///        Supports glob wildcards (* and ?) and schema.table notation.</span></div>
+<div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span><span class="comment">///        Examples: &quot;Users,Products&quot;, &quot;*_log&quot;, &quot;dbo.Users&quot;, &quot;sales.*&quot;</span></div>
+<div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span><span class="comment">/// @param retrySettings configuration for retry behavior on transient errors.</span></div>
+<div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span><span class="comment">/// @param backupSettings configuration for compression method, level, and chunk size.</span></div>
+<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span><span class="comment"></span>LIGHTWEIGHT_API <span class="keywordtype">void</span> Backup(std::filesystem::path <span class="keyword">const</span>&amp; outputFile,</div>
+<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span>                            SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
+<div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span>                            <span class="keywordtype">unsigned</span> concurrency,</div>
+<div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span>                            ProgressManager&amp; progress,</div>
+<div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span>                            std::string <span class="keyword">const</span>&amp; schema = {},</div>
+<div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span>                            std::string <span class="keyword">const</span>&amp; tableFilter = <span class="stringliteral">&quot;*&quot;</span>,</div>
+<div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span>                            RetrySettings <span class="keyword">const</span>&amp; retrySettings = {},</div>
+<div class="line"><a id="l00306" name="l00306"></a><span class="lineno">  306</span>                            BackupSettings <span class="keyword">const</span>&amp; backupSettings = {});</div>
+<div class="line"><a id="l00307" name="l00307"></a><span class="lineno">  307</span><span class="comment"></span> </div>
+<div class="line"><a id="l00308" name="l00308"></a><span class="lineno">  308</span><span class="comment">/// Restores the database from a file.</span></div>
+<div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span><span class="comment">///</span></div>
+<div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span><span class="comment">/// @param inputFile the input file.</span></div>
+<div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span><span class="comment">/// @param connectionString the connection string used to connect to the database.</span></div>
+<div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span><span class="comment">/// @param concurrency the number of concurrent jobs.</span></div>
+<div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span><span class="comment">/// @param progress the progress manager to use for progress updates.</span></div>
+<div class="line"><a id="l00314" name="l00314"></a><span class="lineno">  314</span><span class="comment">/// @param schema the database schema to restore into (optional, overrides backup metadata).</span></div>
+<div class="line"><a id="l00315" name="l00315"></a><span class="lineno">  315</span><span class="comment">/// @param tableFilter comma-separated table filter patterns (default: &quot;*&quot; for all tables).</span></div>
+<div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span><span class="comment">///        Supports glob wildcards (* and ?) and schema.table notation.</span></div>
+<div class="line"><a id="l00317" name="l00317"></a><span class="lineno">  317</span><span class="comment">///        Examples: &quot;Users,Products&quot;, &quot;*_log&quot;, &quot;dbo.Users&quot;, &quot;sales.*&quot;</span></div>
+<div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span><span class="comment">/// @param retrySettings configuration for retry behavior on transient errors.</span></div>
 <div class="line"><a id="l00319" name="l00319"></a><span class="lineno">  319</span><span class="comment"></span>LIGHTWEIGHT_API <span class="keywordtype">void</span> Restore(std::filesystem::path <span class="keyword">const</span>&amp; inputFile,</div>
 <div class="line"><a id="l00320" name="l00320"></a><span class="lineno">  320</span>                             SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
 <div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span>                             <span class="keywordtype">unsigned</span> concurrency,</div>
 <div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span>                             ProgressManager&amp; progress,</div>
-<div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span>                             std::string <span class="keyword">const</span>&amp; schema,</div>
-<div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span>                             std::string <span class="keyword">const</span>&amp; tableFilter,</div>
-<div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span>                             RetrySettings <span class="keyword">const</span>&amp; retrySettings,</div>
-<div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span>                             RestoreSettings <span class="keyword">const</span>&amp; restoreSettings);</div>
-<div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span><span class="comment"></span> </div>
-<div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span><span class="comment">/// Creates the metadata JSON content.</span></div>
-<div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span><span class="comment">///</span></div>
+<div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span>                             std::string <span class="keyword">const</span>&amp; schema = {},</div>
+<div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span>                             std::string <span class="keyword">const</span>&amp; tableFilter = <span class="stringliteral">&quot;*&quot;</span>,</div>
+<div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span>                             RetrySettings <span class="keyword">const</span>&amp; retrySettings = {});</div>
+<div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span><span class="comment"></span> </div>
+<div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span><span class="comment">/// Restores the database from a file with explicit memory management settings.</span></div>
+<div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span><span class="comment">///</span></div>
+<div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span><span class="comment">/// @param inputFile the input file.</span></div>
 <div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span><span class="comment">/// @param connectionString the connection string used to connect to the database.</span></div>
-<div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span><span class="comment">/// @param tables the list of tables to backup.</span></div>
-<div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span><span class="comment">/// @param schema the database schema used for these tables (optional).</span></div>
-<div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span><span class="comment"></span>LIGHTWEIGHT_API std::string CreateMetadata(SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
-<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span>                                           SqlSchema::TableList <span class="keyword">const</span>&amp; tables,</div>
-<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span>                                           std::string <span class="keyword">const</span>&amp; schema = {});</div>
-<div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span><span class="comment"></span> </div>
-<div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span><span class="comment">/// Parses the metadata JSON content and returns a map of table info.</span></div>
-<div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span><span class="comment">///</span></div>
-<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span><span class="comment">/// @param metadataJson content of the metadata.json file.</span></div>
-<div class="line"><a id="l00340" name="l00340"></a><span class="lineno">  340</span><span class="comment"></span>LIGHTWEIGHT_API std::map&lt;std::string, TableInfo&gt; ParseSchema(std::string_view metadataJson,</div>
-<div class="line"><a id="l00341" name="l00341"></a><span class="lineno">  341</span>                                                             ProgressManager* progress = <span class="keyword">nullptr</span>);</div>
-<div class="line"><a id="l00342" name="l00342"></a><span class="lineno">  342</span> </div>
-<div class="line"><a id="l00343" name="l00343"></a><span class="lineno">  343</span>} <span class="comment">// namespace Lightweight::SqlBackup</span></div>
-<div class="ttc" id="aclassLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager_html"><div class="ttname"><a href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html">Lightweight::SqlBackup::ErrorTrackingProgressManager</a></div><div class="ttdoc">Base class for progress managers that tracks errors automatically.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00242">SqlBackup.hpp:243</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager_html_a522f8b5d94a8744bdf7c9b6cc1c01fa8"><div class="ttname"><a href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#a522f8b5d94a8744bdf7c9b6cc1c01fa8">Lightweight::SqlBackup::ErrorTrackingProgressManager::ErrorCount</a></div><div class="ttdeci">size_t ErrorCount() const noexcept override</div><div class="ttdoc">Returns the number of errors encountered during the operation.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00251">SqlBackup.hpp:251</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager_html_aaaac5355924f8867dac6c7b106cc44fb"><div class="ttname"><a href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#aaaac5355924f8867dac6c7b106cc44fb">Lightweight::SqlBackup::ErrorTrackingProgressManager::Update</a></div><div class="ttdeci">void Update(Progress const &amp;progress) override</div><div class="ttdoc">Gets called when the progress of an individual backup/restore operation changes.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00245">SqlBackup.hpp:245</a></div></div>
+<div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span><span class="comment">/// @param concurrency the number of concurrent jobs.</span></div>
+<div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span><span class="comment">/// @param progress the progress manager to use for progress updates.</span></div>
+<div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span><span class="comment">/// @param schema the database schema to restore into (optional, overrides backup metadata).</span></div>
+<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span><span class="comment">/// @param tableFilter comma-separated table filter patterns (default: &quot;*&quot; for all tables).</span></div>
+<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span><span class="comment">/// @param retrySettings configuration for retry behavior on transient errors.</span></div>
+<div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span><span class="comment">/// @param restoreSettings configuration for memory management during restore.</span></div>
+<div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span><span class="comment"></span>LIGHTWEIGHT_API <span class="keywordtype">void</span> Restore(std::filesystem::path <span class="keyword">const</span>&amp; inputFile,</div>
+<div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span>                             SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
+<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span>                             <span class="keywordtype">unsigned</span> concurrency,</div>
+<div class="line"><a id="l00340" name="l00340"></a><span class="lineno">  340</span>                             ProgressManager&amp; progress,</div>
+<div class="line"><a id="l00341" name="l00341"></a><span class="lineno">  341</span>                             std::string <span class="keyword">const</span>&amp; schema,</div>
+<div class="line"><a id="l00342" name="l00342"></a><span class="lineno">  342</span>                             std::string <span class="keyword">const</span>&amp; tableFilter,</div>
+<div class="line"><a id="l00343" name="l00343"></a><span class="lineno">  343</span>                             RetrySettings <span class="keyword">const</span>&amp; retrySettings,</div>
+<div class="line"><a id="l00344" name="l00344"></a><span class="lineno">  344</span>                             RestoreSettings <span class="keyword">const</span>&amp; restoreSettings);</div>
+<div class="line"><a id="l00345" name="l00345"></a><span class="lineno">  345</span><span class="comment"></span> </div>
+<div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span><span class="comment">/// Returns a copy of `connectionString` with the values of `PWD=` and</span></div>
+<div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span><span class="comment">/// `Password=` attributes replaced by `***`.</span></div>
+<div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span><span class="comment">///</span></div>
+<div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span><span class="comment">/// The string is parsed attribute-wise (`KEY=VALUE` pairs separated by `;`)</span></div>
+<div class="line"><a id="l00350" name="l00350"></a><span class="lineno">  350</span><span class="comment">/// following ODBC&#39;s quoting rules, so redaction is not fooled by:</span></div>
+<div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span><span class="comment">/// - brace-quoted values — `PWD={pa;ss}` masks the whole `{...}` group,</span></div>
+<div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span><span class="comment">///   including the embedded `;`, and a `;` inside any other brace-quoted value</span></div>
+<div class="line"><a id="l00353" name="l00353"></a><span class="lineno">  353</span><span class="comment">///   (e.g. a driver name) does not start a new attribute;</span></div>
+<div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span><span class="comment">/// - whitespace after a separator — `...; PWD=secret` is still matched.</span></div>
+<div class="line"><a id="l00355" name="l00355"></a><span class="lineno">  355</span><span class="comment">///</span></div>
+<div class="line"><a id="l00356" name="l00356"></a><span class="lineno">  356</span><span class="comment">/// Key matching is case-insensitive and only ever matches a whole attribute</span></div>
+<div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span><span class="comment">/// name, never a substring of another key (`MyPWD=`) or of a value</span></div>
+<div class="line"><a id="l00358" name="l00358"></a><span class="lineno">  358</span><span class="comment">/// (`Database=PasswordVault`). Applied by CreateMetadata() so a</span></div>
+<div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span><span class="comment">/// secretRef-resolved plaintext password never lands in an archive&#39;s</span></div>
+<div class="line"><a id="l00360" name="l00360"></a><span class="lineno">  360</span><span class="comment">/// metadata.json (mirrors dbtool&#39;s `list-profiles` redaction).</span></div>
+<div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span><span class="comment">///</span></div>
+<div class="line"><a id="l00362" name="l00362"></a><span class="lineno">  362</span><span class="comment">/// @param connectionString Raw ODBC connection string.</span></div>
+<div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span><span class="comment">/// @return The connection string with password values masked.</span></div>
+<div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span><span class="comment"></span>[[nodiscard]] LIGHTWEIGHT_API std::string RedactConnectionStringSecrets(std::string_view connectionString);</div>
+<div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span><span class="comment"></span> </div>
+<div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span><span class="comment">/// Creates the metadata JSON content.</span></div>
+<div class="line"><a id="l00367" name="l00367"></a><span class="lineno">  367</span><span class="comment">///</span></div>
+<div class="line"><a id="l00368" name="l00368"></a><span class="lineno">  368</span><span class="comment">/// @param connectionString the connection string used to connect to the database.</span></div>
+<div class="line"><a id="l00369" name="l00369"></a><span class="lineno">  369</span><span class="comment">/// @param tables the list of tables to backup.</span></div>
+<div class="line"><a id="l00370" name="l00370"></a><span class="lineno">  370</span><span class="comment">/// @param schema the database schema used for these tables (optional).</span></div>
+<div class="line"><a id="l00371" name="l00371"></a><span class="lineno">  371</span><span class="comment"></span>LIGHTWEIGHT_API std::string CreateMetadata(SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
+<div class="line"><a id="l00372" name="l00372"></a><span class="lineno">  372</span>                                           SqlSchema::TableList <span class="keyword">const</span>&amp; tables,</div>
+<div class="line"><a id="l00373" name="l00373"></a><span class="lineno">  373</span>                                           std::string <span class="keyword">const</span>&amp; schema = {});</div>
+<div class="line"><a id="l00374" name="l00374"></a><span class="lineno">  374</span><span class="comment"></span> </div>
+<div class="line"><a id="l00375" name="l00375"></a><span class="lineno">  375</span><span class="comment">/// Parses the metadata JSON content and returns a map of table info.</span></div>
+<div class="line"><a id="l00376" name="l00376"></a><span class="lineno">  376</span><span class="comment">///</span></div>
+<div class="line"><a id="l00377" name="l00377"></a><span class="lineno">  377</span><span class="comment">/// @param metadataJson content of the metadata.json file.</span></div>
+<div class="line"><a id="l00378" name="l00378"></a><span class="lineno">  378</span><span class="comment"></span>LIGHTWEIGHT_API std::map&lt;std::string, TableInfo&gt; ParseSchema(std::string_view metadataJson,</div>
+<div class="line"><a id="l00379" name="l00379"></a><span class="lineno">  379</span>                                                             ProgressManager* progress = <span class="keyword">nullptr</span>);</div>
+<div class="line"><a id="l00380" name="l00380"></a><span class="lineno">  380</span> </div>
+<div class="line"><a id="l00381" name="l00381"></a><span class="lineno">  381</span>} <span class="comment">// namespace Lightweight::SqlBackup</span></div>
+<div class="ttc" id="aclassLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager_html"><div class="ttname"><a href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html">Lightweight::SqlBackup::ErrorTrackingProgressManager</a></div><div class="ttdoc">Base class for progress managers that tracks errors automatically.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00260">SqlBackup.hpp:261</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager_html_a522f8b5d94a8744bdf7c9b6cc1c01fa8"><div class="ttname"><a href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#a522f8b5d94a8744bdf7c9b6cc1c01fa8">Lightweight::SqlBackup::ErrorTrackingProgressManager::ErrorCount</a></div><div class="ttdeci">size_t ErrorCount() const noexcept override</div><div class="ttdoc">Returns the number of errors encountered during the operation.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00269">SqlBackup.hpp:269</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager_html_aaaac5355924f8867dac6c7b106cc44fb"><div class="ttname"><a href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#aaaac5355924f8867dac6c7b106cc44fb">Lightweight::SqlBackup::ErrorTrackingProgressManager::Update</a></div><div class="ttdeci">void Update(Progress const &amp;progress) override</div><div class="ttdoc">Gets called when the progress of an individual backup/restore operation changes.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00263">SqlBackup.hpp:263</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlBackup_1_1BackupSettings_html"><div class="ttname"><a href="../../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html">Lightweight::SqlBackup::BackupSettings</a></div><div class="ttdoc">Configuration for backup operations including compression and chunking.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00037">SqlBackup.hpp:38</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlBackup_1_1BackupSettings_html_a11b8c4dc97bf4360601e9834bf6db463"><div class="ttname"><a href="../../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#a11b8c4dc97bf4360601e9834bf6db463">Lightweight::SqlBackup::BackupSettings::workerArchiveBytes</a></div><div class="ttdeci">std::size_t workerArchiveBytes</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00063">SqlBackup.hpp:63</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlBackup_1_1BackupSettings_html_a24b981baad3240eee5b41c2654c2ccd3"><div class="ttname"><a href="../../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#a24b981baad3240eee5b41c2654c2ccd3">Lightweight::SqlBackup::BackupSettings::method</a></div><div class="ttdeci">CompressionMethod method</div><div class="ttdoc">The compression method to use.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00040">SqlBackup.hpp:40</a></div></div>
@@ -483,6 +523,7 @@ $(document).ready(function(){initNavTree('d1/d69/SqlBackup_2SqlBackup_8hpp_sourc
 <div class="ttc" id="astructLightweight_1_1SqlBackup_1_1ProgressManager_html"><div class="ttname"><a href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html">Lightweight::SqlBackup::ProgressManager</a></div><div class="ttdoc">The interface for progress updates.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00188">SqlBackup.hpp:189</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlBackup_1_1ProgressManager_html_a08cc3c2379421f95a3215486a10f48f8"><div class="ttname"><a href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a08cc3c2379421f95a3215486a10f48f8">Lightweight::SqlBackup::ProgressManager::SetTotalItems</a></div><div class="ttdeci">virtual void SetTotalItems(size_t totalItems)</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00220">SqlBackup.hpp:220</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlBackup_1_1ProgressManager_html_a103f32b308c4fd039ee126c4e5af253b"><div class="ttname"><a href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a103f32b308c4fd039ee126c4e5af253b">Lightweight::SqlBackup::ProgressManager::ProgressManager</a></div><div class="ttdeci">ProgressManager()=default</div><div class="ttdoc">Default constructor.</div></div>
+<div class="ttc" id="astructLightweight_1_1SqlBackup_1_1ProgressManager_html_a12d42709c2340a72d2739a77957894b6"><div class="ttname"><a href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a12d42709c2340a72d2739a77957894b6">Lightweight::SqlBackup::ProgressManager::SetTotalTables</a></div><div class="ttdeci">virtual void SetTotalTables(size_t totalTables)</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00253">SqlBackup.hpp:253</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlBackup_1_1ProgressManager_html_a288e37cbeb6478a6b73c04d26dbc3d3d"><div class="ttname"><a href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a288e37cbeb6478a6b73c04d26dbc3d3d">Lightweight::SqlBackup::ProgressManager::Update</a></div><div class="ttdeci">virtual void Update(Progress const &amp;p)=0</div><div class="ttdoc">Gets called when the progress of an individual backup/restore operation changes.</div></div>
 <div class="ttc" id="astructLightweight_1_1SqlBackup_1_1ProgressManager_html_a4a9389bbea21719f1856d7c461af4066"><div class="ttname"><a href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a4a9389bbea21719f1856d7c461af4066">Lightweight::SqlBackup::ProgressManager::SetMaxTableNameLength</a></div><div class="ttdeci">virtual void SetMaxTableNameLength(size_t)</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00210">SqlBackup.hpp:210</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlBackup_1_1ProgressManager_html_a4e2b371cc4658c3e205254cb2623ae3b"><div class="ttname"><a href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a4e2b371cc4658c3e205254cb2623ae3b">Lightweight::SqlBackup::ProgressManager::ErrorCount</a></div><div class="ttdeci">virtual size_t ErrorCount() const noexcept</div><div class="ttdoc">Returns the number of errors encountered during the operation.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00213">SqlBackup.hpp:213</a></div></div>

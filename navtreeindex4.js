@@ -1,5 +1,6 @@
 var NAVTREEINDEX4 =
 {
+"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2f3e6e88b1fb6af51bf4d0d65c5a52e6":[16,0,0,60,29],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a6cdc65b4e3d20ca7105abe72ecfdd5b9":[16,0,0,60,16],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a725b026c92dcdf60b1a0ed60dc5b9a81":[16,0,0,60,19],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a747bb2c6c82c186199ebfc698e4d5c3a":[16,0,0,60,20],
@@ -248,6 +249,5 @@ var NAVTREEINDEX4 =
 "da/da8/classLightweight_1_1SqlConnection.html#aff53cd88345bf8822f5fd34e676c48d0":[16,0,0,28,7],
 "da/daf/HasManyThrough_8hpp_source.html":[17,0,1,2,6],
 "da/dcb/structLightweight_1_1MigrationRenderContext_1_1ColumnKey.html":[16,0,0,15,0],
-"da/dcb/structLightweight_1_1MigrationRenderContext_1_1ColumnKey.html#a15de289fbe72a7e9ee13c7d6ede1d84b":[16,0,0,15,0,1],
-"da/dcb/structLightweight_1_1MigrationRenderContext_1_1ColumnKey.html#a3d25a9c6af1bb1f43efb4f526daa4471":[16,0,0,15,0,2]
+"da/dcb/structLightweight_1_1MigrationRenderContext_1_1ColumnKey.html#a15de289fbe72a7e9ee13c7d6ede1d84b":[16,0,0,15,0,1]
 };
