@@ -325,6 +325,26 @@ LIGHTWEIGHT_API void Restore(std::filesystem::path const& inputFile,
                              RetrySettings const& retrySettings,
                              RestoreSettings const& restoreSettings);
 
+/// Returns a copy of `connectionString` with the values of `PWD=` and
+/// `Password=` attributes replaced by `***`.
+///
+/// The string is parsed attribute-wise (`KEY=VALUE` pairs separated by `;`)
+/// following ODBC's quoting rules, so redaction is not fooled by:
+/// - brace-quoted values — `PWD={pa;ss}` masks the whole `{...}` group,
+///   including the embedded `;`, and a `;` inside any other brace-quoted value
+///   (e.g. a driver name) does not start a new attribute;
+/// - whitespace after a separator — `...; PWD=secret` is still matched.
+///
+/// Key matching is case-insensitive and only ever matches a whole attribute
+/// name, never a substring of another key (`MyPWD=`) or of a value
+/// (`Database=PasswordVault`). Applied by CreateMetadata() so a
+/// secretRef-resolved plaintext password never lands in an archive's
+/// metadata.json (mirrors dbtool's `list-profiles` redaction).
+///
+/// @param connectionString Raw ODBC connection string.
+/// @return The connection string with password values masked.
+[[nodiscard]] LIGHTWEIGHT_API std::string RedactConnectionStringSecrets(std::string_view connectionString);
+
 /// Creates the metadata JSON content.
 ///
 /// @param connectionString the connection string used to connect to the database.

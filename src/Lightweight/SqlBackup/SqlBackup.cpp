@@ -17,13 +17,16 @@
 #include "TableFilter.hpp"
 
 #include <algorithm>
+#include <array>
 #include <atomic>
+#include <cctype>
 #include <chrono>
 #include <deque>
 #include <format>
 #include <mutex>
 #include <ranges>
 #include <set>
+#include <string_view>
 #include <thread>
 #include <variant>
 #include <vector>
@@ -142,6 +145,113 @@ std::string_view CompressionMethodName(CompressionMethod method) noexcept
     return "unknown"; // LCOV_EXCL_LINE - unreachable default case
 }
 
+namespace
+{
+
+    /// Whitespace an ODBC driver manager tolerates around attribute names.
+    constexpr std::string_view AttributeWhitespace = " \t";
+
+    /// Case-insensitive equality for connection-string attribute names.
+    /// @param lhs First name.
+    /// @param rhs Second name.
+    /// @return True when both names are equal ignoring ASCII case.
+    [[nodiscard]] bool EqualsIgnoreCase(std::string_view lhs, std::string_view rhs) noexcept
+    {
+        return std::ranges::equal(lhs, rhs, [](char a, char b) {
+            return std::tolower(static_cast<unsigned char>(a)) == std::tolower(static_cast<unsigned char>(b));
+        });
+    }
+
+    /// Locates the end of the attribute value starting at `valueStart`, honouring
+    /// ODBC's `{...}` quoting: inside braces a `;` is part of the value, and `}}`
+    /// is an escaped literal brace. Without braces the value simply runs to the
+    /// next `;`.
+    /// @param connectionString Whole connection string.
+    /// @param valueStart Index of the first character after the `=`.
+    /// @return Index of the terminating `;`, or the string size when the value
+    ///         runs to the end.
+    [[nodiscard]] std::size_t FindAttributeValueEnd(std::string_view connectionString, std::size_t valueStart) noexcept
+    {
+        auto const braceStart = connectionString.find_first_not_of(AttributeWhitespace, valueStart);
+        auto const terminatorFrom = [&](std::size_t from) {
+            auto const separator = connectionString.find(';', from);
+            return separator == std::string_view::npos ? connectionString.size() : separator;
+        };
+
+        if (braceStart == std::string_view::npos || connectionString[braceStart] != '{')
+            return terminatorFrom(valueStart);
+
+        for (auto scan = braceStart + 1; scan < connectionString.size(); ++scan)
+        {
+            if (connectionString[scan] != '}')
+                continue;
+            // "}}" is an escaped brace inside the quoted value, not its end.
+            if (scan + 1 < connectionString.size() && connectionString[scan + 1] == '}')
+            {
+                ++scan;
+                continue;
+            }
+            return terminatorFrom(scan + 1);
+        }
+        // Unterminated brace: everything that follows belongs to the value.
+        return connectionString.size();
+    }
+
+} // namespace
+
+std::string RedactConnectionStringSecrets(std::string_view connectionString)
+{
+    static constexpr std::array<std::string_view, 2> SensitiveKeys { "PWD", "Password" };
+
+    std::string result;
+    result.reserve(connectionString.size());
+
+    std::size_t pos = 0;
+    while (pos < connectionString.size())
+    {
+        // One attribute: [whitespace] KEY '=' VALUE, terminated by a `;` that
+        // is not inside a brace-quoted value. Everything up to and including
+        // the `=` is emitted verbatim so formatting (and the user's spelling of
+        // the key) survives redaction.
+        auto const separator = connectionString.find(';', pos);
+        auto const attributeEnd = separator == std::string_view::npos ? connectionString.size() : separator;
+        auto const equalSign = connectionString.find('=', pos);
+        if (equalSign == std::string_view::npos || equalSign > attributeEnd)
+        {
+            // No `KEY=` in this segment (trailing junk, empty attribute, ...):
+            // copy it through, separator included, and move on.
+            auto const copyEnd = std::min(attributeEnd + 1, connectionString.size());
+            result.append(connectionString.substr(pos, copyEnd - pos));
+            pos = copyEnd;
+            continue;
+        }
+
+        auto const keyStart = connectionString.find_first_not_of(AttributeWhitespace, pos);
+        auto keyEnd = equalSign;
+        while (keyEnd > keyStart && AttributeWhitespace.contains(connectionString[keyEnd - 1]))
+            --keyEnd;
+        auto const key = connectionString.substr(keyStart, keyEnd - keyStart);
+
+        auto const valueEnd = FindAttributeValueEnd(connectionString, equalSign + 1);
+        if (std::ranges::any_of(SensitiveKeys,
+                                [key](std::string_view sensitive) { return EqualsIgnoreCase(key, sensitive); }))
+        {
+            result.append(connectionString.substr(pos, equalSign + 1 - pos));
+            result.append("***");
+        }
+        else
+            result.append(connectionString.substr(pos, valueEnd - pos));
+
+        pos = valueEnd;
+        if (pos < connectionString.size())
+        {
+            result.push_back(connectionString[pos]); // the terminating ';'
+            ++pos;
+        }
+    }
+    return result;
+}
+
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 std::string CreateMetadata(SqlConnectionString const& connectionString,
                            SqlSchema::TableList const& tables,
@@ -150,11 +260,14 @@ std::string CreateMetadata(SqlConnectionString const& connectionString,
     nlohmann::json metadata;
     metadata["format_version"] = "1.0";
     metadata["creation_time"] = detail::CurrentDateTime();
-    metadata["original_connection_string"] = connectionString.value;
+    // Redact PWD/Password so a secretRef-resolved plaintext credential is never
+    // persisted into the archive's metadata. Nothing reads this field back at
+    // restore time; it is diagnostic only.
+    metadata["original_connection_string"] = RedactConnectionStringSecrets(connectionString.value);
     metadata["schema_name"] = schema;
     metadata["schema"] = nlohmann::json::array();
 
-    SqlConnection conn;
+    SqlConnection conn { std::nullopt };
     if (!conn.Connect(connectionString))
         throw std::runtime_error("Failed to connect for metadata creation: " + conn.LastError().message);
     SqlStatement stmt { conn };
