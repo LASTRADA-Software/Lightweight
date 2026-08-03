@@ -130,6 +130,19 @@ TEST_CASE("Reflected identity covers every primary key member", "[CompositeKey][
     STATIC_CHECK(std::same_as<RecordPrimaryKeyType<CkCompositeRecord>, int32_t>);
 }
 
+TEST_CASE("GetPrimaryKeyField returns the first primary key field, not the last", "[CompositeKey][identity]")
+{
+    // Previously a gap: the loop kept overwriting its result for every matching-type primary key
+    // member, so it silently returned the LAST one rather than the first - contradicting both its own
+    // inline comment and its doc comment. tenantId and entryNo share the same value type (int32_t), so
+    // this is exactly the shape that triggers it.
+    auto record = CkCompositeRecord {};
+    record.tenantId = 7;
+    record.entryNo = 3;
+
+    CHECK(GetPrimaryKeyField(record) == 7); // tenantId, declared first - not entryNo
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "A composite primary key does identify a row", "[CompositeKey]")
 {
     // Surprisingly, this half already works. QuerySingle() emits one `WHERE` per primary-key field
@@ -223,9 +236,9 @@ TEST_CASE("A composite foreign key is expressed as a CompositeForeignKey", "[Com
     // `BelongsTo` was deliberately left alone: it is inseparably a *column* (storage, one bound ODBC
     // index) as well as a navigator, and widening it would have broken the one-member-one-column
     // invariant that every projection and column-offset path depends on.
-    using Relation =
-        CompositeForeignKey<Connection<&CompositeKeyGap::CkChildRecord::refA, &CompositeKeyGap::CkParentRecord::partA>,
-                            Connection<&CompositeKeyGap::CkChildRecord::refB, &CompositeKeyGap::CkParentRecord::partB>>;
+    using Relation = CompositeForeignKey<
+        Connection<Member(CompositeKeyGap::CkChildRecord::refA), Member(CompositeKeyGap::CkParentRecord::partA)>,
+        Connection<Member(CompositeKeyGap::CkChildRecord::refB), Member(CompositeKeyGap::CkParentRecord::partB)>>;
 
     STATIC_CHECK(Relation::Count == 2);
     STATIC_CHECK(std::same_as<Relation::ReferencedRecord, CompositeKeyGap::CkParentRecord>);
@@ -257,5 +270,29 @@ TEST_CASE_METHOD(SqlTestFixture, "A composite-key table still maps as a plain re
     CHECK(all[0].tenantId.Value() == 7);
     CHECK(all[0].entryNo.Value() == 3);
     REQUIRE(all[0].label.Value().has_value());
+    // NOLINTNEXTLINE(bugprone-unchecked-optional-access) - guarded above
     CHECK(all[0].label.Value().value() == "kept");
+}
+
+namespace CompositeKeyGap
+{
+
+/// Two auto-assigned GUID primary keys - the type `GenerateAutoAssignPrimaryKey`'s <= 1 static_assert
+/// exists to reject. See the test below for why counting it correctly matters.
+struct GuidMultiPkRecord
+{
+    Field<SqlGuid, PrimaryKey::AutoAssign> first {};
+    Field<SqlGuid, PrimaryKey::AutoAssign> second {};
+};
+
+} // namespace CompositeKeyGap
+
+TEST_CASE("AutoAssignPrimaryKeyFieldCount counts auto-assigned GUID keys, not just incrementable ones",
+          "[CompositeKey][identity]")
+{
+    // Previously a gap: the counting concept only recognized `value + 1`-style keys, so a record with
+    // two `Field<SqlGuid, PrimaryKey::AutoAssign>` members counted as zero and slipped past
+    // GenerateAutoAssignPrimaryKey's `<= 1` static_assert - which exists precisely to reject this shape,
+    // since auto-assignment yields one value that SetId() then writes into *every* key member.
+    STATIC_CHECK(Lightweight::detail::AutoAssignPrimaryKeyFieldCount<CompositeKeyGap::GuidMultiPkRecord> == 2);
 }

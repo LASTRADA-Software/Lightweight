@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "../DataBinder/SqlGuid.hpp"
 #include "../Utils.hpp"
 #include "BelongsTo.hpp"
 #include "Field.hpp"
@@ -363,6 +364,13 @@ constexpr bool HasAutoIncrementPrimaryKey =
 
 namespace detail
 {
+    /// \cond DOXYGEN_EXCLUDE
+    // Doxygen's comment-to-declaration association misparses this decltype-of-an-invoked-generic-lambda
+    // type alias on at least one toolchain version in CI, attaching the struct's doc comment to a
+    // statement inside the lambda body instead. `detail` is excluded from the generated docs anyway
+    // (see DOXYGEN_EXCLUDE_SYMBOLS in docs/CMakeLists.txt), so there is nothing to lose by having
+    // Doxygen skip parsing it altogether.
+
     /// Collects the value types of every `PrimaryKey` member of @p Record, in declaration order.
     template <typename Record>
     struct RecordPrimaryKeyTupleHelper
@@ -385,6 +393,7 @@ namespace detail
             }.template operator()<I>()...);
         }(std::make_index_sequence<RecordMemberCount<Record>> {}));
     };
+    /// \endcond
 } // namespace detail
 
 namespace detail
@@ -402,9 +411,14 @@ namespace detail
     template <typename ValueType>
     concept IncrementableKeyValue = requires(ValueType value) { value + 1; };
 
+    /// Whether @p ValueType is one of the two kinds `GenerateAutoAssignPrimaryKey` actually generates a
+    /// value for: a GUID (via `SqlGuid::Create()`) or an incrementable value (via `MAX(...) + 1`).
+    template <typename ValueType>
+    concept AutoAssignableKeyValue = std::same_as<ValueType, SqlGuid> || IncrementableKeyValue<ValueType>;
+
     template <typename FieldType>
     concept GeneratesAutoAssignedKey = IsField<FieldType> && IsAutoAssignPrimaryKeyField<FieldType>::value
-                                       && IncrementableKeyValue<typename FieldType::ValueType>;
+                                       && AutoAssignableKeyValue<typename FieldType::ValueType>;
 
     template <typename Record>
     constexpr std::size_t AutoAssignPrimaryKeyFieldCount =
@@ -418,7 +432,7 @@ namespace detail
 
 /// @brief The tuple of a record's primary key value types, in member declaration order.
 ///
-/// Unlike @ref RecordPrimaryKeyType, which names a single field's type, this covers composite keys:
+/// Unlike `RecordPrimaryKeyType`, which names a single field's type, this covers composite keys:
 /// for a record with several members marked `PrimaryKey` it is a tuple of all of them. For a
 /// single-key record it is a one-element tuple.
 ///
@@ -455,29 +469,24 @@ constexpr bool HasCompositePrimaryKey = RecordPrimaryKeyCount<Record> > 1;
 template <typename Record>
 [[nodiscard]] RecordPrimaryKeyTuple<Record> GetPrimaryKeyFields(Record const& record)
 {
-    auto result = RecordPrimaryKeyTuple<Record> {};
-    auto slot = std::size_t { 0 };
-    EnumerateRecordMembers(record, [&]<size_t I, typename FieldType>(FieldType const& field) {
-        if constexpr (IsField<FieldType>)
-            if constexpr (FieldType::IsPrimaryKey)
+    // Mirrors RecordPrimaryKeyTupleHelper's compile-time tuple_cat construction (one std::tuple<> or
+    // std::tuple<ValueType> per member, concatenated), but reads each primary-key member's value instead
+    // of just its type. The two therefore cannot disagree on which members are collected or in what
+    // order, and no runtime index-matching against the heterogeneous tuple is needed.
+    return []<std::size_t... I>(Record const& record, std::index_sequence<I...>) {
+        return std::tuple_cat([&record]<std::size_t J>() {
+            using FieldType = RecordMemberTypeOf<J, Record>;
+            if constexpr (IsField<FieldType>)
             {
-                // The tuple was built by walking the members in this same order, so the Nth key member
-                // corresponds to tuple element N. The tuple is heterogeneous, so the write is matched
-                // against the compile-time index and only the assignable slot is emitted.
-                [&]<std::size_t... J>(std::index_sequence<J...>) {
-                    (
-                        [&] {
-                            if constexpr (std::assignable_from<std::tuple_element_t<J, RecordPrimaryKeyTuple<Record>>&,
-                                                               typename FieldType::ValueType const&>)
-                                if (J == slot)
-                                    std::get<J>(result) = field.Value();
-                        }(),
-                        ...);
-                }(std::make_index_sequence<RecordPrimaryKeyCount<Record>> {});
-                ++slot;
+                if constexpr (FieldType::IsPrimaryKey)
+                    return std::tuple<typename FieldType::ValueType> { GetRecordMemberAt<J>(record).Value() };
+                else
+                    return std::tuple<> {};
             }
-    });
-    return result;
+            else
+                return std::tuple<> {};
+        }.template operator()<I>()...);
+    }(record, std::make_index_sequence<RecordMemberCount<Record>> {});
 }
 
 /// Returns the first primary key field of the record.
@@ -490,13 +499,18 @@ inline LIGHTWEIGHT_FORCE_INLINE RecordPrimaryKeyType<Record> GetPrimaryKeyField(
     static_assert(HasPrimaryKey<Record>, "Record must have a primary key");
 
     auto result = RecordPrimaryKeyType<Record> {};
+    bool found = false;
     EnumerateRecordMembers(record, [&]<size_t I, typename FieldType>(FieldType const& field) {
         // std::same_as<typename FieldType::ValueType, RecordPrimaryKeyType<Record>>condition is for the case where there are
         // multiple primary keys, we want to return the first one
         if constexpr (IsField<FieldType>)
             if constexpr (IsPrimaryKey<FieldType>)
                 if constexpr (std::same_as<typename FieldType::ValueType, RecordPrimaryKeyType<Record>>)
-                    result = field.Value();
+                    if (!found)
+                    {
+                        result = field.Value();
+                        found = true;
+                    }
     });
     return result;
 }

@@ -113,8 +113,11 @@ considered throughout; composite ones are counted and skipped as before.
 2. **`HasManyThrough`** on each of the two referenced tables, when a table qualifies as a join
    table: exactly two single-column foreign keys, pointing at two *distinct* tables, and no
    non-key columns beyond those two foreign keys and its own key columns.
-3. **`HasOneThrough`** in place of `HasManyThrough` when the join table's foreign key to the far
-   side is covered by a single-column unique index.
+3. **`HasOneThrough`** in place of `HasManyThrough`, on a given owner's side, when the join table's
+   foreign key back to *that owner* is covered by a single-column unique index — meaning that owner
+   can appear in at most one join row, hence reach at most one record on the other side. The other
+   side keeps whatever `HasManyThrough`/`HasOneThrough` its own foreign key's uniqueness implies,
+   independently.
 4. **`HasMany`** on the referenced side of every remaining foreign key, i.e. one that is not part
    of a join table already covered by rule 2 or 3.
 5. **Scalar rather than collection** when the child's foreign key is itself covered by a

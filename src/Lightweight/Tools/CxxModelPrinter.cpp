@@ -7,6 +7,8 @@
 #include <array>
 #include <fstream>
 #include <limits>
+#include <tuple>
+#include <unordered_map>
 #include <variant>
 
 using namespace std::string_view_literals;
@@ -454,15 +456,107 @@ namespace
         return std::pair { singleColumnKeys[0], singleColumnKeys[1] };
     }
 
+    /// Emits the `HasOneThrough`/`HasManyThrough` relation for one side of a resolved join table.
+    ///
+    /// @param table The join table itself.
+    /// @param ownerKey The foreign key naming the owner this relation is planned for.
+    /// @param farKey The join table's other foreign key, naming the record @p ownerKey's owner reaches.
+    /// @param isAmbiguous Whether more than one foreign key runs between two given tables.
+    /// @param plan The plan to add the relation to, keyed by owner table name.
+    template <typename IsAmbiguousFn>
+    void EmitThroughRelation(SqlSchema::Table const& table,
+                             SqlSchema::ForeignKeyConstraint const& ownerKey,
+                             SqlSchema::ForeignKeyConstraint const& farKey,
+                             IsAmbiguousFn const& isAmbiguous,
+                             CxxModelPrinter::RelationPlan& plan)
+    {
+        auto const& ownerTable = ownerKey.primaryKey.table.table;
+        auto const& farTable = farKey.primaryKey.table.table;
+
+        // Scalar when the join record's *owner*-side key is uniquely indexed: at most one join row per
+        // owner, so the owner sees a single far record rather than a collection. The far key's own
+        // uniqueness governs the *other* direction's cardinality, not this one - a join row always
+        // references exactly one far row regardless of uniqueness, so checking farKey here would test
+        // something that is trivially always true.
+        auto const ownerIsUnique = IsUniquelyIndexed(table, ownerKey.foreignKey.columns.front());
+
+        plan[ownerTable].emplace_back(CxxModelPrinter::PlannedRelation {
+            .kind = ownerIsUnique ? CxxModelPrinter::PlannedRelation::Kind::HasOneThrough
+                                  : CxxModelPrinter::PlannedRelation::Kind::HasManyThrough,
+            .ownerTable = ownerTable,
+            .referencedTable = farTable,
+            .throughTable = table.name,
+            .ownerForeignKeyColumn = ownerKey.foreignKey.columns.front(),
+            .referencedForeignKeyColumn = farKey.foreignKey.columns.front(),
+            .ownerSelectorRequired = isAmbiguous(table.name, ownerTable),
+            .referencedSelectorRequired = isAmbiguous(table.name, farTable),
+            // Named after the far table: `project.users` rather than `project.projectUsers`, since the
+            // join table is an implementation detail of the relation.
+            .memberName = farTable,
+        });
+    }
+
+    /// Emits the inverse `HasOne`/`HasMany` relation implied by one single-column foreign key, unless it
+    /// is composite or points outside the generated set.
+    ///
+    /// @param table The table declaring @p constraint.
+    /// @param constraint The candidate foreign key.
+    /// @param byName Resolves a table by name within the generated set.
+    /// @param isAmbiguous Whether more than one foreign key runs between two given tables.
+    /// @param plan The plan to add the relation to, keyed by owner table name.
+    template <typename ByNameFn, typename IsAmbiguousFn>
+    void EmitInverseRelation(SqlSchema::Table const& table,
+                             SqlSchema::ForeignKeyConstraint const& constraint,
+                             ByNameFn const& byName,
+                             IsAmbiguousFn const& isAmbiguous,
+                             CxxModelPrinter::RelationPlan& plan)
+    {
+        if (!IsSingleColumn(constraint))
+            return; // composite: no BelongsTo either, so no inverse
+
+        auto const& ownerTable = constraint.primaryKey.table.table;
+        if (byName(ownerTable) == nullptr)
+            return; // references a table outside the generated set
+
+        auto const& childColumn = constraint.foreignKey.columns.front();
+
+        // Scalar when the child's own foreign key is uniquely indexed: one child per owner.
+        auto const childIsUnique = IsUniquelyIndexed(table, childColumn);
+
+        plan[ownerTable].emplace_back(CxxModelPrinter::PlannedRelation {
+            .kind = childIsUnique ? CxxModelPrinter::PlannedRelation::Kind::HasOne
+                                  : CxxModelPrinter::PlannedRelation::Kind::HasMany,
+            .ownerTable = ownerTable,
+            .referencedTable = table.name,
+            .throughTable = {},
+            .ownerForeignKeyColumn = childColumn,
+            .referencedForeignKeyColumn = {},
+            .ownerSelectorRequired = isAmbiguous(table.name, ownerTable),
+            .referencedSelectorRequired = false,
+            // Named after the child table. Where several foreign keys from the same child table land
+            // here the names would collide, so distinguish those by the foreign key column - which is
+            // exactly the set that also needs a selector.
+            .memberName = isAmbiguous(table.name, ownerTable) ? std::format("{}_{}", table.name, childColumn) : table.name,
+        });
+    }
+
 } // namespace
 
 CxxModelPrinter::RelationPlan CxxModelPrinter::PlanRelations(std::vector<SqlSchema::Table> const& tables)
 {
     auto plan = RelationPlan {};
 
+    // Built once up front rather than scanned per lookup: relation planning resolves a table by name
+    // for every foreign key of every table, which made the previous linear scan quadratic in schema
+    // size (hundreds of tables on the schemas this generator targets).
+    auto tablesByName = std::unordered_map<std::string_view, SqlSchema::Table const*> {};
+    tablesByName.reserve(tables.size());
+    for (auto const& table: tables)
+        tablesByName.emplace(table.name, &table);
+
     auto const byName = [&](std::string_view name) -> SqlSchema::Table const* {
-        auto const it = std::ranges::find_if(tables, [&](auto const& t) { return t.name == name; });
-        return it != tables.end() ? &*it : nullptr;
+        auto const it = tablesByName.find(name);
+        return it != tablesByName.end() ? it->second : nullptr;
     };
 
     // How many single-column foreign keys run from one table to another. A count above one makes the
@@ -490,35 +584,10 @@ CxxModelPrinter::RelationPlan CxxModelPrinter::PlanRelations(std::vector<SqlSche
 
         joinTables.emplace(table.name);
 
-        auto const& [leftKey, rightKey] = *joinKeys;
-
         // One through-relation on each side, each hopping to the other side's target.
-        auto const emitThrough = [&](SqlSchema::ForeignKeyConstraint const& ownerKey,
-                                     SqlSchema::ForeignKeyConstraint const& farKey) {
-            auto const& ownerTable = ownerKey.primaryKey.table.table;
-            auto const& farTable = farKey.primaryKey.table.table;
-
-            // Scalar when the join record's far-side key is uniquely indexed: at most one far row
-            // per join row, so the owner sees a single record rather than a collection.
-            auto const farIsUnique = IsUniquelyIndexed(table, farKey.foreignKey.columns.front());
-
-            plan[ownerTable].emplace_back(PlannedRelation {
-                .kind = farIsUnique ? PlannedRelation::Kind::HasOneThrough : PlannedRelation::Kind::HasManyThrough,
-                .ownerTable = ownerTable,
-                .referencedTable = farTable,
-                .throughTable = table.name,
-                .ownerForeignKeyColumn = ownerKey.foreignKey.columns.front(),
-                .referencedForeignKeyColumn = farKey.foreignKey.columns.front(),
-                .ownerSelectorRequired = isAmbiguous(table.name, ownerTable),
-                .referencedSelectorRequired = isAmbiguous(table.name, farTable),
-                // Named after the far table: `project.users` rather than `project.projectUsers`, since
-                // the join table is an implementation detail of the relation.
-                .memberName = farTable,
-            });
-        };
-
-        emitThrough(leftKey, rightKey);
-        emitThrough(rightKey, leftKey);
+        auto const& [leftKey, rightKey] = *joinKeys;
+        EmitThroughRelation(table, leftKey, rightKey, isAmbiguous, plan);
+        EmitThroughRelation(table, rightKey, leftKey, isAmbiguous, plan);
     }
 
     // Every remaining single-column foreign key yields an inverse collection on the referenced side.
@@ -528,35 +597,7 @@ CxxModelPrinter::RelationPlan CxxModelPrinter::PlanRelations(std::vector<SqlSche
             continue;
 
         for (auto const& constraint: table.foreignKeys)
-        {
-            if (!IsSingleColumn(constraint))
-                continue; // composite: no BelongsTo either, so no inverse
-
-            auto const& ownerTable = constraint.primaryKey.table.table;
-            if (byName(ownerTable) == nullptr)
-                continue; // references a table outside the generated set
-
-            auto const& childColumn = constraint.foreignKey.columns.front();
-
-            // Scalar when the child's own foreign key is uniquely indexed: one child per owner.
-            auto const childIsUnique = IsUniquelyIndexed(table, childColumn);
-
-            plan[ownerTable].emplace_back(PlannedRelation {
-                .kind = childIsUnique ? PlannedRelation::Kind::HasOne : PlannedRelation::Kind::HasMany,
-                .ownerTable = ownerTable,
-                .referencedTable = table.name,
-                .throughTable = {},
-                .ownerForeignKeyColumn = childColumn,
-                .referencedForeignKeyColumn = {},
-                .ownerSelectorRequired = isAmbiguous(table.name, ownerTable),
-                .referencedSelectorRequired = false,
-                // Named after the child table. Where several foreign keys from the same child table
-                // land here the names would collide, so distinguish those by the foreign key column -
-                // which is exactly the set that also needs a selector.
-                .memberName =
-                    isAmbiguous(table.name, ownerTable) ? std::format("{}_{}", table.name, childColumn) : table.name,
-            });
-        }
+            EmitInverseRelation(table, constraint, byName, isAmbiguous, plan);
     }
 
     return plan;
@@ -1028,6 +1069,17 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table, std::vector<Plan
         if (!throughStruct.empty() && relation.throughTable != table.name)
             definition.forwardDeclaredTables.emplace(throughStruct);
 
+        // Reserved against member-name collisions before computing this relation's own member name
+        // below: a member named identically to a forward-declared type it does not itself recurse into
+        // would shadow that type for the rest of the class body - legal C++, but GCC's -Wchanges-meaning
+        // (an error under -Werror) rejects it, and it is genuinely confusing besides. Self-references
+        // are exempt: a member named after its own enclosing struct is unambiguous (the injected-class-
+        // name already means the same thing), and that shape is already relied on elsewhere.
+        if (relation.referencedTable != table.name)
+            std::ignore = uniqueMemberNameBuilder.TryDeclareName(referencedStruct);
+        if (!throughStruct.empty() && relation.throughTable != table.name)
+            std::ignore = uniqueMemberNameBuilder.TryDeclareName(throughStruct);
+
         auto const memberName = uniqueMemberNameBuilder.DeclareName(
             SanitizeName(FormatName(StripSuffix(relation.memberName), _config.formatType)));
 
@@ -1052,8 +1104,13 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table, std::vector<Plan
                 break;
 
             case PlannedRelation::Kind::HasOneThrough:
+            case PlannedRelation::Kind::HasManyThrough: {
+                // Same selector formatting either way; only the template name differs by cardinality.
+                auto const templateName =
+                    relation.kind == PlannedRelation::Kind::HasOneThrough ? "HasOneThrough"sv : "HasManyThrough"sv;
                 definition.text << std::format(
-                    "    Light::HasOneThrough<{}, {}{}{}> {};\n",
+                    "    Light::{}<{}, {}{}{}> {};\n",
+                    templateName,
                     referencedStruct,
                     throughStruct,
                     ownerSelector,
@@ -1062,18 +1119,7 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table, std::vector<Plan
                         : std::string {},
                     memberName);
                 break;
-
-            case PlannedRelation::Kind::HasManyThrough:
-                definition.text << std::format(
-                    "    Light::HasManyThrough<{}, {}{}{}> {};\n",
-                    referencedStruct,
-                    throughStruct,
-                    ownerSelector,
-                    relation.referencedSelectorRequired
-                        ? std::format(", Light::SqlRealName {{ \"{}\" }}", relation.referencedForeignKeyColumn)
-                        : std::string {},
-                    memberName);
-                break;
+            }
         }
 
         ++_numberOfRelationsListed;

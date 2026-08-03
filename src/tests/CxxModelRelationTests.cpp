@@ -15,7 +15,7 @@
 //   - two foreign keys from one child into one parent     -> HasMany + selector (that schema has a
 //                                                            pair joined by 55 foreign keys)
 //   - a two-column join table                            -> HasManyThrough on both sides
-//   - a join table whose far key is uniquely indexed      -> HasOneThrough
+//   - a join table whose owner key is uniquely indexed    -> HasOneThrough on that owner's side
 //   - a uniquely indexed child foreign key                -> one-to-one
 //   - a join table carrying payload columns               -> NOT a join table (association object)
 //   - composite foreign keys                              -> skipped, as for BelongsTo
@@ -252,9 +252,13 @@ TEST_CASE("PlanRelations: a two-column join table yields HasManyThrough on both 
     CHECK(RelationsOn(plan, "project_user").empty());
 }
 
-TEST_CASE("PlanRelations: a join table with a uniquely indexed far key yields HasOneThrough", "[CxxModelPrinter][relations]")
+TEST_CASE("PlanRelations: a join table with a uniquely indexed owner key yields HasOneThrough",
+          "[CxxModelPrinter][relations]")
 {
-    // When the join record's far-side key is unique, each owner reaches at most one far record.
+    // When the join record's own foreign key back to an owner is unique, that owner reaches at most
+    // one join row and therefore at most one far record. `locker_id` being unique means each locker is
+    // linked to at most one employee - a one-to-one from locker's side - while `employee_id` staying
+    // unconstrained means one employee can still have several lockers.
     auto const tables = std::vector<Lightweight::SqlSchema::Table> {
         { .schema = "", .name = "employee", .columns = { IdColumn() }, .primaryKeys = { "id" } },
         { .schema = "", .name = "locker", .columns = { IdColumn() }, .primaryKeys = { "id" } },
@@ -268,14 +272,14 @@ TEST_CASE("PlanRelations: a join table with a uniquely indexed far key yields Ha
 
     auto const plan = CxxModelPrinter::PlanRelations(tables);
 
-    // Employee -> locker crosses the unique key, so at most one locker.
+    // employee_id is not uniquely indexed, so one employee can have several join rows: a collection.
     auto const fromEmployee = SoleRelationOn(plan, "employee");
-    CHECK(fromEmployee.kind == Kind::HasOneThrough);
+    CHECK(fromEmployee.kind == Kind::HasManyThrough);
     CHECK(fromEmployee.referencedTable == "locker");
 
-    // The other direction crosses the non-unique employee_id, so it stays a collection.
+    // locker_id is uniquely indexed, so each locker reaches at most one join row, hence one employee.
     auto const fromLocker = SoleRelationOn(plan, "locker");
-    CHECK(fromLocker.kind == Kind::HasManyThrough);
+    CHECK(fromLocker.kind == Kind::HasOneThrough);
     CHECK(fromLocker.referencedTable == "employee");
 }
 
@@ -528,4 +532,35 @@ TEST_CASE("CxxModelPrinter: relation members do not collide with column members"
     for (auto offset = header.find("> book;"); offset != std::string::npos; offset = header.find("> book;", offset + 1))
         ++occurrences;
     CHECK(occurrences <= 1);
+}
+
+TEST_CASE("CxxModelPrinter: relation members do not collide with the referenced struct's own name",
+          "[CxxModelPrinter][relations]")
+{
+    // With no column named after the child table, the relation member's default name (the child
+    // table's own name) is identical to the forward-declared struct it names as its type - `struct
+    // book;` and a member `book` in the very same class. Legal C++ (a member may shadow an outer type),
+    // but the member declaration then "changes the meaning" of `book` for the rest of the class body,
+    // which GCC (-Wchanges-meaning) rejects under -Werror, and which reads as though the member and its
+    // own type were the same thing.
+    auto const tables = std::vector<Lightweight::SqlSchema::Table> {
+        { .schema = "", .name = "author", .columns = { IdColumn() }, .primaryKeys = { "id" } },
+        { .schema = "",
+          .name = "book",
+          .columns = { IdColumn(), ForeignKeyColumn("author_id") },
+          .foreignKeys = { ForeignKey("book", "author_id", "author") },
+          .primaryKeys = { "id" } },
+    };
+
+    auto printer = CxxModelPrinter { CxxModelPrinter::Config {} };
+    printer.ResolveOrderAndPrintTable(tables);
+
+    auto const header = printer.HeaderFileForTheTable("Models", "author");
+    INFO("author.hpp:\n" << header);
+
+    // The type is still forward-declared and still named by the relation...
+    CHECK(header.contains("struct book;"));
+    CHECK(header.contains("Light::HasMany<book>"));
+    // ...but the member itself must not be named exactly `book`, or it would shadow that very type.
+    CHECK_FALSE(header.contains("> book;"));
 }

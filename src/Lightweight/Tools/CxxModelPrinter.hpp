@@ -99,7 +99,7 @@ class CxxModelPrinter
     ///
     /// A `BelongsTo` is derivable from the child table alone, but every relation pointing the other
     /// way needs to know about foreign keys declared on *other* tables. `RelationPlan` is that
-    /// schema-wide answer, computed once by @ref PlanRelations and consumed per table.
+    /// schema-wide answer, computed once by `PlanRelations` and consumed per table.
     struct PlannedRelation
     {
         /// Which relation template to emit.
@@ -111,6 +111,7 @@ class CxxModelPrinter
             HasOneThrough,  //!< As HasManyThrough, but the far side is uniquely indexed.
         };
 
+        /// Which relation template to emit for this relation.
         Kind kind {};
 
         /// Table this relation is emitted on.

@@ -10,6 +10,8 @@
 #include <array>
 #include <string_view>
 
+struct Track;
+
 struct Album final
 {
     static constexpr std::string_view TableName = "Album";
@@ -17,6 +19,8 @@ struct Album final
     Light::Field<int32_t, Light::PrimaryKey::ServerSideAutoIncrement, Light::SqlRealName { "AlbumId" }> AlbumId;
     Light::Field<Light::SqlDynamicUtf16String<160>, Light::SqlRealName { "Title" }> Title;
     Light::BelongsTo<&Artist::ArtistId, Light::SqlRealName { "ArtistId" }> ArtistId;
+
+    Light::HasMany<Track> Track_1;
 };
 
 template <>

@@ -59,7 +59,9 @@ struct Child
     Field<int32_t, SqlRealName { "ref_a" }> refA {};
     Field<int32_t, SqlRealName { "ref_b" }> refB {};
 
-    CompositeForeignKey<Connection<&Child::refA, &Parent::partA>, Connection<&Child::refB, &Parent::partB>> parent {};
+    CompositeForeignKey<Connection<Member(Child::refA), Member(Parent::partA)>,
+                        Connection<Member(Child::refB), Member(Parent::partB)>>
+        parent {};
 };
 
 /// The same relation with its connections written in the *opposite* order. Semantically identical -
@@ -72,8 +74,8 @@ struct ChildDeclaredBackwards
     Field<int32_t, SqlRealName { "ref_a" }> refA {};
     Field<int32_t, SqlRealName { "ref_b" }> refB {};
 
-    CompositeForeignKey<Connection<&ChildDeclaredBackwards::refB, &Parent::partB>,
-                        Connection<&ChildDeclaredBackwards::refA, &Parent::partA>>
+    CompositeForeignKey<Connection<Member(ChildDeclaredBackwards::refB), Member(Parent::partB)>,
+                        Connection<Member(ChildDeclaredBackwards::refA), Member(Parent::partA)>>
         parent {};
 };
 
@@ -99,9 +101,9 @@ struct WideChild
     Field<int32_t, SqlRealName { "b" }> b {};
     Field<int32_t, SqlRealName { "c" }> c {};
 
-    CompositeForeignKey<Connection<&WideChild::c, &WideParent::k3>,
-                        Connection<&WideChild::a, &WideParent::k1>,
-                        Connection<&WideChild::b, &WideParent::k2>>
+    CompositeForeignKey<Connection<Member(WideChild::c), Member(WideParent::k3)>,
+                        Connection<Member(WideChild::a), Member(WideParent::k1)>,
+                        Connection<Member(WideChild::b), Member(WideParent::k2)>>
         parent {};
 };
 
@@ -138,8 +140,8 @@ TEST_CASE("CompositeForeignKey derives both records from its connections", "[Com
 
 TEST_CASE("Connection exposes both endpoints and the referenced member index", "[CompositeForeignKey]")
 {
-    using First = Connection<&Child::refA, &Parent::partA>;
-    using Second = Connection<&Child::refB, &Parent::partB>;
+    using First = Connection<Member(Child::refA), Member(Parent::partA)>;
+    using Second = Connection<Member(Child::refB), Member(Parent::partB)>;
 
     STATIC_CHECK(std::same_as<First::FromRecord, Child>);
     STATIC_CHECK(std::same_as<First::IntoRecord, Parent>);
@@ -243,6 +245,25 @@ TEST_CASE("CompositeForeignKey navigation reports load state", "[CompositeForeig
     CHECK_FALSE(child.parent.IsLoaded());
 }
 
+TEST_CASE("CompositeForeignKey participates in CollectDifferences", "[CompositeForeignKey]")
+{
+    // Regression test: without a comparison operator, CompositeForeignKey is neither
+    // std::equality_comparable nor (owing to its private members) an aggregate, so
+    // Reflection::CollectDifferences - which falls back to recursing into non-comparable members as
+    // aggregates - fails to compile for any record holding one. Compiling at all is most of what this
+    // test checks.
+    auto a = Child {};
+    a.refA = 1;
+    a.refB = 2;
+
+    auto b = Child {};
+    b.refA = 1;
+    b.refB = 9;
+
+    auto const differences = Lightweight::CollectDifferences(a, b);
+    CHECK(differences.indexes.size() == 1); // only refB differs; both `parent` relations compare equal (unloaded)
+}
+
 // ================================================================================================
 // Step 4: loading against a live database
 // ================================================================================================
@@ -287,6 +308,44 @@ TEST_CASE_METHOD(SqlTestFixture, "CompositeForeignKey loads its referenced recor
     CHECK(child->parent.Record().partB.Value() == 2);
     REQUIRE(child->parent.Record().caption.Value().has_value());
     CHECK(child->parent.Record().caption.Value().value() == "one-two");
+    // NOLINTEND(bugprone-unchecked-optional-access)
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "CompositeForeignKey lazy auto-loader survives QuerySingle's return by value",
+                 "[CompositeForeignKey]")
+{
+    // Regression test: the auto-loader QuerySingle(primaryKeys...) installs captures a pointer to the
+    // record it configures (see ConfigureRelationAutoLoading / CompositeForeignKey::Loader). QuerySingle
+    // used to have an early `return std::nullopt;` ahead of its final `return resultRecord;`, which
+    // defeats NRVO in both GCC and Clang and moves the record to a new address on the way out - leaving
+    // that captured pointer dangling. Reaching the relation through its lazy loader (not via the eager
+    // LoadRelations() path exercised above) is what triggers it.
+    auto stmt = SqlStatement {};
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "CfkParent" (
+                                     "part_a" INT NOT NULL,
+                                     "part_b" INT NOT NULL,
+                                     "caption" VARCHAR(20) NULL,
+                                     PRIMARY KEY ("part_a", "part_b")
+                                 ))");
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "CfkChild" (
+                                     "id" INT NOT NULL PRIMARY KEY,
+                                     "ref_a" INT NOT NULL,
+                                     "ref_b" INT NOT NULL
+                                 ))");
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "CfkParent" VALUES (1, 2, 'one-two'))");
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "CfkChild" VALUES (100, 1, 2))");
+
+    auto dm = DataMapper {};
+
+    auto child = dm.QuerySingle<Child>(100);
+    REQUIRE(child.has_value());
+    // NOLINTBEGIN(bugprone-unchecked-optional-access) - guarded above
+    CHECK_FALSE(child->parent.IsLoaded());
+
+    // Triggers the lazy loader installed by QuerySingle, not the eager LoadRelations() path.
+    REQUIRE(child->parent.Record().partA.Value() == 1);
+    CHECK(child->parent.Record().partB.Value() == 2);
     // NOLINTEND(bugprone-unchecked-optional-access)
 }
 
@@ -373,7 +432,7 @@ TEST_CASE("GetPrimaryKeyFields reads every key value in member order", "[Composi
     CHECK(std::get<2>(wideKeys) == 30);
 
     // The tuple order matches what QuerySingle binds, so it can be applied directly.
-    auto const single = GetPrimaryKeyFields(Child {});
+    [[maybe_unused]] auto const single = GetPrimaryKeyFields(Child {});
     STATIC_CHECK(std::tuple_size_v<decltype(single)> == 1);
 }
 

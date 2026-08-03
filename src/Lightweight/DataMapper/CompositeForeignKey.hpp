@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <ranges>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -139,7 +140,7 @@ namespace detail
     };
 } // namespace detail
 
-/// @brief Satisfied by @ref Connection specializations.
+/// @brief Satisfied by `Connection` specializations.
 ///
 /// @ingroup DataMapper
 template <typename T>
@@ -147,7 +148,7 @@ concept ConnectionType = detail::IsConnectionType<std::remove_cvref_t<T>>::value
 
 /// @brief Represents a foreign key spanning several columns.
 ///
-/// Declared as a list of @ref Connection, each pairing one of this record's columns with the column it
+/// Declared as a list of `Connection`, each pairing one of this record's columns with the column it
 /// references. The referenced and referencing records are *derived* from those pointers rather than
 /// named again, so they cannot disagree with the connections.
 ///
@@ -160,7 +161,7 @@ concept ConnectionType = detail::IsConnectionType<std::remove_cvref_t<T>>::value
 /// order before binding, because that is the order a primary key lookup emits its predicates in - see
 /// @ref OrderedValuesOf and `src/tests/CompositeKeyOrderingTests.cpp`.
 ///
-/// @tparam Connections One @ref Connection per column of the foreign key.
+/// @tparam Connections One `Connection` per column of the foreign key.
 ///
 /// @ingroup DataMapper
 ///
@@ -228,8 +229,8 @@ class CompositeForeignKey
     static_assert(
         []() consteval {
             auto const indices = std::array { Connections::IntoMemberIndex... };
-            for (auto outer = std::size_t { 0 }; outer != indices.size(); ++outer)
-                for (auto inner = outer + 1; inner != indices.size(); ++inner)
+            for (auto const outer: std::views::iota(std::size_t { 0 }, indices.size()))
+                for (auto const inner: std::views::iota(outer + 1, indices.size()))
                     if (indices[outer] == indices[inner])
                         return false;
             return true;
@@ -257,7 +258,7 @@ class CompositeForeignKey
     /// because the referenced indices are asserted pairwise distinct above.
     template <std::size_t Slot>
     static constexpr std::size_t ConnectionForSlot = []() consteval {
-        for (auto candidate = std::size_t { 0 }; candidate != Count; ++candidate)
+        for (auto const candidate: std::views::iota(std::size_t { 0 }, Count))
         {
             auto rank = std::size_t { 0 };
             for (auto const other: IntoIndices)
@@ -384,7 +385,25 @@ class CompositeForeignKey
     /// Carries the deferred load, installed by the DataMapper.
     struct Loader
     {
+        /// Loads and returns the referenced record, or `nullptr` if none exists.
         std::function<std::shared_ptr<ReferencedRecord>()> loadReference {};
+
+        /// Loaders carry no comparable state of their own, so any two are considered equivalent.
+        std::weak_ordering operator<=>(Loader const& /*other*/) const noexcept
+        {
+            return std::weak_ordering::equivalent; // Loader is not comparable, so we return equivalent
+        }
+
+        /// Loaders carry no comparable state of their own, so any two compare equal.
+        ///
+        /// A defaulted `==` on the enclosing class does not derive equality from a member's `<=>` - each
+        /// member needs its own viable `==`, or the default is silently deleted. See HasMany::Loader for
+        /// the same shape (there, without this operator; equal by convention since it holds none of the
+        /// relation's state).
+        bool operator==(Loader const& /*other*/) const noexcept
+        {
+            return true;
+        }
     };
 
     /// Used internally to configure on-demand loading of the referenced record.
@@ -394,6 +413,16 @@ class CompositeForeignKey
     {
         _loader = std::move(loader);
     }
+
+    /// Three-way comparison operator.
+    ///
+    /// Without this, the relation is neither `std::equality_comparable` nor (owing to its private
+    /// members) an aggregate, and `Reflection::CollectDifferences` - which falls back to recursing into
+    /// non-comparable members as aggregates - hard-errors on any record holding one. HasMany,
+    /// HasOneThrough and HasManyThrough all define one for the same reason.
+    std::weak_ordering operator<=>(CompositeForeignKey const& other) const noexcept = default;
+    /// Equality comparison operator.
+    bool operator==(CompositeForeignKey const& other) const noexcept = default;
 
   private:
     void RequireLoaded() const
