@@ -2,6 +2,7 @@ var dir_928313e3f834eaf7c2b65386b629cfde =
 [
     [ "BelongsTo.hpp", "da/d23/BelongsTo_8hpp_source.html", null ],
     [ "CollectDifferences.hpp", "dc/d74/CollectDifferences_8hpp_source.html", null ],
+    [ "CompositeForeignKey.hpp", "d0/d28/CompositeForeignKey_8hpp_source.html", null ],
     [ "DataMapper.hpp", "df/d4f/DataMapper_8hpp_source.html", null ],
     [ "Error.hpp", "d1/d93/Error_8hpp_source.html", null ],
     [ "Field.hpp", "d6/dac/Field_8hpp_source.html", null ],

@@ -102,7 +102,7 @@ $(document).ready(function(){initNavTree('da/df2/conceptLightweight_1_1RelationS
 <div class="fragment"><div class="line"><span class="keyword">template</span>&lt;auto Selector&gt;</div>
 <div class="line"><span class="keyword">concept </span><a class="code hl_concept" href="../../da/df2/conceptLightweight_1_1RelationSelector.html">Lightweight::RelationSelector</a> = </div>
 <div class="line">    std::same_as&lt;std::remove_cvref_t&lt;<span class="keyword">decltype</span>(Selector)&gt;, std::nullopt_t&gt; || <span class="keyword">requires</span> { std::string_view { Selector }; }</div>
-<div class="ttc" id="aconceptLightweight_1_1RelationSelector_html"><div class="ttname"><a href="../../da/df2/conceptLightweight_1_1RelationSelector.html">Lightweight::RelationSelector</a></div><div class="ttdoc">Constrains what may be used to single out one of several foreign keys into the same table.</div><div class="ttdef"><b>Definition</b> <a href="../../d3/d6b/Record_8hpp_source.html#l00132">Record.hpp:132</a></div></div>
+<div class="ttc" id="aconceptLightweight_1_1RelationSelector_html"><div class="ttname"><a href="../../da/df2/conceptLightweight_1_1RelationSelector.html">Lightweight::RelationSelector</a></div><div class="ttdoc">Constrains what may be used to single out one of several foreign keys into the same table.</div><div class="ttdef"><b>Definition</b> <a href="../../d3/d6b/Record_8hpp_source.html#l00134">Record.hpp:134</a></div></div>
 </div><!-- fragment --><a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Constrains what may be used to single out one of several foreign keys into the same table. </p>
 <p>Two forms are accepted:</p><ul>
@@ -111,7 +111,7 @@ $(document).ready(function(){initNavTree('da/df2/conceptLightweight_1_1RelationS
 </ul>
 <p>A relationship selector must stay inert at <em>declaration</em> time: the two records of a relationship reference each other, so neither is complete where the other is declared. That rules out pointer-to-member selectors and is why the foreign key is named by its column. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00132">132</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00134">134</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

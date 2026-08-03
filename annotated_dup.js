@@ -60,6 +60,8 @@ var annotated_dup =
       ] ],
       [ "AliasedTableName", "d1/d0e/structLightweight_1_1AliasedTableName.html", "d1/d0e/structLightweight_1_1AliasedTableName" ],
       [ "BelongsTo", "d0/df7/classLightweight_1_1BelongsTo.html", "d0/df7/classLightweight_1_1BelongsTo" ],
+      [ "CompositeForeignKey", "dc/dc9/classLightweight_1_1CompositeForeignKey.html", "dc/dc9/classLightweight_1_1CompositeForeignKey" ],
+      [ "Connection", "d4/d03/structLightweight_1_1Connection.html", "d4/d03/structLightweight_1_1Connection" ],
       [ "DataMapper", "de/d61/classLightweight_1_1DataMapper.html", "de/d61/classLightweight_1_1DataMapper" ],
       [ "DataMapperOptions", "d3/db2/structLightweight_1_1DataMapperOptions.html", "d3/db2/structLightweight_1_1DataMapperOptions" ],
       [ "Description", "de/d22/structLightweight_1_1Description.html", null ],
