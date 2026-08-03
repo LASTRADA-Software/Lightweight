@@ -320,8 +320,16 @@ ColumnLayout {
         Layout.topMargin: 4
         Layout.preferredHeight: 38
         highlighted: true
+        // The backup/managed-backup terms mirror the mutual busy guard wired in
+        // AppController: applying migrations while a backup is writing an
+        // archive tears that archive, and the C++ guard would refuse the click
+        // anyway. Dry-runs are read-only and stay available, exactly like the
+        // C++ side, which only gates the mutating entry points.
         enabled: AppController.connected
                  && AppController.runner.phase === MigrationRunner.Idle
+                 && (root.dryRun
+                     || (AppController.backupRunner.phase === BackupRunner.Idle
+                         && AppController.managedBackups.phase === ManagedBackupController.Idle))
                  && (root.target !== "release" || root.hasSelection || root.selectedRelease.length > 0)
                  && (root.target !== "timestamp" || root.hasSelection || root.specificTimestamp.length > 0)
         ToolTip.visible: hovered
@@ -365,6 +373,8 @@ ColumnLayout {
         visible: root.target === "release" && root.selectedRelease.length > 0
         enabled: AppController.connected
                  && AppController.runner.phase === MigrationRunner.Idle
+                 && AppController.backupRunner.phase === BackupRunner.Idle
+                 && AppController.managedBackups.phase === ManagedBackupController.Idle
         text: qsTr("Rollback to release %1…").arg(root.selectedRelease)
         ToolTip.visible: hovered
         ToolTip.delay: 500

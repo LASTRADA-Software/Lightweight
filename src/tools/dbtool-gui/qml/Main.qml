@@ -131,9 +131,11 @@ ApplicationWindow {
         }
     }
 
-    // Transient flag — not persisted. Settings is a temporary navigation
-    // destination; closing it returns to whichever view-mode the user was in.
+    // Transient flags — not persisted. Settings and Backups are temporary
+    // navigation destinations; closing either returns to whichever view-mode
+    // the user was in.
     property bool showSettings: false
+    property bool showBackups: false
 
     ColumnLayout {
         anchors.fill: parent
@@ -142,19 +144,25 @@ ApplicationWindow {
         ToolBar {
             Layout.fillWidth: true
             onRefreshClicked: AppController.connectToProfile()
-            onBackupRestoreClicked: backupDialog.open()
+            onBackupRestoreClicked: {
+                AppController.managedBackups.refreshStatus();
+                showBackups = true;
+            }
             onSettingsClicked: showSettings = true
         }
 
         StackLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            // Index 0 = Simple, 1 = Expert, 2 = Settings. Settings takes
-            // precedence so the page renders regardless of view-mode; the
-            // Done button flips `showSettings` back off.
+            // Index 0 = Simple, 1 = Expert, 2 = Settings, 3 = Backups.
+            // Settings and Backups take precedence over the view-mode so the
+            // page renders regardless of mode; their Done buttons flip the
+            // matching flag back off.
             currentIndex: showSettings
                 ? 2
-                : (AppController.viewMode === "expert" ? 1 : 0)
+                : showBackups
+                    ? 3
+                    : (AppController.viewMode === "expert" ? 1 : 0)
 
             SimpleView { id: simpleView }
             ExpertView { id: expertView }
@@ -162,11 +170,14 @@ ApplicationWindow {
                 id: settingsPage
                 onDone: showSettings = false
             }
+            BackupsPage {
+                id: backupsPage
+                onDone: showBackups = false
+                onOpenSettings: {
+                    showBackups = false;
+                    showSettings = true;
+                }
+            }
         }
-    }
-
-    BackupRestoreDialog {
-        id: backupDialog
-        anchors.centerIn: parent
     }
 }

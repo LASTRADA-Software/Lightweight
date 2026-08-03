@@ -15,6 +15,13 @@ Rectangle {
 
     property string status: ""
 
+    /// Optional display label. When empty the pill shows `status` verbatim
+    /// (the migrations views rely on this). Callers that need a friendlier
+    /// caption than the palette key — e.g. the backups view rendering
+    /// "backed up" while colouring it with the "applied" palette — set this
+    /// to decouple the visible text from the colour lookup.
+    property string label: ""
+
     /// Optional override for the hover tooltip. When empty the per-status
     /// default from `_tooltips` is used; set this to suppress the tooltip for
     /// a specific instance (e.g. inside a chip already accompanied by helper
@@ -103,7 +110,7 @@ Rectangle {
 
         Text {
             anchors.verticalCenter: parent.verticalCenter
-            text: root.status
+            text: root.label !== "" ? root.label : root.status
             color: root._colours[1]
             font.pixelSize: 11
             font.weight: Font.Medium
