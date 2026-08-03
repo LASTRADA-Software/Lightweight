@@ -1,5 +1,8 @@
 var NAVTREEINDEX4 =
 {
+"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#ae28b8f58e51308f801acc79b67095643":[14,4,7,10],
+"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#ae48b1defb3a1271985038dde52202726":[14,4,7,17],
+"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#aedb47de8e25f2f4eaae7373d65e3b4bd":[14,4,7,20],
 "d8/db2/SqlColumnTypeDefinitions_8hpp_source.html":[17,0,1,14],
 "d8/ddd/Common_8hpp_source.html":[17,0,1,4,3],
 "d8/deb/HasMany_8hpp_source.html":[17,0,1,2,6],
@@ -246,8 +249,5 @@ var NAVTREEINDEX4 =
 "da/da8/classLightweight_1_1SqlConnection.html#ab40ae26f82d6690050a2a6a622f7cdec":[16,0,0,30,9],
 "da/da8/classLightweight_1_1SqlConnection.html#ab5a9e94571f9e9296b2ce65036f75184":[16,0,0,30,0],
 "da/da8/classLightweight_1_1SqlConnection.html#ab9e2b5679f7ca67ead13107a020e7c65":[16,0,0,30,2],
-"da/da8/classLightweight_1_1SqlConnection.html#ac29fe83ca60448002d451dbd707be955":[16,0,0,30,10],
-"da/da8/classLightweight_1_1SqlConnection.html#ac4ea8b83a43459581e2a52a568c595c5":[16,0,0,30,18],
-"da/da8/classLightweight_1_1SqlConnection.html#acb0f99439f457fbd454e3bda1acaae19":[16,0,0,30,34],
-"da/da8/classLightweight_1_1SqlConnection.html#accca2c0c11b7132ef9a5996f680a9eda":[16,0,0,30,20]
+"da/da8/classLightweight_1_1SqlConnection.html#ac29fe83ca60448002d451dbd707be955":[16,0,0,30,10]
 };

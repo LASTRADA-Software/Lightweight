@@ -106,7 +106,7 @@ $(document).ready(function(){initNavTree('d7/d2f/group__DataMapper.html','../../
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="concepts" name="concepts"></a>
 Concepts</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">concept &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/de8/conceptLightweight_1_1ConnectionType.html">Lightweight::ConnectionType</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Satisfied by Connection specializations. <br /></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Satisfied by <code>Connection</code> specializations. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">concept &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d36/conceptLightweight_1_1DataMapperRecord.html">Lightweight::DataMapperRecord</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a record type that can be used with the DataMapper. <br /></td></tr>
@@ -337,10 +337,10 @@ template&lt;typename Record &gt; </div>
 </div><div class="memdoc">
 
 <p>The tuple of a record's primary key value types, in member declaration order. </p>
-<p>Unlike RecordPrimaryKeyType, which names a single field's type, this covers composite keys: for a record with several members marked <code>PrimaryKey</code> it is a tuple of all of them. For a single-key record it is a one-element tuple.</p>
+<p>Unlike <code>RecordPrimaryKeyType</code>, which names a single field's type, this covers composite keys: for a record with several members marked <code>PrimaryKey</code> it is a tuple of all of them. For a single-key record it is a one-element tuple.</p>
 <p>Added alongside the single-key helpers rather than replacing them, so no existing caller changes behaviour; only composite-aware code reaches for this. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00436">436</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00444">444</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
 
 </div>
 </div>
@@ -393,7 +393,7 @@ template&lt;typename Record &gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The key values as a tuple. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00462">462</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00470">470</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
 
 </div>
 </div>
@@ -424,11 +424,11 @@ template&lt;typename Record &gt; </div>
 </div><div class="memdoc">
 <p>Returns the first primary key field of the record. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00488">488</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00496">496</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00181">Lightweight::EnumerateRecordMembers()</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02952">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01931">Lightweight::DataMapper::Create()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02961">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01939">Lightweight::DataMapper::Create()</a>.</p>
 
 </div>
 </div>
@@ -505,7 +505,7 @@ template&lt;typename Record , typename Callable &gt; </div>
 
 <p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00181">181</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02952">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02112">Lightweight::DataMapper::Delete()</a>, <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00488">Lightweight::GetPrimaryKeyField()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02808">Lightweight::DataMapper::LoadRelations()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02871">Lightweight::DataMapper::SetId()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02452">Lightweight::DataMapper::SetModifiedState()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01986">Lightweight::DataMapper::Update()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02961">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02120">Lightweight::DataMapper::Delete()</a>, <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00496">Lightweight::GetPrimaryKeyField()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02817">Lightweight::DataMapper::LoadRelations()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02880">Lightweight::DataMapper::SetId()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02460">Lightweight::DataMapper::SetModifiedState()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01994">Lightweight::DataMapper::Update()</a>.</p>
 
 </div>
 </div>
@@ -653,7 +653,7 @@ template&lt;typename T &gt; </div>
 
 <p>Whether <code>T</code> is a <a class="el" href="../../dc/dc9/classLightweight_1_1CompositeForeignKey.html">CompositeForeignKey</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d0/d28/CompositeForeignKey_8hpp_source.html#l00457">457</a> of file <a class="el" href="../../d0/d28/CompositeForeignKey_8hpp_source.html">CompositeForeignKey.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d0/d28/CompositeForeignKey_8hpp_source.html#l00461">461</a> of file <a class="el" href="../../d0/d28/CompositeForeignKey_8hpp_source.html">CompositeForeignKey.hpp</a>.</p>
 
 </div>
 </div>
@@ -914,7 +914,7 @@ template&lt;typename Record &gt; </div>
 <p>Number of members of <code>Record</code> marked as a primary key. </p>
 <p>One for an ordinary record, more for a composite key, zero for a keyless record. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00444">444</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00452">452</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
 
 </div>
 </div>
@@ -942,7 +942,7 @@ template&lt;typename Record &gt; </div>
 
 <p>Whether <code>Record's</code> identity spans more than one column. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00450">450</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00458">458</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
 
 </div>
 </div>

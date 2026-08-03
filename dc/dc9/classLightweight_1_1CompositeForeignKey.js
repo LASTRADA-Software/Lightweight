@@ -1,6 +1,6 @@
 var classLightweight_1_1CompositeForeignKey =
 [
-    [ "Loader", "d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html", null ],
+    [ "Loader", "d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html", "d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader" ],
     [ "Child", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#a723f6f3b7369619a2b7446623f6300b9", null ],
     [ "ReferencedRecord", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#aadd30fc4ad067ad510d194e75ce72f18", null ],
     [ "ValueType", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#a8d3e00a5239178c02d426b01fb93f55d", null ],

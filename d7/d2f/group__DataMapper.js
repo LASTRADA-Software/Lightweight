@@ -46,7 +46,11 @@ var group__DataMapper =
       [ "IntoField", "d4/d03/structLightweight_1_1Connection.html#aff74e09c621c9b84efdcebd06c708009", null ]
     ] ],
     [ "Lightweight::CompositeForeignKey< Connections >", "dc/dc9/classLightweight_1_1CompositeForeignKey.html", [
-      [ "Loader", "d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html", null ],
+      [ "Loader", "d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html", [
+        [ "operator<=>", "d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html#a4e488a572408a095332f3dc38e5f2a46", null ],
+        [ "operator==", "d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html#a3aa4b638408ac131ea7e1992ce5851be", null ],
+        [ "loadReference", "d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html#aa09380d173e9cc5e484d93faf1b35192", null ]
+      ] ],
       [ "Child", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#a723f6f3b7369619a2b7446623f6300b9", null ],
       [ "ReferencedRecord", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#aadd30fc4ad067ad510d194e75ce72f18", null ],
       [ "ValueType", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#a8d3e00a5239178c02d426b01fb93f55d", null ],

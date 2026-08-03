@@ -116,6 +116,7 @@ Public Types</h2></td></tr>
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
 <tr class="memitem:a15fd23005c8faef345ccd0d6a8738c75" id="r_a15fd23005c8faef345ccd0d6a8738c75"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d6/dfb/structLightweight_1_1Tools_1_1CxxModelPrinter_1_1PlannedRelation.html#a2eef1942dd0b41833109a8c59ddc61f2">Kind</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/dfb/structLightweight_1_1Tools_1_1CxxModelPrinter_1_1PlannedRelation.html#a15fd23005c8faef345ccd0d6a8738c75">kind</a> {}</td></tr>
+<tr class="memdesc:a15fd23005c8faef345ccd0d6a8738c75"><td class="mdescLeft">&#160;</td><td class="mdescRight">Which relation template to emit for this relation.  <br /></td></tr>
 <tr class="separator:a15fd23005c8faef345ccd0d6a8738c75"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac1fda59aa86120c38b24e538624bca77" id="r_ac1fda59aa86120c38b24e538624bca77"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/dfb/structLightweight_1_1Tools_1_1CxxModelPrinter_1_1PlannedRelation.html#ac1fda59aa86120c38b24e538624bca77">ownerTable</a></td></tr>
 <tr class="memdesc:ac1fda59aa86120c38b24e538624bca77"><td class="mdescLeft">&#160;</td><td class="mdescRight">Table this relation is emitted on.  <br /></td></tr>
@@ -141,7 +142,7 @@ Public Attributes</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>One inverse or through relation to emit on a record. </p>
-<p>A <code><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents a one-to-one relationship.">BelongsTo</a></code> is derivable from the child table alone, but every relation pointing the other way needs to know about foreign keys declared on <em>other</em> tables. <code>RelationPlan</code> is that schema-wide answer, computed once by PlanRelations and consumed per table. </p>
+<p>A <code><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents a one-to-one relationship.">BelongsTo</a></code> is derivable from the child table alone, but every relation pointing the other way needs to know about foreign keys declared on <em>other</em> tables. <code>RelationPlan</code> is that schema-wide answer, computed once by <code>PlanRelations</code> and consumed per table. </p>
 
 <p class="definition">Definition at line <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html#l00103">103</a> of file <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html">CxxModelPrinter.hpp</a>.</p>
 </div><h2 class="groupheader">Member Enumeration Documentation</h2>
@@ -194,7 +195,9 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html#l00114">114</a> of file <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html">CxxModelPrinter.hpp</a>.</p>
+<p>Which relation template to emit for this relation. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html#l00115">115</a> of file <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html">CxxModelPrinter.hpp</a>.</p>
 
 </div>
 </div>
@@ -212,7 +215,7 @@ Public Attributes</h2></td></tr>
 
 <p>Table this relation is emitted on. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html#l00117">117</a> of file <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html">CxxModelPrinter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html#l00118">118</a> of file <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html">CxxModelPrinter.hpp</a>.</p>
 
 </div>
 </div>
@@ -229,7 +232,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>The record the relation yields: the child table for HasMany/HasOne, the far table for the through relations. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html#l00121">121</a> of file <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html">CxxModelPrinter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html#l00122">122</a> of file <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html">CxxModelPrinter.hpp</a>.</p>
 
 </div>
 </div>
@@ -247,7 +250,7 @@ Public Attributes</h2></td></tr>
 
 <p>Join table, for the through relations only; empty otherwise. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html#l00124">124</a> of file <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html">CxxModelPrinter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html#l00125">125</a> of file <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html">CxxModelPrinter.hpp</a>.</p>
 
 </div>
 </div>
@@ -264,7 +267,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Foreign key column linking the child (or join record) back to the owner. Emitted as a <code><a class="el" href="../../d7/d13/structLightweight_1_1SqlRealName.html" title="Helper class, used to represent a real SQL column names as template arguments.">SqlRealName</a></code> selector so that several foreign keys into one table stay distinguishable. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html#l00128">128</a> of file <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html">CxxModelPrinter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html#l00129">129</a> of file <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html">CxxModelPrinter.hpp</a>.</p>
 
 </div>
 </div>
@@ -282,7 +285,7 @@ Public Attributes</h2></td></tr>
 
 <p>Foreign key column linking the join record to the far table; empty for HasMany/HasOne. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html#l00131">131</a> of file <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html">CxxModelPrinter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html#l00132">132</a> of file <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html">CxxModelPrinter.hpp</a>.</p>
 
 </div>
 </div>
@@ -299,7 +302,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Whether a selector must be emitted for <a class="el" href="../../d6/dfb/structLightweight_1_1Tools_1_1CxxModelPrinter_1_1PlannedRelation.html#afc8751ded08cb557ad08bf688b950872">ownerForeignKeyColumn</a>. It is required when the owner is reachable from the same child table through more than one foreign key, and is harmless otherwise - but emitting it unconditionally would churn every generated header, so it is tracked. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html#l00137">137</a> of file <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html">CxxModelPrinter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html#l00138">138</a> of file <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html">CxxModelPrinter.hpp</a>.</p>
 
 </div>
 </div>
@@ -317,7 +320,7 @@ Public Attributes</h2></td></tr>
 
 <p>As <a class="el" href="../../d6/dfb/structLightweight_1_1Tools_1_1CxxModelPrinter_1_1PlannedRelation.html#a65cec92b31fcc4267d8a90b1e477b7a9">ownerSelectorRequired</a>, for <a class="el" href="../../d6/dfb/structLightweight_1_1Tools_1_1CxxModelPrinter_1_1PlannedRelation.html#adf268ff9cc0151cb3630766675bee584">referencedForeignKeyColumn</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html#l00140">140</a> of file <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html">CxxModelPrinter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html#l00141">141</a> of file <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html">CxxModelPrinter.hpp</a>.</p>
 
 </div>
 </div>
@@ -335,7 +338,7 @@ Public Attributes</h2></td></tr>
 
 <p>Member name to emit, already sanitized and formatted. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html#l00143">143</a> of file <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html">CxxModelPrinter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html#l00144">144</a> of file <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html">CxxModelPrinter.hpp</a>.</p>
 
 </div>
 </div>

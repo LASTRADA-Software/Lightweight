@@ -106,6 +106,7 @@ $(document).ready(function(){initNavTree('d0/dd2/structLightweight_1_1CompositeF
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a4e488a572408a095332f3dc38e5f2a46" id="r_a4e488a572408a095332f3dc38e5f2a46"><td class="memItemLeft" align="right" valign="top">std::weak_ordering&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html#a4e488a572408a095332f3dc38e5f2a46">operator&lt;=&gt;</a> (<a class="el" href="../../d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html">Loader</a> const &amp;) const noexcept</td></tr>
+<tr class="memdesc:a4e488a572408a095332f3dc38e5f2a46"><td class="mdescLeft">&#160;</td><td class="mdescRight">Loaders carry no comparable state of their own, so any two are considered equivalent.  <br /></td></tr>
 <tr class="separator:a4e488a572408a095332f3dc38e5f2a46"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3aa4b638408ac131ea7e1992ce5851be" id="r_a3aa4b638408ac131ea7e1992ce5851be"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html#a3aa4b638408ac131ea7e1992ce5851be">operator==</a> (<a class="el" href="../../d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html">Loader</a> const &amp;) const noexcept</td></tr>
 <tr class="separator:a3aa4b638408ac131ea7e1992ce5851be"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -113,6 +114,7 @@ Public Member Functions</h2></td></tr>
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
 <tr class="memitem:aa09380d173e9cc5e484d93faf1b35192" id="r_aa09380d173e9cc5e484d93faf1b35192"><td class="memItemLeft" align="right" valign="top">std::function&lt; std::shared_ptr&lt; <a class="el" href="../../dc/dc9/classLightweight_1_1CompositeForeignKey.html#aadd30fc4ad067ad510d194e75ce72f18">ReferencedRecord</a> &gt;()&gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html#aa09380d173e9cc5e484d93faf1b35192">loadReference</a> {}</td></tr>
+<tr class="memdesc:aa09380d173e9cc5e484d93faf1b35192"><td class="mdescLeft">&#160;</td><td class="mdescRight">Loads and returns the referenced record, or <code>nullptr</code> if none exists.  <br /></td></tr>
 <tr class="separator:aa09380d173e9cc5e484d93faf1b35192"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
@@ -147,7 +149,9 @@ template&lt;ConnectionType... Connections&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d0/d28/CompositeForeignKey_8hpp_source.html#l00390">390</a> of file <a class="el" href="../../d0/d28/CompositeForeignKey_8hpp_source.html">CompositeForeignKey.hpp</a>.</p>
+<p>Loaders carry no comparable state of their own, so any two are considered equivalent. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d0/d28/CompositeForeignKey_8hpp_source.html#l00392">392</a> of file <a class="el" href="../../d0/d28/CompositeForeignKey_8hpp_source.html">CompositeForeignKey.hpp</a>.</p>
 
 </div>
 </div>
@@ -176,8 +180,10 @@ template&lt;ConnectionType... Connections&gt; </div>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>Loaders carry no comparable state of their own, so any two compare equal.</p>
+<p>A defaulted <code>==</code> on the enclosing class does not derive equality from a member's <code>&lt;=&gt;</code> - each member needs its own viable <code>==</code>, or the default is silently deleted. See HasMany::Loader for the same shape (there, without this operator; equal by convention since it holds none of the relation's state). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d0/d28/CompositeForeignKey_8hpp_source.html#l00399">399</a> of file <a class="el" href="../../d0/d28/CompositeForeignKey_8hpp_source.html">CompositeForeignKey.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d0/d28/CompositeForeignKey_8hpp_source.html#l00403">403</a> of file <a class="el" href="../../d0/d28/CompositeForeignKey_8hpp_source.html">CompositeForeignKey.hpp</a>.</p>
 
 </div>
 </div>
@@ -196,7 +202,11 @@ template&lt;ConnectionType... Connections&gt; </div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d0/d28/CompositeForeignKey_8hpp_source.html#l00388">388</a> of file <a class="el" href="../../d0/d28/CompositeForeignKey_8hpp_source.html">CompositeForeignKey.hpp</a>.</p>
+<p>Loads and returns the referenced record, or <code>nullptr</code> if none exists. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d0/d28/CompositeForeignKey_8hpp_source.html#l00389">389</a> of file <a class="el" href="../../d0/d28/CompositeForeignKey_8hpp_source.html">CompositeForeignKey.hpp</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="../../dc/dc9/classLightweight_1_1CompositeForeignKey.html#afdbe7152a76b6ab03d96af8e6329d8e2">Lightweight::CompositeForeignKey&lt; Connections &gt;::operator==()</a>.</p>
 
 </div>
 </div>

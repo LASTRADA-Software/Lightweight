@@ -166,12 +166,12 @@ Static Public Attributes</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><div class="compoundTemplParams">template&lt;ConnectionType... Connections&gt;<br />
 class Lightweight::CompositeForeignKey&lt; Connections &gt;</div><p>Represents a foreign key spanning several columns. </p>
-<p>Declared as a list of <a class="el" href="../../d4/d03/structLightweight_1_1Connection.html">Connection</a>, each pairing one of this record's columns with the column it references. The referenced and referencing records are <em>derived</em> from those pointers rather than named again, so they cannot disagree with the connections.</p>
+<p>Declared as a list of <code><a class="el" href="../../d4/d03/structLightweight_1_1Connection.html" title="One column pair of a composite foreign key: &quot;this record&#39;s column references that one&quot;.">Connection</a></code>, each pairing one of this record's columns with the column it references. The referenced and referencing records are <em>derived</em> from those pointers rather than named again, so they cannot disagree with the connections.</p>
 <p>This member holds no column of its own. Every foreign key column is an ordinary <code><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a></code> on the record - one data member per database column - and this relation only ties them together and navigates. It therefore contributes nothing to <code>RecordColumnCount</code> and is skipped by every projection, exactly as <code><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html" title="This HasMany&lt;OtherRecord&gt; represents a simple one-to-many relationship between two records.">HasMany</a></code> and <code><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html" title="Represents a one-to-one relationship through a join table.">HasOneThrough</a></code> are.</p>
 <p>Connections may be listed in any order. Values are permuted into the referenced record's member order before binding, because that is the order a primary key lookup emits its predicates in - see <a class="el" href="../../dc/dc9/classLightweight_1_1CompositeForeignKey.html#a7307c7eaae6000d9baa89eb4f32a599b">OrderedValuesOf</a> and <code>src/tests/CompositeKeyOrderingTests.cpp</code>.</p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
-    <tr><td class="paramname">Connections</td><td>One <a class="el" href="../../d4/d03/structLightweight_1_1Connection.html">Connection</a> per column of the foreign key.</td></tr>
+    <tr><td class="paramname">Connections</td><td>One <code><a class="el" href="../../d4/d03/structLightweight_1_1Connection.html" title="One column pair of a composite foreign key: &quot;this record&#39;s column references that one&quot;.">Connection</a></code> per column of the foreign key.</td></tr>
   </table>
   </dd>
 </dl>
@@ -585,7 +585,7 @@ template&lt;ConnectionType... Connections&gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d0/d28/CompositeForeignKey_8hpp_source.html#l00408">408</a> of file <a class="el" href="../../d0/d28/CompositeForeignKey_8hpp_source.html">CompositeForeignKey.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d0/d28/CompositeForeignKey_8hpp_source.html#l00412">412</a> of file <a class="el" href="../../d0/d28/CompositeForeignKey_8hpp_source.html">CompositeForeignKey.hpp</a>.</p>
 
 </div>
 </div>
