@@ -236,6 +236,24 @@ struct ProgressManager
     {
         (void) count;
     }
+
+    /// Announces how many tables the operation will process, once, before any
+    /// per-table `Update()` is emitted.
+    ///
+    /// Backup knows the complete table set after its schema scan and Restore
+    /// after reading the archive manifest, i.e. both know the denominator before
+    /// any data moves. Without this hook a consumer can only count the distinct
+    /// table names it has seen so far, so a progress readout of the form
+    /// "processed / total" has a total that climbs as tables are discovered —
+    /// the GUI's per-table panel showed "12 / 12" then "12 / 47" then "12 / 700"
+    /// on the same run, which reads as the job getting bigger rather than as
+    /// progress being made.
+    ///
+    /// @param totalTables Number of tables that will be processed.
+    virtual void SetTotalTables(size_t totalTables)
+    {
+        (void) totalTables;
+    }
 };
 
 /// Base class for progress managers that tracks errors automatically.

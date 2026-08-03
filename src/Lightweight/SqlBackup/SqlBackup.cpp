@@ -622,6 +622,14 @@ void Backup(std::filesystem::path const& outputFile,
 
         progress.SetMaxTableNameLength(maxTableNameLength.load());
 
+        // The schema scan above enumerated every table that will be backed up,
+        // so the denominator for a "n / total tables" readout is known here —
+        // before any data export emits its first per-table Update(). Publishing
+        // it now is what stops a consumer having to infer the total from the
+        // table names it has happened to see, which made the total climb during
+        // the run instead of staying put.
+        progress.SetTotalTables(completedTables.size());
+
         // Back up data (unless schema-only mode)
         if (!backupSettings.schemaOnly)
         {
@@ -1272,6 +1280,12 @@ void Restore(std::filesystem::path const& inputFile,
     // the sum of known counts provides a reasonable approximation for progress display.
     if (totalRows > 0)
         progress.SetTotalItems(totalRows);
+
+    // `tableProgress` was just populated with exactly the tables that will be
+    // restored, so — as on the backup path — the "n / total tables" denominator
+    // is known before the first per-table Update() and is published once here
+    // rather than being inferred from the table names a consumer has seen.
+    progress.SetTotalTables(tableProgress.size());
 
     // Filter tableMap to only include created tables for RestoreContext
     std::map<std::string, TableInfo> filteredTableMap;
