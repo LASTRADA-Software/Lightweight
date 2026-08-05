@@ -12,6 +12,5 @@ var searchData=
   ['foreignkeyconstraint_9',['foreignKeyConstraint',['../d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#ab62b2c02aa099813864f9311b4517b50',1,'Lightweight::SqlSchema::Column']]],
   ['foreignkeys_10',['foreignkeys',['../d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ad1aedd312e0a7ea569f6d9ac712a39e6',1,'Lightweight::SqlBackup::TableInfo::foreignKeys'],['../d3/dda/structLightweight_1_1SqlSchema_1_1Table.html#a774feb3fa67174c1d22ffa9463877e9e',1,'Lightweight::SqlSchema::Table::foreignKeys']]],
   ['formatter_11',['formatter',['../d3/ded/structLightweight_1_1SqlMigrationPlan.html#a1125d9bd0e213d69685b1a6deb03398e',1,'Lightweight::SqlMigrationPlan']]],
-  ['from_12',['From',['../d4/d03/structLightweight_1_1Connection.html#af564068e910e8e55c6883c63159e9208',1,'Lightweight::Connection']]],
-  ['fullyqualifiednameof_13',['FullyQualifiedNameOf',['../d7/d2f/group__DataMapper.html#gaed63e2eb978095fa8298c02414f9ca03',1,'Lightweight']]]
+  ['fullyqualifiednameof_12',['FullyQualifiedNameOf',['../d7/d2f/group__DataMapper.html#gaed63e2eb978095fa8298c02414f9ca03',1,'Lightweight']]]
 ];

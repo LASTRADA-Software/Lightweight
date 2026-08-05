@@ -391,7 +391,7 @@ $(document).ready(function(){initNavTree('d7/d09/Utils_8hpp_source.html','../../
 <div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span><span class="keyword">template</span> &lt;auto Member&gt;</div>
 <div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span><span class="keyword">constexpr</span> <span class="keywordtype">size_t</span> MemberIndexOf = []() <span class="keyword">consteval</span> -&gt; <span class="keywordtype">size_t</span> {</div>
 <div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span>    <span class="keywordtype">int</span> index { -1 };</div>
-<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span>    <span class="keyword">auto</span> members = nonstatic_data_members_of(std::meta::parent_of(Member), std::meta::access_context::current());</div>
+<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span>    <span class="keyword">auto</span> members = nonstatic_data_members_of(parent_of(Member), std::meta::access_context::current());</div>
 <div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span>    <span class="keywordflow">if</span> (<span class="keyword">auto</span> it = std::ranges::find(members, Member); it != members.end())</div>
 <div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span>    {</div>
 <div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span>        index = std::distance(members.begin(), it);</div>
