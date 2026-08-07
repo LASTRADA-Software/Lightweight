@@ -91,6 +91,7 @@ var annotated_dup =
       [ "SqlDateTime", "d6/dfa/structLightweight_1_1SqlDateTime.html", "d6/dfa/structLightweight_1_1SqlDateTime" ],
       [ "SqlDeleteDataPlan", "d2/d72/structLightweight_1_1SqlDeleteDataPlan.html", "d2/d72/structLightweight_1_1SqlDeleteDataPlan" ],
       [ "SqlDeleteQueryBuilder", "d1/d57/classLightweight_1_1SqlDeleteQueryBuilder.html", "d1/d57/classLightweight_1_1SqlDeleteQueryBuilder" ],
+      [ "SqlDiagnosticSource", "dd/dde/classLightweight_1_1SqlDiagnosticSource.html", "dd/dde/classLightweight_1_1SqlDiagnosticSource" ],
       [ "SqlDropTablePlan", "dd/d47/structLightweight_1_1SqlDropTablePlan.html", "dd/d47/structLightweight_1_1SqlDropTablePlan" ],
       [ "SqlDynamicBinary", "d6/db6/classLightweight_1_1SqlDynamicBinary.html", "d6/db6/classLightweight_1_1SqlDynamicBinary" ],
       [ "SqlDynamicString", "d7/d9a/classLightweight_1_1SqlDynamicString.html", "d7/d9a/classLightweight_1_1SqlDynamicString" ],

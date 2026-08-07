@@ -96,6 +96,7 @@ var hierarchy =
     [ "Lightweight::SqlDate", "d9/de1/structLightweight_1_1SqlDate.html", null ],
     [ "Lightweight::SqlDateTime", "d6/dfa/structLightweight_1_1SqlDateTime.html", null ],
     [ "Lightweight::SqlDeleteDataPlan", "d2/d72/structLightweight_1_1SqlDeleteDataPlan.html", null ],
+    [ "Lightweight::SqlDiagnosticSource", "dd/dde/classLightweight_1_1SqlDiagnosticSource.html", null ],
     [ "Lightweight::SqlDropTablePlan", "dd/d47/structLightweight_1_1SqlDropTablePlan.html", null ],
     [ "Lightweight::SqlDynamicBinary< N >", "d6/db6/classLightweight_1_1SqlDynamicBinary.html", null ],
     [ "Lightweight::SqlDynamicString< N, T >", "d7/d9a/classLightweight_1_1SqlDynamicString.html", null ],
