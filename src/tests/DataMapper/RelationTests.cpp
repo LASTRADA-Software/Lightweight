@@ -636,9 +636,12 @@ TEST_CASE_METHOD(SqlTestFixture, "HasMany", "[DataMapper][relations]")
         CHECK(constEmails.At(0).id.Value() == constEmails.All()[0]->id.Value());
         CHECK(constEmails[0].id.Value() == constEmails.All()[0]->id.Value());
 
+        // Iterating the const reference binds HasMany's const begin()/end() overloads, which is
+        // the point of this section - a range-based for over `constEmails` resolves to exactly
+        // those, so no explicit iterator loop is needed.
         auto collectedIds = std::vector<SqlGuid> {};
-        for (auto it = constEmails.begin(); it != constEmails.end(); ++it)
-            collectedIds.push_back((*it)->id.Value());
+        for (auto const& emailPtr: constEmails)
+            collectedIds.push_back(emailPtr->id.Value());
         REQUIRE(collectedIds.size() == 2);
         CHECK(std::ranges::find(collectedIds, email1.id.Value()) != collectedIds.end());
         CHECK(std::ranges::find(collectedIds, email2.id.Value()) != collectedIds.end());

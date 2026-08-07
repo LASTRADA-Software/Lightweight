@@ -63,6 +63,47 @@ struct SqlErrorInfo
     LIGHTWEIGHT_API static SqlErrorInfo FromHandle(SQLSMALLINT handleType, SQLHANDLE handle);
 };
 
+/// @brief Supplies diagnostics for an ODBC handle.
+///
+/// Exists so error paths can be driven from a unit test without a database. Production code never
+/// installs one: with no source configured, @ref SqlErrorInfo reads diagnostics from the driver as
+/// usual. A test installs a source that returns a scripted @ref SqlErrorInfo, which makes the
+/// classification and propagation logic reachable without provoking a real driver failure.
+///
+/// @see SetDiagnosticSource
+class SqlDiagnosticSource
+{
+  public:
+    SqlDiagnosticSource() = default;
+    SqlDiagnosticSource(SqlDiagnosticSource const&) = delete;
+    SqlDiagnosticSource& operator=(SqlDiagnosticSource const&) = delete;
+    SqlDiagnosticSource(SqlDiagnosticSource&&) = delete;
+    SqlDiagnosticSource& operator=(SqlDiagnosticSource&&) = delete;
+    virtual ~SqlDiagnosticSource() = default;
+
+    /// @brief Returns the diagnostics for the given handle.
+    ///
+    /// @param handleType One of @c SQL_HANDLE_ENV, @c SQL_HANDLE_DBC or @c SQL_HANDLE_STMT.
+    /// @param handle The handle the diagnostics are requested for. A fake may ignore it.
+    /// @return The diagnostics to report for @p handle.
+    [[nodiscard]] virtual SqlErrorInfo Diagnose(SQLSMALLINT handleType, SQLHANDLE handle) = 0;
+};
+
+/// @brief Overrides the source of ODBC diagnostics process-wide.
+///
+/// Intended for tests. Ownership is not transferred and remains with the caller, which must keep
+/// @p source alive until it is cleared. Pass @c nullptr to restore the real ODBC reader.
+///
+/// This mirrors how @c SqlLogger::SetLogger installs a logger, and costs nothing on the success
+/// path: the override is consulted only once a call has already failed and diagnostics are being
+/// retrieved.
+///
+/// @param source The source to install, or @c nullptr to restore the default.
+LIGHTWEIGHT_API void SetDiagnosticSource(SqlDiagnosticSource* source);
+
+/// @brief Returns the currently installed diagnostic source, or @c nullptr if none is installed.
+[[nodiscard]] LIGHTWEIGHT_API SqlDiagnosticSource* GetDiagnosticSource() noexcept;
+
 class SqlException: public std::runtime_error
 {
   public:

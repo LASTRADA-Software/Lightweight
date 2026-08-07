@@ -137,12 +137,20 @@ jobs:
       # storage backend, and CMake needs to be told to launch the compiler
       # through it (see CMAKE_*_COMPILER_LAUNCHER on the configure step).
       SCCACHE_GHA_ENABLED: "true"
+      # A compiler cache must never be able to break the build. Without this,
+      # an unreachable or erroring cache backend makes sccache fail the compile
+      # itself: v0.17.0 aborted every invocation with "Server startup failed:
+      # cache storage failed to read" when GitHub's artifactcache endpoint
+      # answered HTTP 400. With it, sccache falls back to compiling directly.
+      SCCACHE_IGNORE_SERVER_IO_ERROR: "1"
     steps:
       - uses: actions/checkout@v6
       - name: Fetch tags
         run: git fetch --prune --unshallow --tags
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.3
+        # Kept current: the action resolves the sccache build, and newer
+        # releases track changes to GitHub's cache API.
+        uses: mozilla-actions/sccache-action@v0.0.11
       - name: "vcpkg: Install dependencies"
         run: |
           git clone https://github.com/microsoft/vcpkg.git ${{ runner.workspace }}\vcpkg

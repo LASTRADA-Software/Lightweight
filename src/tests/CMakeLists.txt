@@ -64,6 +64,7 @@ set(SOURCE_FILES
     QueryBuilderTests.cpp
     QueryFormatterTests.cpp
     SqlErrorDetectionTests.cpp
+    SqlErrorSeamTests.cpp
     SqlGuidTests.cpp
     SqlLoggerTests.cpp
     MigrationLockTests.cpp
