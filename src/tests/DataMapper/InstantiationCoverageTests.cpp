@@ -32,6 +32,15 @@
 #include <tuple>
 #include <vector>
 
+/// Declared but never defined: yields a builder reference without constructing one (a real builder
+/// needs a live DataMapper and a live database connection). Only ever named inside functions that
+/// are themselves never called, so the missing definition can never be linked against.
+///
+/// Deliberately at external linkage — inside the anonymous namespace below, an undefined internal
+/// function trips -Wundefined-internal, which is fatal under PEDANTIC_COMPILER_WERROR.
+template <typename Record>
+Lightweight::SqlAllFieldsQueryBuilder<Record, Lightweight::DataMapperOptions {}>& UnreachableBuilder();
+
 namespace
 {
 
@@ -125,6 +134,47 @@ void InstantiateExecuteApi()
     ForceInstantiation(&Light::DataMapper::Execute<std::string>);
 }
 
+/// Instantiates the query-builder members that are reached only indirectly through
+/// DataMapper::Query(), and whose sparse-field / paging overloads are otherwise dark.
+///
+/// SqlCoreDataMapperQueryBuilder has no direct mention anywhere in the test suite — every use goes
+/// through DataMapper::Query(), which only instantiates the handful of members that particular call
+/// chain touches. The rest (First(n), Range(offset, limit), the single-field All<Field>() and the
+/// sparse-field All<Fields...>() overloads) never reach the tracefile at all.
+/// @tparam Record  The record type the builder materializes.
+/// @tparam FieldA  A member pointer into @p Record, for the single-field projection overloads.
+/// @tparam FieldB  A second member pointer, for the sparse-field (>= 2) projection overloads.
+template <typename Record, auto FieldA, auto FieldB>
+void InstantiateQueryBuilderApi()
+{
+    auto& builder = UnreachableBuilder<Record>();
+
+    // Called rather than addressed. These members form constrained overload sets — All() has a
+    // whole-record form, a single-field form requiring a member-object pointer, and a sparse-field
+    // form requiring `sizeof...(ReferencedFields) >= 2` — so an address-of expression is ambiguous
+    // and a disambiguating cast has to restate a return type that is `auto`-deduced from a lambda.
+    // A call expression picks the right overload by ordinary lookup and instantiates exactly it.
+    //
+    // This function is never invoked (see InstantiateDataMapperApi below), so the calls never run;
+    // they exist only to force the bodies to be emitted.
+    (void) builder.Exist();
+    (void) builder.Count();
+    (void) builder.Delete();
+
+    (void) builder.All();
+    (void) builder.First();
+    (void) builder.First(std::size_t { 1 });
+    (void) builder.Range(std::size_t { 0 }, std::size_t { 1 });
+
+    // Single-field projection: its own result type (std::vector<FieldType>, not std::vector<Record>).
+    (void) builder.template All<FieldA>();
+    (void) builder.template First<FieldA>();
+
+    // Sparse-field projection: the `>= 2` constrained overload, a third distinct specialization.
+    (void) builder.template All<FieldA, FieldB>();
+    (void) builder.template First<FieldA, FieldB>();
+}
+
 /// Entry point that pulls every instantiation above into this translation unit.
 ///
 /// Never called — it only has to be compiled. The record types span the interesting shapes:
@@ -146,6 +196,30 @@ void InstantiateExecuteApi()
     InstantiateTupleQueryApi<Patient, Appointment>();
 
     InstantiateExecuteApi();
+
+    InstantiateQueryBuilderApi<Person, Member(Person::name), Member(Person::age)>();
+    InstantiateQueryBuilderApi<Physician, Member(Physician::id), Member(Physician::name)>();
 }
 
 } // namespace
+
+// Relation templates, via explicit class-template instantiation.
+//
+// These are class templates whose members are mostly *non-template* member functions. Such members
+// instantiate lazily — only the ones a test actually calls are emitted — so a per-member address-of
+// list would be long and would rot silently. A single explicit instantiation of the class emits
+// every member at once, which is both shorter and self-maintaining as the classes grow.
+//
+// The survey behind this file found these three the thinnest-covered relation types in the library:
+// HasManyThrough had 3 mentions across the whole suite against ~18 member functions, HasOneThrough
+// 7 against ~10, and HasMany 16 against ~19 — leaving Each(), Unload(), the const begin()/end()
+// pair and the const At()/operator[] overloads dark.
+template class Lightweight::HasMany<Email>;
+template class Lightweight::HasMany<Appointment>;
+template class Lightweight::HasManyThrough<Patient, Appointment>;
+template class Lightweight::HasManyThrough<Physician, Appointment>;
+
+// std::formatter specializations only exist once something formats the type. Nothing in the suite
+// std::format()s a Field, so these format() bodies were never instrumented.
+template struct std::formatter<Light::Field<Light::SqlAnsiString<25>>>;
+template struct std::formatter<Light::Field<int, Light::PrimaryKey::AutoAssign>>;

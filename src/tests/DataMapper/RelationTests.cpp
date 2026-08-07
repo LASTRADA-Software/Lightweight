@@ -619,6 +619,30 @@ TEST_CASE_METHOD(SqlTestFixture, "HasMany", "[DataMapper][relations]")
         CHECK(std::ranges::find(collectedIds, email1.id.Value()) != collectedIds.end());
         CHECK(std::ranges::find(collectedIds, email2.id.Value()) != collectedIds.end());
     }
+
+    // The const accessors call RequireLoaded(), which is non-const. Every one of these overloads
+    // used to be uncallable: naming any of them on a const HasMany was a hard compile error, and no
+    // test instantiated them, so the breakage went unnoticed. Accessing them through a const
+    // reference is the regression guard — if the const_cast in HasMany::All() and friends is
+    // dropped again, this section fails to compile.
+    SECTION("Const accessors are callable")
+    {
+        auto getUser = dm.QuerySingle<User>(johnDoe.id).value();
+        auto const& constEmails = getUser.emails;
+
+        REQUIRE(constEmails.All().size() == 2);
+        // At() and operator[] dereference the stored pointer and hand back the record itself,
+        // whereas All() exposes the underlying pointer list.
+        CHECK(constEmails.At(0).id.Value() == constEmails.All()[0]->id.Value());
+        CHECK(constEmails[0].id.Value() == constEmails.All()[0]->id.Value());
+
+        auto collectedIds = std::vector<SqlGuid> {};
+        for (auto it = constEmails.begin(); it != constEmails.end(); ++it)
+            collectedIds.push_back((*it)->id.Value());
+        REQUIRE(collectedIds.size() == 2);
+        CHECK(std::ranges::find(collectedIds, email1.id.Value()) != collectedIds.end());
+        CHECK(std::ranges::find(collectedIds, email2.id.Value()) != collectedIds.end());
+    }
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "HasMany - Connected data mutations", "[DataMapper][relations][HasMany]")
