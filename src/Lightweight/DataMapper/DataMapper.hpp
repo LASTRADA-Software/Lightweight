@@ -700,7 +700,30 @@ class DataMapper
 
 namespace detail
 {
-    template <typename FieldType>
+    /// Whether @p T is a column type whose buffer may have to grow while fetching (e.g. a string long
+    /// enough to be truncated into the initially bound buffer).
+    ///
+    /// @tparam T The *value* type of the column, i.e. `Field<...>::ValueType`, never the `Field<...>`
+    ///           wrapper itself.
+    template <typename T>
+    inline constexpr bool IsGrowableColumnType =
+        detail::OneOf<T, std::string, std::wstring, std::u16string, std::u32string, SqlBinary> || IsSqlDynamicString<T>
+        || IsSqlDynamicBinary<T>;
+
+    /// Whether a single output column of value type @p T can safely be bound up front on @p
+    /// sqlServerType.
+    ///
+    /// Takes the column's *value* type, not a `Field<...>` wrapper: the sole caller projects a single
+    /// field and only has `ReferencedFieldTypeOf<Field>` (the ValueType) to hand. This previously
+    /// took the wrapper and gated its whole body on `if constexpr (IsField<FieldType>)`, which a
+    /// ValueType never satisfies - so it silently answered "safe to bind" for every type, including
+    /// the growable ones it exists to exclude.
+    ///
+    /// @tparam T The column's value type.
+    /// @param sqlServerType The server being queried.
+    /// @return `true` if the column may be bound with `BindOutputColumn`, `false` if it has to be read
+    ///         per row with `GetColumn` instead.
+    template <typename T>
     constexpr bool CanSafelyBindOutputColumn(SqlServerType sqlServerType) noexcept
     {
         if (sqlServerType != SqlServerType::MICROSOFT_SQL)
@@ -709,25 +732,17 @@ namespace detail
         // Test if we have some columns that might not be sufficient to store the result (e.g. string truncation),
         // then don't call BindOutputColumn but SQLFetch to get the result, because
         // regrowing previously bound columns is not supported in MS-SQL's ODBC driver, so it seems.
-        bool result = true;
-        if constexpr (IsField<FieldType>)
-        {
-            if constexpr (detail::OneOf<typename FieldType::ValueType,
-                                        std::string,
-                                        std::wstring,
-                                        std::u16string,
-                                        std::u32string,
-                                        SqlBinary>
-                          || IsSqlDynamicString<typename FieldType::ValueType>
-                          || IsSqlDynamicBinary<typename FieldType::ValueType>)
-            {
-                // Known types that MAY require growing due to truncation.
-                result = false;
-            }
-        }
-        return result;
+        return !IsGrowableColumnType<T>;
     }
 
+    /// Whether every output column of @p Record can safely be bound up front on @p sqlServerType.
+    ///
+    /// The record-wide counterpart of @ref CanSafelyBindOutputColumn: one growable member is enough to
+    /// force the whole record onto the per-row `GetColumn` path.
+    ///
+    /// @tparam Record The record being fetched.
+    /// @param sqlServerType The server being queried.
+    /// @return `true` if the columns may be bound with `BindOutputColumns`.
     template <DataMapperRecord Record>
     constexpr bool CanSafelyBindOutputColumns(SqlServerType sqlServerType) noexcept
     {
@@ -737,20 +752,9 @@ namespace detail
         bool result = true;
         EnumerateRecordMembers<Record>([&result]<size_t I, typename Field>() {
             if constexpr (IsField<Field>)
-            {
-                if constexpr (detail::OneOf<typename Field::ValueType,
-                                            std::string,
-                                            std::wstring,
-                                            std::u16string,
-                                            std::u32string,
-                                            SqlBinary>
-                              || IsSqlDynamicString<typename Field::ValueType>
-                              || IsSqlDynamicBinary<typename Field::ValueType>)
-                {
+                if constexpr (IsGrowableColumnType<typename Field::ValueType>)
                     // Known types that MAY require growing due to truncation.
                     result = false;
-                }
-            }
         });
         return result;
     }

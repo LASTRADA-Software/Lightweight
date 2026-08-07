@@ -13,6 +13,8 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <array>
+#include <ranges>
 #include <string_view>
 
 using namespace std::string_view_literals;
@@ -368,6 +370,60 @@ TEST_CASE_METHOD(SqlTestFixture, "TestQuerySparseDynamicData", "[DataMapper]")
     checkSize(2000);
     checkSize(4000);
     checkSize(16000);
+}
+
+// CanSafelyBindOutputColumn takes the column's *value* type, which is all AllImpl() has to hand. These
+// checks pin that contract: taking a `Field<...>` wrapper instead made the trait's answer vacuously
+// "safe to bind" for every type, which is only observable at runtime on MS SQL Server. Asserting it
+// directly catches the regression on any backend, and at compile time.
+static_assert(!detail::CanSafelyBindOutputColumn<std::string>(SqlServerType::MICROSOFT_SQL));
+static_assert(!detail::CanSafelyBindOutputColumn<SqlDynamicAnsiString<16000>>(SqlServerType::MICROSOFT_SQL));
+static_assert(!detail::CanSafelyBindOutputColumn<SqlDynamicUtf16String<16000>>(SqlServerType::MICROSOFT_SQL));
+static_assert(!detail::CanSafelyBindOutputColumn<SqlBinary>(SqlServerType::MICROSOFT_SQL));
+
+// Fixed-width types stay bindable, and every non-MS-SQL backend binds regardless.
+static_assert(detail::CanSafelyBindOutputColumn<int>(SqlServerType::MICROSOFT_SQL));
+static_assert(detail::CanSafelyBindOutputColumn<SqlAnsiString<32>>(SqlServerType::MICROSOFT_SQL));
+static_assert(detail::CanSafelyBindOutputColumn<std::string>(SqlServerType::SQLITE));
+static_assert(detail::CanSafelyBindOutputColumn<std::string>(SqlServerType::POSTGRESQL));
+
+// The record-wide sibling agrees: one growable member is enough to unbind the whole record.
+static_assert(!detail::CanSafelyBindOutputColumns<TestDynamicData>(SqlServerType::MICROSOFT_SQL));
+static_assert(detail::CanSafelyBindOutputColumns<TestDynamicData>(SqlServerType::SQLITE));
+
+TEST_CASE_METHOD(SqlTestFixture, "TestQueryAllSingleDynamicField", "[DataMapper]")
+{
+    // Regression test: the single-field All<Field>() projection over a *growable* column.
+    //
+    // AllImpl() asks CanSafelyBindOutputColumn whether it may bind the output column up front, passing
+    // `value_type` - the field's ValueType. That trait used to take a `Field<...>` wrapper and gate its
+    // whole body on `if constexpr (IsField<FieldType>)`, which a ValueType never satisfies, so it
+    // answered "safe to bind" for every type including the growable ones it exists to exclude. On MS SQL
+    // Server the bound buffer then has to grow mid-fetch, which that driver does not support, and the
+    // SQL_SUCCEEDED assertion in BasicStringBinder.hpp's PostProcessOutputColumn fires.
+    //
+    // The existing All<> coverage projects fixed-width integer fields, which are safe to bind on every
+    // backend - so nothing exercised the decision until this test.
+    auto dm = DataMapper();
+    dm.CreateTable<TestDynamicData>();
+
+    auto const sizes = std::array<size_t, 3> { 5, 4000, 16000 };
+    for (auto const size: sizes)
+    {
+        TestDynamicData row {};
+        row.stringAnsi = std::string(size, 'a');
+        dm.Create(row);
+    }
+
+    auto const values = dm.Query<TestDynamicData>()
+                            .OrderBy(FieldNameOf<Member(TestDynamicData::id)>, SqlResultOrdering::ASCENDING)
+                            .All<Member(TestDynamicData::stringAnsi)>();
+
+    REQUIRE(values.size() == sizes.size());
+    // `std::views::enumerate` is unavailable on the libc++ versions the macOS and C++26-reflection CI
+    // jobs build against, so index into both sequences via `iota` instead.
+    for (auto const index: std::views::iota(size_t { 0 }, sizes.size()))
+        CHECK(values.at(index) == std::string(sizes.at(index), 'a'));
 }
 
 struct TestOptionalDynamicData
