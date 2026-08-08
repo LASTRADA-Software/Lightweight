@@ -28,6 +28,31 @@ void SqlErrorInfo::RequireStatementSuccess(SQLRETURN result, SQLHSTMT hStmt, std
     throw std::runtime_error { std::format("{}: {}", message, FromStatementHandle(hStmt)) };
 }
 
+namespace
+{
+    // Held in a function-local static rather than a namespace-scope global so there is no mutable
+    // global variable and no static-initialization order concern.
+    //
+    // Not thread-local: a test installs a source around a scoped operation, and the async layer may
+    // run that operation on a pool thread, which a thread_local would not reach. Tests are expected
+    // to install and clear it around the code under test, not concurrently with other tests.
+    SqlDiagnosticSource*& DiagnosticSourceSlot() noexcept
+    {
+        static SqlDiagnosticSource* slot = nullptr;
+        return slot;
+    }
+} // namespace
+
+void SetDiagnosticSource(SqlDiagnosticSource* source)
+{
+    DiagnosticSourceSlot() = source;
+}
+
+SqlDiagnosticSource* GetDiagnosticSource() noexcept
+{
+    return DiagnosticSourceSlot();
+}
+
 // Collect ODBC diagnostics via the wide-character variant. Calling SQLGetDiagRecW (rather
 // than the A variant) keeps us on the Unicode path the rest of the library uses, so
 // driver-side diagnostic text containing non-ASCII characters round-trips without going
@@ -35,6 +60,12 @@ void SqlErrorInfo::RequireStatementSuccess(SQLRETURN result, SQLHSTMT hStmt, std
 // never throw — encoding errors degrade to a best-effort lossy conversion.
 SqlErrorInfo SqlErrorInfo::FromHandle(SQLSMALLINT handleType, SQLHANDLE handle)
 {
+    // Tests may substitute the driver as the source of diagnostics, so error paths can be driven
+    // without provoking a real failure. Null in production, and only reached once a call has
+    // already failed - the success path never gets here.
+    if (auto* const source = GetDiagnosticSource())
+        return source->Diagnose(handleType, handle);
+
     SqlErrorInfo info {};
 
     constexpr SQLSMALLINT SqlStateLen = 6; // 5 SQLSTATE chars + NUL

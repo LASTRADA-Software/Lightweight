@@ -424,6 +424,41 @@ namespace detail
 
 } // namespace detail
 
+// Only ever taken by const reference below, so a forward declaration is enough - including
+// SqlError.hpp here would be a needless dependency for every consumer of Utils.hpp.
+struct SqlErrorInfo;
+
+/// @brief How a failed ODBC return code should surface to the caller.
+///
+/// @see ClassifyOdbcResult
+enum class SqlFailureAction : uint8_t
+{
+    /// The call succeeded; the caller should carry on.
+    None,
+
+    /// Throw @c std::invalid_argument - a soft failure the caller is expected to recover from.
+    ThrowInvalidArgument,
+
+    /// Throw @c SqlException - a genuine SQL error.
+    ThrowSqlException,
+};
+
+/// @brief Decides how a failed ODBC return code should surface, given the diagnostics already
+///        retrieved from the driver.
+///
+/// This is the error-handling *policy* of the library, split out from @ref RequireSuccess so it can
+/// be exercised without a database: it performs no I/O and touches no ODBC handle, so a test drives
+/// it by constructing a @ref SqlErrorInfo - the approach `SqlErrorDetectionTests.cpp` already uses
+/// for the error-classification helpers.
+///
+/// @param result    The ODBC return code being classified.
+/// @param errorInfo The diagnostics corresponding to @p result.
+/// @return The action the caller should take.
+///
+/// @note Deliberately not @c constexpr: @ref SqlErrorInfo holds @c std::string members, so a call
+///       can never be a constant expression, and the keyword would only mislead.
+[[nodiscard]] LIGHTWEIGHT_API SqlFailureAction ClassifyOdbcResult(SQLRETURN result, SqlErrorInfo const& errorInfo) noexcept;
+
 LIGHTWEIGHT_API void LogIfFailed(SQLHSTMT hStmt, SQLRETURN error, std::source_location sourceLocation);
 
 LIGHTWEIGHT_API void RequireSuccess(SQLHSTMT hStmt,

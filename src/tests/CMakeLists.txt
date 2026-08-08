@@ -53,6 +53,7 @@ set(SOURCE_FILES
     DataMapper/RelationShapeTests.cpp
     DataMapper/RelationTests.cpp
     DataMapper/BelongsToStateTests.cpp
+    DataMapper/InstantiationCoverageTests.cpp
     DataMapper/StateTests.cpp
     FieldTests.cpp
     Int128Tests.cpp
@@ -63,6 +64,7 @@ set(SOURCE_FILES
     QueryBuilderTests.cpp
     QueryFormatterTests.cpp
     SqlErrorDetectionTests.cpp
+    SqlErrorSeamTests.cpp
     SqlGuidTests.cpp
     SqlLoggerTests.cpp
     MigrationLockTests.cpp

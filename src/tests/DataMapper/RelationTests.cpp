@@ -16,8 +16,12 @@
 
 #include <cstdint>
 #include <deque>
+#include <functional>
+#include <iterator>
+#include <memory>
 #include <optional>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -619,6 +623,33 @@ TEST_CASE_METHOD(SqlTestFixture, "HasMany", "[DataMapper][relations]")
         CHECK(std::ranges::find(collectedIds, email1.id.Value()) != collectedIds.end());
         CHECK(std::ranges::find(collectedIds, email2.id.Value()) != collectedIds.end());
     }
+
+    // The const accessors call RequireLoaded(), which is non-const. Every one of these overloads
+    // used to be uncallable: naming any of them on a const HasMany was a hard compile error, and no
+    // test instantiated them, so the breakage went unnoticed. Accessing them through a const
+    // reference is the regression guard — if the const_cast in HasMany::All() and friends is
+    // dropped again, this section fails to compile.
+    SECTION("Const accessors are callable")
+    {
+        auto getUser = dm.QuerySingle<User>(johnDoe.id).value();
+        auto const& constEmails = getUser.emails;
+
+        REQUIRE(constEmails.All().size() == 2);
+        // At() and operator[] dereference the stored pointer and hand back the record itself,
+        // whereas All() exposes the underlying pointer list.
+        CHECK(constEmails.At(0).id.Value() == constEmails.All()[0]->id.Value());
+        CHECK(constEmails[0].id.Value() == constEmails.All()[0]->id.Value());
+
+        // Iterating the const reference binds HasMany's const begin()/end() overloads, which is
+        // the point of this section - a range-based for over `constEmails` resolves to exactly
+        // those, so no explicit iterator loop is needed.
+        auto collectedIds = std::vector<SqlGuid> {};
+        for (auto const& emailPtr: constEmails)
+            collectedIds.push_back(emailPtr->id.Value());
+        REQUIRE(collectedIds.size() == 2);
+        CHECK(std::ranges::find(collectedIds, email1.id.Value()) != collectedIds.end());
+        CHECK(std::ranges::find(collectedIds, email2.id.Value()) != collectedIds.end());
+    }
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "HasMany - Connected data mutations", "[DataMapper][relations][HasMany]")
@@ -1077,6 +1108,134 @@ TEST_CASE_METHOD(SqlTestFixture, "HasManyThrough", "[DataMapper][relations]")
                                     );)"));
     }
 }
+
+// The accessors below are all thin wrappers over All(), but each is a separate non-template member
+// of a class template, so each needs its own call to be emitted and instrumented. The explicit
+// instantiation in InstantiationCoverageTests.cpp makes them *compile*; only calling them makes
+// them *covered*. Split out from the test above so a failure names the accessor that broke.
+TEST_CASE_METHOD(SqlTestFixture, "HasManyThrough: element access and iteration", "[DataMapper][relations][HasManyThrough]")
+{
+    auto dm = DataMapper();
+    dm.CreateTables<Physician, Patient, Appointment>();
+
+    Physician physician;
+    physician.name = "Dr. House";
+    dm.Create(physician);
+
+    Patient patient1;
+    patient1.name = "Blooper";
+    patient1.comment = "Prefers morning times";
+    dm.Create(patient1);
+
+    Patient patient2;
+    patient2.name = "Valentine";
+    patient2.comment = "always friendly";
+    dm.Create(patient2);
+
+    for (auto* patient: { &patient1, &patient2 })
+    {
+        Appointment appointment;
+        appointment.date = SqlDateTime::Now();
+        appointment.patient = *patient;
+        appointment.physician = physician;
+        appointment.comment = "Checkup";
+        dm.Create(appointment);
+    }
+
+    // Patient declares operator<=> but no operator==, so std::set is ordered-comparable but not
+    // equality-comparable; check membership rather than comparing whole sets.
+    auto const containsBoth = [&](std::set<Patient> const& actual) {
+        return actual.size() == 2 && actual.contains(patient1) && actual.contains(patient2);
+    };
+
+    SECTION("IsEmpty reflects the relationship's contents")
+    {
+        CHECK_FALSE(physician.patients.IsEmpty());
+
+        // A physician with no appointments at all resolves to an empty relationship.
+        Physician lonely;
+        lonely.name = "Dr. Nobody";
+        dm.Create(lonely);
+        dm.ConfigureRelationAutoLoading(lonely);
+        CHECK(lonely.patients.IsEmpty());
+        CHECK(lonely.patients.Count() == 0);
+    }
+
+    SECTION("operator[] retrieves records by index")
+    {
+        REQUIRE(physician.patients.Count() == 2);
+        CHECK(containsBoth(std::set<Patient> { physician.patients[0], physician.patients[1] }));
+    }
+
+    SECTION("const overloads of At and operator[] retrieve the same records")
+    {
+        REQUIRE(physician.patients.Count() == 2);
+        auto const& constPatients = physician.patients;
+        CHECK(containsBoth(std::set<Patient> { constPatients.At(0), constPatients.At(1) }));
+        CHECK(containsBoth(std::set<Patient> { constPatients[0], constPatients[1] }));
+    }
+
+    SECTION("At() throws when the index is out of bounds")
+    {
+        REQUIRE(physician.patients.Count() == 2);
+        CHECK_THROWS_AS(physician.patients.At(2), std::out_of_range);
+    }
+
+    SECTION("range-based iteration visits every record")
+    {
+        auto collected = std::set<Patient> {};
+        for (auto const& p: physician.patients)
+            collected.emplace(*p);
+        CHECK(containsBoth(collected));
+
+        // The const begin()/end() pair is a distinct overload from the mutable one above.
+        auto const& constPatients = physician.patients;
+        CHECK(static_cast<std::size_t>(std::distance(constPatients.begin(), constPatients.end())) == 2);
+    }
+
+    SECTION("Reload() re-reads the relationship from the database")
+    {
+        REQUIRE(physician.patients.Count() == 2);
+
+        Patient patient3;
+        patient3.name = "Newcomer";
+        patient3.comment = "walk-in";
+        dm.Create(patient3);
+
+        Appointment extra;
+        extra.date = SqlDateTime::Now();
+        extra.patient = patient3;
+        extra.physician = physician;
+        extra.comment = "Walk-in checkup";
+        dm.Create(extra);
+
+        // The cached count and record list still describe the pre-insert state.
+        CHECK(physician.patients.Count() == 2);
+
+        physician.patients.Reload();
+        CHECK(physician.patients.Count() == 3);
+    }
+
+    SECTION("Emplace() replaces the loaded records without touching the database")
+    {
+        Physician detached;
+        auto replacement = decltype(detached.patients)::ReferencedRecordList {};
+        replacement.emplace_back(std::make_shared<Patient>(patient1));
+
+        auto& emplaced = detached.patients.Emplace(std::move(replacement));
+        CHECK(emplaced.size() == 1);
+        CHECK(detached.patients.Count() == 1);
+        CHECK_FALSE(detached.patients.IsEmpty());
+        CHECK(DataMapper::Inspect(detached.patients.At(0)) == DataMapper::Inspect(patient1));
+    }
+}
+
+// NOTE: HasMany's begin()/end() overloads each carry an `else return iterator {};` branch for the
+// case where _records is still disengaged after RequireLoaded(). Those four lines are unreachable
+// and therefore deliberately left uncovered: RequireLoaded() calls _loader.all() unconditionally,
+// so it either engages _records or — on a relation that never went through
+// ConfigureRelationAutoLoading, where the loader holds an empty std::function — propagates out of
+// begin() instead of returning. Reaching those lines would require changing the code under test.
 #endif
 
 struct AliasedRecord

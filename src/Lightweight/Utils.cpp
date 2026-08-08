@@ -15,22 +15,36 @@ void LogIfFailed(SQLHSTMT hStmt, SQLRETURN error, std::source_location sourceLoc
     SqlLogger::GetLogger().OnError(SqlErrorInfo::FromStatementHandle(hStmt), sourceLocation);
 }
 
+SqlFailureAction ClassifyOdbcResult(SQLRETURN result, SqlErrorInfo const& errorInfo) noexcept
+{
+    if (SQL_SUCCEEDED(result))
+        return SqlFailureAction::None;
+
+    // Invalid Descriptor Index (07009) is expected when accessing optional ODBC columns
+    // that some drivers don't return. Don't report this as an error - the calling code
+    // handles it gracefully by catching the exception and using default values.
+    if (errorInfo.sqlState == "07009")
+        return SqlFailureAction::ThrowInvalidArgument;
+
+    return SqlFailureAction::ThrowSqlException;
+}
+
 void RequireSuccess(SQLHSTMT hStmt, SQLRETURN error, std::source_location sourceLocation)
 {
     if (SQL_SUCCEEDED(error))
         return;
 
     auto const errorInfo = SqlErrorInfo::FromStatementHandle(hStmt);
-    if (errorInfo.sqlState == "07009")
+    switch (ClassifyOdbcResult(error, errorInfo))
     {
-        // Invalid Descriptor Index (07009) is expected when accessing optional ODBC columns
-        // that some drivers don't return. Don't log this as an error - the calling code
-        // handles it gracefully by catching the exception and using default values.
-        throw std::invalid_argument(
-            std::format("SQL error: {} in {}:{}", errorInfo, sourceLocation.file_name(), sourceLocation.line()));
+        case SqlFailureAction::ThrowInvalidArgument:
+            throw std::invalid_argument(
+                std::format("SQL error: {} in {}:{}", errorInfo, sourceLocation.file_name(), sourceLocation.line()));
+        case SqlFailureAction::ThrowSqlException:
+            throw SqlException(errorInfo);
+        case SqlFailureAction::None:
+            break;
     }
-    else
-        throw SqlException(errorInfo);
 }
 
 std::string FormatName(std::string const& name, FormatType formatType)

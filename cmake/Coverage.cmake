@@ -13,6 +13,9 @@
 #                     lcov tracefile at coverage/<env>.info. CI uploads each
 #                     tracefile to Codecov under its own flag; Codecov merges
 #                     all flagged uploads of a commit into the combined report.
+#                     Each capture is a baseline (--initial) pass merged with the
+#                     post-run pass, so code that was compiled but never executed
+#                     is reported as 0% instead of being omitted from the report.
 #   coverage-clean  - Clean coverage data files
 #
 # Requirements:
@@ -147,6 +150,20 @@ function(_add_coverage_env_target TEST_TARGET TEST_ENV)
     add_custom_target(coverage-${TEST_ENV}
         COMMAND ${LCOV_PATH} --zerocounters --directory ${CMAKE_BINARY_DIR} ${GCOV_TOOL_OPTION}
 
+        # Baseline capture, before any test runs. Without it the tracefile only
+        # contains lines that were actually executed plus whatever gcov chose to
+        # emit, so functions that were compiled but never called are absent from
+        # the denominator entirely and inflate the reported percentage. The
+        # --initial pass reads the .gcno notes and records every instrumented
+        # line with a zero hit count; merging it under the run below yields
+        # "compiled but never executed" as 0% rather than as "not measured".
+        COMMAND ${LCOV_PATH}
+            --capture --initial
+            --directory ${CMAKE_BINARY_DIR}
+            --output-file ${COVERAGE_OUTPUT_DIR}/${TEST_ENV}.base.info
+            --ignore-errors mismatch,inconsistent,format
+            ${GCOV_TOOL_OPTION}
+
         COMMAND ${CMAKE_COMMAND} -E echo "Running tests for coverage - ${TEST_ENV}..."
         COMMAND $<TARGET_FILE:${TEST_TARGET}> --test-env=${TEST_ENV}
 
@@ -158,8 +175,17 @@ function(_add_coverage_env_target TEST_TARGET TEST_ENV)
         COMMAND ${LCOV_PATH}
             --capture
             --directory ${CMAKE_BINARY_DIR}
-            --output-file ${COVERAGE_OUTPUT_DIR}/${TEST_ENV}.info
+            --output-file ${COVERAGE_OUTPUT_DIR}/${TEST_ENV}.run.info
             --ignore-errors mismatch,inconsistent,format
+            ${GCOV_TOOL_OPTION}
+
+        # Merge baseline + run. Hit counts add up, so a line executed by the
+        # tests keeps its count while an untouched instrumented line stays 0.
+        COMMAND ${LCOV_PATH}
+            --add-tracefile ${COVERAGE_OUTPUT_DIR}/${TEST_ENV}.base.info
+            --add-tracefile ${COVERAGE_OUTPUT_DIR}/${TEST_ENV}.run.info
+            --output-file ${COVERAGE_OUTPUT_DIR}/${TEST_ENV}.info
+            --ignore-errors inconsistent,format,empty
             ${GCOV_TOOL_OPTION}
 
         COMMAND ${LCOV_PATH}
@@ -209,6 +235,15 @@ function(add_coverage_targets TEST_TARGET)
         # Reset coverage counters
         COMMAND ${LCOV_PATH} --zerocounters --directory ${CMAKE_BINARY_DIR} ${GCOV_TOOL_OPTION}
 
+        # Baseline capture — see the rationale in _add_coverage_env_target above.
+        COMMAND ${LCOV_PATH}
+            --capture --initial
+            --directory ${CMAKE_BINARY_DIR}
+            --output-file ${COVERAGE_OUTPUT_DIR}/coverage.base.info
+            --ignore-errors mismatch,inconsistent,format
+            --rc branch_coverage=1
+            ${GCOV_TOOL_OPTION}
+
         # Run the tests against all supported databases. gcov counters (.gcda)
         # accumulate across runs, so the single capture below is the union of
         # everything each database exercised. Unreachable databases are
@@ -226,8 +261,17 @@ function(add_coverage_targets TEST_TARGET)
         COMMAND ${LCOV_PATH}
             --capture
             --directory ${CMAKE_BINARY_DIR}
-            --output-file ${COVERAGE_INFO_FILE}
+            --output-file ${COVERAGE_OUTPUT_DIR}/coverage.run.info
             --ignore-errors mismatch,inconsistent,format
+            --rc branch_coverage=1
+            ${GCOV_TOOL_OPTION}
+
+        # Merge baseline + run so compiled-but-unexecuted lines count as 0%.
+        COMMAND ${LCOV_PATH}
+            --add-tracefile ${COVERAGE_OUTPUT_DIR}/coverage.base.info
+            --add-tracefile ${COVERAGE_OUTPUT_DIR}/coverage.run.info
+            --output-file ${COVERAGE_INFO_FILE}
+            --ignore-errors inconsistent,format,empty
             --rc branch_coverage=1
             ${GCOV_TOOL_OPTION}
 

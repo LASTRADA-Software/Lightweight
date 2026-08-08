@@ -241,7 +241,7 @@ inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::Reference
     OtherRecord,
     InverseSelector>::All() const noexcept
 {
-    RequireLoaded();
+    const_cast<HasMany*>(this)->RequireLoaded();
     return *_records;
 }
 
@@ -266,7 +266,7 @@ inline LIGHTWEIGHT_FORCE_INLINE bool HasMany<OtherRecord, InverseSelector>::IsEm
 template <typename OtherRecord, auto InverseSelector>
 inline LIGHTWEIGHT_FORCE_INLINE OtherRecord const& HasMany<OtherRecord, InverseSelector>::At(std::size_t index) const
 {
-    RequireLoaded();
+    const_cast<HasMany*>(this)->RequireLoaded();
     return *_records->at(index); // NOLINT(bugprone-unchecked-optional-access)
 }
 
@@ -280,7 +280,7 @@ inline LIGHTWEIGHT_FORCE_INLINE OtherRecord& HasMany<OtherRecord, InverseSelecto
 template <typename OtherRecord, auto InverseSelector>
 inline LIGHTWEIGHT_FORCE_INLINE OtherRecord const& HasMany<OtherRecord, InverseSelector>::operator[](std::size_t index) const
 {
-    RequireLoaded();
+    const_cast<HasMany*>(this)->RequireLoaded();
     return *(*_records)[index]; // NOLINT(bugprone-unchecked-optional-access)
 }
 
@@ -318,7 +318,7 @@ inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::const_ite
                                                                                               InverseSelector>::begin()
     const noexcept
 {
-    RequireLoaded();
+    const_cast<HasMany*>(this)->RequireLoaded();
     if (_records)
         return _records->begin();
     else
@@ -330,7 +330,7 @@ inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::const_ite
                                                                                               InverseSelector>::end()
     const noexcept
 {
-    RequireLoaded();
+    const_cast<HasMany*>(this)->RequireLoaded();
     if (_records)
         return _records->end();
     else

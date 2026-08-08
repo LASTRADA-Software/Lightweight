@@ -131,12 +131,26 @@ jobs:
         preset: ["cl-debug", "clangcl-debug"]
     name: "Windows-${{ matrix.preset }}"
     runs-on: windows-2025
+    env:
+      # Route sccache through the GitHub Actions cache backend. Without these
+      # two the sccache binary installed below is never consulted: it needs a
+      # storage backend, and CMake needs to be told to launch the compiler
+      # through it (see CMAKE_*_COMPILER_LAUNCHER on the configure step).
+      SCCACHE_GHA_ENABLED: "true"
+      # A compiler cache must never be able to break the build. Without this,
+      # an unreachable or erroring cache backend makes sccache fail the compile
+      # itself: v0.17.0 aborted every invocation with "Server startup failed:
+      # cache storage failed to read" when GitHub's artifactcache endpoint
+      # answered HTTP 400. With it, sccache falls back to compiling directly.
+      SCCACHE_IGNORE_SERVER_IO_ERROR: "1"
     steps:
       - uses: actions/checkout@v6
       - name: Fetch tags
         run: git fetch --prune --unshallow --tags
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.3
+        # Kept current: the action resolves the sccache build, and newer
+        # releases track changes to GitHub's cache API.
+        uses: mozilla-actions/sccache-action@v0.0.11
       - name: "vcpkg: Install dependencies"
         run: |
           git clone https://github.com/microsoft/vcpkg.git ${{ runner.workspace }}\vcpkg
@@ -149,11 +163,22 @@ jobs:
         run: |
           choco install ninja
       - name: "Generate build files"
-        run: cmake --preset ${{ matrix.preset }}
+        # MSVC/clang-cl need /Z7 rather than /Zi for sccache to be able to cache
+        # objects: /Zi writes debug info to a shared .pdb, which defeats caching.
+        run: >
+          cmake --preset ${{ matrix.preset }}
+          -D CMAKE_C_COMPILER_LAUNCHER=sccache
+          -D CMAKE_CXX_COMPILER_LAUNCHER=sccache
+          -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
+          -D CMAKE_POLICY_DEFAULT_CMP0141=NEW
         env:
           VCPKG_ROOT: "${{ runner.workspace }}/vcpkg"
       - name: "Build"
         run: cmake --build --preset ${{ matrix.preset }}
+      - name: "sccache stats"
+        # Surfaces the cache hit rate in the job log; a run showing 0 hits after
+        # the first build on a branch means the wiring above regressed.
+        run: sccache --show-stats
       # NB: Don't run tests here; the windows_dbms_test_matrix job below runs
       # the suite against each supported database in parallel.
       - name: "Install (stage tests for upload)"
@@ -478,6 +503,10 @@ jobs:
         # cmake/Version.cmake derives the project version from the latest `v*`
         # git tag; actions/checkout does a shallow clone without tags.
         run: git fetch --prune --unshallow --tags
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: "ccache-macos-llvm${{ env.CLANG_TOOLS_VERSION }}"
       - name: "Install dependencies (Homebrew)"
         # llvm@${{ env.CLANG_TOOLS_VERSION }} pins the same major Clang the rest
         # of the project targets, so libc++/C++23 behaviour matches local dev
@@ -518,6 +547,8 @@ jobs:
           cmake --preset clang-debug -B out/build/macos-ci \
                 -D CMAKE_CXX_COMPILER="$LLVM/bin/clang++" \
                 -D CMAKE_C_COMPILER="$LLVM/bin/clang" \
+                -D CMAKE_C_COMPILER_LAUNCHER=ccache \
+                -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
                 -D ENABLE_TIDY=OFF \
                 -D PEDANTIC_COMPILER=OFF \
                 -D PEDANTIC_COMPILER_WERROR=OFF \
@@ -674,6 +705,10 @@ jobs:
         # `v*` git tag; actions/checkout does a shallow clone without tags, so
         # unshallow + fetch tags here (matching ubuntu_build_cc_matrix).
         run: git fetch --prune --unshallow --tags
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: "ccache-ubuntu2404-dbtool-gui"
       - name: "update APT database"
         run: sudo apt -q update
       - name: "install build + ODBC dependencies"
@@ -708,6 +743,7 @@ jobs:
             -G Ninja \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_CXX_COMPILER=clang++-20 \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DLIGHTWEIGHT_BUILD_GUI=ON \
             -DLIGHTWEIGHT_BUILD_TESTS=ON \
             -DPEDANTIC_COMPILER_WERROR=OFF
@@ -987,6 +1023,23 @@ jobs:
         run: cmake --build --preset clang-coverage --target coverage-mssql2022
       - name: "Run tests and generate lcov report (MSSQL 2017, ODBC Driver 17)"
         run: cmake --build --preset clang-coverage --target coverage-mssql2017_odbc17
+      # Guards the blind spot that the coverage *percentage* structurally cannot catch: gcov emits
+      # records per template instantiation, so a template nothing instantiates contributes no lines
+      # at all rather than counting as uncovered. Its absence therefore never lowers the headline
+      # number. This ratchets the instrumented-line count per library header instead, so a template
+      # that stops being instantiated fails the build.
+      #
+      # Non-blocking on its first outing: the checked-in baseline was generated from a local run,
+      # and the CI toolchain (different Clang, different lcov) can legitimately differ. Once one
+      # green run confirms the numbers, drop `continue-on-error` to make this enforcing.
+      - name: "Check template instantiation coverage"
+        continue-on-error: true
+        run: >
+          python3 scripts/check-instantiation-coverage.py
+          --tracefile out/build/clang-coverage/coverage/sqlite3.info
+          --tracefile out/build/clang-coverage/coverage/postgres.info
+          --tracefile out/build/clang-coverage/coverage/mssql2022.info
+          --tracefile out/build/clang-coverage/coverage/mssql2017_odbc17.info
       - name: "Upload SQLite3 coverage to Codecov"
         uses: codecov/codecov-action@v5
         with:
