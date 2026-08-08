@@ -50,6 +50,14 @@ std::chrono::milliseconds CalculateRetryDelay(unsigned attempt, RetrySettings co
     return std::min(delay, settings.maxDelay);
 }
 
+RetryAction ClassifyRetryOutcome(SqlErrorInfo const& error, unsigned attemptsSoFar, RetrySettings const& settings)
+{
+    if (!IsTransientError(error) || attemptsSoFar >= settings.maxRetries)
+        return RetryAction::GiveUp;
+
+    return RetryAction::Retry;
+}
+
 bool ConnectWithRetry(SqlConnection& conn,
                       SqlConnectionString const& connectionString,
                       RetrySettings const& settings,
@@ -64,7 +72,7 @@ bool ConnectWithRetry(SqlConnection& conn,
             return true;
 
         auto const& error = conn.LastError();
-        if (!IsTransientError(error) || attempts >= settings.maxRetries)
+        if (ClassifyRetryOutcome(error, attempts, settings) == RetryAction::GiveUp)
             return false;
 
         ++attempts;
