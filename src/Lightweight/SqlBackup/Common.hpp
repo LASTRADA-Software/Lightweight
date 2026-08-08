@@ -7,6 +7,7 @@
 #include "SqlBackup.hpp"
 
 #include <chrono>
+#include <cstdint>
 #include <format>
 #include <string>
 #include <string_view>
@@ -58,6 +59,31 @@ LIGHTWEIGHT_API bool IsTransientError(SqlErrorInfo const& error);
 /// @return The delay to wait before the next retry.
 LIGHTWEIGHT_API std::chrono::milliseconds CalculateRetryDelay(unsigned attempt, RetrySettings const& settings) noexcept;
 
+/// What a retry loop should do after an attempt failed.
+///
+/// @see ClassifyRetryOutcome
+enum class RetryAction : uint8_t
+{
+    /// The error is transient and the retry budget is not exhausted — wait and try again.
+    Retry,
+    /// The error is not transient, or the retry budget is spent — surface the failure.
+    GiveUp,
+};
+
+/// @brief Decides whether a failed attempt should be retried.
+///
+/// Extracted from the retry loops so the policy can be exercised without provoking a real
+/// transient driver failure. This performs no I/O and touches no handle, so a test drives it by
+/// constructing a @ref SqlErrorInfo — the same approach the `IsTransientError` cases above use.
+///
+/// @param error The error reported by the failed attempt.
+/// @param attemptsSoFar How many retries have already been consumed.
+/// @param settings The retry configuration supplying the budget.
+/// @return @ref RetryAction::Retry when the caller should back off and try again.
+[[nodiscard]] LIGHTWEIGHT_API RetryAction ClassifyRetryOutcome(SqlErrorInfo const& error,
+                                                               unsigned attemptsSoFar,
+                                                               RetrySettings const& settings);
+
 /// Connects to the database with retry logic for transient errors.
 ///
 /// @param conn The connection object to use.
@@ -97,7 +123,7 @@ auto RetryOnTransientError(Func&& func, // NOLINT(cppcoreguidelines-missing-std-
         }
         catch (SqlException const& e)
         {
-            if (!IsTransientError(e.info()) || attempts >= settings.maxRetries)
+            if (ClassifyRetryOutcome(e.info(), attempts, settings) == RetryAction::GiveUp)
                 throw;
 
             ++attempts;
