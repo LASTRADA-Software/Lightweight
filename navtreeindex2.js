@@ -1,5 +1,7 @@
 var NAVTREEINDEX2 =
 {
+"d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#aa444dfcac23a0e8ffdda163504f362e1":[14,4,6,0],
+"d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#aaa224b59d60b36d04f75b77e3b0ef803":[14,4,6,3],
 "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#aac5d784cf929ffba0fb778a04c337d60":[14,4,6,8],
 "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#ab21fb33567468849f1b0d724719c23e7":[14,4,6,7],
 "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#ab5ca6b248b7df350cc640d419e2737fd":[14,4,6,11],
@@ -10,8 +12,8 @@ var NAVTREEINDEX2 =
 "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#aed9835ede8b2ce143f5ad84e0f4c9699":[14,4,6,6],
 "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#aee69f4c93ebeb28785f120395d66ab75":[14,4,6,10],
 "d4/ded/MsgPackChunkFormats_8hpp_source.html":[17,0,1,4,5],
-"d5/d19/classLightweight_1_1SqlTransactionException.html":[16,0,0,78],
-"d5/d19/classLightweight_1_1SqlTransactionException.html#a14af02cd69dee3168a5cc92a88e8b38e":[16,0,0,78,0],
+"d5/d19/classLightweight_1_1SqlTransactionException.html":[16,0,0,79],
+"d5/d19/classLightweight_1_1SqlTransactionException.html#a14af02cd69dee3168a5cc92a88e8b38e":[16,0,0,79,0],
 "d5/d1f/SqlDynamicString_8hpp_source.html":[17,0,1,1,8],
 "d5/d3e/SqlServerFormatter_8hpp_source.html":[17,0,1,3,2],
 "d5/d4b/SqlAdvisoryLock_8hpp_source.html":[17,0,1,12],
@@ -106,12 +108,12 @@ var NAVTREEINDEX2 =
 "d6/d1b/structLightweight_1_1SqlNumeric.html#af7e8eb0c75b199de629ff8f11d64d980":[14,0,8,5],
 "d6/d1b/structLightweight_1_1SqlNumeric.html#afe67c0279370b09905778c8b97e86ca8":[14,0,8,15],
 "d6/d35/SqlMigration_8hpp_source.html":[17,0,1,21],
-"d6/d3b/structLightweight_1_1SqlLockError.html":[16,0,0,50],
-"d6/d3b/structLightweight_1_1SqlLockError.html#a042768d16ff0fe8d8e52e4a03b465680":[16,0,0,50,0],
-"d6/d3b/structLightweight_1_1SqlLockError.html#a6b5d09c20dff00eeaeb0635d762aa65c":[16,0,0,50,3],
-"d6/d3b/structLightweight_1_1SqlLockError.html#ac23ac94ba59982d782f3d254bf8f41db":[16,0,0,50,2],
-"d6/d3b/structLightweight_1_1SqlLockError.html#ac84025dddd1fc79469d13504b5c733cf":[16,0,0,50,1],
-"d6/d3b/structLightweight_1_1SqlLockError.html#aedcac377e528618f190b2cb4deb5f48a":[16,0,0,50,4],
+"d6/d3b/structLightweight_1_1SqlLockError.html":[16,0,0,51],
+"d6/d3b/structLightweight_1_1SqlLockError.html#a042768d16ff0fe8d8e52e4a03b465680":[16,0,0,51,0],
+"d6/d3b/structLightweight_1_1SqlLockError.html#a6b5d09c20dff00eeaeb0635d762aa65c":[16,0,0,51,3],
+"d6/d3b/structLightweight_1_1SqlLockError.html#ac23ac94ba59982d782f3d254bf8f41db":[16,0,0,51,2],
+"d6/d3b/structLightweight_1_1SqlLockError.html#ac84025dddd1fc79469d13504b5c733cf":[16,0,0,51,1],
+"d6/d3b/structLightweight_1_1SqlLockError.html#aedcac377e528618f190b2cb4deb5f48a":[16,0,0,51,4],
 "d6/d45/BatchManager_8hpp_source.html":[17,0,1,4,1],
 "d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html":[16,0,0,5,2],
 "d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a210b66a08504827ce69e7dec9cf2a8b6":[16,0,0,5,2,6],
@@ -247,7 +249,5 @@ var NAVTREEINDEX2 =
 "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#aaa301a23cef291c7bbe706cea64391e8":[14,4,3,38],
 "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#aaead6c846adb4a0ce1484ff93baf73f2":[14,4,3,41],
 "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ab31fe6eb54cec3b3db5060438a0c9937":[14,4,3,34],
-"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ab37dadea0850fbda74e2efe467118c87":[14,4,3,53],
-"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ab6dce3dcf3188a944f96b9a04f053f54":[14,4,3,11],
-"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#aba3c986f6278f6c462af37d09ed4f040":[14,4,3,30]
+"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ab37dadea0850fbda74e2efe467118c87":[14,4,3,53]
 };

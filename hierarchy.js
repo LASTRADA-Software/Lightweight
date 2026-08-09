@@ -101,6 +101,7 @@ var hierarchy =
     [ "Lightweight::SqlDynamicBinary< N >", "d6/db6/classLightweight_1_1SqlDynamicBinary.html", null ],
     [ "Lightweight::SqlDynamicString< N, T >", "d7/d9a/classLightweight_1_1SqlDynamicString.html", null ],
     [ "Lightweight::SqlErrorInfo", "d8/d5b/structLightweight_1_1SqlErrorInfo.html", null ],
+    [ "Lightweight::SqlFaultSource", "d4/d1a/classLightweight_1_1SqlFaultSource.html", null ],
     [ "Lightweight::SqlFixedString< N, T, Mode >", "de/dae/classLightweight_1_1SqlFixedString.html", null ],
     [ "Lightweight::SqlForeignKeyReferenceDefinition", "d5/d8f/structLightweight_1_1SqlForeignKeyReferenceDefinition.html", null ],
     [ "Lightweight::SqlGuid", "df/d7c/structLightweight_1_1SqlGuid.html", null ],

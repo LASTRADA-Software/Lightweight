@@ -213,10 +213,10 @@ $(document).ready(function(){initNavTree('dd/d60/Restore_8hpp_source.html','../.
 <div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span><span class="comment">/// @param schema The schema name.</span></div>
 <div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span><span class="comment">/// @param tableMap Map of table names to their metadata including indexes.</span></div>
 <div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span><span class="comment">/// @param progress Progress manager for reporting status.</span></div>
-<div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span><span class="comment"></span><span class="keywordtype">void</span> RestoreIndexes(SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
-<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span>                    std::string <span class="keyword">const</span>&amp; schema,</div>
-<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>                    std::map&lt;std::string, TableInfo&gt; <span class="keyword">const</span>&amp; tableMap,</div>
-<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span>                    ProgressManager&amp; progress);</div>
+<div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span><span class="comment"></span>LIGHTWEIGHT_API <span class="keywordtype">void</span> RestoreIndexes(SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
+<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span>                                    std::string <span class="keyword">const</span>&amp; schema,</div>
+<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>                                    std::map&lt;std::string, TableInfo&gt; <span class="keyword">const</span>&amp; tableMap,</div>
+<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span>                                    ProgressManager&amp; progress);</div>
 <div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span><span class="comment"></span> </div>
 <div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span><span class="comment">/// Applies foreign key constraints to all tables after data has been restored.</span></div>
 <div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span><span class="comment">///</span></div>
@@ -227,10 +227,10 @@ $(document).ready(function(){initNavTree('dd/d60/Restore_8hpp_source.html','../.
 <div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span><span class="comment">/// @param schema The schema name.</span></div>
 <div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span><span class="comment">/// @param tableMap Map of table names to their metadata including foreign keys.</span></div>
 <div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span><span class="comment">/// @param progress Progress manager for reporting status.</span></div>
-<div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span><span class="comment"></span><span class="keywordtype">void</span> ApplyDatabaseConstraints(SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
-<div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span>                              std::string <span class="keyword">const</span>&amp; schema,</div>
-<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>                              std::map&lt;std::string, TableInfo&gt; <span class="keyword">const</span>&amp; tableMap,</div>
-<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span>                              ProgressManager&amp; progress);</div>
+<div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span><span class="comment"></span>LIGHTWEIGHT_API <span class="keywordtype">void</span> ApplyDatabaseConstraints(SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
+<div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span>                                              std::string <span class="keyword">const</span>&amp; schema,</div>
+<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>                                              std::map&lt;std::string, TableInfo&gt; <span class="keyword">const</span>&amp; tableMap,</div>
+<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span>                                              ProgressManager&amp; progress);</div>
 <div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span><span class="comment"></span> </div>
 <div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span><span class="comment">/// Recreates the database schema by dropping and creating tables from the backup metadata.</span></div>
 <div class="line"><a id="l00136" name="l00136"></a><span class="lineno">  136</span><span class="comment">///</span></div>
@@ -244,10 +244,10 @@ $(document).ready(function(){initNavTree('dd/d60/Restore_8hpp_source.html','../.
 <div class="line"><a id="l00144" name="l00144"></a><span class="lineno">  144</span><span class="comment">/// @return Set of table names that were successfully created. Tables that fail to create</span></div>
 <div class="line"><a id="l00145" name="l00145"></a><span class="lineno">  145</span><span class="comment">///         (e.g., due to type incompatibilities) are excluded from the returned set,</span></div>
 <div class="line"><a id="l00146" name="l00146"></a><span class="lineno">  146</span><span class="comment">///         allowing the caller to skip data restoration for those tables.</span></div>
-<div class="line"><a id="l00147" name="l00147"></a><span class="lineno">  147</span><span class="comment"></span>std::set&lt;std::string&gt; RecreateDatabaseSchema(SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
-<div class="line"><a id="l00148" name="l00148"></a><span class="lineno">  148</span>                                             std::string <span class="keyword">const</span>&amp; schema,</div>
-<div class="line"><a id="l00149" name="l00149"></a><span class="lineno">  149</span>                                             std::map&lt;std::string, TableInfo&gt; <span class="keyword">const</span>&amp; tableMap,</div>
-<div class="line"><a id="l00150" name="l00150"></a><span class="lineno">  150</span>                                             ProgressManager&amp; progress);</div>
+<div class="line"><a id="l00147" name="l00147"></a><span class="lineno">  147</span><span class="comment"></span>LIGHTWEIGHT_API std::set&lt;std::string&gt; RecreateDatabaseSchema(SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
+<div class="line"><a id="l00148" name="l00148"></a><span class="lineno">  148</span>                                                             std::string <span class="keyword">const</span>&amp; schema,</div>
+<div class="line"><a id="l00149" name="l00149"></a><span class="lineno">  149</span>                                                             std::map&lt;std::string, TableInfo&gt; <span class="keyword">const</span>&amp; tableMap,</div>
+<div class="line"><a id="l00150" name="l00150"></a><span class="lineno">  150</span>                                                             ProgressManager&amp; progress);</div>
 <div class="line"><a id="l00151" name="l00151"></a><span class="lineno">  151</span> </div>
 <div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span>} <span class="comment">// namespace Lightweight::SqlBackup::detail</span></div>
 </div><!-- fragment --></div><!-- contents -->
