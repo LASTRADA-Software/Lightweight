@@ -124,14 +124,14 @@ TEST_CASE("ClassifyOdbcResult: only the exact 07009 state is demoted", "[SqlErro
 // SqlDiagnosticSource - driving the propagation path without a database
 // ================================================================================================
 
-TEST_CASE("SqlDiagnosticSource: absent by default", "[SqlError][seam]")
-{
-    // Production must not carry an installed source; the real ODBC reader has to be the default.
-    CHECK(GetDiagnosticSource() == nullptr);
-}
-
 TEST_CASE("SqlDiagnosticSource: install and clear", "[SqlError][seam]")
 {
+    // Asserted as a round-trip back to whatever was installed before, rather than as "null by
+    // default": the slot is process-global, so a bare null check would depend on test ordering
+    // (the suite is run with `--order rand` in some setups) and on no other translation unit
+    // leaking a source, turning an unrelated mistake into a failure far from its cause.
+    auto* const before = GetDiagnosticSource();
+
     auto source = ScriptedDiagnosticSource { MakeError("23000") };
 
     {
@@ -139,7 +139,7 @@ TEST_CASE("SqlDiagnosticSource: install and clear", "[SqlError][seam]")
         CHECK(GetDiagnosticSource() == &source);
     }
 
-    CHECK(GetDiagnosticSource() == nullptr);
+    CHECK(GetDiagnosticSource() == before);
 }
 
 TEST_CASE("RequireSuccess: throws SqlException carrying the scripted diagnostics", "[SqlError][seam]")

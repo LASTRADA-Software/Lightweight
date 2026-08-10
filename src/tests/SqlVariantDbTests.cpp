@@ -567,3 +567,71 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches BIGINT columns and untyped 
     CHECK(cursor.GetColumn(1, &big));
     CHECK(big.TryGetLongLong().value_or(0) == 1'234'567'890'123LL);
 }
+
+// SQL_TINYINT is its own branch in SqlVariant::GetColumn, landing on int8_t. No other test in the
+// suite creates a TINYINT column, so that branch had no coverage on any database.
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches TINYINT columns", "[SqlVariant]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.DropTableIfExists("variant_tinyint");
+        migration.CreateTable("variant_tinyint").RequiredColumn("tiny", SqlColumnTypeDefinitions::Tinyint {});
+    });
+
+    stmt.Prepare(R"(INSERT INTO "variant_tinyint" ("tiny") VALUES (?))");
+    (void) stmt.Execute(static_cast<int16_t>(42));
+
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "tiny" FROM "variant_tinyint")");
+    REQUIRE(cursor.FetchRow());
+    SqlVariant tiny;
+    CHECK(cursor.GetColumn(1, &tiny));
+
+    CHECK(tiny.TryGetInt().value_or(0) == 42);
+
+    // Only MS SQL Server has a native TINYINT. PostgreSqlFormatter maps Tinyint to SMALLINT and
+    // SQLite has no distinct type, so on those the column reports as SQL_SMALLINT/SQL_INTEGER and
+    // the int8_t arm this test exists to cover is never taken. Assert the alternative only where
+    // the branch is genuinely reachable, so the coverage claim above is not overstated elsewhere.
+    if (stmt.Connection().ServerType() == SqlServerType::MICROSOFT_SQL)
+        CHECK(std::holds_alternative<int8_t>(tiny.value));
+}
+
+// The DECIMAL/NUMERIC branch dispatches on numeric.scale through a switch whose `default:` arm
+// handles every scale >= 9. The existing "by scale" test stops at scale 8, so the default arm was
+// never taken.
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches DECIMAL with scale beyond the enumerated cases", "[SqlVariant]")
+{
+    auto stmt = SqlStatement {};
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::SQLITE); // SQLite has no native DECIMAL
+
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.DropTableIfExists("variant_decimal_deep");
+        migration.CreateTable("variant_decimal_deep")
+            .RequiredColumn("scale9", SqlColumnTypeDefinitions::Decimal { .precision = 15, .scale = 9 });
+    });
+
+    stmt.Prepare(R"(INSERT INTO "variant_decimal_deep" ("scale9") VALUES (?))");
+    (void) stmt.Execute(SqlNumeric<15, 9> { 0.123456789 });
+
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "scale9" FROM "variant_decimal_deep")");
+    REQUIRE(cursor.FetchRow());
+    SqlVariant deep;
+    CHECK(cursor.GetColumn(1, &deep));
+
+    // Same MSSQL scale limitation as the "by scale" test above: the driver hands back the
+    // SQL_C_NUMERIC value at scale 0 unless SQL_DESC_SCALE is set on the IRD, which
+    // SqlVariant.cpp does not do. The default arm still executes on every DBMS; only the
+    // round-tripped value is asserted where it is currently reliable.
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+    {
+        auto const asDouble = std::visit(
+            []<typename T>(T const& alt) -> std::optional<double> {
+                if constexpr (std::is_arithmetic_v<T>)
+                    return static_cast<double>(alt);
+                else
+                    return std::nullopt;
+            },
+            deep.value);
+        CHECK_THAT(asDouble.value_or(0.0), Catch::Matchers::WithinAbs(0.123456789, 1e-9));
+    }
+}

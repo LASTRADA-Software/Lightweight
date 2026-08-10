@@ -6,6 +6,7 @@
 #include "../DataBinder/SqlNullValue.hpp"
 #include "../SqlStatement.hpp"
 #include "BelongsTo.hpp"
+#include "Error.hpp"
 #include "Field.hpp"
 #include "Record.hpp"
 
@@ -85,11 +86,19 @@ class HasMany
     /// Const iterator type for the list of records.
     using const_iterator = ReferencedRecordList::const_iterator;
 
-    /// Retrieves the list of loaded records.
-    [[nodiscard]] ReferencedRecordList const& All() const noexcept;
+    /// @brief Retrieves the list of loaded records.
+    ///
+    /// @note This method will on-demand load the records if they are not already loaded, and
+    ///       therefore throws whatever the loader throws. It also throws SqlRequireLoadedError if
+    ///       no auto-loader was configured for this relation.
+    [[nodiscard]] ReferencedRecordList const& All() const;
 
-    /// Retrieves the list of records as mutable reference.
-    [[nodiscard]] ReferencedRecordList& All() noexcept;
+    /// @brief Retrieves the list of records as mutable reference.
+    ///
+    /// @note This method will on-demand load the records if they are not already loaded, and
+    ///       therefore throws whatever the loader throws. It also throws SqlRequireLoadedError if
+    ///       no auto-loader was configured for this relation.
+    [[nodiscard]] ReferencedRecordList& All();
 
     /// @brief Iterates over the list of records and calls the given callable for each record.
     ///
@@ -136,13 +145,17 @@ class HasMany
     [[nodiscard]] OtherRecord& operator[](std::size_t index);
 
     /// Returns an iterator to the beginning of the record list.
-    [[nodiscard]] iterator begin() noexcept;
+    /// @note On-demand loads the records, and therefore throws what the loader throws.
+    [[nodiscard]] iterator begin();
     /// Returns an iterator to the end of the record list.
-    [[nodiscard]] iterator end() noexcept;
+    /// @note On-demand loads the records, and therefore throws what the loader throws.
+    [[nodiscard]] iterator end();
     /// Returns a const iterator to the beginning of the record list.
-    [[nodiscard]] const_iterator begin() const noexcept;
+    /// @note On-demand loads the records, and therefore throws what the loader throws.
+    [[nodiscard]] const_iterator begin() const;
     /// Returns a const iterator to the end of the record list.
-    [[nodiscard]] const_iterator end() const noexcept;
+    /// @note On-demand loads the records, and therefore throws what the loader throws.
+    [[nodiscard]] const_iterator end() const;
 
     /// Three-way comparison operator.
     constexpr std::weak_ordering operator<=>(HasMany const& other) const noexcept = default;
@@ -200,8 +213,18 @@ inline LIGHTWEIGHT_FORCE_INLINE void HasMany<OtherRecord, InverseSelector>::SetA
 template <typename OtherRecord, auto InverseSelector>
 inline LIGHTWEIGHT_FORCE_INLINE void HasMany<OtherRecord, InverseSelector>::RequireLoaded()
 {
-    if (!_records)
+    if (_records)
+        return;
+
+    // The loader is only populated by ConfigureRelationAutoLoading(). A hand-constructed record
+    // never went through it, so calling the empty std::function would be std::bad_function_call.
+    // Mirrors HasManyThrough::RequireLoaded(), which reports the same condition as
+    // SqlRequireLoadedError.
+    if (_loader.all)
         _records = _loader.all();
+
+    if (!_records)
+        throw SqlRequireLoadedError(Reflection::TypeNameOf<std::remove_cvref_t<decltype(*this)>>);
 }
 
 template <typename OtherRecord, auto InverseSelector>
@@ -214,9 +237,8 @@ inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::Reference
 }
 
 template <typename OtherRecord, auto InverseSelector>
-inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::ReferencedRecordList& HasMany<
-    OtherRecord,
-    InverseSelector>::All() noexcept
+inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::ReferencedRecordList& HasMany<OtherRecord,
+                                                                                                     InverseSelector>::All()
 {
     RequireLoaded();
     return *_records; // NOLINT(bugprone-unchecked-optional-access)
@@ -239,10 +261,10 @@ void HasMany<OtherRecord, InverseSelector>::Each(Callable const& callable)
 template <typename OtherRecord, auto InverseSelector>
 inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::ReferencedRecordList const& HasMany<
     OtherRecord,
-    InverseSelector>::All() const noexcept
+    InverseSelector>::All() const
 {
     const_cast<HasMany*>(this)->RequireLoaded();
-    return *_records;
+    return *_records; // NOLINT(bugprone-unchecked-optional-access)
 }
 
 template <typename OtherRecord, auto InverseSelector>
@@ -293,48 +315,33 @@ inline LIGHTWEIGHT_FORCE_INLINE OtherRecord& HasMany<OtherRecord, InverseSelecto
 
 template <typename OtherRecord, auto InverseSelector>
 inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::iterator HasMany<OtherRecord,
-                                                                                        InverseSelector>::begin() noexcept
+                                                                                        InverseSelector>::begin()
 {
     RequireLoaded();
-    if (_records)
-        return _records->begin();
-    else
-        return iterator {};
+    return _records->begin(); // NOLINT(bugprone-unchecked-optional-access)
 }
 
 template <typename OtherRecord, auto InverseSelector>
-inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::iterator HasMany<OtherRecord,
-                                                                                        InverseSelector>::end() noexcept
+inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::iterator HasMany<OtherRecord, InverseSelector>::end()
 {
     RequireLoaded();
-    if (_records)
-        return _records->end();
-    else
-        return iterator {};
+    return _records->end(); // NOLINT(bugprone-unchecked-optional-access)
 }
 
 template <typename OtherRecord, auto InverseSelector>
 inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::const_iterator HasMany<OtherRecord,
-                                                                                              InverseSelector>::begin()
-    const noexcept
+                                                                                              InverseSelector>::begin() const
 {
     const_cast<HasMany*>(this)->RequireLoaded();
-    if (_records)
-        return _records->begin();
-    else
-        return const_iterator {};
+    return _records->begin(); // NOLINT(bugprone-unchecked-optional-access)
 }
 
 template <typename OtherRecord, auto InverseSelector>
 inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::const_iterator HasMany<OtherRecord,
-                                                                                              InverseSelector>::end()
-    const noexcept
+                                                                                              InverseSelector>::end() const
 {
     const_cast<HasMany*>(this)->RequireLoaded();
-    if (_records)
-        return _records->end();
-    else
-        return const_iterator {};
+    return _records->end(); // NOLINT(bugprone-unchecked-optional-access)
 }
 
 } // namespace Lightweight
