@@ -9,5 +9,7 @@ var searchData=
   ['columnidentifier_6',['ColumnIdentifier',['../da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html',1,'Lightweight::SqlSchema']]],
   ['columnidentifiersequence_7',['ColumnIdentifierSequence',['../d0/dd4/structLightweight_1_1SqlSchema_1_1ColumnIdentifierSequence.html',1,'Lightweight::SqlSchema']]],
   ['columnkey_8',['ColumnKey',['../da/dcb/structLightweight_1_1MigrationRenderContext_1_1ColumnKey.html',1,'Lightweight::MigrationRenderContext']]],
-  ['columnupgradeentry_9',['ColumnUpgradeEntry',['../d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html',1,'Lightweight::SqlMigration::MigrationManager']]]
+  ['columnupgradeentry_9',['ColumnUpgradeEntry',['../d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html',1,'Lightweight::SqlMigration::MigrationManager']]],
+  ['compositeforeignkey_10',['CompositeForeignKey',['../dc/dc9/classLightweight_1_1CompositeForeignKey.html',1,'Lightweight']]],
+  ['connection_11',['Connection',['../d4/d03/structLightweight_1_1Connection.html',1,'Lightweight']]]
 ];

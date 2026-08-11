@@ -1,5 +1,6 @@
 var group__DataMapper =
 [
+    [ "Lightweight::ConnectionType", "dd/de8/conceptLightweight_1_1ConnectionType.html", null ],
     [ "Lightweight::DataMapperRecord", "de/d36/conceptLightweight_1_1DataMapperRecord.html", null ],
     [ "Lightweight::RelationSelector", "da/df2/conceptLightweight_1_1RelationSelector.html", null ],
     [ "Lightweight::FieldWithStorage", "dd/da7/conceptLightweight_1_1FieldWithStorage.html", null ],
@@ -37,6 +38,31 @@ var group__DataMapper =
       [ "operator==", "d0/df7/classLightweight_1_1BelongsTo.html#a1271631698325fe984ca9ec9350ec8dd", null ],
       [ "operator!=", "d0/df7/classLightweight_1_1BelongsTo.html#af764f7452bcd0b08a1bb855bbc303b44", null ],
       [ "SetAutoLoader", "d0/df7/classLightweight_1_1BelongsTo.html#ad47ae72f92dc24e787100cddd36f13b9", null ]
+    ] ],
+    [ "Lightweight::Connection< FromPtr, IntoPtr >", "d4/d03/structLightweight_1_1Connection.html", [
+      [ "FromRecord", "d4/d03/structLightweight_1_1Connection.html#af19d2b2b908b92795f40b5e629cf556b", null ],
+      [ "IntoRecord", "d4/d03/structLightweight_1_1Connection.html#a15baa4e699b105f26e692059a260943f", null ],
+      [ "FromField", "d4/d03/structLightweight_1_1Connection.html#a7b7ec304844cc467cde5505db4b44d49", null ],
+      [ "IntoField", "d4/d03/structLightweight_1_1Connection.html#aff74e09c621c9b84efdcebd06c708009", null ]
+    ] ],
+    [ "Lightweight::CompositeForeignKey< Connections >", "dc/dc9/classLightweight_1_1CompositeForeignKey.html", [
+      [ "Loader", "d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html", [
+        [ "operator<=>", "d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html#a4e488a572408a095332f3dc38e5f2a46", null ],
+        [ "operator==", "d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html#a3aa4b638408ac131ea7e1992ce5851be", null ],
+        [ "loadReference", "d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html#aa09380d173e9cc5e484d93faf1b35192", null ]
+      ] ],
+      [ "Child", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#a723f6f3b7369619a2b7446623f6300b9", null ],
+      [ "ReferencedRecord", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#aadd30fc4ad067ad510d194e75ce72f18", null ],
+      [ "ValueType", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#a8d3e00a5239178c02d426b01fb93f55d", null ],
+      [ "OrderedValueType", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#aa9a8ed54c28b229df565eb94b3c628c4", null ],
+      [ "Record", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#a4349e2df41d2ea83e78f45add2d2b632", null ],
+      [ "IsLoaded", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#a26b5472afe0aa239cd320d1792e3303d", null ],
+      [ "Unload", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#a2602e8c703cbcedbb9b248fc3daa6ca7", null ],
+      [ "EmplaceRecord", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#a81c36086d3355ec6dac94dd0a006427f", null ],
+      [ "operator->", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#ac4e0d3da7381896cfd2667357377358e", null ],
+      [ "SetAutoLoader", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#aea0753865e30f9428c90ce6e3a5497f5", null ],
+      [ "operator<=>", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#a614a4cb5ad2ce03b5b958f28b65d18f7", null ],
+      [ "operator==", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#afdbe7152a76b6ab03d96af8e6329d8e2", null ]
     ] ],
     [ "Lightweight::DataMapper", "de/d61/classLightweight_1_1DataMapper.html", [
       [ "ModifiedState", "de/d61/classLightweight_1_1DataMapper.html#ac8cfda8ec587a1c2007646116c426441", [
@@ -199,13 +225,16 @@ var group__DataMapper =
     [ "Lightweight::Description< Record >", "de/d22/structLightweight_1_1Description.html", null ],
     [ "Lightweight::ReferencedFieldTypeOf", "d7/d2f/group__DataMapper.html#gaeebbb701afbe9efa3118910e348b4e61", null ],
     [ "Lightweight::SqlElements", "d7/d2f/group__DataMapper.html#ga7b2f2210747ec11d91a0d694b4c34b25", null ],
+    [ "Lightweight::RecordPrimaryKeyTuple", "d7/d2f/group__DataMapper.html#ga4792c3b28c2058e0226e1e6eb728e401", null ],
     [ "Lightweight::RecordMemberTypeOf", "d7/d2f/group__DataMapper.html#gaf8d513471d088e755ea2e628689086fb", null ],
+    [ "Lightweight::GetPrimaryKeyFields", "d7/d2f/group__DataMapper.html#ga26e1044be43f92bbb88188317ffba9b5", null ],
     [ "Lightweight::GetPrimaryKeyField", "d7/d2f/group__DataMapper.html#ga0690ab017d7ae25c81a0889a6385ba33", null ],
     [ "Lightweight::GetRecordMemberAt", "d7/d2f/group__DataMapper.html#ga3803a99a6793b7b2dcd55824b002fc69", null ],
     [ "Lightweight::EnumerateRecordMembers", "d7/d2f/group__DataMapper.html#gaf264bb64d0d2c57aac9a058e4b9a2865", null ],
     [ "Lightweight::EnumerateRecordMembers", "d7/d2f/group__DataMapper.html#ga04a45404bac144fc1e6e60af1954cd32", null ],
     [ "Lightweight::EnumerateRecordMembers", "d7/d2f/group__DataMapper.html#gaed659f3e0250fbf17e02847b27900b1d", null ],
     [ "Lightweight::FoldRecordMembers", "d7/d2f/group__DataMapper.html#ga2975e6fdc555f7eb9883bee6f207d064", null ],
+    [ "Lightweight::IsCompositeForeignKey", "d7/d2f/group__DataMapper.html#ga80a09b9adc39c867b613e8c58e6985fd", null ],
     [ "Lightweight::AutoDetectRelation", "d7/d2f/group__DataMapper.html#gaa5bfaacd1c94e825fbd19612b0f80d2a", null ],
     [ "Lightweight::InverseBelongsToIndexOf", "d7/d2f/group__DataMapper.html#ga7b84626d1250c3ca3c55faec551337d4", null ],
     [ "Lightweight::InverseBelongsToFieldNameOf", "d7/d2f/group__DataMapper.html#ga765969e7e609a8f6ca40cd53eff39217", null ],
@@ -213,6 +242,8 @@ var group__DataMapper =
     [ "Lightweight::RecordStorageFieldCount", "d7/d2f/group__DataMapper.html#gac7df2f7b61cdd663f50496fe92c80a73", null ],
     [ "Lightweight::HasPrimaryKey", "d7/d2f/group__DataMapper.html#gae0874e29a73741a5badb14bacafae06e", null ],
     [ "Lightweight::HasAutoIncrementPrimaryKey", "d7/d2f/group__DataMapper.html#ga1e58d42e8c42aa174027b744d8eb78e0", null ],
+    [ "Lightweight::RecordPrimaryKeyCount", "d7/d2f/group__DataMapper.html#ga174b96ffd03d0c18cc41768560a1a936", null ],
+    [ "Lightweight::HasCompositePrimaryKey", "d7/d2f/group__DataMapper.html#ga4c03c83d5812a80abd311d682123dac5", null ],
     [ "Lightweight::RecordMemberCount", "d7/d2f/group__DataMapper.html#ga655897a10b9ec0b5c558b0c91b20ff2a", null ],
     [ "Lightweight::FieldNameAt", "d7/d2f/group__DataMapper.html#ga6b1b90405a8cf10bbb8fd88789543f24", null ],
     [ "Lightweight::RecordTableName", "d7/d2f/group__DataMapper.html#ga2bf8fa94d9c5b41f9a1045395403ccab", null ],
