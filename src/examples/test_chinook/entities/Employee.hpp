@@ -8,6 +8,8 @@
 #include <array>
 #include <string_view>
 
+struct Customer;
+
 struct Employee final
 {
     static constexpr std::string_view TableName = "Employee";
@@ -27,6 +29,9 @@ struct Employee final
     Light::Field<std::optional<Light::SqlDynamicUtf16String<24>>, Light::SqlRealName { "Phone" }> Phone;
     Light::Field<std::optional<Light::SqlDynamicUtf16String<24>>, Light::SqlRealName { "Fax" }> Fax;
     Light::Field<std::optional<Light::SqlDynamicUtf16String<60>>, Light::SqlRealName { "Email" }> Email;
+
+    Light::HasMany<Customer> Customer_1;
+    Light::HasMany<Employee> Employee;
 };
 
 template <>

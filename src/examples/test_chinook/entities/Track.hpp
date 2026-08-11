@@ -12,6 +12,10 @@
 #include <array>
 #include <string_view>
 
+struct Invoiceline;
+struct Playlist;
+struct Playlisttrack;
+
 struct Track final
 {
     static constexpr std::string_view TableName = "Track";
@@ -25,6 +29,9 @@ struct Track final
     Light::Field<int32_t, Light::SqlRealName { "Milliseconds" }> Milliseconds;
     Light::Field<std::optional<int32_t>, Light::SqlRealName { "Bytes" }> Bytes;
     Light::Field<Light::SqlNumeric<10, 2>, Light::SqlRealName { "UnitPrice" }> UnitPrice;
+
+    Light::HasManyThrough<Playlist, Playlisttrack> Playlist_1;
+    Light::HasMany<Invoiceline> InvoiceLine;
 };
 
 template <>

@@ -291,7 +291,7 @@ using MemberClassType = typename[:std::meta::parent_of(Member):];
 template <auto Member>
 constexpr size_t MemberIndexOf = []() consteval -> size_t {
     int index { -1 };
-    auto members = nonstatic_data_members_of(parent_of(Member), std::meta::access_context::current());
+    auto members = nonstatic_data_members_of(std::meta::parent_of(Member), std::meta::access_context::current());
     if (auto it = std::ranges::find(members, Member); it != members.end())
     {
         index = std::distance(members.begin(), it);
