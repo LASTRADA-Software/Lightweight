@@ -109,6 +109,32 @@ TEST_CASE_METHOD(SqlTestFixture, "PrimaryKey: AutoAssign", "[DataMapper]")
     REQUIRE(record.id != record2.id);
 }
 
+// Regression test for #536: CreateInternal used to brace-init SqlStatement::LastInsertId()'s
+// size_t return straight into the record's primary key type, which is a narrowing conversion for
+// any ServerSideAutoIncrement PK declared narrower than size_t (e.g. int32_t, the standard mapping
+// for a SQL Server `int IDENTITY` column). That is ill-formed in list-initialization and fails to
+// compile under warnings-as-errors (MSVC C2397). Uses int32_t deliberately — uint64_t (the same
+// width as size_t on every supported platform) would never have exercised the narrowing at all.
+struct NarrowAutoIncrementRecord
+{
+    Field<int32_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<SqlAnsiString<30>> comment;
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "PrimaryKey: ServerSideAutoIncrement with a narrower-than-size_t type", "[DataMapper]")
+{
+    auto dm = DataMapper();
+    dm.CreateTable<NarrowAutoIncrementRecord>();
+
+    auto record = NarrowAutoIncrementRecord { .comment = "Hello, World!" };
+    dm.Create(record);
+    CHECK(record.id.Value() > 0);
+
+    auto const queried = dm.QuerySingle<NarrowAutoIncrementRecord>(record.id).value();
+    CHECK(queried.id == record.id);
+    CHECK(queried.comment == record.comment);
+}
+
 struct MultiPkRecord
 {
     Field<SqlAnsiString<32>, PrimaryKey::AutoAssign> firstName;
