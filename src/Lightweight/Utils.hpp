@@ -6,7 +6,18 @@
 // SQLHWND/GUID against the Windows prelude, so <Windows.h> has to come first. Every other header
 // here that reaches an ODBC header opens with the same block; without it this header would only
 // compile when some other header happened to establish the prelude earlier in the translation unit.
+//
+// NOMINMAX/WIN32_LEAN_AND_MEAN guard <Windows.h>'s own min/max function-like macros from leaking
+// into every consumer TU that includes this header (directly or transitively) and breaking any
+// later std::min/std::max/std::numeric_limits<T>::min()/max() call in the same TU (#542). Defined
+// only if the consumer hasn't already picked a value, so an application-wide override still wins.
 #if defined(_WIN32) || defined(_WIN64)
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN
+    #endif
     #include <Windows.h>
 #endif
 

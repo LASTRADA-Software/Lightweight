@@ -5,6 +5,12 @@
 #include "StdString.hpp"
 
 #if __has_include(<Windows.h>)
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN
+    #endif
     #include <Windows.h>
 #elif __has_include(<uuid/uuid.h>)
     #include <cstring>
