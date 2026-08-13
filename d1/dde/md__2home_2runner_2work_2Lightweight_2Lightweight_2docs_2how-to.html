@@ -106,8 +106,17 @@ Rename column name</h1>
 &lt;tt&gt;UPDATE ... RETURNING&lt;/tt&gt; / fetching the result of a data-modifying statement</h1>
 <p>SQLite and PostgreSQL both support appending <code>RETURNING &lt;columns&gt;</code> to <code>INSERT</code>/<code>UPDATE</code>/<code>DELETE</code> to read back affected rows without a second round trip. <code>SqlStatement</code> executes such a statement like any other (<code>stmt.Prepare("UPDATE t SET n = n + 1 WHERE id = ? RETURNING n")</code>, then <code>Execute(...)</code>), and <code>SqlResultCursor::NumRowsAffected()</code>/<code>NumColumnsAffected()</code> reliably report the true row/column counts on every driver we've tested — but whether the returned row is actually <b>fetchable</b> via <code>FetchRow()</code>/<code>TryFetchRow()</code> is driver-dependent. Some ODBC driver builds execute a <code>RETURNING</code> statement through a path that never opens a cursor over the result set, so <code>FetchRow()</code> throws <code>24000 Invalid cursor state</code> even though the statement executed correctly and the row count is accurate (<a href="https://github.com/LASTRADA-Software/Lightweight/issues/545">#545</a>; observed with certain sqliteodbc builds).</p>
 <p>If you need this to work portably across driver builds, use the two-statement form instead — a conditional <code>UPDATE ... WHERE ...</code> (no <code>RETURNING</code>) dispatched on <code>NumRowsAffected()</code>, followed by an ordinary read-back by primary key:</p>
-<div class="fragment"><div class="line"><span class="keyword">auto</span> cursor = stmt.Execute(<span class="comment">/* guard condition params */</span>);</div>
-<div class="line"><span class="keywordflow">if</span> (cursor.NumRowsAffected() == 0)</div>
+<div class="fragment"><div class="line"><span class="keywordtype">size_t</span> rowsAffected = 0;</div>
+<div class="line">{</div>
+<div class="line">    <span class="comment">// Scoped so the cursor (and its open result set) closes before the read-back below runs a</span></div>
+<div class="line">    <span class="comment">// second statement on the same connection — without MARS, a driver rejects a second statement</span></div>
+<div class="line">    <span class="comment">// while an earlier one&#39;s cursor is still open (&quot;HY000: Connection is busy with results for</span></div>
+<div class="line">    <span class="comment">// another command&quot;), so the two must not overlap.</span></div>
+<div class="line">    <span class="keyword">auto</span> cursor = stmt.Execute(<span class="comment">/* guard condition params */</span>);</div>
+<div class="line">    rowsAffected = cursor.NumRowsAffected();</div>
+<div class="line">}</div>
+<div class="line"> </div>
+<div class="line"><span class="keywordflow">if</span> (rowsAffected == 0)</div>
 <div class="line">{</div>
 <div class="line">    <span class="comment">// guard condition didn&#39;t match — nothing to do</span></div>
 <div class="line">}</div>
