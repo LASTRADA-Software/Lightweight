@@ -334,8 +334,11 @@ install(TARGETS Lightweight
     FILE_SET CXX_MODULES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Lightweight COMPONENT Development
 )
 
-# Only install the PDB file for Debug and RelWithDebInfo configurations on Windows platform
-if(WIN32)
+# Only install the PDB file for Debug and RelWithDebInfo configurations on Windows platform.
+# TARGET_PDB_FILE is only valid for targets with a linker-created artifact (a DLL/EXE) — a static
+# .lib has no PDB of its own, and the generator expression fails at *generate* time (not install
+# time) as soon as Lightweight is configured as a static library (#544).
+if(WIN32 AND LIGHTWEIGHT_BUILD_SHARED)
     install(FILES $<TARGET_PDB_FILE:Lightweight>
         DESTINATION ${CMAKE_INSTALL_BINDIR}
         CONFIGURATIONS Debug RelWithDebInfo
