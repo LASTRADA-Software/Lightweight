@@ -149,7 +149,8 @@ TEST_CASE_METHOD(SqlTestFixture, "UPDATE ... RETURNING fetches the returned row"
     else
     {
         WARN("unixODBC's sqliteodbc driver did not open a fetchable cursor over the RETURNING "
-             "result set (sqlState=" << fetchResult.error().sqlState << "); known limitation, see #545. "
+             "result set (sqlState="
+             << fetchResult.error().sqlState << "); known limitation, see #545. "
              << "The row/column-count contract (tested separately) is unaffected.");
     }
 #endif
