@@ -18,12 +18,8 @@ if(NOT WIN32)
     pkg_check_modules(ODBC REQUIRED odbc)
 endif()
 
-if(WIN32)
-    find_package(libzip CONFIG REQUIRED)
-    # vcpkg provides libzip::zip, create alias to match CPM target name
-    add_library(zip ALIAS libzip::zip)
-endif()
-# Note: libzip for non-Windows is handled in root CMakeLists.txt (system pkg-config or CPM fallback)
+# libzip (the `zip` target) is resolved once in the root CMakeLists.txt for every platform —
+# find_package first (vcpkg/system), CPM fallback if not found (#543). Do not re-resolve it here.
 
 if(NOT nlohmann_json_FOUND)
   message(STATUS "nlohmann_json not found, downloading via CPM")
@@ -257,7 +253,7 @@ if(MSVC)
         target_compile_options(Lightweight PRIVATE /MP)
     endif()
     target_link_libraries(Lightweight PUBLIC odbc32)
-    # Link libzip (vcpkg provides libzip::zip, aliased to zip above)
+    # Link libzip (zip target is created in root CMakeLists.txt)
     target_link_libraries(Lightweight PRIVATE zip)
 else()
     if(PEDANTIC_COMPILER)
