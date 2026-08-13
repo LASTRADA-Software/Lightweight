@@ -27,7 +27,8 @@ var NAVTREE =
   [ "Lightweight", "index.html", [
     [ "Lightweight, an ODBC SQL API for C++23", "index.html", "index" ],
     [ "How to", "d1/dde/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2how-to.html", [
-      [ "Rename column name", "d1/dde/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2how-to.html#rename-column-name", null ]
+      [ "Rename column name", "d1/dde/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2how-to.html#rename-column-name", null ],
+      [ "<tt>UPDATE ... RETURNING</tt> / fetching the result of a data-modifying statement", "d1/dde/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2how-to.html#update--returning--fetching-the-result-of-a-data-modifying-statement", null ]
     ] ],
     [ "Usage Examples", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html", [
       [ "Configure default connection information to the database", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#configure-default-connection-information-to-the-database", null ],
@@ -293,13 +294,13 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dd0/structLightweight_1_1Field.html#a5470e03fffa3ab2c2246997ffef998b4",
-"d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#a604c9e62a52c993059934c2ddd12907b",
-"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a920840bddb79e3d841b4f9b23250b6d1",
-"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#acb8f4c9ca3abc544b7c967a07163ae1c",
-"da/da8/classLightweight_1_1SqlConnection.html#ab9e2b5679f7ca67ead13107a020e7c65",
-"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a71fa23f7cd74e66242eb2042fb019dec",
-"df/d3f/structLightweight_1_1SqlVariant.html#a29a11475e7425ca9e7e68dc0f48a2a24"
+"d2/dd0/structLightweight_1_1Field.html#a526143a1f5e23a97cb46958bb6471609",
+"d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#a75c169314113fd8e98804a5f5cb13336",
+"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a928ea3e7274e0d1bdabfb4fe94cc7e3d",
+"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#ad0156fe9ef9aed1de5af0376c337bb09",
+"da/da8/classLightweight_1_1SqlConnection.html#ac29fe83ca60448002d451dbd707be955",
+"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#afd21e23e3c24884cba9ef3b76d174e82",
+"df/d3f/structLightweight_1_1SqlVariant.html#a2be73331793cddcd6795abfeda4ec4dd"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

@@ -102,7 +102,25 @@ Rename column name</h1>
 <div class="line">};</div>
 <div class="ttc" id="astructLightweight_1_1Field_html"><div class="ttname"><a href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a></div><div class="ttdoc">Represents a single column in a table.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00083">Field.hpp:84</a></div></div>
 </div><!-- fragment --><p>To directly get the name of the datamember that will be used for the sql queries you can use <code>FieldNameOf</code>, in the case presented above </p><div class="fragment"><div class="line">FieldNameOf&lt;&amp;MyTable::foo&gt;; <span class="comment">// is equivalent to std::string_view(&quot;bar&quot;);</span></div>
-</div><!-- fragment --> </div></div><!-- contents -->
+</div><!-- fragment --><h1><a class="anchor" id="update--returning--fetching-the-result-of-a-data-modifying-statement"></a>
+&lt;tt&gt;UPDATE ... RETURNING&lt;/tt&gt; / fetching the result of a data-modifying statement</h1>
+<p>SQLite and PostgreSQL both support appending <code>RETURNING &lt;columns&gt;</code> to <code>INSERT</code>/<code>UPDATE</code>/<code>DELETE</code> to read back affected rows without a second round trip. <code>SqlStatement</code> executes such a statement like any other (<code>stmt.Prepare("UPDATE t SET n = n + 1 WHERE id = ? RETURNING n")</code>, then <code>Execute(...)</code>), and <code>SqlResultCursor::NumRowsAffected()</code>/<code>NumColumnsAffected()</code> reliably report the true row/column counts on every driver we've tested — but whether the returned row is actually <b>fetchable</b> via <code>FetchRow()</code>/<code>TryFetchRow()</code> is driver-dependent. Some ODBC driver builds execute a <code>RETURNING</code> statement through a path that never opens a cursor over the result set, so <code>FetchRow()</code> throws <code>24000 Invalid cursor state</code> even though the statement executed correctly and the row count is accurate (<a href="https://github.com/LASTRADA-Software/Lightweight/issues/545">#545</a>; observed with certain sqliteodbc builds).</p>
+<p>If you need this to work portably across driver builds, use the two-statement form instead — a conditional <code>UPDATE ... WHERE ...</code> (no <code>RETURNING</code>) dispatched on <code>NumRowsAffected()</code>, followed by an ordinary read-back by primary key:</p>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> cursor = stmt.Execute(<span class="comment">/* guard condition params */</span>);</div>
+<div class="line"><span class="keywordflow">if</span> (cursor.NumRowsAffected() == 0)</div>
+<div class="line">{</div>
+<div class="line">    <span class="comment">// guard condition didn&#39;t match — nothing to do</span></div>
+<div class="line">}</div>
+<div class="line"><span class="keywordflow">else</span></div>
+<div class="line">{</div>
+<div class="line">    <span class="comment">// read the row back explicitly instead of relying on RETURNING&#39;s fetchability</span></div>
+<div class="line">    <span class="keyword">auto</span> readBack = SqlStatement { stmt.Connection() };</div>
+<div class="line">    readBack.Prepare(<span class="stringliteral">&quot;SELECT n FROM t WHERE id = ?&quot;</span>);</div>
+<div class="line">    <span class="keyword">auto</span> readCursor = readBack.Execute(<span class="keywordtype">id</span>);</div>
+<div class="line">    readCursor.FetchRow();</div>
+<div class="line">}</div>
+</div><!-- fragment --><p>This costs one extra round trip but is fully equivalent in atomicity: the guard clause lives inside the <code>UPDATE</code>'s own <code>WHERE</code>, evaluated and applied as one indivisible statement under the database's write lock. </p>
+</div></div><!-- contents -->
 </div><!-- PageDoc -->
 </div><!-- doc-content -->
 <!-- start footer part -->
