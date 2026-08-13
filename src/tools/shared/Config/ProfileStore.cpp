@@ -11,13 +11,16 @@
 #include <yaml-cpp/yaml.h>
 
 #ifdef _WIN32
-    #include <shlobj.h>
+    // Must precede *any* Windows SDK header, not just <windows.h> itself: <shlobj.h> pulls in
+    // windows.h internally, so defining these only in front of the explicit <windows.h> below
+    // would already be too late to suppress its min/max macros.
     #ifndef NOMINMAX
         #define NOMINMAX
     #endif
     #ifndef WIN32_LEAN_AND_MEAN
         #define WIN32_LEAN_AND_MEAN
     #endif
+    #include <shlobj.h>
     #include <windows.h>
 #else
     #include <sys/types.h>

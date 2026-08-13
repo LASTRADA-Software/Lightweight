@@ -204,12 +204,11 @@ struct std::formatter<Lightweight::SqlDynamicBinary<N>>: std::formatter<std::str
     auto format(Lightweight::SqlDynamicBinary<N> const& text, format_context& ctx) const
     {
         // SqlDynamicBinary<N> exposes data()/size(), not begin()/end() — it is a raw-byte buffer,
-        // not an iterable range. Walk it by index instead of range-for.
+        // not an iterable range. Views it as a std::span instead of range-for'ing over the type
+        // directly, keeping the loop itself range-based.
         std::string humanReadableText;
-        auto const* const bytes = text.data();
-        for (std::size_t i = 0; i < text.size(); ++i)
+        for (auto const byte: std::span { text.data(), text.size() })
         {
-            auto const byte = bytes[i];
             if (byte >= 0x20 && byte <= 0x7E)
                 humanReadableText += static_cast<char>(byte);
             else
