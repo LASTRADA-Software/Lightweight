@@ -2316,6 +2316,31 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicString: IsSqlDynamicString trait", "
     STATIC_REQUIRE(!IsSqlDynamicString<SqlFixedString<10>>);
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicBinary: std::format formatter", "[SqlDynamicBinary]")
+{
+    // Regression test for #535: the formatter used to iterate via range-for, but
+    // SqlDynamicBinary<N> only exposes data()/size(), never begin()/end() — a pure byte buffer, not
+    // an iterable range. That made the formatter fail to compile (MSVC C3312) the moment it was
+    // actually instantiated, e.g. via Field<SqlDynamicBinary<N>, ...>'s forwarding formatter.
+    SECTION("printable bytes render as characters")
+    {
+        SqlDynamicBinary<8> const data { { 'H', 'i', '!' } };
+        CHECK(std::format("{}", data) == "Hi!");
+    }
+
+    SECTION("non-printable bytes render as \\xHH escapes")
+    {
+        SqlDynamicBinary<8> const data { { 0x00, 0x41, 0xFF } };
+        CHECK(std::format("{}", data) == "\\x00A\\xFF");
+    }
+
+    SECTION("empty buffer renders as an empty string")
+    {
+        SqlDynamicBinary<8> const data;
+        CHECK(std::format("{}", data) == "");
+    }
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicString: SqlStringInterface concept", "[SqlDynamicString]")
 {
     STATIC_REQUIRE(SqlStringInterface<SqlDynamicString<10>>);
