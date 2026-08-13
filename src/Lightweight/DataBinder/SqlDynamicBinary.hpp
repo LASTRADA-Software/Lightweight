@@ -157,12 +157,17 @@ class SqlDynamicBinary final
     {
         if (_base.data() == nullptr)
         {
-            const_cast<SqlDynamicBinary<N>*>(this)->_base.resize(8);
-            const_cast<SqlDynamicBinary<N>*>(this)->_base.clear();
+            _base.resize(8);
+            _base.clear();
         }
     }
 
-    BaseType _base;
+    // mutable so EnsureNonNullBuffer() (called from the const overload of data()) can lazily
+    // materialize a non-null backing buffer without a const_cast. Casting away const on a
+    // genuinely const-qualified object and writing through the cast pointer is undefined behavior
+    // ([dcl.type.cv]) — mutable is the standard's sanctioned way to express "this member's identity
+    // is not part of the object's observable const-ness".
+    mutable BaseType _base;
     mutable SQLLEN _indicator = 0;
 
     friend struct SqlDataBinder<SqlDynamicBinary<N>>;
