@@ -36,8 +36,17 @@ conditional `UPDATE ... WHERE ...` (no `RETURNING`) dispatched on `NumRowsAffect
 an ordinary read-back by primary key:
 
 ```cpp
-auto cursor = stmt.Execute(/* guard condition params */);
-if (cursor.NumRowsAffected() == 0)
+size_t rowsAffected = 0;
+{
+    // Scoped so the cursor (and its open result set) closes before the read-back below runs a
+    // second statement on the same connection — without MARS, a driver rejects a second statement
+    // while an earlier one's cursor is still open ("HY000: Connection is busy with results for
+    // another command"), so the two must not overlap.
+    auto cursor = stmt.Execute(/* guard condition params */);
+    rowsAffected = cursor.NumRowsAffected();
+}
+
+if (rowsAffected == 0)
 {
     // guard condition didn't match — nothing to do
 }
