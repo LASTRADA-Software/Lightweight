@@ -294,12 +294,12 @@ var NAVTREEINDEX =
 [
 "annotated.html",
 "d2/dd0/structLightweight_1_1Field.html#a5470e03fffa3ab2c2246997ffef998b4",
-"d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#a91a62e9ccc6d98486fc872a0ab4fdbfd",
-"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a943ee6588d7153384fe60caeeaf0180e",
-"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#ae28b8f58e51308f801acc79b67095643",
-"da/da8/classLightweight_1_1SqlConnection.html#ac4ea8b83a43459581e2a52a568c595c5",
-"dd/d94/SqlBinary_8hpp_source.html",
-"df/d3f/structLightweight_1_1SqlVariant.html#a35fad0a0c13e0e56c3411d9ec848d621"
+"d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#a604c9e62a52c993059934c2ddd12907b",
+"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a920840bddb79e3d841b4f9b23250b6d1",
+"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#acb8f4c9ca3abc544b7c967a07163ae1c",
+"da/da8/classLightweight_1_1SqlConnection.html#ab9e2b5679f7ca67ead13107a020e7c65",
+"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a71fa23f7cd74e66242eb2042fb019dec",
+"df/d3f/structLightweight_1_1SqlVariant.html#a29a11475e7425ca9e7e68dc0f48a2a24"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
