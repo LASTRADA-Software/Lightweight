@@ -1,5 +1,6 @@
 var NAVTREEINDEX5 =
 {
+"da/da8/classLightweight_1_1SqlConnection.html#ab9e2b5679f7ca67ead13107a020e7c65":[16,0,0,30,2],
 "da/da8/classLightweight_1_1SqlConnection.html#ac29fe83ca60448002d451dbd707be955":[16,0,0,30,10],
 "da/da8/classLightweight_1_1SqlConnection.html#ac4ea8b83a43459581e2a52a568c595c5":[16,0,0,30,18],
 "da/da8/classLightweight_1_1SqlConnection.html#acb0f99439f457fbd454e3bda1acaae19":[16,0,0,30,34],
@@ -248,6 +249,5 @@ var NAVTREEINDEX5 =
 "dd/d75/structLightweight_1_1SqlAlterTablePlan.html#a4d5476b81f6e3efc5057c49d797a9f07":[14,4,15,1],
 "dd/d75/structLightweight_1_1SqlAlterTablePlan.html#ace007f34324de43ff2ab887fbe321970":[14,4,15,2],
 "dd/d76/structLightweight_1_1SqlInsertDataPlan.html":[14,4,18],
-"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a0428d0b2e06f4760a9bc3c31cff19327":[14,4,18,2],
-"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a71fa23f7cd74e66242eb2042fb019dec":[14,4,18,0]
+"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a0428d0b2e06f4760a9bc3c31cff19327":[14,4,18,2]
 };

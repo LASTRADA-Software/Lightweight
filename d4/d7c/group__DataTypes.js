@@ -66,7 +66,8 @@ var group__DataTypes =
       [ "size", "d6/db6/classLightweight_1_1SqlDynamicBinary.html#a3783bea6bc9e7a4ab4592ddfa6a01720", null ],
       [ "resize", "d6/db6/classLightweight_1_1SqlDynamicBinary.html#a6aa0a000a098211561c47112383a8225", null ],
       [ "empty", "d6/db6/classLightweight_1_1SqlDynamicBinary.html#a272124a215d50fec9849f4b249d46b20", null ],
-      [ "data", "d6/db6/classLightweight_1_1SqlDynamicBinary.html#a24e4f9758ae81670b16fdb7a422c44a6", null ],
+      [ "data", "d6/db6/classLightweight_1_1SqlDynamicBinary.html#a6e9832d27f9c043d37cb14a6abbfef20", null ],
+      [ "data", "d6/db6/classLightweight_1_1SqlDynamicBinary.html#abb0fb2bd2b731b496c411009e4c7b6d0", null ],
       [ "clear", "d6/db6/classLightweight_1_1SqlDynamicBinary.html#a340084c9996257e6f2dacda7bc1cfac2", null ]
     ] ],
     [ "Lightweight::SqlDynamicString< N, T >", "d7/d9a/classLightweight_1_1SqlDynamicString.html", [
