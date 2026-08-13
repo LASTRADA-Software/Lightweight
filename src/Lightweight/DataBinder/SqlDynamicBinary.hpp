@@ -140,10 +140,32 @@ class SqlDynamicBinary final
     }
 
     /// Retrieves the pointer to the string data.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr decltype(auto) data(this auto&& self) noexcept
+    ///
+    /// The non-const overload lazily grows `_base` so a null `data()` never reaches ODBC — some
+    /// drivers reject a null `ParameterValuePtr` even for a zero-length bind. The const overload must
+    /// not mutate `_base` (a genuinely const-qualified object's members may live in read-only memory,
+    /// and writing through a `const_cast` pointer to one is undefined behavior per [dcl.type.cv]), so
+    /// it returns a static empty-but-non-null sentinel instead when the buffer hasn't been
+    /// materialized yet. Safe because every caller pairs this pointer with `size()` (0 in the
+    /// null-buffer case) rather than dereferencing it directly, so the sentinel byte is never read.
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr value_type const* data() const noexcept
     {
-        self.EnsureNonNullBuffer();
-        return self._base.data();
+        if (_base.data() != nullptr)
+            return _base.data();
+
+        static constexpr value_type emptySentinel = 0;
+        return &emptySentinel;
+    }
+
+    /// Retrieves the pointer to the string data.
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr value_type* data() noexcept
+    {
+        if (_base.data() == nullptr)
+        {
+            _base.resize(8);
+            _base.clear();
+        }
+        return _base.data();
     }
 
     /// Clears the storad data.
@@ -153,21 +175,7 @@ class SqlDynamicBinary final
     }
 
   private:
-    void EnsureNonNullBuffer() const
-    {
-        if (_base.data() == nullptr)
-        {
-            _base.resize(8);
-            _base.clear();
-        }
-    }
-
-    // mutable so EnsureNonNullBuffer() (called from the const overload of data()) can lazily
-    // materialize a non-null backing buffer without a const_cast. Casting away const on a
-    // genuinely const-qualified object and writing through the cast pointer is undefined behavior
-    // ([dcl.type.cv]) — mutable is the standard's sanctioned way to express "this member's identity
-    // is not part of the object's observable const-ness".
-    mutable BaseType _base;
+    BaseType _base;
     mutable SQLLEN _indicator = 0;
 
     friend struct SqlDataBinder<SqlDynamicBinary<N>>;
