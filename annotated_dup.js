@@ -98,6 +98,7 @@ var annotated_dup =
       [ "SqlDynamicBinary", "d6/db6/classLightweight_1_1SqlDynamicBinary.html", "d6/db6/classLightweight_1_1SqlDynamicBinary" ],
       [ "SqlDynamicString", "d7/d9a/classLightweight_1_1SqlDynamicString.html", "d7/d9a/classLightweight_1_1SqlDynamicString" ],
       [ "SqlErrorInfo", "d8/d5b/structLightweight_1_1SqlErrorInfo.html", "d8/d5b/structLightweight_1_1SqlErrorInfo" ],
+      [ "SqlFaultSource", "d4/d1a/classLightweight_1_1SqlFaultSource.html", "d4/d1a/classLightweight_1_1SqlFaultSource" ],
       [ "SqlFixedString", "de/dae/classLightweight_1_1SqlFixedString.html", "de/dae/classLightweight_1_1SqlFixedString" ],
       [ "SqlForeignKeyReferenceDefinition", "d5/d8f/structLightweight_1_1SqlForeignKeyReferenceDefinition.html", "d5/d8f/structLightweight_1_1SqlForeignKeyReferenceDefinition" ],
       [ "SqlGuid", "df/d7c/structLightweight_1_1SqlGuid.html", "df/d7c/structLightweight_1_1SqlGuid" ],
