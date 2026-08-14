@@ -2335,16 +2335,21 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicBinary: data() const/non-const overl
     CHECK(data.data() == firstPtr);
 
     data.resize(3);
-    data.data()[0] = 'A';
-    data.data()[1] = 'B';
-    data.data()[2] = 'C';
+    auto* const nonConstPtr = data.data();
+    nonConstPtr[0] = 'A';
+    nonConstPtr[1] = 'B';
+    nonConstPtr[2] = 'C';
 
     // const data() once `_base` genuinely holds data: must return the real buffer, not the sentinel.
+    // Checked via pointer identity against the non-const buffer rather than indexing
+    // `constAlias.data()` directly: clang-tidy's static analyzer models data() const's two return
+    // paths (the real buffer vs. the 1-byte sentinel) independently of the resize() call above, so it
+    // can't prove which one this call takes and flags indexing past element 0 as reading past the
+    // sentinel (clang-analyzer-security.ArrayBound) even though the sentinel path is genuinely
+    // unreachable here at runtime. Pointer-identity avoids indexing the ambiguous pointer at all,
+    // while still proving the const overload returns the real, populated buffer.
     SqlDynamicBinary<8> const& constAlias = data;
-    REQUIRE(constAlias.data() != nullptr);
-    CHECK(constAlias.data()[0] == 'A');
-    CHECK(constAlias.data()[1] == 'B');
-    CHECK(constAlias.data()[2] == 'C');
+    CHECK(constAlias.data() == nonConstPtr);
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicBinary: std::format formatter", "[SqlDynamicBinary]")
