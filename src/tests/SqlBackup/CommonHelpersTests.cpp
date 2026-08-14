@@ -319,8 +319,7 @@ TEST_CASE("SqlBackup::detail::ConnectWithRetry gives up on an unreachable driver
     // The driver manager reports IM002 for an unresolvable driver name, which is not transient, so
     // the loop gives up after the first attempt and warns not at all. Deriving the expectation
     // rather than hard-coding it keeps this honest on a manager that reports a class-08 variant.
-    auto const expectedWarnings =
-        detail::IsTransientError(conn.LastError()) ? std::size_t { 2 } : std::size_t { 0 };
+    auto const expectedWarnings = detail::IsTransientError(conn.LastError()) ? std::size_t { 2 } : std::size_t { 0 };
     CHECK(progress.messages.size() == expectedWarnings);
 
     // Every message the loop emits is a retry warning naming the operation.
