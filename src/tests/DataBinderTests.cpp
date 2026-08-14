@@ -2316,6 +2316,37 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicString: IsSqlDynamicString trait", "
     STATIC_REQUIRE(!IsSqlDynamicString<SqlFixedString<10>>);
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicBinary: data() const/non-const overloads", "[SqlDynamicBinary]")
+{
+    // Regression test for the data()-sentinel follow-up on #535 (PR review, ea21f2a6/4d9f04a1):
+    // data() const must not mutate `_base` (that was the const_cast-on-a-const-object UB the
+    // formatter test above already covers for the null-buffer case). This exercises the other half
+    // of both overloads: the non-const overload once a buffer already exists (no resize needed), and
+    // the const overload's non-null early return once `_base` has real data — neither of which the
+    // formatter test above reaches, since it only ever reads through a `const SqlDynamicBinary<8>`.
+    SqlDynamicBinary<8> data;
+
+    // Non-const data() on a null buffer: materializes storage (the resize/clear branch).
+    auto* const firstPtr = data.data();
+    REQUIRE(firstPtr != nullptr);
+    CHECK(data.empty());
+
+    // Non-const data() again: buffer already materialized, no resize needed.
+    CHECK(data.data() == firstPtr);
+
+    data.resize(3);
+    data.data()[0] = 'A';
+    data.data()[1] = 'B';
+    data.data()[2] = 'C';
+
+    // const data() once `_base` genuinely holds data: must return the real buffer, not the sentinel.
+    SqlDynamicBinary<8> const& constAlias = data;
+    REQUIRE(constAlias.data() != nullptr);
+    CHECK(constAlias.data()[0] == 'A');
+    CHECK(constAlias.data()[1] == 'B');
+    CHECK(constAlias.data()[2] == 'C');
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicBinary: std::format formatter", "[SqlDynamicBinary]")
 {
     // Regression test for #535: the formatter used to iterate via range-for, but
