@@ -2316,6 +2316,67 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicString: IsSqlDynamicString trait", "
     STATIC_REQUIRE(!IsSqlDynamicString<SqlFixedString<10>>);
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicBinary: data() const/non-const overloads", "[SqlDynamicBinary]")
+{
+    // Regression test for the data()-sentinel follow-up on #535 (PR review, ea21f2a6/4d9f04a1):
+    // data() const must not mutate `_base` (that was the const_cast-on-a-const-object UB the
+    // formatter test above already covers for the null-buffer case). This exercises the other half
+    // of both overloads: the non-const overload once a buffer already exists (no resize needed), and
+    // the const overload's non-null early return once `_base` has real data — neither of which the
+    // formatter test above reaches, since it only ever reads through a `const SqlDynamicBinary<8>`.
+    SqlDynamicBinary<8> data;
+
+    // Non-const data() on a null buffer: materializes storage (the resize/clear branch).
+    auto* const firstPtr = data.data();
+    REQUIRE(firstPtr != nullptr);
+    CHECK(data.empty());
+
+    // Non-const data() again: buffer already materialized, no resize needed.
+    CHECK(data.data() == firstPtr);
+
+    data.resize(3);
+    auto* const nonConstPtr = data.data();
+    nonConstPtr[0] = 'A';
+    nonConstPtr[1] = 'B';
+    nonConstPtr[2] = 'C';
+
+    // const data() once `_base` genuinely holds data: must return the real buffer, not the sentinel.
+    // Checked via pointer identity against the non-const buffer rather than indexing
+    // `constAlias.data()` directly: clang-tidy's static analyzer models data() const's two return
+    // paths (the real buffer vs. the 1-byte sentinel) independently of the resize() call above, so it
+    // can't prove which one this call takes and flags indexing past element 0 as reading past the
+    // sentinel (clang-analyzer-security.ArrayBound) even though the sentinel path is genuinely
+    // unreachable here at runtime. Pointer-identity avoids indexing the ambiguous pointer at all,
+    // while still proving the const overload returns the real, populated buffer.
+    SqlDynamicBinary<8> const& constAlias = data;
+    CHECK(constAlias.data() == nonConstPtr);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicBinary: std::format formatter", "[SqlDynamicBinary]")
+{
+    // Regression test for #535: the formatter used to iterate via range-for, but
+    // SqlDynamicBinary<N> only exposes data()/size(), never begin()/end() — a pure byte buffer, not
+    // an iterable range. That made the formatter fail to compile (MSVC C3312) the moment it was
+    // actually instantiated, e.g. via Field<SqlDynamicBinary<N>, ...>'s forwarding formatter.
+    SECTION("printable bytes render as characters")
+    {
+        SqlDynamicBinary<8> const data { { 'H', 'i', '!' } };
+        CHECK(std::format("{}", data) == "Hi!");
+    }
+
+    SECTION("non-printable bytes render as \\xHH escapes")
+    {
+        SqlDynamicBinary<8> const data { { 0x00, 0x41, 0xFF } };
+        CHECK(std::format("{}", data) == "\\x00A\\xFF");
+    }
+
+    SECTION("empty buffer renders as an empty string")
+    {
+        SqlDynamicBinary<8> const data;
+        CHECK(std::format("{}", data) == "");
+    }
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicString: SqlStringInterface concept", "[SqlDynamicString]")
 {
     STATIC_REQUIRE(SqlStringInterface<SqlDynamicString<10>>);

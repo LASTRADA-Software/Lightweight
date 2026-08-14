@@ -7,13 +7,10 @@ add_executable(LightweightTest)
 target_compile_features(LightweightTest PUBLIC cxx_std_23)
 target_compile_definitions(LightweightTest PRIVATE BUILD_TESTS)
 
-if(WIN32)
-    find_package(libzip CONFIG REQUIRED)
-    set(ZIP_LIB libzip::zip)
-else()
-    set(ZIP_LIB zip)
-endif()
-set(TEST_LIBRARIES Catch2::Catch2 Lightweight::Lightweight Lightweight::Tools yaml-cpp::yaml-cpp dbtool_lib ${ZIP_LIB} nlohmann_json::nlohmann_json)
+# The `zip` target is resolved once in the root CMakeLists.txt for every platform (find_package
+# first, CPM fallback if not found — #543); re-resolving libzip here would hard-fail a build that
+# reached the target only via the CPM fallback.
+set(TEST_LIBRARIES Catch2::Catch2 Lightweight::Lightweight Lightweight::Tools yaml-cpp::yaml-cpp dbtool_lib zip nlohmann_json::nlohmann_json)
 if(MSVC)
     # clang-cl does not support /MP
     if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")

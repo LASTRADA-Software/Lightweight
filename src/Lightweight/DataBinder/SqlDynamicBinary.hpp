@@ -140,10 +140,32 @@ class SqlDynamicBinary final
     }
 
     /// Retrieves the pointer to the string data.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr decltype(auto) data(this auto&& self) noexcept
+    ///
+    /// The non-const overload lazily grows `_base` so a null `data()` never reaches ODBC — some
+    /// drivers reject a null `ParameterValuePtr` even for a zero-length bind. The const overload must
+    /// not mutate `_base` (a genuinely const-qualified object's members may live in read-only memory,
+    /// and writing through a `const_cast` pointer to one is undefined behavior per [dcl.type.cv]), so
+    /// it returns a static empty-but-non-null sentinel instead when the buffer hasn't been
+    /// materialized yet. Safe because every caller pairs this pointer with `size()` (0 in the
+    /// null-buffer case) rather than dereferencing it directly, so the sentinel byte is never read.
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr value_type const* data() const noexcept
     {
-        self.EnsureNonNullBuffer();
-        return self._base.data();
+        if (_base.data() != nullptr)
+            return _base.data();
+
+        static constexpr value_type emptySentinel = 0;
+        return &emptySentinel;
+    }
+
+    /// Retrieves the pointer to the string data.
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr value_type* data() noexcept
+    {
+        if (_base.data() == nullptr)
+        {
+            _base.resize(8);
+            _base.clear();
+        }
+        return _base.data();
     }
 
     /// Clears the storad data.
@@ -153,15 +175,6 @@ class SqlDynamicBinary final
     }
 
   private:
-    void EnsureNonNullBuffer() const
-    {
-        if (_base.data() == nullptr)
-        {
-            const_cast<SqlDynamicBinary<N>*>(this)->_base.resize(8);
-            const_cast<SqlDynamicBinary<N>*>(this)->_base.clear();
-        }
-    }
-
     BaseType _base;
     mutable SQLLEN _indicator = 0;
 
@@ -198,8 +211,11 @@ struct std::formatter<Lightweight::SqlDynamicBinary<N>>: std::formatter<std::str
 {
     auto format(Lightweight::SqlDynamicBinary<N> const& text, format_context& ctx) const
     {
+        // SqlDynamicBinary<N> exposes data()/size(), not begin()/end() — it is a raw-byte buffer,
+        // not an iterable range. Views it as a std::span instead of range-for'ing over the type
+        // directly, keeping the loop itself range-based.
         std::string humanReadableText;
-        for (auto byte: text)
+        for (auto const byte: std::span { text.data(), text.size() })
         {
             if (byte >= 0x20 && byte <= 0x7E)
                 humanReadableText += static_cast<char>(byte);

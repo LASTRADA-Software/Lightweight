@@ -45,6 +45,12 @@
 #if defined(__linux__)
     #include <sys/sysinfo.h>
 #elif defined(_WIN32)
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN
+    #endif
     #include <windows.h>
 #elif defined(__APPLE__)
     #include <sys/sysctl.h>

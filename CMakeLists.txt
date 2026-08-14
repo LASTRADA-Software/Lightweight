@@ -229,11 +229,28 @@ if(LIGHTWEIGHT_ENABLE_TRACY)
     endif()
 endif()
 
-# libzip support (Linux only)
-if(NOT WIN32)
-    find_package(PkgConfig QUIET)
-    if(PKG_CONFIG_FOUND)
-        pkg_check_modules(LIBZIP QUIET libzip)
+# libzip support. On Windows, prefer a vcpkg/system libzip (matches how reflection-cpp/stdexec are
+# resolved above — find_package first, CPM fallback if not found) rather than the previous hard
+# `find_package(libzip CONFIG REQUIRED)` in src/Lightweight/CMakeLists.txt, which failed any
+# consumer whose vcpkg manifest didn't already happen to list libzip (#543). Non-Windows keeps its
+# existing pkg-config-or-CPM path unchanged.
+if(WIN32)
+    find_package(libzip CONFIG QUIET)
+    if(TARGET libzip::zip)
+        message(STATUS "System/vcpkg libzip found via find_package")
+        # vcpkg provides libzip::zip, create alias to match the CPM target name used elsewhere.
+        add_library(zip ALIAS libzip::zip)
+    endif()
+endif()
+
+if(NOT TARGET zip)
+    if(WIN32)
+        message(STATUS "libzip not found via find_package, downloading via CPM...")
+    else()
+        find_package(PkgConfig QUIET)
+        if(PKG_CONFIG_FOUND)
+            pkg_check_modules(LIBZIP QUIET libzip)
+        endif()
     endif()
 
     if(LIBZIP_FOUND)
@@ -244,7 +261,9 @@ if(NOT WIN32)
         target_link_libraries(zip INTERFACE ${LIBZIP_LINK_LIBRARIES})
         target_link_options(zip INTERFACE ${LIBZIP_LDFLAGS})
     else()
-        message(STATUS "System libzip not found, downloading via CPM...")
+        if(NOT WIN32)
+            message(STATUS "System libzip not found, downloading via CPM...")
+        endif()
         # Build options - disable crypto/compression features we don't need
         set(LIBZIP_OPTIONS
             "BUILD_SHARED_LIBS OFF"

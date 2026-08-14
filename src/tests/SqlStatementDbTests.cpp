@@ -94,6 +94,69 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlResultCursor::NumRowsAffected reports UPDAT
 }
 
 // ================================================================================================
+// UPDATE ... RETURNING — driver support varies (#545)
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlTestFixture, "UPDATE ... RETURNING reports affected rows/columns", "[SqlStatement]")
+{
+    // SQL Server has no RETURNING clause (it uses OUTPUT instead); this is SQLite/PostgreSQL syntax.
+    auto stmt = SqlStatement {};
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::MICROSOFT_SQL);
+
+    std::ignore = stmt.ExecuteDirect(R"(CREATE TABLE ReturningProbe (id INTEGER PRIMARY KEY, n INTEGER NOT NULL))");
+    std::ignore = stmt.ExecuteDirect(R"(INSERT INTO ReturningProbe (id, n) VALUES (1, 41))");
+
+    stmt.Prepare(R"(UPDATE ReturningProbe SET n = n + 1 WHERE id = ? RETURNING n)");
+    auto cursor = stmt.Execute(1);
+
+    // Reliable regardless of driver: the statement executed and the row genuinely changed,
+    // independent of whether the driver surfaces the RETURNING result set as a fetchable cursor.
+    CHECK(cursor.NumColumnsAffected() == 1);
+    CHECK(cursor.NumRowsAffected() == 1);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "UPDATE ... RETURNING fetches the returned row", "[SqlStatement]")
+{
+    // SQL Server has no RETURNING clause (it uses OUTPUT instead); this is SQLite/PostgreSQL syntax.
+    auto stmt = SqlStatement {};
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::MICROSOFT_SQL);
+
+    std::ignore = stmt.ExecuteDirect(R"(CREATE TABLE ReturningProbe (id INTEGER PRIMARY KEY, n INTEGER NOT NULL))");
+    std::ignore = stmt.ExecuteDirect(R"(INSERT INTO ReturningProbe (id, n) VALUES (1, 41))");
+
+    stmt.Prepare(R"(UPDATE ReturningProbe SET n = n + 1 WHERE id = ? RETURNING n)");
+    auto cursor = stmt.Execute(1);
+
+    // Confirmed via this project's own CI matrix (not just the original bug report): unixODBC's
+    // sqliteodbc driver — both Ubuntu's official libsqliteodbc apt package and Homebrew's sqliteodbc
+    // on macOS — never opens a fetchable cursor over a RETURNING result set; FetchRow() throws
+    // 24000 "Invalid cursor state" there every time. The Windows-native "SQLite3 ODBC Driver" does
+    // not have this problem. This is a real, reproducible platform split, not a flaky driver
+    // quirk, so gate on it explicitly rather than tolerating any failure blanket (which would also
+    // hide a genuine regression on Windows, where this is verified to work).
+#if defined(_WIN32) || defined(_WIN64)
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetColumn<int>(1) == 42);
+    CHECK_FALSE(cursor.FetchRow()); // exactly one row is returned
+#else
+    auto const fetchResult = cursor.TryFetchRow();
+    if (fetchResult.has_value())
+    {
+        CHECK(fetchResult.value());
+        CHECK(cursor.GetColumn<int>(1) == 42);
+        CHECK_FALSE(cursor.FetchRow());
+    }
+    else
+    {
+        WARN("unixODBC's sqliteodbc driver did not open a fetchable cursor over the RETURNING "
+             "result set (sqlState="
+             << fetchResult.error().sqlState << "); known limitation, see #545. "
+             << "The row/column-count contract (tested separately) is unaffected.");
+    }
+#endif
+}
+
+// ================================================================================================
 // SqlStatement(nullopt) — constructed without a connection should not be alive
 // ================================================================================================
 

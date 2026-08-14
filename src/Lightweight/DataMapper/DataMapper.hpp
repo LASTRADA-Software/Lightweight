@@ -1810,7 +1810,12 @@ RecordPrimaryKeyType<Record> DataMapper::CreateInternal(
     [[maybe_unused]] auto cursor = _stmt.Execute();
 
     if constexpr (HasAutoIncrementPrimaryKey<Record>)
-        return { _stmt.LastInsertId(RecordTableName<Record>) };
+        // LastInsertId() returns size_t; a record whose auto-increment primary key is declared
+        // narrower (e.g. int32_t, the common SQL Server `int IDENTITY` mapping) would otherwise hit
+        // a narrowing conversion in brace-init, which is ill-formed and fails under warnings-as-errors
+        // (MSVC C2397). The narrowing is deliberate here: the caller already chose that column's
+        // width when declaring the record.
+        return static_cast<RecordPrimaryKeyType<Record>>(_stmt.LastInsertId(RecordTableName<Record>));
     else if constexpr (HasPrimaryKey<Record>)
     {
         if constexpr (UsePkOverride == PrimaryKeySource::Override)

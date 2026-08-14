@@ -18,12 +18,8 @@ if(NOT WIN32)
     pkg_check_modules(ODBC REQUIRED odbc)
 endif()
 
-if(WIN32)
-    find_package(libzip CONFIG REQUIRED)
-    # vcpkg provides libzip::zip, create alias to match CPM target name
-    add_library(zip ALIAS libzip::zip)
-endif()
-# Note: libzip for non-Windows is handled in root CMakeLists.txt (system pkg-config or CPM fallback)
+# libzip (the `zip` target) is resolved once in the root CMakeLists.txt for every platform —
+# find_package first (vcpkg/system), CPM fallback if not found (#543). Do not re-resolve it here.
 
 if(NOT nlohmann_json_FOUND)
   message(STATUS "nlohmann_json not found, downloading via CPM")
@@ -257,7 +253,7 @@ if(MSVC)
         target_compile_options(Lightweight PRIVATE /MP)
     endif()
     target_link_libraries(Lightweight PUBLIC odbc32)
-    # Link libzip (vcpkg provides libzip::zip, aliased to zip above)
+    # Link libzip (zip target is created in root CMakeLists.txt)
     target_link_libraries(Lightweight PRIVATE zip)
 else()
     if(PEDANTIC_COMPILER)
@@ -338,8 +334,11 @@ install(TARGETS Lightweight
     FILE_SET CXX_MODULES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Lightweight COMPONENT Development
 )
 
-# Only install the PDB file for Debug and RelWithDebInfo configurations on Windows platform
-if(WIN32)
+# Only install the PDB file for Debug and RelWithDebInfo configurations on Windows platform.
+# TARGET_PDB_FILE is only valid for targets with a linker-created artifact (a DLL/EXE) — a static
+# .lib has no PDB of its own, and the generator expression fails at *generate* time (not install
+# time) as soon as Lightweight is configured as a static library (#544).
+if(WIN32 AND LIGHTWEIGHT_BUILD_SHARED)
     install(FILES $<TARGET_PDB_FILE:Lightweight>
         DESTINATION ${CMAKE_INSTALL_BINDIR}
         CONFIGURATIONS Debug RelWithDebInfo
