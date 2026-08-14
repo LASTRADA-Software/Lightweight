@@ -113,10 +113,10 @@ void RestoreWorker(RestoreContext ctx, SqlConnection& workerConn);
 /// @param schema The schema name.
 /// @param tableMap Map of table names to their metadata including indexes.
 /// @param progress Progress manager for reporting status.
-void RestoreIndexes(SqlConnectionString const& connectionString,
-                    std::string const& schema,
-                    std::map<std::string, TableInfo> const& tableMap,
-                    ProgressManager& progress);
+LIGHTWEIGHT_API void RestoreIndexes(SqlConnectionString const& connectionString,
+                                    std::string const& schema,
+                                    std::map<std::string, TableInfo> const& tableMap,
+                                    ProgressManager& progress);
 
 /// Applies foreign key constraints to all tables after data has been restored.
 ///
@@ -127,10 +127,10 @@ void RestoreIndexes(SqlConnectionString const& connectionString,
 /// @param schema The schema name.
 /// @param tableMap Map of table names to their metadata including foreign keys.
 /// @param progress Progress manager for reporting status.
-void ApplyDatabaseConstraints(SqlConnectionString const& connectionString,
-                              std::string const& schema,
-                              std::map<std::string, TableInfo> const& tableMap,
-                              ProgressManager& progress);
+LIGHTWEIGHT_API void ApplyDatabaseConstraints(SqlConnectionString const& connectionString,
+                                              std::string const& schema,
+                                              std::map<std::string, TableInfo> const& tableMap,
+                                              ProgressManager& progress);
 
 /// Recreates the database schema by dropping and creating tables from the backup metadata.
 ///
@@ -144,9 +144,9 @@ void ApplyDatabaseConstraints(SqlConnectionString const& connectionString,
 /// @return Set of table names that were successfully created. Tables that fail to create
 ///         (e.g., due to type incompatibilities) are excluded from the returned set,
 ///         allowing the caller to skip data restoration for those tables.
-std::set<std::string> RecreateDatabaseSchema(SqlConnectionString const& connectionString,
-                                             std::string const& schema,
-                                             std::map<std::string, TableInfo> const& tableMap,
-                                             ProgressManager& progress);
+LIGHTWEIGHT_API std::set<std::string> RecreateDatabaseSchema(SqlConnectionString const& connectionString,
+                                                             std::string const& schema,
+                                                             std::map<std::string, TableInfo> const& tableMap,
+                                                             ProgressManager& progress);
 
 } // namespace Lightweight::SqlBackup::detail

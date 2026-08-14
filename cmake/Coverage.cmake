@@ -202,6 +202,15 @@ function(_add_coverage_env_target TEST_TARGET TEST_ENV)
         COMMAND ${LCOV_PATH} --summary ${COVERAGE_OUTPUT_DIR}/${TEST_ENV}.info
             --ignore-errors inconsistent,format
 
+        # Drop the unfiltered intermediates. Only the merged-and-filtered ${TEST_ENV}.info is a
+        # valid input for Codecov or check-instantiation-coverage.py: .base.info and .run.info
+        # still carry /usr, _deps and src/tests records, so consuming one by mistake would put
+        # system headers into the denominator. Deleting them makes that mistake impossible
+        # rather than merely discouraged.
+        COMMAND ${CMAKE_COMMAND} -E rm -f
+            ${COVERAGE_OUTPUT_DIR}/${TEST_ENV}.base.info
+            ${COVERAGE_OUTPUT_DIR}/${TEST_ENV}.run.info
+
         DEPENDS ${TEST_TARGET} ${DBTOOL_COVERAGE_DEPENDS}
         COMMENT "Generating ${TEST_ENV} coverage tracefile"
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}

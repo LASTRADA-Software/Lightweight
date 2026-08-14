@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cstring>
 
 namespace Lightweight
@@ -34,23 +35,25 @@ namespace
     // global variable and no static-initialization order concern.
     //
     // Not thread-local: a test installs a source around a scoped operation, and the async layer may
-    // run that operation on a pool thread, which a thread_local would not reach. Tests are expected
-    // to install and clear it around the code under test, not concurrently with other tests.
-    SqlDiagnosticSource*& DiagnosticSourceSlot() noexcept
+    // run that operation on a pool thread, which a thread_local would not reach. That means install
+    // and read genuinely happen on different threads, so the slot is atomic - a plain pointer here
+    // would be a data race that TSan reports. Relaxed ordering suffices: the caller owns the
+    // pointee's lifetime and no data is published through this pointer.
+    std::atomic<SqlDiagnosticSource*>& DiagnosticSourceSlot() noexcept
     {
-        static SqlDiagnosticSource* slot = nullptr;
+        static std::atomic<SqlDiagnosticSource*> slot { nullptr };
         return slot;
     }
 } // namespace
 
 void SetDiagnosticSource(SqlDiagnosticSource* source)
 {
-    DiagnosticSourceSlot() = source;
+    DiagnosticSourceSlot().store(source, std::memory_order_relaxed);
 }
 
 SqlDiagnosticSource* GetDiagnosticSource() noexcept
 {
-    return DiagnosticSourceSlot();
+    return DiagnosticSourceSlot().load(std::memory_order_relaxed);
 }
 
 // Collect ODBC diagnostics via the wide-character variant. Calling SQLGetDiagRecW (rather

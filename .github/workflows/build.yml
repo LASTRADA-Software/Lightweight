@@ -1029,11 +1029,16 @@ jobs:
       # number. This ratchets the instrumented-line count per library header instead, so a template
       # that stops being instantiated fails the build.
       #
-      # Non-blocking on its first outing: the checked-in baseline was generated from a local run,
-      # and the CI toolchain (different Clang, different lcov) can legitimately differ. Once one
-      # green run confirms the numbers, drop `continue-on-error` to make this enforcing.
+      # Enforcing: deliberately no `continue-on-error`, because a step that cannot fail is
+      # indistinguishable from no gate at all. A regression below the tolerance now reds the build.
+      #
+      # Bootstrapping: the baseline must come from a real lcov run, which only this job performs,
+      # so `.instantiation-coverage-baseline.json` is not committed yet and this first run merely
+      # prints the numbers it would contain. To arm the ratchet, copy those numbers into the
+      # baseline (`--update-baseline` against all four tracefiles) and commit it; from then on the
+      # step compares against it. Add `--require-baseline` here once it is committed, so a deleted
+      # baseline fails instead of silently disarming the check.
       - name: "Check template instantiation coverage"
-        continue-on-error: true
         run: >
           python3 scripts/check-instantiation-coverage.py
           --tracefile out/build/clang-coverage/coverage/sqlite3.info

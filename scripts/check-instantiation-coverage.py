@@ -127,6 +127,8 @@ def main() -> int:
                         help=f"baseline JSON to compare against (default: {DEFAULT_BASELINE.name})")
     parser.add_argument("--update-baseline", action="store_true",
                         help="overwrite the baseline with the current numbers instead of checking")
+    parser.add_argument("--require-baseline", action="store_true",
+                        help="fail instead of passing when no baseline exists yet")
     parser.add_argument("--tolerance", type=float, default=DEFAULT_TOLERANCE,
                         help=f"fractional shrinkage tolerated before failing (default: {DEFAULT_TOLERANCE})")
     args = parser.parse_args()
@@ -143,6 +145,29 @@ def main() -> int:
         return 2
 
     if args.update_baseline:
+        # Refuse to shrink the tracked set. collect() only knows about files present in the
+        # tracefiles it was given, so updating from a narrower set than the baseline was built
+        # from (one database instead of four - the usage example above passes exactly one) would
+        # silently drop every file only instantiated in the other builds. Those files would then
+        # reappear as "newly instrumented" on the next full check rather than as regressions,
+        # making a genuine de-instantiation of them invisible.
+        if args.baseline.is_file():
+            previous = json.loads(args.baseline.read_text(encoding="utf-8")).get("files", {})
+            dropped = sorted(set(previous) - set(current))
+            if dropped:
+                print(f"error: refusing to write a baseline that drops {len(dropped)} tracked file(s).",
+                      file=sys.stderr)
+                print("The given tracefile(s) do not cover everything the current baseline tracks - pass the",
+                      file=sys.stderr)
+                print("same set the check uses (one --tracefile per database), or delete the baseline to start",
+                      file=sys.stderr)
+                print("over deliberately. Missing:", file=sys.stderr)
+                for source in dropped[:10]:
+                    print(f"  - {source} (baseline {previous[source]} lines)", file=sys.stderr)
+                if len(dropped) > 10:
+                    print(f"  ... and {len(dropped) - 10} more", file=sys.stderr)
+                return 2
+
         payload = {
             "_comment": "Instrumented-line counts per library header; see scripts/check-instantiation-coverage.py. "
                         "Regenerate with --update-baseline after intentionally adding instantiations.",
@@ -166,6 +191,9 @@ def main() -> int:
         print("\nTo start enforcing, commit a baseline generated from this tracefile:")
         print("  python3 scripts/check-instantiation-coverage.py \\")
         print("      --tracefile <file.info> --update-baseline")
+        if args.require_baseline:
+            print(f"\nerror: --require-baseline given but '{args.baseline}' does not exist.", file=sys.stderr)
+            return 2
         return 0
 
     baseline = json.loads(args.baseline.read_text(encoding="utf-8")).get("files", {})

@@ -4,6 +4,8 @@
 #include "SqlLogger.hpp"
 #include "Utils.hpp"
 
+#include <atomic>
+
 namespace Lightweight
 {
 
@@ -29,10 +31,54 @@ SqlFailureAction ClassifyOdbcResult(SQLRETURN result, SqlErrorInfo const& errorI
     return SqlFailureAction::ThrowSqlException;
 }
 
+namespace
+{
+    // Atomic because the slot is deliberately not thread_local: a test installs a source around a
+    // scoped operation and the async layer may run that operation on a pool thread. Install and
+    // read therefore happen on different threads, which a plain pointer would make a data race
+    // that TSan reports. Relaxed ordering is enough - the pointee's lifetime is owned by the
+    // caller, and no data is published through this pointer.
+    std::atomic<SqlFaultSource*>& FaultSourceSlot() noexcept
+    {
+        static std::atomic<SqlFaultSource*> slot { nullptr };
+        return slot;
+    }
+} // namespace
+
+void SetFaultSource(SqlFaultSource* source) noexcept
+{
+    FaultSourceSlot().store(source, std::memory_order_relaxed);
+}
+
+SqlFaultSource* GetFaultSource() noexcept
+{
+    return FaultSourceSlot().load(std::memory_order_relaxed);
+}
+
 void RequireSuccess(SQLHSTMT hStmt, SQLRETURN error, std::source_location sourceLocation)
 {
     if (SQL_SUCCEEDED(error))
-        return;
+    {
+        // Costs one null check on the success path. Only a test ever installs a source; with none
+        // configured this is exactly the early return it replaced.
+        auto* const faultSource = GetFaultSource();
+        if (faultSource == nullptr) [[likely]]
+            return;
+
+        // Never inject where the handle is not yet valid. RequireSuccess also guards SQLAllocHandle
+        // during SqlStatement construction; throwing there would unwind out of the constructor with
+        // the handle already allocated but not yet owned, so the destructor never runs and the
+        // handle leaks. Skipping the null handle makes that safe by construction instead of relying
+        // on every fault source to filter the call site itself.
+        if (hStmt == SQL_NULL_HSTMT)
+            return;
+
+        auto injected = faultSource->NextFailure(hStmt, sourceLocation);
+        if (!injected)
+            return;
+
+        throw SqlException(*std::move(injected));
+    }
 
     auto const errorInfo = SqlErrorInfo::FromStatementHandle(hStmt);
     switch (ClassifyOdbcResult(error, errorInfo))

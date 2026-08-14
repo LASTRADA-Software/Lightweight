@@ -1228,14 +1228,36 @@ TEST_CASE_METHOD(SqlTestFixture, "HasManyThrough: element access and iteration",
         CHECK_FALSE(detached.patients.IsEmpty());
         CHECK(DataMapper::Inspect(detached.patients.At(0)) == DataMapper::Inspect(patient1));
     }
+
+    SECTION("A HasMany with no auto-loader reports SqlRequireLoadedError rather than terminating")
+    {
+        // `appointments` is the HasMany; `patients` above is a HasManyThrough, which already
+        // guarded this. A hand-constructed record never went through ConfigureRelationAutoLoading,
+        // so its loader holds an empty std::function. Calling it would be std::bad_function_call -
+        // and because these accessors used to be noexcept, that would have been std::terminate
+        // rather than an error the caller could handle. Both overloads must report it.
+        Physician detached;
+        Physician const& constDetached = detached;
+
+        CHECK_THROWS_AS(detached.appointments.All(), SqlRequireLoadedError);
+        CHECK_THROWS_AS(constDetached.appointments.All(), SqlRequireLoadedError);
+        CHECK_THROWS_AS(detached.appointments.At(0), SqlRequireLoadedError);
+        CHECK_THROWS_AS(detached.appointments.begin(), SqlRequireLoadedError);
+        CHECK_THROWS_AS(constDetached.appointments.begin(), SqlRequireLoadedError);
+        CHECK_THROWS_AS(constDetached.appointments.end(), SqlRequireLoadedError);
+
+        // Count()/IsEmpty() guard the loader themselves and stay noexcept, so they must not throw.
+        CHECK(detached.appointments.Count() == 0);
+        CHECK(detached.appointments.IsEmpty());
+    }
 }
 
-// NOTE: HasMany's begin()/end() overloads each carry an `else return iterator {};` branch for the
-// case where _records is still disengaged after RequireLoaded(). Those four lines are unreachable
-// and therefore deliberately left uncovered: RequireLoaded() calls _loader.all() unconditionally,
-// so it either engages _records or — on a relation that never went through
-// ConfigureRelationAutoLoading, where the loader holds an empty std::function — propagates out of
-// begin() instead of returning. Reaching those lines would require changing the code under test.
+// NOTE: HasMany::RequireLoaded() guarantees _records is engaged on return, or throws trying:
+// SqlRequireLoadedError when the relation never went through ConfigureRelationAutoLoading (the
+// loader holds an empty std::function), otherwise whatever the loader itself raises. The accessors
+// that call it therefore dereference _records unconditionally, with no unreachable fallback branch,
+// and are deliberately not noexcept - a throw crossing a noexcept boundary would be std::terminate
+// rather than an error the caller can catch.
 #endif
 
 struct AliasedRecord

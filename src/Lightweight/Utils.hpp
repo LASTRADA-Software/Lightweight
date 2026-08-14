@@ -23,6 +23,7 @@
 
 #include "Api.hpp"
 #include "Description.hpp"
+#include "SqlError.hpp"
 
 #include <reflection-cpp/reflection.hpp>
 
@@ -435,9 +436,9 @@ namespace detail
 
 } // namespace detail
 
-// Only ever taken by const reference below, so a forward declaration is enough - including
-// SqlError.hpp here would be a needless dependency for every consumer of Utils.hpp.
-struct SqlErrorInfo;
+// SqlFaultSource::NextFailure returns std::optional<SqlErrorInfo> by value, and instantiating
+// std::optional<T> with an incomplete T is undefined ([optional.optional]/3) - so a forward
+// declaration is not enough here and this header must carry the full definition.
 
 /// @brief How a failed ODBC return code should surface to the caller.
 ///
@@ -472,6 +473,70 @@ enum class SqlFailureAction : uint8_t
 
 LIGHTWEIGHT_API void LogIfFailed(SQLHSTMT hStmt, SQLRETURN error, std::source_location sourceLocation);
 
+/// @brief Substitutes a scripted failure for an ODBC call that actually succeeded.
+///
+/// Exists so error-recovery paths can be driven from a test. Some failures cannot be provoked
+/// through a real driver at all: a backup worker's transient-error retry arm needs a class-08 or
+/// HYT00 SQLSTATE, but every fault reachable from a test file (unreachable driver, unwritable path,
+/// dropped table) surfaces as HY000, which the retry policy classifies as non-transient. Without a
+/// seam those arms are unreachable rather than merely untested.
+///
+/// Production code never installs one: with no source configured, @c RequireSuccess consults
+/// nothing and returns on success exactly as before. This mirrors @c SqlDiagnosticSource and
+/// @c SqlLogger::SetLogger, injection mechanisms the project already uses.
+///
+/// @see SetFaultSource
+class SqlFaultSource
+{
+  public:
+    SqlFaultSource() = default;
+    SqlFaultSource(SqlFaultSource const&) = delete;
+    SqlFaultSource& operator=(SqlFaultSource const&) = delete;
+    SqlFaultSource(SqlFaultSource&&) = delete;
+    SqlFaultSource& operator=(SqlFaultSource&&) = delete;
+    virtual ~SqlFaultSource() = default;
+
+    /// @brief Decides whether the next statement-handle check should fail.
+    ///
+    /// Called by @c RequireSuccess for a call that the driver reported as successful. Returning
+    /// an engaged optional makes @c RequireSuccess throw @c SqlException carrying that
+    /// diagnostic, as though the driver had failed.
+    ///
+    /// @note Never called for a null statement handle. @c RequireSuccess also guards
+    ///       @c SQLAllocHandle during statement construction, where failing would leave a
+    ///       half-constructed @c SqlStatement whose destructor cannot release the handle; it
+    ///       therefore skips injection entirely while @p hStmt is still @c SQL_NULL_HSTMT. A fake
+    ///       may narrow further via @p sourceLocation — the function name of a real execution is
+    ///       @c ExecuteDirect / @c Execute / @c Prepare — but does not have to in order to be safe.
+    ///
+    /// @param hStmt The statement handle being checked, never @c SQL_NULL_HSTMT. A fake may ignore it.
+    /// @param sourceLocation Where in the library the check is happening.
+    /// @return The error to inject, or @c std::nullopt to let the successful call through.
+    [[nodiscard]] virtual std::optional<SqlErrorInfo> NextFailure(SQLHSTMT hStmt,
+                                                                  std::source_location const& sourceLocation) = 0;
+};
+
+/// @brief Installs a fault source process-wide.
+///
+/// Intended for tests. Ownership is not transferred and remains with the caller, which must keep
+/// @p source alive until it is cleared. Pass @c nullptr to disable fault injection.
+///
+/// @param source The source to install, or @c nullptr to disable.
+LIGHTWEIGHT_API void SetFaultSource(SqlFaultSource* source) noexcept;
+
+/// @brief Returns the currently installed fault source, or @c nullptr if none is installed.
+[[nodiscard]] LIGHTWEIGHT_API SqlFaultSource* GetFaultSource() noexcept;
+
+/// @brief Throws unless the given ODBC return code indicates success.
+///
+/// Retrieves the diagnostics for @p hStmt and applies @ref ClassifyOdbcResult to decide how the
+/// failure surfaces: @c std::invalid_argument for a soft failure the caller is expected to recover
+/// from, @c SqlException otherwise.
+///
+/// @param hStmt The statement handle @p error came from.
+/// @param error The ODBC return code to check.
+/// @param sourceLocation Where the check originated; reported in the exception message. Defaults to
+///                       the caller's location.
 LIGHTWEIGHT_API void RequireSuccess(SQLHSTMT hStmt,
                                     SQLRETURN error,
                                     std::source_location sourceLocation = std::source_location::current());

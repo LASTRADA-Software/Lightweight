@@ -66,6 +66,7 @@ set(SOURCE_FILES
     QueryFormatterTests.cpp
     SqlErrorDetectionTests.cpp
     SqlErrorSeamTests.cpp
+    SqlFaultSeamTests.cpp
     SqlGuidTests.cpp
     SqlLoggerTests.cpp
     MigrationLockTests.cpp
@@ -91,6 +92,7 @@ set(SOURCE_FILES
     SqlBackup/CommonHelpersTests.cpp
     SqlBackup/ConnectionPoolTests.cpp
     SqlBackup/ProgressManagerTests.cpp
+    SqlBackup/RestoreFaultTests.cpp
     SqlBackup/BatchManagerTests.cpp
     SqlBackup/MsgPackChunkFormatsTests.cpp
     SqlBackup/BatchManagerIntegrationTests.cpp
