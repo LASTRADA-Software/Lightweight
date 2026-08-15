@@ -124,7 +124,7 @@ var NAVTREEINDEX1 =
 "d4/d23/structLightweight_1_1MigrationRenderContext.html#a72202fddb710d0fd35f5135ddcf97c7b":[16,0,0,17,5],
 "d4/d23/structLightweight_1_1MigrationRenderContext.html#a7d5c90cf0a765b640b1de1ed07a24f28":[16,0,0,17,6],
 "d4/d46/StringLiteral_8hpp_source.html":[17,0,1,1,21],
-"d4/d48/ThreadSafeQueue_8hpp_source.html":[17,0,1,32],
+"d4/d48/ThreadSafeQueue_8hpp_source.html":[17,0,1,33],
 "d4/d52/SqlDateTime_8hpp_source.html":[17,0,1,1,6],
 "d4/d56/HasOneThrough_8hpp_source.html":[17,0,1,2,8],
 "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html":[14,3,6],
