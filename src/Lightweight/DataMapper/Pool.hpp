@@ -140,6 +140,7 @@ class Pool
         requires(Config.growthStrategy == GrowthStrategy::UnboundedGrow)
     {
         DropAsyncBackend(*dm);
+        SqlLogger::GetLogger().OnConnectionIdle(dm->Connection());
         std::scoped_lock lock(_mutex);
         _idleDataMappers.push_back(std::move(dm));
     }
@@ -178,6 +179,8 @@ class Pool
             // abandonment; a synchronous waiter is never abandoned), but guard defensively.
             if (node->state != WaiterNode::State::Parked)
                 continue;
+            // Handed directly to a waiter, never idled: a reuse, not an idle transition.
+            SqlLogger::GetLogger().OnConnectionReuse(dm->Connection());
             node->state = WaiterNode::State::Fulfilled;
             node->mapper = std::move(dm); // hand off ownership; _checkedOut stays (transferred)
             if (node->kind == WaiterNode::Kind::Async)
@@ -185,6 +188,7 @@ class Pool
             node->cv.notify_one(); // wake the blocked Acquire(); it consumes node->mapper
             return nullptr;
         }
+        SqlLogger::GetLogger().OnConnectionIdle(dm->Connection());
         _idleDataMappers.push_back(std::move(dm));
         --_checkedOut;
         return nullptr;
@@ -197,7 +201,10 @@ class Pool
         DropAsyncBackend(*dm);
         std::scoped_lock lock(_mutex);
         if (_idleDataMappers.size() < Config.maxSize)
+        {
+            SqlLogger::GetLogger().OnConnectionIdle(dm->Connection());
             _idleDataMappers.push_back(std::move(dm));
+        }
     }
 
   public:
@@ -246,6 +253,7 @@ class Pool
             auto dm = std::move(_idleDataMappers.back());
             _idleDataMappers.pop_back();
             ++_checkedOut;
+            SqlLogger::GetLogger().OnConnectionReuse(dm->Connection());
             return PooledDataMapper(*this, std::move(dm));
         }
         if (_checkedOut < Config.maxSize)
@@ -279,6 +287,7 @@ class Pool
         // get a data mapper from the pool
         auto dm = std::move(_idleDataMappers.back());
         _idleDataMappers.pop_back();
+        SqlLogger::GetLogger().OnConnectionReuse(dm->Connection());
         return PooledDataMapper(*this, std::move(dm));
     }
 
@@ -476,6 +485,7 @@ class Pool
                 pool._idleDataMappers.pop_back();
                 if constexpr (Config.growthStrategy == GrowthStrategy::BoundedWait)
                     ++pool._checkedOut;
+                SqlLogger::GetLogger().OnConnectionReuse(acquired->Connection());
                 return false; // do not suspend — resume immediately
             }
             // Only BoundedWait bounds the pool and parks coroutines on exhaustion. The non-blocking

@@ -14,6 +14,7 @@
 #include <Lightweight/DataMapper/DataMapper.hpp>
 #include <Lightweight/DataMapper/Pool.hpp>
 #include <Lightweight/Lightweight.hpp>
+#include <Lightweight/SqlLogger.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -24,6 +25,48 @@
 
 using namespace Lightweight;
 using namespace Lightweight::Async;
+
+namespace
+{
+
+/// Counts SqlLogger::OnConnectionIdle / OnConnectionReuse invocations, leaving every other hook a no-op.
+class CapturingConnectionLogger: public SqlLogger::Null
+{
+  public:
+    int idleCount = 0;
+    int reuseCount = 0;
+
+    void OnConnectionIdle(SqlConnection const& /*connection*/) override
+    {
+        ++idleCount;
+    }
+    void OnConnectionReuse(SqlConnection const& /*connection*/) override
+    {
+        ++reuseCount;
+    }
+};
+
+/// RAII helper that installs a replacement SqlLogger for the scope's lifetime and restores the
+/// previous one on destruction, mirroring the pattern used in SqlLoggerTests.cpp.
+struct LoggerSwap
+{
+    SqlLogger* previous;
+    explicit LoggerSwap(SqlLogger& replacement):
+        previous { &SqlLogger::GetLogger() }
+    {
+        SqlLogger::SetLogger(replacement);
+    }
+    ~LoggerSwap()
+    {
+        SqlLogger::SetLogger(*previous);
+    }
+    LoggerSwap(LoggerSwap const&) = delete;
+    LoggerSwap& operator=(LoggerSwap const&) = delete;
+    LoggerSwap(LoggerSwap&&) = delete;
+    LoggerSwap& operator=(LoggerSwap&&) = delete;
+};
+
+} // namespace
 
 TEST_CASE_METHOD(SqlTestFixture, "Async.Pool: AcquireAsync acquires, queries and returns", "[Async][Pool]")
 {
@@ -236,4 +279,103 @@ TEST_CASE_METHOD(SqlTestFixture,
     // The sync waiter's released mapper fulfilled the async waiter; drive its resumption to finish cleanly.
     appLoop.Drain();
     REQUIRE(asyncTask.IsReady());
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Pool: Return() reports an idled mapper via SqlLogger::OnConnectionIdle", "[Pool]")
+{
+    CapturingConnectionLogger capture;
+    LoggerSwap const swap { capture };
+
+    // initialSize = 0 so Acquire() below constructs a fresh mapper rather than reusing a pre-populated one.
+    auto pool = Pool<PoolConfig { .initialSize = 0, .maxSize = 4, .growthStrategy = GrowthStrategy::BoundedOverflow }>();
+    CHECK(capture.idleCount == 0);
+
+    {
+        auto mapper = pool.Acquire();
+        CHECK(capture.idleCount == 0);
+        CHECK(capture.reuseCount == 0); // fresh construction, not a reuse
+    } // returned here -> parked back into the idle list (no waiter to hand off to)
+
+    CHECK(capture.idleCount == 1);
+    CHECK(capture.reuseCount == 0);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Pool: Acquire() reports handing back an idle mapper via SqlLogger::OnConnectionReuse",
+                 "[Pool]")
+{
+    CapturingConnectionLogger capture;
+    LoggerSwap const swap { capture };
+
+    // initialSize = 1 pre-populates one idle mapper, so this first Acquire() is already a reuse.
+    auto pool = Pool<PoolConfig { .initialSize = 1, .maxSize = 4, .growthStrategy = GrowthStrategy::BoundedOverflow }>();
+
+    {
+        auto mapper = pool.Acquire();
+    } // reuses the pre-populated mapper, then idles it again on return
+    CHECK(capture.idleCount == 1);
+    CHECK(capture.reuseCount == 1);
+
+    {
+        auto mapper = pool.Acquire();
+    } // reuses it again
+    CHECK(capture.reuseCount == 2);
+    CHECK(capture.idleCount == 2); // returned again -> idled a second time
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Pool: Acquire() creating a fresh mapper does not report a reuse", "[Pool]")
+{
+    CapturingConnectionLogger capture;
+    LoggerSwap const swap { capture };
+
+    // initialSize = 0 so the very first Acquire() must construct a fresh DataMapper, not reuse one.
+    auto pool = Pool<PoolConfig { .initialSize = 0, .maxSize = 4, .growthStrategy = GrowthStrategy::BoundedOverflow }>();
+
+    auto mapper = pool.Acquire();
+    CHECK(capture.reuseCount == 0);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Pool: BoundedWait idle-park path (ReturnLocked, no waiter) reports OnConnectionIdle",
+                 "[Pool]")
+{
+    CapturingConnectionLogger capture;
+    LoggerSwap const swap { capture };
+
+    auto pool = Pool<PoolConfig { .initialSize = 1, .maxSize = 1, .growthStrategy = GrowthStrategy::BoundedWait }>();
+
+    {
+        auto mapper = pool.Acquire();
+    } // no parked waiter -> ReturnLocked idles it
+
+    CHECK(capture.idleCount == 1);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Pool: BoundedWait hand-off to a parked waiter is a reuse, not an idle transition",
+                 "[Pool]")
+{
+    ThreadPoolExecutor dbWorkers { 1 };
+    ManualExecutor appLoop;
+    CapturingConnectionLogger capture;
+    LoggerSwap const swap { capture };
+
+    auto pool = Pool<PoolConfig { .initialSize = 1, .maxSize = 1, .growthStrategy = GrowthStrategy::BoundedWait }>();
+
+    std::optional holder { pool.Acquire() }; // exhaust the pool: reuses the pre-populated mapper
+    CHECK(capture.idleCount == 0);
+    CHECK(capture.reuseCount == 1);
+
+    auto task = pool.AcquireAsync(dbWorkers, appLoop);
+    task.GetHandle().resume();     // park on the exhausted pool
+    REQUIRE_FALSE(task.IsReady()); // suspended (parked)
+
+    // Returning the held mapper hands it directly to the parked waiter (FIFO): a reuse, never an idle
+    // transition, since the mapper is never placed into _idleDataMappers.
+    holder.reset();
+    CHECK(capture.idleCount == 0);
+    CHECK(capture.reuseCount == 2);
+
+    appLoop.Drain();
+    REQUIRE(task.IsReady());
 }
