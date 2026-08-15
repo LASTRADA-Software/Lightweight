@@ -298,9 +298,9 @@ var NAVTREEINDEX =
 "d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#a2fd277633504e8fb2257f493649cc002",
 "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a8e7fe33501cc9bd570959f7e2ed5d0b0",
 "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#aae78f7a3b9c5ab16e1c530458a1b9d70",
-"da/da8/classLightweight_1_1SqlConnection.html#aaeb89efa59bbc5a62e370c4297e9015e",
-"dd/d75/structLightweight_1_1SqlAlterTablePlan.html#ace007f34324de43ff2ab887fbe321970",
-"df/d3f/structLightweight_1_1SqlVariant.html#a1fad24196895add9aa0209d6344b47e0"
+"da/da8/classLightweight_1_1SqlConnection.html#ab40ae26f82d6690050a2a6a622f7cdec",
+"dd/d76/structLightweight_1_1SqlInsertDataPlan.html",
+"df/d3f/structLightweight_1_1SqlVariant.html#a2159a23a1405bd28c3faf04c19cf6f0c"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

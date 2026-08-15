@@ -1,6 +1,5 @@
 var NAVTREEINDEX6 =
 {
-"dd/d75/structLightweight_1_1SqlAlterTablePlan.html#ace007f34324de43ff2ab887fbe321970":[14,4,15,2],
 "dd/d76/structLightweight_1_1SqlInsertDataPlan.html":[14,4,18],
 "dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a0428d0b2e06f4760a9bc3c31cff19327":[14,4,18,2],
 "dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a71fa23f7cd74e66242eb2042fb019dec":[14,4,18,0],
@@ -233,7 +232,7 @@ var NAVTREEINDEX6 =
 "de/dfe/structLightweight_1_1SqlText.html#acb96ee68a3cc936ac16a50cb90d587d5":[14,0,9,0],
 "de/dfe/structLightweight_1_1SqlText.html#af5030d1caea50f2ac9251206e039201a":[14,0,9,1],
 "df/d0f/Pool_8hpp_source.html":[17,0,1,2,9],
-"df/d13/SqlQueryFormatter_8hpp_source.html":[17,0,1,25],
+"df/d13/SqlQueryFormatter_8hpp_source.html":[17,0,1,24],
 "df/d1a/structLightweight_1_1PoolConfig.html":[16,0,0,19],
 "df/d1a/structLightweight_1_1PoolConfig.html#a6a3e753156f65b2aa0ad1fdd0090a72c":[16,0,0,19,1],
 "df/d1a/structLightweight_1_1PoolConfig.html#a82b19e524cdb6dc43c0ec8aab3201e6f":[16,0,0,19,2],
@@ -249,5 +248,6 @@ var NAVTREEINDEX6 =
 "df/d3f/structLightweight_1_1SqlVariant.html#a0c88051cb048b8cc50fa3ae9bc77a3ef":[14,0,11,10],
 "df/d3f/structLightweight_1_1SqlVariant.html#a118c7ea1064e337ea3a7af5296f3dd4d":[14,0,11,35],
 "df/d3f/structLightweight_1_1SqlVariant.html#a1390916c2cef8d54612cd91d17d38d95":[14,0,11,7],
-"df/d3f/structLightweight_1_1SqlVariant.html#a1b6881f630dd2c5fc932236ced34e432":[14,0,11,18]
+"df/d3f/structLightweight_1_1SqlVariant.html#a1b6881f630dd2c5fc932236ced34e432":[14,0,11,18],
+"df/d3f/structLightweight_1_1SqlVariant.html#a1fad24196895add9aa0209d6344b47e0":[14,0,11,20]
 };

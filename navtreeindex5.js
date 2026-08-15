@@ -1,6 +1,5 @@
 var NAVTREEINDEX5 =
 {
-"da/da8/classLightweight_1_1SqlConnection.html#aaeb89efa59bbc5a62e370c4297e9015e":[16,0,0,30,21],
 "da/da8/classLightweight_1_1SqlConnection.html#ab40ae26f82d6690050a2a6a622f7cdec":[16,0,0,30,9],
 "da/da8/classLightweight_1_1SqlConnection.html#ab5a9e94571f9e9296b2ce65036f75184":[16,0,0,30,0],
 "da/da8/classLightweight_1_1SqlConnection.html#ab9e2b5679f7ca67ead13107a020e7c65":[16,0,0,30,2],
@@ -55,7 +54,7 @@ var NAVTREEINDEX5 =
 "da/df4/classLightweight_1_1HasMany.html#ae4b936d0efdeb726b2a7eda4c9f1de73":[14,2,12,5],
 "da/df4/classLightweight_1_1HasMany.html#ae6f5268d6ea5c279215c47d73fc1c598":[14,2,12,18],
 "da/df4/classLightweight_1_1HasMany.html#afefaf546a1594762fd0836f988374963":[14,2,12,8],
-"db/d1c/SqlSchema_8hpp_source.html":[17,0,1,27],
+"db/d1c/SqlSchema_8hpp_source.html":[17,0,1,26],
 "db/d47/MigrationPlan_8hpp_source.html":[17,0,1,5,4],
 "db/d48/ThreadOffloadBackend_8hpp_source.html":[17,0,1,0,13],
 "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html":[11],
@@ -209,13 +208,13 @@ var NAVTREEINDEX5 =
 "dc/dc9/classLightweight_1_1CompositeForeignKey.html#ac4e0d3da7381896cfd2667357377358e":[14,2,8,9],
 "dc/dc9/classLightweight_1_1CompositeForeignKey.html#aea0753865e30f9428c90ce6e3a5497f5":[14,2,8,10],
 "dc/dc9/classLightweight_1_1CompositeForeignKey.html#afdbe7152a76b6ab03d96af8e6329d8e2":[14,2,8,12],
-"dc/dcc/SqlQuery_8hpp_source.html":[17,0,1,24],
+"dc/dcc/SqlQuery_8hpp_source.html":[17,0,1,23],
 "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html":[16,0,0,2,2],
 "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#a2a35c526922042dcece928d84c7caac1":[16,0,0,2,2,2],
 "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#a33a69b26419eed12fa5726e3a76ea3e1":[16,0,0,2,2,3],
 "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#a9d666c263d9e7ea0cccc45ae71365837":[16,0,0,2,2,1],
 "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#ae02440293597aaf830d7ce2dc4ef6a26":[16,0,0,2,2,0],
-"dd/d2a/TracyProfiler_8hpp_source.html":[17,0,1,34],
+"dd/d2a/TracyProfiler_8hpp_source.html":[17,0,1,33],
 "dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html":[14,4,21],
 "dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#a1ba5415c2f11dad96724e8b20963a239":[14,4,21,3],
 "dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#a601ee8dc6af98175063c3b6b5917aff9":[14,4,21,0],
@@ -249,5 +248,6 @@ var NAVTREEINDEX5 =
 "dd/d71/structLightweight_1_1SqlColumnDeclaration.html#adc6c2316125cc865139f3dae21badfb6":[14,4,13,8],
 "dd/d75/structLightweight_1_1SqlAlterTablePlan.html":[14,4,15],
 "dd/d75/structLightweight_1_1SqlAlterTablePlan.html#a303553e0c2089a553fd561f196cc039e":[14,4,15,0],
-"dd/d75/structLightweight_1_1SqlAlterTablePlan.html#a4d5476b81f6e3efc5057c49d797a9f07":[14,4,15,1]
+"dd/d75/structLightweight_1_1SqlAlterTablePlan.html#a4d5476b81f6e3efc5057c49d797a9f07":[14,4,15,1],
+"dd/d75/structLightweight_1_1SqlAlterTablePlan.html#ace007f34324de43ff2ab887fbe321970":[14,4,15,2]
 };
