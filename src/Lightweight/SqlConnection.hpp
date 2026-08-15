@@ -2,21 +2,13 @@
 
 #pragma once
 
-#if defined(_WIN32) || defined(_WIN64)
-    #ifndef NOMINMAX
-        #define NOMINMAX
-    #endif
-    #ifndef WIN32_LEAN_AND_MEAN
-        #define WIN32_LEAN_AND_MEAN
-    #endif
-    #include <Windows.h>
-#endif
-
+// See SqlOdbcPrelude.hpp's header comment for why this replaces a direct <Windows.h> include.
 #include "Api.hpp"
 #include "Async/Fwd.hpp"
 #include "SqlConnectInfo.hpp"
 #include "SqlError.hpp"
 #include "SqlLogger.hpp"
+#include "SqlOdbcPrelude.hpp"
 #include "SqlServerType.hpp"
 
 #include <atomic>

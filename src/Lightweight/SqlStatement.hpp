@@ -2,16 +2,7 @@
 
 #pragma once
 
-#if defined(_WIN32) || defined(_WIN64)
-    #ifndef NOMINMAX
-        #define NOMINMAX
-    #endif
-    #ifndef WIN32_LEAN_AND_MEAN
-        #define WIN32_LEAN_AND_MEAN
-    #endif
-    #include <Windows.h>
-#endif
-
+// See SqlOdbcPrelude.hpp's header comment for why this replaces a direct <Windows.h> include.
 #include "Api.hpp"
 #include "DataBinder/Core.hpp"
 #include "DataBinder/SqlDate.hpp"
@@ -23,6 +14,7 @@
 #include "DataBinder/UnicodeConverter.hpp"
 #include "DataMapper/Record.hpp"
 #include "SqlConnection.hpp"
+#include "SqlOdbcPrelude.hpp"
 #include "SqlQuery.hpp"
 #include "SqlQueryFormatter.hpp"
 #include "SqlServerType.hpp"
