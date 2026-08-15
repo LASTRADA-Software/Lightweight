@@ -166,7 +166,7 @@ template&lt;<a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.htm
 </div><div class="memdoc">
 <p>Default constructor that pre-creates the initial number of data mappers and stores them in the pool No other constructors are provided, as the pool is configured at compile time via the template parameter </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00213">213</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00206">206</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 </div>
 </div>
@@ -196,7 +196,7 @@ template&lt;<a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.htm
 </div><div class="memdoc">
 <p>Destructor. The pool manages the lifecycle of the idle data mappers; be aware that any acquired data mappers not returned to the pool are destroyed when the pool is destroyed, which may leak resources if not handled properly. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00223">223</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00216">216</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a2f793aa98f3c5b9cbbe4ae2e42bb6899">Lightweight::SqlLogger::GetLogger()</a>, and <a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#adbb17b889781323b66f79f99e1108776">Lightweight::SqlLogger::OnWarning()</a>.</p>
 
@@ -229,9 +229,7 @@ template&lt;<a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.htm
 </div><div class="memdoc">
 <p>Function to acquire a data mapper from the pool, the behavior of this function depends on the growth strategy this is a specific implementation for the BoundedWait strategy, which blocks until a data mapper is available if the pool is at maximum capacity </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00246">246</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
-
-<p class="reference">References <a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a2f793aa98f3c5b9cbbe4ae2e42bb6899">Lightweight::SqlLogger::GetLogger()</a>, and <a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a7eb165999b176c3be5fef997d15f852e">Lightweight::SqlLogger::OnConnectionReuse()</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00239">239</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 </div>
 </div>
@@ -261,9 +259,7 @@ template&lt;<a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.htm
 </div><div class="memdoc">
 <p>Function to acquire a data mapper from the pool, the behavior of this function depends on the growth strategy this is a specific implementation for the strategies that do not block, which always creates a new data mapper if the pool is empty, regardless of the maximum capacity </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00277">277</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
-
-<p class="reference">References <a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a2f793aa98f3c5b9cbbe4ae2e42bb6899">Lightweight::SqlLogger::GetLogger()</a>, and <a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a7eb165999b176c3be5fef997d15f852e">Lightweight::SqlLogger::OnConnectionReuse()</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00269">269</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 </div>
 </div>
@@ -313,7 +309,7 @@ template&lt;<a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.htm
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A Task yielding a pooled <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a>. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00304">304</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00295">295</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 </div>
 </div>
@@ -363,7 +359,7 @@ template&lt;<a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.htm
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00324">324</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00315">315</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 </div>
 </div>
@@ -401,7 +397,7 @@ template&lt;<a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.htm
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00338">338</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00329">329</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 </div>
 </div>
