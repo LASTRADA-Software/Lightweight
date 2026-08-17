@@ -93,7 +93,7 @@ var group__DataMapper =
       [ "Query", "de/d61/classLightweight_1_1DataMapper.html#a861abe24982b3d6a0ae7a786a9907b3a", null ],
       [ "QueryAsync", "de/d61/classLightweight_1_1DataMapper.html#ab5212501c86b9d469e4ffae6c3a45264", null ],
       [ "Query", "de/d61/classLightweight_1_1DataMapper.html#a2b2b5b2f4bc610b6a8f518ce88a6e485", null ],
-      [ "Update", "de/d61/classLightweight_1_1DataMapper.html#a0d838468c9635a154a22206928511d27", null ],
+      [ "Update", "de/d61/classLightweight_1_1DataMapper.html#ac05404e9ac572f44c6a312db5a75e814", null ],
       [ "UpdateAll", "de/d61/classLightweight_1_1DataMapper.html#a489a4e560de6cc475eec66252d6412bd", null ],
       [ "Delete", "de/d61/classLightweight_1_1DataMapper.html#a708db890dfc02b9ad4183ee9c7ea2512", null ],
       [ "FromTable", "de/d61/classLightweight_1_1DataMapper.html#ac0e2e432c3ad94048fb407883f4dd64d", null ],
