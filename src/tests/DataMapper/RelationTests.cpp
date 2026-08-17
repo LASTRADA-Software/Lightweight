@@ -242,6 +242,57 @@ class ScopedSqlQueryRecorder: public SqlLogger::Null
 } // namespace
 
 TEST_CASE_METHOD(SqlTestFixture,
+                 "BelongsTo: assigning a bare foreign-key value marks the field modified",
+                 "[DataMapper][relations][BelongsTo]")
+{
+    auto dm = DataMapper();
+    dm.CreateTables<User, Email>();
+
+    auto original = User { .name = "Original" };
+    auto target = User { .name = "Target" };
+    dm.Create(original);
+    dm.Create(target);
+
+    auto email = Email { .address = "someone@example.com" };
+    email.user = original;
+    dm.Create(email);
+    REQUIRE_FALSE(email.user.IsModified());
+
+    // Assigning the referenced record's bare primary-key value must mark the field dirty, exactly
+    // as Field<T>::operator=(S&&) does. Without a direct-value assignment overload this binds to
+    // the converting constructor plus move-assignment, which copies the temporary's _modified
+    // (false) over the target.
+    email.user = target.id.Value();
+
+    CHECK(email.user.IsModified());
+    CHECK(email.user.Value() == target.id.Value());
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "BelongsTo: Update() writes a foreign key assigned as a bare value",
+                 "[DataMapper][relations][BelongsTo]")
+{
+    auto dm = DataMapper();
+    dm.CreateTables<User, Email>();
+
+    auto userA = User { .name = "A" };
+    auto userB = User { .name = "B" };
+    dm.Create(userA);
+    dm.Create(userB);
+
+    auto email = Email { .address = "a@example.com" };
+    email.user = userA;
+    dm.Create(email);
+
+    // Re-point the foreign key by bare value, then persist.
+    email.user = userB.id.Value();
+    dm.Update(email);
+
+    auto const reloaded = dm.QuerySingle<Email>(email.id).value();
+    CHECK(reloaded.user.Value() == userB.id.Value());
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
                  "HasMany resolves its inverse BelongsTo by type, not by member index",
                  "[DataMapper][relations][HasMany]")
 {
