@@ -665,6 +665,16 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn", "[SqlQueryBuilder]")
                                                    WHERE "foo" IN (1, 2, 3))"));
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn accepts a range without a member empty()", "[SqlQueryBuilder]")
+{
+    // A built-in array is an input_range but has no `.empty()` member, so the emptiness check must
+    // go through std::ranges::empty rather than calling values.empty() directly.
+    int const values[] = { 1, 2, 3 };
+    CheckSqlQueryBuilder([&](SqlQueryBuilder& q) { return q.FromTable("That").Delete().WhereIn("foo", values); },
+                         QueryExpectations::All(R"(DELETE FROM "That"
+                                                   WHERE "foo" IN (1, 2, 3))"));
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn with empty list matches nothing", "[SqlQueryBuilder]")
 {
     // An empty IN-set means "match nothing". Emitting no condition at all would instead mean

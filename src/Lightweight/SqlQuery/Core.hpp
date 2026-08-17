@@ -686,7 +686,10 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereIn
 {
     // An empty IN-set means "match nothing"; emitting no condition would mean "match everything".
     // `1 = 0` rather than `FALSE` because SQL Server has no boolean literal.
-    if (values.empty())
+    //
+    // std::ranges::empty rather than values.empty(): the latter requires a member function, which
+    // excludes ranges such as built-in arrays that this overload otherwise handles fine.
+    if (std::ranges::empty(values))
         return WhereRaw("1 = 0");
     return Where(columnName, "IN", PopulateSqlSetExpression(values));
 }
