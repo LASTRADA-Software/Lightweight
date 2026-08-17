@@ -94,9 +94,10 @@ SqlUpdateQueryBuilder& SqlUpdateQueryBuilder::Set(std::string_view columnName, C
         m_values += std::format("{}", value);
     else
     {
-        m_values += '\'';
-        m_values += std::format("{}", value);
-        m_values += '\'';
+        // Route through the formatter rather than quoting by hand: it escapes embedded quotes and
+        // applies the dialect's literal rules (e.g. SQL Server's N'…' + NCHAR() encoding).
+        // SqlInsertQueryBuilder::Set does the same — see Insert.hpp.
+        m_values += m_formatter.StringLiteral(std::format("{}", value));
     }
 
     return *this;

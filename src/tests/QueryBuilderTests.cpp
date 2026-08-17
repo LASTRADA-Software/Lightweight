@@ -1822,6 +1822,21 @@ TEST_CASE("Non-MSSQL StringLiteral has no N prefix", "[SqlQueryFormatter]")
     CHECK(SqlQueryFormatter::PostgrSQL().StringLiteral("hi") == "'hi'");
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Update.Set escapes string literals", "[SqlQueryBuilder]")
+{
+    // Without a bindings vector the value is inlined, so it must go through the formatter's
+    // StringLiteral() — same as SqlInsertQueryBuilder::Set does — rather than bare '...' quoting.
+    CheckSqlQueryBuilder([](SqlQueryBuilder& q) { return q.FromTable("T").Update().Set("name", "O'Brien").Where("id", 1); },
+                         QueryExpectations {
+                             .sqlite = R"sql(UPDATE "T" SET "name" = 'O''Brien'
+                                             WHERE "id" = 1)sql",
+                             .postgres = R"sql(UPDATE "T" SET "name" = 'O''Brien'
+                                               WHERE "id" = 1)sql",
+                             .sqlServer = R"sql(UPDATE "T" SET "name" = N'O''Brien'
+                                                WHERE "id" = 1)sql",
+                         });
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "Migration Insert", "[SqlQueryBuilder][Migration]")
 {
     CheckSqlQueryBuilder(
