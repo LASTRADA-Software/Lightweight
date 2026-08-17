@@ -45,6 +45,41 @@ TEST_CASE_METHOD(SqlTestFixture, "DataMapper::IsModified flips when a Field is a
     CHECK_FALSE(dm.IsModified(person));
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "DataMapper::Update with no modified fields is a no-op", "[DataMapper]")
+{
+    auto dm = DataMapper();
+    dm.CreateTable<Person>();
+
+    auto person = Person { .id = {}, .name = "John Doe", .is_active = true, .age = 30 };
+    dm.Create(person);
+    REQUIRE_FALSE(dm.IsModified(person));
+
+    // Nothing has been touched since Create(), so there is no SET clause to emit. Without an
+    // early-out this builds `UPDATE "Persons" SET  WHERE "id" = ?`, which the driver rejects.
+    REQUIRE_NOTHROW(dm.Update(person));
+
+    auto const reloaded = dm.QuerySingle<Person>(person.id);
+    REQUIRE(reloaded.has_value());
+    CHECK(reloaded->name.Value() == person.name.Value());
+    CHECK(reloaded->age.Value() == person.age.Value());
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "DataMapper::Update after a fetch with no changes is a no-op", "[DataMapper]")
+{
+    auto dm = DataMapper();
+    dm.CreateTable<Person>();
+
+    auto seed = Person { .id = {}, .name = "Alice", .is_active = true, .age = 30 };
+    dm.Create(seed);
+
+    auto fetched = dm.QuerySingle<Person>(seed.id);
+    REQUIRE(fetched.has_value());
+    REQUIRE_FALSE(dm.IsModified(*fetched));
+
+    // A fetched-but-untouched record has every dirty flag cleared, same empty-SET situation.
+    REQUIRE_NOTHROW(dm.Update(*fetched));
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "DataMapper::IsModified is false for a freshly-fetched record", "[DataMapper]")
 {
     auto dm = DataMapper();

@@ -2009,6 +2009,11 @@ void DataMapper::Update(Record& record)
 
     auto query = _connection.Query(RecordTableName<Record>).Update();
 
+    // Tracks whether the fold below contributed at least one assignment to the SET clause.
+    // With no assignments the formatter would emit `UPDATE "T" SET  WHERE ...`, which every
+    // driver rejects as a syntax error, so we skip the statement entirely instead.
+    bool anyFieldModified = false;
+
 #if defined(LIGHTWEIGHT_CXX26_REFLECTION)
     auto constexpr ctx = std::meta::access_context::current();
     template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
@@ -2017,13 +2022,16 @@ void DataMapper::Update(Record& record)
         if constexpr (FieldWithStorage<FieldType>)
         {
             if (record.[:el:].IsModified())
+            {
                 query.Set(FieldNameOf<el>, SqlWildcard);
+                anyFieldModified = true;
+            }
             if constexpr (IsPrimaryKey<FieldType>)
                 std::ignore = query.Where(FieldNameOf<el>, SqlWildcard);
         }
     }
 #else
-    EnumerateRecordMembers(record, [&query]<size_t I, typename FieldType>(FieldType const& field) {
+    EnumerateRecordMembers(record, [&query, &anyFieldModified]<size_t I, typename FieldType>(FieldType const& field) {
         // for some reason compiler do not want to properly deduce FieldType, so here we
         // directly infer the type from the Record type and index
         using MemberType = RecordMemberTypeOf<I, Record>;
@@ -2031,12 +2039,20 @@ void DataMapper::Update(Record& record)
         if constexpr (FieldWithStorage<MemberType>)
         {
             if (field.IsModified())
+            {
                 query.Set(FieldNameAt<I, Record>, SqlWildcard);
+                anyFieldModified = true;
+            }
             if constexpr (IsPrimaryKey<MemberType>)
                 std::ignore = query.Where(FieldNameAt<I, Record>, SqlWildcard);
         }
     });
 #endif
+
+    // Nothing to write: an UPDATE with an empty SET clause is a no-op by definition.
+    if (!anyFieldModified)
+        return;
+
     _stmt.Prepare(query);
 
     SQLSMALLINT i = 1;
