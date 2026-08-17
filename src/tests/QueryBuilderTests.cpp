@@ -665,14 +665,24 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn", "[SqlQueryBuilder]")
                                                    WHERE "foo" IN (1, 2, 3))"));
 }
 
-TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn with empty list", "[SqlQueryBuilder]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn with empty list matches nothing", "[SqlQueryBuilder]")
 {
+    // An empty IN-set means "match nothing". Emitting no condition at all would instead mean
+    // "match everything" — turning `Delete().WhereIn(col, {})` into a full-table delete.
     CheckSqlQueryBuilder([](SqlQueryBuilder& q) { return q.FromTable("That").Delete().WhereIn("foo", std::vector<int> {}); },
-                         QueryExpectations::All(R"(DELETE FROM "That")"));
+                         QueryExpectations::All(R"(DELETE FROM "That"
+                                                   WHERE 1 = 0)"));
 
     CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) { return q.FromTable("That").Delete().WhereIn("foo", std::initializer_list<int> {}); },
-        QueryExpectations::All(R"(DELETE FROM "That")"));
+        QueryExpectations::All(R"(DELETE FROM "That"
+                                  WHERE 1 = 0)"));
+
+    // It composes with surrounding conditions rather than replacing them.
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) { return q.FromTable("That").Delete().Where("bar", 1).WhereIn("foo", std::vector<int> {}); },
+        QueryExpectations::All(R"(DELETE FROM "That"
+                                  WHERE "bar" = 1 AND 1 = 0)"));
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn with strings", "[SqlQueryBuilder]")
