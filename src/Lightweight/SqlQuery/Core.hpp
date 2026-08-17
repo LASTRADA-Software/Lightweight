@@ -684,8 +684,13 @@ template <typename ColumnName, std::ranges::input_range InputRange>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereIn(ColumnName const& columnName,
                                                                                  InputRange const& values)
 {
-    if (values.empty())
-        return static_cast<Derived&>(*this);
+    // An empty IN-set means "match nothing"; emitting no condition would mean "match everything".
+    // `1 = 0` rather than `FALSE` because SQL Server has no boolean literal.
+    //
+    // std::ranges::empty rather than values.empty(): the latter requires a member function, which
+    // excludes ranges such as built-in arrays that this overload otherwise handles fine.
+    if (std::ranges::empty(values))
+        return WhereRaw("1 = 0");
     return Where(columnName, "IN", PopulateSqlSetExpression(values));
 }
 
@@ -695,8 +700,9 @@ template <typename ColumnName, typename T>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereIn(ColumnName const& columnName,
                                                                                  std::initializer_list<T> const& values)
 {
+    // See the range overload above: an empty IN-set must not silently drop the condition.
     if (values.begin() == values.end())
-        return static_cast<Derived&>(*this);
+        return WhereRaw("1 = 0");
     return Where(columnName, "IN", PopulateSqlSetExpression(values));
 }
 

@@ -665,14 +665,34 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn", "[SqlQueryBuilder]")
                                                    WHERE "foo" IN (1, 2, 3))"));
 }
 
-TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn with empty list", "[SqlQueryBuilder]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn accepts a range without a member empty()", "[SqlQueryBuilder]")
 {
+    // A built-in array is an input_range but has no `.empty()` member, so the emptiness check must
+    // go through std::ranges::empty rather than calling values.empty() directly.
+    int const values[] = { 1, 2, 3 };
+    CheckSqlQueryBuilder([&](SqlQueryBuilder& q) { return q.FromTable("That").Delete().WhereIn("foo", values); },
+                         QueryExpectations::All(R"(DELETE FROM "That"
+                                                   WHERE "foo" IN (1, 2, 3))"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn with empty list matches nothing", "[SqlQueryBuilder]")
+{
+    // An empty IN-set means "match nothing". Emitting no condition at all would instead mean
+    // "match everything" — turning `Delete().WhereIn(col, {})` into a full-table delete.
     CheckSqlQueryBuilder([](SqlQueryBuilder& q) { return q.FromTable("That").Delete().WhereIn("foo", std::vector<int> {}); },
-                         QueryExpectations::All(R"(DELETE FROM "That")"));
+                         QueryExpectations::All(R"(DELETE FROM "That"
+                                                   WHERE 1 = 0)"));
 
     CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) { return q.FromTable("That").Delete().WhereIn("foo", std::initializer_list<int> {}); },
-        QueryExpectations::All(R"(DELETE FROM "That")"));
+        QueryExpectations::All(R"(DELETE FROM "That"
+                                  WHERE 1 = 0)"));
+
+    // It composes with surrounding conditions rather than replacing them.
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) { return q.FromTable("That").Delete().Where("bar", 1).WhereIn("foo", std::vector<int> {}); },
+        QueryExpectations::All(R"(DELETE FROM "That"
+                                  WHERE "bar" = 1 AND 1 = 0)"));
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn with strings", "[SqlQueryBuilder]")
@@ -1820,6 +1840,21 @@ TEST_CASE("Non-MSSQL StringLiteral has no N prefix", "[SqlQueryFormatter]")
 {
     CHECK(SqlQueryFormatter::Sqlite().StringLiteral("hi") == "'hi'");
     CHECK(SqlQueryFormatter::PostgrSQL().StringLiteral("hi") == "'hi'");
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Update.Set escapes string literals", "[SqlQueryBuilder]")
+{
+    // Without a bindings vector the value is inlined, so it must go through the formatter's
+    // StringLiteral() — same as SqlInsertQueryBuilder::Set does — rather than bare '...' quoting.
+    CheckSqlQueryBuilder([](SqlQueryBuilder& q) { return q.FromTable("T").Update().Set("name", "O'Brien").Where("id", 1); },
+                         QueryExpectations {
+                             .sqlite = R"sql(UPDATE "T" SET "name" = 'O''Brien'
+                                             WHERE "id" = 1)sql",
+                             .postgres = R"sql(UPDATE "T" SET "name" = 'O''Brien'
+                                               WHERE "id" = 1)sql",
+                             .sqlServer = R"sql(UPDATE "T" SET "name" = N'O''Brien'
+                                                WHERE "id" = 1)sql",
+                         });
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "Migration Insert", "[SqlQueryBuilder][Migration]")

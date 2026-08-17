@@ -176,6 +176,10 @@ auto rows = dm.Query<Employee>().WhereIn(FieldNameOf<&Employee::department>, dep
 
 `WhereIn` accepts any range (`std::vector`, `std::set`, an initializer list) or a sub-select query.
 
+An **empty** range means "match nothing", and emits `WHERE 1 = 0` rather than omitting the condition.
+This matters most for `Delete()`: `dm.FromTable("Employees").Delete().WhereIn("department_id", ids)`
+with an empty `ids` deletes no rows, instead of every row in the table.
+
 ### WHERE — NULL / NOT NULL
 
 ```sql
