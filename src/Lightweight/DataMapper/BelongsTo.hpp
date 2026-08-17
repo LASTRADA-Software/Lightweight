@@ -152,6 +152,30 @@ class BelongsTo
         return *this;
     }
 
+    /// Assigns a bare foreign-key value, updating the foreign key and marking the field modified.
+    ///
+    /// This is the sibling of Field<T>::operator=(S&&). Without it, `record.fk = someKeyValue`
+    /// would bind to the converting constructor plus move-assignment, and the temporary's
+    /// default-constructed `_modified` (false) would be copied over this field — leaving the
+    /// change invisible to DataMapper::Update(), which gates its SET clause on IsModified().
+    ///
+    /// Any previously loaded record is dropped, since it no longer corresponds to the new key.
+    ///
+    /// @param value The referenced record's primary-key value to point at.
+    /// @return Reference to this field.
+    template <typename S>
+        requires(std::constructible_from<ValueType, S> && !std::same_as<std::remove_cvref_t<S>, BelongsTo>
+                 && !std::same_as<std::remove_cvref_t<S>, ReferencedRecord>
+                 && !std::same_as<std::remove_cvref_t<S>, SqlNullType>)
+    constexpr BelongsTo& operator=(S&& value) noexcept
+    {
+        _referencedFieldValue = ValueType { std::forward<S>(value) };
+        _loaded = false;
+        _record.reset();
+        _modified = true;
+        return *this;
+    }
+
     /// Assigns a referenced record, updating the foreign key and loaded state.
     BelongsTo& operator=(ReferencedRecord& other)
     {
