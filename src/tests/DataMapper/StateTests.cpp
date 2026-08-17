@@ -45,6 +45,33 @@ TEST_CASE_METHOD(SqlTestFixture, "DataMapper::IsModified flips when a Field is a
     CHECK_FALSE(dm.IsModified(person));
 }
 
+// ================================================================================================
+// Update — primary-key requirement
+// ================================================================================================
+
+/// A record with no PrimaryKey-qualified field. DataMapper::Update() builds its WHERE clause
+/// exclusively from primary-key fields, so accepting this type would emit an UPDATE with no
+/// WHERE clause and rewrite every row of the table.
+struct StateTestsNoPrimaryKey
+{
+    Field<SqlAnsiString<25>> name;
+    Field<int> age;
+};
+
+static_assert(!HasPrimaryKey<StateTestsNoPrimaryKey>, "test fixture must genuinely lack a primary key");
+static_assert(HasPrimaryKey<Person>, "test fixture must genuinely have a primary key");
+
+// The guard is a constraint on the declaration rather than a static_assert in the body, so that it
+// is detectable here instead of only firing as a hard error at the call site. The check goes
+// through a variable template because a requires-expression over non-dependent types is diagnosed
+// eagerly by clang rather than yielding false.
+template <typename Record>
+constexpr bool IsUpdatableByDataMapper = requires(DataMapper& dm, Record& record) { dm.Update(record); };
+
+static_assert(!IsUpdatableByDataMapper<StateTestsNoPrimaryKey>,
+              "DataMapper::Update() must not accept a record without a primary key");
+static_assert(IsUpdatableByDataMapper<Person>, "DataMapper::Update() must still accept a record with a primary key");
+
 TEST_CASE_METHOD(SqlTestFixture, "DataMapper::Update with no modified fields is a no-op", "[DataMapper]")
 {
     auto dm = DataMapper();
