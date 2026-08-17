@@ -302,9 +302,10 @@ EXEC sp_executesql @sql;)",
     {
         assert(!orderBy.empty());
         std::stringstream sqlQueryString;
-        sqlQueryString << "SELECT " << fields;
+        sqlQueryString << "SELECT ";
         if (distinct)
-            sqlQueryString << " DISTINCT";
+            sqlQueryString << "DISTINCT ";
+        sqlQueryString << fields;
         sqlQueryString << " FROM " << FormatFromTable(fromTable);
         if (!fromTableAlias.empty())
             sqlQueryString << " AS [" << fromTableAlias << ']';

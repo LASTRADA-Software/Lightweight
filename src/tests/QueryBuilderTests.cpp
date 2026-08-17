@@ -132,6 +132,36 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Distinct.All", "[SqlQue
                                ORDER BY "b" ASC)"));
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Distinct.First", "[SqlQueryBuilder]")
+{
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) { return q.FromTable("That").Select().Distinct().Field("field1").OrderBy("id").First(); },
+        QueryExpectations {
+            .sqlite = R"(SELECT DISTINCT "field1" FROM "That"
+                         ORDER BY "id" ASC LIMIT 1)",
+            .postgres = R"(SELECT DISTINCT "field1" FROM "That"
+                           ORDER BY "id" ASC LIMIT 1)",
+            .sqlServer = R"(SELECT DISTINCT TOP 1 "field1" FROM "That"
+                            ORDER BY "id" ASC)",
+        });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Distinct.Range", "[SqlQueryBuilder]")
+{
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            return q.FromTable("That").Select().Distinct().Fields("foo", "bar").OrderBy("id").Range(200, 50);
+        },
+        QueryExpectations {
+            .sqlite = R"(SELECT DISTINCT "foo", "bar" FROM "That"
+                         ORDER BY "id" ASC LIMIT 50 OFFSET 200)",
+            .postgres = R"(SELECT DISTINCT "foo", "bar" FROM "That"
+                           ORDER BY "id" ASC LIMIT 50 OFFSET 200)",
+            .sqlServer = R"(SELECT DISTINCT "foo", "bar" FROM "That"
+                            ORDER BY "id" ASC OFFSET 200 ROWS FETCH NEXT 50 ROWS ONLY)",
+        });
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.OrderBy fully qualified", "[SqlQueryBuilder]")
 {
     CheckSqlQueryBuilder(

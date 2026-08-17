@@ -184,9 +184,10 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
                                           size_t count) const override
     {
         std::stringstream sqlQueryString;
-        sqlQueryString << "SELECT " << fields;
+        sqlQueryString << "SELECT ";
         if (distinct)
-            sqlQueryString << " DISTINCT";
+            sqlQueryString << "DISTINCT ";
+        sqlQueryString << fields;
         sqlQueryString << " FROM " << FormatFromTable(fromTable);
         if (!fromTableAlias.empty())
             sqlQueryString << " AS \"" << fromTableAlias << "\"";
@@ -210,9 +211,10 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
                                           std::size_t limit) const override
     {
         std::stringstream sqlQueryString;
-        sqlQueryString << "SELECT " << fields;
+        sqlQueryString << "SELECT ";
         if (distinct)
-            sqlQueryString << " DISTINCT";
+            sqlQueryString << "DISTINCT ";
+        sqlQueryString << fields;
         sqlQueryString << " FROM " << FormatFromTable(fromTable);
         if (!fromTableAlias.empty())
             sqlQueryString << " AS \"" << fromTableAlias << "\"";
