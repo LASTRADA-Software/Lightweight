@@ -1,5 +1,6 @@
 var NAVTREEINDEX4 =
 {
+"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#aa92bb11c246d711c0aa89906bb67a74a":[14,4,7,5],
 "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#aae78f7a3b9c5ab16e1c530458a1b9d70":[14,4,7,19],
 "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#ab383612d1c31747f630dfb1f8608ed0f":[14,4,7,6],
 "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#acb8f4c9ca3abc544b7c967a07163ae1c":[14,4,7,16],
@@ -248,6 +249,5 @@ var NAVTREEINDEX4 =
 "da/da8/classLightweight_1_1SqlConnection.html#a7577a4c8347fede96bb3953f84b068d4":[16,0,0,30,19],
 "da/da8/classLightweight_1_1SqlConnection.html#a7f4f112f86b9fd3fa94d171ddb449324":[16,0,0,30,31],
 "da/da8/classLightweight_1_1SqlConnection.html#a85b56ddb608b6c84fe33b7bff71a7f24":[16,0,0,30,6],
-"da/da8/classLightweight_1_1SqlConnection.html#a85f5e74fcdd175d0e6812e1668b9d729":[16,0,0,30,36],
-"da/da8/classLightweight_1_1SqlConnection.html#a93ccf2f65cb117c8ef34cac8be750d90":[16,0,0,30,37]
+"da/da8/classLightweight_1_1SqlConnection.html#a85f5e74fcdd175d0e6812e1668b9d729":[16,0,0,30,36]
 };

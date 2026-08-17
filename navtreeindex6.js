@@ -1,5 +1,6 @@
 var NAVTREEINDEX6 =
 {
+"dd/d75/structLightweight_1_1SqlAlterTablePlan.html#a4d5476b81f6e3efc5057c49d797a9f07":[14,4,15,1],
 "dd/d75/structLightweight_1_1SqlAlterTablePlan.html#ace007f34324de43ff2ab887fbe321970":[14,4,15,2],
 "dd/d76/structLightweight_1_1SqlInsertDataPlan.html":[14,4,18],
 "dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a0428d0b2e06f4760a9bc3c31cff19327":[14,4,18,2],
@@ -248,6 +249,5 @@ var NAVTREEINDEX6 =
 "df/d3f/structLightweight_1_1SqlVariant.html#a06288408eded97794ac5215272b609c9":[14,0,11,12],
 "df/d3f/structLightweight_1_1SqlVariant.html#a0c88051cb048b8cc50fa3ae9bc77a3ef":[14,0,11,10],
 "df/d3f/structLightweight_1_1SqlVariant.html#a118c7ea1064e337ea3a7af5296f3dd4d":[14,0,11,35],
-"df/d3f/structLightweight_1_1SqlVariant.html#a1390916c2cef8d54612cd91d17d38d95":[14,0,11,7],
-"df/d3f/structLightweight_1_1SqlVariant.html#a1b6881f630dd2c5fc932236ced34e432":[14,0,11,18]
+"df/d3f/structLightweight_1_1SqlVariant.html#a1390916c2cef8d54612cd91d17d38d95":[14,0,11,7]
 };

@@ -15,6 +15,7 @@ var group__DataMapper =
       [ "BelongsTo", "d0/df7/classLightweight_1_1BelongsTo.html#aa9bd867d69ca5c88684ab0e3b4439527", null ],
       [ "BelongsTo", "d0/df7/classLightweight_1_1BelongsTo.html#a946d91c2cd643b9a8cdbf4343aa19d63", null ],
       [ "operator=", "d0/df7/classLightweight_1_1BelongsTo.html#a1c28877f40a726cdb837bf7fdb2f73da", null ],
+      [ "operator=", "d0/df7/classLightweight_1_1BelongsTo.html#a50257e08788c2c01a781358ccb4385d9", null ],
       [ "operator=", "d0/df7/classLightweight_1_1BelongsTo.html#a9df55ec215b20b9bbfa659330b7b4ba9", null ],
       [ "operator=", "d0/df7/classLightweight_1_1BelongsTo.html#a5b80be4794894b20d8838371fd6a50b5", null ],
       [ "operator=", "d0/df7/classLightweight_1_1BelongsTo.html#a0645bc64e5f24bf31241aac597cf45d6", null ],
