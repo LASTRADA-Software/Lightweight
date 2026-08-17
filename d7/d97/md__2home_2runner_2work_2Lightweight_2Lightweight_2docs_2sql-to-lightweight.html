@@ -212,6 +212,7 @@ WHERE IN</h2>
 </div><!-- fragment --><div class="fragment"><div class="line"><span class="keyword">auto</span> departmentIds = std::vector { 1, 2, 3 };</div>
 <div class="line"><span class="keyword">auto</span> rows = dm.Query&lt;Employee&gt;().WhereIn(FieldNameOf&lt;&amp;Employee::department&gt;, departmentIds).All();</div>
 </div><!-- fragment --><p><code>WhereIn</code> accepts any range (<code>std::vector</code>, <code>std::set</code>, an initializer list) or a sub-select query.</p>
+<p>An <b>empty</b> range means "match nothing", and emits <code>WHERE 1 = 0</code> rather than omitting the condition. This matters most for <code>Delete()</code>: <code>dm.FromTable("Employees").Delete().WhereIn("department_id", ids)</code> with an empty <code>ids</code> deletes no rows, instead of every row in the table.</p>
 <h2><a class="anchor" id="where--null--not-null"></a>
 WHERE — NULL / NOT NULL</h2>
 <div class="fragment"><div class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="stringliteral">&quot;Employees&quot;</span> <span class="keyword">WHERE</span> <span class="stringliteral">&quot;age&quot;</span> <span class="keyword">IS</span> <span class="keyword">NOT</span> <span class="stringliteral">NULL</span>;</div>
