@@ -87,6 +87,8 @@ TEST_CASE_METHOD(SqlTestFixture, "DataMapper::Update with no modified fields is 
 
     auto const reloaded = dm.QuerySingle<Person>(person.id);
     REQUIRE(reloaded.has_value());
+    if (!reloaded.has_value())
+        return;
     CHECK(reloaded->name.Value() == person.name.Value());
     CHECK(reloaded->age.Value() == person.age.Value());
 }
@@ -101,10 +103,13 @@ TEST_CASE_METHOD(SqlTestFixture, "DataMapper::Update after a fetch with no chang
 
     auto fetched = dm.QuerySingle<Person>(seed.id);
     REQUIRE(fetched.has_value());
-    REQUIRE_FALSE(dm.IsModified(*fetched));
+    if (!fetched.has_value())
+        return;
+    auto& record = *fetched;
+    REQUIRE_FALSE(dm.IsModified(record));
 
     // A fetched-but-untouched record has every dirty flag cleared, same empty-SET situation.
-    REQUIRE_NOTHROW(dm.Update(*fetched));
+    REQUIRE_NOTHROW(dm.Update(record));
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "DataMapper::IsModified is false for a freshly-fetched record", "[DataMapper]")
