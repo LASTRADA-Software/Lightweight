@@ -462,12 +462,11 @@ namespace SqlMigration
         /// into a per-table view of "the final shape" plus a chronological list of
         /// data steps and surviving indexes/releases. Used by:
         ///
-        ///   - `dbtool fold` to emit a self-contained baseline (`.cpp` plugin or `.sql`)
         ///   - `HardReset` to know which tables the migrations would have created
         ///   - `UnicodeUpgradeTables` to know which char/varchar columns the migrations
         ///     now declare wide
         ///
-        /// All three are pure operations — `FoldRegisteredMigrations` itself never
+        /// Both are pure operations — `FoldRegisteredMigrations` itself never
         /// executes a single statement. See `FoldRegisteredMigrations` for the API.
         struct PlanFoldingResult
         {

@@ -91,7 +91,11 @@ class SqlConnection final
         return m_connectionId;
     }
 
-    /// Closes the connection (attempting to put it back into the connect[[ion pool).
+    /// Closes the connection, freeing the underlying ODBC handles.
+    ///
+    /// This does not return the connection to any pool: `SqlConnection` owns its handles outright.
+    /// Connection pooling is provided separately by `Lightweight::Pool` in
+    /// `DataMapper/Pool.hpp`, which recycles pooled `DataMapper` instances.
     LIGHTWEIGHT_API void Close() noexcept;
 
     /// Connects to the given database with the given username and password.
