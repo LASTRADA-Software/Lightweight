@@ -10,7 +10,6 @@ var searchData=
   ['wherenull_7',['wherenull',['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a7322f0f36ed298443acce7adfd582526',1,'Lightweight::SqlWhereClauseBuilder::WhereNull(ColumnName const &amp;columnName)'],['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a9b377e2f9117ac54d9ceca7afcc5614a',1,'Lightweight::SqlWhereClauseBuilder::WhereNull(ColumnName const &amp;columnName)']]],
   ['whereraw_8',['WhereRaw',['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a5a857122df51ec8595876adafcaeb51d',1,'Lightweight::SqlWhereClauseBuilder']]],
   ['wheretrue_9',['wheretrue',['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a1c04fd7b1f7b5354e07e5ef5e0118958',1,'Lightweight::SqlWhereClauseBuilder::WhereTrue(ColumnName const &amp;columnName)'],['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a168b834b8bb66654fcb8ca75372f4aeb',1,'Lightweight::SqlWhereClauseBuilder::WhereTrue(ColumnName const &amp;columnName)']]],
-  ['with_10',['With',['../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a94ac22ca18ac58c4a937f392bc0726eb',1,'Lightweight::SqlCoreDataMapperQueryBuilder']]],
-  ['withschema_11',['WithSchema',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a711667d1ef5b5b5a168aa21b2150a394',1,'Lightweight::SqlMigrationQueryBuilder']]],
-  ['writerow_12',['WriteRow',['../dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#ae02440293597aaf830d7ce2dc4ef6a26',1,'Lightweight::SqlBackup::ChunkWriter']]]
+  ['withschema_10',['WithSchema',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a711667d1ef5b5b5a168aa21b2150a394',1,'Lightweight::SqlMigrationQueryBuilder']]],
+  ['writerow_11',['WriteRow',['../dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#ae02440293597aaf830d7ce2dc4ef6a26',1,'Lightweight::SqlBackup::ChunkWriter']]]
 ];

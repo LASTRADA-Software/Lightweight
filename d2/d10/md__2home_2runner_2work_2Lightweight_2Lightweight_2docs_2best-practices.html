@@ -170,15 +170,6 @@ Use Prepared Statements</h2>
 Use Pagination or Infinite Scrolling</h2>
 <p>When querying large result sets, use pagination or infinite scrolling to limit the number of results returned in a single response. <br  />
  This will help to reduce the response time and the load on the server, and improve the performance of your application.</p>
-<h2><a class="anchor" id="load-relations-for-a-whole-result-set-not-per-record"></a>
-Load relations for a whole result set, not per record</h2>
-<p>Touching a relation on each record of a result set issues one query per record — the N+1 problem. Name the relation on the query instead, and it is resolved for the entire batch in a constant number of queries:</p>
-<div class="fragment"><div class="line"><span class="keyword">auto</span> albums = dm.Query&lt;Album&gt;().With&lt;&amp;Album::tracks&gt;().All(); <span class="comment">// 2 queries, not 1 + N</span></div>
-</div><!-- fragment --><p>See <a class="el" href="../../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html">Eager loading of relations</a>. Two things compound with it:</p>
-<ul>
-<li><b>Index your foreign keys.</b> <code>CreateTable&lt;Record&gt;()</code> emits an index for every <code>BelongsTo</code> column, because no supported engine indexes a foreign key implicitly. Tables created by hand, or by an older version of Lightweight, need that index added — without it every relation query is a full table scan.</li>
-<li><b>Prove the absence of N+1 in tests.</b> A <code>SqlLogger</code> subclass counting <code>OnPrepare</code>/<code>OnExecuteDirect</code> turns "this endpoint issues two queries" into an assertion instead of an assumption.</li>
-</ul>
 <h2><a class="anchor" id="let-block-prefetch-cut-network-round-trips"></a>
 Let block-prefetch cut network round-trips</h2>
 <p>Per-row fetch loops issue one <code>SQLFetch</code> (one network round-trip) per row. Lightweight transparently fetches rows in blocks (ODBC row-array binding) so a large result set costs <code>ceil(rows / depth)</code> round-trips instead of one per row — see <a class="el" href="../../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html">Transparent block-prefetch</a>. It is on by default (<code>Lightweight::PrefetchDepthDefault</code>, 1000 rows) and tuned per connection:</p>

@@ -219,34 +219,6 @@ Batched insert and update</h2>
 </div><!-- fragment --><blockquote class="doxtable">
 <p>&zwj;Note: <code>CreateAll</code>/<code>UpdateAll</code> do not write primary keys, relations, or modified-state back onto the records (treat them as write-only inputs), and <code>UpdateAll</code> writes a uniform set of columns for every row rather than only the per-record modified ones. The range must be contiguous. </p>
 </blockquote>
-<h2><a class="anchor" id="eager-loading-of-relations-with"></a>
-Eager loading of relations (&lt;tt&gt;With&lt;&gt;()&lt;/tt&gt;)</h2>
-<p>Accessing a relation on a query result loads it on demand — one query per record. Over a result set of N records that is the N+1 problem: reading <code>album.tracks</code> for 1000 albums issues 1001 queries. <code>With&lt;&amp;Record::relation&gt;()</code> instead resolves the relation for the whole result set once it has been materialized, using <code>WHERE &lt;key&gt; IN (...)</code>:</p>
-<div class="fragment"><div class="line"><span class="comment">// Two queries in total, whatever the number of albums: one for the albums, one for all their tracks.</span></div>
-<div class="line"><span class="keyword">auto</span> albums = dm.Query&lt;Album&gt;()</div>
-<div class="line">                .With&lt;&amp;Album::tracks&gt;()    <span class="comment">// HasMany</span></div>
-<div class="line">                .With&lt;&amp;Album::artist&gt;()    <span class="comment">// BelongsTo</span></div>
-<div class="line">                .All();</div>
-<div class="line"> </div>
-<div class="line"><span class="keywordflow">for</span> (<span class="keyword">auto</span>&amp; album: albums)</div>
-<div class="line">    for (auto const&amp; track: album.tracks.All())  <span class="comment">// already loaded, no query</span></div>
-<div class="line">        std::println(<span class="stringliteral">&quot;{} - {}&quot;</span>, album.title, track-&gt;title);</div>
-</div><!-- fragment --><ul>
-<li>Supported for <code>BelongsTo</code> and <code>HasMany</code>. <code>HasOneThrough</code>, <code>HasManyThrough</code> and <code>CompositeForeignKey</code> still load on demand; naming one of them in <code>With&lt;&gt;()</code> is a compile error rather than a silent fallback.</li>
-<li>Calls chain, one per relation to load. It applies to <code>All()</code>, <code>First()</code>, <code>First(n)</code> and <code>Range()</code>.</li>
-<li>The <code>IN</code> predicate is chunked (see <code>SqlQueryFormatter::MaxInPredicateValues</code>, 1000 by default), so a large batch costs one query per chunk — a constant number of queries per relation, never one per record.</li>
-<li>A <code>BelongsTo</code> whose foreign key is <code>NULL</code>, and an owner with no children, are handled without an extra query: the childless owner's relation is marked loaded-and-empty rather than left to query for a result already known.</li>
-<li>Relations that were <em>not</em> named keep their on-demand behaviour. Combining <code>With&lt;&gt;()</code> with <code>DataMapperOptions { .loadRelations = false }</code> therefore turns any unrequested relation access into a <code>SqlRequireLoadedError</code> instead of a silent query — useful to prove a code path issues no N+1.</li>
-</ul>
-<p>Measured on 1000 owners with 10 children each, comparing the on-demand path with <code>With&lt;&gt;()</code>:</p>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">relation   </th><th class="markdownTableHeadRight">queries before   </th><th class="markdownTableHeadRight">queries after   </th><th class="markdownTableHeadRight">SQLite3   </th><th class="markdownTableHeadRight">PostgreSQL   </th><th class="markdownTableHeadRight">MS SQL Server    </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>HasMany</code>   </td><td class="markdownTableBodyRight">1001   </td><td class="markdownTableBodyRight">2   </td><td class="markdownTableBodyRight">8.7x   </td><td class="markdownTableBodyRight">45x   </td><td class="markdownTableBodyRight">45x    </td></tr>
-<tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>BelongsTo</code>   </td><td class="markdownTableBodyRight">10001   </td><td class="markdownTableBodyRight">2   </td><td class="markdownTableBodyRight">37x   </td><td class="markdownTableBodyRight">464x   </td><td class="markdownTableBodyRight">407x   </td></tr>
-</table>
 <h1><a class="anchor" id="simple-row-retrieval-via-structs"></a>
 Simple row retrieval via structs</h1>
 <p>When only read access is needed, you can use a simple <code>struct</code> to represent the row, and also do not need to wrap the fields into <code>Field&lt;&gt;</code> template. The <code>struct</code> must have fields that match the columns in the query. The fields can be of any type that can be converted from the column type. The struct can have more fields than the columns in the query, but the fields that match the columns must be in the same order as the columns in the query.</p>

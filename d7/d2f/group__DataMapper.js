@@ -208,7 +208,6 @@ var group__DataMapper =
       [ "Exist", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a6195f901f57b2d594e9b7c4d78db6ea9", null ],
       [ "Count", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a27f9b5b92afec1d8ca21de0eb978fbce", null ],
       [ "All", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#ae399be8931ae0508e99ee56454c37c6b", null ],
-      [ "With", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a94ac22ca18ac58c4a937f392bc0726eb", null ],
       [ "Delete", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a2f2d1f5684e8d4290b9ad733f0c77835", null ],
       [ "All", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a25a32f6bdaa186db2f20b2683bcede27", null ],
       [ "All", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a110f55753102b397dee9f26192fb1295", null ],
