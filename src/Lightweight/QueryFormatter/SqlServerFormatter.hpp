@@ -271,6 +271,7 @@ EXEC sp_executesql @sql;)",
                                           std::string_view tableJoins,
                                           std::string_view whereCondition,
                                           std::string_view orderBy,
+                                          std::string_view groupBy,
                                           size_t count) const override
     {
         std::stringstream sqlQueryString;
@@ -284,6 +285,7 @@ EXEC sp_executesql @sql;)",
             sqlQueryString << " AS [" << fromTableAlias << ']';
         sqlQueryString << tableJoins;
         sqlQueryString << whereCondition;
+        sqlQueryString << groupBy;
         sqlQueryString << orderBy;
         return sqlQueryString.str();
     }

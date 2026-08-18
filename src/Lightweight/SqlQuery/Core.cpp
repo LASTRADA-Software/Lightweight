@@ -23,6 +23,7 @@ std::string Lightweight::detail::ComposedQuery::ToSql() const
                                           searchCondition.tableJoins,
                                           searchCondition.condition,
                                           orderBy,
+                                          groupBy,
                                           limit);
         case SelectType::Range:
             return formatter->SelectRange(distinct,
@@ -40,7 +41,8 @@ std::string Lightweight::detail::ComposedQuery::ToSql() const
                                           searchCondition.tableName,
                                           searchCondition.tableAlias,
                                           searchCondition.tableJoins,
-                                          searchCondition.condition);
+                                          searchCondition.condition,
+                                          groupBy);
         case SelectType::Undefined:
             break;
     }

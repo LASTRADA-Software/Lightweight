@@ -83,6 +83,9 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
     }
 
     /// Executes a SELECT COUNT query and returns the number of records found.
+    ///
+    /// A preceding @c GroupBy is honored, making the query count per group. Since only a single
+    /// value is returned, the count of the first group is what the caller receives.
     [[nodiscard]] auto Count()
     {
         return RunFinisher([this] { return CountImpl(); });
