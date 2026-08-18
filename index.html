@@ -166,10 +166,6 @@ Known limitations</h1>
 <li><b>No eager-loading / preload API.</b> Touching a relation across N records issues N queries.</li>
 <li><b>Backup is online, with no snapshot.</b> Tables are read while writes continue, so an archive has no cross-table consistency guarantee. Quiesce writers if you need a consistent point-in-time dump. See <a class="el" href="dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html">sql-backup.md</a>.</li>
 </ul>
-<h1><a class="anchor" id="versioning-and-stability"></a>
-Versioning and stability</h1>
-<p>Releases are calendar-versioned as <code>v0.YYYYMMDD.0</code>. The leading <code>0.</code> is part of that scheme and is <b>not</b> a statement that the library is unfinished — it is in production use, and the test suite runs against SQLite, PostgreSQL and SQL Server 2017/2019/2022 on every change.</p>
-<p>That said, the project does not currently make a formal semver compatibility promise: the public API is stable in practice, but a breaking change can land in any release. Pin an exact tag if you need reproducible builds, and read the release notes before upgrading.</p>
 <h1><a class="anchor" id="namespace"></a>
 Namespace</h1>
 <p>All functionality is placed inside a <code>Lightweight</code> namespace, we also provide an alias for this namespace <code>Light</code>, that is slightly shorter.</p>

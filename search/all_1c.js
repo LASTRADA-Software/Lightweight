@@ -11,7 +11,6 @@ var searchData=
   ['verification_8',['Status &amp; Verification',['../d2/da6/sql-migrations.html#status--verification',1,'']]],
   ['verifychecksums_9',['VerifyChecksums',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a63ce9461c4cd37394364f25f4e9f0cc8',1,'Lightweight::SqlMigration::MigrationManager']]],
   ['version_10',['version',['../d5/dc4/dbtool.html#migrate-to-release-version',1,'migrate-to-release &lt;VERSION&gt;'],['../d5/dc4/dbtool.html#rollback-to-release-version',1,'rollback-to-release &lt;VERSION&gt;'],['../d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html#ab1116d155822475c5e653b49aa5805aa',1,'Lightweight::SqlMigration::MigrationRelease::version']]],
-  ['versioning_20and_20stability_11',['Versioning and stability',['../index.html#versioning-and-stability',1,'']]],
-  ['via_20structs_12',['Simple row retrieval via structs',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#simple-row-retrieval-via-structs',1,'']]],
-  ['vs_20multi_20threaded_13',['Single-threaded vs multi-threaded',['../db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#single-threaded-vs-multi-threaded',1,'']]]
+  ['via_20structs_11',['Simple row retrieval via structs',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#simple-row-retrieval-via-structs',1,'']]],
+  ['vs_20multi_20threaded_12',['Single-threaded vs multi-threaded',['../db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#single-threaded-vs-multi-threaded',1,'']]]
 ];

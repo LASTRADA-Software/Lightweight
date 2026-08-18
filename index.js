@@ -5,7 +5,6 @@ var index =
     [ "Supported platforms", "index.html#supported-platforms", null ],
     [ "Supported databases", "index.html#supported-databases", null ],
     [ "Known limitations", "index.html#known-limitations", null ],
-    [ "Versioning and stability", "index.html#versioning-and-stability", null ],
     [ "Namespace", "index.html#namespace", null ],
     [ "High level API", "index.html#high-level-api", [
       [ "Simple one record example", "index.html#simple-one-record-example", null ],
