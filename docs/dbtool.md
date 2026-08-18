@@ -1,4 +1,4 @@
-# dbtool - Database Management CLI {#dbtool}
+# dbtool - Database Management CLI
 
 ## Overview
 
@@ -655,5 +655,5 @@ If migration locking fails:
 
 ## See Also
 
-- @ref sql-migrations - Guide to writing SQL migrations in C++
+- [sql-migrations.md](sql-migrations.md) - Guide to writing SQL migrations in C++
 - @ref Lightweight::SqlMigration::MigrationManager - C++ API for managing migrations
