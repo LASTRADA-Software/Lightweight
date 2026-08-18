@@ -23,6 +23,8 @@ Documentation is available at [https://lastrada-software.github.io/Lightweight/]
 | **Backup & restore** | Parallel chunked dump/restore, msgpack + zip + sha256, archive diffing | [sql-backup.md](docs/sql-backup.md), [sql-backup-format.md](docs/sql-backup-format.md) |
 | **Async API** | C++23 coroutines: `Task<T>`, executors, strand, stdexec bridge, async `DataMapper` | [async.md](docs/async.md) |
 | **Connection pooling** | Compile-time-configured pool, async-aware, recycles connections across mappers | [async.md](docs/async.md) |
+| **Logging & tracing** | Pluggable `SqlLogger`: warnings/errors, full SQL trace, or your own sink | [logging.md](docs/logging.md) |
+| **Schema introspection** | Read tables, columns, keys and indexes back out of a live database | [schema-introspection.md](docs/schema-introspection.md) |
 | **Custom data types** | `SqlDataBinder<T>` specialization for your own types, with Unicode support | [data-binder.md](docs/data-binder.md) |
 | **`dbtool` CLI** | Migrations, backup/restore, backup diffing, schema inspection — ~20 commands | [dbtool.md](docs/dbtool.md) |
 | **`dbtool-gui`** | Qt/QML desktop app for migrations, backup and ad-hoc queries | [dbtool.md](docs/dbtool.md) |
