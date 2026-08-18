@@ -10,6 +10,7 @@
 namespace Lightweight::Async
 {
 
+/// @ingroup Async
 /// A fixed-size pool of worker threads that run posted work concurrently.
 ///
 /// This is the default "DB worker" offload target: blocking ODBC calls are posted here and

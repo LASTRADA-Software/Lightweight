@@ -16,6 +16,7 @@ namespace Lightweight::SqlBackup
     #pragma warning(disable : 4251) // STL types in DLL interface
 #endif
 
+/// @ingroup Backup
 /// Filters tables by name patterns with glob-style wildcards.
 ///
 /// Supports:

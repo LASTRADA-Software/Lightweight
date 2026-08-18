@@ -23,6 +23,7 @@ namespace Lightweight
 /// a value <= 1 disables prefetch.
 constexpr std::size_t PrefetchDepthDefault = 1000;
 
+/// @ingroup CoreApi
 /// Represents an ODBC connection string.
 struct SqlConnectionString
 {
@@ -61,6 +62,7 @@ LIGHTWEIGHT_API SqlConnectionString BuildConnectionString(SqlConnectionStringMap
 /// opened for writing.
 [[nodiscard]] LIGHTWEIGHT_API bool EnsureSqliteDatabaseFileExists(SqlConnectionString const& connectionString);
 
+/// @ingroup CoreApi
 /// Represents a connection data source as a DSN, username, password, and timeout.
 struct [[nodiscard]] SqlConnectionDataSource
 {

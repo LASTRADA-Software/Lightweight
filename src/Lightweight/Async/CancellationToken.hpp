@@ -6,6 +6,7 @@
 namespace Lightweight::Async
 {
 
+/// @ingroup Async
 /// Thrown when an asynchronous operation is abandoned because cancellation was requested
 /// before (or instead of) it producing a result.
 class OperationCancelledError: public std::runtime_error

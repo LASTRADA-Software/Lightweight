@@ -13,6 +13,13 @@
 #include <utility>
 #include <variant>
 
+/// @defgroup Async Asynchronous API
+/// @brief C++23 coroutine API: tasks, executors and the offload backend.
+///
+/// Async entry points are added directly to the types you already use (@c SqlConnection,
+/// @c DataMapper, @c Pool), suffixed with @c Async. Note that this is a thread-offload model
+/// rather than protocol-level non-blocking I/O.
+
 namespace Lightweight::Async
 {
 

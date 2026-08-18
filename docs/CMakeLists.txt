@@ -66,7 +66,6 @@ message(STATUS "Doxygen found: ${DOXYGEN_EXECUTABLE}")
     "${PROJECT_SOURCE_DIR}/docs/async.md"
     "${PROJECT_SOURCE_DIR}/docs/composite-keys-design.md"
     "${PROJECT_SOURCE_DIR}/docs/ddl2cpp-relation-generation.md"
-    "${PROJECT_SOURCE_DIR}/docs/announcement-reddit.md"
   )
   doxygen_add_docs(doc
     ${DOCS_SOURCES}

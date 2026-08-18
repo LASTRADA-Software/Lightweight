@@ -14,6 +14,7 @@
 namespace Lightweight
 {
 
+/// @ingroup CoreApi
 /// RAII-style cross-process advisory lock.
 ///
 /// Provides a distributed locking mechanism so that only one process at a

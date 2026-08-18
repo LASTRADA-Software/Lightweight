@@ -20,6 +20,7 @@
 namespace Lightweight
 {
 
+/// @ingroup CoreApi
 /// @brief Represents an ODBC SQL error.
 ///
 /// NOTE: This is a simple wrapper around the SQL return codes. It is not meant to be

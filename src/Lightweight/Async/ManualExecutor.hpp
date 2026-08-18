@@ -11,6 +11,7 @@
 namespace Lightweight::Async
 {
 
+/// @ingroup Async
 /// An executor that runs work only when explicitly pumped by the owning thread.
 ///
 /// This is the "app thread" / event-loop resume target for the single-threaded model:
