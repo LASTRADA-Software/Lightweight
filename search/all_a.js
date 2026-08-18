@@ -14,7 +14,7 @@ var searchData=
   ['database_11',['database',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#autotoc_md64-bit-integer-handling-in-oracle-database',1,'64-bit Integer Handling in Oracle Database'],['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#configure-default-connection-information-to-the-database',1,'Configure default connection information to the database'],['../index.html#generate-example-for-the-existing-database',1,'Generate example for the existing database']]],
   ['database_20library_12',['Lightweight, a C++23 database library',['../index.html',1,'']]],
   ['database_20management_20cli_13',['dbtool - Database Management CLI',['../d5/dc4/dbtool.html',1,'']]],
-  ['database_20schema_14',['Create or Modife database schema',['../d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#create-or-modife-database-schema',1,'']]],
+  ['database_20schema_14',['Create or Modify database schema',['../d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#create-or-modify-database-schema',1,'']]],
   ['database_20specific_20connection_20strings_15',['Database-Specific Connection Strings',['../d5/dc4/dbtool.html#database-specific-connection-strings',1,'']]],
   ['databasename_16',['DatabaseName',['../da/da8/classLightweight_1_1SqlConnection.html#ac29fe83ca60448002d451dbd707be955',1,'Lightweight::SqlConnection']]],
   ['databases_17',['Supported databases',['../index.html#supported-databases',1,'']]],

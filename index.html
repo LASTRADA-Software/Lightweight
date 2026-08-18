@@ -249,7 +249,7 @@ Foreign keys relation</h2>
 </blockquote>
 <h2><a class="anchor" id="mapping-query-results-to-a-simple-struct"></a>
 Mapping query results to a simple struct</h2>
-<p>If you have a SQL query that returns some values, but it does not corresponds to the existing table in the database, you can map the result to a simple struct. The struct must have fields that match the columns in the query. The fields can be of any type that can be converted from the column type. The struct can have more fields than the columns in the query, but the fields that match the columns must be in the same order as the columns in the query.</p>
+<p>If you have a SQL query that returns some values, but it does not correspond to an existing table in the database, you can map the result to a simple struct. The struct must have fields that match the columns in the query. The fields can be of any type that can be converted from the column type. The struct can have more fields than the columns in the query, but the fields that match the columns must be in the same order as the columns in the query.</p>
 <div class="fragment"><div class="line"><span class="preprocessor">#include &lt;Lightweight/Lightweight.hpp&gt;</span></div>
 <div class="line"> </div>
 <div class="line"><span class="keyword">struct </span>SimpleStruct</div>
@@ -264,17 +264,15 @@ Mapping query results to a simple struct</h2>
 <div class="line"> </div>
 <div class="line"><span class="keywordtype">void</span> SimpleStructExample(DataMapper&amp; dm)</div>
 <div class="line">{</div>
-<div class="line">    <span class="keywordflow">if</span> (<span class="keyword">auto</span> maybeObject = dm.Query&lt;SimpleString&gt;(</div>
-<div class="line">        <span class="stringliteral">&quot;SELECT A.pk, B.pk, A.c1, A.c2, B.c1, B.c2 FROM A LEFT JOIN B ON A.pk = B.pk&quot;</span>); maybeObject)</div>
-<div class="line">    ))</div>
-<div class="line">    {</div>
-<div class="line">        <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; obj : *maybeObject)</div>
-<div class="line">            std::println(<span class="stringliteral">&quot;{}&quot;</span>, DataMapper::Inspect(obj));</div>
-<div class="line">    }</div>
+<div class="line">    <span class="keyword">auto</span> <span class="keyword">const</span> records = dm.Query&lt;SimpleStruct&gt;(</div>
+<div class="line">        <span class="stringliteral">&quot;SELECT A.pk, B.pk, A.c1, A.c2, B.c1, B.c2 FROM A LEFT JOIN B ON A.pk = B.pk&quot;</span>);</div>
+<div class="line"> </div>
+<div class="line">    <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; obj: records)</div>
+<div class="line">        std::println(<span class="stringliteral">&quot;{}&quot;</span>, DataMapper::Inspect(obj));</div>
 <div class="line">}</div>
 </div><!-- fragment --><h2><a class="anchor" id="mapping-query-to-multiple-struct"></a>
 Mapping query to multiple struct</h2>
-<p>We also provide an API to create SQL queries, this can be usefull if you want to use information from existing structures. The following example shows how to create a query that joins multiple tables and maps the result to multiple structs. Consider the following structs</p>
+<p>We also provide an API to create SQL queries, this can be useful if you want to use information from existing structures. The following example shows how to create a query that joins multiple tables and maps the result to multiple structs. Consider the following structs</p>
 <div class="fragment"><div class="line"><span class="keyword">struct </span>CustomBindingA</div>
 <div class="line">{</div>
 <div class="line">    Field&lt;uint64_t, PrimaryKey::ServerSideAutoIncrement&gt; <span class="keywordtype">id</span> {};</div>
@@ -312,7 +310,7 @@ Mapping query to multiple struct</h2>
 <div class="line"> <span class="keyword">INNER</span> <span class="keyword">JOIN</span> <span class="stringliteral">&quot;B&quot;</span> <span class="keyword">ON</span> <span class="stringliteral">&quot;B&quot;</span>.<span class="stringliteral">&quot;a_id&quot;</span> = <span class="stringliteral">&quot;A&quot;</span>.<span class="stringliteral">&quot;id&quot;</span></div>
 <div class="line"> <span class="keyword">INNER</span> <span class="keyword">JOIN</span> <span class="stringliteral">&quot;C&quot;</span> <span class="keyword">ON</span> <span class="stringliteral">&quot;C&quot;</span>.<span class="stringliteral">&quot;id&quot;</span> = <span class="stringliteral">&quot;B&quot;</span>.<span class="stringliteral">&quot;c_id&quot;</span></div>
 <div class="line"> <span class="keyword">ORDER</span> <span class="keyword">BY</span> <span class="stringliteral">&quot;A&quot;</span>.<span class="stringliteral">&quot;id&quot;</span> ASC</div>
-</div><!-- fragment --><p>Now you can execute it and get the result as a <code>std::vector&lt;std::tuple&lt;CustomBindingA, CustomBindingB, ParfOfC&gt;</code> like this</p>
+</div><!-- fragment --><p>Now you can execute it and get the result as a <code>std::vector&lt;std::tuple&lt;CustomBindingA, CustomBindingB, PartOfC&gt;&gt;</code> like this</p>
 <div class="fragment"><div class="line"><span class="keyword">struct </span>PartOfC</div>
 <div class="line">{</div>
 <div class="line">    uint64_t <span class="keywordtype">id</span> {};</div>
@@ -371,7 +369,7 @@ Generate example for the existing database</h1>
 </div><!-- fragment --><p>Generate header file from the existing database by providing connection string to the tool</p>
 <div class="fragment"><div class="line">sh</div>
 <div class="line">./build/src/tools/ddl2cpp --connection-string &quot;DRIVER=SQLite3;Database=test.db&quot; --make-aliases --naming-convention CamelCase  --output ./src/examples/example.hpp --generate-example</div>
-</div><!-- fragment --><p>You can also avoid all those command line arguments by creating a config file that muts be in your current working directory or in one of its parent directories. The config file must be named <code>ddl2cpp.yml</code> and must contain the following content:</p>
+</div><!-- fragment --><p>You can also avoid all those command line arguments by creating a config file that must be in your current working directory or in one of its parent directories. The config file must be named <code>ddl2cpp.yml</code> and must contain the following content:</p>
 <div class="fragment"><div class="line">ConnectionString: &#39;DSN=YourDSN;UID=YourUser;PWD=YourSecret&#39;</div>
 <div class="line">OutputDirectory: &#39;src/entities&#39;</div>
 <div class="line">MakeAliases: true</div>

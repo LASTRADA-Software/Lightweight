@@ -130,7 +130,7 @@ var NAVTREEINDEX4 =
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#aecb8ed9927ded35a8b35dd570bf53170":[19,0,0,36,2],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#af7acc1d446fc49ea446f8ae20f58518c":[19,0,0,36,9],
 "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html":[3],
-"d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#create-or-modife-database-schema":[3,0],
+"d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#create-or-modify-database-schema":[3,0],
 "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#example":[3,0,0],
 "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#example-1":[3,2,0],
 "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#examples-of-sql-to-datamapper-mappings":[3,2,1],

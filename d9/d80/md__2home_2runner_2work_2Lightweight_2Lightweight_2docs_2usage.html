@@ -234,13 +234,11 @@ Simple row retrieval via structs</h1>
 <div class="line"> </div>
 <div class="line"><span class="keywordtype">void</span> SimpleStructExample(DataMapper&amp; dm)</div>
 <div class="line">{</div>
-<div class="line">    <span class="keywordflow">if</span> (<span class="keyword">auto</span> maybeObject = dm.Query&lt;SimpleString&gt;(</div>
-<div class="line">        <span class="stringliteral">&quot;SELECT A.pk, B.pk, A.c1, A.c2, B.c1, B.c2 FROM A LEFT JOIN B ON A.pk = B.pk&quot;</span>); maybeObject)</div>
-<div class="line">    ))</div>
-<div class="line">    {</div>
-<div class="line">        <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; obj : *maybeObject)</div>
-<div class="line">            std::println(<span class="stringliteral">&quot;{}&quot;</span>, DataMapper::Inspect(obj));</div>
-<div class="line">    }</div>
+<div class="line">    <span class="keyword">auto</span> <span class="keyword">const</span> records = dm.Query&lt;SimpleStruct&gt;(</div>
+<div class="line">        <span class="stringliteral">&quot;SELECT A.pk, B.pk, A.c1, A.c2, B.c1, B.c2 FROM A LEFT JOIN B ON A.pk = B.pk&quot;</span>);</div>
+<div class="line"> </div>
+<div class="line">    <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; obj: records)</div>
+<div class="line">        std::println(<span class="stringliteral">&quot;{}&quot;</span>, DataMapper::Inspect(obj));</div>
 <div class="line">}</div>
 </div><!-- fragment --> </div></div><!-- contents -->
 </div><!-- PageDoc -->

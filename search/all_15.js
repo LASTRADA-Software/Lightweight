@@ -73,7 +73,7 @@ var searchData=
   ['options_20reference_70',['Command-Line Options Reference',['../d5/dc4/dbtool.html#command-line-options-reference',1,'']]],
   ['or_71',['or',['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ad63ee3002c9921bfb053c5b611d6511b',1,'Lightweight::SqlWhereClauseBuilder::Or()'],['../d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#where--multiple-conditions-and--or',1,'WHERE — multiple conditions (AND / OR)']]],
   ['or_20infinite_20scrolling_72',['Use Pagination or Infinite Scrolling',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-pagination-or-infinite-scrolling',1,'']]],
-  ['or_20modife_20database_20schema_73',['Create or Modife database schema',['../d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#create-or-modife-database-schema',1,'']]],
+  ['or_20modify_20database_20schema_73',['Create or Modify database schema',['../d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#create-or-modify-database-schema',1,'']]],
   ['oracle_20database_74',['64-bit Integer Handling in Oracle Database',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#autotoc_md64-bit-integer-handling-in-oracle-database',1,'']]],
   ['order_75',['Query Result Row Columns in Order',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#query-result-row-columns-in-order',1,'']]],
   ['order_20by_76',['ORDER BY',['../d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#order-by',1,'']]],

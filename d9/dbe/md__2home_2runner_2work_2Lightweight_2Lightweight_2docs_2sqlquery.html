@@ -94,9 +94,9 @@ $(document).ready(function(){initNavTree('d9/dbe/md__2home_2runner_2work_2Lightw
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><p><a class="anchor" id="sql-query"></a> SQL Query builder class is the starting point of building sql queries to execute.</p>
-<h1><a class="anchor" id="create-or-modife-database-schema"></a>
-Create or Modife database schema</h1>
-<p>To create a database you need to use <code>Migration()</code> function provided by the <code>SqlQueryBuilder</code> class, then use API defined in <code>SqlMigrationQueryBuilder</code> to construct sql query to migrate to another schema or create a databse with the given schema. Detailed documentation can be found on separate documentation pages for each of the classes in the hirerarchy, here we present overall usage of the library. Following options exist.</p>
+<h1><a class="anchor" id="create-or-modify-database-schema"></a>
+Create or Modify database schema</h1>
+<p>To create a database you need to use <code>Migration()</code> function provided by the <code>SqlQueryBuilder</code> class, then use API defined in <code>SqlMigrationQueryBuilder</code> to construct sql query to migrate to another schema or create a database with the given schema. Detailed documentation can be found on separate documentation pages for each of the classes in the hierarchy, here we present overall usage of the library. Following options exist.</p>
 <ul>
 <li><code>CreateTable(tableName)</code> Following calls can be chained, for example <code>CreateTable("test").Column(first).Column(second)...</code> Available functions:<ul>
 <li><code>PrimaryKey(std::string columnName, SqlColumnTypeDefinition columnType)</code><ul>
@@ -129,9 +129,9 @@ Create or Modife database schema</h1>
 </ul>
 </li>
 <li>Additional function that change specification of the created columns with the following usage: <code>CreateTable("test").Column(first).UniqueIndex()</code>.<ul>
-<li><code>Unique()</code> enables the UNIQUE constrain on the last declared column.</li>
-<li><code>Index()</code> enables the INDEX constrain on the last declared column.</li>
-<li><code>UniqueIndex()</code> enables the UNIQUE and INDEX constrain on the last declared column.</li>
+<li><code>Unique()</code> enables the UNIQUE constraint on the last declared column.</li>
+<li><code>Index()</code> enables the INDEX constraint on the last declared column.</li>
+<li><code>UniqueIndex()</code> enables the UNIQUE and INDEX constraint on the last declared column.</li>
 </ul>
 </li>
 </ul>
@@ -164,7 +164,7 @@ Create or Modife database schema</h1>
 </ul>
 </li>
 <li><code>DropTable(tableName)</code><ul>
-<li>Drops table with the given name, please make sure that no foreign key constrains restricts execution of this query for the given table.</li>
+<li>Drops table with the given name, please make sure that no foreign key constraint restricts execution of this query for the given table.</li>
 </ul>
 </li>
 </ul>
