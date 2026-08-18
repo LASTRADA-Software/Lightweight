@@ -19,6 +19,13 @@ include(Sanitizers)
 include(Coverage)
 include(GNUInstallDirs)
 
+# Compiler-cache launcher selection: fastcache-cc (when a fastcached daemon
+# answers) -> sccache -> ccache -> none. Included before any fetched
+# dependency (the CPMAddPackage calls below) so those get cached too. See
+# cmake/CompileCache.cmake for the full selection logic; it declares its own
+# USE_COMPILER_CACHE/FASTCACHE_ADDR options.
+include(CompileCache)
+
 find_package(reflection-cpp 0.4.0 QUIET)
 find_package(Catch2 CONFIG REQUIRED)
 find_package(yaml-cpp CONFIG REQUIRED)
