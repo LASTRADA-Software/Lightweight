@@ -11,6 +11,8 @@
 #include "Record.hpp"
 
 #include <cstdint>
+#include <span>
+#include <vector>
 
 namespace Lightweight
 {
@@ -52,6 +54,15 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
     std::string _fields;
     std::vector<SqlVariant> _boundInputs;
 
+    /// One batched relation loader, as requested by `With<&Record::relation>()`.
+    ///
+    /// A plain function pointer rather than a `std::function`: every `With<>()` names its relation at
+    /// compile time, so the loader is a single stateless instantiation and the builder pays one pointer
+    /// per requested relation, with no type-erasure allocation and no change to the builder's type -
+    /// which keeps the fluent chain and the asynchronous execution mode working unchanged.
+    using RelationPreloader = void (*)(DataMapper&, std::span<Record>);
+    std::vector<RelationPreloader> _relationPreloaders;
+
     friend class SqlWhereClauseBuilder<Derived>;
 
     LIGHTWEIGHT_FORCE_INLINE SqlSearchCondition& SearchCondition() noexcept
@@ -83,6 +94,9 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
     }
 
     /// Executes a SELECT COUNT query and returns the number of records found.
+    ///
+    /// A preceding @c GroupBy is honored, making the query count per group. Since only a single
+    /// value is returned, the count of the first group is what the caller receives.
     [[nodiscard]] auto Count()
     {
         return RunFinisher([this] { return CountImpl(); });
@@ -93,6 +107,36 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
     {
         return RunFinisher([this] { return AllImpl(); });
     }
+
+    /// @brief Eagerly loads the given relation for every record the query returns, in a bounded
+    ///        number of queries instead of one per record.
+    ///
+    /// Touching a relation on a query result normally loads it on demand, one query per record - the
+    /// N+1 problem. `With<>()` instead resolves the relation for the whole result set after it has
+    /// been materialized: the keys are collected, the related rows are fetched with `WHERE ... IN
+    /// (...)` (chunked, see @ref SqlQueryFormatter::MaxInPredicateValues), and the rows are
+    /// distributed to the records in memory.
+    ///
+    /// Call it once per relation to load; the calls chain.
+    ///
+    /// @tparam ReferencedField The relation to load, in the form of `&Record::FieldName`. Supported
+    ///         for `BelongsTo` and `HasMany` members; naming any other member is a compile error.
+    ///
+    /// @code
+    /// auto albums = dm.Query<Album>()
+    ///                 .With<&Album::tracks>()   // one extra SELECT ... WHERE album_id IN (...)
+    ///                 .With<&Album::artist>()   // one extra SELECT ... WHERE id IN (...)
+    ///                 .All();
+    /// @endcode
+    ///
+    /// @note Relations that were not named keep their usual on-demand behaviour. Combining `With<>()`
+    ///       with `DataMapperOptions { .loadRelations = false }` therefore makes any *unrequested*
+    ///       relation throw `SqlRequireLoadedError` on access rather than quietly issuing a query.
+    ///
+    /// @return This builder, for chaining.
+    template <auto ReferencedField>
+        requires DataMapperRecord<Record>
+    [[nodiscard]] Derived& With();
 
     /// Executes a DELETE query.
     [[nodiscard]] auto Delete()
@@ -220,6 +264,11 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
 
     // Synchronous implementations shared by both execution modes. The public finishers above
     // forward to these; the SQL building and result mapping live here exactly once.
+
+    /// Runs every loader registered through `With<>()` over the materialized result set.
+    ///
+    /// @param records The records to resolve the requested relations for.
+    void RunRelationPreloaders(std::span<Record> records);
 
     [[nodiscard]] bool ExistImpl();
     [[nodiscard]] size_t CountImpl();

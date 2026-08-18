@@ -583,6 +583,11 @@ class DataMapper
     [[nodiscard]] Async::Task<void> LoadRelationsAsync(Record& record);
 
   private:
+    // The fluent query builders drive the batched relation preloading (`With<>()`), which is an
+    // internal entry point rather than part of the mapper's public surface.
+    template <typename BuilderRecord, typename Derived, DataMapperOptions BuilderQueryOptions>
+    friend class SqlCoreDataMapperQueryBuilder;
+
     /// Builds the comma-separated, fully-qualified (`"Table"."Column"`) field list for @p Record.
     ///
     /// Shared by @c Query and @c QueryAsync so the SELECT projection is produced in exactly one place.
@@ -659,6 +664,30 @@ class DataMapper
     template <typename Record, typename OtherRecord, auto InverseSelector>
     void LoadHasMany(Record& record, HasMany<OtherRecord, InverseSelector>& field);
 
+    /// @brief Eagerly resolves one relation for a whole batch of records, in a bounded number of queries.
+    ///
+    /// This is the engine behind `Query<Record>().With<&Record::relation>()`. Where the lazy loaders
+    /// installed by `ConfigureRelationAutoLoading()` issue one query per record touched - the N+1 - this
+    /// issues one query per chunk of the batch (see `SqlQueryFormatter::MaxInPredicateValues()`) and
+    /// distributes the resulting rows into the records in memory.
+    ///
+    /// @tparam Record     The record type owning the relation.
+    /// @tparam FieldIndex Member index, within @p Record, of the relation to load.
+    /// @param records     The batch to resolve the relation for.
+    template <typename Record, size_t FieldIndex>
+    void PreloadRelation(std::span<Record> records);
+
+    /// Batch counterpart of `LoadBelongsTo`: one query per chunk of distinct foreign keys.
+    /// @see PreloadRelation
+    template <typename Record, size_t FieldIndex>
+    void PreloadBelongsTo(std::span<Record> records);
+
+    /// Batch counterpart of `LoadHasMany`: one query per chunk of owner primary keys, then the rows
+    /// are grouped by the inverse foreign key and handed to each owner.
+    /// @see PreloadRelation
+    template <typename Record, size_t FieldIndex>
+    void PreloadHasMany(std::span<Record> records);
+
     template <typename ReferencedRecord, typename ThroughRecord, typename Record, auto OwnerSelector, auto ThroughSelector>
     void LoadHasOneThrough(Record& record,
                            HasOneThrough<ReferencedRecord, ThroughRecord, OwnerSelector, ThroughSelector>& field);
@@ -676,6 +705,15 @@ class DataMapper
 
     template <typename OwnerRecord, typename OtherRecord, auto InverseSelector>
     SqlSelectQueryBuilder BuildHasManySelectQuery();
+
+    /// @brief Builds a `SELECT <all storage columns> FROM <table of @p Record>`, without any predicate.
+    ///
+    /// The starting point for the batched relation queries, which add their own `WHERE ... IN (...)`.
+    ///
+    /// @tparam Record The record type whose table and columns are selected.
+    /// @return The select query builder, ready for further clauses.
+    template <typename Record>
+    SqlSelectQueryBuilder BuildRecordSelectQuery();
 
     template <typename ReferencedRecord, typename ThroughRecord, typename Record, auto OwnerSelector, auto ThroughSelector>
     SqlSelectQueryBuilder BuildHasOneThroughSelectQuery();
@@ -1148,6 +1186,36 @@ size_t SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::CountImpl()
 }
 
 template <typename Record, typename Derived, DataMapperOptions QueryOptions>
+template <auto ReferencedField>
+    requires DataMapperRecord<Record>
+Derived& SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::With()
+{
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+    static_assert(std::same_as<typename[:std::meta::parent_of(ReferencedField):], Record>,
+                  "With<>() must name a member of the record being queried");
+#else
+    static_assert(std::same_as<MemberClassType<decltype(ReferencedField)>, Record>,
+                  "With<>() must name a member of the record being queried");
+#endif
+
+    constexpr size_t FieldIndex = MemberIndexOf<ReferencedField>;
+
+    // A capture-less lambda, so this decays to a plain function pointer: the relation is known at
+    // compile time, so nothing has to be carried at run time beyond which instantiation to call.
+    _relationPreloaders.emplace_back(
+        +[](DataMapper& dm, std::span<Record> records) { dm.template PreloadRelation<Record, FieldIndex>(records); });
+
+    return static_cast<Derived&>(*this);
+}
+
+template <typename Record, typename Derived, DataMapperOptions QueryOptions>
+void SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::RunRelationPreloaders(std::span<Record> records)
+{
+    for (auto const preloader: _relationPreloaders)
+        preloader(_dm, records);
+}
+
+template <typename Record, typename Derived, DataMapperOptions QueryOptions>
 bool SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::ExistImpl()
 {
     auto stmt = SqlStatement { _dm.Connection() };
@@ -1208,6 +1276,7 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>
                 _dm.ConfigureRelationAutoLoading(record);
             }
         }
+        RunRelationPreloaders(records);
     }
     return records;
 }
@@ -1316,6 +1385,9 @@ std::optional<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOption
         if (record)
             _dm.ConfigureRelationAutoLoading(record.value());
     }
+    if constexpr (DataMapperRecord<Record>)
+        if (record)
+            RunRelationPreloaders(std::span<Record> { &record.value(), 1 });
     return record;
 }
 
@@ -1415,6 +1487,8 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>
         for (auto& record: records)
             _dm.ConfigureRelationAutoLoading(record);
     }
+    if constexpr (DataMapperRecord<Record>)
+        RunRelationPreloaders(records);
     return records;
 }
 
@@ -1443,6 +1517,8 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>
         for (auto& record: records)
             _dm.ConfigureRelationAutoLoading(record);
     }
+    if constexpr (DataMapperRecord<Record>)
+        RunRelationPreloaders(records);
     return records;
 }
 
@@ -2644,19 +2720,7 @@ void DataMapper::CallOnHasMany(Record& record, Callable const& callback)
     using ReferencedRecord = FieldType::ReferencedRecord;
 
     CallOnPrimaryKey(record, [&]<size_t PrimaryKeyIndex, typename PrimaryKeyType>(PrimaryKeyType const& primaryKeyField) {
-        auto query = _connection.Query(RecordTableName<ReferencedRecord>)
-                         .Select()
-                         .Build([&](auto& query) {
-                             EnumerateRecordMembers<ReferencedRecord>(
-                                 [&]<size_t ReferencedFieldIndex, typename ReferencedFieldType>() {
-                                     if constexpr (FieldWithStorage<ReferencedFieldType>)
-                                     {
-                                         query.Field(FieldNameAt<ReferencedFieldIndex, ReferencedRecord>);
-                                     }
-                                 });
-                         })
-                         .Where(InverseBelongsToFieldNameOf<Record, ReferencedRecord, InverseSelector>, SqlWildcard)
-                         .OrderBy(FieldNameAt<RecordPrimaryKeyIndex<ReferencedRecord>, ReferencedRecord>);
+        auto query = BuildHasManySelectQuery<Record, ReferencedRecord, InverseSelector>();
         callback(query, primaryKeyField);
     });
 }
@@ -2664,14 +2728,7 @@ void DataMapper::CallOnHasMany(Record& record, Callable const& callback)
 template <typename OwnerRecord, typename OtherRecord, auto InverseSelector>
 SqlSelectQueryBuilder DataMapper::BuildHasManySelectQuery()
 {
-    return _connection.Query(RecordTableName<OtherRecord>)
-        .Select()
-        .Build([](auto& q) {
-            EnumerateRecordMembers<OtherRecord>([&]<size_t I, typename F>() {
-                if constexpr (FieldWithStorage<F>)
-                    q.Field(FieldNameAt<I, OtherRecord>);
-            });
-        })
+    return BuildRecordSelectQuery<OtherRecord>()
         .Where(InverseBelongsToFieldNameOf<OwnerRecord, OtherRecord, InverseSelector>, SqlWildcard)
         .OrderBy(FieldNameAt<RecordPrimaryKeyIndex<OtherRecord>, OtherRecord>);
 }
@@ -2689,6 +2746,205 @@ void DataMapper::LoadHasMany(Record& record, HasMany<OtherRecord, InverseSelecto
         record, [&](SqlSelectQueryBuilder selectQuery, auto& primaryKeyField) {
             field.Emplace(detail::ToSharedPtrList(Query<OtherRecord>(selectQuery.All(), primaryKeyField.Value())));
         });
+}
+
+namespace detail
+{
+    /// @brief Invokes @p callable once per chunk of at most @p chunkSize consecutive elements of @p values.
+    ///
+    /// Used to keep a generated `WHERE ... IN (...)` predicate inside what the dialect accepts (see
+    /// @ref SqlQueryFormatter::MaxInPredicateValues) while still resolving a whole batch in a number of
+    /// queries that depends on the chunk size, not on the number of records.
+    ///
+    /// @param values The values to split.
+    /// @param chunkSize Maximum number of values per chunk; zero is treated as "all in one chunk".
+    /// @param callable Invoked with a `std::span` over each chunk, in order.
+    template <typename T, typename Callable>
+    void ForEachChunk(std::span<T const> values, size_t chunkSize, Callable const& callable)
+    {
+        auto const stride = chunkSize == 0 ? values.size() : chunkSize;
+        for (size_t offset = 0; offset < values.size(); offset += stride)
+            callable(values.subspan(offset, (std::min)(stride, values.size() - offset)));
+    }
+} // namespace detail
+
+template <typename Record>
+SqlSelectQueryBuilder DataMapper::BuildRecordSelectQuery()
+{
+    return _connection.Query(RecordTableName<Record>).Select().Build([](auto& query) {
+        EnumerateRecordMembers<Record>([&query]<size_t I, typename FieldType>() {
+            if constexpr (FieldWithStorage<FieldType>)
+                query.Field(FieldNameAt<I, Record>);
+        });
+    });
+}
+
+template <typename Record, size_t FieldIndex>
+void DataMapper::PreloadRelation(std::span<Record> records)
+{
+    using FieldType = RecordMemberTypeOf<FieldIndex, Record>;
+
+    static_assert(IsBelongsTo<FieldType> || IsHasMany<FieldType>,
+                  "Eager loading via With<>() is supported for BelongsTo and HasMany relations. "
+                  "HasOneThrough, HasManyThrough and CompositeForeignKey still load on demand.");
+
+    if (records.empty())
+        return;
+
+    if constexpr (IsBelongsTo<FieldType>)
+        PreloadBelongsTo<Record, FieldIndex>(records);
+    else if constexpr (IsHasMany<FieldType>)
+        PreloadHasMany<Record, FieldIndex>(records);
+}
+
+template <typename Record, size_t FieldIndex>
+void DataMapper::PreloadBelongsTo(std::span<Record> records)
+{
+    using FieldType = RecordMemberTypeOf<FieldIndex, Record>;
+    using ReferencedRecord = typename FieldType::ReferencedRecord;
+    using KeyType = RecordPrimaryKeyType<ReferencedRecord>;
+
+    static_assert(HasPrimaryKey<ReferencedRecord>,
+                  "Eager loading a BelongsTo requires the referenced record to have a primary key");
+
+    ZoneScopedN("DataMapper::PreloadBelongsTo");
+    ZoneTextObject(RecordTableName<ReferencedRecord>);
+
+    auto const primaryKeyOf = [](ReferencedRecord const& record) { return GetPrimaryKeyField(record); };
+
+    // The distinct, non-NULL foreign keys of the batch. Sorted and deduplicated rather than hashed:
+    // ordering is all a key column type has to provide, while std::hash is not specialized for every
+    // one of them. The deduplication is what makes this cheaper than the row count - many rows
+    // commonly point at the same parent, which is then fetched once instead of once per row.
+    auto keys = std::vector<KeyType> {};
+    keys.reserve(records.size());
+    for (auto const& record: records)
+    {
+        auto const& value = GetRecordMemberAt<FieldIndex>(record).Value();
+        if constexpr (FieldType::IsOptional)
+        {
+            if (value.has_value())
+                keys.emplace_back(*value);
+        }
+        else
+            keys.emplace_back(value);
+    }
+    std::ranges::sort(keys);
+    keys.erase(std::ranges::unique(keys).begin(), keys.end());
+    if (keys.empty())
+        return;
+
+    auto loaded = std::vector<ReferencedRecord> {};
+    loaded.reserve(keys.size());
+    detail::ForEachChunk(std::span<KeyType const> { keys },
+                         _connection.QueryFormatter().MaxInPredicateValues(),
+                         [&](std::span<KeyType const> chunk) {
+                             auto selectQuery = BuildRecordSelectQuery<ReferencedRecord>().WhereIn(
+                                 FieldNameAt<RecordPrimaryKeyIndex<ReferencedRecord>, ReferencedRecord>, chunk);
+                             auto rows = Query<ReferencedRecord>(selectQuery.All());
+                             loaded.insert(loaded.end(),
+                                           std::make_move_iterator(rows.begin()),
+                                           std::make_move_iterator(rows.end()));
+                         });
+
+    std::ranges::sort(loaded, {}, primaryKeyOf);
+
+    for (auto& record: records)
+    {
+        auto& field = GetRecordMemberAt<FieldIndex>(record);
+        auto const& value = field.Value();
+        if constexpr (FieldType::IsOptional)
+            if (!value.has_value())
+                continue;
+
+        auto const key = [&] {
+            if constexpr (FieldType::IsOptional)
+                return *value;
+            else
+                return value;
+        }();
+
+        auto const it = std::ranges::lower_bound(loaded, key, {}, primaryKeyOf);
+        // A foreign key pointing at a row that is not there is left unloaded rather than adopted as
+        // empty: a missing target row is a data-integrity problem for the accessor to surface, which
+        // is also what the on-demand path does.
+        if (it != loaded.end() && primaryKeyOf(*it) == key)
+            field.AdoptFetchedRecord(*it);
+    }
+}
+
+template <typename Record, size_t FieldIndex>
+void DataMapper::PreloadHasMany(std::span<Record> records)
+{
+    using FieldType = RecordMemberTypeOf<FieldIndex, Record>;
+    using ReferencedRecord = typename FieldType::ReferencedRecord;
+    using ReferencedRecordList = typename FieldType::ReferencedRecordList;
+    using KeyType = RecordPrimaryKeyType<Record>;
+
+    static_assert(HasPrimaryKey<Record>, "Eager loading a HasMany requires the owning record to have a primary key");
+
+    ZoneScopedN("DataMapper::PreloadHasMany");
+    ZoneTextObject(RecordTableName<ReferencedRecord>);
+
+    // Every fetched child carries its owner's key in the BelongsTo that backs this relation; that is
+    // what assigns the row to an owner below, without a second query to find out.
+    constexpr size_t InverseIndex = InverseBelongsToIndexOf<Record, ReferencedRecord, FieldType::InverseSelector>;
+
+    auto keys = std::vector<KeyType> {};
+    keys.reserve(records.size());
+    for (auto const& record: records)
+        keys.emplace_back(GetPrimaryKeyField(record));
+    std::ranges::sort(keys);
+    keys.erase(std::ranges::unique(keys).begin(), keys.end());
+    if (keys.empty())
+        return;
+
+    // One bucket per distinct owner key, in the same sorted order, so a child row finds its owner by
+    // binary search rather than by scanning the batch (which would be quadratic in the row count).
+    auto buckets = std::vector<ReferencedRecordList> {};
+    buckets.resize(keys.size());
+
+    detail::ForEachChunk(
+        std::span<KeyType const> { keys },
+        _connection.QueryFormatter().MaxInPredicateValues(),
+        [&](std::span<KeyType const> chunk) {
+            auto selectQuery =
+                BuildRecordSelectQuery<ReferencedRecord>()
+                    .WhereIn(InverseBelongsToFieldNameOf<Record, ReferencedRecord, FieldType::InverseSelector>, chunk)
+                    .OrderBy(FieldNameAt<RecordPrimaryKeyIndex<ReferencedRecord>, ReferencedRecord>);
+            for (auto& child: Query<ReferencedRecord>(selectQuery.All()))
+            {
+                auto const& ownerValue = GetRecordMemberAt<InverseIndex>(child).Value();
+                using InverseFieldType = RecordMemberTypeOf<InverseIndex, ReferencedRecord>;
+                if constexpr (InverseFieldType::IsOptional)
+                    if (!ownerValue.has_value())
+                        continue;
+
+                auto const ownerKey = [&] {
+                    if constexpr (InverseFieldType::IsOptional)
+                        return *ownerValue;
+                    else
+                        return ownerValue;
+                }();
+
+                auto const it = std::ranges::lower_bound(keys, ownerKey);
+                if (it != keys.end() && *it == ownerKey)
+                    buckets[static_cast<size_t>(std::distance(keys.begin(), it))].emplace_back(
+                        std::make_shared<ReferencedRecord>(std::move(child)));
+            }
+        });
+
+    for (auto& record: records)
+    {
+        auto const it = std::ranges::lower_bound(keys, GetPrimaryKeyField(record));
+        if (it == keys.end())
+            continue;
+
+        // Owners with no children are emplaced empty on purpose: leaving the relation unloaded would
+        // send the very first access back to the database for a result already known to be empty.
+        auto& bucket = buckets[static_cast<size_t>(std::distance(keys.begin(), it))];
+        GetRecordMemberAt<FieldIndex>(record).Emplace(ReferencedRecordList { bucket });
+    }
 }
 
 template <typename ReferencedRecord, typename ThroughRecord, typename Record, auto OwnerSelector, auto ThroughSelector>
