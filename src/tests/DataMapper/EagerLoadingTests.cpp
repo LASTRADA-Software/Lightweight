@@ -222,8 +222,7 @@ TEST_CASE_METHOD(SqlTestFixture, "With<> chains across several relations", "[Dat
     auto counter = ScopedStatementCounter {};
     // Two relations named means two extra statements - not one per record, and not one per relation
     // per record.
-    auto children =
-        dm.Query<EagerChild>().With<Member(EagerChild::owner)>().With<Member(EagerChild::category)>().All();
+    auto children = dm.Query<EagerChild>().With<Member(EagerChild::owner)>().With<Member(EagerChild::category)>().All();
 
     CHECK(counter.Count() == 3);
     REQUIRE(children.size() == 6);

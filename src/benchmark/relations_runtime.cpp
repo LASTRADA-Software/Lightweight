@@ -57,10 +57,22 @@ class CountingLogger final: public SqlLogger::Null
     size_t prepares = 0;
     size_t executes = 0;
     size_t directs = 0;
-    void OnPrepare(std::string_view const&) override { ++prepares; }
-    void OnExecute(std::string_view const&) override { ++executes; }
-    void OnExecuteDirect(std::string_view const&) override { ++directs; }
-    void Reset() { prepares = executes = directs = 0; }
+    void OnPrepare(std::string_view const&) override
+    {
+        ++prepares;
+    }
+    void OnExecute(std::string_view const&) override
+    {
+        ++executes;
+    }
+    void OnExecuteDirect(std::string_view const&) override
+    {
+        ++directs;
+    }
+    void Reset()
+    {
+        prepares = executes = directs = 0;
+    }
 };
 
 namespace
@@ -89,8 +101,8 @@ double TimeMs(F&& f)
 
 void Report(char const* name, double ms, size_t rows)
 {
-    std::printf("%-46s %9.2f ms   prepare=%-6zu execute=%-6zu rows=%zu\n",
-                name, ms, g_logger.prepares, g_logger.executes, rows);
+    std::printf(
+        "%-46s %9.2f ms   prepare=%-6zu execute=%-6zu rows=%zu\n", name, ms, g_logger.prepares, g_logger.executes, rows);
     g_logger.Reset();
 }
 } // namespace
@@ -99,8 +111,7 @@ int main(int argc, char** argv)
 {
     size_t const owners = argc > 1 ? std::stoul(argv[1]) : 500;
     size_t const childrenPerOwner = argc > 2 ? std::stoul(argv[2]) : 10;
-    std::string const connectionString =
-        argc > 3 ? argv[3] : std::string { "DRIVER=SQLite3;Database=/tmp/lw-bench.sqlite" };
+    std::string const connectionString = argc > 3 ? argv[3] : std::string { "DRIVER=SQLite3;Database=/tmp/lw-bench.sqlite" };
 
     SqlConnection::SetDefaultConnectionString(SqlConnectionString { connectionString });
     SqlLogger::SetLogger(g_logger);
@@ -130,7 +141,8 @@ int main(int argc, char** argv)
     // index, and none of the three supported engines indexes a foreign key implicitly - so this
     // isolates "N queries" from "N full table scans".
     if (char const* const withIndex = std::getenv("LW_BENCH_INDEX"); withIndex && *withIndex == '1')
-        std::ignore = SqlStatement { dm.Connection() }.ExecuteDirect(R"(CREATE INDEX "ix_bench_owner" ON "BenchChild" ("owner_id"))");
+        std::ignore =
+            SqlStatement { dm.Connection() }.ExecuteDirect(R"(CREATE INDEX "ix_bench_owner" ON "BenchChild" ("owner_id"))");
 
     // Warm-up: opens the connection's first cursor and warms the server-side caches.
     (void) dm.Query<Owner, DataMapperOptions { .loadRelations = false }>().All();
@@ -148,9 +160,7 @@ int main(int argc, char** argv)
     // (2) Baseline: parents only, no loader installation at all.
     {
         size_t rows = 0;
-        auto const ms = TimeMs([&] {
-            rows = dm.Query<Owner, DataMapperOptions { .loadRelations = false }>().All().size();
-        });
+        auto const ms = TimeMs([&] { rows = dm.Query<Owner, DataMapperOptions { .loadRelations = false }>().All().size(); });
         Report("parents only, loadRelations=false", ms, rows);
     }
 

@@ -2841,7 +2841,7 @@ namespace detail
     {
         auto const stride = chunkSize == 0 ? values.size() : chunkSize;
         for (size_t offset = 0; offset < values.size(); offset += stride)
-            callable(values.subspan(offset, (std::min)(stride, values.size() - offset)));
+            callable(values.subspan(offset, (std::min) (stride, values.size() - offset)));
     }
 } // namespace detail
 
@@ -2936,8 +2936,7 @@ void DataMapper::PreloadRelationPath(std::span<Record* const> records)
         // appear many times here. That is not wasted work: the level below deduplicates the keys
         // before querying, so the row is still fetched once and then handed to each copy.
         [&]<auto NextField, auto... Rest>() {
-            PreloadRelationPath<TargetRecord, MemberIndexOf<NextField>, Rest...>(
-                std::span<TargetRecord* const> { targets });
+            PreloadRelationPath<TargetRecord, MemberIndexOf<NextField>, Rest...>(std::span<TargetRecord* const> { targets });
         }.template operator()<RestOfPath...>();
     }
 }
@@ -2985,7 +2984,9 @@ void DataMapper::PreloadBelongsTo(std::span<Record* const> records)
     ZoneScopedN("DataMapper::PreloadBelongsTo");
     ZoneTextObject(RecordTableName<ReferencedRecord>);
 
-    auto const primaryKeyOf = [](ReferencedRecord const& record) { return GetPrimaryKeyField(record); };
+    auto const primaryKeyOf = [](ReferencedRecord const& record) {
+        return GetPrimaryKeyField(record);
+    };
 
     // The distinct, non-NULL foreign keys of the batch. Sorted and deduplicated rather than hashed:
     // ordering is all a key column type has to provide, while std::hash is not specialized for every
@@ -3023,9 +3024,8 @@ void DataMapper::PreloadBelongsTo(std::span<Record* const> records)
                              auto selectQuery = BuildRecordSelectQuery<ReferencedRecord>().WhereIn(
                                  FieldNameAt<RecordPrimaryKeyIndex<ReferencedRecord>, ReferencedRecord>, chunk);
                              auto rows = Query<ReferencedRecord>(selectQuery.All());
-                             loaded.insert(loaded.end(),
-                                           std::make_move_iterator(rows.begin()),
-                                           std::make_move_iterator(rows.end()));
+                             loaded.insert(
+                                 loaded.end(), std::make_move_iterator(rows.begin()), std::make_move_iterator(rows.end()));
                          });
 
     std::ranges::sort(loaded, {}, primaryKeyOf);
