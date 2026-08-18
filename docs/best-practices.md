@@ -116,6 +116,11 @@ queries:
 auto albums = dm.Query<Album>().With<&Album::tracks>().All(); // 2 queries, not 1 + N
 ```
 
+A nested relation needs the whole path named — `.With<&Track::album, &Album::artist>()` — because
+each record holds its own copy of the target, so one level of eager loading leaves the level below it
+loading per record. `DataMapperOptions { .eagerLoadDepth = N }` loads everything reachable instead,
+at the cost of fetching more than you asked for.
+
 See [Eager loading of relations](usage.md). Two things compound with it:
 
 - **Index your foreign keys.** `CreateTable<Record>()` emits an index for every `BelongsTo` column,

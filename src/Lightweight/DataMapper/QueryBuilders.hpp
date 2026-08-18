@@ -26,6 +26,27 @@ struct DataMapperOptions
 {
     /// Whether to automatically load relations when querying records.
     bool loadRelations { true };
+
+    /// @brief How many levels of relations to eagerly batch-load after a query materializes.
+    ///
+    /// `0` (the default) leaves every relation to load on demand, one query per record touched.
+    /// A value of `N` resolves every `BelongsTo` and `HasMany` reachable within `N` levels for the
+    /// whole result set at once, at a bounded number of queries per relation per level:
+    ///
+    /// @code
+    /// // Tracks, their albums, and those albums' artists - a constant number of queries.
+    /// auto tracks = dm.Query<Track, DataMapperOptions { .eagerLoadDepth = 2 }>().All();
+    /// @endcode
+    ///
+    /// Use `With<>()` instead when only some relations are needed: this option descends into
+    /// *every* relation of every record it reaches, which is more queries and more rows than a
+    /// named path, and instantiates the loader for the whole reachable relation graph. The depth is
+    /// what bounds that: a cyclic graph (a self-referencing record, or A -> B -> A) terminates
+    /// because the recursion is cut at a compile-time constant.
+    ///
+    /// `HasOneThrough`, `HasManyThrough` and `CompositeForeignKey` are not batch-loadable and keep
+    /// their on-demand behaviour.
+    size_t eagerLoadDepth { 0 };
 };
 
 /// Selects whether a query builder's finisher methods execute synchronously or asynchronously.
@@ -60,7 +81,7 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
     /// compile time, so the loader is a single stateless instantiation and the builder pays one pointer
     /// per requested relation, with no type-erasure allocation and no change to the builder's type -
     /// which keeps the fluent chain and the asynchronous execution mode working unchanged.
-    using RelationPreloader = void (*)(DataMapper&, std::span<Record>);
+    using RelationPreloader = void (*)(DataMapper&, std::span<Record* const>);
     std::vector<RelationPreloader> _relationPreloaders;
 
     friend class SqlWhereClauseBuilder<Derived>;
@@ -119,23 +140,37 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
     ///
     /// Call it once per relation to load; the calls chain.
     ///
-    /// @tparam ReferencedField The relation to load, in the form of `&Record::FieldName`. Supported
-    ///         for `BelongsTo` and `HasMany` members; naming any other member is a compile error.
+    /// Naming several relations forms a *path*: the first is resolved for the result set, the records
+    /// it loaded are then gathered and the next relation resolved for all of them at once. A path of
+    /// any length still costs a constant number of queries per level, never one per record - which is
+    /// what a nested `BelongsTo` needs, since each record holds its own copy of the target and
+    /// touching that copy's own relation would otherwise be an N+1 one level down.
+    ///
+    /// @tparam RelationPath One or more relations, in the form of `&Record::FieldName`. The first
+    ///         must be a member of the queried record, each subsequent one a member of the preceding
+    ///         relation's target. Supported for `BelongsTo` and `HasMany`; naming any other member is
+    ///         a compile error.
     ///
     /// @code
-    /// auto albums = dm.Query<Album>()
-    ///                 .With<&Album::tracks>()   // one extra SELECT ... WHERE album_id IN (...)
-    ///                 .With<&Album::artist>()   // one extra SELECT ... WHERE id IN (...)
+    /// auto tracks = dm.Query<Track>()
+    ///                 .With<&Track::album>()                  // one extra SELECT ... WHERE id IN (...)
+    ///                 .With<&Track::album, &Album::artist>()  // one more, for every album at once
     ///                 .All();
+    ///
+    /// for (auto& track: tracks)
+    ///     std::println("{} - {}", track.album.Record().title,
+    ///                  track.album.Record().artist.Record().name);  // no queries here
     /// @endcode
     ///
     /// @note Relations that were not named keep their usual on-demand behaviour. Combining `With<>()`
     ///       with `DataMapperOptions { .loadRelations = false }` therefore makes any *unrequested*
     ///       relation throw `SqlRequireLoadedError` on access rather than quietly issuing a query.
+    ///       To eagerly load everything instead of naming paths, see
+    ///       @ref DataMapperOptions::eagerLoadDepth.
     ///
     /// @return This builder, for chaining.
-    template <auto ReferencedField>
-        requires DataMapperRecord<Record>
+    template <auto... RelationPath>
+        requires DataMapperRecord<Record> && (sizeof...(RelationPath) >= 1)
     [[nodiscard]] Derived& With();
 
     /// Executes a DELETE query.

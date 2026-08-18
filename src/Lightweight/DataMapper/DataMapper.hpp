@@ -38,6 +38,13 @@ namespace Lightweight
 
 namespace detail
 {
+    /// The first element of a non-empty pack of relation members, i.e. the head of a relation path.
+    ///
+    /// Declared up here because `With<>()` names it, and a non-dependent name inside a template is
+    /// looked up where the template is defined, not where it is instantiated.
+    template <auto First, auto...>
+    inline constexpr auto FirstOf = First;
+
     // Converts a container of T to a container of std::shared_ptr<T>.
     template <template <typename> class Allocator, template <typename, typename> class Container, typename Object>
     auto ToSharedPtrList(Container<Object, Allocator<Object>> container)
@@ -671,22 +678,69 @@ class DataMapper
     /// issues one query per chunk of the batch (see `SqlQueryFormatter::MaxInPredicateValues()`) and
     /// distributes the resulting rows into the records in memory.
     ///
+    /// The batch is addressed by pointer rather than as a contiguous range: past the first level of
+    /// a relation path the targets are not contiguous - every owner holds its own copy of a
+    /// `BelongsTo` target, and a `HasMany` list holds `shared_ptr`s - so only their addresses can be
+    /// gathered. The `std::span<Record>` overload adapts a freshly materialized result set onto this.
+    ///
     /// @tparam Record     The record type owning the relation.
     /// @tparam FieldIndex Member index, within @p Record, of the relation to load.
     /// @param records     The batch to resolve the relation for.
+    template <typename Record, size_t FieldIndex>
+    void PreloadRelation(std::span<Record* const> records);
+
+    /// @copydoc PreloadRelation
     template <typename Record, size_t FieldIndex>
     void PreloadRelation(std::span<Record> records);
 
     /// Batch counterpart of `LoadBelongsTo`: one query per chunk of distinct foreign keys.
     /// @see PreloadRelation
     template <typename Record, size_t FieldIndex>
-    void PreloadBelongsTo(std::span<Record> records);
+    void PreloadBelongsTo(std::span<Record* const> records);
 
     /// Batch counterpart of `LoadHasMany`: one query per chunk of owner primary keys, then the rows
     /// are grouped by the inverse foreign key and handed to each owner.
     /// @see PreloadRelation
     template <typename Record, size_t FieldIndex>
-    void PreloadHasMany(std::span<Record> records);
+    void PreloadHasMany(std::span<Record* const> records);
+
+    /// @brief Eagerly resolves a *path* of relations, one bounded set of queries per level.
+    ///
+    /// Backs `Query<Record>().With<&Track::album, &Album::artist>()`: the first relation is resolved
+    /// for the whole batch, the loaded targets are then gathered and the next relation resolved for
+    /// all of them at once, and so on. Every level costs a constant number of queries, so a two-level
+    /// path over any number of records is three queries in total.
+    ///
+    /// @tparam Record       The record type owning the first relation of the path.
+    /// @tparam FieldIndex   Member index, within @p Record, of the first relation.
+    /// @tparam RestOfPath   The remaining relations, each a member of the preceding target type.
+    /// @param records       The batch to resolve the path for.
+    template <typename Record, size_t FieldIndex, auto... RestOfPath>
+    void PreloadRelationPath(std::span<Record* const> records);
+
+    /// @brief Eagerly resolves *every* supported relation reachable within @p Depth levels.
+    ///
+    /// Backs `DataMapperOptions { .eagerLoadDepth = N }`. Each level costs a bounded number of
+    /// queries per relation, never one per record. `HasOneThrough`, `HasManyThrough` and
+    /// `CompositeForeignKey` are skipped and keep loading on demand.
+    ///
+    /// @tparam Record The record type whose relations are resolved.
+    /// @tparam Depth  Remaining levels to descend; `0` stops the recursion, which is what keeps a
+    ///                cyclic relation graph (a self-referencing record, or A -> B -> A) from
+    ///                instantiating forever.
+    /// @param records The batch to resolve the relations for.
+    template <typename Record, size_t Depth>
+    void PreloadAllRelations(std::span<Record* const> records);
+
+    /// Appends the addresses of the records loaded into relation @p FieldIndex of every record in
+    /// @p records, so the next level of a path can be resolved for all of them at once.
+    ///
+    /// @tparam Record     The record type owning the relation.
+    /// @tparam FieldIndex Member index, within @p Record, of the relation to walk into.
+    /// @param records     The batch to collect from.
+    /// @return The loaded targets; records whose relation is unloaded or NULL contribute nothing.
+    template <typename Record, size_t FieldIndex>
+    [[nodiscard]] static auto CollectRelationTargets(std::span<Record* const> records);
 
     template <typename ReferencedRecord, typename ThroughRecord, typename Record, auto OwnerSelector, auto ThroughSelector>
     void LoadHasOneThrough(Record& record,
@@ -1186,24 +1240,29 @@ size_t SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::CountImpl()
 }
 
 template <typename Record, typename Derived, DataMapperOptions QueryOptions>
-template <auto ReferencedField>
-    requires DataMapperRecord<Record>
+template <auto... RelationPath>
+    requires DataMapperRecord<Record> && (sizeof...(RelationPath) >= 1)
 Derived& SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::With()
 {
+    constexpr auto FirstField = detail::FirstOf<RelationPath...>;
+
 #if defined(LIGHTWEIGHT_CXX26_REFLECTION)
-    static_assert(std::same_as<typename[:std::meta::parent_of(ReferencedField):], Record>,
-                  "With<>() must name a member of the record being queried");
+    static_assert(std::same_as<typename[:std::meta::parent_of(FirstField):], Record>,
+                  "The first relation named by With<>() must be a member of the record being queried");
 #else
-    static_assert(std::same_as<MemberClassType<decltype(ReferencedField)>, Record>,
-                  "With<>() must name a member of the record being queried");
+    // remove_cv_t: FirstField is a constexpr variable, so decltype() yields a *const* member pointer
+    // type, which MemberClassType is not specialized for.
+    static_assert(std::same_as<MemberClassType<std::remove_cv_t<decltype(FirstField)>>, Record>,
+                  "The first relation named by With<>() must be a member of the record being queried");
 #endif
 
-    constexpr size_t FieldIndex = MemberIndexOf<ReferencedField>;
-
-    // A capture-less lambda, so this decays to a plain function pointer: the relation is known at
+    // A capture-less lambda, so this decays to a plain function pointer: the whole path is known at
     // compile time, so nothing has to be carried at run time beyond which instantiation to call.
-    _relationPreloaders.emplace_back(
-        +[](DataMapper& dm, std::span<Record> records) { dm.template PreloadRelation<Record, FieldIndex>(records); });
+    _relationPreloaders.emplace_back(+[](DataMapper& dm, std::span<Record* const> records) {
+        [&]<auto Head, auto... Tail>() {
+            dm.template PreloadRelationPath<Record, MemberIndexOf<Head>, Tail...>(records);
+        }.template operator()<RelationPath...>();
+    });
 
     return static_cast<Derived&>(*this);
 }
@@ -1211,8 +1270,26 @@ Derived& SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::With()
 template <typename Record, typename Derived, DataMapperOptions QueryOptions>
 void SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::RunRelationPreloaders(std::span<Record> records)
 {
+    if constexpr (QueryOptions.eagerLoadDepth == 0)
+        if (_relationPreloaders.empty())
+            return;
+
+    if (records.empty())
+        return;
+
+    auto pointers = std::vector<Record*> {};
+    pointers.reserve(records.size());
+    for (auto& record: records)
+        pointers.emplace_back(&record);
+    auto const batch = std::span<Record* const> { pointers };
+
+    // The named paths run first: the batched loaders skip a relation that is already loaded, so a
+    // relation this query asked for by name is not fetched a second time by the depth walk below.
     for (auto const preloader: _relationPreloaders)
-        preloader(_dm, records);
+        preloader(_dm, batch);
+
+    if constexpr (QueryOptions.eagerLoadDepth > 0)
+        _dm.template PreloadAllRelations<Record, QueryOptions.eagerLoadDepth>(batch);
 }
 
 template <typename Record, typename Derived, DataMapperOptions QueryOptions>
@@ -2780,7 +2857,7 @@ SqlSelectQueryBuilder DataMapper::BuildRecordSelectQuery()
 }
 
 template <typename Record, size_t FieldIndex>
-void DataMapper::PreloadRelation(std::span<Record> records)
+void DataMapper::PreloadRelation(std::span<Record* const> records)
 {
     using FieldType = RecordMemberTypeOf<FieldIndex, Record>;
 
@@ -2798,7 +2875,105 @@ void DataMapper::PreloadRelation(std::span<Record> records)
 }
 
 template <typename Record, size_t FieldIndex>
-void DataMapper::PreloadBelongsTo(std::span<Record> records)
+void DataMapper::PreloadRelation(std::span<Record> records)
+{
+    // A freshly materialized result set is contiguous, so the pointers are made here rather than
+    // asking every caller for them. One pointer per record, against at least one database
+    // round-trip saved per record - not a trade worth avoiding.
+    auto pointers = std::vector<Record*> {};
+    pointers.reserve(records.size());
+    for (auto& record: records)
+        pointers.emplace_back(&record);
+
+    PreloadRelation<Record, FieldIndex>(std::span<Record* const> { pointers });
+}
+
+template <typename Record, size_t FieldIndex>
+auto DataMapper::CollectRelationTargets(std::span<Record* const> records)
+{
+    using FieldType = RecordMemberTypeOf<FieldIndex, Record>;
+    using TargetRecord = typename FieldType::ReferencedRecord;
+
+    auto targets = std::vector<TargetRecord*> {};
+    targets.reserve(records.size());
+
+    for (auto* record: records)
+    {
+        auto& field = GetRecordMemberAt<FieldIndex>(*record);
+        if constexpr (IsBelongsTo<FieldType>)
+        {
+            // LoadedRecord(), not Record(): asking through the accessor would run the on-demand
+            // loader for exactly the rows the batch failed to resolve, one query at a time.
+            if (auto* target = field.LoadedRecord(); target != nullptr)
+                targets.emplace_back(target);
+        }
+        else if constexpr (IsHasMany<FieldType>)
+        {
+            if (auto* loaded = field.LoadedRecords(); loaded != nullptr)
+                for (auto& element: *loaded)
+                    targets.emplace_back(element.get());
+        }
+    }
+
+    return targets;
+}
+
+template <typename Record, size_t FieldIndex, auto... RestOfPath>
+void DataMapper::PreloadRelationPath(std::span<Record* const> records)
+{
+    PreloadRelation<Record, FieldIndex>(records);
+
+    if constexpr (sizeof...(RestOfPath) > 0)
+    {
+        using FieldType = RecordMemberTypeOf<FieldIndex, Record>;
+        using TargetRecord = typename FieldType::ReferencedRecord;
+
+        auto targets = CollectRelationTargets<Record, FieldIndex>(records);
+        if (targets.empty())
+            return;
+
+        // Every owner holds its own copy of a BelongsTo target, so the same underlying row can
+        // appear many times here. That is not wasted work: the level below deduplicates the keys
+        // before querying, so the row is still fetched once and then handed to each copy.
+        [&]<auto NextField, auto... Rest>() {
+            PreloadRelationPath<TargetRecord, MemberIndexOf<NextField>, Rest...>(
+                std::span<TargetRecord* const> { targets });
+        }.template operator()<RestOfPath...>();
+    }
+}
+
+template <typename Record, size_t Depth>
+void DataMapper::PreloadAllRelations(std::span<Record* const> records)
+{
+    if constexpr (Depth == 0)
+        return;
+    else
+    {
+        if (records.empty())
+            return;
+
+        Reflection::template_for<0, RecordMemberCount<Record>>([&]<auto I>() {
+            using FieldType = RecordMemberTypeOf<I, Record>;
+            // Relations the batched loaders do not cover are left to their on-demand loaders rather
+            // than failing the whole query: this option means "load what can be loaded in bulk".
+            if constexpr (IsBelongsTo<FieldType> || IsHasMany<FieldType>)
+            {
+                PreloadRelation<Record, I>(records);
+
+                if constexpr (Depth > 1)
+                {
+                    using TargetRecord = typename FieldType::ReferencedRecord;
+                    auto targets = CollectRelationTargets<Record, I>(records);
+                    if (!targets.empty())
+                        PreloadAllRelations<TargetRecord, Depth - 1>(std::span<TargetRecord* const> { targets });
+                }
+            }
+        });
+    }
+}
+
+template <typename Record, size_t FieldIndex>
+void DataMapper::PreloadBelongsTo(std::span<Record* const> records)
 {
     using FieldType = RecordMemberTypeOf<FieldIndex, Record>;
     using ReferencedRecord = typename FieldType::ReferencedRecord;
@@ -2818,9 +2993,15 @@ void DataMapper::PreloadBelongsTo(std::span<Record> records)
     // commonly point at the same parent, which is then fetched once instead of once per row.
     auto keys = std::vector<KeyType> {};
     keys.reserve(records.size());
-    for (auto const& record: records)
+    for (auto const* record: records)
     {
-        auto const& value = GetRecordMemberAt<FieldIndex>(record).Value();
+        auto const& field = GetRecordMemberAt<FieldIndex>(*record);
+        // Already resolved - by a named With<>() path, or by an outer level of the depth walk. Asking
+        // again would be a second query for a row that is already in memory.
+        if (field.LoadedRecord() != nullptr)
+            continue;
+
+        auto const& value = field.Value();
         if constexpr (FieldType::IsOptional)
         {
             if (value.has_value())
@@ -2849,9 +3030,12 @@ void DataMapper::PreloadBelongsTo(std::span<Record> records)
 
     std::ranges::sort(loaded, {}, primaryKeyOf);
 
-    for (auto& record: records)
+    for (auto* record: records)
     {
-        auto& field = GetRecordMemberAt<FieldIndex>(record);
+        auto& field = GetRecordMemberAt<FieldIndex>(*record);
+        if (field.LoadedRecord() != nullptr)
+            continue;
+
         auto const& value = field.Value();
         if constexpr (FieldType::IsOptional)
             if (!value.has_value())
@@ -2874,7 +3058,7 @@ void DataMapper::PreloadBelongsTo(std::span<Record> records)
 }
 
 template <typename Record, size_t FieldIndex>
-void DataMapper::PreloadHasMany(std::span<Record> records)
+void DataMapper::PreloadHasMany(std::span<Record* const> records)
 {
     using FieldType = RecordMemberTypeOf<FieldIndex, Record>;
     using ReferencedRecord = typename FieldType::ReferencedRecord;
@@ -2892,8 +3076,10 @@ void DataMapper::PreloadHasMany(std::span<Record> records)
 
     auto keys = std::vector<KeyType> {};
     keys.reserve(records.size());
-    for (auto const& record: records)
-        keys.emplace_back(GetPrimaryKeyField(record));
+    for (auto* record: records)
+        // See PreloadBelongsTo: a list already in memory is not fetched again.
+        if (GetRecordMemberAt<FieldIndex>(*record).LoadedRecords() == nullptr)
+            keys.emplace_back(GetPrimaryKeyField(*record));
     std::ranges::sort(keys);
     keys.erase(std::ranges::unique(keys).begin(), keys.end());
     if (keys.empty())
@@ -2934,16 +3120,20 @@ void DataMapper::PreloadHasMany(std::span<Record> records)
             }
         });
 
-    for (auto& record: records)
+    for (auto* record: records)
     {
-        auto const it = std::ranges::lower_bound(keys, GetPrimaryKeyField(record));
-        if (it == keys.end())
+        auto& field = GetRecordMemberAt<FieldIndex>(*record);
+        if (field.LoadedRecords() != nullptr)
+            continue;
+
+        auto const it = std::ranges::lower_bound(keys, GetPrimaryKeyField(*record));
+        if (it == keys.end() || !(*it == GetPrimaryKeyField(*record)))
             continue;
 
         // Owners with no children are emplaced empty on purpose: leaving the relation unloaded would
         // send the very first access back to the database for a result already known to be empty.
         auto& bucket = buckets[static_cast<size_t>(std::distance(keys.begin(), it))];
-        GetRecordMemberAt<FieldIndex>(record).Emplace(ReferencedRecordList { bucket });
+        field.Emplace(ReferencedRecordList { bucket });
     }
 }
 

@@ -31,12 +31,21 @@ struct EagerCategory
     Field<SqlAnsiString<32>> title {};
 };
 
+struct EagerRegion
+{
+    static constexpr std::string_view TableName = "EagerRegion";
+
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<SqlAnsiString<32>> label {};
+};
+
 struct EagerOwner
 {
     static constexpr std::string_view TableName = "EagerOwner";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
     Field<SqlAnsiString<32>> name {};
+    BelongsTo<Member(EagerRegion::id), SqlRealName { "region_id" }> region {};
     HasMany<EagerChild> children {};
 };
 
@@ -131,15 +140,20 @@ class ScopedStatementCounter
 void MakeOwnersWithChildren(DataMapper& dm, size_t ownerCount, size_t childrenPerOwner)
 {
     dm.CreateTable<EagerCategory>();
+    dm.CreateTable<EagerRegion>();
     dm.CreateTable<EagerOwner>();
     dm.CreateTable<EagerChild>();
 
     auto category = EagerCategory { .title = "shared" };
     dm.Create(category);
 
+    auto region = EagerRegion { .label = "north" };
+    dm.Create(region);
+
     for (size_t ownerIndex = 0; ownerIndex < ownerCount; ++ownerIndex)
     {
         auto owner = EagerOwner { .name = SqlAnsiString<32> { std::format("owner-{}", ownerIndex) } };
+        owner.region = region;
         dm.Create(owner);
 
         for (size_t childIndex = 0; childIndex < childrenPerOwner; ++childIndex)
@@ -253,8 +267,12 @@ TEST_CASE_METHOD(SqlTestFixture, "With<HasMany> marks childless owners loaded-em
     auto dm = DataMapper {};
     MakeOwnersWithChildren(dm, 2, 2);
 
-    // An owner with no children at all.
+    // An owner with no children at all. It still needs its (mandatory) region, so reuse the one the
+    // fixture created rather than tripping the foreign key.
+    auto region = dm.Query<EagerRegion>().First();
+    REQUIRE(region.has_value());
     auto lonely = EagerOwner { .name = "lonely" };
+    lonely.region = *region;
     dm.Create(lonely);
 
     auto counter = ScopedStatementCounter {};
@@ -350,4 +368,127 @@ TEST_CASE_METHOD(SqlTestFixture, "Relations not named by With<> keep loading on 
     // change what an unrequested relation does.
     CHECK(children.front().owner.Record().id.Value() != 0);
     CHECK(counter.Count() > 1);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "With<> walks a nested BelongsTo path in one query per level", "[DataMapper][With]")
+{
+    // The shape the one-level version cannot help with: every child holds its *own copy* of its
+    // owner, so reaching owner.region through the copy would run that copy's own lazy loader - one
+    // query per child, the N+1 moved one level down.
+    auto dm = DataMapper {};
+    MakeOwnersWithChildren(dm, 6, 2);
+
+    auto counter = ScopedStatementCounter {};
+    auto children = dm.Query<EagerChild>()
+                        .With<Member(EagerChild::owner)>()
+                        .With<Member(EagerChild::owner), Member(EagerOwner::region)>()
+                        .All();
+
+    // Children, their owners, the owners' regions: three statements for 12 children.
+    CHECK(counter.Count() == 3);
+
+    REQUIRE(children.size() == 12);
+    for (auto& child: children)
+    {
+        auto& owner = child.owner.Record();
+        CHECK(owner.id.Value() == child.owner.Value());
+        CHECK(owner.region.Record().label.Value().ToStringView() == "north");
+    }
+
+    // Reading the whole nested graph must not have gone back to the database.
+    CHECK(counter.Count() == 3);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "With<> walks a path through a HasMany", "[DataMapper][With]")
+{
+    // Path through the "many" side: owners, their children, and each child's category - the middle
+    // level fans out, so a per-record walk here would be one query per *child*, not per owner.
+    auto dm = DataMapper {};
+    MakeOwnersWithChildren(dm, 4, 2);
+
+    auto counter = ScopedStatementCounter {};
+    auto owners = dm.Query<EagerOwner>()
+                      .With<Member(EagerOwner::children)>()
+                      .With<Member(EagerOwner::children), Member(EagerChild::category)>()
+                      .All();
+
+    CHECK(counter.Count() == 3);
+    REQUIRE(owners.size() == 4);
+
+    size_t categorized = 0;
+    for (auto& owner: owners)
+        for (auto const& child: owner.children.All())
+            if (child->category.Value().has_value())
+            {
+                auto const category = child->category.Record();
+                if (!category.has_value())
+                    throw std::runtime_error("The eagerly loaded category must be present.");
+                CHECK(category->get().title.Value().ToStringView() == "shared");
+                ++categorized;
+            }
+
+    CHECK(categorized == 4);
+    CHECK(counter.Count() == 3);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "eagerLoadDepth loads every relation of the result set", "[DataMapper][With]")
+{
+    // No relation named at all: the option loads whatever is reachable, which for a child is its
+    // owner and its category (depth 1).
+    auto dm = DataMapper {};
+    MakeOwnersWithChildren(dm, 5, 2);
+
+    auto counter = ScopedStatementCounter {};
+    auto children = dm.Query<EagerChild, DataMapperOptions { .eagerLoadDepth = 1 }>().All();
+
+    // Children + owners + categories.
+    CHECK(counter.Count() == 3);
+    REQUIRE(children.size() == 10);
+
+    for (auto& child: children)
+        CHECK(child.owner.Record().id.Value() == child.owner.Value());
+
+    CHECK(counter.Count() == 3);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "eagerLoadDepth descends through the relation graph", "[DataMapper][With]")
+{
+    // Depth 2 from a child reaches the owner's own relations as well: owner.region and, back down
+    // the inverse side, the owner's children.
+    auto dm = DataMapper {};
+    MakeOwnersWithChildren(dm, 4, 2);
+
+    auto counter = ScopedStatementCounter {};
+    auto children = dm.Query<EagerChild, DataMapperOptions { .eagerLoadDepth = 2 }>().All();
+
+    REQUIRE(children.size() == 8);
+
+    for (auto& child: children)
+    {
+        auto& owner = child.owner.Record();
+        CHECK(owner.region.Record().label.Value().ToStringView() == "north");
+        CHECK(owner.children.Count() == 2);
+    }
+
+    // Whatever the exact number of levels walked, it must be a small constant - not one query per
+    // record, which for 8 children with two relations each would be well past twenty.
+    CHECK(counter.Count() <= 8);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "A named path is not re-fetched by eagerLoadDepth", "[DataMapper][With]")
+{
+    // Both mechanisms at once: the batched loaders skip a relation that is already in memory, so
+    // naming a path and asking for a depth walk must not query the same relation twice.
+    auto dm = DataMapper {};
+    MakeOwnersWithChildren(dm, 3, 2);
+
+    auto counter = ScopedStatementCounter {};
+    auto children =
+        dm.Query<EagerChild, DataMapperOptions { .eagerLoadDepth = 1 }>().With<Member(EagerChild::owner)>().All();
+
+    // Children, owners (named), categories (from the depth walk) - the owners are not fetched twice.
+    CHECK(counter.Count() == 3);
+    REQUIRE(children.size() == 6);
+    for (auto& child: children)
+        CHECK(child.owner.Record().id.Value() == child.owner.Value());
 }

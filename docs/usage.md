@@ -208,6 +208,7 @@ for (auto& album: albums)
 - Supported for `BelongsTo` and `HasMany`. `HasOneThrough`, `HasManyThrough` and `CompositeForeignKey`
   still load on demand; naming one of them in `With<>()` is a compile error rather than a silent
   fallback.
+- Naming several relations forms a **path**, which is what a nested relation needs — see below.
 - Calls chain, one per relation to load. It applies to `All()`, `First()`, `First(n)` and `Range()`.
 - The `IN` predicate is chunked (see `SqlQueryFormatter::MaxInPredicateValues`, 1000 by default), so a
   large batch costs one query per chunk — a constant number of queries per relation, never one per
@@ -218,6 +219,46 @@ for (auto& album: albums)
 - Relations that were *not* named keep their on-demand behaviour. Combining `With<>()` with
   `DataMapperOptions { .loadRelations = false }` therefore turns any unrequested relation access into a
   `SqlRequireLoadedError` instead of a silent query — useful to prove a code path issues no N+1.
+
+#### Nested relations
+
+Eager-loading one level is not enough for a chain. Every record holds its *own copy* of its
+`BelongsTo` target, so reaching a relation of that copy runs the copy's own lazy loader — the N+1
+simply moves one level down. Name the whole path instead:
+
+```cpp
+auto tracks = dm.Query<Track>()
+                .With<&Track::album>()                   // 1 query for all albums
+                .With<&Track::album, &Album::artist>()   // 1 query for all those albums' artists
+                .All();
+
+for (auto& track: tracks)
+    std::println("{} - {}", track.album.Record().title,
+                 track.album.Record().artist.Record().name);   // no queries here
+```
+
+Three queries in total, for any number of tracks. Each level is resolved for every record reached by
+the level above it, at once. A path may also run through the "many" side
+(`.With<&Album::tracks, &Track::genre>()`): the middle level fans out, and the level below it is
+still one query rather than one per child.
+
+Already-loaded relations are skipped, so overlapping paths (`.With<&A::b>()` next to
+`.With<&A::b, &B::c>()`) do not fetch `b` twice.
+
+#### Loading everything reachable
+
+When a whole object graph is wanted rather than named paths, set a depth on the query instead:
+
+```cpp
+// Tracks, their albums and categories, and those albums' artists - a constant number of queries.
+auto tracks = dm.Query<Track, DataMapperOptions { .eagerLoadDepth = 2 }>().All();
+```
+
+`eagerLoadDepth` batch-loads *every* `BelongsTo` and `HasMany` reachable within that many levels.
+Prefer `With<>()` when only part of the graph is needed: the depth walk fetches more rows, and
+instantiates the loader for the whole reachable relation graph, which costs compile time. The depth
+is what bounds both — and what lets a cyclic graph (a self-referencing record, or `A → B → A`)
+terminate, since the recursion is cut at a compile-time constant.
 
 Measured on 1000 owners with 10 children each, comparing the on-demand path with `With<>()`:
 
