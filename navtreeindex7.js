@@ -1,5 +1,9 @@
 var NAVTREEINDEX7 =
 {
+"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#sqlnumericprecision-scale-precision-limits":[6,5],
+"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#what-each-accessor-delivers":[6,5,0],
+"de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html":[17,4,2],
+"de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#a122267596e346b15d075ca4c347ac97d":[17,4,2,1],
 "de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#ab3f4130283fddc423a1911a3962e739c":[17,4,2,0],
 "de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#af18e106d18590f5e6b4f29a04389ecf5":[17,4,2,2],
 "de/dbb/StdString_8hpp_source.html":[20,0,1,1,18],
@@ -245,7 +249,5 @@ var NAVTREEINDEX7 =
 "index.html#supported-databases":[0,3],
 "index.html#supported-platforms":[0,2],
 "index.html#using-sqlite-for-testing-on-windows-operating-system":[0,10],
-"index.html#why-odbc":[0,1],
-"pages.html":[],
-"topics.html":[17]
+"index.html#why-odbc":[0,1]
 };
