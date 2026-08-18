@@ -22,7 +22,7 @@ Available functions:
       (`SMALLINT IDENTITY`). Declare `Bigint` (the default) unless you specifically want that limit.
     + Upgrading to a Lightweight version that changes the emitted DDL text also changes the checksum
       stored for migrations that were already applied — see
-      [dbtool: Checksum Mismatches](dbtool.md#checksum-mismatches).
+      @ref checksum-mismatches "dbtool: Checksum Mismatches".
   - `Column(std::string columnName, SqlColumnTypeDefinition columnType)`, `Column(SqlColumnDeclaration column)`
     + create a column specified by a name and type
     + for precise control on the column specification `SqlColumnDeclaration` can be used as an argument. 
