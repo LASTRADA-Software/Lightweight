@@ -260,6 +260,52 @@ mark-applied &lt;TIMESTAMP&gt;</h2>
 <li>Baseline migrations when setting up an existing database</li>
 <li>Skipping migrations that were applied manually</li>
 </ul>
+<h2><a class="anchor" id="rollback-to-release-version"></a>
+rollback-to-release &lt;VERSION&gt;</h2>
+<p>Rolls back every migration applied after the named release:</p>
+<div class="fragment"><div class="line">dbtool rollback-to-release 1.0.0</div>
+</div><!-- fragment --><p>The release's own migrations are kept; only what came after is reverted.</p>
+<h2><a class="anchor" id="releases"></a>
+releases</h2>
+<p>Lists the releases declared by the registered migrations, with each one's migration count and whether it is fully applied:</p>
+<div class="fragment"><div class="line">dbtool releases</div>
+</div><!-- fragment --><h2><a class="anchor" id="rewrite-checksums"></a>
+rewrite-checksums</h2>
+<p>Rewrites <code>schema_migrations.checksum</code> so the stored checksums match what the current code generates:</p>
+<div class="fragment"><div class="line">dbtool rewrite-checksums --yes</div>
+</div><!-- fragment --><p>Use this <b>only</b> after a regeneration that changed the byte shape of a migration without changing its meaning — for example a formatting change in generated DDL. If the logic actually changed, the checksum mismatch is a real warning and rewriting it hides a genuine divergence. Because it edits migration bookkeeping, it refuses to run without <code>--yes</code> — there is no interactive prompt, the command simply exits. See <a class="el" href="../../d5/dc4/dbtool.html#checksum-mismatches">Checksum Mismatches</a>.</p>
+<h2><a class="anchor" id="hard-reset"></a>
+hard-reset</h2>
+<p>Drops every table the registered migrations own, plus the <code>schema_migrations</code> table, and leaves tables it does not own untouched:</p>
+<div class="fragment"><div class="line">dbtool hard-reset --yes</div>
+<div class="line">dbtool migrate</div>
+</div><!-- fragment --><p>The pairing with <code>migrate</code> is the point: <code>hard-reset</code> returns the database to "no migrations
+applied" so the full set can be replayed from scratch. Which tables count as migration-owned is computed by folding the registered migration plan, not by guessing from the live schema, so user tables survive. Like <code>rewrite-checksums</code>, it refuses to run without <code>--yes</code>.</p>
+<p><code>--dry-run</code> prints the three groups it computed — tables to drop, migration-declared but absent, and user-owned tables it will preserve — without touching anything.</p>
+<h2><a class="anchor" id="unicode-upgrade-tables"></a>
+unicode-upgrade-tables</h2>
+<p>Rewrites legacy <code>VARCHAR</code>/<code>CHAR</code> columns to <code>NVARCHAR</code>/<code>NCHAR</code> where the registered migrations now declare wide types:</p>
+<div class="fragment"><div class="line">dbtool unicode-upgrade-tables --dry-run</div>
+<div class="line">dbtool unicode-upgrade-tables --yes</div>
+</div><!-- fragment --><p>This exists for databases created before a migration switched a column to a wide type: the migration history is already marked applied, so nothing would otherwise re-run to widen the existing columns. Run it with <code>--dry-run</code> first to see the planned <code>ALTER</code> statements.</p>
+<h2><a class="anchor" id="exec-query"></a>
+exec &lt;QUERY&gt;</h2>
+<p>Executes an SQL query and prints any result set:</p>
+<div class="fragment"><div class="line">dbtool exec &quot;SELECT COUNT(*) FROM Users&quot;</div>
+</div><!-- fragment --><p>Pass <code>-</code> as the argument, or omit it entirely, to read the query from stdin:</p>
+<div class="fragment"><div class="line">echo &quot;SELECT * FROM Users WHERE id = 1&quot; | dbtool exec -</div>
+<div class="line">dbtool exec &lt; query.sql</div>
+</div><!-- fragment --><h2><a class="anchor" id="list-profiles"></a>
+list-profiles</h2>
+<p>Lists the profiles defined in the configuration file (see <a class="el" href="../../d5/dc4/dbtool.html#configuration">Configuration</a>):</p>
+<div class="fragment"><div class="line">dbtool list-profiles</div>
+</div><!-- fragment --><h2><a class="anchor" id="resolve-secret-ref"></a>
+resolve-secret &lt;REF&gt;</h2>
+<p>Resolves a single secret reference and prints it to stdout, without connecting to any database:</p>
+<div class="fragment"><div class="line">dbtool resolve-secret env:DB_PASSWORD</div>
+<div class="line">dbtool resolve-secret file:/run/secrets/db_password</div>
+<div class="line">dbtool resolve-secret stdin:</div>
+</div><!-- fragment --><p>This is a debugging aid for configuration: it lets you confirm that a <code>env:</code> / <code>file:</code> / <code>stdin:</code> reference in a profile resolves to what you expect, before a connection failure sends you looking in the wrong place.</p>
 <h1><a class="anchor" id="backup--restore"></a>
 Backup &amp; Restore</h1>
 <h2><a class="anchor" id="backup"></a>
@@ -336,13 +382,25 @@ Command-Line Options Reference</h1>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--no-lock</code>   </td><td class="markdownTableBodyNone">Skip migration locking   </td><td class="markdownTableBodyNone"></td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>--schema-only</code>   </td><td class="markdownTableBodyNone">For backup/restore: skip data. For <code>diff</code>: skip the data diff.   </td><td class="markdownTableBodyNone"></td></tr>
+<td class="markdownTableBodyNone"><code>--schema-only</code>   </td><td class="markdownTableBodyNone">For backup/restore: skip data, transferring schema only   </td><td class="markdownTableBodyNone"></td></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>--no-color</code>   </td><td class="markdownTableBodyNone">Disable ANSI colors in <code>diff</code> output (auto-disabled when not at a tty)   </td><td class="markdownTableBodyNone"></td></tr>
+<td class="markdownTableBodyNone"><code>--memory-limit &lt;SIZE&gt;</code>   </td><td class="markdownTableBodyNone">Memory limit for restore (accepts the size suffixes below)   </td><td class="markdownTableBodyNone"></td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>--max-rows &lt;N&gt;</code>   </td><td class="markdownTableBodyNone">Cap rows scanned per table for <code>diff</code> data mode   </td><td class="markdownTableBodyNone"><code>0</code> (unlimited)    </td></tr>
+<td class="markdownTableBodyNone"><code>--batch-size &lt;N&gt;</code>   </td><td class="markdownTableBodyNone">Rows per batch for restore   </td><td class="markdownTableBodyNone"></td></tr>
 <tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>--ignore-table &lt;NAME&gt;</code>   </td><td class="markdownTableBodyNone">For <code>backup-diff</code>: report differences in this table but do not fail. Repeatable.   </td><td class="markdownTableBodyNone"></td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>--profile &lt;NAME&gt;</code>   </td><td class="markdownTableBodyNone">Named profile from the configuration file   </td><td class="markdownTableBodyNone">store default    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>--up-to &lt;TIMESTAMP&gt;</code>   </td><td class="markdownTableBodyNone">Upper bound for migration commands   </td><td class="markdownTableBodyNone">no bound    </td></tr>
+<tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>--max-retries &lt;N&gt;</code>   </td><td class="markdownTableBodyNone">Maximum retry attempts for transient errors   </td><td class="markdownTableBodyNone"><code>3</code>    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>--verbose</code>, <code>-v</code>   </td><td class="markdownTableBodyNone">Emit extra informational output (e.g. shadowed plugins)   </td><td class="markdownTableBodyNone"></td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>--yes</code>, <code>-y</code>   </td><td class="markdownTableBodyNone">Confirm destructive actions without prompting   </td><td class="markdownTableBodyNone"></td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>--show-examples</code>   </td><td class="markdownTableBodyNone">Print usage examples and exit   </td><td class="markdownTableBodyNone"></td></tr>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>--help</code>   </td><td class="markdownTableBodyNone">Show help message   </td><td class="markdownTableBodyNone"></td></tr>
 </table>

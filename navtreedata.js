@@ -181,7 +181,15 @@ var NAVTREE =
         [ "apply <TIMESTAMP>", "d5/dc4/dbtool.html#apply-timestamp", null ],
         [ "rollback <TIMESTAMP>", "d5/dc4/dbtool.html#rollback-timestamp", null ],
         [ "rollback-to <TIMESTAMP>", "d5/dc4/dbtool.html#rollback-to-timestamp", null ],
-        [ "mark-applied <TIMESTAMP>", "d5/dc4/dbtool.html#mark-applied-timestamp", null ]
+        [ "mark-applied <TIMESTAMP>", "d5/dc4/dbtool.html#mark-applied-timestamp", null ],
+        [ "rollback-to-release <VERSION>", "d5/dc4/dbtool.html#rollback-to-release-version", null ],
+        [ "releases", "d5/dc4/dbtool.html#releases", null ],
+        [ "rewrite-checksums", "d5/dc4/dbtool.html#rewrite-checksums", null ],
+        [ "hard-reset", "d5/dc4/dbtool.html#hard-reset", null ],
+        [ "unicode-upgrade-tables", "d5/dc4/dbtool.html#unicode-upgrade-tables", null ],
+        [ "exec <QUERY>", "d5/dc4/dbtool.html#exec-query", null ],
+        [ "list-profiles", "d5/dc4/dbtool.html#list-profiles", null ],
+        [ "resolve-secret <REF>", "d5/dc4/dbtool.html#resolve-secret-ref", null ]
       ] ],
       [ "Backup & Restore", "d5/dc4/dbtool.html#backup--restore", [
         [ "backup", "d5/dc4/dbtool.html#backup", null ],
@@ -329,11 +337,11 @@ var NAVTREEINDEX =
 "annotated.html",
 "d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#aca479b7b343211bb7f024b4315d62ea5",
 "d4/d9e/classLightweight_1_1ThreadSafeQueue.html#a68e5674ec7cbda2970a270cd30572f37",
-"d7/d09/structLightweight_1_1Zip_1_1EntryInfo.html#a0731a4941cd0e4cbdfa4a3dfc159a750",
-"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a52eaec0c096b8f29fce67268c22cf433",
-"da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2afbde23b11d7e59af7828e81144c8b487",
-"dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#a9d666c263d9e7ea0cccc45ae71365837",
-"de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html#a9216791e7f16456f43eb1ad2a74942a8"
+"d6/dfa/structLightweight_1_1SqlDateTime.html#ab38664ffae1a75be115aa5d8824326ad",
+"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a13fdb830c85dfa8759f391e57be1bd08",
+"da/d6c/classLightweight_1_1RowArrayCursor.html#ab2a0986037e9cf89ee7e5ed09bf9fb19",
+"dc/dc9/classLightweight_1_1CompositeForeignKey.html#aadd30fc4ad067ad510d194e75ce72f18",
+"de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#ab3f4130283fddc423a1911a3962e739c"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
