@@ -11,6 +11,5 @@ var searchData=
   ['20_20modules_8',['Building with C++20 Modules',['../index.html#building-with-c20-modules',1,'']]],
   ['23_20coroutines_9',['Asynchronous API (C++23 coroutines)',['../db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html',1,'']]],
   ['23_20database_20library_10',['Lightweight, a C++23 database library',['../index.html',1,'']]],
-  ['23_20odbc_20wrapper_11',['Announcing Lightweight: Zero-overhead C++23 ODBC wrapper',['../d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html',1,'']]],
-  ['26_20reflection_20support_12',['Compile using C++26 reflection support',['../index.html#compile-using-c26-reflection-support',1,'']]]
+  ['26_20reflection_20support_11',['Compile using C++26 reflection support',['../index.html#compile-using-c26-reflection-support',1,'']]]
 ];

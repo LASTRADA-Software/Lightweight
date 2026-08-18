@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['types_0',['Data Types',['../d4/d7c/group__DataTypes.html',1,'']]]
+  ['query_20builder_0',['Query Builder',['../d6/daa/group__QueryBuilder.html',1,'']]]
 ];

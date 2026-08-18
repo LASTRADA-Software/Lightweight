@@ -93,12 +93,9 @@ $(document).ready(function(){initNavTree('d9/dd5/structLightweight_1_1SqlBackup_
   <div class="summary">
 <a href="#pub-attribs">Public Attributes</a> &#124;
 <a href="../../d5/d1b/structLightweight_1_1SqlBackup_1_1BackupSettings-members.html">List of all members</a>  </div>
-  <div class="headertitle"><div class="title">Lightweight::SqlBackup::BackupSettings Struct Reference</div></div>
+  <div class="headertitle"><div class="title">Lightweight::SqlBackup::BackupSettings Struct Reference<div class="ingroups"><a class="el" href="../../d0/d95/group__Backup.html">Backup and Restore</a></div></div></div>
 </div><!--header-->
 <div class="contents">
-
-<p>Configuration for backup operations including compression and chunking.  
- <a href="../../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>&gt;</code></p>
 <table class="memberdecls">
@@ -124,7 +121,7 @@ Public Attributes</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Configuration for backup operations including compression and chunking. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00037">37</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00044">44</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="a24b981baad3240eee5b41c2654c2ccd3" name="a24b981baad3240eee5b41c2654c2ccd3"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a24b981baad3240eee5b41c2654c2ccd3">&#9670;&#160;</a></span>method</h2>
@@ -140,7 +137,7 @@ Public Attributes</h2></td></tr>
 
 <p>The compression method to use. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00040">40</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00047">47</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>
@@ -162,7 +159,7 @@ Public Attributes</h2></td></tr>
 <li>For Store: ignored </li>
 </ul>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00047">47</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00054">54</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>
@@ -179,7 +176,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>The target size in bytes for each chunk before flushing. Chunks are flushed when the buffer exceeds this size. Default: 10 MB. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00052">52</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00059">59</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>
@@ -196,7 +193,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Target rows per chunk window. Tables with a single numeric primary key are split into windows of about this many keys (subject to a per-table window cap) that are backed up in parallel by multiple workers. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00057">57</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00064">64</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>
@@ -213,7 +210,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Uncompressed bytes each worker accumulates in its private temp archive before sealing it (the compression of that archive runs in the worker thread at that point, overlapped with the network-bound fetch). Bounds worker memory at about jobs x workerArchiveBytes and determines how many temp archives the finalize merge opens. Default: 256 MB. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00063">63</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00070">70</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>
@@ -231,7 +228,7 @@ Public Attributes</h2></td></tr>
 
 <p>If true, only export schema metadata without backing up table data. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00066">66</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00073">73</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>
@@ -248,7 +245,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Deprecated no-op. Previously bypassed the MS SQL Server single-worker clamp; that clamp has been removed (all databases now back up multi-threaded), so this flag no longer has any effect. Retained temporarily to avoid an API/ABI break; pending removal. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00071">71</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00078">78</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>

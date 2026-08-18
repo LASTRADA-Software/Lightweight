@@ -446,7 +446,7 @@ Concurrency Control</h2>
 <div class="line"><a class="code hl_class" href="../../d3/de6/classLightweight_1_1SqlScopedLock.html">SqlScopedLock</a> lock { connection, <span class="stringliteral">&quot;lightweight_migration&quot;</span>, std::chrono::seconds(30) };</div>
 <div class="line">manager.ApplyPendingMigrations();</div>
 <div class="line"><span class="comment">// Lock released automatically at scope exit.</span></div>
-<div class="ttc" id="aclassLightweight_1_1SqlScopedLock_html"><div class="ttname"><a href="../../d3/de6/classLightweight_1_1SqlScopedLock.html">Lightweight::SqlScopedLock</a></div><div class="ttdef"><b>Definition</b> <a href="../../d2/d7c/SqlScopedLock_8hpp_source.html#l00039">SqlScopedLock.hpp:40</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlScopedLock_html"><div class="ttname"><a href="../../d3/de6/classLightweight_1_1SqlScopedLock.html">Lightweight::SqlScopedLock</a></div><div class="ttdef"><b>Definition</b> <a href="../../d2/d7c/SqlScopedLock_8hpp_source.html#l00040">SqlScopedLock.hpp:41</a></div></div>
 </div><!-- fragment --><p><code>SqlScopedLock</code> is <b>not migration-specific</b> — any caller that needs a named cross-process token can use it (cron leadership, "only one worker
 processes batch X", queue ownership, …). Pick any string for the lock name; two processes that pass the same string will serialise on it.</p>
 <p>For structured error handling — distinguishing timeout from deadlock from driver error programmatically — use the non-throwing <code>SqlScopedLock::TryConstruct(connection, name, timeout)</code> factory, which returns <code>std::expected&lt;SqlScopedLock, SqlLockError&gt;</code>.</p>

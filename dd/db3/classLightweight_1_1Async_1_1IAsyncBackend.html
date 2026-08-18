@@ -93,7 +93,7 @@ $(document).ready(function(){initNavTree('dd/db3/classLightweight_1_1Async_1_1IA
   <div class="summary">
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="../../de/d66/classLightweight_1_1Async_1_1IAsyncBackend-members.html">List of all members</a>  </div>
-  <div class="headertitle"><div class="title">Lightweight::Async::IAsyncBackend Class Reference<span class="mlabels"><span class="mlabel">abstract</span></span></div></div>
+  <div class="headertitle"><div class="title">Lightweight::Async::IAsyncBackend Class Reference<span class="mlabels"><span class="mlabel">abstract</span></span><div class="ingroups"><a class="el" href="../../d5/d07/group__Async.html">Asynchronous API</a></div></div></div>
 </div><!--header-->
 <div class="contents">
 
@@ -132,7 +132,7 @@ Public Member Functions</h2></td></tr>
 <p>A backend owns (or references) the execution context used to run a connection's blocking ODBC work and to resume the awaiting coroutine. Currently the only implementation is <a class="el" href="../../dc/d4a/classLightweight_1_1Async_1_1ThreadOffloadBackend.html">ThreadOffloadBackend</a> (portable; offloads to a worker thread). A native event backend (Windows + SQL Server) is planned behind this same interface.</p>
 <p>The backend is selected once per connection (see <code><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#afd6064e6446d7bc609fd0fea94ad0fd7">SqlConnection::EnableAsync</a></code>) and used by all of that connection's async methods. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d0/d69/Backend_8hpp_source.html#l00023">23</a> of file <a class="el" href="../../d0/d69/Backend_8hpp_source.html">Backend.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d0/d69/Backend_8hpp_source.html#l00024">24</a> of file <a class="el" href="../../d0/d69/Backend_8hpp_source.html">Backend.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="af16af5750032dc8798380d359167f065" name="af16af5750032dc8798380d359167f065"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#af16af5750032dc8798380d359167f065">&#9670;&#160;</a></span>Strand()</h2>

@@ -1,9 +1,6 @@
 var searchData=
 [
-  ['sql_20backup_20file_20format_0',['Lightweight SQL Backup File Format',['../d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html',1,'']]],
-  ['sql_20backup_3a_20how_20it_20works_1',['SQL Backup: How It Works',['../dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html',1,'']]],
-  ['sql_20migrations_2',['SQL Migrations',['../d2/da6/sql-migrations.html',1,'']]],
-  ['sql_20query_3',['SQL Query',['../d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html',1,'']]],
-  ['sql_20to_20lightweight_4',['SQL to Lightweight',['../d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html',1,'']]],
-  ['support_20—_20design_5',['Composite key support — design',['../d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html',1,'']]]
+  ['to_0',['How to',['../d1/dde/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2how-to.html',1,'']]],
+  ['to_20lightweight_1',['SQL to Lightweight',['../d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html',1,'']]],
+  ['tracing_2',['Logging and tracing',['../d1/d4f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2logging.html',1,'']]]
 ];
