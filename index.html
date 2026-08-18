@@ -110,7 +110,7 @@ Features</h1>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><b>Relationships</b>   </td><td class="markdownTableBodyNone"><code>BelongsTo</code>, <code>HasMany</code>, <code>HasOneThrough</code>, <code>HasManyThrough</code>, <code>CompositeForeignKey</code>   </td><td class="markdownTableBodyNone"><a class="el" href="d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html">composite-keys-design.md</a>    </td></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><b>Schema migrations</b>   </td><td class="markdownTableBodyNone">Versioned migrations, checksums, dependency ordering, plugin loading, rollback   </td><td class="markdownTableBodyNone">sql-migrations.md    </td></tr>
+<td class="markdownTableBodyNone"><b>Schema migrations</b>   </td><td class="markdownTableBodyNone">Versioned migrations, checksums, dependency ordering, plugin loading, rollback   </td><td class="markdownTableBodyNone"><a class="el" href="d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html">sql-migrations.md</a>    </td></tr>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><b>Backup &amp; restore</b>   </td><td class="markdownTableBodyNone">Parallel chunked dump/restore, msgpack + zip + sha256, archive diffing   </td><td class="markdownTableBodyNone"><a class="el" href="dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html">sql-backup.md</a>, <a class="el" href="d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html">sql-backup-format.md</a>    </td></tr>
 <tr class="markdownTableRowOdd">
@@ -124,9 +124,9 @@ Features</h1>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><b>Custom data types</b>   </td><td class="markdownTableBodyNone"><code>SqlDataBinder&lt;T&gt;</code> specialization for your own types, with Unicode support   </td><td class="markdownTableBodyNone"><a class="el" href="de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html">data-binder.md</a>    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone">**<code>dbtool</code> CLI**   </td><td class="markdownTableBodyNone">Migrations, backup/restore, backup diffing, schema inspection — ~20 commands   </td><td class="markdownTableBodyNone">dbtool.md    </td></tr>
+<td class="markdownTableBodyNone">**<code>dbtool</code> CLI**   </td><td class="markdownTableBodyNone">Migrations, backup/restore, backup diffing, schema inspection — ~20 commands   </td><td class="markdownTableBodyNone"><a class="el" href="de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html">dbtool.md</a>    </td></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">**<code>dbtool-gui</code>**   </td><td class="markdownTableBodyNone">Qt/QML desktop app for migrations, backup and ad-hoc queries   </td><td class="markdownTableBodyNone">dbtool.md    </td></tr>
+<td class="markdownTableBodyNone">**<code>dbtool-gui</code>**   </td><td class="markdownTableBodyNone">Qt/QML desktop app for migrations, backup and ad-hoc queries   </td><td class="markdownTableBodyNone"><a class="el" href="de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html">dbtool.md</a>    </td></tr>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone">**<code>ddl2cpp</code>**   </td><td class="markdownTableBodyNone">Generates C++ records from an existing schema, inferring relations automatically   </td><td class="markdownTableBodyNone"><a class="el" href="d5/dd9/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2ddl2cpp-relation-generation.html">ddl2cpp-relation-generation.md</a>   </td></tr>
 </table>
@@ -324,7 +324,7 @@ Schema migrations</h1>
 <div class="fragment"><div class="line">dbtool status         # what is applied, what is pending</div>
 <div class="line">dbtool migrate        # apply everything pending</div>
 <div class="line">dbtool rollback-to 20260101120000</div>
-</div><!-- fragment --><p>See sql-migrations.md for writing migrations and dbtool.md for the full command reference.</p>
+</div><!-- fragment --><p>See <a class="el" href="d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html">sql-migrations.md</a> for writing migrations and <a class="el" href="de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html">dbtool.md</a> for the full command reference.</p>
 <h1><a class="anchor" id="backup-and-restore"></a>
 Backup and restore</h1>
 <p>Lightweight ships a backup engine — parallel chunked dump and restore into a zip archive of msgpack chunks with sha256 integrity, plus archive diffing:</p>

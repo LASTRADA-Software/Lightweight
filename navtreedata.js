@@ -157,100 +157,100 @@ var NAVTREE =
         [ "5.4 Restoration Compatibility", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md54-restoration-compatibility", null ]
       ] ]
     ] ],
-    [ "dbtool - Database Management CLI", "d5/dc4/dbtool.html", [
-      [ "Overview", "d5/dc4/dbtool.html#overview-1", null ],
-      [ "Installation", "d5/dc4/dbtool.html#installation", [
-        [ "Pre-built installers", "d5/dc4/dbtool.html#pre-built-installers", null ],
-        [ "Building from source", "d5/dc4/dbtool.html#building-from-source", null ],
-        [ "Producing the installer locally", "d5/dc4/dbtool.html#producing-the-installer-locally", null ]
+    [ "dbtool - Database Management CLI", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html", [
+      [ "Overview", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#overview-1", null ],
+      [ "Installation", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#installation", [
+        [ "Pre-built installers", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#pre-built-installers", null ],
+        [ "Building from source", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#building-from-source", null ],
+        [ "Producing the installer locally", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#producing-the-installer-locally", null ]
       ] ],
-      [ "Configuration", "d5/dc4/dbtool.html#configuration", [
-        [ "Connection String", "d5/dc4/dbtool.html#connection-string", null ],
-        [ "Configuration File Format", "d5/dc4/dbtool.html#configuration-file-format", null ],
-        [ "Inspecting configured profiles", "d5/dc4/dbtool.html#inspecting-configured-profiles", null ],
-        [ "Database-Specific Connection Strings", "d5/dc4/dbtool.html#database-specific-connection-strings", null ]
+      [ "Configuration", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#configuration", [
+        [ "Connection String", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#connection-string", null ],
+        [ "Configuration File Format", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#configuration-file-format", null ],
+        [ "Inspecting configured profiles", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#inspecting-configured-profiles", null ],
+        [ "Database-Specific Connection Strings", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#database-specific-connection-strings", null ]
       ] ],
-      [ "Migration Commands", "d5/dc4/dbtool.html#migration-commands", [
-        [ "migrate", "d5/dc4/dbtool.html#migrate", [
-          [ "Custom default schema (<tt>--schema</tt>)", "d5/dc4/dbtool.html#custom-default-schema---schema", null ]
+      [ "Migration Commands", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#migration-commands", [
+        [ "migrate", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#migrate", [
+          [ "Custom default schema (<tt>--schema</tt>)", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#custom-default-schema---schema", null ]
         ] ],
-        [ "migrate-to-release <VERSION>", "d5/dc4/dbtool.html#migrate-to-release-version", null ],
-        [ "list-pending", "d5/dc4/dbtool.html#list-pending", null ],
-        [ "list-applied", "d5/dc4/dbtool.html#list-applied", null ],
-        [ "status", "d5/dc4/dbtool.html#status", null ],
-        [ "apply <TIMESTAMP>", "d5/dc4/dbtool.html#apply-timestamp", null ],
-        [ "rollback <TIMESTAMP>", "d5/dc4/dbtool.html#rollback-timestamp", null ],
-        [ "rollback-to <TIMESTAMP>", "d5/dc4/dbtool.html#rollback-to-timestamp", null ],
-        [ "mark-applied <TIMESTAMP>", "d5/dc4/dbtool.html#mark-applied-timestamp", null ],
-        [ "rollback-to-release <VERSION>", "d5/dc4/dbtool.html#rollback-to-release-version", null ],
-        [ "releases", "d5/dc4/dbtool.html#releases", null ],
-        [ "rewrite-checksums", "d5/dc4/dbtool.html#rewrite-checksums", null ],
-        [ "hard-reset", "d5/dc4/dbtool.html#hard-reset", null ],
-        [ "unicode-upgrade-tables", "d5/dc4/dbtool.html#unicode-upgrade-tables", null ],
-        [ "exec <QUERY>", "d5/dc4/dbtool.html#exec-query", null ],
-        [ "list-profiles", "d5/dc4/dbtool.html#list-profiles", null ],
-        [ "resolve-secret <REF>", "d5/dc4/dbtool.html#resolve-secret-ref", null ]
+        [ "migrate-to-release <VERSION>", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#migrate-to-release-version", null ],
+        [ "list-pending", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#list-pending", null ],
+        [ "list-applied", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#list-applied", null ],
+        [ "status", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#status", null ],
+        [ "apply <TIMESTAMP>", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#apply-timestamp", null ],
+        [ "rollback <TIMESTAMP>", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#rollback-timestamp", null ],
+        [ "rollback-to <TIMESTAMP>", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#rollback-to-timestamp", null ],
+        [ "mark-applied <TIMESTAMP>", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#mark-applied-timestamp", null ],
+        [ "rollback-to-release <VERSION>", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#rollback-to-release-version", null ],
+        [ "releases", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#releases", null ],
+        [ "rewrite-checksums", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#rewrite-checksums", null ],
+        [ "hard-reset", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#hard-reset", null ],
+        [ "unicode-upgrade-tables", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#unicode-upgrade-tables", null ],
+        [ "exec <QUERY>", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#exec-query", null ],
+        [ "list-profiles", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#list-profiles", null ],
+        [ "resolve-secret <REF>", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#resolve-secret-ref", null ]
       ] ],
-      [ "Backup & Restore", "d5/dc4/dbtool.html#backup--restore", [
-        [ "backup", "d5/dc4/dbtool.html#backup", null ],
-        [ "restore", "d5/dc4/dbtool.html#restore", null ],
-        [ "backup-diff", "d5/dc4/dbtool.html#backup-diff", null ]
+      [ "Backup & Restore", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup--restore", [
+        [ "backup", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup", null ],
+        [ "restore", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#restore", null ],
+        [ "backup-diff", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup-diff", null ]
       ] ],
-      [ "Command-Line Options Reference", "d5/dc4/dbtool.html#command-line-options-reference", [
-        [ "Size Suffixes", "d5/dc4/dbtool.html#size-suffixes", null ]
+      [ "Command-Line Options Reference", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#command-line-options-reference", [
+        [ "Size Suffixes", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#size-suffixes", null ]
       ] ],
-      [ "Plugin System", "d5/dc4/dbtool.html#plugin-system", [
-        [ "Creating a Migration Plugin", "d5/dc4/dbtool.html#creating-a-migration-plugin", null ],
-        [ "Loading Plugins", "d5/dc4/dbtool.html#loading-plugins", null ],
-        [ "Optional Post-Init Hook", "d5/dc4/dbtool.html#optional-post-init-hook", null ]
+      [ "Plugin System", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#plugin-system", [
+        [ "Creating a Migration Plugin", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#creating-a-migration-plugin", null ],
+        [ "Loading Plugins", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#loading-plugins", null ],
+        [ "Optional Post-Init Hook", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#optional-post-init-hook", null ]
       ] ],
-      [ "Workflow Examples", "d5/dc4/dbtool.html#workflow-examples", [
-        [ "Full Migration Workflow", "d5/dc4/dbtool.html#full-migration-workflow", null ],
-        [ "Backup Before Migration", "d5/dc4/dbtool.html#backup-before-migration", null ],
-        [ "Parallel Backup and Restore", "d5/dc4/dbtool.html#parallel-backup-and-restore", null ]
+      [ "Workflow Examples", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#workflow-examples", [
+        [ "Full Migration Workflow", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#full-migration-workflow", null ],
+        [ "Backup Before Migration", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup-before-migration", null ],
+        [ "Parallel Backup and Restore", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#parallel-backup-and-restore", null ]
       ] ],
-      [ "Troubleshooting", "d5/dc4/dbtool.html#troubleshooting", [
-        [ "Connection Errors", "d5/dc4/dbtool.html#connection-errors", null ],
-        [ "Checksum Mismatches", "d5/dc4/dbtool.html#checksum-mismatches", null ],
-        [ "Lock Acquisition Failed", "d5/dc4/dbtool.html#lock-acquisition-failed", null ]
+      [ "Troubleshooting", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#troubleshooting", [
+        [ "Connection Errors", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#connection-errors", null ],
+        [ "Checksum Mismatches", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#checksum-mismatches", null ],
+        [ "Lock Acquisition Failed", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#lock-acquisition-failed", null ]
       ] ],
-      [ "See Also", "d5/dc4/dbtool.html#see-also-2", null ]
+      [ "See Also", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#see-also-2", null ]
     ] ],
-    [ "SQL Migrations", "d2/da6/sql-migrations.html", [
-      [ "Introduction", "d2/da6/sql-migrations.html#introduction-1", null ],
-      [ "Creating Migrations", "d2/da6/sql-migrations.html#creating-migrations", [
-        [ "Using the LIGHTWEIGHT_SQL_MIGRATION Macro", "d2/da6/sql-migrations.html#using-the-lightweight_sql_migration-macro", null ],
-        [ "Using the Migration Class", "d2/da6/sql-migrations.html#using-the-migration-class", null ],
-        [ "Timestamp Format", "d2/da6/sql-migrations.html#timestamp-format", null ],
-        [ "Plugin Macro for Shared Libraries", "d2/da6/sql-migrations.html#plugin-macro-for-shared-libraries", null ]
+    [ "SQL Migrations", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html", [
+      [ "Introduction", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#introduction-1", null ],
+      [ "Creating Migrations", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#creating-migrations", [
+        [ "Using the LIGHTWEIGHT_SQL_MIGRATION Macro", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#using-the-lightweight_sql_migration-macro", null ],
+        [ "Using the Migration Class", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#using-the-migration-class", null ],
+        [ "Timestamp Format", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#timestamp-format", null ],
+        [ "Plugin Macro for Shared Libraries", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#plugin-macro-for-shared-libraries", null ]
       ] ],
-      [ "Table Operations", "d2/da6/sql-migrations.html#table-operations", [
-        [ "CreateTable", "d2/da6/sql-migrations.html#createtable", null ],
-        [ "AlterTable", "d2/da6/sql-migrations.html#altertable", null ],
-        [ "DropTable", "d2/da6/sql-migrations.html#droptable", null ]
+      [ "Table Operations", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#table-operations", [
+        [ "CreateTable", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#createtable", null ],
+        [ "AlterTable", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#altertable", null ],
+        [ "DropTable", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#droptable", null ]
       ] ],
-      [ "Data Manipulation", "d2/da6/sql-migrations.html#data-manipulation", [
-        [ "Insert", "d2/da6/sql-migrations.html#insert-1", null ],
-        [ "Update", "d2/da6/sql-migrations.html#update-1", null ],
-        [ "Delete", "d2/da6/sql-migrations.html#delete-1", null ],
-        [ "CreateIndex", "d2/da6/sql-migrations.html#createindex", null ]
+      [ "Data Manipulation", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#data-manipulation", [
+        [ "Insert", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#insert-1", null ],
+        [ "Update", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#update-1", null ],
+        [ "Delete", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#delete-1", null ],
+        [ "CreateIndex", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#createindex", null ]
       ] ],
-      [ "Raw SQL", "d2/da6/sql-migrations.html#raw-sql", null ],
-      [ "SQL Column Types", "d2/da6/sql-migrations.html#sql-column-types", null ],
-      [ "Migration Manager API", "d2/da6/sql-migrations.html#migration-manager-api", [
-        [ "Custom Default Schema", "d2/da6/sql-migrations.html#custom-default-schema", null ],
-        [ "Applying Migrations Programmatically", "d2/da6/sql-migrations.html#applying-migrations-programmatically", null ],
-        [ "Status & Verification", "d2/da6/sql-migrations.html#status--verification", null ],
-        [ "Preview (Dry-Run)", "d2/da6/sql-migrations.html#preview-dry-run", null ],
-        [ "Rollback", "d2/da6/sql-migrations.html#rollback", null ],
-        [ "Mark as Applied", "d2/da6/sql-migrations.html#mark-as-applied", null ]
+      [ "Raw SQL", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#raw-sql", null ],
+      [ "SQL Column Types", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#sql-column-types", null ],
+      [ "Migration Manager API", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#migration-manager-api", [
+        [ "Custom Default Schema", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#custom-default-schema", null ],
+        [ "Applying Migrations Programmatically", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#applying-migrations-programmatically", null ],
+        [ "Status & Verification", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#status--verification", null ],
+        [ "Preview (Dry-Run)", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#preview-dry-run", null ],
+        [ "Rollback", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#rollback", null ],
+        [ "Mark as Applied", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#mark-as-applied", null ]
       ] ],
-      [ "Migration Tracking", "d2/da6/sql-migrations.html#migration-tracking", [
-        [ "schema_migrations Table", "d2/da6/sql-migrations.html#schema_migrations-table", null ],
-        [ "Concurrency Control", "d2/da6/sql-migrations.html#concurrency-control", null ]
+      [ "Migration Tracking", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#migration-tracking", [
+        [ "schema_migrations Table", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#schema_migrations-table", null ],
+        [ "Concurrency Control", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#concurrency-control", null ]
       ] ],
-      [ "Best Practices", "d2/da6/sql-migrations.html#best-practices-1", null ],
-      [ "See Also", "d2/da6/sql-migrations.html#see-also-3", null ]
+      [ "Best Practices", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#best-practices-1", null ],
+      [ "See Also", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#see-also-3", null ]
     ] ],
     [ "Asynchronous API (C++23 coroutines)", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html", [
       [ "Why offloading (and not \"true\" async ODBC)", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#why-offloading-and-not-true-async-odbc", null ],
@@ -335,12 +335,12 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#aca479b7b343211bb7f024b4315d62ea5",
-"d4/d9e/classLightweight_1_1ThreadSafeQueue.html#a68e5674ec7cbda2970a270cd30572f37",
-"d6/dfa/structLightweight_1_1SqlDateTime.html#ab38664ffae1a75be115aa5d8824326ad",
-"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a13fdb830c85dfa8759f391e57be1bd08",
-"da/d6c/classLightweight_1_1RowArrayCursor.html#ab2a0986037e9cf89ee7e5ed09bf9fb19",
-"dc/dc9/classLightweight_1_1CompositeForeignKey.html#aadd30fc4ad067ad510d194e75ce72f18",
+"d2/dd0/structLightweight_1_1Field.html#a757ce7d3d9533493051cd9b402482b41",
+"d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#a972ef8522f91fce43fd223357b709bae",
+"d7/d13/structLightweight_1_1SqlRealName.html#ad41c47ba596b9e2a647edb777f959662",
+"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#ae48b1defb3a1271985038dde52202726",
+"da/da8/classLightweight_1_1SqlConnection.html#ac29fe83ca60448002d451dbd707be955",
+"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#afd21e23e3c24884cba9ef3b76d174e82",
 "de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#ab3f4130283fddc423a1911a3962e739c"
 ];
 
