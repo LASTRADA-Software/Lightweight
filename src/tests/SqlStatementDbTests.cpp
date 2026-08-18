@@ -7,6 +7,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 using namespace Lightweight;
@@ -204,4 +205,68 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlResultCursor::BindOutputColumns reads multi
     CHECK(firstName == "Alice");
     CHECK(lastName == "Smith");
     CHECK(salary == 50'000);
+}
+
+// ================================================================================================
+// Prepare() reusing the statement already on the handle
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlTestFixture, "Repeated Prepare of the same query keeps executing correctly", "[SqlStatement]")
+{
+    // Preparing byte-identical SQL again reuses the prepared statement instead of re-issuing
+    // SQLPrepareW. What must not change is the observable behaviour: the parameter count, the
+    // bindings, and the rows that come back have to be the same on every round.
+    auto stmt = SqlStatement {};
+    CreateEmployeesTable(stmt);
+    FillEmployeesTable(stmt);
+
+    auto const query = R"(SELECT "FirstName" FROM "Employees" WHERE "Salary" > ? ORDER BY "EmployeeID")";
+
+    for (auto const [threshold, expectedRows]: { std::pair { 45'000, 3 }, { 55'000, 2 }, { 65'000, 1 } })
+    {
+        stmt.Prepare(query);
+        auto cursor = stmt.Execute(threshold);
+
+        int rows = 0;
+        while (cursor.FetchRow())
+        {
+            CHECK(!cursor.GetColumn<std::string>(1).empty());
+            ++rows;
+        }
+        CHECK(rows == expectedRows);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Prepare of the same query survives a schema change underneath", "[SqlStatement]")
+{
+    // The reuse above is what makes this case interesting: the second Prepare() does not re-issue
+    // SQLPrepareW, so the statement the server holds may have been planned against the *old* table.
+    // PostgreSQL rejects that plan (SQLSTATE 0A000), which the statement recovers from by preparing
+    // once more - the caller must see rows, not an exception.
+    auto stmt = SqlStatement {};
+    CreateEmployeesTable(stmt);
+    FillEmployeesTable(stmt);
+
+    auto const query = R"(SELECT "FirstName" FROM "Employees" ORDER BY "EmployeeID")";
+
+    stmt.Prepare(query);
+    {
+        auto cursor = stmt.Execute();
+        CHECK(cursor.FetchRow());
+    }
+
+    // Rebuild the table with an extra column, through a different statement handle.
+    auto other = SqlStatement { stmt.Connection() };
+    (void) other.ExecuteDirect(R"(DROP TABLE "Employees")");
+    CreateEmployeesTable(other);
+    (void) other.ExecuteDirect(R"(ALTER TABLE "Employees" ADD "Nickname" VARCHAR(50))");
+    FillEmployeesTable(other);
+
+    stmt.Prepare(query);
+    auto cursor = stmt.Execute();
+
+    int rows = 0;
+    while (cursor.FetchRow())
+        ++rows;
+    CHECK(rows == 3);
 }
