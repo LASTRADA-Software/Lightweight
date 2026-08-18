@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Lightweight: Lightweight, an ODBC SQL API for C++23</title>
+<title>Lightweight: Lightweight, a C++23 database library</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -90,12 +90,52 @@ $(document).ready(function(){initNavTree('index.html',''); initResizable(); });
 </div>
 
 <div><div class="header">
-  <div class="headertitle"><div class="title">Lightweight, an ODBC SQL API for C++23 </div></div>
+  <div class="headertitle"><div class="title">Lightweight, a C++23 database library </div></div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p><a class="anchor" id="md__2home_2runner_2work_2Lightweight_2Lightweight_2README"></a> <b>Lightweight</b> is a thin and modern C++ ODBC wrapper for <b>easy</b> and <b>fast</b> raw database access. Documentation is available at <a href="https://lastrada-software.github.io/Lightweight/">https://lastrada-software.github.io/Lightweight/</a>.</p>
-<p>It supports both low-level access to the SQL API as well as provides hight level abstraction that allow easy database access.</p>
-<p>Here you can see an example of datamapper usage (our tool for the high level abstraction)</p>
+<div class="textblock"><p><a class="anchor" id="md__2home_2runner_2work_2Lightweight_2Lightweight_2README"></a> <b>Lightweight</b> is a modern C++23 database library for <b>Microsoft SQL Server</b>, <b>PostgreSQL</b> and <b>SQLite</b> over ODBC — with a data mapper and typed relationships, versioned schema migrations, parallel backup and restore, an async coroutine API, connection pooling, and CLI/GUI tooling.</p>
+<p>It is layered: use the thin ODBC wrapper (<code>SqlConnection</code>, <code>SqlStatement</code>) when you want raw SQL and full control, the query builder when you want composable typed SQL, or the <code>DataMapper</code> when you want records and relationships mapped for you. The layers interoperate — you can drop from one to the next at any point without leaving the library.</p>
+<p>Documentation is available at <a href="https://lastrada-software.github.io/Lightweight/">https://lastrada-software.github.io/Lightweight/</a>.</p>
+<h1><a class="anchor" id="features"></a>
+Features</h1>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">Area   </th><th class="markdownTableHeadNone">What it gives you   </th><th class="markdownTableHeadNone">Guide    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><b>Raw SQL access</b>   </td><td class="markdownTableBodyNone"><code>SqlConnection</code>, <code>SqlStatement</code>, prepared statements, batched execution, block-prefetch   </td><td class="markdownTableBodyNone"><a class="el" href="d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html">usage.md</a>    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><b>Query builder</b>   </td><td class="markdownTableBodyNone">Composable typed <code>SELECT</code>/<code>INSERT</code>/<code>UPDATE</code>/<code>DELETE</code>, joins, filtering, ordering, pagination   </td><td class="markdownTableBodyNone"><a class="el" href="d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html">sqlquery.md</a>    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><b>Data mapper</b>   </td><td class="markdownTableBodyNone">Struct-to-table mapping, CRUD, <code>Field&lt;&gt;</code> with primary keys and nullability   </td><td class="markdownTableBodyNone"><a class="el" href="d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html">usage.md</a>    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><b>Relationships</b>   </td><td class="markdownTableBodyNone"><code>BelongsTo</code>, <code>HasMany</code>, <code>HasOneThrough</code>, <code>HasManyThrough</code>, <code>CompositeForeignKey</code>   </td><td class="markdownTableBodyNone"><a class="el" href="d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html">composite-keys-design.md</a>    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><b>Schema migrations</b>   </td><td class="markdownTableBodyNone">Versioned migrations, checksums, dependency ordering, plugin loading, rollback   </td><td class="markdownTableBodyNone">sql-migrations.md    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><b>Backup &amp; restore</b>   </td><td class="markdownTableBodyNone">Parallel chunked dump/restore, msgpack + zip + sha256, archive diffing   </td><td class="markdownTableBodyNone"><a class="el" href="dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html">sql-backup.md</a>, <a class="el" href="d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html">sql-backup-format.md</a>    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><b>Async API</b>   </td><td class="markdownTableBodyNone">C++23 coroutines: <code>Task&lt;T&gt;</code>, executors, strand, stdexec bridge, async <code>DataMapper</code>   </td><td class="markdownTableBodyNone"><a class="el" href="db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html">async.md</a>    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><b>Connection pooling</b>   </td><td class="markdownTableBodyNone">Compile-time-configured pool, async-aware, recycles connections across mappers   </td><td class="markdownTableBodyNone"><a class="el" href="db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html">async.md</a>    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><b>Custom data types</b>   </td><td class="markdownTableBodyNone"><code>SqlDataBinder&lt;T&gt;</code> specialization for your own types, with Unicode support   </td><td class="markdownTableBodyNone"><a class="el" href="de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html">data-binder.md</a>    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">**<code>dbtool</code> CLI**   </td><td class="markdownTableBodyNone">Migrations, backup/restore, backup diffing, schema inspection — ~20 commands   </td><td class="markdownTableBodyNone">dbtool.md    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">**<code>dbtool-gui</code>**   </td><td class="markdownTableBodyNone">Qt/QML desktop app for migrations, backup and ad-hoc queries   </td><td class="markdownTableBodyNone">dbtool.md    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">**<code>ddl2cpp</code>**   </td><td class="markdownTableBodyNone">Generates C++ records from an existing schema, inferring relations automatically   </td><td class="markdownTableBodyNone"><a class="el" href="d5/dd9/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2ddl2cpp-relation-generation.html">ddl2cpp-relation-generation.md</a>   </td></tr>
+</table>
+<p>Coming from SQL? <a class="el" href="d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html">sql-to-lightweight.md</a> is a side-by-side cookbook that shows the Lightweight equivalent of a given piece of SQL in each of the three layers. See also <a class="el" href="d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html">best-practices.md</a> and <a class="el" href="d1/dde/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2how-to.html">how-to.md</a>.</p>
+<h1><a class="anchor" id="why-odbc"></a>
+Why ODBC?</h1>
+<p>ODBC is a deliberate trade-off, not an accident of history. Every other ecosystem — and within C++ every ergonomic peer (sqlpp23, sqlgen, ormpp, sqlite_orm, libpqxx, Drogon) — talks native wire protocols per database. Lightweight targets ODBC because it buys <b>one API, one build, and one set of semantics across SQL Server, PostgreSQL and SQLite</b>, with per-database differences funnelled through a single dispatch point (<code>SqlQueryFormatter</code>) rather than scattered across the codebase. For applications that must ship against more than one database, that is worth a great deal.</p>
+<p>What it costs, stated plainly:</p>
+<ul>
+<li><b>Driver deployment.</b> Your users need the right ODBC driver installed and registered, and driver quality varies. Some behaviours are driver-build-specific rather than database-specific.</li>
+<li><b>No protocol-level bulk path.</b> There is no <code>COPY</code>-class fast path; bulk work goes through array/parameter binding, which is fast but not as fast as a native bulk loader.</li>
+<li><b>No protocol-level async.</b> See the async limitation below.</li>
+</ul>
 <h1><a class="anchor" id="supported-platforms"></a>
 Supported platforms</h1>
 <p>Only ODBC is supported, so it should work on any platform that has an ODBC driver and a modern enough C++ compiler.</p>
@@ -110,6 +150,22 @@ Supported databases</h1>
 <li>PostgreSQL</li>
 <li>SQLite3</li>
 </ul>
+<p><code>SqlServerType</code> also lists a <code>MYSQL</code> enumerator, but <b>MySQL is not supported</b>: <code>SqlQueryFormatter::Get()</code> returns <code>nullptr</code> for it, so no query can be formatted. The enumerator is a placeholder for possible future work — do not rely on it.</p>
+<h1><a class="anchor" id="known-limitations"></a>
+Known limitations</h1>
+<p>Being explicit here saves you from discovering these by reading the source.</p>
+<ul>
+<li><b>The query builder is not a complete SQL surface.</b> It has no <code>HAVING</code>, CTEs, <code>UNION</code>/<code>EXCEPT</code>/<code>INTERSECT</code>, <code>RETURNING</code>, upsert, window functions, or multi-row <code>INSERT ... VALUES</code> (bulk goes through array binding instead). The intended escape hatches are <code>SqlFieldExpression</code>, <code>WhereRaw(...)</code>, and <code>DataMapper::Query&lt;T&gt;(sql, ...)</code> — reach for them when you need SQL the builder does not model. For <code>RETURNING</code> specifically, <code>SqlStatement</code> can execute it directly, with driver caveats documented in <a class="el" href="d1/dde/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2how-to.html">how-to.md</a>.</li>
+<li><b>Async is thread-offload, not protocol-level non-blocking.</b> ODBC's own async execution is not portable, so each blocking ODBC call is offloaded to a worker thread and your coroutine resumes on a scheduler you choose. Your application thread never blocks, but <em>some</em> thread does. See <a class="el" href="db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html">async.md</a> for the full rationale.</li>
+<li><b>No identity map or unit of work.</b> Loading the same row twice yields two unrelated objects. <code>BelongsTo</code> holds a deep copy; <code>HasMany</code> builds fresh <code>shared_ptr</code>s on every load.</li>
+<li><b>Lazy loaders use a thread-local mapper, not the one that loaded the record.</b> Relation auto-loading goes through <code>DataMapper::AcquireThreadLocal()</code>, which is constructed from <code>SqlConnection::DefaultConnectionString()</code>. A lazy load therefore runs on a <em>different connection</em>, <b>outside your caller's transaction</b>, and fails outright if no default connection string is configured. If that matters to your code, load relations explicitly instead of touching them lazily.</li>
+<li><b>No eager-loading / preload API.</b> Touching a relation across N records issues N queries.</li>
+<li><b>Backup is online, with no snapshot.</b> Tables are read while writes continue, so an archive has no cross-table consistency guarantee. Quiesce writers if you need a consistent point-in-time dump. See <a class="el" href="dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html">sql-backup.md</a>.</li>
+</ul>
+<h1><a class="anchor" id="versioning-and-stability"></a>
+Versioning and stability</h1>
+<p>Releases are calendar-versioned as <code>v0.YYYYMMDD.0</code>. The leading <code>0.</code> is part of that scheme and is <b>not</b> a statement that the library is unfinished — it is in production use, and the test suite runs against SQLite, PostgreSQL and SQL Server 2017/2019/2022 on every change.</p>
+<p>That said, the project does not currently make a formal semver compatibility promise: the public API is stable in practice, but a breaking change can land in any release. Pin an exact tag if you need reproducible builds, and read the release notes before upgrading.</p>
 <h1><a class="anchor" id="namespace"></a>
 Namespace</h1>
 <p>All functionality is placed inside a <code>Lightweight</code> namespace, we also provide an alias for this namespace <code>Light</code>, that is slightly shorter.</p>
@@ -174,16 +230,20 @@ Foreign keys relation</h2>
 <div class="line">    <a class="code hl_struct" href="d2/dd0/structLightweight_1_1Field.html">Light::Field&lt;Light::SqlAnsiString&lt;30&gt;</a>&gt; address {};</div>
 <div class="line">    <a class="code hl_class" href="d0/df7/classLightweight_1_1BelongsTo.html">Light::BelongsTo</a>&lt;&amp;User::id, <a class="code hl_struct" href="d7/d13/structLightweight_1_1SqlRealName.html">Light::SqlRealName</a> { <span class="stringliteral">&quot;user_id&quot;</span> }&gt; user {};</div>
 <div class="line">};</div>
-<div class="ttc" id="aclassLightweight_1_1BelongsTo_html"><div class="ttname"><a href="d0/df7/classLightweight_1_1BelongsTo.html">Lightweight::BelongsTo</a></div><div class="ttdoc">Represents a one-to-one relationship.</div><div class="ttdef"><b>Definition</b> <a href="da/d23/BelongsTo_8hpp_source.html#l00056">BelongsTo.hpp:57</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1BelongsTo_html"><div class="ttname"><a href="d0/df7/classLightweight_1_1BelongsTo.html">Lightweight::BelongsTo</a></div><div class="ttdoc">Represents the many-to-one side of a foreign-key relationship.</div><div class="ttdef"><b>Definition</b> <a href="da/d23/BelongsTo_8hpp_source.html#l00060">BelongsTo.hpp:61</a></div></div>
 <div class="ttc" id="astructLightweight_1_1Field_html"><div class="ttname"><a href="d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a></div><div class="ttdoc">Represents a single column in a table.</div><div class="ttdef"><b>Definition</b> <a href="d6/dac/Field_8hpp_source.html#l00083">Field.hpp:84</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlGuid_html"><div class="ttname"><a href="df/d7c/structLightweight_1_1SqlGuid.html">Lightweight::SqlGuid</a></div><div class="ttdef"><b>Definition</b> <a href="d9/dc2/SqlGuid_8hpp_source.html#l00019">SqlGuid.hpp:20</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlRealName_html"><div class="ttname"><a href="d7/d13/structLightweight_1_1SqlRealName.html">Lightweight::SqlRealName</a></div><div class="ttdoc">Helper class, used to represent a real SQL column names as template arguments.</div><div class="ttdef"><b>Definition</b> <a href="d0/dd1/SqlRealName_8hpp_source.html#l00014">SqlRealName.hpp:15</a></div></div>
-</div><!-- fragment --><p>In the presented example we used rename of the columns, for more details see how-to#rename-column-name page. you can query the email and get access to the user record as well</p>
+</div><!-- fragment --><p><code>BelongsTo</code> models the <b>many-to-one</b> side of a foreign key — the record that <em>owns</em> the foreign-key column. Many <code>Email</code>s can point at one <code>User</code>. For the other relationship kinds see <code>HasMany</code>, <code>HasOneThrough</code>, <code>HasManyThrough</code> and <code>CompositeForeignKey</code>.</p>
+<p>In the presented example we used rename of the columns, for more details see how-to#rename-column-name page. you can query the email and get access to the user record as well</p>
 <div class="fragment"><div class="line"><span class="keyword">auto</span> dm = <a class="code hl_class" href="de/d61/classLightweight_1_1DataMapper.html">Light::DataMapper</a>();</div>
 <div class="line"><span class="keyword">auto</span> email = dm.QuerySingle&lt;Email&gt;(some_email_id).value_or(Email{});</div>
 <div class="line"><span class="keyword">auto</span> user_name = email.user-&gt;name; <span class="comment">// lazily loads the user record</span></div>
 <div class="ttc" id="aclassLightweight_1_1DataMapper_html"><div class="ttname"><a href="de/d61/classLightweight_1_1DataMapper.html">Lightweight::DataMapper</a></div><div class="ttdoc">Main API for mapping records to and from the database using high level C++ syntax.</div><div class="ttdef"><b>Definition</b> <a href="df/d4f/DataMapper_8hpp_source.html#l00092">DataMapper.hpp:93</a></div></div>
-</div><!-- fragment --><h2><a class="anchor" id="mapping-query-results-to-a-simple-struct"></a>
+</div><!-- fragment --><blockquote class="doxtable">
+<p>&zwj;<b>Note:</b> lazy loading (<code>email.user-&gt;name</code> above) does <em>not</em> use <code>dm</code>. It uses a thread-local <code>DataMapper</code> built from the default connection string, so it runs on a different connection and outside any transaction <code>dm</code> may be in. See <a class="el" href="index.html#known-limitations">Known limitations</a>. </p>
+</blockquote>
+<h2><a class="anchor" id="mapping-query-results-to-a-simple-struct"></a>
 Mapping query results to a simple struct</h2>
 <p>If you have a SQL query that returns some values, but it does not corresponds to the existing table in the database, you can map the result to a simple struct. The struct must have fields that match the columns in the query. The fields can be of any type that can be converted from the column type. The struct can have more fields than the columns in the query, but the fields that match the columns must be in the same order as the columns in the query.</p>
 <div class="fragment"><div class="line"><span class="preprocessor">#include &lt;Lightweight/Lightweight.hpp&gt;</span></div>
@@ -260,7 +320,24 @@ Mapping query to multiple struct</h2>
 <div class="line">{</div>
 <div class="line">    <span class="comment">// ...</span></div>
 <div class="line">}</div>
-</div><!-- fragment --><h1><a class="anchor" id="using-sqlite-for-testing-on-windows-operating-system"></a>
+</div><!-- fragment --><h1><a class="anchor" id="schema-migrations"></a>
+Schema migrations</h1>
+<p>Migrations are versioned, checksummed C++ definitions applied in dependency order, with rollback and plugin loading. They can be driven from your application or from the <code>dbtool</code> CLI:</p>
+<div class="fragment"><div class="line">dbtool status         # what is applied, what is pending</div>
+<div class="line">dbtool migrate        # apply everything pending</div>
+<div class="line">dbtool rollback-to 20260101120000</div>
+</div><!-- fragment --><p>See sql-migrations.md for writing migrations and dbtool.md for the full command reference.</p>
+<h1><a class="anchor" id="backup-and-restore"></a>
+Backup and restore</h1>
+<p>Lightweight ships a backup engine — parallel chunked dump and restore into a zip archive of msgpack chunks with sha256 integrity, plus archive diffing:</p>
+<div class="fragment"><div class="line">dbtool backup --output snapshot.zip</div>
+<div class="line">dbtool restore --input snapshot.zip</div>
+<div class="line">dbtool backup-diff --left old.zip --right new.zip</div>
+</div><!-- fragment --><p>Backups are taken <b>online, without a snapshot</b>, so there is no cross-table consistency guarantee — see <a class="el" href="index.html#known-limitations">Known limitations</a>. Details in <a class="el" href="dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html">sql-backup.md</a>, archive layout in <a class="el" href="d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html">sql-backup-format.md</a>.</p>
+<h1><a class="anchor" id="asynchronous-api"></a>
+Asynchronous API</h1>
+<p>Async entry points are added directly to the types you already use (<code>SqlConnection</code>, <code>DataMapper</code>, <code>Pool</code>), suffixed with <code>Async</code>, and return <code>Async::Task&lt;T&gt;</code>. Queries go through the same fluent builder as the synchronous API. Note that this is <b>thread-offload</b>, not protocol-level async — see <a class="el" href="db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html">async.md</a>, which explains why and what that means for your thread budget.</p>
+<h1><a class="anchor" id="using-sqlite-for-testing-on-windows-operating-system"></a>
 Using SQLite for testing on Windows operating system</h1>
 <p>You need to have the SQLite3 ODBC driver for SQLite installed.</p>
 <ul>
@@ -301,7 +378,8 @@ Generate example for the existing database</h1>
 </div><!-- fragment --><p>Finally, compile and run the example</p>
 <div class="fragment"><div class="line"> sh</div>
 <div class="line">cmake --build build &amp;&amp; ./build/src/examples/example</div>
-</div><!-- fragment --><h1><a class="anchor" id="compile-using-c26-reflection-support"></a>
+</div><!-- fragment --><p><code>ddl2cpp</code> also infers relationships from the schema's foreign keys — see <a class="el" href="d5/dd9/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2ddl2cpp-relation-generation.html">ddl2cpp-relation-generation.md</a>.</p>
+<h1><a class="anchor" id="compile-using-c26-reflection-support"></a>
 Compile using C++26 reflection support</h1>
 <div class="fragment"><div class="line"> sh</div>
 <div class="line">docker buildx build --progress=plain -f .github/Reflection.Dockerfile --load .</div>

@@ -25,7 +25,7 @@
 var NAVTREE =
 [
   [ "Lightweight", "index.html", [
-    [ "Lightweight, an ODBC SQL API for C++23", "index.html", "index" ],
+    [ "Lightweight, a C++23 database library", "index.html", "index" ],
     [ "How to", "d1/dde/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2how-to.html", [
       [ "Rename column name", "d1/dde/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2how-to.html#rename-column-name", null ],
       [ "<tt>UPDATE ... RETURNING</tt> / fetching the result of a data-modifying statement", "d1/dde/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2how-to.html#update--returning--fetching-the-result-of-a-data-modifying-statement", null ]
@@ -259,6 +259,36 @@ var NAVTREE =
         [ "Interop with <tt>std::execution</tt>", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#interop-with-stdexecution", null ]
       ] ]
     ] ],
+    [ "Composite key support — design", "d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html", [
+      [ "The design: <tt>CompositeForeignKey<Connection<...>, ...></tt>", "d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#the-design-compositeforeignkeyconnection-", null ],
+      [ "Why the pairing matters", "d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#why-the-pairing-matters", null ],
+      [ "What it derives, and what it rejects", "d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#what-it-derives-and-what-it-rejects", null ],
+      [ "How it works", "d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#how-it-works", [
+        [ "Column binding: nothing changes", "d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#column-binding-nothing-changes", null ],
+        [ "The relation holds no key storage", "d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#the-relation-holds-no-key-storage", null ],
+        [ "Loading reuses machinery that already takes N values", "d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#loading-reuses-machinery-that-already-takes-n-values", null ],
+        [ "Ordering — settled by test", "d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#ordering--settled-by-test", null ],
+        [ "Navigation", "d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#navigation", null ],
+        [ "<tt>ddl2cpp</tt> generation is mechanical", "d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#ddl2cpp-generation-is-mechanical", null ]
+      ] ],
+      [ "The inverse", "d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#the-inverse", null ],
+      [ "The other half: reflected identity", "d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#the-other-half-reflected-identity", null ],
+      [ "Implementation plan", "d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#implementation-plan", null ],
+      [ "Prototype", "d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#prototype", null ]
+    ] ],
+    [ "Relation generation in ddl2cpp", "d5/dd9/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2ddl2cpp-relation-generation.html", [
+      [ "Status", "d5/dd9/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2ddl2cpp-relation-generation.html#status-1", null ],
+      [ "Reference schema", "d5/dd9/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2ddl2cpp-relation-generation.html#reference-schema", [
+        [ "Column types in use", "d5/dd9/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2ddl2cpp-relation-generation.html#column-types-in-use", null ]
+      ] ],
+      [ "What this schema needs that is not generated", "d5/dd9/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2ddl2cpp-relation-generation.html#what-this-schema-needs-that-is-not-generated", [
+        [ "1. <tt>HasMany</tt> — the inverse of every single-column foreign key", "d5/dd9/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2ddl2cpp-relation-generation.html#autotoc_md1-hasmany--the-inverse-of-every-single-column-foreign-key", null ],
+        [ "2. <tt>HasManyThrough</tt> — many-to-many across a join table", "d5/dd9/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2ddl2cpp-relation-generation.html#autotoc_md2-hasmanythrough--many-to-many-across-a-join-table", null ],
+        [ "3. <tt>HasOneThrough</tt> / one-to-one", "d5/dd9/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2ddl2cpp-relation-generation.html#autotoc_md3-hasonethrough--one-to-one", null ]
+      ] ],
+      [ "What is not representable, and why", "d5/dd9/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2ddl2cpp-relation-generation.html#what-is-not-representable-and-why", null ],
+      [ "Generation rules", "d5/dd9/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2ddl2cpp-relation-generation.html#generation-rules", null ]
+    ] ],
     [ "Announcing Lightweight: Zero-overhead C++23 ODBC wrapper", "d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html", [
       [ "</blockquote>", "d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#blockquote", null ],
       [ "Low-Level API: SqlStatement & SqlConnection", "d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#low-level-api-sqlstatement--sqlconnection", [
@@ -294,13 +324,13 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dd0/structLightweight_1_1Field.html#a526143a1f5e23a97cb46958bb6471609",
-"d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#a25d59bf8efd379b162e12834247dbb9e",
-"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a8e6c126aafc9b8261118bea5977f272f",
-"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#aa92bb11c246d711c0aa89906bb67a74a",
-"da/da8/classLightweight_1_1SqlConnection.html#a93ccf2f65cb117c8ef34cac8be750d90",
-"dd/d75/structLightweight_1_1SqlAlterTablePlan.html#a4d5476b81f6e3efc5057c49d797a9f07",
-"df/d3f/structLightweight_1_1SqlVariant.html#a1b6881f630dd2c5fc932236ced34e432"
+"d2/dd0/structLightweight_1_1Field.html#a0fd8a939fbdd169391d529caf940ad40",
+"d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#datamapper-high-level-orm",
+"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a0bf7afcef92e29f0a8b9af5009f96279",
+"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#acf94f2759fca0c7925114b0608acfba2",
+"da/d7e/structLightweight_1_1SqlRawColumn.html#abafa148d105f4f791595f95b1e68a162",
+"dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html#consistency-caveats-online-backup",
+"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#ab7a7ef460d0a27d3104beb9c89757d28"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

@@ -193,7 +193,7 @@ Static Public Attributes</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><div class="compoundTemplParams">template&lt;typename ReferencedRecordT, typename ThroughRecordT, auto TheOwnerSelector = AutoDetectRelation, auto TheReferencedSelector = AutoDetectRelation&gt;<br />
 class Lightweight::HasManyThrough&lt; ReferencedRecordT, ThroughRecordT, TheOwnerSelector, TheReferencedSelector &gt;</div><p>This API represents a many-to-many relationship between two records through a third record. </p>
-<p>The join record must declare one <code><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents a one-to-one relationship.">BelongsTo</a></code> pointing back at the record owning this relationship, and one pointing at the referenced record. Both are located by matching the relationship <em>type</em>.</p>
+<p>The join record must declare one <code><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents the many-to-one side of a foreign-key relationship.">BelongsTo</a></code> pointing back at the record owning this relationship, and one pointing at the referenced record. Both are located by matching the relationship <em>type</em>.</p>
 <p>When the join record cannot be resolved that way - most notably a self-referential many-to-many, where both of its foreign keys point at the <em>same</em> table - name the two foreign key columns explicitly:</p>
 <div class="fragment"><div class="line"><span class="keyword">struct </span>Friendship;</div>
 <div class="line"><span class="keyword">struct </span>Human</div>

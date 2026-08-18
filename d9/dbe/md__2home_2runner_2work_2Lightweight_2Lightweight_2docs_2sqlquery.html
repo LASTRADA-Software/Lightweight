@@ -108,7 +108,7 @@ Create or Modife database schema</h1>
 <li>Second parameter has a default value <code>SqlColumnTypeDefinitions::Bigint</code></li>
 <li>The declared integer width is preserved per DBMS: SQL Server emits <code>&lt;type&gt; IDENTITY(1,1)</code> and PostgreSQL emits the matching serial pseudo-type (<code>Bigint</code> → <code>BIGSERIAL</code>, <code>Integer</code> → <code>SERIAL</code>, <code>Smallint</code>/<code>Tinyint</code> → <code>SMALLSERIAL</code>). SQLite is the exception — <code>AUTOINCREMENT</code> is only valid on an <code>INTEGER PRIMARY KEY</code>, which is a 64-bit rowid alias there, so the column is always <code>INTEGER</code>.</li>
 <li>Because the width now follows the declaration, a narrow declared type buys a narrow key space: <code>Smallint</code>/<code>Tinyint</code> cap at 32767 rows on both PostgreSQL (<code>smallserial</code>) and SQL Server (<code>SMALLINT IDENTITY</code>). Declare <code>Bigint</code> (the default) unless you specifically want that limit.</li>
-<li>Upgrading to a Lightweight version that changes the emitted DDL text also changes the checksum stored for migrations that were already applied — see <a href="../../dbtool.md#checksum-mismatches">dbtool: Checksum Mismatches</a>.</li>
+<li>Upgrading to a Lightweight version that changes the emitted DDL text also changes the checksum stored for migrations that were already applied — see <a class="el" href="../../d5/dc4/dbtool.html#checksum-mismatches">dbtool: Checksum Mismatches</a>.</li>
 </ul>
 </li>
 <li><code>Column(std::string columnName, SqlColumnTypeDefinition columnType)</code>, <code>Column(SqlColumnDeclaration column)</code><ul>

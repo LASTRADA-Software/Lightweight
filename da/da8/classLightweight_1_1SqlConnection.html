@@ -132,9 +132,7 @@ LIGHTWEIGHT_API&#160;</td><td class="memItemRight" valign="bottom"><b>~SqlConnec
 <tr class="memitem:a63ba202ba517a1dbe5d36afe4654a85b" id="r_a63ba202ba517a1dbe5d36afe4654a85b"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a63ba202ba517a1dbe5d36afe4654a85b">ConnectionId</a> () const noexcept</td></tr>
 <tr class="memdesc:a63ba202ba517a1dbe5d36afe4654a85b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the connection ID.  <br /></td></tr>
 <tr class="separator:a63ba202ba517a1dbe5d36afe4654a85b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a85b56ddb608b6c84fe33b7bff71a7f24" id="r_a85b56ddb608b6c84fe33b7bff71a7f24"><td class="memItemLeft" align="right" valign="top"><a id="a85b56ddb608b6c84fe33b7bff71a7f24" name="a85b56ddb608b6c84fe33b7bff71a7f24"></a>
-LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><b>Close</b> () noexcept</td></tr>
-<tr class="memdesc:a85b56ddb608b6c84fe33b7bff71a7f24"><td class="mdescLeft">&#160;</td><td class="mdescRight">Closes the connection (attempting to put it back into the connect[[ion pool). <br /></td></tr>
+<tr class="memitem:a85b56ddb608b6c84fe33b7bff71a7f24" id="r_a85b56ddb608b6c84fe33b7bff71a7f24"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a85b56ddb608b6c84fe33b7bff71a7f24">Close</a> () noexcept</td></tr>
 <tr class="separator:a85b56ddb608b6c84fe33b7bff71a7f24"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aff53cd88345bf8822f5fd34e676c48d0" id="r_aff53cd88345bf8822f5fd34e676c48d0"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#aff53cd88345bf8822f5fd34e676c48d0">Connect</a> (<a class="el" href="../../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html">SqlConnectionDataSource</a> const &amp;info) noexcept</td></tr>
 <tr class="separator:aff53cd88345bf8822f5fd34e676c48d0"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -384,6 +382,33 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 
 </div>
 </div>
+<a id="a85b56ddb608b6c84fe33b7bff71a7f24" name="a85b56ddb608b6c84fe33b7bff71a7f24"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a85b56ddb608b6c84fe33b7bff71a7f24">&#9670;&#160;</a></span>Close()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API void Lightweight::SqlConnection::Close </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Closes the connection, freeing the underlying ODBC handles.</p>
+<p>This does not return the connection to any pool: <code><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html" title="Represents a connection to a SQL database.">SqlConnection</a></code> owns its handles outright. <a class="el" href="../../d4/d03/structLightweight_1_1Connection.html" title="One column pair of a composite foreign key: &quot;this record&#39;s column references that one&quot;.">Connection</a> pooling is provided separately by <code><a class="el" href="../../d3/d30/classLightweight_1_1Pool.html">Lightweight::Pool</a></code> in <code><a class="el" href="../../df/d0f/Pool_8hpp_source.html">DataMapper/Pool.hpp</a></code>, which recycles pooled <code><a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a></code> instances. </p>
+
+</div>
+</div>
 <a id="aff53cd88345bf8822f5fd34e676c48d0" name="aff53cd88345bf8822f5fd34e676c48d0"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aff53cd88345bf8822f5fd34e676c48d0">&#9670;&#160;</a></span>Connect() <span class="overload">[1/2]</span></h2>
 
@@ -408,7 +433,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 </table>
 </div><div class="memdoc">
 <p>Connects to the given database with the given username and password.</p>
-<p>This method can be called on a connection that has been closed via <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a85b56ddb608b6c84fe33b7bff71a7f24" title="Closes the connection (attempting to put it back into the connect[[ion pool).">Close()</a>. If the ODBC handles have been freed, they will be automatically reallocated.</p>
+<p>This method can be called on a connection that has been closed via <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a85b56ddb608b6c84fe33b7bff71a7f24">Close()</a>. If the ODBC handles have been freed, they will be automatically reallocated.</p>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">true</td><td>if the connection was successful. </td></tr>
@@ -443,7 +468,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 </table>
 </div><div class="memdoc">
 <p>Connects to the given database with the given connection string.</p>
-<p>This method can be called on a connection that has been closed via <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a85b56ddb608b6c84fe33b7bff71a7f24" title="Closes the connection (attempting to put it back into the connect[[ion pool).">Close()</a>. If the ODBC handles have been freed, they will be automatically reallocated.</p>
+<p>This method can be called on a connection that has been closed via <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a85b56ddb608b6c84fe33b7bff71a7f24">Close()</a>. If the ODBC handles have been freed, they will be automatically reallocated.</p>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">true</td><td>if the connection was successful. </td></tr>
@@ -479,9 +504,9 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 
 <p>Retrieves the type of the server. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00327">327</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00331">331</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01702">Lightweight::DataMapper::CreateTable()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02364">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02449">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02306">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02210">Lightweight::DataMapper::QuerySingle()</a>, <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00378">SupportsNativeRowArrayFetch()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00342">SupportsNativeRowBatch()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01702">Lightweight::DataMapper::CreateTable()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02364">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02449">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02306">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02210">Lightweight::DataMapper::QuerySingle()</a>, <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00382">SupportsNativeRowArrayFetch()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00346">SupportsNativeRowBatch()</a>.</p>
 
 </div>
 </div>
@@ -510,7 +535,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 
 <p>Retrieves the name of the driver used for this connection. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00332">332</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00336">336</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>
@@ -539,7 +564,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 
 <p>Retrieves a query formatter suitable for the SQL server being connected. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00337">337</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00341">341</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00437">Lightweight::DataMapper::Query()</a>.</p>
 
@@ -600,9 +625,9 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 <p>The batched <code>SqlStatement::ExecuteBatch(rows, accessors...)</code> consults this to decide whether it may submit the whole batch in a single row-wise <code>SQLExecute</code>, or must fall back to a single prepare followed by consecutive per-row executes. This is a driver/backend capability — not a SQL-dialect concern — so it belongs to the connection, which knows both the server type and the driver name (either of which a future carve-out can branch on).</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if the driver honours parameter arrays. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00342">342</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00346">346</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00327">ServerType()</a>.</p>
+<p class="reference">References <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00331">ServerType()</a>.</p>
 
 </div>
 </div>
@@ -633,11 +658,11 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 <p>The fast retrieval path in <code>SqlStatement::FetchAllRowWise</code> consults this to decide whether it may bind the result columns row-wise over a record block and materialize whole row blocks per <code>SQLFetchScroll</code> round-trip, or must fall back to the per-row <code>SQLFetch</code> path. Like <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#ac4ea8b83a43459581e2a52a568c595c5">SupportsNativeRowBatch</a> this is a driver/backend capability — not a SQL-dialect concern — so it lives on the connection. Kept distinct from the parameter-array flag so a backend that honours one but not the other can be carved out independently.</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if the driver honours row-array fetching. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00378">378</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00382">382</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00327">ServerType()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00378">SupportsNativeRowArrayFetch()</a>.</p>
+<p class="reference">References <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00331">ServerType()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00382">SupportsNativeRowArrayFetch()</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00378">SupportsNativeRowArrayFetch()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00382">SupportsNativeRowArrayFetch()</a>.</p>
 
 </div>
 </div>
@@ -674,7 +699,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 </dl>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if that backend honours row-array fetching. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00360">360</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00364">364</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>
@@ -712,7 +737,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 </dl>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if narrow character data round-trips byte-exact on that backend. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00383">383</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00387">387</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>
@@ -867,7 +892,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 
 <p>Retrieves the native handle. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00239">239</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00243">243</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html#a0bd596d2a637709abc81b396c7b2ce70">Lightweight::SqlTransaction::TryCommit()</a>.</p>
 

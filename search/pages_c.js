@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['practices_0',['Best Practices',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html',1,'']]]
+  ['management_20cli_0',['dbtool - Database Management CLI',['../d5/dc4/dbtool.html',1,'']]],
+  ['migrations_1',['SQL Migrations',['../d2/da6/sql-migrations.html',1,'']]]
 ];

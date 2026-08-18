@@ -142,7 +142,7 @@ Public Attributes</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>One inverse or through relation to emit on a record. </p>
-<p>A <code><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents a one-to-one relationship.">BelongsTo</a></code> is derivable from the child table alone, but every relation pointing the other way needs to know about foreign keys declared on <em>other</em> tables. <code>RelationPlan</code> is that schema-wide answer, computed once by <code>PlanRelations</code> and consumed per table. </p>
+<p>A <code><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents the many-to-one side of a foreign-key relationship.">BelongsTo</a></code> is derivable from the child table alone, but every relation pointing the other way needs to know about foreign keys declared on <em>other</em> tables. <code>RelationPlan</code> is that schema-wide answer, computed once by <code>PlanRelations</code> and consumed per table. </p>
 
 <p class="definition">Definition at line <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html#l00103">103</a> of file <a class="el" href="../../d3/d0c/CxxModelPrinter_8hpp_source.html">CxxModelPrinter.hpp</a>.</p>
 </div><h2 class="groupheader">Member Enumeration Documentation</h2>
@@ -168,7 +168,7 @@ Public Attributes</h2></td></tr>
 
 <p>Which relation template to emit. </p>
 <table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a2eef1942dd0b41833109a8c59ddc61f2acb0b9d7f516c1c1777daaf5aa1edb2c6" name="a2eef1942dd0b41833109a8c59ddc61f2acb0b9d7f516c1c1777daaf5aa1edb2c6"></a>HasMany&#160;</td><td class="fielddoc"><p>One-to-many: the inverse of a child's <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents a one-to-one relationship.">BelongsTo</a>. </p>
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a2eef1942dd0b41833109a8c59ddc61f2acb0b9d7f516c1c1777daaf5aa1edb2c6" name="a2eef1942dd0b41833109a8c59ddc61f2acb0b9d7f516c1c1777daaf5aa1edb2c6"></a>HasMany&#160;</td><td class="fielddoc"><p>One-to-many: the inverse of a child's <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents the many-to-one side of a foreign-key relationship.">BelongsTo</a>. </p>
 </td></tr>
 <tr><td class="fieldname"><a id="a2eef1942dd0b41833109a8c59ddc61f2a33c7acc2e31380ac4e26747d7d62e228" name="a2eef1942dd0b41833109a8c59ddc61f2a33c7acc2e31380ac4e26747d7d62e228"></a>HasOne&#160;</td><td class="fielddoc"><p>One-to-one: as <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html" title="This HasMany&lt;OtherRecord&gt; represents a simple one-to-many relationship between two records.">HasMany</a>, but the child's foreign key is uniquely indexed. </p>
 </td></tr>
