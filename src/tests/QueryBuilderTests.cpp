@@ -665,6 +665,66 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn", "[SqlQueryBuilder]")
                                                    WHERE "foo" IN (1, 2, 3))"));
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn binds its values when bindings are requested", "[SqlQueryBuilder]")
+{
+    using namespace std::string_view_literals;
+
+    // When the caller supplies a bindings vector, every literal must become a parameter marker —
+    // otherwise the statement cannot be reused across differing IN-sets and the values bypass the
+    // driver's own literal encoding.
+    std::vector<SqlVariant> inputBindings;
+
+    CheckSqlQueryBuilder(
+        [&](SqlQueryBuilder& q) {
+            inputBindings.clear();
+            return q.FromTable("That").Update(&inputBindings).Set("a", 1).WhereIn("foo", std::vector { 10, 20, 30 });
+        },
+        QueryExpectations::All(R"(UPDATE "That" SET "a" = ?
+                                  WHERE "foo" IN (?, ?, ?))"),
+        [&]() {
+            // The SET value binds before the WHERE values, matching the order of the markers.
+            REQUIRE(inputBindings.size() == 4);
+            CHECK(std::get<int>(inputBindings[0].value) == 1);
+            CHECK(std::get<int>(inputBindings[1].value) == 10);
+            CHECK(std::get<int>(inputBindings[2].value) == 20);
+            CHECK(std::get<int>(inputBindings[3].value) == 30);
+        });
+
+    // The initializer_list overload binds as well.
+    CheckSqlQueryBuilder(
+        [&](SqlQueryBuilder& q) {
+            inputBindings.clear();
+            return q.FromTable("That").Update(&inputBindings).Set("a", 1).WhereIn("foo", { 10, 20 });
+        },
+        QueryExpectations::All(R"(UPDATE "That" SET "a" = ?
+                                  WHERE "foo" IN (?, ?))"),
+        [&]() { REQUIRE(inputBindings.size() == 3); });
+
+    // Strings are handed over verbatim rather than being escaped into the SQL text.
+    CheckSqlQueryBuilder(
+        [&](SqlQueryBuilder& q) {
+            inputBindings.clear();
+            return q.FromTable("That").Update(&inputBindings).Set("a", 1).WhereIn("foo", std::vector { "O'Brien"sv, "b"sv });
+        },
+        QueryExpectations::All(R"(UPDATE "That" SET "a" = ?
+                                  WHERE "foo" IN (?, ?))"),
+        [&]() {
+            REQUIRE(inputBindings.size() == 3);
+            CHECK(std::get<std::string_view>(inputBindings[1].value) == "O'Brien"sv);
+            CHECK(std::get<std::string_view>(inputBindings[2].value) == "b"sv);
+        });
+
+    // An empty IN-set still short-circuits to the always-false condition and binds nothing.
+    CheckSqlQueryBuilder(
+        [&](SqlQueryBuilder& q) {
+            inputBindings.clear();
+            return q.FromTable("That").Update(&inputBindings).Set("a", 1).WhereIn("foo", std::vector<int> {});
+        },
+        QueryExpectations::All(R"(UPDATE "That" SET "a" = ?
+                                  WHERE 1 = 0)"),
+        [&]() { REQUIRE(inputBindings.size() == 1); });
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn accepts a range without a member empty()", "[SqlQueryBuilder]")
 {
     // A built-in array is an input_range but has no `.empty()` member, so the emptiness check must
