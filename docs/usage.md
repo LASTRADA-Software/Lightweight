@@ -186,6 +186,46 @@ void BulkInsert(DataMapper& dm, std::vector<Person> const& people)
 > records (treat them as write-only inputs), and `UpdateAll` writes a uniform set of columns for every
 > row rather than only the per-record modified ones. The range must be contiguous.
 
+### Eager loading of relations (`With<>()`)
+
+Accessing a relation on a query result loads it on demand — one query per record. Over a result set of
+N records that is the N+1 problem: reading `album.tracks` for 1000 albums issues 1001 queries.
+`With<&Record::relation>()` instead resolves the relation for the whole result set once it has been
+materialized, using `WHERE <key> IN (...)`:
+
+```cpp
+// Two queries in total, whatever the number of albums: one for the albums, one for all their tracks.
+auto albums = dm.Query<Album>()
+                .With<&Album::tracks>()    // HasMany
+                .With<&Album::artist>()    // BelongsTo
+                .All();
+
+for (auto& album: albums)
+    for (auto const& track: album.tracks.All())  // already loaded, no query
+        std::println("{} - {}", album.title, track->title);
+```
+
+- Supported for `BelongsTo` and `HasMany`. `HasOneThrough`, `HasManyThrough` and `CompositeForeignKey`
+  still load on demand; naming one of them in `With<>()` is a compile error rather than a silent
+  fallback.
+- Calls chain, one per relation to load. It applies to `All()`, `First()`, `First(n)` and `Range()`.
+- The `IN` predicate is chunked (see `SqlQueryFormatter::MaxInPredicateValues`, 1000 by default), so a
+  large batch costs one query per chunk — a constant number of queries per relation, never one per
+  record.
+- A `BelongsTo` whose foreign key is `NULL`, and an owner with no children, are handled without an
+  extra query: the childless owner's relation is marked loaded-and-empty rather than left to query for
+  a result already known.
+- Relations that were *not* named keep their on-demand behaviour. Combining `With<>()` with
+  `DataMapperOptions { .loadRelations = false }` therefore turns any unrequested relation access into a
+  `SqlRequireLoadedError` instead of a silent query — useful to prove a code path issues no N+1.
+
+Measured on 1000 owners with 10 children each, comparing the on-demand path with `With<>()`:
+
+| relation | queries before | queries after | SQLite3 | PostgreSQL | MS SQL Server |
+|---|---:|---:|---:|---:|---:|
+| `HasMany` | 1001 | 2 | 8.7x | 45x | 45x |
+| `BelongsTo` | 10001 | 2 | 37x | 464x | 407x |
+
 ## Simple row retrieval via structs
 
 When only read access is needed, you can use a simple `struct` to represent the row,

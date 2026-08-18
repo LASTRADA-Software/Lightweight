@@ -106,6 +106,24 @@ single response.
 This will help to reduce the response time and the load on the server, and improve the performance of your
 application.
 
+### Load relations for a whole result set, not per record
+
+Touching a relation on each record of a result set issues one query per record — the N+1 problem. Name
+the relation on the query instead, and it is resolved for the entire batch in a constant number of
+queries:
+
+```cpp
+auto albums = dm.Query<Album>().With<&Album::tracks>().All(); // 2 queries, not 1 + N
+```
+
+See [Eager loading of relations](usage.md). Two things compound with it:
+
+- **Index your foreign keys.** `CreateTable<Record>()` emits an index for every `BelongsTo` column,
+  because no supported engine indexes a foreign key implicitly. Tables created by hand, or by an older
+  version of Lightweight, need that index added — without it every relation query is a full table scan.
+- **Prove the absence of N+1 in tests.** A `SqlLogger` subclass counting `OnPrepare`/`OnExecuteDirect`
+  turns "this endpoint issues two queries" into an assertion instead of an assumption.
+
 ### Let block-prefetch cut network round-trips
 
 Per-row fetch loops issue one `SQLFetch` (one network round-trip) per row. Lightweight transparently
