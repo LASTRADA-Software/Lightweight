@@ -328,9 +328,49 @@ layout in [sql-backup-format.md](docs/sql-backup-format.md).
 ## Asynchronous API
 
 Async entry points are added directly to the types you already use (`SqlConnection`, `DataMapper`,
-`Pool`), suffixed with `Async`, and return `Async::Task<T>`. Queries go through the same fluent
-builder as the synchronous API. Note that this is **thread-offload**, not protocol-level async — see
-[async.md](docs/async.md), which explains why and what that means for your thread budget.
+`Pool`), suffixed with `Async`, and return `Async::Task<T>`. Enable it once by saying where blocking
+ODBC calls run and where your coroutine resumes:
+
+```cpp
+#include <Lightweight/Async/ManualExecutor.hpp>
+#include <Lightweight/Async/ThreadPoolExecutor.hpp>
+#include <Lightweight/DataMapper/DataMapper.hpp>
+
+using namespace Lightweight;
+
+Async::ThreadPoolExecutor dbWorkers { 4 }; // 4 background DB threads
+Async::ManualExecutor     appLoop;         // your app thread pumps this
+
+DataMapper dm;
+dm.Connection().EnableAsync(dbWorkers, appLoop);
+```
+
+Queries then go through the *same* fluent builder — start the chain with `QueryAsync<Record>()`
+instead of `Query<Record>()`, and every finisher returns a `Task` of its usual result:
+
+```cpp
+Async::Task<void> Handle(DataMapper& dm, SqlGuid userId)
+{
+    auto active = co_await dm.QueryAsync<User>()
+                            .Where(FieldNameOf<&User::is_active>, "=", true)
+                            .OrderBy(FieldNameOf<&User::name>)
+                            .First(10);              // Task<std::vector<User>>
+
+    auto total = co_await dm.QueryAsync<User>().Count();   // Task<std::size_t>
+
+    auto user = User { .name = "Alice" };
+    co_await dm.CreateAsync(user);                   // INSERT off-thread
+    co_await dm.DeleteAsync(user);
+}
+```
+
+Two things to know before you build on this. It is **thread-offload**, not protocol-level async: your
+application thread never blocks, but a worker thread does. And the async operands are captured **by
+reference**, so keep the whole expression inside the `co_await` — hoisting a builder into a local and
+awaiting it later is a use-after-free.
+
+[async.md](docs/async.md) covers executors, cancellation, transactions, single- versus multi-threaded
+drive models, and the `std::execution` bridge.
 
 ## Using SQLite for testing on Windows operating system
 
