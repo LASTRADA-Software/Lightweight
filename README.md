@@ -200,7 +200,7 @@ auto user_name = email.user->name; // lazily loads the user record
 
 ### Mapping query results to a simple struct
 
-If you have a SQL query that returns some values, but it does not corresponds to the existing table in the database, you can map the result to a simple struct.
+If you have a SQL query that returns some values, but it does not correspond to an existing table in the database, you can map the result to a simple struct.
 The struct must have fields that match the columns in the query. The fields can be of any type that can be converted from the column type. The struct can have more fields than the columns in the query, but the fields that match the columns must be in the same order as the columns in the query.
 
 ```cpp
@@ -218,19 +218,17 @@ struct SimpleStruct
 
 void SimpleStructExample(DataMapper& dm)
 {
-    if (auto maybeObject = dm.Query<SimpleString>(
-        "SELECT A.pk, B.pk, A.c1, A.c2, B.c1, B.c2 FROM A LEFT JOIN B ON A.pk = B.pk"); maybeObject)
-    ))
-    {
-        for (auto const& obj : *maybeObject)
-            std::println("{}", DataMapper::Inspect(obj));
-    }
+    auto const records = dm.Query<SimpleStruct>(
+        "SELECT A.pk, B.pk, A.c1, A.c2, B.c1, B.c2 FROM A LEFT JOIN B ON A.pk = B.pk");
+
+    for (auto const& obj: records)
+        std::println("{}", DataMapper::Inspect(obj));
 }
 ```
 
 ### Mapping query to multiple struct
 
-We also provide an API to create SQL queries, this can be usefull if you want to use information from existing structures.
+We also provide an API to create SQL queries, this can be useful if you want to use information from existing structures.
 The following example shows how to create a query that joins multiple tables and maps the result to multiple structs.
 Consider the following structs
 
@@ -282,7 +280,7 @@ SELECT "A"."id", "A"."number", "A"."name", "A"."description", "B"."id", "B"."tit
  ORDER BY "A"."id" ASC
 ```
 
-Now you can execute it and get the result as a `std::vector<std::tuple<CustomBindingA, CustomBindingB, ParfOfC>` like this
+Now you can execute it and get the result as a `std::vector<std::tuple<CustomBindingA, CustomBindingB, PartOfC>>` like this
 
 ```cpp
 struct PartOfC
@@ -374,7 +372,7 @@ Generate header file from the existing database by providing connection string t
  ./build/src/tools/ddl2cpp --connection-string "DRIVER=SQLite3;Database=test.db" --make-aliases --naming-convention CamelCase  --output ./src/examples/example.hpp --generate-example
 ```
 
-You can also avoid all those command line arguments by creating a config file that muts be in your
+You can also avoid all those command line arguments by creating a config file that must be in your
 current working directory or in one of its parent directories.
 The config file must be named `ddl2cpp.yml` and must contain the following content:
 

@@ -205,12 +205,10 @@ struct SimpleStruct
 
 void SimpleStructExample(DataMapper& dm)
 {
-    if (auto maybeObject = dm.Query<SimpleString>(
-        "SELECT A.pk, B.pk, A.c1, A.c2, B.c1, B.c2 FROM A LEFT JOIN B ON A.pk = B.pk"); maybeObject)
-    ))
-    {
-        for (auto const& obj : *maybeObject)
-            std::println("{}", DataMapper::Inspect(obj));
-    }
+    auto const records = dm.Query<SimpleStruct>(
+        "SELECT A.pk, B.pk, A.c1, A.c2, B.c1, B.c2 FROM A LEFT JOIN B ON A.pk = B.pk");
+
+    for (auto const& obj: records)
+        std::println("{}", DataMapper::Inspect(obj));
 }
 ```

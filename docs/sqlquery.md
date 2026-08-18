@@ -2,8 +2,8 @@
 
 SQL Query builder class is the starting point of building sql queries to execute.
 
-## Create or Modife database schema 
-To create a database you need to use `Migration()` function provided by the `SqlQueryBuilder` class, then use API defined in `SqlMigrationQueryBuilder` to construct sql query to migrate to another schema or create a databse with the given schema. Detailed documentation can be found on separate documentation pages for each of the classes in the hirerarchy, here we present overall usage of the library.  Following options exist.
+## Create or Modify database schema 
+To create a database you need to use `Migration()` function provided by the `SqlQueryBuilder` class, then use API defined in `SqlMigrationQueryBuilder` to construct sql query to migrate to another schema or create a database with the given schema. Detailed documentation can be found on separate documentation pages for each of the classes in the hierarchy, here we present overall usage of the library.  Following options exist.
 
 * `CreateTable(tableName)`
 Following calls can be chained, for example `CreateTable("test").Column(first).Column(second)...`
@@ -33,9 +33,9 @@ Available functions:
   - `ForeignKey(std::string columnName, SqlColumnTypeDefinition columnType, SqlForeignKeyReferenceDefinition foreignKey)`
     + creates a new nullable foreign key column, non-nullable version is a `RequiredForeignKey` function. 
   - Additional function that change specification of the created columns with the following usage: `CreateTable("test").Column(first).UniqueIndex()`.
-    + `Unique()` enables the UNIQUE constrain on the last declared column.
-    + `Index()` enables the INDEX constrain on the last declared column.
-    + `UniqueIndex()` enables the UNIQUE and INDEX constrain on the last declared column.
+    + `Unique()` enables the UNIQUE constraint on the last declared column.
+    + `Index()` enables the INDEX constraint on the last declared column.
+    + `UniqueIndex()` enables the UNIQUE and INDEX constraint on the last declared column.
 
 * `AlterTable(tableName)` 
   Available functions:
@@ -53,7 +53,7 @@ Available functions:
     + drop an index from the table for the specified column.
 
 * `DropTable(tableName)`
-  - Drops table with the given name, please make sure that no foreign key constrains restricts execution of this query for the given table.
+  - Drops table with the given name, please make sure that no foreign key constraint restricts execution of this query for the given table.
 
 
 ### Example
