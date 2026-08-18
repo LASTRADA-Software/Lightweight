@@ -14,6 +14,7 @@ namespace Lightweight::Async
 /// is a small, copyable closure.
 using Work = std::function<void()>;
 
+/// @ingroup Async
 /// Interface for an executor that runs posted work items.
 ///
 /// Executors are injected (dependency injection) and owned by the caller; the async layer
@@ -34,6 +35,7 @@ class IExecutor
     virtual void Post(Work work) = 0;
 };
 
+/// @ingroup Async
 /// Interface for scheduling the resumption of a suspended coroutine.
 ///
 /// Kept separate from @ref IExecutor::Post so resumption can be expressed as a bare
@@ -55,6 +57,7 @@ class IResumeScheduler
     virtual void Resume(std::coroutine_handle<> handle) = 0;
 };
 
+/// @ingroup Async
 /// An executor that runs work synchronously on the calling thread.
 ///
 /// Useful for tests and for degenerate single-threaded configurations where no thread

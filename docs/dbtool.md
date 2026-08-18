@@ -1,4 +1,4 @@
-# dbtool - Database Management CLI {#dbtool}
+# dbtool - Database Management CLI
 
 ## Overview
 
@@ -296,6 +296,109 @@ Useful for:
 - Baseline migrations when setting up an existing database
 - Skipping migrations that were applied manually
 
+### rollback-to-release \<VERSION\>
+
+Rolls back every migration applied after the named release:
+
+```bash
+dbtool rollback-to-release 1.0.0
+```
+
+The release's own migrations are kept; only what came after is reverted.
+
+### releases
+
+Lists the releases declared by the registered migrations, with each one's migration count and
+whether it is fully applied:
+
+```bash
+dbtool releases
+```
+
+### rewrite-checksums
+
+Rewrites `schema_migrations.checksum` so the stored checksums match what the current code
+generates:
+
+```bash
+dbtool rewrite-checksums --yes
+```
+
+Use this **only** after a regeneration that changed the byte shape of a migration without changing
+its meaning — for example a formatting change in generated DDL. If the logic actually changed, the
+checksum mismatch is a real warning and rewriting it hides a genuine divergence. Because it edits
+migration bookkeeping, it refuses to run without `--yes` — there is no interactive prompt, the
+command simply exits. See [Checksum Mismatches](#checksum-mismatches).
+
+### hard-reset
+
+Drops every table the registered migrations own, plus the `schema_migrations` table, and leaves
+tables it does not own untouched:
+
+```bash
+dbtool hard-reset --yes
+dbtool migrate
+```
+
+The pairing with `migrate` is the point: `hard-reset` returns the database to "no migrations
+applied" so the full set can be replayed from scratch. Which tables count as migration-owned is
+computed by folding the registered migration plan, not by guessing from the live schema, so user
+tables survive. Like `rewrite-checksums`, it refuses to run without `--yes`.
+
+`--dry-run` prints the three groups it computed — tables to drop, migration-declared but absent, and
+user-owned tables it will preserve — without touching anything.
+
+### unicode-upgrade-tables
+
+Rewrites legacy `VARCHAR`/`CHAR` columns to `NVARCHAR`/`NCHAR` where the registered migrations now
+declare wide types:
+
+```bash
+dbtool unicode-upgrade-tables --dry-run
+dbtool unicode-upgrade-tables --yes
+```
+
+This exists for databases created before a migration switched a column to a wide type: the
+migration history is already marked applied, so nothing would otherwise re-run to widen the
+existing columns. Run it with `--dry-run` first to see the planned `ALTER` statements.
+
+### exec \<QUERY\>
+
+Executes an SQL query and prints any result set:
+
+```bash
+dbtool exec "SELECT COUNT(*) FROM Users"
+```
+
+Pass `-` as the argument, or omit it entirely, to read the query from stdin:
+
+```bash
+echo "SELECT * FROM Users WHERE id = 1" | dbtool exec -
+dbtool exec < query.sql
+```
+
+### list-profiles
+
+Lists the profiles defined in the configuration file (see [Configuration](#configuration)):
+
+```bash
+dbtool list-profiles
+```
+
+### resolve-secret \<REF\>
+
+Resolves a single secret reference and prints it to stdout, without connecting to any database:
+
+```bash
+dbtool resolve-secret env:DB_PASSWORD
+dbtool resolve-secret file:/run/secrets/db_password
+dbtool resolve-secret stdin:
+```
+
+This is a debugging aid for configuration: it lets you confirm that a `env:` / `file:` / `stdin:`
+reference in a profile resolves to what you expect, before a connection failure sends you looking
+in the wrong place.
+
 ## Backup & Restore
 
 ### backup
@@ -393,10 +496,16 @@ common table is identical and both archives hold the same set of tables, or `1` 
 | `--quiet`, `-q` | Suppress progress output | |
 | `--dry-run`, `-n` | Preview without executing | |
 | `--no-lock` | Skip migration locking | |
-| `--schema-only` | For backup/restore: skip data. For `diff`: skip the data diff. | |
-| `--no-color` | Disable ANSI colors in `diff` output (auto-disabled when not at a tty) | |
-| `--max-rows <N>` | Cap rows scanned per table for `diff` data mode | `0` (unlimited) |
+| `--schema-only` | For backup/restore: skip data, transferring schema only | |
+| `--memory-limit <SIZE>` | Memory limit for restore (accepts the size suffixes below) | |
+| `--batch-size <N>` | Rows per batch for restore | |
+| `--ignore-table <NAME>` | For `backup-diff`: report differences in this table but do not fail. Repeatable. | |
+| `--profile <NAME>` | Named profile from the configuration file | store default |
+| `--up-to <TIMESTAMP>` | Upper bound for migration commands | no bound |
 | `--max-retries <N>` | Maximum retry attempts for transient errors | `3` |
+| `--verbose`, `-v` | Emit extra informational output (e.g. shadowed plugins) | |
+| `--yes`, `-y` | Confirm destructive actions without prompting | |
+| `--show-examples` | Print usage examples and exit | |
 | `--help` | Show help message | |
 
 ### Size Suffixes
@@ -546,5 +655,5 @@ If migration locking fails:
 
 ## See Also
 
-- @ref sql-migrations - Guide to writing SQL migrations in C++
+- [sql-migrations.md](sql-migrations.md) - Guide to writing SQL migrations in C++
 - @ref Lightweight::SqlMigration::MigrationManager - C++ API for managing migrations

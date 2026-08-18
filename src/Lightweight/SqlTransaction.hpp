@@ -60,6 +60,7 @@ enum class SqlTransactionMode : std::uint8_t
     ROLLBACK,
 };
 
+/// @ingroup CoreApi
 /// Represents an exception that occurred during a SQL transaction.
 ///
 /// @see SqlTransaction::Commit(), SqlTransaction::Rollback()
@@ -73,6 +74,7 @@ class SqlTransactionException: public std::runtime_error
     }
 };
 
+/// @ingroup CoreApi
 /// Represents a transaction to a SQL database.
 ///
 /// This class is used to control the transaction manually. It disables the auto-commit mode when constructed,

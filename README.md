@@ -1,11 +1,55 @@
-# Lightweight, an ODBC SQL API for C++23
+# Lightweight, a C++23 database library
 
-**Lightweight** is a thin and modern C++ ODBC wrapper for **easy** and **fast** raw database access.
+**Lightweight** is a modern C++23 database library for **Microsoft SQL Server**, **PostgreSQL** and
+**SQLite** over ODBC — with a data mapper and typed relationships, versioned schema migrations,
+parallel backup and restore, an async coroutine API, connection pooling, and CLI/GUI tooling.
+
+It is layered: use the thin ODBC wrapper (`SqlConnection`, `SqlStatement`) when you want raw SQL and
+full control, the query builder when you want composable typed SQL, or the `DataMapper` when you
+want records and relationships mapped for you. The layers interoperate — you can drop from one to
+the next at any point without leaving the library.
+
 Documentation is available at [https://lastrada-software.github.io/Lightweight/](https://lastrada-software.github.io/Lightweight/).
 
-It supports both low-level access to the SQL API as well as provides hight level abstraction that allow easy database access.
+## Features
 
-Here you can see an example of datamapper usage (our tool for the high level abstraction)
+| Area | What it gives you | Guide |
+|------|-------------------|-------|
+| **Raw SQL access** | `SqlConnection`, `SqlStatement`, prepared statements, batched execution, block-prefetch | [usage.md](docs/usage.md) |
+| **Query builder** | Composable typed `SELECT`/`INSERT`/`UPDATE`/`DELETE`, joins, filtering, ordering, pagination | [sqlquery.md](docs/sqlquery.md) |
+| **Data mapper** | Struct-to-table mapping, CRUD, `Field<>` with primary keys and nullability | [usage.md](docs/usage.md) |
+| **Relationships** | `BelongsTo`, `HasMany`, `HasOneThrough`, `HasManyThrough`, `CompositeForeignKey` | [composite-keys-design.md](docs/composite-keys-design.md) |
+| **Schema migrations** | Versioned migrations, checksums, dependency ordering, plugin loading, rollback | [sql-migrations.md](docs/sql-migrations.md) |
+| **Backup & restore** | Parallel chunked dump/restore, msgpack + zip + sha256, archive diffing | [sql-backup.md](docs/sql-backup.md), [sql-backup-format.md](docs/sql-backup-format.md) |
+| **Async API** | C++23 coroutines: `Task<T>`, executors, strand, stdexec bridge, async `DataMapper` | [async.md](docs/async.md) |
+| **Connection pooling** | Compile-time-configured pool, async-aware, recycles connections across mappers | [async.md](docs/async.md) |
+| **Logging & tracing** | Pluggable `SqlLogger`: warnings/errors, full SQL trace, or your own sink | [logging.md](docs/logging.md) |
+| **Schema introspection** | Read tables, columns, keys and indexes back out of a live database | [schema-introspection.md](docs/schema-introspection.md) |
+| **Custom data types** | `SqlDataBinder<T>` specialization for your own types, with Unicode support | [data-binder.md](docs/data-binder.md) |
+| **`dbtool` CLI** | Migrations, backup/restore, backup diffing, schema inspection — ~20 commands | [dbtool.md](docs/dbtool.md) |
+| **`dbtool-gui`** | Qt/QML desktop app for migrations, backup and ad-hoc queries | [dbtool.md](docs/dbtool.md) |
+| **`ddl2cpp`** | Generates C++ records from an existing schema, inferring relations automatically | [ddl2cpp-relation-generation.md](docs/ddl2cpp-relation-generation.md) |
+
+Coming from SQL? [sql-to-lightweight.md](docs/sql-to-lightweight.md) is a side-by-side cookbook that
+shows the Lightweight equivalent of a given piece of SQL in each of the three layers.
+See also [best-practices.md](docs/best-practices.md) and [how-to.md](docs/how-to.md).
+
+## Why ODBC?
+
+ODBC is a deliberate trade-off, not an accident of history. Every other ecosystem — and within C++
+every ergonomic peer (sqlpp23, sqlgen, ormpp, sqlite_orm, libpqxx, Drogon) — talks native wire
+protocols per database. Lightweight targets ODBC because it buys **one API, one build, and one set
+of semantics across SQL Server, PostgreSQL and SQLite**, with per-database differences funnelled
+through a single dispatch point (`SqlQueryFormatter`) rather than scattered across the codebase. For
+applications that must ship against more than one database, that is worth a great deal.
+
+What it costs, stated plainly:
+
+- **Driver deployment.** Your users need the right ODBC driver installed and registered, and driver
+  quality varies. Some behaviours are driver-build-specific rather than database-specific.
+- **No protocol-level bulk path.** There is no `COPY`-class fast path; bulk work goes through
+  array/parameter binding, which is fast but not as fast as a native bulk loader.
+- **No protocol-level async.** See the async limitation below.
 
 ## Supported platforms
 
@@ -21,15 +65,46 @@ a modern enough C++ compiler.
 - PostgreSQL
 - SQLite3
 
+`SqlServerType` also lists a `MYSQL` enumerator, but **MySQL is not supported**:
+`SqlQueryFormatter::Get()` returns `nullptr` for it, so no query can be formatted. The enumerator is
+a placeholder for possible future work — do not rely on it.
+
+## Known limitations
+
+Being explicit here saves you from discovering these by reading the source.
+
+- **The query builder is not a complete SQL surface.** It has no `HAVING`, CTEs,
+  `UNION`/`EXCEPT`/`INTERSECT`, `RETURNING`, upsert, window functions, or multi-row
+  `INSERT ... VALUES` (bulk goes through array binding instead). The intended escape hatches are
+  `SqlFieldExpression`, `WhereRaw(...)`, and `DataMapper::Query<T>(sql, ...)` — reach for them when
+  you need SQL the builder does not model. For `RETURNING` specifically, `SqlStatement` can execute
+  it directly, with driver caveats documented in [how-to.md](docs/how-to.md).
+- **Async is thread-offload, not protocol-level non-blocking.** ODBC's own async execution is not
+  portable, so each blocking ODBC call is offloaded to a worker thread and your coroutine resumes on
+  a scheduler you choose. Your application thread never blocks, but *some* thread does. See
+  [async.md](docs/async.md) for the full rationale.
+- **No identity map or unit of work.** Loading the same row twice yields two unrelated objects.
+  `BelongsTo` holds a deep copy; `HasMany` builds fresh `shared_ptr`s on every load.
+- **Lazy loaders use a thread-local mapper, not the one that loaded the record.** Relation
+  auto-loading goes through `DataMapper::AcquireThreadLocal()`, which is constructed from
+  `SqlConnection::DefaultConnectionString()`. A lazy load therefore runs on a *different connection*,
+  **outside your caller's transaction**, and fails outright if no default connection string is
+  configured. If that matters to your code, load relations explicitly instead of touching them
+  lazily.
+- **No eager-loading / preload API.** Touching a relation across N records issues N queries.
+- **Backup is online, with no snapshot.** Tables are read while writes continue, so an archive has
+  no cross-table consistency guarantee. Quiesce writers if you need a consistent point-in-time dump.
+  See [sql-backup.md](docs/sql-backup.md).
+
 ## Namespace
 
-All functionality is placed inside a `Lightweight` namespace, we also provide an alias for this namespace `Light`, that is slightly shorter. 
+All functionality is placed inside a `Lightweight` namespace, we also provide an alias for this namespace `Light`, that is slightly shorter.
 
 ## High level API
 
 High level API of the library provided by the type `DataMapper`
 
-### Simple one record example 
+### Simple one record example
 
 Example of its usage to save/load/update/delete entry in the database for one table
 
@@ -96,6 +171,10 @@ struct Email
 };
 ```
 
+`BelongsTo` models the **many-to-one** side of a foreign key — the record that *owns* the foreign-key
+column. Many `Email`s can point at one `User`. For the other relationship kinds see `HasMany`,
+`HasOneThrough`, `HasManyThrough` and `CompositeForeignKey`.
+
 In the presented example we used rename of the columns, for more details see how-to\#rename-column-name page.
 you can query the email and get access to the user record as well
 
@@ -105,9 +184,13 @@ auto email = dm.QuerySingle<Email>(some_email_id).value_or(Email{});
 auto user_name = email.user->name; // lazily loads the user record
 ```
 
+> **Note:** lazy loading (`email.user->name` above) does *not* use `dm`. It uses a thread-local
+> `DataMapper` built from the default connection string, so it runs on a different connection and
+> outside any transaction `dm` may be in. See [Known limitations](#known-limitations).
+
 ### Mapping query results to a simple struct
 
-If you have a SQL query that returns some values, but it does not corresponds to the existing table in the database, you can map the result to a simple struct.
+If you have a SQL query that returns some values, but it does not correspond to an existing table in the database, you can map the result to a simple struct.
 The struct must have fields that match the columns in the query. The fields can be of any type that can be converted from the column type. The struct can have more fields than the columns in the query, but the fields that match the columns must be in the same order as the columns in the query.
 
 ```cpp
@@ -125,19 +208,17 @@ struct SimpleStruct
 
 void SimpleStructExample(DataMapper& dm)
 {
-    if (auto maybeObject = dm.Query<SimpleString>(
-        "SELECT A.pk, B.pk, A.c1, A.c2, B.c1, B.c2 FROM A LEFT JOIN B ON A.pk = B.pk"); maybeObject)
-    ))
-    {
-        for (auto const& obj : *maybeObject)
-            std::println("{}", DataMapper::Inspect(obj));
-    }
+    auto const records = dm.Query<SimpleStruct>(
+        "SELECT A.pk, B.pk, A.c1, A.c2, B.c1, B.c2 FROM A LEFT JOIN B ON A.pk = B.pk");
+
+    for (auto const& obj: records)
+        std::println("{}", DataMapper::Inspect(obj));
 }
 ```
 
 ### Mapping query to multiple struct
 
-We also provide an API to create SQL queries, this can be usefull if you want to use information from existing structures.
+We also provide an API to create SQL queries, this can be useful if you want to use information from existing structures.
 The following example shows how to create a query that joins multiple tables and maps the result to multiple structs.
 Consider the following structs
 
@@ -189,7 +270,7 @@ SELECT "A"."id", "A"."number", "A"."name", "A"."description", "B"."id", "B"."tit
  ORDER BY "A"."id" ASC
 ```
 
-Now you can execute it and get the result as a `std::vector<std::tuple<CustomBindingA, CustomBindingB, ParfOfC>` like this
+Now you can execute it and get the result as a `std::vector<std::tuple<CustomBindingA, CustomBindingB, PartOfC>>` like this
 
 ```cpp
 struct PartOfC
@@ -205,6 +286,81 @@ for (auto const& [a, b, c]: records)
 }
 ```
 
+## Schema migrations
+
+Migrations are versioned, checksummed C++ definitions applied in dependency order, with rollback and
+plugin loading. They can be driven from your application or from the `dbtool` CLI:
+
+```sh
+dbtool status         # what is applied, what is pending
+dbtool migrate        # apply everything pending
+dbtool rollback-to 20260101120000
+```
+
+See [sql-migrations.md](docs/sql-migrations.md) for writing migrations and
+[dbtool.md](docs/dbtool.md) for the full command reference.
+
+## Backup and restore
+
+Lightweight ships a backup engine — parallel chunked dump and restore into a zip archive of msgpack
+chunks with sha256 integrity, plus archive diffing:
+
+```sh
+dbtool backup --output snapshot.zip
+dbtool restore --input snapshot.zip
+dbtool backup-diff --left old.zip --right new.zip
+```
+
+Backups are taken **online, without a snapshot**, so there is no cross-table consistency guarantee —
+see [Known limitations](#known-limitations). Details in [sql-backup.md](docs/sql-backup.md), archive
+layout in [sql-backup-format.md](docs/sql-backup-format.md).
+
+## Asynchronous API
+
+Async entry points are added directly to the types you already use (`SqlConnection`, `DataMapper`,
+`Pool`), suffixed with `Async`, and return `Async::Task<T>`. Enable it once by saying where blocking
+ODBC calls run and where your coroutine resumes:
+
+```cpp
+#include <Lightweight/Async/ManualExecutor.hpp>
+#include <Lightweight/Async/ThreadPoolExecutor.hpp>
+#include <Lightweight/DataMapper/DataMapper.hpp>
+
+using namespace Lightweight;
+
+Async::ThreadPoolExecutor dbWorkers { 4 }; // 4 background DB threads
+Async::ManualExecutor     appLoop;         // your app thread pumps this
+
+DataMapper dm;
+dm.Connection().EnableAsync(dbWorkers, appLoop);
+```
+
+Queries then go through the *same* fluent builder — start the chain with `QueryAsync<Record>()`
+instead of `Query<Record>()`, and every finisher returns a `Task` of its usual result:
+
+```cpp
+Async::Task<void> Handle(DataMapper& dm, SqlGuid userId)
+{
+    auto active = co_await dm.QueryAsync<User>()
+                            .Where(FieldNameOf<&User::is_active>, "=", true)
+                            .OrderBy(FieldNameOf<&User::name>)
+                            .First(10);              // Task<std::vector<User>>
+
+    auto total = co_await dm.QueryAsync<User>().Count();   // Task<std::size_t>
+
+    auto user = User { .name = "Alice" };
+    co_await dm.CreateAsync(user);                   // INSERT off-thread
+    co_await dm.DeleteAsync(user);
+}
+```
+
+Two things to know before you build on this. It is **thread-offload**, not protocol-level async: your
+application thread never blocks, but a worker thread does. And the async operands are captured **by
+reference**, so keep the whole expression inside the `co_await` — hoisting a builder into a local and
+awaiting it later is a use-after-free.
+
+[async.md](docs/async.md) covers executors, cancellation, transactions, single- versus multi-threaded
+drive models, and the `std::execution` bridge.
 
 ## Using SQLite for testing on Windows operating system
 
@@ -246,7 +402,7 @@ Generate header file from the existing database by providing connection string t
  ./build/src/tools/ddl2cpp --connection-string "DRIVER=SQLite3;Database=test.db" --make-aliases --naming-convention CamelCase  --output ./src/examples/example.hpp --generate-example
 ```
 
-You can also avoid all those command line arguments by creating a config file that muts be in your
+You can also avoid all those command line arguments by creating a config file that must be in your
 current working directory or in one of its parent directories.
 The config file must be named `ddl2cpp.yml` and must contain the following content:
 
@@ -268,6 +424,9 @@ Finally, compile and run the example
 ``` sh
 cmake --build build && ./build/src/examples/example
 ```
+
+`ddl2cpp` also infers relationships from the schema's foreign keys — see
+[ddl2cpp-relation-generation.md](docs/ddl2cpp-relation-generation.md).
 
 ## Compile using C++26 reflection support
 

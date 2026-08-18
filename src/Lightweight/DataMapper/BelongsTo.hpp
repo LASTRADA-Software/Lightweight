@@ -28,7 +28,11 @@ auto inline Unwrap = [](auto v) {
     return v.get();
 };
 
-/// @brief Represents a one-to-one relationship.
+/// @brief Represents the many-to-one side of a foreign-key relationship.
+///
+/// This is the record that *owns* the foreign-key column: many records holding a `BelongsTo` may
+/// reference the same target record. For a one-to-one relation through a join table, see
+/// `HasOneThrough`; for the inverse (one-to-many) side, see `HasMany`.
 ///
 /// The `TheReferencedField` parameter is the field in the other record that references the current record,
 /// in the form of `&OtherRecord::Field`.

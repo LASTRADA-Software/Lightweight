@@ -10,6 +10,7 @@
 namespace Lightweight::Async
 {
 
+/// @ingroup Async
 /// Serializes work over an underlying executor (an Asio-style "strand").
 ///
 /// All work posted to a given strand runs one item at a time, in FIFO order, even though

@@ -11,6 +11,7 @@
 namespace Lightweight::Async
 {
 
+/// @ingroup Async
 /// Per-connection asynchronous execution backend.
 ///
 /// A backend owns (or references) the execution context used to run a connection's blocking

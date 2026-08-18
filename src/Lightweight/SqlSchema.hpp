@@ -156,6 +156,7 @@ namespace SqlSchema
         return std::tie(a.first, a.second) < std::tie(b.first, b.second);
     }
 
+    /// @ingroup CoreApi
     /// Holds the definition of a column in a SQL table as read from the database schema.
     struct Column
     {
@@ -235,6 +236,7 @@ namespace SqlSchema
                                        std::string_view schema,
                                        EventHandler& eventHandler);
 
+    /// @ingroup CoreApi
     /// Holds the definition of a table in a SQL database as read from the database schema.
     struct Table
     {

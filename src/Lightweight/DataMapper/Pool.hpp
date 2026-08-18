@@ -16,9 +16,16 @@
 #include <stdexcept>
 #include <vector>
 
+/// @defgroup ConnectionPool Connection Pooling
+/// @brief A thread-safe pool of @c DataMapper instances, configured at compile time.
+///
+/// The growth strategy, initial size and maximum size are supplied as a @c PoolConfig
+/// template parameter, so the policy is fixed at the type level rather than at runtime.
+
 namespace Lightweight
 {
 
+/// @ingroup ConnectionPool
 /// Enum to define growth strategies of the pool
 ///
 enum class GrowthStrategy : uint8_t
@@ -39,6 +46,7 @@ enum class GrowthStrategy : uint8_t
     UnboundedGrow,
 };
 
+/// @ingroup ConnectionPool
 /// Structure to hold the configuration of the pool, including the initial size, maximum size and growth strategy.
 /// Structure is used as a template parameter for the Pool class to configure its behavior at compile time.
 struct PoolConfig
@@ -54,6 +62,7 @@ struct PoolConfig
     GrowthStrategy growthStrategy { GrowthStrategy::BoundedWait };
 };
 
+/// @ingroup ConnectionPool
 /// A thread-safe pool of DataMapper instances with the policy configured by the PoolConfig template parameter.
 /// The pool allows acquiring and returning DataMapper instances, and manages the lifecycle of these instances according to
 /// the specified growth strategy.
@@ -61,6 +70,7 @@ template <PoolConfig Config>
 class Pool
 {
   public:
+    /// @ingroup ConnectionPool
     /// A wrapper around a DataMapper that returns it to the pool when destroyed
     /// can be created only from the Pool and is move-only to ensure it is always
     /// returned to the pool when it goes out of scope

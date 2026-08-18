@@ -1,6 +1,6 @@
 # How to
 
-The following is a list of some topics that you might find usefull
+The following is a list of some topics that you might find useful
 
 ## Rename column name
 

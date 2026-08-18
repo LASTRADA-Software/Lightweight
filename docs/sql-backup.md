@@ -3,7 +3,7 @@
 This page explains how the backup engine (`Lightweight::SqlBackup::Backup` / `Restore`)
 works: its pipeline, parallelism model, memory and disk profile, fault tolerance, and the
 consistency guarantees you can (and cannot) expect. For the on-disk archive layout, see
-[sql-backup-format.md](sql-backup-format.md); for the CLI, see @ref dbtool "dbtool.md"
+[sql-backup-format.md](sql-backup-format.md); for the CLI, see [dbtool.md](dbtool.md)
 (`dbtool backup` / `dbtool restore`).
 
 ## Overview
@@ -107,4 +107,4 @@ restored replica.
 ## See also
 
 - [sql-backup-format.md](sql-backup-format.md) — archive layout and msgpack chunk format.
-- @ref dbtool "dbtool.md" — `dbtool backup` / `dbtool restore` CLI usage.
+- [dbtool.md](dbtool.md) — `dbtool backup` / `dbtool restore` CLI usage.

@@ -14,6 +14,12 @@
 #include <string_view>
 #include <vector>
 
+/// @defgroup Backup Backup and Restore
+/// @brief Parallel chunked database dump and restore, with archive diffing.
+///
+/// Backups are taken online without a snapshot, so an archive carries no cross-table
+/// consistency guarantee.
+
 namespace Lightweight::SqlBackup
 {
 
@@ -33,6 +39,7 @@ enum class CompressionMethod : std::int32_t
     Xz = 95,     ///< XZ compression (ZIP_CM_XZ)
 };
 
+/// @ingroup Backup
 /// Configuration for backup operations including compression and chunking.
 struct BackupSettings
 {
@@ -71,6 +78,7 @@ struct BackupSettings
     bool forceMssqlConcurrency = false;
 };
 
+/// @ingroup Backup
 /// Configuration for restore operations including memory management.
 struct RestoreSettings
 {
@@ -155,6 +163,7 @@ struct TableInfo
     size_t rowCount = 0;
 };
 
+/// @ingroup Backup
 /// Progress information for backup/restore operations status updates.
 struct Progress
 {
@@ -184,6 +193,7 @@ struct Progress
     std::string message;
 };
 
+/// @ingroup Backup
 /// The interface for progress updates.
 struct ProgressManager
 {
@@ -256,6 +266,7 @@ struct ProgressManager
     }
 };
 
+/// @ingroup Backup
 /// Base class for progress managers that tracks errors automatically.
 class ErrorTrackingProgressManager: public ProgressManager
 {

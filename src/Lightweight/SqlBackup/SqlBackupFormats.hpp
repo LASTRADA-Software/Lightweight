@@ -21,6 +21,7 @@ using BackupValue = std::variant<std::monostate, // NULL
                                  std::vector<uint8_t> // Binary
                                  >;
 
+/// @ingroup Backup
 /// Represents a batch of backup data in column-oriented format.
 struct ColumnBatch
 {
@@ -64,6 +65,7 @@ struct ColumnBatch
     }
 };
 
+/// @ingroup Backup
 /// Interface for writing backup chunks.
 struct ChunkWriter
 {
@@ -94,6 +96,7 @@ struct ChunkWriter
     virtual void Clear() = 0;
 };
 
+/// @ingroup Backup
 /// Interface for reading backup chunks.
 struct ChunkReader
 {

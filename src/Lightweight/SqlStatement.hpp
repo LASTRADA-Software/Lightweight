@@ -57,6 +57,7 @@ class RowArrayCursor;
 
 /// @brief High level API for (prepared) raw SQL statements
 ///
+/// @ingroup CoreApi
 /// SQL prepared statement lifecycle:
 /// 1. Prepare the statement
 /// 2. Optionally bind output columns to local variables
@@ -461,6 +462,7 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     SQLSMALLINT m_expectedParameterCount {};       // The number of parameters expected by the query
 };
 
+/// @ingroup CoreApi
 /// API for reading an SQL query result set.
 class [[nodiscard]] SqlResultCursor
 {

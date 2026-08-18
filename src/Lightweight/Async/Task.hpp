@@ -191,6 +191,7 @@ namespace detail
 
 } // namespace detail
 
+/// @ingroup Async
 /// A lazy, move-only C++23 coroutine task.
 ///
 /// A @c Task<T> represents an asynchronous computation that yields a value of type @c T

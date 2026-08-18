@@ -1,4 +1,4 @@
-# SQL Migrations {#sql-migrations}
+# SQL Migrations
 
 ## Introduction
 
@@ -482,6 +482,6 @@ infrastructure — `dbtool hard-reset` drops it alongside
 
 ## See Also
 
-- @ref dbtool - Command-line tool for managing migrations
+- [dbtool.md](dbtool.md) - Command-line tool for managing migrations
 - @ref Lightweight::SqlMigrationQueryBuilder - Query builder API reference
 - @ref Lightweight::SqlMigration::MigrationManager - Migration manager API reference

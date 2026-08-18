@@ -17,6 +17,7 @@ class SqlConnection;
 
 struct SqlVariant;
 
+/// @ingroup CoreApi
 /// Represents a logger for SQL operations.
 class SqlLogger
 {

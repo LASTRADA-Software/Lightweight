@@ -27,6 +27,13 @@
 #include <sqlspi.h>
 #include <sqltypes.h>
 
+/// @defgroup CoreApi Core API
+/// @brief The low-level SQL API: connections, statements, result cursors and transactions.
+///
+/// This is the thin layer directly over ODBC. Use it when you want to write SQL yourself and
+/// keep full control over binding and fetching. The higher-level @ref DataMapper and
+/// @ref QueryBuilder layers are built on top of these types and interoperate with them.
+
 namespace Lightweight
 {
 
@@ -34,6 +41,7 @@ class SqlQueryBuilder;
 class SqlMigrationQueryBuilder;
 class SqlQueryFormatter;
 
+/// @ingroup CoreApi
 /// @brief Represents a connection to a SQL database.
 class SqlConnection final
 {
@@ -91,7 +99,11 @@ class SqlConnection final
         return m_connectionId;
     }
 
-    /// Closes the connection (attempting to put it back into the connect[[ion pool).
+    /// Closes the connection, freeing the underlying ODBC handles.
+    ///
+    /// This does not return the connection to any pool: `SqlConnection` owns its handles outright.
+    /// Connection pooling is provided separately by `Lightweight::Pool` in
+    /// `DataMapper/Pool.hpp`, which recycles pooled `DataMapper` instances.
     LIGHTWEIGHT_API void Close() noexcept;
 
     /// Connects to the given database with the given username and password.

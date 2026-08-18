@@ -8,6 +8,7 @@
 namespace Lightweight::Async
 {
 
+/// @ingroup Async
 /// Portable async backend that offloads blocking ODBC work to a worker thread.
 ///
 /// Every blocking operation for the connection runs on a per-connection @ref StrandExecutor

@@ -16,6 +16,7 @@ class SqlConnection;
 namespace Lightweight::Async
 {
 
+/// @ingroup Async
 /// A distinct coroutine-based SQL transaction.
 ///
 /// Unlike the high- and low-level async methods (which are added directly to the existing
