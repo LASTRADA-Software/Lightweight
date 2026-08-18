@@ -38,13 +38,14 @@ TEST_CASE_METHOD(SqlTestFixture, "Query.WhereIn binds its values", "[DataMapper]
          })
         dm.Create(person);
 
-    CHECK(dm.Query<Person>().WhereIn(FieldNameOf<&Person::name>, std::vector { "O'Brien"s, "Jane Doe"s }).All().size() == 2);
+    CHECK(dm.Query<Person>().WhereIn(FieldNameOf<Member(Person::name)>, std::vector { "O'Brien"s, "Jane Doe"s }).All().size()
+          == 2);
 
     // The quoted name on its own, to pin down that it is the apostrophe-bearing row that matches.
-    CHECK(dm.Query<Person>().WhereIn(FieldNameOf<&Person::name>, std::vector { "O'Brien"s }).All().size() == 1);
+    CHECK(dm.Query<Person>().WhereIn(FieldNameOf<Member(Person::name)>, std::vector { "O'Brien"s }).All().size() == 1);
 
     // An empty IN-set matches nothing.
-    CHECK(dm.Query<Person>().WhereIn(FieldNameOf<&Person::name>, std::vector<std::string> {}).All().empty());
+    CHECK(dm.Query<Person>().WhereIn(FieldNameOf<Member(Person::name)>, std::vector<std::string> {}).All().empty());
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "Query", "[DataMapper]")
