@@ -8,6 +8,9 @@ endif()
 set(LIGHTWEIGHT_POOL_INITIAL_SIZE "4" CACHE STRING "Initial number of pre-created DataMappers in the global pool")
 set(LIGHTWEIGHT_POOL_MAX_SIZE "16" CACHE STRING "Maximum pool size (used by BoundedWait and BoundedOverflow)")
 set(LIGHTWEIGHT_POOL_GROWTH_STRATEGY "BoundedOverflow" CACHE STRING "Pool growth strategy: BoundedWait, BoundedOverflow, or UnboundedGrow")
+set(LIGHTWEIGHT_POOL_VALIDATE_ON_BORROW "Yes" CACHE STRING "Check a pooled connection is still alive before handing it out: Yes or No")
+set(LIGHTWEIGHT_POOL_MAX_IDLE_TIME_MS "0" CACHE STRING "Retire a pooled connection idle for longer than this many milliseconds (0 disables)")
+set(LIGHTWEIGHT_POOL_MAX_LIFETIME_MS "0" CACHE STRING "Retire a pooled connection older than this many milliseconds (0 disables)")
 
 if(NOT WIN32)
     find_package(SQLite3 REQUIRED)
@@ -189,6 +192,9 @@ target_compile_definitions(Lightweight PUBLIC
     LIGHTWEIGHT_POOL_INITIAL_SIZE=${LIGHTWEIGHT_POOL_INITIAL_SIZE}
     LIGHTWEIGHT_POOL_MAX_SIZE=${LIGHTWEIGHT_POOL_MAX_SIZE}
     LIGHTWEIGHT_POOL_GROWTH_STRATEGY=${LIGHTWEIGHT_POOL_GROWTH_STRATEGY}
+    LIGHTWEIGHT_POOL_VALIDATE_ON_BORROW=${LIGHTWEIGHT_POOL_VALIDATE_ON_BORROW}
+    LIGHTWEIGHT_POOL_MAX_IDLE_TIME_MS=${LIGHTWEIGHT_POOL_MAX_IDLE_TIME_MS}
+    LIGHTWEIGHT_POOL_MAX_LIFETIME_MS=${LIGHTWEIGHT_POOL_MAX_LIFETIME_MS}
 )
 
 add_library(LightweightTools STATIC)
