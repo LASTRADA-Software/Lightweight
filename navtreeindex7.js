@@ -1,5 +1,8 @@
 var NAVTREEINDEX7 =
 {
+"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#getcolumn":[6,3],
+"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-many-of-those-digits-survive-a-round-trip":[6,5,1],
+"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-sqlvariant-decides-which-alternative-to-fill":[6,6],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inputparameter":[6,1],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inspect":[6,4],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#outputcolumn":[6,2],
@@ -37,14 +40,9 @@ var NAVTREEINDEX7 =
 "df/d0f/Pool_8hpp_source.html":[20,0,1,2,9],
 "df/d13/SqlQueryFormatter_8hpp_source.html":[20,0,1,25],
 "df/d1a/structLightweight_1_1PoolConfig.html":[17,4,0],
-"df/d1a/structLightweight_1_1PoolConfig.html#a090de1dcf0f8f78bb03664ce5f999856":[17,4,0,0],
-"df/d1a/structLightweight_1_1PoolConfig.html#a27ee17aa9854a15e16d385ee1d26b045":[17,4,0,1],
-"df/d1a/structLightweight_1_1PoolConfig.html#a5c2abddf40a2e7e08845af824560e5f6":[17,4,0,5],
-"df/d1a/structLightweight_1_1PoolConfig.html#a6a3e753156f65b2aa0ad1fdd0090a72c":[17,4,0,3],
-"df/d1a/structLightweight_1_1PoolConfig.html#a82b19e524cdb6dc43c0ec8aab3201e6f":[17,4,0,4],
-"df/d1a/structLightweight_1_1PoolConfig.html#a8ff366daa9e0eb6c99e5a1e3fc5ec8d4":[17,4,0,2],
-"df/d1a/structLightweight_1_1PoolConfig.html#acad5623b52d85dc1ab20820cd58d8a2f":[17,4,0,7],
-"df/d1a/structLightweight_1_1PoolConfig.html#ad9943a108490072e4ac98266abc784a2":[17,4,0,6],
+"df/d1a/structLightweight_1_1PoolConfig.html#a6a3e753156f65b2aa0ad1fdd0090a72c":[17,4,0,1],
+"df/d1a/structLightweight_1_1PoolConfig.html#a82b19e524cdb6dc43c0ec8aab3201e6f":[17,4,0,2],
+"df/d1a/structLightweight_1_1PoolConfig.html#a8ff366daa9e0eb6c99e5a1e3fc5ec8d4":[17,4,0,0],
 "df/d25/Customer_8hpp_source.html":[20,0,0,0,0,2],
 "df/d36/Playlist_8hpp_source.html":[20,0,0,0,0,8],
 "df/d3f/structLightweight_1_1SqlVariant.html":[17,1,11],
@@ -209,8 +207,8 @@ var NAVTREEINDEX7 =
 "functions_type.html":[19,2,3],
 "functions_u.html":[19,2,0,21],
 "functions_v.html":[19,2,0,22],
-"functions_vars.html":[19,2,2],
 "functions_vars.html":[19,2,2,0],
+"functions_vars.html":[19,2,2],
 "functions_vars_a.html":[19,2,2,1],
 "functions_vars_b.html":[19,2,2,2],
 "functions_vars_c.html":[19,2,2,3],
@@ -249,5 +247,7 @@ var NAVTREEINDEX7 =
 "index.html#high-level-api":[0,6],
 "index.html#known-limitations":[0,4],
 "index.html#mapping-query-results-to-a-simple-struct":[0,6,2],
-"index.html#mapping-query-to-multiple-struct":[0,6,3]
+"index.html#mapping-query-to-multiple-struct":[0,6,3],
+"index.html#namespace":[0,5],
+"index.html#schema-migrations":[0,7]
 };

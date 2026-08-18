@@ -1,7 +1,5 @@
 var NAVTREEINDEX8 =
 {
-"index.html#namespace":[0,5],
-"index.html#schema-migrations":[0,7],
 "index.html#simple-one-record-example":[0,6,0],
 "index.html#sqlite-odbc-driver-installation-on-other-operating-systems":[0,10,0],
 "index.html#supported-databases":[0,3],

@@ -37,7 +37,11 @@ var NAVTREE =
       [ "Prepared Statements", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#prepared-statements", null ],
       [ "SQL Query Builder", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sql-query-builder", null ],
       [ "High level Data Mapping", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#high-level-data-mapping", [
-        [ "Batched insert and update", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#batched-insert-and-update", null ]
+        [ "Batched insert and update", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#batched-insert-and-update", null ],
+        [ "Eager loading of relations (<tt>With<>()</tt>)", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#eager-loading-of-relations-with", [
+          [ "Nested relations", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#nested-relations", null ],
+          [ "Loading everything reachable", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#loading-everything-reachable", null ]
+        ] ]
       ] ],
       [ "Simple row retrieval via structs", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#simple-row-retrieval-via-structs", null ]
     ] ],
@@ -106,6 +110,7 @@ var NAVTREE =
         [ "Use Native Column Types", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-native-column-types", null ],
         [ "Use Prepared Statements", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-prepared-statements", null ],
         [ "Use Pagination or Infinite Scrolling", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-pagination-or-infinite-scrolling", null ],
+        [ "Load relations for a whole result set, not per record", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#load-relations-for-a-whole-result-set-not-per-record", null ],
         [ "Let block-prefetch cut network round-trips", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#let-block-prefetch-cut-network-round-trips", null ]
       ] ],
       [ "SQL Server Variation Challenges", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#sql-server-variation-challenges", [
@@ -335,14 +340,14 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dd0/structLightweight_1_1Field.html#a757ce7d3d9533493051cd9b402482b41",
-"d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html",
-"d7/d13/structLightweight_1_1SqlRealName.html#a1fa62b5e33b8961307b5176d581bfb78",
-"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a9c3c1b5cb5b8da71933fe5cab6b26d26",
-"da/da8/classLightweight_1_1SqlConnection.html#a85b56ddb608b6c84fe33b7bff71a7f24",
-"dd/d75/structLightweight_1_1SqlAlterTablePlan.html",
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inputparameter",
-"index.html#namespace"
+"d2/dd0/structLightweight_1_1Field.html#a5d28935f66fa335c491af43a83924200",
+"d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#ac072d5f776bd5a46f58abcc8597ef3f2",
+"d7/d13/structLightweight_1_1SqlRealName.html#a3cb316311e2d6a9a14013717ff082d78",
+"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#ab383612d1c31747f630dfb1f8608ed0f",
+"da/da8/classLightweight_1_1SqlConnection.html#a7577a4c8347fede96bb3953f84b068d4",
+"dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a9da76151b89502f7c2d8704e32bdcae6",
+"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#getcolumn",
+"index.html#simple-one-record-example"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
