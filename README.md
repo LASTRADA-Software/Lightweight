@@ -96,16 +96,6 @@ Being explicit here saves you from discovering these by reading the source.
   no cross-table consistency guarantee. Quiesce writers if you need a consistent point-in-time dump.
   See [sql-backup.md](docs/sql-backup.md).
 
-## Versioning and stability
-
-Releases are calendar-versioned as `v0.YYYYMMDD.0`. The leading `0.` is part of that scheme and is
-**not** a statement that the library is unfinished — it is in production use, and the test suite runs
-against SQLite, PostgreSQL and SQL Server 2017/2019/2022 on every change.
-
-That said, the project does not currently make a formal semver compatibility promise: the public API
-is stable in practice, but a breaking change can land in any release. Pin an exact tag if you need
-reproducible builds, and read the release notes before upgrading.
-
 ## Namespace
 
 All functionality is placed inside a `Lightweight` namespace, we also provide an alias for this namespace `Light`, that is slightly shorter.
