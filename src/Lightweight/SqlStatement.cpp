@@ -9,6 +9,7 @@
 #include "Utils.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -231,6 +232,7 @@ SqlStatement::SqlStatement(SqlStatement&& other) noexcept:
     m_hStmt { other.m_hStmt },
     m_preparedQuery { std::move(other.m_preparedQuery) },
     m_expectedParameterCount { other.m_expectedParameterCount },
+    m_preparedParameterCount { other.m_preparedParameterCount },
     m_reusedPreparedQuery { other.m_reusedPreparedQuery }
 {
     other.m_data.reset();
@@ -248,6 +250,7 @@ SqlStatement& SqlStatement::operator=(SqlStatement&& other) noexcept
     m_hStmt = other.m_hStmt;
     m_preparedQuery = std::move(other.m_preparedQuery);
     m_expectedParameterCount = other.m_expectedParameterCount;
+    m_preparedParameterCount = other.m_preparedParameterCount;
     m_reusedPreparedQuery = other.m_reusedPreparedQuery;
 
     other.m_data.reset();
@@ -335,7 +338,16 @@ void SqlStatement::Prepare(std::string_view query) &
         auto wQuery = detail::OdbcWideArg { query };
         RequireSuccess(SQLPrepareW(m_hStmt, wQuery.data(), static_cast<SQLINTEGER>(wQuery.buffer.size())));
         RequireSuccess(SQLNumParams(m_hStmt, &m_expectedParameterCount));
+        m_preparedParameterCount = m_expectedParameterCount;
     }
+    else
+        // SQLNumParams() was skipped, so restore what it would have reported. BindInputParameter()
+        // overwrites m_expectedParameterCount with SQLSMALLINT max to mean "the caller bound the
+        // parameters by hand"; leaving that in place would make the next Execute()/ExecuteBatch()
+        // reject its argument count (e.g. Create() followed by CreateAll(), which prepare byte-identical
+        // INSERT text), and would size the indicator vector to 32768 entries.
+        m_expectedParameterCount = m_preparedParameterCount;
+
     m_data->indicators.resize(static_cast<size_t>(m_expectedParameterCount) + 1);
 }
 
@@ -373,6 +385,7 @@ bool SqlStatement::RetryStalePreparedStatement(SQLRETURN result)
     auto wQuery = detail::OdbcWideArg { std::string_view { m_preparedQuery } };
     RequireSuccess(SQLPrepareW(m_hStmt, wQuery.data(), static_cast<SQLINTEGER>(wQuery.buffer.size())));
     RequireSuccess(SQLNumParams(m_hStmt, &m_expectedParameterCount));
+    m_preparedParameterCount = m_expectedParameterCount;
     m_reusedPreparedQuery = false;
     return true;
 }

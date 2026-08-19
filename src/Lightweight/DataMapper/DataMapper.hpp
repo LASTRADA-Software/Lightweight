@@ -681,17 +681,14 @@ class DataMapper
     /// The batch is addressed by pointer rather than as a contiguous range: past the first level of
     /// a relation path the targets are not contiguous - every owner holds its own copy of a
     /// `BelongsTo` target, and a `HasMany` list holds `shared_ptr`s - so only their addresses can be
-    /// gathered. The `std::span<Record>` overload adapts a freshly materialized result set onto this.
+    /// gathered. `SqlCoreDataMapperQueryBuilder::RunRelationPreloaders()` adapts a freshly
+    /// materialized result set onto this.
     ///
     /// @tparam Record     The record type owning the relation.
     /// @tparam FieldIndex Member index, within @p Record, of the relation to load.
     /// @param records     The batch to resolve the relation for.
     template <typename Record, size_t FieldIndex>
     void PreloadRelation(std::span<Record* const> records);
-
-    /// @copydoc PreloadRelation
-    template <typename Record, size_t FieldIndex>
-    void PreloadRelation(std::span<Record> records);
 
     /// Batch counterpart of `LoadBelongsTo`: one query per chunk of distinct foreign keys.
     /// @see PreloadRelation
@@ -2875,20 +2872,6 @@ void DataMapper::PreloadRelation(std::span<Record* const> records)
 }
 
 template <typename Record, size_t FieldIndex>
-void DataMapper::PreloadRelation(std::span<Record> records)
-{
-    // A freshly materialized result set is contiguous, so the pointers are made here rather than
-    // asking every caller for them. One pointer per record, against at least one database
-    // round-trip saved per record - not a trade worth avoiding.
-    auto pointers = std::vector<Record*> {};
-    pointers.reserve(records.size());
-    for (auto& record: records)
-        pointers.emplace_back(&record);
-
-    PreloadRelation<Record, FieldIndex>(std::span<Record* const> { pointers });
-}
-
-template <typename Record, size_t FieldIndex>
 auto DataMapper::CollectRelationTargets(std::span<Record* const> records)
 {
     using FieldType = RecordMemberTypeOf<FieldIndex, Record>;
@@ -2935,7 +2918,21 @@ void DataMapper::PreloadRelationPath(std::span<Record* const> records)
         // Every owner holds its own copy of a BelongsTo target, so the same underlying row can
         // appear many times here. That is not wasted work: the level below deduplicates the keys
         // before querying, so the row is still fetched once and then handed to each copy.
+        // The static_assert below is what keeps the path honest: without it, a path element naming a
+        // member of some *other* record still compiles, because MemberIndexOf<> yields that member's
+        // index within its own class, which is then read as an index into TargetRecord - silently
+        // eager-loading whatever relation happens to sit at the same position (say
+        // `With<&Track::album, &Track::genre>()` resolving Album's member 2).
         [&]<auto NextField, auto... Rest>() {
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+            static_assert(std::same_as<typename[:std::meta::parent_of(NextField):], TargetRecord>,
+                          "Each relation named after the first in With<>() must be a member of the "
+                          "preceding relation's referenced record");
+#else
+            static_assert(std::same_as<MemberClassType<std::remove_cv_t<decltype(NextField)>>, TargetRecord>,
+                          "Each relation named after the first in With<>() must be a member of the "
+                          "preceding relation's referenced record");
+#endif
             PreloadRelationPath<TargetRecord, MemberIndexOf<NextField>, Rest...>(std::span<TargetRecord* const> { targets });
         }.template operator()<RestOfPath...>();
     }

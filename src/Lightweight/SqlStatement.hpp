@@ -478,7 +478,12 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     std::string m_preparedQuery;                   // The last prepared query
     std::optional<SQLSMALLINT> m_numColumns;       // The number of columns in the result set, if known
     SQLSMALLINT m_expectedParameterCount {};       // The number of parameters expected by the query
-    bool m_reusedPreparedQuery { false };          // Whether the last Prepare() reused the handle's statement
+    // The parameter count SQLNumParams() reported for m_preparedQuery. m_expectedParameterCount is
+    // deliberately overwritten by BindInputParameter() (with SQLSMALLINT max, meaning "bound by hand"),
+    // so a Prepare() that reuses the handle's statement - and therefore skips SQLNumParams() - has to
+    // restore the real count from here instead.
+    SQLSMALLINT m_preparedParameterCount {};
+    bool m_reusedPreparedQuery { false }; // Whether the last Prepare() reused the handle's statement
 };
 
 /// @ingroup CoreApi
