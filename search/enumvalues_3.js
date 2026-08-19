@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['enabled_0',['Enabled',['../d9/d8a/group__CoreApi.html#gga8be4e3766b268b1d751ef7df237af144a00d23a76e43b46dae9ec7aa9dcbebb32',1,'Lightweight']]]
+  ['guid_0',['Guid',['../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2ac195f641dd597766b98e4ffa9e2f0e75',1,'Lightweight::RowArrayCursor']]]
 ];
