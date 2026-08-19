@@ -303,6 +303,11 @@ bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
         // default. When the caller *did* opt in and the driver rejects the attribute, the connection is
         // failed rather than established: silently downgrading a requested encrypted connection to
         // plaintext would be the wrong failure mode for a security setting.
+        //
+        // Caveat: the DBC handle is reused across Connect() calls (see SQLDisconnect above), and ODBC
+        // offers no way to restore a connection attribute to "driver default". So reconnecting the same
+        // SqlConnection with SqlEncryptionMode::DriverDefault after an explicit opt-in keeps the
+        // previously applied value. Use a fresh SqlConnection when the encryption request changes.
         if (auto const encryptValue = ToOdbcEncryptValue(info.encryption))
         {
             // NOLINTNEXTLINE(performance-no-int-to-ptr)

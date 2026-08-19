@@ -155,10 +155,13 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: an explicitly encrypted connect
     UNSUPPORTED_DATABASE(probe, SqlServerType::MYSQL);
     UNSUPPORTED_DATABASE(probe, SqlServerType::UNKNOWN);
 
+    // ParseConnectionString upper-cases every key, so the overrides below must use the upper-cased
+    // spelling too: a mixed-case key would land next to (not on top of) the existing entry, and which
+    // of the two duplicates the driver honours is unspecified.
     auto parameters = ParseConnectionString(SqlConnection::DefaultConnectionString());
-    parameters.insert_or_assign("Encrypt", std::string { FormatEncryptionMode(SqlEncryptionMode::Enabled) });
+    parameters.insert_or_assign("ENCRYPT", std::string { FormatEncryptionMode(SqlEncryptionMode::Enabled) });
     // The CI SQL Server runs with a self-signed certificate, so the chain cannot be validated.
-    parameters.insert_or_assign("TrustServerCertificate", "yes");
+    parameters.insert_or_assign("TRUSTSERVERCERTIFICATE", "yes");
 
     auto connection = SqlConnection { BuildConnectionString(parameters) };
     REQUIRE(connection.IsAlive());
@@ -166,4 +169,9 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: an explicitly encrypted connect
     // The connection is not merely established — it round-trips a query over the encrypted channel.
     auto stmt = SqlStatement { connection };
     CHECK(stmt.ExecuteDirectScalar<int>("SELECT 42") == 42);
+
+    // ... and the channel really is encrypted, rather than the keyword having been ignored.
+    CHECK(
+        stmt.ExecuteDirectScalar<std::string>("SELECT encrypt_option FROM sys.dm_exec_connections WHERE session_id = @@SPID")
+        == "TRUE");
 }

@@ -51,7 +51,13 @@ enum class SqlEncryptionMode : std::uint8_t
 /// Parses an ODBC @c Encrypt= connection-string value into a @ref SqlEncryptionMode.
 ///
 /// Recognizes the spellings the SQL Server drivers accept, case-insensitively: @c yes / @c no,
-/// @c true / @c false, and @c 1 / @c 0.
+/// @c true / @c false, @c 1 / @c 0, and the ODBC Driver 18 synonyms @c mandatory / @c optional.
+///
+/// @warning @c SqlEncryptionMode has no representation for ODBC Driver 18's @c strict (TDS 8.0 with
+///          mandatory certificate validation), so @c Encrypt=strict parses as
+///          @c SqlEncryptionMode::DriverDefault and is *dropped* by a subsequent
+///          @ref SqlConnectionDataSource::ToConnectionString(). Keep such connection strings as a raw
+///          @ref SqlConnectionString instead of round-tripping them through a data source.
 ///
 /// @param value The raw keyword value.
 /// @return The matching mode, or @c SqlEncryptionMode::DriverDefault if @p value is not recognized.

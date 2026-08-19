@@ -52,13 +52,17 @@ namespace
 
     /// Maps the ODBC `Encrypt=` keyword spellings onto SqlEncryptionMode. The first entry of each mode
     /// is also its canonical rendering, so the table drives both directions.
-    constexpr std::array<std::pair<std::string_view, SqlEncryptionMode>, 6> EncryptionModeSpellings { {
+    constexpr std::array<std::pair<std::string_view, SqlEncryptionMode>, 8> EncryptionModeSpellings { {
         { "yes", SqlEncryptionMode::Enabled },
         { "true", SqlEncryptionMode::Enabled },
         { "1", SqlEncryptionMode::Enabled },
+        // `mandatory` is the ODBC Driver 18 synonym of `yes`.
+        { "mandatory", SqlEncryptionMode::Enabled },
         { "no", SqlEncryptionMode::Disabled },
         { "false", SqlEncryptionMode::Disabled },
         { "0", SqlEncryptionMode::Disabled },
+        // `optional` is the ODBC Driver 18 synonym of `no`.
+        { "optional", SqlEncryptionMode::Disabled },
     } };
 
     constexpr bool EqualsIgnoreCase(std::string_view a, std::string_view b) noexcept
@@ -73,9 +77,10 @@ namespace
 SqlEncryptionMode ParseEncryptionMode(std::string_view value) noexcept
 {
     auto const trimmed = Trim(value);
-    auto const match = std::ranges::find_if(EncryptionModeSpellings,
-                                            [trimmed](auto const& entry) { return EqualsIgnoreCase(entry.first, trimmed); });
-    return match != EncryptionModeSpellings.end() ? match->second : SqlEncryptionMode::DriverDefault;
+    for (auto const& [spelling, mode]: EncryptionModeSpellings)
+        if (EqualsIgnoreCase(spelling, trimmed))
+            return mode;
+    return SqlEncryptionMode::DriverDefault;
 }
 
 std::string_view FormatEncryptionMode(SqlEncryptionMode mode) noexcept
@@ -83,9 +88,10 @@ std::string_view FormatEncryptionMode(SqlEncryptionMode mode) noexcept
     if (mode == SqlEncryptionMode::DriverDefault)
         return {};
 
-    auto const match =
-        std::ranges::find_if(EncryptionModeSpellings, [mode](auto const& entry) { return entry.second == mode; });
-    return match != EncryptionModeSpellings.end() ? match->first : std::string_view {};
+    for (auto const& [spelling, candidate]: EncryptionModeSpellings)
+        if (candidate == mode)
+            return spelling;
+    return {};
 }
 
 std::string SqlConnectionString::Sanitized() const

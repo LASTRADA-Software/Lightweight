@@ -153,13 +153,13 @@ TEST_CASE("SqlConnectionString: defaulted three-way comparison", "[SqlConnectInf
 
 TEST_CASE("ParseEncryptionMode: recognizes every documented spelling, case-insensitively", "[SqlConnectInfo]")
 {
-    for (auto const& value: { "yes", "YES", "Yes", "true", "TRUE", "1" })
+    for (auto const& value: { "yes", "YES", "Yes", "true", "TRUE", "1", "mandatory", "MANDATORY" })
     {
         INFO(std::string { "input: " } + value);
         CHECK(ParseEncryptionMode(value) == SqlEncryptionMode::Enabled);
     }
 
-    for (auto const& value: { "no", "NO", "No", "false", "FALSE", "0" })
+    for (auto const& value: { "no", "NO", "No", "false", "FALSE", "0", "optional", "Optional" })
     {
         INFO(std::string { "input: " } + value);
         CHECK(ParseEncryptionMode(value) == SqlEncryptionMode::Disabled);
