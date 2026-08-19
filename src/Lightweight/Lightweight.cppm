@@ -100,6 +100,8 @@ using Lightweight::MemberIndexOf;
 using Lightweight::NotSqlElements;
 using Lightweight::ParseConnectionString;
 using Lightweight::PostgreSqlFormatter;
+using Lightweight::PreparedStatementCacheCapacityDefault;
+using Lightweight::PreparedStatementCacheCapacitySuggested;
 using Lightweight::PrimaryKey;
 using Lightweight::QualifiedColumnName;
 using Lightweight::RecordColumnCount;

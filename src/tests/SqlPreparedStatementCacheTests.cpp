@@ -202,6 +202,32 @@ TEST_CASE_METHOD(SqlTestFixture, "PreparedStatementCache: a statement can opt ou
 }
 
 TEST_CASE_METHOD(SqlTestFixture,
+                 "PreparedStatementCache: a hand-bound statement pools the real parameter count",
+                 "[SqlPreparedStatementCache]")
+{
+    auto connection = MakeSeededConnection();
+
+    {
+        // BindInputParameter() replaces the expected parameter count with the "unknown" sentinel. That
+        // sentinel must not reach the pool: a later cache hit adopts the pooled count and skips
+        // SQLNumParams, and Execute() would then reject a perfectly valid argument list.
+        auto stmt = SqlStatement { connection };
+        stmt.Prepare("SELECT value FROM stmt_cache WHERE id = ?");
+        auto const id = 1;
+        stmt.BindInputParameter(1, id);
+        auto cursor = stmt.Execute();
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<int>(1) == 10);
+    }
+
+    REQUIRE(connection.PreparedStatementCache().Size() == 1);
+
+    auto stmt = SqlStatement { connection };
+    CHECK(SelectValue(stmt, 2) == 20); // reuses the pooled handle, passing its argument through Execute()
+    CHECK(connection.PreparedStatementCache().Stats().hits == 1);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
                  "PreparedStatementCache: reused handles keep returning correct results",
                  "[SqlPreparedStatementCache]")
 {

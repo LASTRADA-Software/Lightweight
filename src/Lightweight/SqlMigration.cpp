@@ -11,6 +11,7 @@
 #include "SqlMigration.hpp"
 #include "SqlSchema.hpp"
 #include "SqlTransaction.hpp"
+#include "Utils.hpp"
 
 #include <algorithm>
 #include <array>
@@ -1687,8 +1688,12 @@ namespace
     /// Otherwise execute the script directly.
     void ExecuteScriptRespectingSqliteGuards(SqlStatement& stmt, SqlConnection& connection, std::string_view script)
     {
-        // A migration changes the schema the pooled query plans were derived from, so drop them.
-        connection.ClearPreparedStatementCache();
+        // A migration changes the schema the pooled query plans were derived from, so drop them — on
+        // the way *out*, including the exception path. Clearing up front would miss every handle the
+        // script's own statements (the SQLite table-rebuild helpers below, in particular) hand back to
+        // the pool while the DDL runs, all of which carry a plan for the pre-migration schema.
+        auto const dropCachedQueryPlans =
+            ::Lightweight::detail::Finally([&connection] { connection.ClearPreparedStatementCache(); });
 
         auto const parsed = TryParseSqliteGuard(script);
         if (!parsed || !connection.RequiresTableRebuildForSchemaChange())
