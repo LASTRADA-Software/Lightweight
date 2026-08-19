@@ -13,14 +13,12 @@
 #include <cstdint>
 #include <deque>
 #include <expected>
+#include <functional>
 #include <memory>
 #include <mutex>
+#include <ranges>
 #include <stdexcept>
 #include <vector>
-
-#if defined(BUILD_TESTS)
-    #include <functional>
-#endif
 
 /// @defgroup ConnectionPool Connection Pooling
 /// @brief A thread-safe pool of @c DataMapper instances, configured at compile time.
@@ -258,10 +256,8 @@ class Pool
             return {};
         else
         {
-#if defined(BUILD_TESTS)
             if (_clock)
                 return _clock();
-#endif
             return Clock::now();
         }
     }
@@ -417,7 +413,7 @@ class Pool
             auto node = _waiters.front();
             _waiters.pop_front();
             // _waiters only ever holds parked nodes (an async awaitable de-registers itself on
-            // abandonment; a synchronous waiter is never abandoned), but guard defensively.
+            // abandonment, and so does a timed-out Acquire(timeout)), but guard defensively.
             if (node->state != WaiterNode::State::Parked)
                 continue;
             // A direct hand-off deliberately skips the health bounds and the liveness check. A waiter
@@ -638,6 +634,18 @@ class Pool
         return AcquireAsyncImpl(_asyncDbWorkers, _asyncResume);
     }
 
+    /// Overrides the clock the idle-time and lifetime bounds are measured against, so eviction can be
+    /// driven deterministically (from a test, or from a simulated clock) instead of by sleeping.
+    ///
+    /// @warning Like @ref SetAsyncExecutors, this is setup, not a runtime knob: it is not
+    ///          synchronized against in-flight acquirers, so call it before any concurrent use of the
+    ///          pool. Advancing whatever time @p clock reports is the caller's business afterwards.
+    /// @param clock Source of the current time; pass @c {} to restore the real clock.
+    void SetClock(std::function<Clock::time_point()> clock) noexcept
+    {
+        _clock = std::move(clock);
+    }
+
 #if defined(BUILD_TESTS)
     [[nodiscard]] size_t IdleCount() noexcept
     {
@@ -651,18 +659,6 @@ class Pool
     {
         std::scoped_lock lock(_mutex);
         return _waiters.size();
-    }
-
-    /// Overrides the clock the idle-time and lifetime bounds are measured against, so eviction can be
-    /// driven deterministically instead of by sleeping.
-    ///
-    /// @warning Like @ref SetAsyncExecutors, this is setup, not a runtime knob: it is not
-    ///          synchronized against in-flight acquirers, so call it before any concurrent use of the
-    ///          pool. Advancing whatever time @p clock reports is the caller's business afterwards.
-    /// @param clock Source of the current time; pass @c {} to restore the real clock.
-    void SetClock(std::function<Clock::time_point()> clock) noexcept
-    {
-        _clock = std::move(clock);
     }
 #endif
 
@@ -809,9 +805,15 @@ class Pool
                     pool._waiters.push_back(node);
                     return true; // suspend until a mapper is returned
                 }
-                ++pool._checkedOut;
             }
-            acquired = pool.MakeEntry();
+            // Below capacity: create a fresh data mapper. As in AcquireReadyLocked, claim the slot
+            // only once the connection actually stands up — MakeEntry() connects and may throw, and a
+            // slot claimed before that would never be released, permanently shrinking a BoundedWait
+            // pool's capacity.
+            auto fresh = pool.MakeEntry();
+            if constexpr (Config.growthStrategy == GrowthStrategy::BoundedWait)
+                ++pool._checkedOut;
+            acquired = std::move(fresh);
             return false;
         }
 
@@ -840,10 +842,13 @@ class Pool
     std::mutex _mutex;
     std::vector<Entry> _idleDataMappers;
     size_t _checkedOut {};
-#if defined(BUILD_TESTS)
-    /// Test-injected clock; the real @c Clock::now is used when unset. @see SetClock
+    /// Injected clock; the real @c Clock::now is used when unset. @see SetClock
+    ///
+    /// Deliberately not compiled out in non-test builds: this is a data member of a class template
+    /// instantiated both inside the library (@ref GlobalDataMapperPool) and in consumer translation
+    /// units, so making its presence depend on a translation-unit-local macro would give the same
+    /// specialization two different layouts and two different definitions.
     std::function<Clock::time_point()> _clock {};
-#endif
     /// Executors used by the no-argument @ref AcquireAsync() overload; set via @ref SetAsyncExecutors.
     /// Null until configured. Only references are held; they must outlive the pool's async use.
     Async::IExecutor* _asyncDbWorkers = nullptr;
