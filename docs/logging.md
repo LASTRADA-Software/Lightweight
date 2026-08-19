@@ -107,5 +107,8 @@ struct LoggerSwap
 
 ## See also
 
+- [statistics.md](statistics.md) — aggregated counters, latency histograms and pool metrics. These
+  are collected by compile-time instrumentation rather than through the `SqlLogger` hooks above,
+  so installing a collector does not displace your logger.
 - [best-practices.md](best-practices.md) — when tracing points at a real performance problem.
 - [dbtool.md](dbtool.md) — the CLI, which reports migration and backup progress directly.

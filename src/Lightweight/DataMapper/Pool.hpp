@@ -4,9 +4,11 @@
 #include "../Async/Executor.hpp"
 #include "../Async/Task.hpp"
 #include "../SqlLogger.hpp"
+#include "../SqlStatistics.hpp"
 #include "DataMapper.hpp"
 
 #include <cassert>
+#include <chrono>
 #include <condition_variable>
 #include <coroutine>
 #include <cstdint>
@@ -153,6 +155,8 @@ class Pool
         SqlLogger::GetLogger().OnConnectionIdle(dm->Connection());
         std::scoped_lock lock(_mutex);
         _idleDataMappers.push_back(std::move(dm));
+        LIGHTWEIGHT_STATS_POOL_RELEASE(false);
+        LIGHTWEIGHT_STATS_POOL_OCCUPANCY(_idleDataMappers.size(), _checkedOut);
     }
 
     /// for bounded wait strategy, return the data mapper to the pool: hand it to the next FIFO waiter
@@ -191,6 +195,9 @@ class Pool
                 continue;
             // Handed directly to a waiter, never idled: a reuse, not an idle transition.
             SqlLogger::GetLogger().OnConnectionReuse(dm->Connection());
+            // The hand-off is both a release by the returner and a (reusing) acquire by the waiter.
+            LIGHTWEIGHT_STATS_POOL_RELEASE(false);
+            LIGHTWEIGHT_STATS_POOL_OCCUPANCY(_idleDataMappers.size(), _checkedOut);
             node->state = WaiterNode::State::Fulfilled;
             node->mapper = std::move(dm); // hand off ownership; _checkedOut stays (transferred)
             if (node->kind == WaiterNode::Kind::Async)
@@ -201,6 +208,8 @@ class Pool
         SqlLogger::GetLogger().OnConnectionIdle(dm->Connection());
         _idleDataMappers.push_back(std::move(dm));
         --_checkedOut;
+        LIGHTWEIGHT_STATS_POOL_RELEASE(false);
+        LIGHTWEIGHT_STATS_POOL_OCCUPANCY(_idleDataMappers.size(), _checkedOut);
         return nullptr;
     }
 
@@ -214,7 +223,15 @@ class Pool
         {
             SqlLogger::GetLogger().OnConnectionIdle(dm->Connection());
             _idleDataMappers.push_back(std::move(dm));
+            LIGHTWEIGHT_STATS_POOL_RELEASE(false);
         }
+        else
+        {
+            // Over capacity: the mapper is destroyed here rather than idled. Without this counter an
+            // idle-count reconstructed from idle/reuse events alone would silently drift.
+            LIGHTWEIGHT_STATS_POOL_RELEASE(true);
+        }
+        LIGHTWEIGHT_STATS_POOL_OCCUPANCY(_idleDataMappers.size(), _checkedOut);
     }
 
   public:
@@ -256,6 +273,7 @@ class Pool
     PooledDataMapper Acquire()
         requires(Config.growthStrategy == GrowthStrategy::BoundedWait)
     {
+        [[maybe_unused]] auto const acquireStartedAt = std::chrono::steady_clock::now();
         std::unique_lock lock(_mutex);
         if (!_idleDataMappers.empty())
         {
@@ -264,12 +282,16 @@ class Pool
             _idleDataMappers.pop_back();
             ++_checkedOut;
             SqlLogger::GetLogger().OnConnectionReuse(dm->Connection());
+            LIGHTWEIGHT_STATS_POOL_ACQUIRE(std::chrono::microseconds { 0 }, true, false);
+            LIGHTWEIGHT_STATS_POOL_OCCUPANCY(_idleDataMappers.size(), _checkedOut);
             return PooledDataMapper(*this, std::move(dm));
         }
         if (_checkedOut < Config.maxSize)
         {
             // below capacity: create a fresh data mapper
             ++_checkedOut;
+            LIGHTWEIGHT_STATS_POOL_ACQUIRE(std::chrono::microseconds { 0 }, false, false);
+            LIGHTWEIGHT_STATS_POOL_OCCUPANCY(_idleDataMappers.size(), _checkedOut);
             return PooledDataMapper(*this, std::make_unique<DataMapper>());
         }
 
@@ -278,6 +300,12 @@ class Pool
         auto node = std::make_shared<WaiterNode>(WaiterNode::Kind::Sync);
         _waiters.push_back(node);
         node->cv.wait(lock, [&node] { return node->state == WaiterNode::State::Fulfilled; });
+        // Only this branch actually blocked, so only this branch contributes a wait-latency sample.
+        LIGHTWEIGHT_STATS_POOL_ACQUIRE(
+            std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - acquireStartedAt),
+            true,
+            true);
+        LIGHTWEIGHT_STATS_POOL_OCCUPANCY(_idleDataMappers.size(), _checkedOut);
         return PooledDataMapper(*this, std::move(node->mapper));
     }
 
@@ -291,6 +319,8 @@ class Pool
         if (_idleDataMappers.empty())
         {
             // create a new data mapper and return it
+            LIGHTWEIGHT_STATS_POOL_ACQUIRE(std::chrono::microseconds { 0 }, false, false);
+            LIGHTWEIGHT_STATS_POOL_OCCUPANCY(_idleDataMappers.size(), _checkedOut);
             return PooledDataMapper(*this, std::make_unique<DataMapper>());
         }
 
@@ -298,6 +328,8 @@ class Pool
         auto dm = std::move(_idleDataMappers.back());
         _idleDataMappers.pop_back();
         SqlLogger::GetLogger().OnConnectionReuse(dm->Connection());
+        LIGHTWEIGHT_STATS_POOL_ACQUIRE(std::chrono::microseconds { 0 }, true, false);
+        LIGHTWEIGHT_STATS_POOL_OCCUPANCY(_idleDataMappers.size(), _checkedOut);
         return PooledDataMapper(*this, std::move(dm));
     }
 
@@ -425,6 +457,9 @@ class Pool
         Async::IResumeScheduler& resume;
         std::unique_ptr<DataMapper> acquired {}; ///< Mapper obtained without suspending (idle/fresh).
         std::shared_ptr<WaiterNode> node {};     ///< Set only while parked; shared with the pool.
+        /// When this acquisition parked, used to attribute its wait latency. Only read when @c node
+        /// is set, so it needs no value on the non-parking paths.
+        std::chrono::steady_clock::time_point parkedAt {};
 
         AsyncAcquireAwaitable(Pool& poolRef, Async::IResumeScheduler& resumeRef) noexcept:
             pool { poolRef },
@@ -496,6 +531,8 @@ class Pool
                 if constexpr (Config.growthStrategy == GrowthStrategy::BoundedWait)
                     ++pool._checkedOut;
                 SqlLogger::GetLogger().OnConnectionReuse(acquired->Connection());
+                LIGHTWEIGHT_STATS_POOL_ACQUIRE(std::chrono::microseconds { 0 }, true, false);
+                LIGHTWEIGHT_STATS_POOL_OCCUPANCY(pool._idleDataMappers.size(), pool._checkedOut);
                 return false; // do not suspend — resume immediately
             }
             // Only BoundedWait bounds the pool and parks coroutines on exhaustion. The non-blocking
@@ -509,11 +546,14 @@ class Pool
                     node->handle = handle;
                     node->resume = &resume;
                     pool._waiters.push_back(node);
+                    parkedAt = std::chrono::steady_clock::now();
                     return true; // suspend until a mapper is returned
                 }
                 ++pool._checkedOut;
             }
             acquired = std::make_unique<DataMapper>();
+            LIGHTWEIGHT_STATS_POOL_ACQUIRE(std::chrono::microseconds { 0 }, false, false);
+            LIGHTWEIGHT_STATS_POOL_OCCUPANCY(pool._idleDataMappers.size(), pool._checkedOut);
             return false;
         }
 
@@ -523,7 +563,14 @@ class Pool
             // resuming thread, with no concurrent access per the destruction contract). That leaves
             // node->mapper empty, so the destructor treats the node as already consumed.
             if (node)
+            {
+                // This acquisition actually parked the coroutine, so it contributes a wait sample.
+                LIGHTWEIGHT_STATS_POOL_ACQUIRE(
+                    std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - parkedAt),
+                    true,
+                    true);
                 return std::move(node->mapper);
+            }
             return std::move(acquired);
         }
     };

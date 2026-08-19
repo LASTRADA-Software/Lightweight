@@ -5,6 +5,7 @@
 #include "SqlOdbcWide.hpp"
 #include "SqlQuery.hpp"
 #include "SqlStatement.hpp"
+#include "SqlStatistics.hpp"
 #include "TracyProfiler.hpp"
 #include "Utils.hpp"
 
@@ -295,6 +296,7 @@ void SqlStatement::Prepare(std::string_view query) &
     ZoneScopedN("SqlStatement::Prepare");
     ZoneTextObject(query);
     SqlLogger::GetLogger().OnPrepare(query);
+    LIGHTWEIGHT_STATS_SCOPE(::Lightweight::SqlStatisticsOperation::Prepare);
 
     // Preparing the very same query text again is a wasted round-trip: the handle already holds that
     // prepared statement. It is a common shape - one loader, one INSERT or one QuerySingle repeated
@@ -407,6 +409,7 @@ SqlResultCursor SqlStatement::ExecuteDirect(std::string_view const& query, std::
     m_data->batchIndicators.clear();
 
     SqlLogger::GetLogger().OnExecuteDirect(query);
+    LIGHTWEIGHT_STATS_SCOPE(::Lightweight::SqlStatisticsOperation::ExecuteDirect);
 
     // Execute via the W entry point — see the rationale above SQLPrepareW.
     auto wQuery = detail::OdbcWideArg { query };
@@ -442,14 +445,17 @@ SqlResultCursor SqlStatement::ExecuteWithVariants(std::vector<SqlVariant> const&
         SqlDataBinder<SqlVariant>::InputParameter(m_hStmt, static_cast<SQLUSMALLINT>(1 + i), arg, *this);
     }
 
-    auto rc = SQLExecute(m_hStmt);
+    {
+        LIGHTWEIGHT_STATS_SCOPE(::Lightweight::SqlStatisticsOperation::Execute);
+        auto rc = SQLExecute(m_hStmt);
 
-    // A prepared statement Prepare() reused rather than re-issued can have gone stale server-side.
-    if (RetryStalePreparedStatement(rc))
-        rc = SQLExecute(m_hStmt);
+        // A prepared statement Prepare() reused rather than re-issued can have gone stale server-side.
+        if (RetryStalePreparedStatement(rc))
+            rc = SQLExecute(m_hStmt);
 
-    if (rc != SQL_NO_DATA)
-        RequireSuccess(rc);
+        if (rc != SQL_NO_DATA)
+            RequireSuccess(rc);
+    }
     ProcessPostExecuteCallbacks();
     return SqlResultCursor { *this };
 }
@@ -479,7 +485,10 @@ SqlResultCursor SqlStatement::ExecuteBatch(std::span<SqlRawColumn const> columns
         RequireSuccess(SqlDataBinder<SqlRawColumn>::InputParameter(m_hStmt, column++, col, *this));
     }
 
-    RequireSuccess(SQLExecute(m_hStmt));
+    {
+        LIGHTWEIGHT_STATS_SCOPE(::Lightweight::SqlStatisticsOperation::ExecuteBatch);
+        RequireSuccess(SQLExecute(m_hStmt));
+    }
     ProcessPostExecuteCallbacks();
     ClearBatchIndicators();
     return SqlResultCursor { *this };
@@ -504,6 +513,7 @@ RowArrayCursor SqlStatement::ExecuteBatchFetch(std::string_view query, std::size
     m_data->batchIndicators.clear();
 
     SqlLogger::GetLogger().OnExecuteDirect(query);
+    LIGHTWEIGHT_STATS_SCOPE(::Lightweight::SqlStatisticsOperation::ExecuteDirect);
 
     // Execute via the W entry point — see the rationale above SQLPrepareW in Prepare().
     auto wQuery = detail::OdbcWideArg { query };
@@ -838,6 +848,7 @@ std::expected<bool, SqlErrorInfo> SqlStatement::FetchRowPrefetched() noexcept
             return MakeUnexpected(LastError(), std::source_location::current());
         }
         SqlLogger::GetLogger().OnFetchBlock(m_data->prefetchBlockRows);
+        LIGHTWEIGHT_STATS_ROWS(m_data->prefetchBlockRows, true);
         if (m_data->prefetchBlockRows == 0)
         {
             // End of result set. Drop the array binding now and switch to Disabled so a stray fetch after
@@ -876,6 +887,7 @@ std::expected<bool, SqlErrorInfo> SqlStatement::FetchRowPrefetched() noexcept
         return MakeUnexpected(LastError(), std::source_location::current());
     }
     SqlLogger::GetLogger().OnFetchRow();
+    LIGHTWEIGHT_STATS_ROWS(1, false);
     return true;
 }
 
@@ -928,6 +940,7 @@ std::expected<bool, SqlErrorInfo> SqlStatement::TryFetchRow(std::source_location
                 postProcess();
             m_data->postProcessOutputColumnCallbacks.clear();
             SqlLogger::GetLogger().OnFetchRow();
+            LIGHTWEIGHT_STATS_ROWS(1, false);
             return true;
     }
 }
