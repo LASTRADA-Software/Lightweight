@@ -20,6 +20,7 @@
 
 #include <array>
 #include <atomic>
+#include <bit>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -47,6 +48,10 @@ enum class SqlStatisticsOperation : std::uint8_t
     /// `SQLPrepare` of a statement.
     Prepare,
     /// Row / block retrieval (`SQLFetch`, `SQLFetchScroll`).
+    ///
+    /// @note The library does not currently time its fetch paths, so this slot reads back zero unless
+    /// your own code records into it. Row throughput is reported instead by
+    /// @ref SqlStatisticsSnapshot::rowsFetched and @ref SqlStatisticsSnapshot::blockFetches.
     Fetch,
     /// Connection acquisition from a @ref Pool.
     PoolAcquire,
@@ -117,9 +122,7 @@ struct SqlLatencyHistogram
     [[nodiscard]] static constexpr std::size_t BucketOf(std::uint64_t microseconds) noexcept
     {
         // bit_width(0) == 0 -> bucket 0; bit_width(1) == 1 -> bucket 1 ([1,2)); etc.
-        auto width = std::size_t { 0 };
-        for (auto value = microseconds; value != 0; value >>= 1U)
-            ++width;
+        auto const width = static_cast<std::size_t>(std::bit_width(microseconds));
         return width < BucketCount ? width : BucketCount - 1;
     }
 };
@@ -154,10 +157,12 @@ struct SqlOperationStatistics
 /// @ingroup CoreApi
 /// Aggregated connection-pool counters.
 ///
-/// Pool statistics are recorded per @ref SqlStatistics instance. Because `Pool` is a class template
-/// keyed on a compile-time configuration, a process typically holds several *distinct* pool types;
-/// give each the pool-local collector it should report into rather than aggregating them all into
-/// the process-wide instance, unless a combined view is what you want.
+/// Because `Pool` is a class template keyed on a compile-time configuration, a process typically holds
+/// several *distinct* pool types. They all record into the process-wide @ref SqlStatistics::Instance —
+/// a pool cannot be pointed at a collector of its own — so these counters give a combined view across
+/// every pool in the process. The monotonic counters (@ref acquired, @ref reused, @ref waited,
+/// @ref released, @ref discarded) aggregate cleanly; @ref idle and @ref checkedOut are last-writer-wins
+/// and read as "the most recent pool transition" once more than one pool is in play.
 struct SqlPoolStatistics
 {
     /// Number of connections handed out (from idle, freshly created, or handed off to a waiter).

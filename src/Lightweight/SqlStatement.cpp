@@ -772,7 +772,11 @@ std::expected<bool, SqlErrorInfo> SqlStatement::FetchRowPrefetched() noexcept
             return MakeUnexpected(LastError(), std::source_location::current());
         }
         SqlLogger::GetLogger().OnFetchBlock(m_data->prefetchBlockRows);
-        LIGHTWEIGHT_STATS_ROWS(m_data->prefetchBlockRows, true);
+        // The whole block is accounted for here, once per round-trip — the per-row hand-outs below must
+        // not count again, or rowsFetched would come out at twice the real row count. A zero-row block is
+        // the end-of-result-set probe, which materialized nothing and so is not a block fetch either.
+        if (m_data->prefetchBlockRows != 0)
+            LIGHTWEIGHT_STATS_ROWS(m_data->prefetchBlockRows, true);
         if (m_data->prefetchBlockRows == 0)
         {
             // End of result set. Drop the array binding now and switch to Disabled so a stray fetch after
@@ -811,7 +815,7 @@ std::expected<bool, SqlErrorInfo> SqlStatement::FetchRowPrefetched() noexcept
         return MakeUnexpected(LastError(), std::source_location::current());
     }
     SqlLogger::GetLogger().OnFetchRow();
-    LIGHTWEIGHT_STATS_ROWS(1, false);
+    // No LIGHTWEIGHT_STATS_ROWS here: this row was already counted as part of its block above.
     return true;
 }
 

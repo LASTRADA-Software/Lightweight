@@ -7,12 +7,14 @@
 
 #include <Lightweight/DataMapper/DataMapper.hpp>
 #include <Lightweight/DataMapper/Pool.hpp>
+#include <Lightweight/Lightweight.hpp>
 #include <Lightweight/SqlStatistics.hpp>
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <chrono>
+#include <limits>
 #include <ranges>
 #include <thread>
 #include <vector>
@@ -151,6 +153,12 @@ TEST_CASE("SqlStatistics records counts and latency per operation", "[SqlStatist
         // sample actually observed.
         CHECK(execute.latency.PercentileMicroseconds(1.0) == 30);
         CHECK(execute.latency.PercentileMicroseconds(0.0) >= 10);
+
+        // Out-of-range and non-finite percentiles are clamped rather than reaching the
+        // float-to-integer cast, where NaN would be undefined behaviour.
+        CHECK(execute.latency.PercentileMicroseconds(-1.0) == execute.latency.PercentileMicroseconds(0.0));
+        CHECK(execute.latency.PercentileMicroseconds(2.0) == 30);
+        CHECK(execute.latency.PercentileMicroseconds(std::numeric_limits<double>::quiet_NaN()) <= 30);
 
         SECTION("other operations are untouched")
         {
@@ -361,6 +369,51 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlStatistics captures Execute and fetch throu
     }
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlStatistics counts each fetched row exactly once", "[SqlStatistics]")
+{
+    if constexpr (!SqlStatistics::IsEnabled())
+        SUCCEED("Statistics collection disabled in this build");
+    else
+    {
+        auto const reset = ScopedStatisticsReset {};
+        auto& stats = SqlStatistics::Instance();
+
+        constexpr auto RowCount = std::size_t { 40 };
+
+        auto setup = SqlStatement {};
+        setup.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+            migration.CreateTable("StatsRows").PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {});
+        });
+        setup.Prepare(setup.Query("StatsRows").Insert().Set("Id", SqlWildcard));
+        for (auto const index: std::views::iota(std::size_t { 1 }, RowCount + 1))
+            (void) setup.Execute(static_cast<std::int64_t>(index));
+
+        auto const readAll = [](SqlStatement& stmt) {
+            auto rows = std::size_t { 0 };
+            auto cursor = stmt.ExecuteDirect(R"(SELECT "Id" FROM "StatsRows")");
+            while (cursor.FetchRow())
+                ++rows;
+            return rows;
+        };
+
+        // Block-prefetch path: a depth well below RowCount forces several SQLFetchScroll round-trips
+        // plus the terminating empty one. Each row must be counted once — it used to be counted both
+        // as part of its block and again when handed out, reporting exactly twice the real count.
+        auto prefetching = SqlStatement {};
+        prefetching.Connection().SetDefaultPrefetchDepth(8);
+        stats.Reset();
+        CHECK(readAll(prefetching) == RowCount);
+        CHECK(stats.Snapshot().rowsFetched == RowCount);
+
+        // Per-row path (prefetch off), as the reference: same rows, same count.
+        auto perRow = SqlStatement {};
+        perRow.Connection().SetDefaultPrefetchDepth(1);
+        stats.Reset();
+        CHECK(readAll(perRow) == RowCount);
+        CHECK(stats.Snapshot().rowsFetched == RowCount);
+    }
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlStatistics counts a failing statement as failed", "[SqlStatistics]")
 {
     if constexpr (!SqlStatistics::IsEnabled())
@@ -426,7 +479,10 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlStatistics captures pool acquire/release cy
 
                 auto const midpoint = stats.Snapshot();
                 CHECK(midpoint.pool.acquired >= 2);
-                CHECK(midpoint.pool.checkedOut >= 0);
+                // Both acquisitions came out of the two pre-created idle mappers, which leaves the
+                // pool with nothing idle — a real assertion, unlike `checkedOut >= 0` on an unsigned.
+                CHECK(midpoint.pool.reused >= 2);
+                CHECK(midpoint.pool.idle == 0);
             }
 
             // Both mappers are back; acquiring again must reuse rather than create.

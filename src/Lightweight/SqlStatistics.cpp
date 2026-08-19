@@ -33,9 +33,15 @@ namespace
 
     /// Emits a sample to Tracy when Tracy is enabled; a no-op otherwise.
     ///
+    /// Marked `[[maybe_unused]]` because its only call site sits inside `if constexpr
+    /// (CollectingEnabled)`: with statistics disabled that branch is never emitted, leaving this
+    /// internal-linkage function referenced but never generated — which clang rejects under
+    /// `-Wunneeded-internal-declaration -Werror` (i.e. the project's own default build).
+    ///
     /// @param operation The operation the sample belongs to.
     /// @param microseconds The sampled duration.
-    void PlotLatency([[maybe_unused]] SqlStatisticsOperation operation, [[maybe_unused]] std::uint64_t microseconds) noexcept
+    [[maybe_unused]] void PlotLatency([[maybe_unused]] SqlStatisticsOperation operation,
+                                      [[maybe_unused]] std::uint64_t microseconds) noexcept
     {
 #if defined(LIGHTWEIGHT_STATISTICS_ENABLED) && defined(LIGHTWEIGHT_TRACY_ENABLED)
         auto const index = static_cast<std::size_t>(operation);
@@ -66,6 +72,10 @@ std::uint64_t SqlLatencyHistogram::PercentileMicroseconds(double percentile) con
     if (count == 0)
         return 0;
 
+    // std::clamp passes NaN straight through (both of its comparisons are false for NaN), and the
+    // float-to-integer cast below would then be undefined behaviour — so reject non-finite input first.
+    if (std::isnan(percentile))
+        percentile = 0.0;
     percentile = std::clamp(percentile, 0.0, 1.0);
 
     // Rank of the sample we are looking for, 1-based: p=1.0 selects the last sample.

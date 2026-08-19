@@ -1439,7 +1439,7 @@ SqlResultCursor SqlStatement::ExecuteBatchNativeRowWise(Rows const& rows, Column
     SqlLogger::GetLogger().OnExecuteBatch();
     // Capture the result before reading processedCount: SQLExecute updates it via the bound pointer, and
     // function-argument evaluation order is unspecified.
-    LIGHTWEIGHT_STATS_SCOPE_V(statsBatchScope, ::Lightweight::SqlStatisticsOperation::ExecuteBatch);
+    LIGHTWEIGHT_STATS_SCOPE(::Lightweight::SqlStatisticsOperation::ExecuteBatch);
     auto const executeResult = SQLExecute(m_hStmt);
     RequireSuccessfulBatchExecute(executeResult, processedCount, static_cast<SQLULEN>(rowCount));
     ProcessPostExecuteCallbacks();
