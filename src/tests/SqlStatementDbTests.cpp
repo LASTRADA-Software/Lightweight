@@ -11,6 +11,7 @@
 #include <vector>
 
 using namespace Lightweight;
+using namespace std::string_view_literals;
 
 // ================================================================================================
 // SqlResultCursor::TryFetchRow — std::expected-based fetch surface
@@ -391,4 +392,159 @@ TEST_CASE_METHOD(SqlTestFixture, "Prepare reuse recovers when the server forgot 
         REQUIRE(cursor.FetchRow());
         CHECK(cursor.GetColumn<int>(1) == 10);
     }
+}
+
+// ================================================================================================
+// Named column access — reading result columns by the name spelled in the query builder (#341)
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlResultCursor::GetColumn by name reads bare column names", "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    CreateEmployeesTable(stmt);
+    FillEmployeesTable(stmt);
+
+    auto cursor = stmt.ExecuteDirect(
+        stmt.Query("Employees").Select().Fields({ "FirstName"sv, "Salary"sv }).OrderBy("EmployeeID"sv).All());
+
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetColumn<std::string>("FirstName") == "Alice");
+    CHECK(cursor.GetColumn<int>("Salary") == 50'000);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlResultCursor::GetColumn by name reads qualified names", "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    CreateEmployeesTable(stmt);
+    FillEmployeesTable(stmt);
+
+    auto cursor =
+        stmt.ExecuteDirect(stmt.Query("Employees")
+                               .Select()
+                               .Field(SqlQualifiedTableColumnName { .tableName = "Employees", .columnName = "FirstName" })
+                               .Field(SqlQualifiedTableColumnName { .tableName = "Employees", .columnName = "Salary" })
+                               .OrderBy(SqlQualifiedTableColumnName { .tableName = "Employees", .columnName = "EmployeeID" })
+                               .All());
+
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetColumn<std::string>("Employees.FirstName") == "Alice");
+    CHECK(cursor.GetColumn<int>("Employees.Salary") == 50'000);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlResultCursor::GetColumn by name reads an alias", "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    CreateEmployeesTable(stmt);
+    FillEmployeesTable(stmt);
+
+    auto cursor =
+        stmt.ExecuteDirect(stmt.Query("Employees")
+                               .Select()
+                               .Field("FirstName"sv)
+                               .Field(SqlQualifiedTableColumnName { .tableName = "Employees", .columnName = "Salary" })
+                               .As("MonthlyPay"sv)
+                               .OrderBy("EmployeeID"sv)
+                               .All());
+
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetColumn<std::string>("FirstName") == "Alice");
+    CHECK(cursor.GetColumn<int>("MonthlyPay") == 50'000);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlResultCursor named access survives Prepare and Execute", "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    CreateEmployeesTable(stmt);
+    FillEmployeesTable(stmt);
+
+    stmt.Prepare(stmt.Query("Employees").Select().Fields({ "FirstName"sv, "Salary"sv }).OrderBy("EmployeeID"sv).All());
+    auto cursor = stmt.Execute();
+
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetColumn<std::string>("FirstName") == "Alice");
+    CHECK(cursor.GetColumn<int>("Salary") == 50'000);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlResultCursor::GetNullableColumn and GetColumnOr by name", "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    CreateEmployeesTable(stmt);
+
+    stmt.Prepare(stmt.Query("Employees")
+                     .Insert()
+                     .Set("FirstName", SqlWildcard)
+                     .Set("LastName", SqlWildcard)
+                     .Set("Salary", SqlWildcard));
+    (void) stmt.Execute("Dana", SqlNullValue, 42'000);
+
+    auto cursor = stmt.ExecuteDirect(stmt.Query("Employees").Select().Fields({ "LastName"sv, "Salary"sv }).All());
+
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetNullableColumn<std::string>("LastName") == std::nullopt);
+    CHECK(cursor.GetColumnOr<int>("Salary", 0) == 42'000);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlResultCursor named access rejects unusable names", "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    CreateEmployeesTable(stmt);
+    FillEmployeesTable(stmt);
+
+    SECTION("an unknown name throws")
+    {
+        auto cursor = stmt.ExecuteDirect(stmt.Query("Employees").Select().Fields({ "FirstName"sv }).All());
+        REQUIRE(cursor.FetchRow());
+        CHECK_THROWS_AS(cursor.GetColumn<std::string>("NoSuchColumn"), std::invalid_argument);
+    }
+
+    SECTION("a name projected twice is ambiguous")
+    {
+        auto cursor = stmt.ExecuteDirect(stmt.Query("Employees").Select().Field("FirstName"sv).Field("FirstName"sv).All());
+        REQUIRE(cursor.FetchRow());
+        CHECK_THROWS_AS(cursor.GetColumn<std::string>("FirstName"), std::invalid_argument);
+    }
+
+    SECTION("a wildcard projection has no mapping")
+    {
+        auto cursor = stmt.ExecuteDirect(stmt.Query("Employees").Select().Field("*"sv).All());
+        REQUIRE(cursor.FetchRow());
+        CHECK_THROWS_AS(cursor.GetColumn<std::string>("FirstName"), std::invalid_argument);
+    }
+
+    SECTION("raw SQL has no mapping")
+    {
+        stmt.Prepare(R"(SELECT "FirstName" FROM "Employees")");
+        auto cursor = stmt.Execute();
+        REQUIRE(cursor.FetchRow());
+        CHECK_THROWS_AS(cursor.GetColumn<std::string>("FirstName"), std::invalid_argument);
+    }
+
+    SECTION("raw SQL does not inherit the previous query's mapping")
+    {
+        {
+            auto cursor = stmt.ExecuteDirect(stmt.Query("Employees").Select().Fields({ "FirstName"sv }).All());
+            REQUIRE(cursor.FetchRow());
+            CHECK(cursor.GetColumn<std::string>("FirstName") == "Alice");
+        }
+
+        stmt.Prepare(R"(SELECT "Salary" FROM "Employees")");
+        auto cursor = stmt.Execute();
+        REQUIRE(cursor.FetchRow());
+        CHECK_THROWS_AS(cursor.GetColumn<std::string>("FirstName"), std::invalid_argument);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlResultCursor named access rejects an empty name", "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    CreateEmployeesTable(stmt);
+    FillEmployeesTable(stmt);
+
+    // An un-aliased aggregate occupies an unnamed slot; an empty lookup name must not resolve to it.
+    // Both projections are aggregates so the query needs no GROUP BY on any supported database.
+    auto cursor = stmt.ExecuteDirect(
+        stmt.Query("Employees").Select().Field(Aggregate::Count("EmployeeID"sv)).Field(Aggregate::Max("Salary"sv)).All());
+
+    REQUIRE(cursor.FetchRow());
+    CHECK_THROWS_AS(cursor.GetColumn<int>(""), std::invalid_argument);
 }

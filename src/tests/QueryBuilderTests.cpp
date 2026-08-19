@@ -2254,3 +2254,100 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable index commands honour schema qualif
             CHECK(sql.contains("myschema"));
     }
 }
+
+// ================================================================================================
+// Named column access — the projected-name mapping recorded by the SELECT query builder (#341)
+// ================================================================================================
+
+// Materializes the projected-name span so it can be compared against an expected vector.
+static std::vector<std::string> ProjectedNamesOf(auto const& query)
+{
+    auto const names = query.ProjectedFieldNames();
+    return std::vector<std::string> { names.begin(), names.end() };
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlSelectQueryBuilder records projected field names", "[SqlQueryBuilder]")
+{
+    using namespace std::string_view_literals;
+
+    auto queryBuilder = SqlQueryBuilder(SqlQueryFormatter::Sqlite());
+
+    SECTION("bare field names are recorded as spelled")
+    {
+        auto const query = queryBuilder.FromTable("Employees").Select().Fields({ "FirstName"sv, "Salary"sv }).All();
+        CHECK(ProjectedNamesOf(query) == std::vector<std::string> { "FirstName", "Salary" });
+        CHECK_FALSE(query.ProjectionHasWildcard());
+    }
+
+    SECTION("qualified field names are recorded as table.column")
+    {
+        auto const query = queryBuilder.FromTable("Employees")
+                               .Select()
+                               .Field(SqlQualifiedTableColumnName { .tableName = "Employees", .columnName = "FirstName" })
+                               .Fields({ "a"sv, "b"sv }, "OTHER"sv)
+                               .All();
+        CHECK(ProjectedNamesOf(query) == std::vector<std::string> { "Employees.FirstName", "OTHER.a", "OTHER.b" });
+    }
+
+    SECTION("an alias replaces the name of the projection it follows")
+    {
+        auto const query = queryBuilder.FromTable("Employees")
+                               .Select()
+                               .Field("FirstName"sv)
+                               .Field(SqlQualifiedTableColumnName { .tableName = "Employees", .columnName = "Salary" })
+                               .As("MonthlyPay"sv)
+                               .All();
+        CHECK(ProjectedNamesOf(query) == std::vector<std::string> { "FirstName", "MonthlyPay" });
+    }
+
+    SECTION("an un-aliased aggregate holds its position without a name")
+    {
+        auto const query =
+            queryBuilder.FromTable("Employees").Select().Field(Aggregate::Count("EmployeeID"sv)).Field("Salary"sv).All();
+        CHECK(ProjectedNamesOf(query) == std::vector<std::string> { "", "Salary" });
+    }
+
+    SECTION("an aliased aggregate is addressable by its alias")
+    {
+        auto const query =
+            queryBuilder.FromTable("Employees").Select().Field(Aggregate::Count("EmployeeID"sv)).As("HeadCount"sv).All();
+        CHECK(ProjectedNamesOf(query) == std::vector<std::string> { "HeadCount" });
+    }
+
+    SECTION("a wildcard disables the mapping")
+    {
+        auto const query = queryBuilder.FromTable("Employees").Select().Field("FirstName"sv).Field("*"sv).All();
+        CHECK(query.ProjectedFieldNames().empty());
+        CHECK(query.ProjectionHasWildcard());
+    }
+
+    SECTION("fields projected after a wildcard do not resurrect the mapping")
+    {
+        auto const query = queryBuilder.FromTable("Employees").Select().Field("*"sv).Field("FirstName"sv).All();
+        CHECK(query.ProjectedFieldNames().empty());
+        CHECK(query.ProjectionHasWildcard());
+    }
+
+    SECTION("a qualified wildcard disables the mapping")
+    {
+        auto const query = queryBuilder.FromTable("Employees")
+                               .Select()
+                               .Field(SqlQualifiedTableColumnName { .tableName = "Employees", .columnName = "*" })
+                               .All();
+        CHECK(query.ProjectedFieldNames().empty());
+        CHECK(query.ProjectionHasWildcard());
+    }
+
+    SECTION("the Count finalizer discards the projection's names")
+    {
+        auto const query = queryBuilder.FromTable("Employees").Select().Field("FirstName"sv).Count();
+        CHECK(query.ProjectedFieldNames().empty());
+    }
+
+    SECTION("the variadic Fields overload records every field")
+    {
+        auto const query =
+            queryBuilder.FromTable("Employees").Select().Fields("FirstName"sv, "LastName"sv, "Salary"sv).All();
+        CHECK(ProjectedNamesOf(query) == std::vector<std::string> { "FirstName", "LastName", "Salary" });
+    }
+}
