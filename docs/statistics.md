@@ -63,6 +63,7 @@ than absolute counters.
 | `operations[ExecuteDirect]` | `SQLExecDirect` of a one-shot statement |
 | `operations[ExecuteBatch]` | batch execution (array-bound or per-row) |
 | `operations[Prepare]` | `SQLPrepare` |
+| `operations[Fetch]` | *reserved* — the library does not time its fetch paths, so this slot stays at zero; use `rowsFetched` / `blockFetches` for row throughput |
 | `operations[PoolAcquire]` | every connection acquisition from a pool |
 | `pool` | acquire / release / reuse / discard counts, live occupancy, wait latency |
 | `connectionsOpened` / `connectionsClosed` | connection churn |
