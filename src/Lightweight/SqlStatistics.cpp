@@ -155,95 +155,90 @@ void SqlStatistics::RecordOperation(SqlStatisticsOperation operation,
                                     std::chrono::microseconds duration,
                                     bool failed) noexcept
 {
-    if constexpr (!CollectingEnabled)
-        return;
+    if constexpr (CollectingEnabled)
+    {
+        auto const index = static_cast<std::size_t>(operation);
+        if (index < _operations.size())
+        {
+            auto& slot = _operations[index];
+            (failed ? slot.failed : slot.succeeded).fetch_add(1, std::memory_order_relaxed);
 
-    auto const index = static_cast<std::size_t>(operation);
-    if (index >= _operations.size())
-        return;
-
-    auto& slot = _operations[index];
-    (failed ? slot.failed : slot.succeeded).fetch_add(1, std::memory_order_relaxed);
-
-    auto const microseconds = static_cast<std::uint64_t>((std::max) (duration.count(), std::int64_t { 0 }));
-    slot.latency.Record(microseconds);
-    PlotLatency(operation, microseconds);
+            auto const microseconds = static_cast<std::uint64_t>((std::max) (duration.count(), std::int64_t { 0 }));
+            slot.latency.Record(microseconds);
+            PlotLatency(operation, microseconds);
+        }
+    }
 }
 
 void SqlStatistics::RecordRetry(SqlStatisticsOperation operation) noexcept
 {
-    if constexpr (!CollectingEnabled)
-        return;
-
-    auto const index = static_cast<std::size_t>(operation);
-    if (index < _operations.size())
-        _operations[index].retried.fetch_add(1, std::memory_order_relaxed);
+    if constexpr (CollectingEnabled)
+    {
+        auto const index = static_cast<std::size_t>(operation);
+        if (index < _operations.size())
+            _operations[index].retried.fetch_add(1, std::memory_order_relaxed);
+    }
 }
 
 void SqlStatistics::RecordRowsFetched(std::uint64_t rowCount, bool wasBlockFetch) noexcept
 {
-    if constexpr (!CollectingEnabled)
-        return;
-
-    _rowsFetched.fetch_add(rowCount, std::memory_order_relaxed);
-    if (wasBlockFetch)
-        _blockFetches.fetch_add(1, std::memory_order_relaxed);
+    if constexpr (CollectingEnabled)
+    {
+        _rowsFetched.fetch_add(rowCount, std::memory_order_relaxed);
+        if (wasBlockFetch)
+            _blockFetches.fetch_add(1, std::memory_order_relaxed);
+    }
 }
 
 void SqlStatistics::RecordConnectionOpened() noexcept
 {
-    if constexpr (!CollectingEnabled)
-        return;
-
-    _connectionsOpened.fetch_add(1, std::memory_order_relaxed);
+    if constexpr (CollectingEnabled)
+        _connectionsOpened.fetch_add(1, std::memory_order_relaxed);
 }
 
 void SqlStatistics::RecordConnectionClosed() noexcept
 {
-    if constexpr (!CollectingEnabled)
-        return;
-
-    _connectionsClosed.fetch_add(1, std::memory_order_relaxed);
+    if constexpr (CollectingEnabled)
+        _connectionsClosed.fetch_add(1, std::memory_order_relaxed);
 }
 
 void SqlStatistics::RecordPoolAcquire(std::chrono::microseconds waitDuration, bool reused, bool waited) noexcept
 {
-    if constexpr (!CollectingEnabled)
-        return;
-
-    _poolAcquired.fetch_add(1, std::memory_order_relaxed);
-    if (reused)
-        _poolReused.fetch_add(1, std::memory_order_relaxed);
-
-    auto const microseconds = static_cast<std::uint64_t>((std::max) (waitDuration.count(), std::int64_t { 0 }));
-    if (waited)
+    if constexpr (CollectingEnabled)
     {
-        _poolWaited.fetch_add(1, std::memory_order_relaxed);
-        // Only genuine waits contribute a sample; otherwise the distribution is drowned in zeros.
-        _poolWaitLatency.Record(microseconds);
-    }
+        _poolAcquired.fetch_add(1, std::memory_order_relaxed);
+        if (reused)
+            _poolReused.fetch_add(1, std::memory_order_relaxed);
 
-    // The PoolAcquire operation slot tracks every acquisition, waited or not.
-    RecordOperation(SqlStatisticsOperation::PoolAcquire, waitDuration, false);
+        if (waited)
+        {
+            _poolWaited.fetch_add(1, std::memory_order_relaxed);
+            // Only genuine waits contribute a sample; otherwise the distribution is drowned in zeros.
+            _poolWaitLatency.Record(static_cast<std::uint64_t>((std::max) (waitDuration.count(), std::int64_t { 0 })));
+        }
+
+        // The PoolAcquire operation slot tracks every acquisition, waited or not.
+        RecordOperation(SqlStatisticsOperation::PoolAcquire, waitDuration, false);
+    }
 }
 
 void SqlStatistics::RecordPoolRelease(bool discarded) noexcept
 {
-    if constexpr (!CollectingEnabled)
-        return;
-
-    _poolReleased.fetch_add(1, std::memory_order_relaxed);
-    if (discarded)
-        _poolDiscarded.fetch_add(1, std::memory_order_relaxed);
+    if constexpr (CollectingEnabled)
+    {
+        _poolReleased.fetch_add(1, std::memory_order_relaxed);
+        if (discarded)
+            _poolDiscarded.fetch_add(1, std::memory_order_relaxed);
+    }
 }
 
 void SqlStatistics::RecordPoolOccupancy(std::uint64_t idle, std::uint64_t checkedOut) noexcept
 {
-    if constexpr (!CollectingEnabled)
-        return;
-
-    _poolIdle.store(idle, std::memory_order_relaxed);
-    _poolCheckedOut.store(checkedOut, std::memory_order_relaxed);
+    if constexpr (CollectingEnabled)
+    {
+        _poolIdle.store(idle, std::memory_order_relaxed);
+        _poolCheckedOut.store(checkedOut, std::memory_order_relaxed);
+    }
 
 #if defined(LIGHTWEIGHT_STATISTICS_ENABLED) && defined(LIGHTWEIGHT_TRACY_ENABLED)
     TracyPlot("Sql.Pool.Idle", static_cast<int64_t>(idle));
