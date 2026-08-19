@@ -182,22 +182,6 @@ LIGHTWEIGHT_API std::string&#160;</td><td class="memItemRight" valign="bottom"><
 <tr class="memitem:aaeb89efa59bbc5a62e370c4297e9015e" id="r_aaeb89efa59bbc5a62e370c4297e9015e"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#aaeb89efa59bbc5a62e370c4297e9015e">SetDefaultPrefetchDepth</a> (std::size_t depth) noexcept</td></tr>
 <tr class="memdesc:aaeb89efa59bbc5a62e370c4297e9015e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets the default block-prefetch depth for statements created on this connection.  <br /></td></tr>
 <tr class="separator:aaeb89efa59bbc5a62e370c4297e9015e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad7399e4facf20ea642c3a6ed01e6e8ea" id="r_ad7399e4facf20ea642c3a6ed01e6e8ea"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#ad7399e4facf20ea642c3a6ed01e6e8ea">SupportsPreparedStatementReuse</a> () const noexcept</td></tr>
-<tr class="memdesc:ad7399e4facf20ea642c3a6ed01e6e8ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether this connection's backend supports reusing an already-prepared statement handle for a later execution of the same SQL text.  <br /></td></tr>
-<tr class="separator:ad7399e4facf20ea642c3a6ed01e6e8ea"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a396e063e9c15b4186d01faf657b1736f" id="r_a396e063e9c15b4186d01faf657b1736f"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a396e063e9c15b4186d01faf657b1736f">PreparedStatementCacheCapacity</a> () const noexcept</td></tr>
-<tr class="memdesc:a396e063e9c15b4186d01faf657b1736f"><td class="mdescLeft">&#160;</td><td class="mdescRight">The capacity of this connection's prepared-statement cache.  <br /></td></tr>
-<tr class="separator:a396e063e9c15b4186d01faf657b1736f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a54843f56005b5675dd963285a189d324" id="r_a54843f56005b5675dd963285a189d324"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a54843f56005b5675dd963285a189d324">SetPreparedStatementCacheCapacity</a> (std::size_t capacity) noexcept</td></tr>
-<tr class="memdesc:a54843f56005b5675dd963285a189d324"><td class="mdescLeft">&#160;</td><td class="mdescRight">Enables (or resizes) this connection's prepared-statement cache.  <br /></td></tr>
-<tr class="separator:a54843f56005b5675dd963285a189d324"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5fc4cc43a9872a2f817213f630fd603b" id="r_a5fc4cc43a9872a2f817213f630fd603b"><td class="memItemLeft" align="right" valign="top"><a id="a5fc4cc43a9872a2f817213f630fd603b" name="a5fc4cc43a9872a2f817213f630fd603b"></a>
-LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><b>ClearPreparedStatementCache</b> () noexcept</td></tr>
-<tr class="memdesc:a5fc4cc43a9872a2f817213f630fd603b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Frees every pooled prepared statement handle, e.g. after DDL invalidated the cached query plans. <br /></td></tr>
-<tr class="separator:a5fc4cc43a9872a2f817213f630fd603b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a38068846fda10168e113d343bd7ee1a8" id="r_a38068846fda10168e113d343bd7ee1a8"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d3/d0f/classLightweight_1_1SqlPreparedStatementCache.html">SqlPreparedStatementCache</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a38068846fda10168e113d343bd7ee1a8">PreparedStatementCache</a> () noexcept</td></tr>
-<tr class="memdesc:a38068846fda10168e113d343bd7ee1a8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves this connection's prepared-statement cache.  <br /></td></tr>
-<tr class="separator:a38068846fda10168e113d343bd7ee1a8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a40304c8c5a364f85cdd0a5e1afcd461f" id="r_a40304c8c5a364f85cdd0a5e1afcd461f"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html">SqlQueryBuilder</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a40304c8c5a364f85cdd0a5e1afcd461f">Query</a> (std::string_view const &amp;table={}) const</td></tr>
 <tr class="separator:a40304c8c5a364f85cdd0a5e1afcd461f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4165425040fb439fdbfc44efdad7f550" id="r_a4165425040fb439fdbfc44efdad7f550"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html">SqlQueryBuilder</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a4165425040fb439fdbfc44efdad7f550">QueryAs</a> (std::string_view const &amp;table, std::string_view const &amp;tableAlias) const</td></tr>
@@ -278,7 +262,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Represents a connection to a SQL database. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00047">47</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00046">46</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="ab5a9e94571f9e9296b2ce65036f75184" name="ab5a9e94571f9e9296b2ce65036f75184"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ab5a9e94571f9e9296b2ce65036f75184">&#9670;&#160;</a></span>SqlConnection() <span class="overload">[1/2]</span></h2>
@@ -394,7 +378,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 <p>Retrieves the connection ID. </p>
 <p>This is a unique identifier for the connection, which is useful for debugging purposes. Note, this ID will not change if the connection is moved nor when it is reused via the connection pool. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00098">98</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00097">97</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>
@@ -520,9 +504,9 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 
 <p>Retrieves the type of the server. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00389">389</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00339">339</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01702">Lightweight::DataMapper::CreateTable()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02364">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02449">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02306">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02210">Lightweight::DataMapper::QuerySingle()</a>, <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00458">SupportsNativeRowArrayFetch()</a>, <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00404">SupportsNativeRowBatch()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00422">SupportsPreparedStatementReuse()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01702">Lightweight::DataMapper::CreateTable()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02364">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02449">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02306">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02210">Lightweight::DataMapper::QuerySingle()</a>, <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00390">SupportsNativeRowArrayFetch()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00354">SupportsNativeRowBatch()</a>.</p>
 
 </div>
 </div>
@@ -551,7 +535,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 
 <p>Retrieves the name of the driver used for this connection. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00394">394</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00344">344</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>
@@ -580,7 +564,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 
 <p>Retrieves a query formatter suitable for the SQL server being connected. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00399">399</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00349">349</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00437">Lightweight::DataMapper::Query()</a>.</p>
 
@@ -641,9 +625,9 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 <p>The batched <code>SqlStatement::ExecuteBatch(rows, accessors...)</code> consults this to decide whether it may submit the whole batch in a single row-wise <code>SQLExecute</code>, or must fall back to a single prepare followed by consecutive per-row executes. This is a driver/backend capability — not a SQL-dialect concern — so it belongs to the connection, which knows both the server type and the driver name (either of which a future carve-out can branch on).</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if the driver honours parameter arrays. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00404">404</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00354">354</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00389">ServerType()</a>.</p>
+<p class="reference">References <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00339">ServerType()</a>.</p>
 
 </div>
 </div>
@@ -674,11 +658,11 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 <p>The fast retrieval path in <code>SqlStatement::FetchAllRowWise</code> consults this to decide whether it may bind the result columns row-wise over a record block and materialize whole row blocks per <code>SQLFetchScroll</code> round-trip, or must fall back to the per-row <code>SQLFetch</code> path. Like <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#ac4ea8b83a43459581e2a52a568c595c5">SupportsNativeRowBatch</a> this is a driver/backend capability — not a SQL-dialect concern — so it lives on the connection. Kept distinct from the parameter-array flag so a backend that honours one but not the other can be carved out independently.</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if the driver honours row-array fetching. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00458">458</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00390">390</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00389">ServerType()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00458">SupportsNativeRowArrayFetch()</a>.</p>
+<p class="reference">References <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00339">ServerType()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00390">SupportsNativeRowArrayFetch()</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00458">SupportsNativeRowArrayFetch()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00390">SupportsNativeRowArrayFetch()</a>.</p>
 
 </div>
 </div>
@@ -715,7 +699,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 </dl>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if that backend honours row-array fetching. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00440">440</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00372">372</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>
@@ -753,7 +737,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 </dl>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if narrow character data round-trips byte-exact on that backend. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00463">463</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00395">395</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>
@@ -817,132 +801,6 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
   </table>
   </dd>
 </dl>
-
-</div>
-</div>
-<a id="ad7399e4facf20ea642c3a6ed01e6e8ea" name="ad7399e4facf20ea642c3a6ed01e6e8ea"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad7399e4facf20ea642c3a6ed01e6e8ea">&#9670;&#160;</a></span>SupportsPreparedStatementReuse()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">bool Lightweight::SqlConnection::SupportsPreparedStatementReuse </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Whether this connection's backend supports reusing an already-prepared statement handle for a later execution of the same SQL text. </p>
-<p>Gates the prepared-statement cache: a backend not known to keep a prepared statement re-executable across an intervening cursor close never pools handles, no matter what capacity was configured. Like <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#ac4ea8b83a43459581e2a52a568c595c5">SupportsNativeRowBatch</a> this is a driver/backend capability rather than a SQL-dialect concern, so it lives on the connection instead of a <code>switch</code> in the caller.</p>
-<dl class="section return"><dt>Returns</dt><dd><code>true</code> if prepared handles may be pooled and re-executed on this backend. </dd></dl>
-
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00422">422</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
-
-<p class="reference">References <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00389">ServerType()</a>.</p>
-
-</div>
-</div>
-<a id="a396e063e9c15b4186d01faf657b1736f" name="a396e063e9c15b4186d01faf657b1736f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a396e063e9c15b4186d01faf657b1736f">&#9670;&#160;</a></span>PreparedStatementCacheCapacity()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">LIGHTWEIGHT_API std::size_t Lightweight::SqlConnection::PreparedStatementCacheCapacity </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>The capacity of this connection's prepared-statement cache. </p>
-<dl class="section return"><dt>Returns</dt><dd>The number of already-prepared statement handles kept for reuse; <code>0</code> when the cache is disabled (the default). </dd></dl>
-
-</div>
-</div>
-<a id="a54843f56005b5675dd963285a189d324" name="a54843f56005b5675dd963285a189d324"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a54843f56005b5675dd963285a189d324">&#9670;&#160;</a></span>SetPreparedStatementCacheCapacity()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">LIGHTWEIGHT_API void Lightweight::SqlConnection::SetPreparedStatementCacheCapacity </td>
-          <td>(</td>
-          <td class="paramtype">std::size_t&#160;</td>
-          <td class="paramname"><em>capacity</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Enables (or resizes) this connection's prepared-statement cache. </p>
-<p>With a non-zero capacity, <code><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a0123c0f721c9374f8992e7c454294721">SqlStatement::Prepare()</a></code> on this connection first looks for an idle handle already prepared for the same SQL text and reuses it, skipping the driver's <code>SQLPrepare</code> round-trip. Handles return to the cache when the statement is re-prepared or destroyed, and are evicted least-recently-used first once the bound is exceeded. Every layer built on <code><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html" title="High level API for (prepared) raw SQL statements.">SqlStatement</a></code> — <code><a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a></code>, the query builders — benefits without call-site changes; a single statement can opt out via <code><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a9d2ca0ca6a074744e63c36623a7e2d2b" title="Opts this statement in or out of its connection&#39;s prepared-statement cache.">SqlStatement::SetPreparedStatementCaching</a></code>.</p>
-<p>A capacity request on a backend without <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#ad7399e4facf20ea642c3a6ed01e6e8ea">SupportsPreparedStatementReuse</a> is kept but stays inactive, so the same setup code is safe to run against any DBMS.</p>
-<dl class="section warning"><dt>Warning</dt><dd>A pooled handle carries the query plan the driver derived when it was prepared. Call <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a5fc4cc43a9872a2f817213f630fd603b">ClearPreparedStatementCache</a> after DDL that a cached query touches; Lightweight's own migration executor and <code><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a3409545779372b6a14b213c8eab814b1" title="Executes an SQL migration query, as created b the callback.">SqlStatement::MigrateDirect</a></code> already do so.</dd></dl>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">capacity</td><td>Maximum number of idle prepared handles to keep; <code>0</code> disables and clears the cache. <code>PreparedStatementCacheCapacitySuggested</code> is a reasonable starting point. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a id="a38068846fda10168e113d343bd7ee1a8" name="a38068846fda10168e113d343bd7ee1a8"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a38068846fda10168e113d343bd7ee1a8">&#9670;&#160;</a></span>PreparedStatementCache()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../d3/d0f/classLightweight_1_1SqlPreparedStatementCache.html">SqlPreparedStatementCache</a> &amp; Lightweight::SqlConnection::PreparedStatementCache </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Retrieves this connection's prepared-statement cache. </p>
-<p>Non-const because acquiring and releasing pooled handles mutates the cache. Mostly of interest for its <code><a class="el" href="../../d3/d0f/classLightweight_1_1SqlPreparedStatementCache.html#a23b842aab2c4d8648c87b361b626e9e0">SqlPreparedStatementCache::Stats</a></code> counters. </p>
 
 </div>
 </div>
@@ -1034,7 +892,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 
 <p>Retrieves the native handle. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00298">298</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00251">251</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html#a0bd596d2a637709abc81b396c7b2ce70">Lightweight::SqlTransaction::TryCommit()</a>.</p>
 

@@ -36,8 +36,6 @@ var hierarchy =
     [ "Lightweight::HasMany< Invoice >", "da/df4/classLightweight_1_1HasMany.html", null ],
     [ "Lightweight::HasMany< Invoiceline >", "da/df4/classLightweight_1_1HasMany.html", null ],
     [ "Lightweight::HasMany< Track >", "da/df4/classLightweight_1_1HasMany.html", null ],
-    [ "Lightweight::HasManyThrough< Playlist, Playlisttrack >", "de/d73/classLightweight_1_1HasManyThrough.html", null ],
-    [ "Lightweight::HasManyThrough< Track, Playlisttrack >", "de/d73/classLightweight_1_1HasManyThrough.html", null ],
     [ "Lightweight::AliasedTableName", "d1/d0e/structLightweight_1_1AliasedTableName.html", null ],
     [ "Lightweight::Async::AsyncSqlTransaction", "d9/d0c/classLightweight_1_1Async_1_1AsyncSqlTransaction.html", null ],
     [ "Lightweight::Async::IAsyncBackend", "dd/db3/classLightweight_1_1Async_1_1IAsyncBackend.html", [
@@ -144,9 +142,6 @@ var hierarchy =
     [ "Lightweight::SqlMigrationUpdateBuilder", "db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html", null ],
     [ "Lightweight::SqlNullType", "da/d96/structLightweight_1_1SqlNullType.html", null ],
     [ "Lightweight::SqlNumeric< ThePrecision, TheScale >", "d6/d1b/structLightweight_1_1SqlNumeric.html", null ],
-    [ "Lightweight::SqlPreparedStatementCache", "d3/d0f/classLightweight_1_1SqlPreparedStatementCache.html", null ],
-    [ "Lightweight::SqlPreparedStatementCache::PreparedHandle", "de/d91/structLightweight_1_1SqlPreparedStatementCache_1_1PreparedHandle.html", null ],
-    [ "Lightweight::SqlPreparedStatementCache::Statistics", "d7/dd3/structLightweight_1_1SqlPreparedStatementCache_1_1Statistics.html", null ],
     [ "Lightweight::SqlQualifiedTableColumnName", "db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html", null ],
     [ "Lightweight::SqlQueryBuilder", "de/da0/classLightweight_1_1SqlQueryBuilder.html", null ],
     [ "Lightweight::SqlQueryFormatter", "d8/df7/classLightweight_1_1SqlQueryFormatter.html", null ],

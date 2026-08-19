@@ -13,13 +13,12 @@ var searchData=
   ['ischunkfull_10',['IsChunkFull',['../dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#a2a35c526922042dcece928d84c7caac1',1,'Lightweight::SqlBackup::ChunkWriter']]],
   ['iscolliding_11',['IsColliding',['../da/d15/classLightweight_1_1UniqueNameBuilder.html#acfe934b57fa65da4863c45e150bcc1e3',1,'Lightweight::UniqueNameBuilder']]],
   ['isempty_12',['isempty',['../da/df4/classLightweight_1_1HasMany.html#ae47768e025f17d4693590441c495c042',1,'Lightweight::HasMany::IsEmpty()'],['../de/d73/classLightweight_1_1HasManyThrough.html#a4005e8ce01ed8ce7ac83b0cac637119a',1,'Lightweight::HasManyThrough::IsEmpty()']]],
-  ['isenabled_13',['IsEnabled',['../d3/d0f/classLightweight_1_1SqlPreparedStatementCache.html#a69d6c405575f9bf96b179eed8ddd1ed8',1,'Lightweight::SqlPreparedStatementCache']]],
-  ['isloaded_14',['isloaded',['../dc/dc9/classLightweight_1_1CompositeForeignKey.html#a26b5472afe0aa239cd320d1792e3303d',1,'Lightweight::CompositeForeignKey::IsLoaded()'],['../df/d63/classLightweight_1_1HasOneThrough.html#ad9288087a03c708a3fe14821ed4b133a',1,'Lightweight::HasOneThrough::IsLoaded()']]],
-  ['islocked_15',['IsLocked',['../d3/de6/classLightweight_1_1SqlScopedLock.html#a2c85e873e5b5a5c6b59260514d9e7138',1,'Lightweight::SqlScopedLock']]],
-  ['ismodified_16',['ismodified',['../d0/df7/classLightweight_1_1BelongsTo.html#a760ee5ea51fd3c714f26a1d1f3366a37',1,'Lightweight::BelongsTo::IsModified()'],['../d2/dd0/structLightweight_1_1Field.html#a4296163dab8a3ce341e2b52a18c7c7b7',1,'Lightweight::Field::IsModified()'],['../de/d61/classLightweight_1_1DataMapper.html#a14f4830a73bb932956d1d66f8f1ef69f',1,'Lightweight::DataMapper::IsModified()']]],
-  ['isnull_17',['IsNull',['../df/d3f/structLightweight_1_1SqlVariant.html#a9a77d3cabe4f40396af1803e41c6b021',1,'Lightweight::SqlVariant']]],
-  ['isopen_18',['isopen',['../d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#aca980f73de141baddf5d6ad7189fe932',1,'Lightweight::Zip::ZipArchive::IsOpen()'],['../d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a7628d304d8e4d1d9c0633d621a20e900',1,'Lightweight::Zip::ZipEntry::IsOpen()']]],
-  ['isprepared_19',['IsPrepared',['../db/dad/classLightweight_1_1SqlStatement.html#a8d0e75bc859cfc55a99d41b8907d77bd',1,'Lightweight::SqlStatement']]],
-  ['isready_20',['IsReady',['../d8/d0c/classLightweight_1_1Async_1_1Task.html#a6d6d9ae50c57b4026b9cc30357a16c72',1,'Lightweight::Async::Task']]],
-  ['isvalid_21',['IsValid',['../d8/d0c/classLightweight_1_1Async_1_1Task.html#adaf1b753e7f02865227154251a38fff1',1,'Lightweight::Async::Task']]]
+  ['isloaded_13',['isloaded',['../dc/dc9/classLightweight_1_1CompositeForeignKey.html#a26b5472afe0aa239cd320d1792e3303d',1,'Lightweight::CompositeForeignKey::IsLoaded()'],['../df/d63/classLightweight_1_1HasOneThrough.html#ad9288087a03c708a3fe14821ed4b133a',1,'Lightweight::HasOneThrough::IsLoaded()']]],
+  ['islocked_14',['IsLocked',['../d3/de6/classLightweight_1_1SqlScopedLock.html#a2c85e873e5b5a5c6b59260514d9e7138',1,'Lightweight::SqlScopedLock']]],
+  ['ismodified_15',['ismodified',['../d0/df7/classLightweight_1_1BelongsTo.html#a760ee5ea51fd3c714f26a1d1f3366a37',1,'Lightweight::BelongsTo::IsModified()'],['../de/d61/classLightweight_1_1DataMapper.html#a14f4830a73bb932956d1d66f8f1ef69f',1,'Lightweight::DataMapper::IsModified()'],['../d2/dd0/structLightweight_1_1Field.html#a4296163dab8a3ce341e2b52a18c7c7b7',1,'Lightweight::Field::IsModified()']]],
+  ['isnull_16',['IsNull',['../df/d3f/structLightweight_1_1SqlVariant.html#a9a77d3cabe4f40396af1803e41c6b021',1,'Lightweight::SqlVariant']]],
+  ['isopen_17',['isopen',['../d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#aca980f73de141baddf5d6ad7189fe932',1,'Lightweight::Zip::ZipArchive::IsOpen()'],['../d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a7628d304d8e4d1d9c0633d621a20e900',1,'Lightweight::Zip::ZipEntry::IsOpen()']]],
+  ['isprepared_18',['IsPrepared',['../db/dad/classLightweight_1_1SqlStatement.html#a8d0e75bc859cfc55a99d41b8907d77bd',1,'Lightweight::SqlStatement']]],
+  ['isready_19',['IsReady',['../d8/d0c/classLightweight_1_1Async_1_1Task.html#a6d6d9ae50c57b4026b9cc30357a16c72',1,'Lightweight::Async::Task']]],
+  ['isvalid_20',['IsValid',['../d8/d0c/classLightweight_1_1Async_1_1Task.html#adaf1b753e7f02865227154251a38fff1',1,'Lightweight::Async::Task']]]
 ];
