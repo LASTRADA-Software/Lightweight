@@ -275,6 +275,12 @@ SqlStatement::SqlStatement(std::nullopt_t /*nullopt*/):
 SqlStatement::~SqlStatement() noexcept
 {
     SqlLogger::GetLogger().OnFetchEnd();
+    // A statement handle belongs to its connection: closing the connection frees the DBC handle, and
+    // the driver manager invalidates every statement hanging off it at that point. Freeing this handle
+    // afterwards reads released driver memory, which segfaults under unixODBC. Skip it when the
+    // connection is already closed and the handle is therefore gone with it.
+    if (m_connection && !m_connection->NativeHandle())
+        return;
     SQLFreeHandle(SQL_HANDLE_STMT, m_hStmt);
 }
 
