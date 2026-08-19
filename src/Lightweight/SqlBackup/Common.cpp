@@ -22,46 +22,17 @@ namespace Lightweight::SqlBackup::detail
 
 bool IsTransientError(SqlErrorInfo const& error)
 {
-    std::string_view state = error.sqlState;
-
-    // Connection errors (Class 08)
-    if (state.starts_with("08"))
-        return true; // 08001, 08S01, 08006, etc.
-
-    // Timeout errors
-    if (state == "HYT00" || state == "HYT01")
-        return true;
-
-    // Transaction rollback due to deadlock/serialization (Class 40)
-    if (state.starts_with("40"))
-        return true;
-
-    // Database locked (common in SQLite)
-    if (error.message.contains("database is locked"))
-        return true;
-    if (error.message.contains("SQLITE_BUSY"))
-        return true;
-
-    return false;
+    return GenericRetryOps().IsTransient(error);
 }
 
 std::chrono::milliseconds CalculateRetryDelay(unsigned attempt, RetrySettings const& settings) noexcept
 {
-    auto delay = settings.initialDelay;
-    for (unsigned i = 0; i < attempt; ++i)
-    {
-        delay = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::duration<double, std::milli>(static_cast<double>(delay.count()) * settings.backoffMultiplier));
-    }
-    return std::min(delay, settings.maxDelay);
+    return SqlRetryPolicy { settings }.DelayFor(attempt);
 }
 
 RetryAction ClassifyRetryOutcome(SqlErrorInfo const& error, unsigned attemptsSoFar, RetrySettings const& settings)
 {
-    if (!IsTransientError(error) || attemptsSoFar >= settings.maxRetries)
-        return RetryAction::GiveUp;
-
-    return RetryAction::Retry;
+    return SqlRetryPolicy { settings }.Decide(error, SqlRetryState { .retriesSoFar = attemptsSoFar }).action;
 }
 
 bool ConnectWithRetry(SqlConnection& conn,

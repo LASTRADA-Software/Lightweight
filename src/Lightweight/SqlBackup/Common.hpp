@@ -4,6 +4,7 @@
 
 #include "../SqlConnection.hpp"
 #include "../SqlError.hpp"
+#include "../SqlRetryPolicy.hpp"
 #include "SqlBackup.hpp"
 
 #include <chrono>
@@ -42,6 +43,13 @@ struct ZipEntryInfo
 
 /// Determines if the given SQL error is a transient error that can be retried.
 ///
+/// Thin adapter over @ref Lightweight::GenericRetryOps(), which is where the classification
+/// actually lives — the backup engine no longer carries its own copy of the heuristics. The
+/// dialect-agnostic classifier is used because this helper is reached from contexts that have an
+/// error but not the connection it came from; a caller that does have a connection should build a
+/// @ref Lightweight::SqlRetryPolicy with @c SqlRetryPolicy::For() and get the sharper per-DBMS
+/// classification instead.
+///
 /// Transient errors include:
 /// - Connection errors (ODBC class 08)
 /// - Timeout errors (HYT00, HYT01)
@@ -54,6 +62,8 @@ LIGHTWEIGHT_API bool IsTransientError(SqlErrorInfo const& error);
 
 /// Calculates the delay for the given retry attempt using exponential backoff.
 ///
+/// Delegates to @ref Lightweight::SqlRetryPolicy::DelayFor().
+///
 /// @param attempt The current retry attempt number (0-based).
 /// @param settings The retry configuration.
 /// @return The delay to wait before the next retry.
@@ -61,20 +71,19 @@ LIGHTWEIGHT_API std::chrono::milliseconds CalculateRetryDelay(unsigned attempt, 
 
 /// What a retry loop should do after an attempt failed.
 ///
+/// An alias for @ref Lightweight::SqlRetryAction; the backup engine shares the library-wide
+/// vocabulary rather than defining its own.
+///
 /// @see ClassifyRetryOutcome
-enum class RetryAction : uint8_t
-{
-    /// The error is transient and the retry budget is not exhausted — wait and try again.
-    Retry,
-    /// The error is not transient, or the retry budget is spent — surface the failure.
-    GiveUp,
-};
+using RetryAction = SqlRetryAction;
 
 /// @brief Decides whether a failed attempt should be retried.
 ///
 /// Extracted from the retry loops so the policy can be exercised without provoking a real
 /// transient driver failure. This performs no I/O and touches no handle, so a test drives it by
 /// constructing a @ref SqlErrorInfo — the same approach the `IsTransientError` cases above use.
+///
+/// Delegates to @ref Lightweight::SqlRetryPolicy::Decide(), keeping the decision in one place.
 ///
 /// @param error The error reported by the failed attempt.
 /// @param attemptsSoFar How many retries have already been consumed.
@@ -100,6 +109,10 @@ LIGHTWEIGHT_API bool ConnectWithRetry(SqlConnection& conn,
 
 /// Retries a function on transient errors with exponential backoff.
 ///
+/// A thin wrapper over @ref Lightweight::SqlRetryPolicy::Execute() that routes each retry notice
+/// into @p progress. @p func is taken by value because it is invoked repeatedly — forwarding an
+/// rvalue more than once would use a moved-from callable.
+///
 /// @tparam Func The callable type.
 /// @param func The function to execute.
 /// @param settings Retry configuration.
@@ -108,35 +121,27 @@ LIGHTWEIGHT_API bool ConnectWithRetry(SqlConnection& conn,
 /// @return The result of the function.
 /// @throws SqlException if max retries exceeded or non-transient error occurs.
 template <typename Func>
-auto RetryOnTransientError(Func&& func, // NOLINT(cppcoreguidelines-missing-std-forward)
+auto RetryOnTransientError(Func func,
                            RetrySettings const& settings,
                            ProgressManager& progress,
                            std::string const& operation) -> decltype(func())
 {
-    unsigned attempts = 0;
+    auto policy = SqlRetryPolicy { settings };
 
-    while (true)
-    {
-        try
-        {
-            return func();
-        }
-        catch (SqlException const& e)
-        {
-            if (ClassifyRetryOutcome(e.info(), attempts, settings) == RetryAction::GiveUp)
-                throw;
+    policy.SetRetryObserver([&progress, &operation, &settings](SqlRetryAttempt const& attempt) {
+        progress.Update({ .state = Progress::State::Warning,
+                          .tableName = operation,
+                          .currentRows = 0,
+                          .totalRows = std::nullopt,
+                          // Formatting the error info reproduces SqlException::what() exactly, so
+                          // the wording of these progress lines is unchanged by the migration.
+                          .message = std::format("Transient error, retry {}/{}: {}",
+                                                 attempt.retryNumber,
+                                                 settings.maxRetries,
+                                                 std::format("{}", attempt.error)) });
+    });
 
-            ++attempts;
-            progress.Update(
-                { .state = Progress::State::Warning,
-                  .tableName = operation,
-                  .currentRows = 0,
-                  .totalRows = std::nullopt,
-                  .message = std::format("Transient error, retry {}/{}: {}", attempts, settings.maxRetries, e.what()) });
-
-            std::this_thread::sleep_for(CalculateRetryDelay(attempts - 1, settings));
-        }
-    }
+    return policy.Execute(std::move(func));
 }
 
 /// Returns the current date and time in ISO 8601 format.

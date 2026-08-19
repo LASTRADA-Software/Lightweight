@@ -12,6 +12,7 @@
 #include "SqlQuery.hpp"
 #include "SqlQueryFormatter.hpp"
 #include "SqlRealName.hpp"
+#include "SqlRetryPolicy.hpp"
 #include "SqlSchema.hpp"
 #include "SqlScopedTraceLogger.hpp"
 #include "SqlServerType.hpp"

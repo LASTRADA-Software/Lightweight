@@ -3,6 +3,7 @@
 
 #include "../SqlAdvisoryLock.hpp"
 #include "../SqlQueryFormatter.hpp"
+#include "../SqlRetryClassifier.hpp"
 
 #include <reflection-cpp/reflection.hpp>
 
@@ -667,6 +668,13 @@ ALTER TABLE {2} DROP COLUMN "{1}";)",
     [[nodiscard]] SqlAdvisoryLockHandler const& AdvisoryLockOps() const override
     {
         return SqliteAdvisoryLockOps();
+    }
+
+    /// SQLite reports contention through the driver's message text rather than a SQLSTATE.
+    /// Delegates to the free function for the same reason `AdvisoryLockOps()` does.
+    [[nodiscard]] SqlRetryClassifier const& RetryOps() const noexcept override
+    {
+        return SqliteRetryOps();
     }
 };
 

@@ -336,6 +336,13 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
     {
         return PostgreSqlAdvisoryLockOps();
     }
+
+    /// PostgreSQL has a dedicated SQLSTATE for every recoverable condition.
+    /// See `SQLiteQueryFormatter::AdvisoryLockOps()` for why this delegates.
+    [[nodiscard]] SqlRetryClassifier const& RetryOps() const noexcept override
+    {
+        return PostgreSqlRetryOps();
+    }
 };
 
 } // namespace Lightweight
