@@ -9,5 +9,7 @@ var searchData=
   ['hasmany_3c_20invoiceline_20_3e_6',['HasMany&lt; Invoiceline &gt;',['../da/df4/classLightweight_1_1HasMany.html',1,'Lightweight']]],
   ['hasmany_3c_20track_20_3e_7',['HasMany&lt; Track &gt;',['../da/df4/classLightweight_1_1HasMany.html',1,'Lightweight']]],
   ['hasmanythrough_8',['HasManyThrough',['../de/d73/classLightweight_1_1HasManyThrough.html',1,'Lightweight']]],
-  ['hasonethrough_9',['HasOneThrough',['../df/d63/classLightweight_1_1HasOneThrough.html',1,'Lightweight']]]
+  ['hasmanythrough_3c_20playlist_2c_20playlisttrack_20_3e_9',['HasManyThrough&lt; Playlist, Playlisttrack &gt;',['../de/d73/classLightweight_1_1HasManyThrough.html',1,'Lightweight']]],
+  ['hasmanythrough_3c_20track_2c_20playlisttrack_20_3e_10',['HasManyThrough&lt; Track, Playlisttrack &gt;',['../de/d73/classLightweight_1_1HasManyThrough.html',1,'Lightweight']]],
+  ['hasonethrough_11',['HasOneThrough',['../df/d63/classLightweight_1_1HasOneThrough.html',1,'Lightweight']]]
 ];

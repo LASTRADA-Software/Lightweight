@@ -104,11 +104,10 @@ struct Lightweight::Description&lt; Record &gt;</div><p>Customization point prov
 <p>A specialization must provide:</p><ul>
 <li><code>static constexpr std::size_t FieldCount;</code> — number of members.</li>
 <li><code>using Members = <a class="el" href="../../d2/d94/structLightweight_1_1RecordMemberList.html" title="Compile-time list of a record&#39;s members, stored as pointers-to-member.">RecordMemberList</a>&lt;&amp;Record::a, &amp;Record::b, ...&gt;;</code> — the members, in declaration order.</li>
-<li><code>static constexpr std::array&lt;std::string_view, FieldCount&gt; FieldNames;</code> — the resolved SQL column name for each field (i.e. the value <code>FieldNameAt</code> would otherwise compute).</li>
+<li><code>static constexpr std::array&lt;std::string_view, FieldCount&gt; FieldNames;</code> — the resolved SQL column name for each field (i.e. the value <code>FieldNameAt</code> would otherwise compute). </li>
 </ul>
-<p><code>Members</code> must list <em>every</em> non-static data member in declaration order, relation members (<code><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html" title="This HasMany&lt;OtherRecord&gt; represents a simple one-to-many relationship between two records.">HasMany</a></code>, <code><a class="el" href="../../de/d73/classLightweight_1_1HasManyThrough.html" title="This API represents a many-to-many relationship between two records through a third record.">HasManyThrough</a></code>, <code><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html" title="Represents a one-to-one relationship through a join table.">HasOneThrough</a></code>) included — it stands in for reflection, so omitting one hides it from <code>EnumerateRecordMembers</code> and relation auto-loading silently never runs. Consumers that want only the columns filter by the <code>RecordColumnMember</code> concept (see <code>RecordColumnCount</code>), never by index. A relation has no SQL column, so its <code>FieldNames</code> slot carries its C++ member name, which is what reflection reports there. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00130">130</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00123">123</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
 </div><hr/>The documentation for this struct was generated from the following file:<ul>
 <li>Lightweight/<a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a></li>
 </ul>
