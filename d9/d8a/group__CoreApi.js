@@ -181,10 +181,7 @@ var group__CoreApi =
       [ "GetColumn", "d8/d63/classLightweight_1_1SqlResultCursor.html#a620b66e7d7ddbe332d8c824ca5a46759", null ],
       [ "GetColumn", "d8/d63/classLightweight_1_1SqlResultCursor.html#aab902bcb47bbc052de0f6b7f73c704d6", null ],
       [ "GetNullableColumn", "d8/d63/classLightweight_1_1SqlResultCursor.html#a9584b83387781b98d5251839cf2c581d", null ],
-      [ "GetColumnOr", "d8/d63/classLightweight_1_1SqlResultCursor.html#ab11374ccc4a6875c1ecf7fd8cc928660", null ],
-      [ "GetColumn", "d8/d63/classLightweight_1_1SqlResultCursor.html#a08b25c66bec4d15ab028d75d3eaa52a8", null ],
-      [ "GetNullableColumn", "d8/d63/classLightweight_1_1SqlResultCursor.html#a951a43777480d379682c76014b0d1be7", null ],
-      [ "GetColumnOr", "d8/d63/classLightweight_1_1SqlResultCursor.html#a8f14d1080013686d3bfb8a71433785eb", null ]
+      [ "GetColumnOr", "d8/d63/classLightweight_1_1SqlResultCursor.html#ab11374ccc4a6875c1ecf7fd8cc928660", null ]
     ] ],
     [ "Lightweight::SqlTransactionException", "d5/d19/classLightweight_1_1SqlTransactionException.html", [
       [ "SqlTransactionException", "d5/d19/classLightweight_1_1SqlTransactionException.html#a14af02cd69dee3168a5cc92a88e8b38e", null ]

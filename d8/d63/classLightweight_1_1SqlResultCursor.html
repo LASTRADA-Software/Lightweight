@@ -157,23 +157,11 @@ requires (((std::is_class_v&lt;Records&gt; &amp;&amp; std::is_aggregate_v&lt;Rec
 <tr class="memitem:ab11374ccc4a6875c1ecf7fd8cc928660" id="r_ab11374ccc4a6875c1ecf7fd8cc928660"><td class="memTemplParams" colspan="2">template&lt;SqlGetColumnNativeType T&gt; </td></tr>
 <tr class="memitem:ab11374ccc4a6875c1ecf7fd8cc928660"><td class="memTemplItemLeft" align="right" valign="top">T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html#ab11374ccc4a6875c1ecf7fd8cc928660">GetColumnOr</a> (SQLUSMALLINT column, T &amp;&amp;defaultValue) const</td></tr>
 <tr class="separator:ab11374ccc4a6875c1ecf7fd8cc928660"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a08b25c66bec4d15ab028d75d3eaa52a8" id="r_a08b25c66bec4d15ab028d75d3eaa52a8"><td class="memTemplParams" colspan="2">template&lt;SqlGetColumnNativeType T&gt; </td></tr>
-<tr class="memitem:a08b25c66bec4d15ab028d75d3eaa52a8"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html#a08b25c66bec4d15ab028d75d3eaa52a8">GetColumn</a> (std::string_view name) const</td></tr>
-<tr class="memdesc:a08b25c66bec4d15ab028d75d3eaa52a8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the value of the named column for the currently selected row.  <br /></td></tr>
-<tr class="separator:a08b25c66bec4d15ab028d75d3eaa52a8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a951a43777480d379682c76014b0d1be7" id="r_a951a43777480d379682c76014b0d1be7"><td class="memTemplParams" colspan="2">template&lt;SqlGetColumnNativeType T&gt; </td></tr>
-<tr class="memitem:a951a43777480d379682c76014b0d1be7"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE std::optional&lt; T &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html#a951a43777480d379682c76014b0d1be7">GetNullableColumn</a> (std::string_view name) const</td></tr>
-<tr class="memdesc:a951a43777480d379682c76014b0d1be7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the value of the named column, or <code>std::nullopt</code> if it is NULL.  <br /></td></tr>
-<tr class="separator:a951a43777480d379682c76014b0d1be7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8f14d1080013686d3bfb8a71433785eb" id="r_a8f14d1080013686d3bfb8a71433785eb"><td class="memTemplParams" colspan="2">template&lt;SqlGetColumnNativeType T&gt; </td></tr>
-<tr class="memitem:a8f14d1080013686d3bfb8a71433785eb"><td class="memTemplItemLeft" align="right" valign="top">T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html#a8f14d1080013686d3bfb8a71433785eb">GetColumnOr</a> (std::string_view name, T &amp;&amp;defaultValue) const</td></tr>
-<tr class="memdesc:a8f14d1080013686d3bfb8a71433785eb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the value of the named column, or <code>defaultValue</code> if it is NULL.  <br /></td></tr>
-<tr class="separator:a8f14d1080013686d3bfb8a71433785eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>API for reading an SQL query result set. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00507">507</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00467">467</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a33db70d71e35b772223c734f900af966" name="a33db70d71e35b772223c734f900af966"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a33db70d71e35b772223c734f900af966">&#9670;&#160;</a></span>SqlResultCursor() <span class="overload">[1/2]</span></h2>
@@ -201,7 +189,7 @@ requires (((std::is_class_v&lt;Records&gt; &amp;&amp; std::is_aggregate_v&lt;Rec
 
 <p>Constructs a result cursor for the given SQL statement. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00511">511</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00471">471</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -231,7 +219,7 @@ requires (((std::is_class_v&lt;Records&gt; &amp;&amp; std::is_aggregate_v&lt;Rec
 
 <p>Move constructor. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00521">521</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00481">481</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -258,7 +246,7 @@ requires (((std::is_class_v&lt;Records&gt; &amp;&amp; std::is_aggregate_v&lt;Rec
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00538">538</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00498">498</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -289,7 +277,7 @@ requires (((std::is_class_v&lt;Records&gt; &amp;&amp; std::is_aggregate_v&lt;Rec
 
 <p>Move assignment operator. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00528">528</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00488">488</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -318,7 +306,7 @@ requires (((std::is_class_v&lt;Records&gt; &amp;&amp; std::is_aggregate_v&lt;Rec
 
 <p>Retrieves the number of rows affected by the last query. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00548">548</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00508">508</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02154">Lightweight::DataMapper::Delete()</a>.</p>
 
@@ -349,7 +337,7 @@ requires (((std::is_class_v&lt;Records&gt; &amp;&amp; std::is_aggregate_v&lt;Rec
 
 <p>Retrieves the number of columns affected by the last query. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00554">554</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00514">514</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02306">Lightweight::DataMapper::Query()</a>.</p>
 
@@ -383,7 +371,7 @@ template&lt;SqlOutputColumnBinder... Args&gt; </div>
 <p>Binds the given arguments to the prepared statement to store the fetched data to.</p>
 <p>The statement must be prepared before calling this function. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00563">563</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00523">523</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -425,7 +413,7 @@ template&lt;SqlOutputColumnBinder T&gt; </div>
 
 <p>Binds a single output column at the given index to store fetched data. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00570">570</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00530">530</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -454,7 +442,7 @@ template&lt;SqlOutputColumnBinder T&gt; </div>
 
 <p>Fetches the next row of the result set. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00576">576</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00536">536</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02995">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02306">Lightweight::DataMapper::Query()</a>.</p>
 
@@ -486,7 +474,7 @@ template&lt;SqlOutputColumnBinder T&gt; </div>
 
 <p>Attempts to fetch the next row, returning an error info on failure instead of throwing. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00582">582</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00542">542</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -519,7 +507,7 @@ requires (((std::is_class_v&lt;Records&gt; &amp;&amp; std::is_aggregate_v&lt;Rec
 
 <p>Binds the given records to the prepared statement to store the fetched data to. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00591">591</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00551">551</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -575,12 +563,12 @@ template&lt;typename Record , typename... ColumnAccessors&gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00603">603</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00563">563</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
 <a id="a620b66e7d7ddbe332d8c824ca5a46759" name="a620b66e7d7ddbe332d8c824ca5a46759"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a620b66e7d7ddbe332d8c824ca5a46759">&#9670;&#160;</a></span>GetColumn() <span class="overload">[1/3]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a620b66e7d7ddbe332d8c824ca5a46759">&#9670;&#160;</a></span>GetColumn() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -617,14 +605,14 @@ template&lt;SqlGetColumnNativeType T&gt; </div>
 <p>Retrieves the value of the column at the given index for the currently selected row.</p>
 <p>Returns true if the value is not NULL, false otherwise. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00614">614</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00574">574</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02995">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02306">Lightweight::DataMapper::Query()</a>.</p>
 
 </div>
 </div>
 <a id="aab902bcb47bbc052de0f6b7f73c704d6" name="aab902bcb47bbc052de0f6b7f73c704d6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aab902bcb47bbc052de0f6b7f73c704d6">&#9670;&#160;</a></span>GetColumn() <span class="overload">[2/3]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#aab902bcb47bbc052de0f6b7f73c704d6">&#9670;&#160;</a></span>GetColumn() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -651,12 +639,12 @@ template&lt;SqlGetColumnNativeType T&gt; </div>
 
 <p>Retrieves the value of the column at the given index for the currently selected row. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00621">621</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00581">581</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
 <a id="a9584b83387781b98d5251839cf2c581d" name="a9584b83387781b98d5251839cf2c581d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9584b83387781b98d5251839cf2c581d">&#9670;&#160;</a></span>GetNullableColumn() <span class="overload">[1/2]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a9584b83387781b98d5251839cf2c581d">&#9670;&#160;</a></span>GetNullableColumn()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -683,12 +671,12 @@ template&lt;SqlGetColumnNativeType T&gt; </div>
 <p>Retrieves the value of the column at the given index for the currently selected row.</p>
 <p>If the value is NULL, std::nullopt is returned. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00630">630</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00590">590</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
 <a id="ab11374ccc4a6875c1ecf7fd8cc928660" name="ab11374ccc4a6875c1ecf7fd8cc928660"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab11374ccc4a6875c1ecf7fd8cc928660">&#9670;&#160;</a></span>GetColumnOr() <span class="overload">[1/2]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#ab11374ccc4a6875c1ecf7fd8cc928660">&#9670;&#160;</a></span>GetColumnOr()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -725,157 +713,7 @@ template&lt;SqlGetColumnNativeType T&gt; </div>
 <p>Retrieves the value of the column at the given index for the currently selected row.</p>
 <p>If the value is NULL, the given <code>defaultValue</code> is returned. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00639">639</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
-
-</div>
-</div>
-<a id="a08b25c66bec4d15ab028d75d3eaa52a8" name="a08b25c66bec4d15ab028d75d3eaa52a8"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a08b25c66bec4d15ab028d75d3eaa52a8">&#9670;&#160;</a></span>GetColumn() <span class="overload">[3/3]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;SqlGetColumnNativeType T&gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE T Lightweight::SqlResultCursor::GetColumn </td>
-          <td>(</td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>name</em></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Retrieves the value of the named column for the currently selected row. </p>
-<p>The name is the one spelled in the query builder that composed this query — a bare column name for <code><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a></code>("x"), the qualified <code>"table.column"</code> for <code><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a></code>({"table", "x"}), or the alias for an aliased projection. Only builder-composed queries carry a mapping.</p>
-<dl class="section note"><dt>Note</dt><dd>Reads must still ascend in column order: the SQL Server driver rejects out-of-order <code>SQLGetData</code> with SQLSTATE 07009, and addressing columns by name makes it easy to reorder them inadvertently.</dd></dl>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">name</td><td>The column name as spelled in the query builder. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>The column value converted to <code>T</code>. </dd></dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">std::invalid_argument</td><td>If no mapping is available, or <code>name</code> is unknown or ambiguous. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00658">658</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
-
-</div>
-</div>
-<a id="a951a43777480d379682c76014b0d1be7" name="a951a43777480d379682c76014b0d1be7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a951a43777480d379682c76014b0d1be7">&#9670;&#160;</a></span>GetNullableColumn() <span class="overload">[2/2]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;SqlGetColumnNativeType T&gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE std::optional&lt; T &gt; Lightweight::SqlResultCursor::GetNullableColumn </td>
-          <td>(</td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>name</em></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Retrieves the value of the named column, or <code>std::nullopt</code> if it is NULL. </p>
-<p>The name is the one spelled in the query builder that composed this query; only builder-composed queries carry a mapping. Reads must ascend in column order — see the name-taking <code>GetColumn</code>.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">name</td><td>The column name as spelled in the query builder. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>The column value converted to <code>T</code>, or <code>std::nullopt</code> if the column is NULL. </dd></dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">std::invalid_argument</td><td>If no mapping is available, or <code>name</code> is unknown or ambiguous. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00672">672</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
-
-</div>
-</div>
-<a id="a8f14d1080013686d3bfb8a71433785eb" name="a8f14d1080013686d3bfb8a71433785eb"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8f14d1080013686d3bfb8a71433785eb">&#9670;&#160;</a></span>GetColumnOr() <span class="overload">[2/2]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;SqlGetColumnNativeType T&gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">T Lightweight::SqlResultCursor::GetColumnOr </td>
-          <td>(</td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>name</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">T &amp;&amp;&#160;</td>
-          <td class="paramname"><em>defaultValue</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Retrieves the value of the named column, or <code>defaultValue</code> if it is NULL. </p>
-<p>The name is the one spelled in the query builder that composed this query; only builder-composed queries carry a mapping. Reads must ascend in column order — see the name-taking <code>GetColumn</code>.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">name</td><td>The column name as spelled in the query builder. </td></tr>
-    <tr><td class="paramname">defaultValue</td><td>The value to return when the column is NULL. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>The column value converted to <code>T</code>, or <code>defaultValue</code> if the column is NULL. </dd></dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">std::invalid_argument</td><td>If no mapping is available, or <code>name</code> is unknown or ambiguous. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00687">687</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00599">599</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>

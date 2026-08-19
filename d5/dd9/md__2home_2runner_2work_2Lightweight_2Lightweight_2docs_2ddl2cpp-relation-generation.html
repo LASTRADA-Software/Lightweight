@@ -146,6 +146,9 @@ What this schema needs that is not generated</h1>
 <div class="line">tenant_customer (customer_id -&gt; customer, tenant_id -&gt; tenant)</div>
 </div><!-- fragment --><p>(Shapes reproduced with neutral names: two columns, each a single-column foreign key to a distinct table, composite primary key over exactly those two.)</p>
 <p>Each should yield a <code>HasManyThrough</code> on both referenced tables. Because both foreign keys of the join record point at <em>different</em> tables here, the selectors are only needed when a join table points twice at the same target.</p>
+<blockquote class="doxtable">
+<p>&zwj;<b>Not yet generated for the composite-key shape.</b> Of the 159 join-table candidates, the 84 whose primary key <em>is</em> their two foreign keys are skipped by rule 6 below: those columns are emitted as plain <code>Field</code>s rather than <code>BelongsTo</code>, and a through-relation has no other way to resolve its two ends, so generating one yields a record that does not compile. The remaining 75 — join tables with a key of their own — are generated as described here. Lifting this needs <code>BelongsTo</code> to support being a primary key. </p>
+</blockquote>
 <h2><a class="anchor" id="autotoc_md3-hasonethrough--one-to-one"></a>
 3. &lt;tt&gt;HasOneThrough&lt;/tt&gt; / one-to-one</h2>
 <p>24 single-column foreign keys sit under a single-column unique index, which makes the relation one-to-one rather than one-to-many. Those should be a scalar relation, not a <code>HasMany</code>.</p>
@@ -172,6 +175,13 @@ Generation rules</h1>
 <li>**<code>HasOneThrough</code>** in place of <code>HasManyThrough</code>, on a given owner's side, when the join table's foreign key back to <em>that owner</em> is covered by a single-column unique index — meaning that owner can appear in at most one join row, hence reach at most one record on the other side. The other side keeps whatever <code>HasManyThrough</code>/<code>HasOneThrough</code> its own foreign key's uniqueness implies, independently.</li>
 <li>**<code>HasMany</code>** on the referenced side of every remaining foreign key, i.e. one that is not part of a join table already covered by rule 2 or 3.</li>
 <li><b>Scalar rather than collection</b> when the child's foreign key is itself covered by a single-column unique index: the relation is one-to-one.</li>
+<li><p class="startli"><b>No relation at all</b> whenever the child's foreign key column does <em>not</em> become a <code>BelongsTo</code> (see rule 1). Every inverse relation — <code>HasMany</code>, <code>HasOne</code> and both through-relations — resolves its other end through exactly that <code>BelongsTo</code>, so generating one anyway produces a record that does not compile. The column stays a plain <code>Field</code>, and hence no relation is emitted, when:</p><ul>
+<li>it is also part of the child's own primary key. This rules out the classic composite-key join table, whose primary key <em>is</em> its two foreign keys; a join table carrying a key of its own is unaffected and still yields rule 2 or 3. Supporting that shape needs <code>BelongsTo</code> to be usable as a primary key, which it is not today (<code>BelongsTo::IsPrimaryKey</code> is hard-coded <code>false</code>).</li>
+<li>the foreign key is composite (already true before, and unchanged).</li>
+<li>it is a <em>self</em>-reference that cannot name its target: a pointer-to-member may only name a member the compiler has already seen, so a self-referencing foreign key declared before the primary key it points at — or one pointing at a merely <code>UNIQUE</code> column rather than the primary key — falls back to a plain <code>Field</code> too.</li>
+</ul>
+<p class="startli">In all of these the generator emits nothing rather than something that cannot be built.</p>
+</li>
 </ol>
 <p>A selector (<code>SqlRealName { "&lt;column&gt;" }</code>) is emitted whenever the referenced table is reachable from the same child table through more than one foreign key, which is what makes the ambiguous pairs above compile.</p>
 <p>Because a relation member has to name the <em>other</em> record type, and both records must be complete at that point, the generator emits relations only where its existing dependency ordering already guarantees a declaration order — the same constraint that governs <code>BelongsTo</code> today, and the reason a self-referential foreign key falls back to a plain field. </p>

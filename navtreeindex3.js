@@ -1,6 +1,5 @@
 var NAVTREEINDEX3 =
 {
-"d7/d13/structLightweight_1_1SqlRealName.html#ac06cf19889d9c829b639fe1da6c44048":[19,0,0,68,4],
 "d7/d13/structLightweight_1_1SqlRealName.html#ad41c47ba596b9e2a647edb777f959662":[19,0,0,68,7],
 "d7/d13/structLightweight_1_1SqlRealName.html#af2193aa387912e35dc9314874fd15ad4":[19,0,0,68,6],
 "d7/d13/structLightweight_1_1SqlRealName.html#af23090d1ec3bacb89b9aa4510eb9d42d":[19,0,0,68,11],
@@ -48,7 +47,7 @@ var NAVTREEINDEX3 =
 "d7/d53/structLightweight_1_1SqlTime.html#aeac9fe591411b84af0285ea3f4152892":[17,1,10,6],
 "d7/d6d/ChunkPlanner_8hpp_source.html":[20,0,1,4,2],
 "d7/d76/SyncWait_8hpp_source.html":[20,0,1,0,11],
-"d7/d90/conceptLightweight_1_1SqlRowBindableColumn.html":[18,0,10],
+"d7/d90/conceptLightweight_1_1SqlRowBindableColumn.html":[18,0,9],
 "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html":[4],
 "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#bulk-insert":[4,3,0],
 "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#count-and-aggregates":[4,1,11],
@@ -185,7 +184,6 @@ var NAVTREEINDEX3 =
 "d8/d5b/structLightweight_1_1SqlErrorInfo.html#a8a612b03568fae3800296f774e91ce16":[17,6,3,1],
 "d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html":[17,3,16],
 "d8/d63/classLightweight_1_1SqlResultCursor.html":[17,6,9],
-"d8/d63/classLightweight_1_1SqlResultCursor.html#a08b25c66bec4d15ab028d75d3eaa52a8":[17,6,9,15],
 "d8/d63/classLightweight_1_1SqlResultCursor.html#a2bb8b99ccecdb98d49a349c3fbff18f7":[17,6,9,9],
 "d8/d63/classLightweight_1_1SqlResultCursor.html#a2d160238db489271e7d4244109242b7c":[17,6,9,1],
 "d8/d63/classLightweight_1_1SqlResultCursor.html#a33db70d71e35b772223c734f900af966":[17,6,9,0],
@@ -193,8 +191,6 @@ var NAVTREEINDEX3 =
 "d8/d63/classLightweight_1_1SqlResultCursor.html#a5ea1e9b924db4690cd53663373b6a61b":[17,6,9,2],
 "d8/d63/classLightweight_1_1SqlResultCursor.html#a620b66e7d7ddbe332d8c824ca5a46759":[17,6,9,11],
 "d8/d63/classLightweight_1_1SqlResultCursor.html#a8de60e0c6c3bcd3346c3a6df06cfaa3b":[17,6,9,5],
-"d8/d63/classLightweight_1_1SqlResultCursor.html#a8f14d1080013686d3bfb8a71433785eb":[17,6,9,17],
-"d8/d63/classLightweight_1_1SqlResultCursor.html#a951a43777480d379682c76014b0d1be7":[17,6,9,16],
 "d8/d63/classLightweight_1_1SqlResultCursor.html#a9584b83387781b98d5251839cf2c581d":[17,6,9,13],
 "d8/d63/classLightweight_1_1SqlResultCursor.html#aab902bcb47bbc052de0f6b7f73c704d6":[17,6,9,12],
 "d8/d63/classLightweight_1_1SqlResultCursor.html#ab11374ccc4a6875c1ecf7fd8cc928660":[17,6,9,14],
@@ -249,5 +245,9 @@ var NAVTREEINDEX3 =
 "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a94bdf044146a5d2d0fdafc1b88c9df0b":[17,8,7,11],
 "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a9c3c1b5cb5b8da71933fe5cab6b26d26":[17,8,7,0],
 "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#aa92bb11c246d711c0aa89906bb67a74a":[17,8,7,5],
-"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#aae78f7a3b9c5ab16e1c530458a1b9d70":[17,8,7,19]
+"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#aae78f7a3b9c5ab16e1c530458a1b9d70":[17,8,7,19],
+"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#ab383612d1c31747f630dfb1f8608ed0f":[17,8,7,6],
+"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#acb8f4c9ca3abc544b7c967a07163ae1c":[17,8,7,16],
+"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#ad0156fe9ef9aed1de5af0376c337bb09":[17,8,7,9],
+"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#ae28b8f58e51308f801acc79b67095643":[17,8,7,10]
 };

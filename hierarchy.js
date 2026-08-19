@@ -36,8 +36,6 @@ var hierarchy =
     [ "Lightweight::HasMany< Invoice >", "da/df4/classLightweight_1_1HasMany.html", null ],
     [ "Lightweight::HasMany< Invoiceline >", "da/df4/classLightweight_1_1HasMany.html", null ],
     [ "Lightweight::HasMany< Track >", "da/df4/classLightweight_1_1HasMany.html", null ],
-    [ "Lightweight::HasManyThrough< Playlist, Playlisttrack >", "de/d73/classLightweight_1_1HasManyThrough.html", null ],
-    [ "Lightweight::HasManyThrough< Track, Playlisttrack >", "de/d73/classLightweight_1_1HasManyThrough.html", null ],
     [ "Lightweight::AliasedTableName", "d1/d0e/structLightweight_1_1AliasedTableName.html", null ],
     [ "Lightweight::Async::AsyncSqlTransaction", "d9/d0c/classLightweight_1_1Async_1_1AsyncSqlTransaction.html", null ],
     [ "Lightweight::Async::IAsyncBackend", "dd/db3/classLightweight_1_1Async_1_1IAsyncBackend.html", [
