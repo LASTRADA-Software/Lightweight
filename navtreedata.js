@@ -338,10 +338,11 @@ var NAVTREEINDEX =
 "d2/dd0/structLightweight_1_1Field.html#a757ce7d3d9533493051cd9b402482b41",
 "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#a972ef8522f91fce43fd223357b709bae",
 "d7/d13/structLightweight_1_1SqlRealName.html#ad41c47ba596b9e2a647edb777f959662",
-"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#ae48b1defb3a1271985038dde52202726",
-"da/da8/classLightweight_1_1SqlConnection.html#ac29fe83ca60448002d451dbd707be955",
-"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#afd21e23e3c24884cba9ef3b76d174e82",
-"de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#ab3f4130283fddc423a1911a3962e739c"
+"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#ad0156fe9ef9aed1de5af0376c337bb09",
+"da/da8/classLightweight_1_1SqlConnection.html#ab5a9e94571f9e9296b2ce65036f75184",
+"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a0428d0b2e06f4760a9bc3c31cff19327",
+"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#sqlnumericprecision-scale-precision-limits",
+"pages.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

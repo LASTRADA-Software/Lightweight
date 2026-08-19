@@ -17,7 +17,7 @@ var searchData=
   ['inverseselector_14',['InverseSelector',['../da/df4/classLightweight_1_1HasMany.html#acf8b94ea7bc852c0efda2938c51de430',1,'Lightweight::HasMany']]],
   ['isautoassignprimarykey_15',['IsAutoAssignPrimaryKey',['../d2/dd0/structLightweight_1_1Field.html#ad1ae892c7681d1d9de767871ca93e484',1,'Lightweight::Field']]],
   ['isautoincrement_16',['isAutoIncrement',['../d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#afc7a18ace2877b1d1c791062dbdd91e8',1,'Lightweight::SqlSchema::Column']]],
-  ['isautoincrementprimarykey_17',['isautoincrementprimarykey',['../d2/dd0/structLightweight_1_1Field.html#aff726016ae5bc77803f91ebdfc1b4921',1,'Lightweight::Field::IsAutoIncrementPrimaryKey'],['../d0/df7/classLightweight_1_1BelongsTo.html#a0acf3c5ded9575b9ff14df67d61f36b6',1,'Lightweight::BelongsTo::IsAutoIncrementPrimaryKey']]],
+  ['isautoincrementprimarykey_17',['isautoincrementprimarykey',['../d0/df7/classLightweight_1_1BelongsTo.html#a0acf3c5ded9575b9ff14df67d61f36b6',1,'Lightweight::BelongsTo::IsAutoIncrementPrimaryKey'],['../d2/dd0/structLightweight_1_1Field.html#aff726016ae5bc77803f91ebdfc1b4921',1,'Lightweight::Field::IsAutoIncrementPrimaryKey']]],
   ['isbinarycolumn_18',['isBinaryColumn',['../d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ad0650ea29db5c33bcebf5af75b9be9d8',1,'Lightweight::SqlBackup::TableInfo']]],
   ['iscompositeforeignkey_19',['IsCompositeForeignKey',['../d7/d2f/group__DataMapper.html#ga80a09b9adc39c867b613e8c58e6985fd',1,'Lightweight']]],
   ['isforeignkey_20',['isForeignKey',['../d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a1e358b0f28cd16323fa55967128bbcce',1,'Lightweight::SqlSchema::Column']]],
@@ -26,5 +26,6 @@ var searchData=
   ['isoptional_23',['isoptional',['../d0/df7/classLightweight_1_1BelongsTo.html#ae99255eb66dea97a5c79c27d97691650',1,'Lightweight::BelongsTo::IsOptional'],['../d2/dd0/structLightweight_1_1Field.html#aca64dd154091663b93852e0589c95630',1,'Lightweight::Field::IsOptional']]],
   ['isprimarykey_24',['isprimarykey',['../d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a5e6dfa8e5cd698a3f79634d735be8428',1,'Lightweight::SqlSchema::Column::isPrimaryKey'],['../d0/df7/classLightweight_1_1BelongsTo.html#a521719bc0bb4200c39ecf0559bf1b967',1,'Lightweight::BelongsTo::IsPrimaryKey'],['../d2/dd0/structLightweight_1_1Field.html#a844764f259e40daa34fbacd27ef8e4a9',1,'Lightweight::Field::IsPrimaryKey']]],
   ['isprimarykeyvalue_25',['IsPrimaryKeyValue',['../d2/dd0/structLightweight_1_1Field.html#aa8dfdb054c58984a4815599643d8e0dd',1,'Lightweight::Field']]],
-  ['isunique_26',['isunique',['../d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html#afc6863e451eb5828a2c241e56743c600',1,'Lightweight::SqlSchema::IndexDefinition::isUnique'],['../d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#ad3c7ea6282f46828e0e6ba653fd2aafe',1,'Lightweight::SqlSchema::Column::isUnique']]]
+  ['isthrough_26',['IsThrough',['../d7/d2f/group__DataMapper.html#ga518337f590f7d557558dd7cd74c49a9e',1,'Lightweight']]],
+  ['isunique_27',['isunique',['../d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html#afc6863e451eb5828a2c241e56743c600',1,'Lightweight::SqlSchema::IndexDefinition::isUnique'],['../d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#ad3c7ea6282f46828e0e6ba653fd2aafe',1,'Lightweight::SqlSchema::Column::isUnique']]]
 ];

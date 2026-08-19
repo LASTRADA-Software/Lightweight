@@ -139,6 +139,7 @@ var annotated_dup =
       [ "SqlWhereClauseBuilder", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder" ],
       [ "SqlWildcardType", "d2/d74/structLightweight_1_1SqlWildcardType.html", null ],
       [ "ThreadSafeQueue", "d4/d9e/classLightweight_1_1ThreadSafeQueue.html", "d4/d9e/classLightweight_1_1ThreadSafeQueue" ],
+      [ "Through", "dd/def/structLightweight_1_1Through.html", "dd/def/structLightweight_1_1Through" ],
       [ "UniqueNameBuilder", "da/d15/classLightweight_1_1UniqueNameBuilder.html", "da/d15/classLightweight_1_1UniqueNameBuilder" ]
     ] ]
 ];
