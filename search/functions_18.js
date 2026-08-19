@@ -8,10 +8,11 @@ var searchData=
   ['_7esqldynamicbinary_5',['~SqlDynamicBinary',['../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a9c7fdd77f1342a6808fa7d02b77ecf92',1,'Lightweight::SqlDynamicBinary']]],
   ['_7esqldynamicstring_6',['~SqlDynamicString',['../d7/d9a/classLightweight_1_1SqlDynamicString.html#aaa452af46fd8e3a02f29a71971c6d347',1,'Lightweight::SqlDynamicString']]],
   ['_7esqlfixedstring_7',['~SqlFixedString',['../de/dae/classLightweight_1_1SqlFixedString.html#a612a6159015bf954929f7e3eb6b3a904',1,'Lightweight::SqlFixedString']]],
-  ['_7esqlscopedlock_8',['~SqlScopedLock',['../d3/de6/classLightweight_1_1SqlScopedLock.html#acf8f751e119821245240d8751ea22051',1,'Lightweight::SqlScopedLock']]],
-  ['_7esqltransaction_9',['~SqlTransaction',['../d0/ddc/classLightweight_1_1SqlTransaction.html#a08cd992cb104b7a6f40e71c6956d2c93',1,'Lightweight::SqlTransaction']]],
-  ['_7esqlvariant_10',['~SqlVariant',['../df/d3f/structLightweight_1_1SqlVariant.html#adf3c49cf96b4f0dca466e6a2d56088ff',1,'Lightweight::SqlVariant']]],
-  ['_7ethreadpoolexecutor_11',['~ThreadPoolExecutor',['../d4/d1e/classLightweight_1_1Async_1_1ThreadPoolExecutor.html#a85b1254219ed5790b81ba06ecef7fe0b',1,'Lightweight::Async::ThreadPoolExecutor']]],
-  ['_7eziparchive_12',['~ZipArchive',['../d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#a81667cd2c45506e0b1e2b828f9008812',1,'Lightweight::Zip::ZipArchive']]],
-  ['_7ezipentry_13',['~ZipEntry',['../d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a2299e18f28f3ace1f4f16512a58dcc7d',1,'Lightweight::Zip::ZipEntry']]]
+  ['_7esqlpreparedstatementcache_8',['~SqlPreparedStatementCache',['../d3/d0f/classLightweight_1_1SqlPreparedStatementCache.html#afdd65005858ffd5fa6dee477c1bbbee5',1,'Lightweight::SqlPreparedStatementCache']]],
+  ['_7esqlscopedlock_9',['~SqlScopedLock',['../d3/de6/classLightweight_1_1SqlScopedLock.html#acf8f751e119821245240d8751ea22051',1,'Lightweight::SqlScopedLock']]],
+  ['_7esqltransaction_10',['~SqlTransaction',['../d0/ddc/classLightweight_1_1SqlTransaction.html#a08cd992cb104b7a6f40e71c6956d2c93',1,'Lightweight::SqlTransaction']]],
+  ['_7esqlvariant_11',['~SqlVariant',['../df/d3f/structLightweight_1_1SqlVariant.html#adf3c49cf96b4f0dca466e6a2d56088ff',1,'Lightweight::SqlVariant']]],
+  ['_7ethreadpoolexecutor_12',['~ThreadPoolExecutor',['../d4/d1e/classLightweight_1_1Async_1_1ThreadPoolExecutor.html#a85b1254219ed5790b81ba06ecef7fe0b',1,'Lightweight::Async::ThreadPoolExecutor']]],
+  ['_7eziparchive_13',['~ZipArchive',['../d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#a81667cd2c45506e0b1e2b828f9008812',1,'Lightweight::Zip::ZipArchive']]],
+  ['_7ezipentry_14',['~ZipEntry',['../d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a2299e18f28f3ace1f4f16512a58dcc7d',1,'Lightweight::Zip::ZipEntry']]]
 ];
