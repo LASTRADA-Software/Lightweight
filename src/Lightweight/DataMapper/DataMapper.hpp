@@ -3092,10 +3092,9 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
         {
             using ReferencedRecord = FieldType::ReferencedRecord;
             using ThroughRecord = FieldType::ThroughRecord;
-            FieldType& hasOneThrough = field;
             // Capture the PK value by value to avoid dangling references if the record is moved.
             auto pkValue = GetPrimaryKeyField(record);
-            hasOneThrough.SetAutoLoader(typename FieldType::Loader {
+            field.SetAutoLoader(typename FieldType::Loader {
                 .loadReference = [pkValue]() -> std::shared_ptr<ReferencedRecord> {
                     DataMapper& dm = DataMapper::AcquireThreadLocal();
                     return dm.LoadHasOneThroughByPK<ReferencedRecord,
@@ -3110,10 +3109,9 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
         {
             using ReferencedRecord = FieldType::ReferencedRecord;
             using ThroughRecord = FieldType::ThroughRecord;
-            FieldType& hasManyThrough = field;
             // Capture the PK value by value to avoid dangling references if the record is moved.
             auto pkValue = GetPrimaryKeyField(record);
-            hasManyThrough.SetAutoLoader(typename FieldType::Loader {
+            field.SetAutoLoader(typename FieldType::Loader {
                 .count = [pkValue]() -> size_t {
                     // Load result for Count()
                     size_t count = 0;

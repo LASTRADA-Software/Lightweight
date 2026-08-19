@@ -22,6 +22,7 @@ namespace Lightweight
 ///
 /// @code
 /// struct Account;
+/// struct AccountHistory;
 /// struct Supplier
 /// {
 ///     Field<int, PrimaryKey::AutoAssign> id;

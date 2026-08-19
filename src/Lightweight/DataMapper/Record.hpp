@@ -183,18 +183,29 @@ constexpr bool IsThrough = detail::IsThroughType<std::remove_cvref_t<T>>::value;
 namespace detail
 {
 
-    /// Resolves the bare (unwrapped) spelling of a join record, which is deprecated.
+    /// @brief Resolves the bare (unwrapped) spelling of a join record, which is deprecated.
+    ///
+    /// The deprecation sits on the @ref DeprecatedSpelling member rather than on the class itself,
+    /// so that it is diagnosed when this template is *instantiated* with a bare join record. Marking
+    /// the class deprecated instead makes GCC diagnose the mention of the (non-dependent) template
+    /// name below - once per translation unit, for every user, including those who already wrap the
+    /// join record in Through<>.
     template <typename JoinRecordT>
-    struct [[deprecated("Naming the join record directly is deprecated, wrap it as Through<T>, "
-                        "e.g. HasManyThrough<Person, Through<Friendship>>.")]] BareThroughRecord
+    struct BareThroughRecord
     {
         using type = JoinRecordT;
+
+        /// Named from a dependent context below purely to raise the deprecation warning.
+        [[deprecated("Naming the join record directly is deprecated, wrap it as Through<T>, "
+                     "e.g. HasManyThrough<Person, Through<Friendship>>.")]]
+        static constexpr bool DeprecatedSpelling = true;
     };
 
     /// Maps a join record specification onto the join record itself.
     template <typename ThroughSpec>
     struct ThroughRecordOfHelper
     {
+        static_assert(BareThroughRecord<ThroughSpec>::DeprecatedSpelling);
         using type = typename BareThroughRecord<ThroughSpec>::type;
     };
 
