@@ -69,6 +69,7 @@ set(SOURCE_FILES
     SqlFaultSeamTests.cpp
     SqlGuidTests.cpp
     SqlLoggerTests.cpp
+    SqlStatisticsTests.cpp
     MigrationLockTests.cpp
     SqlConnectionDbTests.cpp
     SqlBinaryAndTextDbTests.cpp

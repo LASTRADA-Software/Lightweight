@@ -88,6 +88,7 @@ set(HEADER_FILES
     SqlError.hpp
     SqlErrorDetection.hpp
     SqlLogger.hpp
+    SqlStatistics.hpp
     SqlMigration.hpp
     SqlOdbcWide.hpp
     SqlQueryFormatter.hpp
@@ -123,6 +124,7 @@ set(SOURCE_FILES
     SqlConnection.cpp
     SqlError.cpp
     SqlLogger.cpp
+    SqlStatistics.cpp
     SqlMigration.cpp
     SqlQuery.cpp
     SqlQuery/Core.cpp
@@ -226,6 +228,10 @@ target_link_libraries(Lightweight PRIVATE $<BUILD_INTERFACE:lightweight_stdexec_
 if(LIGHTWEIGHT_ENABLE_TRACY)
     target_compile_definitions(Lightweight PUBLIC LIGHTWEIGHT_TRACY_ENABLED)
     target_link_libraries(Lightweight PUBLIC Tracy::TracyClient)
+endif()
+
+if(LIGHTWEIGHT_ENABLE_STATISTICS)
+    target_compile_definitions(Lightweight PUBLIC LIGHTWEIGHT_STATISTICS_ENABLED)
 endif()
 
 if(MSVC)

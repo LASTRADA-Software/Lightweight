@@ -36,6 +36,8 @@ using Lightweight::SqlNullable;
 using Lightweight::SqlNumeric;
 using Lightweight::SqlRealName;
 using Lightweight::SqlRowIterator;
+using Lightweight::SqlStatistics;
+using Lightweight::SqlStatisticsOperation;
 using Lightweight::Unwrap;
 
 #include "entities/Album.hpp"
@@ -82,6 +84,49 @@ void DumpTable(DataMapper& dm, size_t limit = 1)
     for (auto const& entry: entries)
     {
         Log("{}", DataMapper::Inspect(entry));
+    }
+}
+
+/// Prints the statistics Lightweight collected during this run.
+///
+/// Compiled out entirely unless the library was built with LIGHTWEIGHT_ENABLE_STATISTICS=ON; the
+/// `if constexpr` means no `#ifdef` is needed at the call site. The `LIGHTWEIGHT_STATISTICS` marker
+/// lines are what CI greps for to prove the collector actually captured something.
+void DumpStatistics()
+{
+    if constexpr (!SqlStatistics::IsEnabled())
+        Log("LIGHTWEIGHT_STATISTICS disabled in this build");
+    else
+    {
+        auto const stats = SqlStatistics::Instance().Snapshot();
+
+        for (auto const operation: { SqlStatisticsOperation::Execute,
+                                     SqlStatisticsOperation::ExecuteDirect,
+                                     SqlStatisticsOperation::ExecuteBatch,
+                                     SqlStatisticsOperation::Prepare,
+                                     SqlStatisticsOperation::PoolAcquire })
+        {
+            auto const& slot = stats[operation];
+            Log("LIGHTWEIGHT_STATISTICS op={} total={} ok={} failed={} avg_us={:.1f} p50_us={} p99_us={} max_us={}",
+                Lightweight::ToStringView(operation),
+                slot.Total(),
+                slot.succeeded,
+                slot.failed,
+                slot.latency.AverageMicroseconds(),
+                slot.latency.PercentileMicroseconds(0.50),
+                slot.latency.PercentileMicroseconds(0.99),
+                slot.latency.maxMicroseconds);
+        }
+
+        Log("LIGHTWEIGHT_STATISTICS rows_fetched={} block_fetches={}", stats.rowsFetched, stats.blockFetches);
+        Log("LIGHTWEIGHT_STATISTICS connections_opened={} connections_closed={}",
+            stats.connectionsOpened,
+            stats.connectionsClosed);
+        Log("LIGHTWEIGHT_STATISTICS pool_acquired={} pool_reused={} pool_waited={} pool_released={}",
+            stats.pool.acquired,
+            stats.pool.reused,
+            stats.pool.waited,
+            stats.pool.released);
     }
 }
 
@@ -232,4 +277,6 @@ int main()
     DumpTable<Track>(dm);
 
     Log("Found {} employees.", employees.size());
+
+    DumpStatistics();
 }

@@ -18,6 +18,7 @@
 #include "SqlQuery.hpp"
 #include "SqlQueryFormatter.hpp"
 #include "SqlServerType.hpp"
+#include "SqlStatistics.hpp"
 #include "TracyProfiler.hpp"
 #include "Utils.hpp"
 
@@ -1164,6 +1165,7 @@ SqlResultCursor SqlStatement::Execute(Args const&... args)
       RequireSuccess(SqlDataBinder<Args>::InputParameter(m_hStmt, i, args, *this))),
      ...);
 
+    LIGHTWEIGHT_STATS_SCOPE(::Lightweight::SqlStatisticsOperation::Execute);
     auto const result = SQLExecute(m_hStmt);
 
     if (result != SQL_NO_DATA && result != SQL_SUCCESS && result != SQL_SUCCESS_WITH_INFO)
@@ -1278,7 +1280,10 @@ SqlResultCursor SqlStatement::ExecuteBatchNative(FirstColumnBatch const& firstCo
     (RequireSuccess(SqlDataBinder<std::remove_cvref_t<decltype(*std::ranges::data(moreColumnBatches))>>::
                         BatchInputParameter(m_hStmt, ++column, std::ranges::data(moreColumnBatches), rowCount, *this)),
      ...);
-    RequireSuccess(SQLExecute(m_hStmt));
+    {
+        LIGHTWEIGHT_STATS_SCOPE(::Lightweight::SqlStatisticsOperation::ExecuteBatch);
+        RequireSuccess(SQLExecute(m_hStmt));
+    }
     ProcessPostExecuteCallbacks();
     // clang-format on
     return SqlResultCursor { *this };
@@ -1318,7 +1323,10 @@ SqlResultCursor SqlStatement::ExecuteBatchSoft(FirstColumnBatch const& firstColu
             [&]<SqlInputParameterBinder... ColumnValues>(ColumnValues const&... columnsInRow) {
                 SQLUSMALLINT column = 0;
                 ((++column, SqlDataBinder<ColumnValues>::InputParameter(m_hStmt, column, columnsInRow, *this)), ...);
-                RequireSuccess(SQLExecute(m_hStmt));
+                {
+                    LIGHTWEIGHT_STATS_SCOPE(::Lightweight::SqlStatisticsOperation::ExecuteBatch);
+                    RequireSuccess(SQLExecute(m_hStmt));
+                }
                 ProcessPostExecuteCallbacks();
             },
             std::make_tuple(
@@ -1431,6 +1439,7 @@ SqlResultCursor SqlStatement::ExecuteBatchNativeRowWise(Rows const& rows, Column
     SqlLogger::GetLogger().OnExecuteBatch();
     // Capture the result before reading processedCount: SQLExecute updates it via the bound pointer, and
     // function-argument evaluation order is unspecified.
+    LIGHTWEIGHT_STATS_SCOPE_V(statsBatchScope, ::Lightweight::SqlStatisticsOperation::ExecuteBatch);
     auto const executeResult = SQLExecute(m_hStmt);
     RequireSuccessfulBatchExecute(executeResult, processedCount, static_cast<SQLULEN>(rowCount));
     ProcessPostExecuteCallbacks();
@@ -1457,7 +1466,10 @@ SqlResultCursor SqlStatement::ExecuteBatchSoftRowMajor(Rows const& rows, ColumnA
               m_hStmt, column, accessors(row), *this))),
          ...);
         SqlLogger::GetLogger().OnExecute(m_preparedQuery);
-        RequireExecuteSucceededOrNoData(SQLExecute(m_hStmt));
+        {
+            LIGHTWEIGHT_STATS_SCOPE(::Lightweight::SqlStatisticsOperation::Execute);
+            RequireExecuteSucceededOrNoData(SQLExecute(m_hStmt));
+        }
         ProcessPostExecuteCallbacks();
     }
 
@@ -1638,6 +1650,7 @@ void SqlStatement::FetchAllRowWise(std::vector<Record>& out, std::size_t arrayDe
 
         auto const fetched = static_cast<std::size_t>(rowsFetched);
         SqlLogger::GetLogger().OnFetchRow(); // one block-fetch round-trip (vs. one per row on the slow path)
+        LIGHTWEIGHT_STATS_ROWS(fetched, true);
 
         std::size_t finalizeIndex = 0;
         (FinalizeRowWiseOutputColumn<std::remove_cvref_t<decltype(accessors(*row0))>>(
