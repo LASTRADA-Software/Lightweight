@@ -394,10 +394,6 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// @brief Renders the projected column names for a diagnostic message.
     [[nodiscard]] LIGHTWEIGHT_API std::string DescribeProjectedFieldNames() const;
 
-    /// @brief Adopts the column-name mapping of @p queryObject, replacing any previously held mapping.
-    template <SqlQueryObject QueryObject>
-    void AdoptProjectedFieldNames(QueryObject const& queryObject);
-
     LIGHTWEIGHT_API void RequireSuccess(SQLRETURN error,
                                         std::source_location sourceLocation = std::source_location::current()) const;
     LIGHTWEIGHT_API void PlanPostExecuteCallback(std::function<void()>&& cb) override;
@@ -502,6 +498,13 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// @p T (used instead of an immediate @c SQLBindCol while prefetch is pending/active).
     template <SqlOutputColumnBinder T>
     void RecordPrefetchOutputColumn(SQLUSMALLINT column, T* arg);
+
+    /// @brief Adopts the column-name mapping of @p queryObject, replacing any previously held mapping.
+    ///
+    /// An implementation detail of the query-object @c Prepare / @c ExecuteDirect overloads: it is the
+    /// only way the mapping is ever populated, so it is not part of the public surface.
+    template <SqlQueryObject QueryObject>
+    void AdoptProjectedFieldNames(QueryObject const& queryObject);
 
     // private data members
     struct Data;

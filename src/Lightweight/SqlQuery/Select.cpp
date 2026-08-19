@@ -204,8 +204,11 @@ SqlSelectQueryBuilder& SqlSelectQueryBuilder::Fields(std::span<SqlQualifiedTable
 SqlSelectQueryBuilder::ComposedQuery SqlSelectQueryBuilder::Count()
 {
     // The Count finalizer discards the projection in favour of COUNT(*), so any recorded names
-    // would no longer describe the result columns.
+    // would no longer describe the result columns. The wildcard flag goes with them: the discarded
+    // projection is no longer the reason named access is unavailable, and leaving it set would make
+    // the diagnostic blame a wildcard that no longer appears in the query.
     _query.projectedFieldNames.clear();
+    _query.projectionHasWildcard = false;
     _query.selectType = SelectType::Count;
     return std::move(_query);
 }
