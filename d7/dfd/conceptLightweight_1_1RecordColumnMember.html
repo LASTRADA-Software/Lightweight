@@ -101,13 +101,13 @@ $(document).ready(function(){initNavTree('d7/dfd/conceptLightweight_1_1RecordCol
 <h2 class="groupheader">Concept definition</h2>
 <div class="fragment"><div class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</div>
 <div class="line"><span class="keyword">concept </span><a class="code hl_concept" href="../../d7/dfd/conceptLightweight_1_1RecordColumnMember.html">Lightweight::RecordColumnMember</a> =  <a class="code hl_concept" href="../../dd/da7/conceptLightweight_1_1FieldWithStorage.html">FieldWithStorage&lt;T&gt;</a> || SqlOutputColumnBinder&lt;T&gt;</div>
-<div class="ttc" id="aconceptLightweight_1_1FieldWithStorage_html"><div class="ttname"><a href="../../dd/da7/conceptLightweight_1_1FieldWithStorage.html">Lightweight::FieldWithStorage</a></div><div class="ttdef"><b>Definition</b> <a href="../../d3/d6b/Record_8hpp_source.html#l00381">Record.hpp:381</a></div></div>
-<div class="ttc" id="aconceptLightweight_1_1RecordColumnMember_html"><div class="ttname"><a href="../../d7/dfd/conceptLightweight_1_1RecordColumnMember.html">Lightweight::RecordColumnMember</a></div><div class="ttdoc">Requires that T maps onto a column of its record's table.</div><div class="ttdef"><b>Definition</b> <a href="../../d3/d6b/Record_8hpp_source.html#l00400">Record.hpp:400</a></div></div>
+<div class="ttc" id="aconceptLightweight_1_1FieldWithStorage_html"><div class="ttname"><a href="../../dd/da7/conceptLightweight_1_1FieldWithStorage.html">Lightweight::FieldWithStorage</a></div><div class="ttdef"><b>Definition</b> <a href="../../d3/d6b/Record_8hpp_source.html#l00285">Record.hpp:285</a></div></div>
+<div class="ttc" id="aconceptLightweight_1_1RecordColumnMember_html"><div class="ttname"><a href="../../d7/dfd/conceptLightweight_1_1RecordColumnMember.html">Lightweight::RecordColumnMember</a></div><div class="ttdoc">Requires that T maps onto a column of its record's table.</div><div class="ttdef"><b>Definition</b> <a href="../../d3/d6b/Record_8hpp_source.html#l00304">Record.hpp:304</a></div></div>
 </div><!-- fragment --><a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Requires that T maps onto a column of its record's table. </p>
 <p>This is satisfied by fields with storage (Field, BelongsTo) as well as by plain record members that are directly bindable as an output column (a record may be a plain struct of bindable members). Relation members (HasMany, HasManyThrough, HasOneThrough, ...) have no column of their own and therefore must be skipped by every column-enumerating code path, such as the projection of a SELECT statement. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00400">400</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00304">304</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

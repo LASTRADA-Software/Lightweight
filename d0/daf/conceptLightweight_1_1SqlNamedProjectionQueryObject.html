@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Lightweight: Member List</title>
+<title>Lightweight: Lightweight::SqlNamedProjectionQueryObject Concept Reference</title>
 <link href="../../tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="../../jquery.js"></script>
 <script type="text/javascript" src="../../dynsections.js"></script>
@@ -64,7 +64,7 @@ $(function() {
 </div>
 <script type="text/javascript">
 /* @license magnet:?xt=urn:btih:d3d9a9a6595521f9666a5e94cc830dab83b65699&amp;dn=expat.txt MIT */
-$(document).ready(function(){initNavTree('dd/def/structLightweight_1_1Through.html','../../'); initResizable(); });
+$(document).ready(function(){initNavTree('d0/daf/conceptLightweight_1_1SqlNamedProjectionQueryObject.html','../../'); initResizable(); });
 /* @license-end */
 </script>
 <div id="doc-content">
@@ -90,18 +90,33 @@ $(document).ready(function(){initNavTree('dd/def/structLightweight_1_1Through.ht
 </div>
 
 <div class="header">
-  <div class="headertitle"><div class="title">Lightweight::Through&lt; JoinRecordT &gt; Member List</div></div>
+  <div class="headertitle"><div class="title">Lightweight::SqlNamedProjectionQueryObject Concept Reference</div></div>
 </div><!--header-->
 <div class="contents">
 
-<p>This is the complete list of members for <a class="el" href="../../dd/def/structLightweight_1_1Through.html">Lightweight::Through&lt; JoinRecordT &gt;</a>, including all inherited members.</p>
-<table class="directory">
-  <tr class="even"><td class="entry"><a class="el" href="../../dd/def/structLightweight_1_1Through.html#a39aa5e6c1832409653d722994fdcffcd">RecordType</a> typedef</td><td class="entry"><a class="el" href="../../dd/def/structLightweight_1_1Through.html">Lightweight::Through&lt; JoinRecordT &gt;</a></td><td class="entry"></td></tr>
-</table></div><!-- contents -->
+<p>Represents a query object that also knows the name of each column it projects.  
+<a href="../../d0/daf/conceptLightweight_1_1SqlNamedProjectionQueryObject.html#details">More...</a></p>
+
+<p><code>#include &lt;<a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>&gt;</code></p>
+<h2 class="groupheader">Concept definition</h2>
+<div class="fragment"><div class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> QueryObject&gt;</div>
+<div class="line"><span class="keyword">concept </span><a class="code hl_concept" href="../../d0/daf/conceptLightweight_1_1SqlNamedProjectionQueryObject.html">Lightweight::SqlNamedProjectionQueryObject</a> =  <a class="code hl_concept" href="../../d4/da8/conceptLightweight_1_1SqlQueryObject.html">SqlQueryObject&lt;QueryObject&gt;</a> &amp;&amp; <span class="keyword">requires</span>(QueryObject <span class="keyword">const</span>&amp; queryObject) {</div>
+<div class="line">    { queryObject.ProjectedFieldNames() } -&gt; std::convertible_to&lt;std::span&lt;std::string const&gt;&gt;;</div>
+<div class="line">    { queryObject.ProjectionHasWildcard() } -&gt; std::convertible_to&lt;bool&gt;;</div>
+<div class="line">}</div>
+<div class="ttc" id="aconceptLightweight_1_1SqlNamedProjectionQueryObject_html"><div class="ttname"><a href="../../d0/daf/conceptLightweight_1_1SqlNamedProjectionQueryObject.html">Lightweight::SqlNamedProjectionQueryObject</a></div><div class="ttdoc">Represents a query object that also knows the name of each column it projects.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00061">SqlStatement.hpp:61</a></div></div>
+<div class="ttc" id="aconceptLightweight_1_1SqlQueryObject_html"><div class="ttname"><a href="../../d4/da8/conceptLightweight_1_1SqlQueryObject.html">Lightweight::SqlQueryObject</a></div><div class="ttdoc">Represents an SQL query object, that provides a ToSql() method.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00051">SqlStatement.hpp:51</a></div></div>
+</div><!-- fragment --><a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><p>Represents a query object that also knows the name of each column it projects. </p>
+<p>Satisfied by the SELECT query builder's composed query, which records the caller-given name of every projected column as the projection is assembled. Statements executed from such a query object can resolve result columns by name — see the name-taking <code>GetColumn</code> overload of <code>SqlResultCursor</code>. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00061">61</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+</div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
+    <li class="navelem"><b>Lightweight</b></li><li class="navelem"><a class="el" href="../../d0/daf/conceptLightweight_1_1SqlNamedProjectionQueryObject.html">SqlNamedProjectionQueryObject</a></li>
     <li class="footer">Generated by <a href="https://www.doxygen.org/index.html"><img class="footer" src="../../doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
   </ul>
 </div>

@@ -146,19 +146,16 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany&lt; OtherRecord, TheInverseSelector &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">This HasMany&lt;OtherRecord&gt; represents a simple one-to-many relationship between two records.  <a href="../../da/df4/classLightweight_1_1HasMany.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d73/classLightweight_1_1HasManyThrough.html">Lightweight::HasManyThrough&lt; ReferencedRecordT, ThroughSpec, TheOwnerSelector, TheReferencedSelector &gt;</a></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d73/classLightweight_1_1HasManyThrough.html">Lightweight::HasManyThrough&lt; ReferencedRecordT, ThroughRecordT, TheOwnerSelector, TheReferencedSelector &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">This API represents a many-to-many relationship between two records through a third record.  <a href="../../de/d73/classLightweight_1_1HasManyThrough.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough&lt; OtherTable, ThroughSpec, TheOwnerSelector, TheThroughSelector &gt;</a></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough&lt; OtherTable, ThroughTable, TheOwnerSelector, TheThroughSelector &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a one-to-one relationship through a join table.  <a href="../../df/d63/classLightweight_1_1HasOneThrough.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html">Lightweight::SqlAllFieldsQueryBuilder&lt; Record, QueryOptions, Execution &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a query builder that retrieves all fields of a record.  <a href="../../d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html#details">More...</a><br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/def/structLightweight_1_1Through.html">Lightweight::Through&lt; JoinRecordT &gt;</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Marks the join record of a relationship that is reached <em>through</em> an intermediate table.  <a href="../../dd/def/structLightweight_1_1Through.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d94/structLightweight_1_1RecordMemberList.html">Lightweight::RecordMemberList&lt; MemberPointers &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compile-time list of a record's members, stored as pointers-to-member.  <a href="../../d2/d94/structLightweight_1_1RecordMemberList.html#details">More...</a><br /></td></tr>
@@ -177,10 +174,6 @@ Typedefs</h2></td></tr>
 <tr class="memitem:ga7b2f2210747ec11d91a0d694b4c34b25"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#ga7b2f2210747ec11d91a0d694b4c34b25">Lightweight::SqlElements</a> = std::integer_sequence&lt; size_t, Ints... &gt;</td></tr>
 <tr class="memdesc:ga7b2f2210747ec11d91a0d694b4c34b25"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a sequence of indexes that can be used alongside Query() to retrieve only part of the record.  <br /></td></tr>
 <tr class="separator:ga7b2f2210747ec11d91a0d694b4c34b25"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga6908683ee1b573afc52f6020e8fcc051" id="r_ga6908683ee1b573afc52f6020e8fcc051"><td class="memTemplParams" colspan="2">template&lt;typename ThroughSpec &gt; </td></tr>
-<tr class="memitem:ga6908683ee1b573afc52f6020e8fcc051"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#ga6908683ee1b573afc52f6020e8fcc051">Lightweight::ThroughRecordOf</a> = typename detail::ThroughRecordOfHelper&lt; ThroughSpec &gt;::type</td></tr>
-<tr class="memdesc:ga6908683ee1b573afc52f6020e8fcc051"><td class="mdescLeft">&#160;</td><td class="mdescRight">Resolves the join record of a through-relationship from its template argument.  <br /></td></tr>
-<tr class="separator:ga6908683ee1b573afc52f6020e8fcc051"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga4792c3b28c2058e0226e1e6eb728e401" id="r_ga4792c3b28c2058e0226e1e6eb728e401"><td class="memTemplParams" colspan="2">template&lt;typename Record &gt; </td></tr>
 <tr class="memitem:ga4792c3b28c2058e0226e1e6eb728e401"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#ga4792c3b28c2058e0226e1e6eb728e401">Lightweight::RecordPrimaryKeyTuple</a> = typename detail::RecordPrimaryKeyTupleHelper&lt; Record &gt;::type</td></tr>
 <tr class="memdesc:ga4792c3b28c2058e0226e1e6eb728e401"><td class="mdescLeft">&#160;</td><td class="mdescRight">The tuple of a record's primary key value types, in member declaration order.  <br /></td></tr>
@@ -229,9 +222,6 @@ Variables</h2></td></tr>
 <tr class="memitem:gaa5bfaacd1c94e825fbd19612b0f80d2a" id="r_gaa5bfaacd1c94e825fbd19612b0f80d2a"><td class="memItemLeft" align="right" valign="top">constexpr std::nullopt_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#gaa5bfaacd1c94e825fbd19612b0f80d2a">Lightweight::AutoDetectRelation</a> = std::nullopt</td></tr>
 <tr class="memdesc:gaa5bfaacd1c94e825fbd19612b0f80d2a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Selector value meaning "resolve the relationship automatically; the match must be unique".  <br /></td></tr>
 <tr class="separator:gaa5bfaacd1c94e825fbd19612b0f80d2a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga518337f590f7d557558dd7cd74c49a9e" id="r_ga518337f590f7d557558dd7cd74c49a9e"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
-<tr class="memitem:ga518337f590f7d557558dd7cd74c49a9e"><td class="memTemplItemLeft" align="right" valign="top">constexpr bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#ga518337f590f7d557558dd7cd74c49a9e">Lightweight::IsThrough</a> = detail::IsThroughType&lt;std::remove_cvref_t&lt;T&gt;&gt;::value</td></tr>
-<tr class="separator:ga518337f590f7d557558dd7cd74c49a9e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga7b84626d1250c3ca3c55faec551337d4" id="r_ga7b84626d1250c3ca3c55faec551337d4"><td class="memTemplParams" colspan="2">template&lt;typename OwnerRecord , typename ChildRecord , auto Selector = AutoDetectRelation&gt; </td></tr>
 <tr class="memitem:ga7b84626d1250c3ca3c55faec551337d4"><td class="memTemplItemLeft" align="right" valign="top">constexpr size_t&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#ga7b84626d1250c3ca3c55faec551337d4">Lightweight::InverseBelongsToIndexOf</a> = detail::InverseBelongsToResolver&lt;OwnerRecord, ChildRecord, Selector&gt;::Index</td></tr>
 <tr class="memdesc:ga7b84626d1250c3ca3c55faec551337d4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Member index, within <code>ChildRecord</code>, of the <code><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents the many-to-one side of a foreign-key relationship.">BelongsTo</a></code> member that points back to <code>OwnerRecord</code>.  <br /></td></tr>
@@ -332,34 +322,6 @@ template&lt;size_t... Ints&gt; </div>
 
 </div>
 </div>
-<a id="ga6908683ee1b573afc52f6020e8fcc051" name="ga6908683ee1b573afc52f6020e8fcc051"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga6908683ee1b573afc52f6020e8fcc051">&#9670;&#160;</a></span>ThroughRecordOf</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;typename ThroughSpec &gt; </div>
-      <table class="memname">
-        <tr>
-          <td class="memname">using <a class="el" href="../../d7/d2f/group__DataMapper.html#ga6908683ee1b573afc52f6020e8fcc051">Lightweight::ThroughRecordOf</a> = typedef typename detail::ThroughRecordOfHelper&lt;ThroughSpec&gt;::type</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Resolves the join record of a through-relationship from its template argument. </p>
-<p>Accepts both the <code><a class="el" href="../../dd/def/structLightweight_1_1Through.html" title="Marks the join record of a relationship that is reached through an intermediate table.">Through</a>&lt;T&gt;</code> marker and the deprecated bare <code>T</code> spelling, yielding <code>T</code> either way.</p>
-<dl class="tparams"><dt>Template Parameters</dt><dd>
-  <table class="tparams">
-    <tr><td class="paramname">ThroughSpec</td><td>Either <code><a class="el" href="../../dd/def/structLightweight_1_1Through.html" title="Marks the join record of a relationship that is reached through an intermediate table.">Through</a>&lt;T&gt;</code> or, deprecated, <code>T</code>.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="../../dd/def/structLightweight_1_1Through.html" title="Marks the join record of a relationship that is reached through an intermediate table.">Through</a> </dd></dl>
-
-<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00231">231</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
-
-</div>
-</div>
 <a id="ga4792c3b28c2058e0226e1e6eb728e401" name="ga4792c3b28c2058e0226e1e6eb728e401"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga4792c3b28c2058e0226e1e6eb728e401">&#9670;&#160;</a></span>RecordPrimaryKeyTuple</h2>
 
@@ -378,7 +340,7 @@ template&lt;typename Record &gt; </div>
 <p>Unlike <code>RecordPrimaryKeyType</code>, which names a single field's type, this covers composite keys: for a record with several members marked <code>PrimaryKey</code> it is a tuple of all of them. For a single-key record it is a one-element tuple.</p>
 <p>Added alongside the single-key helpers rather than replacing them, so no existing caller changes behaviour; only composite-aware code reaches for this. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00540">540</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00444">444</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
 
 </div>
 </div>
@@ -431,7 +393,7 @@ template&lt;typename Record &gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The key values as a tuple. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00566">566</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00470">470</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
 
 </div>
 </div>
@@ -462,11 +424,11 @@ template&lt;typename Record &gt; </div>
 </div><div class="memdoc">
 <p>Returns the first primary key field of the record. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00592">592</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00496">496</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00181">Lightweight::EnumerateRecordMembers()</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02995">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01952">Lightweight::DataMapper::Create()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02995">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01956">Lightweight::DataMapper::Create()</a>.</p>
 
 </div>
 </div>
@@ -543,7 +505,7 @@ template&lt;typename Record , typename Callable &gt; </div>
 
 <p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00181">181</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02995">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02150">Lightweight::DataMapper::Delete()</a>, <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00592">Lightweight::GetPrimaryKeyField()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02851">Lightweight::DataMapper::LoadRelations()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02914">Lightweight::DataMapper::SetId()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02490">Lightweight::DataMapper::SetModifiedState()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02008">Lightweight::DataMapper::Update()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02995">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02154">Lightweight::DataMapper::Delete()</a>, <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00496">Lightweight::GetPrimaryKeyField()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02851">Lightweight::DataMapper::LoadRelations()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02914">Lightweight::DataMapper::SetId()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02494">Lightweight::DataMapper::SetModifiedState()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02012">Lightweight::DataMapper::Update()</a>.</p>
 
 </div>
 </div>
@@ -722,33 +684,6 @@ template&lt;typename T &gt; </div>
 
 </div>
 </div>
-<a id="ga518337f590f7d557558dd7cd74c49a9e" name="ga518337f590f7d557558dd7cd74c49a9e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga518337f590f7d557558dd7cd74c49a9e">&#9670;&#160;</a></span>IsThrough</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;typename T &gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">constexpr bool Lightweight::IsThrough = detail::IsThroughType&lt;std::remove_cvref_t&lt;T&gt;&gt;::value</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">constexpr</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>Tests whether <code>T</code> is a <a class="el" href="../../dd/def/structLightweight_1_1Through.html" title="Marks the join record of a relationship that is reached through an intermediate table.">Through</a> marker. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00181">181</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
-
-</div>
-</div>
 <a id="ga7b84626d1250c3ca3c55faec551337d4" name="ga7b84626d1250c3ca3c55faec551337d4"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga7b84626d1250c3ca3c55faec551337d4">&#9670;&#160;</a></span>InverseBelongsToIndexOf</h2>
 
@@ -782,7 +717,7 @@ template&lt;typename OwnerRecord , typename ChildRecord , auto Selector = AutoDe
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00351">351</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00255">255</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
 
 </div>
 </div>
@@ -820,7 +755,7 @@ template&lt;typename OwnerRecord , typename ChildRecord , auto Selector = AutoDe
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00361">361</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00265">265</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
 
 </div>
 </div>
@@ -852,12 +787,12 @@ template&lt;typename Record &gt; </div>
 <div class="line">        <span class="keywordflow">else</span></div>
 <div class="line">            <span class="keywordflow">return</span> accum;</div>
 <div class="line">    })</div>
-<div class="ttc" id="aconceptLightweight_1_1RecordColumnMember_html"><div class="ttname"><a href="../../d7/dfd/conceptLightweight_1_1RecordColumnMember.html">Lightweight::RecordColumnMember</a></div><div class="ttdoc">Requires that T maps onto a column of its record's table.</div><div class="ttdef"><b>Definition</b> <a href="../../d3/d6b/Record_8hpp_source.html#l00400">Record.hpp:400</a></div></div>
+<div class="ttc" id="aconceptLightweight_1_1RecordColumnMember_html"><div class="ttname"><a href="../../d7/dfd/conceptLightweight_1_1RecordColumnMember.html">Lightweight::RecordColumnMember</a></div><div class="ttdoc">Requires that T maps onto a column of its record's table.</div><div class="ttdef"><b>Definition</b> <a href="../../d3/d6b/Record_8hpp_source.html#l00304">Record.hpp:304</a></div></div>
 </div><!-- fragment -->
 <p>Represents the number of members of a record that map onto a column of a result set. </p>
 <p>This is the width the record occupies in a projection built from the <code>RecordColumnMember</code> concept (e.g. <code><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a7baedc7ddf58b2b9b1beb1dbfae43c17" title="Adds a sequence of columns to the SELECT clause.">SqlSelectQueryBuilder::Fields</a></code>), and therefore the amount by which the index must be advanced to reach the first column of the record that follows it in a multi-record projection. It differs from <code>RecordMemberCount</code> exactly by the number of relation members (<a class="el" href="../../da/df4/classLightweight_1_1HasMany.html" title="This HasMany&lt;OtherRecord&gt; represents a simple one-to-many relationship between two records.">HasMany</a>, <a class="el" href="../../de/d73/classLightweight_1_1HasManyThrough.html" title="This API represents a many-to-many relationship between two records through a third record.">HasManyThrough</a>, <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html" title="Represents a one-to-one relationship through a join table.">HasOneThrough</a>, ...), which have no column of their own. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00412">412</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00316">316</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
 
 </div>
 </div>
@@ -889,10 +824,10 @@ template&lt;typename Record &gt; </div>
 <div class="line">        <span class="keywordflow">else</span></div>
 <div class="line">            <span class="keywordflow">return</span> accum;</div>
 <div class="line">    })</div>
-<div class="ttc" id="aconceptLightweight_1_1FieldWithStorage_html"><div class="ttname"><a href="../../dd/da7/conceptLightweight_1_1FieldWithStorage.html">Lightweight::FieldWithStorage</a></div><div class="ttdef"><b>Definition</b> <a href="../../d3/d6b/Record_8hpp_source.html#l00381">Record.hpp:381</a></div></div>
+<div class="ttc" id="aconceptLightweight_1_1FieldWithStorage_html"><div class="ttname"><a href="../../dd/da7/conceptLightweight_1_1FieldWithStorage.html">Lightweight::FieldWithStorage</a></div><div class="ttdef"><b>Definition</b> <a href="../../d3/d6b/Record_8hpp_source.html#l00285">Record.hpp:285</a></div></div>
 </div><!-- fragment --><p>Represents the number of fields with storage in a record. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00424">424</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00328">328</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
 
 </div>
 </div>
@@ -920,7 +855,7 @@ template&lt;typename T &gt; </div>
 
 <p>Tests if the given record type does contain a primary key. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00452">452</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00356">356</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
 
 </div>
 </div>
@@ -950,7 +885,7 @@ template&lt;typename T &gt; </div>
 </div><!-- fragment -->
 <p>Tests if the given record type does contain an auto increment primary key. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00458">458</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00362">362</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
 
 </div>
 </div>
@@ -979,7 +914,7 @@ template&lt;typename Record &gt; </div>
 <p>Number of members of <code>Record</code> marked as a primary key. </p>
 <p>One for an ordinary record, more for a composite key, zero for a keyless record. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00548">548</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00452">452</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
 
 </div>
 </div>
@@ -1007,7 +942,7 @@ template&lt;typename Record &gt; </div>
 
 <p>Whether <code>Record's</code> identity spans more than one column. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00554">554</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00458">458</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
 
 </div>
 </div>
@@ -1100,7 +1035,7 @@ template&lt;typename Record &gt; </div>
 
 <p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00274">274</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00838">Lightweight::SqlWhereClauseBuilder&lt; Derived &gt;::InnerJoin()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00870">Lightweight::SqlWhereClauseBuilder&lt; Derived &gt;::InnerJoin()</a>.</p>
 
 </div>
 </div>
