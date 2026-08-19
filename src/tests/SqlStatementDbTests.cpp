@@ -220,7 +220,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Repeated Prepare of the same query keeps execu
     CreateEmployeesTable(stmt);
     FillEmployeesTable(stmt);
 
-    auto const query = R"(SELECT "FirstName" FROM "Employees" WHERE "Salary" > ? ORDER BY "EmployeeID")";
+    auto const* const query = R"(SELECT "FirstName" FROM "Employees" WHERE "Salary" > ? ORDER BY "EmployeeID")";
 
     for (auto const [threshold, expectedRows]: { std::pair { 45'000, 3 }, { 55'000, 2 }, { 65'000, 1 } })
     {
@@ -247,7 +247,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Prepare of the same query survives a schema ch
     CreateEmployeesTable(stmt);
     FillEmployeesTable(stmt);
 
-    auto const query = R"(SELECT "FirstName" FROM "Employees" ORDER BY "EmployeeID")";
+    auto const* const query = R"(SELECT "FirstName" FROM "Employees" ORDER BY "EmployeeID")";
 
     stmt.Prepare(query);
     {

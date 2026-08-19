@@ -268,8 +268,9 @@ TEST_CASE_METHOD(SqlTestFixture, "With<HasMany> marks childless owners loaded-em
 
     // An owner with no children at all. It still needs its (mandatory) region, so reuse the one the
     // fixture created rather than tripping the foreign key.
-    auto region = dm.Query<EagerRegion>().First();
-    REQUIRE(region.has_value());
+    auto const region = dm.Query<EagerRegion>().First();
+    if (!region.has_value())
+        throw std::runtime_error("The fixture must have created a region.");
     auto lonely = EagerOwner { .name = "lonely" };
     lonely.region = *region;
     dm.Create(lonely);
@@ -389,7 +390,7 @@ TEST_CASE_METHOD(SqlTestFixture, "With<> walks a nested BelongsTo path in one qu
     REQUIRE(children.size() == 12);
     for (auto& child: children)
     {
-        auto& owner = child.owner.Record();
+        auto const& owner = child.owner.Record();
         CHECK(owner.id.Value() == child.owner.Value());
         CHECK(owner.region.Record().label.Value().ToStringView() == "north");
     }
@@ -464,7 +465,7 @@ TEST_CASE_METHOD(SqlTestFixture, "eagerLoadDepth descends through the relation g
 
     for (auto& child: children)
     {
-        auto& owner = child.owner.Record();
+        auto const& owner = child.owner.Record();
         CHECK(owner.region.Record().label.Value().ToStringView() == "north");
         CHECK(owner.children.Count() == 2);
     }
