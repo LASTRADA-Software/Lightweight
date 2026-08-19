@@ -714,6 +714,21 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn binds its values when 
             CHECK(std::get<std::string_view>(inputBindings[2].value) == "b"sv);
         });
 
+    // String literals decay to `char const*` inside an initializer list, which SqlVariant cannot be
+    // constructed from directly — they must still bind rather than fail to compile.
+    CheckSqlQueryBuilder(
+        [&](SqlQueryBuilder& q) {
+            inputBindings.clear();
+            return q.FromTable("That").Update(&inputBindings).Set("a", 1).WhereIn("foo", { "O'Brien", "b" });
+        },
+        QueryExpectations::All(R"(UPDATE "That" SET "a" = ?
+                                  WHERE "foo" IN (?, ?))"),
+        [&]() {
+            REQUIRE(inputBindings.size() == 3);
+            CHECK(std::get<std::string_view>(inputBindings[1].value) == "O'Brien"sv);
+            CHECK(std::get<std::string_view>(inputBindings[2].value) == "b"sv);
+        });
+
     // An empty IN-set still short-circuits to the always-false condition and binds nothing.
     CheckSqlQueryBuilder(
         [&](SqlQueryBuilder& q) {

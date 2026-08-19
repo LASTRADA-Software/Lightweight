@@ -1160,13 +1160,27 @@ detail::RawSqlCondition SqlWhereClauseBuilder<Derived>::PopulateSqlSetExpression
 
     std::ostringstream fragment;
 
+    // String literals decay to a raw character pointer inside an initializer list (and inside a
+    // built-in array), and SqlVariant cannot be constructed from one: std::variant's converting
+    // constructor is ambiguous between std::string and std::string_view. Hand such elements over as
+    // views, mirroring the dedicated char-array overload of Where().
+    auto const asBindable = [](auto const& value) -> decltype(auto) {
+        using Decayed = std::decay_t<decltype(value)>;
+        if constexpr (detail::OneOf<Decayed, char*, char const*>)
+            return std::string_view { value };
+        else if constexpr (detail::OneOf<Decayed, char16_t*, char16_t const*>)
+            return std::u16string_view { value };
+        else
+            return (value);
+    };
+
     auto const appendValue = [&](auto const& value) {
         if constexpr (isBindable)
         {
             if (searchCondition.inputBindings)
             {
                 fragment << '?';
-                searchCondition.inputBindings->emplace_back(value);
+                searchCondition.inputBindings->emplace_back(asBindable(value));
                 return;
             }
         }
