@@ -139,3 +139,31 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlConnection::Close is idempotent", "[SqlConn
     fresh.Close(); // second Close must be a no-op, not crash
     CHECK_FALSE(fresh.IsAlive());
 }
+
+// ================================================================================================
+// Configurable connection encryption (SQL_COPT_SS_ENCRYPT / Encrypt=)
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: an explicitly encrypted connection is usable", "[SqlConnection]")
+{
+    auto probe = SqlStatement {};
+
+    // Connection encryption is a SQL Server concept; the other backends configure TLS through their
+    // own driver keywords and reject `Encrypt=`.
+    UNSUPPORTED_DATABASE(probe, SqlServerType::SQLITE);
+    UNSUPPORTED_DATABASE(probe, SqlServerType::POSTGRESQL);
+    UNSUPPORTED_DATABASE(probe, SqlServerType::MYSQL);
+    UNSUPPORTED_DATABASE(probe, SqlServerType::UNKNOWN);
+
+    auto parameters = ParseConnectionString(SqlConnection::DefaultConnectionString());
+    parameters.insert_or_assign("Encrypt", std::string { FormatEncryptionMode(SqlEncryptionMode::Enabled) });
+    // The CI SQL Server runs with a self-signed certificate, so the chain cannot be validated.
+    parameters.insert_or_assign("TrustServerCertificate", "yes");
+
+    auto connection = SqlConnection { BuildConnectionString(parameters) };
+    REQUIRE(connection.IsAlive());
+
+    // The connection is not merely established — it round-trips a query over the encrypted channel.
+    auto stmt = SqlStatement { connection };
+    CHECK(stmt.ExecuteDirectScalar<int>("SELECT 42") == 42);
+}

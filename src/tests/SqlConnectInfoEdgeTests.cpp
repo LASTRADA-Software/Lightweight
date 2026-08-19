@@ -146,3 +146,135 @@ TEST_CASE("SqlConnectionString: defaulted three-way comparison", "[SqlConnectInf
     CHECK(a != c);
     CHECK(a < c);
 }
+
+// ================================================================================================
+// SqlEncryptionMode (SQL_COPT_SS_ENCRYPT) — parsing, rendering, and round-tripping
+// ================================================================================================
+
+TEST_CASE("ParseEncryptionMode: recognizes every documented spelling, case-insensitively", "[SqlConnectInfo]")
+{
+    for (auto const& value: { "yes", "YES", "Yes", "true", "TRUE", "1" })
+    {
+        INFO(std::string { "input: " } + value);
+        CHECK(ParseEncryptionMode(value) == SqlEncryptionMode::Enabled);
+    }
+
+    for (auto const& value: { "no", "NO", "No", "false", "FALSE", "0" })
+    {
+        INFO(std::string { "input: " } + value);
+        CHECK(ParseEncryptionMode(value) == SqlEncryptionMode::Disabled);
+    }
+}
+
+TEST_CASE("ParseEncryptionMode: tolerates surrounding whitespace", "[SqlConnectInfo]")
+{
+    CHECK(ParseEncryptionMode("  yes  ") == SqlEncryptionMode::Enabled);
+    CHECK(ParseEncryptionMode("\tno\t") == SqlEncryptionMode::Disabled);
+}
+
+TEST_CASE("ParseEncryptionMode: unrecognized input falls back to DriverDefault", "[SqlConnectInfo]")
+{
+    for (auto const& value: { "", "strict", "maybe", "2", "yes!" })
+    {
+        INFO(std::string { "input: " } + value);
+        CHECK(ParseEncryptionMode(value) == SqlEncryptionMode::DriverDefault);
+    }
+}
+
+TEST_CASE("FormatEncryptionMode: renders the canonical keyword value", "[SqlConnectInfo]")
+{
+    CHECK(FormatEncryptionMode(SqlEncryptionMode::Enabled) == "yes");
+    CHECK(FormatEncryptionMode(SqlEncryptionMode::Disabled) == "no");
+    // DriverDefault is expressed by omitting the keyword entirely.
+    CHECK(FormatEncryptionMode(SqlEncryptionMode::DriverDefault).empty());
+}
+
+TEST_CASE("FormatEncryptionMode / ParseEncryptionMode round-trip", "[SqlConnectInfo]")
+{
+    for (auto const mode: { SqlEncryptionMode::Enabled, SqlEncryptionMode::Disabled })
+        CHECK(ParseEncryptionMode(FormatEncryptionMode(mode)) == mode);
+}
+
+TEST_CASE("SqlConnectionDataSource: defaults to DriverDefault and emits no Encrypt keyword", "[SqlConnectInfo]")
+{
+    SqlConnectionDataSource const ds {
+        .datasource = "MyDSN",
+        .username = "alice",
+        .password = "shh",
+        .timeout = std::chrono::seconds { 12 },
+    };
+
+    // Regression guard: opting out must leave the rendering byte-for-byte as it was before
+    // SQL_COPT_SS_ENCRYPT support was added, so existing deployments are unaffected.
+    CHECK(ds.encryption == SqlEncryptionMode::DriverDefault);
+    CHECK(ds.ToConnectionString().value == "DSN=MyDSN;UID=alice;PWD=shh;TIMEOUT=12");
+}
+
+TEST_CASE("SqlConnectionDataSource::ToConnectionString emits Encrypt only when opted in", "[SqlConnectInfo]")
+{
+    auto ds = SqlConnectionDataSource {
+        .datasource = "MyDSN",
+        .username = "alice",
+        .password = "shh",
+        .timeout = std::chrono::seconds { 12 },
+    };
+
+    ds.encryption = SqlEncryptionMode::Enabled;
+    CHECK(ds.ToConnectionString().value == "DSN=MyDSN;UID=alice;PWD=shh;TIMEOUT=12;Encrypt=yes");
+
+    ds.encryption = SqlEncryptionMode::Disabled;
+    CHECK(ds.ToConnectionString().value == "DSN=MyDSN;UID=alice;PWD=shh;TIMEOUT=12;Encrypt=no");
+}
+
+TEST_CASE("SqlConnectionDataSource::FromConnectionString picks up Encrypt", "[SqlConnectInfo]")
+{
+    auto const enabled = SqlConnectionDataSource::FromConnectionString(SqlConnectionString { .value = "DSN=d;Encrypt=yes" });
+    CHECK(enabled.encryption == SqlEncryptionMode::Enabled);
+
+    auto const disabled = SqlConnectionDataSource::FromConnectionString(SqlConnectionString { .value = "DSN=d;ENCRYPT=No" });
+    CHECK(disabled.encryption == SqlEncryptionMode::Disabled);
+
+    auto const absent = SqlConnectionDataSource::FromConnectionString(SqlConnectionString { .value = "DSN=d" });
+    CHECK(absent.encryption == SqlEncryptionMode::DriverDefault);
+}
+
+TEST_CASE("SqlConnectionDataSource: encryption survives the connection-string round-trip", "[SqlConnectInfo]")
+{
+    for (auto const mode: { SqlEncryptionMode::DriverDefault, SqlEncryptionMode::Disabled, SqlEncryptionMode::Enabled })
+    {
+        SqlConnectionDataSource const original {
+            .datasource = "DS",
+            .username = "u",
+            .password = "p",
+            .timeout = std::chrono::seconds { 5 },
+            .encryption = mode,
+        };
+
+        CHECK(SqlConnectionDataSource::FromConnectionString(original.ToConnectionString()) == original);
+    }
+}
+
+TEST_CASE("SqlConnectionDataSource: encryption participates in comparison", "[SqlConnectInfo]")
+{
+    SqlConnectionDataSource const plaintext { .datasource = "A", .encryption = SqlEncryptionMode::Disabled };
+    SqlConnectionDataSource const encrypted { .datasource = "A", .encryption = SqlEncryptionMode::Enabled };
+
+    CHECK(plaintext != encrypted);
+    CHECK(plaintext < encrypted);
+}
+
+TEST_CASE("SqlConnection::SetDefaultDataSource carries the encryption setting over", "[SqlConnectInfo]")
+{
+    auto const previous = SqlConnectionString { SqlConnection::DefaultConnectionString() };
+
+    SqlConnection::SetDefaultDataSource(SqlConnectionDataSource {
+        .datasource = "ProbeDSN",
+        .username = "ProbeUser",
+        .password = "ProbePass",
+        .timeout = std::chrono::seconds { 7 },
+        .encryption = SqlEncryptionMode::Enabled,
+    });
+    CHECK(SqlConnection::DefaultConnectionString().value.contains("Encrypt=yes"));
+
+    SqlConnection::SetDefaultConnectionString(previous);
+}

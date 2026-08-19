@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <array>
 #include <mutex>
+#include <optional>
 #include <stdexcept>
 
 #include <sql.h>
@@ -43,6 +44,34 @@ namespace
         auto const charCount = std::min(static_cast<size_t>(byteLen) / sizeof(SQLWCHAR), buffer.size() - 1);
         auto const utf8 = ToUtf8(std::u16string_view { reinterpret_cast<char16_t const*>(buffer.data()), charCount });
         return std::string { reinterpret_cast<char const*>(utf8.data()), utf8.size() };
+    }
+
+    // SQL_COPT_SS_ENCRYPT and its SQL_EN_* values are declared in the Microsoft-specific `msodbcsql.h`
+    // (formerly `sqlncli.h`), which unixODBC does not ship and which we must not take a dependency on —
+    // Lightweight builds against plain unixODBC on Linux/macOS. Mirror the values instead; they are part
+    // of the driver's stable ABI.
+    // https://learn.microsoft.com/en-us/sql/relational-databases/native-client-odbc-api/sqlsetconnectattr
+    constexpr SQLINTEGER SqlCoptSsEncrypt = 1200 + 23; // SQL_COPT_SS_BASE + 23
+    constexpr SQLULEN SqlEncryptOff = 0;               // SQL_EN_OFF
+    constexpr SQLULEN SqlEncryptOn = 1;                // SQL_EN_ON
+
+    /// Maps a SqlEncryptionMode onto the SQL_COPT_SS_ENCRYPT attribute value to set.
+    ///
+    /// @param mode The requested encryption mode.
+    /// @return The attribute value, or `std::nullopt` for `DriverDefault` (the attribute is then not
+    ///         touched at all, leaving the driver's own configuration in charge).
+    constexpr std::optional<SQLULEN> ToOdbcEncryptValue(SqlEncryptionMode mode) noexcept
+    {
+        switch (mode)
+        {
+            case SqlEncryptionMode::DriverDefault:
+                return std::nullopt;
+            case SqlEncryptionMode::Disabled:
+                return SqlEncryptOff;
+            case SqlEncryptionMode::Enabled:
+                return SqlEncryptOn;
+        }
+        return std::nullopt;
     }
 
 } // namespace
@@ -153,11 +182,9 @@ void SqlConnection::SetDefaultConnectionString(SqlConnectionString const& connec
 
 void SqlConnection::SetDefaultDataSource(SqlConnectionDataSource const& dataSource) noexcept
 {
-    gDefaultConnectionString = SqlConnectionString { .value = std::format("DSN={};UID={};PWD={};TIMEOUT={}",
-                                                                          dataSource.datasource,
-                                                                          dataSource.username,
-                                                                          dataSource.password,
-                                                                          dataSource.timeout.count()) };
+    // Delegate rather than re-format: ToConnectionString() is the single place that knows which fields
+    // (including the optional `Encrypt=` keyword) have to survive the flattening into a connection string.
+    gDefaultConnectionString = dataSource.ToConnectionString();
 }
 
 SqlConnectionString const& SqlConnection::ConnectionString() const noexcept
@@ -268,6 +295,23 @@ bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
         {
             SqlLogger::GetLogger().OnError(LastError());
             return false;
+        }
+
+        // SQL_COPT_SS_ENCRYPT is a pre-connect attribute, so it has to be set here rather than in
+        // PostConnect() — which also means the server type is not known yet and cannot be branched on.
+        // Only an explicit opt-in touches the attribute, so non-SQL-Server drivers are unaffected by
+        // default. When the caller *did* opt in and the driver rejects the attribute, the connection is
+        // failed rather than established: silently downgrading a requested encrypted connection to
+        // plaintext would be the wrong failure mode for a security setting.
+        if (auto const encryptValue = ToOdbcEncryptValue(info.encryption))
+        {
+            // NOLINTNEXTLINE(performance-no-int-to-ptr)
+            sqlReturn = SQLSetConnectAttrW(m_hDbc, SqlCoptSsEncrypt, (SQLPOINTER) *encryptValue, SQL_IS_UINTEGER);
+            if (!SQL_SUCCEEDED(sqlReturn))
+            {
+                SqlLogger::GetLogger().OnError(LastError());
+                return false;
+            }
         }
 
         sqlReturn = SQLConnectW(m_hDbc,
