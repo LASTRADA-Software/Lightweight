@@ -125,6 +125,27 @@ Keep in mind:
   on a connection used for cursors you intend to abandon early or where memory is tight.
 - It does not change results — values are identical to the per-row path.
 
+### Enable the prepared-statement cache for recurring queries
+
+Every `Prepare()` costs a parse/plan round-trip on Microsoft SQL Server and PostgreSQL, and the
+`DataMapper` / query-builder layers re-prepare the same handful of statements on every call because each
+call site builds a fresh `SqlStatement`. A connection can pool the already-prepared handles so repeats
+skip `SQLPrepare` — see [Prepared-statement cache](usage.md):
+
+```cpp
+connection.SetPreparedStatementCacheCapacity(Lightweight::PreparedStatementCacheCapacitySuggested);
+```
+
+Keep in mind:
+
+- It is **opt-in** (default capacity `0`), and transparent once enabled — no call-site changes.
+- Size it to your working set of distinct query texts. Too small and the LRU thrashes; too large and you
+  risk the server-side cap on live prepared statements per session.
+- A pooled handle carries the plan derived from the schema at preparation time. Call
+  `ClearPreparedStatementCache()` after raw DDL; migrations and `MigrateDirect()` already do.
+- Statements whose plan must be re-derived opt out via
+  `SqlStatement::SetPreparedStatementCaching(SqlPreparedStatementCaching::Disabled)`.
+
 ## SQL Server Variation Challenges
 
 ### 64-bit Integer Handling in Oracle Database

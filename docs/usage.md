@@ -81,6 +81,60 @@ while (cursor.FetchRow())
     std::println("{}|{}|{}", record.a, record.b, record.c);
 ```
 
+## Prepared-statement cache (fewer prepare round-trips)
+
+`Prepare()` sends the SQL text to the server so it can parse and plan it — one network round-trip on
+Microsoft SQL Server and PostgreSQL, paid again every time the same query text is prepared. Applications
+built on `DataMapper` or the query builders re-prepare the same handful of statements constantly, because
+each call site creates its own short-lived `SqlStatement`.
+
+A connection can keep the already-prepared handles alive in a bounded LRU pool, so re-preparing a query
+it has seen before skips `SQLPrepare` entirely:
+
+```cpp
+auto conn = SqlConnection {};
+conn.SetPreparedStatementCacheCapacity(Lightweight::PreparedStatementCacheCapacitySuggested); // 64
+```
+
+The cache is **opt-in** (default capacity `Lightweight::PreparedStatementCacheCapacityDefault`, i.e. `0`
+= disabled) but, once enabled, **transparent**: every `SqlStatement` on that connection participates, so
+`DataMapper`, the `SqlQuery` DSL, and raw `Prepare()` call sites all benefit without a code change. It
+can also be requested up-front via `SqlConnectionDataSource::preparedStatementCacheCapacity`. A
+connection keeps its pool while it is recycled through `Lightweight::Pool`, since the pool hands back the
+same live connection rather than reconnecting it.
+
+How it works: a handle is *checked out* while a statement uses it and returned to the pool when that
+statement is re-prepared or destroyed. Two statements preparing the same text at the same time therefore
+each get their own handle. When the pool exceeds its capacity the least recently returned handle is
+freed — a bound that matters because several backends cap the number of live prepared statements per
+session. Statistics are available for diagnostics:
+
+```cpp
+auto const& stats = conn.PreparedStatementCache().Stats();
+std::println("prepare hits={} misses={} evictions={}", stats.hits, stats.misses, stats.evictions);
+```
+
+**Schema changes invalidate cached plans.** A pooled handle carries the plan the driver derived from the
+schema as it was at preparation time, so DDL must drop it:
+
+```cpp
+conn.ClearPreparedStatementCache();
+```
+
+Lightweight does this for you where it owns the DDL — `SqlStatement::MigrateDirect()` and the
+`MigrationManager` executor clear the cache after applying a script — and disconnecting or reconnecting a
+connection clears it as well. Raw DDL you send through `ExecuteDirect()` is your responsibility. A single
+statement that must never reuse a plan opts out:
+
+```cpp
+auto stmt = SqlStatement { conn };
+stmt.SetPreparedStatementCaching(SqlPreparedStatementCaching::Disabled);
+```
+
+The cache is active on Microsoft SQL Server, PostgreSQL and SQLite. On any other backend
+`SqlConnection::SupportsPreparedStatementReuse()` is false and the requested capacity stays inactive, so
+the same setup code is safe to run everywhere.
+
 ## SQL Query Builder
 
 Or construct statement using `SqlQueryBuilder`
