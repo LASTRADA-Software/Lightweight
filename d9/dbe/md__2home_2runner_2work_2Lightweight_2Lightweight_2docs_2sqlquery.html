@@ -305,44 +305,7 @@ Example</h2>
 <div class="line">                  })</div>
 <div class="line">              .Where(SqlQualifiedTableColumnName { .tableName = <span class="stringliteral">&quot;Table_A&quot;</span>, .columnName = <span class="stringliteral">&quot;foo&quot;</span> }, 42)</div>
 <div class="line">              .All();</div>
-</div><!-- fragment --><h2><a class="anchor" id="reading-result-columns-by-name"></a>
-Reading result columns by name</h2>
-<p>Result columns of a builder-composed query can be addressed by the name spelled in the builder, instead of by a 1-based index that shifts whenever the projection changes:</p>
-<div class="fragment"><div class="line"><span class="keyword">auto</span> cursor = stmt.ExecuteDirect(stmt.Query(<span class="stringliteral">&quot;Table_A&quot;</span>)</div>
-<div class="line">                                     .Select()</div>
-<div class="line">                                     .Field(SqlQualifiedTableColumnName { <span class="stringliteral">&quot;Table_A&quot;</span>, <span class="stringliteral">&quot;foo&quot;</span> })</div>
-<div class="line">                                     .Fields({ <span class="stringliteral">&quot;that_foo&quot;</span>sv, <span class="stringliteral">&quot;that_id&quot;</span>sv }, <span class="stringliteral">&quot;Table_B&quot;</span>)</div>
-<div class="line">                                     .Field(Aggregate::Count(<span class="stringliteral">&quot;id&quot;</span>sv)).As(<span class="stringliteral">&quot;total&quot;</span>sv)</div>
-<div class="line">                                     .LeftOuterJoin(<span class="stringliteral">&quot;Table_B&quot;</span>, <span class="stringliteral">&quot;id&quot;</span>sv, <span class="stringliteral">&quot;that_id&quot;</span>sv)</div>
-<div class="line">                                     .All());</div>
-<div class="line"> </div>
-<div class="line"><span class="keywordflow">while</span> (cursor.FetchRow())</div>
-<div class="line">{</div>
-<div class="line">    <span class="keyword">auto</span> <span class="keyword">const</span> foo = cursor.GetColumn&lt;<span class="keywordtype">int</span>&gt;(<span class="stringliteral">&quot;Table_A.foo&quot;</span>);</div>
-<div class="line">    <span class="keyword">auto</span> <span class="keyword">const</span> thatFoo = cursor.GetColumn&lt;<span class="keywordtype">int</span>&gt;(<span class="stringliteral">&quot;Table_B.that_foo&quot;</span>);</div>
-<div class="line">    <span class="keyword">auto</span> <span class="keyword">const</span> total = cursor.GetColumn&lt;<span class="keywordtype">int</span>&gt;(<span class="stringliteral">&quot;total&quot;</span>);</div>
-<div class="line">}</div>
-</div><!-- fragment --><p><code>GetNullableColumn&lt;T&gt;(name)</code> and <code>GetColumnOr&lt;T&gt;(name, defaultValue)</code> take a name the same way.</p>
-<p>The name is matched exactly as it was written in the builder — no case folding and no implicit qualification:</p>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">Builder call   </th><th class="markdownTableHeadNone">Name to read it back by    </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>Field("foo")</code>   </td><td class="markdownTableBodyNone"><code>"foo"</code>    </td></tr>
-<tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>Field({ "Table_A", "foo" })</code>   </td><td class="markdownTableBodyNone"><code>"Table_A.foo"</code>    </td></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>Fields({ "a"sv, "b"sv }, "Table_B")</code>   </td><td class="markdownTableBodyNone"><code>"Table_B.a"</code>, <code>"Table_B.b"</code>    </td></tr>
-<tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>Field(...).As("total")</code>   </td><td class="markdownTableBodyNone"><code>"total"</code>    </td></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>Field(Aggregate::Count("id"sv))</code>   </td><td class="markdownTableBodyNone">not addressable — add <code>.As(...)</code>   </td></tr>
-</table>
-<p>The mapping is recorded by the query builder as the projection is assembled, so it behaves identically on every supported database. Consequently it is available only for builder-composed queries: a statement prepared from a raw SQL string has no mapping, and neither does a projection containing a wildcard (<code>Field("*")</code>), whose column count is unknown at build time. Reading a name that is unknown, ambiguous (projected twice — alias one of them), or unavailable throws <code>std::invalid_argument</code>.</p>
-<blockquote class="doxtable">
-<p>&zwj;[!NOTE] Columns must still be read in ascending column order. The SQL Server driver rejects out-of-order <code>SQLGetData</code> with SQLSTATE 07009, and addressing columns by name makes it easy to reorder reads without noticing. </p>
-</blockquote>
-<h2><a class="anchor" id="examples-of-sql-to-datamapper-mappings"></a>
+</div><!-- fragment --><h2><a class="anchor" id="examples-of-sql-to-datamapper-mappings"></a>
 Examples of SQL to DataMapper mappings</h2>
 <div class="fragment"><div class="line">dm-&gt;Query&lt;Employee&gt;().All();    <span class="comment">// SELECT &quot;Employee&quot;.&quot;EmployeeId&quot;, &quot;Employee&quot;.&quot;LastName&quot;, &quot;Employee&quot;.&quot;FirstName&quot;, &quot;Employee&quot;.&quot;Title&quot;,</span></div>
 <div class="line">                                <span class="comment">//        &quot;Employee&quot;.&quot;ReportsTo&quot;, &quot;Employee&quot;.&quot;BirthDate&quot;, &quot;Employee&quot;.&quot;HireDate&quot;, &quot;Employee&quot;.&quot;Address&quot;,</span></div>
