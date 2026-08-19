@@ -453,6 +453,18 @@ namespace
         if (!std::ranges::all_of(table.columns, [&](auto const& c) { return isKeyColumn(c.name); }))
             return std::nullopt;
 
+        // A column that is both a primary key and a foreign key is emitted as a plain Field, never a
+        // BelongsTo (see the `isForeignKey && !isPrimaryKey` guard at the column emission site). A
+        // through-relation resolves its join record's owner and far sides through exactly those BelongsTo
+        // members, so a join table keyed on its own foreign keys cannot satisfy the relation it would
+        // otherwise imply - the generated code would not compile. Skip it for the same reason
+        // EmitInverseRelation skips composite foreign keys: no BelongsTo, no relation (#556).
+        auto const keyedOnItsOwnForeignKey = [&](SqlSchema::ForeignKeyConstraint const& constraint) {
+            return std::ranges::contains(table.primaryKeys, constraint.foreignKey.columns.front());
+        };
+        if (keyedOnItsOwnForeignKey(singleColumnKeys[0]) || keyedOnItsOwnForeignKey(singleColumnKeys[1]))
+            return std::nullopt;
+
         return std::pair { singleColumnKeys[0], singleColumnKeys[1] };
     }
 
@@ -519,6 +531,13 @@ namespace
             return; // references a table outside the generated set
 
         auto const& childColumn = constraint.foreignKey.columns.front();
+
+        // Same reason as the composite case: a column that is both a primary key and a foreign key is
+        // emitted as a plain Field, never a BelongsTo (see the `isForeignKey && !isPrimaryKey` guard at
+        // the column emission site). HasMany resolves its inverse through that BelongsTo, so without one
+        // the relation cannot be satisfied and the generated record fails to compile (#556).
+        if (std::ranges::contains(table.primaryKeys, childColumn))
+            return;
 
         // Scalar when the child's own foreign key is uniquely indexed: one child per owner.
         auto const childIsUnique = IsUniquelyIndexed(table, childColumn);
@@ -1082,6 +1101,15 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table, std::vector<Plan
 
         auto const memberName = uniqueMemberNameBuilder.DeclareName(
             SanitizeName(FormatName(StripSuffix(relation.memberName), _config.formatType)));
+
+        // A relation is not a column, but the descriptor is the record's *member* list, not its column
+        // list: RecordMemberCount reads Description<>::FieldCount whenever a specialization exists, so a
+        // relation left out here is invisible to EnumerateRecordMembers - ConfigureRelationAutoLoading
+        // then installs no loader and the first access throws SqlRequireLoadedError (#556). Column-only
+        // consumers select members by the RecordColumnMember concept rather than by index, so the extra
+        // entry costs them nothing. Reflection reports a relation's C++ member name where a column would
+        // report its SQL name, so mirror that to keep both enumeration paths interchangeable.
+        definition.members.emplace_back(memberName, memberName);
 
         auto const ownerSelector = relation.ownerSelectorRequired
                                        ? std::format(", Light::SqlRealName {{ \"{}\" }}", relation.ownerForeignKeyColumn)

@@ -23,7 +23,7 @@ struct Artist final
 template <>
 struct Lightweight::Description<Artist>
 {
-    static constexpr std::size_t FieldCount = 2;
-    using Members = Lightweight::RecordMemberList<&Artist::ArtistId, &Artist::Name>;
-    static constexpr std::array<std::string_view, 2> FieldNames = { "ArtistId", "Name" };
+    static constexpr std::size_t FieldCount = 3;
+    using Members = Lightweight::RecordMemberList<&Artist::ArtistId, &Artist::Name, &Artist::Album_1>;
+    static constexpr std::array<std::string_view, 3> FieldNames = { "ArtistId", "Name", "Album_1" };
 };

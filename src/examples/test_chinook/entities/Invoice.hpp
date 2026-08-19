@@ -33,7 +33,7 @@ struct Invoice final
 template <>
 struct Lightweight::Description<Invoice>
 {
-    static constexpr std::size_t FieldCount = 9;
+    static constexpr std::size_t FieldCount = 10;
     using Members = Lightweight::RecordMemberList<&Invoice::InvoiceId,
                                                   &Invoice::CustomerId,
                                                   &Invoice::InvoiceDate,
@@ -42,8 +42,10 @@ struct Lightweight::Description<Invoice>
                                                   &Invoice::BillingState,
                                                   &Invoice::BillingCountry,
                                                   &Invoice::BillingPostalCode,
-                                                  &Invoice::Total>;
-    static constexpr std::array<std::string_view, 9> FieldNames = { "InvoiceId",      "CustomerId",        "InvoiceDate",
-                                                                    "BillingAddress", "BillingCity",       "BillingState",
-                                                                    "BillingCountry", "BillingPostalCode", "Total" };
+                                                  &Invoice::Total,
+                                                  &Invoice::InvoiceLine>;
+    static constexpr std::array<std::string_view, 10> FieldNames = { "InvoiceId",      "CustomerId",        "InvoiceDate",
+                                                                     "BillingAddress", "BillingCity",       "BillingState",
+                                                                     "BillingCountry", "BillingPostalCode", "Total",
+                                                                     "InvoiceLine" };
 };

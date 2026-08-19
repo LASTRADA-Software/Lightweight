@@ -37,7 +37,7 @@ struct Employee final
 template <>
 struct Lightweight::Description<Employee>
 {
-    static constexpr std::size_t FieldCount = 15;
+    static constexpr std::size_t FieldCount = 17;
     using Members = Lightweight::RecordMemberList<&Employee::EmployeeId,
                                                   &Employee::LastName,
                                                   &Employee::FirstName,
@@ -52,9 +52,11 @@ struct Lightweight::Description<Employee>
                                                   &Employee::PostalCode,
                                                   &Employee::Phone,
                                                   &Employee::Fax,
-                                                  &Employee::Email>;
-    static constexpr std::array<std::string_view, 15> FieldNames = { "EmployeeId", "LastName",  "FirstName", "Title",
-                                                                     "ReportsTo",  "BirthDate", "HireDate",  "Address",
-                                                                     "City",       "State",     "Country",   "PostalCode",
-                                                                     "Phone",      "Fax",       "Email" };
+                                                  &Employee::Email,
+                                                  &Employee::Customer_1,
+                                                  &Employee::Employee>;
+    static constexpr std::array<std::string_view, 17> FieldNames = {
+        "EmployeeId", "LastName", "FirstName",  "Title", "ReportsTo", "BirthDate", "HireDate",   "Address", "City",
+        "State",      "Country",  "PostalCode", "Phone", "Fax",       "Email",     "Customer_1", "Employee"
+    };
 };

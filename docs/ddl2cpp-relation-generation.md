@@ -85,6 +85,13 @@ Each should yield a `HasManyThrough` on both referenced tables. Because both for
 join record point at *different* tables here, the selectors are only needed when a join table
 points twice at the same target.
 
+> **Not yet generated for the composite-key shape.** Of the 159 join-table candidates, the 84 whose
+> primary key *is* their two foreign keys are skipped by rule 6 below: those columns are emitted as
+> plain `Field`s rather than `BelongsTo`, and a through-relation has no other way to resolve its two
+> ends, so generating one yields a record that does not compile. The remaining 75 — join tables with
+> a key of their own — are generated as described here. Lifting this needs `BelongsTo` to support
+> being a primary key.
+
 ### 3. `HasOneThrough` / one-to-one
 
 24 single-column foreign keys sit under a single-column unique index, which makes the relation
@@ -122,6 +129,16 @@ considered throughout; composite ones are counted and skipped as before.
    of a join table already covered by rule 2 or 3.
 5. **Scalar rather than collection** when the child's foreign key is itself covered by a
    single-column unique index: the relation is one-to-one.
+6. **No relation at all** when the child's foreign key column is also part of that child's own
+   primary key. Such a column is emitted as a plain `Field`, never a `BelongsTo` (see rule 1), and
+   every inverse relation — `HasMany`, `HasOne` and both through-relations — resolves its other end
+   through exactly that `BelongsTo`. Generating one anyway produces a record that does not compile.
+   This rules out the classic composite-key join table, whose primary key *is* its two foreign keys;
+   a join table carrying a key of its own is unaffected and still yields rule 2 or 3.
+
+   Supporting the composite-key shape needs `BelongsTo` to be usable as a primary key, which it is
+   not today (`BelongsTo::IsPrimaryKey` is hard-coded `false`). Until that changes, the generator
+   emits nothing there rather than something that cannot be built.
 
 A selector (`SqlRealName { "<column>" }`) is emitted whenever the referenced table is reachable
 from the same child table through more than one foreign key, which is what makes the ambiguous

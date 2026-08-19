@@ -36,7 +36,7 @@ struct Customer final
 template <>
 struct Lightweight::Description<Customer>
 {
-    static constexpr std::size_t FieldCount = 13;
+    static constexpr std::size_t FieldCount = 14;
     using Members = Lightweight::RecordMemberList<&Customer::CustomerId,
                                                   &Customer::FirstName,
                                                   &Customer::LastName,
@@ -49,9 +49,10 @@ struct Lightweight::Description<Customer>
                                                   &Customer::Phone,
                                                   &Customer::Fax,
                                                   &Customer::Email,
-                                                  &Customer::SupportRepId>;
-    static constexpr std::array<std::string_view, 13> FieldNames = { "CustomerId",  "FirstName", "LastName", "Company",
-                                                                     "Address",     "City",      "State",    "Country",
-                                                                     "PostalCode",  "Phone",     "Fax",      "Email",
-                                                                     "SupportRepId" };
+                                                  &Customer::SupportRepId,
+                                                  &Customer::Invoice_1>;
+    static constexpr std::array<std::string_view, 14> FieldNames = { "CustomerId",   "FirstName", "LastName", "Company",
+                                                                     "Address",      "City",      "State",    "Country",
+                                                                     "PostalCode",   "Phone",     "Fax",      "Email",
+                                                                     "SupportRepId", "Invoice_1" };
 };
