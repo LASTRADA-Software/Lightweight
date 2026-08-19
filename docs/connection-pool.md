@@ -45,7 +45,8 @@ Pass a timeout to bound that wait:
 
 ```cpp
 if (auto mapper = pool.Acquire(std::chrono::milliseconds { 250 }))
-    Handle(mapper->Query<User>().All());
+    // `mapper` is the std::expected; `*mapper` is the PooledDataMapper it holds.
+    Handle((*mapper)->Query<User>().All());
 else
     // mapper.error() == PoolError::Timeout
     ReportOverload();
