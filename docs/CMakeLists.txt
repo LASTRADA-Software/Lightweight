@@ -65,6 +65,7 @@ message(STATUS "Doxygen found: ${DOXYGEN_EXECUTABLE}")
     "${PROJECT_SOURCE_DIR}/docs/sql-migrations.md"
     "${PROJECT_SOURCE_DIR}/docs/async.md"
     "${PROJECT_SOURCE_DIR}/docs/logging.md"
+    "${PROJECT_SOURCE_DIR}/docs/statistics.md"
     "${PROJECT_SOURCE_DIR}/docs/schema-introspection.md"
     "${PROJECT_SOURCE_DIR}/docs/composite-keys-design.md"
     "${PROJECT_SOURCE_DIR}/docs/ddl2cpp-relation-generation.md"
