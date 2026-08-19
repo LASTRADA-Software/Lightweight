@@ -134,6 +134,91 @@ template <auto Selector>
 concept RelationSelector =
     std::same_as<std::remove_cvref_t<decltype(Selector)>, std::nullopt_t> || requires { std::string_view { Selector }; };
 
+/// @brief Marks the join record of a relationship that is reached *through* an intermediate table.
+///
+/// Writing the join record bare - `HasManyThrough<Person, Friendship>` - leaves the reader to
+/// remember which of the two record types is the join table. Wrapping it says so at the call site:
+///
+/// @code
+/// struct Person
+/// {
+///     Field<int, PrimaryKey::AutoAssign> id;
+///     HasManyThrough<Person, Through<Friendship>> friends;
+/// };
+/// @endcode
+///
+/// The bare spelling still compiles, but is deprecated and will be removed in a future release.
+///
+/// @tparam JoinRecordT The join record type, holding the foreign keys of the relationship.
+///
+/// @see HasManyThrough, HasOneThrough
+/// @ingroup DataMapper
+template <typename JoinRecordT>
+struct Through
+{
+    /// The join record type this marker wraps.
+    using RecordType = JoinRecordT;
+};
+
+namespace detail
+{
+
+    template <typename T>
+    struct IsThroughType: std::false_type
+    {
+    };
+
+    template <typename JoinRecordT>
+    struct IsThroughType<Through<JoinRecordT>>: std::true_type
+    {
+    };
+
+} // namespace detail
+
+/// Tests whether @p T is a Through marker.
+/// @ingroup DataMapper
+template <typename T>
+constexpr bool IsThrough = detail::IsThroughType<std::remove_cvref_t<T>>::value;
+
+namespace detail
+{
+
+    /// Resolves the bare (unwrapped) spelling of a join record, which is deprecated.
+    template <typename JoinRecordT>
+    struct [[deprecated("Naming the join record directly is deprecated, wrap it as Through<T>, "
+                        "e.g. HasManyThrough<Person, Through<Friendship>>.")]] BareThroughRecord
+    {
+        using type = JoinRecordT;
+    };
+
+    /// Maps a join record specification onto the join record itself.
+    template <typename ThroughSpec>
+    struct ThroughRecordOfHelper
+    {
+        using type = typename BareThroughRecord<ThroughSpec>::type;
+    };
+
+    template <typename JoinRecordT>
+    struct ThroughRecordOfHelper<Through<JoinRecordT>>
+    {
+        static_assert(!IsThrough<JoinRecordT>,
+                      "Through<Through<T>> is not a valid join record specification, write Through<T>.");
+        using type = JoinRecordT;
+    };
+
+} // namespace detail
+
+/// @brief Resolves the join record of a through-relationship from its template argument.
+///
+/// Accepts both the `Through<T>` marker and the deprecated bare `T` spelling, yielding `T` either way.
+///
+/// @tparam ThroughSpec Either `Through<T>` or, deprecated, `T`.
+///
+/// @see Through
+/// @ingroup DataMapper
+template <typename ThroughSpec>
+using ThroughRecordOf = typename detail::ThroughRecordOfHelper<ThroughSpec>::type;
+
 namespace detail
 {
 

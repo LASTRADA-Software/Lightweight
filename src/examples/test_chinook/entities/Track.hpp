@@ -30,7 +30,7 @@ struct Track final
     Light::Field<std::optional<int32_t>, Light::SqlRealName { "Bytes" }> Bytes;
     Light::Field<Light::SqlNumeric<10, 2>, Light::SqlRealName { "UnitPrice" }> UnitPrice;
 
-    Light::HasManyThrough<Playlist, Playlisttrack> Playlist_1;
+    Light::HasManyThrough<Playlist, Light::Through<Playlisttrack>> Playlist_1;
     Light::HasMany<Invoiceline> InvoiceLine;
 };
 

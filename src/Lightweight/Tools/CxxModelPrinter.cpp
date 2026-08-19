@@ -1109,7 +1109,7 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table, std::vector<Plan
                 auto const templateName =
                     relation.kind == PlannedRelation::Kind::HasOneThrough ? "HasOneThrough"sv : "HasManyThrough"sv;
                 definition.text << std::format(
-                    "    Light::{}<{}, {}{}{}> {};\n",
+                    "    Light::{}<{}, Light::Through<{}>{}{}> {};\n",
                     templateName,
                     referencedStruct,
                     throughStruct,

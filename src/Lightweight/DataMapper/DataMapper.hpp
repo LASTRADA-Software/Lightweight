@@ -659,17 +659,13 @@ class DataMapper
     template <typename Record, typename OtherRecord, auto InverseSelector>
     void LoadHasMany(Record& record, HasMany<OtherRecord, InverseSelector>& field);
 
-    template <typename ReferencedRecord, typename ThroughRecord, typename Record, auto OwnerSelector, auto ThroughSelector>
+    template <typename ReferencedRecord, typename ThroughSpec, typename Record, auto OwnerSelector, auto ThroughSelector>
     void LoadHasOneThrough(Record& record,
-                           HasOneThrough<ReferencedRecord, ThroughRecord, OwnerSelector, ThroughSelector>& field);
+                           HasOneThrough<ReferencedRecord, ThroughSpec, OwnerSelector, ThroughSelector>& field);
 
-    template <typename ReferencedRecord,
-              typename ThroughRecord,
-              typename Record,
-              auto OwnerSelector,
-              auto ReferencedSelector>
+    template <typename ReferencedRecord, typename ThroughSpec, typename Record, auto OwnerSelector, auto ReferencedSelector>
     void LoadHasManyThrough(Record& record,
-                            HasManyThrough<ReferencedRecord, ThroughRecord, OwnerSelector, ReferencedSelector>& field);
+                            HasManyThrough<ReferencedRecord, ThroughSpec, OwnerSelector, ReferencedSelector>& field);
 
     template <typename Record, typename OtherRecord, auto InverseSelector, typename Callable>
     void CallOnHasMany(Record& record, Callable const& callback);
@@ -2728,10 +2724,12 @@ SqlSelectQueryBuilder DataMapper::BuildHasOneThroughSelectQuery()
             SqlWildcard);
 }
 
-template <typename ReferencedRecord, typename ThroughRecord, typename Record, auto OwnerSelector, auto ThroughSelector>
+template <typename ReferencedRecord, typename ThroughSpec, typename Record, auto OwnerSelector, auto ThroughSelector>
 void DataMapper::LoadHasOneThrough(Record& record,
-                                   HasOneThrough<ReferencedRecord, ThroughRecord, OwnerSelector, ThroughSelector>& field)
+                                   HasOneThrough<ReferencedRecord, ThroughSpec, OwnerSelector, ThroughSelector>& field)
 {
+    using ThroughRecord = ThroughRecordOf<ThroughSpec>;
+
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
     static_assert(DataMapperRecord<ThroughRecord>, "ThroughRecord must satisfy DataMapperRecord");
 
@@ -2832,10 +2830,12 @@ void DataMapper::CallOnHasManyThroughByPK(PKValue const& pkValue, Callable const
     callback(query, pkValue);
 }
 
-template <typename ReferencedRecord, typename ThroughRecord, typename Record, auto OwnerSelector, auto ReferencedSelector>
-void DataMapper::LoadHasManyThrough(
-    Record& record, HasManyThrough<ReferencedRecord, ThroughRecord, OwnerSelector, ReferencedSelector>& field)
+template <typename ReferencedRecord, typename ThroughSpec, typename Record, auto OwnerSelector, auto ReferencedSelector>
+void DataMapper::LoadHasManyThrough(Record& record,
+                                    HasManyThrough<ReferencedRecord, ThroughSpec, OwnerSelector, ReferencedSelector>& field)
 {
+    using ThroughRecord = ThroughRecordOf<ThroughSpec>;
+
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
     ZoneScopedN("DataMapper::LoadHasManyThrough");
@@ -3092,8 +3092,7 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
         {
             using ReferencedRecord = FieldType::ReferencedRecord;
             using ThroughRecord = FieldType::ThroughRecord;
-            HasOneThrough<ReferencedRecord, ThroughRecord, FieldType::OwnerSelector, FieldType::ThroughSelector>&
-                hasOneThrough = field;
+            FieldType& hasOneThrough = field;
             // Capture the PK value by value to avoid dangling references if the record is moved.
             auto pkValue = GetPrimaryKeyField(record);
             hasOneThrough.SetAutoLoader(typename FieldType::Loader {
@@ -3111,8 +3110,7 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
         {
             using ReferencedRecord = FieldType::ReferencedRecord;
             using ThroughRecord = FieldType::ThroughRecord;
-            HasManyThrough<ReferencedRecord, ThroughRecord, FieldType::OwnerSelector, FieldType::ReferencedSelector>&
-                hasManyThrough = field;
+            FieldType& hasManyThrough = field;
             // Capture the PK value by value to avoid dangling references if the record is moved.
             auto pkValue = GetPrimaryKeyField(record);
             hasManyThrough.SetAutoLoader(typename FieldType::Loader {

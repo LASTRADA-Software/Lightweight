@@ -68,7 +68,7 @@ struct Physician
     Light::Field<Light::SqlGuid, Light::PrimaryKey::AutoAssign> id;
     Light::Field<Light::SqlAnsiString<30>> name;
     Light::HasMany<Appointment> appointments;
-    Light::HasManyThrough<Patient, Appointment> patients;
+    Light::HasManyThrough<Patient, Light::Through<Appointment>> patients;
 
     constexpr std::weak_ordering operator<=>(Physician const& other) const
     {
@@ -88,7 +88,7 @@ struct Patient
     Light::Field<Light::SqlAnsiString<30>> name;
     Light::Field<Light::SqlAnsiString<30>> comment;
     Light::HasMany<Appointment> appointments;
-    Light::HasManyThrough<Physician, Appointment> physicians;
+    Light::HasManyThrough<Physician, Light::Through<Appointment>> physicians;
 
     constexpr std::weak_ordering operator<=>(Patient const& other) const
     {

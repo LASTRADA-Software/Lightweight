@@ -580,8 +580,12 @@ if (auto department = dm.QuerySingle<Department>(deptId))
 When the `BelongsTo` is **mandatory** (omit `SqlNullable::Null`), the parent is reached with the
 cleaner `employee.department->name` / `*employee.department`. Query with
 `DataMapperOptions { .loadRelations = false }` when you do not want relations populated; accessing an
-unloaded relation then throws rather than issuing a query. `HasManyThrough<Other, Through>` and
-`HasOneThrough<...>` model many-to-many / one-through relationships across a junction table.
+unloaded relation then throws rather than issuing a query. `HasManyThrough<Other, Through<Join>>`
+and `HasOneThrough<Other, Through<Join>>` model many-to-many / one-through relationships across a
+junction table - the `Through<>` marker names which of the two records is the junction table.
+
+Naming the junction record bare - `HasManyThrough<Other, Join>` - still compiles, but is deprecated
+and raises a compiler warning; it will be removed in a future release. Wrap it in `Through<>`.
 
 ### Several foreign keys into the same table
 
@@ -632,7 +636,7 @@ struct Human
     HasMany<Meeting, SqlRealName { "minute_taker_id" }> minutedMeetings {};
 
     // Attendance is a plain many-to-many, so no selector is needed here.
-    HasManyThrough<Meeting, Attendance> attendedMeetings {};
+    HasManyThrough<Meeting, Through<Attendance>> attendedMeetings {};
 };
 
 struct Meeting
@@ -647,7 +651,7 @@ struct Meeting
     BelongsTo<&Human::id, SqlRealName { "minute_taker_id" }, SqlNullable::Null> minuteTaker {};
 
     // Any number of attendees, through the join record below.
-    HasManyThrough<Human, Attendance> attendees {};
+    HasManyThrough<Human, Through<Attendance>> attendees {};
 };
 
 struct Attendance
@@ -767,7 +771,7 @@ struct Person
     Field<SqlAnsiString<30>> name;
 
     //                                          this person -.    .- the friend
-    HasManyThrough<Person, Friendship, SqlRealName { "a_id" }, SqlRealName { "b_id" }> friends;
+    HasManyThrough<Person, Through<Friendship>, SqlRealName { "a_id" }, SqlRealName { "b_id" }> friends;
 };
 
 struct Friendship
