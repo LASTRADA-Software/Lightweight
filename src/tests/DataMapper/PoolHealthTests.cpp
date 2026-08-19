@@ -8,6 +8,7 @@
 
 #include <chrono>
 #include <optional>
+#include <ranges>
 #include <thread>
 
 using namespace Lightweight;
