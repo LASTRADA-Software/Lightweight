@@ -1687,6 +1687,9 @@ namespace
     /// Otherwise execute the script directly.
     void ExecuteScriptRespectingSqliteGuards(SqlStatement& stmt, SqlConnection& connection, std::string_view script)
     {
+        // A migration changes the schema the pooled query plans were derived from, so drop them.
+        connection.ClearPreparedStatementCache();
+
         auto const parsed = TryParseSqliteGuard(script);
         if (!parsed || !connection.RequiresTableRebuildForSchemaChange())
         {

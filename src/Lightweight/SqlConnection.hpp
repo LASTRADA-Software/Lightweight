@@ -40,6 +40,7 @@ namespace Lightweight
 class SqlQueryBuilder;
 class SqlMigrationQueryBuilder;
 class SqlQueryFormatter;
+class SqlPreparedStatementCache;
 
 /// @ingroup CoreApi
 /// @brief Represents a connection to a SQL database.
@@ -219,6 +220,52 @@ class SqlConnection final
     ///              a value <= 1 disables prefetch (restoring one @c SQLFetch per row).
     LIGHTWEIGHT_API void SetDefaultPrefetchDepth(std::size_t depth) noexcept;
 
+    /// @brief Whether this connection's backend supports reusing an already-prepared statement handle
+    /// for a later execution of the same SQL text.
+    ///
+    /// Gates the prepared-statement cache: a backend not known to keep a prepared statement
+    /// re-executable across an intervening cursor close never pools handles, no matter what capacity
+    /// was configured. Like @ref SupportsNativeRowBatch this is a driver/backend capability rather than
+    /// a SQL-dialect concern, so it lives on the connection instead of a `switch` in the caller.
+    ///
+    /// @return `true` if prepared handles may be pooled and re-executed on this backend.
+    [[nodiscard]] bool SupportsPreparedStatementReuse() const noexcept;
+
+    /// @brief The capacity of this connection's prepared-statement cache.
+    ///
+    /// @return The number of already-prepared statement handles kept for reuse; `0` when the cache is
+    ///         disabled (the default).
+    [[nodiscard]] LIGHTWEIGHT_API std::size_t PreparedStatementCacheCapacity() const noexcept;
+
+    /// @brief Enables (or resizes) this connection's prepared-statement cache.
+    ///
+    /// With a non-zero capacity, `SqlStatement::Prepare()` on this connection first looks for an idle
+    /// handle already prepared for the same SQL text and reuses it, skipping the driver's `SQLPrepare`
+    /// round-trip. Handles return to the cache when the statement is re-prepared or destroyed, and are
+    /// evicted least-recently-used first once the bound is exceeded. Every layer built on
+    /// `SqlStatement` — `DataMapper`, the query builders — benefits without call-site changes; a single
+    /// statement can opt out via `SqlStatement::SetPreparedStatementCaching`.
+    ///
+    /// A capacity request on a backend without @ref SupportsPreparedStatementReuse is kept but stays
+    /// inactive, so the same setup code is safe to run against any DBMS.
+    ///
+    /// @warning A pooled handle carries the query plan the driver derived when it was prepared. Call
+    ///          @ref ClearPreparedStatementCache after DDL that a cached query touches; Lightweight's
+    ///          own migration executor and `SqlStatement::MigrateDirect` already do so.
+    ///
+    /// @param capacity Maximum number of idle prepared handles to keep; `0` disables and clears the
+    ///                 cache. @c PreparedStatementCacheCapacitySuggested is a reasonable starting point.
+    LIGHTWEIGHT_API void SetPreparedStatementCacheCapacity(std::size_t capacity) noexcept;
+
+    /// Frees every pooled prepared statement handle, e.g. after DDL invalidated the cached query plans.
+    LIGHTWEIGHT_API void ClearPreparedStatementCache() noexcept;
+
+    /// @brief Retrieves this connection's prepared-statement cache.
+    ///
+    /// Non-const because acquiring and releasing pooled handles mutates the cache. Mostly of interest
+    /// for its @c SqlPreparedStatementCache::Stats counters.
+    [[nodiscard]] LIGHTWEIGHT_API SqlPreparedStatementCache& PreparedStatementCache() noexcept;
+
     /// Creates a new query builder for the given table, compatible with the current connection.
     ///
     /// @param table The table to query.
@@ -322,6 +369,9 @@ class SqlConnection final
 
     void PostConnect();
 
+    /// Re-evaluates the backend capability gate on the requested prepared-statement cache capacity.
+    void ApplyPreparedStatementCacheCapacity() noexcept;
+
     // Private data members
     // Note: move/move assignment operators implemented manually
     // if adding new data members, make sure to update them accordingly.
@@ -356,6 +406,24 @@ inline bool SqlConnection::SupportsNativeRowBatch() const noexcept
     // Native ODBC parameter-array binding (SQL_ATTR_PARAMSET_SIZE > 1) is a per-driver capability.
     // Every backend Lightweight supports and tests against honours it; an unverified backend takes the
     // always-correct per-row path rather than risk a driver that silently ignores the parameter array.
+    switch (ServerType())
+    {
+        case SqlServerType::MICROSOFT_SQL:
+        case SqlServerType::POSTGRESQL:
+        case SqlServerType::SQLITE:
+            return true;
+        case SqlServerType::MYSQL:
+        case SqlServerType::UNKNOWN:
+            return false;
+    }
+    return false;
+}
+
+inline bool SqlConnection::SupportsPreparedStatementReuse() const noexcept
+{
+    // Re-executing a prepared statement after its cursor was closed is core ODBC, but pooling handles
+    // across call sites is only claimed for the backends Lightweight tests against. An unverified
+    // backend keeps the always-correct prepare-per-statement path.
     switch (ServerType())
     {
         case SqlServerType::MICROSOFT_SQL:

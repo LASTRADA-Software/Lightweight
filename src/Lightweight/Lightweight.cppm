@@ -24,6 +24,7 @@ module;
 #include "SqlBackup/SqlBackup.hpp"
 #include "SqlBackup/TableFilter.hpp"
 #include "SqlErrorDetection.hpp"
+#include "SqlPreparedStatementCache.hpp"
 #include "SqlScopedLock.hpp"
 #include "ThreadSafeQueue.hpp"
 #include "Tools/CxxModelPrinter.hpp"
@@ -194,6 +195,8 @@ using Lightweight::SqlNumeric;
 using Lightweight::SqlNumericType;
 using Lightweight::SqlOptimalMaxColumnSize;
 using Lightweight::SqlOutputColumnBinder;
+using Lightweight::SqlPreparedStatementCache;
+using Lightweight::SqlPreparedStatementCaching;
 using Lightweight::SqlPrimaryKeyType;
 using Lightweight::SqlQualifiedTableColumnName;
 using Lightweight::SqlQueryBuilder;

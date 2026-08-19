@@ -90,6 +90,7 @@ set(HEADER_FILES
     SqlLogger.hpp
     SqlMigration.hpp
     SqlOdbcWide.hpp
+    SqlPreparedStatementCache.hpp
     SqlQueryFormatter.hpp
     SqlSchema.hpp
     SqlScopedLock.hpp
@@ -124,6 +125,7 @@ set(SOURCE_FILES
     SqlError.cpp
     SqlLogger.cpp
     SqlMigration.cpp
+    SqlPreparedStatementCache.cpp
     SqlQuery.cpp
     SqlQuery/Core.cpp
     SqlQuery/Migrate.cpp

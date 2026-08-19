@@ -9,6 +9,7 @@
 #include "SqlError.hpp"
 #include "SqlLogger.hpp"
 #include "SqlMigration.hpp"
+#include "SqlPreparedStatementCache.hpp"
 #include "SqlQuery.hpp"
 #include "SqlQueryFormatter.hpp"
 #include "SqlRealName.hpp"
