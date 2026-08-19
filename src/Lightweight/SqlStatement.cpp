@@ -483,6 +483,10 @@ RowArrayCursor SqlStatement::ExecuteBatchFetch(std::string_view query, std::size
     m_preparedQuery.clear();
     m_numColumns.reset();
 
+    // See the note in Prepare(): raw SQL must not inherit a previous query's column names.
+    m_projectedFieldNames.clear();
+    m_projectionHasWildcard = false;
+
     RequireSuccess(SQLFreeStmt(m_hStmt, SQL_UNBIND));
 
     m_data->inputIndicators.clear();
