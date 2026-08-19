@@ -809,18 +809,19 @@ jobs:
           sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev \
             libsqliteodbc uuid-dev libyaml-cpp-dev g++-14 libstdc++-14-dev libzip-dev odbcinst
       - name: "Install Tracy capture dependencies"
-        run: sudo apt install -y libcapstone-dev libtbb-dev libdebuginfod-dev libdbus-1-dev pkg-config
+        run: sudo apt install -y libtbb-dev libdebuginfod-dev libdbus-1-dev pkg-config
       # tracy-capture / tracy-csvexport are the headless half of Tracy: capture connects to the
       # instrumented process over TCP and writes a .tracy file, csvexport turns it into text we can
       # assert on. Pinned to the same tag the library's CPM fallback uses (see root CMakeLists.txt).
       - name: "Build Tracy capture utilities"
         run: |
           git clone --depth 1 --branch v0.13.1 https://github.com/wolfpld/tracy.git /tmp/tracy
-          cmake -S /tmp/tracy/capture -B /tmp/tracy/capture/build -G Ninja \
-            -D CMAKE_BUILD_TYPE=Release -D DOWNLOAD_CAPSTONE=OFF
+          # Let Tracy vendor its own capstone. Ubuntu 24.04 ships capstone 5.x, whose API predates
+          # the ARM64 -> AARCH64 rename, and TracyWorker.cpp expects the 6.x names — pointing this at
+          # the system package fails with `CS_ARCH_AARCH64 was not declared in this scope`.
+          cmake -S /tmp/tracy/capture -B /tmp/tracy/capture/build -G Ninja -D CMAKE_BUILD_TYPE=Release
           cmake --build /tmp/tracy/capture/build -j
-          cmake -S /tmp/tracy/csvexport -B /tmp/tracy/csvexport/build -G Ninja \
-            -D CMAKE_BUILD_TYPE=Release -D DOWNLOAD_CAPSTONE=OFF
+          cmake -S /tmp/tracy/csvexport -B /tmp/tracy/csvexport/build -G Ninja -D CMAKE_BUILD_TYPE=Release
           cmake --build /tmp/tracy/csvexport/build -j
           echo "TRACY_CAPTURE=/tmp/tracy/capture/build/tracy-capture" >> "$GITHUB_ENV"
           echo "TRACY_CSVEXPORT=/tmp/tracy/csvexport/build/tracy-csvexport" >> "$GITHUB_ENV"
@@ -913,15 +914,35 @@ jobs:
           names = {row["name"] for row in rows}
           print(f"{len(names)} distinct zones captured")
 
-          # These are instrumented in SqlStatement/SqlConnection and the chinook example cannot run
-          # without hitting them, so their absence means the Tracy client never recorded the process.
-          expected = ["SqlStatement::Prepare", "SqlConnection::Connect"]
+          # The chinook example prepares and executes thousands of statements, so these two zones are
+          # always present; their absence means the Tracy client never recorded the process. (Do not
+          # expect SqlConnection::Connect here: Tracy is built TRACY_ON_DEMAND, so the connection is
+          # already open by the time the capture client attaches.)
+          expected = ["SqlStatement::Prepare", "SqlStatement::Execute"]
           missing = [zone for zone in expected
                      if not any(zone in name for name in names)]
           if missing:
               print("captured:", sorted(names)[:40])
               sys.exit("expected zones missing from the capture: " + ", ".join(missing))
           print("Tracy capture contains the expected Lightweight zones")
+          PY
+      # The zones above prove Tracy recorded the process; the plots prove the *statistics* collector
+      # is feeding Tracy, which is the integration this job exists to protect.
+      - name: "Verify the statistics plots reached Tracy"
+        run: |
+          "$TRACY_CSVEXPORT" -u -p chinook.tracy > plots.csv
+          python3 - <<'PY'
+          import csv, sys
+
+          with open("plots.csv", newline="") as handle:
+              names = {row["name"] for row in csv.DictReader(handle)}
+
+          expected = ["Sql.Execute.us", "Sql.Prepare.us"]
+          missing = [plot for plot in expected if plot not in names]
+          if missing:
+              print("plots present:", sorted(n for n in names if n.startswith("Sql.")))
+              sys.exit("statistics plots missing from the capture: " + ", ".join(missing))
+          print("Tracy capture contains the SqlStatistics plots")
           PY
       - name: "Upload the Tracy trace"
         if: always()
@@ -931,6 +952,7 @@ jobs:
           path: |
             chinook.tracy
             zones.csv
+            plots.csv
             chinook.log
           if-no-files-found: warn
 
