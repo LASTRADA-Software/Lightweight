@@ -8,6 +8,5 @@ var searchData=
   ['task_5',['Task',['../d8/d0c/classLightweight_1_1Async_1_1Task.html',1,'Lightweight::Async']]],
   ['threadoffloadbackend_6',['ThreadOffloadBackend',['../dc/d4a/classLightweight_1_1Async_1_1ThreadOffloadBackend.html',1,'Lightweight::Async']]],
   ['threadpoolexecutor_7',['ThreadPoolExecutor',['../d4/d1e/classLightweight_1_1Async_1_1ThreadPoolExecutor.html',1,'Lightweight::Async']]],
-  ['threadsafequeue_8',['ThreadSafeQueue',['../d4/d9e/classLightweight_1_1ThreadSafeQueue.html',1,'Lightweight']]],
-  ['through_9',['Through',['../dd/def/structLightweight_1_1Through.html',1,'Lightweight']]]
+  ['threadsafequeue_8',['ThreadSafeQueue',['../d4/d9e/classLightweight_1_1ThreadSafeQueue.html',1,'Lightweight']]]
 ];
