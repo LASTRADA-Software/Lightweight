@@ -47,6 +47,14 @@ TEST_CASE_METHOD(SqlTestFixture, "Query", "[DataMapper]")
         CHECK(countAll == 4);
     }
 
+    SECTION("Count() honors GroupBy")
+    {
+        // Two active and two inactive persons, so every group holds exactly two rows and the
+        // expectation is independent of which group the database returns first.
+        auto const groupedCount = dm.Query<Person>().GroupBy(FieldNameOf<Member(Person::is_active)>).Count();
+        CHECK(groupedCount == 2);
+    }
+
     SECTION("Exist()")
     {
         auto const existSome = dm.Query<Person>().Where(FieldNameOf<Member(Person::is_active)>, "=", true).Exist();

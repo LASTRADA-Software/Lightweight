@@ -83,6 +83,9 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
                                                 std::string_view groupBy) const = 0;
 
     /// Constructs an SQL SELECT query for the first row.
+    ///
+    /// When @p groupBy is non-empty it is emitted between the WHERE and the ORDER BY clause, so
+    /// the row limit given by @p count applies to the grouped result set.
     [[nodiscard]] virtual std::string SelectFirst(bool distinct,
                                                   std::string_view fields,
                                                   std::string_view fromTable,
