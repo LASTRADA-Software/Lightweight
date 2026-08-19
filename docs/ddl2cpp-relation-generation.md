@@ -129,16 +129,22 @@ considered throughout; composite ones are counted and skipped as before.
    of a join table already covered by rule 2 or 3.
 5. **Scalar rather than collection** when the child's foreign key is itself covered by a
    single-column unique index: the relation is one-to-one.
-6. **No relation at all** when the child's foreign key column is also part of that child's own
-   primary key. Such a column is emitted as a plain `Field`, never a `BelongsTo` (see rule 1), and
-   every inverse relation — `HasMany`, `HasOne` and both through-relations — resolves its other end
-   through exactly that `BelongsTo`. Generating one anyway produces a record that does not compile.
-   This rules out the classic composite-key join table, whose primary key *is* its two foreign keys;
-   a join table carrying a key of its own is unaffected and still yields rule 2 or 3.
+6. **No relation at all** whenever the child's foreign key column does *not* become a `BelongsTo`
+   (see rule 1). Every inverse relation — `HasMany`, `HasOne` and both through-relations — resolves
+   its other end through exactly that `BelongsTo`, so generating one anyway produces a record that
+   does not compile. The column stays a plain `Field`, and hence no relation is emitted, when:
 
-   Supporting the composite-key shape needs `BelongsTo` to be usable as a primary key, which it is
-   not today (`BelongsTo::IsPrimaryKey` is hard-coded `false`). Until that changes, the generator
-   emits nothing there rather than something that cannot be built.
+   - it is also part of the child's own primary key. This rules out the classic composite-key join
+     table, whose primary key *is* its two foreign keys; a join table carrying a key of its own is
+     unaffected and still yields rule 2 or 3. Supporting that shape needs `BelongsTo` to be usable
+     as a primary key, which it is not today (`BelongsTo::IsPrimaryKey` is hard-coded `false`).
+   - the foreign key is composite (already true before, and unchanged).
+   - it is a *self*-reference that cannot name its target: a pointer-to-member may only name a
+     member the compiler has already seen, so a self-referencing foreign key declared before the
+     primary key it points at — or one pointing at a merely `UNIQUE` column rather than the primary
+     key — falls back to a plain `Field` too.
+
+   In all of these the generator emits nothing rather than something that cannot be built.
 
 A selector (`SqlRealName { "<column>" }`) is emitted whenever the referenced table is reachable
 from the same child table through more than one foreign key, which is what makes the ambiguous

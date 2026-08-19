@@ -315,6 +315,44 @@ TEST_CASE("PlanRelations: a join table keyed on its own foreign keys yields no t
     CHECK(RelationsOn(plan, "playlist_track").empty());
 }
 
+TEST_CASE("PlanRelations: a self-reference declared before its primary key yields no relation",
+          "[CxxModelPrinter][relations]")
+{
+    // The same shape CxxModelPrinterTests pins on the column side ("self-reference declared before its
+    // primary key stays a plain field"): a pointer-to-member may only name a member the compiler has
+    // already seen, so this foreign key falls back to a plain Field instead of a BelongsTo. HasMany
+    // resolves its inverse through exactly that BelongsTo, so planning one would emit a record whose
+    // ConfigureRelationAutoLoading fails to compile - now that Description<> lists relation members and
+    // the loader is actually instantiated (#556).
+    auto const tables = std::vector<Lightweight::SqlSchema::Table> {
+        { .schema = "",
+          .name = "node",
+          .columns = { ForeignKeyColumn("parent_id"), IdColumn() },
+          .foreignKeys = { ForeignKey("node", "parent_id", "node") },
+          .primaryKeys = { "id" } },
+    };
+
+    CHECK(RelationsOn(CxxModelPrinter::PlanRelations(tables), "node").empty());
+}
+
+TEST_CASE("PlanRelations: a self-reference into a non-primary-key column yields no relation", "[CxxModelPrinter][relations]")
+{
+    // PostgreSQL and SQL Server allow a foreign key to target any UNIQUE NOT NULL column, but BelongsTo
+    // static_asserts that the member it points at is a primary key - so the column stays a plain Field
+    // and, for the same reason as above, implies no inverse relation either.
+    auto const tables = std::vector<Lightweight::SqlSchema::Table> {
+        { .schema = "",
+          .name = "doc",
+          .columns = { IdColumn(),
+                       Lightweight::SqlSchema::Column { .name = "code", .type = Integer {}, .isNullable = false },
+                       ForeignKeyColumn("parent_code") },
+          .foreignKeys = { ForeignKey("doc", "parent_code", "doc", "code") },
+          .primaryKeys = { "id" } },
+    };
+
+    CHECK(RelationsOn(CxxModelPrinter::PlanRelations(tables), "doc").empty());
+}
+
 TEST_CASE("PlanRelations: a join table with payload columns stays an entity", "[CxxModelPrinter][relations]")
 {
     // The association-object shape: the join table carries data of its own, so collapsing it into a
