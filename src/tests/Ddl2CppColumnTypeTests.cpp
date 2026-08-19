@@ -76,6 +76,20 @@ struct ColumnTypeCase
     }
 };
 
+/// @return Failure context naming the column under test and, where one applies, the dialect
+///         deviation that makes the expectation differ on @p serverType.
+///
+/// Built unconditionally on purpose: `INFO` declares a `Catch::ScopedMessage`, so writing it as the
+/// substatement of an `if` would destroy the message at the end of that `if` — long before the
+/// assertion it is meant to annotate.
+[[nodiscard]] std::string FailureContext(ColumnTypeCase const& testCase, SqlServerType serverType)
+{
+    auto const* const exception = testCase.ExceptionFor(serverType);
+    if (exception == nullptr)
+        return std::format("column {}", testCase.columnName);
+    return std::format("column {} (dialect exception: {})", testCase.columnName, exception->reason);
+}
+
 // The PostgreSQL Unicode ODBC driver reports *every* character column as its wide ODBC counterpart
 // (SQL_WCHAR / SQL_WVARCHAR), because PostgreSQL stores all text as UTF-8 and the driver hands it
 // over as UTF-16. Non-Unicode and Unicode declarations therefore converge on the same C++ type.
@@ -235,12 +249,11 @@ void CheckPrimaryKeyColumnType(SqlStatement& stmt, std::string_view tableName, C
     });
 
     auto const serverType = stmt.Connection().ServerType();
+    INFO(FailureContext(testCase, serverType));
     auto const table = ReadTable(stmt, tableName);
     auto const& key = ColumnOf(table, testCase.columnName);
     CHECK(key.isPrimaryKey);
     CHECK_FALSE(key.isNullable);
-    if (auto const* exception = testCase.ExceptionFor(serverType); exception != nullptr)
-        INFO(std::format("dialect exception: {}", exception->reason));
     CHECK(GeneratedCxxType(key, std::string(tableName)) == testCase.ExpectedFor(serverType));
 }
 
@@ -262,9 +275,7 @@ TEST_CASE_METHOD(SqlTestFixture, "ddl2cpp: SQL column types map to their documen
 
     for (auto const& testCase: ColumnTypeCases())
     {
-        INFO(std::format("column {}", testCase.columnName));
-        if (auto const* exception = testCase.ExceptionFor(serverType); exception != nullptr)
-            INFO(std::format("dialect exception: {}", exception->reason));
+        INFO(FailureContext(testCase, serverType));
         auto const& column = ColumnOf(table, testCase.columnName);
         CHECK_FALSE(column.isNullable);
         CHECK(GeneratedCxxType(column, "ColumnTypeTest1") == testCase.ExpectedFor(serverType));
