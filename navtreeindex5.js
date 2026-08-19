@@ -1,8 +1,5 @@
 var NAVTREEINDEX5 =
 {
-"da/da8/classLightweight_1_1SqlConnection.html#a93ccf2f65cb117c8ef34cac8be750d90":[17,6,2,37],
-"da/da8/classLightweight_1_1SqlConnection.html#aaeb89efa59bbc5a62e370c4297e9015e":[17,6,2,21],
-"da/da8/classLightweight_1_1SqlConnection.html#ab40ae26f82d6690050a2a6a622f7cdec":[17,6,2,9],
 "da/da8/classLightweight_1_1SqlConnection.html#ab5a9e94571f9e9296b2ce65036f75184":[17,6,2,0],
 "da/da8/classLightweight_1_1SqlConnection.html#ab9e2b5679f7ca67ead13107a020e7c65":[17,6,2,2],
 "da/da8/classLightweight_1_1SqlConnection.html#ac29fe83ca60448002d451dbd707be955":[17,6,2,10],
@@ -72,7 +69,7 @@ var NAVTREEINDEX5 =
 "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#single-threaded-vs-multi-threaded":[11,5],
 "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#transactions-1":[11,6],
 "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#why-offloading-and-not-true-async-odbc":[11,0],
-"db/d76/conceptLightweight_1_1SqlRowWiseFetchableColumn.html":[18,0,11],
+"db/d76/conceptLightweight_1_1SqlRowWiseFetchableColumn.html":[18,0,10],
 "db/d83/SqlQuery_2Core_8hpp_source.html":[20,0,1,5,0],
 "db/d8a/SqlDynamicBinary_8hpp_source.html":[20,0,1,1,7],
 "db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html":[17,8,9],
@@ -192,7 +189,7 @@ var NAVTREEINDEX5 =
 "dc/d8e/classLightweight_1_1Async_1_1StrandExecutor.html#aa8437222b43378b34b4ba32364123982":[17,0,7,0],
 "dc/d8e/classLightweight_1_1Async_1_1StrandExecutor.html#abd71976c6fcfd16ed031c0aa72192789":[17,0,7,2],
 "dc/d8e/classLightweight_1_1Async_1_1StrandExecutor.html#ac4873684029af50c0f62dfb565b833e9":[17,0,7,1],
-"dc/d8e/conceptLightweight_1_1SqlHasRowWiseBatchBinder.html":[18,0,12],
+"dc/d8e/conceptLightweight_1_1SqlHasRowWiseBatchBinder.html":[18,0,11],
 "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html":[19,0,0,1,0],
 "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html#a782c413681d6e9b9918c5d4643ccba09":[19,0,0,1,0,2],
 "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html#acfb1859f3c204725710cc91d9ceb2332":[19,0,0,1,0,1],
@@ -249,5 +246,8 @@ var NAVTREEINDEX5 =
 "dd/d71/structLightweight_1_1SqlColumnDeclaration.html#ac7edfc2036f6d77ebce95c4a17d39fd8":[17,8,13,5],
 "dd/d71/structLightweight_1_1SqlColumnDeclaration.html#adc6c2316125cc865139f3dae21badfb6":[17,8,13,8],
 "dd/d75/structLightweight_1_1SqlAlterTablePlan.html":[17,8,15],
-"dd/d75/structLightweight_1_1SqlAlterTablePlan.html#a303553e0c2089a553fd561f196cc039e":[17,8,15,0]
+"dd/d75/structLightweight_1_1SqlAlterTablePlan.html#a303553e0c2089a553fd561f196cc039e":[17,8,15,0],
+"dd/d75/structLightweight_1_1SqlAlterTablePlan.html#a4d5476b81f6e3efc5057c49d797a9f07":[17,8,15,1],
+"dd/d75/structLightweight_1_1SqlAlterTablePlan.html#ace007f34324de43ff2ab887fbe321970":[17,8,15,2],
+"dd/d76/structLightweight_1_1SqlInsertDataPlan.html":[17,8,18]
 };
