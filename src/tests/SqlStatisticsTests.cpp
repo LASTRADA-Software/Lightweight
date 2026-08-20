@@ -16,6 +16,7 @@
 #include <chrono>
 #include <limits>
 #include <ranges>
+#include <stdexcept>
 #include <thread>
 #include <vector>
 
@@ -269,26 +270,26 @@ TEST_CASE("SqlStatistics separates row counts from block round-trips", "[SqlStat
 TEST_CASE("SqlStatisticsScope classifies a throwing region as failed", "[SqlStatistics]")
 {
     auto const reset = ScopedStatisticsReset {};
-    auto& stats = SqlStatistics::Instance();
 
+    // Both scopes exist only for their destructors, and a statistics-disabled build compiles them
+    // down to an empty object - hence `[[maybe_unused]]` rather than an unread local.
     {
-        auto const scope = SqlStatisticsScope { SqlStatisticsOperation::Execute };
+        [[maybe_unused]] auto const scope = SqlStatisticsScope { SqlStatisticsOperation::Execute };
     }
 
-    try
-    {
-        auto const scope = SqlStatisticsScope { SqlStatisticsOperation::Execute };
-        throw std::runtime_error { "boom" };
-    }
-    catch (std::runtime_error const&)
-    {
-    }
-
-    auto const snapshot = stats.Snapshot();
+    // Expressed through Catch2 rather than a bare try/catch: the exception has to escape the scope
+    // for it to observe the failure, and an empty `catch` block states nothing about that intent.
+    CHECK_THROWS_AS(
+        [] {
+            [[maybe_unused]] auto const scope = SqlStatisticsScope { SqlStatisticsOperation::Execute };
+            throw std::runtime_error { "boom" };
+        }(),
+        std::runtime_error);
 
     if constexpr (SqlStatistics::IsEnabled())
     {
         // The scope infers failure from an in-flight exception, so no call site needs to say so.
+        auto const snapshot = SqlStatistics::Instance().Snapshot();
         CHECK(snapshot[SqlStatisticsOperation::Execute].succeeded == 1);
         CHECK(snapshot[SqlStatisticsOperation::Execute].failed == 1);
     }
@@ -309,17 +310,16 @@ TEST_CASE("SqlStatistics recording is safe from multiple threads", "[SqlStatisti
             for (auto const iteration: std::views::iota(std::size_t { 0 }, PerThread))
             {
                 // Spread values across buckets so min/max race on real contention.
-                auto const microseconds = std::chrono::microseconds { 1 + ((threadIndex * PerThread) + iteration) % 997 };
+                auto const microseconds = std::chrono::microseconds { 1 + (((threadIndex * PerThread) + iteration) % 997) };
                 stats.RecordOperation(SqlStatisticsOperation::Execute, microseconds, false);
             }
         });
     }
     threads.clear(); // join
 
-    auto const snapshot = stats.Snapshot();
-
     if constexpr (SqlStatistics::IsEnabled())
     {
+        auto const snapshot = stats.Snapshot();
         CHECK(snapshot[SqlStatisticsOperation::Execute].succeeded == ThreadCount * PerThread);
         CHECK(snapshot[SqlStatisticsOperation::Execute].latency.count == ThreadCount * PerThread);
         CHECK(snapshot[SqlStatisticsOperation::Execute].latency.minMicroseconds >= 1);

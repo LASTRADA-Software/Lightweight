@@ -445,6 +445,13 @@ class SqlStatisticsScope
 //
 // Mirrors the TracyProfiler.hpp convention: when the feature is off, every macro consumes ALL of
 // its arguments via `(void) (...)` so call sites never trip unused-variable warnings.
+//
+// `sizeof` is the default because it leaves the argument unevaluated, which is what keeps a
+// disabled build free of the work the call site computed only for the sake of the statistic - the
+// `steady_clock::now()` in the pool-acquire arguments being the expensive case. `ROWS` is the
+// exception: its arguments are plain values already to hand, and applying `sizeof` to a literal
+// (`LIGHTWEIGHT_STATS_ROWS(1, false)`) reads as a `bugprone-sizeof-expression` defect, so it
+// consumes them with a plain cast the way TracyProfiler.hpp's `ZoneValue` does.
 
 #if defined(LIGHTWEIGHT_STATISTICS_ENABLED)
 
@@ -491,7 +498,7 @@ class SqlStatisticsScope
     #define LIGHTWEIGHT_STATS_SCOPE(op)           ((void) sizeof(op))
     #define LIGHTWEIGHT_STATS_FAILED(var)         ((void) 0)
     #define LIGHTWEIGHT_STATS_RETRIED(var)        ((void) 0)
-    #define LIGHTWEIGHT_STATS_ROWS(rows, isBlock) (((void) sizeof(rows)), ((void) sizeof(isBlock)))
+    #define LIGHTWEIGHT_STATS_ROWS(rows, isBlock) (((void) (rows)), ((void) (isBlock)))
     #define LIGHTWEIGHT_STATS_CONNECTION_OPENED() ((void) 0)
     #define LIGHTWEIGHT_STATS_CONNECTION_CLOSED() ((void) 0)
     #define LIGHTWEIGHT_STATS_POOL_ACQUIRE(wait, reused, waited) \
