@@ -13,7 +13,10 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <chrono>
+#include <cstdint>
+#include <initializer_list>
 #include <limits>
 #include <ranges>
 #include <stdexcept>
@@ -43,6 +46,24 @@ struct ScopedStatisticsReset
         SqlStatistics::Instance().Reset();
     }
 };
+
+/// Fills a histogram exactly the way SqlStatistics' internal AtomicHistogram::Record does, so the
+/// pure-logic tests below operate on the shape the collector actually produces. Written out here
+/// rather than driven through the collector because the recording path compiles to nothing in a
+/// build without LIGHTWEIGHT_ENABLE_STATISTICS, while this aggregation logic is live in every build.
+SqlLatencyHistogram MakeHistogram(std::initializer_list<std::uint64_t> samples)
+{
+    auto histogram = SqlLatencyHistogram {};
+    for (auto const sample: samples)
+    {
+        ++histogram.buckets[SqlLatencyHistogram::BucketOf(sample)];
+        ++histogram.count;
+        histogram.totalMicroseconds += sample;
+        histogram.minMicroseconds = histogram.count == 1 ? sample : (std::min) (histogram.minMicroseconds, sample);
+        histogram.maxMicroseconds = (std::max) (histogram.maxMicroseconds, sample);
+    }
+    return histogram;
+}
 
 } // namespace
 
@@ -86,6 +107,68 @@ TEST_CASE("SqlLatencyHistogram reports zero for an empty histogram", "[SqlStatis
     CHECK(histogram.AverageMicroseconds() == 0.0);
     CHECK(histogram.PercentileMicroseconds(0.5) == 0);
     CHECK(histogram.PercentileMicroseconds(0.99) == 0);
+}
+
+TEST_CASE("SqlLatencyHistogram::AverageMicroseconds averages the recorded samples", "[SqlStatistics]")
+{
+    auto const histogram = MakeHistogram({ 10, 20, 60 });
+    CHECK(histogram.count == 3);
+    CHECK(histogram.totalMicroseconds == 90);
+    CHECK(histogram.AverageMicroseconds() == Catch::Approx(30.0));
+}
+
+TEST_CASE("SqlLatencyHistogram::PercentileMicroseconds estimates from the bucket upper bound", "[SqlStatistics]")
+{
+    // Buckets: 0 -> two samples, 2 ([2,4)) -> one, 3 ([4,8)) -> one, 8 ([128,256)) -> one.
+    auto const histogram = MakeHistogram({ 0, 0, 3, 5, 200 });
+    REQUIRE(histogram.count == 5);
+
+    SECTION("p100 reports the largest sample exactly, not the bucket's upper bound")
+    {
+        // Bucket 8 spans [128, 256), so its upper bound is 255 — clamping to maxMicroseconds is what
+        // keeps the power-of-two rounding from inventing latency that was never observed.
+        CHECK(histogram.PercentileMicroseconds(1.0) == 200);
+    }
+
+    SECTION("a percentile landing in bucket 0 reports 0, that bucket holding only zero")
+    {
+        CHECK(histogram.PercentileMicroseconds(0.0) == 0);
+        CHECK(histogram.PercentileMicroseconds(0.2) == 0);
+    }
+
+    SECTION("a percentile landing in a later bucket reports that bucket's upper bound")
+    {
+        // rank 3 of 5 falls into bucket 2, which spans [2, 4): upper bound 3.
+        CHECK(histogram.PercentileMicroseconds(0.5) == 3);
+        // rank 4 falls into bucket 3, [4, 8): upper bound 7 — an over-estimate of the sample (5),
+        // bounded by a factor of two.
+        CHECK(histogram.PercentileMicroseconds(0.8) == 7);
+    }
+
+    SECTION("out-of-range percentiles are clamped rather than reaching the cast")
+    {
+        CHECK(histogram.PercentileMicroseconds(-1.0) == histogram.PercentileMicroseconds(0.0));
+        CHECK(histogram.PercentileMicroseconds(42.0) == histogram.PercentileMicroseconds(1.0));
+    }
+
+    SECTION("NaN is rejected before the float-to-integer cast")
+    {
+        // std::clamp passes NaN straight through (both its comparisons are false), so the cast that
+        // follows would be undefined behaviour if NaN were not handled first.
+        CHECK(histogram.PercentileMicroseconds(std::numeric_limits<double>::quiet_NaN()) == 0);
+    }
+}
+
+TEST_CASE("SqlLatencyHistogram::PercentileMicroseconds survives an under-accounted bucket sum", "[SqlStatistics]")
+{
+    // The live collector increments `count` and the bucket separately with relaxed atomics, so a
+    // snapshot taken mid-record can legitimately observe more samples than the buckets account for.
+    // The scan must then fall through to the largest sample seen instead of running off the end.
+    auto histogram = MakeHistogram({ 5, 7 });
+    histogram.count = 10;
+
+    CHECK(histogram.PercentileMicroseconds(1.0) == 7);
+    CHECK(histogram.PercentileMicroseconds(0.99) == 7);
 }
 
 TEST_CASE("SqlOperationStatistics::Total sums successes and failures", "[SqlStatistics]")
@@ -497,4 +580,22 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlStatistics captures pool acquire/release cy
             CHECK(snapshot.pool.ReuseRate() > 0.0);
         }
     }
+}
+
+TEST_CASE("SqlStatistics records connections opened and closed", "[SqlStatistics]")
+{
+    auto const reset = ScopedStatisticsReset {};
+    auto& stats = SqlStatistics::Instance();
+
+    stats.RecordConnectionOpened();
+    stats.RecordConnectionOpened();
+    stats.RecordConnectionClosed();
+
+    // Deliberately not guarded by IsEnabled(): the documented contract is that every recording method
+    // stays callable in a build without LIGHTWEIGHT_ENABLE_STATISTICS and simply reads back zero.
+    auto const snapshot = stats.Snapshot();
+    auto const expectedOpened = SqlStatistics::IsEnabled() ? std::uint64_t { 2 } : std::uint64_t { 0 };
+    auto const expectedClosed = SqlStatistics::IsEnabled() ? std::uint64_t { 1 } : std::uint64_t { 0 };
+    CHECK(snapshot.connectionsOpened == expectedOpened);
+    CHECK(snapshot.connectionsClosed == expectedClosed);
 }
