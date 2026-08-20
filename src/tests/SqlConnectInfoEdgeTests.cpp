@@ -256,8 +256,14 @@ TEST_CASE("SqlConnectionDataSource: encryption survives the connection-string ro
 
 TEST_CASE("SqlConnectionDataSource: encryption participates in comparison", "[SqlConnectInfo]")
 {
-    SqlConnectionDataSource const plaintext { .datasource = "A", .encryption = SqlEncryptionMode::Disabled };
-    SqlConnectionDataSource const encrypted { .datasource = "A", .encryption = SqlEncryptionMode::Enabled };
+    // `username` and `password` carry no default member initializer, so a designated-initializer
+    // list that skips them is incomplete; spell them out as the round-trip test above does.
+    SqlConnectionDataSource const plaintext {
+        .datasource = "A", .username = "u", .password = "p", .encryption = SqlEncryptionMode::Disabled
+    };
+    SqlConnectionDataSource const encrypted {
+        .datasource = "A", .username = "u", .password = "p", .encryption = SqlEncryptionMode::Enabled
+    };
 
     CHECK(plaintext != encrypted);
     CHECK(plaintext < encrypted);
