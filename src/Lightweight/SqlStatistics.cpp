@@ -173,7 +173,8 @@ void SqlStatistics::RecordOperation(SqlStatisticsOperation operation,
             auto& slot = _operations[index];
             (failed ? slot.failed : slot.succeeded).fetch_add(1, std::memory_order_relaxed);
 
-            auto const microseconds = static_cast<std::uint64_t>((std::max) (duration.count(), std::int64_t { 0 }));
+            auto const microseconds =
+                static_cast<std::uint64_t>((std::max) (duration.count(), std::chrono::microseconds::rep { 0 }));
             slot.latency.Record(microseconds);
             PlotLatency(operation, microseconds);
         }
@@ -224,7 +225,8 @@ void SqlStatistics::RecordPoolAcquire(std::chrono::microseconds waitDuration, bo
         {
             _poolWaited.fetch_add(1, std::memory_order_relaxed);
             // Only genuine waits contribute a sample; otherwise the distribution is drowned in zeros.
-            _poolWaitLatency.Record(static_cast<std::uint64_t>((std::max) (waitDuration.count(), std::int64_t { 0 })));
+            _poolWaitLatency.Record(
+                static_cast<std::uint64_t>((std::max) (waitDuration.count(), std::chrono::microseconds::rep { 0 })));
         }
 
         // The PoolAcquire operation slot tracks every acquisition, waited or not.
