@@ -91,8 +91,7 @@ $(document).ready(function(){initNavTree('d9/d8a/group__CoreApi.html','../../');
 
 <div class="header">
   <div class="summary">
-<a href="#nested-classes">Classes</a> &#124;
-<a href="#enum-members">Enumerations</a>  </div>
+<a href="#nested-classes">Classes</a>  </div>
   <div class="headertitle"><div class="title">Core API</div></div>
 </div><!--header-->
 <div class="contents">
@@ -114,9 +113,6 @@ Classes</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html">Lightweight::SqlLogger</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/d0f/classLightweight_1_1SqlPreparedStatementCache.html">Lightweight::SqlPreparedStatementCache</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">A bounded LRU pool of already-prepared ODBC statement handles, owned by a <code><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html" title="Represents a connection to a SQL database.">SqlConnection</a></code>.  <a href="../../d3/d0f/classLightweight_1_1SqlPreparedStatementCache.html#details">More...</a><br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/db8/structLightweight_1_1SqlSchema_1_1Column.html">Lightweight::SqlSchema::Column</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/dda/structLightweight_1_1SqlSchema_1_1Table.html">Lightweight::SqlSchema::Table</a></td></tr>
@@ -132,52 +128,10 @@ Classes</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html">Lightweight::SqlTransaction</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="enum-members" name="enum-members"></a>
-Enumerations</h2></td></tr>
-<tr class="memitem:ga826d0a33e14c546691afe196b566b77d" id="r_ga826d0a33e14c546691afe196b566b77d"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d8a/group__CoreApi.html#ga826d0a33e14c546691afe196b566b77d">Lightweight::SqlPreparedStatementCaching</a> : uint8_t { <a class="el" href="../../d9/d8a/group__CoreApi.html#gga826d0a33e14c546691afe196b566b77da00d23a76e43b46dae9ec7aa9dcbebb32">SqlPreparedStatementCaching::Enabled</a>
-, <a class="el" href="../../d9/d8a/group__CoreApi.html#gga826d0a33e14c546691afe196b566b77dab9f5c797ebbf55adccdd8539a65a0241">SqlPreparedStatementCaching::Disabled</a>
- }</td></tr>
-<tr class="memdesc:ga826d0a33e14c546691afe196b566b77d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether a single <code>SqlStatement</code> takes part in its connection's prepared-statement cache.  <a href="../../d9/d8a/group__CoreApi.html#ga826d0a33e14c546691afe196b566b77d">More...</a><br /></td></tr>
-<tr class="separator:ga826d0a33e14c546691afe196b566b77d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>The low-level SQL API: connections, statements, result cursors and transactions. </p>
 <p>This is the thin layer directly over ODBC. Use it when you want to write SQL yourself and keep full control over binding and fetching. The higher-level <a class="el" href="../../d7/d2f/group__DataMapper.html">Data Mapper</a> and <a class="el" href="../../d6/daa/group__QueryBuilder.html">Query Builder</a> layers are built on top of these types and interoperate with them. </p>
-<h2 class="groupheader">Enumeration Type Documentation</h2>
-<a id="ga826d0a33e14c546691afe196b566b77d" name="ga826d0a33e14c546691afe196b566b77d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga826d0a33e14c546691afe196b566b77d">&#9670;&#160;</a></span>SqlPreparedStatementCaching</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">enum class <a class="el" href="../../d9/d8a/group__CoreApi.html#ga826d0a33e14c546691afe196b566b77d">Lightweight::SqlPreparedStatementCaching</a> : uint8_t</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">strong</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Whether a single <code><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html" title="High level API for (prepared) raw SQL statements.">SqlStatement</a></code> takes part in its connection's prepared-statement cache. </p>
-<p>Statements opt in by default, which only has an effect once the owning connection was given a non-zero cache capacity (see <code><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a54843f56005b5675dd963285a189d324" title="Enables (or resizes) this connection&#39;s prepared-statement cache.">SqlConnection::SetPreparedStatementCacheCapacity</a></code>). Individual call sites that must not reuse a plan — for instance a statement that straddles a schema change — opt out via <code><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a9d2ca0ca6a074744e63c36623a7e2d2b" title="Opts this statement in or out of its connection&#39;s prepared-statement cache.">SqlStatement::SetPreparedStatementCaching</a></code>. </p>
-<table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="gga826d0a33e14c546691afe196b566b77da00d23a76e43b46dae9ec7aa9dcbebb32" name="gga826d0a33e14c546691afe196b566b77da00d23a76e43b46dae9ec7aa9dcbebb32"></a>Enabled&#160;</td><td class="fielddoc"><p>Reuse a pooled handle when one matches, and hand the handle back to the pool afterwards. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="gga826d0a33e14c546691afe196b566b77dab9f5c797ebbf55adccdd8539a65a0241" name="gga826d0a33e14c546691afe196b566b77dab9f5c797ebbf55adccdd8539a65a0241"></a>Disabled&#160;</td><td class="fielddoc"><p>Never take a handle from, nor give one to, the connection's cache. </p>
-</td></tr>
-</table>
-
-<p class="definition">Definition at line <a class="el" href="../../d5/d8e/SqlPreparedStatementCache_8hpp_source.html#l00030">30</a> of file <a class="el" href="../../d5/d8e/SqlPreparedStatementCache_8hpp_source.html">SqlPreparedStatementCache.hpp</a>.</p>
-
-</div>
-</div>
 </div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

@@ -18,8 +18,6 @@ var classLightweight_1_1SqlStatement =
     [ "Prepare", "db/dad/classLightweight_1_1SqlStatement.html#aa021a10c4473e6f7051618708f19574e", null ],
     [ "Prepare", "db/dad/classLightweight_1_1SqlStatement.html#a58e8f4ae7628ba211beb819a428df717", null ],
     [ "PreparedQuery", "db/dad/classLightweight_1_1SqlStatement.html#a45fcc0bd954ae62ec4a9c26f943326e1", null ],
-    [ "PreparedStatementCaching", "db/dad/classLightweight_1_1SqlStatement.html#a1805c1161886e575c4b9c16658ae84ef", null ],
-    [ "SetPreparedStatementCaching", "db/dad/classLightweight_1_1SqlStatement.html#a9d2ca0ca6a074744e63c36623a7e2d2b", null ],
     [ "BindInputParameter", "db/dad/classLightweight_1_1SqlStatement.html#a9267f1c1591f6d3a6d20a0a541ff9b0d", null ],
     [ "BindInputParameter", "db/dad/classLightweight_1_1SqlStatement.html#a789b8fc2cdfe67697cd6720a167e5b78", null ],
     [ "Execute", "db/dad/classLightweight_1_1SqlStatement.html#a5428626df850d1cd2a6390e1758d4698", null ],

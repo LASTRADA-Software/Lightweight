@@ -114,7 +114,6 @@ var annotated_dup =
       [ "SqlMigrationUpdateBuilder", "db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html", "db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder" ],
       [ "SqlNullType", "da/d96/structLightweight_1_1SqlNullType.html", "da/d96/structLightweight_1_1SqlNullType" ],
       [ "SqlNumeric", "d6/d1b/structLightweight_1_1SqlNumeric.html", "d6/d1b/structLightweight_1_1SqlNumeric" ],
-      [ "SqlPreparedStatementCache", "d3/d0f/classLightweight_1_1SqlPreparedStatementCache.html", "d3/d0f/classLightweight_1_1SqlPreparedStatementCache" ],
       [ "SqlQualifiedTableColumnName", "db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html", "db/d8e/structLightweight_1_1SqlQualifiedTableColumnName" ],
       [ "SqlQueryBuilder", "de/da0/classLightweight_1_1SqlQueryBuilder.html", "de/da0/classLightweight_1_1SqlQueryBuilder" ],
       [ "SqlQueryFormatter", "d8/df7/classLightweight_1_1SqlQueryFormatter.html", "d8/df7/classLightweight_1_1SqlQueryFormatter" ],
@@ -140,6 +139,7 @@ var annotated_dup =
       [ "SqlWhereClauseBuilder", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder" ],
       [ "SqlWildcardType", "d2/d74/structLightweight_1_1SqlWildcardType.html", null ],
       [ "ThreadSafeQueue", "d4/d9e/classLightweight_1_1ThreadSafeQueue.html", "d4/d9e/classLightweight_1_1ThreadSafeQueue" ],
+      [ "Through", "dd/def/structLightweight_1_1Through.html", "dd/def/structLightweight_1_1Through" ],
       [ "UniqueNameBuilder", "da/d15/classLightweight_1_1UniqueNameBuilder.html", "da/d15/classLightweight_1_1UniqueNameBuilder" ]
     ] ]
 ];
