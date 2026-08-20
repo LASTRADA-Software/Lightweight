@@ -274,25 +274,13 @@ var NAVTREE =
       [ "Restoring the previous logger", "d1/d4f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2logging.html#restoring-the-previous-logger", null ],
       [ "See also", "d1/d4f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2logging.html#see-also-4", null ]
     ] ],
-    [ "Statistics and metrics", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html", [
-      [ "Enabling it", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html#enabling-it", null ],
-      [ "Reading a snapshot", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html#reading-a-snapshot", [
-        [ "What is counted", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html#what-is-counted", null ],
-        [ "Latency histograms", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html#latency-histograms", null ],
-        [ "Consistency and thread-safety", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html#consistency-and-thread-safety", null ]
-      ] ],
-      [ "Pools", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html#pools", null ],
-      [ "Feeding Tracy", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html#feeding-tracy", null ],
-      [ "Cost", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html#cost", null ],
-      [ "See also", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html#see-also-5", null ]
-    ] ],
     [ "Schema introspection", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html", [
       [ "Reading every table", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#reading-every-table", null ],
       [ "What you get back", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#what-you-get-back", null ],
       [ "Following relationships directly", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#following-relationships-directly", null ],
       [ "Turning a description back into DDL", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#turning-a-description-back-into-ddl", null ],
       [ "Event-driven reading", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#event-driven-reading", null ],
-      [ "See also", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#see-also-6", null ]
+      [ "See also", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#see-also-5", null ]
     ] ],
     [ "Composite key support — design", "d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html", [
       [ "The design: <tt>CompositeForeignKey<Connection<...>, ...></tt>", "d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#the-design-compositeforeignkeyconnection-", null ],
@@ -347,14 +335,13 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dd0/structLightweight_1_1Field.html#a4841173ec398cd2e999943f645b01585",
-"d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#a78f9661e7bf0cb5adee8cc38e65edcf0",
-"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ad63ee3002c9921bfb053c5b611d6511b",
-"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a4347ff4409d155c9ffb5c8681a45362d",
-"da/d7e/structLightweight_1_1SqlRawColumn.html#abafa148d105f4f791595f95b1e68a162",
-"dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#ae02440293597aaf830d7ce2dc4ef6a26",
-"de/dae/classLightweight_1_1SqlFixedString.html#a2c1d201db4721645d327f01339e7e9c7",
-"functions_i.html"
+"d2/dd0/structLightweight_1_1Field.html#a757ce7d3d9533493051cd9b402482b41",
+"d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#a972ef8522f91fce43fd223357b709bae",
+"d7/d13/structLightweight_1_1SqlRealName.html#ad41c47ba596b9e2a647edb777f959662",
+"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#ae48b1defb3a1271985038dde52202726",
+"da/da8/classLightweight_1_1SqlConnection.html#ac29fe83ca60448002d451dbd707be955",
+"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#afd21e23e3c24884cba9ef3b76d174e82",
+"de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#ab3f4130283fddc423a1911a3962e739c"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
