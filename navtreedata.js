@@ -35,7 +35,6 @@ var NAVTREE =
       [ "Raw SQL Queries", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#raw-sql-queries", null ],
       [ "Transparent block-prefetch (fewer network round-trips)", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#transparent-block-prefetch-fewer-network-round-trips", null ],
       [ "Prepared Statements", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#prepared-statements", null ],
-      [ "Prepared-statement cache (fewer prepare round-trips)", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#prepared-statement-cache-fewer-prepare-round-trips", null ],
       [ "SQL Query Builder", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sql-query-builder", null ],
       [ "High level Data Mapping", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#high-level-data-mapping", [
         [ "Batched insert and update", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#batched-insert-and-update", null ]
@@ -107,8 +106,7 @@ var NAVTREE =
         [ "Use Native Column Types", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-native-column-types", null ],
         [ "Use Prepared Statements", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-prepared-statements", null ],
         [ "Use Pagination or Infinite Scrolling", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-pagination-or-infinite-scrolling", null ],
-        [ "Let block-prefetch cut network round-trips", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#let-block-prefetch-cut-network-round-trips", null ],
-        [ "Enable the prepared-statement cache for recurring queries", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#enable-the-prepared-statement-cache-for-recurring-queries", null ]
+        [ "Let block-prefetch cut network round-trips", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#let-block-prefetch-cut-network-round-trips", null ]
       ] ],
       [ "SQL Server Variation Challenges", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#sql-server-variation-challenges", [
         [ "64-bit Integer Handling in Oracle Database", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#autotoc_md64-bit-integer-handling-in-oracle-database", null ]
@@ -276,13 +274,25 @@ var NAVTREE =
       [ "Restoring the previous logger", "d1/d4f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2logging.html#restoring-the-previous-logger", null ],
       [ "See also", "d1/d4f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2logging.html#see-also-4", null ]
     ] ],
+    [ "Statistics and metrics", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html", [
+      [ "Enabling it", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html#enabling-it", null ],
+      [ "Reading a snapshot", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html#reading-a-snapshot", [
+        [ "What is counted", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html#what-is-counted", null ],
+        [ "Latency histograms", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html#latency-histograms", null ],
+        [ "Consistency and thread-safety", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html#consistency-and-thread-safety", null ]
+      ] ],
+      [ "Pools", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html#pools", null ],
+      [ "Feeding Tracy", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html#feeding-tracy", null ],
+      [ "Cost", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html#cost", null ],
+      [ "See also", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html#see-also-5", null ]
+    ] ],
     [ "Schema introspection", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html", [
       [ "Reading every table", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#reading-every-table", null ],
       [ "What you get back", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#what-you-get-back", null ],
       [ "Following relationships directly", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#following-relationships-directly", null ],
       [ "Turning a description back into DDL", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#turning-a-description-back-into-ddl", null ],
       [ "Event-driven reading", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#event-driven-reading", null ],
-      [ "See also", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#see-also-5", null ]
+      [ "See also", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#see-also-6", null ]
     ] ],
     [ "Composite key support — design", "d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html", [
       [ "The design: <tt>CompositeForeignKey<Connection<...>, ...></tt>", "d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#the-design-compositeforeignkeyconnection-", null ],
@@ -337,14 +347,14 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dd0/structLightweight_1_1Field.html#a5f42ad38e8fc096b2af5fc6ba33733ca",
-"d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#aeaa5a99453909f230477cff8b907e15e",
-"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#aea2e7108ff6cdee35036d3e157f6bb90",
-"d8/da1/SqlRawColumn_8hpp_source.html",
-"da/da8/classLightweight_1_1SqlConnection.html#a0938e714f9d74d7e64e080ad23161201",
-"dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#ae9a36b06c089d48e25e896e2e25d0676",
-"de/dae/classLightweight_1_1SqlFixedString.html#a7858ea6af047117649390bab07b7a451",
-"functions_vars_o.html"
+"d2/dd0/structLightweight_1_1Field.html#a4841173ec398cd2e999943f645b01585",
+"d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#a78f9661e7bf0cb5adee8cc38e65edcf0",
+"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ad63ee3002c9921bfb053c5b611d6511b",
+"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a344a6c83ea07820c7f0ad18d50f7659e",
+"da/d7e/structLightweight_1_1SqlRawColumn.html#a46be282ffe105f3df50dd090c0419d68",
+"dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#a33a69b26419eed12fa5726e3a76ea3e1",
+"de/dae/classLightweight_1_1SqlFixedString.html#a021d0c5162ff98269d291649eabb8198",
+"functions_func_z.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
