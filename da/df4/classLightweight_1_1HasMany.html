@@ -137,6 +137,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:afefaf546a1594762fd0836f988374963" id="r_afefaf546a1594762fd0836f988374963"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#adf7fa16a2675805c7efd66dbae4e867f">ReferencedRecordList</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#afefaf546a1594762fd0836f988374963">Emplace</a> (<a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#adf7fa16a2675805c7efd66dbae4e867f">ReferencedRecordList</a> &amp;&amp;records) noexcept</td></tr>
 <tr class="memdesc:afefaf546a1594762fd0836f988374963"><td class="mdescLeft">&#160;</td><td class="mdescRight">Emplaces the given list of records.  <br /></td></tr>
 <tr class="separator:afefaf546a1594762fd0836f988374963"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4e79f4cd1e47011c65246f1c66348695" id="r_a4e79f4cd1e47011c65246f1c66348695"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#adf7fa16a2675805c7efd66dbae4e867f">ReferencedRecordList</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a4e79f4cd1e47011c65246f1c66348695">LoadedRecords</a> () noexcept</td></tr>
+<tr class="memdesc:a4e79f4cd1e47011c65246f1c66348695"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the already-loaded records, or <code>nullptr</code> when the relation is not loaded.  <br /></td></tr>
+<tr class="separator:a4e79f4cd1e47011c65246f1c66348695"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6941f2a1e60d4d4166a4b3394f066b3a" id="r_a6941f2a1e60d4d4166a4b3394f066b3a"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a6941f2a1e60d4d4166a4b3394f066b3a">Count</a> () const noexcept</td></tr>
 <tr class="memdesc:a6941f2a1e60d4d4166a4b3394f066b3a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the number of records in this 1-to-many relationship.  <br /></td></tr>
 <tr class="separator:a6941f2a1e60d4d4166a4b3394f066b3a"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -350,7 +353,7 @@ template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 <p>Retrieves the list of loaded records. </p>
 <dl class="section note"><dt>Note</dt><dd>This method will on-demand load the records if they are not already loaded, and therefore throws whatever the loader throws. It also throws <a class="el" href="../../da/df2/classLightweight_1_1SqlRequireLoadedError.html" title="Represents an error when a record is required to be loaded but is not.">SqlRequireLoadedError</a> if no auto-loader was configured for this relation. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00264">264</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00275">275</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -382,7 +385,7 @@ template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 <p>Retrieves the list of records as mutable reference. </p>
 <dl class="section note"><dt>Note</dt><dd>This method will on-demand load the records if they are not already loaded, and therefore throws whatever the loader throws. It also throws <a class="el" href="../../da/df2/classLightweight_1_1SqlRequireLoadedError.html" title="Represents an error when a record is required to be loaded but is not.">SqlRequireLoadedError</a> if no auto-loader was configured for this relation. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00241">241</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00252">252</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -409,7 +412,7 @@ template&lt;typename Callable &gt; </div>
 <p>Iterates over the list of records and calls the given callable for each record. </p>
 <dl class="section note"><dt>Note</dt><dd>Use this method if you want to iterate over all records but do not need to store them all in memory, e.g. because the full data set wuold be too large. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00249">249</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00260">260</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -441,7 +444,40 @@ template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 
 <p>Emplaces the given list of records. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00233">233</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00244">244</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a4e79f4cd1e47011c65246f1c66348695" name="a4e79f4cd1e47011c65246f1c66348695"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4e79f4cd1e47011c65246f1c66348695">&#9670;&#160;</a></span>LoadedRecords()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename OtherRecord , auto TheInverseSelector = AutoDetectRelation&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#adf7fa16a2675805c7efd66dbae4e867f">ReferencedRecordList</a> * <a class="el" href="../../da/df4/classLightweight_1_1HasMany.html">Lightweight::HasMany</a>&lt; OtherRecord, TheInverseSelector &gt;::LoadedRecords </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the already-loaded records, or <code>nullptr</code> when the relation is not loaded. </p>
+<p>Unlike <code><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#aacd34af6daf6df9db2a190f742a73494" title="Retrieves the list of records as mutable reference.">All()</a></code>, this never runs the on-demand loader: it reports what is present right now, which is what lets the batched relation loading walk one level deeper (<code>With&lt;A, B&gt;()</code>).</p>
+<dl class="section return"><dt>Returns</dt><dd>Pointer to the loaded list, or <code>nullptr</code> if the relation was never loaded. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00119">119</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -472,7 +508,7 @@ template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 
 <p>Retrieves the number of records in this 1-to-many relationship. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00271">271</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00282">282</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -503,9 +539,7 @@ template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 
 <p>Checks if this 1-to-many relationship is empty. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00283">283</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
-
-<p class="reference">References <a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102ae93f994f01c537c4e2f7d8528c3eb5e9">Count</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00294">294</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -546,7 +580,7 @@ template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 <dd>
 This method will throw if the index is out of bounds. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00289">289</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00300">300</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -587,7 +621,7 @@ template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 <dd>
 This method will throw if the index is out of bounds. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00296">296</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00307">307</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -628,7 +662,7 @@ template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 <dd>
 This method will NOT throw if the index is out of bounds. The behaviour is undefined. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00303">303</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00314">314</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -669,7 +703,7 @@ template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 <dd>
 This method will NOT throw if the index is out of bounds. The behaviour is undefined. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00310">310</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00321">321</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
 </div>
 </div>
@@ -699,9 +733,9 @@ template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 </div><div class="memdoc">
 <p>Returns an iterator to the beginning of the record list. </p><dl class="section note"><dt>Note</dt><dd>On-demand loads the records, and therefore throws what the loader throws. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00318">318</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00329">329</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00333">Lightweight::HasMany&lt; OtherRecord, TheInverseSelector &gt;::begin()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00344">Lightweight::HasMany&lt; OtherRecord, TheInverseSelector &gt;::begin()</a>.</p>
 
 </div>
 </div>
@@ -731,9 +765,9 @@ template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 </div><div class="memdoc">
 <p>Returns an iterator to the end of the record list. </p><dl class="section note"><dt>Note</dt><dd>On-demand loads the records, and therefore throws what the loader throws. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00325">325</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00336">336</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00341">Lightweight::HasMany&lt; OtherRecord, TheInverseSelector &gt;::end()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00352">Lightweight::HasMany&lt; OtherRecord, TheInverseSelector &gt;::end()</a>.</p>
 
 </div>
 </div>
@@ -763,9 +797,9 @@ template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 </div><div class="memdoc">
 <p>Returns a const iterator to the beginning of the record list. </p><dl class="section note"><dt>Note</dt><dd>On-demand loads the records, and therefore throws what the loader throws. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00333">333</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00344">344</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00318">Lightweight::HasMany&lt; OtherRecord, TheInverseSelector &gt;::begin()</a>.</p>
+<p class="reference">References <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00329">Lightweight::HasMany&lt; OtherRecord, TheInverseSelector &gt;::begin()</a>.</p>
 
 </div>
 </div>
@@ -795,9 +829,9 @@ template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 </div><div class="memdoc">
 <p>Returns a const iterator to the end of the record list. </p><dl class="section note"><dt>Note</dt><dd>On-demand loads the records, and therefore throws what the loader throws. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00341">341</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00352">352</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00325">Lightweight::HasMany&lt; OtherRecord, TheInverseSelector &gt;::end()</a>.</p>
+<p class="reference">References <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00336">Lightweight::HasMany&lt; OtherRecord, TheInverseSelector &gt;::end()</a>.</p>
 
 </div>
 </div>
@@ -829,9 +863,9 @@ template&lt;typename OtherRecord , auto InverseSelector&gt; </div>
 
 <p>Used internally to configure on-demand loading of the records. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00208">208</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00219">219</a> of file <a class="el" href="../../d8/deb/HasMany_8hpp_source.html">HasMany.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l03002">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l03445">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>.</p>
 
 </div>
 </div>

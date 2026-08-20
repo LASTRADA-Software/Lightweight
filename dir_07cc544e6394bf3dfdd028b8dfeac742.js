@@ -32,7 +32,6 @@ var dir_07cc544e6394bf3dfdd028b8dfeac742 =
     [ "SqlScopedTraceLogger.hpp", "d6/d4a/SqlScopedTraceLogger_8hpp_source.html", null ],
     [ "SqlServerType.hpp", "d1/d42/SqlServerType_8hpp_source.html", null ],
     [ "SqlStatement.hpp", "d9/d6e/SqlStatement_8hpp_source.html", null ],
-    [ "SqlStatistics.hpp", "d9/d4f/SqlStatistics_8hpp_source.html", null ],
     [ "SqlTransaction.hpp", "d9/da6/SqlTransaction_8hpp_source.html", null ],
     [ "ThreadSafeQueue.hpp", "d4/d48/ThreadSafeQueue_8hpp_source.html", null ],
     [ "TracyProfiler.hpp", "dd/d2a/TracyProfiler_8hpp_source.html", null ],
