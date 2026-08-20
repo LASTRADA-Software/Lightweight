@@ -469,8 +469,8 @@ TEST_CASE("CxxModelPrinter: emits HasManyThrough for a join table", "[CxxModelPr
     auto const header = printer.HeaderFileForTheTable("Models", "project");
     INFO("project.hpp:\n" << header);
 
-    // The far record first, the join record second - matching HasManyThrough<Referenced, Through>.
-    CHECK(header.contains("Light::HasManyThrough<user, project_user"));
+    // The far record first, the join record second - matching HasManyThrough<Referenced, Through<Join>>.
+    CHECK(header.contains("Light::HasManyThrough<user, Light::Through<project_user>"));
 
     // Both named types are forward-declared rather than included.
     CHECK(header.contains("struct user;"));

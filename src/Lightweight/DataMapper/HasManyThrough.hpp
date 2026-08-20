@@ -18,6 +18,18 @@ namespace Lightweight
 
 /// @brief This API represents a many-to-many relationship between two records through a third record.
 ///
+/// The join record is named with the @ref Through marker, so that the reader can tell it apart from
+/// the referenced record at a glance:
+///
+/// @code
+/// struct Friendship;
+/// struct Human
+/// {
+///     Field<int, PrimaryKey::AutoAssign> id;
+///     HasManyThrough<Human, Through<Friendship>> friends;
+/// };
+/// @endcode
+///
 /// The join record must declare one `BelongsTo` pointing back at the record owning this relationship,
 /// and one pointing at the referenced record. Both are located by matching the relationship *type*.
 ///
@@ -30,7 +42,7 @@ namespace Lightweight
 /// struct Human
 /// {
 ///     Field<int, PrimaryKey::AutoAssign> id;
-///     HasManyThrough<Human, Friendship, SqlRealName { "a_id" }, SqlRealName { "b_id" }> friends;
+///     HasManyThrough<Human, Through<Friendship>, SqlRealName { "a_id" }, SqlRealName { "b_id" }> friends;
 /// };
 /// struct Friendship
 /// {
@@ -41,14 +53,14 @@ namespace Lightweight
 /// @endcode
 ///
 /// @tparam ReferencedRecordT The record type on the "many" side of the relationship.
-/// @tparam ThroughRecordT The join record type.
+/// @tparam ThroughSpec The join record, wrapped as `Through<T>`. Naming the record bare is deprecated.
 /// @tparam TheOwnerSelector Singles out the join record's foreign key pointing at the *owning* record.
 /// @tparam TheReferencedSelector Singles out the join record's foreign key pointing at @p ReferencedRecordT.
 ///
-/// @see DataMapper, Field, HasMany, RelationSelector
+/// @see DataMapper, Field, HasMany, Through, RelationSelector
 /// @ingroup DataMapper
 template <typename ReferencedRecordT,
-          typename ThroughRecordT,
+          typename ThroughSpec,
           auto TheOwnerSelector = AutoDetectRelation,
           auto TheReferencedSelector = AutoDetectRelation>
 class HasManyThrough
@@ -57,9 +69,13 @@ class HasManyThrough
                   "The selector template arguments of HasManyThrough must be foreign key column names "
                   "(a SqlRealName) or std::nullopt to resolve the relationship automatically.");
 
+    static_assert(!IsThrough<ReferencedRecordT>,
+                  "The referenced record of HasManyThrough must not be wrapped in Through<>, "
+                  "only the join record is.");
+
   public:
     /// The record type of the "through" side of the relationship.
-    using ThroughRecord = ThroughRecordT;
+    using ThroughRecord = ThroughRecordOf<ThroughSpec>;
 
     /// The record type of the "many" side of the relationship.
     using ReferencedRecord = ReferencedRecordT;
@@ -200,8 +216,8 @@ namespace detail
     {
     };
 
-    template <typename ReferencedRecordT, typename ThroughRecordT, auto OwnerSelector, auto ReferencedSelector>
-    struct IsHasManyThroughType<HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelector>>:
+    template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
+    struct IsHasManyThroughType<HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>>:
         std::true_type
     {
     };
@@ -211,28 +227,28 @@ namespace detail
 template <typename T>
 constexpr bool IsHasManyThrough = detail::IsHasManyThroughType<std::remove_cvref_t<T>>::value;
 
-template <typename ReferencedRecordT, typename ThroughRecordT, auto OwnerSelector, auto ReferencedSelector>
-HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelector>::ReferencedRecordList const&
-HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelector>::All() const noexcept
+template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
+HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::ReferencedRecordList const&
+HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::All() const noexcept
 {
     const_cast<HasManyThrough*>(this)->RequireLoaded();
 
     return _records.value();
 }
 
-template <typename ReferencedRecordT, typename ThroughRecordT, auto OwnerSelector, auto ReferencedSelector>
-HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelector>::ReferencedRecordList&
-HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelector>::All() noexcept
+template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
+HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::ReferencedRecordList&
+HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::All() noexcept
 {
     RequireLoaded();
 
     return _records.value(); // NOLINT(bugprone-unchecked-optional-access)
 }
 
-template <typename ReferencedRecordT, typename ThroughRecordT, auto OwnerSelector, auto ReferencedSelector>
-HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelector>::ReferencedRecordList& HasManyThrough<
+template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
+HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::ReferencedRecordList& HasManyThrough<
     ReferencedRecordT,
-    ThroughRecordT,
+    ThroughSpec,
     OwnerSelector,
     ReferencedSelector>::Emplace(ReferencedRecordList&& records) noexcept
 {
@@ -241,77 +257,77 @@ HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelec
     return *_records;
 }
 
-template <typename ReferencedRecordT, typename ThroughRecordT, auto OwnerSelector, auto ReferencedSelector>
-std::size_t HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelector>::Count() const
+template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
+std::size_t HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::Count() const
 {
     if (_records)
         return _records->size();
 
     if (!_count)
-        const_cast<HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelector>*>(this)->_count =
+        const_cast<HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>*>(this)->_count =
             _loader.count();
 
     return _count.value_or(0);
 }
 
-template <typename ReferencedRecordT, typename ThroughRecordT, auto OwnerSelector, auto ReferencedSelector>
-bool HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelector>::IsEmpty() const
+template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
+bool HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::IsEmpty() const
 {
     return Count() == 0;
 }
 
-template <typename ReferencedRecordT, typename ThroughRecordT, auto OwnerSelector, auto ReferencedSelector>
-HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelector>::ReferencedRecord const&
-HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelector>::At(std::size_t index) const
+template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
+HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::ReferencedRecord const&
+HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::At(std::size_t index) const
 {
     return *All().at(index);
 }
 
-template <typename ReferencedRecordT, typename ThroughRecordT, auto OwnerSelector, auto ReferencedSelector>
-HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelector>::ReferencedRecord&
-HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelector>::At(std::size_t index)
+template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
+HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::ReferencedRecord&
+HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::At(std::size_t index)
 {
     return *All().at(index);
 }
 
-template <typename ReferencedRecordT, typename ThroughRecordT, auto OwnerSelector, auto ReferencedSelector>
-HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelector>::ReferencedRecord const&
-HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelector>::operator[](std::size_t index) const
+template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
+HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::ReferencedRecord const&
+HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::operator[](std::size_t index) const
 {
     return *All()[index];
 }
 
-template <typename ReferencedRecordT, typename ThroughRecordT, auto OwnerSelector, auto ReferencedSelector>
-HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelector>::ReferencedRecord&
-HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelector>::operator[](std::size_t index)
+template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
+HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::ReferencedRecord&
+HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::operator[](std::size_t index)
 {
     return *All()[index];
 }
 
-template <typename ReferencedRecordT, typename ThroughRecordT, auto OwnerSelector, auto ReferencedSelector>
-HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelector>::iterator
-HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelector>::begin() noexcept
+template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
+HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::iterator
+HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::begin() noexcept
 {
     return All().begin();
 }
 
-template <typename ReferencedRecordT, typename ThroughRecordT, auto OwnerSelector, auto ReferencedSelector>
-HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelector>::iterator
-HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelector>::end() noexcept
+template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
+HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::iterator
+HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::end() noexcept
 {
     return All().end();
 }
 
-template <typename ReferencedRecordT, typename ThroughRecordT, auto OwnerSelector, auto ReferencedSelector>
-HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelector>::const_iterator
-HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelector>::begin() const noexcept
+template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
+HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::const_iterator
+HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::begin() const noexcept
 {
     return All().begin();
 }
 
-template <typename ReferencedRecordT, typename ThroughRecordT, auto OwnerSelector, auto ReferencedSelector>
-HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelector>::const_iterator
-HasManyThrough<ReferencedRecordT, ThroughRecordT, OwnerSelector, ReferencedSelector>::end() const noexcept
+template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
+HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::const_iterator
+HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::end() const noexcept
 {
     return All().end();
 }

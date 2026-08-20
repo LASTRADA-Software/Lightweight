@@ -17,21 +17,32 @@ namespace Lightweight
 /// @brief Represents a one-to-one relationship through a join table.
 ///
 /// The `OtherTable` parameter is the record reached through the join table.
-/// The `ThroughTable` parameter is the join table, which references the current record.
+/// The `ThroughSpec` parameter is the join table, which references the current record. It is named
+/// with the @ref Through marker, so that the reader can tell it apart from the referenced record:
+///
+/// @code
+/// struct Account;
+/// struct AccountHistory;
+/// struct Supplier
+/// {
+///     Field<int, PrimaryKey::AutoAssign> id;
+///     HasOneThrough<AccountHistory, Through<Account>> accountHistory;
+/// };
+/// @endcode
 ///
 /// Both foreign keys are located by matching the relationship *type*. When either record holds more
 /// than one foreign key into the same table, name the column to single one out - see
 /// the RelationSelector concept and the example on @ref HasManyThrough.
 ///
 /// @tparam OtherTable The record type reached through the join table.
-/// @tparam ThroughTable The join record type, holding a foreign key back to the owning record.
+/// @tparam ThroughSpec The join record, wrapped as `Through<T>`. Naming the record bare is deprecated.
 /// @tparam TheOwnerSelector Singles out the join record's foreign key pointing at the *owning* record.
-/// @tparam TheThroughSelector Singles out @p OtherTable's foreign key pointing at @p ThroughTable.
+/// @tparam TheThroughSelector Singles out @p OtherTable's foreign key pointing at the join record.
 ///
-/// @see DataMapper, Field, HasManyThrough, RelationSelector
+/// @see DataMapper, Field, HasManyThrough, Through, RelationSelector
 /// @ingroup DataMapper
 template <typename OtherTable,
-          typename ThroughTable,
+          typename ThroughSpec,
           auto TheOwnerSelector = AutoDetectRelation,
           auto TheThroughSelector = AutoDetectRelation>
 class HasOneThrough
@@ -40,9 +51,13 @@ class HasOneThrough
                   "The selector template arguments of HasOneThrough must be foreign key column names "
                   "(a SqlRealName) or std::nullopt to resolve the relationship automatically.");
 
+    static_assert(!IsThrough<OtherTable>,
+                  "The referenced record of HasOneThrough must not be wrapped in Through<>, "
+                  "only the join record is.");
+
   public:
     /// The record type of the "through" side of the relationship.
-    using ThroughRecord = ThroughTable;
+    using ThroughRecord = ThroughRecordOf<ThroughSpec>;
 
     /// The record type of the "Other" side of the relationship.
     using ReferencedRecord = OtherTable;
@@ -127,8 +142,8 @@ namespace detail
     {
     };
 
-    template <typename OtherTable, typename ThroughTable, auto OwnerSelector, auto ThroughSelector>
-    struct IsHasOneThrough<HasOneThrough<OtherTable, ThroughTable, OwnerSelector, ThroughSelector>>: std::true_type
+    template <typename OtherTable, typename ThroughSpec, auto OwnerSelector, auto ThroughSelector>
+    struct IsHasOneThrough<HasOneThrough<OtherTable, ThroughSpec, OwnerSelector, ThroughSelector>>: std::true_type
     {
     };
 } // namespace detail
