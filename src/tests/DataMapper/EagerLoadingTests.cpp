@@ -15,6 +15,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <cstddef>
+#include <format>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -491,4 +492,36 @@ TEST_CASE_METHOD(SqlTestFixture, "A named path is not re-fetched by eagerLoadDep
     REQUIRE(children.size() == 6);
     for (auto& child: children)
         CHECK(child.owner.Record().id.Value() == child.owner.Value());
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "With<BelongsTo> issues no relation query when every foreign key is NULL",
+                 "[DataMapper][With]")
+{
+    auto dm = DataMapper {};
+    MakeOwnersWithChildren(dm, 0, 0); // schema only; the rows below leave `category` unset
+
+    auto region = EagerRegion { .label = "north" };
+    dm.Create(region);
+
+    auto owner = EagerOwner { .name = "solo" };
+    owner.region = region;
+    dm.Create(owner);
+
+    for (auto const index: { 0, 1 })
+    {
+        auto child = EagerChild { .label = SqlAnsiString<32> { std::format("orphan-{}", index) } };
+        child.owner = owner;
+        dm.Create(child);
+    }
+
+    auto counter = ScopedStatementCounter {};
+    auto children = dm.Query<EagerChild>().With<Member(EagerChild::category)>().All();
+
+    REQUIRE(children.size() == 2);
+    // There are rows, but not a single key to look up: the loader must stop after collecting targets
+    // instead of querying the category table for nothing.
+    CHECK(counter.Count() == 1);
+    for (auto const& child: children)
+        CHECK_FALSE(child.category.Value().has_value());
 }

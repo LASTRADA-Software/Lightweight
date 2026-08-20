@@ -270,3 +270,52 @@ TEST_CASE_METHOD(SqlTestFixture, "Prepare of the same query survives a schema ch
         ++rows;
     CHECK(rows == 3);
 }
+
+TEST_CASE_METHOD(SqlTestFixture, "Prepare reuse returns correct rows after the table is recreated", "[SqlStatement]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+
+    auto connection = SqlConnection {};
+    auto stmt = SqlStatement { connection };
+
+    auto const createTable = [](SqlMigrationQueryBuilder& migration) {
+        migration.DropTableIfExists("stale_plan");
+        migration.CreateTable("stale_plan").PrimaryKey("id", Integer {}).RequiredColumn("value", Integer {});
+    };
+
+    stmt.MigrateDirect(createTable);
+    stmt.Prepare(R"(INSERT INTO "stale_plan" ("id", "value") VALUES (?, ?))");
+    std::ignore = stmt.Execute(1, 10);
+
+    auto const selectQuery = R"(SELECT "value" FROM "stale_plan" WHERE "id" = ?)";
+    stmt.Prepare(selectQuery);
+    {
+        auto cursor = stmt.Execute(1);
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<int>(1) == 10);
+    }
+
+    // Recreate the table behind the prepared handle, through a second statement so that `stmt` keeps
+    // its prepared query and takes the reuse path below. MS SQL Server compiles a plan against the
+    // object *ids* it saw, so dropping and recreating the table invalidates the plan while the SQL
+    // text still resolves — 42S02; PostgreSQL reports the same condition as 0A000 / 26000.
+    {
+        auto ddl = SqlStatement { connection };
+        ddl.MigrateDirect(createTable);
+        ddl.Prepare(R"(INSERT INTO "stale_plan" ("id", "value") VALUES (?, ?))");
+        std::ignore = ddl.Execute(1, 99);
+    }
+
+    // Byte-identical text, so Prepare() reuses the handle rather than re-issuing SQLPrepare, and the
+    // execute must return the *new* table's rows.
+    //
+    // This is the scenario RetryStalePreparedStatement() exists for, but none of the three backends
+    // in the test matrix actually rejects the reused handle here (verified: the "Re-preparing
+    // statement" warning never fires) — MS SQL Server's Driver 18 defers preparation to execution
+    // time, so there is no server-side plan to go stale. The recovery arm therefore stays uncovered;
+    // reaching it needs a fault-injection seam rather than a real driver.
+    stmt.Prepare(selectQuery);
+    auto cursor = stmt.Execute(1);
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetColumn<int>(1) == 99);
+}
