@@ -12,8 +12,7 @@ var group__CoreApi =
       [ "username", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae5c6b2a8de16cb5c82d6d82040f9de37", null ],
       [ "password", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae17b13fef2ebddad615a9bae6d942709", null ],
       [ "timeout", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a98557607d1540f9e9a00233caf666eca", null ],
-      [ "defaultPrefetchDepth", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a04fd31415705ccc61b63eec99a7bf1f3", null ],
-      [ "preparedStatementCacheCapacity", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a64c66e360673f2ea824486894447835e", null ]
+      [ "defaultPrefetchDepth", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a04fd31415705ccc61b63eec99a7bf1f3", null ]
     ] ],
     [ "Lightweight::SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html", [
       [ "SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html#ab5a9e94571f9e9296b2ce65036f75184", null ],
@@ -38,11 +37,6 @@ var group__CoreApi =
       [ "SupportsNativeRowArrayFetch", "da/da8/classLightweight_1_1SqlConnection.html#a7577a4c8347fede96bb3953f84b068d4", null ],
       [ "DefaultPrefetchDepth", "da/da8/classLightweight_1_1SqlConnection.html#accca2c0c11b7132ef9a5996f680a9eda", null ],
       [ "SetDefaultPrefetchDepth", "da/da8/classLightweight_1_1SqlConnection.html#aaeb89efa59bbc5a62e370c4297e9015e", null ],
-      [ "SupportsPreparedStatementReuse", "da/da8/classLightweight_1_1SqlConnection.html#ad7399e4facf20ea642c3a6ed01e6e8ea", null ],
-      [ "PreparedStatementCacheCapacity", "da/da8/classLightweight_1_1SqlConnection.html#a396e063e9c15b4186d01faf657b1736f", null ],
-      [ "SetPreparedStatementCacheCapacity", "da/da8/classLightweight_1_1SqlConnection.html#a54843f56005b5675dd963285a189d324", null ],
-      [ "ClearPreparedStatementCache", "da/da8/classLightweight_1_1SqlConnection.html#a5fc4cc43a9872a2f817213f630fd603b", null ],
-      [ "PreparedStatementCache", "da/da8/classLightweight_1_1SqlConnection.html#a38068846fda10168e113d343bd7ee1a8", null ],
       [ "Query", "da/da8/classLightweight_1_1SqlConnection.html#a40304c8c5a364f85cdd0a5e1afcd461f", null ],
       [ "QueryAs", "da/da8/classLightweight_1_1SqlConnection.html#a4165425040fb439fdbfc44efdad7f550", null ],
       [ "Migration", "da/da8/classLightweight_1_1SqlConnection.html#a2ebd525676d985a7c81aa9fe233915e7", null ],
@@ -97,28 +91,6 @@ var group__CoreApi =
       [ "OnFetchEnd", "db/dfd/classLightweight_1_1SqlLogger.html#a531204f908c6870f7e7e589ac0e20c2f", null ],
       [ "_messageWriter", "db/dfd/classLightweight_1_1SqlLogger.html#a02804ba49a0fb98fe967aae9ae089fac", null ]
     ] ],
-    [ "Lightweight::SqlPreparedStatementCache", "d3/d0f/classLightweight_1_1SqlPreparedStatementCache.html", [
-      [ "PreparedHandle", "de/d91/structLightweight_1_1SqlPreparedStatementCache_1_1PreparedHandle.html", [
-        [ "nativeHandle", "de/d91/structLightweight_1_1SqlPreparedStatementCache_1_1PreparedHandle.html#a9e0990249222d2c4dd81037526844246", null ],
-        [ "parameterCount", "de/d91/structLightweight_1_1SqlPreparedStatementCache_1_1PreparedHandle.html#aeb2edd957139f0b133dae73a85a03be8", null ]
-      ] ],
-      [ "Statistics", "d7/dd3/structLightweight_1_1SqlPreparedStatementCache_1_1Statistics.html", [
-        [ "hits", "d7/dd3/structLightweight_1_1SqlPreparedStatementCache_1_1Statistics.html#aa93a81a44df4321414229dcbcbbba6b4", null ],
-        [ "misses", "d7/dd3/structLightweight_1_1SqlPreparedStatementCache_1_1Statistics.html#a45107dcfd1759e9ad1010b89007972dd", null ],
-        [ "evictions", "d7/dd3/structLightweight_1_1SqlPreparedStatementCache_1_1Statistics.html#a48e33ee569ea9c06d844acb8a81fd7b8", null ]
-      ] ],
-      [ "SqlPreparedStatementCache", "d3/d0f/classLightweight_1_1SqlPreparedStatementCache.html#aa1bd0acbb57c5bad15d03b3f9a9a73de", null ],
-      [ "~SqlPreparedStatementCache", "d3/d0f/classLightweight_1_1SqlPreparedStatementCache.html#afdd65005858ffd5fa6dee477c1bbbee5", null ],
-      [ "Capacity", "d3/d0f/classLightweight_1_1SqlPreparedStatementCache.html#ab9c3683a021e2b60dd3290015e93b232", null ],
-      [ "SetCapacity", "d3/d0f/classLightweight_1_1SqlPreparedStatementCache.html#a46eee67176be0c006dc9b83b1be41033", null ],
-      [ "IsEnabled", "d3/d0f/classLightweight_1_1SqlPreparedStatementCache.html#a69d6c405575f9bf96b179eed8ddd1ed8", null ],
-      [ "Size", "d3/d0f/classLightweight_1_1SqlPreparedStatementCache.html#a2fc54d1c9314462371297a0103923c57", null ],
-      [ "Stats", "d3/d0f/classLightweight_1_1SqlPreparedStatementCache.html#a23b842aab2c4d8648c87b361b626e9e0", null ],
-      [ "ResetStatistics", "d3/d0f/classLightweight_1_1SqlPreparedStatementCache.html#a994843dc4c3493c48e9f04af66aec296", null ],
-      [ "Acquire", "d3/d0f/classLightweight_1_1SqlPreparedStatementCache.html#a07bd68217b805b0f09c8f3dc0b57e8fe", null ],
-      [ "Release", "d3/d0f/classLightweight_1_1SqlPreparedStatementCache.html#aea6f5be5f0f054efdae9f199eee6ad89", null ],
-      [ "Clear", "d3/d0f/classLightweight_1_1SqlPreparedStatementCache.html#aff2f1bb41ea66a3b331204b3aa31068f", null ]
-    ] ],
     [ "Lightweight::SqlSchema::Column", "d2/db8/structLightweight_1_1SqlSchema_1_1Column.html", [
       [ "name", "d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a095d9eb7ed4abef29c07a9a563c0da72", null ],
       [ "type", "d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a515083c477fa7b7c42fe61e3132f9da6", null ],
@@ -170,8 +142,6 @@ var group__CoreApi =
       [ "Prepare", "db/dad/classLightweight_1_1SqlStatement.html#aa021a10c4473e6f7051618708f19574e", null ],
       [ "Prepare", "db/dad/classLightweight_1_1SqlStatement.html#a58e8f4ae7628ba211beb819a428df717", null ],
       [ "PreparedQuery", "db/dad/classLightweight_1_1SqlStatement.html#a45fcc0bd954ae62ec4a9c26f943326e1", null ],
-      [ "PreparedStatementCaching", "db/dad/classLightweight_1_1SqlStatement.html#a1805c1161886e575c4b9c16658ae84ef", null ],
-      [ "SetPreparedStatementCaching", "db/dad/classLightweight_1_1SqlStatement.html#a9d2ca0ca6a074744e63c36623a7e2d2b", null ],
       [ "BindInputParameter", "db/dad/classLightweight_1_1SqlStatement.html#a9267f1c1591f6d3a6d20a0a541ff9b0d", null ],
       [ "BindInputParameter", "db/dad/classLightweight_1_1SqlStatement.html#a789b8fc2cdfe67697cd6720a167e5b78", null ],
       [ "Execute", "db/dad/classLightweight_1_1SqlStatement.html#a5428626df850d1cd2a6390e1758d4698", null ],
@@ -226,9 +196,5 @@ var group__CoreApi =
       [ "TryRollback", "d0/ddc/classLightweight_1_1SqlTransaction.html#ad2c493184413ef5bb279704c66febaad", null ],
       [ "Commit", "d0/ddc/classLightweight_1_1SqlTransaction.html#abf53df501043f0a82fb306232e339e0a", null ],
       [ "TryCommit", "d0/ddc/classLightweight_1_1SqlTransaction.html#a0bd596d2a637709abc81b396c7b2ce70", null ]
-    ] ],
-    [ "Lightweight::SqlPreparedStatementCaching", "d9/d8a/group__CoreApi.html#ga826d0a33e14c546691afe196b566b77d", [
-      [ "Lightweight::SqlPreparedStatementCaching::Enabled", "d9/d8a/group__CoreApi.html#gga826d0a33e14c546691afe196b566b77da00d23a76e43b46dae9ec7aa9dcbebb32", null ],
-      [ "Lightweight::SqlPreparedStatementCaching::Disabled", "d9/d8a/group__CoreApi.html#gga826d0a33e14c546691afe196b566b77dab9f5c797ebbf55adccdd8539a65a0241", null ]
     ] ]
 ];

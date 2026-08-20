@@ -116,6 +116,13 @@ Enumerations</h2></td></tr>
 , <a class="el" href="../../d6/de4/group__ConnectionPool.html#ggadf7777be559a52bca78d24e4a99a4f0cab1c6941b5c866676983d4a5195e6f1d7">GrowthStrategy::UnboundedGrow</a>
  }</td></tr>
 <tr class="separator:gadf7777be559a52bca78d24e4a99a4f0c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga52b249d4b537b9627a2b2bdd483dd274" id="r_ga52b249d4b537b9627a2b2bdd483dd274"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/de4/group__ConnectionPool.html#ga52b249d4b537b9627a2b2bdd483dd274">Lightweight::ValidateOnBorrow</a> : uint8_t { <a class="el" href="../../d6/de4/group__ConnectionPool.html#gga52b249d4b537b9627a2b2bdd483dd274abafd7322c6e97d25b6299b5d6fe8920b">ValidateOnBorrow::No</a>
+, <a class="el" href="../../d6/de4/group__ConnectionPool.html#gga52b249d4b537b9627a2b2bdd483dd274a93cba07454f06a4a960172bbd6e2a435">ValidateOnBorrow::Yes</a>
+ }</td></tr>
+<tr class="separator:ga52b249d4b537b9627a2b2bdd483dd274"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gadf41c4387dc86267bded533482280862" id="r_gadf41c4387dc86267bded533482280862"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/de4/group__ConnectionPool.html#gadf41c4387dc86267bded533482280862">Lightweight::PoolError</a> : uint8_t { <a class="el" href="../../d6/de4/group__ConnectionPool.html#ggadf41c4387dc86267bded533482280862ac85a251cc457840f1e032f1b733e9398">PoolError::Timeout</a>
+ }</td></tr>
+<tr class="separator:gadf41c4387dc86267bded533482280862"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>A thread-safe pool of <code>DataMapper</code> instances, configured at compile time. </p>
@@ -150,7 +157,68 @@ Enumerations</h2></td></tr>
 </td></tr>
 </table>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00032">32</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00035">35</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+
+</div>
+</div>
+<a id="ga52b249d4b537b9627a2b2bdd483dd274" name="ga52b249d4b537b9627a2b2bdd483dd274"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga52b249d4b537b9627a2b2bdd483dd274">&#9670;&#160;</a></span>ValidateOnBorrow</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum class <a class="el" href="../../d6/de4/group__ConnectionPool.html#ga52b249d4b537b9627a2b2bdd483dd274">Lightweight::ValidateOnBorrow</a> : uint8_t</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">strong</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Whether the pool checks that a connection is still live before handing it to a caller. </p>
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="gga52b249d4b537b9627a2b2bdd483dd274abafd7322c6e97d25b6299b5d6fe8920b" name="gga52b249d4b537b9627a2b2bdd483dd274abafd7322c6e97d25b6299b5d6fe8920b"></a>No&#160;</td><td class="fielddoc"><p>Hand the connection out without checking it. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="gga52b249d4b537b9627a2b2bdd483dd274a93cba07454f06a4a960172bbd6e2a435" name="gga52b249d4b537b9627a2b2bdd483dd274a93cba07454f06a4a960172bbd6e2a435"></a>Yes&#160;</td><td class="fielddoc"><p>Check <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a3c238ed531289bd1efff63f44ec1bb70" title="Tests if the connection is still active.">SqlConnection::IsAlive()</a> first and discard a connection reported dead, transparently serving the caller from the next idle connection or a freshly created one.</p>
+<p>The check reads the driver-local <code>SQL_ATTR_CONNECTION_DEAD</code> attribute, so it costs no round trip to the server. By the same token it is only as good as the driver's own bookkeeping: several drivers mark a connection dead only after an operation has already failed, so a connection whose peer vanished silently (a firewall or NAT dropping the flow without sending FIN or RST) can still pass this check. Pair it with <a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.html#ad9943a108490072e4ac98266abc784a2">PoolConfig::maxIdleTimeMs</a> to retire such connections before they are ever handed out. </p>
+</td></tr>
+</table>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00055">55</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+
+</div>
+</div>
+<a id="gadf41c4387dc86267bded533482280862" name="gadf41c4387dc86267bded533482280862"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gadf41c4387dc86267bded533482280862">&#9670;&#160;</a></span>PoolError</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum class <a class="el" href="../../d6/de4/group__ConnectionPool.html#gadf41c4387dc86267bded533482280862">Lightweight::PoolError</a> : uint8_t</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">strong</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Reason an <a class="el" href="../../d3/d30/classLightweight_1_1Pool.html#ab88d9cb504f2ccbe155f0b8b2b7a0197">Pool::Acquire</a> call with a timeout failed to produce a data mapper. </p>
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="ggadf41c4387dc86267bded533482280862ac85a251cc457840f1e032f1b733e9398" name="ggadf41c4387dc86267bded533482280862ac85a251cc457840f1e032f1b733e9398"></a>Timeout&#160;</td><td class="fielddoc"><p>The timeout elapsed before a data mapper became available. </p>
+</td></tr>
+</table>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00074">74</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 </div>
 </div>
