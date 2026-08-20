@@ -99,9 +99,32 @@ conn.SetPreparedStatementCacheCapacity(Lightweight::PreparedStatementCacheCapaci
 The cache is **opt-in** (default capacity `Lightweight::PreparedStatementCacheCapacityDefault`, i.e. `0`
 = disabled) but, once enabled, **transparent**: every `SqlStatement` on that connection participates, so
 `DataMapper`, the `SqlQuery` DSL, and raw `Prepare()` call sites all benefit without a code change. It
-can also be requested up-front via `SqlConnectionDataSource::preparedStatementCacheCapacity`. A
-connection keeps its pool while it is recycled through `Lightweight::Pool`, since the pool hands back the
-same live connection rather than reconnecting it.
+can also be requested up-front via `SqlConnectionDataSource::preparedStatementCacheCapacity`.
+
+For pooled applications, configure it on the pool rather than on each acquired connection.
+`PoolConfig::preparedStatementCacheCapacity` is applied to every connection the pool creates, so no
+call site has to remember to enable it:
+
+```cpp
+constexpr auto MyPoolConfig = Lightweight::PoolConfig {
+    .initialSize = 4,
+    .maxSize = 16,
+    .growthStrategy = Lightweight::GrowthStrategy::BoundedOverflow,
+    .preparedStatementCacheCapacity = Lightweight::PreparedStatementCacheCapacitySuggested,
+};
+auto pool = Lightweight::Pool<MyPoolConfig> {};
+```
+
+The global pool returned by `GlobalDataMapperPool()` takes the same setting from the CMake option
+`LIGHTWEIGHT_POOL_PREPARED_STATEMENT_CACHE_CAPACITY` (default `0`, i.e. disabled), alongside the
+existing `LIGHTWEIGHT_POOL_INITIAL_SIZE`, `LIGHTWEIGHT_POOL_MAX_SIZE` and
+`LIGHTWEIGHT_POOL_GROWTH_STRATEGY`.
+
+A pooled connection keeps its warmed handles across acquires, since the pool hands back the same live
+connection rather than reconnecting it. Note that the capacity is **per connection**: the cache is a set
+of ODBC statement handles owned by one connection's `SQLHDBC` and can never be shared with another
+connection, so each pooled connection warms up separately and a fully warmed pool holds up to
+`maxSize * preparedStatementCacheCapacity` prepared statements on the server.
 
 How it works: a handle is *checked out* while a statement uses it and returned to the pool when that
 statement is re-prepared or destroyed. Two statements preparing the same text at the same time therefore

@@ -141,6 +141,12 @@ Keep in mind:
 - It is **opt-in** (default capacity `0`), and transparent once enabled — no call-site changes.
 - Size it to your working set of distinct query texts. Too small and the LRU thrashes; too large and you
   risk the server-side cap on live prepared statements per session.
+- With a connection pool, set it once via `PoolConfig::preparedStatementCacheCapacity` (or the
+  `LIGHTWEIGHT_POOL_PREPARED_STATEMENT_CACHE_CAPACITY` CMake option for `GlobalDataMapperPool()`) instead
+  of per acquired connection. Budget for the whole pool: handles cannot be shared between connections, so
+  a warmed pool holds up to `maxSize * preparedStatementCacheCapacity` of them, and every connection pays
+  its own warm-up. Under `GrowthStrategy::BoundedOverflow`, connections returned to an already-full idle
+  set are destroyed and their warmed caches with them.
 - A pooled handle carries the plan derived from the schema at preparation time. Call
   `ClearPreparedStatementCache()` after raw DDL; migrations and `MigrateDirect()` already do.
 - Statements whose plan must be re-derived opt out via
