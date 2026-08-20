@@ -221,9 +221,12 @@ template&lt;typename Callable &gt; </td></tr>
 <tr class="memitem:a44c828392a97cfb143e6c229555f444f inherit pub_methods_classLightweight_1_1SqlSelectQueryBuilder"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html">SqlSelectQueryBuilder</a> &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><b>Build</b> (Callable const &amp;callable)</td></tr>
 <tr class="memdesc:a44c828392a97cfb143e6c229555f444f inherit pub_methods_classLightweight_1_1SqlSelectQueryBuilder"><td class="mdescLeft">&#160;</td><td class="mdescRight">Builds the query using a callable. <br /></td></tr>
 <tr class="separator:a44c828392a97cfb143e6c229555f444f inherit pub_methods_classLightweight_1_1SqlSelectQueryBuilder"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab999c7e4572e60e907a06615d040bb2e inherit pub_methods_classLightweight_1_1SqlSelectQueryBuilder" id="r_ab999c7e4572e60e907a06615d040bb2e"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API ComposedQuery&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ab999c7e4572e60e907a06615d040bb2e">Count</a> ()</td></tr>
+<tr class="memitem:ab999c7e4572e60e907a06615d040bb2e inherit pub_methods_classLightweight_1_1SqlSelectQueryBuilder" id="r_ab999c7e4572e60e907a06615d040bb2e"><td class="memItemLeft" align="right" valign="top">
+LIGHTWEIGHT_API ComposedQuery&#160;</td><td class="memItemRight" valign="bottom"><b>Count</b> ()</td></tr>
+<tr class="memdesc:ab999c7e4572e60e907a06615d040bb2e inherit pub_methods_classLightweight_1_1SqlSelectQueryBuilder"><td class="mdescLeft">&#160;</td><td class="mdescRight">Finalizes building the query as SELECT COUNT(*) ... query. <br /></td></tr>
 <tr class="separator:ab999c7e4572e60e907a06615d040bb2e inherit pub_methods_classLightweight_1_1SqlSelectQueryBuilder"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae2373ce3c7dccf02a0a956aa0217a9b1 inherit pub_methods_classLightweight_1_1SqlSelectQueryBuilder" id="r_ae2373ce3c7dccf02a0a956aa0217a9b1"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API ComposedQuery&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ae2373ce3c7dccf02a0a956aa0217a9b1">Count</a> () const</td></tr>
+<tr class="memdesc:ae2373ce3c7dccf02a0a956aa0217a9b1 inherit pub_methods_classLightweight_1_1SqlSelectQueryBuilder"><td class="mdescLeft">&#160;</td><td class="mdescRight">Finalizes building the query as SELECT COUNT(*) ... query.    <br /></td></tr>
 <tr class="separator:ae2373ce3c7dccf02a0a956aa0217a9b1 inherit pub_methods_classLightweight_1_1SqlSelectQueryBuilder"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6b49922eb4ac9d74b7f67cb41d6fd111 inherit pub_methods_classLightweight_1_1SqlSelectQueryBuilder" id="r_a6b49922eb4ac9d74b7f67cb41d6fd111"><td class="memItemLeft" align="right" valign="top">
 LIGHTWEIGHT_API ComposedQuery&#160;</td><td class="memItemRight" valign="bottom"><b>All</b> ()</td></tr>
@@ -285,7 +288,7 @@ Additional Inherited Members</h2></td></tr>
 <div class="line">    query.Field(columns[i].name);</div>
 <div class="line"><span class="keywordflow">return</span> query.All();</div>
 </div><!-- fragment --> 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00369">369</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00366">366</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a7b9e872d2afb20e37e1725886934a197" name="a7b9e872d2afb20e37e1725886934a197"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a7b9e872d2afb20e37e1725886934a197">&#9670;&#160;</a></span>SqlSelectQueryStarter()</h2>
@@ -330,7 +333,7 @@ Additional Inherited Members</h2></td></tr>
 <p>Constructs a SELECT query starter. </p>
 <p>Intentionally not <code>explicit</code> so the factory in <a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html#a4a0f2b9056d0afaa3e6ae3fbd3f55516">SqlQueryBuilder::Select</a> can return via braced init. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00376">376</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00373">373</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -365,7 +368,7 @@ template&lt;typename Self &gt; </div>
 <p>Empty-projection guard for the <code>All</code> finalizer. </p>
 <p>Instantiating this template emits a <code>static_assert</code> telling the caller to add a projection first. Calling <code><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6b49922eb4ac9d74b7f67cb41d6fd111" title="Finalizes building the query as SELECT field names FROM ... query.">All()</a></code> on a <code><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html" title="Query builder for building SELECT ... queries.">SqlSelectQueryBuilder</a>&amp;</code> returned by <code>Field(...)</code> / <code>Fields(...)</code> bypasses the shadow and reaches the real <code><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6b49922eb4ac9d74b7f67cb41d6fd111" title="Finalizes building the query as SELECT field names FROM ... query.">SqlSelectQueryBuilder::All()</a></code>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00388">388</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00385">385</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -408,7 +411,7 @@ template&lt;typename Self &gt; </div>
 
 <p>Empty-projection guard for the <code>First</code> finalizer — see <a class="el" href="../../d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#a854831226a9aefce1afeb1ad06f871f2">All</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00400">400</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00397">397</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -457,7 +460,7 @@ template&lt;typename Self &gt; </div>
 
 <p>Empty-projection guard for the <code>Range</code> finalizer — see <a class="el" href="../../d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#a854831226a9aefce1afeb1ad06f871f2">All</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00412">412</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00409">409</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -489,7 +492,7 @@ template&lt;typename Self &gt; </div>
 
 <p>State-preserving override: returns <code>Self&amp;&amp;</code>, so the starter identity survives the call and the <code>All</code> / <code>First</code> / <code>Range</code> guards above keep their gate against <code>Select().Distinct().<a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6b49922eb4ac9d74b7f67cb41d6fd111" title="Finalizes building the query as SELECT field names FROM ... query.">All()</a></code>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00427">427</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00424">424</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>

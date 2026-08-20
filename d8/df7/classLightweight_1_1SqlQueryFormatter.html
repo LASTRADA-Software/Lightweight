@@ -171,14 +171,18 @@ virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>QueryL
 virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>SelectAll</b> (bool distinct, std::string_view fields, std::string_view fromTable, std::string_view fromTableAlias, std::string_view tableJoins, std::string_view whereCondition, std::string_view orderBy, std::string_view groupBy) const =0</td></tr>
 <tr class="memdesc:af0395f9fa984ef77525d2a3749f6ab1f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an SQL SELECT query for all rows. <br /></td></tr>
 <tr class="separator:af0395f9fa984ef77525d2a3749f6ab1f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4c6237040c577506c6f405d15e84eec9" id="r_a4c6237040c577506c6f405d15e84eec9"><td class="memItemLeft" align="right" valign="top">virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a4c6237040c577506c6f405d15e84eec9">SelectFirst</a> (bool distinct, std::string_view fields, std::string_view fromTable, std::string_view fromTableAlias, std::string_view tableJoins, std::string_view whereCondition, std::string_view orderBy, std::string_view groupBy, size_t count) const =0</td></tr>
-<tr class="separator:a4c6237040c577506c6f405d15e84eec9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6cdc65b4e3d20ca7105abe72ecfdd5b9" id="r_a6cdc65b4e3d20ca7105abe72ecfdd5b9"><td class="memItemLeft" align="right" valign="top"><a id="a6cdc65b4e3d20ca7105abe72ecfdd5b9" name="a6cdc65b4e3d20ca7105abe72ecfdd5b9"></a>
+virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>SelectFirst</b> (bool distinct, std::string_view fields, std::string_view fromTable, std::string_view fromTableAlias, std::string_view tableJoins, std::string_view whereCondition, std::string_view orderBy, size_t count) const =0</td></tr>
+<tr class="memdesc:a6cdc65b4e3d20ca7105abe72ecfdd5b9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an SQL SELECT query for the first row. <br /></td></tr>
+<tr class="separator:a6cdc65b4e3d20ca7105abe72ecfdd5b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa1f92ce1316d440b0f318c9b57807bd8" id="r_aa1f92ce1316d440b0f318c9b57807bd8"><td class="memItemLeft" align="right" valign="top"><a id="aa1f92ce1316d440b0f318c9b57807bd8" name="aa1f92ce1316d440b0f318c9b57807bd8"></a>
 virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>SelectRange</b> (bool distinct, std::string_view fields, std::string_view fromTable, std::string_view fromTableAlias, std::string_view tableJoins, std::string_view whereCondition, std::string_view orderBy, std::string_view groupBy, std::size_t offset, std::size_t limit) const =0</td></tr>
 <tr class="memdesc:aa1f92ce1316d440b0f318c9b57807bd8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an SQL SELECT query for a range of rows. <br /></td></tr>
 <tr class="separator:aa1f92ce1316d440b0f318c9b57807bd8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a28840705a0b4cc329d082cf327f486f3" id="r_a28840705a0b4cc329d082cf327f486f3"><td class="memItemLeft" align="right" valign="top">virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a28840705a0b4cc329d082cf327f486f3">SelectCount</a> (bool distinct, std::string_view fromTable, std::string_view fromTableAlias, std::string_view tableJoins, std::string_view whereCondition, std::string_view groupBy) const =0</td></tr>
-<tr class="separator:a28840705a0b4cc329d082cf327f486f3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a89a3e81449d4a55aec87f793adc3bb4f" id="r_a89a3e81449d4a55aec87f793adc3bb4f"><td class="memItemLeft" align="right" valign="top"><a id="a89a3e81449d4a55aec87f793adc3bb4f" name="a89a3e81449d4a55aec87f793adc3bb4f"></a>
+virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>SelectCount</b> (bool distinct, std::string_view fromTable, std::string_view fromTableAlias, std::string_view tableJoins, std::string_view whereCondition) const =0</td></tr>
+<tr class="memdesc:a89a3e81449d4a55aec87f793adc3bb4f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an SQL SELECT query retrieve the count of rows matching the given condition. <br /></td></tr>
+<tr class="separator:a89a3e81449d4a55aec87f793adc3bb4f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a725b026c92dcdf60b1a0ed60dc5b9a81" id="r_a725b026c92dcdf60b1a0ed60dc5b9a81"><td class="memItemLeft" align="right" valign="top"><a id="a725b026c92dcdf60b1a0ed60dc5b9a81" name="a725b026c92dcdf60b1a0ed60dc5b9a81"></a>
 virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>Update</b> (std::string_view table, std::string_view tableAlias, std::string_view setFields, std::string_view whereCondition) const =0</td></tr>
 <tr class="memdesc:a725b026c92dcdf60b1a0ed60dc5b9a81"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an SQL UPDATE query. <br /></td></tr>
@@ -263,7 +267,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 
 <p>Alias for a list of SQL statement strings. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00135">135</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00127">127</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -363,148 +367,6 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 <p>The fields and values must be in the same order. </p>
 
 <p class="reference">Referenced by <a class="el" href="../../d6/db4/Insert_8hpp_source.html#l00104">Lightweight::SqlInsertQueryBuilder::ToSql()</a>.</p>
-
-</div>
-</div>
-<a id="a4c6237040c577506c6f405d15e84eec9" name="a4c6237040c577506c6f405d15e84eec9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4c6237040c577506c6f405d15e84eec9">&#9670;&#160;</a></span>SelectFirst()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">virtual std::string Lightweight::SqlQueryFormatter::SelectFirst </td>
-          <td>(</td>
-          <td class="paramtype">bool&#160;</td>
-          <td class="paramname"><em>distinct</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>fields</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>fromTable</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>fromTableAlias</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>tableJoins</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>whereCondition</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>orderBy</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>groupBy</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">size_t&#160;</td>
-          <td class="paramname"><em>count</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>Constructs an SQL SELECT query for the first row.</p>
-<p>When <code>groupBy</code> is non-empty it is emitted between the WHERE and the ORDER BY clause, so the row limit given by <code>count</code> applies to the grouped result set. </p>
-
-</div>
-</div>
-<a id="a28840705a0b4cc329d082cf327f486f3" name="a28840705a0b4cc329d082cf327f486f3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a28840705a0b4cc329d082cf327f486f3">&#9670;&#160;</a></span>SelectCount()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">virtual std::string Lightweight::SqlQueryFormatter::SelectCount </td>
-          <td>(</td>
-          <td class="paramtype">bool&#160;</td>
-          <td class="paramname"><em>distinct</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>fromTable</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>fromTableAlias</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>tableJoins</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>whereCondition</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>groupBy</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>Constructs an SQL SELECT query retrieve the count of rows matching the given condition.</p>
-<p>When <code>groupBy</code> is non-empty the query counts the rows of each group, i.e. it yields one row per group rather than a single total. </p>
 
 </div>
 </div>
@@ -688,7 +550,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 <p>Whether the dialect must rebuild a table to apply an <code>ALTER TABLE</code> schema change that it cannot express in place — adding/dropping a foreign-key constraint, or altering a column's type/nullability (<code>ALTER TABLE … ADD/DROP CONSTRAINT</code> / <code>… ALTER COLUMN</code>). </p>
 <p>SQLite returns <code>true</code>; every other backend defaults to <code>false</code>. The migration executor consults this (via <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#ad03129b17daf9ea6829425473db12877">SqlConnection::RequiresTableRebuildForSchemaChange</a>) to decide whether to take the table-rebuild path for the <code>-- LIGHTWEIGHT_SQLITE_GUARD:</code> sentinels these dialects emit. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00196">196</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00188">188</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -719,7 +581,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 <p>Defaults to <code>false</code>, meaning the generic per-table catalog reader is used. SQL Server returns <code>true</code>: it can answer the entire schema with a handful of <code>sys.*</code> queries, collapsing thousands of per-table round-trips into a few. The batched path must produce byte-identical schema metadata to the legacy path.</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if the dialect supports the batched fast path, <code>false</code> otherwise. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00211">211</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00203">203</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -763,7 +625,7 @@ template&lt;typename Range &gt; </div>
 <p>Produces <code>FK_&lt;table&gt;_&lt;col1&gt;[_&lt;col2&gt;…]</code>. A single-column FK collapses to <code>FK_&lt;table&gt;_&lt;col&gt;</code>; a composite FK includes every column so that a composite FK whose first column matches an existing single-column FK doesn't collide on the constraint name (which MSSQL enforces as globally unique per DB).</p>
 <p>Consumers include the SQL Server, PostgreSQL and SQLite formatters — centralising the convention here keeps CREATE/ALTER emission in sync with DROP CONSTRAINT lookup (e.g. <code>SQLiteRebuildDropForeignKey</code>). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00227">227</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00219">219</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -795,7 +657,7 @@ template&lt;typename Range &gt; </div>
 <p>Returns an empty string when the DBMS has no session-level concept of a default schema (SQL Server, SQLite). Callers must skip emission for empty results. PostgreSQL implements this via <code>SET search_path TO ...</code>.</p>
 <p>The <code>schema</code> value is interpolated into the statement; callers must validate it (e.g. whitelist <code>[A-Za-z0-9_]</code>) before invoking. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00248">248</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00240">240</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
