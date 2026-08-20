@@ -525,3 +525,30 @@ TEST_CASE_METHOD(SqlTestFixture,
     for (auto const& child: children)
         CHECK_FALSE(child.category.Value().has_value());
 }
+
+TEST_CASE_METHOD(SqlTestFixture, "eagerLoadDepth descends into a level that loaded nothing", "[DataMapper][With]")
+{
+    // Owners with a region but no children at all. Depth 2 therefore resolves one relation that
+    // yields targets and one that yields none, and then recurses into both — the descent has to cope
+    // with being handed an empty batch rather than assuming every level produced rows.
+    auto dm = DataMapper {};
+    MakeOwnersWithChildren(dm, 0, 0);
+
+    auto region = EagerRegion { .label = "north" };
+    dm.Create(region);
+    for (auto const index: { 0, 1 })
+    {
+        auto owner = EagerOwner { .name = SqlAnsiString<32> { std::format("childless-{}", index) } };
+        owner.region = region;
+        dm.Create(owner);
+    }
+
+    auto owners = dm.Query<EagerOwner, DataMapperOptions { .eagerLoadDepth = 2 }>().All();
+
+    REQUIRE(owners.size() == 2);
+    for (auto& owner: owners)
+    {
+        CHECK(owner.children.Count() == 0);
+        CHECK(owner.region.Record().label.Value().ToStringView() == "north");
+    }
+}
