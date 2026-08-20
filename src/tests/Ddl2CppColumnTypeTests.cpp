@@ -102,6 +102,29 @@ constexpr std::string_view PostgresReportsTextAsUnicode =
 constexpr std::string_view SqliteHasOneTextType =
     "SQLite has a single dynamically typed TEXT storage class: no CHAR padding, no Unicode variant";
 
+// Which C++ string type that single storage class turns into is decided by the ODBC driver build
+// rather than by SQLite itself. The unixODBC drivers used on the Linux and macOS legs report text
+// as the narrow ODBC types (SQL_CHAR / SQL_VARCHAR); the Windows build is the Unicode one and
+// reports the wide counterparts (SQL_WCHAR / SQL_WVARCHAR), exactly as the PostgreSQL Unicode
+// driver does above. The stored bytes are identical either way - only the reported type differs.
+#if defined(_WIN32)
+constexpr bool SqliteDriverReportsTextAsUnicode = true;
+#else
+constexpr bool SqliteDriverReportsTextAsUnicode = false;
+#endif
+
+/// @param narrow C++ type generated where the driver reports a character column as narrow text.
+/// @param wide C++ type generated where the driver reports it as wide text.
+/// @return Whichever of the two the SQLite ODBC driver on this platform produces.
+[[nodiscard]] constexpr std::string_view SqliteText(std::string_view narrow, std::string_view wide)
+{
+    return SqliteDriverReportsTextAsUnicode ? wide : narrow;
+}
+
+constexpr std::string_view SqliteTextFollowsDriverBuild =
+    "SQLite's single TEXT storage class is reported as narrow or wide text depending on the ODBC "
+    "driver build";
+
 /// The column types every supported DBMS must round-trip, mirroring issue #191's DDL script.
 ///
 /// The columns are declared NOT NULL so each expectation reads as the bare C++ type; nullability is
@@ -167,7 +190,7 @@ std::vector<ColumnTypeCase> const& ColumnTypeCases()
           .declaredType = Char { .size = 8 },
           .expectedCxxType = "Light::SqlTrimmedFixedString<8>",
           .dialectExceptions = { { .serverType = SqlServerType::SQLITE,
-                                   .cxxType = "Light::SqlAnsiString<8>",
+                                   .cxxType = SqliteText("Light::SqlAnsiString<8>", "Light::SqlDynamicUtf16String<8>"),
                                    .reason = SqliteHasOneTextType },
                                  { .serverType = SqlServerType::POSTGRESQL,
                                    .cxxType = "Light::SqlTrimmedFixedString<8, wchar_t>",
@@ -175,7 +198,10 @@ std::vector<ColumnTypeCase> const& ColumnTypeCases()
         { .columnName = "varcharColumn",
           .declaredType = Varchar { .size = 30 },
           .expectedCxxType = "Light::SqlAnsiString<30>",
-          .dialectExceptions = { { .serverType = SqlServerType::POSTGRESQL,
+          .dialectExceptions = { { .serverType = SqlServerType::SQLITE,
+                                   .cxxType = SqliteText("Light::SqlAnsiString<30>", "Light::SqlDynamicUtf16String<30>"),
+                                   .reason = SqliteTextFollowsDriverBuild },
+                                 { .serverType = SqlServerType::POSTGRESQL,
                                    .cxxType = "Light::SqlDynamicUtf16String<30>",
                                    .reason = PostgresReportsTextAsUnicode } } },
 
@@ -184,13 +210,13 @@ std::vector<ColumnTypeCase> const& ColumnTypeCases()
           .declaredType = NChar { .size = 8 },
           .expectedCxxType = "Light::SqlTrimmedFixedString<8, wchar_t>",
           .dialectExceptions = { { .serverType = SqlServerType::SQLITE,
-                                   .cxxType = "Light::SqlAnsiString<8>",
+                                   .cxxType = SqliteText("Light::SqlAnsiString<8>", "Light::SqlDynamicUtf16String<8>"),
                                    .reason = SqliteHasOneTextType } } },
         { .columnName = "nVarCharColumn",
           .declaredType = NVarchar { .size = 30 },
           .expectedCxxType = "Light::SqlDynamicUtf16String<30>",
           .dialectExceptions = { { .serverType = SqlServerType::SQLITE,
-                                   .cxxType = "Light::SqlAnsiString<30>",
+                                   .cxxType = SqliteText("Light::SqlAnsiString<30>", "Light::SqlDynamicUtf16String<30>"),
                                    .reason = SqliteHasOneTextType } } },
 
         // ------------------------------------------------------------------------------ binary
@@ -335,10 +361,11 @@ TEST_CASE_METHOD(SqlTestFixture, "ddl2cpp: a GUID primary key maps to SqlGuid", 
         ColumnTypeCase { .columnName = "guidPK",
                          .declaredType = Guid {},
                          .expectedCxxType = "Light::SqlGuid",
-                         .dialectExceptions = { { .serverType = SqlServerType::SQLITE,
-                                                  .cxxType = "Light::SqlDynamicAnsiString<0>",
-                                                  .reason = "SQLite has no GUID type; the column reads back as an "
-                                                            "unsized VARCHAR" } } });
+                         .dialectExceptions = {
+                             { .serverType = SqlServerType::SQLITE,
+                               .cxxType = SqliteText("Light::SqlDynamicAnsiString<0>", "Light::SqlDynamicUtf16String<0>"),
+                               .reason = "SQLite has no GUID type; the column reads back as an "
+                                         "unsized VARCHAR" } } });
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "ddl2cpp: a VARCHAR primary key keeps its declared length", "[ddl2cpp][SqlSchema]")
@@ -346,14 +373,19 @@ TEST_CASE_METHOD(SqlTestFixture, "ddl2cpp: a VARCHAR primary key keeps its decla
     using namespace SqlColumnTypeDefinitions;
 
     auto stmt = SqlStatement {};
-    CheckPrimaryKeyColumnType(stmt,
-                              "ColumnTypeTest3",
-                              ColumnTypeCase { .columnName = "varcharPK",
-                                               .declaredType = Varchar { .size = 30 },
-                                               .expectedCxxType = "Light::SqlAnsiString<30>",
-                                               .dialectExceptions = { { .serverType = SqlServerType::POSTGRESQL,
-                                                                        .cxxType = "Light::SqlDynamicUtf16String<30>",
-                                                                        .reason = PostgresReportsTextAsUnicode } } });
+    CheckPrimaryKeyColumnType(
+        stmt,
+        "ColumnTypeTest3",
+        ColumnTypeCase {
+            .columnName = "varcharPK",
+            .declaredType = Varchar { .size = 30 },
+            .expectedCxxType = "Light::SqlAnsiString<30>",
+            .dialectExceptions = { { .serverType = SqlServerType::SQLITE,
+                                     .cxxType = SqliteText("Light::SqlAnsiString<30>", "Light::SqlDynamicUtf16String<30>"),
+                                     .reason = SqliteTextFollowsDriverBuild },
+                                   { .serverType = SqlServerType::POSTGRESQL,
+                                     .cxxType = "Light::SqlDynamicUtf16String<30>",
+                                     .reason = PostgresReportsTextAsUnicode } } });
 }
 
 // TEXT and TIMESTAMP are kept out of the shared probe table: each declaration means something
@@ -382,7 +414,7 @@ TEST_CASE_METHOD(SqlTestFixture, "ddl2cpp: an unbounded TEXT column maps to a dy
         case SqlServerType::SQLITE:
             // SQLite reports its TEXT storage class without a length, so the member degenerates to
             // an unsized dynamic string rather than the unbounded one.
-            CHECK(generated == "Light::SqlDynamicAnsiString<0>");
+            CHECK(generated == SqliteText("Light::SqlDynamicAnsiString<0>", "Light::SqlDynamicUtf16String<0>"));
             break;
         case SqlServerType::POSTGRESQL:
             // PostgreSQL TEXT is unbounded, but the Unicode driver substitutes its configured
