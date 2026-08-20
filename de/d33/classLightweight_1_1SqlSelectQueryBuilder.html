@@ -208,12 +208,9 @@ template&lt;typename Callable &gt; </td></tr>
 <tr class="memitem:a44c828392a97cfb143e6c229555f444f"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html">SqlSelectQueryBuilder</a> &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><b>Build</b> (Callable const &amp;callable)</td></tr>
 <tr class="memdesc:a44c828392a97cfb143e6c229555f444f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Builds the query using a callable. <br /></td></tr>
 <tr class="separator:a44c828392a97cfb143e6c229555f444f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab999c7e4572e60e907a06615d040bb2e" id="r_ab999c7e4572e60e907a06615d040bb2e"><td class="memItemLeft" align="right" valign="top"><a id="ab999c7e4572e60e907a06615d040bb2e" name="ab999c7e4572e60e907a06615d040bb2e"></a>
-LIGHTWEIGHT_API ComposedQuery&#160;</td><td class="memItemRight" valign="bottom"><b>Count</b> ()</td></tr>
-<tr class="memdesc:ab999c7e4572e60e907a06615d040bb2e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Finalizes building the query as SELECT COUNT(*) ... query. <br /></td></tr>
+<tr class="memitem:ab999c7e4572e60e907a06615d040bb2e" id="r_ab999c7e4572e60e907a06615d040bb2e"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API ComposedQuery&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ab999c7e4572e60e907a06615d040bb2e">Count</a> ()</td></tr>
 <tr class="separator:ab999c7e4572e60e907a06615d040bb2e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae2373ce3c7dccf02a0a956aa0217a9b1" id="r_ae2373ce3c7dccf02a0a956aa0217a9b1"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API ComposedQuery&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ae2373ce3c7dccf02a0a956aa0217a9b1">Count</a> () const</td></tr>
-<tr class="memdesc:ae2373ce3c7dccf02a0a956aa0217a9b1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Finalizes building the query as SELECT COUNT(*) ... query.    <br /></td></tr>
 <tr class="separator:ae2373ce3c7dccf02a0a956aa0217a9b1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6b49922eb4ac9d74b7f67cb41d6fd111" id="r_a6b49922eb4ac9d74b7f67cb41d6fd111"><td class="memItemLeft" align="right" valign="top"><a id="a6b49922eb4ac9d74b7f67cb41d6fd111" name="a6b49922eb4ac9d74b7f67cb41d6fd111"></a>
 LIGHTWEIGHT_API ComposedQuery&#160;</td><td class="memItemRight" valign="bottom"><b>All</b> ()</td></tr>
@@ -356,7 +353,7 @@ template&lt;typename... MoreFields&gt; </div>
 
 <p>Adds a sequence of columns to the SELECT clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00255">255</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00258">258</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -569,8 +566,27 @@ template&lt;typename... MoreFields&gt; </div>
 
 </div>
 </div>
+<a id="ab999c7e4572e60e907a06615d040bb2e" name="ab999c7e4572e60e907a06615d040bb2e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab999c7e4572e60e907a06615d040bb2e">&#9670;&#160;</a></span>Count() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API ComposedQuery Lightweight::SqlSelectQueryBuilder::Count </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Finalizes building the query as SELECT COUNT(*) ... query.</p>
+<p>A preceding <code>GroupBy</code> is honored: the query then counts the rows of each group and yields one row per group, rather than a single total over the whole result set. </p>
+
+</div>
+</div>
 <a id="ae2373ce3c7dccf02a0a956aa0217a9b1" name="ae2373ce3c7dccf02a0a956aa0217a9b1"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae2373ce3c7dccf02a0a956aa0217a9b1">&#9670;&#160;</a></span>Count()</h2>
+<h2 class="memtitle"><span class="permalink"><a href="#ae2373ce3c7dccf02a0a956aa0217a9b1">&#9670;&#160;</a></span>Count() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -584,8 +600,9 @@ template&lt;typename... MoreFields&gt; </div>
       </table>
 </div><div class="memdoc">
 
-<p>Finalizes building the query as SELECT COUNT(*) ... query.   </p>
-<p>Const overload: doesn't mutate <code>*this</code> — returns a snapshot ComposedQuery so the finalizer can be reached through a <code>const <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html" title="Query builder for building SELECT ... queries.">SqlSelectQueryBuilder</a></code>. </p>
+<p></p>
+<p>Finalizes building the query as SELECT COUNT(*) ... query.</p>
+<p>A preceding <code>GroupBy</code> is honored: the query then counts the rows of each group and yields one row per group, rather than a single total over the whole result set.   Const overload: doesn't mutate <code>*this</code> — returns a snapshot ComposedQuery so the finalizer can be reached through a <code>const <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html" title="Query builder for building SELECT ... queries.">SqlSelectQueryBuilder</a></code>. </p>
 
 </div>
 </div>
@@ -686,7 +703,7 @@ template&lt;typename... MoreFields&gt; </div>
 
 <p>Returns the search condition for the query. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00231">231</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00234">234</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -715,7 +732,7 @@ template&lt;typename... MoreFields&gt; </div>
 
 <p>Returns the SQL query formatter. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00239">239</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00242">242</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -747,7 +764,7 @@ template&lt;typename Callable &gt; </div>
 
 <p>Builds the query using a callable. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00275">275</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00278">278</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -778,7 +795,7 @@ template&lt;typename FirstRecord , typename... MoreRecords&gt; </div>
 
 <p>Adds fields from one or more record types to the SELECT clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00283">283</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00286">286</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00327">Lightweight::SqlQualifiedTableColumnName::tableName</a>.</p>
 
