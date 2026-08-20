@@ -12,8 +12,7 @@ var group__CoreApi =
       [ "username", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae5c6b2a8de16cb5c82d6d82040f9de37", null ],
       [ "password", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae17b13fef2ebddad615a9bae6d942709", null ],
       [ "timeout", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a98557607d1540f9e9a00233caf666eca", null ],
-      [ "defaultPrefetchDepth", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a04fd31415705ccc61b63eec99a7bf1f3", null ],
-      [ "encryption", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a3e8f610544a01c1fde5de73f85573377", null ]
+      [ "defaultPrefetchDepth", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a04fd31415705ccc61b63eec99a7bf1f3", null ]
     ] ],
     [ "Lightweight::SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html", [
       [ "SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html#ab5a9e94571f9e9296b2ce65036f75184", null ],
@@ -182,7 +181,10 @@ var group__CoreApi =
       [ "GetColumn", "d8/d63/classLightweight_1_1SqlResultCursor.html#a620b66e7d7ddbe332d8c824ca5a46759", null ],
       [ "GetColumn", "d8/d63/classLightweight_1_1SqlResultCursor.html#aab902bcb47bbc052de0f6b7f73c704d6", null ],
       [ "GetNullableColumn", "d8/d63/classLightweight_1_1SqlResultCursor.html#a9584b83387781b98d5251839cf2c581d", null ],
-      [ "GetColumnOr", "d8/d63/classLightweight_1_1SqlResultCursor.html#ab11374ccc4a6875c1ecf7fd8cc928660", null ]
+      [ "GetColumnOr", "d8/d63/classLightweight_1_1SqlResultCursor.html#ab11374ccc4a6875c1ecf7fd8cc928660", null ],
+      [ "GetColumn", "d8/d63/classLightweight_1_1SqlResultCursor.html#a08b25c66bec4d15ab028d75d3eaa52a8", null ],
+      [ "GetNullableColumn", "d8/d63/classLightweight_1_1SqlResultCursor.html#a951a43777480d379682c76014b0d1be7", null ],
+      [ "GetColumnOr", "d8/d63/classLightweight_1_1SqlResultCursor.html#a8f14d1080013686d3bfb8a71433785eb", null ]
     ] ],
     [ "Lightweight::SqlTransactionException", "d5/d19/classLightweight_1_1SqlTransactionException.html", [
       [ "SqlTransactionException", "d5/d19/classLightweight_1_1SqlTransactionException.html#a14af02cd69dee3168a5cc92a88e8b38e", null ]
@@ -197,10 +199,5 @@ var group__CoreApi =
       [ "TryRollback", "d0/ddc/classLightweight_1_1SqlTransaction.html#ad2c493184413ef5bb279704c66febaad", null ],
       [ "Commit", "d0/ddc/classLightweight_1_1SqlTransaction.html#abf53df501043f0a82fb306232e339e0a", null ],
       [ "TryCommit", "d0/ddc/classLightweight_1_1SqlTransaction.html#a0bd596d2a637709abc81b396c7b2ce70", null ]
-    ] ],
-    [ "Lightweight::SqlEncryptionMode", "d9/d8a/group__CoreApi.html#ga8be4e3766b268b1d751ef7df237af144", [
-      [ "Lightweight::SqlEncryptionMode::DriverDefault", "d9/d8a/group__CoreApi.html#gga8be4e3766b268b1d751ef7df237af144a94e2c1bbb08c3b4ddbaead16d30c7f64", null ],
-      [ "Lightweight::SqlEncryptionMode::Disabled", "d9/d8a/group__CoreApi.html#gga8be4e3766b268b1d751ef7df237af144ab9f5c797ebbf55adccdd8539a65a0241", null ],
-      [ "Lightweight::SqlEncryptionMode::Enabled", "d9/d8a/group__CoreApi.html#gga8be4e3766b268b1d751ef7df237af144a00d23a76e43b46dae9ec7aa9dcbebb32", null ]
     ] ]
 ];

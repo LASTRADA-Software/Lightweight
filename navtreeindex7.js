@@ -1,6 +1,5 @@
 var NAVTREEINDEX7 =
 {
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#getcolumn":[6,3],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-many-of-those-digits-survive-a-round-trip":[6,5,1],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-sqlvariant-decides-which-alternative-to-fill":[6,6],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inputparameter":[6,1],
@@ -249,5 +248,6 @@ var NAVTREEINDEX7 =
 "index.html#mapping-query-results-to-a-simple-struct":[0,6,2],
 "index.html#mapping-query-to-multiple-struct":[0,6,3],
 "index.html#namespace":[0,5],
-"index.html#schema-migrations":[0,7]
+"index.html#schema-migrations":[0,7],
+"index.html#simple-one-record-example":[0,6,0]
 };

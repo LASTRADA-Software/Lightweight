@@ -32,7 +32,6 @@ var NAVTREE =
     ] ],
     [ "Usage Examples", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html", [
       [ "Configure default connection information to the database", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#configure-default-connection-information-to-the-database", null ],
-      [ "Connection encryption", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#connection-encryption", null ],
       [ "Raw SQL Queries", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#raw-sql-queries", null ],
       [ "Transparent block-prefetch (fewer network round-trips)", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#transparent-block-prefetch-fewer-network-round-trips", null ],
       [ "Prepared Statements", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#prepared-statements", null ],
@@ -49,6 +48,7 @@ var NAVTREE =
       [ "Insert elements", "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#insert-elements", null ],
       [ "Select elements", "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#select-elements", [
         [ "Example", "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#example-1", null ],
+        [ "Reading result columns by name", "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#reading-result-columns-by-name", null ],
         [ "Examples of SQL to DataMapper mappings", "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#examples-of-sql-to-datamapper-mappings", null ]
       ] ]
     ] ],
@@ -336,14 +336,14 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dd0/structLightweight_1_1Field.html#a757ce7d3d9533493051cd9b402482b41",
-"d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#a972ef8522f91fce43fd223357b709bae",
+"d2/dd0/structLightweight_1_1Field.html#a5f42ad38e8fc096b2af5fc6ba33733ca",
+"d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#a0ab65a2195956a87ac2aff5ab23be9bb",
 "d7/d13/structLightweight_1_1SqlRealName.html#ac06cf19889d9c829b639fe1da6c44048",
-"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#acb8f4c9ca3abc544b7c967a07163ae1c",
-"da/da8/classLightweight_1_1SqlConnection.html#a7f4f112f86b9fd3fa94d171ddb449324",
-"dd/d71/structLightweight_1_1SqlColumnDeclaration.html#adc6c2316125cc865139f3dae21badfb6",
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#getcolumn",
-"index.html#simple-one-record-example"
+"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#aa92bb11c246d711c0aa89906bb67a74a",
+"da/da8/classLightweight_1_1SqlConnection.html#a85b56ddb608b6c84fe33b7bff71a7f24",
+"dd/d75/structLightweight_1_1SqlAlterTablePlan.html",
+"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-many-of-those-digits-survive-a-round-trip",
+"index.html#sqlite-odbc-driver-installation-on-other-operating-systems"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

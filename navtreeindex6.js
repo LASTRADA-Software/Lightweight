@@ -1,6 +1,5 @@
 var NAVTREEINDEX6 =
 {
-"dd/d71/structLightweight_1_1SqlColumnDeclaration.html#adc6c2316125cc865139f3dae21badfb6":[17,8,13,8],
 "dd/d75/structLightweight_1_1SqlAlterTablePlan.html":[17,8,15],
 "dd/d75/structLightweight_1_1SqlAlterTablePlan.html#a303553e0c2089a553fd561f196cc039e":[17,8,15,0],
 "dd/d75/structLightweight_1_1SqlAlterTablePlan.html#a4d5476b81f6e3efc5057c49d797a9f07":[17,8,15,1],
@@ -249,5 +248,6 @@ var NAVTREEINDEX6 =
 "de/dae/classLightweight_1_1SqlFixedString.html#afd8c0ca721e73dec7a44330c9fdd2e63":[17,1,5,29],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html":[6],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#custom-column-data-type-binder-example":[6,0],
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#driver-specific-connection-string-requirements":[6,7]
+"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#driver-specific-connection-string-requirements":[6,7],
+"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#getcolumn":[6,3]
 };
