@@ -92,6 +92,26 @@ TEST_CASE_METHOD(SqlTestFixture, "Async.Pool: AcquireAsync acquires, queries and
     CHECK(pool.IdleCount() == 2); // the acquired mapper was returned to the pool
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "Async.Pool: AcquireAsync creates a connection when none is idle", "[Async][Pool]")
+{
+    ThreadPoolExecutor dbWorkers { 2 };
+    ManualExecutor appLoop;
+    // initialSize = 0, so the awaitable cannot hand out a pre-created entry and must build one
+    // itself. The synchronous Acquire() has its own creation path; this is the coroutine's.
+    auto pool = Pool<PoolConfig { .initialSize = 0, .maxSize = 4, .growthStrategy = GrowthStrategy::BoundedOverflow }>();
+    REQUIRE(pool.IdleCount() == 0);
+
+    auto const alive = RunPumped(
+        [&]() -> Task<bool> {
+            auto dm = co_await pool.AcquireAsync(dbWorkers, appLoop);
+            co_return dm->Connection().IsAlive();
+        },
+        appLoop);
+
+    CHECK(alive);
+    CHECK(pool.IdleCount() == 1); // the freshly created connection was returned to the pool
+}
+
 TEST_CASE_METHOD(SqlTestFixture,
                  "Async.Pool: SetAsyncExecutors lets the no-argument AcquireAsync wire mappers",
                  "[Async][Pool]")
