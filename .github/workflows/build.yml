@@ -1161,8 +1161,15 @@ jobs:
       - name: "Start Docker databases"
         run: python3 ./scripts/tests/docker-databases.py --start --wait mssql2022 mssql2017 postgres
       - name: "cmake"
+        # Statistics are opt-in at build time, and every recording path is behind
+        # `if constexpr (CollectingEnabled)`. With the option off, the collector's whole recording
+        # half compiles but can never execute, so lcov reports it as 0% no matter how many tests
+        # exercise it — and the tests themselves fall through their own `if constexpr
+        # (SqlStatistics::IsEnabled())` guards. Measuring the build that actually collects is the
+        # only way this code can be covered at all.
         run: |
           cmake --preset clang-coverage \
+                -D LIGHTWEIGHT_ENABLE_STATISTICS=ON \
                 -D CMAKE_CXX_COMPILER=clang++-${{ env.CLANG_TOOLS_VERSION }} \
                 -D CMAKE_C_COMPILER=clang-${{ env.CLANG_TOOLS_VERSION }}
       - name: "build"
