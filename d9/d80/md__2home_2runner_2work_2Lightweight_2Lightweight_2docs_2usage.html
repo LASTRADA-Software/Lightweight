@@ -107,31 +107,6 @@ Configure default connection information to the database</h1>
 <div class="line">                 SqlErrorInfo::fromConnectionHandle(sqlConnection.NativeHandle()));</div>
 <div class="line">    std::abort();</div>
 <div class="line">}</div>
-</div><!-- fragment --><h1><a class="anchor" id="connection-encryption"></a>
-Connection encryption</h1>
-<p>By default Lightweight does not touch the driver's TLS configuration — whatever the ODBC driver, the DSN, or the connection string already says stays in force. To take explicit control, set the <code>encryption</code> field of <code>SqlConnectionDataSource</code>:</p>
-<div class="fragment"><div class="line">SqlConnection::SetDefaultDataSource(SqlConnectionDataSource {</div>
-<div class="line">    .datasource = <span class="stringliteral">&quot;MyServerDSN&quot;</span>,</div>
-<div class="line">    .username = <span class="stringliteral">&quot;user&quot;</span>,</div>
-<div class="line">    .password = <span class="stringliteral">&quot;password&quot;</span>,</div>
-<div class="line">    .encryption = SqlEncryptionMode::Enabled,</div>
-<div class="line">});</div>
-</div><!-- fragment --><p><code>SqlEncryptionMode</code> has three values:</p>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">Value   </th><th class="markdownTableHeadNone">Meaning    </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>DriverDefault</code>   </td><td class="markdownTableBodyNone">Do not touch the setting (the default).    </td></tr>
-<tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>Disabled</code>   </td><td class="markdownTableBodyNone">Request an unencrypted connection.    </td></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>Enabled</code>   </td><td class="markdownTableBodyNone">Request an encrypted connection.   </td></tr>
-</table>
-<p>This maps onto the Microsoft SQL Server ODBC attribute <a href="https://learn.microsoft.com/en-us/sql/relational-databases/native-client-odbc-api/sqlsetconnectattr"><code>SQL_COPT_SS_ENCRYPT</code></a>, which has to be applied to the connection handle <em>before</em> connecting. Because the server type is not yet known at that point, the setting is applied verbatim whenever you opt in — and if the driver rejects it, the connection <b>fails</b> rather than silently falling back to an unencrypted channel. Leave the field at <code>DriverDefault</code> on backends that configure TLS through their own keywords (PostgreSQL's <code>sslmode</code>, for example).</p>
-<p>When connecting with a raw <code>SqlConnectionString</code> instead, use the driver's own <code>Encrypt=</code> keyword — it is what <code>SqlConnectionDataSource::ToConnectionString()</code> emits, and <code>SqlConnectionDataSource::FromConnectionString()</code> reads it back:</p>
-<div class="fragment"><div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> connectionString = SqlConnectionString {</div>
-<div class="line">    .value = <span class="stringliteral">&quot;Driver={ODBC Driver 18 for SQL Server};SERVER=db;UID=user;PWD=password;Encrypt=yes&quot;</span></div>
-<div class="line">};</div>
 </div><!-- fragment --><h1><a class="anchor" id="raw-sql-queries"></a>
 Raw SQL Queries</h1>
 <p>To directly make a call to the database use <code>ExecuteDirect</code> function, for example </p><div class="fragment"><div class="line"><span class="keyword">auto</span> stmt = SqlStatement {};</div>

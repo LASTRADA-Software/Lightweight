@@ -30,12 +30,13 @@ var searchData=
   ['high_20level_20api_27',['High level API',['../index.html#high-level-api',1,'']]],
   ['high_20level_20data_20mapping_28',['High level Data Mapping',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#high-level-data-mapping',1,'']]],
   ['highesttimestamp_29',['highestTimestamp',['../d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html#a48cc0c694f65a3ad2e43b839ab5d5088',1,'Lightweight::SqlMigration::MigrationRelease']]],
-  ['holds_20no_20key_20storage_30',['The relation holds no key storage',['../d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#the-relation-holds-no-key-storage',1,'']]],
-  ['honest_31',['Keeping these examples honest',['../d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#keeping-these-examples-honest',1,'']]],
-  ['hook_32',['Optional Post-Init Hook',['../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#optional-post-init-hook',1,'']]],
-  ['hour_33',['hour',['../d6/dfa/structLightweight_1_1SqlDateTime.html#a6cc185c14476e3a2aad0db9a1bf52622',1,'Lightweight::SqlDateTime']]],
-  ['how_20it_20works_34',['how it works',['../d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#how-it-works',1,'How it works'],['../dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html',1,'SQL Backup: How It Works']]],
-  ['how_20many_20of_20those_20digits_20survive_20a_20round_20trip_35',['How many of those digits survive a round-trip',['../de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-many-of-those-digits-survive-a-round-trip',1,'']]],
-  ['how_20to_36',['How to',['../d1/dde/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2how-to.html',1,'']]],
-  ['how_20tt_20sqlvariant_20tt_20decides_20which_20alternative_20to_20fill_37',['How &lt;tt&gt;SqlVariant&lt;/tt&gt; decides which alternative to fill',['../de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-sqlvariant-decides-which-alternative-to-fill',1,'']]]
+  ['histograms_30',['Latency histograms',['../d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html#latency-histograms',1,'']]],
+  ['holds_20no_20key_20storage_31',['The relation holds no key storage',['../d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#the-relation-holds-no-key-storage',1,'']]],
+  ['honest_32',['Keeping these examples honest',['../d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#keeping-these-examples-honest',1,'']]],
+  ['hook_33',['Optional Post-Init Hook',['../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#optional-post-init-hook',1,'']]],
+  ['hour_34',['hour',['../d6/dfa/structLightweight_1_1SqlDateTime.html#a6cc185c14476e3a2aad0db9a1bf52622',1,'Lightweight::SqlDateTime']]],
+  ['how_20it_20works_35',['how it works',['../d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#how-it-works',1,'How it works'],['../dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html',1,'SQL Backup: How It Works']]],
+  ['how_20many_20of_20those_20digits_20survive_20a_20round_20trip_36',['How many of those digits survive a round-trip',['../de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-many-of-those-digits-survive-a-round-trip',1,'']]],
+  ['how_20to_37',['How to',['../d1/dde/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2how-to.html',1,'']]],
+  ['how_20tt_20sqlvariant_20tt_20decides_20which_20alternative_20to_20fill_38',['How &lt;tt&gt;SqlVariant&lt;/tt&gt; decides which alternative to fill',['../de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-sqlvariant-decides-which-alternative-to-fill',1,'']]]
 ];

@@ -92,7 +92,8 @@ $(document).ready(function(){initNavTree('d9/d8a/group__CoreApi.html','../../');
 <div class="header">
   <div class="summary">
 <a href="#nested-classes">Classes</a> &#124;
-<a href="#enum-members">Enumerations</a>  </div>
+<a href="#enum-members">Enumerations</a> &#124;
+<a href="#func-members">Functions</a>  </div>
   <div class="headertitle"><div class="title">Core API</div></div>
 </div><!--header-->
 <div class="contents">
@@ -125,6 +126,18 @@ Classes</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">Lightweight::SqlResultCursor</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d78/structLightweight_1_1SqlLatencyHistogram.html">Lightweight::SqlLatencyHistogram</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d7d/structLightweight_1_1SqlOperationStatistics.html">Lightweight::SqlOperationStatistics</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/da6/structLightweight_1_1SqlPoolStatistics.html">Lightweight::SqlPoolStatistics</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html">Lightweight::SqlStatisticsSnapshot</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/de6/classLightweight_1_1SqlStatistics.html">Lightweight::SqlStatistics</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d5c/classLightweight_1_1SqlStatisticsScope.html">Lightweight::SqlStatisticsScope</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d5/d19/classLightweight_1_1SqlTransactionException.html">Lightweight::SqlTransactionException</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html">Lightweight::SqlTransaction</a></td></tr>
@@ -132,19 +145,30 @@ Classes</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="enum-members" name="enum-members"></a>
 Enumerations</h2></td></tr>
-<tr class="memitem:ga8be4e3766b268b1d751ef7df237af144" id="r_ga8be4e3766b268b1d751ef7df237af144"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d8a/group__CoreApi.html#ga8be4e3766b268b1d751ef7df237af144">Lightweight::SqlEncryptionMode</a> : std::uint8_t { <a class="el" href="../../d9/d8a/group__CoreApi.html#gga8be4e3766b268b1d751ef7df237af144a94e2c1bbb08c3b4ddbaead16d30c7f64">SqlEncryptionMode::DriverDefault</a> = 0
-, <a class="el" href="../../d9/d8a/group__CoreApi.html#gga8be4e3766b268b1d751ef7df237af144ab9f5c797ebbf55adccdd8539a65a0241">SqlEncryptionMode::Disabled</a> = 1
-, <a class="el" href="../../d9/d8a/group__CoreApi.html#gga8be4e3766b268b1d751ef7df237af144a00d23a76e43b46dae9ec7aa9dcbebb32">SqlEncryptionMode::Enabled</a> = 2
+<tr class="memitem:ga8637d070f06ecc36b5699c5b7ea1b102" id="r_ga8637d070f06ecc36b5699c5b7ea1b102"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d8a/group__CoreApi.html#ga8637d070f06ecc36b5699c5b7ea1b102">Lightweight::SqlStatisticsOperation</a> : std::uint8_t { <br />
+&#160;&#160;<a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a40cd014b7b6251e3a22e6a45a73a64e1">SqlStatisticsOperation::Execute</a>
+, <a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a85990d18cace92b043008dc0ef0c1b93">SqlStatisticsOperation::ExecuteDirect</a>
+, <a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a22bf72f446ee535304bb79155891eb15">SqlStatisticsOperation::ExecuteBatch</a>
+, <a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102af8199556cf6a62ca9268aa50c99b34a1">SqlStatisticsOperation::Prepare</a>
+, <br />
+&#160;&#160;<a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a4ea7755f84f02d23876d90be2f9765cf">SqlStatisticsOperation::Fetch</a>
+, <a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a124a7ebb0b5e71644c43ffd4f35ac3c2">SqlStatisticsOperation::PoolAcquire</a>
+, <a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102ae93f994f01c537c4e2f7d8528c3eb5e9">SqlStatisticsOperation::Count</a>
+<br />
  }</td></tr>
-<tr class="memdesc:ga8be4e3766b268b1d751ef7df237af144"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether the client/server connection is TLS-encrypted.  <a href="../../d9/d8a/group__CoreApi.html#ga8be4e3766b268b1d751ef7df237af144">More...</a><br /></td></tr>
-<tr class="separator:ga8be4e3766b268b1d751ef7df237af144"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:ga8637d070f06ecc36b5699c5b7ea1b102"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
+Functions</h2></td></tr>
+<tr class="memitem:ga225ccc050bd6c53031dd614127a3553c" id="r_ga225ccc050bd6c53031dd614127a3553c"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::string_view&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d8a/group__CoreApi.html#ga225ccc050bd6c53031dd614127a3553c">Lightweight::ToStringView</a> (<a class="el" href="../../d9/d8a/group__CoreApi.html#ga8637d070f06ecc36b5699c5b7ea1b102">SqlStatisticsOperation</a> operation) noexcept</td></tr>
+<tr class="separator:ga225ccc050bd6c53031dd614127a3553c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>The low-level SQL API: connections, statements, result cursors and transactions. </p>
 <p>This is the thin layer directly over ODBC. Use it when you want to write SQL yourself and keep full control over binding and fetching. The higher-level <a class="el" href="../../d7/d2f/group__DataMapper.html">Data Mapper</a> and <a class="el" href="../../d6/daa/group__QueryBuilder.html">Query Builder</a> layers are built on top of these types and interoperate with them. </p>
 <h2 class="groupheader">Enumeration Type Documentation</h2>
-<a id="ga8be4e3766b268b1d751ef7df237af144" name="ga8be4e3766b268b1d751ef7df237af144"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga8be4e3766b268b1d751ef7df237af144">&#9670;&#160;</a></span>SqlEncryptionMode</h2>
+<a id="ga8637d070f06ecc36b5699c5b7ea1b102" name="ga8637d070f06ecc36b5699c5b7ea1b102"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga8637d070f06ecc36b5699c5b7ea1b102">&#9670;&#160;</a></span>SqlStatisticsOperation</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -153,7 +177,7 @@ Enumerations</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">enum class <a class="el" href="../../d9/d8a/group__CoreApi.html#ga8be4e3766b268b1d751ef7df237af144">Lightweight::SqlEncryptionMode</a> : std::uint8_t</td>
+          <td class="memname">enum class <a class="el" href="../../d9/d8a/group__CoreApi.html#ga8637d070f06ecc36b5699c5b7ea1b102">Lightweight::SqlStatisticsOperation</a> : std::uint8_t</td>
         </tr>
       </table>
   </td>
@@ -162,20 +186,63 @@ Enumerations</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
-
-<p>Whether the client/server connection is TLS-encrypted. </p>
-<p>Maps onto the Microsoft SQL Server ODBC connection attribute <code>SQL_COPT_SS_ENCRYPT</code>, which must be set on the connection handle <em>before</em> connecting. This is the only way to request encryption on the DSN-based connect path (<code>SQLConnect</code>), where there is no connection string for an <code>Encrypt=</code> keyword to live in.</p>
-<dl class="section see"><dt>See also</dt><dd><a href="https://learn.microsoft.com/en-us/sql/relational-databases/native-client-odbc-api/sqlsetconnectattr">https://learn.microsoft.com/en-us/sql/relational-databases/native-client-odbc-api/sqlsetconnectattr</a> </dd></dl>
+<p>Identifies the operation class a statistics sample belongs to.</p>
+<p>The enumerators are contiguous and <code>Count</code> is the array extent used by <a class="el" href="../../df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html">SqlStatisticsSnapshot</a> — this is the data-driven table key, not a switch-ladder discriminator. </p>
 <table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="gga8be4e3766b268b1d751ef7df237af144a94e2c1bbb08c3b4ddbaead16d30c7f64" name="gga8be4e3766b268b1d751ef7df237af144a94e2c1bbb08c3b4ddbaead16d30c7f64"></a>DriverDefault&#160;</td><td class="fielddoc"><p>Leave the attribute untouched — whatever the driver, DSN, or connection string configures wins. </p><pre class="fragment">This is the default, so an application that does not opt in behaves exactly as before. 
-</pre> </td></tr>
-<tr><td class="fieldname"><a id="gga8be4e3766b268b1d751ef7df237af144ab9f5c797ebbf55adccdd8539a65a0241" name="gga8be4e3766b268b1d751ef7df237af144ab9f5c797ebbf55adccdd8539a65a0241"></a>Disabled&#160;</td><td class="fielddoc"><p>Request an unencrypted connection (<code>SQL_EN_OFF</code>). </p>
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="gga8637d070f06ecc36b5699c5b7ea1b102a40cd014b7b6251e3a22e6a45a73a64e1" name="gga8637d070f06ecc36b5699c5b7ea1b102a40cd014b7b6251e3a22e6a45a73a64e1"></a>Execute&#160;</td><td class="fielddoc"><p><code>SQLExecute</code> of a prepared statement. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="gga8be4e3766b268b1d751ef7df237af144a00d23a76e43b46dae9ec7aa9dcbebb32" name="gga8be4e3766b268b1d751ef7df237af144a00d23a76e43b46dae9ec7aa9dcbebb32"></a>Enabled&#160;</td><td class="fielddoc"><p>Request an encrypted connection (<code>SQL_EN_ON</code>). </p>
+<tr><td class="fieldname"><a id="gga8637d070f06ecc36b5699c5b7ea1b102a85990d18cace92b043008dc0ef0c1b93" name="gga8637d070f06ecc36b5699c5b7ea1b102a85990d18cace92b043008dc0ef0c1b93"></a>ExecuteDirect&#160;</td><td class="fielddoc"><p><code>SQLExecDirect</code> of a one-shot statement. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="gga8637d070f06ecc36b5699c5b7ea1b102a22bf72f446ee535304bb79155891eb15" name="gga8637d070f06ecc36b5699c5b7ea1b102a22bf72f446ee535304bb79155891eb15"></a>ExecuteBatch&#160;</td><td class="fielddoc"><p><code>SQLExecute</code> with a bound parameter array (batch insert/update). </p>
+</td></tr>
+<tr><td class="fieldname"><a id="gga8637d070f06ecc36b5699c5b7ea1b102af8199556cf6a62ca9268aa50c99b34a1" name="gga8637d070f06ecc36b5699c5b7ea1b102af8199556cf6a62ca9268aa50c99b34a1"></a>Prepare&#160;</td><td class="fielddoc"><p><code>SQLPrepare</code> of a statement. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="gga8637d070f06ecc36b5699c5b7ea1b102a4ea7755f84f02d23876d90be2f9765cf" name="gga8637d070f06ecc36b5699c5b7ea1b102a4ea7755f84f02d23876d90be2f9765cf"></a>Fetch&#160;</td><td class="fielddoc"><p>Row / block retrieval (<code>SQLFetch</code>, <code>SQLFetchScroll</code>). </p><pre class="fragment">@note The library does not currently time its fetch paths, so this slot reads back zero unless
+your own code records into it. Row throughput is reported instead by
+@ref SqlStatisticsSnapshot::rowsFetched and @ref SqlStatisticsSnapshot::blockFetches. 
+</pre> </td></tr>
+<tr><td class="fieldname"><a id="gga8637d070f06ecc36b5699c5b7ea1b102a124a7ebb0b5e71644c43ffd4f35ac3c2" name="gga8637d070f06ecc36b5699c5b7ea1b102a124a7ebb0b5e71644c43ffd4f35ac3c2"></a>PoolAcquire&#160;</td><td class="fielddoc"><p><a class="el" href="../../d4/d03/structLightweight_1_1Connection.html" title="One column pair of a composite foreign key: &quot;this record&#39;s column references that one&quot;.">Connection</a> acquisition from a <a class="el" href="../../d3/d30/classLightweight_1_1Pool.html">Pool</a>. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="gga8637d070f06ecc36b5699c5b7ea1b102ae93f994f01c537c4e2f7d8528c3eb5e9" name="gga8637d070f06ecc36b5699c5b7ea1b102ae93f994f01c537c4e2f7d8528c3eb5e9"></a>Count&#160;</td><td class="fielddoc"><p>Number of enumerators; not an operation itself. </p>
 </td></tr>
 </table>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00037">37</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d4f/SqlStatistics_8hpp_source.html#l00040">40</a> of file <a class="el" href="../../d9/d4f/SqlStatistics_8hpp_source.html">SqlStatistics.hpp</a>.</p>
+
+</div>
+</div>
+<h2 class="groupheader">Function Documentation</h2>
+<a id="ga225ccc050bd6c53031dd614127a3553c" name="ga225ccc050bd6c53031dd614127a3553c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga225ccc050bd6c53031dd614127a3553c">&#9670;&#160;</a></span>ToStringView()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API std::string_view Lightweight::ToStringView </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="../../d9/d8a/group__CoreApi.html#ga8637d070f06ecc36b5699c5b7ea1b102">SqlStatisticsOperation</a>&#160;</td>
+          <td class="paramname"><em>operation</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Human-readable name of an operation class, for exporters and log output.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">operation</td><td>The operation to name. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>A stable, dot-free identifier (e.g. <code>"Execute"</code>), or <code>"Unknown"</code> for an out-of-range value. </dd></dl>
 
 </div>
 </div>
