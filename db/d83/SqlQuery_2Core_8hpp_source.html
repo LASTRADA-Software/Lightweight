@@ -1352,147 +1352,106 @@ $(document).ready(function(){initNavTree('db/d83/SqlQuery_2Core_8hpp_source.html
 <div class="line"><a id="l01145" name="l01145"></a><span class="lineno"> 1145</span>detail::RawSqlCondition <a class="code hl_class" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html">SqlWhereClauseBuilder&lt;Derived&gt;::PopulateSqlSetExpression</a>(LiteralType <span class="keyword">const</span>&amp; values)</div>
 <div class="line"><a id="l01146" name="l01146"></a><span class="lineno"> 1146</span>{</div>
 <div class="line"><a id="l01147" name="l01147"></a><span class="lineno"> 1147</span>    <span class="keyword">using namespace </span>std::string_view_literals;</div>
-<div class="line"><a id="l01148" name="l01148"></a><span class="lineno"> 1148</span> </div>
-<div class="line"><a id="l01149" name="l01149"></a><span class="lineno"> 1149</span>    <span class="keyword">using </span>ValueType = std::ranges::range_value_t&lt;LiteralType&gt;;</div>
-<div class="line"><a id="l01150" name="l01150"></a><span class="lineno"> 1150</span> </div>
-<div class="line"><a id="l01151" name="l01151"></a><span class="lineno"> 1151</span>    <span class="comment">// Mirrors the dispatch in AppendLiteralValue: these types have no parameter representation and</span></div>
-<div class="line"><a id="l01152" name="l01152"></a><span class="lineno"> 1152</span>    <span class="comment">// must stay inline in the SQL text. Everything else becomes a parameter marker whenever the</span></div>
-<div class="line"><a id="l01153" name="l01153"></a><span class="lineno"> 1153</span>    <span class="comment">// caller supplied a bindings vector, so that the statement stays reusable across differing</span></div>
-<div class="line"><a id="l01154" name="l01154"></a><span class="lineno"> 1154</span>    <span class="comment">// IN-sets and the driver — not this builder — encodes the value.</span></div>
-<div class="line"><a id="l01155" name="l01155"></a><span class="lineno"> 1155</span>    <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> isBindable =</div>
-<div class="line"><a id="l01156" name="l01156"></a><span class="lineno"> 1156</span>        !(std::is_same_v&lt;ValueType, SqlQualifiedTableColumnName&gt; || detail::OneOf&lt;ValueType, SqlNullType, std::nullopt_t&gt;</div>
-<div class="line"><a id="l01157" name="l01157"></a><span class="lineno"> 1157</span>          || std::is_same_v&lt;ValueType, SqlWildcardType&gt; || std::is_same_v&lt;ValueType, detail::RawSqlCondition&gt;);</div>
-<div class="line"><a id="l01158" name="l01158"></a><span class="lineno"> 1158</span> </div>
-<div class="line"><a id="l01159" name="l01159"></a><span class="lineno"> 1159</span>    <span class="keyword">auto</span>&amp; searchCondition = SearchCondition();</div>
-<div class="line"><a id="l01160" name="l01160"></a><span class="lineno"> 1160</span> </div>
-<div class="line"><a id="l01161" name="l01161"></a><span class="lineno"> 1161</span>    std::ostringstream fragment;</div>
-<div class="line"><a id="l01162" name="l01162"></a><span class="lineno"> 1162</span> </div>
-<div class="line"><a id="l01163" name="l01163"></a><span class="lineno"> 1163</span>    <span class="comment">// String literals decay to a raw character pointer inside an initializer list (and inside a</span></div>
-<div class="line"><a id="l01164" name="l01164"></a><span class="lineno"> 1164</span>    <span class="comment">// built-in array), and SqlVariant cannot be constructed from one: std::variant&#39;s converting</span></div>
-<div class="line"><a id="l01165" name="l01165"></a><span class="lineno"> 1165</span>    <span class="comment">// constructor is ambiguous between std::string and std::string_view. Hand such elements over as</span></div>
-<div class="line"><a id="l01166" name="l01166"></a><span class="lineno"> 1166</span>    <span class="comment">// views, mirroring the dedicated char-array overload of Where().</span></div>
-<div class="line"><a id="l01167" name="l01167"></a><span class="lineno"> 1167</span>    <span class="keyword">auto</span> <span class="keyword">const</span> asBindable = [](<span class="keyword">auto</span> <span class="keyword">const</span>&amp; value) -&gt; <span class="keyword">decltype</span>(<span class="keyword">auto</span>) {</div>
-<div class="line"><a id="l01168" name="l01168"></a><span class="lineno"> 1168</span>        <span class="keyword">using </span>Decayed = std::decay_t&lt;<span class="keyword">decltype</span>(value)&gt;;</div>
-<div class="line"><a id="l01169" name="l01169"></a><span class="lineno"> 1169</span>        <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (detail::OneOf&lt;Decayed, char*, char const*&gt;)</div>
-<div class="line"><a id="l01170" name="l01170"></a><span class="lineno"> 1170</span>            <span class="keywordflow">return</span> std::string_view { value };</div>
-<div class="line"><a id="l01171" name="l01171"></a><span class="lineno"> 1171</span>        <span class="keywordflow">else</span> <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (detail::OneOf&lt;Decayed, char16_t*, char16_t const*&gt;)</div>
-<div class="line"><a id="l01172" name="l01172"></a><span class="lineno"> 1172</span>            <span class="keywordflow">return</span> std::u16string_view { value };</div>
-<div class="line"><a id="l01173" name="l01173"></a><span class="lineno"> 1173</span>        <span class="keywordflow">else</span></div>
-<div class="line"><a id="l01174" name="l01174"></a><span class="lineno"> 1174</span>            <span class="keywordflow">return</span> (value);</div>
-<div class="line"><a id="l01175" name="l01175"></a><span class="lineno"> 1175</span>    };</div>
-<div class="line"><a id="l01176" name="l01176"></a><span class="lineno"> 1176</span> </div>
-<div class="line"><a id="l01177" name="l01177"></a><span class="lineno"> 1177</span>    <span class="keyword">auto</span> <span class="keyword">const</span> appendValue = [&amp;](<span class="keyword">auto</span> <span class="keyword">const</span>&amp; value) {</div>
-<div class="line"><a id="l01178" name="l01178"></a><span class="lineno"> 1178</span>        <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (isBindable)</div>
-<div class="line"><a id="l01179" name="l01179"></a><span class="lineno"> 1179</span>        {</div>
-<div class="line"><a id="l01180" name="l01180"></a><span class="lineno"> 1180</span>            <span class="keywordflow">if</span> (searchCondition.inputBindings)</div>
-<div class="line"><a id="l01181" name="l01181"></a><span class="lineno"> 1181</span>            {</div>
-<div class="line"><a id="l01182" name="l01182"></a><span class="lineno"> 1182</span>                fragment &lt;&lt; <span class="charliteral">&#39;?&#39;</span>;</div>
-<div class="line"><a id="l01183" name="l01183"></a><span class="lineno"> 1183</span>                searchCondition.inputBindings-&gt;emplace_back(asBindable(value));</div>
-<div class="line"><a id="l01184" name="l01184"></a><span class="lineno"> 1184</span>                <span class="keywordflow">return</span>;</div>
-<div class="line"><a id="l01185" name="l01185"></a><span class="lineno"> 1185</span>            }</div>
-<div class="line"><a id="l01186" name="l01186"></a><span class="lineno"> 1186</span>        }</div>
-<div class="line"><a id="l01187" name="l01187"></a><span class="lineno"> 1187</span>        std::string valueString;</div>
-<div class="line"><a id="l01188" name="l01188"></a><span class="lineno"> 1188</span>        PopulateLiteralValueInto(value, valueString);</div>
-<div class="line"><a id="l01189" name="l01189"></a><span class="lineno"> 1189</span>        fragment &lt;&lt; valueString;</div>
-<div class="line"><a id="l01190" name="l01190"></a><span class="lineno"> 1190</span>    };</div>
-<div class="line"><a id="l01191" name="l01191"></a><span class="lineno"> 1191</span> </div>
-<div class="line"><a id="l01192" name="l01192"></a><span class="lineno"> 1192</span>    fragment &lt;&lt; <span class="charliteral">&#39;(&#39;</span>;</div>
-<div class="line"><a id="l01193" name="l01193"></a><span class="lineno"> 1193</span><span class="preprocessor">#if !defined(__cpp_lib_ranges_enumerate)</span></div>
-<div class="line"><a id="l01194" name="l01194"></a><span class="lineno"> 1194</span>    <span class="keywordtype">int</span> index { -1 };</div>
-<div class="line"><a id="l01195" name="l01195"></a><span class="lineno"> 1195</span>    <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; value: values)</div>
-<div class="line"><a id="l01196" name="l01196"></a><span class="lineno"> 1196</span>    {</div>
-<div class="line"><a id="l01197" name="l01197"></a><span class="lineno"> 1197</span>        ++index;</div>
-<div class="line"><a id="l01198" name="l01198"></a><span class="lineno"> 1198</span><span class="preprocessor">#else</span></div>
-<div class="line"><a id="l01199" name="l01199"></a><span class="lineno"> 1199</span>    <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp;&amp; [index, value]: values | std::views::enumerate)</div>
-<div class="line"><a id="l01200" name="l01200"></a><span class="lineno"> 1200</span>    {</div>
-<div class="line"><a id="l01201" name="l01201"></a><span class="lineno"> 1201</span><span class="preprocessor">#endif</span></div>
-<div class="line"><a id="l01202" name="l01202"></a><span class="lineno"> 1202</span>        <span class="keywordflow">if</span> (index &gt; 0)</div>
-<div class="line"><a id="l01203" name="l01203"></a><span class="lineno"> 1203</span>            fragment &lt;&lt; <span class="stringliteral">&quot;, &quot;</span>sv;</div>
-<div class="line"><a id="l01204" name="l01204"></a><span class="lineno"> 1204</span> </div>
-<div class="line"><a id="l01205" name="l01205"></a><span class="lineno"> 1205</span>        appendValue(value);</div>
-<div class="line"><a id="l01206" name="l01206"></a><span class="lineno"> 1206</span>    }</div>
-<div class="line"><a id="l01207" name="l01207"></a><span class="lineno"> 1207</span>    fragment &lt;&lt; <span class="charliteral">&#39;)&#39;</span>;</div>
-<div class="line"><a id="l01208" name="l01208"></a><span class="lineno"> 1208</span>    <span class="keywordflow">return</span> detail::RawSqlCondition { fragment.str() };</div>
-<div class="line"><a id="l01209" name="l01209"></a><span class="lineno"> 1209</span>}</div>
-<div class="line"><a id="l01210" name="l01210"></a><span class="lineno"> 1210</span> </div>
-<div class="line"><a id="l01211" name="l01211"></a><span class="lineno"> 1211</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
-<div class="line"><a id="l01212" name="l01212"></a><span class="lineno"> 1212</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE Derived&amp; SqlWhereClauseBuilder&lt;Derived&gt;::Join(JoinType joinType,</div>
-<div class="line"><a id="l01213" name="l01213"></a><span class="lineno"> 1213</span>                                                                              TableName <span class="keyword">auto</span> joinTable,</div>
-<div class="line"><a id="l01214" name="l01214"></a><span class="lineno"> 1214</span>                                                                              std::string_view joinColumnName,</div>
-<div class="line"><a id="l01215" name="l01215"></a><span class="lineno"> 1215</span>                                                                              SqlQualifiedTableColumnName onOtherColumn)</div>
-<div class="line"><a id="l01216" name="l01216"></a><span class="lineno"> 1216</span>{</div>
-<div class="line"><a id="l01217" name="l01217"></a><span class="lineno"> 1217</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> std::array&lt;std::string_view, 4&gt; JoinTypeStrings = {</div>
-<div class="line"><a id="l01218" name="l01218"></a><span class="lineno"> 1218</span>        <span class="stringliteral">&quot;INNER&quot;</span>,</div>
-<div class="line"><a id="l01219" name="l01219"></a><span class="lineno"> 1219</span>        <span class="stringliteral">&quot;LEFT OUTER&quot;</span>,</div>
-<div class="line"><a id="l01220" name="l01220"></a><span class="lineno"> 1220</span>        <span class="stringliteral">&quot;RIGHT OUTER&quot;</span>,</div>
-<div class="line"><a id="l01221" name="l01221"></a><span class="lineno"> 1221</span>        <span class="stringliteral">&quot;FULL OUTER&quot;</span>,</div>
-<div class="line"><a id="l01222" name="l01222"></a><span class="lineno"> 1222</span>    };</div>
-<div class="line"><a id="l01223" name="l01223"></a><span class="lineno"> 1223</span> </div>
-<div class="line"><a id="l01224" name="l01224"></a><span class="lineno"> 1224</span>    <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (std::is_same_v&lt;std::remove_cvref_t&lt;<span class="keyword">decltype</span>(joinTable)&gt;, AliasedTableName&gt;)</div>
-<div class="line"><a id="l01225" name="l01225"></a><span class="lineno"> 1225</span>    {</div>
-<div class="line"><a id="l01226" name="l01226"></a><span class="lineno"> 1226</span>        SearchCondition().tableJoins += std::format(<span class="stringliteral">&quot;\n&quot;</span></div>
-<div class="line"><a id="l01227" name="l01227"></a><span class="lineno"> 1227</span>                                                    R<span class="stringliteral">&quot;( {0} JOIN &quot;{1}&quot; AS &quot;{2}&quot; ON &quot;{2}&quot;.&quot;{3}&quot; = &quot;{4}&quot;.&quot;{5}&quot;)&quot;,</span></div>
-<div class="line"><a id="l01228" name="l01228"></a><span class="lineno"> 1228</span><span class="stringliteral">                                                    JoinTypeStrings[</span><span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(joinType)],</div>
-<div class="line"><a id="l01229" name="l01229"></a><span class="lineno"> 1229</span>                                                    joinTable.tableName,</div>
-<div class="line"><a id="l01230" name="l01230"></a><span class="lineno"> 1230</span>                                                    joinTable.alias,</div>
-<div class="line"><a id="l01231" name="l01231"></a><span class="lineno"> 1231</span>                                                    joinColumnName,</div>
-<div class="line"><a id="l01232" name="l01232"></a><span class="lineno"> 1232</span>                                                    onOtherColumn.tableName,</div>
-<div class="line"><a id="l01233" name="l01233"></a><span class="lineno"> 1233</span>                                                    onOtherColumn.columnName);</div>
-<div class="line"><a id="l01234" name="l01234"></a><span class="lineno"> 1234</span>    }</div>
-<div class="line"><a id="l01235" name="l01235"></a><span class="lineno"> 1235</span>    <span class="keywordflow">else</span></div>
-<div class="line"><a id="l01236" name="l01236"></a><span class="lineno"> 1236</span>    {</div>
-<div class="line"><a id="l01237" name="l01237"></a><span class="lineno"> 1237</span>        SearchCondition().tableJoins += std::format(<span class="stringliteral">&quot;\n&quot;</span></div>
-<div class="line"><a id="l01238" name="l01238"></a><span class="lineno"> 1238</span>                                                    R<span class="stringliteral">&quot;( {0} JOIN &quot;{1}&quot; ON &quot;{1}&quot;.&quot;{2}&quot; = &quot;{3}&quot;.&quot;{4}&quot;)&quot;,</span></div>
-<div class="line"><a id="l01239" name="l01239"></a><span class="lineno"> 1239</span><span class="stringliteral">                                                    JoinTypeStrings[</span><span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(joinType)],</div>
-<div class="line"><a id="l01240" name="l01240"></a><span class="lineno"> 1240</span>                                                    joinTable,</div>
-<div class="line"><a id="l01241" name="l01241"></a><span class="lineno"> 1241</span>                                                    joinColumnName,</div>
-<div class="line"><a id="l01242" name="l01242"></a><span class="lineno"> 1242</span>                                                    onOtherColumn.tableName,</div>
-<div class="line"><a id="l01243" name="l01243"></a><span class="lineno"> 1243</span>                                                    onOtherColumn.columnName);</div>
-<div class="line"><a id="l01244" name="l01244"></a><span class="lineno"> 1244</span>    }</div>
-<div class="line"><a id="l01245" name="l01245"></a><span class="lineno"> 1245</span>    <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>Derived&amp;<span class="keyword">&gt;</span>(*this);</div>
-<div class="line"><a id="l01246" name="l01246"></a><span class="lineno"> 1246</span>}</div>
-<div class="line"><a id="l01247" name="l01247"></a><span class="lineno"> 1247</span> </div>
-<div class="line"><a id="l01248" name="l01248"></a><span class="lineno"> 1248</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
-<div class="line"><a id="l01249" name="l01249"></a><span class="lineno"> 1249</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE Derived&amp; SqlWhereClauseBuilder&lt;Derived&gt;::Join(JoinType joinType,</div>
-<div class="line"><a id="l01250" name="l01250"></a><span class="lineno"> 1250</span>                                                                              TableName <span class="keyword">auto</span> joinTable,</div>
-<div class="line"><a id="l01251" name="l01251"></a><span class="lineno"> 1251</span>                                                                              std::string_view joinColumnName,</div>
-<div class="line"><a id="l01252" name="l01252"></a><span class="lineno"> 1252</span>                                                                              std::string_view onMainTableColumn)</div>
-<div class="line"><a id="l01253" name="l01253"></a><span class="lineno"> 1253</span>{</div>
-<div class="line"><a id="l01254" name="l01254"></a><span class="lineno"> 1254</span>    <span class="keywordflow">return</span> Join(joinType,</div>
-<div class="line"><a id="l01255" name="l01255"></a><span class="lineno"> 1255</span>                joinTable,</div>
-<div class="line"><a id="l01256" name="l01256"></a><span class="lineno"> 1256</span>                joinColumnName,</div>
-<div class="line"><a id="l01257" name="l01257"></a><span class="lineno"> 1257</span>                SqlQualifiedTableColumnName { .tableName = SearchCondition().tableName, .columnName = onMainTableColumn });</div>
-<div class="line"><a id="l01258" name="l01258"></a><span class="lineno"> 1258</span>}</div>
-<div class="line"><a id="l01259" name="l01259"></a><span class="lineno"> 1259</span><span class="comment"></span> </div>
-<div class="line"><a id="l01260" name="l01260"></a><span class="lineno"> 1260</span><span class="comment">/// Constructs a JOIN clause with a custom ON clause builder.</span></div>
-<div class="line"><a id="l01261" name="l01261"></a><span class="lineno"> 1261</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
-<div class="line"><a id="l01262" name="l01262"></a><span class="lineno"> 1262</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Callable&gt;</div>
-<div class="foldopen" id="foldopen01263" data-start="{" data-end="}">
-<div class="line"><a id="l01263" name="l01263"></a><span class="lineno"><a class="line" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a8e7fe33501cc9bd570959f7e2ed5d0b0"> 1263</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE Derived&amp; <a class="code hl_class" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html">SqlWhereClauseBuilder&lt;Derived&gt;::Join</a>(JoinType joinType,</div>
-<div class="line"><a id="l01264" name="l01264"></a><span class="lineno"> 1264</span>                                                                              TableName <span class="keyword">auto</span> joinTable,</div>
-<div class="line"><a id="l01265" name="l01265"></a><span class="lineno"> 1265</span>                                                                              Callable <span class="keyword">const</span>&amp; onClauseBuilder)</div>
-<div class="line"><a id="l01266" name="l01266"></a><span class="lineno"> 1266</span>{</div>
-<div class="line"><a id="l01267" name="l01267"></a><span class="lineno"> 1267</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> std::array&lt;std::string_view, 4&gt; JoinTypeStrings = {</div>
-<div class="line"><a id="l01268" name="l01268"></a><span class="lineno"> 1268</span>        <span class="stringliteral">&quot;INNER&quot;</span>,</div>
-<div class="line"><a id="l01269" name="l01269"></a><span class="lineno"> 1269</span>        <span class="stringliteral">&quot;LEFT OUTER&quot;</span>,</div>
-<div class="line"><a id="l01270" name="l01270"></a><span class="lineno"> 1270</span>        <span class="stringliteral">&quot;RIGHT OUTER&quot;</span>,</div>
-<div class="line"><a id="l01271" name="l01271"></a><span class="lineno"> 1271</span>        <span class="stringliteral">&quot;FULL OUTER&quot;</span>,</div>
-<div class="line"><a id="l01272" name="l01272"></a><span class="lineno"> 1272</span>    };</div>
-<div class="line"><a id="l01273" name="l01273"></a><span class="lineno"> 1273</span> </div>
-<div class="line"><a id="l01274" name="l01274"></a><span class="lineno"> 1274</span>    <span class="keywordtype">size_t</span> <span class="keyword">const</span> originalSize = SearchCondition().tableJoins.size();</div>
-<div class="line"><a id="l01275" name="l01275"></a><span class="lineno"> 1275</span>    SearchCondition().tableJoins +=</div>
-<div class="line"><a id="l01276" name="l01276"></a><span class="lineno"> 1276</span>        std::format(<span class="stringliteral">&quot;\n {0} JOIN \&quot;{1}\&quot; ON &quot;</span>, JoinTypeStrings[<span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(joinType)], joinTable);</div>
-<div class="line"><a id="l01277" name="l01277"></a><span class="lineno"> 1277</span>    <span class="keywordtype">size_t</span> <span class="keyword">const</span> sizeBefore = SearchCondition().tableJoins.size();</div>
-<div class="line"><a id="l01278" name="l01278"></a><span class="lineno"> 1278</span>    onClauseBuilder(<a class="code hl_class" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> { joinTable, &amp;SearchCondition().tableJoins });</div>
-<div class="line"><a id="l01279" name="l01279"></a><span class="lineno"> 1279</span>    <span class="keywordtype">size_t</span> <span class="keyword">const</span> sizeAfter = SearchCondition().tableJoins.size();</div>
-<div class="line"><a id="l01280" name="l01280"></a><span class="lineno"> 1280</span>    <span class="keywordflow">if</span> (sizeBefore == sizeAfter)</div>
-<div class="line"><a id="l01281" name="l01281"></a><span class="lineno"> 1281</span>        SearchCondition().tableJoins.resize(originalSize);</div>
-<div class="line"><a id="l01282" name="l01282"></a><span class="lineno"> 1282</span> </div>
-<div class="line"><a id="l01283" name="l01283"></a><span class="lineno"> 1283</span>    <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>Derived&amp;<span class="keyword">&gt;</span>(*this);</div>
-<div class="line"><a id="l01284" name="l01284"></a><span class="lineno"> 1284</span>}</div>
+<div class="line"><a id="l01148" name="l01148"></a><span class="lineno"> 1148</span>    std::ostringstream fragment;</div>
+<div class="line"><a id="l01149" name="l01149"></a><span class="lineno"> 1149</span>    fragment &lt;&lt; <span class="charliteral">&#39;(&#39;</span>;</div>
+<div class="line"><a id="l01150" name="l01150"></a><span class="lineno"> 1150</span><span class="preprocessor">#if !defined(__cpp_lib_ranges_enumerate)</span></div>
+<div class="line"><a id="l01151" name="l01151"></a><span class="lineno"> 1151</span>    <span class="keywordtype">int</span> index { -1 };</div>
+<div class="line"><a id="l01152" name="l01152"></a><span class="lineno"> 1152</span>    <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; value: values)</div>
+<div class="line"><a id="l01153" name="l01153"></a><span class="lineno"> 1153</span>    {</div>
+<div class="line"><a id="l01154" name="l01154"></a><span class="lineno"> 1154</span>        ++index;</div>
+<div class="line"><a id="l01155" name="l01155"></a><span class="lineno"> 1155</span><span class="preprocessor">#else</span></div>
+<div class="line"><a id="l01156" name="l01156"></a><span class="lineno"> 1156</span>    <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp;&amp; [index, value]: values | std::views::enumerate)</div>
+<div class="line"><a id="l01157" name="l01157"></a><span class="lineno"> 1157</span>    {</div>
+<div class="line"><a id="l01158" name="l01158"></a><span class="lineno"> 1158</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l01159" name="l01159"></a><span class="lineno"> 1159</span>        <span class="keywordflow">if</span> (index &gt; 0)</div>
+<div class="line"><a id="l01160" name="l01160"></a><span class="lineno"> 1160</span>            fragment &lt;&lt; <span class="stringliteral">&quot;, &quot;</span>sv;</div>
+<div class="line"><a id="l01161" name="l01161"></a><span class="lineno"> 1161</span> </div>
+<div class="line"><a id="l01162" name="l01162"></a><span class="lineno"> 1162</span>        std::string valueString;</div>
+<div class="line"><a id="l01163" name="l01163"></a><span class="lineno"> 1163</span>        PopulateLiteralValueInto(value, valueString);</div>
+<div class="line"><a id="l01164" name="l01164"></a><span class="lineno"> 1164</span>        fragment &lt;&lt; valueString;</div>
+<div class="line"><a id="l01165" name="l01165"></a><span class="lineno"> 1165</span>    }</div>
+<div class="line"><a id="l01166" name="l01166"></a><span class="lineno"> 1166</span>    fragment &lt;&lt; <span class="charliteral">&#39;)&#39;</span>;</div>
+<div class="line"><a id="l01167" name="l01167"></a><span class="lineno"> 1167</span>    <span class="keywordflow">return</span> detail::RawSqlCondition { fragment.str() };</div>
+<div class="line"><a id="l01168" name="l01168"></a><span class="lineno"> 1168</span>}</div>
+<div class="line"><a id="l01169" name="l01169"></a><span class="lineno"> 1169</span> </div>
+<div class="line"><a id="l01170" name="l01170"></a><span class="lineno"> 1170</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
+<div class="line"><a id="l01171" name="l01171"></a><span class="lineno"> 1171</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE Derived&amp; SqlWhereClauseBuilder&lt;Derived&gt;::Join(JoinType joinType,</div>
+<div class="line"><a id="l01172" name="l01172"></a><span class="lineno"> 1172</span>                                                                              TableName <span class="keyword">auto</span> joinTable,</div>
+<div class="line"><a id="l01173" name="l01173"></a><span class="lineno"> 1173</span>                                                                              std::string_view joinColumnName,</div>
+<div class="line"><a id="l01174" name="l01174"></a><span class="lineno"> 1174</span>                                                                              SqlQualifiedTableColumnName onOtherColumn)</div>
+<div class="line"><a id="l01175" name="l01175"></a><span class="lineno"> 1175</span>{</div>
+<div class="line"><a id="l01176" name="l01176"></a><span class="lineno"> 1176</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> std::array&lt;std::string_view, 4&gt; JoinTypeStrings = {</div>
+<div class="line"><a id="l01177" name="l01177"></a><span class="lineno"> 1177</span>        <span class="stringliteral">&quot;INNER&quot;</span>,</div>
+<div class="line"><a id="l01178" name="l01178"></a><span class="lineno"> 1178</span>        <span class="stringliteral">&quot;LEFT OUTER&quot;</span>,</div>
+<div class="line"><a id="l01179" name="l01179"></a><span class="lineno"> 1179</span>        <span class="stringliteral">&quot;RIGHT OUTER&quot;</span>,</div>
+<div class="line"><a id="l01180" name="l01180"></a><span class="lineno"> 1180</span>        <span class="stringliteral">&quot;FULL OUTER&quot;</span>,</div>
+<div class="line"><a id="l01181" name="l01181"></a><span class="lineno"> 1181</span>    };</div>
+<div class="line"><a id="l01182" name="l01182"></a><span class="lineno"> 1182</span> </div>
+<div class="line"><a id="l01183" name="l01183"></a><span class="lineno"> 1183</span>    <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (std::is_same_v&lt;std::remove_cvref_t&lt;<span class="keyword">decltype</span>(joinTable)&gt;, AliasedTableName&gt;)</div>
+<div class="line"><a id="l01184" name="l01184"></a><span class="lineno"> 1184</span>    {</div>
+<div class="line"><a id="l01185" name="l01185"></a><span class="lineno"> 1185</span>        SearchCondition().tableJoins += std::format(<span class="stringliteral">&quot;\n&quot;</span></div>
+<div class="line"><a id="l01186" name="l01186"></a><span class="lineno"> 1186</span>                                                    R<span class="stringliteral">&quot;( {0} JOIN &quot;{1}&quot; AS &quot;{2}&quot; ON &quot;{2}&quot;.&quot;{3}&quot; = &quot;{4}&quot;.&quot;{5}&quot;)&quot;,</span></div>
+<div class="line"><a id="l01187" name="l01187"></a><span class="lineno"> 1187</span><span class="stringliteral">                                                    JoinTypeStrings[</span><span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(joinType)],</div>
+<div class="line"><a id="l01188" name="l01188"></a><span class="lineno"> 1188</span>                                                    joinTable.tableName,</div>
+<div class="line"><a id="l01189" name="l01189"></a><span class="lineno"> 1189</span>                                                    joinTable.alias,</div>
+<div class="line"><a id="l01190" name="l01190"></a><span class="lineno"> 1190</span>                                                    joinColumnName,</div>
+<div class="line"><a id="l01191" name="l01191"></a><span class="lineno"> 1191</span>                                                    onOtherColumn.tableName,</div>
+<div class="line"><a id="l01192" name="l01192"></a><span class="lineno"> 1192</span>                                                    onOtherColumn.columnName);</div>
+<div class="line"><a id="l01193" name="l01193"></a><span class="lineno"> 1193</span>    }</div>
+<div class="line"><a id="l01194" name="l01194"></a><span class="lineno"> 1194</span>    <span class="keywordflow">else</span></div>
+<div class="line"><a id="l01195" name="l01195"></a><span class="lineno"> 1195</span>    {</div>
+<div class="line"><a id="l01196" name="l01196"></a><span class="lineno"> 1196</span>        SearchCondition().tableJoins += std::format(<span class="stringliteral">&quot;\n&quot;</span></div>
+<div class="line"><a id="l01197" name="l01197"></a><span class="lineno"> 1197</span>                                                    R<span class="stringliteral">&quot;( {0} JOIN &quot;{1}&quot; ON &quot;{1}&quot;.&quot;{2}&quot; = &quot;{3}&quot;.&quot;{4}&quot;)&quot;,</span></div>
+<div class="line"><a id="l01198" name="l01198"></a><span class="lineno"> 1198</span><span class="stringliteral">                                                    JoinTypeStrings[</span><span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(joinType)],</div>
+<div class="line"><a id="l01199" name="l01199"></a><span class="lineno"> 1199</span>                                                    joinTable,</div>
+<div class="line"><a id="l01200" name="l01200"></a><span class="lineno"> 1200</span>                                                    joinColumnName,</div>
+<div class="line"><a id="l01201" name="l01201"></a><span class="lineno"> 1201</span>                                                    onOtherColumn.tableName,</div>
+<div class="line"><a id="l01202" name="l01202"></a><span class="lineno"> 1202</span>                                                    onOtherColumn.columnName);</div>
+<div class="line"><a id="l01203" name="l01203"></a><span class="lineno"> 1203</span>    }</div>
+<div class="line"><a id="l01204" name="l01204"></a><span class="lineno"> 1204</span>    <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>Derived&amp;<span class="keyword">&gt;</span>(*this);</div>
+<div class="line"><a id="l01205" name="l01205"></a><span class="lineno"> 1205</span>}</div>
+<div class="line"><a id="l01206" name="l01206"></a><span class="lineno"> 1206</span> </div>
+<div class="line"><a id="l01207" name="l01207"></a><span class="lineno"> 1207</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
+<div class="line"><a id="l01208" name="l01208"></a><span class="lineno"> 1208</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE Derived&amp; SqlWhereClauseBuilder&lt;Derived&gt;::Join(JoinType joinType,</div>
+<div class="line"><a id="l01209" name="l01209"></a><span class="lineno"> 1209</span>                                                                              TableName <span class="keyword">auto</span> joinTable,</div>
+<div class="line"><a id="l01210" name="l01210"></a><span class="lineno"> 1210</span>                                                                              std::string_view joinColumnName,</div>
+<div class="line"><a id="l01211" name="l01211"></a><span class="lineno"> 1211</span>                                                                              std::string_view onMainTableColumn)</div>
+<div class="line"><a id="l01212" name="l01212"></a><span class="lineno"> 1212</span>{</div>
+<div class="line"><a id="l01213" name="l01213"></a><span class="lineno"> 1213</span>    <span class="keywordflow">return</span> Join(joinType,</div>
+<div class="line"><a id="l01214" name="l01214"></a><span class="lineno"> 1214</span>                joinTable,</div>
+<div class="line"><a id="l01215" name="l01215"></a><span class="lineno"> 1215</span>                joinColumnName,</div>
+<div class="line"><a id="l01216" name="l01216"></a><span class="lineno"> 1216</span>                SqlQualifiedTableColumnName { .tableName = SearchCondition().tableName, .columnName = onMainTableColumn });</div>
+<div class="line"><a id="l01217" name="l01217"></a><span class="lineno"> 1217</span>}</div>
+<div class="line"><a id="l01218" name="l01218"></a><span class="lineno"> 1218</span><span class="comment"></span> </div>
+<div class="line"><a id="l01219" name="l01219"></a><span class="lineno"> 1219</span><span class="comment">/// Constructs a JOIN clause with a custom ON clause builder.</span></div>
+<div class="line"><a id="l01220" name="l01220"></a><span class="lineno"> 1220</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
+<div class="line"><a id="l01221" name="l01221"></a><span class="lineno"> 1221</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Callable&gt;</div>
+<div class="foldopen" id="foldopen01222" data-start="{" data-end="}">
+<div class="line"><a id="l01222" name="l01222"></a><span class="lineno"><a class="line" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a8e7fe33501cc9bd570959f7e2ed5d0b0"> 1222</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE Derived&amp; <a class="code hl_class" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html">SqlWhereClauseBuilder&lt;Derived&gt;::Join</a>(JoinType joinType,</div>
+<div class="line"><a id="l01223" name="l01223"></a><span class="lineno"> 1223</span>                                                                              TableName <span class="keyword">auto</span> joinTable,</div>
+<div class="line"><a id="l01224" name="l01224"></a><span class="lineno"> 1224</span>                                                                              Callable <span class="keyword">const</span>&amp; onClauseBuilder)</div>
+<div class="line"><a id="l01225" name="l01225"></a><span class="lineno"> 1225</span>{</div>
+<div class="line"><a id="l01226" name="l01226"></a><span class="lineno"> 1226</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> std::array&lt;std::string_view, 4&gt; JoinTypeStrings = {</div>
+<div class="line"><a id="l01227" name="l01227"></a><span class="lineno"> 1227</span>        <span class="stringliteral">&quot;INNER&quot;</span>,</div>
+<div class="line"><a id="l01228" name="l01228"></a><span class="lineno"> 1228</span>        <span class="stringliteral">&quot;LEFT OUTER&quot;</span>,</div>
+<div class="line"><a id="l01229" name="l01229"></a><span class="lineno"> 1229</span>        <span class="stringliteral">&quot;RIGHT OUTER&quot;</span>,</div>
+<div class="line"><a id="l01230" name="l01230"></a><span class="lineno"> 1230</span>        <span class="stringliteral">&quot;FULL OUTER&quot;</span>,</div>
+<div class="line"><a id="l01231" name="l01231"></a><span class="lineno"> 1231</span>    };</div>
+<div class="line"><a id="l01232" name="l01232"></a><span class="lineno"> 1232</span> </div>
+<div class="line"><a id="l01233" name="l01233"></a><span class="lineno"> 1233</span>    <span class="keywordtype">size_t</span> <span class="keyword">const</span> originalSize = SearchCondition().tableJoins.size();</div>
+<div class="line"><a id="l01234" name="l01234"></a><span class="lineno"> 1234</span>    SearchCondition().tableJoins +=</div>
+<div class="line"><a id="l01235" name="l01235"></a><span class="lineno"> 1235</span>        std::format(<span class="stringliteral">&quot;\n {0} JOIN \&quot;{1}\&quot; ON &quot;</span>, JoinTypeStrings[<span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(joinType)], joinTable);</div>
+<div class="line"><a id="l01236" name="l01236"></a><span class="lineno"> 1236</span>    <span class="keywordtype">size_t</span> <span class="keyword">const</span> sizeBefore = SearchCondition().tableJoins.size();</div>
+<div class="line"><a id="l01237" name="l01237"></a><span class="lineno"> 1237</span>    onClauseBuilder(<a class="code hl_class" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> { joinTable, &amp;SearchCondition().tableJoins });</div>
+<div class="line"><a id="l01238" name="l01238"></a><span class="lineno"> 1238</span>    <span class="keywordtype">size_t</span> <span class="keyword">const</span> sizeAfter = SearchCondition().tableJoins.size();</div>
+<div class="line"><a id="l01239" name="l01239"></a><span class="lineno"> 1239</span>    <span class="keywordflow">if</span> (sizeBefore == sizeAfter)</div>
+<div class="line"><a id="l01240" name="l01240"></a><span class="lineno"> 1240</span>        SearchCondition().tableJoins.resize(originalSize);</div>
+<div class="line"><a id="l01241" name="l01241"></a><span class="lineno"> 1241</span> </div>
+<div class="line"><a id="l01242" name="l01242"></a><span class="lineno"> 1242</span>    <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>Derived&amp;<span class="keyword">&gt;</span>(*this);</div>
+<div class="line"><a id="l01243" name="l01243"></a><span class="lineno"> 1243</span>}</div>
 </div>
-<div class="line"><a id="l01285" name="l01285"></a><span class="lineno"> 1285</span> </div>
-<div class="line"><a id="l01286" name="l01286"></a><span class="lineno"> 1286</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="line"><a id="l01244" name="l01244"></a><span class="lineno"> 1244</span> </div>
+<div class="line"><a id="l01245" name="l01245"></a><span class="lineno"> 1245</span>} <span class="comment">// namespace Lightweight</span></div>
 </div>
 </div>
 </div>
