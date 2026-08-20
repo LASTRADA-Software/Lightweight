@@ -3,6 +3,7 @@
 
 #include "../Async/Executor.hpp"
 #include "../Async/Task.hpp"
+#include "../SqlConnectInfo.hpp"
 #include "../SqlLogger.hpp"
 #include "DataMapper.hpp"
 
@@ -60,6 +61,17 @@ struct PoolConfig
     /// Strategy to determine how the pool should grow when there are no idle data mappers available, default is BoundedWait
     /// which blocks until a data mapper is returned to the pool
     GrowthStrategy growthStrategy { GrowthStrategy::BoundedWait };
+    /// Prepared-statement cache capacity given to the connection of every data mapper this pool creates,
+    /// i.e. how many already-prepared ODBC statement handles that connection keeps for reuse. Zero (the
+    /// default) leaves the cache disabled, exactly as an unpooled connection.
+    ///
+    /// The bound is per connection, not per pool: a pool may hold up to `maxSize` connections, each with
+    /// its own cache of this size, so the live prepared handles a fully warmed pool holds on the server
+    /// are `maxSize * preparedStatementCacheCapacity`. Size it against the backend's per-session limit
+    /// on prepared statements, not against the number of distinct queries alone.
+    ///
+    /// @see SqlConnection::SetPreparedStatementCacheCapacity for what enabling the cache implies.
+    size_t preparedStatementCacheCapacity { PreparedStatementCacheCapacityDefault };
 };
 
 /// @ingroup ConnectionPool
@@ -131,6 +143,22 @@ class Pool
 
   private:
     struct WaiterNode; // defined below; referenced by ReturnLocked's signature.
+
+    /// Creates a data mapper owned by this pool, with every per-connection setting the pool's
+    /// @ref PoolConfig prescribes already applied. The single place a pooled connection comes into
+    /// existence, so a pool-wide connection setting is configured once rather than at each of the
+    /// four creation sites.
+    ///
+    /// @return An owned data mapper connected via the default connection string.
+    static std::unique_ptr<DataMapper> CreateDataMapper()
+    {
+        auto dataMapper = std::make_unique<DataMapper>();
+        // Compile-time gate, so a pool left at the default capacity emits exactly the code it did
+        // before the setting existed.
+        if constexpr (Config.preparedStatementCacheCapacity != 0)
+            dataMapper->Connection().SetPreparedStatementCacheCapacity(Config.preparedStatementCacheCapacity);
+        return dataMapper;
+    }
 
     /// Detaches the async backend from a returned mapper's connection before it is idled or handed
     /// off, so a recycled connection never carries references to executors that may since have been
@@ -224,7 +252,7 @@ class Pool
     {
         _idleDataMappers.reserve(Config.initialSize);
         for ([[maybe_unused]] auto const _: std::views::iota(0U, Config.initialSize))
-            _idleDataMappers.push_back(std::make_unique<DataMapper>());
+            _idleDataMappers.push_back(CreateDataMapper());
     }
 
     /// Destructor. The pool manages the lifecycle of the idle data mappers; be aware that any
@@ -270,7 +298,7 @@ class Pool
         {
             // below capacity: create a fresh data mapper
             ++_checkedOut;
-            return PooledDataMapper(*this, std::make_unique<DataMapper>());
+            return PooledDataMapper(*this, CreateDataMapper());
         }
 
         // Pool exhausted: park as a FIFO waiter (fair with AcquireAsync waiters) and block until a
@@ -291,7 +319,7 @@ class Pool
         if (_idleDataMappers.empty())
         {
             // create a new data mapper and return it
-            return PooledDataMapper(*this, std::make_unique<DataMapper>());
+            return PooledDataMapper(*this, CreateDataMapper());
         }
 
         // get a data mapper from the pool
@@ -513,7 +541,7 @@ class Pool
                 }
                 ++pool._checkedOut;
             }
-            acquired = std::make_unique<DataMapper>();
+            acquired = Pool::CreateDataMapper();
             return false;
         }
 
@@ -556,6 +584,7 @@ class Pool
 //   LIGHTWEIGHT_POOL_MAX_SIZE         (default: 16)
 //   LIGHTWEIGHT_POOL_GROWTH_STRATEGY  (default: BoundedOverflow)
 //     Accepted values: BoundedWait, BoundedOverflow, UnboundedGrow
+//   LIGHTWEIGHT_POOL_PREPARED_STATEMENT_CACHE_CAPACITY (default: 0, i.e. disabled)
 
 #if !defined(LIGHTWEIGHT_POOL_INITIAL_SIZE)
     #define LIGHTWEIGHT_POOL_INITIAL_SIZE 4
@@ -569,10 +598,15 @@ class Pool
     #define LIGHTWEIGHT_POOL_GROWTH_STRATEGY BoundedOverflow
 #endif
 
+#if !defined(LIGHTWEIGHT_POOL_PREPARED_STATEMENT_CACHE_CAPACITY)
+    #define LIGHTWEIGHT_POOL_PREPARED_STATEMENT_CACHE_CAPACITY 0
+#endif
+
 inline constexpr PoolConfig DefaultPoolConfig {
     .initialSize = LIGHTWEIGHT_POOL_INITIAL_SIZE,
     .maxSize = LIGHTWEIGHT_POOL_MAX_SIZE,
     .growthStrategy = GrowthStrategy::LIGHTWEIGHT_POOL_GROWTH_STRATEGY,
+    .preparedStatementCacheCapacity = LIGHTWEIGHT_POOL_PREPARED_STATEMENT_CACHE_CAPACITY,
 };
 
 using DataMapperPool = Pool<DefaultPoolConfig>;
