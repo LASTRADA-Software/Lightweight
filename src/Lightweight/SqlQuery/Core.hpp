@@ -1145,7 +1145,50 @@ template <typename LiteralType>
 detail::RawSqlCondition SqlWhereClauseBuilder<Derived>::PopulateSqlSetExpression(LiteralType const& values)
 {
     using namespace std::string_view_literals;
+
+    using ValueType = std::ranges::range_value_t<LiteralType>;
+
+    // Mirrors the dispatch in AppendLiteralValue: these types have no parameter representation and
+    // must stay inline in the SQL text. Everything else becomes a parameter marker whenever the
+    // caller supplied a bindings vector, so that the statement stays reusable across differing
+    // IN-sets and the driver — not this builder — encodes the value.
+    constexpr bool isBindable =
+        !(std::is_same_v<ValueType, SqlQualifiedTableColumnName> || detail::OneOf<ValueType, SqlNullType, std::nullopt_t>
+          || std::is_same_v<ValueType, SqlWildcardType> || std::is_same_v<ValueType, detail::RawSqlCondition>);
+
+    auto& searchCondition = SearchCondition();
+
     std::ostringstream fragment;
+
+    // String literals decay to a raw character pointer inside an initializer list (and inside a
+    // built-in array), and SqlVariant cannot be constructed from one: std::variant's converting
+    // constructor is ambiguous between std::string and std::string_view. Hand such elements over as
+    // views, mirroring the dedicated char-array overload of Where().
+    auto const asBindable = [](auto const& value) -> decltype(auto) {
+        using Decayed = std::decay_t<decltype(value)>;
+        if constexpr (detail::OneOf<Decayed, char*, char const*>)
+            return std::string_view { value };
+        else if constexpr (detail::OneOf<Decayed, char16_t*, char16_t const*>)
+            return std::u16string_view { value };
+        else
+            return (value);
+    };
+
+    auto const appendValue = [&](auto const& value) {
+        if constexpr (isBindable)
+        {
+            if (searchCondition.inputBindings)
+            {
+                fragment << '?';
+                searchCondition.inputBindings->emplace_back(asBindable(value));
+                return;
+            }
+        }
+        std::string valueString;
+        PopulateLiteralValueInto(value, valueString);
+        fragment << valueString;
+    };
+
     fragment << '(';
 #if !defined(__cpp_lib_ranges_enumerate)
     int index { -1 };
@@ -1159,9 +1202,7 @@ detail::RawSqlCondition SqlWhereClauseBuilder<Derived>::PopulateSqlSetExpression
         if (index > 0)
             fragment << ", "sv;
 
-        std::string valueString;
-        PopulateLiteralValueInto(value, valueString);
-        fragment << valueString;
+        appendValue(value);
     }
     fragment << ')';
     return detail::RawSqlCondition { fragment.str() };

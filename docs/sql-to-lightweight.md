@@ -176,6 +176,10 @@ auto rows = dm.Query<Employee>().WhereIn(FieldNameOf<&Employee::department>, dep
 
 `WhereIn` accepts any range (`std::vector`, `std::set`, an initializer list) or a sub-select query.
 
+The values become bound parameters — `IN (?, ?, ?)` — whenever the query carries a bindings
+vector, which is always the case for `DataMapper` queries. On the low-level `SqlQueryBuilder`
+without one, they are inlined into the SQL text as escaped literals instead.
+
 An **empty** range means "match nothing", and emits `WHERE 1 = 0` rather than omitting the condition.
 This matters most for `Delete()`: `dm.FromTable("Employees").Delete().WhereIn("department_id", ids)`
 with an empty `ids` deletes no rows, instead of every row in the table.
