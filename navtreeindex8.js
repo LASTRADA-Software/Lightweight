@@ -1,9 +1,20 @@
 var NAVTREEINDEX8 =
 {
-"functions_~.html":[20,2,0,26],
-"hierarchy.html":[20,1],
-"index.html":[],
+"functions_vars_o.html":[19,2,2,14],
+"functions_vars_p.html":[19,2,2,15],
+"functions_vars_r.html":[19,2,2,16],
+"functions_vars_s.html":[19,2,2,17],
+"functions_vars_t.html":[19,2,2,18],
+"functions_vars_u.html":[19,2,2,19],
+"functions_vars_v.html":[19,2,2,20],
+"functions_vars_w.html":[19,2,2,21],
+"functions_w.html":[19,2,0,23],
+"functions_y.html":[19,2,0,24],
+"functions_z.html":[19,2,0,25],
+"functions_~.html":[19,2,0,26],
+"hierarchy.html":[19,1],
 "index.html":[0],
+"index.html":[],
 "index.html#asynchronous-api":[0,9],
 "index.html#backup-and-restore":[0,8],
 "index.html#building-with-c20-modules":[0,13],
@@ -24,5 +35,5 @@ var NAVTREEINDEX8 =
 "index.html#using-sqlite-for-testing-on-windows-operating-system":[0,10],
 "index.html#why-odbc":[0,1],
 "pages.html":[],
-"topics.html":[18]
+"topics.html":[17]
 };

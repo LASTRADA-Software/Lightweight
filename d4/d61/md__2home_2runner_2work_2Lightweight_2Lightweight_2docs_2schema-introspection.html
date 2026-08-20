@@ -103,7 +103,7 @@ Reading every table</h1>
 <div class="line"> </div>
 <div class="line">std::vector&lt;Light::SqlSchema::Table&gt; <span class="keyword">const</span> tables =</div>
 <div class="line">    Light::SqlSchema::ReadAllTables(stmt, <span class="comment">/* database */</span> <span class="stringliteral">&quot;MyDatabase&quot;</span>);</div>
-<div class="ttc" id="aclassLightweight_1_1SqlStatement_html"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html">Lightweight::SqlStatement</a></div><div class="ttdoc">High level API for (prepared) raw SQL statements.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00067">SqlStatement.hpp:68</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlStatement_html"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html">Lightweight::SqlStatement</a></div><div class="ttdoc">High level API for (prepared) raw SQL statements.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00068">SqlStatement.hpp:69</a></div></div>
 </div><!-- fragment --><p>The <code>schema</code> parameter is optional and defaults to the driver's notion of the default schema. For SQL Server that is typically <code>dbo</code>; SQLite has no schemas at all.</p>
 <p>Reading a large schema is not instant, so <code>ReadAllTables</code> accepts a progress callback that fires per table:</p>
 <div class="fragment"><div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> tables = Light::SqlSchema::ReadAllTables(</div>
@@ -153,7 +153,7 @@ Turning a description back into DDL</h1>
 <h1><a class="anchor" id="event-driven-reading"></a>
 Event-driven reading</h1>
 <p>For very large schemas, or when you want to react as the schema is read rather than materialize all of it, implement the <code>EventHandler</code> interface and pass it to the <code>ReadAllTables</code> overload that takes one. It is a SAX-style callback interface: <code>OnTables</code>, <code>OnTable</code> (return <code>false</code> to skip a table), <code>OnPrimaryKeys</code>, <code>OnForeignKey</code>, <code>OnColumn</code>, <code>OnExternalForeignKey</code>, <code>OnIndexes</code>, and <code>OnTableEnd</code>.</p>
-<h1><a class="anchor" id="see-also-6"></a>
+<h1><a class="anchor" id="see-also-5"></a>
 See also</h1>
 <ul>
 <li><a class="el" href="../../d5/dd9/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2ddl2cpp-relation-generation.html">ddl2cpp-relation-generation.md</a> — how <code>ddl2cpp</code> turns this data into records and relations.</li>
