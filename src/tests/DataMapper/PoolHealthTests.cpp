@@ -46,6 +46,25 @@ constexpr auto SingleSlotWaitConfig = PoolConfig {
     .growthStrategy = GrowthStrategy::BoundedWait,
 };
 
+// Time-bounded, but with no clock injected: the pool must fall back to the real steady_clock. The
+// lifetime is far longer than the test runs, so nothing is retired and the assertions stay
+// deterministic despite the real clock.
+constexpr auto RealClockLifetimeConfig = PoolConfig {
+    .initialSize = 1,
+    .maxSize = 2,
+    .growthStrategy = GrowthStrategy::BoundedOverflow,
+    .maxLifetimeMs = 60'000,
+};
+
+// UnboundedGrow keeps every returned connection, which makes it the strategy where a lifetime bound
+// is the *only* thing that can retire one.
+constexpr auto UnboundedLifetimeConfig = PoolConfig {
+    .initialSize = 1,
+    .maxSize = 0,
+    .growthStrategy = GrowthStrategy::UnboundedGrow,
+    .maxLifetimeMs = 100,
+};
+
 } // namespace
 
 // ================================================================================================
@@ -285,4 +304,54 @@ TEST_CASE_METHOD(SqlTestFixture, "Pool: BoundedWait releases capacity when it re
     // The retired connection must still have given its slot back, or this bounded pool would be
     // permanently exhausted with nothing to hand out.
     CHECK(pool.Acquire(0ms).has_value());
+}
+
+// ================================================================================================
+// Clock selection
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlTestFixture, "Pool: a time-bounded pool with no injected clock uses the real clock", "[Pool]")
+{
+    // Every other time-based test drives an injected clock, which leaves the production branch — the
+    // one every real deployment takes — untaken. Here the pool must stamp its entries from
+    // steady_clock::now() and keep working.
+    auto pool = Pool<RealClockLifetimeConfig> {};
+
+    {
+        auto const held = pool.Acquire();
+        CHECK(held->Connection().IsAlive());
+        CHECK(pool.IdleCount() == 0);
+    }
+
+    // Well inside the 60s lifetime, so the connection comes back rather than being retired.
+    CHECK(pool.IdleCount() == 1);
+
+    {
+        auto const reacquired = pool.Acquire();
+        CHECK(reacquired->Connection().IsAlive());
+    }
+    CHECK(pool.IdleCount() == 1);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Pool: UnboundedGrow retires a connection that outlived its lifetime", "[Pool]")
+{
+    auto pool = Pool<UnboundedLifetimeConfig> {};
+    auto clock = FakeClock {};
+    pool.SetClock([&clock] { return clock.Now(); });
+
+    {
+        auto const held = pool.Acquire();
+        REQUIRE(pool.IdleCount() == 0);
+        // Age the connection past its bound while it is checked out, so the decision is taken on the
+        // way back in — UnboundedGrow otherwise keeps every returned connection unconditionally.
+        clock.Advance(200ms);
+    }
+
+    // Retired on return, outside the lock, rather than idled: an expired connection must never be
+    // handed to the next caller.
+    CHECK(pool.IdleCount() == 0);
+
+    // ... and the pool still works, creating a fresh connection for the next acquirer.
+    auto const fresh = pool.Acquire();
+    CHECK(fresh->Connection().IsAlive());
 }
