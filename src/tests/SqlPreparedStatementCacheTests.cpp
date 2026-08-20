@@ -355,6 +355,15 @@ constexpr auto CachingPoolConfig = PoolConfig {
     .growthStrategy = GrowthStrategy::BoundedOverflow,
     .preparedStatementCacheCapacity = PreparedStatementCacheCapacitySuggested,
 };
+
+// BoundedWait has its own below-capacity creation path, separate from the non-blocking strategies'.
+// initialSize = 0 forces the very first Acquire() through it.
+constexpr auto CachingWaitPoolConfig = PoolConfig {
+    .initialSize = 0,
+    .maxSize = 2,
+    .growthStrategy = GrowthStrategy::BoundedWait,
+    .preparedStatementCacheCapacity = PreparedStatementCacheCapacitySuggested,
+};
 } // namespace
 
 TEST_CASE_METHOD(SqlTestFixture,
@@ -457,4 +466,18 @@ TEST_CASE_METHOD(SqlTestFixture,
     // one statement handle per Release() on every connection whose cache is switched off.
     CHECK(cache.Size() == 0);
     CHECK_FALSE(cache.Acquire("SELECT 1").has_value());
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "PreparedStatementCache: a BoundedWait pool configures the connection it creates on demand",
+                 "[SqlPreparedStatementCache][ConnectionPool]")
+{
+    auto pool = Pool<CachingWaitPoolConfig> {};
+
+    // Nothing pre-created and the pool is below capacity, so this takes BoundedWait's own creation
+    // path rather than handing out an idle entry — and that path must apply the capacity too.
+    auto const pooled = pool.Acquire();
+
+    CHECK(pooled->Connection().PreparedStatementCacheCapacity() == PreparedStatementCacheCapacitySuggested);
+    CHECK(pooled->Connection().IsAlive());
 }
