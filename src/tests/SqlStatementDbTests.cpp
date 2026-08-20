@@ -7,6 +7,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <stdexcept>
+#include <tuple>
 #include <vector>
 
 using namespace Lightweight;
@@ -263,6 +264,50 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlResultCursor::GetColumn by name reads an al
     CHECK(cursor.GetColumn<std::string>("FirstName") == "Alice");
     CHECK(cursor.GetColumn<int>("MonthlyPay") == 50'000);
 }
+
+// FieldAs() is deprecated in favour of Field(...).As(...), but it still ships and still has to keep
+// the projected-name table correct — a deprecated overload that silently stopped registering its
+// alias would break named access for every caller who has not migrated yet. Calling it is therefore
+// the point of this test, and the deprecation warning is suppressed only around it.
+#if defined(_MSC_VER)
+    #pragma warning(push)
+    #pragma warning(disable : 4996)
+#else
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlResultCursor::GetColumn by name reads a FieldAs alias", "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    CreateEmployeesTable(stmt);
+    FillEmployeesTable(stmt);
+
+    // FieldAs() names the column in the same call that projects it, where Field().As() renames a
+    // projection that was already recorded — two different paths into the name table, so both need
+    // to end up with the alias as the lookup key.
+    auto cursor = stmt.ExecuteDirect(
+        stmt.Query("Employees")
+            .Select()
+            .FieldAs("FirstName"sv, "GivenName"sv)
+            .FieldAs(SqlQualifiedTableColumnName { .tableName = "Employees", .columnName = "Salary" }, "MonthlyPay"sv)
+            .OrderBy("EmployeeID"sv)
+            .All());
+
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetColumn<std::string>("GivenName") == "Alice");
+    CHECK(cursor.GetColumn<int>("MonthlyPay") == 50'000);
+
+    // The aliased-away name is not a lookup key: the query does not project a column by that name.
+    CHECK_THROWS_AS(std::ignore = cursor.GetColumn<std::string>("FirstName"), std::invalid_argument);
+    CHECK_THROWS_AS(std::ignore = cursor.GetColumn<int>("Employees.Salary"), std::invalid_argument);
+}
+
+#if defined(_MSC_VER)
+    #pragma warning(pop)
+#else
+    #pragma GCC diagnostic pop
+#endif
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlResultCursor named access survives Prepare and Execute", "[SqlStatement]")
 {
