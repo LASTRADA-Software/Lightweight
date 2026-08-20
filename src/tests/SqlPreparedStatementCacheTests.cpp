@@ -338,3 +338,89 @@ TEST_CASE_METHOD(SqlTestFixture,
 
     CHECK(dm.Query<CachedThing>().All().size() == 5);
 }
+
+// Pool configurations used by the tests below. `preparedStatementCacheCapacity` is a compile-time
+// policy like the other three fields, so each variant is its own pool type.
+namespace
+{
+constexpr auto UnconfiguredPoolConfig = PoolConfig {
+    .initialSize = 1,
+    .maxSize = 2,
+    .growthStrategy = GrowthStrategy::BoundedOverflow,
+};
+
+constexpr auto CachingPoolConfig = PoolConfig {
+    .initialSize = 1,
+    .maxSize = 2,
+    .growthStrategy = GrowthStrategy::BoundedOverflow,
+    .preparedStatementCacheCapacity = PreparedStatementCacheCapacitySuggested,
+};
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "PreparedStatementCache: a pool leaves the cache disabled by default",
+                 "[SqlPreparedStatementCache][ConnectionPool]")
+{
+    auto pool = Pool<UnconfiguredPoolConfig> {};
+
+    auto const pooled = pool.Acquire();
+    CHECK(pooled->Connection().PreparedStatementCacheCapacity() == 0);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "PreparedStatementCache: a pool configures every connection it creates",
+                 "[SqlPreparedStatementCache][ConnectionPool]")
+{
+    auto pool = Pool<CachingPoolConfig> {};
+
+    // The first acquire hands out a mapper the pool pre-created in its constructor, the second one
+    // exceeds `initialSize` and is therefore created on demand by Acquire() — both creation paths must
+    // apply the configured capacity.
+    auto const preCreated = pool.Acquire();
+    auto const createdOnDemand = pool.Acquire();
+
+    CHECK(preCreated->Connection().PreparedStatementCacheCapacity() == PreparedStatementCacheCapacitySuggested);
+    CHECK(createdOnDemand->Connection().PreparedStatementCacheCapacity() == PreparedStatementCacheCapacitySuggested);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "PreparedStatementCache: a pooled connection stays warm across acquires",
+                 "[SqlPreparedStatementCache][ConnectionPool]")
+{
+    // The table must exist before the pool opens its connections, so that no pooled connection has to
+    // survive DDL for this test to be meaningful.
+    DataMapper {}.CreateTable<CachedThing>();
+
+    auto pool = Pool<CachingPoolConfig> {};
+
+    auto const CreateOne = [](DataMapper& dm, int index) {
+        auto thing = CachedThing {};
+        thing.name = std::format("Thing {}", index);
+        dm.Create(thing);
+    };
+
+    {
+        auto pooled = pool.Acquire();
+        pooled->Connection().PreparedStatementCache().ResetStatistics();
+        for (auto const index: { 0, 1, 2 })
+            CreateOne(pooled.Get(), index);
+
+        auto const& stats = pooled->Connection().PreparedStatementCache().Stats();
+        CHECK(stats.misses == 1);
+        CHECK(stats.hits == 2);
+    } // returned to the pool, keeping its prepared handles alive
+
+    {
+        // BoundedOverflow keeps the returned mapper idle (the idle set is below maxSize), so this hands
+        // back the very same connection — with its cache still warm: no further driver round-trip.
+        auto pooled = pool.Acquire();
+        for (auto const index: { 3, 4 })
+            CreateOne(pooled.Get(), index);
+
+        auto const& stats = pooled->Connection().PreparedStatementCache().Stats();
+        CHECK(stats.misses == 1);
+        CHECK(stats.hits == 4);
+    }
+
+    CHECK(DataMapper {}.Query<CachedThing>().All().size() == 5);
+}
