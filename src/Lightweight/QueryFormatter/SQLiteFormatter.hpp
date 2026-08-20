@@ -132,19 +132,25 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
                                           std::string_view fromTable,
                                           std::string_view fromTableAlias,
                                           std::string_view tableJoins,
-                                          std::string_view whereCondition) const override
+                                          std::string_view whereCondition,
+                                          std::string_view groupBy) const override
     {
         auto const formattedTable = FormatFromTable(fromTable);
         if (fromTableAlias.empty())
-            return std::format(
-                "SELECT{} COUNT(*) FROM {}{}{}", distinct ? " DISTINCT" : "", formattedTable, tableJoins, whereCondition);
+            return std::format("SELECT{} COUNT(*) FROM {}{}{}{}",
+                               distinct ? " DISTINCT" : "",
+                               formattedTable,
+                               tableJoins,
+                               whereCondition,
+                               groupBy);
         else
-            return std::format(R"(SELECT{} COUNT(*) FROM {} AS "{}"{}{})",
+            return std::format(R"(SELECT{} COUNT(*) FROM {} AS "{}"{}{}{})",
                                distinct ? " DISTINCT" : "",
                                formattedTable,
                                fromTableAlias,
                                tableJoins,
-                               whereCondition);
+                               whereCondition,
+                               groupBy);
     }
 
     [[nodiscard]] std::string SelectAll(bool distinct,
@@ -181,6 +187,7 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
                                           std::string_view tableJoins,
                                           std::string_view whereCondition,
                                           std::string_view orderBy,
+                                          std::string_view groupBy,
                                           size_t count) const override
     {
         std::stringstream sqlQueryString;
@@ -193,6 +200,7 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
             sqlQueryString << " AS \"" << fromTableAlias << "\"";
         sqlQueryString << tableJoins;
         sqlQueryString << whereCondition;
+        sqlQueryString << groupBy;
         sqlQueryString << orderBy;
         sqlQueryString << " LIMIT " << count;
         return sqlQueryString.str();

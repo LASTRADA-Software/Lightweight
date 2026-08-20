@@ -108,6 +108,43 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Count", "[SqlQueryBuild
                          QueryExpectations::All("SELECT COUNT(*) FROM \"Table\""));
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Count.GroupBy", "[SqlQueryBuilder]")
+{
+    CheckSqlQueryBuilder([](SqlQueryBuilder& q) { return q.FromTable("Table").Select().GroupBy("a").Count(); },
+                         QueryExpectations::All(R"(SELECT COUNT(*) FROM "Table"
+                                                   GROUP BY "a")"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.First.GroupBy", "[SqlQueryBuilder]")
+{
+    CheckSqlQueryBuilder([](SqlQueryBuilder& q) { return q.FromTable("That").Select().Field("a").GroupBy("a").First(); },
+                         QueryExpectations {
+                             .sqlite = R"(SELECT "a" FROM "That"
+                         GROUP BY "a" LIMIT 1)",
+                             .postgres = R"(SELECT "a" FROM "That"
+                           GROUP BY "a" LIMIT 1)",
+                             .sqlServer = R"(SELECT TOP 1 "a" FROM "That"
+                            GROUP BY "a")",
+                         });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.First.GroupBy.OrderBy", "[SqlQueryBuilder]")
+{
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) { return q.FromTable("That").Select().Field("a").GroupBy("a").OrderBy("a").First(3); },
+        QueryExpectations {
+            .sqlite = R"(SELECT "a" FROM "That"
+                         GROUP BY "a"
+                         ORDER BY "a" ASC LIMIT 3)",
+            .postgres = R"(SELECT "a" FROM "That"
+                           GROUP BY "a"
+                           ORDER BY "a" ASC LIMIT 3)",
+            .sqlServer = R"(SELECT TOP 3 "a" FROM "That"
+                            GROUP BY "a"
+                            ORDER BY "a" ASC)",
+        });
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.All", "[SqlQueryBuilder]")
 {
     CheckSqlQueryBuilder(

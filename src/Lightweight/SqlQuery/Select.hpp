@@ -198,6 +198,9 @@ class [[nodiscard]] SqlSelectQueryBuilder: public SqlBasicSelectQueryBuilder<Sql
     SqlSelectQueryBuilder& Build(Callable const& callable);
 
     /// Finalizes building the query as SELECT COUNT(*) ... query.
+    ///
+    /// A preceding @c GroupBy is honored: the query then counts the rows of each group and
+    /// yields one row per group, rather than a single total over the whole result set.
     LIGHTWEIGHT_API ComposedQuery Count();
 
     /// @copydoc Count
