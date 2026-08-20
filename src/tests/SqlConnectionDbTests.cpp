@@ -7,6 +7,8 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <chrono>
+#include <format>
+#include <optional>
 
 using namespace Lightweight;
 
@@ -163,7 +165,25 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: an explicitly encrypted connect
     // The CI SQL Server runs with a self-signed certificate, so the chain cannot be validated.
     parameters.insert_or_assign("TRUSTSERVERCERTIFICATE", "yes");
 
-    auto connection = SqlConnection { BuildConnectionString(parameters) };
+    // Not every SQL Server deployment can serve an encrypted channel: SQL Server Express LocalDB,
+    // which the "MS SQL Server (LocalDB)" CI leg runs against, has no TLS endpoint at all and
+    // rejects the handshake outright with 08001 "Encryption not supported on SQL Server". That is a
+    // property of the instance rather than of the DBMS, so `UNSUPPORTED_DATABASE` (which keys on
+    // `ServerType`) cannot express it - connect through the non-throwing overload and skip only on
+    // that specific refusal, so a genuine failure of the `Encrypt=` plumbing still fails the test.
+    auto connection = SqlConnection { std::nullopt };
+    if (!connection.Connect(BuildConnectionString(parameters)))
+    {
+        auto const error = connection.LastError();
+        if (error.message.contains("Encryption not supported"))
+        {
+            WARN(std::format("TODO({}): this server does not offer an encrypted endpoint: {}",
+                             probe.Connection().ServerType(),
+                             error.message));
+            return;
+        }
+        FAIL(std::format("Encrypted connection failed: {} - {}", error.sqlState, error.message));
+    }
     REQUIRE(connection.IsAlive());
 
     // The connection is not merely established — it round-trips a query over the encrypted channel.
