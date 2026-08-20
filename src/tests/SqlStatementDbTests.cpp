@@ -287,7 +287,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Prepare reuse returns correct rows after the t
     stmt.Prepare(R"(INSERT INTO "stale_plan" ("id", "value") VALUES (?, ?))");
     std::ignore = stmt.Execute(1, 10);
 
-    auto const selectQuery = R"(SELECT "value" FROM "stale_plan" WHERE "id" = ?)";
+    auto const* const selectQuery = R"(SELECT "value" FROM "stale_plan" WHERE "id" = ?)";
     stmt.Prepare(selectQuery);
     {
         auto cursor = stmt.Execute(1);
