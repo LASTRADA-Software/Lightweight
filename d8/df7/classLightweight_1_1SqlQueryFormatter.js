@@ -28,7 +28,6 @@ var classLightweight_1_1SqlQueryFormatter =
     [ "QueryServerVersion", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a8513eaca58ba6015cecfd88973c18d4b", null ],
     [ "RequiresTableRebuildForSchemaChange", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#ab39585d3fa5fcd921a0e46afb27ff8d7", null ],
     [ "SupportsBatchedSchemaIntrospection", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a09abb2638365ecc1319c35aa8238eb72", null ],
-    [ "MaxInPredicateValues", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a03c4198af1564e763f548e6f466a840c", null ],
     [ "SetDefaultSchemaStatement", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1aade87023f69d63e86f4aca06a97595", null ],
     [ "AdvisoryLockOps", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2f3e6e88b1fb6af51bf4d0d65c5a52e6", null ]
 ];

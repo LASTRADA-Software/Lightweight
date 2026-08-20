@@ -135,11 +135,14 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a04fd31415705ccc61b63eec99a7bf1f3" id="r_a04fd31415705ccc61b63eec99a7bf1f3"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a04fd31415705ccc61b63eec99a7bf1f3">defaultPrefetchDepth</a> = PrefetchDepthDefault</td></tr>
 <tr class="memdesc:a04fd31415705ccc61b63eec99a7bf1f3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default block-prefetch depth applied to statements created on the resulting connection (rows requested per <code>SQLFetchScroll</code> round-trip on the transparent per-row fetch path).  <br /></td></tr>
 <tr class="separator:a04fd31415705ccc61b63eec99a7bf1f3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a64c66e360673f2ea824486894447835e" id="r_a64c66e360673f2ea824486894447835e"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a64c66e360673f2ea824486894447835e">preparedStatementCacheCapacity</a> = PreparedStatementCacheCapacityDefault</td></tr>
+<tr class="memdesc:a64c66e360673f2ea824486894447835e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Capacity of the prepared-statement cache on the resulting connection: how many already-prepared ODBC statement handles are kept alive so that re-preparing the same SQL text skips the driver's <code>SQLPrepare</code> round-trip.  <br /></td></tr>
+<tr class="separator:a64c66e360673f2ea824486894447835e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Represents a connection data source as a DSN, username, password, and timeout. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00067">67</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00080">80</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="a294bef751b01e0f8e110c989afff2814" name="a294bef751b01e0f8e110c989afff2814"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a294bef751b01e0f8e110c989afff2814">&#9670;&#160;</a></span>ToConnectionString()</h2>
@@ -166,9 +169,9 @@ Public Attributes</h2></td></tr>
 
 <p>Converts this data source to an ODBC connection string. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00089">89</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00110">110</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00031">Lightweight::SqlConnectionString::value</a>.</p>
+<p class="reference">References <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00044">Lightweight::SqlConnectionString::value</a>.</p>
 
 </div>
 </div>
@@ -187,7 +190,7 @@ Public Attributes</h2></td></tr>
 
 <p>The ODBC data source name (DSN). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00070">70</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00083">83</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
 
 </div>
 </div>
@@ -205,7 +208,7 @@ Public Attributes</h2></td></tr>
 
 <p>The username for authentication. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00072">72</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00085">85</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
 
 </div>
 </div>
@@ -223,7 +226,7 @@ Public Attributes</h2></td></tr>
 
 <p>The password for authentication. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00074">74</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00087">87</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
 
 </div>
 </div>
@@ -241,7 +244,7 @@ Public Attributes</h2></td></tr>
 
 <p>The connection timeout duration. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00076">76</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00089">89</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
 
 </div>
 </div>
@@ -260,7 +263,26 @@ Public Attributes</h2></td></tr>
 <p>Default block-prefetch depth applied to statements created on the resulting connection (rows requested per <code>SQLFetchScroll</code> round-trip on the transparent per-row fetch path). </p>
 <p>A value &lt;= 1 disables prefetch (every classic loop keeps issuing one <code>SQLFetch</code> per row). Defaults to <code>PrefetchDepthDefault</code>. Has effect only on backends whose driver supports native row-array fetching (see <code><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a7577a4c8347fede96bb3953f84b068d4" title="Whether this connection&#39;s ODBC driver supports native row-array fetching (SQL_ATTR_ROW_ARRAY_SIZE &gt; 1...">SqlConnection::SupportsNativeRowArrayFetch</a></code>). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00083">83</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00096">96</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a64c66e360673f2ea824486894447835e" name="a64c66e360673f2ea824486894447835e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a64c66e360673f2ea824486894447835e">&#9670;&#160;</a></span>preparedStatementCacheCapacity</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::size_t Lightweight::SqlConnectionDataSource::preparedStatementCacheCapacity = PreparedStatementCacheCapacityDefault</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Capacity of the prepared-statement cache on the resulting connection: how many already-prepared ODBC statement handles are kept alive so that re-preparing the same SQL text skips the driver's <code>SQLPrepare</code> round-trip. </p>
+<p>Defaults to <code>PreparedStatementCacheCapacityDefault</code> (zero, i.e. disabled). See <code><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a54843f56005b5675dd963285a189d324" title="Enables (or resizes) this connection&#39;s prepared-statement cache.">SqlConnection::SetPreparedStatementCacheCapacity</a></code> for the implications of enabling it. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00104">104</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
 
 </div>
 </div>

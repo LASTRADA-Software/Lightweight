@@ -1,8 +1,8 @@
 var searchData=
 [
-  ['eagerloaddepth_0',['eagerLoadDepth',['../d3/db2/structLightweight_1_1DataMapperOptions.html#a36aba21c30727bc5933d1797efca7543',1,'Lightweight::DataMapperOptions']]],
-  ['element_1',['element',['../d8/d8b/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1DataStep.html#a73d0c542c119f43de28a70dd3f6af55f',1,'Lightweight::SqlMigration::MigrationManager::PlanFoldingResult::DataStep']]],
-  ['entries_2',['entries',['../d2/d24/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1RewriteChecksumsResult.html#af147dd72475b5218318698af876b3bc7',1,'Lightweight::SqlMigration::MigrationManager::RewriteChecksumsResult']]],
-  ['errormessage_3',['errorMessage',['../d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html#aadae093f5fac7dd9ffe41f7be93ca0e5',1,'Lightweight::SqlMigration::RevertResult']]],
+  ['element_0',['element',['../d8/d8b/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1DataStep.html#a73d0c542c119f43de28a70dd3f6af55f',1,'Lightweight::SqlMigration::MigrationManager::PlanFoldingResult::DataStep']]],
+  ['entries_1',['entries',['../d2/d24/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1RewriteChecksumsResult.html#af147dd72475b5218318698af876b3bc7',1,'Lightweight::SqlMigration::MigrationManager::RewriteChecksumsResult']]],
+  ['errormessage_2',['errorMessage',['../d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html#aadae093f5fac7dd9ffe41f7be93ca0e5',1,'Lightweight::SqlMigration::RevertResult']]],
+  ['evictions_3',['evictions',['../d7/dd3/structLightweight_1_1SqlPreparedStatementCache_1_1Statistics.html#a48e33ee569ea9c06d844acb8a81fd7b8',1,'Lightweight::SqlPreparedStatementCache::Statistics']]],
   ['externalforeignkeys_4',['externalForeignKeys',['../d3/dda/structLightweight_1_1SqlSchema_1_1Table.html#adcc20146f5ad58c2aa8848920a8d6124',1,'Lightweight::SqlSchema::Table']]]
 ];

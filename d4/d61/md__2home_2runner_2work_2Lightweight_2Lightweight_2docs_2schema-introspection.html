@@ -103,7 +103,7 @@ Reading every table</h1>
 <div class="line"> </div>
 <div class="line">std::vector&lt;Light::SqlSchema::Table&gt; <span class="keyword">const</span> tables =</div>
 <div class="line">    Light::SqlSchema::ReadAllTables(stmt, <span class="comment">/* database */</span> <span class="stringliteral">&quot;MyDatabase&quot;</span>);</div>
-<div class="ttc" id="aclassLightweight_1_1SqlStatement_html"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html">Lightweight::SqlStatement</a></div><div class="ttdoc">High level API for (prepared) raw SQL statements.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00067">SqlStatement.hpp:68</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlStatement_html"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html">Lightweight::SqlStatement</a></div><div class="ttdoc">High level API for (prepared) raw SQL statements.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00068">SqlStatement.hpp:69</a></div></div>
 </div><!-- fragment --><p>The <code>schema</code> parameter is optional and defaults to the driver's notion of the default schema. For SQL Server that is typically <code>dbo</code>; SQLite has no schemas at all.</p>
 <p>Reading a large schema is not instant, so <code>ReadAllTables</code> accepts a progress callback that fires per table:</p>
 <div class="fragment"><div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> tables = Light::SqlSchema::ReadAllTables(</div>

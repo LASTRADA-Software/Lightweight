@@ -35,13 +35,10 @@ var NAVTREE =
       [ "Raw SQL Queries", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#raw-sql-queries", null ],
       [ "Transparent block-prefetch (fewer network round-trips)", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#transparent-block-prefetch-fewer-network-round-trips", null ],
       [ "Prepared Statements", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#prepared-statements", null ],
+      [ "Prepared-statement cache (fewer prepare round-trips)", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#prepared-statement-cache-fewer-prepare-round-trips", null ],
       [ "SQL Query Builder", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sql-query-builder", null ],
       [ "High level Data Mapping", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#high-level-data-mapping", [
-        [ "Batched insert and update", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#batched-insert-and-update", null ],
-        [ "Eager loading of relations (<tt>With<>()</tt>)", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#eager-loading-of-relations-with", [
-          [ "Nested relations", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#nested-relations", null ],
-          [ "Loading everything reachable", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#loading-everything-reachable", null ]
-        ] ]
+        [ "Batched insert and update", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#batched-insert-and-update", null ]
       ] ],
       [ "Simple row retrieval via structs", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#simple-row-retrieval-via-structs", null ]
     ] ],
@@ -110,8 +107,8 @@ var NAVTREE =
         [ "Use Native Column Types", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-native-column-types", null ],
         [ "Use Prepared Statements", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-prepared-statements", null ],
         [ "Use Pagination or Infinite Scrolling", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-pagination-or-infinite-scrolling", null ],
-        [ "Load relations for a whole result set, not per record", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#load-relations-for-a-whole-result-set-not-per-record", null ],
-        [ "Let block-prefetch cut network round-trips", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#let-block-prefetch-cut-network-round-trips", null ]
+        [ "Let block-prefetch cut network round-trips", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#let-block-prefetch-cut-network-round-trips", null ],
+        [ "Enable the prepared-statement cache for recurring queries", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#enable-the-prepared-statement-cache-for-recurring-queries", null ]
       ] ],
       [ "SQL Server Variation Challenges", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#sql-server-variation-challenges", [
         [ "64-bit Integer Handling in Oracle Database", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#autotoc_md64-bit-integer-handling-in-oracle-database", null ]
@@ -340,14 +337,14 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dd0/structLightweight_1_1Field.html#a5d28935f66fa335c491af43a83924200",
-"d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#ac072d5f776bd5a46f58abcc8597ef3f2",
-"d7/d13/structLightweight_1_1SqlRealName.html#a3cb316311e2d6a9a14013717ff082d78",
-"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#aa92bb11c246d711c0aa89906bb67a74a",
-"da/da8/classLightweight_1_1SqlConnection.html#a6632efa15e669b5892bcb1fe0e0dc683",
-"dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a59119220ab43706394b2a1f22caf183d",
-"de/dae/classLightweight_1_1SqlFixedString.html#afd8c0ca721e73dec7a44330c9fdd2e63",
-"index.html#mapping-query-results-to-a-simple-struct"
+"d2/dd0/structLightweight_1_1Field.html#a5f42ad38e8fc096b2af5fc6ba33733ca",
+"d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#aeaa5a99453909f230477cff8b907e15e",
+"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#aea2e7108ff6cdee35036d3e157f6bb90",
+"d8/da1/SqlRawColumn_8hpp_source.html",
+"da/da8/classLightweight_1_1SqlConnection.html#a0938e714f9d74d7e64e080ad23161201",
+"dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#ae9a36b06c089d48e25e896e2e25d0676",
+"de/dae/classLightweight_1_1SqlFixedString.html#a7858ea6af047117649390bab07b7a451",
+"functions_vars_o.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

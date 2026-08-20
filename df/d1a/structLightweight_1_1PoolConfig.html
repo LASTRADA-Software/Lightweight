@@ -108,11 +108,13 @@ Public Attributes</h2></td></tr>
 <tr class="separator:a6a3e753156f65b2aa0ad1fdd0090a72c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a82b19e524cdb6dc43c0ec8aab3201e6f" id="r_a82b19e524cdb6dc43c0ec8aab3201e6f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d6/de4/group__ConnectionPool.html#gadf7777be559a52bca78d24e4a99a4f0c">GrowthStrategy</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.html#a82b19e524cdb6dc43c0ec8aab3201e6f">growthStrategy</a> { <a class="el" href="../../d6/de4/group__ConnectionPool.html#ggadf7777be559a52bca78d24e4a99a4f0ca0dd97bbc519abce897d0dd2dc4774411">GrowthStrategy::BoundedWait</a> }</td></tr>
 <tr class="separator:a82b19e524cdb6dc43c0ec8aab3201e6f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa040aa4b0901f8d562248b4b98f0dd16" id="r_aa040aa4b0901f8d562248b4b98f0dd16"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.html#aa040aa4b0901f8d562248b4b98f0dd16">preparedStatementCacheCapacity</a> { PreparedStatementCacheCapacityDefault }</td></tr>
+<tr class="separator:aa040aa4b0901f8d562248b4b98f0dd16"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Structure to hold the configuration of the pool, including the initial size, maximum size and growth strategy. Structure is used as a template parameter for the <a class="el" href="../../d3/d30/classLightweight_1_1Pool.html">Pool</a> class to configure its behavior at compile time. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00052">52</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00053">53</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="a8ff366daa9e0eb6c99e5a1e3fc5ec8d4" name="a8ff366daa9e0eb6c99e5a1e3fc5ec8d4"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a8ff366daa9e0eb6c99e5a1e3fc5ec8d4">&#9670;&#160;</a></span>initialSize</h2>
@@ -128,7 +130,7 @@ Public Attributes</h2></td></tr>
 
 <p>Initial number of data mappers to pre-create and store in the pool, must be less than or equal to maxSize. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00055">55</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00056">56</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 </div>
 </div>
@@ -145,7 +147,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Maximum number of data mappers that can exist in the pool, must be greater than or equal to initialSize this is used for the Bounded* strategies to determine when to block or when to stop accepting returned data mappers, for the UnboundedGrow strategy this is ignored </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00059">59</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00060">60</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 </div>
 </div>
@@ -162,7 +164,26 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Strategy to determine how the pool should grow when there are no idle data mappers available, default is BoundedWait which blocks until a data mapper is returned to the pool </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00062">62</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00063">63</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+
+</div>
+</div>
+<a id="aa040aa4b0901f8d562248b4b98f0dd16" name="aa040aa4b0901f8d562248b4b98f0dd16"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa040aa4b0901f8d562248b4b98f0dd16">&#9670;&#160;</a></span>preparedStatementCacheCapacity</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_t Lightweight::PoolConfig::preparedStatementCacheCapacity { PreparedStatementCacheCapacityDefault }</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Prepared-statement cache capacity given to the connection of every data mapper this pool creates, i.e. how many already-prepared ODBC statement handles that connection keeps for reuse. Zero (the default) leaves the cache disabled, exactly as an unpooled connection.</p>
+<p>The bound is per connection, not per pool: a pool may hold up to <code>maxSize</code> connections, each with its own cache of this size, so the live prepared handles a fully warmed pool holds on the server are <code>maxSize * preparedStatementCacheCapacity</code>. Size it against the backend's per-session limit on prepared statements, not against the number of distinct queries alone.</p>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a54843f56005b5675dd963285a189d324" title="Enables (or resizes) this connection&#39;s prepared-statement cache.">SqlConnection::SetPreparedStatementCacheCapacity</a> for what enabling the cache implies. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00074">74</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 </div>
 </div>
