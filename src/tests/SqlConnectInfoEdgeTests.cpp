@@ -189,6 +189,16 @@ TEST_CASE("FormatEncryptionMode: renders the canonical keyword value", "[SqlConn
     CHECK(FormatEncryptionMode(SqlEncryptionMode::DriverDefault).empty());
 }
 
+TEST_CASE("FormatEncryptionMode: a mode outside the enumeration renders as no keyword", "[SqlConnectInfo]")
+{
+    // The enumeration has a fixed underlying type, so a value outside the named enumerators is a
+    // representable value rather than undefined behaviour — it reaches Lightweight from an ABI
+    // mismatch against a differently-versioned build, or from a plain cast. The keyword table lookup
+    // then finds nothing, and the caller must get an empty spelling (which BuildConnectionString
+    // omits) rather than a garbage `Encrypt=` value going to the driver.
+    CHECK(FormatEncryptionMode(static_cast<SqlEncryptionMode>(99)).empty());
+}
+
 TEST_CASE("FormatEncryptionMode / ParseEncryptionMode round-trip", "[SqlConnectInfo]")
 {
     for (auto const mode: { SqlEncryptionMode::Enabled, SqlEncryptionMode::Disabled })
