@@ -18,7 +18,9 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <cstdint>
+#include <optional>
 #include <set>
+#include <stdexcept>
 #include <string>
 
 using namespace Lightweight;
@@ -72,6 +74,22 @@ static_assert(IsHasOneThrough<HasOneThrough<Book, Through<Authorship>>>);
 static_assert(HasManyThrough<Book, Through<Authorship>, SqlRealName { "author_id" }>::OwnerSelector
               == SqlRealName { "author_id" });
 
+namespace
+{
+// Local helper: `REQUIRE` the optional has a value, returning it.
+// The explicit `if`-with-throw wrapper is what clang-tidy's
+// `bugprone-unchecked-optional-access` analysis recognizes as a check -
+// Catch2's `REQUIRE` is a macro it cannot reason about.
+template <typename Record>
+Record RequireValue(std::optional<Record> record)
+{
+    REQUIRE(record.has_value());
+    if (!record.has_value())
+        throw std::runtime_error("REQUIRE failed but flow continued"); // unreachable
+    return std::move(*record);
+}
+} // namespace
+
 TEST_CASE_METHOD(SqlTestFixture, "Through: both spellings load the same relationship", "[DataMapper][relations]")
 {
     auto dm = DataMapper();
@@ -120,10 +138,10 @@ TEST_CASE_METHOD(SqlTestFixture, "Through: both spellings load the same relation
 
     SECTION("the two spellings agree on the same data, when auto-loaded from a queried record")
     {
-        auto queriedDijkstra = dm.QuerySingle<Author>(dijkstra.id.Value()).value();
+        auto queriedDijkstra = RequireValue(dm.QuerySingle<Author>(dijkstra.id.Value()));
         dm.ConfigureRelationAutoLoading(queriedDijkstra);
 
-        auto queriedTaocp = dm.QuerySingle<Book>(taocp.id.Value()).value();
+        auto queriedTaocp = RequireValue(dm.QuerySingle<Book>(taocp.id.Value()));
         dm.ConfigureRelationAutoLoading(queriedTaocp);
 
         REQUIRE(queriedDijkstra.books.Count() == 1);
