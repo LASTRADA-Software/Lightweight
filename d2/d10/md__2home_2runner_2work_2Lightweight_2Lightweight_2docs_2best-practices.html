@@ -170,6 +170,16 @@ Use Prepared Statements</h2>
 Use Pagination or Infinite Scrolling</h2>
 <p>When querying large result sets, use pagination or infinite scrolling to limit the number of results returned in a single response. <br  />
  This will help to reduce the response time and the load on the server, and improve the performance of your application.</p>
+<h2><a class="anchor" id="load-relations-for-a-whole-result-set-not-per-record"></a>
+Load relations for a whole result set, not per record</h2>
+<p>Touching a relation on each record of a result set issues one query per record — the N+1 problem. Name the relation on the query instead, and it is resolved for the entire batch in a constant number of queries:</p>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> albums = dm.Query&lt;Album&gt;().With&lt;&amp;Album::tracks&gt;().All(); <span class="comment">// 2 queries, not 1 + N</span></div>
+</div><!-- fragment --><p>A nested relation needs the whole path named — <code>.With&lt;&amp;Track::album, &amp;Album::artist&gt;()</code> — because each record holds its own copy of the target, so one level of eager loading leaves the level below it loading per record. <code>DataMapperOptions { .eagerLoadDepth = N }</code> loads everything reachable instead, at the cost of fetching more than you asked for.</p>
+<p>See <a class="el" href="../../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html">Eager loading of relations</a>. Two things compound with it:</p>
+<ul>
+<li><b>Index your foreign keys.</b> <code>CreateTable&lt;Record&gt;()</code> emits an index for every <code>BelongsTo</code> column, because no supported engine indexes a foreign key implicitly. Tables created by hand, or by an older version of Lightweight, need that index added — without it every relation query is a full table scan.</li>
+<li><b>Prove the absence of N+1 in tests.</b> A <code>SqlLogger</code> subclass counting <code>OnPrepare</code>/<code>OnExecuteDirect</code> turns "this endpoint issues two queries" into an assertion instead of an assumption.</li>
+</ul>
 <h2><a class="anchor" id="let-block-prefetch-cut-network-round-trips"></a>
 Let block-prefetch cut network round-trips</h2>
 <p>Per-row fetch loops issue one <code>SQLFetch</code> (one network round-trip) per row. Lightweight transparently fetches rows in blocks (ODBC row-array binding) so a large result set costs <code>ceil(rows / depth)</code> round-trips instead of one per row — see <a class="el" href="../../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html">Transparent block-prefetch</a>. It is on by default (<code>Lightweight::PrefetchDepthDefault</code>, 1000 rows) and tuned per connection:</p>
@@ -179,18 +189,6 @@ Let block-prefetch cut network round-trips</h2>
 <li>It engages only for <b>fixed-width numeric/temporal</b> result sets; result sets with character, <code>GUID</code>, <code>NUMERIC</code>, <code>TIME</code>, binary or LOB columns transparently stay on the per-row path.</li>
 <li>An active cursor reads ahead up to one block and holds a few MB of buffers, so set the depth to <code>1</code> on a connection used for cursors you intend to abandon early or where memory is tight.</li>
 <li>It does not change results — values are identical to the per-row path.</li>
-</ul>
-<h2><a class="anchor" id="enable-the-prepared-statement-cache-for-recurring-queries"></a>
-Enable the prepared-statement cache for recurring queries</h2>
-<p>Every <code>Prepare()</code> costs a parse/plan round-trip on Microsoft SQL Server and PostgreSQL, and the <code>DataMapper</code> / query-builder layers re-prepare the same handful of statements on every call because each call site builds a fresh <code>SqlStatement</code>. A connection can pool the already-prepared handles so repeats skip <code>SQLPrepare</code> — see <a class="el" href="../../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html">Prepared-statement cache</a>:</p>
-<div class="fragment"><div class="line">connection.SetPreparedStatementCacheCapacity(Lightweight::PreparedStatementCacheCapacitySuggested);</div>
-</div><!-- fragment --><p>Keep in mind:</p>
-<ul>
-<li>It is <b>opt-in</b> (default capacity <code>0</code>), and transparent once enabled — no call-site changes.</li>
-<li>Size it to your working set of distinct query texts. Too small and the LRU thrashes; too large and you risk the server-side cap on live prepared statements per session.</li>
-<li>With a connection pool, set it once via <code>PoolConfig::preparedStatementCacheCapacity</code> (or the <code>LIGHTWEIGHT_POOL_PREPARED_STATEMENT_CACHE_CAPACITY</code> CMake option for <code>GlobalDataMapperPool()</code>) instead of per acquired connection. Budget for the whole pool: handles cannot be shared between connections, so a warmed pool holds up to <code>maxSize * preparedStatementCacheCapacity</code> of them, and every connection pays its own warm-up. Under <code>GrowthStrategy::BoundedOverflow</code>, connections returned to an already-full idle set are destroyed and their warmed caches with them.</li>
-<li>A pooled handle carries the plan derived from the schema at preparation time. Call <code>ClearPreparedStatementCache()</code> after raw DDL; migrations and <code>MigrateDirect()</code> already do.</li>
-<li>Statements whose plan must be re-derived opt out via <code>SqlStatement::SetPreparedStatementCaching(SqlPreparedStatementCaching::Disabled)</code>.</li>
 </ul>
 <h1><a class="anchor" id="sql-server-variation-challenges"></a>
 SQL Server Variation Challenges</h1>

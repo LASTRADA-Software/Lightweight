@@ -139,37 +139,7 @@ Prepared Statements</h1>
 <div class="line">cursor.BindOutputColumns(&amp;record.a, &amp;record.b, &amp;record.c);</div>
 <div class="line"><span class="keywordflow">while</span> (cursor.FetchRow())</div>
 <div class="line">    std::println(<span class="stringliteral">&quot;{}|{}|{}&quot;</span>, record.a, record.b, record.c);</div>
-</div><!-- fragment --><h1><a class="anchor" id="prepared-statement-cache-fewer-prepare-round-trips"></a>
-Prepared-statement cache (fewer prepare round-trips)</h1>
-<p><code>Prepare()</code> sends the SQL text to the server so it can parse and plan it — one network round-trip on Microsoft SQL Server and PostgreSQL, paid again every time the same query text is prepared. Applications built on <code>DataMapper</code> or the query builders re-prepare the same handful of statements constantly, because each call site creates its own short-lived <code>SqlStatement</code>.</p>
-<p>A connection can keep the already-prepared handles alive in a bounded LRU pool, so re-preparing a query it has seen before skips <code>SQLPrepare</code> entirely:</p>
-<div class="fragment"><div class="line"><span class="keyword">auto</span> conn = SqlConnection {};</div>
-<div class="line">conn.SetPreparedStatementCacheCapacity(Lightweight::PreparedStatementCacheCapacitySuggested); <span class="comment">// 64</span></div>
-</div><!-- fragment --><p>The cache is <b>opt-in</b> (default capacity <code>Lightweight::PreparedStatementCacheCapacityDefault</code>, i.e. <code>0</code> = disabled) but, once enabled, <b>transparent</b>: every <code>SqlStatement</code> on that connection participates, so <code>DataMapper</code>, the <code>SqlQuery</code> DSL, and raw <code>Prepare()</code> call sites all benefit without a code change. It can also be requested up-front via <code>SqlConnectionDataSource::preparedStatementCacheCapacity</code>.</p>
-<p>For pooled applications, configure it on the pool rather than on each acquired connection. <code>PoolConfig::preparedStatementCacheCapacity</code> is applied to every connection the pool creates, so no call site has to remember to enable it:</p>
-<div class="fragment"><div class="line"><span class="keyword">constexpr</span> <span class="keyword">auto</span> MyPoolConfig = <a class="code hl_struct" href="../../df/d1a/structLightweight_1_1PoolConfig.html">Lightweight::PoolConfig</a> {</div>
-<div class="line">    .<a class="code hl_variable" href="../../df/d1a/structLightweight_1_1PoolConfig.html#a8ff366daa9e0eb6c99e5a1e3fc5ec8d4">initialSize</a> = 4,</div>
-<div class="line">    .maxSize = 16,</div>
-<div class="line">    .growthStrategy = <a class="code hl_enumvalue" href="../../d6/de4/group__ConnectionPool.html#ggadf7777be559a52bca78d24e4a99a4f0caa081da5fdda27ab1a98aa7e5f2d60d01">Lightweight::GrowthStrategy::BoundedOverflow</a>,</div>
-<div class="line">    .preparedStatementCacheCapacity = Lightweight::PreparedStatementCacheCapacitySuggested,</div>
-<div class="line">};</div>
-<div class="line"><span class="keyword">auto</span> pool = <a class="code hl_class" href="../../d3/d30/classLightweight_1_1Pool.html">Lightweight::Pool&lt;MyPoolConfig&gt;</a> {};</div>
-<div class="ttc" id="aclassLightweight_1_1Pool_html"><div class="ttname"><a href="../../d3/d30/classLightweight_1_1Pool.html">Lightweight::Pool</a></div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00082">Pool.hpp:83</a></div></div>
-<div class="ttc" id="agroup__ConnectionPool_html_ggadf7777be559a52bca78d24e4a99a4f0caa081da5fdda27ab1a98aa7e5f2d60d01"><div class="ttname"><a href="../../d6/de4/group__ConnectionPool.html#ggadf7777be559a52bca78d24e4a99a4f0caa081da5fdda27ab1a98aa7e5f2d60d01">Lightweight::GrowthStrategy::BoundedOverflow</a></div><div class="ttdeci">@ BoundedOverflow</div></div>
-<div class="ttc" id="astructLightweight_1_1PoolConfig_html"><div class="ttname"><a href="../../df/d1a/structLightweight_1_1PoolConfig.html">Lightweight::PoolConfig</a></div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00053">Pool.hpp:54</a></div></div>
-<div class="ttc" id="astructLightweight_1_1PoolConfig_html_a8ff366daa9e0eb6c99e5a1e3fc5ec8d4"><div class="ttname"><a href="../../df/d1a/structLightweight_1_1PoolConfig.html#a8ff366daa9e0eb6c99e5a1e3fc5ec8d4">Lightweight::PoolConfig::initialSize</a></div><div class="ttdeci">size_t initialSize</div><div class="ttdoc">Initial number of data mappers to pre-create and store in the pool, must be less than or equal to max...</div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00056">Pool.hpp:56</a></div></div>
-</div><!-- fragment --><p>The global pool returned by <code>GlobalDataMapperPool()</code> takes the same setting from the CMake option <code>LIGHTWEIGHT_POOL_PREPARED_STATEMENT_CACHE_CAPACITY</code> (default <code>0</code>, i.e. disabled), alongside the existing <code>LIGHTWEIGHT_POOL_INITIAL_SIZE</code>, <code>LIGHTWEIGHT_POOL_MAX_SIZE</code> and <code>LIGHTWEIGHT_POOL_GROWTH_STRATEGY</code>.</p>
-<p>A pooled connection keeps its warmed handles across acquires, since the pool hands back the same live connection rather than reconnecting it. Note that the capacity is <b>per connection</b>: the cache is a set of ODBC statement handles owned by one connection's <code>SQLHDBC</code> and can never be shared with another connection, so each pooled connection warms up separately and a fully warmed pool holds up to <code>maxSize * preparedStatementCacheCapacity</code> prepared statements on the server.</p>
-<p>How it works: a handle is <em>checked out</em> while a statement uses it and returned to the pool when that statement is re-prepared or destroyed. Two statements preparing the same text at the same time therefore each get their own handle. When the pool exceeds its capacity the least recently returned handle is freed — a bound that matters because several backends cap the number of live prepared statements per session. Statistics are available for diagnostics:</p>
-<div class="fragment"><div class="line"><span class="keyword">auto</span> <span class="keyword">const</span>&amp; stats = conn.PreparedStatementCache().Stats();</div>
-<div class="line">std::println(<span class="stringliteral">&quot;prepare hits={} misses={} evictions={}&quot;</span>, stats.hits, stats.misses, stats.evictions);</div>
-</div><!-- fragment --><p><b>Schema changes invalidate cached plans.</b> A pooled handle carries the plan the driver derived from the schema as it was at preparation time, so DDL must drop it:</p>
-<div class="fragment"><div class="line">conn.ClearPreparedStatementCache();</div>
-</div><!-- fragment --><p>Lightweight does this for you where it owns the DDL — <code>SqlStatement::MigrateDirect()</code> and the <code>MigrationManager</code> executor clear the cache after applying a script — and disconnecting or reconnecting a connection clears it as well. Raw DDL you send through <code>ExecuteDirect()</code> is your responsibility. A single statement that must never reuse a plan opts out:</p>
-<div class="fragment"><div class="line"><span class="keyword">auto</span> stmt = SqlStatement { conn };</div>
-<div class="line">stmt.SetPreparedStatementCaching(SqlPreparedStatementCaching::Disabled);</div>
-</div><!-- fragment --><p>The cache is active on Microsoft SQL Server, PostgreSQL and SQLite. On any other backend <code>SqlConnection::SupportsPreparedStatementReuse()</code> is false and the requested capacity stays inactive, so the same setup code is safe to run everywhere.</p>
-<h1><a class="anchor" id="sql-query-builder"></a>
+</div><!-- fragment --><h1><a class="anchor" id="sql-query-builder"></a>
 SQL Query Builder</h1>
 <p>Or construct statement using <code>SqlQueryBuilder</code> </p><div class="fragment"><div class="line"><span class="keyword">auto</span> stmt = SqlStatement { };</div>
 <div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> sqlQuery =  stmt.Query(<span class="stringliteral">&quot;That&quot;</span>)</div>
@@ -249,6 +219,54 @@ Batched insert and update</h2>
 </div><!-- fragment --><blockquote class="doxtable">
 <p>&zwj;Note: <code>CreateAll</code>/<code>UpdateAll</code> do not write primary keys, relations, or modified-state back onto the records (treat them as write-only inputs), and <code>UpdateAll</code> writes a uniform set of columns for every row rather than only the per-record modified ones. The range must be contiguous. </p>
 </blockquote>
+<h2><a class="anchor" id="eager-loading-of-relations-with"></a>
+Eager loading of relations (&lt;tt&gt;With&lt;&gt;()&lt;/tt&gt;)</h2>
+<p>Accessing a relation on a query result loads it on demand — one query per record. Over a result set of N records that is the N+1 problem: reading <code>album.tracks</code> for 1000 albums issues 1001 queries. <code>With&lt;&amp;Record::relation&gt;()</code> instead resolves the relation for the whole result set once it has been materialized, using <code>WHERE &lt;key&gt; IN (...)</code>:</p>
+<div class="fragment"><div class="line"><span class="comment">// Two queries in total, whatever the number of albums: one for the albums, one for all their tracks.</span></div>
+<div class="line"><span class="keyword">auto</span> albums = dm.Query&lt;Album&gt;()</div>
+<div class="line">                .With&lt;&amp;Album::tracks&gt;()    <span class="comment">// HasMany</span></div>
+<div class="line">                .With&lt;&amp;Album::artist&gt;()    <span class="comment">// BelongsTo</span></div>
+<div class="line">                .All();</div>
+<div class="line"> </div>
+<div class="line"><span class="keywordflow">for</span> (<span class="keyword">auto</span>&amp; album: albums)</div>
+<div class="line">    for (auto const&amp; track: album.tracks.All())  <span class="comment">// already loaded, no query</span></div>
+<div class="line">        std::println(<span class="stringliteral">&quot;{} - {}&quot;</span>, album.title, track-&gt;title);</div>
+</div><!-- fragment --><ul>
+<li>Supported for <code>BelongsTo</code> and <code>HasMany</code>. <code>HasOneThrough</code>, <code>HasManyThrough</code> and <code>CompositeForeignKey</code> still load on demand; naming one of them in <code>With&lt;&gt;()</code> is a compile error rather than a silent fallback.</li>
+<li>Naming several relations forms a <b>path</b>, which is what a nested relation needs — see below.</li>
+<li>Calls chain, one per relation to load. It applies to <code>All()</code>, <code>First()</code>, <code>First(n)</code> and <code>Range()</code>.</li>
+<li>The <code>IN</code> predicate is chunked (see <code>SqlQueryFormatter::MaxInPredicateValues</code>, 1000 by default), so a large batch costs one query per chunk — a constant number of queries per relation, never one per record.</li>
+<li>A <code>BelongsTo</code> whose foreign key is <code>NULL</code>, and an owner with no children, are handled without an extra query: the childless owner's relation is marked loaded-and-empty rather than left to query for a result already known.</li>
+<li>Relations that were <em>not</em> named keep their on-demand behaviour. Combining <code>With&lt;&gt;()</code> with <code>DataMapperOptions { .loadRelations = false }</code> therefore turns any unrequested relation access into a <code>SqlRequireLoadedError</code> instead of a silent query — useful to prove a code path issues no N+1.</li>
+</ul>
+<h3><a class="anchor" id="nested-relations"></a>
+Nested relations</h3>
+<p>Eager-loading one level is not enough for a chain. Every record holds its <em>own copy</em> of its <code>BelongsTo</code> target, so reaching a relation of that copy runs the copy's own lazy loader — the N+1 simply moves one level down. Name the whole path instead:</p>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> tracks = dm.Query&lt;Track&gt;()</div>
+<div class="line">                .With&lt;&amp;Track::album&gt;()                   <span class="comment">// 1 query for all albums</span></div>
+<div class="line">                .With&lt;&amp;Track::album, &amp;Album::artist&gt;()   <span class="comment">// 1 query for all those albums&#39; artists</span></div>
+<div class="line">                .All();</div>
+<div class="line"> </div>
+<div class="line"><span class="keywordflow">for</span> (<span class="keyword">auto</span>&amp; track: tracks)</div>
+<div class="line">    std::println(<span class="stringliteral">&quot;{} - {}&quot;</span>, track.album.Record().title,</div>
+<div class="line">                 track.album.Record().artist.Record().name);   <span class="comment">// no queries here</span></div>
+</div><!-- fragment --><p>Three queries in total, for any number of tracks. Each level is resolved for every record reached by the level above it, at once. A path may also run through the "many" side (<code>.With&lt;&amp;Album::tracks, &amp;Track::genre&gt;()</code>): the middle level fans out, and the level below it is still one query rather than one per child.</p>
+<p>Already-loaded relations are skipped, so overlapping paths (<code>.With&lt;&amp;A::b&gt;()</code> next to <code>.With&lt;&amp;A::b, &amp;B::c&gt;()</code>) do not fetch <code>b</code> twice.</p>
+<h3><a class="anchor" id="loading-everything-reachable"></a>
+Loading everything reachable</h3>
+<p>When a whole object graph is wanted rather than named paths, set a depth on the query instead:</p>
+<div class="fragment"><div class="line"><span class="comment">// Tracks, their albums and categories, and those albums&#39; artists - a constant number of queries.</span></div>
+<div class="line"><span class="keyword">auto</span> tracks = dm.Query&lt;Track, DataMapperOptions { .eagerLoadDepth = 2 }&gt;().All();</div>
+</div><!-- fragment --><p><code>eagerLoadDepth</code> batch-loads <em>every</em> <code>BelongsTo</code> and <code>HasMany</code> reachable within that many levels. Prefer <code>With&lt;&gt;()</code> when only part of the graph is needed: the depth walk fetches more rows, and instantiates the loader for the whole reachable relation graph, which costs compile time. The depth is what bounds both — and what lets a cyclic graph (a self-referencing record, or <code>A → B → A</code>) terminate, since the recursion is cut at a compile-time constant.</p>
+<p>Measured on 1000 owners with 10 children each, comparing the on-demand path with <code>With&lt;&gt;()</code>:</p>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">relation   </th><th class="markdownTableHeadRight">queries before   </th><th class="markdownTableHeadRight">queries after   </th><th class="markdownTableHeadRight">SQLite3   </th><th class="markdownTableHeadRight">PostgreSQL   </th><th class="markdownTableHeadRight">MS SQL Server    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>HasMany</code>   </td><td class="markdownTableBodyRight">1001   </td><td class="markdownTableBodyRight">2   </td><td class="markdownTableBodyRight">8.7x   </td><td class="markdownTableBodyRight">45x   </td><td class="markdownTableBodyRight">45x    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>BelongsTo</code>   </td><td class="markdownTableBodyRight">10001   </td><td class="markdownTableBodyRight">2   </td><td class="markdownTableBodyRight">37x   </td><td class="markdownTableBodyRight">464x   </td><td class="markdownTableBodyRight">407x   </td></tr>
+</table>
 <h1><a class="anchor" id="simple-row-retrieval-via-structs"></a>
 Simple row retrieval via structs</h1>
 <p>When only read access is needed, you can use a simple <code>struct</code> to represent the row, and also do not need to wrap the fields into <code>Field&lt;&gt;</code> template. The <code>struct</code> must have fields that match the columns in the query. The fields can be of any type that can be converted from the column type. The struct can have more fields than the columns in the query, but the fields that match the columns must be in the same order as the columns in the query.</p>
