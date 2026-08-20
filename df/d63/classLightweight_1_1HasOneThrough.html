@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Lightweight: Lightweight::HasOneThrough&lt; OtherTable, ThroughSpec, TheOwnerSelector, TheThroughSelector &gt; Class Template Reference</title>
+<title>Lightweight: Lightweight::HasOneThrough&lt; OtherTable, ThroughTable, TheOwnerSelector, TheThroughSelector &gt; Class Template Reference</title>
 <link href="../../tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="../../jquery.js"></script>
 <script type="text/javascript" src="../../dynsections.js"></script>
@@ -95,7 +95,7 @@ $(document).ready(function(){initNavTree('df/d63/classLightweight_1_1HasOneThrou
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pub-static-attribs">Static Public Attributes</a> &#124;
 <a href="../../d4/db1/classLightweight_1_1HasOneThrough-members.html">List of all members</a>  </div>
-  <div class="headertitle"><div class="title">Lightweight::HasOneThrough&lt; OtherTable, ThroughSpec, TheOwnerSelector, TheThroughSelector &gt; Class Template Reference<div class="ingroups"><a class="el" href="../../d7/d2f/group__DataMapper.html">Data Mapper</a></div></div></div>
+  <div class="headertitle"><div class="title">Lightweight::HasOneThrough&lt; OtherTable, ThroughTable, TheOwnerSelector, TheThroughSelector &gt; Class Template Reference<div class="ingroups"><a class="el" href="../../d7/d2f/group__DataMapper.html">Data Mapper</a></div></div></div>
 </div><!--header-->
 <div class="contents">
 
@@ -106,142 +106,133 @@ $(document).ready(function(){initNavTree('df/d63/classLightweight_1_1HasOneThrou
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:ae099c15e7beb285410872fc7c08be768" id="r_ae099c15e7beb285410872fc7c08be768"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#ae099c15e7beb285410872fc7c08be768">ThroughRecord</a> = <a class="el" href="../../d7/d2f/group__DataMapper.html#ga6908683ee1b573afc52f6020e8fcc051">ThroughRecordOf</a>&lt; ThroughSpec &gt;</td></tr>
-<tr class="memdesc:ae099c15e7beb285410872fc7c08be768"><td class="mdescLeft">&#160;</td><td class="mdescRight">The record type of the "through" side of the relationship.  <br /></td></tr>
-<tr class="separator:ae099c15e7beb285410872fc7c08be768"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af7ecac186a84c8a6b5b044b6fde34646" id="r_af7ecac186a84c8a6b5b044b6fde34646"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#af7ecac186a84c8a6b5b044b6fde34646">ReferencedRecord</a> = OtherTable</td></tr>
-<tr class="memdesc:af7ecac186a84c8a6b5b044b6fde34646"><td class="mdescLeft">&#160;</td><td class="mdescRight">The record type of the "Other" side of the relationship.  <br /></td></tr>
-<tr class="separator:af7ecac186a84c8a6b5b044b6fde34646"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a45e05b40d2d3c12f8a6875481b6bd8c5" id="r_a45e05b40d2d3c12f8a6875481b6bd8c5"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a45e05b40d2d3c12f8a6875481b6bd8c5">ThroughRecord</a> = ThroughTable</td></tr>
+<tr class="memdesc:a45e05b40d2d3c12f8a6875481b6bd8c5"><td class="mdescLeft">&#160;</td><td class="mdescRight">The record type of the "through" side of the relationship.  <br /></td></tr>
+<tr class="separator:a45e05b40d2d3c12f8a6875481b6bd8c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a851adad246d4c0ec82713047a6809803" id="r_a851adad246d4c0ec82713047a6809803"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a851adad246d4c0ec82713047a6809803">ReferencedRecord</a> = OtherTable</td></tr>
+<tr class="memdesc:a851adad246d4c0ec82713047a6809803"><td class="mdescLeft">&#160;</td><td class="mdescRight">The record type of the "Other" side of the relationship.  <br /></td></tr>
+<tr class="separator:a851adad246d4c0ec82713047a6809803"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a6af60cbefcd9ba862c00f58f55730d9c" id="r_a6af60cbefcd9ba862c00f58f55730d9c"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a6af60cbefcd9ba862c00f58f55730d9c">EmplaceRecord</a> (std::shared_ptr&lt; <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#af7ecac186a84c8a6b5b044b6fde34646">ReferencedRecord</a> &gt; record)</td></tr>
-<tr class="memdesc:a6af60cbefcd9ba862c00f58f55730d9c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Emplaces the given record into this relationship.  <br /></td></tr>
-<tr class="separator:a6af60cbefcd9ba862c00f58f55730d9c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab462d4092c9971e36888f29cae67df2b" id="r_ab462d4092c9971e36888f29cae67df2b"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#af7ecac186a84c8a6b5b044b6fde34646">ReferencedRecord</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#ab462d4092c9971e36888f29cae67df2b">Record</a> () noexcept</td></tr>
-<tr class="memdesc:ab462d4092c9971e36888f29cae67df2b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record in this relationship.  <br /></td></tr>
-<tr class="separator:ab462d4092c9971e36888f29cae67df2b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3046a2ef1e48d81019cc2fa1b9cca30d" id="r_a3046a2ef1e48d81019cc2fa1b9cca30d"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#af7ecac186a84c8a6b5b044b6fde34646">ReferencedRecord</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a3046a2ef1e48d81019cc2fa1b9cca30d">Record</a> () const noexcept</td></tr>
-<tr class="memdesc:a3046a2ef1e48d81019cc2fa1b9cca30d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record in this relationship.  <br /></td></tr>
-<tr class="separator:a3046a2ef1e48d81019cc2fa1b9cca30d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a50b59e450827478bae329dc0d92a47b2" id="r_a50b59e450827478bae329dc0d92a47b2"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a50b59e450827478bae329dc0d92a47b2">IsLoaded</a> () const noexcept</td></tr>
-<tr class="memdesc:a50b59e450827478bae329dc0d92a47b2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if the record is loaded.  <br /></td></tr>
-<tr class="separator:a50b59e450827478bae329dc0d92a47b2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3d1290ce85cb14315ef539b0dea73534" id="r_a3d1290ce85cb14315ef539b0dea73534"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a3d1290ce85cb14315ef539b0dea73534">Unload</a> () noexcept</td></tr>
-<tr class="memdesc:a3d1290ce85cb14315ef539b0dea73534"><td class="mdescLeft">&#160;</td><td class="mdescRight">Unloads the record from memory.  <br /></td></tr>
-<tr class="separator:a3d1290ce85cb14315ef539b0dea73534"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aeae14b661b58f62a9c86ebb3e872f4a4" id="r_aeae14b661b58f62a9c86ebb3e872f4a4"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#af7ecac186a84c8a6b5b044b6fde34646">ReferencedRecord</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#aeae14b661b58f62a9c86ebb3e872f4a4">operator*</a> () noexcept</td></tr>
-<tr class="memdesc:aeae14b661b58f62a9c86ebb3e872f4a4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record in this relationship.  <br /></td></tr>
-<tr class="separator:aeae14b661b58f62a9c86ebb3e872f4a4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8ddbf129baf0778d77fae467b3ef195d" id="r_a8ddbf129baf0778d77fae467b3ef195d"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#af7ecac186a84c8a6b5b044b6fde34646">ReferencedRecord</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a8ddbf129baf0778d77fae467b3ef195d">operator*</a> () const noexcept</td></tr>
-<tr class="memdesc:a8ddbf129baf0778d77fae467b3ef195d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record in this relationship.  <br /></td></tr>
-<tr class="separator:a8ddbf129baf0778d77fae467b3ef195d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7b4e099f4b306beec3db4076243cb280" id="r_a7b4e099f4b306beec3db4076243cb280"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#af7ecac186a84c8a6b5b044b6fde34646">ReferencedRecord</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a7b4e099f4b306beec3db4076243cb280">operator-&gt;</a> () noexcept</td></tr>
-<tr class="memdesc:a7b4e099f4b306beec3db4076243cb280"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record in this relationship.  <br /></td></tr>
-<tr class="separator:a7b4e099f4b306beec3db4076243cb280"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a69937f151440074e87b6ac73fee07176" id="r_a69937f151440074e87b6ac73fee07176"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#af7ecac186a84c8a6b5b044b6fde34646">ReferencedRecord</a> const *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a69937f151440074e87b6ac73fee07176">operator-&gt;</a> () const noexcept</td></tr>
-<tr class="memdesc:a69937f151440074e87b6ac73fee07176"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record in this relationship.  <br /></td></tr>
-<tr class="separator:a69937f151440074e87b6ac73fee07176"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aaac133222d252d1a21e2cf1795c26f1e" id="r_aaac133222d252d1a21e2cf1795c26f1e"><td class="memItemLeft" align="right" valign="top"><a id="aaac133222d252d1a21e2cf1795c26f1e" name="aaac133222d252d1a21e2cf1795c26f1e"></a>
+<tr class="memitem:ac71f1a56f529bae1d312aedb9d213f7e" id="r_ac71f1a56f529bae1d312aedb9d213f7e"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#ac71f1a56f529bae1d312aedb9d213f7e">EmplaceRecord</a> (std::shared_ptr&lt; <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a851adad246d4c0ec82713047a6809803">ReferencedRecord</a> &gt; record)</td></tr>
+<tr class="memdesc:ac71f1a56f529bae1d312aedb9d213f7e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Emplaces the given record into this relationship.  <br /></td></tr>
+<tr class="separator:ac71f1a56f529bae1d312aedb9d213f7e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a38cbde843d78b6edd74f456052cbab90" id="r_a38cbde843d78b6edd74f456052cbab90"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a851adad246d4c0ec82713047a6809803">ReferencedRecord</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a38cbde843d78b6edd74f456052cbab90">Record</a> () noexcept</td></tr>
+<tr class="memdesc:a38cbde843d78b6edd74f456052cbab90"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record in this relationship.  <br /></td></tr>
+<tr class="separator:a38cbde843d78b6edd74f456052cbab90"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4d341ebca31d87311f9342dccb7142ed" id="r_a4d341ebca31d87311f9342dccb7142ed"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a851adad246d4c0ec82713047a6809803">ReferencedRecord</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a4d341ebca31d87311f9342dccb7142ed">Record</a> () const noexcept</td></tr>
+<tr class="memdesc:a4d341ebca31d87311f9342dccb7142ed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record in this relationship.  <br /></td></tr>
+<tr class="separator:a4d341ebca31d87311f9342dccb7142ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad9288087a03c708a3fe14821ed4b133a" id="r_ad9288087a03c708a3fe14821ed4b133a"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#ad9288087a03c708a3fe14821ed4b133a">IsLoaded</a> () const noexcept</td></tr>
+<tr class="memdesc:ad9288087a03c708a3fe14821ed4b133a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if the record is loaded.  <br /></td></tr>
+<tr class="separator:ad9288087a03c708a3fe14821ed4b133a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4193c4c8ef97ad29dd4b48d24c42be98" id="r_a4193c4c8ef97ad29dd4b48d24c42be98"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a4193c4c8ef97ad29dd4b48d24c42be98">Unload</a> () noexcept</td></tr>
+<tr class="memdesc:a4193c4c8ef97ad29dd4b48d24c42be98"><td class="mdescLeft">&#160;</td><td class="mdescRight">Unloads the record from memory.  <br /></td></tr>
+<tr class="separator:a4193c4c8ef97ad29dd4b48d24c42be98"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4748f381228bb9fdbfb90dcd7b556644" id="r_a4748f381228bb9fdbfb90dcd7b556644"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a851adad246d4c0ec82713047a6809803">ReferencedRecord</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a4748f381228bb9fdbfb90dcd7b556644">operator*</a> () noexcept</td></tr>
+<tr class="memdesc:a4748f381228bb9fdbfb90dcd7b556644"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record in this relationship.  <br /></td></tr>
+<tr class="separator:a4748f381228bb9fdbfb90dcd7b556644"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9e0826de9b51227d10bbf2c01b35dab6" id="r_a9e0826de9b51227d10bbf2c01b35dab6"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a851adad246d4c0ec82713047a6809803">ReferencedRecord</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a9e0826de9b51227d10bbf2c01b35dab6">operator*</a> () const noexcept</td></tr>
+<tr class="memdesc:a9e0826de9b51227d10bbf2c01b35dab6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record in this relationship.  <br /></td></tr>
+<tr class="separator:a9e0826de9b51227d10bbf2c01b35dab6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a608989742e05f7251e9e959a426808fb" id="r_a608989742e05f7251e9e959a426808fb"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a851adad246d4c0ec82713047a6809803">ReferencedRecord</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a608989742e05f7251e9e959a426808fb">operator-&gt;</a> () noexcept</td></tr>
+<tr class="memdesc:a608989742e05f7251e9e959a426808fb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record in this relationship.  <br /></td></tr>
+<tr class="separator:a608989742e05f7251e9e959a426808fb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae607b8fc016cd3b794c5e91e20b7039c" id="r_ae607b8fc016cd3b794c5e91e20b7039c"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a851adad246d4c0ec82713047a6809803">ReferencedRecord</a> const *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#ae607b8fc016cd3b794c5e91e20b7039c">operator-&gt;</a> () const noexcept</td></tr>
+<tr class="memdesc:ae607b8fc016cd3b794c5e91e20b7039c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record in this relationship.  <br /></td></tr>
+<tr class="separator:ae607b8fc016cd3b794c5e91e20b7039c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a878f5cd03a7519d9f3e9e829994a2129" id="r_a878f5cd03a7519d9f3e9e829994a2129"><td class="memItemLeft" align="right" valign="top"><a id="a878f5cd03a7519d9f3e9e829994a2129" name="a878f5cd03a7519d9f3e9e829994a2129"></a>
 std::weak_ordering&#160;</td><td class="memItemRight" valign="bottom"><b>operator&lt;=&gt;</b> (<a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">HasOneThrough</a> const &amp;other) const noexcept=default</td></tr>
-<tr class="memdesc:aaac133222d252d1a21e2cf1795c26f1e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default three-way comparison operator. <br /></td></tr>
-<tr class="separator:aaac133222d252d1a21e2cf1795c26f1e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5084e94a0b76cde39f5f70d0da97fcfb" id="r_a5084e94a0b76cde39f5f70d0da97fcfb"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a5084e94a0b76cde39f5f70d0da97fcfb">SetAutoLoader</a> (Loader loader)</td></tr>
-<tr class="memdesc:a5084e94a0b76cde39f5f70d0da97fcfb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Used internally to configure on-demand loading of the record.  <br /></td></tr>
-<tr class="separator:a5084e94a0b76cde39f5f70d0da97fcfb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memdesc:a878f5cd03a7519d9f3e9e829994a2129"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default three-way comparison operator. <br /></td></tr>
+<tr class="separator:a878f5cd03a7519d9f3e9e829994a2129"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0e21bce4d7b5ca3edcea15b856772d84" id="r_a0e21bce4d7b5ca3edcea15b856772d84"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a0e21bce4d7b5ca3edcea15b856772d84">SetAutoLoader</a> (Loader loader)</td></tr>
+<tr class="memdesc:a0e21bce4d7b5ca3edcea15b856772d84"><td class="mdescLeft">&#160;</td><td class="mdescRight">Used internally to configure on-demand loading of the record.  <br /></td></tr>
+<tr class="separator:a0e21bce4d7b5ca3edcea15b856772d84"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-attribs" name="pub-static-attribs"></a>
 Static Public Attributes</h2></td></tr>
-<tr class="memitem:a8b96549d342a592039bbd53267933011" id="r_a8b96549d342a592039bbd53267933011"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a8b96549d342a592039bbd53267933011">OwnerSelector</a> = TheOwnerSelector</td></tr>
-<tr class="memdesc:a8b96549d342a592039bbd53267933011"><td class="mdescLeft">&#160;</td><td class="mdescRight">Singles out the join record's foreign key pointing at the record owning this relationship.  <br /></td></tr>
-<tr class="separator:a8b96549d342a592039bbd53267933011"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa52c661437910eb087bc249668e50985" id="r_aa52c661437910eb087bc249668e50985"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#aa52c661437910eb087bc249668e50985">ThroughSelector</a> = TheThroughSelector</td></tr>
-<tr class="memdesc:aa52c661437910eb087bc249668e50985"><td class="mdescLeft">&#160;</td><td class="mdescRight">Singles out <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#af7ecac186a84c8a6b5b044b6fde34646">ReferencedRecord</a>'s foreign key pointing at <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#ae099c15e7beb285410872fc7c08be768">ThroughRecord</a>.  <br /></td></tr>
-<tr class="separator:aa52c661437910eb087bc249668e50985"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a763a9fe746014b97e328af8c26db112a" id="r_a763a9fe746014b97e328af8c26db112a"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a763a9fe746014b97e328af8c26db112a">OwnerSelector</a> = TheOwnerSelector</td></tr>
+<tr class="memdesc:a763a9fe746014b97e328af8c26db112a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Singles out the join record's foreign key pointing at the record owning this relationship.  <br /></td></tr>
+<tr class="separator:a763a9fe746014b97e328af8c26db112a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a251350b0e749d52e44416129c4fbdb3e" id="r_a251350b0e749d52e44416129c4fbdb3e"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a251350b0e749d52e44416129c4fbdb3e">ThroughSelector</a> = TheThroughSelector</td></tr>
+<tr class="memdesc:a251350b0e749d52e44416129c4fbdb3e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Singles out <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a851adad246d4c0ec82713047a6809803">ReferencedRecord</a>'s foreign key pointing at <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a45e05b40d2d3c12f8a6875481b6bd8c5">ThroughRecord</a>.  <br /></td></tr>
+<tr class="separator:a251350b0e749d52e44416129c4fbdb3e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><div class="compoundTemplParams">template&lt;typename OtherTable, typename ThroughSpec, auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt;<br />
-class Lightweight::HasOneThrough&lt; OtherTable, ThroughSpec, TheOwnerSelector, TheThroughSelector &gt;</div><p>Represents a one-to-one relationship through a join table. </p>
-<p>The <code>OtherTable</code> parameter is the record reached through the join table. The <code>ThroughSpec</code> parameter is the join table, which references the current record. It is named with the <a class="el" href="../../dd/def/structLightweight_1_1Through.html">Through</a> marker, so that the reader can tell it apart from the referenced record:</p>
-<div class="fragment"><div class="line"><span class="keyword">struct </span>Account;</div>
-<div class="line"><span class="keyword">struct </span>AccountHistory;</div>
-<div class="line"><span class="keyword">struct </span>Supplier</div>
-<div class="line">{</div>
-<div class="line">    <a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field&lt;int, PrimaryKey::AutoAssign&gt;</a> id;</div>
-<div class="line">    <a class="code hl_class" href="../../df/d63/classLightweight_1_1HasOneThrough.html">HasOneThrough&lt;AccountHistory, Through&lt;Account&gt;</a>&gt; accountHistory;</div>
-<div class="line">};</div>
-<div class="ttc" id="aclassLightweight_1_1HasOneThrough_html"><div class="ttname"><a href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a></div><div class="ttdoc">Represents a one-to-one relationship through a join table.</div><div class="ttdef"><b>Definition</b> <a href="../../d4/d56/HasOneThrough_8hpp_source.html#l00048">HasOneThrough.hpp:49</a></div></div>
-<div class="ttc" id="astructLightweight_1_1Field_html"><div class="ttname"><a href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a></div><div class="ttdoc">Represents a single column in a table.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00083">Field.hpp:84</a></div></div>
-</div><!-- fragment --><p>Both foreign keys are located by matching the relationship <em>type</em>. When either record holds more than one foreign key into the same table, name the column to single one out - see the RelationSelector concept and the example on <a class="el" href="../../de/d73/classLightweight_1_1HasManyThrough.html">HasManyThrough</a>.</p>
+<div class="textblock"><div class="compoundTemplParams">template&lt;typename OtherTable, typename ThroughTable, auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt;<br />
+class Lightweight::HasOneThrough&lt; OtherTable, ThroughTable, TheOwnerSelector, TheThroughSelector &gt;</div><p>Represents a one-to-one relationship through a join table. </p>
+<p>The <code>OtherTable</code> parameter is the record reached through the join table. The <code>ThroughTable</code> parameter is the join table, which references the current record.</p>
+<p>Both foreign keys are located by matching the relationship <em>type</em>. When either record holds more than one foreign key into the same table, name the column to single one out - see the RelationSelector concept and the example on <a class="el" href="../../de/d73/classLightweight_1_1HasManyThrough.html">HasManyThrough</a>.</p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
     <tr><td class="paramname">OtherTable</td><td>The record type reached through the join table. </td></tr>
-    <tr><td class="paramname">ThroughSpec</td><td>The join record, wrapped as <code><a class="el" href="../../dd/def/structLightweight_1_1Through.html" title="Marks the join record of a relationship that is reached through an intermediate table.">Through</a>&lt;T&gt;</code>. Naming the record bare is deprecated. </td></tr>
+    <tr><td class="paramname">ThroughTable</td><td>The join record type, holding a foreign key back to the owning record. </td></tr>
     <tr><td class="paramname">TheOwnerSelector</td><td>Singles out the join record's foreign key pointing at the <em>owning</em> record. </td></tr>
-    <tr><td class="paramname">TheThroughSelector</td><td>Singles out <code>OtherTable's</code> foreign key pointing at the join record.</td></tr>
+    <tr><td class="paramname">TheThroughSelector</td><td>Singles out <code>OtherTable's</code> foreign key pointing at <code>ThroughTable</code>.</td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a>, <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a>, <a class="el" href="../../de/d73/classLightweight_1_1HasManyThrough.html" title="This API represents a many-to-many relationship between two records through a third record.">HasManyThrough</a>, <a class="el" href="../../dd/def/structLightweight_1_1Through.html" title="Marks the join record of a relationship that is reached through an intermediate table.">Through</a>, RelationSelector </dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a>, <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a>, <a class="el" href="../../de/d73/classLightweight_1_1HasManyThrough.html" title="This API represents a many-to-many relationship between two records through a third record.">HasManyThrough</a>, RelationSelector </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00048">48</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00037">37</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
 </div><h2 class="groupheader">Member Typedef Documentation</h2>
-<a id="ae099c15e7beb285410872fc7c08be768" name="ae099c15e7beb285410872fc7c08be768"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae099c15e7beb285410872fc7c08be768">&#9670;&#160;</a></span>ThroughRecord</h2>
+<a id="a45e05b40d2d3c12f8a6875481b6bd8c5" name="a45e05b40d2d3c12f8a6875481b6bd8c5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a45e05b40d2d3c12f8a6875481b6bd8c5">&#9670;&#160;</a></span>ThroughRecord</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
+template&lt;typename OtherTable , typename ThroughTable , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">using <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughSpec, TheOwnerSelector, TheThroughSelector &gt;::ThroughRecord =  <a class="el" href="../../d7/d2f/group__DataMapper.html#ga6908683ee1b573afc52f6020e8fcc051">ThroughRecordOf</a>&lt;ThroughSpec&gt;</td>
+          <td class="memname">using <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughTable, TheOwnerSelector, TheThroughSelector &gt;::ThroughRecord =  ThroughTable</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 <p>The record type of the "through" side of the relationship. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00060">60</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00045">45</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
 
 </div>
 </div>
-<a id="af7ecac186a84c8a6b5b044b6fde34646" name="af7ecac186a84c8a6b5b044b6fde34646"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af7ecac186a84c8a6b5b044b6fde34646">&#9670;&#160;</a></span>ReferencedRecord</h2>
+<a id="a851adad246d4c0ec82713047a6809803" name="a851adad246d4c0ec82713047a6809803"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a851adad246d4c0ec82713047a6809803">&#9670;&#160;</a></span>ReferencedRecord</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
+template&lt;typename OtherTable , typename ThroughTable , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">using <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughSpec, TheOwnerSelector, TheThroughSelector &gt;::ReferencedRecord =  OtherTable</td>
+          <td class="memname">using <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughTable, TheOwnerSelector, TheThroughSelector &gt;::ReferencedRecord =  OtherTable</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 <p>The record type of the "Other" side of the relationship. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00063">63</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00048">48</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
 
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
-<a id="a6af60cbefcd9ba862c00f58f55730d9c" name="a6af60cbefcd9ba862c00f58f55730d9c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6af60cbefcd9ba862c00f58f55730d9c">&#9670;&#160;</a></span>EmplaceRecord()</h2>
+<a id="ac71f1a56f529bae1d312aedb9d213f7e" name="ac71f1a56f529bae1d312aedb9d213f7e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac71f1a56f529bae1d312aedb9d213f7e">&#9670;&#160;</a></span>EmplaceRecord()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
+template&lt;typename OtherTable , typename ThroughTable , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr void <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughSpec, TheOwnerSelector, TheThroughSelector &gt;::EmplaceRecord </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr void <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughTable, TheOwnerSelector, TheThroughSelector &gt;::EmplaceRecord </td>
           <td>(</td>
-          <td class="paramtype">std::shared_ptr&lt; <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#af7ecac186a84c8a6b5b044b6fde34646">ReferencedRecord</a> &gt;&#160;</td>
+          <td class="paramtype">std::shared_ptr&lt; <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a851adad246d4c0ec82713047a6809803">ReferencedRecord</a> &gt;&#160;</td>
           <td class="paramname"><em>record</em></td><td>)</td>
           <td></td>
         </tr>
@@ -255,23 +246,23 @@ template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector =
 
 <p>Emplaces the given record into this relationship. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00074">74</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00059">59</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
 
 </div>
 </div>
-<a id="ab462d4092c9971e36888f29cae67df2b" name="ab462d4092c9971e36888f29cae67df2b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab462d4092c9971e36888f29cae67df2b">&#9670;&#160;</a></span>Record() <span class="overload">[1/2]</span></h2>
+<a id="a38cbde843d78b6edd74f456052cbab90" name="a38cbde843d78b6edd74f456052cbab90"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a38cbde843d78b6edd74f456052cbab90">&#9670;&#160;</a></span>Record() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
+template&lt;typename OtherTable , typename ThroughTable , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#af7ecac186a84c8a6b5b044b6fde34646">ReferencedRecord</a> &amp; <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughSpec, TheOwnerSelector, TheThroughSelector &gt;::Record </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a851adad246d4c0ec82713047a6809803">ReferencedRecord</a> &amp; <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughTable, TheOwnerSelector, TheThroughSelector &gt;::Record </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -286,23 +277,23 @@ template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector =
 
 <p>Retrieves the record in this relationship. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00077">77</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00062">62</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a3046a2ef1e48d81019cc2fa1b9cca30d" name="a3046a2ef1e48d81019cc2fa1b9cca30d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3046a2ef1e48d81019cc2fa1b9cca30d">&#9670;&#160;</a></span>Record() <span class="overload">[2/2]</span></h2>
+<a id="a4d341ebca31d87311f9342dccb7142ed" name="a4d341ebca31d87311f9342dccb7142ed"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4d341ebca31d87311f9342dccb7142ed">&#9670;&#160;</a></span>Record() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
+template&lt;typename OtherTable , typename ThroughTable , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#af7ecac186a84c8a6b5b044b6fde34646">ReferencedRecord</a> const  &amp; <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughSpec, TheOwnerSelector, TheThroughSelector &gt;::Record </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a851adad246d4c0ec82713047a6809803">ReferencedRecord</a> const  &amp; <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughTable, TheOwnerSelector, TheThroughSelector &gt;::Record </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -317,23 +308,23 @@ template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector =
 
 <p>Retrieves the record in this relationship. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00080">80</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00065">65</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a50b59e450827478bae329dc0d92a47b2" name="a50b59e450827478bae329dc0d92a47b2"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a50b59e450827478bae329dc0d92a47b2">&#9670;&#160;</a></span>IsLoaded()</h2>
+<a id="ad9288087a03c708a3fe14821ed4b133a" name="ad9288087a03c708a3fe14821ed4b133a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad9288087a03c708a3fe14821ed4b133a">&#9670;&#160;</a></span>IsLoaded()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
+template&lt;typename OtherTable , typename ThroughTable , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr bool <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughSpec, TheOwnerSelector, TheThroughSelector &gt;::IsLoaded </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr bool <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughTable, TheOwnerSelector, TheThroughSelector &gt;::IsLoaded </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -348,23 +339,23 @@ template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector =
 
 <p>Checks if the record is loaded. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00083">83</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00068">68</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a3d1290ce85cb14315ef539b0dea73534" name="a3d1290ce85cb14315ef539b0dea73534"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3d1290ce85cb14315ef539b0dea73534">&#9670;&#160;</a></span>Unload()</h2>
+<a id="a4193c4c8ef97ad29dd4b48d24c42be98" name="a4193c4c8ef97ad29dd4b48d24c42be98"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4193c4c8ef97ad29dd4b48d24c42be98">&#9670;&#160;</a></span>Unload()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
+template&lt;typename OtherTable , typename ThroughTable , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE void <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughSpec, TheOwnerSelector, TheThroughSelector &gt;::Unload </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE void <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughTable, TheOwnerSelector, TheThroughSelector &gt;::Unload </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -379,23 +370,23 @@ template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector =
 
 <p>Unloads the record from memory. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00086">86</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00071">71</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
 
 </div>
 </div>
-<a id="aeae14b661b58f62a9c86ebb3e872f4a4" name="aeae14b661b58f62a9c86ebb3e872f4a4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aeae14b661b58f62a9c86ebb3e872f4a4">&#9670;&#160;</a></span>operator*() <span class="overload">[1/2]</span></h2>
+<a id="a4748f381228bb9fdbfb90dcd7b556644" name="a4748f381228bb9fdbfb90dcd7b556644"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4748f381228bb9fdbfb90dcd7b556644">&#9670;&#160;</a></span>operator*() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
+template&lt;typename OtherTable , typename ThroughTable , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#af7ecac186a84c8a6b5b044b6fde34646">ReferencedRecord</a> &amp; <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughSpec, TheOwnerSelector, TheThroughSelector &gt;::operator* </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a851adad246d4c0ec82713047a6809803">ReferencedRecord</a> &amp; <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughTable, TheOwnerSelector, TheThroughSelector &gt;::operator* </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -411,23 +402,23 @@ template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector =
 <p>Retrieves the record in this relationship. </p>
 <dl class="section note"><dt>Note</dt><dd>On-demand loads the record if it is not already loaded. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00090">90</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00075">75</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a8ddbf129baf0778d77fae467b3ef195d" name="a8ddbf129baf0778d77fae467b3ef195d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8ddbf129baf0778d77fae467b3ef195d">&#9670;&#160;</a></span>operator*() <span class="overload">[2/2]</span></h2>
+<a id="a9e0826de9b51227d10bbf2c01b35dab6" name="a9e0826de9b51227d10bbf2c01b35dab6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9e0826de9b51227d10bbf2c01b35dab6">&#9670;&#160;</a></span>operator*() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
+template&lt;typename OtherTable , typename ThroughTable , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#af7ecac186a84c8a6b5b044b6fde34646">ReferencedRecord</a> const  &amp; <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughSpec, TheOwnerSelector, TheThroughSelector &gt;::operator* </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a851adad246d4c0ec82713047a6809803">ReferencedRecord</a> const  &amp; <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughTable, TheOwnerSelector, TheThroughSelector &gt;::operator* </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -443,23 +434,23 @@ template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector =
 <p>Retrieves the record in this relationship. </p>
 <dl class="section note"><dt>Note</dt><dd>On-demand loads the record if it is not already loaded. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00094">94</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00079">79</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a7b4e099f4b306beec3db4076243cb280" name="a7b4e099f4b306beec3db4076243cb280"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7b4e099f4b306beec3db4076243cb280">&#9670;&#160;</a></span>operator-&gt;() <span class="overload">[1/2]</span></h2>
+<a id="a608989742e05f7251e9e959a426808fb" name="a608989742e05f7251e9e959a426808fb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a608989742e05f7251e9e959a426808fb">&#9670;&#160;</a></span>operator-&gt;() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
+template&lt;typename OtherTable , typename ThroughTable , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#af7ecac186a84c8a6b5b044b6fde34646">ReferencedRecord</a> * <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughSpec, TheOwnerSelector, TheThroughSelector &gt;::operator-&gt; </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a851adad246d4c0ec82713047a6809803">ReferencedRecord</a> * <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughTable, TheOwnerSelector, TheThroughSelector &gt;::operator-&gt; </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -475,23 +466,23 @@ template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector =
 <p>Retrieves the record in this relationship. </p>
 <dl class="section note"><dt>Note</dt><dd>On-demand loads the record if it is not already loaded. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00098">98</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00083">83</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a69937f151440074e87b6ac73fee07176" name="a69937f151440074e87b6ac73fee07176"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a69937f151440074e87b6ac73fee07176">&#9670;&#160;</a></span>operator-&gt;() <span class="overload">[2/2]</span></h2>
+<a id="ae607b8fc016cd3b794c5e91e20b7039c" name="ae607b8fc016cd3b794c5e91e20b7039c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae607b8fc016cd3b794c5e91e20b7039c">&#9670;&#160;</a></span>operator-&gt;() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
+template&lt;typename OtherTable , typename ThroughTable , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#af7ecac186a84c8a6b5b044b6fde34646">ReferencedRecord</a> const  * <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughSpec, TheOwnerSelector, TheThroughSelector &gt;::operator-&gt; </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a851adad246d4c0ec82713047a6809803">ReferencedRecord</a> const  * <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughTable, TheOwnerSelector, TheThroughSelector &gt;::operator-&gt; </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -507,23 +498,23 @@ template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector =
 <p>Retrieves the record in this relationship. </p>
 <dl class="section note"><dt>Note</dt><dd>On-demand loads the record if it is not already loaded. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00102">102</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00087">87</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a5084e94a0b76cde39f5f70d0da97fcfb" name="a5084e94a0b76cde39f5f70d0da97fcfb"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5084e94a0b76cde39f5f70d0da97fcfb">&#9670;&#160;</a></span>SetAutoLoader()</h2>
+<a id="a0e21bce4d7b5ca3edcea15b856772d84" name="a0e21bce4d7b5ca3edcea15b856772d84"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0e21bce4d7b5ca3edcea15b856772d84">&#9670;&#160;</a></span>SetAutoLoader()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
+template&lt;typename OtherTable , typename ThroughTable , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughSpec, TheOwnerSelector, TheThroughSelector &gt;::SetAutoLoader </td>
+          <td class="memname">void <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughTable, TheOwnerSelector, TheThroughSelector &gt;::SetAutoLoader </td>
           <td>(</td>
           <td class="paramtype">Loader&#160;</td>
           <td class="paramname"><em>loader</em></td><td>)</td>
@@ -539,24 +530,26 @@ template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector =
 
 <p>Used internally to configure on-demand loading of the record. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00114">114</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00099">99</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02995">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>.</p>
 
 </div>
 </div>
 <h2 class="groupheader">Member Data Documentation</h2>
-<a id="a8b96549d342a592039bbd53267933011" name="a8b96549d342a592039bbd53267933011"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8b96549d342a592039bbd53267933011">&#9670;&#160;</a></span>OwnerSelector</h2>
+<a id="a763a9fe746014b97e328af8c26db112a" name="a763a9fe746014b97e328af8c26db112a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a763a9fe746014b97e328af8c26db112a">&#9670;&#160;</a></span>OwnerSelector</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
+template&lt;typename OtherTable , typename ThroughTable , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr auto <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughSpec, TheOwnerSelector, TheThroughSelector &gt;::OwnerSelector = TheOwnerSelector</td>
+          <td class="memname">constexpr auto <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughTable, TheOwnerSelector, TheThroughSelector &gt;::OwnerSelector = TheOwnerSelector</td>
         </tr>
       </table>
   </td>
@@ -568,23 +561,23 @@ template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector =
 
 <p>Singles out the join record's foreign key pointing at the record owning this relationship. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00066">66</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00051">51</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
 
 </div>
 </div>
-<a id="aa52c661437910eb087bc249668e50985" name="aa52c661437910eb087bc249668e50985"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa52c661437910eb087bc249668e50985">&#9670;&#160;</a></span>ThroughSelector</h2>
+<a id="a251350b0e749d52e44416129c4fbdb3e" name="a251350b0e749d52e44416129c4fbdb3e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a251350b0e749d52e44416129c4fbdb3e">&#9670;&#160;</a></span>ThroughSelector</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
+template&lt;typename OtherTable , typename ThroughTable , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr auto <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughSpec, TheOwnerSelector, TheThroughSelector &gt;::ThroughSelector = TheThroughSelector</td>
+          <td class="memname">constexpr auto <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughTable, TheOwnerSelector, TheThroughSelector &gt;::ThroughSelector = TheThroughSelector</td>
         </tr>
       </table>
   </td>
@@ -594,9 +587,9 @@ template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector =
 </table>
 </div><div class="memdoc">
 
-<p>Singles out <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#af7ecac186a84c8a6b5b044b6fde34646">ReferencedRecord</a>'s foreign key pointing at <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#ae099c15e7beb285410872fc7c08be768">ThroughRecord</a>. </p>
+<p>Singles out <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a851adad246d4c0ec82713047a6809803">ReferencedRecord</a>'s foreign key pointing at <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a45e05b40d2d3c12f8a6875481b6bd8c5">ThroughRecord</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00069">69</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00054">54</a> of file <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html">HasOneThrough.hpp</a>.</p>
 
 </div>
 </div>
