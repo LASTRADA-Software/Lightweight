@@ -2041,6 +2041,14 @@ class CapturingWarningLogger: public Lightweight::SqlLogger::Null
 
 /// @brief Tiny synthetic stand-in for `MigrationBase` used by policy-composition tests.
 /// We only need `GetTimestamp` to be callable from a `CompatPolicy` lambda.
+///
+/// Constructing one auto-registers it with `MigrationManager::GetInstance()` (a
+/// hard-coded side effect of the `MigrationBase` ctor). These stubs have automatic
+/// storage duration, so the destructor below resets the singleton rather than leaving
+/// a dangling pointer behind: `AddMigration` compares timestamps through the stored
+/// pointers, so a later migration allocated at a recycled address is (incorrectly)
+/// reported as a duplicate of itself. PluginIngestionTests.cpp's `FakeMigration`
+/// carries the same reset for the same reason.
 class StubMigration: public Lightweight::SqlMigration::MigrationBase
 {
   public:
@@ -2048,6 +2056,17 @@ class StubMigration: public Lightweight::SqlMigration::MigrationBase
         MigrationBase(Lightweight::SqlMigration::MigrationTimestamp { ts }, "stub")
     {
     }
+
+    ~StubMigration() override
+    {
+        Lightweight::SqlMigration::MigrationManager::GetInstance().RemoveAllMigrations();
+        Lightweight::SqlMigration::MigrationManager::GetInstance().RemoveAllReleases();
+    }
+
+    StubMigration(StubMigration const&) = delete;
+    StubMigration& operator=(StubMigration const&) = delete;
+    StubMigration(StubMigration&&) = delete;
+    StubMigration& operator=(StubMigration&&) = delete;
 
     void Up(Lightweight::SqlMigrationQueryBuilder& /*plan*/) const override {}
 };

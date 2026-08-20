@@ -23,6 +23,31 @@ using namespace Lightweight;
 
 // NOLINTBEGIN(bugprone-unchecked-optional-access)
 
+TEST_CASE_METHOD(SqlTestFixture, "Query.WhereIn binds its values", "[DataMapper]")
+{
+    // DataMapper queries always carry a bindings vector, so WhereIn goes through parameter markers
+    // rather than inlined literals. The apostrophe is the tell: a bound value reaches the driver
+    // untouched, without the query builder having to escape it into the SQL text.
+    auto dm = DataMapper();
+
+    dm.CreateTable<Person>();
+    for (auto& person: std::array {
+             Person { .id = SqlGuid::Create(), .name = "O'Brien", .is_active = true, .age = 42 },
+             Person { .id = SqlGuid::Create(), .name = "Jane Doe", .is_active = true, .age = 36 },
+             Person { .id = SqlGuid::Create(), .name = "Jimbo Jones", .is_active = false, .age = 69 },
+         })
+        dm.Create(person);
+
+    CHECK(dm.Query<Person>().WhereIn(FieldNameOf<Member(Person::name)>, std::vector { "O'Brien"s, "Jane Doe"s }).All().size()
+          == 2);
+
+    // The quoted name on its own, to pin down that it is the apostrophe-bearing row that matches.
+    CHECK(dm.Query<Person>().WhereIn(FieldNameOf<Member(Person::name)>, std::vector { "O'Brien"s }).All().size() == 1);
+
+    // An empty IN-set matches nothing.
+    CHECK(dm.Query<Person>().WhereIn(FieldNameOf<Member(Person::name)>, std::vector<std::string> {}).All().empty());
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "Query", "[DataMapper]")
 {
     auto dm = DataMapper();
@@ -45,6 +70,14 @@ TEST_CASE_METHOD(SqlTestFixture, "Query", "[DataMapper]")
 
         auto const countAll = dm.Query<Person>().Count();
         CHECK(countAll == 4);
+    }
+
+    SECTION("Count() honors GroupBy")
+    {
+        // Two active and two inactive persons, so every group holds exactly two rows and the
+        // expectation is independent of which group the database returns first.
+        auto const groupedCount = dm.Query<Person>().GroupBy(FieldNameOf<Member(Person::is_active)>).Count();
+        CHECK(groupedCount == 2);
     }
 
     SECTION("Exist()")

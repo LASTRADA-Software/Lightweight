@@ -91,7 +91,7 @@ struct Human
     HasMany<Meeting, SqlRealName { "minute_taker_id" }> minutedMeetings {};
 
     // Attendance is a plain many-to-many, so no selector is needed here.
-    HasManyThrough<Meeting, Attendance> attendedMeetings {};
+    HasManyThrough<Meeting, Through<Attendance>> attendedMeetings {};
 };
 
 struct Meeting
@@ -106,7 +106,7 @@ struct Meeting
     BelongsTo<&Human::id, SqlRealName { "minute_taker_id" }, SqlNullable::Null> minuteTaker {};
 
     // Any number of attendees, through the join record below.
-    HasManyThrough<Human, Attendance> attendees {};
+    HasManyThrough<Human, Through<Attendance>> attendees {};
 };
 
 struct Attendance

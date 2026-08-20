@@ -739,17 +739,13 @@ class DataMapper
     template <typename Record, size_t FieldIndex>
     [[nodiscard]] static auto CollectRelationTargets(std::span<Record* const> records);
 
-    template <typename ReferencedRecord, typename ThroughRecord, typename Record, auto OwnerSelector, auto ThroughSelector>
+    template <typename ReferencedRecord, typename ThroughSpec, typename Record, auto OwnerSelector, auto ThroughSelector>
     void LoadHasOneThrough(Record& record,
-                           HasOneThrough<ReferencedRecord, ThroughRecord, OwnerSelector, ThroughSelector>& field);
+                           HasOneThrough<ReferencedRecord, ThroughSpec, OwnerSelector, ThroughSelector>& field);
 
-    template <typename ReferencedRecord,
-              typename ThroughRecord,
-              typename Record,
-              auto OwnerSelector,
-              auto ReferencedSelector>
+    template <typename ReferencedRecord, typename ThroughSpec, typename Record, auto OwnerSelector, auto ReferencedSelector>
     void LoadHasManyThrough(Record& record,
-                            HasManyThrough<ReferencedRecord, ThroughRecord, OwnerSelector, ReferencedSelector>& field);
+                            HasManyThrough<ReferencedRecord, ThroughSpec, OwnerSelector, ReferencedSelector>& field);
 
     template <typename Record, typename OtherRecord, auto InverseSelector, typename Callable>
     void CallOnHasMany(Record& record, Callable const& callback);
@@ -1229,7 +1225,8 @@ size_t SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::CountImpl()
                                         RecordTableName<Record>,
                                         this->_query.searchCondition.tableAlias,
                                         this->_query.searchCondition.tableJoins,
-                                        this->_query.searchCondition.condition));
+                                        this->_query.searchCondition.condition,
+                                        this->_query.groupBy));
     auto reader = stmt.ExecuteWithVariants(_boundInputs);
     if (reader.FetchRow())
         return reader.template GetColumn<size_t>(1);
@@ -1301,6 +1298,7 @@ bool SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::ExistImpl()
                                               this->_query.searchCondition.tableJoins,
                                               this->_query.searchCondition.condition,
                                               this->_query.orderBy,
+                                              this->_query.groupBy,
                                               1);
 
     stmt.Prepare(query);
@@ -1452,6 +1450,7 @@ std::optional<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOption
                                         this->_query.searchCondition.tableJoins,
                                         this->_query.searchCondition.condition,
                                         this->_query.orderBy,
+                                        this->_query.groupBy,
                                         1));
     Derived::ReadResult(stmt.Connection().ServerType(), stmt.ExecuteWithVariants(_boundInputs), &record);
     if constexpr (QueryOptions.loadRelations)
@@ -1483,6 +1482,7 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::FirstImpl() -
                                         this->_query.searchCondition.tableJoins,
                                         this->_query.searchCondition.condition,
                                         this->_query.orderBy,
+                                        this->_query.groupBy,
                                         count));
     if (auto reader = stmt.ExecuteWithVariants(_boundInputs); reader.FetchRow())
         return reader.template GetColumn<ReferencedFieldTypeOf<Field>>(1);
@@ -1504,6 +1504,7 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::FirstImpl() -
                                         this->_query.searchCondition.tableJoins,
                                         this->_query.searchCondition.condition,
                                         this->_query.orderBy,
+                                        this->_query.groupBy,
                                         1));
 
     auto& record = optionalRecord.emplace();
@@ -1553,6 +1554,7 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>
                                         this->_query.searchCondition.tableJoins,
                                         this->_query.searchCondition.condition,
                                         this->_query.orderBy,
+                                        this->_query.groupBy,
                                         n));
     Derived::ReadResults(stmt.Connection().ServerType(), stmt.ExecuteWithVariants(_boundInputs), &records);
 
@@ -1663,6 +1665,7 @@ template <auto... ReferencedFields>
                                         this->_query.searchCondition.tableJoins,
                                         this->_query.searchCondition.condition,
                                         this->_query.orderBy,
+                                        this->_query.groupBy,
                                         n));
 
     auto reader = stmt.ExecuteWithVariants(_boundInputs);
@@ -3171,10 +3174,12 @@ SqlSelectQueryBuilder DataMapper::BuildHasOneThroughSelectQuery()
             SqlWildcard);
 }
 
-template <typename ReferencedRecord, typename ThroughRecord, typename Record, auto OwnerSelector, auto ThroughSelector>
+template <typename ReferencedRecord, typename ThroughSpec, typename Record, auto OwnerSelector, auto ThroughSelector>
 void DataMapper::LoadHasOneThrough(Record& record,
-                                   HasOneThrough<ReferencedRecord, ThroughRecord, OwnerSelector, ThroughSelector>& field)
+                                   HasOneThrough<ReferencedRecord, ThroughSpec, OwnerSelector, ThroughSelector>& field)
 {
+    using ThroughRecord = ThroughRecordOf<ThroughSpec>;
+
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
     static_assert(DataMapperRecord<ThroughRecord>, "ThroughRecord must satisfy DataMapperRecord");
 
@@ -3275,10 +3280,12 @@ void DataMapper::CallOnHasManyThroughByPK(PKValue const& pkValue, Callable const
     callback(query, pkValue);
 }
 
-template <typename ReferencedRecord, typename ThroughRecord, typename Record, auto OwnerSelector, auto ReferencedSelector>
-void DataMapper::LoadHasManyThrough(
-    Record& record, HasManyThrough<ReferencedRecord, ThroughRecord, OwnerSelector, ReferencedSelector>& field)
+template <typename ReferencedRecord, typename ThroughSpec, typename Record, auto OwnerSelector, auto ReferencedSelector>
+void DataMapper::LoadHasManyThrough(Record& record,
+                                    HasManyThrough<ReferencedRecord, ThroughSpec, OwnerSelector, ReferencedSelector>& field)
 {
+    using ThroughRecord = ThroughRecordOf<ThroughSpec>;
+
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
     ZoneScopedN("DataMapper::LoadHasManyThrough");
@@ -3535,11 +3542,9 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
         {
             using ReferencedRecord = FieldType::ReferencedRecord;
             using ThroughRecord = FieldType::ThroughRecord;
-            HasOneThrough<ReferencedRecord, ThroughRecord, FieldType::OwnerSelector, FieldType::ThroughSelector>&
-                hasOneThrough = field;
             // Capture the PK value by value to avoid dangling references if the record is moved.
             auto pkValue = GetPrimaryKeyField(record);
-            hasOneThrough.SetAutoLoader(typename FieldType::Loader {
+            field.SetAutoLoader(typename FieldType::Loader {
                 .loadReference = [pkValue]() -> std::shared_ptr<ReferencedRecord> {
                     DataMapper& dm = DataMapper::AcquireThreadLocal();
                     return dm.LoadHasOneThroughByPK<ReferencedRecord,
@@ -3554,11 +3559,9 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
         {
             using ReferencedRecord = FieldType::ReferencedRecord;
             using ThroughRecord = FieldType::ThroughRecord;
-            HasManyThrough<ReferencedRecord, ThroughRecord, FieldType::OwnerSelector, FieldType::ReferencedSelector>&
-                hasManyThrough = field;
             // Capture the PK value by value to avoid dangling references if the record is moved.
             auto pkValue = GetPrimaryKeyField(record);
-            hasManyThrough.SetAutoLoader(typename FieldType::Loader {
+            field.SetAutoLoader(typename FieldType::Loader {
                 .count = [pkValue]() -> size_t {
                     // Load result for Count()
                     size_t count = 0;

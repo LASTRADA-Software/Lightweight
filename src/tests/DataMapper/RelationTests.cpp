@@ -136,7 +136,7 @@ struct Buddy
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
     Field<SqlAnsiString<30>> name {};
-    HasManyThrough<Buddy, Buddyship, SqlRealName { "a_id" }, SqlRealName { "b_id" }> buddies {};
+    HasManyThrough<Buddy, Through<Buddyship>, SqlRealName { "a_id" }, SqlRealName { "b_id" }> buddies {};
 };
 
 struct Buddyship
@@ -165,7 +165,7 @@ struct Shop
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "shop_key" }> shopKey {}; // 0
     Field<SqlAnsiString<20>> name {};                                                            // 1
-    HasOneThrough<ShopOrderLine, ShopOrder> firstOrderLine {};                                   // 2
+    HasOneThrough<ShopOrderLine, Through<ShopOrder>> firstOrderLine {};                          // 2
 };
 
 struct ShopOrder
@@ -788,7 +788,7 @@ struct Suppliers
     Field<SqlAnsiString<30>> name {};
 
     // TODO: HasOne<Account> account;
-    HasOneThrough<AccountHistory, Account> accountHistory {};
+    HasOneThrough<AccountHistory, Through<Account>> accountHistory {};
 };
 
 std::ostream& operator<<(std::ostream& os, Suppliers const& record)
@@ -1434,13 +1434,13 @@ TEST_CASE_METHOD(SqlTestFixture, "Entity const corectness", "[DataMapper]")
 
 TEST_CASE("HasOneThrough: default-constructed reports not-loaded", "[HasOneThrough]")
 {
-    HasOneThrough<AccountHistory, Account> rel {};
+    HasOneThrough<AccountHistory, Through<Account>> rel {};
     CHECK_FALSE(rel.IsLoaded());
 }
 
 TEST_CASE("HasOneThrough: EmplaceRecord makes IsLoaded true and Unload reverts it", "[HasOneThrough]")
 {
-    HasOneThrough<AccountHistory, Account> rel {};
+    HasOneThrough<AccountHistory, Through<Account>> rel {};
     rel.EmplaceRecord(std::make_shared<AccountHistory>(AccountHistory { .credit_rating = 750 }));
     REQUIRE(rel.IsLoaded());
     CHECK(rel.Record().credit_rating.Value() == 750);
@@ -1451,7 +1451,7 @@ TEST_CASE("HasOneThrough: EmplaceRecord makes IsLoaded true and Unload reverts i
 
 TEST_CASE("HasOneThrough: operator-> forwards to the loaded record", "[HasOneThrough]")
 {
-    HasOneThrough<AccountHistory, Account> rel {};
+    HasOneThrough<AccountHistory, Through<Account>> rel {};
     rel.EmplaceRecord(std::make_shared<AccountHistory>(AccountHistory { .credit_rating = 600 }));
     REQUIRE(rel.IsLoaded());
     CHECK(rel->credit_rating.Value() == 600);
@@ -1460,13 +1460,13 @@ TEST_CASE("HasOneThrough: operator-> forwards to the loaded record", "[HasOneThr
     REQUIRE(asPtr != nullptr);
     CHECK(asPtr->credit_rating.Value() == 600);
 
-    HasOneThrough<AccountHistory, Account> const& constRel = rel;
+    HasOneThrough<AccountHistory, Through<Account>> const& constRel = rel;
     CHECK(constRel->credit_rating.Value() == 600);
 }
 
 TEST_CASE("HasOneThrough: operator* returns the loaded record by reference", "[HasOneThrough]")
 {
-    HasOneThrough<AccountHistory, Account> rel {};
+    HasOneThrough<AccountHistory, Through<Account>> rel {};
     rel.EmplaceRecord(std::make_shared<AccountHistory>(AccountHistory { .credit_rating = 42 }));
     AccountHistory& deref = *rel;
     CHECK(deref.credit_rating.Value() == 42);

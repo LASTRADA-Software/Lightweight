@@ -216,8 +216,8 @@ void InstantiateQueryBuilderApi()
 // pair and the const At()/operator[] overloads dark.
 template class Lightweight::HasMany<Email>;
 template class Lightweight::HasMany<Appointment>;
-template class Lightweight::HasManyThrough<Patient, Appointment>;
-template class Lightweight::HasManyThrough<Physician, Appointment>;
+template class Lightweight::HasManyThrough<Patient, Lightweight::Through<Appointment>>;
+template class Lightweight::HasManyThrough<Physician, Lightweight::Through<Appointment>>;
 
 // std::formatter specializations only exist once something formats the type. Nothing in the suite
 // std::format()s a Field, so these format() bodies were never instrumented.

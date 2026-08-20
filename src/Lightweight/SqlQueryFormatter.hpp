@@ -83,6 +83,9 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
                                                 std::string_view groupBy) const = 0;
 
     /// Constructs an SQL SELECT query for the first row.
+    ///
+    /// When @p groupBy is non-empty it is emitted between the WHERE and the ORDER BY clause, so
+    /// the row limit given by @p count applies to the grouped result set.
     [[nodiscard]] virtual std::string SelectFirst(bool distinct,
                                                   std::string_view fields,
                                                   std::string_view fromTable,
@@ -90,6 +93,7 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
                                                   std::string_view tableJoins,
                                                   std::string_view whereCondition,
                                                   std::string_view orderBy,
+                                                  std::string_view groupBy,
                                                   size_t count) const = 0;
 
     /// Constructs an SQL SELECT query for a range of rows.
@@ -105,11 +109,15 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
                                                   std::size_t limit) const = 0;
 
     /// Constructs an SQL SELECT query retrieve the count of rows matching the given condition.
+    ///
+    /// When @p groupBy is non-empty the query counts the rows of each group, i.e. it yields one
+    /// row per group rather than a single total.
     [[nodiscard]] virtual std::string SelectCount(bool distinct,
                                                   std::string_view fromTable,
                                                   std::string_view fromTableAlias,
                                                   std::string_view tableJoins,
-                                                  std::string_view whereCondition) const = 0;
+                                                  std::string_view whereCondition,
+                                                  std::string_view groupBy) const = 0;
 
     /// Constructs an SQL UPDATE query.
     [[nodiscard]] virtual std::string Update(std::string_view table,

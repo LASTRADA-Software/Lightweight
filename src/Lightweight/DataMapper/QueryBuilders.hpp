@@ -116,9 +116,11 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
 
     /// Executes a SELECT COUNT query and returns the number of records found.
     ///
-    /// @note A preceding @c GroupBy is *not* part of the generated statement - @c SqlQueryFormatter::SelectCount
-    ///       takes no GROUP BY clause - so this always returns the total number of matching rows, not a
-    ///       per-group count. Build the grouped query explicitly if per-group counts are needed.
+    /// A preceding @c GroupBy is honored, making the query count per group. Since only a single
+    /// value is returned, the caller receives the count of one arbitrary group: the emitted
+    /// SELECT COUNT query carries no ORDER BY (a preceding @c OrderBy does not apply to it), so
+    /// which group's count is read back is unspecified and may differ between database systems
+    /// and between runs.
     [[nodiscard]] auto Count()
     {
         return RunFinisher([this] { return CountImpl(); });
