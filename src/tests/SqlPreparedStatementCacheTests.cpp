@@ -424,3 +424,37 @@ TEST_CASE_METHOD(SqlTestFixture,
 
     CHECK(DataMapper {}.Query<CachedThing>().All().size() == 5);
 }
+
+TEST_CASE_METHOD(SqlTestFixture, "PreparedStatementCache: releasing a null handle is a no-op", "[SqlPreparedStatementCache]")
+{
+    auto cache = SqlPreparedStatementCache { 4 };
+
+    // A statement that never reached SQLPrepare (or was moved from) parks a null handle. Pooling it
+    // would hand the next Acquire() of that query text an unusable handle instead of a prepared one.
+    cache.Release("SELECT 1", SqlPreparedStatementCache::PreparedHandle {});
+
+    CHECK(cache.Size() == 0);
+    CHECK_FALSE(cache.Acquire("SELECT 1").has_value());
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "PreparedStatementCache: a disabled cache frees a released handle instead of pooling it",
+                 "[SqlPreparedStatementCache]")
+{
+    auto connection = SqlConnection {};
+
+    // Allocated from the connection's own DBC so the handle the disabled cache frees is a real one:
+    // the point of the test is that Release() takes ownership even when it keeps nothing.
+    auto nativeHandle = SQLHSTMT {};
+    REQUIRE(SQL_SUCCEEDED(SQLAllocHandle(SQL_HANDLE_STMT, connection.NativeHandle(), &nativeHandle)));
+
+    auto cache = SqlPreparedStatementCache { 0 };
+    REQUIRE_FALSE(cache.IsEnabled());
+
+    cache.Release("SELECT 1", SqlPreparedStatementCache::PreparedHandle { .nativeHandle = nativeHandle });
+
+    // Nothing pooled, and the handle is gone rather than leaked — a leak would otherwise accumulate
+    // one statement handle per Release() on every connection whose cache is switched off.
+    CHECK(cache.Size() == 0);
+    CHECK_FALSE(cache.Acquire("SELECT 1").has_value());
+}
