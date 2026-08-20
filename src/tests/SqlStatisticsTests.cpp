@@ -582,6 +582,37 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlStatistics captures pool acquire/release cy
     }
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlStatistics counts a pool connection created on demand", "[SqlStatistics]")
+{
+    if constexpr (!SqlStatistics::IsEnabled())
+        SUCCEED("Statistics collection disabled in this build");
+    else
+    {
+        auto const reset = ScopedStatisticsReset {};
+        auto& stats = SqlStatistics::Instance();
+
+        // Every other pool test starts from pre-created mappers, so the acquire is always a reuse.
+        // initialSize = 0 with BoundedWait takes the below-capacity creation path instead, which
+        // records the acquisition without a wait and re-reports occupancy.
+        auto pool = Pool<PoolConfig { .initialSize = 0, .maxSize = 2, .growthStrategy = GrowthStrategy::BoundedWait }> {};
+
+        {
+            auto const fresh = pool.Acquire();
+            CHECK(fresh->Connection().IsAlive());
+
+            auto const snapshot = stats.Snapshot();
+            CHECK(snapshot.pool.acquired == 1);
+            // Created, not recycled: the reuse counter must stay put, or the reuse rate would claim
+            // a hit the pool never had.
+            CHECK(snapshot.pool.reused == 0);
+            CHECK(snapshot.pool.waited == 0);
+            CHECK(snapshot.pool.checkedOut == 1);
+        }
+
+        CHECK(stats.Snapshot().pool.released == 1);
+    }
+}
+
 TEST_CASE("SqlStatistics records connections opened and closed", "[SqlStatistics]")
 {
     auto const reset = ScopedStatisticsReset {};
