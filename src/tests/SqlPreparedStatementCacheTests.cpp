@@ -445,7 +445,7 @@ TEST_CASE_METHOD(SqlTestFixture,
 
     // Allocated from the connection's own DBC so the handle the disabled cache frees is a real one:
     // the point of the test is that Release() takes ownership even when it keeps nothing.
-    auto nativeHandle = SQLHSTMT {};
+    SQLHSTMT nativeHandle = SQL_NULL_HSTMT;
     REQUIRE(SQL_SUCCEEDED(SQLAllocHandle(SQL_HANDLE_STMT, connection.NativeHandle(), &nativeHandle)));
 
     auto cache = SqlPreparedStatementCache { 0 };
