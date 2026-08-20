@@ -552,3 +552,30 @@ TEST_CASE_METHOD(SqlTestFixture, "eagerLoadDepth descends into a level that load
         CHECK(owner.region.Record().label.Value().ToStringView() == "north");
     }
 }
+
+TEST_CASE_METHOD(SqlTestFixture, "A named path stops when its first level loaded nothing", "[DataMapper][With]")
+{
+    // Owners that have no children at all, asked for the two-level path owners -> children ->
+    // category. The first level resolves to an empty set of targets, so the second must not run:
+    // continuing would query the category table with an IN predicate built from nothing.
+    auto dm = DataMapper {};
+    MakeOwnersWithChildren(dm, 0, 0);
+
+    auto region = EagerRegion { .label = "north" };
+    dm.Create(region);
+    for (auto const index: { 0, 1 })
+    {
+        auto owner = EagerOwner { .name = SqlAnsiString<32> { std::format("childless-path-{}", index) } };
+        owner.region = region;
+        dm.Create(owner);
+    }
+
+    auto counter = ScopedStatementCounter {};
+    auto owners = dm.Query<EagerOwner>().With<Member(EagerOwner::children), Member(EagerChild::category)>().All();
+
+    REQUIRE(owners.size() == 2);
+    // The owner SELECT and the children SELECT — and nothing for the third level.
+    CHECK(counter.Count() == 2);
+    for (auto& owner: owners)
+        CHECK(owner.children.Count() == 0);
+}
