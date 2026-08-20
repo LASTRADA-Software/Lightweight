@@ -183,6 +183,60 @@ var group__CoreApi =
       [ "GetNullableColumn", "d8/d63/classLightweight_1_1SqlResultCursor.html#a9584b83387781b98d5251839cf2c581d", null ],
       [ "GetColumnOr", "d8/d63/classLightweight_1_1SqlResultCursor.html#ab11374ccc4a6875c1ecf7fd8cc928660", null ]
     ] ],
+    [ "Lightweight::SqlLatencyHistogram", "df/d78/structLightweight_1_1SqlLatencyHistogram.html", [
+      [ "AverageMicroseconds", "df/d78/structLightweight_1_1SqlLatencyHistogram.html#ab16e9b6a9214e5c1e9ab0aea9bd358fc", null ],
+      [ "PercentileMicroseconds", "df/d78/structLightweight_1_1SqlLatencyHistogram.html#a0431cc06264dc3583561fd64ee5fd459", null ],
+      [ "buckets", "df/d78/structLightweight_1_1SqlLatencyHistogram.html#a29f494ad59a3fdbe440e4dfe88c353ec", null ],
+      [ "count", "df/d78/structLightweight_1_1SqlLatencyHistogram.html#abc2df01c8b102a058cdc2bc840576a53", null ],
+      [ "totalMicroseconds", "df/d78/structLightweight_1_1SqlLatencyHistogram.html#a0646c8652730deb24b56fe988467297d", null ],
+      [ "minMicroseconds", "df/d78/structLightweight_1_1SqlLatencyHistogram.html#a327c4c2f63f374dc7b71c414989ef972", null ],
+      [ "maxMicroseconds", "df/d78/structLightweight_1_1SqlLatencyHistogram.html#a76212aeff63c3be7ec3e708f78d45148", null ]
+    ] ],
+    [ "Lightweight::SqlOperationStatistics", "d4/d7d/structLightweight_1_1SqlOperationStatistics.html", [
+      [ "Total", "d4/d7d/structLightweight_1_1SqlOperationStatistics.html#a2d30f22a4897c064c5cc087e5c4ae56a", null ],
+      [ "succeeded", "d4/d7d/structLightweight_1_1SqlOperationStatistics.html#a030aebd35627204749f0a6a1959b1ec0", null ],
+      [ "failed", "d4/d7d/structLightweight_1_1SqlOperationStatistics.html#a938239d2dcd83da1bfc6408536aac72d", null ],
+      [ "retried", "d4/d7d/structLightweight_1_1SqlOperationStatistics.html#a327c97e76f35bc0417fa3e591be97d6c", null ],
+      [ "latency", "d4/d7d/structLightweight_1_1SqlOperationStatistics.html#acaa3ff8b0a602e89b1dc5003ca4edf5a", null ]
+    ] ],
+    [ "Lightweight::SqlPoolStatistics", "da/da6/structLightweight_1_1SqlPoolStatistics.html", [
+      [ "ReuseRate", "da/da6/structLightweight_1_1SqlPoolStatistics.html#a5c289c86666762a45df6000d1d405a74", null ],
+      [ "acquired", "da/da6/structLightweight_1_1SqlPoolStatistics.html#ad30a6a72eb576012d6f75d00dc230055", null ],
+      [ "reused", "da/da6/structLightweight_1_1SqlPoolStatistics.html#ab94ec8b9865e5d838d4942cdbc45700a", null ],
+      [ "waited", "da/da6/structLightweight_1_1SqlPoolStatistics.html#a43aef722357d7f81387c413979240312", null ],
+      [ "released", "da/da6/structLightweight_1_1SqlPoolStatistics.html#aaebcb5afa49a9a806b787c711e40fa3e", null ],
+      [ "discarded", "da/da6/structLightweight_1_1SqlPoolStatistics.html#a18c2c21391e5400271d03e1676e75a45", null ],
+      [ "idle", "da/da6/structLightweight_1_1SqlPoolStatistics.html#a414f91ec0a47a8b1a64a8a4be683afaa", null ],
+      [ "checkedOut", "da/da6/structLightweight_1_1SqlPoolStatistics.html#a5e418dd2b966e3c3e05fe4a197cc9213", null ],
+      [ "waitLatency", "da/da6/structLightweight_1_1SqlPoolStatistics.html#ad171570bc9e10521592308c76d33ef24", null ]
+    ] ],
+    [ "Lightweight::SqlStatisticsSnapshot", "df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html", [
+      [ "operator[]", "df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html#a4af9edaef74e02bed9c146251cb6d28c", null ],
+      [ "operations", "df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html#ab0e9f69aee0b95ce3f12a5b6b352614d", null ],
+      [ "pool", "df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html#ad529acd9a233c856b9723593a2105e61", null ],
+      [ "connectionsOpened", "df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html#a0ccfea4a72de1785d7c55b598ce18bfa", null ],
+      [ "connectionsClosed", "df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html#a5a01dfd252c6176086d7a44158b9aaeb", null ],
+      [ "rowsFetched", "df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html#ac92cee860cb6d2eac2a8fc9ad0cf7940", null ],
+      [ "blockFetches", "df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html#ac2368297f19fc2e78636a129ac09909b", null ]
+    ] ],
+    [ "Lightweight::SqlStatistics", "dd/de6/classLightweight_1_1SqlStatistics.html", [
+      [ "SqlStatistics", "dd/de6/classLightweight_1_1SqlStatistics.html#a66f3b95e0db5046adc1859eeb2d8a116", null ],
+      [ "RecordOperation", "dd/de6/classLightweight_1_1SqlStatistics.html#afb7385514ebc5345fadade8f5a135693", null ],
+      [ "RecordRetry", "dd/de6/classLightweight_1_1SqlStatistics.html#a55379fc390f1e80f01df96bcf719caf3", null ],
+      [ "RecordRowsFetched", "dd/de6/classLightweight_1_1SqlStatistics.html#a558c837e0d49e0119c23ab362ed75699", null ],
+      [ "RecordConnectionOpened", "dd/de6/classLightweight_1_1SqlStatistics.html#a78564a9f5b57faf634d2fb1499a26a8e", null ],
+      [ "RecordConnectionClosed", "dd/de6/classLightweight_1_1SqlStatistics.html#abc6374fecaaf3d3ab27a913186ea8704", null ],
+      [ "RecordPoolAcquire", "dd/de6/classLightweight_1_1SqlStatistics.html#af6c818581aaed627f5cefa9607059743", null ],
+      [ "RecordPoolRelease", "dd/de6/classLightweight_1_1SqlStatistics.html#ab8546c7d0a149b9637d3b9d5b35cd7fe", null ],
+      [ "RecordPoolOccupancy", "dd/de6/classLightweight_1_1SqlStatistics.html#a81ccd6a7cccbb3ebd73206f17a854edf", null ],
+      [ "Snapshot", "dd/de6/classLightweight_1_1SqlStatistics.html#ac427f053e220d3e3eadbd6bceb5a8c48", null ],
+      [ "Reset", "dd/de6/classLightweight_1_1SqlStatistics.html#ab2ef9fa0cef77a2c2d0681e74ec991a0", null ]
+    ] ],
+    [ "Lightweight::SqlStatisticsScope", "d9/d5c/classLightweight_1_1SqlStatisticsScope.html", [
+      [ "SqlStatisticsScope", "d9/d5c/classLightweight_1_1SqlStatisticsScope.html#a99cfbeb3417d0ef7ed2940326aa8792c", null ],
+      [ "Failed", "d9/d5c/classLightweight_1_1SqlStatisticsScope.html#ad1cb26a4081b6404d8d8be216f235170", null ],
+      [ "Retried", "d9/d5c/classLightweight_1_1SqlStatisticsScope.html#abaa323a20e34717fc4831c89dc67437e", null ]
+    ] ],
     [ "Lightweight::SqlTransactionException", "d5/d19/classLightweight_1_1SqlTransactionException.html", [
       [ "SqlTransactionException", "d5/d19/classLightweight_1_1SqlTransactionException.html#a14af02cd69dee3168a5cc92a88e8b38e", null ]
     ] ],
@@ -196,5 +250,15 @@ var group__CoreApi =
       [ "TryRollback", "d0/ddc/classLightweight_1_1SqlTransaction.html#ad2c493184413ef5bb279704c66febaad", null ],
       [ "Commit", "d0/ddc/classLightweight_1_1SqlTransaction.html#abf53df501043f0a82fb306232e339e0a", null ],
       [ "TryCommit", "d0/ddc/classLightweight_1_1SqlTransaction.html#a0bd596d2a637709abc81b396c7b2ce70", null ]
-    ] ]
+    ] ],
+    [ "Lightweight::SqlStatisticsOperation", "d9/d8a/group__CoreApi.html#ga8637d070f06ecc36b5699c5b7ea1b102", [
+      [ "Lightweight::SqlStatisticsOperation::Execute", "d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a40cd014b7b6251e3a22e6a45a73a64e1", null ],
+      [ "Lightweight::SqlStatisticsOperation::ExecuteDirect", "d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a85990d18cace92b043008dc0ef0c1b93", null ],
+      [ "Lightweight::SqlStatisticsOperation::ExecuteBatch", "d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a22bf72f446ee535304bb79155891eb15", null ],
+      [ "Lightweight::SqlStatisticsOperation::Prepare", "d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102af8199556cf6a62ca9268aa50c99b34a1", null ],
+      [ "Lightweight::SqlStatisticsOperation::Fetch", "d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a4ea7755f84f02d23876d90be2f9765cf", null ],
+      [ "Lightweight::SqlStatisticsOperation::PoolAcquire", "d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a124a7ebb0b5e71644c43ffd4f35ac3c2", null ],
+      [ "Lightweight::SqlStatisticsOperation::Count", "d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102ae93f994f01c537c4e2f7d8528c3eb5e9", null ]
+    ] ],
+    [ "Lightweight::ToStringView", "d9/d8a/group__CoreApi.html#ga225ccc050bd6c53031dd614127a3553c", null ]
 ];
