@@ -3,10 +3,11 @@ var searchData=
   ['length_0',['length',['../d7/d13/structLightweight_1_1SqlRealName.html#afc6f9827f0234476fe8998a3a43259d0',1,'Lightweight::SqlRealName']]],
   ['level_1',['level',['../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#a433db0c5f6bf8d24dc11eec160e262b5',1,'Lightweight::SqlBackup::BackupSettings']]],
   ['libziperror_2',['libzipError',['../da/dd4/structLightweight_1_1Zip_1_1ZipError.html#aae4162b3c01ffe80286bdf62a5561472',1,'Lightweight::Zip::ZipError']]],
-  ['livetype_3',['liveType',['../d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a396642e22f36188c7ea4dce037c2204e',1,'Lightweight::SqlMigration::MigrationManager::ColumnUpgradeEntry']]],
-  ['loadreference_4',['loadReference',['../d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html#aa09380d173e9cc5e484d93faf1b35192',1,'Lightweight::CompositeForeignKey::Loader']]],
-  ['loadrelations_5',['loadRelations',['../d3/db2/structLightweight_1_1DataMapperOptions.html#ae7030386be6995fdafef8903818bfe2a',1,'Lightweight::DataMapperOptions']]],
-  ['lockname_6',['lockName',['../d6/d3b/structLightweight_1_1SqlLockError.html#ac84025dddd1fc79469d13504b5c733cf',1,'Lightweight::SqlLockError']]],
-  ['lookupattempted_7',['lookupAttempted',['../d4/d23/structLightweight_1_1MigrationRenderContext.html#a7d5c90cf0a765b640b1de1ed07a24f28',1,'Lightweight::MigrationRenderContext']]],
-  ['luptruncate_8',['lupTruncate',['../d4/d23/structLightweight_1_1MigrationRenderContext.html#a2951b6980a9d504a748699de0167c8de',1,'Lightweight::MigrationRenderContext']]]
+  ['livenullable_3',['liveNullable',['../d3/d08/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffColumnChange.html#abde75801d757d143e1cac15c40bcfa63',1,'Lightweight::SqlMigration::MigrationManager::SchemaDiffColumnChange']]],
+  ['livetype_4',['livetype',['../d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a396642e22f36188c7ea4dce037c2204e',1,'Lightweight::SqlMigration::MigrationManager::ColumnUpgradeEntry::liveType'],['../d3/d08/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffColumnChange.html#aeb008562b619138d570502584dc74eb6',1,'Lightweight::SqlMigration::MigrationManager::SchemaDiffColumnChange::liveType']]],
+  ['loadreference_5',['loadReference',['../d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html#aa09380d173e9cc5e484d93faf1b35192',1,'Lightweight::CompositeForeignKey::Loader']]],
+  ['loadrelations_6',['loadRelations',['../d3/db2/structLightweight_1_1DataMapperOptions.html#ae7030386be6995fdafef8903818bfe2a',1,'Lightweight::DataMapperOptions']]],
+  ['lockname_7',['lockName',['../d6/d3b/structLightweight_1_1SqlLockError.html#ac84025dddd1fc79469d13504b5c733cf',1,'Lightweight::SqlLockError']]],
+  ['lookupattempted_8',['lookupAttempted',['../d4/d23/structLightweight_1_1MigrationRenderContext.html#a7d5c90cf0a765b640b1de1ed07a24f28',1,'Lightweight::MigrationRenderContext']]],
+  ['luptruncate_9',['lupTruncate',['../d4/d23/structLightweight_1_1MigrationRenderContext.html#a2951b6980a9d504a748699de0167c8de',1,'Lightweight::MigrationRenderContext']]]
 ];

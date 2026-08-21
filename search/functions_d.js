@@ -30,7 +30,7 @@ var searchData=
   ['open_27',['Open',['../d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#aac689e2806ba18b524ac9ec5bb42c4e2',1,'Lightweight::Zip::ZipArchive']]],
   ['openentry_28',['OpenEntry',['../d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#a4309cc9457aca91537652763dd817095',1,'Lightweight::Zip::ZipArchive']]],
   ['operator_29',['Operator',['../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#ae323751c667fa84bef366866e65ea0e3',1,'Lightweight::SqlJoinConditionBuilder']]],
-  ['operator_20bool_30',['operator bool',['../df/d7c/structLightweight_1_1SqlGuid.html#a938d38326b32d8949207090b1fca26d0',1,'Lightweight::SqlGuid::operator bool()'],['../d4/d09/structLightweight_1_1SqlRetryDecision.html#a2206b1e2f4343a39cbfd37b69be55528',1,'Lightweight::SqlRetryDecision::operator bool()'],['../d0/df7/classLightweight_1_1BelongsTo.html#a209cea72fa9c9a68e4e7d16f8d1fdf9a',1,'Lightweight::BelongsTo::operator bool()']]],
+  ['operator_20bool_30',['operator bool',['../df/d7c/structLightweight_1_1SqlGuid.html#a938d38326b32d8949207090b1fca26d0',1,'Lightweight::SqlGuid::operator bool()'],['../d0/df7/classLightweight_1_1BelongsTo.html#a209cea72fa9c9a68e4e7d16f8d1fdf9a',1,'Lightweight::BelongsTo::operator bool()']]],
   ['operator_20co_5fawait_31',['operator co_await',['../d8/d0c/classLightweight_1_1Async_1_1Task.html#a79761ad0bf2fd2ddf218b478f7c71d45',1,'Lightweight::Async::Task']]],
   ['operator_20double_32',['operator double',['../d6/d1b/structLightweight_1_1SqlNumeric.html#ac27105fda2cdeaeda286ab90d31ab45c',1,'Lightweight::SqlNumeric']]],
   ['operator_20float_33',['operator float',['../d6/d1b/structLightweight_1_1SqlNumeric.html#a4085adeb1b53cd5bdb3069c824681bae',1,'Lightweight::SqlNumeric']]],

@@ -8,6 +8,5 @@ var topics =
     [ "Backup and Restore", "d0/d95/group__Backup.html", "d0/d95/group__Backup" ],
     [ "Core API", "d9/d8a/group__CoreApi.html", "d9/d8a/group__CoreApi" ],
     [ "SQL Migration", "db/df6/group__SqlMigration.html", "db/df6/group__SqlMigration" ],
-    [ "Query Builder", "d6/daa/group__QueryBuilder.html", "d6/daa/group__QueryBuilder" ],
-    [ "Retry and Backoff", "d1/d7b/group__Retry.html", "d1/d7b/group__Retry" ]
+    [ "Query Builder", "d6/daa/group__QueryBuilder.html", "d6/daa/group__QueryBuilder" ]
 ];

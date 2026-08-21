@@ -7,6 +7,7 @@ var searchData=
   ['migrationmetadata_4',['MigrationMetadata',['../dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html',1,'Lightweight::SqlMigration']]],
   ['migrationrelease_5',['MigrationRelease',['../d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html',1,'Lightweight::SqlMigration']]],
   ['migrationrendercontext_6',['MigrationRenderContext',['../d4/d23/structLightweight_1_1MigrationRenderContext.html',1,'Lightweight']]],
-  ['migrationstatus_7',['MigrationStatus',['../d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html',1,'Lightweight::SqlMigration']]],
-  ['migrationtimestamp_8',['MigrationTimestamp',['../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html',1,'Lightweight::SqlMigration']]]
+  ['migrationsourceoptions_7',['MigrationSourceOptions',['../d1/dc3/structLightweight_1_1Tools_1_1MigrationSourceOptions.html',1,'Lightweight::Tools']]],
+  ['migrationstatus_8',['MigrationStatus',['../d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html',1,'Lightweight::SqlMigration']]],
+  ['migrationtimestamp_9',['MigrationTimestamp',['../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html',1,'Lightweight::SqlMigration']]]
 ];
