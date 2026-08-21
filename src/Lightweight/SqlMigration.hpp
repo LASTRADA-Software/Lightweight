@@ -699,8 +699,8 @@ namespace SqlMigration
         ///                      so the diff answers "what does the live DB still need to
         ///                      reach that point" rather than "to reach HEAD".
         /// @return The delta. Empty when the live schema already matches the intent.
-        [[nodiscard]] LIGHTWEIGHT_API SchemaDiffResult DiffAgainstLiveSchema(
-            std::optional<MigrationTimestamp> upToInclusive = std::nullopt) const;
+        [[nodiscard]] LIGHTWEIGHT_API SchemaDiffResult
+        DiffAgainstLiveSchema(std::optional<MigrationTimestamp> upToInclusive = std::nullopt) const;
 
         /// @brief Re-stamps `schema_migrations.checksum` rows that have drifted.
         ///

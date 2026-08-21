@@ -17,10 +17,10 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <charconv>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
-#include <charconv>
 #include <expected>
 #include <filesystem>
 #include <fstream>
@@ -29,9 +29,11 @@
 #include <print>
 #include <ranges>
 #include <set>
+#include <span>
 #include <string>
 #include <type_traits>
 #include <unordered_set>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -69,6 +71,27 @@ using namespace std::string_view_literals;
 
 namespace
 {
+
+/// @brief Joins @p parts into a single comma-separated string, for display only.
+///
+/// Hand-rolled rather than `std::views::join_with`: that view is C++23, but libc++ does not ship it
+/// yet and the macOS CI leg builds against libc++. The separator is tracked with a flag rather than
+/// by testing whether the result is still empty, so an empty element cannot swallow a separator.
+///
+/// @param parts The strings to join.
+/// @return The joined string, empty when @p parts is empty.
+[[nodiscard]] std::string JoinForDisplay(std::span<std::string const> parts)
+{
+    auto result = std::string {};
+    auto first = true;
+    for (auto const& part: parts)
+    {
+        if (!std::exchange(first, false))
+            result += ", ";
+        result += part;
+    }
+    return result;
+}
 
 /// @brief Emits a startup-trace breadcrumb to stderr when `DBTOOL_TRACE=1` is set.
 ///
@@ -380,11 +403,11 @@ struct Options
     std::string batchSize;                     ///< Batch size for restore (rows per batch)
     bool pluginsDirSet = false;
     bool connectionStringSet = false;
-    bool dryRun = false;     ///< If true, show what would be done without actually doing it
-    bool noLock = false;     ///< If true, skip migration locking for write operations
-    bool schemaOnly = false; ///< If true, backup/restore schema only (no data)
-    bool yes = false;        ///< If true, confirm destructive actions (e.g. rewrite-checksums)
-    bool verbose = false;    ///< If true, emit extra informational output (e.g. shadowed plugins)
+    bool dryRun = false;         ///< If true, show what would be done without actually doing it
+    bool noLock = false;         ///< If true, skip migration locking for write operations
+    bool schemaOnly = false;     ///< If true, backup/restore schema only (no data)
+    bool yes = false;            ///< If true, confirm destructive actions (e.g. rewrite-checksums)
+    bool verbose = false;        ///< If true, emit extra informational output (e.g. shadowed plugins)
     bool emptyMigration = false; ///< `generate --empty`: scaffold a blank migration, no DB needed
 
     /// @brief `--up-to <X>` for migration commands. Empty = no bound.
@@ -1443,10 +1466,7 @@ void PrintSchemaDiff(MigrationManager::SchemaDiffResult const& diff, SqlQueryFor
     {
         std::println("Indexes to create ({}):", diff.missingIndexes.size());
         for (auto const& index: diff.missingIndexes)
-            std::println("  {} on {} ({})",
-                         index.indexName,
-                         index.tableName,
-                         index.columns | std::views::join_with(std::string_view { ", " }) | std::ranges::to<std::string>());
+            std::println("  {} on {} ({})", index.indexName, index.tableName, JoinForDisplay(index.columns));
         std::println("");
     }
 

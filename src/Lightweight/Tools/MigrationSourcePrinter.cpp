@@ -23,12 +23,24 @@ namespace
         {
             switch (c)
             {
-                case '"': out.append(R"(\")"); break;
-                case '\\': out.append(R"(\\)"); break;
-                case '\n': out.append(R"(\n)"); break;
-                case '\r': out.append(R"(\r)"); break;
-                case '\t': out.append(R"(\t)"); break;
-                default: out.push_back(c); break;
+                case '"':
+                    out.append(R"(\")");
+                    break;
+                case '\\':
+                    out.append(R"(\\)");
+                    break;
+                case '\n':
+                    out.append(R"(\n)");
+                    break;
+                case '\r':
+                    out.append(R"(\r)");
+                    break;
+                case '\t':
+                    out.append(R"(\t)");
+                    break;
+                default:
+                    out.push_back(c);
+                    break;
             }
         }
         out.push_back('"');
@@ -98,9 +110,8 @@ namespace
                               || std::same_as<T, Varchar>)
                     return std::format("SqlColumnTypeDefinitions::{} {{ {} }}", ColumnTypeName<T>(), t.size);
                 else if constexpr (std::same_as<T, Decimal>)
-                    return std::format("SqlColumnTypeDefinitions::Decimal {{ .precision = {}, .scale = {} }}",
-                                       t.precision,
-                                       t.scale);
+                    return std::format(
+                        "SqlColumnTypeDefinitions::Decimal {{ .precision = {}, .scale = {} }}", t.precision, t.scale);
                 else if constexpr (std::same_as<T, Real>)
                     return std::format("SqlColumnTypeDefinitions::Real {{ .precision = {} }}", t.precision);
                 else
@@ -133,8 +144,7 @@ namespace
     /// everything the shorthands have no parameter for does.
     [[nodiscard]] bool IsExpressibleAsShorthand(SqlColumnDeclaration const& column) noexcept
     {
-        return column.defaultValue.empty() && column.primaryKeyIndex == 0
-               && column.primaryKey != SqlPrimaryKeyType::GUID;
+        return column.defaultValue.empty() && column.primaryKeyIndex == 0 && column.primaryKey != SqlPrimaryKeyType::GUID;
     }
 
     /// @brief Renders a foreign-key reference as its aggregate initializer.
@@ -150,10 +160,14 @@ namespace
     {
         switch (type)
         {
-            case SqlPrimaryKeyType::NONE: return "SqlPrimaryKeyType::NONE";
-            case SqlPrimaryKeyType::MANUAL: return "SqlPrimaryKeyType::MANUAL";
-            case SqlPrimaryKeyType::AUTO_INCREMENT: return "SqlPrimaryKeyType::AUTO_INCREMENT";
-            case SqlPrimaryKeyType::GUID: return "SqlPrimaryKeyType::GUID";
+            case SqlPrimaryKeyType::NONE:
+                return "SqlPrimaryKeyType::NONE";
+            case SqlPrimaryKeyType::MANUAL:
+                return "SqlPrimaryKeyType::MANUAL";
+            case SqlPrimaryKeyType::AUTO_INCREMENT:
+                return "SqlPrimaryKeyType::AUTO_INCREMENT";
+            case SqlPrimaryKeyType::GUID:
+                return "SqlPrimaryKeyType::GUID";
         }
         return "SqlPrimaryKeyType::NONE";
     }
@@ -274,8 +288,9 @@ namespace
                 else if constexpr (std::same_as<T, Cmd::DropIndexIfExists>)
                     return std::format(".DropIndexIfExists({})", QuoteCppString(c.columnName));
                 else if constexpr (std::same_as<T, Cmd::AddForeignKey>)
-                    return std::format(
-                        ".AddForeignKey({}, {})", QuoteCppString(c.columnName), PrintForeignKeyReference(c.referencedColumn));
+                    return std::format(".AddForeignKey({}, {})",
+                                       QuoteCppString(c.columnName),
+                                       PrintForeignKeyReference(c.referencedColumn));
                 else if constexpr (std::same_as<T, Cmd::AddCompositeForeignKey>)
                     return std::format(".AddCompositeForeignKey({}, {}, {})",
                                        PrintStringList(c.columns),
@@ -308,9 +323,9 @@ namespace
                     return PrintAlterTable(e);
                 else if constexpr (std::same_as<T, SqlDropTablePlan>)
                     return std::format("    plan.{}({});\n",
-                                       e.cascade      ? "DropTableCascade"
-                                       : e.ifExists   ? "DropTableIfExists"
-                                                      : "DropTable",
+                                       e.cascade    ? "DropTableCascade"
+                                       : e.ifExists ? "DropTableIfExists"
+                                                    : "DropTable",
                                        QuoteCppString(e.tableName));
                 else if constexpr (std::same_as<T, SqlCreateIndexPlan>)
                     return std::format("    plan.{}({}, {}, {});\n",

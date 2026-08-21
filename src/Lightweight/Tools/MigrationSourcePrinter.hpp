@@ -56,7 +56,7 @@ struct MigrationSourceOptions
 /// @param plan The plan elements to spell out, in replay order.
 /// @return The full contents of the `.cpp` file, newline-terminated.
 [[nodiscard]] std::string PrintMigrationSource(MigrationSourceOptions const& options,
-                                                               std::span<SqlMigrationPlanElement const> plan);
+                                               std::span<SqlMigrationPlanElement const> plan);
 
 /// @brief Formats a time point as a `YYYYMMDDHHMMSS` migration timestamp in UTC.
 ///

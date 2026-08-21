@@ -3056,8 +3056,12 @@ namespace
     /// `nvarchar (50)` must compare equal.
     [[nodiscard]] bool RenderedTypesEqual(std::string_view lhs, std::string_view rhs) noexcept
     {
-        auto const significant = [](char c) { return !std::isspace(static_cast<unsigned char>(c)); };
-        auto const fold = [](char c) { return static_cast<char>(std::toupper(static_cast<unsigned char>(c))); };
+        auto const significant = [](char c) {
+            return !std::isspace(static_cast<unsigned char>(c));
+        };
+        auto const fold = [](char c) {
+            return static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+        };
         return std::ranges::equal(lhs | std::views::filter(significant) | std::views::transform(fold),
                                   rhs | std::views::filter(significant) | std::views::transform(fold));
     }
