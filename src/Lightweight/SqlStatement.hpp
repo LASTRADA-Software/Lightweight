@@ -892,19 +892,50 @@ class [[nodiscard]] SqlVariantRowCursor
 ///    Field<double> field3;
 /// };
 ///
-/// for (auto const& row : SqlRowIterator<MyRecord>(stmt))
+/// for (auto const& row : SqlRowIterator<MyRecord>(conn))
 /// {
 ///    // row is of type MyRecord
 ///    // row.field1, row.field2, row.field3 are accessible
+/// }
+/// @endcode
+///
+/// Pass a second argument to iterate over a subset of the table only. The callable receives the
+/// underlying @ref SqlSelectQueryBuilder with the projection for @c T already applied, so the full
+/// WHERE / ORDER BY / LIMIT surface of the query builder is available:
+/// @code
+///
+/// for (auto const& row : SqlRowIterator<MyRecord>(conn, [](auto& query) {
+///          return query.Where("field2", 10).OrWhere([](auto& query) {
+///              return query.Where("field2", 20).Where("field3", 3.14);
+///          });
+///      }))
+/// {
+///    // only the rows matching the condition above are fetched
 /// }
 /// @endcode
 template <typename T>
 class SqlRowIterator
 {
   public:
-    /// Constructs a row iterator using the given SQL connection.
+    /// Callable refining the SELECT query before it is executed.
+    ///
+    /// It is invoked with the query builder that already carries the projection for @c T. Any value
+    /// the callable returns is ignored, so the builder's chaining methods can be returned directly.
+    using QueryCustomizer = std::function<void(SqlSelectQueryBuilder&)>;
+
+    /// Constructs a row iterator over all rows of the record's table, using the given SQL connection.
     explicit SqlRowIterator(SqlConnection& conn):
         _connection { &conn }
+    {
+    }
+
+    /// Constructs a row iterator over the subset of rows selected by @p queryCustomizer.
+    ///
+    /// @param conn The SQL connection to run the query on.
+    /// @param queryCustomizer Callable refining the SELECT query, e.g. by adding WHERE conditions.
+    SqlRowIterator(SqlConnection& conn, QueryCustomizer queryCustomizer):
+        _connection { &conn },
+        _queryCustomizer { std::move(queryCustomizer) }
     {
     }
 
@@ -986,7 +1017,7 @@ class SqlRowIterator
     {
         auto it = iterator { *_connection };
         auto& stmt = it.Statement();
-        stmt.Prepare(it.Statement().Query(RecordTableName<T>).Select().template Fields<T>().All());
+        stmt.Prepare(it.Statement().Query(RecordTableName<T>).Select().template Fields<T>().Build(_queryCustomizer).All());
         it.SetCursor(stmt.Execute());
         ++it;
         return it;
@@ -1000,6 +1031,8 @@ class SqlRowIterator
 
   private:
     SqlConnection* _connection;
+    QueryCustomizer _queryCustomizer = [](SqlSelectQueryBuilder& /*query*/) {
+    };
 };
 
 // {{{ inline implementation

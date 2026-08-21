@@ -189,9 +189,13 @@ void CRUD(DataMapper& dm)
     // Query all persons
     auto const persons = dm.Query<Person>(); 
 
-    // Iterate over all persons 
-    auto stmt = SqlStatement { dm.Connection() };
-    for(const auto& person: SqlRowIterator<Person>(stmt))
+    // Iterate over all persons
+    for (auto const& person: SqlRowIterator<Person>(dm.Connection()))
+        std::println("|{}|{}|", person.name, person.age);
+
+    // Iterate over a subset of the persons
+    for (auto const& person: SqlRowIterator<Person>(dm.Connection(),
+                                                    [](auto& query) { return query.Where("age", ">=", 18); }))
         std::println("|{}|{}|", person.name, person.age);
 
     // Delete the person
@@ -253,3 +257,32 @@ void SimpleStructExample(DataMapper& dm)
         std::println("{}", DataMapper::Inspect(obj));
 }
 ```
+
+## Streaming a table with `SqlRowIterator`
+
+`SqlRowIterator<T>` streams a table row by row, materializing one record at a time instead of
+loading the whole result set into a `std::vector` as `DataMapper::Query<T>()` does. That makes it
+the tool of choice for tables too large to hold in memory.
+
+```cpp
+for (auto const& person: SqlRowIterator<Person>(dm.Connection()))
+    std::println("{}", DataMapper::Inspect(person));
+```
+
+Pass a callable as second argument to iterate over a **subset** of the rows. It receives the
+underlying `SqlSelectQueryBuilder` with the projection for `T` already applied, so the full
+`Where` / `OrWhere` / `OrderBy` / `Limit` surface of the [query builder](sqlquery.md) is available.
+Whatever the callable returns is ignored, so the builder's chaining methods can be returned
+directly:
+
+```cpp
+for (auto const& person: SqlRowIterator<Person>(dm.Connection(), [](auto& query) {
+         return query.Where("age", ">=", 18).OrWhere([](auto& query) {
+             return query.Where("age", 10).Where("name", "John");
+         });
+     }))
+    std::println("{}", DataMapper::Inspect(person));
+```
+
+Both plain column names and `FieldNameOf<Member(Person::age)>` work as column arguments; the latter
+keeps the condition in sync when a field is renamed.

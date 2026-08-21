@@ -15,7 +15,11 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <algorithm>
+#include <iterator>
+#include <string>
 #include <string_view>
+#include <vector>
 
 using namespace std::string_view_literals;
 using namespace std::string_literals;
@@ -328,6 +332,76 @@ TEST_CASE_METHOD(SqlTestFixture, "iterate over database", "[SqlRowIterator]")
     }
 
     CHECK(count == 11);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "iterate over subset of database", "[SqlRowIterator]")
+{
+    auto dm = DataMapper();
+    dm.CreateTable<Person>();
+
+    for (int i = 40; i <= 50; ++i)
+    {
+        auto person = Person {};
+        person.name = std::format("John-{}", i);
+        person.age = i;
+        dm.Create(person);
+    }
+
+    auto const agesOf = [](std::vector<Person> const& records) -> std::vector<int> {
+        auto ages = std::vector<int> {};
+        ages.reserve(records.size());
+        std::ranges::transform(
+            records, std::back_inserter(ages), [](Person const& person) { return person.age.Value().value(); });
+        std::ranges::sort(ages);
+        return ages;
+    };
+
+    SECTION("single condition")
+    {
+        auto retrievedPersons = std::vector<Person> {};
+        for (auto&& person: SqlRowIterator<Person>(
+                 dm.Connection(), [](auto& query) { return query.Where(FieldNameOf<Member(Person::age)>, ">=", 48); }))
+            retrievedPersons.emplace_back(person);
+
+        CHECK(agesOf(retrievedPersons) == std::vector { 48, 49, 50 });
+    }
+
+    SECTION("nested conditions")
+    {
+        auto retrievedPersons = std::vector<Person> {};
+        for (auto&& person: SqlRowIterator<Person>(dm.Connection(), [](auto& query) {
+                 return query.Where(FieldNameOf<Member(Person::age)>, 41).OrWhere([](auto& query) {
+                     return query.Where(FieldNameOf<Member(Person::age)>, ">=", 49)
+                         .Where(FieldNameOf<Member(Person::name)>, "!=", "John-50");
+                 });
+             }))
+            retrievedPersons.emplace_back(person);
+
+        CHECK(agesOf(retrievedPersons) == std::vector { 41, 49 });
+    }
+
+    SECTION("no match yields an empty range")
+    {
+        auto count = size_t { 0 };
+        for ([[maybe_unused]] auto&& person: SqlRowIterator<Person>(
+                 dm.Connection(), [](auto& query) { return query.Where(FieldNameOf<Member(Person::age)>, 1); }))
+            ++count;
+
+        CHECK(count == 0);
+    }
+
+    SECTION("ordering")
+    {
+        auto retrievedNames = std::vector<std::string> {};
+        for (auto&& person: SqlRowIterator<Person>(dm.Connection(), [](auto& query) {
+                 return query.OrderBy(FieldNameOf<Member(Person::age)>, SqlResultOrdering::DESCENDING);
+             }))
+            retrievedNames.emplace_back(person.name.Value());
+
+        REQUIRE(retrievedNames.size() == 11);
+        CHECK(retrievedNames.front() == "John-50");
+        CHECK(retrievedNames.back() == "John-40");
+    }
 }
 
 // Simple struct, used for testing SELECT'ing into it
