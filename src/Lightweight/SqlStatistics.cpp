@@ -12,17 +12,13 @@ namespace Lightweight
 
 namespace
 {
-    // Recording is compiled out wholesale when statistics are disabled, so the public API keeps its
-    // shape (downstream code that reads a snapshot still compiles) while the hot path pays nothing.
-    constexpr bool CollectingEnabled = SqlStatistics::IsEnabled();
-
     /// Tracy plot names, indexed by SqlStatisticsOperation. Data-driven rather than a switch ladder,
     /// so adding an operation is a single table row.
     constexpr std::array<std::string_view, static_cast<std::size_t>(SqlStatisticsOperation::Count)> OperationNames {
         "Execute", "ExecuteDirect", "ExecuteBatch", "Prepare", "Fetch", "PoolAcquire"
     };
 
-#if defined(LIGHTWEIGHT_STATISTICS_ENABLED) && defined(LIGHTWEIGHT_TRACY_ENABLED)
+#if defined(LIGHTWEIGHT_TRACY_ENABLED)
     /// Tracy plot labels must outlive the call, so they are static string literals rather than
     /// formatted at the call site.
     constexpr std::array<char const*, static_cast<std::size_t>(SqlStatisticsOperation::Count)> LatencyPlotNames {
@@ -31,19 +27,16 @@ namespace
     };
 #endif
 
-    /// Emits a sample to Tracy when Tracy is enabled; a no-op otherwise.
-    ///
-    /// Marked `[[maybe_unused]]` because its only call site sits inside `if constexpr
-    /// (CollectingEnabled)`: with statistics disabled that branch is never emitted, leaving this
-    /// internal-linkage function referenced but never generated — which clang rejects under
-    /// `-Wunneeded-internal-declaration -Werror` (i.e. the project's own default build).
+    /// Emits a sample to Tracy when Tracy is enabled; a no-op otherwise. Only called once the caller
+    /// has already confirmed statistics collection is runtime-enabled, so statistics never depends on
+    /// Tracy: this is purely additive on top of collection that already happened.
     ///
     /// @param operation The operation the sample belongs to.
     /// @param microseconds The sampled duration.
     [[maybe_unused]] void PlotLatency([[maybe_unused]] SqlStatisticsOperation operation,
                                       [[maybe_unused]] std::uint64_t microseconds) noexcept
     {
-#if defined(LIGHTWEIGHT_STATISTICS_ENABLED) && defined(LIGHTWEIGHT_TRACY_ENABLED)
+#if defined(LIGHTWEIGHT_TRACY_ENABLED)
         auto const index = static_cast<std::size_t>(operation);
         if (index < LatencyPlotNames.size())
             TracyPlot(LatencyPlotNames[index], static_cast<int64_t>(microseconds));
@@ -161,98 +154,119 @@ SqlStatistics& SqlStatistics::Instance() noexcept
     return theInstance;
 }
 
+std::atomic<bool>& SqlStatistics::EnabledFlag() noexcept
+{
+    static std::atomic<bool> enabled { false };
+    return enabled;
+}
+
+void SqlStatistics::Enable() noexcept
+{
+    EnabledFlag().store(true, std::memory_order_relaxed);
+}
+
+void SqlStatistics::Disable() noexcept
+{
+    EnabledFlag().store(false, std::memory_order_relaxed);
+}
+
+bool SqlStatistics::IsEnabled() noexcept
+{
+    return EnabledFlag().load(std::memory_order_relaxed);
+}
+
 void SqlStatistics::RecordOperation(SqlStatisticsOperation operation,
                                     std::chrono::microseconds duration,
                                     bool failed) noexcept
 {
-    if constexpr (CollectingEnabled)
-    {
-        auto const index = static_cast<std::size_t>(operation);
-        if (index < _operations.size())
-        {
-            auto& slot = _operations[index];
-            (failed ? slot.failed : slot.succeeded).fetch_add(1, std::memory_order_relaxed);
+    if (!IsEnabled())
+        return;
 
-            auto const microseconds =
-                static_cast<std::uint64_t>((std::max) (duration.count(), std::chrono::microseconds::rep { 0 }));
-            slot.latency.Record(microseconds);
-            PlotLatency(operation, microseconds);
-        }
+    auto const index = static_cast<std::size_t>(operation);
+    if (index < _operations.size())
+    {
+        auto& slot = _operations[index];
+        (failed ? slot.failed : slot.succeeded).fetch_add(1, std::memory_order_relaxed);
+
+        auto const microseconds =
+            static_cast<std::uint64_t>((std::max) (duration.count(), std::chrono::microseconds::rep { 0 }));
+        slot.latency.Record(microseconds);
+        PlotLatency(operation, microseconds);
     }
 }
 
 void SqlStatistics::RecordRetry(SqlStatisticsOperation operation) noexcept
 {
-    if constexpr (CollectingEnabled)
-    {
-        auto const index = static_cast<std::size_t>(operation);
-        if (index < _operations.size())
-            _operations[index].retried.fetch_add(1, std::memory_order_relaxed);
-    }
+    if (!IsEnabled())
+        return;
+
+    auto const index = static_cast<std::size_t>(operation);
+    if (index < _operations.size())
+        _operations[index].retried.fetch_add(1, std::memory_order_relaxed);
 }
 
 void SqlStatistics::RecordRowsFetched(std::uint64_t rowCount, bool wasBlockFetch) noexcept
 {
-    if constexpr (CollectingEnabled)
-    {
-        _rowsFetched.fetch_add(rowCount, std::memory_order_relaxed);
-        if (wasBlockFetch)
-            _blockFetches.fetch_add(1, std::memory_order_relaxed);
-    }
+    if (!IsEnabled())
+        return;
+
+    _rowsFetched.fetch_add(rowCount, std::memory_order_relaxed);
+    if (wasBlockFetch)
+        _blockFetches.fetch_add(1, std::memory_order_relaxed);
 }
 
 void SqlStatistics::RecordConnectionOpened() noexcept
 {
-    if constexpr (CollectingEnabled)
+    if (IsEnabled())
         _connectionsOpened.fetch_add(1, std::memory_order_relaxed);
 }
 
 void SqlStatistics::RecordConnectionClosed() noexcept
 {
-    if constexpr (CollectingEnabled)
+    if (IsEnabled())
         _connectionsClosed.fetch_add(1, std::memory_order_relaxed);
 }
 
 void SqlStatistics::RecordPoolAcquire(std::chrono::microseconds waitDuration, bool reused, bool waited) noexcept
 {
-    if constexpr (CollectingEnabled)
+    if (!IsEnabled())
+        return;
+
+    _poolAcquired.fetch_add(1, std::memory_order_relaxed);
+    if (reused)
+        _poolReused.fetch_add(1, std::memory_order_relaxed);
+
+    if (waited)
     {
-        _poolAcquired.fetch_add(1, std::memory_order_relaxed);
-        if (reused)
-            _poolReused.fetch_add(1, std::memory_order_relaxed);
-
-        if (waited)
-        {
-            _poolWaited.fetch_add(1, std::memory_order_relaxed);
-            // Only genuine waits contribute a sample; otherwise the distribution is drowned in zeros.
-            _poolWaitLatency.Record(
-                static_cast<std::uint64_t>((std::max) (waitDuration.count(), std::chrono::microseconds::rep { 0 })));
-        }
-
-        // The PoolAcquire operation slot tracks every acquisition, waited or not.
-        RecordOperation(SqlStatisticsOperation::PoolAcquire, waitDuration, false);
+        _poolWaited.fetch_add(1, std::memory_order_relaxed);
+        // Only genuine waits contribute a sample; otherwise the distribution is drowned in zeros.
+        _poolWaitLatency.Record(
+            static_cast<std::uint64_t>((std::max) (waitDuration.count(), std::chrono::microseconds::rep { 0 })));
     }
+
+    // The PoolAcquire operation slot tracks every acquisition, waited or not.
+    RecordOperation(SqlStatisticsOperation::PoolAcquire, waitDuration, false);
 }
 
 void SqlStatistics::RecordPoolRelease(bool discarded) noexcept
 {
-    if constexpr (CollectingEnabled)
-    {
-        _poolReleased.fetch_add(1, std::memory_order_relaxed);
-        if (discarded)
-            _poolDiscarded.fetch_add(1, std::memory_order_relaxed);
-    }
+    if (!IsEnabled())
+        return;
+
+    _poolReleased.fetch_add(1, std::memory_order_relaxed);
+    if (discarded)
+        _poolDiscarded.fetch_add(1, std::memory_order_relaxed);
 }
 
 void SqlStatistics::RecordPoolOccupancy(std::uint64_t idle, std::uint64_t checkedOut) noexcept
 {
-    if constexpr (CollectingEnabled)
-    {
-        _poolIdle.store(idle, std::memory_order_relaxed);
-        _poolCheckedOut.store(checkedOut, std::memory_order_relaxed);
-    }
+    if (!IsEnabled())
+        return;
 
-#if defined(LIGHTWEIGHT_STATISTICS_ENABLED) && defined(LIGHTWEIGHT_TRACY_ENABLED)
+    _poolIdle.store(idle, std::memory_order_relaxed);
+    _poolCheckedOut.store(checkedOut, std::memory_order_relaxed);
+
+#if defined(LIGHTWEIGHT_TRACY_ENABLED)
     TracyPlot("Sql.Pool.Idle", static_cast<int64_t>(idle));
     TracyPlot("Sql.Pool.CheckedOut", static_cast<int64_t>(checkedOut));
 #endif
