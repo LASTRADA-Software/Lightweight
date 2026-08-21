@@ -267,12 +267,24 @@ var NAVTREE =
         [ "Interop with <tt>std::execution</tt>", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#interop-with-stdexecution", null ]
       ] ]
     ] ],
+    [ "Connection pooling", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html", [
+      [ "Growth strategies", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#growth-strategies", null ],
+      [ "Acquire timeout", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#acquire-timeout", null ],
+      [ "Keeping pooled connections healthy", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#keeping-pooled-connections-healthy", [
+        [ "Validation on borrow", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#validation-on-borrow", null ],
+        [ "<tt>maxIdleTimeMs</tt>", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#maxidletimems", null ],
+        [ "<tt>maxLifetimeMs</tt>", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#maxlifetimems", null ],
+        [ "Retirement is lazy", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#retirement-is-lazy", null ]
+      ] ],
+      [ "Compile-time defaults", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#compile-time-defaults", null ],
+      [ "See also", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#see-also-4", null ]
+    ] ],
     [ "Logging and tracing", "d1/d4f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2logging.html", [
       [ "The built-in loggers", "d1/d4f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2logging.html#the-built-in-loggers", null ],
       [ "Redirecting the output", "d1/d4f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2logging.html#redirecting-the-output", null ],
       [ "Writing a custom logger", "d1/d4f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2logging.html#writing-a-custom-logger", null ],
       [ "Restoring the previous logger", "d1/d4f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2logging.html#restoring-the-previous-logger", null ],
-      [ "See also", "d1/d4f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2logging.html#see-also-4", null ]
+      [ "See also", "d1/d4f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2logging.html#see-also-5", null ]
     ] ],
     [ "Schema introspection", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html", [
       [ "Reading every table", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#reading-every-table", null ],
@@ -280,7 +292,7 @@ var NAVTREE =
       [ "Following relationships directly", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#following-relationships-directly", null ],
       [ "Turning a description back into DDL", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#turning-a-description-back-into-ddl", null ],
       [ "Event-driven reading", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#event-driven-reading", null ],
-      [ "See also", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#see-also-5", null ]
+      [ "See also", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#see-also-6", null ]
     ] ],
     [ "Composite key support — design", "d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html", [
       [ "The design: <tt>CompositeForeignKey<Connection<...>, ...></tt>", "d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#the-design-compositeforeignkeyconnection-", null ],
@@ -336,13 +348,13 @@ var NAVTREEINDEX =
 [
 "annotated.html",
 "d2/dd0/structLightweight_1_1Field.html#a757ce7d3d9533493051cd9b402482b41",
-"d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#a972ef8522f91fce43fd223357b709bae",
-"d7/d13/structLightweight_1_1SqlRealName.html#ad41c47ba596b9e2a647edb777f959662",
-"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#ad0156fe9ef9aed1de5af0376c337bb09",
-"da/da8/classLightweight_1_1SqlConnection.html#ab5a9e94571f9e9296b2ce65036f75184",
-"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a0428d0b2e06f4760a9bc3c31cff19327",
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#sqlnumericprecision-scale-precision-limits",
-"pages.html"
+"d4/dc2/conceptLightweight_1_1SqlNativeRowBindableValue.html",
+"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ac8acfa239959c3a361aae62ddac1df04",
+"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html",
+"da/da8/classLightweight_1_1SqlConnection.html#a31d2a2e32bc2c8cd6473a312359f3c8d",
+"dd/d47/structLightweight_1_1SqlDropTablePlan.html#a881594ba67a9c5f1443d92f285b53bbe",
+"de/dae/classLightweight_1_1SqlFixedString.html#ac8aa45c628b9475fcb508962eab1e903",
+"functions_~.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
