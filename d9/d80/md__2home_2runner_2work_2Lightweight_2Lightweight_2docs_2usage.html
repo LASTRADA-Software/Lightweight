@@ -195,9 +195,13 @@ High level Data Mapping</h1>
 <div class="line">    <span class="comment">// Query all persons</span></div>
 <div class="line">    <span class="keyword">auto</span> <span class="keyword">const</span> persons = dm.Query&lt;Person&gt;(); </div>
 <div class="line"> </div>
-<div class="line">    <span class="comment">// Iterate over all persons </span></div>
-<div class="line">    <span class="keyword">auto</span> stmt = SqlStatement { dm.Connection() };</div>
-<div class="line">    <span class="keywordflow">for</span>(<span class="keyword">const</span> <span class="keyword">auto</span>&amp; person: SqlRowIterator&lt;Person&gt;(stmt))</div>
+<div class="line">    <span class="comment">// Iterate over all persons</span></div>
+<div class="line">    <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; person: SqlRowIterator&lt;Person&gt;(dm.Connection()))</div>
+<div class="line">        std::println(<span class="stringliteral">&quot;|{}|{}|&quot;</span>, person.name, person.age);</div>
+<div class="line"> </div>
+<div class="line">    <span class="comment">// Iterate over a subset of the persons</span></div>
+<div class="line">    <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; person: SqlRowIterator&lt;Person&gt;(dm.Connection(),</div>
+<div class="line">                                                    [](auto&amp; query) { <span class="keywordflow">return</span> query.Where(<span class="stringliteral">&quot;age&quot;</span>, <span class="stringliteral">&quot;&gt;=&quot;</span>, 18); }))</div>
 <div class="line">        std::println(<span class="stringliteral">&quot;|{}|{}|&quot;</span>, person.name, person.age);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Delete the person</span></div>
@@ -240,7 +244,20 @@ Simple row retrieval via structs</h1>
 <div class="line">    <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; obj: records)</div>
 <div class="line">        std::println(<span class="stringliteral">&quot;{}&quot;</span>, DataMapper::Inspect(obj));</div>
 <div class="line">}</div>
-</div><!-- fragment --> </div></div><!-- contents -->
+</div><!-- fragment --><h1><a class="anchor" id="streaming-a-table-with-sqlrowiterator"></a>
+Streaming a table with &lt;tt&gt;SqlRowIterator&lt;/tt&gt;</h1>
+<p><code>SqlRowIterator&lt;T&gt;</code> streams a table row by row, materializing one record at a time instead of loading the whole result set into a <code>std::vector</code> as <code>DataMapper::Query&lt;T&gt;()</code> does. That makes it the tool of choice for tables too large to hold in memory.</p>
+<div class="fragment"><div class="line"><span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; person: SqlRowIterator&lt;Person&gt;(dm.Connection()))</div>
+<div class="line">    std::println(<span class="stringliteral">&quot;{}&quot;</span>, DataMapper::Inspect(person));</div>
+</div><!-- fragment --><p>Pass a callable as second argument to iterate over a <b>subset</b> of the rows. It receives the underlying <code>SqlSelectQueryBuilder</code> with the projection for <code>T</code> already applied, so the full <code>Where</code> / <code>OrWhere</code> / <code>OrderBy</code> / <code>Limit</code> surface of the <a class="el" href="../../d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html">query builder</a> is available. Whatever the callable returns is ignored, so the builder's chaining methods can be returned directly:</p>
+<div class="fragment"><div class="line"><span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; person: SqlRowIterator&lt;Person&gt;(dm.Connection(), [](auto&amp; query) {</div>
+<div class="line">         <span class="keywordflow">return</span> query.Where(<span class="stringliteral">&quot;age&quot;</span>, <span class="stringliteral">&quot;&gt;=&quot;</span>, 18).OrWhere([](<span class="keyword">auto</span>&amp; query) {</div>
+<div class="line">             <span class="keywordflow">return</span> query.Where(<span class="stringliteral">&quot;age&quot;</span>, 10).Where(<span class="stringliteral">&quot;name&quot;</span>, <span class="stringliteral">&quot;John&quot;</span>);</div>
+<div class="line">         });</div>
+<div class="line">     }))</div>
+<div class="line">    std::println(<span class="stringliteral">&quot;{}&quot;</span>, DataMapper::Inspect(person));</div>
+</div><!-- fragment --><p>Both plain column names and <code>FieldNameOf&lt;Member(Person::age)&gt;</code> work as column arguments; the latter keeps the condition in sync when a field is renamed. </p>
+</div></div><!-- contents -->
 </div><!-- PageDoc -->
 </div><!-- doc-content -->
 <!-- start footer part -->
