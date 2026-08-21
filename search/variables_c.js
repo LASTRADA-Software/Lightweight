@@ -2,8 +2,8 @@ var searchData=
 [
   ['matches_0',['matches',['../da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html#ae3b7009e838fb2ab37c9cd65740c20e7',1,'Lightweight::SqlMigration::ChecksumVerificationResult']]],
   ['maxcharcolumnbytes_1',['MaxCharColumnBytes',['../da/d6c/classLightweight_1_1RowArrayCursor.html#af2367273a2b52c51108ef36697bd84b8',1,'Lightweight::RowArrayCursor']]],
-  ['maxdelay_2',['maxDelay',['../d9/d7e/structLightweight_1_1SqlRetrySettings.html#a509583cce773d9b887e14ec485b07dde',1,'Lightweight::SqlRetrySettings']]],
-  ['maxretries_3',['maxretries',['../d9/d7e/structLightweight_1_1SqlRetrySettings.html#a8aa448f5c51023ccb5a68fad53f78e9d',1,'Lightweight::SqlRetrySettings::maxRetries'],['../d6/d00/structLightweight_1_1SqlRetryAttempt.html#ab28f5ce595ae93f6ca77940793642376',1,'Lightweight::SqlRetryAttempt::maxRetries']]],
+  ['maxdelay_2',['maxDelay',['../d4/d9f/structLightweight_1_1SqlBackup_1_1RetrySettings.html#aae3eeccff9da04bc2c643d42cac3abce',1,'Lightweight::SqlBackup::RetrySettings']]],
+  ['maxretries_3',['maxRetries',['../d4/d9f/structLightweight_1_1SqlBackup_1_1RetrySettings.html#a84a600e977bf22e1e8b462d699d1fb0a',1,'Lightweight::SqlBackup::RetrySettings']]],
   ['maxrowspercommit_4',['maxRowsPerCommit',['../da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#aeb580bb715d992f63c551846b3965ff5',1,'Lightweight::SqlBackup::RestoreSettings']]],
   ['maxsize_5',['maxSize',['../df/d1a/structLightweight_1_1PoolConfig.html#a6a3e753156f65b2aa0ad1fdd0090a72c',1,'Lightweight::PoolConfig']]],
   ['membername_6',['memberName',['../d6/dfb/structLightweight_1_1Tools_1_1CxxModelPrinter_1_1PlannedRelation.html#a3f2ca33a60bdd9b48ba26c024fcdc21a',1,'Lightweight::Tools::CxxModelPrinter::PlannedRelation']]],

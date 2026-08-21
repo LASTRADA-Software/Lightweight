@@ -7,7 +7,7 @@ var searchData=
   ['indexname_4',['indexName',['../dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#a8b1c5ecec1c2dd8326f6011d3256f84c',1,'Lightweight::SqlCreateIndexPlan']]],
   ['indicators_5',['indicators',['../da/d7e/structLightweight_1_1SqlRawColumn.html#a9125efddb4978d91a258ef9525c0ea3d',1,'Lightweight::SqlRawColumn']]],
   ['info_6',['info',['../d6/d3b/structLightweight_1_1SqlLockError.html#aedcac377e528618f190b2cb4deb5f48a',1,'Lightweight::SqlLockError']]],
-  ['initialdelay_7',['initialDelay',['../d9/d7e/structLightweight_1_1SqlRetrySettings.html#a0e9dbe911c17a0c3aea32eb5cbb9b356',1,'Lightweight::SqlRetrySettings']]],
+  ['initialdelay_7',['initialDelay',['../d4/d9f/structLightweight_1_1SqlBackup_1_1RetrySettings.html#a009fb3f655ca7d46fe8d4e322cd45752',1,'Lightweight::SqlBackup::RetrySettings']]],
   ['initialsize_8',['initialSize',['../df/d1a/structLightweight_1_1PoolConfig.html#a8ff366daa9e0eb6c99e5a1e3fc5ec8d4',1,'Lightweight::PoolConfig']]],
   ['intendedtype_9',['intendedType',['../d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a9702abd84a89cfd34a32375d341e0b7e',1,'Lightweight::SqlMigration::MigrationManager::ColumnUpgradeEntry']]],
   ['into_10',['Into',['../d4/d03/structLightweight_1_1Connection.html#af4905f5b66a019dbeb63e248ef14bdb1',1,'Lightweight::Connection']]],
@@ -24,7 +24,7 @@ var searchData=
   ['ismandatory_21',['ismandatory',['../d0/df7/classLightweight_1_1BelongsTo.html#a494d69eaab98e062f64657adfe51938d',1,'Lightweight::BelongsTo::IsMandatory'],['../d2/dd0/structLightweight_1_1Field.html#aa408ad47ef3d6a169dad4dbf5ef243ce',1,'Lightweight::Field::IsMandatory']]],
   ['isnullable_22',['isNullable',['../d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a12db4219734a5dd38708ae443171f36b',1,'Lightweight::SqlSchema::Column']]],
   ['isoptional_23',['isoptional',['../d0/df7/classLightweight_1_1BelongsTo.html#ae99255eb66dea97a5c79c27d97691650',1,'Lightweight::BelongsTo::IsOptional'],['../d2/dd0/structLightweight_1_1Field.html#aca64dd154091663b93852e0589c95630',1,'Lightweight::Field::IsOptional']]],
-  ['isprimarykey_24',['isprimarykey',['../d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a5e6dfa8e5cd698a3f79634d735be8428',1,'Lightweight::SqlSchema::Column::isPrimaryKey'],['../d0/df7/classLightweight_1_1BelongsTo.html#a521719bc0bb4200c39ecf0559bf1b967',1,'Lightweight::BelongsTo::IsPrimaryKey'],['../d2/dd0/structLightweight_1_1Field.html#a844764f259e40daa34fbacd27ef8e4a9',1,'Lightweight::Field::IsPrimaryKey']]],
+  ['isprimarykey_24',['isprimarykey',['../d0/df7/classLightweight_1_1BelongsTo.html#a521719bc0bb4200c39ecf0559bf1b967',1,'Lightweight::BelongsTo::IsPrimaryKey'],['../d2/dd0/structLightweight_1_1Field.html#a844764f259e40daa34fbacd27ef8e4a9',1,'Lightweight::Field::IsPrimaryKey'],['../d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a5e6dfa8e5cd698a3f79634d735be8428',1,'Lightweight::SqlSchema::Column::isPrimaryKey']]],
   ['isprimarykeyvalue_25',['IsPrimaryKeyValue',['../d2/dd0/structLightweight_1_1Field.html#aa8dfdb054c58984a4815599643d8e0dd',1,'Lightweight::Field']]],
   ['isthrough_26',['IsThrough',['../d7/d2f/group__DataMapper.html#ga518337f590f7d557558dd7cd74c49a9e',1,'Lightweight']]],
   ['isunique_27',['isunique',['../d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html#afc6863e451eb5828a2c241e56743c600',1,'Lightweight::SqlSchema::IndexDefinition::isUnique'],['../d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#ad3c7ea6282f46828e0e6ba653fd2aafe',1,'Lightweight::SqlSchema::Column::isUnique']]]
