@@ -1,15 +1,5 @@
 var NAVTREEINDEX7 =
 {
-"de/dae/classLightweight_1_1SqlFixedString.html#afd8c0ca721e73dec7a44330c9fdd2e63":[17,1,5,29],
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html":[6],
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#custom-column-data-type-binder-example":[6,0],
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#driver-specific-connection-string-requirements":[6,7],
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#getcolumn":[6,3],
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-many-of-those-digits-survive-a-round-trip":[6,5,1],
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-sqlvariant-decides-which-alternative-to-fill":[6,6],
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inputparameter":[6,1],
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inspect":[6,4],
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#outputcolumn":[6,2],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#sqlnumericprecision-scale-precision-limits":[6,5],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#what-each-accessor-delivers":[6,5,0],
 "de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html":[17,4,2],
@@ -249,5 +239,15 @@ var NAVTREEINDEX7 =
 "index.html#foreign-keys-relation":[0,6,1],
 "index.html#generate-example-for-the-existing-database":[0,11],
 "index.html#high-level-api":[0,6],
-"index.html#known-limitations":[0,4]
+"index.html#known-limitations":[0,4],
+"index.html#mapping-query-results-to-a-simple-struct":[0,6,2],
+"index.html#mapping-query-to-multiple-struct":[0,6,3],
+"index.html#namespace":[0,5],
+"index.html#schema-migrations":[0,7],
+"index.html#simple-one-record-example":[0,6,0],
+"index.html#sqlite-odbc-driver-installation-on-other-operating-systems":[0,10,0],
+"index.html#supported-databases":[0,3],
+"index.html#supported-platforms":[0,2],
+"index.html#using-sqlite-for-testing-on-windows-operating-system":[0,10],
+"index.html#why-odbc":[0,1]
 };
