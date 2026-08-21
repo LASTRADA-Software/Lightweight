@@ -7,6 +7,9 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <chrono>
+#include <format>
+#include <optional>
+#include <string_view>
 
 using namespace Lightweight;
 
@@ -138,4 +141,107 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlConnection::Close is idempotent", "[SqlConn
     fresh.Close();
     fresh.Close(); // second Close must be a no-op, not crash
     CHECK_FALSE(fresh.IsAlive());
+}
+
+// ================================================================================================
+// Configurable connection encryption (SQL_COPT_SS_ENCRYPT / Encrypt=)
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: an explicitly encrypted connection is usable", "[SqlConnection]")
+{
+    auto probe = SqlStatement {};
+
+    // Connection encryption is a SQL Server concept; the other backends configure TLS through their
+    // own driver keywords and reject `Encrypt=`.
+    UNSUPPORTED_DATABASE(probe, SqlServerType::SQLITE);
+    UNSUPPORTED_DATABASE(probe, SqlServerType::POSTGRESQL);
+    UNSUPPORTED_DATABASE(probe, SqlServerType::MYSQL);
+    UNSUPPORTED_DATABASE(probe, SqlServerType::UNKNOWN);
+
+    // ParseConnectionString upper-cases every key, so the overrides below must use the upper-cased
+    // spelling too: a mixed-case key would land next to (not on top of) the existing entry, and which
+    // of the two duplicates the driver honours is unspecified.
+    auto parameters = ParseConnectionString(SqlConnection::DefaultConnectionString());
+    parameters.insert_or_assign("ENCRYPT", std::string { FormatEncryptionMode(SqlEncryptionMode::Enabled) });
+    // The CI SQL Server runs with a self-signed certificate, so the chain cannot be validated.
+    parameters.insert_or_assign("TRUSTSERVERCERTIFICATE", "yes");
+
+    // Not every SQL Server deployment can serve an encrypted channel: SQL Server Express LocalDB,
+    // which the "MS SQL Server (LocalDB)" CI leg runs against, has no TLS endpoint at all and
+    // rejects the handshake outright with 08001 "Encryption not supported on SQL Server". That is a
+    // property of the instance rather than of the DBMS, so `UNSUPPORTED_DATABASE` (which keys on
+    // `ServerType`) cannot express it - connect through the non-throwing overload and skip only on
+    // that specific refusal, so a genuine failure of the `Encrypt=` plumbing still fails the test.
+    auto connection = SqlConnection { std::nullopt };
+    if (!connection.Connect(BuildConnectionString(parameters)))
+    {
+        auto const error = connection.LastError();
+        if (error.message.contains("Encryption not supported"))
+        {
+            WARN(std::format("TODO({}): this server does not offer an encrypted endpoint: {}",
+                             probe.Connection().ServerType(),
+                             error.message));
+            return;
+        }
+        FAIL(std::format("Encrypted connection failed: {} - {}", error.sqlState, error.message));
+    }
+    REQUIRE(connection.IsAlive());
+
+    // The connection is not merely established — it round-trips a query over the encrypted channel.
+    auto stmt = SqlStatement { connection };
+    CHECK(stmt.ExecuteDirectScalar<int>("SELECT 42") == 42);
+
+    // ... and the channel really is encrypted, rather than the keyword having been ignored.
+    CHECK(
+        stmt.ExecuteDirectScalar<std::string>("SELECT encrypt_option FROM sys.dm_exec_connections WHERE session_id = @@SPID")
+        == "TRUE");
+}
+
+// ================================================================================================
+// SqlConnection::Connect(SqlConnectionDataSource): the encryption request reaches the ODBC handle
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlConnection: a data-source encryption request is applied before connecting",
+                 "[SqlConnection]")
+{
+    // SQL_COPT_SS_ENCRYPT is a *pre-connect* attribute, so Connect(SqlConnectionDataSource) applies it
+    // before SQLConnectW ever resolves the DSN. This test exploits that ordering: pointing at a data
+    // source that deliberately does not exist still runs the whole attribute path, so the mapping from
+    // SqlEncryptionMode onto the ODBC value is exercised on every platform without needing a registered
+    // DSN — neither the CI runners nor a developer checkout have one.
+    auto const connectWith = [](SqlEncryptionMode mode) {
+        auto connection = SqlConnection { std::nullopt };
+        auto const connected = connection.Connect(SqlConnectionDataSource {
+            .datasource = "LightweightNoSuchDSN",
+            .username = "user",
+            .password = "password",
+            .timeout = std::chrono::seconds { 1 },
+            .encryption = mode,
+        });
+        // No driver manager can resolve that data source, so the connect cannot succeed either way.
+        REQUIRE_FALSE(connected);
+        return connection.LastError();
+    };
+
+    // Without an opt-in the attribute is left untouched, so this is simply how the driver manager
+    // reports a missing DSN on this platform. The SQLSTATE is captured rather than hardcoded: what
+    // the assertions below care about is the delta, not the spelling. (Keep the name at or below
+    // SQL_MAX_DSN_LENGTH, 32 characters — unixODBC rejects a longer one with HY090 before it ever
+    // looks the data source up, which would make all three connects fail identically for the wrong
+    // reason and the comparison below vacuous.)
+    auto const baseline = connectWith(SqlEncryptionMode::DriverDefault);
+    INFO(std::format("baseline SQLSTATE {}: {}", baseline.sqlState, baseline.message));
+
+    // Opting in must not change *how* the connect fails — it must still fail on the data-source
+    // lookup. A different SQLSTATE here means SQLSetConnectAttrW rejected the request itself, which
+    // is the regression worth catching: a rejected attribute fails the connection outright rather
+    // than silently downgrading a requested encrypted channel to plaintext.
+    for (auto const mode: { SqlEncryptionMode::Disabled, SqlEncryptionMode::Enabled })
+    {
+        INFO(std::format("encryption mode: {}", FormatEncryptionMode(mode)));
+        auto const error = connectWith(mode);
+        INFO(std::format("SQLSTATE {}: {}", error.sqlState, error.message));
+        CHECK(std::string_view { error.sqlState } == std::string_view { baseline.sqlState });
+    }
 }

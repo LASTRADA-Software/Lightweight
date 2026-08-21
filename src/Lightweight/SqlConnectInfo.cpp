@@ -3,6 +3,7 @@
 #include "SqlConnectInfo.hpp"
 
 #include <algorithm>
+#include <array>
 #include <filesystem>
 #include <fstream>
 #include <ranges>
@@ -10,6 +11,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <utility>
 
 namespace Lightweight
 {
@@ -48,7 +50,50 @@ namespace
         return result;
     }
 
+    /// Maps the ODBC `Encrypt=` keyword spellings onto SqlEncryptionMode. The first entry of each mode
+    /// is also its canonical rendering, so the table drives both directions.
+    constexpr std::array<std::pair<std::string_view, SqlEncryptionMode>, 8> EncryptionModeSpellings { {
+        { "yes", SqlEncryptionMode::Enabled },
+        { "true", SqlEncryptionMode::Enabled },
+        { "1", SqlEncryptionMode::Enabled },
+        // `mandatory` is the ODBC Driver 18 synonym of `yes`.
+        { "mandatory", SqlEncryptionMode::Enabled },
+        { "no", SqlEncryptionMode::Disabled },
+        { "false", SqlEncryptionMode::Disabled },
+        { "0", SqlEncryptionMode::Disabled },
+        // `optional` is the ODBC Driver 18 synonym of `no`.
+        { "optional", SqlEncryptionMode::Disabled },
+    } };
+
+    constexpr bool EqualsIgnoreCase(std::string_view a, std::string_view b) noexcept
+    {
+        return std::ranges::equal(a, b, [](char x, char y) {
+            return std::tolower(static_cast<unsigned char>(x)) == std::tolower(static_cast<unsigned char>(y));
+        });
+    }
+
 } // end namespace
+
+SqlEncryptionMode ParseEncryptionMode(std::string_view value) noexcept
+{
+    auto const trimmed = Trim(value);
+    for (auto const& [spelling, mode]: EncryptionModeSpellings)
+        if (EqualsIgnoreCase(spelling, trimmed))
+            return mode;
+    return SqlEncryptionMode::DriverDefault;
+}
+
+std::string_view FormatEncryptionMode(SqlEncryptionMode mode) noexcept
+{
+    if (mode == SqlEncryptionMode::DriverDefault)
+        return {};
+
+    for (auto const& [spelling, candidate]: EncryptionModeSpellings)
+        if (candidate == mode)
+            return spelling;
+    return {};
+}
+
 std::string SqlConnectionString::Sanitized() const
 {
     return SanitizePwd(value);
@@ -176,6 +221,9 @@ SqlConnectionDataSource SqlConnectionDataSource::FromConnectionString(SqlConnect
 
     if (auto timeout = parsedConnectionStringPairs.extract("TIMEOUT"); !timeout.empty())
         result.timeout = std::chrono::seconds(std::stoi(timeout.mapped()));
+
+    if (auto encrypt = parsedConnectionStringPairs.extract("ENCRYPT"); !encrypt.empty())
+        result.encryption = ParseEncryptionMode(encrypt.mapped());
 
     return result;
 }

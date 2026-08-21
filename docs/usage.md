@@ -17,6 +17,47 @@ if (!sqlConnection.IsAlive())
 }
 ```
 
+## Connection encryption
+
+By default Lightweight does not touch the driver's TLS configuration — whatever the ODBC driver, the
+DSN, or the connection string already says stays in force. To take explicit control, set the
+`encryption` field of `SqlConnectionDataSource`:
+
+```cpp
+SqlConnection::SetDefaultDataSource(SqlConnectionDataSource {
+    .datasource = "MyServerDSN",
+    .username = "user",
+    .password = "password",
+    .encryption = SqlEncryptionMode::Enabled,
+});
+```
+
+`SqlEncryptionMode` has three values:
+
+| Value | Meaning |
+|-------|---------|
+| `DriverDefault` | Do not touch the setting (the default). |
+| `Disabled` | Request an unencrypted connection. |
+| `Enabled` | Request an encrypted connection. |
+
+This maps onto the Microsoft SQL Server ODBC attribute
+[`SQL_COPT_SS_ENCRYPT`](https://learn.microsoft.com/en-us/sql/relational-databases/native-client-odbc-api/sqlsetconnectattr),
+which has to be applied to the connection handle *before* connecting. Because the server type is not
+yet known at that point, the setting is applied verbatim whenever you opt in — and if the driver
+rejects it, the connection **fails** rather than silently falling back to an unencrypted channel.
+Leave the field at `DriverDefault` on backends that configure TLS through their own keywords
+(PostgreSQL's `sslmode`, for example).
+
+When connecting with a raw `SqlConnectionString` instead, use the driver's own `Encrypt=` keyword —
+it is what `SqlConnectionDataSource::ToConnectionString()` emits, and
+`SqlConnectionDataSource::FromConnectionString()` reads it back:
+
+```cpp
+auto const connectionString = SqlConnectionString {
+    .value = "Driver={ODBC Driver 18 for SQL Server};SERVER=db;UID=user;PWD=password;Encrypt=yes"
+};
+```
+
 ## Raw SQL Queries
 
 To directly make a call to the database use `ExecuteDirect` function, for example
