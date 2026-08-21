@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['reason_0',['reason',['../d6/d3b/structLightweight_1_1SqlLockError.html#a042768d16ff0fe8d8e52e4a03b465680',1,'Lightweight::SqlLockError']]],
+  ['reason_0',['reason',['../d4/d09/structLightweight_1_1SqlRetryDecision.html#ab734c7ed1c4085aeedb3ab4f245374b8',1,'Lightweight::SqlRetryDecision::reason'],['../d6/d3b/structLightweight_1_1SqlLockError.html#a042768d16ff0fe8d8e52e4a03b465680',1,'Lightweight::SqlLockError::reason']]],
   ['rebuiltforeignkeys_1',['rebuiltForeignKeys',['../d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#ae1b60503143ebed45d9317789e47a684',1,'Lightweight::SqlMigration::MigrationManager::UnicodeUpgradeResult']]],
   ['recordcolumncount_2',['RecordColumnCount',['../d7/d2f/group__DataMapper.html#gaf1b5baa8cd89f93da2a5cfb28d0c334c',1,'Lightweight']]],
   ['recordmembercount_3',['RecordMemberCount',['../d7/d2f/group__DataMapper.html#ga655897a10b9ec0b5c558b0c91b20ff2a',1,'Lightweight']]],
@@ -16,7 +16,9 @@ var searchData=
   ['referencedtablename_13',['referencedTableName',['../d3/d18/structLightweight_1_1SqlCompositeForeignKeyConstraint.html#ac8eedd4823a74f4f1d1ca3fc3305269e',1,'Lightweight::SqlCompositeForeignKeyConstraint']]],
   ['releases_14',['releases',['../df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#ab12f33230c55c35f145a9f1341d7c0d5',1,'Lightweight::SqlMigration::MigrationManager::PlanFoldingResult']]],
   ['required_15',['required',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a08cf8f2f35c6eec60086b7e18667bc61',1,'Lightweight::SqlColumnDeclaration']]],
-  ['revertedtimestamps_16',['revertedTimestamps',['../d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html#a14223384e1e346debcb57e6c4383154f',1,'Lightweight::SqlMigration::RevertResult']]],
-  ['rowcount_17',['rowcount',['../d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a92351f3189fe1adade98ccec8d21a6b2',1,'Lightweight::SqlBackup::TableInfo::rowCount'],['../d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html#aa96489eada966b8294d4cc0e950cdbc3',1,'Lightweight::SqlBackup::ColumnBatch::rowCount']]],
-  ['rowsperchunk_18',['rowsPerChunk',['../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#ae10e3a3fa9942cd75572e2a1815708a6',1,'Lightweight::SqlBackup::BackupSettings']]]
+  ['retriessofar_16',['retriesSoFar',['../da/def/structLightweight_1_1SqlRetryState.html#a0fc445febcec32eacd5275d181bca773',1,'Lightweight::SqlRetryState']]],
+  ['retrynumber_17',['retryNumber',['../d6/d00/structLightweight_1_1SqlRetryAttempt.html#aef554ecc759e7a9c6fab88c67637b23e',1,'Lightweight::SqlRetryAttempt']]],
+  ['revertedtimestamps_18',['revertedTimestamps',['../d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html#a14223384e1e346debcb57e6c4383154f',1,'Lightweight::SqlMigration::RevertResult']]],
+  ['rowcount_19',['rowcount',['../d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a92351f3189fe1adade98ccec8d21a6b2',1,'Lightweight::SqlBackup::TableInfo::rowCount'],['../d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html#aa96489eada966b8294d4cc0e950cdbc3',1,'Lightweight::SqlBackup::ColumnBatch::rowCount']]],
+  ['rowsperchunk_20',['rowsPerChunk',['../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#ae10e3a3fa9942cd75572e2a1815708a6',1,'Lightweight::SqlBackup::BackupSettings']]]
 ];

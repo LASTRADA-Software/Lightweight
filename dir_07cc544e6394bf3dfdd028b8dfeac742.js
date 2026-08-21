@@ -27,6 +27,8 @@ var dir_07cc544e6394bf3dfdd028b8dfeac742 =
     [ "SqlQuery.hpp", "dc/dcc/SqlQuery_8hpp_source.html", null ],
     [ "SqlQueryFormatter.hpp", "df/d13/SqlQueryFormatter_8hpp_source.html", null ],
     [ "SqlRealName.hpp", "d0/dd1/SqlRealName_8hpp_source.html", null ],
+    [ "SqlRetryClassifier.hpp", "dc/dbc/SqlRetryClassifier_8hpp_source.html", null ],
+    [ "SqlRetryPolicy.hpp", "d1/d05/SqlRetryPolicy_8hpp_source.html", null ],
     [ "SqlSchema.hpp", "db/d1c/SqlSchema_8hpp_source.html", null ],
     [ "SqlScopedLock.hpp", "d2/d7c/SqlScopedLock_8hpp_source.html", null ],
     [ "SqlScopedTraceLogger.hpp", "d6/d4a/SqlScopedTraceLogger_8hpp_source.html", null ],

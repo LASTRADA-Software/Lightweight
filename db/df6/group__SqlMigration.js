@@ -89,27 +89,6 @@ var group__SqlMigration =
         [ "unregisteredTimestamps", "d2/d24/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1RewriteChecksumsResult.html#ae327530829a97b255f081ef739871aee", null ],
         [ "wasDryRun", "d2/d24/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1RewriteChecksumsResult.html#a62e14af3a4f6e7049850c42c5a5e519b", null ]
       ] ],
-      [ "SchemaDiffColumnChange", "d3/d08/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffColumnChange.html", [
-        [ "column", "d3/d08/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffColumnChange.html#a60404b0e39c899d4889b06122f2d931b", null ],
-        [ "intendedType", "d3/d08/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffColumnChange.html#ad973874ec4e2a9c669fe2d9f837a8cca", null ],
-        [ "liveType", "d3/d08/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffColumnChange.html#aeb008562b619138d570502584dc74eb6", null ],
-        [ "intendedNullable", "d3/d08/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffColumnChange.html#a4553385e5e556ffd50180d0985b116d9", null ],
-        [ "liveNullable", "d3/d08/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffColumnChange.html#abde75801d757d143e1cac15c40bcfa63", null ]
-      ] ],
-      [ "SchemaDiffResult", "df/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffResult.html", [
-        [ "Empty", "df/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffResult.html#aea9810b174ec90aee1b600fad0a46ec8", null ],
-        [ "missingTables", "df/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffResult.html#a1501ea19ff19eec396ec45b349128f45", null ],
-        [ "unmanagedTables", "df/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffResult.html#a32d96a4b22e71b909de3efb1ba925403", null ],
-        [ "alteredTables", "df/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffResult.html#abc23b7ae5432066427452d94f80bc6d2", null ],
-        [ "missingIndexes", "df/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffResult.html#a6b96c8f9bee4d0fe9527f22dbc3e888a", null ]
-      ] ],
-      [ "SchemaDiffTable", "d1/dd1/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffTable.html", [
-        [ "schemaName", "d1/dd1/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffTable.html#ac158e79b3bdee2d964a7a17af5733b50", null ],
-        [ "tableName", "d1/dd1/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffTable.html#aa903e096ea7aa1e0644f142833c152eb", null ],
-        [ "addedColumns", "d1/dd1/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffTable.html#a8d0835b6e1e4383a6a971bf5193d7bf7", null ],
-        [ "droppedColumns", "d1/dd1/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffTable.html#aab80ef75ed11da4dcb8570c23399002c", null ],
-        [ "changedColumns", "d1/dd1/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffTable.html#a5b9fe1ee23b447267270aae8230889a6", null ]
-      ] ],
       [ "UnicodeUpgradeResult", "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html", [
         [ "wasDryRun", "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#a706afa7f5b94115ad9f9f41b51facf37", null ],
         [ "columns", "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#aa7e5278c2c378b5f0c42885abb3c487d", null ],
@@ -150,7 +129,6 @@ var group__SqlMigration =
       [ "FoldRegisteredMigrations", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a500e17dc06f73a877dc7e7a99342feaa", null ],
       [ "HardReset", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a20c8c6018a3d4c75c69a57e2f63d0459", null ],
       [ "UnicodeUpgradeTables", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ac98fe163c2161de8faf1d8e7d588bd92", null ],
-      [ "DiffAgainstLiveSchema", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#add6df0ded075070e6d34388fc9d5db0d", null ],
       [ "RewriteChecksums", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a70539241ba2c17c1ce40ce89ec177f55", null ],
       [ "PreviewPendingMigrations", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a3b9961110aefc26051c06c6934e26e69", null ],
       [ "PreviewPendingMigrationsUpTo", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a36f682922ad76bec5ec7bc732092d561", null ],
@@ -184,12 +162,6 @@ var group__SqlMigration =
       [ "dependencies", "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#aaacc540bd4fd3ab8f556b8cc92f2894b", null ],
       [ "author", "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#ab52a61034e07facd43a641d9c40f9b62", null ],
       [ "description", "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#aede084084d8c094a9f4e08d86b8f13f8", null ]
-    ] ],
-    [ "Lightweight::Tools::MigrationSourceOptions", "d1/dc3/structLightweight_1_1Tools_1_1MigrationSourceOptions.html", [
-      [ "timestamp", "d1/dc3/structLightweight_1_1Tools_1_1MigrationSourceOptions.html#a4516402d9587bf7b7c78d5364321389c", null ],
-      [ "title", "d1/dc3/structLightweight_1_1Tools_1_1MigrationSourceOptions.html#a89158c2b845eac0b8106c332c6625bb6", null ],
-      [ "includePluginEntryPoint", "d1/dc3/structLightweight_1_1Tools_1_1MigrationSourceOptions.html#ae9645992fc3cce9815eba77d2f6640a5", null ],
-      [ "provenance", "d1/dc3/structLightweight_1_1Tools_1_1MigrationSourceOptions.html#a6ff52643ac42e5e49431d3d89cfe74e4", null ]
     ] ],
     [ "LIGHTWEIGHT_MIGRATION_PLUGIN", "db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73", null ],
     [ "LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT", "db/df6/group__SqlMigration.html#ga8292c8bc098a73ae82344c31693bb4ff", null ],

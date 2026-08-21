@@ -119,15 +119,6 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d24/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1RewriteChecksumsResult.html">RewriteChecksumsResult</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Result of a <code>RewriteChecksums</code> call.  <a href="../../d2/d24/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1RewriteChecksumsResult.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/d08/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffColumnChange.html">SchemaDiffColumnChange</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">One column whose live definition drifted from what the migrations declare.  <a href="../../d3/d08/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffColumnChange.html#details">More...</a><br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffResult.html">SchemaDiffResult</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Result of a <code>DiffAgainstLiveSchema</code> call — what separates the schema the registered migrations <em>intend</em> from the schema the database actually <em>has</em>.  <a href="../../df/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffResult.html#details">More...</a><br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/dd1/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffTable.html">SchemaDiffTable</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Per-table delta for a table present both in the folded plan and live.  <a href="../../d1/dd1/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffTable.html#details">More...</a><br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html">UnicodeUpgradeResult</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Result of an <code>UnicodeUpgradeTables</code> call.  <a href="../../d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -232,9 +223,6 @@ LIGHTWEIGHT_API std::vector&lt; std::string &gt;&#160;</td><td class="memItemRig
 <tr class="memitem:ac98fe163c2161de8faf1d8e7d588bd92" id="r_ac98fe163c2161de8faf1d8e7d588bd92"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html">UnicodeUpgradeResult</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ac98fe163c2161de8faf1d8e7d588bd92">UnicodeUpgradeTables</a> (bool dryRun=false)</td></tr>
 <tr class="memdesc:ac98fe163c2161de8faf1d8e7d588bd92"><td class="mdescLeft">&#160;</td><td class="mdescRight">Rewrites legacy <code>VARCHAR/CHAR</code> columns to <code>NVARCHAR/NCHAR</code> where the registered migrations now declare wide types.  <br /></td></tr>
 <tr class="separator:ac98fe163c2161de8faf1d8e7d588bd92"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:add6df0ded075070e6d34388fc9d5db0d" id="r_add6df0ded075070e6d34388fc9d5db0d"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../df/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffResult.html">SchemaDiffResult</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#add6df0ded075070e6d34388fc9d5db0d">DiffAgainstLiveSchema</a> (std::optional&lt; <a class="el" href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">MigrationTimestamp</a> &gt; upToInclusive=std::nullopt) const</td></tr>
-<tr class="memdesc:add6df0ded075070e6d34388fc9d5db0d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Diffs the schema the registered migrations intend against the live database.  <br /></td></tr>
-<tr class="separator:add6df0ded075070e6d34388fc9d5db0d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a70539241ba2c17c1ce40ce89ec177f55" id="r_a70539241ba2c17c1ce40ce89ec177f55"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d2/d24/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1RewriteChecksumsResult.html">RewriteChecksumsResult</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a70539241ba2c17c1ce40ce89ec177f55">RewriteChecksums</a> (bool dryRun=false)</td></tr>
 <tr class="memdesc:a70539241ba2c17c1ce40ce89ec177f55"><td class="mdescLeft">&#160;</td><td class="mdescRight">Re-stamps <code>schema_migrations.checksum</code> rows that have drifted.  <br /></td></tr>
 <tr class="separator:a70539241ba2c17c1ce40ce89ec177f55"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -380,7 +368,7 @@ Static Public Member Functions</h2></td></tr>
 <dd>
 Reference to the migration manager. </dd></dl>
 
-<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00932">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00824">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>.</p>
 
 </div>
 </div>
@@ -407,7 +395,7 @@ Reference to the migration manager. </dd></dl>
   </dd>
 </dl>
 
-<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00932">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00824">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>.</p>
 
 </div>
 </div>
@@ -990,38 +978,6 @@ Reference to the migration manager. </dd></dl>
   </table>
   </dd>
 </dl>
-
-</div>
-</div>
-<a id="add6df0ded075070e6d34388fc9d5db0d" name="add6df0ded075070e6d34388fc9d5db0d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#add6df0ded075070e6d34388fc9d5db0d">&#9670;&#160;</a></span>DiffAgainstLiveSchema()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../df/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1SchemaDiffResult.html">SchemaDiffResult</a> Lightweight::SqlMigration::MigrationManager::DiffAgainstLiveSchema </td>
-          <td>(</td>
-          <td class="paramtype">std::optional&lt; <a class="el" href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">MigrationTimestamp</a> &gt;&#160;</td>
-          <td class="paramname"><em>upToInclusive</em> = <code>std::nullopt</code></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Diffs the schema the registered migrations intend against the live database. </p>
-<p>Folds every registered migration via <code>FoldRegisteredMigrations</code> (a pure plan-walk) and compares the result against <code>SqlSchema::ReadAllTables</code>. This is the autogenerate primitive: <code>dbtool diff</code> prints the result, <code>dbtool generate</code> emits it as a timestamped migration source file.</p>
-<p>Read-only — issues only schema-introspection queries and never writes.</p>
-<p>Column types are compared <em>as the active dialect renders them</em> (<code><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a9d7c9b20efff3182019134922431f9dd" title="Convert the given column type definition to the SQL type.">SqlQueryFormatter::ColumnType</a></code>), not as raw variant alternatives. Two alternatives a backend spells identically are therefore not reported as drift, which is what keeps the diff quiet across backends whose introspection cannot distinguish them (<code>DateTime</code> vs <code>Timestamp</code> on SQLite, say).</p>
-<p>Bookkeeping tables Lightweight owns itself (<code>schema_migrations</code> and the SQLite advisory-lock table) are excluded from <code>unmanagedTables</code>: they belong to no registered migration but are not user-owned either.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">upToInclusive</td><td>If set, fold only migrations with <code>timestamp &lt;= upToInclusive</code>, so the diff answers "what does the live DB still need to
-                     reach that point" rather than "to reach HEAD". </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>The delta. Empty when the live schema already matches the intent. </dd></dl>
 
 </div>
 </div>
