@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['unboundedgrow_0',['UnboundedGrow',['../d6/de4/group__ConnectionPool.html#ggadf7777be559a52bca78d24e4a99a4f0cab1c6941b5c866676983d4a5195e6f1d7',1,'Lightweight']]],
-  ['unique_1',['Unique',['../d6/daa/group__QueryBuilder.html#gga17470447b60d4554d19d30e877645d07ad019979a29c88c8d69bab3a63388da97',1,'Lightweight']]]
+  ['retriesexhausted_0',['RetriesExhausted',['../d1/d7b/group__Retry.html#gga736570debff7c5c20bb31ef7b87a75e2a4ff23e928f5a3fb19ee4768446d8da93',1,'Lightweight']]],
+  ['retry_1',['Retry',['../d1/d7b/group__Retry.html#gga342e14df587d6a9b4a42d34038e2fdc5a6327b4e59f58137083214a1fec358855',1,'Lightweight']]]
 ];

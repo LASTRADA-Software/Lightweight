@@ -7,7 +7,7 @@ var searchData=
   ['indexname_4',['indexName',['../dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#a8b1c5ecec1c2dd8326f6011d3256f84c',1,'Lightweight::SqlCreateIndexPlan']]],
   ['indicators_5',['indicators',['../da/d7e/structLightweight_1_1SqlRawColumn.html#a9125efddb4978d91a258ef9525c0ea3d',1,'Lightweight::SqlRawColumn']]],
   ['info_6',['info',['../d6/d3b/structLightweight_1_1SqlLockError.html#aedcac377e528618f190b2cb4deb5f48a',1,'Lightweight::SqlLockError']]],
-  ['initialdelay_7',['initialDelay',['../d4/d9f/structLightweight_1_1SqlBackup_1_1RetrySettings.html#a009fb3f655ca7d46fe8d4e322cd45752',1,'Lightweight::SqlBackup::RetrySettings']]],
+  ['initialdelay_7',['initialDelay',['../d9/d7e/structLightweight_1_1SqlRetrySettings.html#a0e9dbe911c17a0c3aea32eb5cbb9b356',1,'Lightweight::SqlRetrySettings']]],
   ['initialsize_8',['initialSize',['../df/d1a/structLightweight_1_1PoolConfig.html#a8ff366daa9e0eb6c99e5a1e3fc5ec8d4',1,'Lightweight::PoolConfig']]],
   ['intendedtype_9',['intendedType',['../d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a9702abd84a89cfd34a32375d341e0b7e',1,'Lightweight::SqlMigration::MigrationManager::ColumnUpgradeEntry']]],
   ['into_10',['Into',['../d4/d03/structLightweight_1_1Connection.html#af4905f5b66a019dbeb63e248ef14bdb1',1,'Lightweight::Connection']]],

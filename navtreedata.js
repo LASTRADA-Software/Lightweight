@@ -39,8 +39,7 @@ var NAVTREE =
       [ "High level Data Mapping", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#high-level-data-mapping", [
         [ "Batched insert and update", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#batched-insert-and-update", null ]
       ] ],
-      [ "Simple row retrieval via structs", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#simple-row-retrieval-via-structs", null ],
-      [ "Streaming a table with <tt>SqlRowIterator</tt>", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#streaming-a-table-with-sqlrowiterator", null ]
+      [ "Simple row retrieval via structs", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#simple-row-retrieval-via-structs", null ]
     ] ],
     [ "SQL Query", "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html", [
       [ "Create or Modify database schema", "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#create-or-modify-database-schema", [
@@ -336,14 +335,14 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dd0/structLightweight_1_1Field.html#a5f42ad38e8fc096b2af5fc6ba33733ca",
-"d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html",
-"d7/d13/structLightweight_1_1SqlRealName.html#ab0401218e4862992fe012713ef2b8df9",
-"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#ab383612d1c31747f630dfb1f8608ed0f",
-"da/da8/classLightweight_1_1SqlConnection.html#a93ccf2f65cb117c8ef34cac8be750d90",
-"dd/d75/structLightweight_1_1SqlAlterTablePlan.html#a4d5476b81f6e3efc5057c49d797a9f07",
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inputparameter",
-"index.html#supported-platforms"
+"d2/dd0/structLightweight_1_1Field.html#a2c60afcc1bbc8a99d32b12422d7f5df1",
+"d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#a4ba3ee45a117b2883222f58f6606bbbb",
+"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ab6dce3dcf3188a944f96b9a04f053f54",
+"d8/d8b/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1DataStep.html#a4b67dd278a63e1a8680f3a99e47141e5",
+"da/d7e/structLightweight_1_1SqlRawColumn.html#a46be282ffe105f3df50dd090c0419d68",
+"dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#ae02440293597aaf830d7ce2dc4ef6a26",
+"de/dae/classLightweight_1_1SqlFixedString.html#a612a6159015bf954929f7e3eb6b3a904",
+"functions_type.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
