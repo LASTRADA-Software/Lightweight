@@ -1,5 +1,7 @@
 var NAVTREEINDEX4 =
 {
+"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#aae78f7a3b9c5ab16e1c530458a1b9d70":[17,8,7,19],
+"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#ab383612d1c31747f630dfb1f8608ed0f":[17,8,7,6],
 "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#acb8f4c9ca3abc544b7c967a07163ae1c":[17,8,7,16],
 "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#ad0156fe9ef9aed1de5af0376c337bb09":[17,8,7,9],
 "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#ae28b8f58e51308f801acc79b67095643":[17,8,7,10],
@@ -72,6 +74,7 @@ var NAVTREEINDEX4 =
 "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#raw-sql-queries":[2,2],
 "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#simple-row-retrieval-via-structs":[2,7],
 "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sql-query-builder":[2,5],
+"d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#streaming-a-table-with-sqlrowiterator":[2,8],
 "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#transparent-block-prefetch-fewer-network-round-trips":[2,3],
 "d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html":[17,7,6,3,1],
 "d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html#a14c5641bee4fb83cbdff804c876ebc04":[17,7,6,3,1,0],
@@ -246,8 +249,5 @@ var NAVTREEINDEX4 =
 "da/da8/classLightweight_1_1SqlConnection.html#a551626f7d08b7eace6819a41ac94252b":[17,6,2,8],
 "da/da8/classLightweight_1_1SqlConnection.html#a59365fb5e67607dea67ec0c46cac83cc":[17,6,2,26],
 "da/da8/classLightweight_1_1SqlConnection.html#a62a9dd35027a98c52b3fcb66fcf2e731":[17,6,2,3],
-"da/da8/classLightweight_1_1SqlConnection.html#a63ba202ba517a1dbe5d36afe4654a85b":[17,6,2,5],
-"da/da8/classLightweight_1_1SqlConnection.html#a6632efa15e669b5892bcb1fe0e0dc683":[17,6,2,4],
-"da/da8/classLightweight_1_1SqlConnection.html#a6dabdd78f7aad57d5deb2597d553bc32":[17,6,2,16],
-"da/da8/classLightweight_1_1SqlConnection.html#a7577a4c8347fede96bb3953f84b068d4":[17,6,2,19]
+"da/da8/classLightweight_1_1SqlConnection.html#a63ba202ba517a1dbe5d36afe4654a85b":[17,6,2,5]
 };
