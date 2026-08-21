@@ -413,6 +413,37 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlResultCursor::GetColumn by name reads bare 
     CHECK(cursor.GetColumn<int>("Salary") == 50'000);
 }
 
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlResultCursor::GetColumn by name reads names given to variadic Fields()",
+                 "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    CreateEmployeesTable(stmt);
+    FillEmployeesTable(stmt);
+
+    // The tests around this one project through the container overloads of Fields(). The variadic
+    // Fields(first, more...) registers the projected names along a separate code path, and its
+    // single-argument form is a separate instantiation again - one in which the fold over the
+    // remaining fields is discarded entirely, leaving the first field as the only registration.
+    SECTION("a single field")
+    {
+        auto cursor = stmt.ExecuteDirect(stmt.Query("Employees").Select().Fields("FirstName").OrderBy("EmployeeID"sv).All());
+
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<std::string>("FirstName") == "Alice");
+    }
+
+    SECTION("several fields")
+    {
+        auto cursor =
+            stmt.ExecuteDirect(stmt.Query("Employees").Select().Fields("FirstName", "Salary").OrderBy("EmployeeID"sv).All());
+
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<std::string>("FirstName") == "Alice");
+        CHECK(cursor.GetColumn<int>("Salary") == 50'000);
+    }
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlResultCursor::GetColumn by name reads qualified names", "[SqlStatement]")
 {
     auto stmt = SqlStatement {};
