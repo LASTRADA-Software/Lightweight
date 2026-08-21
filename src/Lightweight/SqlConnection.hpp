@@ -430,10 +430,17 @@ inline bool SqlConnection::SupportsPreparedStatementReuse() const noexcept
         case SqlServerType::POSTGRESQL:
         case SqlServerType::SQLITE:
             return true;
+        // Not covered, and not coverable from the suite: this reads ServerType() off a live
+        // connection, and every environment in the test matrix reports one of the three above.
+        // (SupportsNativeRowArrayFetch below takes the server type as a parameter and is unit-tested
+        // for every enumerator; reshaping this one the same way would make the arm reachable.)
         case SqlServerType::MYSQL:
         case SqlServerType::UNKNOWN:
             return false;
     }
+    // Unreachable: the switch above is exhaustive and every arm returns. Kept because a switch over a
+    // scoped enum without a default label still leaves the function without a return as far as
+    // -Wreturn-type is concerned.
     return false;
 }
 

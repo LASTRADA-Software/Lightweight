@@ -311,6 +311,9 @@ bool SqlStatement::ReleasePreparedHandle() noexcept
     // adopts the pooled count verbatim and skips SQLNumParams, and the sentinel would then make every
     // Execute(args...) on that query text reject its arguments — so re-derive the real count from the
     // (still prepared) handle, and decline to pool it when even that fails.
+    // The SQLNumParams failure arm is not reachable from the suite: the handle is still prepared at
+    // this point, so every driver in the matrix answers it. Declining to pool the handle is the safe
+    // response for a driver that does not.
     auto parameterCount = m_expectedParameterCount;
     if (parameterCount == (std::numeric_limits<decltype(m_expectedParameterCount)>::max)()
         && !SQL_SUCCEEDED(SQLNumParams(m_hStmt, &parameterCount)))
