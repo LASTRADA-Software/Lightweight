@@ -49,6 +49,7 @@ set(SOURCE_FILES
     DataMapper/BatchTests.cpp
     DataMapper/CreateTests.cpp
     DataMapper/MiscTests.cpp
+    DataMapper/PoolHealthTests.cpp
     DataMapper/NamingTests.cpp
     DataMapper/ReadTests.cpp
     DataMapper/RowWiseFetchTests.cpp

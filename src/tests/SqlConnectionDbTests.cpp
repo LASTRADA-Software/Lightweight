@@ -139,3 +139,17 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlConnection::Close is idempotent", "[SqlConn
     fresh.Close(); // second Close must be a no-op, not crash
     CHECK_FALSE(fresh.IsAlive());
 }
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlConnection::Close leaves dependent statements safe to destroy", "[SqlConnection]")
+{
+    // Closing a connection frees its DBC handle, and the driver manager invalidates every statement
+    // allocated from it at the same moment. A statement object outliving that must not free its now
+    // dangling handle: under unixODBC that reads released driver memory and segfaults.
+    auto mapper = DataMapper {};
+    REQUIRE(mapper.Connection().IsAlive());
+
+    mapper.Connection().Close();
+    CHECK_FALSE(mapper.Connection().IsAlive());
+    // `mapper` (and the SqlStatement it owns) is destroyed here; reaching the end of the test is the
+    // assertion.
+}

@@ -176,6 +176,10 @@ growth strategy:
   Under load this can open an unbounded number of connections, so choose `BoundedWait` when you
   need back-pressure.
 
+`AcquireAsync` has no timeout overload — it suspends a coroutine rather than occupying a thread. The
+synchronous `Pool::Acquire` does; see [connection-pool.md](connection-pool.md), which also covers the
+pool's connection-health controls (validation on borrow, idle and lifetime bounds).
+
 ## Transactions
 
 `AsyncSqlTransaction` is the one distinct async type (a transaction is a scoped object):
