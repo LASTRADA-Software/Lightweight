@@ -77,6 +77,7 @@ set(SOURCE_FILES
     SqlDateTimeDbTests.cpp
     SqlNumericTests.cpp
     SqlRealNameTests.cpp
+    SqlRetryPolicyTests.cpp
     SqlSchemaDbTests.cpp
     SqlStatementBatchFetchTests.cpp
     SqlStatementPrefetchTests.cpp
