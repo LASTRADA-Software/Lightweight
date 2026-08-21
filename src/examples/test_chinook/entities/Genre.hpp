@@ -23,7 +23,7 @@ struct Genre final
 template <>
 struct Lightweight::Description<Genre>
 {
-    static constexpr std::size_t FieldCount = 2;
-    using Members = Lightweight::RecordMemberList<&Genre::GenreId, &Genre::Name>;
-    static constexpr std::array<std::string_view, 2> FieldNames = { "GenreId", "Name" };
+    static constexpr std::size_t FieldCount = 3;
+    using Members = Lightweight::RecordMemberList<&Genre::GenreId, &Genre::Name, &Genre::Track_1>;
+    static constexpr std::array<std::string_view, 3> FieldNames = { "GenreId", "Name", "Track_1" };
 };

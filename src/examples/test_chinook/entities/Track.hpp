@@ -13,8 +13,6 @@
 #include <string_view>
 
 struct Invoiceline;
-struct Playlist;
-struct Playlisttrack;
 
 struct Track final
 {
@@ -30,14 +28,13 @@ struct Track final
     Light::Field<std::optional<int32_t>, Light::SqlRealName { "Bytes" }> Bytes;
     Light::Field<Light::SqlNumeric<10, 2>, Light::SqlRealName { "UnitPrice" }> UnitPrice;
 
-    Light::HasManyThrough<Playlist, Light::Through<Playlisttrack>> Playlist_1;
     Light::HasMany<Invoiceline> InvoiceLine;
 };
 
 template <>
 struct Lightweight::Description<Track>
 {
-    static constexpr std::size_t FieldCount = 9;
+    static constexpr std::size_t FieldCount = 10;
     using Members = Lightweight::RecordMemberList<&Track::TrackId,
                                                   &Track::Name,
                                                   &Track::AlbumId,
@@ -46,8 +43,10 @@ struct Lightweight::Description<Track>
                                                   &Track::Composer,
                                                   &Track::Milliseconds,
                                                   &Track::Bytes,
-                                                  &Track::UnitPrice>;
-    static constexpr std::array<std::string_view, 9> FieldNames = { "TrackId",      "Name",    "AlbumId",
-                                                                    "MediaTypeId",  "GenreId", "Composer",
-                                                                    "Milliseconds", "Bytes",   "UnitPrice" };
+                                                  &Track::UnitPrice,
+                                                  &Track::InvoiceLine>;
+    static constexpr std::array<std::string_view, 10> FieldNames = { "TrackId",      "Name",    "AlbumId",
+                                                                     "MediaTypeId",  "GenreId", "Composer",
+                                                                     "Milliseconds", "Bytes",   "UnitPrice",
+                                                                     "InvoiceLine" };
 };

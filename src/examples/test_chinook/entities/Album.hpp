@@ -26,7 +26,7 @@ struct Album final
 template <>
 struct Lightweight::Description<Album>
 {
-    static constexpr std::size_t FieldCount = 3;
-    using Members = Lightweight::RecordMemberList<&Album::AlbumId, &Album::Title, &Album::ArtistId>;
-    static constexpr std::array<std::string_view, 3> FieldNames = { "AlbumId", "Title", "ArtistId" };
+    static constexpr std::size_t FieldCount = 4;
+    using Members = Lightweight::RecordMemberList<&Album::AlbumId, &Album::Title, &Album::ArtistId, &Album::Track_1>;
+    static constexpr std::array<std::string_view, 4> FieldNames = { "AlbumId", "Title", "ArtistId", "Track_1" };
 };

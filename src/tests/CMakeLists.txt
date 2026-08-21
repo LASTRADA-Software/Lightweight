@@ -55,6 +55,7 @@ set(SOURCE_FILES
     DataMapper/RelationShapeTests.cpp
     DataMapper/RelationTests.cpp
     DataMapper/BelongsToStateTests.cpp
+    DataMapper/DescriptorRelationTests.cpp
     DataMapper/InstantiationCoverageTests.cpp
     DataMapper/StateTests.cpp
     DataMapper/ThroughMarkerTests.cpp

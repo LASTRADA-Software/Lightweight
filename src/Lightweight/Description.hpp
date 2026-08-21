@@ -118,6 +118,13 @@ struct RecordMemberList
 ///  - `static constexpr std::array<std::string_view, FieldCount> FieldNames;` — the resolved SQL
 ///    column name for each field (i.e. the value `FieldNameAt` would otherwise compute).
 ///
+/// `Members` must list *every* non-static data member in declaration order, relation members
+/// (`HasMany`, `HasManyThrough`, `HasOneThrough`) included — it stands in for reflection, so omitting
+/// one hides it from `EnumerateRecordMembers` and relation auto-loading silently never runs.
+/// Consumers that want only the columns filter by the `RecordColumnMember` concept (see
+/// `RecordColumnCount`), never by index. A relation has no SQL column, so its `FieldNames` slot
+/// carries its C++ member name, which is what reflection reports there.
+///
 /// @ingroup DataMapper
 template <typename Record>
 struct Description;

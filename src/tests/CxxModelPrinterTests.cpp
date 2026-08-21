@@ -984,3 +984,59 @@ TEST_CASE("CxxModelPrinter::PrintReport summarizes tables and multi-key FK warni
     // stdout; the assertion is that the full report path executes.
     CHECK_NOTHROW(printer.PrintReport());
 }
+
+// Regression coverage for issue #556: the descriptor is the *member* list, not the column list.
+// `RecordMemberCount` prefers `Description<Record>::FieldCount` whenever a specialization exists, so
+// a descriptor that stops at the columns hides the relation members from `EnumerateRecordMembers` —
+// `ConfigureRelationAutoLoading` then installs no loader and the first access throws
+// `SqlRequireLoadedError`. Column-only consumers filter by the `RecordColumnMember` concept, not by
+// index, so listing relations here costs them nothing (see `RecordColumnCount` in Record.hpp).
+TEST_CASE("CxxModelPrinter: Description covers relation members, not just columns", "[CxxModelPrinter]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+
+    auto const tables = std::vector<Lightweight::SqlSchema::Table> {
+        Lightweight::SqlSchema::Table {
+            .schema = "",
+            .name = "customers",
+            .columns = { Lightweight::SqlSchema::Column {
+                .name = "id", .type = Integer {}, .isNullable = false, .isPrimaryKey = true } },
+            .primaryKeys = { "id" },
+        },
+        Lightweight::SqlSchema::Table {
+            .schema = "",
+            .name = "orders",
+            .columns = { Lightweight::SqlSchema::Column {
+                             .name = "id", .type = Integer {}, .isNullable = false, .isPrimaryKey = true },
+                         Lightweight::SqlSchema::Column {
+                             .name = "customer_id", .type = Integer {}, .isNullable = false, .isForeignKey = true } },
+            .foreignKeys = { Lightweight::SqlSchema::ForeignKeyConstraint {
+                .foreignKey = { .table = { .catalog = "", .schema = "", .table = "orders" }, .columns = { "customer_id" } },
+                .primaryKey = { .table = { .catalog = "", .schema = "", .table = "customers" }, .columns = { "id" } },
+            } },
+            .primaryKeys = { "id" },
+        },
+    };
+
+    auto const plan = CxxModelPrinter::PlanRelations(tables);
+    CxxModelPrinter::Config config;
+    config.makeAliases = true;
+    CxxModelPrinter printer { config };
+    auto const customersRelations = plan.find("customers");
+    REQUIRE(customersRelations != plan.end());
+    REQUIRE(customersRelations->second.size() == 1);
+    printer.PrintTable(tables[0], customersRelations->second);
+
+    auto const output = printer.ToString("Models");
+    INFO(output);
+
+    // The HasMany is emitted into the struct body ...
+    CHECK(output.contains("Light::HasMany<Orders> orders;"));
+    // ... so the descriptor must count it and list it too, or relation auto-loading never runs.
+    CHECK(output.contains("static constexpr std::size_t FieldCount = 2;"));
+    CHECK(output.contains("using Members = Lightweight::RecordMemberList<&Models::Customers::id, "
+                          "&Models::Customers::orders>;"));
+    // A relation has no SQL column of its own; reflection would report its C++ member name here, so
+    // the descriptor mirrors that to keep the two enumeration paths interchangeable.
+    CHECK(output.contains(R"(FieldNames = { "id", "orders" };)"));
+}

@@ -420,6 +420,46 @@ namespace
         });
     }
 
+    /// Whether the child side of @p constraint is emitted as a `BelongsTo` member rather than a plain
+    /// `Field`. Mirrors - and must stay in sync with - the guard at the column emission site in
+    /// `PrintTable`.
+    ///
+    /// Every relation this planner can emit (`HasMany`, `HasOne`, `HasOneThrough`, `HasManyThrough`)
+    /// resolves its other end through exactly that `BelongsTo`, so planning one for a foreign key that
+    /// does not become one produces a record that does not compile: `InverseBelongsToResolver`
+    /// static_asserts on the missing member as soon as `ConfigureRelationAutoLoading` reaches the
+    /// relation - which, since the generated `Description<>` lists relation members, it now does (#556).
+    ///
+    /// @param table The table declaring @p constraint.
+    /// @param constraint The candidate foreign key.
+    /// @return `true` when the foreign key column becomes a `BelongsTo` member.
+    bool IsEmittedAsBelongsTo(SqlSchema::Table const& table, SqlSchema::ForeignKeyConstraint const& constraint)
+    {
+        // Composite: emitted as plain fields (with a warning), so there is no BelongsTo either.
+        if (!IsSingleColumn(constraint))
+            return false;
+
+        // A column that is both a primary key and a foreign key stays a plain Field - `BelongsTo` cannot
+        // be a primary key today (`BelongsTo::IsPrimaryKey` is hard-coded `false`).
+        auto const& childColumn = constraint.foreignKey.columns.front();
+        if (std::ranges::contains(table.primaryKeys, childColumn))
+            return false;
+
+        if (constraint.primaryKey.table != constraint.foreignKey.table)
+            return true;
+
+        // A self-reference names a member of the very struct being defined, so it is declarable only
+        // when it points at a primary key column emitted *before* it. Otherwise the column falls back
+        // to a plain field as well.
+        auto const referenced =
+            std::ranges::find(table.columns, constraint.primaryKey.columns.front(), &SqlSchema::Column::name);
+        if (referenced == table.columns.end() || !referenced->isPrimaryKey)
+            return false;
+
+        auto const child = std::ranges::find(table.columns, childColumn, &SqlSchema::Column::name);
+        return child != table.columns.end() && referenced < child;
+    }
+
     /// Whether @p table is a pure join table: exactly two single-column foreign keys pointing at two
     /// distinct tables, and no columns of its own beyond those keys.
     ///
@@ -451,6 +491,14 @@ namespace
                    || std::ranges::contains(table.primaryKeys, name);
         };
         if (!std::ranges::all_of(table.columns, [&](auto const& c) { return isKeyColumn(c.name); }))
+            return std::nullopt;
+
+        // A through-relation resolves its join record's owner and far sides through exactly the two
+        // BelongsTo members, so a join table whose foreign keys do not become BelongsTo cannot satisfy
+        // the relation it would otherwise imply - the generated code would not compile. The classic
+        // composite-key join table (its primary key *is* its two foreign keys) is the common case here.
+        // Skip it for the same reason EmitInverseRelation does: no BelongsTo, no relation (#556).
+        if (!IsEmittedAsBelongsTo(table, singleColumnKeys[0]) || !IsEmittedAsBelongsTo(table, singleColumnKeys[1]))
             return std::nullopt;
 
         return std::pair { singleColumnKeys[0], singleColumnKeys[1] };
@@ -497,7 +545,7 @@ namespace
     }
 
     /// Emits the inverse `HasOne`/`HasMany` relation implied by one single-column foreign key, unless it
-    /// is composite or points outside the generated set.
+    /// does not become a `BelongsTo` (see @ref IsEmittedAsBelongsTo) or points outside the generated set.
     ///
     /// @param table The table declaring @p constraint.
     /// @param constraint The candidate foreign key.
@@ -511,8 +559,12 @@ namespace
                              IsAmbiguousFn const& isAmbiguous,
                              CxxModelPrinter::RelationPlan& plan)
     {
-        if (!IsSingleColumn(constraint))
-            return; // composite: no BelongsTo either, so no inverse
+        // HasMany/HasOne resolves its inverse through the child's BelongsTo member. Where the column
+        // emission site declines to emit one - a composite key, a column that is also a primary key, a
+        // self-reference that cannot name its target - the relation cannot be satisfied and the
+        // generated record fails to compile (#556).
+        if (!IsEmittedAsBelongsTo(table, constraint))
+            return;
 
         auto const& ownerTable = constraint.primaryKey.table.table;
         if (byName(ownerTable) == nullptr)
@@ -1082,6 +1134,15 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table, std::vector<Plan
 
         auto const memberName = uniqueMemberNameBuilder.DeclareName(
             SanitizeName(FormatName(StripSuffix(relation.memberName), _config.formatType)));
+
+        // A relation is not a column, but the descriptor is the record's *member* list, not its column
+        // list: RecordMemberCount reads Description<>::FieldCount whenever a specialization exists, so a
+        // relation left out here is invisible to EnumerateRecordMembers - ConfigureRelationAutoLoading
+        // then installs no loader and the first access throws SqlRequireLoadedError (#556). Column-only
+        // consumers select members by the RecordColumnMember concept rather than by index, so the extra
+        // entry costs them nothing. Reflection reports a relation's C++ member name where a column would
+        // report its SQL name, so mirror that to keep both enumeration paths interchangeable.
+        definition.members.emplace_back(memberName, memberName);
 
         auto const ownerSelector = relation.ownerSelectorRequired
                                        ? std::format(", Light::SqlRealName {{ \"{}\" }}", relation.ownerForeignKeyColumn)

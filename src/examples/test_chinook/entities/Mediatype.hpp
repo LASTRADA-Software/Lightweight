@@ -23,7 +23,7 @@ struct Mediatype final
 template <>
 struct Lightweight::Description<Mediatype>
 {
-    static constexpr std::size_t FieldCount = 2;
-    using Members = Lightweight::RecordMemberList<&Mediatype::MediaTypeId, &Mediatype::Name>;
-    static constexpr std::array<std::string_view, 2> FieldNames = { "MediaTypeId", "Name" };
+    static constexpr std::size_t FieldCount = 3;
+    using Members = Lightweight::RecordMemberList<&Mediatype::MediaTypeId, &Mediatype::Name, &Mediatype::Track_1>;
+    static constexpr std::array<std::string_view, 3> FieldNames = { "MediaTypeId", "Name", "Track_1" };
 };

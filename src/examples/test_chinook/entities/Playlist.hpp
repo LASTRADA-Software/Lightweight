@@ -8,17 +8,12 @@
 #include <array>
 #include <string_view>
 
-struct Playlisttrack;
-struct Track;
-
 struct Playlist final
 {
     static constexpr std::string_view TableName = "Playlist";
 
     Light::Field<int32_t, Light::PrimaryKey::ServerSideAutoIncrement, Light::SqlRealName { "PlaylistId" }> PlaylistId;
     Light::Field<std::optional<Light::SqlDynamicUtf16String<120>>, Light::SqlRealName { "Name" }> Name;
-
-    Light::HasManyThrough<Track, Light::Through<Playlisttrack>> Track_1;
 };
 
 template <>

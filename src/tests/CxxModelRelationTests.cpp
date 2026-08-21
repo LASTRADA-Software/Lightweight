@@ -217,17 +217,18 @@ TEST_CASE("PlanRelations: a composite unique index does not make a relation one-
 
 TEST_CASE("PlanRelations: a two-column join table yields HasManyThrough on both sides", "[CxxModelPrinter][relations]")
 {
-    // The join-table shape found repeatedly in the reference schema: a composite primary key over
-    // exactly the two foreign keys, and no payload columns.
+    // A join table with a key of its own, so both foreign key columns become BelongsTo members and the
+    // through-relation can actually resolve them. (A join table keyed on its own foreign keys is
+    // skipped instead - see the composite-key test below.)
     auto const tables = std::vector<Lightweight::SqlSchema::Table> {
         { .schema = "", .name = "project", .columns = { IdColumn() }, .primaryKeys = { "id" } },
         { .schema = "", .name = "user", .columns = { IdColumn() }, .primaryKeys = { "id" } },
         { .schema = "",
           .name = "project_user",
-          .columns = { ForeignKeyColumn("project_id"), ForeignKeyColumn("user_id") },
+          .columns = { IdColumn(), ForeignKeyColumn("project_id"), ForeignKeyColumn("user_id") },
           .foreignKeys = { ForeignKey("project_user", "project_id", "project"),
                            ForeignKey("project_user", "user_id", "user") },
-          .primaryKeys = { "project_id", "user_id" } },
+          .primaryKeys = { "id" } },
     };
 
     auto const plan = CxxModelPrinter::PlanRelations(tables);
@@ -264,10 +265,10 @@ TEST_CASE("PlanRelations: a join table with a uniquely indexed owner key yields 
         { .schema = "", .name = "locker", .columns = { IdColumn() }, .primaryKeys = { "id" } },
         { .schema = "",
           .name = "employee_locker",
-          .columns = { ForeignKeyColumn("employee_id"), ForeignKeyColumn("locker_id", /*isUnique=*/true) },
+          .columns = { IdColumn(), ForeignKeyColumn("employee_id"), ForeignKeyColumn("locker_id", /*isUnique=*/true) },
           .foreignKeys = { ForeignKey("employee_locker", "employee_id", "employee"),
                            ForeignKey("employee_locker", "locker_id", "locker") },
-          .primaryKeys = { "employee_id", "locker_id" } },
+          .primaryKeys = { "id" } },
     };
 
     auto const plan = CxxModelPrinter::PlanRelations(tables);
@@ -281,6 +282,75 @@ TEST_CASE("PlanRelations: a join table with a uniquely indexed owner key yields 
     auto const fromLocker = SoleRelationOn(plan, "locker");
     CHECK(fromLocker.kind == Kind::HasOneThrough);
     CHECK(fromLocker.referencedTable == "employee");
+}
+
+TEST_CASE("PlanRelations: a join table keyed on its own foreign keys yields no through-relation",
+          "[CxxModelPrinter][relations]")
+{
+    // The classic composite-key join table: its primary key *is* the two foreign keys. ddl2cpp emits a
+    // column that is both a primary key and a foreign key as a plain Field rather than a BelongsTo, and
+    // a through-relation can only resolve its two sides through BelongsTo members - so planning one here
+    // would generate a record that does not compile (#556). Chinook's PlaylistTrack is exactly this
+    // shape, and the relations it used to imply were unusable: relation auto-loading never reached them
+    // only because the generated Description<> omitted relation members altogether.
+    //
+    // Supporting this shape needs BelongsTo to be usable as a primary key, which it is not today
+    // (BelongsTo::IsPrimaryKey is hard-coded false). Until then, generate nothing rather than something
+    // broken. A join table with a key of its own keeps working - see the HasManyThrough test above.
+    auto const tables = std::vector<Lightweight::SqlSchema::Table> {
+        { .schema = "", .name = "playlist", .columns = { IdColumn() }, .primaryKeys = { "id" } },
+        { .schema = "", .name = "track", .columns = { IdColumn() }, .primaryKeys = { "id" } },
+        { .schema = "",
+          .name = "playlist_track",
+          .columns = { ForeignKeyColumn("playlist_id"), ForeignKeyColumn("track_id") },
+          .foreignKeys = { ForeignKey("playlist_track", "playlist_id", "playlist"),
+                           ForeignKey("playlist_track", "track_id", "track") },
+          .primaryKeys = { "playlist_id", "track_id" } },
+    };
+
+    auto const plan = CxxModelPrinter::PlanRelations(tables);
+
+    CHECK(RelationsOn(plan, "playlist").empty());
+    CHECK(RelationsOn(plan, "track").empty());
+    CHECK(RelationsOn(plan, "playlist_track").empty());
+}
+
+TEST_CASE("PlanRelations: a self-reference declared before its primary key yields no relation",
+          "[CxxModelPrinter][relations]")
+{
+    // The same shape CxxModelPrinterTests pins on the column side ("self-reference declared before its
+    // primary key stays a plain field"): a pointer-to-member may only name a member the compiler has
+    // already seen, so this foreign key falls back to a plain Field instead of a BelongsTo. HasMany
+    // resolves its inverse through exactly that BelongsTo, so planning one would emit a record whose
+    // ConfigureRelationAutoLoading fails to compile - now that Description<> lists relation members and
+    // the loader is actually instantiated (#556).
+    auto const tables = std::vector<Lightweight::SqlSchema::Table> {
+        { .schema = "",
+          .name = "node",
+          .columns = { ForeignKeyColumn("parent_id"), IdColumn() },
+          .foreignKeys = { ForeignKey("node", "parent_id", "node") },
+          .primaryKeys = { "id" } },
+    };
+
+    CHECK(RelationsOn(CxxModelPrinter::PlanRelations(tables), "node").empty());
+}
+
+TEST_CASE("PlanRelations: a self-reference into a non-primary-key column yields no relation", "[CxxModelPrinter][relations]")
+{
+    // PostgreSQL and SQL Server allow a foreign key to target any UNIQUE NOT NULL column, but BelongsTo
+    // static_asserts that the member it points at is a primary key - so the column stays a plain Field
+    // and, for the same reason as above, implies no inverse relation either.
+    auto const tables = std::vector<Lightweight::SqlSchema::Table> {
+        { .schema = "",
+          .name = "doc",
+          .columns = { IdColumn(),
+                       Lightweight::SqlSchema::Column { .name = "code", .type = Integer {}, .isNullable = false },
+                       ForeignKeyColumn("parent_code") },
+          .foreignKeys = { ForeignKey("doc", "parent_code", "doc", "code") },
+          .primaryKeys = { "id" } },
+    };
+
+    CHECK(RelationsOn(CxxModelPrinter::PlanRelations(tables), "doc").empty());
 }
 
 TEST_CASE("PlanRelations: a join table with payload columns stays an entity", "[CxxModelPrinter][relations]")
@@ -324,10 +394,10 @@ TEST_CASE("PlanRelations: a table with two foreign keys to the same table is not
         { .schema = "", .name = "person", .columns = { IdColumn() }, .primaryKeys = { "id" } },
         { .schema = "",
           .name = "marriage",
-          .columns = { ForeignKeyColumn("spouse_a_id"), ForeignKeyColumn("spouse_b_id") },
+          .columns = { IdColumn(), ForeignKeyColumn("spouse_a_id"), ForeignKeyColumn("spouse_b_id") },
           .foreignKeys = { ForeignKey("marriage", "spouse_a_id", "person"),
                            ForeignKey("marriage", "spouse_b_id", "person") },
-          .primaryKeys = { "spouse_a_id", "spouse_b_id" } },
+          .primaryKeys = { "id" } },
     };
 
     auto const relations = RelationsOn(CxxModelPrinter::PlanRelations(tables), "person");
@@ -457,10 +527,10 @@ TEST_CASE("CxxModelPrinter: emits HasManyThrough for a join table", "[CxxModelPr
         { .schema = "", .name = "user", .columns = { IdColumn() }, .primaryKeys = { "id" } },
         { .schema = "",
           .name = "project_user",
-          .columns = { ForeignKeyColumn("project_id"), ForeignKeyColumn("user_id") },
+          .columns = { IdColumn(), ForeignKeyColumn("project_id"), ForeignKeyColumn("user_id") },
           .foreignKeys = { ForeignKey("project_user", "project_id", "project"),
                            ForeignKey("project_user", "user_id", "user") },
-          .primaryKeys = { "project_id", "user_id" } },
+          .primaryKeys = { "id" } },
     };
 
     auto printer = CxxModelPrinter { CxxModelPrinter::Config {} };
