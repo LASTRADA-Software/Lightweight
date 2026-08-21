@@ -30,12 +30,18 @@ using namespace std::chrono_literals;
 namespace
 {
 
-SqlErrorInfo MakeError(std::string sqlState, SQLINTEGER nativeCode = 0, std::string message = {})
+/// Builds an error carrying only a SQLSTATE and (optionally) a native code.
+///
+/// Deliberately two parameters: a third string next to these would be swappable with the first at
+/// the call site, which is what bugprone-easily-swappable-parameters objects to. The cases that do
+/// need a driver message spell out the aggregate with designated initializers, which names each
+/// field and cannot be transposed.
+SqlErrorInfo MakeError(std::string sqlState, SQLINTEGER nativeCode = 0)
 {
     return SqlErrorInfo {
         .nativeErrorCode = nativeCode,
         .sqlState = std::move(sqlState),
-        .message = std::move(message),
+        .message = {},
     };
 }
 
@@ -64,7 +70,7 @@ class FlakyOperation
 
     int operator()()
     {
-        ++calls;
+        ++_calls;
         if (_remainingFailures > 0)
         {
             --_remainingFailures;
@@ -73,9 +79,14 @@ class FlakyOperation
         return 42;
     }
 
-    unsigned calls = 0;
+    /// Number of times the operation was invoked, successful attempt included.
+    [[nodiscard]] unsigned Calls() const noexcept
+    {
+        return _calls;
+    }
 
   private:
+    unsigned _calls = 0;
     unsigned _remainingFailures;
     SqlErrorInfo _error;
 };
@@ -152,13 +163,19 @@ TEST_CASE("SQLite classifier keys off the driver message", "[SqlRetryPolicy]")
     auto const& classifier = SqliteRetryOps();
 
     // The SQLite ODBC driver flattens busy/locked onto HY000, leaving only the message text.
-    CHECK(classifier.IsTransient(MakeError("HY000", 5, "database is locked")));
-    CHECK(classifier.IsTransient(MakeError("HY000", 6, "database table is locked")));
-    CHECK(classifier.IsTransient(MakeError("HY000", 5, "driver reported SQLITE_BUSY")));
-    CHECK(classifier.IsTransient(MakeError("HY000", 6, "driver reported SQLITE_LOCKED")));
+    CHECK(
+        classifier.IsTransient(SqlErrorInfo { .nativeErrorCode = 5, .sqlState = "HY000", .message = "database is locked" }));
+    CHECK(classifier.IsTransient(
+        SqlErrorInfo { .nativeErrorCode = 6, .sqlState = "HY000", .message = "database table is locked" }));
+    CHECK(classifier.IsTransient(
+        SqlErrorInfo { .nativeErrorCode = 5, .sqlState = "HY000", .message = "driver reported SQLITE_BUSY" }));
+    CHECK(classifier.IsTransient(
+        SqlErrorInfo { .nativeErrorCode = 6, .sqlState = "HY000", .message = "driver reported SQLITE_LOCKED" }));
 
-    CHECK_FALSE(classifier.IsTransient(MakeError("HY000", 1, "no such table: orders")));
-    CHECK_FALSE(classifier.IsTransient(MakeError("HY000", 19, "UNIQUE constraint failed: t.id")));
+    CHECK_FALSE(classifier.IsTransient(
+        SqlErrorInfo { .nativeErrorCode = 1, .sqlState = "HY000", .message = "no such table: orders" }));
+    CHECK_FALSE(classifier.IsTransient(
+        SqlErrorInfo { .nativeErrorCode = 19, .sqlState = "HY000", .message = "UNIQUE constraint failed: t.id" }));
 }
 
 TEST_CASE("SqlRetryPolicy::For maps a server type to its dialect classifier", "[SqlRetryPolicy]")
@@ -323,7 +340,7 @@ TEST_CASE("Execute retries a transient failure and returns the eventual result",
     auto const result = policy.Execute(std::ref(operation));
 
     CHECK(result == 42);
-    CHECK(operation.calls == 3); // two failures plus the successful attempt
+    CHECK(operation.Calls() == 3); // two failures plus the successful attempt
     REQUIRE(sleeper.slept.size() == 2);
     CHECK(sleeper.slept[0] == 100ms);
     CHECK(sleeper.slept[1] == 200ms);
@@ -337,7 +354,7 @@ TEST_CASE("Execute does not retry a permanent failure", "[SqlRetryPolicy]")
     auto operation = FlakyOperation { 1, MakeError("23505") };
     CHECK_THROWS_AS(policy.Execute(std::ref(operation)), SqlException);
 
-    CHECK(operation.calls == 1);
+    CHECK(operation.Calls() == 1);
     CHECK(sleeper.slept.empty());
 }
 
@@ -347,7 +364,8 @@ TEST_CASE("Execute rethrows the original error once the budget is spent", "[SqlR
     auto const policy = SqlRetryPolicy { FastSettings, &GenericRetryOps(), &sleeper };
 
     // Always fails: 1 initial attempt + 3 retries, then the last SqlException escapes unwrapped.
-    auto operation = FlakyOperation { 99, MakeError("08S01", 0, "link failure") };
+    auto operation =
+        FlakyOperation { 99, SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "08S01", .message = "link failure" } };
     try
     {
         (void) policy.Execute(std::ref(operation));
@@ -359,7 +377,7 @@ TEST_CASE("Execute rethrows the original error once the budget is spent", "[SqlR
         CHECK(e.info().message == "link failure");
     }
 
-    CHECK(operation.calls == 4);
+    CHECK(operation.Calls() == 4);
     CHECK(sleeper.slept.size() == 3);
 }
 
@@ -402,7 +420,8 @@ TEST_CASE("TryExecute reports a final failure as unexpected", "[SqlRetryPolicy]"
 
     SECTION("a permanent failure carries the error info")
     {
-        auto operation = FlakyOperation { 1, MakeError("23505", 0, "duplicate key") };
+        auto operation =
+            FlakyOperation { 1, SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "23505", .message = "duplicate key" } };
         auto const result = policy.TryExecute(std::ref(operation));
         REQUIRE_FALSE(result.has_value());
         CHECK(result.error().sqlState == "23505");
@@ -428,7 +447,8 @@ TEST_CASE("The retry observer sees every retry before the wait", "[SqlRetryPolic
     auto seen = std::vector<SqlRetryAttempt> {};
     policy.SetRetryObserver([&seen](SqlRetryAttempt const& attempt) { seen.emplace_back(attempt); });
 
-    auto operation = FlakyOperation { 2, MakeError("HYT00", 0, "timeout expired") };
+    auto operation =
+        FlakyOperation { 2, SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "HYT00", .message = "timeout expired" } };
     (void) policy.Execute(std::ref(operation));
 
     REQUIRE(seen.size() == 2);
@@ -461,8 +481,7 @@ TEST_CASE("A default-constructed policy is usable", "[SqlRetryPolicy]")
 // connection resolves to the classifier for its own dialect.
 // ================================================================================================
 
-TEST_CASE_METHOD(SqlTestFixture, "SqlRetryPolicy::For(connection) picks the live server's classifier",
-                 "[SqlRetryPolicy]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlRetryPolicy::For(connection) picks the live server's classifier", "[SqlRetryPolicy]")
 {
     auto stmt = SqlStatement {};
     auto const& connection = stmt.Connection();
