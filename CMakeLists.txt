@@ -66,10 +66,12 @@ option(LIGHTWEIGHT_DOCS_WARN_AS_ERROR "Treat Doxygen warnings as errors" OFF)
 # via vcpkg if available, otherwise via CPM
 option(LIGHTWEIGHT_ENABLE_TRACY "Enable Tracy profiler instrumentation in the Lightweight library and downstream code" OFF)
 
-# Optional built-in statistics collection (counters + latency histograms, read back via
-# SqlStatistics::Snapshot()). Independent of Tracy: when both are ON, every recorded sample is
-# additionally emitted as a Tracy plot. OFF by default so release builds pay nothing.
-option(LIGHTWEIGHT_ENABLE_STATISTICS "Enable built-in SQL statistics collection (SqlStatistics)" OFF)
+# Built-in statistics collection (counters + latency histograms, read back via
+# SqlStatistics::Snapshot()) is always compiled in and toggled at runtime via
+# SqlStatistics::Enable()/Disable() — OFF by default, so a process that never calls Enable() pays
+# only the one relaxed atomic load per instrumented call site. Independent of Tracy: when Tracy is
+# ALSO enabled below and collection is runtime-enabled, every recorded sample is additionally
+# emitted as a Tracy plot.
 
 if(LIGHTWEIGHT_BUILD_MODULES)
     if(CMAKE_VERSION VERSION_LESS "3.28")

@@ -834,12 +834,13 @@ jobs:
           odbcinst -q -d
       - name: "Load Chinook data into SQLite"
         run: sqlite3 chinook.db < ./src/examples/test_chinook/Chinook_Sqlite.sql
-      # The point of this job: both switches ON at once. Statistics feed the Snapshot() API *and*
-      # emit Tracy plots, so one run proves the collector and the Tracy sink together.
-      - name: "Configure cmake (Tracy + statistics)"
+      # The point of this job: Tracy on, and the chinook example runtime-enables statistics
+      # (SqlStatistics::Enable()) before it runs. Statistics feed the Snapshot() API *and* emit Tracy
+      # plots, so one run proves the collector and the Tracy sink together.
+      - name: "Configure cmake (Tracy)"
         run: |
           cmake --preset gcc-release -B build -D CMAKE_CXX_COMPILER=g++-14 \
-            -D LIGHTWEIGHT_ENABLE_TRACY=ON -D LIGHTWEIGHT_ENABLE_STATISTICS=ON
+            -D LIGHTWEIGHT_ENABLE_TRACY=ON
       - name: "Build chinook example"
         run: cmake --build build --target chinook -j
       # Tracy is built with TRACY_ON_DEMAND, so the client buffers until a listener attaches. Start
@@ -859,7 +860,7 @@ jobs:
         run: |
           echo "--- statistics reported by the example ---"
           grep LIGHTWEIGHT_STATISTICS chinook.log || {
-            echo "::error::no LIGHTWEIGHT_STATISTICS output - the collector was not compiled in"
+            echo "::error::no LIGHTWEIGHT_STATISTICS output - the example did not print any"
             exit 1
           }
           python3 - <<'PY'
@@ -867,8 +868,8 @@ jobs:
 
           lines = [l for l in open("chinook.log") if "LIGHTWEIGHT_STATISTICS" in l]
           text = "".join(lines)
-          if "disabled in this build" in text:
-              sys.exit("statistics were disabled despite LIGHTWEIGHT_ENABLE_STATISTICS=ON")
+          if "disabled in this run" in text:
+              sys.exit("statistics were disabled despite the example calling SqlStatistics::Enable()")
 
           def field(name):
               m = re.search(rf"\b{name}=(\d+)", text)
@@ -1161,15 +1162,11 @@ jobs:
       - name: "Start Docker databases"
         run: python3 ./scripts/tests/docker-databases.py --start --wait mssql2022 mssql2017 postgres
       - name: "cmake"
-        # Statistics are opt-in at build time, and every recording path is behind
-        # `if constexpr (CollectingEnabled)`. With the option off, the collector's whole recording
-        # half compiles but can never execute, so lcov reports it as 0% no matter how many tests
-        # exercise it — and the tests themselves fall through their own `if constexpr
-        # (SqlStatistics::IsEnabled())` guards. Measuring the build that actually collects is the
-        # only way this code can be covered at all.
+        # Statistics collection is a runtime toggle (SqlStatistics::Enable/Disable), always compiled
+        # in — no build-time option needed to exercise the recording paths. SqlStatisticsTests.cpp
+        # enables collection for its own test cases via ScopedStatisticsReset.
         run: |
           cmake --preset clang-coverage \
-                -D LIGHTWEIGHT_ENABLE_STATISTICS=ON \
                 -D CMAKE_CXX_COMPILER=clang++-${{ env.CLANG_TOOLS_VERSION }} \
                 -D CMAKE_C_COMPILER=clang-${{ env.CLANG_TOOLS_VERSION }}
       - name: "build"

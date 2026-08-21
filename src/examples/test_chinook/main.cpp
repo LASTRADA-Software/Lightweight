@@ -89,13 +89,13 @@ void DumpTable(DataMapper& dm, size_t limit = 1)
 
 /// Prints the statistics Lightweight collected during this run.
 ///
-/// Compiled out entirely unless the library was built with LIGHTWEIGHT_ENABLE_STATISTICS=ON; the
-/// `if constexpr` means no `#ifdef` is needed at the call site. The `LIGHTWEIGHT_STATISTICS` marker
-/// lines are what CI greps for to prove the collector actually captured something.
+/// Collection is a runtime toggle now (see `main`, which calls `SqlStatistics::Enable()` up front),
+/// so this simply reads back whatever was collected. The `LIGHTWEIGHT_STATISTICS` marker lines are
+/// what CI greps for to prove the collector actually captured something.
 void DumpStatistics()
 {
-    if constexpr (!SqlStatistics::IsEnabled())
-        Log("LIGHTWEIGHT_STATISTICS disabled in this build");
+    if (!SqlStatistics::IsEnabled())
+        Log("LIGHTWEIGHT_STATISTICS disabled in this run");
     else
     {
         auto const stats = SqlStatistics::Instance().Snapshot();
@@ -132,6 +132,9 @@ void DumpStatistics()
 
 int main()
 {
+    // Runtime-enabled up front so the whole run is captured; DumpStatistics() reports the result below.
+    SqlStatistics::Enable();
+
     if (auto const odbcConnectionString = GetEnvironmentVariable("ODBC_CONNECTION_STRING"); !odbcConnectionString.empty())
     {
         SqlConnection::SetDefaultConnectionString(SqlConnectionString { odbcConnectionString });

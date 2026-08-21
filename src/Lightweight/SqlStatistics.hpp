@@ -2,17 +2,18 @@
 
 #pragma once
 
-// Optional built-in statistics collection. Part of the Lightweight public API:
-// any consumer (tests, tools, examples, downstream apps) inherits the macros.
+// Built-in statistics collection. Part of the Lightweight public API: any consumer (tests, tools,
+// examples, downstream apps) inherits the `LIGHTWEIGHT_STATS_*` macros.
 //
-// Configure with `-DLIGHTWEIGHT_ENABLE_STATISTICS=ON`. When the option is OFF,
-// this header provides no-op stubs so call sites can use the
-// `LIGHTWEIGHT_STATS_*` macros directly without changing the source between
-// builds — exactly the pattern TracyProfiler.hpp already establishes.
+// The collector is always compiled in, and is OFF by default at runtime. Call
+// `SqlStatistics::Enable()` / `SqlStatistics::Disable()` to toggle collection while the process is
+// running — e.g. flip it on for a diagnostic window, then off again — without a recompile or
+// restart. Toggling never clears counters; call `Reset()` explicitly for that.
 //
-// When Tracy is *also* enabled (`-DLIGHTWEIGHT_ENABLE_TRACY=ON`), every
-// recorded sample is additionally emitted as a Tracy plot value, so the same
-// instrumentation feeds both the in-process `Snapshot()` API and the Tracy GUI.
+// When Tracy is *also* enabled (`-DLIGHTWEIGHT_ENABLE_TRACY=ON`), every recorded sample is
+// additionally emitted as a Tracy plot value whenever collection is runtime-enabled, so the same
+// instrumentation feeds both the in-process `Snapshot()` API and the Tracy GUI. Statistics never
+// depends on Tracy: the collector works identically, Tracy present or not.
 //
 // @see docs/statistics.md
 
@@ -244,15 +245,18 @@ struct SqlStatisticsSnapshot
 /// @ingroup CoreApi
 /// Thread-safe, lock-free aggregator of SQL execution and pool statistics.
 ///
-/// The collector is only *populated* when the library is built with
-/// `-DLIGHTWEIGHT_ENABLE_STATISTICS=ON`; otherwise the instrumentation macros compile to nothing
-/// and every snapshot reads back zero. The type itself always exists, so downstream code that reads
-/// statistics still compiles in a build that does not collect them.
+/// The collector is always compiled in, but only *populated* while collection is runtime-enabled
+/// (see @ref Enable, @ref Disable, @ref IsEnabled) — OFF by default. While disabled, every recording
+/// method is still callable but does nothing, so downstream code never needs to guard a call site.
+/// Toggling is orthogonal to @ref Reset: disabling and re-enabling preserves whatever was already
+/// collected.
 ///
 /// All recording methods use relaxed atomics: they never block, never allocate, and are safe to
 /// call from any thread. See @ref SqlStatisticsSnapshot for the consistency caveat that buys.
 ///
 /// @code
+/// Lightweight::SqlStatistics::Enable();
+/// // ... run some workload ...
 /// auto const stats = Lightweight::SqlStatistics::Instance().Snapshot();
 /// std::println("executes: {}, p99: {}us",
 ///              stats[Lightweight::SqlStatisticsOperation::Execute].Total(),
@@ -323,23 +327,27 @@ class SqlStatistics
 
     /// Retrieves a point-in-time copy of every counter.
     ///
-    /// @return The snapshot; all-zero in a build without `LIGHTWEIGHT_ENABLE_STATISTICS`.
+    /// @return The snapshot; all-zero while collection has never been enabled (see @ref Enable).
     [[nodiscard]] LIGHTWEIGHT_API SqlStatisticsSnapshot Snapshot() const noexcept;
 
     /// Resets every counter back to zero. Intended for tests and for exporters that report deltas.
+    /// Orthogonal to @ref Enable / @ref Disable: resetting does not change whether collection runs.
     LIGHTWEIGHT_API void Reset() noexcept;
 
-    /// Indicates whether this build actually collects statistics.
+    /// Turns statistics collection on. Safe to call from any thread, at any point in the process
+    /// lifetime; takes effect for every subsequent recording call. Counters already collected are
+    /// left untouched.
+    LIGHTWEIGHT_API static void Enable() noexcept;
+
+    /// Turns statistics collection off. Recording methods remain callable but become no-ops;
+    /// counters already collected are left untouched and continue to read back from @ref Snapshot.
+    LIGHTWEIGHT_API static void Disable() noexcept;
+
+    /// Indicates whether statistics collection is currently turned on.
     ///
-    /// @return `true` when built with `-DLIGHTWEIGHT_ENABLE_STATISTICS=ON`, `false` otherwise.
-    [[nodiscard]] static constexpr bool IsEnabled() noexcept
-    {
-#if defined(LIGHTWEIGHT_STATISTICS_ENABLED)
-        return true;
-#else
-        return false;
-#endif
-    }
+    /// @return `true` after @ref Enable (and before a subsequent @ref Disable); `false` otherwise,
+    /// including at process start.
+    [[nodiscard]] LIGHTWEIGHT_API static bool IsEnabled() noexcept;
 
   private:
     /// Lock-free mirror of @ref SqlLatencyHistogram holding the live counters.
@@ -380,6 +388,13 @@ class SqlStatistics
     std::atomic<std::uint64_t> _connectionsClosed {};
     std::atomic<std::uint64_t> _rowsFetched {};
     std::atomic<std::uint64_t> _blockFetches {};
+
+    /// The runtime enable/disable flag. Process-wide by design — @ref Enable, @ref Disable, and
+    /// @ref IsEnabled are all static, so this lives independently of @ref Instance rather than as an
+    /// instance member.
+    ///
+    /// @return A reference to the flag, function-local `static` to sidestep static-init-order issues.
+    [[nodiscard]] static std::atomic<bool>& EnabledFlag() noexcept;
 };
 
 /// @ingroup CoreApi
@@ -389,8 +404,9 @@ class SqlStatistics
 /// mark the operation as errored (the destructor still records the latency, so a failing statement
 /// contributes to the distribution rather than silently vanishing from it).
 ///
-/// Prefer the @c LIGHTWEIGHT_STATS_SCOPE macro, which compiles the object away entirely when
-/// statistics are disabled.
+/// Prefer the @c LIGHTWEIGHT_STATS_SCOPE macro over constructing this directly — it keeps
+/// instrumentation call sites uniform, and its destructor's `RecordOperation` call is itself a no-op
+/// whenever collection is runtime-disabled.
 class SqlStatisticsScope
 {
   public:
@@ -443,68 +459,52 @@ class SqlStatisticsScope
 
 // {{{ Instrumentation macros
 //
-// Mirrors the TracyProfiler.hpp convention: when the feature is off, every macro consumes ALL of
-// its arguments via `(void) (...)` so call sites never trip unused-variable warnings.
+// Collection is a runtime toggle now (SqlStatistics::Enable/Disable), not a compile-time one, so
+// these always expand to the real call — there is no disabled-build variant to fall back to. Each
+// recording method itself checks the runtime flag first and does nothing when collection is off, so
+// a call site pays one relaxed atomic load, never more, when statistics are disabled at runtime.
 //
-// `sizeof` is the default because it leaves the argument unevaluated, which is what keeps a
-// disabled build free of the work the call site computed only for the sake of the statistic - the
-// `steady_clock::now()` in the pool-acquire arguments being the expensive case. `ROWS` is the
-// exception: its arguments are plain values already to hand, and applying `sizeof` to a literal
-// (`LIGHTWEIGHT_STATS_ROWS(1, false)`) reads as a `bugprone-sizeof-expression` defect, so it
-// consumes them with a plain cast the way TracyProfiler.hpp's `ZoneValue` does.
+// LIGHTWEIGHT_STATS_SCOPE is the one exception: its SqlStatisticsScope object still pays a
+// steady_clock::now() and an uncaught_exceptions() call at construction, unconditionally, because the
+// constructor cannot know whether collection will still be enabled by the time the destructor runs —
+// the flag check happens once, in the destructor's RecordOperation call.
+//
+// The macros remain so call sites read the same either way and so a future instrumentation change
+// only touches this header.
 
-#if defined(LIGHTWEIGHT_STATISTICS_ENABLED)
+/// Times the enclosing scope and records it under @p op, naming the scope object @p var.
+#define LIGHTWEIGHT_STATS_SCOPE_V(var, op) \
+    ::Lightweight::SqlStatisticsScope var  \
+    {                                      \
+        op                                 \
+    }
 
-    /// Times the enclosing scope and records it under @p op, naming the scope object @p var.
-    #define LIGHTWEIGHT_STATS_SCOPE_V(var, op) \
-        ::Lightweight::SqlStatisticsScope var  \
-        {                                      \
-            op                                 \
-        }
+/// Times the enclosing scope and records it under @p op.
+#define LIGHTWEIGHT_STATS_SCOPE(op) LIGHTWEIGHT_STATS_SCOPE_V(lightweightStatsScope_, op)
 
-    /// Times the enclosing scope and records it under @p op.
-    #define LIGHTWEIGHT_STATS_SCOPE(op) LIGHTWEIGHT_STATS_SCOPE_V(lightweightStatsScope_, op)
+/// Marks the scope named @p var as failed.
+#define LIGHTWEIGHT_STATS_FAILED(var) (var).Failed()
 
-    /// Marks the scope named @p var as failed.
-    #define LIGHTWEIGHT_STATS_FAILED(var) (var).Failed()
+/// Marks the scope named @p var as retried.
+#define LIGHTWEIGHT_STATS_RETRIED(var) (var).Retried()
 
-    /// Marks the scope named @p var as retried.
-    #define LIGHTWEIGHT_STATS_RETRIED(var) (var).Retried()
+/// Records @p rows fetched; @p isBlock tells whether they came from one block round-trip.
+#define LIGHTWEIGHT_STATS_ROWS(rows, isBlock) ::Lightweight::SqlStatistics::Instance().RecordRowsFetched((rows), (isBlock))
 
-    /// Records @p rows fetched; @p isBlock tells whether they came from one block round-trip.
-    #define LIGHTWEIGHT_STATS_ROWS(rows, isBlock) \
-        ::Lightweight::SqlStatistics::Instance().RecordRowsFetched((rows), (isBlock))
+/// Records a connection being opened.
+#define LIGHTWEIGHT_STATS_CONNECTION_OPENED() ::Lightweight::SqlStatistics::Instance().RecordConnectionOpened()
 
-    /// Records a connection being opened.
-    #define LIGHTWEIGHT_STATS_CONNECTION_OPENED() ::Lightweight::SqlStatistics::Instance().RecordConnectionOpened()
+/// Records a connection being closed.
+#define LIGHTWEIGHT_STATS_CONNECTION_CLOSED() ::Lightweight::SqlStatistics::Instance().RecordConnectionClosed()
 
-    /// Records a connection being closed.
-    #define LIGHTWEIGHT_STATS_CONNECTION_CLOSED() ::Lightweight::SqlStatistics::Instance().RecordConnectionClosed()
+/// Records a pool acquisition: @p wait duration, whether it @p reused, whether it @p waited.
+#define LIGHTWEIGHT_STATS_POOL_ACQUIRE(wait, reused, waited) \
+    ::Lightweight::SqlStatistics::Instance().RecordPoolAcquire((wait), (reused), (waited))
 
-    /// Records a pool acquisition: @p wait duration, whether it @p reused, whether it @p waited.
-    #define LIGHTWEIGHT_STATS_POOL_ACQUIRE(wait, reused, waited) \
-        ::Lightweight::SqlStatistics::Instance().RecordPoolAcquire((wait), (reused), (waited))
+/// Records a pool release; @p discarded tells whether the connection was destroyed.
+#define LIGHTWEIGHT_STATS_POOL_RELEASE(discarded) ::Lightweight::SqlStatistics::Instance().RecordPoolRelease((discarded))
 
-    /// Records a pool release; @p discarded tells whether the connection was destroyed.
-    #define LIGHTWEIGHT_STATS_POOL_RELEASE(discarded) ::Lightweight::SqlStatistics::Instance().RecordPoolRelease((discarded))
-
-    /// Records current pool occupancy.
-    #define LIGHTWEIGHT_STATS_POOL_OCCUPANCY(idle, checkedOut) \
-        ::Lightweight::SqlStatistics::Instance().RecordPoolOccupancy((idle), (checkedOut))
-
-#else
-
-    #define LIGHTWEIGHT_STATS_SCOPE_V(var, op)    ((void) sizeof(op))
-    #define LIGHTWEIGHT_STATS_SCOPE(op)           ((void) sizeof(op))
-    #define LIGHTWEIGHT_STATS_FAILED(var)         ((void) 0)
-    #define LIGHTWEIGHT_STATS_RETRIED(var)        ((void) 0)
-    #define LIGHTWEIGHT_STATS_ROWS(rows, isBlock) (((void) (rows)), ((void) (isBlock)))
-    #define LIGHTWEIGHT_STATS_CONNECTION_OPENED() ((void) 0)
-    #define LIGHTWEIGHT_STATS_CONNECTION_CLOSED() ((void) 0)
-    #define LIGHTWEIGHT_STATS_POOL_ACQUIRE(wait, reused, waited) \
-        (((void) sizeof(wait)), ((void) sizeof(reused)), ((void) sizeof(waited)))
-    #define LIGHTWEIGHT_STATS_POOL_RELEASE(discarded)          ((void) sizeof(discarded))
-    #define LIGHTWEIGHT_STATS_POOL_OCCUPANCY(idle, checkedOut) (((void) sizeof(idle)), ((void) sizeof(checkedOut)))
-
-#endif
+/// Records current pool occupancy.
+#define LIGHTWEIGHT_STATS_POOL_OCCUPANCY(idle, checkedOut) \
+    ::Lightweight::SqlStatistics::Instance().RecordPoolOccupancy((idle), (checkedOut))
 // }}}

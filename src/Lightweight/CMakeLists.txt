@@ -230,10 +230,6 @@ if(LIGHTWEIGHT_ENABLE_TRACY)
     target_link_libraries(Lightweight PUBLIC Tracy::TracyClient)
 endif()
 
-if(LIGHTWEIGHT_ENABLE_STATISTICS)
-    target_compile_definitions(Lightweight PUBLIC LIGHTWEIGHT_STATISTICS_ENABLED)
-endif()
-
 if(MSVC)
     if(PEDANTIC_COMPILER)
         set(_pedantic_flags /W4)

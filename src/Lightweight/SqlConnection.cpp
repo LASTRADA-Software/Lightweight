@@ -298,8 +298,7 @@ bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
     // Not covered by the suite: this is the success tail of the DSN overload, and reaching it needs a
     // *registered* ODBC data source that actually connects - neither CI nor a developer checkout has
     // one, so every test connects through the SqlConnectionString overload instead, whose counterpart
-    // of this call (below) is exercised. With LIGHTWEIGHT_ENABLE_STATISTICS off - the default, and
-    // what the coverage build uses - the macro expands to a no-op regardless.
+    // of this call (below) is exercised.
     LIGHTWEIGHT_STATS_CONNECTION_OPENED();
 
     if (gPostConnectedHook)

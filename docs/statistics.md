@@ -4,27 +4,36 @@ Lightweight can collect its own execution statistics — how many statements ran
 how hard the connection pool is working — and hand them back as a plain struct you can feed to
 Prometheus, StatsD, a log line, or a test assertion.
 
-Collection is **opt-in at compile time** and **off by default**, so a normal release build carries
-none of it: the instrumentation is not merely a no-op call, it is not compiled at all.
+Collection is always compiled in and toggled **at runtime**, **off by default** — so a process that
+never turns it on pays only one relaxed atomic-bool check per instrumented call site.
 
 ## Enabling it
 
-```sh
-cmake -B build -D LIGHTWEIGHT_ENABLE_STATISTICS=ON
+```cpp
+#include <Lightweight/SqlStatistics.hpp>
+
+Lightweight::SqlStatistics::Enable();
+// ... run your workload ...
+auto const stats = Lightweight::SqlStatistics::Instance().Snapshot();
+
+Lightweight::SqlStatistics::Disable(); // stop collecting again; counters stay put
 ```
 
-The option is independent of [Tracy](#feeding-tracy). Turn on either, both, or neither.
+`Enable()` / `Disable()` are static, process-wide, and safe to call from any thread at any point in
+the process lifetime — start collecting when a diagnostic window opens, stop when it closes, with no
+recompile or restart. Toggling never clears counters: `Disable()` followed later by `Enable()` picks
+up exactly where collection left off. Call [`Reset()`](#reading-a-snapshot) explicitly when you want a
+clean baseline.
 
-`SqlStatistics::IsEnabled()` is a `constexpr bool` reporting which kind of build you are in, so
-downstream code can branch at compile time:
+`SqlStatistics::IsEnabled()` reports the current runtime state:
 
 ```cpp
-if constexpr (Lightweight::SqlStatistics::IsEnabled())
+if (Lightweight::SqlStatistics::IsEnabled())
     PublishMetrics(Lightweight::SqlStatistics::Instance().Snapshot());
 ```
 
-The types always exist. Code that reads a snapshot compiles in a build without the option — it just
-reads back zeros. You never need `#ifdef` around your own metrics code.
+The types always exist regardless of whether collection has ever been turned on — code that reads a
+snapshot compiles and runs unconditionally, reading back zeros until `Enable()` is called.
 
 ## Reading a snapshot
 
@@ -53,7 +62,8 @@ ordinary value type with no exporter-specific concepts baked in. Copy it, diff t
 delta, serialize it however your metrics stack wants.
 
 `Reset()` zeroes every counter, which is useful in tests and for exporters that report deltas rather
-than absolute counters.
+than absolute counters. It is orthogonal to `Enable()`/`Disable()` — resetting does not change whether
+collection is running, and toggling does not reset.
 
 ### What is counted
 
@@ -117,8 +127,9 @@ that maintains a checked-out count (it is what bounds the pool). Under `Unbounde
 
 ## Feeding Tracy
 
-When Lightweight is built with **both** `LIGHTWEIGHT_ENABLE_STATISTICS=ON` and
-`LIGHTWEIGHT_ENABLE_TRACY=ON`, every recorded sample is additionally emitted as a Tracy plot:
+When Lightweight is built with `LIGHTWEIGHT_ENABLE_TRACY=ON` *and* statistics collection is
+runtime-enabled (`SqlStatistics::Enable()`), every recorded sample is additionally emitted as a Tracy
+plot:
 
 | Plot | Source |
 |------|--------|
@@ -126,24 +137,37 @@ When Lightweight is built with **both** `LIGHTWEIGHT_ENABLE_STATISTICS=ON` and
 | `Sql.Pool.Idle`, `Sql.Pool.CheckedOut` | live pool occupancy |
 
 ```sh
-cmake -B build -D LIGHTWEIGHT_ENABLE_STATISTICS=ON -D LIGHTWEIGHT_ENABLE_TRACY=ON
+cmake -B build -D LIGHTWEIGHT_ENABLE_TRACY=ON
 ```
+
+Statistics never depends on Tracy, in either direction: the collector works identically with Tracy
+absent, and disabling collection at runtime silences the Tracy plots too — only the `ZoneScoped`
+regions the library emits independently of `SqlStatistics` keep reporting.
 
 Connect the Tracy GUI (or capture headlessly with `tracy-capture`) and the plots appear alongside
 the `ZoneScoped` regions the library already emits. Tracy's own Statistics window additionally gives
 you per-zone min/max/mean/median and a histogram, so the two views complement each other: Tracy for
 interactive profiling, `Snapshot()` for production export.
 
-CI exercises exactly this combination — the `tracy_capture` job builds the Chinook example with both
-options on, captures a trace headlessly, and asserts the expected zones and plots are present.
+CI exercises exactly this combination — the `tracy_capture` job builds the Chinook example with Tracy
+on (the example itself calls `SqlStatistics::Enable()`), captures a trace headlessly, and asserts the
+expected zones and plots are present.
 
 ## Cost
 
-With the option **off**, the macros expand to nothing; there is no call, no branch, and no object.
+Every recording method starts with one relaxed atomic-bool load and returns immediately if collection
+is disabled — no further atomics, no branching on the data. That is the entire cost for the
+`LIGHTWEIGHT_STATS_ROWS`, `_CONNECTION_OPENED/_CLOSED`, `_POOL_*` macros while disabled.
 
-With it **on**, an instrumented operation costs one `steady_clock::now()` pair plus a handful of
-relaxed atomic increments — negligible next to an ODBC round-trip, but not free, which is why it is
-opt-in rather than always compiled.
+`LIGHTWEIGHT_STATS_SCOPE` (backing `Execute`, `ExecuteDirect`, `ExecuteBatch`, `Prepare`) is the one
+exception: its `SqlStatisticsScope` object still pays a `steady_clock::now()` and an
+`uncaught_exceptions()` call at construction, because the constructor cannot know whether collection
+will still be enabled by the time its destructor runs — that check happens once, in the destructor's
+`RecordOperation` call. This is the honest price of a runtime toggle: those two calls are cheap
+relative to an ODBC round-trip, but they are not literally zero the way a compiled-out macro would be.
+
+While enabled, an instrumented operation additionally costs a handful of relaxed atomic increments per
+sample — still negligible next to the round-trip itself.
 
 ## See also
 

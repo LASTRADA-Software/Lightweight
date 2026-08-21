@@ -288,6 +288,31 @@ class ScopedSqlNullLogger: public Lightweight::SqlLogger::Null
     }
 };
 
+/// Enables `Lightweight::SqlStatistics` collection for the lifetime of the scope, restoring whatever
+/// state was in effect beforehand. Statistics collection is off by default and process-wide, so a
+/// test that needs it enabled must not simply leave it on afterwards for whichever test runs next.
+///
+/// @note Does not `Reset()` on construction or destruction — call that explicitly if the test also
+/// needs a clean counter baseline.
+// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
+class ScopedSqlStatisticsEnabled
+{
+  private:
+    bool m_wasEnabled = Lightweight::SqlStatistics::IsEnabled();
+
+  public:
+    ScopedSqlStatisticsEnabled()
+    {
+        Lightweight::SqlStatistics::Enable();
+    }
+
+    ~ScopedSqlStatisticsEnabled()
+    {
+        if (!m_wasEnabled)
+            Lightweight::SqlStatistics::Disable();
+    }
+};
+
 template <typename Getter, typename Callable>
 constexpr void FixedPointIterate(Getter const& getter, Callable const& callable)
 {
