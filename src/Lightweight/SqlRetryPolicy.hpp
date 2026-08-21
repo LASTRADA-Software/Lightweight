@@ -267,8 +267,8 @@ class [[nodiscard]] SqlRetryPolicy
 
     /// Runs @p callable, retrying while the policy says the failure is worth another attempt.
     ///
-    /// Only @ref SqlException is treated as a retry candidate; any other exception propagates
-    /// immediately. When the policy gives up, the last @ref SqlException is rethrown unchanged, so
+    /// Only @c SqlException is treated as a retry candidate; any other exception propagates
+    /// immediately. When the policy gives up, the last @c SqlException is rethrown unchanged, so
     /// the caller sees the original diagnostics rather than a wrapper.
     ///
     /// @tparam Callable A nullary callable, taken by value because it is invoked repeatedly.

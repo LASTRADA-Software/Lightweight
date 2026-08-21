@@ -121,10 +121,8 @@ LIGHTWEIGHT_API bool ConnectWithRetry(SqlConnection& conn,
 /// @return The result of the function.
 /// @throws SqlException if max retries exceeded or non-transient error occurs.
 template <typename Func>
-auto RetryOnTransientError(Func func,
-                           RetrySettings const& settings,
-                           ProgressManager& progress,
-                           std::string const& operation) -> decltype(func())
+auto RetryOnTransientError(Func func, RetrySettings const& settings, ProgressManager& progress, std::string const& operation)
+    -> decltype(func())
 {
     auto policy = SqlRetryPolicy { settings };
 
