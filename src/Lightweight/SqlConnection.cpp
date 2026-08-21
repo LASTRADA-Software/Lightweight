@@ -71,6 +71,10 @@ namespace
             case SqlEncryptionMode::Enabled:
                 return SqlEncryptOn;
         }
+        // Unreachable: the switch above is exhaustive over the enumerators, and every arm returns.
+        // It stays because a switch over a scoped enum without a default label still leaves the
+        // function without a return statement as far as -Wreturn-type is concerned. The coverage
+        // report flags this line for that reason, not because a test is missing.
         return std::nullopt;
     }
 
@@ -314,6 +318,10 @@ bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
             sqlReturn = SQLSetConnectAttrW(m_hDbc, SqlCoptSsEncrypt, (SQLPOINTER) *encryptValue, SQL_IS_UINTEGER);
             if (!SQL_SUCCEEDED(sqlReturn))
             {
+                // Not reachable from the test suite: this needs a driver manager that rejects
+                // SQL_COPT_SS_ENCRYPT at set time. Both unixODBC and the Windows driver manager defer
+                // driver-specific connection attributes until a driver is loaded, so every driver in
+                // the matrix accepts the call here and surfaces a refusal from SQLConnectW instead.
                 SqlLogger::GetLogger().OnError(LastError());
                 return false;
             }
