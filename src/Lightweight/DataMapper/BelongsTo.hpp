@@ -316,6 +316,24 @@ class BelongsTo
         return static_cast<bool>(_referencedFieldValue);
     }
 
+    /// @brief Returns the already-loaded referenced record, or `nullptr` when none is loaded.
+    ///
+    /// Unlike `Record()`, this never runs the on-demand loader: it reports what is present right
+    /// now. That is what lets the batched relation loading walk one level deeper (`With<A, B>()`)
+    /// without turning the walk itself into the N+1 it exists to remove.
+    ///
+    /// @return Pointer to the loaded record, or `nullptr` if the relation is unloaded or NULL.
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord* LoadedRecord() noexcept
+    {
+        return _record.get();
+    }
+
+    /// @copydoc LoadedRecord()
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const* LoadedRecord() const noexcept
+    {
+        return _record.get();
+    }
+
     /// Emplaces a record into the relationship. This will mark the relationship as loaded.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& EmplaceRecord()
     {

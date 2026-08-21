@@ -172,6 +172,28 @@ TEST_CASE_METHOD(SqlTestFixture, "DataMapper.CreateAll: empty and single span", 
     }
 }
 
+TEST_CASE_METHOD(SqlTestFixture,
+                 "DataMapper.CreateAll: after a single Create of the same record type",
+                 "[DataMapper][batch]")
+{
+    // Create() prepares byte-identical INSERT text to CreateAll() and binds its parameters by hand,
+    // which marks the statement's parameter count as "bound by the caller". A Prepare() that reuses
+    // the statement already on the handle skips SQLNumParams(), so that marker has to be undone
+    // explicitly - otherwise the batch execute below rejects its column count.
+    auto dm = DataMapper {};
+    dm.CreateTable<BatchFixedRecord>();
+
+    auto single = BatchFixedRecord { .id = 1, .value = 1.5, .count = 10 };
+    dm.Create(single);
+
+    auto records = std::vector<BatchFixedRecord> {};
+    for (auto const i: std::views::iota(2, 6))
+        records.push_back({ .id = i, .value = i * 1.5, .count = i * 10 });
+    dm.CreateAll(records);
+
+    CHECK(dm.Query<BatchFixedRecord>().Count() == 5);
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "DataMapper.UpdateAll: writes all columns incl. NULL", "[DataMapper][batch]")
 {
     auto dm = DataMapper {};

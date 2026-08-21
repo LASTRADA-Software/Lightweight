@@ -110,6 +110,17 @@ class HasMany
     /// Emplaces the given list of records.
     ReferencedRecordList& Emplace(ReferencedRecordList&& records) noexcept;
 
+    /// @brief Returns the already-loaded records, or `nullptr` when the relation is not loaded.
+    ///
+    /// Unlike `All()`, this never runs the on-demand loader: it reports what is present right now,
+    /// which is what lets the batched relation loading walk one level deeper (`With<A, B>()`).
+    ///
+    /// @return Pointer to the loaded list, or `nullptr` if the relation was never loaded.
+    [[nodiscard]] ReferencedRecordList* LoadedRecords() noexcept
+    {
+        return _records ? &*_records : nullptr;
+    }
+
     /// Retrieves the number of records in this 1-to-many relationship.
     [[nodiscard]] std::size_t Count() const noexcept;
 

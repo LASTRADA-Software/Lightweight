@@ -391,6 +391,24 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
         SQLULEN processedCount,
         SQLULEN expectedCount,
         std::source_location sourceLocation = std::source_location::current()) const;
+    /// @brief Re-issues @c SQLPrepareW after a reused prepared statement went stale, for one retry.
+    ///
+    /// @c Prepare() skips @c SQLPrepareW when the statement handle already holds exactly this query
+    /// text. A prepared statement can nevertheless stop being executable - most visibly on PostgreSQL,
+    /// where a DDL change between two executions makes the server reject the cached plan with
+    /// @c 0A000 - so an execute that fails with one of those SQLSTATEs re-prepares once and runs again.
+    /// Parameter bindings live on the handle and survive @c SQLPrepareW, so the caller's already-bound
+    /// arguments stay valid for the retry.
+    ///
+    /// @note Retrying re-executes the whole statement. That is safe for the conditions listed above
+    ///       because they are all raised while resolving or planning the statement, before it has had
+    ///       any effect - a constraint violation or any other runtime rejection is deliberately not
+    ///       retried.
+    ///
+    /// @param result The @c SQLRETURN of the execute that just failed.
+    /// @return @c true if the statement was re-prepared and the execute should be retried.
+    [[nodiscard]] LIGHTWEIGHT_API bool RetryStalePreparedStatement(SQLRETURN result);
+
     LIGHTWEIGHT_API void RequireIndicators();
     LIGHTWEIGHT_API SQLLEN* GetIndicatorForColumn(SQLUSMALLINT column) noexcept;
 
@@ -460,6 +478,12 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     std::string m_preparedQuery;                   // The last prepared query
     std::optional<SQLSMALLINT> m_numColumns;       // The number of columns in the result set, if known
     SQLSMALLINT m_expectedParameterCount {};       // The number of parameters expected by the query
+    // The parameter count SQLNumParams() reported for m_preparedQuery. m_expectedParameterCount is
+    // deliberately overwritten by BindInputParameter() (with SQLSMALLINT max, meaning "bound by hand"),
+    // so a Prepare() that reuses the handle's statement - and therefore skips SQLNumParams() - has to
+    // restore the real count from here instead.
+    SQLSMALLINT m_preparedParameterCount {};
+    bool m_reusedPreparedQuery { false }; // Whether the last Prepare() reused the handle's statement
 };
 
 /// @ingroup CoreApi
@@ -1164,7 +1188,11 @@ SqlResultCursor SqlStatement::Execute(Args const&... args)
       RequireSuccess(SqlDataBinder<Args>::InputParameter(m_hStmt, i, args, *this))),
      ...);
 
-    auto const result = SQLExecute(m_hStmt);
+    auto result = SQLExecute(m_hStmt);
+
+    // A prepared statement Prepare() reused rather than re-issued can have gone stale server-side.
+    if (RetryStalePreparedStatement(result))
+        result = SQLExecute(m_hStmt);
 
     if (result != SQL_NO_DATA && result != SQL_SUCCESS && result != SQL_SUCCESS_WITH_INFO)
         throw SqlException(SqlErrorInfo::FromStatementHandle(m_hStmt), std::source_location::current());

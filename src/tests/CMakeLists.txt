@@ -48,6 +48,7 @@ set(SOURCE_FILES
     SecretResolverTests.cpp
     DataMapper/BatchTests.cpp
     DataMapper/CreateTests.cpp
+    DataMapper/EagerLoadingTests.cpp
     DataMapper/MiscTests.cpp
     DataMapper/NamingTests.cpp
     DataMapper/ReadTests.cpp
