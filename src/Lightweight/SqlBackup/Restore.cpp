@@ -272,7 +272,7 @@ bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChu
         }
         catch (SqlException const& e)
         {
-            if (!IsTransientError(e.info()) || retryCount >= ctx.retrySettings.maxRetries)
+            if (ClassifyRetryOutcome(e.info(), retryCount, ctx.retrySettings) == RetryAction::GiveUp)
             {
                 ctx.progress.Update({ .state = Progress::State::Error,
                                       .tableName = tableName,

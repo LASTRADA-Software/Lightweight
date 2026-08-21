@@ -14,6 +14,7 @@ namespace Lightweight
 {
 
 class SqlAdvisoryLockHandler;
+class SqlRetryClassifier;
 
 /// API to format SQL queries for different SQL dialects.
 class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
@@ -261,6 +262,13 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
     /// translation unit, so adding a new dialect only touches that unit and
     /// `SqlScopedLock` itself stays dialect-agnostic.
     [[nodiscard]] virtual SqlAdvisoryLockHandler const& AdvisoryLockOps() const = 0;
+
+    /// Returns the dialect's transient-error classifier, used by @c SqlRetryPolicy to decide
+    /// whether a failed statement is worth another attempt.
+    ///
+    /// Routing the classification through the formatter is what keeps per-DBMS error-code
+    /// knowledge out of business logic — the same reason @ref AdvisoryLockOps() exists.
+    [[nodiscard]] virtual SqlRetryClassifier const& RetryOps() const noexcept = 0;
 
   protected:
     /// Formats a table name with optional schema prefix.

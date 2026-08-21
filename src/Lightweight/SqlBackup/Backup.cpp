@@ -774,7 +774,7 @@ void ProcessChunkBackup(BackupContext& ctx, SqlConnection& conn, detail::Chunk c
             }
             catch (SqlException const& e)
             {
-                if (!IsTransientError(e.info()) || retryCount >= ctx.retrySettings.maxRetries)
+                if (ClassifyRetryOutcome(e.info(), retryCount, ctx.retrySettings) == RetryAction::GiveUp)
                     throw;
                 ++retryCount;
                 maxSubChunksFlushed = std::max(maxSubChunksFlushed, subChunkId);
@@ -847,7 +847,7 @@ void ProcessChunkBackup(BackupContext& ctx, SqlConnection& conn, detail::Chunk c
             }
             catch (SqlException const& e)
             {
-                if (!IsTransientError(e.info()) || retryCount >= ctx.retrySettings.maxRetries)
+                if (ClassifyRetryOutcome(e.info(), retryCount, ctx.retrySettings) == RetryAction::GiveUp)
                 {
                     if constexpr (DebugBackupWorker)
                         std::println(stderr, "DEBUG: Exception in FetchRow loop for table {}: {}", tableName, e.what());

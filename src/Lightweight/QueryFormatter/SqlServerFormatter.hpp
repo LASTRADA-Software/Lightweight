@@ -719,6 +719,13 @@ DROP INDEX "{0}_{1}_{2}_index" ON "{0}"."{1}";)",
     {
         return SqlServerAdvisoryLockOps();
     }
+
+    /// SQL Server carries most transient conditions in the native error code, not the SQLSTATE.
+    /// See `SQLiteQueryFormatter::AdvisoryLockOps()` for why this delegates.
+    [[nodiscard]] SqlRetryClassifier const& RetryOps() const noexcept override
+    {
+        return SqlServerRetryOps();
+    }
 };
 
 } // namespace Lightweight
