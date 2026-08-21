@@ -322,11 +322,18 @@ namespace
                 else if constexpr (std::same_as<T, SqlAlterTablePlan>)
                     return PrintAlterTable(e);
                 else if constexpr (std::same_as<T, SqlDropTablePlan>)
-                    return std::format("    plan.{}({});\n",
-                                       e.cascade    ? "DropTableCascade"
-                                       : e.ifExists ? "DropTableIfExists"
-                                                    : "DropTable",
-                                       QuoteCppString(e.tableName));
+                {
+                    // An if-chain rather than nested conditionals, which clang-tidy rejects as
+                    // readability-avoid-nested-conditional-operator.
+                    auto const* const method = [&e] {
+                        if (e.cascade)
+                            return "DropTableCascade";
+                        if (e.ifExists)
+                            return "DropTableIfExists";
+                        return "DropTable";
+                    }();
+                    return std::format("    plan.{}({});\n", method, QuoteCppString(e.tableName));
+                }
                 else if constexpr (std::same_as<T, SqlCreateIndexPlan>)
                     return std::format("    plan.{}({}, {}, {});\n",
                                        e.unique ? "CreateUniqueIndex" : "CreateIndex",

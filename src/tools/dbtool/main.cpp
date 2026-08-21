@@ -1530,10 +1530,10 @@ std::expected<std::filesystem::path, std::string> ResolveGenerateTarget(Options 
                                                                         std::string_view timestamp,
                                                                         std::string_view title)
 {
-    auto const target =
-        options.outputFile.empty()
-            ? std::filesystem::path { std::format("{}_{}.cpp", timestamp, Tools::SlugifyMigrationTitle(title)) }
-            : options.outputFile;
+    // Not const: it is returned below, and constness would block the implicit move.
+    auto target = options.outputFile.empty()
+                      ? std::filesystem::path { std::format("{}_{}.cpp", timestamp, Tools::SlugifyMigrationTitle(title)) }
+                      : options.outputFile;
 
     if (std::filesystem::exists(target) && !options.yes)
         return std::unexpected { std::format(
