@@ -1,5 +1,9 @@
 var NAVTREEINDEX6 =
 {
+"dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a59119220ab43706394b2a1f22caf183d":[17,8,13,3],
+"dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a64c002c93535164bed683e2a3de11ae7":[17,8,13,2],
+"dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a9da76151b89502f7c2d8704e32bdcae6":[17,8,13,6],
+"dd/d71/structLightweight_1_1SqlColumnDeclaration.html#ac7edfc2036f6d77ebce95c4a17d39fd8":[17,8,13,5],
 "dd/d71/structLightweight_1_1SqlColumnDeclaration.html#adc6c2316125cc865139f3dae21badfb6":[17,8,13,8],
 "dd/d75/structLightweight_1_1SqlAlterTablePlan.html":[17,8,15],
 "dd/d75/structLightweight_1_1SqlAlterTablePlan.html#a303553e0c2089a553fd561f196cc039e":[17,8,15,0],
@@ -245,9 +249,5 @@ var NAVTREEINDEX6 =
 "de/dae/classLightweight_1_1SqlFixedString.html#ae4c67c20f26da7a5cc4c8a676f8733bb":[17,1,5,18],
 "de/dae/classLightweight_1_1SqlFixedString.html#af7208a623058c1f470f0829ce892afda":[17,1,5,24],
 "de/dae/classLightweight_1_1SqlFixedString.html#af78f46d25e7a1007c7ddb6ccc90cd50b":[17,1,5,27],
-"de/dae/classLightweight_1_1SqlFixedString.html#afc895a3f99cb414f862eb0593f640041":[17,1,5,35],
-"de/dae/classLightweight_1_1SqlFixedString.html#afd8c0ca721e73dec7a44330c9fdd2e63":[17,1,5,29],
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html":[6],
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#custom-column-data-type-binder-example":[6,0],
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#driver-specific-connection-string-requirements":[6,7]
+"de/dae/classLightweight_1_1SqlFixedString.html#afc895a3f99cb414f862eb0593f640041":[17,1,5,35]
 };

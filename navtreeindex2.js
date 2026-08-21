@@ -1,5 +1,9 @@
 var NAVTREEINDEX2 =
 {
+"d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#ac072d5f776bd5a46f58abcc8597ef3f2":[17,0,6,7],
+"d4/dc2/conceptLightweight_1_1SqlNativeRowBindableValue.html":[18,0,7],
+"d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html":[17,8,6],
+"d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#a0ab65a2195956a87ac2aff5ab23be9bb":[17,8,6,9],
 "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#a972ef8522f91fce43fd223357b709bae":[17,8,6,4],
 "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#aa444dfcac23a0e8ffdda163504f362e1":[17,8,6,0],
 "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#aaa224b59d60b36d04f75b77e3b0ef803":[17,8,6,3],
@@ -99,7 +103,6 @@ var NAVTREEINDEX2 =
 "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a04fd31415705ccc61b63eec99a7bf1f3":[17,6,1,6],
 "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a1f03a5faa280b0ae0ee688e3b9f40208":[17,6,1,1],
 "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a294bef751b01e0f8e110c989afff2814":[17,6,1,0],
-"d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a3e8f610544a01c1fde5de73f85573377":[17,6,1,7],
 "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a80dd0177d9c6605cb7eb2922c78a7d0a":[17,6,1,2],
 "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a98557607d1540f9e9a00233caf666eca":[17,6,1,5],
 "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae17b13fef2ebddad615a9bae6d942709":[17,6,1,4],
@@ -246,8 +249,5 @@ var NAVTREEINDEX2 =
 "d7/d13/structLightweight_1_1SqlRealName.html#a13a14e15745651ea04fe1842bab4b501":[19,0,0,68,8],
 "d7/d13/structLightweight_1_1SqlRealName.html#a1fa62b5e33b8961307b5176d581bfb78":[19,0,0,68,3],
 "d7/d13/structLightweight_1_1SqlRealName.html#a29fb9edfde8a0f55e37e22f61ef14508":[19,0,0,68,10],
-"d7/d13/structLightweight_1_1SqlRealName.html#a3a0bfe418a06a96c9b4dde5d0c2680ca":[19,0,0,68,5],
-"d7/d13/structLightweight_1_1SqlRealName.html#a3cb316311e2d6a9a14013717ff082d78":[19,0,0,68,1],
-"d7/d13/structLightweight_1_1SqlRealName.html#a9b717833cb9294fc1cc44e70d75af80b":[19,0,0,68,9],
-"d7/d13/structLightweight_1_1SqlRealName.html#ab0401218e4862992fe012713ef2b8df9":[19,0,0,68,0]
+"d7/d13/structLightweight_1_1SqlRealName.html#a3a0bfe418a06a96c9b4dde5d0c2680ca":[19,0,0,68,5]
 };
