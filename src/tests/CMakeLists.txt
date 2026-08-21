@@ -42,6 +42,7 @@ set(SOURCE_FILES
     CxxModelRelationTests.cpp
     DataBinderTests.cpp
     DataSourceEnumeratorTests.cpp
+    Ddl2CppColumnTypeTests.cpp
     PluginDiscoveryTests.cpp
     PluginIngestionTests.cpp
     SecretResolverTests.cpp
