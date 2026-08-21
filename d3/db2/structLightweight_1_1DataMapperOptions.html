@@ -104,14 +104,11 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:ae7030386be6995fdafef8903818bfe2a" id="r_ae7030386be6995fdafef8903818bfe2a"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/db2/structLightweight_1_1DataMapperOptions.html#ae7030386be6995fdafef8903818bfe2a">loadRelations</a> { true }</td></tr>
 <tr class="memdesc:ae7030386be6995fdafef8903818bfe2a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether to automatically load relations when querying records.  <br /></td></tr>
 <tr class="separator:ae7030386be6995fdafef8903818bfe2a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a36aba21c30727bc5933d1797efca7543" id="r_a36aba21c30727bc5933d1797efca7543"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/db2/structLightweight_1_1DataMapperOptions.html#a36aba21c30727bc5933d1797efca7543">eagerLoadDepth</a> { 0 }</td></tr>
-<tr class="memdesc:a36aba21c30727bc5933d1797efca7543"><td class="mdescLeft">&#160;</td><td class="mdescRight">How many levels of relations to eagerly batch-load after a query materializes.  <br /></td></tr>
-<tr class="separator:a36aba21c30727bc5933d1797efca7543"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Structural type for options for <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a> queries. This allows to configure behavior of the queries at compile time when using query builder directly from the <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a> </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00025">25</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00023">23</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="ae7030386be6995fdafef8903818bfe2a" name="ae7030386be6995fdafef8903818bfe2a"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ae7030386be6995fdafef8903818bfe2a">&#9670;&#160;</a></span>loadRelations</h2>
@@ -127,32 +124,7 @@ Public Attributes</h2></td></tr>
 
 <p>Whether to automatically load relations when querying records. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00028">28</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
-
-</div>
-</div>
-<a id="a36aba21c30727bc5933d1797efca7543" name="a36aba21c30727bc5933d1797efca7543"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a36aba21c30727bc5933d1797efca7543">&#9670;&#160;</a></span>eagerLoadDepth</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">size_t Lightweight::DataMapperOptions::eagerLoadDepth { 0 }</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>How many levels of relations to eagerly batch-load after a query materializes. </p>
-<p><code>0</code> (the default) leaves every relation to load on demand, one query per record touched. A value of <code>N</code> resolves every <code><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents the many-to-one side of a foreign-key relationship.">BelongsTo</a></code> and <code><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html" title="This HasMany&lt;OtherRecord&gt; represents a simple one-to-many relationship between two records.">HasMany</a></code> reachable within <code>N</code> levels for the whole result set at once, at a bounded number of queries per relation per level:</p>
-<div class="fragment"><div class="line"><span class="comment">// Tracks, their albums, and those albums&#39; artists - a constant number of queries.</span></div>
-<div class="line"><span class="keyword">auto</span> tracks = dm.Query&lt;Track, <a class="code hl_struct" href="../../d3/db2/structLightweight_1_1DataMapperOptions.html">DataMapperOptions</a> { .<a class="code hl_variable" href="../../d3/db2/structLightweight_1_1DataMapperOptions.html#a36aba21c30727bc5933d1797efca7543">eagerLoadDepth</a> = 2 }&gt;().All();</div>
-<div class="ttc" id="astructLightweight_1_1DataMapperOptions_html"><div class="ttname"><a href="../../d3/db2/structLightweight_1_1DataMapperOptions.html">Lightweight::DataMapperOptions</a></div><div class="ttdef"><b>Definition</b> <a href="../../df/db7/QueryBuilders_8hpp_source.html#l00025">QueryBuilders.hpp:26</a></div></div>
-<div class="ttc" id="astructLightweight_1_1DataMapperOptions_html_a36aba21c30727bc5933d1797efca7543"><div class="ttname"><a href="../../d3/db2/structLightweight_1_1DataMapperOptions.html#a36aba21c30727bc5933d1797efca7543">Lightweight::DataMapperOptions::eagerLoadDepth</a></div><div class="ttdeci">size_t eagerLoadDepth</div><div class="ttdoc">How many levels of relations to eagerly batch-load after a query materializes.</div><div class="ttdef"><b>Definition</b> <a href="../../df/db7/QueryBuilders_8hpp_source.html#l00049">QueryBuilders.hpp:49</a></div></div>
-</div><!-- fragment --><p>Use <code>With&lt;&gt;()</code> instead when only some relations are needed: this option descends into <em>every</em> relation of every record it reaches, which is more queries and more rows than a named path, and instantiates the loader for the whole reachable relation graph. The depth is what bounds that: a cyclic graph (a self-referencing record, or A -&gt; B -&gt; A) terminates because the recursion is cut at a compile-time constant.</p>
-<p><code><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html" title="Represents a one-to-one relationship through a join table.">HasOneThrough</a></code>, <code><a class="el" href="../../de/d73/classLightweight_1_1HasManyThrough.html" title="This API represents a many-to-many relationship between two records through a third record.">HasManyThrough</a></code> and <code><a class="el" href="../../dc/dc9/classLightweight_1_1CompositeForeignKey.html" title="Represents a foreign key spanning several columns.">CompositeForeignKey</a></code> are not batch-loadable and keep their on-demand behaviour. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00049">49</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00026">26</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 
 </div>
 </div>
