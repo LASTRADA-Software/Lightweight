@@ -197,6 +197,8 @@ target_compile_features(LightweightTools PUBLIC cxx_std_23)
 target_sources(LightweightTools PRIVATE
     Tools/CxxModelPrinter.cpp
     Tools/CxxModelPrinter.hpp
+    Tools/MigrationSourcePrinter.cpp
+    Tools/MigrationSourcePrinter.hpp
 )
 target_link_libraries(LightweightTools PUBLIC Lightweight)
 

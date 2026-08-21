@@ -9,7 +9,7 @@ add_library(dbtool_lib STATIC
 # dbtool executable and the test target (which links dbtool_lib) resolve the dependency. The `zip`
 # target itself is resolved once in the root CMakeLists.txt for every platform (find_package first,
 # CPM fallback if not found — #543); re-resolving libzip here would hard-fail a CPM-fallback build.
-target_link_libraries(dbtool_lib PUBLIC Lightweight tools_shared zip)
+target_link_libraries(dbtool_lib PUBLIC Lightweight Lightweight::Tools tools_shared zip)
 
 add_executable(dbtool main.cpp)
 target_link_libraries(dbtool PRIVATE dbtool_lib)

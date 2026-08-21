@@ -611,6 +611,97 @@ namespace SqlMigration
         /// @param dryRun When true, returns the would-be diff without writing anything.
         [[nodiscard]] LIGHTWEIGHT_API UnicodeUpgradeResult UnicodeUpgradeTables(bool dryRun = false);
 
+        /// @brief One column whose live definition drifted from what the migrations declare.
+        struct SchemaDiffColumnChange
+        {
+            /// Name of the drifted column.
+            std::string column;
+            /// Type the folded migrations declare for this column.
+            SqlColumnTypeDefinition intendedType;
+            /// Type the column currently has in the live database.
+            SqlColumnTypeDefinition liveType;
+            /// Whether the folded migrations declare the column nullable.
+            bool intendedNullable = true;
+            /// Whether the live column is nullable.
+            bool liveNullable = true;
+        };
+
+        /// @brief Per-table delta for a table present both in the folded plan and live.
+        struct SchemaDiffTable
+        {
+            /// Schema the table lives in (empty for engines without schemas, e.g. SQLite).
+            std::string schemaName;
+            /// Name of the table the delta applies to.
+            std::string tableName;
+            /// Columns the migrations declare that the live table does not have.
+            std::vector<SqlColumnDeclaration> addedColumns;
+            /// Columns the live table has that the migrations no longer declare.
+            std::vector<std::string> droppedColumns;
+            /// Columns present on both sides whose rendered type or nullability drifted.
+            std::vector<SchemaDiffColumnChange> changedColumns;
+        };
+
+        /// @brief Result of a `DiffAgainstLiveSchema` call — what separates the schema the
+        /// registered migrations *intend* from the schema the database actually *has*.
+        ///
+        /// Every member owns its strings, so the result is freely copyable. To obtain the
+        /// same delta as replayable migration plan elements, pass it to
+        /// `MakeSchemaDiffPlan` — the plan element types hold `string_view`s, so they are
+        /// built on demand rather than stored here.
+        struct SchemaDiffResult
+        {
+            /// Tables the migrations declare that are absent from the live database, as
+            /// ready-to-replay CREATE TABLE plans in creation order (so foreign keys
+            /// resolve when the plan is replayed front to back).
+            std::vector<SqlCreateTablePlan> missingTables;
+
+            /// Tables the live database has that no registered migration declares. Reported
+            /// for visibility only — never dropped and never part of the generated plan,
+            /// because they are typically user-owned. Same stance `HardReset` takes with
+            /// `HardResetResult::preservedTables`.
+            std::vector<SqlSchema::FullyQualifiedTableName> unmanagedTables;
+
+            /// Per-table column-level deltas for tables present on both sides.
+            std::vector<SchemaDiffTable> alteredTables;
+
+            /// Indexes the migrations declare that the live database does not have.
+            std::vector<SqlCreateIndexPlan> missingIndexes;
+
+            /// @brief True when the live schema already matches what the migrations intend.
+            /// @return Whether there is anything to generate. `unmanagedTables` alone does
+            ///         not make a diff non-empty — nothing is generated for them.
+            [[nodiscard]] bool Empty() const noexcept
+            {
+                return missingTables.empty() && alteredTables.empty() && missingIndexes.empty();
+            }
+        };
+
+        /// @brief Diffs the schema the registered migrations intend against the live database.
+        ///
+        /// Folds every registered migration via `FoldRegisteredMigrations` (a pure plan-walk)
+        /// and compares the result against `SqlSchema::ReadAllTables`. This is the
+        /// autogenerate primitive: `dbtool diff` prints the result, `dbtool generate` emits
+        /// it as a timestamped migration source file.
+        ///
+        /// Read-only — issues only schema-introspection queries and never writes.
+        ///
+        /// Column types are compared *as the active dialect renders them*
+        /// (`SqlQueryFormatter::ColumnType`), not as raw variant alternatives. Two
+        /// alternatives a backend spells identically are therefore not reported as drift,
+        /// which is what keeps the diff quiet across backends whose introspection cannot
+        /// distinguish them (`DateTime` vs `Timestamp` on SQLite, say).
+        ///
+        /// Bookkeeping tables Lightweight owns itself (`schema_migrations` and the SQLite
+        /// advisory-lock table) are excluded from `unmanagedTables`: they belong to no
+        /// registered migration but are not user-owned either.
+        ///
+        /// @param upToInclusive If set, fold only migrations with `timestamp <= upToInclusive`,
+        ///                      so the diff answers "what does the live DB still need to
+        ///                      reach that point" rather than "to reach HEAD".
+        /// @return The delta. Empty when the live schema already matches the intent.
+        [[nodiscard]] LIGHTWEIGHT_API SchemaDiffResult DiffAgainstLiveSchema(
+            std::optional<MigrationTimestamp> upToInclusive = std::nullopt) const;
+
         /// @brief Re-stamps `schema_migrations.checksum` rows that have drifted.
         ///
         /// Applied migrations whose stored checksum no longer matches the current
@@ -777,6 +868,23 @@ namespace SqlMigration
 
         LogSink _logSink; ///< Optional status-message sink. Empty by default.
     };
+
+    /// @brief Renders a schema diff as replayable migration plan elements.
+    ///
+    /// Emission order matches replay order: `CREATE TABLE` for every missing table (in the
+    /// creation order the fold established, so foreign keys resolve), then one `ALTER TABLE`
+    /// per altered table carrying its add/alter/drop column commands, then `CREATE INDEX`
+    /// for every missing index. `SchemaDiffResult::unmanagedTables` contributes nothing —
+    /// tables the migrations do not own are never dropped by an autogenerated migration.
+    ///
+    /// @warning The plan element types hold `std::string_view`s. The returned elements
+    ///          borrow from @p diff, which must outlive them and must not be modified
+    ///          while they are in use.
+    ///
+    /// @param diff The diff to render, typically from `MigrationManager::DiffAgainstLiveSchema`.
+    /// @return The plan elements, borrowing their names from @p diff.
+    [[nodiscard]] LIGHTWEIGHT_API std::vector<SqlMigrationPlanElement> MakeSchemaDiffPlan(
+        MigrationManager::SchemaDiffResult const& diff);
 
 /// Requires the user to call LIGHTWEIGHT_MIGRATION_PLUGIN() in exactly one CPP file of the migration plugin.
 ///
