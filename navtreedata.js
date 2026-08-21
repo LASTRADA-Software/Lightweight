@@ -32,6 +32,7 @@ var NAVTREE =
     ] ],
     [ "Usage Examples", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html", [
       [ "Configure default connection information to the database", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#configure-default-connection-information-to-the-database", null ],
+      [ "Connection encryption", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#connection-encryption", null ],
       [ "Raw SQL Queries", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#raw-sql-queries", null ],
       [ "Transparent block-prefetch (fewer network round-trips)", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#transparent-block-prefetch-fewer-network-round-trips", null ],
       [ "Prepared Statements", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#prepared-statements", null ],
@@ -337,12 +338,12 @@ var NAVTREEINDEX =
 "annotated.html",
 "d2/dd0/structLightweight_1_1Field.html#a757ce7d3d9533493051cd9b402482b41",
 "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#a972ef8522f91fce43fd223357b709bae",
-"d7/d13/structLightweight_1_1SqlRealName.html#ad41c47ba596b9e2a647edb777f959662",
-"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#ad0156fe9ef9aed1de5af0376c337bb09",
-"da/da8/classLightweight_1_1SqlConnection.html#ab5a9e94571f9e9296b2ce65036f75184",
-"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a0428d0b2e06f4760a9bc3c31cff19327",
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#sqlnumericprecision-scale-precision-limits",
-"pages.html"
+"d7/d13/structLightweight_1_1SqlRealName.html#ac06cf19889d9c829b639fe1da6c44048",
+"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#acb8f4c9ca3abc544b7c967a07163ae1c",
+"da/da8/classLightweight_1_1SqlConnection.html#a7f4f112f86b9fd3fa94d171ddb449324",
+"dd/d71/structLightweight_1_1SqlColumnDeclaration.html#adc6c2316125cc865139f3dae21badfb6",
+"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#getcolumn",
+"index.html#simple-one-record-example"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
