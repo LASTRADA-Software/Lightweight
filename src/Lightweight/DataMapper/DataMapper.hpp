@@ -2865,6 +2865,10 @@ void DataMapper::PreloadRelation(std::span<Record* const> records)
                   "Eager loading via With<>() is supported for BelongsTo and HasMany relations. "
                   "HasOneThrough, HasManyThrough and CompositeForeignKey still load on demand.");
 
+    // Defensive rather than reachable: every caller already returns on an empty batch
+    // (RunRelationPreloaders, PreloadAllRelations, and the `targets.empty()` guards in
+    // PreloadRelationPath / PreloadAllRelations). Kept so a future caller cannot trip over it, which
+    // is also why coverage reports never mark this line.
     if (records.empty())
         return;
 
@@ -2948,6 +2952,8 @@ void DataMapper::PreloadAllRelations(std::span<Record* const> records)
         return;
     else
     {
+        // As in PreloadRelation: both callers (RunRelationPreloaders and the recursive descent below)
+        // already guard against an empty batch, so this is belt-and-braces and stays uncovered.
         if (records.empty())
             return;
 
@@ -3033,6 +3039,10 @@ void DataMapper::PreloadBelongsTo(std::span<Record* const> records)
     for (auto* record: records)
     {
         auto& field = GetRecordMemberAt<FieldIndex>(*record);
+        // Only reachable from a batch mixing already-loaded and unloaded records: the key-collection
+        // loop above skips the loaded ones, and a batch in which *every* record is loaded has already
+        // returned at the `keys.empty()` check. No current call path builds such a mix, so this arm is
+        // not covered by the suite.
         if (field.LoadedRecord() != nullptr)
             continue;
 
@@ -3123,9 +3133,14 @@ void DataMapper::PreloadHasMany(std::span<Record* const> records)
     for (auto* record: records)
     {
         auto& field = GetRecordMemberAt<FieldIndex>(*record);
+        // See PreloadBelongsTo: reachable only from a batch mixing loaded and unloaded records, which
+        // no current call path produces - a wholly-loaded batch returns at the `keys.empty()` check.
         if (field.LoadedRecords() != nullptr)
             continue;
 
+        // Likewise unreachable today: every record that got past the check above contributed its key
+        // to `keys` in the collection loop, so the lookup cannot miss. Kept as a guard for a future
+        // caller that hands in a batch whose keys were filtered elsewhere.
         auto const it = std::ranges::lower_bound(keys, GetPrimaryKeyField(*record));
         if (it == keys.end() || !(*it == GetPrimaryKeyField(*record)))
             continue;

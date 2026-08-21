@@ -319,3 +319,76 @@ TEST_CASE_METHOD(SqlTestFixture, "Prepare reuse returns correct rows after the t
     REQUIRE(cursor.FetchRow());
     CHECK(cursor.GetColumn<int>(1) == 99);
 }
+
+// ================================================================================================
+// Prepare reuse: recovering a handle the server no longer knows about
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlTestFixture, "Prepare reuse recovers when the server forgot the statement", "[SqlStatement]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+
+    auto connection = SqlConnection {};
+    auto stmt = SqlStatement { connection };
+
+    // `DISCARD ALL` is the one lever in the test matrix that reliably invalidates a *reused* prepared
+    // handle: it drops every server-side prepared statement of the session, so the next execute of a
+    // handle Prepare() reused reports 26000 and RetryStalePreparedStatement has to re-prepare and run
+    // it again. Recreating the table behind the handle does not achieve this on any of the three
+    // backends (see the recreated-table test above), and `DISCARD ALL` is PostgreSQL-specific SQL
+    // besides - so this is genuinely a one-backend test rather than a dodged failure.
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::SQLITE);
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::MICROSOFT_SQL);
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::MYSQL);
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::UNKNOWN);
+
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.DropTableIfExists("forgotten_plan");
+        migration.CreateTable("forgotten_plan").PrimaryKey("id", Integer {}).RequiredColumn("value", Integer {});
+    });
+    std::ignore = stmt.ExecuteDirect(R"(INSERT INTO "forgotten_plan" ("id", "value") VALUES (1, 10))");
+
+    auto const* const selectQuery = R"(SELECT "value" FROM "forgotten_plan" WHERE "id" = ?)";
+
+    auto const discardServerSideStatements = [&connection] {
+        auto other = SqlStatement { connection };
+        std::ignore = other.ExecuteDirect("DISCARD ALL");
+    };
+
+    // Both execute paths carry their own retry call site, so both are driven through the recovery.
+    SECTION("typed Execute(Args...)")
+    {
+        stmt.Prepare(selectQuery);
+        {
+            auto cursor = stmt.Execute(1);
+            REQUIRE(cursor.FetchRow());
+            CHECK(cursor.GetColumn<int>(1) == 10);
+        }
+
+        discardServerSideStatements();
+
+        // Byte-identical text, so Prepare() reuses the handle instead of re-issuing SQLPrepare - which
+        // is what leaves the execute below facing a statement the server has forgotten.
+        stmt.Prepare(selectQuery);
+        auto cursor = stmt.Execute(1);
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<int>(1) == 10);
+    }
+
+    SECTION("ExecuteWithVariants")
+    {
+        stmt.Prepare(selectQuery);
+        {
+            auto cursor = stmt.ExecuteWithVariants({ SqlVariant { 1 } });
+            REQUIRE(cursor.FetchRow());
+            CHECK(cursor.GetColumn<int>(1) == 10);
+        }
+
+        discardServerSideStatements();
+
+        stmt.Prepare(selectQuery);
+        auto cursor = stmt.ExecuteWithVariants({ SqlVariant { 1 } });
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<int>(1) == 10);
+    }
+}
