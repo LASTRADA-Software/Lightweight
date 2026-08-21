@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <chrono>
 #include <format>
 #include <limits>
@@ -3044,6 +3045,208 @@ MigrationManager::UnicodeUpgradeResult MigrationManager::UnicodeUpgradeTables(bo
         ExecuteGenericUpgrade(stmt, formatter, pendingPerTable);
     transaction.Commit();
     return result;
+}
+
+namespace
+{
+    /// @brief Whitespace- and case-insensitive comparison of two rendered column types.
+    ///
+    /// The two sides come from different producers — the formatter renders the intended
+    /// type, the introspection layer round-trips the live one — so `NVARCHAR(50)` and
+    /// `nvarchar (50)` must compare equal.
+    [[nodiscard]] bool RenderedTypesEqual(std::string_view lhs, std::string_view rhs) noexcept
+    {
+        auto const significant = [](char c) {
+            return !std::isspace(static_cast<unsigned char>(c));
+        };
+        auto const fold = [](char c) {
+            return static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+        };
+        return std::ranges::equal(lhs | std::views::filter(significant) | std::views::transform(fold),
+                                  rhs | std::views::filter(significant) | std::views::transform(fold));
+    }
+
+    /// @brief Whether a folded column declaration implies NOT NULL.
+    ///
+    /// A primary key is NOT NULL whether or not the declaration says `required`, so
+    /// treating the two independently would report phantom nullability drift on every
+    /// primary key.
+    [[nodiscard]] bool DeclaredNotNull(SqlColumnDeclaration const& column) noexcept
+    {
+        return column.required || column.primaryKey != SqlPrimaryKeyType::NONE;
+    }
+
+    /// @brief Computes the column-level delta for one table present on both sides.
+    ///
+    /// @param key Fully-qualified name of the table being compared.
+    /// @param folded The table as the registered migrations declare it.
+    /// @param live The table as the database currently has it.
+    /// @param formatter Formatter used to render both sides' types for comparison.
+    /// @return The delta, or `nullopt` when the table matches.
+    [[nodiscard]] std::optional<MigrationManager::SchemaDiffTable> ComputeTableDiff(
+        SqlSchema::FullyQualifiedTableName const& key,
+        MigrationManager::PlanFoldingResult::TableState const& folded,
+        SqlSchema::Table const& live,
+        SqlQueryFormatter const& formatter)
+    {
+        std::map<std::string, SqlSchema::Column const*> liveColumns;
+        for (auto const& c: live.columns)
+            liveColumns.emplace(c.name, &c);
+
+        MigrationManager::SchemaDiffTable diff;
+        diff.schemaName = key.schema;
+        diff.tableName = key.table;
+
+        std::set<std::string> intendedNames;
+        for (auto const& intended: folded.columns)
+        {
+            intendedNames.insert(intended.name);
+            auto const liveIt = liveColumns.find(intended.name);
+            if (liveIt == liveColumns.end())
+            {
+                diff.addedColumns.push_back(intended);
+                continue;
+            }
+
+            auto const& liveColumn = *liveIt->second;
+            bool const typeDrifted =
+                !RenderedTypesEqual(formatter.ColumnType(intended.type), formatter.ColumnType(liveColumn.type));
+            // Primary keys are NOT NULL by construction on every supported backend, so a
+            // nullability comparison there only ever produces noise.
+            bool const nullabilityDrifted = intended.primaryKey == SqlPrimaryKeyType::NONE && !liveColumn.isPrimaryKey
+                                            && DeclaredNotNull(intended) == liveColumn.isNullable;
+            if (!typeDrifted && !nullabilityDrifted)
+                continue;
+
+            diff.changedColumns.push_back(MigrationManager::SchemaDiffColumnChange {
+                .column = intended.name,
+                .intendedType = intended.type,
+                .liveType = liveColumn.type,
+                .intendedNullable = !DeclaredNotNull(intended),
+                .liveNullable = liveColumn.isNullable,
+            });
+        }
+
+        for (auto const& liveColumn: live.columns)
+            if (!intendedNames.contains(liveColumn.name))
+                diff.droppedColumns.push_back(liveColumn.name);
+
+        if (diff.addedColumns.empty() && diff.droppedColumns.empty() && diff.changedColumns.empty())
+            return std::nullopt;
+        return diff;
+    }
+} // namespace
+
+MigrationManager::SchemaDiffResult MigrationManager::DiffAgainstLiveSchema(
+    std::optional<MigrationTimestamp> upToInclusive) const
+{
+    SchemaDiffResult result;
+
+    auto& dm = GetDataMapper();
+    auto const& formatter = dm.Connection().QueryFormatter();
+    auto const fold = FoldRegisteredMigrations(formatter, upToInclusive);
+
+    auto stmt = SqlStatement { dm.Connection() };
+    auto const liveTables = SqlSchema::ReadAllTables(stmt, std::string {}, std::string {});
+
+    std::map<std::string, SqlSchema::Table const*> liveByName;
+    for (auto const& t: liveTables)
+        liveByName.emplace(t.name, &t);
+
+    // Tables Lightweight owns itself are neither migration-declared nor user-owned, so
+    // they must not surface as "unmanaged". Mirrors the exclusion `HardReset` applies.
+    auto const bookkeepingTableNames = formatter.AdvisoryLockOps().BookkeepingTableNames();
+    std::set<std::string_view> infrastructureNames { bookkeepingTableNames.begin(), bookkeepingTableNames.end() };
+    infrastructureNames.insert(SchemaMigration::TableName);
+
+    // Walk in creation order so a generated plan replays CREATE TABLE in an order where
+    // foreign keys already have their target.
+    for (auto const& key: fold.creationOrder)
+    {
+        auto const& state = fold.tables.at(key);
+        auto const liveIt = liveByName.find(key.table);
+        if (liveIt == liveByName.end())
+        {
+            result.missingTables.push_back(SqlCreateTablePlan {
+                .schemaName = key.schema,
+                .tableName = key.table,
+                .columns = state.columns,
+                .foreignKeys = state.compositeForeignKeys,
+                .ifNotExists = state.ifNotExists,
+            });
+            continue;
+        }
+
+        if (auto tableDiff = ComputeTableDiff(key, state, *liveIt->second, formatter))
+            result.alteredTables.push_back(std::move(*tableDiff));
+    }
+
+    std::set<std::string> intendedNames;
+    for (auto const& key: fold.creationOrder)
+        intendedNames.insert(key.table);
+
+    for (auto const& live: liveTables)
+        if (!intendedNames.contains(live.name) && !infrastructureNames.contains(live.name))
+            result.unmanagedTables.push_back(SqlSchema::FullyQualifiedTableName {
+                .catalog = {},
+                .schema = live.schema,
+                .table = live.name,
+            });
+
+    // An index is missing when the table that carries it has no index of that name. A
+    // table the diff is about to create carries its indexes with it, so those are skipped.
+    for (auto const& index: fold.indexes)
+    {
+        auto const liveIt = liveByName.find(index.tableName);
+        if (liveIt == liveByName.end())
+            continue;
+        auto const& liveIndexes = liveIt->second->indexes;
+        if (std::ranges::none_of(liveIndexes, [&](auto const& live) { return live.name == index.indexName; }))
+            result.missingIndexes.push_back(index);
+    }
+
+    return result;
+}
+
+std::vector<SqlMigrationPlanElement> MakeSchemaDiffPlan(MigrationManager::SchemaDiffResult const& diff)
+{
+    std::vector<SqlMigrationPlanElement> plan;
+    plan.reserve(diff.missingTables.size() + diff.alteredTables.size() + diff.missingIndexes.size());
+
+    for (auto const& table: diff.missingTables)
+        plan.emplace_back(table);
+
+    for (auto const& table: diff.alteredTables)
+    {
+        SqlAlterTablePlan alter {
+            .schemaName = table.schemaName,
+            .tableName = table.tableName,
+            .commands = {},
+        };
+        // Add before alter before drop: a column the same migration both adds and then
+        // reshapes cannot exist, and dropping last keeps the table readable for as long
+        // as possible if an operator stops the migration part-way.
+        for (auto const& column: table.addedColumns)
+            alter.commands.emplace_back(SqlAlterTableCommands::AddColumn {
+                .columnName = column.name,
+                .columnType = column.type,
+                .nullable = DeclaredNotNull(column) ? SqlNullable::NotNull : SqlNullable::Null,
+            });
+        for (auto const& change: table.changedColumns)
+            alter.commands.emplace_back(SqlAlterTableCommands::AlterColumn {
+                .columnName = change.column,
+                .columnType = change.intendedType,
+                .nullable = change.intendedNullable ? SqlNullable::Null : SqlNullable::NotNull,
+            });
+        for (auto const& column: table.droppedColumns)
+            alter.commands.emplace_back(SqlAlterTableCommands::DropColumn { .columnName = column });
+        plan.emplace_back(std::move(alter));
+    }
+
+    for (auto const& index: diff.missingIndexes)
+        plan.emplace_back(index);
+
+    return plan;
 }
 
 MigrationStatus MigrationManager::GetMigrationStatus() const

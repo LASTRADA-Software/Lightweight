@@ -11,11 +11,13 @@
 #include <Lightweight/SqlMigration.hpp>
 #include <Lightweight/SqlSchema.hpp>
 #include <Lightweight/SqlScopedLock.hpp>
+#include <Lightweight/Tools/MigrationSourcePrinter.hpp>
 #include <Lightweight/Utils.hpp>
 
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <charconv>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -27,9 +29,11 @@
 #include <print>
 #include <ranges>
 #include <set>
+#include <span>
 #include <string>
 #include <type_traits>
 #include <unordered_set>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -67,6 +71,27 @@ using namespace std::string_view_literals;
 
 namespace
 {
+
+/// @brief Joins @p parts into a single comma-separated string, for display only.
+///
+/// Hand-rolled rather than `std::views::join_with`: that view is C++23, but libc++ does not ship it
+/// yet and the macOS CI leg builds against libc++. The separator is tracked with a flag rather than
+/// by testing whether the result is still empty, so an empty element cannot swallow a separator.
+///
+/// @param parts The strings to join.
+/// @return The joined string, empty when @p parts is empty.
+[[nodiscard]] std::string JoinForDisplay(std::span<std::string const> parts)
+{
+    auto result = std::string {};
+    auto first = true;
+    for (auto const& part: parts)
+    {
+        if (!std::exchange(first, false))
+            result += ", ";
+        result += part;
+    }
+    return result;
+}
 
 /// @brief Emits a startup-trace breadcrumb to stderr when `DBTOOL_TRACE=1` is set.
 ///
@@ -174,6 +199,13 @@ void PrintUsage()
     std::println("  {}unicode-upgrade-tables{}    Rewrites legacy VARCHAR/CHAR columns to NVARCHAR/NCHAR",
                  c.command, c.reset);
     std::println("                            where the registered migrations now declare wide types");
+    std::println("  {}diff{}                     Reports how the live schema differs from what the registered",
+                 c.command, c.reset);
+    std::println("                            migrations declare (read-only; honours --up-to)");
+    std::println("  {}generate{} {}<TITLE>{}         Writes that same diff as a timestamped migration source file",
+                 c.command, c.reset, c.param, c.reset);
+    std::println("                            (--empty scaffolds a blank one without touching the database,");
+    std::println("                            --dry-run prints to stdout, --output pins the path)");
     std::println("  {}exec{} {}<QUERY>{}             Executes the given SQL query and prints any result set.",
                  c.command, c.reset, c.param, c.reset);
     std::println("                            Pass `-` (or omit the argument) to read the query from stdin.");
@@ -245,6 +277,10 @@ void PrintUsage()
                  c.option, c.reset);
     std::println("  {}--schema-only{}             Backup/restore schema only, skip data",
                  c.option, c.reset);
+    std::println("  {}--empty{}                   generate: scaffold a blank migration without reading the database",
+                 c.option, c.reset);
+    std::println("  {}--up-to{} {}<TIMESTAMP>{}       diff/generate: fold only migrations up to and including this one",
+                 c.option, c.reset, c.param, c.reset);
     std::println("  {}--quiet{}                   Suppress progress output", c.option, c.reset);
     std::println("  {}--verbose{}, {}-v{}             Emit extra informational output (e.g. shadowed plugins)",
                  c.option, c.reset, c.option, c.reset);
@@ -367,11 +403,12 @@ struct Options
     std::string batchSize;                     ///< Batch size for restore (rows per batch)
     bool pluginsDirSet = false;
     bool connectionStringSet = false;
-    bool dryRun = false;     ///< If true, show what would be done without actually doing it
-    bool noLock = false;     ///< If true, skip migration locking for write operations
-    bool schemaOnly = false; ///< If true, backup/restore schema only (no data)
-    bool yes = false;        ///< If true, confirm destructive actions (e.g. rewrite-checksums)
-    bool verbose = false;    ///< If true, emit extra informational output (e.g. shadowed plugins)
+    bool dryRun = false;         ///< If true, show what would be done without actually doing it
+    bool noLock = false;         ///< If true, skip migration locking for write operations
+    bool schemaOnly = false;     ///< If true, backup/restore schema only (no data)
+    bool yes = false;            ///< If true, confirm destructive actions (e.g. rewrite-checksums)
+    bool verbose = false;        ///< If true, emit extra informational output (e.g. shadowed plugins)
+    bool emptyMigration = false; ///< `generate --empty`: scaffold a blank migration, no DB needed
 
     /// @brief `--up-to <X>` for migration commands. Empty = no bound.
     std::string upTo;
@@ -742,6 +779,10 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
         else if (arg == "--yes" || arg == "-y")
         {
             options.yes = true;
+        }
+        else if (arg == "--empty")
+        {
+            options.emptyMigration = true;
         }
         else if (arg == "--up-to")
         {
@@ -1365,6 +1406,221 @@ int UnicodeUpgradeTables(MigrationManager& manager, bool dryRun, bool yes)
                 tables.insert(c.table.table);
             std::println("Upgraded {} column(s) across {} table(s).", r.columns.size(), tables.size());
         });
+}
+
+/// @brief Parses `--up-to <TIMESTAMP>` into a fold cut-off.
+///
+/// @param upTo The raw option value; empty means "no bound".
+/// @return The parsed bound, `nullopt` when unbounded, or an error message when the
+///         value is not a migration timestamp.
+std::expected<std::optional<MigrationTimestamp>, std::string> ParseUpToBound(std::string_view upTo)
+{
+    if (upTo.empty())
+        return std::optional<MigrationTimestamp> {};
+
+    auto value = uint64_t {};
+    auto const parsed = std::from_chars(upTo.data(), upTo.data() + upTo.size(), value);
+    if (parsed.ec != std::errc {} || parsed.ptr != upTo.data() + upTo.size())
+        return std::unexpected { std::format("Error: --up-to expects a migration timestamp, got '{}'.", upTo) };
+    return std::optional { MigrationTimestamp { value } };
+}
+
+/// @brief Prints one altered table's column-level delta.
+void PrintTableDelta(MigrationManager::SchemaDiffTable const& table, SqlQueryFormatter const& formatter)
+{
+    std::println("  {}", table.tableName);
+    for (auto const& column: table.addedColumns)
+        std::println("    + {:<24} {}", column.name, formatter.ColumnType(column.type));
+    for (auto const& change: table.changedColumns)
+        std::println("    ~ {:<24} {} (live: {})",
+                     change.column,
+                     formatter.ColumnType(change.intendedType),
+                     formatter.ColumnType(change.liveType));
+    for (auto const& column: table.droppedColumns)
+        std::println("    - {:<24} (not declared by any migration)", column);
+}
+
+/// @brief Renders the whole diff report to stdout.
+///
+/// Shared by `diff` and by `generate`, so the operator sees the same summary whether or
+/// not a file is written.
+void PrintSchemaDiff(MigrationManager::SchemaDiffResult const& diff, SqlQueryFormatter const& formatter)
+{
+    if (!diff.missingTables.empty())
+    {
+        std::println("Tables to create ({}):", diff.missingTables.size());
+        for (auto const& table: diff.missingTables)
+            std::println("  {} ({} column(s))", table.tableName, table.columns.size());
+        std::println("");
+    }
+
+    if (!diff.alteredTables.empty())
+    {
+        std::println("Tables to alter ({}):", diff.alteredTables.size());
+        for (auto const& table: diff.alteredTables)
+            PrintTableDelta(table, formatter);
+        std::println("");
+    }
+
+    if (!diff.missingIndexes.empty())
+    {
+        std::println("Indexes to create ({}):", diff.missingIndexes.size());
+        for (auto const& index: diff.missingIndexes)
+            std::println("  {} on {} ({})", index.indexName, index.tableName, JoinForDisplay(index.columns));
+        std::println("");
+    }
+
+    if (!diff.unmanagedTables.empty())
+    {
+        std::println("Unmanaged tables — in the database, declared by no migration ({}):", diff.unmanagedTables.size());
+        for (auto const& table: diff.unmanagedTables)
+            std::println("  {}", table.table);
+        std::println("  (reported only; autogenerate never drops them)");
+        std::println("");
+    }
+}
+
+/// @brief `diff` — reports how the live schema differs from what the migrations intend.
+///
+/// Read-only. Always exits successfully: a drifted schema is a finding to act on, not a
+/// dbtool failure.
+int SchemaDiff(MigrationManager& manager, Options const& options)
+{
+    auto const bound = ParseUpToBound(options.upTo);
+    if (!bound)
+    {
+        std::println(std::cerr, "{}", bound.error());
+        return EXIT_FAILURE;
+    }
+
+    auto const& formatter = manager.GetDataMapper().Connection().QueryFormatter();
+    auto const diff = manager.DiffAgainstLiveSchema(*bound);
+
+    if (diff.Empty() && diff.unmanagedTables.empty())
+    {
+        std::println("The live schema matches what the registered migrations declare. Nothing to generate.");
+        return EXIT_SUCCESS;
+    }
+
+    std::println("Schema diff: registered migrations → live database");
+    std::println("");
+    PrintSchemaDiff(diff, formatter);
+
+    if (diff.Empty())
+        return EXIT_SUCCESS;
+
+    auto const plan = SqlMigration::MakeSchemaDiffPlan(diff);
+    std::println("Migration plan ({} step(s)):", plan.size());
+    for (auto const& element: plan)
+        for (auto const& sql: ToSql(formatter, element))
+            std::println("  {}", sql);
+    std::println("");
+    std::println("Run `dbtool generate \"<title>\"` to emit this as a migration source file.");
+    return EXIT_SUCCESS;
+}
+
+/// @brief Resolves where `generate` should write, and refuses to clobber silently.
+///
+/// @param options Parsed CLI options; `--output` pins an exact path, otherwise the file
+///                lands in the current directory under `<timestamp>_<slug>.cpp`.
+/// @param timestamp The migration timestamp.
+/// @param title The migration title, used for the filename slug.
+/// @return The destination path, or an error message.
+std::expected<std::filesystem::path, std::string> ResolveGenerateTarget(Options const& options,
+                                                                        std::string_view timestamp,
+                                                                        std::string_view title)
+{
+    // Not const: it is returned below, and constness would block the implicit move.
+    auto target = options.outputFile.empty()
+                      ? std::filesystem::path { std::format("{}_{}.cpp", timestamp, Tools::SlugifyMigrationTitle(title)) }
+                      : options.outputFile;
+
+    if (std::filesystem::exists(target) && !options.yes)
+        return std::unexpected { std::format(
+            "Error: {} already exists. Pass --yes to overwrite, or --output to write elsewhere.", target.string()) };
+    return target;
+}
+
+/// @brief `generate <TITLE>` — emits the diff as a timestamped migration source file.
+///
+/// With `--empty` no database is consulted and a scaffold is written instead, which is the
+/// answer to the one piece of friction that exists even when there is nothing to diff:
+/// hand-typing a `YYYYMMDDHHMMSS` timestamp.
+int GenerateMigration(MigrationManager* manager, Options const& options)
+{
+    if (options.argument.empty())
+    {
+        std::println(std::cerr, "Error: generate requires a <TITLE> argument, e.g. dbtool generate \"Add orders table\".");
+        return EXIT_FAILURE;
+    }
+
+    auto const timestamp = Tools::FormatMigrationTimestamp(std::chrono::system_clock::now());
+    auto sourceOptions = Tools::MigrationSourceOptions {
+        .timestamp = timestamp,
+        .title = options.argument,
+        .includePluginEntryPoint = false,
+        .provenance = {},
+    };
+
+    // Holds the diff for as long as the plan borrows names from it.
+    auto diff = MigrationManager::SchemaDiffResult {};
+    auto plan = std::vector<SqlMigrationPlanElement> {};
+
+    if (manager != nullptr)
+    {
+        auto const bound = ParseUpToBound(options.upTo);
+        if (!bound)
+        {
+            std::println(std::cerr, "{}", bound.error());
+            return EXIT_FAILURE;
+        }
+
+        diff = manager->DiffAgainstLiveSchema(*bound);
+        if (diff.Empty())
+        {
+            std::println("The live schema matches what the registered migrations declare. Nothing to generate.");
+            std::println("Pass --empty to scaffold a blank migration anyway.");
+            return EXIT_SUCCESS;
+        }
+
+        PrintSchemaDiff(diff, manager->GetDataMapper().Connection().QueryFormatter());
+        plan = SqlMigration::MakeSchemaDiffPlan(diff);
+        sourceOptions.provenance = "Autogenerated by `dbtool generate` from the diff between the registered "
+                                   "migrations and the live schema. Review before committing.";
+    }
+
+    auto const source = Tools::PrintMigrationSource(sourceOptions, plan);
+
+    if (options.dryRun)
+    {
+        std::print("{}", source);
+        return EXIT_SUCCESS;
+    }
+
+    auto const target = ResolveGenerateTarget(options, timestamp, options.argument);
+    if (!target)
+    {
+        std::println(std::cerr, "{}", target.error());
+        return EXIT_FAILURE;
+    }
+
+    auto out = std::ofstream { *target, std::ios::binary | std::ios::trunc };
+    if (!out)
+    {
+        std::println(std::cerr, "Error: cannot write to {}.", target->string());
+        return EXIT_FAILURE;
+    }
+    out << source;
+    out.close();
+    if (!out)
+    {
+        std::println(std::cerr, "Error: failed while writing {}.", target->string());
+        return EXIT_FAILURE;
+    }
+
+    std::println("Wrote {} ({} step(s)).", target->string(), plan.size());
+    std::println("Add it to your migration plugin's sources and rebuild, then `dbtool migrate`.");
+    return EXIT_SUCCESS;
 }
 
 /// Marks a migration as applied without executing its Up() method.
@@ -2527,6 +2783,10 @@ int DispatchDbCommand(Options const& options)
         OptionalScopedLock const lock(manager, options.noLock || options.dryRun);
         return UnicodeUpgradeTables(manager, options.dryRun, options.yes);
     }
+    if (options.command == "diff")
+        return SchemaDiff(GetMigrationManager(options), options);
+    if (options.command == "generate")
+        return GenerateMigration(&GetMigrationManager(options), options);
     if (options.command == "backup")
         return Backup(options);
     if (options.command == "restore")
@@ -2638,6 +2898,11 @@ int main(int argc, char** argv)
 
         if (options.command == "backup-diff")
             return BackupDiffCommand(options);
+
+        // `generate --empty` only needs a clock and a title, so it must not require a
+        // reachable database the way every other `generate` invocation does.
+        if (options.command == "generate" && options.emptyMigration)
+            return GenerateMigration(nullptr, options);
 
         TraceBreadcrumb("main: setting up connection string");
         if (!SetupConnectionString(options.connectionString))
