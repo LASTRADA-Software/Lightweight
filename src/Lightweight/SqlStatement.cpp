@@ -279,6 +279,13 @@ SqlStatement::~SqlStatement() noexcept
     // the driver manager invalidates every statement hanging off it at that point. Freeing this handle
     // afterwards reads released driver memory, which segfaults under unixODBC. Skip it when the
     // connection is already closed and the handle is therefore gone with it.
+    //
+    // A moved-from SqlConnection also reports a null handle, and there the statement handle is still
+    // live (owned by the connection it was moved into), so skipping the free leaks it. Distinguishing
+    // the two is possible -- Close() leaves the connection's private data intact whereas the move
+    // constructor clears it -- but needs a predicate SqlConnection does not currently expose. The
+    // leak only arises if a statement outlives a move of the connection it was allocated from, which
+    // already leaves the statement unusable, so the crash is the case worth handling here.
     if (m_connection && !m_connection->NativeHandle())
         return;
     SQLFreeHandle(SQL_HANDLE_STMT, m_hStmt);
