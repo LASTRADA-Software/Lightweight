@@ -81,6 +81,83 @@ while (cursor.FetchRow())
     std::println("{}|{}|{}", record.a, record.b, record.c);
 ```
 
+## Prepared-statement cache (fewer prepare round-trips)
+
+`Prepare()` sends the SQL text to the server so it can parse and plan it — one network round-trip on
+Microsoft SQL Server and PostgreSQL, paid again every time the same query text is prepared. Applications
+built on `DataMapper` or the query builders re-prepare the same handful of statements constantly, because
+each call site creates its own short-lived `SqlStatement`.
+
+A connection can keep the already-prepared handles alive in a bounded LRU pool, so re-preparing a query
+it has seen before skips `SQLPrepare` entirely:
+
+```cpp
+auto conn = SqlConnection {};
+conn.SetPreparedStatementCacheCapacity(Lightweight::PreparedStatementCacheCapacitySuggested); // 64
+```
+
+The cache is **opt-in** (default capacity `Lightweight::PreparedStatementCacheCapacityDefault`, i.e. `0`
+= disabled) but, once enabled, **transparent**: every `SqlStatement` on that connection participates, so
+`DataMapper`, the `SqlQuery` DSL, and raw `Prepare()` call sites all benefit without a code change. It
+can also be requested up-front via `SqlConnectionDataSource::preparedStatementCacheCapacity`.
+
+For pooled applications, configure it on the pool rather than on each acquired connection.
+`PoolConfig::preparedStatementCacheCapacity` is applied to every connection the pool creates, so no
+call site has to remember to enable it:
+
+```cpp
+constexpr auto MyPoolConfig = Lightweight::PoolConfig {
+    .initialSize = 4,
+    .maxSize = 16,
+    .growthStrategy = Lightweight::GrowthStrategy::BoundedOverflow,
+    .preparedStatementCacheCapacity = Lightweight::PreparedStatementCacheCapacitySuggested,
+};
+auto pool = Lightweight::Pool<MyPoolConfig> {};
+```
+
+The global pool returned by `GlobalDataMapperPool()` takes the same setting from the CMake option
+`LIGHTWEIGHT_POOL_PREPARED_STATEMENT_CACHE_CAPACITY` (default `0`, i.e. disabled), alongside the
+existing `LIGHTWEIGHT_POOL_INITIAL_SIZE`, `LIGHTWEIGHT_POOL_MAX_SIZE` and
+`LIGHTWEIGHT_POOL_GROWTH_STRATEGY`.
+
+A pooled connection keeps its warmed handles across acquires, since the pool hands back the same live
+connection rather than reconnecting it. Note that the capacity is **per connection**: the cache is a set
+of ODBC statement handles owned by one connection's `SQLHDBC` and can never be shared with another
+connection, so each pooled connection warms up separately and a fully warmed pool holds up to
+`maxSize * preparedStatementCacheCapacity` prepared statements on the server.
+
+How it works: a handle is *checked out* while a statement uses it and returned to the pool when that
+statement is re-prepared or destroyed. Two statements preparing the same text at the same time therefore
+each get their own handle. When the pool exceeds its capacity the least recently returned handle is
+freed — a bound that matters because several backends cap the number of live prepared statements per
+session. Statistics are available for diagnostics:
+
+```cpp
+auto const& stats = conn.PreparedStatementCache().Stats();
+std::println("prepare hits={} misses={} evictions={}", stats.hits, stats.misses, stats.evictions);
+```
+
+**Schema changes invalidate cached plans.** A pooled handle carries the plan the driver derived from the
+schema as it was at preparation time, so DDL must drop it:
+
+```cpp
+conn.ClearPreparedStatementCache();
+```
+
+Lightweight does this for you where it owns the DDL — `SqlStatement::MigrateDirect()` and the
+`MigrationManager` executor clear the cache after applying a script — and disconnecting or reconnecting a
+connection clears it as well. Raw DDL you send through `ExecuteDirect()` is your responsibility. A single
+statement that must never reuse a plan opts out:
+
+```cpp
+auto stmt = SqlStatement { conn };
+stmt.SetPreparedStatementCaching(SqlPreparedStatementCaching::Disabled);
+```
+
+The cache is active on Microsoft SQL Server, PostgreSQL and SQLite. On any other backend
+`SqlConnection::SupportsPreparedStatementReuse()` is false and the requested capacity stays inactive, so
+the same setup code is safe to run everywhere.
+
 ## SQL Query Builder
 
 Or construct statement using `SqlQueryBuilder`

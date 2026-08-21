@@ -8,6 +8,7 @@ endif()
 set(LIGHTWEIGHT_POOL_INITIAL_SIZE "4" CACHE STRING "Initial number of pre-created DataMappers in the global pool")
 set(LIGHTWEIGHT_POOL_MAX_SIZE "16" CACHE STRING "Maximum pool size (used by BoundedWait and BoundedOverflow)")
 set(LIGHTWEIGHT_POOL_GROWTH_STRATEGY "BoundedOverflow" CACHE STRING "Pool growth strategy: BoundedWait, BoundedOverflow, or UnboundedGrow")
+set(LIGHTWEIGHT_POOL_PREPARED_STATEMENT_CACHE_CAPACITY "0" CACHE STRING "Prepared-statement cache capacity of each pooled connection (0 disables the cache)")
 
 if(NOT WIN32)
     find_package(SQLite3 REQUIRED)
@@ -90,6 +91,7 @@ set(HEADER_FILES
     SqlLogger.hpp
     SqlMigration.hpp
     SqlOdbcWide.hpp
+    SqlPreparedStatementCache.hpp
     SqlQueryFormatter.hpp
     SqlSchema.hpp
     SqlScopedLock.hpp
@@ -124,6 +126,7 @@ set(SOURCE_FILES
     SqlError.cpp
     SqlLogger.cpp
     SqlMigration.cpp
+    SqlPreparedStatementCache.cpp
     SqlQuery.cpp
     SqlQuery/Core.cpp
     SqlQuery/Migrate.cpp
@@ -189,6 +192,7 @@ target_compile_definitions(Lightweight PUBLIC
     LIGHTWEIGHT_POOL_INITIAL_SIZE=${LIGHTWEIGHT_POOL_INITIAL_SIZE}
     LIGHTWEIGHT_POOL_MAX_SIZE=${LIGHTWEIGHT_POOL_MAX_SIZE}
     LIGHTWEIGHT_POOL_GROWTH_STRATEGY=${LIGHTWEIGHT_POOL_GROWTH_STRATEGY}
+    LIGHTWEIGHT_POOL_PREPARED_STATEMENT_CACHE_CAPACITY=${LIGHTWEIGHT_POOL_PREPARED_STATEMENT_CACHE_CAPACITY}
 )
 
 add_library(LightweightTools STATIC)

@@ -230,7 +230,8 @@ SqlStatement::SqlStatement(SqlStatement&& other) noexcept:
     m_connection { other.m_connection },
     m_hStmt { other.m_hStmt },
     m_preparedQuery { std::move(other.m_preparedQuery) },
-    m_expectedParameterCount { other.m_expectedParameterCount }
+    m_expectedParameterCount { other.m_expectedParameterCount },
+    m_preparedStatementCaching { other.m_preparedStatementCaching }
 {
     other.m_data.reset();
     other.m_connection = nullptr;
@@ -247,6 +248,7 @@ SqlStatement& SqlStatement::operator=(SqlStatement&& other) noexcept
     m_hStmt = other.m_hStmt;
     m_preparedQuery = std::move(other.m_preparedQuery);
     m_expectedParameterCount = other.m_expectedParameterCount;
+    m_preparedStatementCaching = other.m_preparedStatementCaching;
 
     other.m_data.reset();
     other.m_connection = nullptr;
@@ -275,7 +277,106 @@ SqlStatement::SqlStatement(std::nullopt_t /*nullopt*/):
 SqlStatement::~SqlStatement() noexcept
 {
     SqlLogger::GetLogger().OnFetchEnd();
+
+    // Hand the prepared handle back to the connection's pool, so the next statement preparing the same
+    // query text can skip SQLPrepare. Falls through to freeing it when the pool declines to take it.
+    if (ReleasePreparedHandle())
+        return;
+
     SQLFreeHandle(SQL_HANDLE_STMT, m_hStmt);
+}
+
+void SqlStatement::SetPreparedStatementCaching(SqlPreparedStatementCaching caching) noexcept
+{
+    m_preparedStatementCaching = caching;
+}
+
+SqlPreparedStatementCache* SqlStatement::UsablePreparedStatementCache() const noexcept
+{
+    if (m_preparedStatementCaching == SqlPreparedStatementCaching::Disabled || m_connection == nullptr)
+        return nullptr;
+
+    auto& cache = m_connection->PreparedStatementCache();
+    return cache.IsEnabled() ? &cache : nullptr;
+}
+
+bool SqlStatement::ReleasePreparedHandle() noexcept
+{
+    auto* const cache = UsablePreparedStatementCache();
+    if (cache == nullptr || m_hStmt == SQL_NULL_HSTMT || m_preparedQuery.empty())
+        return false;
+
+    // BindInputParameter() replaces m_expectedParameterCount with the "count unknown" sentinel, so the
+    // member no longer describes the query once a caller bound parameters by hand. A later cache hit
+    // adopts the pooled count verbatim and skips SQLNumParams, and the sentinel would then make every
+    // Execute(args...) on that query text reject its arguments — so re-derive the real count from the
+    // (still prepared) handle, and decline to pool it when even that fails.
+    // The SQLNumParams failure arm is not reachable from the suite: the handle is still prepared at
+    // this point, so every driver in the matrix answers it. Declining to pool the handle is the safe
+    // response for a driver that does not.
+    auto parameterCount = m_expectedParameterCount;
+    if (parameterCount == (std::numeric_limits<decltype(m_expectedParameterCount)>::max)()
+        && !SQL_SUCCEEDED(SQLNumParams(m_hStmt, &parameterCount)))
+        return false;
+
+    // The pooled handle must come back neutral: cursor closed (CloseCursor also tears down any block
+    // prefetch still referencing the handle), columns unbound, parameter buffers and the parameter-array
+    // attributes reset. None of these unprepare the statement.
+    CloseCursor();
+    SQLFreeStmt(m_hStmt, SQL_UNBIND);
+    SQLFreeStmt(m_hStmt, SQL_RESET_PARAMS);
+    ResetParameterArrayBinding();
+
+    cache->Release(m_preparedQuery,
+                   SqlPreparedStatementCache::PreparedHandle { .nativeHandle = m_hStmt, .parameterCount = parameterCount });
+
+    m_hStmt = SQL_NULL_HSTMT;
+    m_preparedQuery.clear();
+    m_expectedParameterCount = 0;
+    m_numColumns.reset();
+    return true;
+}
+
+void SqlStatement::EnsureStatementHandle()
+{
+    if (m_hStmt == SQL_NULL_HSTMT && m_connection != nullptr)
+        m_connection->RequireSuccess(SQLAllocHandle(SQL_HANDLE_STMT, m_connection->NativeHandle(), &m_hStmt));
+}
+
+void SqlStatement::ReleasePreparedHandleForDirectExecution()
+{
+    // SQLExecDirect discards whatever this handle was prepared for, so park it in the connection's pool
+    // first: a later Prepare() of that query text then still finds it. This matters for the DataMapper,
+    // which drives its INSERT through one statement and immediately reuses it for the direct
+    // last-insert-id query.
+    if (ReleasePreparedHandle())
+        EnsureStatementHandle();
+}
+
+bool SqlStatement::AcquirePreparedHandle(std::string_view query)
+{
+    auto* const cache = UsablePreparedStatementCache();
+    if (cache == nullptr)
+        return false;
+
+    // Park the handle we hold before looking one up: re-preparing the same query then finds exactly the
+    // handle just parked, which is what makes a repeated Prepare() of one query text free.
+    ReleasePreparedHandle();
+
+    auto const pooled = cache->Acquire(query);
+    if (!pooled)
+    {
+        EnsureStatementHandle();
+        return false;
+    }
+
+    // Whatever we still hold was not worth pooling (it carries no prepared query), so it is surplus now.
+    if (m_hStmt != SQL_NULL_HSTMT)
+        SQLFreeHandle(SQL_HANDLE_STMT, m_hStmt);
+
+    m_hStmt = pooled->nativeHandle;
+    m_expectedParameterCount = pooled->parameterCount;
+    return true;
 }
 
 SqlStatement SqlStatement::Prepare(std::string_view query) &&
@@ -291,7 +392,16 @@ void SqlStatement::Prepare(std::string_view query) &
     ZoneTextObject(query);
     SqlLogger::GetLogger().OnPrepare(query);
 
-    m_preparedQuery = std::string(query);
+    // Copy the query text up front: AcquirePreparedHandle() clears m_preparedQuery when it parks the
+    // handle we currently hold, which would dangle a `query` that views this statement's own text
+    // (e.g. stmt.Prepare(stmt.PreparedQuery())).
+    auto queryText = std::string(query);
+
+    // Reuses a handle the connection already prepared for this query text when the prepared-statement
+    // cache is enabled; otherwise a no-op, and SQLPrepareW below does the work.
+    auto const alreadyPrepared = AcquirePreparedHandle(queryText);
+
+    m_preparedQuery = std::move(queryText);
     const_cast<SqlStatement*>(this)->m_numColumns.reset();
 
     m_data->postExecuteCallbacks.clear();
@@ -315,9 +425,12 @@ void SqlStatement::Prepare(std::string_view query) &
     // but psqlODBC has historically treated SQL_C_CHAR parameter binds differently
     // depending on the variant of the most recent statement-text call — so we keep
     // the path uniformly W to side-step that.
-    auto wQuery = detail::OdbcWideArg { query };
-    RequireSuccess(SQLPrepareW(m_hStmt, wQuery.data(), static_cast<SQLINTEGER>(wQuery.buffer.size())));
-    RequireSuccess(SQLNumParams(m_hStmt, &m_expectedParameterCount));
+    if (!alreadyPrepared)
+    {
+        auto wQuery = detail::OdbcWideArg { std::string_view { m_preparedQuery } };
+        RequireSuccess(SQLPrepareW(m_hStmt, wQuery.data(), static_cast<SQLINTEGER>(wQuery.buffer.size())));
+        RequireSuccess(SQLNumParams(m_hStmt, &m_expectedParameterCount));
+    }
     m_data->indicators.resize(static_cast<size_t>(m_expectedParameterCount) + 1);
 }
 
@@ -327,6 +440,8 @@ SqlResultCursor SqlStatement::ExecuteDirect(std::string_view const& query, std::
     ZoneTextObject(query);
     if (query.empty())
         return SqlResultCursor { *this };
+
+    ReleasePreparedHandleForDirectExecution();
 
     m_preparedQuery.clear();
     m_numColumns.reset();
@@ -418,6 +533,8 @@ RowArrayCursor SqlStatement::ExecuteBatchFetch(std::string_view query, std::size
 
     if (arrayDepth == 0)
         throw std::invalid_argument { "arrayDepth must be greater than zero" };
+
+    ReleasePreparedHandleForDirectExecution();
 
     m_preparedQuery.clear();
     m_numColumns.reset();

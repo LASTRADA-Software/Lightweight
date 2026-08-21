@@ -15,6 +15,7 @@
 #include "DataMapper/Record.hpp"
 #include "SqlConnection.hpp"
 #include "SqlOdbcPrelude.hpp"
+#include "SqlPreparedStatementCache.hpp"
 #include "SqlQuery.hpp"
 #include "SqlQueryFormatter.hpp"
 #include "SqlServerType.hpp"
@@ -131,6 +132,22 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
 
     /// Retrieves the last prepared query string.
     [[nodiscard]] std::string const& PreparedQuery() const noexcept;
+
+    /// @brief Whether this statement takes part in its connection's prepared-statement cache.
+    /// @return The configured participation mode (@c SqlPreparedStatementCaching::Enabled by default).
+    [[nodiscard]] SqlPreparedStatementCaching PreparedStatementCaching() const noexcept;
+
+    /// @brief Opts this statement in or out of its connection's prepared-statement cache.
+    ///
+    /// Only has an effect while the connection has a non-zero cache capacity (see
+    /// @c SqlConnection::SetPreparedStatementCacheCapacity). Opt out for a statement whose query plan
+    /// must be re-derived — for instance because it runs across a schema change.
+    ///
+    /// The handle this statement currently holds is unaffected; from the next @c Prepare() on it is
+    /// simply neither taken from nor given back to the pool.
+    ///
+    /// @param caching Whether pooled handles may be reused by, and published from, this statement.
+    LIGHTWEIGHT_API void SetPreparedStatementCaching(SqlPreparedStatementCaching caching) noexcept;
 
     /// Binds an input parameter to the prepared statement at the given column index.
     template <SqlInputParameterBinder Arg>
@@ -452,6 +469,33 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     template <SqlOutputColumnBinder T>
     void RecordPrefetchOutputColumn(SQLUSMALLINT column, T* arg);
 
+    // --- Prepared-statement cache: takes the statement handle from (and hands it back to) the pool
+    // owned by the connection, so re-preparing a query text that is already prepared skips SQLPrepare.
+
+    /// @return The connection's prepared-statement cache if this statement may use it, else nullptr.
+    [[nodiscard]] SqlPreparedStatementCache* UsablePreparedStatementCache() const noexcept;
+
+    /// @brief Parks the currently prepared handle in the pool and takes back one already prepared for
+    /// @p query, allocating a fresh handle when the pool has none.
+    ///
+    /// Parking first is what makes a repeated @c Prepare() of the same text free: the handle just
+    /// released is the one the immediately following lookup finds.
+    ///
+    /// @param query The SQL text about to be prepared.
+    /// @return true if @c m_hStmt is already prepared for @p query, so @c SQLPrepare can be skipped.
+    [[nodiscard]] bool AcquirePreparedHandle(std::string_view query);
+
+    /// @brief Hands @c m_hStmt to the pool if it carries a prepared query and caching is in effect.
+    /// @return true if the handle was pooled (and must therefore not be freed by the caller).
+    bool ReleasePreparedHandle() noexcept;
+
+    /// @brief Parks the prepared handle before a direct execution, which would discard what the handle
+    /// was prepared for, and gives this statement a fresh handle to execute on.
+    void ReleasePreparedHandleForDirectExecution();
+
+    /// Allocates a statement handle if this statement currently has none.
+    void EnsureStatementHandle();
+
     // private data members
     struct Data;
     std::unique_ptr<Data, void (*)(Data*)> m_data; // The private data of the statement
@@ -460,7 +504,15 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     std::string m_preparedQuery;                   // The last prepared query
     std::optional<SQLSMALLINT> m_numColumns;       // The number of columns in the result set, if known
     SQLSMALLINT m_expectedParameterCount {};       // The number of parameters expected by the query
+    SqlPreparedStatementCaching m_preparedStatementCaching {
+        SqlPreparedStatementCaching::Enabled
+    }; // Whether this statement may use the connection's prepared-statement cache
 };
+
+inline SqlPreparedStatementCaching SqlStatement::PreparedStatementCaching() const noexcept
+{
+    return m_preparedStatementCaching;
+}
 
 /// @ingroup CoreApi
 /// API for reading an SQL query result set.
@@ -2036,6 +2088,9 @@ void SqlStatement::MigrateDirect(Callable const& callable, std::source_location 
                             query));
         [[maybe_unused]] auto cursor = ExecuteDirect(query, location);
     }
+
+    // The plans of any pooled handle were derived from the schema we just changed.
+    Connection().ClearPreparedStatementCache();
 }
 
 template <typename T>

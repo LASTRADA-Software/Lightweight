@@ -19,6 +19,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <atomic>
+#include <cstddef>
 #include <optional>
 #include <stdexcept>
 #include <thread>
@@ -90,6 +91,35 @@ TEST_CASE_METHOD(SqlTestFixture, "Async.Pool: AcquireAsync acquires, queries and
         appLoop);
     REQUIRE(result.has_value());
     CHECK(pool.IdleCount() == 2); // the acquired mapper was returned to the pool
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Async.Pool: AcquireAsync applies the pool's prepared-statement cache capacity",
+                 "[Async][Pool][SqlPreparedStatementCache]")
+{
+    ThreadPoolExecutor dbWorkers { 2 };
+    ManualExecutor appLoop;
+
+    // initialSize = 0, so the awaitable has no idle entry to hand out and must create the connection
+    // itself — a creation path of its own, which has to configure the connection like the others do.
+    constexpr auto CachingPoolConfig = PoolConfig {
+        .initialSize = 0,
+        .maxSize = 4,
+        .growthStrategy = GrowthStrategy::BoundedOverflow,
+        .preparedStatementCacheCapacity = PreparedStatementCacheCapacitySuggested,
+    };
+    auto pool = Pool<CachingPoolConfig>();
+    REQUIRE(pool.IdleCount() == 0);
+
+    auto const capacity = RunPumped(
+        [&]() -> Task<std::size_t> {
+            auto dm = co_await pool.AcquireAsync(dbWorkers, appLoop);
+            co_return dm->Connection().PreparedStatementCacheCapacity();
+        },
+        appLoop);
+
+    CHECK(capacity == PreparedStatementCacheCapacitySuggested);
+    CHECK(pool.IdleCount() == 1);
 }
 
 TEST_CASE_METHOD(SqlTestFixture,
