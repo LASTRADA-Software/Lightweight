@@ -5,6 +5,7 @@
 #include "SqlOdbcWide.hpp"
 #include "SqlQuery.hpp"
 #include "SqlStatement.hpp"
+#include "SqlStatistics.hpp"
 #include "TracyProfiler.hpp"
 #include "Utils.hpp"
 
@@ -290,6 +291,7 @@ void SqlStatement::Prepare(std::string_view query) &
     ZoneScopedN("SqlStatement::Prepare");
     ZoneTextObject(query);
     SqlLogger::GetLogger().OnPrepare(query);
+    LIGHTWEIGHT_STATS_SCOPE(::Lightweight::SqlStatisticsOperation::Prepare);
 
     m_preparedQuery = std::string(query);
     const_cast<SqlStatement*>(this)->m_numColumns.reset();
@@ -337,6 +339,7 @@ SqlResultCursor SqlStatement::ExecuteDirect(std::string_view const& query, std::
     m_data->batchIndicators.clear();
 
     SqlLogger::GetLogger().OnExecuteDirect(query);
+    LIGHTWEIGHT_STATS_SCOPE(::Lightweight::SqlStatisticsOperation::ExecuteDirect);
 
     // Execute via the W entry point — see the rationale above SQLPrepareW.
     auto wQuery = detail::OdbcWideArg { query };
@@ -372,9 +375,12 @@ SqlResultCursor SqlStatement::ExecuteWithVariants(std::vector<SqlVariant> const&
         SqlDataBinder<SqlVariant>::InputParameter(m_hStmt, static_cast<SQLUSMALLINT>(1 + i), arg, *this);
     }
 
-    auto const rc = SQLExecute(m_hStmt);
-    if (rc != SQL_NO_DATA)
-        RequireSuccess(rc);
+    {
+        LIGHTWEIGHT_STATS_SCOPE(::Lightweight::SqlStatisticsOperation::Execute);
+        auto const rc = SQLExecute(m_hStmt);
+        if (rc != SQL_NO_DATA)
+            RequireSuccess(rc);
+    }
     ProcessPostExecuteCallbacks();
     return SqlResultCursor { *this };
 }
@@ -404,7 +410,10 @@ SqlResultCursor SqlStatement::ExecuteBatch(std::span<SqlRawColumn const> columns
         RequireSuccess(SqlDataBinder<SqlRawColumn>::InputParameter(m_hStmt, column++, col, *this));
     }
 
-    RequireSuccess(SQLExecute(m_hStmt));
+    {
+        LIGHTWEIGHT_STATS_SCOPE(::Lightweight::SqlStatisticsOperation::ExecuteBatch);
+        RequireSuccess(SQLExecute(m_hStmt));
+    }
     ProcessPostExecuteCallbacks();
     ClearBatchIndicators();
     return SqlResultCursor { *this };
@@ -428,6 +437,7 @@ RowArrayCursor SqlStatement::ExecuteBatchFetch(std::string_view query, std::size
     m_data->batchIndicators.clear();
 
     SqlLogger::GetLogger().OnExecuteDirect(query);
+    LIGHTWEIGHT_STATS_SCOPE(::Lightweight::SqlStatisticsOperation::ExecuteDirect);
 
     // Execute via the W entry point — see the rationale above SQLPrepareW in Prepare().
     auto wQuery = detail::OdbcWideArg { query };
@@ -762,6 +772,11 @@ std::expected<bool, SqlErrorInfo> SqlStatement::FetchRowPrefetched() noexcept
             return MakeUnexpected(LastError(), std::source_location::current());
         }
         SqlLogger::GetLogger().OnFetchBlock(m_data->prefetchBlockRows);
+        // The whole block is accounted for here, once per round-trip — the per-row hand-outs below must
+        // not count again, or rowsFetched would come out at twice the real row count. A zero-row block is
+        // the end-of-result-set probe, which materialized nothing and so is not a block fetch either.
+        if (m_data->prefetchBlockRows != 0)
+            LIGHTWEIGHT_STATS_ROWS(m_data->prefetchBlockRows, true);
         if (m_data->prefetchBlockRows == 0)
         {
             // End of result set. Drop the array binding now and switch to Disabled so a stray fetch after
@@ -800,6 +815,7 @@ std::expected<bool, SqlErrorInfo> SqlStatement::FetchRowPrefetched() noexcept
         return MakeUnexpected(LastError(), std::source_location::current());
     }
     SqlLogger::GetLogger().OnFetchRow();
+    // No LIGHTWEIGHT_STATS_ROWS here: this row was already counted as part of its block above.
     return true;
 }
 
@@ -852,6 +868,7 @@ std::expected<bool, SqlErrorInfo> SqlStatement::TryFetchRow(std::source_location
                 postProcess();
             m_data->postProcessOutputColumnCallbacks.clear();
             SqlLogger::GetLogger().OnFetchRow();
+            LIGHTWEIGHT_STATS_ROWS(1, false);
             return true;
     }
 }

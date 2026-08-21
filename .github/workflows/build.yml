@@ -795,6 +795,168 @@ jobs:
         env:
           ODBC_CONNECTION_STRING: "Driver={ODBC Driver 18 for SQL Server};SERVER=localhost;PORT=1433;UID=SA;PWD=Lightweight!Test42;TrustServerCertificate=yes;DATABASE=LightweightTest"
 
+  tracy_capture:
+    name: "Tracy capture (chinook)"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Fetch tags
+        run: git fetch --prune --unshallow --tags
+      - name: "Update APT database"
+        run: sudo apt -q update
+      - name: "Install build dependencies"
+        run: |
+          sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev \
+            libsqliteodbc uuid-dev libyaml-cpp-dev g++-14 libstdc++-14-dev libzip-dev odbcinst
+      - name: "Install Tracy capture dependencies"
+        run: sudo apt install -y libtbb-dev libdebuginfod-dev libdbus-1-dev pkg-config
+      # tracy-capture / tracy-csvexport are the headless half of Tracy: capture connects to the
+      # instrumented process over TCP and writes a .tracy file, csvexport turns it into text we can
+      # assert on. Pinned to the same tag the library's CPM fallback uses (see root CMakeLists.txt).
+      - name: "Build Tracy capture utilities"
+        run: |
+          git clone --depth 1 --branch v0.13.1 https://github.com/wolfpld/tracy.git /tmp/tracy
+          # Let Tracy vendor its own capstone. Ubuntu 24.04 ships capstone 5.x, whose API predates
+          # the ARM64 -> AARCH64 rename, and TracyWorker.cpp expects the 6.x names — pointing this at
+          # the system package fails with `CS_ARCH_AARCH64 was not declared in this scope`.
+          cmake -S /tmp/tracy/capture -B /tmp/tracy/capture/build -G Ninja -D CMAKE_BUILD_TYPE=Release
+          cmake --build /tmp/tracy/capture/build -j
+          cmake -S /tmp/tracy/csvexport -B /tmp/tracy/csvexport/build -G Ninja -D CMAKE_BUILD_TYPE=Release
+          cmake --build /tmp/tracy/csvexport/build -j
+          echo "TRACY_CAPTURE=/tmp/tracy/capture/build/tracy-capture" >> "$GITHUB_ENV"
+          echo "TRACY_CSVEXPORT=/tmp/tracy/csvexport/build/tracy-csvexport" >> "$GITHUB_ENV"
+      - name: "Register SQLite3 ODBC driver"
+        run: |
+          SQLITE_ODBC=$(dpkg -L libsqliteodbc | grep -m1 'libsqlite3odbc.so')
+          printf '[SQLite3]\nDescription=SQLite3 ODBC Driver\nDriver=%s\nSetup=%s\nThreading=2\n' \
+            "$SQLITE_ODBC" "$SQLITE_ODBC" > /tmp/sqlite3-odbc.ini
+          sudo odbcinst -i -d -f /tmp/sqlite3-odbc.ini
+          odbcinst -q -d
+      - name: "Load Chinook data into SQLite"
+        run: sqlite3 chinook.db < ./src/examples/test_chinook/Chinook_Sqlite.sql
+      # The point of this job: Tracy on, and the chinook example runtime-enables statistics
+      # (SqlStatistics::Enable()) before it runs. Statistics feed the Snapshot() API *and* emit Tracy
+      # plots, so one run proves the collector and the Tracy sink together.
+      - name: "Configure cmake (Tracy)"
+        run: |
+          cmake --preset gcc-release -B build -D CMAKE_CXX_COMPILER=g++-14 \
+            -D LIGHTWEIGHT_ENABLE_TRACY=ON
+      - name: "Build chinook example"
+        run: cmake --build build --target chinook -j
+      # Tracy is built with TRACY_ON_DEMAND, so the client buffers until a listener attaches. Start
+      # the capture first, then run the workload, so nothing is dropped.
+      - name: "Capture a Tracy trace of the chinook example"
+        run: |
+          # tracy-capture exits by itself once the profiled process disconnects, i.e. when chinook
+          # returns from main(). The timeout is only a backstop against a client that never connects.
+          timeout 300 "$TRACY_CAPTURE" -o chinook.tracy -f &
+          CAPTURE_PID=$!
+          sleep 2
+          ODBC_CONNECTION_STRING="DRIVER=SQLite3;Database=chinook.db" \
+            ./build/src/examples/test_chinook/chinook > chinook.log 2>&1
+          wait "$CAPTURE_PID"
+          ls -l chinook.tracy
+      - name: "Verify the statistics collector captured something"
+        run: |
+          echo "--- statistics reported by the example ---"
+          grep LIGHTWEIGHT_STATISTICS chinook.log || {
+            echo "::error::no LIGHTWEIGHT_STATISTICS output - the example did not print any"
+            exit 1
+          }
+          python3 - <<'PY'
+          import re, sys
+
+          lines = [l for l in open("chinook.log") if "LIGHTWEIGHT_STATISTICS" in l]
+          text = "".join(lines)
+          if "disabled in this run" in text:
+              sys.exit("statistics were disabled despite the example calling SqlStatistics::Enable()")
+
+          def field(name):
+              m = re.search(rf"\b{name}=(\d+)", text)
+              return int(m.group(1)) if m else 0
+
+          # The chinook example prepares and executes a great many statements and reads a lot of rows,
+          # so all of these must be non-zero for the instrumentation to be considered working.
+          checks = {
+              "rows_fetched": field("rows_fetched"),
+              "connections_opened": field("connections_opened"),
+          }
+          executes = sum(int(m) for m in re.findall(r"op=Execute\S* total=(\d+)", text))
+          checks["executes (Execute + ExecuteDirect + ExecuteBatch)"] = executes
+
+          prepares = re.search(r"op=Prepare total=(\d+)", text)
+          checks["prepares"] = int(prepares.group(1)) if prepares else 0
+
+          for label, value in checks.items():
+              print(f"{label}: {value}")
+          zero = [label for label, value in checks.items() if value == 0]
+          if zero:
+              sys.exit("these counters stayed at zero: " + ", ".join(zero))
+
+          # Latency must actually be measured, not just counted.
+          if not re.search(r"op=\S+ total=[1-9]\d* .*max_us=[1-9]\d*", text):
+              sys.exit("no operation recorded a non-zero latency sample")
+          print("statistics snapshot looks sane")
+          PY
+      - name: "Verify the Tracy trace contains Lightweight zones"
+        run: |
+          test -s chinook.tracy || { echo "::error::empty Tracy capture"; exit 1; }
+          "$TRACY_CSVEXPORT" chinook.tracy > zones.csv
+          echo "--- top captured zones ---"
+          head -20 zones.csv
+          python3 - <<'PY'
+          import csv, sys
+
+          with open("zones.csv", newline="") as handle:
+              rows = list(csv.DictReader(handle))
+          if not rows:
+              sys.exit("tracy-csvexport produced no zones")
+
+          names = {row["name"] for row in rows}
+          print(f"{len(names)} distinct zones captured")
+
+          # The chinook example prepares and executes thousands of statements, so these two zones are
+          # always present; their absence means the Tracy client never recorded the process. (Do not
+          # expect SqlConnection::Connect here: Tracy is built TRACY_ON_DEMAND, so the connection is
+          # already open by the time the capture client attaches.)
+          expected = ["SqlStatement::Prepare", "SqlStatement::Execute"]
+          missing = [zone for zone in expected
+                     if not any(zone in name for name in names)]
+          if missing:
+              print("captured:", sorted(names)[:40])
+              sys.exit("expected zones missing from the capture: " + ", ".join(missing))
+          print("Tracy capture contains the expected Lightweight zones")
+          PY
+      # The zones above prove Tracy recorded the process; the plots prove the *statistics* collector
+      # is feeding Tracy, which is the integration this job exists to protect.
+      - name: "Verify the statistics plots reached Tracy"
+        run: |
+          "$TRACY_CSVEXPORT" -u -p chinook.tracy > plots.csv
+          python3 - <<'PY'
+          import csv, sys
+
+          with open("plots.csv", newline="") as handle:
+              names = {row["name"] for row in csv.DictReader(handle)}
+
+          expected = ["Sql.Execute.us", "Sql.Prepare.us"]
+          missing = [plot for plot in expected if plot not in names]
+          if missing:
+              print("plots present:", sorted(n for n in names if n.startswith("Sql.")))
+              sys.exit("statistics plots missing from the capture: " + ", ".join(missing))
+          print("Tracy capture contains the SqlStatistics plots")
+          PY
+      - name: "Upload the Tracy trace"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chinook-tracy-capture
+          path: |
+            chinook.tracy
+            zones.csv
+            plots.csv
+            chinook.log
+          if-no-files-found: warn
+
   dbms_test_matrix:
     strategy:
       fail-fast: false
@@ -1000,6 +1162,9 @@ jobs:
       - name: "Start Docker databases"
         run: python3 ./scripts/tests/docker-databases.py --start --wait mssql2022 mssql2017 postgres
       - name: "cmake"
+        # Statistics collection is a runtime toggle (SqlStatistics::Enable/Disable), always compiled
+        # in — no build-time option needed to exercise the recording paths. SqlStatisticsTests.cpp
+        # enables collection for its own test cases via ScopedStatisticsReset.
         run: |
           cmake --preset clang-coverage \
                 -D CMAKE_CXX_COMPILER=clang++-${{ env.CLANG_TOOLS_VERSION }} \

@@ -15,6 +15,7 @@
 #include <Lightweight/DataMapper/Pool.hpp>
 #include <Lightweight/Lightweight.hpp>
 #include <Lightweight/SqlLogger.hpp>
+#include <Lightweight/SqlStatistics.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -90,6 +91,35 @@ TEST_CASE_METHOD(SqlTestFixture, "Async.Pool: AcquireAsync acquires, queries and
         appLoop);
     REQUIRE(result.has_value());
     CHECK(pool.IdleCount() == 2); // the acquired mapper was returned to the pool
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Async.Pool: AcquireAsync records a connection it creates", "[Async][Pool][SqlStatistics]")
+{
+    // Collection is runtime-toggled and off by default; enable it for the duration of this test only.
+    auto const statisticsEnabled = ScopedSqlStatisticsEnabled {};
+    SqlStatistics::Instance().Reset();
+
+    ThreadPoolExecutor dbWorkers { 2 };
+    ManualExecutor appLoop;
+    // initialSize = 0, so the awaitable creates the connection itself rather than handing out an
+    // idle one — the coroutine's own creation path, which has to account for the acquisition just
+    // like the synchronous one does.
+    auto pool = Pool<PoolConfig { .initialSize = 0, .maxSize = 4, .growthStrategy = GrowthStrategy::BoundedOverflow }>();
+
+    auto const alive = RunPumped(
+        [&]() -> Task<bool> {
+            auto dm = co_await pool.AcquireAsync(dbWorkers, appLoop);
+            co_return dm->Connection().IsAlive();
+        },
+        appLoop);
+    CHECK(alive);
+
+    auto const snapshot = SqlStatistics::Instance().Snapshot();
+    CHECK(snapshot.pool.acquired == 1);
+    CHECK(snapshot.pool.reused == 0); // created, not recycled
+    CHECK(snapshot.pool.released == 1);
+
+    SqlStatistics::Instance().Reset();
 }
 
 TEST_CASE_METHOD(SqlTestFixture,

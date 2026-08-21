@@ -7,6 +7,7 @@
 #include "SqlQuery.hpp"
 #include "SqlQueryFormatter.hpp"
 #include "SqlStatement.hpp"
+#include "SqlStatistics.hpp"
 #include "TracyProfiler.hpp"
 
 #include <algorithm>
@@ -351,6 +352,11 @@ bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
     PostConnect();
 
     SqlLogger::GetLogger().OnConnectionOpened(*this);
+    // Not covered by the suite: this is the success tail of the DSN overload, and reaching it needs a
+    // *registered* ODBC data source that actually connects - neither CI nor a developer checkout has
+    // one, so every test connects through the SqlConnectionString overload instead, whose counterpart
+    // of this call (below) is exercised.
+    LIGHTWEIGHT_STATS_CONNECTION_OPENED();
 
     if (gPostConnectedHook)
         gPostConnectedHook(*this);
@@ -411,6 +417,7 @@ bool SqlConnection::Connect(SqlConnectionString sqlConnectionString) noexcept
 
     PostConnect();
     SqlLogger::GetLogger().OnConnectionOpened(*this);
+    LIGHTWEIGHT_STATS_CONNECTION_OPENED();
 
     if (gPostConnectedHook)
         gPostConnectedHook(*this);
@@ -476,6 +483,7 @@ void SqlConnection::Close() noexcept
         return;
 
     SqlLogger::GetLogger().OnConnectionClosed(*this);
+    LIGHTWEIGHT_STATS_CONNECTION_CLOSED();
 
     SQLDisconnect(m_hDbc);
     SQLFreeHandle(SQL_HANDLE_DBC, m_hDbc);

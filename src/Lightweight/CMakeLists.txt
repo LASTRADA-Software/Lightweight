@@ -88,6 +88,7 @@ set(HEADER_FILES
     SqlError.hpp
     SqlErrorDetection.hpp
     SqlLogger.hpp
+    SqlStatistics.hpp
     SqlMigration.hpp
     SqlOdbcWide.hpp
     SqlQueryFormatter.hpp
@@ -123,6 +124,7 @@ set(SOURCE_FILES
     SqlConnection.cpp
     SqlError.cpp
     SqlLogger.cpp
+    SqlStatistics.cpp
     SqlMigration.cpp
     SqlQuery.cpp
     SqlQuery/Core.cpp
