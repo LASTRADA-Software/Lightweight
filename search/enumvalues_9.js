@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['poolacquire_0',['PoolAcquire',['../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a124a7ebb0b5e71644c43ffd4f35ac3c2',1,'Lightweight']]],
-  ['prepare_1',['Prepare',['../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102af8199556cf6a62ca9268aa50c99b34a1',1,'Lightweight']]]
+  ['unboundedgrow_0',['UnboundedGrow',['../d6/de4/group__ConnectionPool.html#ggadf7777be559a52bca78d24e4a99a4f0cab1c6941b5c866676983d4a5195e6f1d7',1,'Lightweight']]],
+  ['unique_1',['Unique',['../d6/daa/group__QueryBuilder.html#gga17470447b60d4554d19d30e877645d07ad019979a29c88c8d69bab3a63388da97',1,'Lightweight']]]
 ];
