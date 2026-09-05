@@ -10,6 +10,13 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/entities/CMakeLists.txt)
     target_link_libraries(LightweightBenchmark LightweightEntities)
 endif()
 
+# Runtime benchmark for relation loading (issue #563): measures wall-clock time and statement counts
+# of the on-demand loaders against `With<>()` eager loading. Needs a live database to run, but builds
+# without one.
+add_executable(LightweightRelationBenchmark relations_runtime.cpp)
+target_compile_features(LightweightRelationBenchmark PUBLIC cxx_std_23)
+target_link_libraries(LightweightRelationBenchmark Lightweight::Lightweight)
+
 # Compilation-time profiling. When enabled (and building with Clang), emit a
 # Chrome-trace (`benchmark.cpp.json`) next to the object file that
 # measure_compile_time.py aggregates into per-template-instantiation timings.

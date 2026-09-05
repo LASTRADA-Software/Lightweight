@@ -7,6 +7,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 using namespace Lightweight;
@@ -204,4 +205,190 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlResultCursor::BindOutputColumns reads multi
     CHECK(firstName == "Alice");
     CHECK(lastName == "Smith");
     CHECK(salary == 50'000);
+}
+
+// ================================================================================================
+// Prepare() reusing the statement already on the handle
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlTestFixture, "Repeated Prepare of the same query keeps executing correctly", "[SqlStatement]")
+{
+    // Preparing byte-identical SQL again reuses the prepared statement instead of re-issuing
+    // SQLPrepareW. What must not change is the observable behaviour: the parameter count, the
+    // bindings, and the rows that come back have to be the same on every round.
+    auto stmt = SqlStatement {};
+    CreateEmployeesTable(stmt);
+    FillEmployeesTable(stmt);
+
+    auto const* const query = R"(SELECT "FirstName" FROM "Employees" WHERE "Salary" > ? ORDER BY "EmployeeID")";
+
+    for (auto const [threshold, expectedRows]: { std::pair { 45'000, 3 }, { 55'000, 2 }, { 65'000, 1 } })
+    {
+        stmt.Prepare(query);
+        auto cursor = stmt.Execute(threshold);
+
+        int rows = 0;
+        while (cursor.FetchRow())
+        {
+            CHECK(!cursor.GetColumn<std::string>(1).empty());
+            ++rows;
+        }
+        CHECK(rows == expectedRows);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Prepare of the same query survives a schema change underneath", "[SqlStatement]")
+{
+    // The reuse above is what makes this case interesting: the second Prepare() does not re-issue
+    // SQLPrepareW, so the statement the server holds may have been planned against the *old* table.
+    // PostgreSQL rejects that plan (SQLSTATE 0A000), which the statement recovers from by preparing
+    // once more - the caller must see rows, not an exception.
+    auto stmt = SqlStatement {};
+    CreateEmployeesTable(stmt);
+    FillEmployeesTable(stmt);
+
+    auto const* const query = R"(SELECT "FirstName" FROM "Employees" ORDER BY "EmployeeID")";
+
+    stmt.Prepare(query);
+    {
+        auto cursor = stmt.Execute();
+        CHECK(cursor.FetchRow());
+    }
+
+    // Rebuild the table with an extra column, through a different statement handle.
+    auto other = SqlStatement { stmt.Connection() };
+    (void) other.ExecuteDirect(R"(DROP TABLE "Employees")");
+    CreateEmployeesTable(other);
+    (void) other.ExecuteDirect(R"(ALTER TABLE "Employees" ADD "Nickname" VARCHAR(50))");
+    FillEmployeesTable(other);
+
+    stmt.Prepare(query);
+    auto cursor = stmt.Execute();
+
+    int rows = 0;
+    while (cursor.FetchRow())
+        ++rows;
+    CHECK(rows == 3);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Prepare reuse returns correct rows after the table is recreated", "[SqlStatement]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+
+    auto connection = SqlConnection {};
+    auto stmt = SqlStatement { connection };
+
+    auto const createTable = [](SqlMigrationQueryBuilder& migration) {
+        migration.DropTableIfExists("stale_plan");
+        migration.CreateTable("stale_plan").PrimaryKey("id", Integer {}).RequiredColumn("value", Integer {});
+    };
+
+    stmt.MigrateDirect(createTable);
+    stmt.Prepare(R"(INSERT INTO "stale_plan" ("id", "value") VALUES (?, ?))");
+    std::ignore = stmt.Execute(1, 10);
+
+    auto const* const selectQuery = R"(SELECT "value" FROM "stale_plan" WHERE "id" = ?)";
+    stmt.Prepare(selectQuery);
+    {
+        auto cursor = stmt.Execute(1);
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<int>(1) == 10);
+    }
+
+    // Recreate the table behind the prepared handle, through a second statement so that `stmt` keeps
+    // its prepared query and takes the reuse path below. MS SQL Server compiles a plan against the
+    // object *ids* it saw, so dropping and recreating the table invalidates the plan while the SQL
+    // text still resolves — 42S02; PostgreSQL reports the same condition as 0A000 / 26000.
+    {
+        auto ddl = SqlStatement { connection };
+        ddl.MigrateDirect(createTable);
+        ddl.Prepare(R"(INSERT INTO "stale_plan" ("id", "value") VALUES (?, ?))");
+        std::ignore = ddl.Execute(1, 99);
+    }
+
+    // Byte-identical text, so Prepare() reuses the handle rather than re-issuing SQLPrepare, and the
+    // execute must return the *new* table's rows.
+    //
+    // This is the scenario RetryStalePreparedStatement() exists for, but none of the three backends
+    // in the test matrix actually rejects the reused handle here (verified: the "Re-preparing
+    // statement" warning never fires) — MS SQL Server's Driver 18 defers preparation to execution
+    // time, so there is no server-side plan to go stale. The recovery arm therefore stays uncovered;
+    // reaching it needs a fault-injection seam rather than a real driver.
+    stmt.Prepare(selectQuery);
+    auto cursor = stmt.Execute(1);
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetColumn<int>(1) == 99);
+}
+
+// ================================================================================================
+// Prepare reuse: recovering a handle the server no longer knows about
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlTestFixture, "Prepare reuse recovers when the server forgot the statement", "[SqlStatement]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+
+    auto connection = SqlConnection {};
+    auto stmt = SqlStatement { connection };
+
+    // `DISCARD ALL` is the one lever in the test matrix that reliably invalidates a *reused* prepared
+    // handle: it drops every server-side prepared statement of the session, so the next execute of a
+    // handle Prepare() reused reports 26000 and RetryStalePreparedStatement has to re-prepare and run
+    // it again. Recreating the table behind the handle does not achieve this on any of the three
+    // backends (see the recreated-table test above), and `DISCARD ALL` is PostgreSQL-specific SQL
+    // besides - so this is genuinely a one-backend test rather than a dodged failure.
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::SQLITE);
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::MICROSOFT_SQL);
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::MYSQL);
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::UNKNOWN);
+
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.DropTableIfExists("forgotten_plan");
+        migration.CreateTable("forgotten_plan").PrimaryKey("id", Integer {}).RequiredColumn("value", Integer {});
+    });
+    std::ignore = stmt.ExecuteDirect(R"(INSERT INTO "forgotten_plan" ("id", "value") VALUES (1, 10))");
+
+    auto const* const selectQuery = R"(SELECT "value" FROM "forgotten_plan" WHERE "id" = ?)";
+
+    auto const discardServerSideStatements = [&connection] {
+        auto other = SqlStatement { connection };
+        std::ignore = other.ExecuteDirect("DISCARD ALL");
+    };
+
+    // Both execute paths carry their own retry call site, so both are driven through the recovery.
+    SECTION("typed Execute(Args...)")
+    {
+        stmt.Prepare(selectQuery);
+        {
+            auto cursor = stmt.Execute(1);
+            REQUIRE(cursor.FetchRow());
+            CHECK(cursor.GetColumn<int>(1) == 10);
+        }
+
+        discardServerSideStatements();
+
+        // Byte-identical text, so Prepare() reuses the handle instead of re-issuing SQLPrepare - which
+        // is what leaves the execute below facing a statement the server has forgotten.
+        stmt.Prepare(selectQuery);
+        auto cursor = stmt.Execute(1);
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<int>(1) == 10);
+    }
+
+    SECTION("ExecuteWithVariants")
+    {
+        stmt.Prepare(selectQuery);
+        {
+            auto cursor = stmt.ExecuteWithVariants({ SqlVariant { 1 } });
+            REQUIRE(cursor.FetchRow());
+            CHECK(cursor.GetColumn<int>(1) == 10);
+        }
+
+        discardServerSideStatements();
+
+        stmt.Prepare(selectQuery);
+        auto cursor = stmt.ExecuteWithVariants({ SqlVariant { 1 } });
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<int>(1) == 10);
+    }
 }

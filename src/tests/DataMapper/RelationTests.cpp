@@ -546,7 +546,8 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsTo", "[DataMapper][relations]")
                                     "user_id" GUID,
                                     PRIMARY KEY ("id"),
                                     CONSTRAINT "FK_Email_user_id" FOREIGN KEY ("user_id") REFERENCES "User"("id")
-                                    );)"));
+                                    );
+                                    CREATE INDEX "Email_user_id_index" ON "Email" ("user_id");)"));
     }
 }
 
@@ -1156,7 +1157,9 @@ TEST_CASE_METHOD(SqlTestFixture, "HasManyThrough", "[DataMapper][relations]")
                                     PRIMARY KEY ("id"),
                                     CONSTRAINT "FK_Appointment_physician_id" FOREIGN KEY ("physician_id") REFERENCES "Physician"("id"),
                                     CONSTRAINT "FK_Appointment_patient_id" FOREIGN KEY ("patient_id") REFERENCES "Patient"("id")
-                                    );)"));
+                                    );
+                                    CREATE INDEX "Appointment_physician_id_index" ON "Appointment" ("physician_id");
+                                    CREATE INDEX "Appointment_patient_id_index" ON "Appointment" ("patient_id");)"));
     }
 }
 
@@ -1366,7 +1369,8 @@ TEST_CASE_METHOD(SqlTestFixture, "Table with aliased column names", "[DataMapper
                                     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                                     "record_id" BIGINT,
                                     CONSTRAINT "FK_BelongsToAliasedRecord_record_id" FOREIGN KEY ("record_id") REFERENCES "TheAliasedRecord"("pk")
-                                    );)"));
+                                    );
+                                    CREATE INDEX "BelongsToAliasedRecord_record_id_index" ON "BelongsToAliasedRecord" ("record_id");)"));
     }
 
     SECTION("All")

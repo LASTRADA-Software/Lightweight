@@ -213,6 +213,23 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
         return false;
     }
 
+    /// @brief Largest number of values this dialect should be handed in a single `WHERE ... IN (...)`
+    /// predicate.
+    ///
+    /// The batched relation loading behind `Query<Record>().With<&Record::relation>()` resolves a whole
+    /// result set through `IN` predicates over the collected keys. Those keys are rendered as literals,
+    /// so a large batch would otherwise produce one enormous expression — SQL Server raises
+    /// "an expression services limit has been reached", and SQLite has its own parser limits. Splitting
+    /// the batch into chunks of this size keeps every generated statement inside what the dialect
+    /// accepts; the cost is one extra round-trip per chunk, still a constant number of queries per
+    /// relation instead of one per record.
+    ///
+    /// @return The maximum number of values per `IN` predicate. Defaults to 1000 for every dialect.
+    [[nodiscard]] virtual size_t MaxInPredicateValues() const noexcept
+    {
+        return 1000;
+    }
+
     /// @brief Builds the canonical foreign-key constraint name for a set of columns.
     ///
     /// Produces `FK_<table>_<col1>[_<col2>…]`. A single-column FK collapses to
