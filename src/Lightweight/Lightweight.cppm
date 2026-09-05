@@ -24,6 +24,7 @@ module;
 #include "SqlBackup/SqlBackup.hpp"
 #include "SqlBackup/TableFilter.hpp"
 #include "SqlErrorDetection.hpp"
+#include "SqlRetryPolicy.hpp"
 #include "SqlScopedLock.hpp"
 #include "ThreadSafeQueue.hpp"
 #include "Tools/CxxModelPrinter.hpp"
@@ -59,6 +60,7 @@ using Lightweight::FormatEncryptionMode;
 using Lightweight::FormatName;
 using Lightweight::FormatType;
 using Lightweight::FullyQualifiedNameOf;
+using Lightweight::GenericRetryOps;
 using Lightweight::GetDiagnosticSource;
 using Lightweight::GetFaultSource;
 using Lightweight::GetPrimaryKeyField;
@@ -102,6 +104,7 @@ using Lightweight::NotSqlElements;
 using Lightweight::ParseConnectionString;
 using Lightweight::ParseEncryptionMode;
 using Lightweight::PostgreSqlFormatter;
+using Lightweight::PostgreSqlRetryOps;
 using Lightweight::PrimaryKey;
 using Lightweight::QualifiedColumnName;
 using Lightweight::RecordColumnCount;
@@ -162,6 +165,7 @@ using Lightweight::SqlEncryptionMode;
 using Lightweight::SqlError;
 using Lightweight::SqlErrorCategory;
 using Lightweight::SqlErrorInfo;
+using Lightweight::SqlErrorTransience;
 using Lightweight::SqlException;
 using Lightweight::SqlFailureAction;
 using Lightweight::SqlFaultSource;
@@ -211,7 +215,17 @@ using Lightweight::SqlRealName;
 using Lightweight::SqlRequireLoadedError;
 using Lightweight::SqlResultCursor;
 using Lightweight::SqlResultOrdering;
+using Lightweight::SqlRetryAction;
+using Lightweight::SqlRetryAttempt;
+using Lightweight::SqlRetryClassifier;
+using Lightweight::SqlRetryDecision;
+using Lightweight::SqlRetryGiveUpReason;
+using Lightweight::SqlRetryPolicy;
+using Lightweight::SqlRetrySettings;
+using Lightweight::SqlRetrySleeper;
+using Lightweight::SqlRetryState;
 using Lightweight::SqlRowIterator;
+using Lightweight::SqliteRetryOps;
 using Lightweight::SqlScopedLock;
 using Lightweight::SqlScopedTimeLogger;
 using Lightweight::SqlScopedTraceLogger;
@@ -219,6 +233,7 @@ using Lightweight::SqlSearchCondition;
 using Lightweight::SqlSelectQueryBuilder;
 using Lightweight::SqlSentinelIterator;
 using Lightweight::SqlServerQueryFormatter;
+using Lightweight::SqlServerRetryOps;
 using Lightweight::SqlServerType;
 using Lightweight::SqlSimpleDataBinder;
 using Lightweight::SqlStatement;
@@ -242,6 +257,7 @@ using Lightweight::SqlWhereClauseBuilder;
 using Lightweight::SqlWideString;
 using Lightweight::SqlWildcardType;
 using Lightweight::TableName;
+using Lightweight::ThreadSleeper;
 using Lightweight::ThreadSafeQueue;
 using Lightweight::Through;
 using Lightweight::ThroughRecordOf;

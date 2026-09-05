@@ -91,6 +91,8 @@ set(HEADER_FILES
     SqlMigration.hpp
     SqlOdbcWide.hpp
     SqlQueryFormatter.hpp
+    SqlRetryClassifier.hpp
+    SqlRetryPolicy.hpp
     SqlSchema.hpp
     SqlScopedLock.hpp
     SqlScopedTraceLogger.hpp
@@ -131,6 +133,7 @@ set(SOURCE_FILES
     SqlQuery/Select.cpp
 
     SqlQueryFormatter.cpp
+    SqlRetryPolicy.cpp
     SqlScopedLock.cpp
     SqlSchema.cpp
     SqlStatement.cpp

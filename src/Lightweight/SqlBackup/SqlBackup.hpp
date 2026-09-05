@@ -4,6 +4,7 @@
 #include "../Api.hpp"
 #include "../SqlConnectInfo.hpp"
 #include "../SqlQuery/MigrationPlan.hpp"
+#include "../SqlRetryPolicy.hpp"
 #include "../SqlSchema.hpp"
 
 #include <chrono>
@@ -126,20 +127,14 @@ LIGHTWEIGHT_API std::vector<CompressionMethod> GetSupportedCompressionMethods() 
 LIGHTWEIGHT_API std::string_view CompressionMethodName(CompressionMethod method) noexcept;
 
 /// Configuration for retry behavior on transient errors during backup/restore operations.
-struct RetrySettings
-{
-    /// Maximum number of retry attempts for transient errors.
-    unsigned maxRetries = 3;
-
-    /// Initial delay between retry attempts.
-    std::chrono::milliseconds initialDelay { 500 };
-
-    /// Multiplier applied to delay after each failed attempt (exponential backoff).
-    double backoffMultiplier = 2.0;
-
-    /// Maximum delay between retry attempts.
-    std::chrono::milliseconds maxDelay { 30000 };
-};
+///
+/// An alias for the library-wide @ref SqlRetrySettings: the backup engine was where this policy
+/// was first proven out, and it now shares one implementation with the rest of the library rather
+/// than keeping a parallel copy. The field names, types and defaults are unchanged, so existing
+/// designated-initializer call sites keep compiling verbatim.
+///
+/// @see SqlRetryPolicy
+using RetrySettings = SqlRetrySettings;
 
 /// Information about a table being backed up.
 struct TableInfo
