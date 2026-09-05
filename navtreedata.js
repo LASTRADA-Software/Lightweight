@@ -342,14 +342,14 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dd0/structLightweight_1_1Field.html#a5470e03fffa3ab2c2246997ffef998b4",
-"d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#aa951987471947ab40222d1973eeac3b5",
-"d7/d13/structLightweight_1_1SqlRealName.html#a1fa62b5e33b8961307b5176d581bfb78",
-"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a9308288c96d7ea0ef64c0c01ff5391d1",
-"da/da8/classLightweight_1_1SqlConnection.html#a31d2a2e32bc2c8cd6473a312359f3c8d",
-"dd/d47/structLightweight_1_1SqlDropTablePlan.html#a70993d937b9b2479d4fc33bfec3ffd81",
-"de/dae/classLightweight_1_1SqlFixedString.html#ac422a69d7d8106b5587d7e1bb529b835",
-"index.html#asynchronous-api"
+"d2/dd0/structLightweight_1_1Field.html#a0fd8a939fbdd169391d529caf940ad40",
+"d4/d9e/classLightweight_1_1ThreadSafeQueue.html#a7daf3dd0f90837524987108d8fc71af1",
+"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a9b377e2f9117ac54d9ceca7afcc5614a",
+"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#aab06c624a00043579e2a0efabd25f2ec",
+"da/d6c/classLightweight_1_1RowArrayCursor.html#aa44fdd6c4bb8741e9e0d4fa8bea1fc5c",
+"dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html#afd0fb1ae392d5ddb2f6bcd9122776ffa",
+"de/da0/classLightweight_1_1SqlQueryBuilder.html#adeb820498dd1bc9a5c575244e1bdf853",
+"functions_func_v.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
