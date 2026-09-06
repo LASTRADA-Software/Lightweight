@@ -28,6 +28,7 @@ module;
 #include "SqlScopedLock.hpp"
 #include "ThreadSafeQueue.hpp"
 #include "Tools/CxxModelPrinter.hpp"
+#include "Tools/MigrationSourcePrinter.hpp"
 #include "Zip/ZipArchive.hpp"
 #include "Zip/ZipError.hpp"
 
