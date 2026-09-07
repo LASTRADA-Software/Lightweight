@@ -19,12 +19,14 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <atomic>
+#include <chrono>
 #include <optional>
 #include <stdexcept>
 #include <thread>
 
 using namespace Lightweight;
 using namespace Lightweight::Async;
+using namespace std::chrono_literals;
 
 namespace
 {
@@ -90,6 +92,56 @@ TEST_CASE_METHOD(SqlTestFixture, "Async.Pool: AcquireAsync acquires, queries and
         appLoop);
     REQUIRE(result.has_value());
     CHECK(pool.IdleCount() == 2); // the acquired mapper was returned to the pool
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Async.Pool: AcquireAsync claims a BoundedWait slot for the connection it creates",
+                 "[Async][Pool]")
+{
+    ThreadPoolExecutor dbWorkers { 2 };
+    ManualExecutor appLoop;
+    // BoundedWait is the only strategy that accounts for checked-out connections, and the claim
+    // happens *after* the connection stands up — a slot claimed earlier would never be released if
+    // connecting threw, permanently shrinking the pool. initialSize = 0 forces that path.
+    auto pool = Pool<PoolConfig { .initialSize = 0, .maxSize = 2, .growthStrategy = GrowthStrategy::BoundedWait }>();
+
+    auto const alive = RunPumped(
+        [&]() -> Task<bool> {
+            auto dm = co_await pool.AcquireAsync(dbWorkers, appLoop);
+            co_return dm->Connection().IsAlive();
+        },
+        appLoop);
+
+    CHECK(alive);
+    // Returned, so the slot it claimed is free again and the pool is back to full capacity.
+    CHECK(pool.IdleCount() == 1);
+    CHECK(pool.WaiterCount() == 0);
+
+    // The accounting really was balanced: two more acquires must both succeed without blocking.
+    auto const first = pool.Acquire(50ms);
+    auto const second = pool.Acquire(50ms);
+    CHECK(first.has_value());
+    CHECK(second.has_value());
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Async.Pool: AcquireAsync creates a connection when none is idle", "[Async][Pool]")
+{
+    ThreadPoolExecutor dbWorkers { 2 };
+    ManualExecutor appLoop;
+    // initialSize = 0, so the awaitable cannot hand out a pre-created entry and must build one
+    // itself. The synchronous Acquire() has its own creation path; this is the coroutine's.
+    auto pool = Pool<PoolConfig { .initialSize = 0, .maxSize = 4, .growthStrategy = GrowthStrategy::BoundedOverflow }>();
+    REQUIRE(pool.IdleCount() == 0);
+
+    auto const alive = RunPumped(
+        [&]() -> Task<bool> {
+            auto dm = co_await pool.AcquireAsync(dbWorkers, appLoop);
+            co_return dm->Connection().IsAlive();
+        },
+        appLoop);
+
+    CHECK(alive);
+    CHECK(pool.IdleCount() == 1); // the freshly created connection was returned to the pool
 }
 
 TEST_CASE_METHOD(SqlTestFixture,

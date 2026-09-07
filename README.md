@@ -22,7 +22,7 @@ Documentation is available at [https://lastrada-software.github.io/Lightweight/]
 | **Schema migrations** | Versioned migrations, checksums, dependency ordering, plugin loading, rollback | [sql-migrations.md](docs/sql-migrations.md) |
 | **Backup & restore** | Parallel chunked dump/restore, msgpack + zip + sha256, archive diffing | [sql-backup.md](docs/sql-backup.md), [sql-backup-format.md](docs/sql-backup-format.md) |
 | **Async API** | C++23 coroutines: `Task<T>`, executors, strand, stdexec bridge, async `DataMapper` | [async.md](docs/async.md) |
-| **Connection pooling** | Compile-time-configured pool, async-aware, recycles connections across mappers | [async.md](docs/async.md) |
+| **Connection pooling** | Compile-time-configured pool, async-aware, acquire timeouts, connection health checks | [connection-pool.md](docs/connection-pool.md) |
 | **Logging & tracing** | Pluggable `SqlLogger`: warnings/errors, full SQL trace, or your own sink | [logging.md](docs/logging.md) |
 | **Schema introspection** | Read tables, columns, keys and indexes back out of a live database | [schema-introspection.md](docs/schema-introspection.md) |
 | **Custom data types** | `SqlDataBinder<T>` specialization for your own types, with Unicode support | [data-binder.md](docs/data-binder.md) |
