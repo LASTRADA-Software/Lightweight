@@ -246,6 +246,20 @@ class [[nodiscard]] SqlSelectQueryBuilder: public SqlBasicSelectQueryBuilder<Sql
     }
 
   private:
+    /// @brief Records @p name as the caller-given name of the projection just appended.
+    ///
+    /// Pass an empty @p name for a projection the caller did not name (an un-aliased aggregate); the
+    /// slot still holds its position so later entries stay aligned with their result columns.
+    /// @param name The column name exactly as the caller spelled it, or empty for an unnamed projection.
+    LIGHTWEIGHT_API void RecordProjectedFieldName(std::string name) const;
+
+    /// @brief Replaces the name of the most recently recorded projection, backing @c As().
+    /// @param alias The alias the caller gave the projection.
+    LIGHTWEIGHT_API void RenameLastProjectedFieldName(std::string_view alias) const;
+
+    /// @brief Marks the projection as containing a wildcard, disabling named column access.
+    LIGHTWEIGHT_API void RecordProjectionWildcard() const;
+
     SqlQueryFormatter const& _formatter;
     // mutable: see the note on _query in SqlBasicSelectQueryBuilder — the alias
     // flag is part of the projection accumulator, so it follows _query's policy.
@@ -265,9 +279,12 @@ SqlSelectQueryBuilder& SqlSelectQueryBuilder::Fields(std::string_view const& fir
         fragment << ", "sv;
 
     fragment << '"' << firstField << '"';
+    RecordProjectedFieldName(std::string(firstField));
 
     if constexpr (sizeof...(MoreFields) > 0)
-        ((fragment << R"(, ")"sv << std::forward<MoreFields>(moreFields) << '"') << ...);
+        (((fragment << R"(, ")"sv << std::forward<MoreFields>(moreFields) << '"'),
+          RecordProjectedFieldName(std::string(std::string_view(moreFields)))),
+         ...);
 
     _query.fields += fragment.str();
     return *this;

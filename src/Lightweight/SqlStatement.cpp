@@ -18,6 +18,7 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <ranges>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -231,6 +232,8 @@ SqlStatement::SqlStatement(SqlStatement&& other) noexcept:
     m_connection { other.m_connection },
     m_hStmt { other.m_hStmt },
     m_preparedQuery { std::move(other.m_preparedQuery) },
+    m_projectedFieldNames { std::move(other.m_projectedFieldNames) },
+    m_projectionHasWildcard { other.m_projectionHasWildcard },
     m_expectedParameterCount { other.m_expectedParameterCount },
     m_preparedParameterCount { other.m_preparedParameterCount },
     m_reusedPreparedQuery { other.m_reusedPreparedQuery }
@@ -252,6 +255,8 @@ SqlStatement& SqlStatement::operator=(SqlStatement&& other) noexcept
     m_expectedParameterCount = other.m_expectedParameterCount;
     m_preparedParameterCount = other.m_preparedParameterCount;
     m_reusedPreparedQuery = other.m_reusedPreparedQuery;
+    m_projectedFieldNames = std::move(other.m_projectedFieldNames);
+    m_projectionHasWildcard = other.m_projectionHasWildcard;
 
     other.m_data.reset();
     other.m_connection = nullptr;
@@ -311,6 +316,11 @@ void SqlStatement::Prepare(std::string_view query) &
     if (!reusePreparedQuery)
         m_preparedQuery = std::string(query);
     const_cast<SqlStatement*>(this)->m_numColumns.reset();
+
+    // Raw SQL carries no column-name mapping; drop the previous one so its names cannot resolve
+    // against the new query's result columns. The query-object overloads re-adopt afterwards.
+    m_projectedFieldNames.clear();
+    m_projectionHasWildcard = false;
 
     m_data->postExecuteCallbacks.clear();
     m_data->postProcessOutputColumnCallbacks.clear();
@@ -390,6 +400,53 @@ bool SqlStatement::RetryStalePreparedStatement(SQLRETURN result)
     return true;
 }
 
+SQLUSMALLINT SqlStatement::ResolveColumnName(std::string_view name) const
+{
+    if (m_projectedFieldNames.empty())
+        throw std::invalid_argument {
+            m_projectionHasWildcard
+                ? std::format("Cannot resolve column \"{}\" by name: the query projects a wildcard, so the "
+                              "number of result columns is not known at build time. Project the columns "
+                              "explicitly to address them by name.",
+                              name)
+                : std::format("Cannot resolve column \"{}\" by name: this statement was not composed from a "
+                              "query builder, so it carries no column-name mapping. Use the column index "
+                              "instead, or build the query with SqlQueryBuilder.",
+                              name)
+        };
+
+    // An unnamed projection is stored as an empty slot, so an empty lookup name must not match one.
+    if (name.empty())
+        throw std::invalid_argument { std::format("Cannot resolve a column by an empty name. Projected "
+                                                  "columns are: {}.",
+                                                  DescribeProjectedFieldNames()) };
+
+    auto const match = std::ranges::find(m_projectedFieldNames, name);
+    if (match == m_projectedFieldNames.end())
+        throw std::invalid_argument { std::format(
+            "Unknown column \"{}\". Projected columns are: {}.", name, DescribeProjectedFieldNames()) };
+
+    if (std::ranges::find(std::ranges::next(match), m_projectedFieldNames.end(), name) != m_projectedFieldNames.end())
+        throw std::invalid_argument { std::format(
+            "Column \"{}\" is ambiguous: it is projected more than once. Alias the duplicates with "
+            "Field(...).As(\"alias\") to address them individually.",
+            name) };
+
+    return static_cast<SQLUSMALLINT>(std::ranges::distance(m_projectedFieldNames.begin(), match) + 1);
+}
+
+std::string SqlStatement::DescribeProjectedFieldNames() const
+{
+    auto description = std::string {};
+    for (auto const& projectedName: m_projectedFieldNames)
+    {
+        if (!description.empty())
+            description += ", ";
+        description += projectedName.empty() ? std::string { "<unnamed>" } : std::format("\"{}\"", projectedName);
+    }
+    return description;
+}
+
 SqlResultCursor SqlStatement::ExecuteDirect(std::string_view const& query, std::source_location location)
 {
     ZoneScopedN("SqlStatement::ExecuteDirect");
@@ -400,6 +457,10 @@ SqlResultCursor SqlStatement::ExecuteDirect(std::string_view const& query, std::
     m_preparedQuery.clear();
     m_reusedPreparedQuery = false;
     m_numColumns.reset();
+
+    // See the note in Prepare(): raw SQL must not inherit a previous query's column names.
+    m_projectedFieldNames.clear();
+    m_projectionHasWildcard = false;
 
     RequireSuccess(SQLFreeStmt(m_hStmt, SQL_UNBIND));
 
@@ -497,6 +558,10 @@ RowArrayCursor SqlStatement::ExecuteBatchFetch(std::string_view query, std::size
     m_preparedQuery.clear();
     m_reusedPreparedQuery = false;
     m_numColumns.reset();
+
+    // See the note in Prepare(): raw SQL must not inherit a previous query's column names.
+    m_projectedFieldNames.clear();
+    m_projectionHasWildcard = false;
 
     RequireSuccess(SQLFreeStmt(m_hStmt, SQL_UNBIND));
 

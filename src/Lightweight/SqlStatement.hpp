@@ -32,6 +32,7 @@
 #include <source_location>
 #include <span>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
 #include <vector>
 
@@ -49,6 +50,17 @@ struct SqlRawColumn;
 template <typename QueryObject>
 concept SqlQueryObject = requires(QueryObject const& queryObject) {
     { queryObject.ToSql() } -> std::convertible_to<std::string>;
+};
+
+/// @brief Represents a query object that also knows the name of each column it projects.
+///
+/// Satisfied by the SELECT query builder's composed query, which records the caller-given name of every
+/// projected column as the projection is assembled. Statements executed from such a query object can
+/// resolve result columns by name — see the name-taking @c GetColumn overload of @c SqlResultCursor.
+template <typename QueryObject>
+concept SqlNamedProjectionQueryObject = SqlQueryObject<QueryObject> && requires(QueryObject const& queryObject) {
+    { queryObject.ProjectedFieldNames() } -> std::convertible_to<std::span<std::string const>>;
+    { queryObject.ProjectionHasWildcard() } -> std::convertible_to<bool>;
 };
 
 class SqlResultCursor;
@@ -365,6 +377,23 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     template <SqlGetColumnNativeType T>
     [[nodiscard]] T GetColumnOr(SQLUSMALLINT column, T&& defaultValue) const;
 
+    /// @brief Resolves a projected column name to its 1-based result column index.
+    ///
+    /// The mapping comes from the query builder that composed the statement's query, not from the
+    /// driver: result-set metadata cannot report table names portably (the SQL Server driver leaves
+    /// them empty under the default forward-only cursor), so a builder-recorded mapping is the only
+    /// one that behaves identically on every supported database.
+    ///
+    /// @param name The column name exactly as spelled in the query builder.
+    /// @return The 1-based result column index of @p name.
+    /// @throws std::invalid_argument If the statement carries no name mapping (raw SQL, or a
+    ///         projection containing a wildcard), if @p name was never projected, or if @p name was
+    ///         projected more than once and is therefore ambiguous.
+    [[nodiscard]] LIGHTWEIGHT_API SQLUSMALLINT ResolveColumnName(std::string_view name) const;
+
+    /// @brief Renders the projected column names for a diagnostic message.
+    [[nodiscard]] LIGHTWEIGHT_API std::string DescribeProjectedFieldNames() const;
+
     LIGHTWEIGHT_API void RequireSuccess(SQLRETURN error,
                                         std::source_location sourceLocation = std::source_location::current()) const;
     LIGHTWEIGHT_API void PlanPostExecuteCallback(std::function<void()>&& cb) override;
@@ -470,6 +499,13 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     template <SqlOutputColumnBinder T>
     void RecordPrefetchOutputColumn(SQLUSMALLINT column, T* arg);
 
+    /// @brief Adopts the column-name mapping of @p queryObject, replacing any previously held mapping.
+    ///
+    /// An implementation detail of the query-object @c Prepare / @c ExecuteDirect overloads: it is the
+    /// only way the mapping is ever populated, so it is not part of the public surface.
+    template <SqlQueryObject QueryObject>
+    void AdoptProjectedFieldNames(QueryObject const& queryObject);
+
     // private data members
     struct Data;
     std::unique_ptr<Data, void (*)(Data*)> m_data; // The private data of the statement
@@ -477,7 +513,11 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     SQLHSTMT m_hStmt {};                           // The native oDBC statement handle
     std::string m_preparedQuery;                   // The last prepared query
     std::optional<SQLSMALLINT> m_numColumns;       // The number of columns in the result set, if known
-    SQLSMALLINT m_expectedParameterCount {};       // The number of parameters expected by the query
+    // Column names of the last prepared/executed query object, in result-column order, for named
+    // column access. Empty when the query carried no mapping (raw SQL, or a wildcard projection).
+    std::vector<std::string> m_projectedFieldNames;
+    bool m_projectionHasWildcard = false;
+    SQLSMALLINT m_expectedParameterCount {}; // The number of parameters expected by the query
     // The parameter count SQLNumParams() reported for m_preparedQuery. m_expectedParameterCount is
     // deliberately overwritten by BindInputParameter() (with SQLSMALLINT max, meaning "bound by hand"),
     // so a Prepare() that reuses the handle's statement - and therefore skips SQLNumParams() - has to
@@ -623,6 +663,54 @@ class [[nodiscard]] SqlResultCursor
     [[nodiscard]] T GetColumnOr(SQLUSMALLINT column, T&& defaultValue) const
     {
         return m_stmt->GetColumnOr(column, std::forward<T>(defaultValue));
+    }
+
+    /// @brief Retrieves the value of the named column for the currently selected row.
+    ///
+    /// The name is the one spelled in the query builder that composed this query — a bare column name
+    /// for @c Field("x"), the qualified @c "table.column" for @c Field({"table", "x"}), or the alias for
+    /// an aliased projection. Only builder-composed queries carry a mapping.
+    ///
+    /// @note Reads must still ascend in column order: the SQL Server driver rejects out-of-order
+    ///       @c SQLGetData with SQLSTATE 07009, and addressing columns by name makes it easy to
+    ///       reorder them inadvertently.
+    ///
+    /// @param name The column name as spelled in the query builder.
+    /// @return The column value converted to @p T.
+    /// @throws std::invalid_argument If no mapping is available, or @p name is unknown or ambiguous.
+    template <SqlGetColumnNativeType T>
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE T GetColumn(std::string_view name) const
+    {
+        return m_stmt->GetColumn<T>(m_stmt->ResolveColumnName(name));
+    }
+
+    /// @brief Retrieves the value of the named column, or @c std::nullopt if it is NULL.
+    ///
+    /// The name is the one spelled in the query builder that composed this query; only builder-composed
+    /// queries carry a mapping. Reads must ascend in column order — see the name-taking @c GetColumn.
+    ///
+    /// @param name The column name as spelled in the query builder.
+    /// @return The column value converted to @p T, or @c std::nullopt if the column is NULL.
+    /// @throws std::invalid_argument If no mapping is available, or @p name is unknown or ambiguous.
+    template <SqlGetColumnNativeType T>
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE std::optional<T> GetNullableColumn(std::string_view name) const
+    {
+        return m_stmt->GetNullableColumn<T>(m_stmt->ResolveColumnName(name));
+    }
+
+    /// @brief Retrieves the value of the named column, or @p defaultValue if it is NULL.
+    ///
+    /// The name is the one spelled in the query builder that composed this query; only builder-composed
+    /// queries carry a mapping. Reads must ascend in column order — see the name-taking @c GetColumn.
+    ///
+    /// @param name The column name as spelled in the query builder.
+    /// @param defaultValue The value to return when the column is NULL.
+    /// @return The column value converted to @p T, or @p defaultValue if the column is NULL.
+    /// @throws std::invalid_argument If no mapping is available, or @p name is unknown or ambiguous.
+    template <SqlGetColumnNativeType T>
+    [[nodiscard]] T GetColumnOr(std::string_view name, T&& defaultValue) const
+    {
+        return m_stmt->GetColumnOr(m_stmt->ResolveColumnName(name), std::forward<T>(defaultValue));
     }
 
   private:
@@ -1090,14 +1178,36 @@ inline LIGHTWEIGHT_FORCE_INLINE SQLHSTMT SqlStatement::NativeHandle() const noex
     return m_hStmt;
 }
 
+template <SqlQueryObject QueryObject>
+inline void SqlStatement::AdoptProjectedFieldNames(QueryObject const& queryObject)
+{
+    if constexpr (SqlNamedProjectionQueryObject<QueryObject>)
+    {
+        auto const names = queryObject.ProjectedFieldNames();
+        m_projectedFieldNames.assign(names.begin(), names.end());
+        m_projectionHasWildcard = queryObject.ProjectionHasWildcard();
+    }
+    else
+    {
+        // A statement is reusable, so a query object without a mapping must drop the previous one
+        // rather than let stale names resolve against unrelated result columns.
+        m_projectedFieldNames.clear();
+        m_projectionHasWildcard = false;
+    }
+}
+
 inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::Prepare(SqlQueryObject auto const& queryObject) &
 {
     Prepare(queryObject.ToSql());
+    // After the raw overload, which drops any previously held mapping.
+    AdoptProjectedFieldNames(queryObject);
 }
 
 inline LIGHTWEIGHT_FORCE_INLINE SqlStatement SqlStatement::Prepare(SqlQueryObject auto const& queryObject) &&
 {
-    return Prepare(queryObject.ToSql());
+    auto preparedStatement = std::move(*this).Prepare(queryObject.ToSql());
+    preparedStatement.AdoptProjectedFieldNames(queryObject);
+    return preparedStatement;
 }
 
 inline LIGHTWEIGHT_FORCE_INLINE std::string const& SqlStatement::PreparedQuery() const noexcept
@@ -2058,7 +2168,10 @@ T SqlStatement::GetColumnOr(SQLUSMALLINT column, T&& defaultValue) const
 inline LIGHTWEIGHT_FORCE_INLINE SqlResultCursor SqlStatement::ExecuteDirect(SqlQueryObject auto const& query,
                                                                             std::source_location location)
 {
-    return ExecuteDirect(query.ToSql(), location);
+    auto cursor = ExecuteDirect(query.ToSql(), location);
+    // After the raw overload, which drops any previously held mapping.
+    AdoptProjectedFieldNames(query);
+    return cursor;
 }
 
 template <typename Callable>
