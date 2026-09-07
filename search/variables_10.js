@@ -14,15 +14,11 @@ var searchData=
   ['referencedselectorrequired_11',['referencedSelectorRequired',['../d6/dfb/structLightweight_1_1Tools_1_1CxxModelPrinter_1_1PlannedRelation.html#a9a0925b8127dc0f9f285dd4acc3c57bd',1,'Lightweight::Tools::CxxModelPrinter::PlannedRelation']]],
   ['referencedtable_12',['referencedTable',['../d6/dfb/structLightweight_1_1Tools_1_1CxxModelPrinter_1_1PlannedRelation.html#ad885fa63b8895bbea154d854d655a078',1,'Lightweight::Tools::CxxModelPrinter::PlannedRelation']]],
   ['referencedtablename_13',['referencedTableName',['../d3/d18/structLightweight_1_1SqlCompositeForeignKeyConstraint.html#ac8eedd4823a74f4f1d1ca3fc3305269e',1,'Lightweight::SqlCompositeForeignKeyConstraint']]],
-  ['released_14',['released',['../da/da6/structLightweight_1_1SqlPoolStatistics.html#aaebcb5afa49a9a806b787c711e40fa3e',1,'Lightweight::SqlPoolStatistics']]],
-  ['releases_15',['releases',['../df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#ab12f33230c55c35f145a9f1341d7c0d5',1,'Lightweight::SqlMigration::MigrationManager::PlanFoldingResult']]],
-  ['required_16',['required',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a08cf8f2f35c6eec60086b7e18667bc61',1,'Lightweight::SqlColumnDeclaration']]],
-  ['retried_17',['retried',['../d4/d7d/structLightweight_1_1SqlOperationStatistics.html#a327c97e76f35bc0417fa3e591be97d6c',1,'Lightweight::SqlOperationStatistics']]],
-  ['retriessofar_18',['retriesSoFar',['../da/def/structLightweight_1_1SqlRetryState.html#a0fc445febcec32eacd5275d181bca773',1,'Lightweight::SqlRetryState']]],
-  ['retrynumber_19',['retryNumber',['../d6/d00/structLightweight_1_1SqlRetryAttempt.html#aef554ecc759e7a9c6fab88c67637b23e',1,'Lightweight::SqlRetryAttempt']]],
-  ['reused_20',['reused',['../da/da6/structLightweight_1_1SqlPoolStatistics.html#ab94ec8b9865e5d838d4942cdbc45700a',1,'Lightweight::SqlPoolStatistics']]],
-  ['revertedtimestamps_21',['revertedTimestamps',['../d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html#a14223384e1e346debcb57e6c4383154f',1,'Lightweight::SqlMigration::RevertResult']]],
-  ['rowcount_22',['rowcount',['../d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a92351f3189fe1adade98ccec8d21a6b2',1,'Lightweight::SqlBackup::TableInfo::rowCount'],['../d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html#aa96489eada966b8294d4cc0e950cdbc3',1,'Lightweight::SqlBackup::ColumnBatch::rowCount']]],
-  ['rowsfetched_23',['rowsFetched',['../df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html#ac92cee860cb6d2eac2a8fc9ad0cf7940',1,'Lightweight::SqlStatisticsSnapshot']]],
-  ['rowsperchunk_24',['rowsPerChunk',['../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#ae10e3a3fa9942cd75572e2a1815708a6',1,'Lightweight::SqlBackup::BackupSettings']]]
+  ['releases_14',['releases',['../df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#ab12f33230c55c35f145a9f1341d7c0d5',1,'Lightweight::SqlMigration::MigrationManager::PlanFoldingResult']]],
+  ['required_15',['required',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a08cf8f2f35c6eec60086b7e18667bc61',1,'Lightweight::SqlColumnDeclaration']]],
+  ['retriessofar_16',['retriesSoFar',['../da/def/structLightweight_1_1SqlRetryState.html#a0fc445febcec32eacd5275d181bca773',1,'Lightweight::SqlRetryState']]],
+  ['retrynumber_17',['retryNumber',['../d6/d00/structLightweight_1_1SqlRetryAttempt.html#aef554ecc759e7a9c6fab88c67637b23e',1,'Lightweight::SqlRetryAttempt']]],
+  ['revertedtimestamps_18',['revertedTimestamps',['../d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html#a14223384e1e346debcb57e6c4383154f',1,'Lightweight::SqlMigration::RevertResult']]],
+  ['rowcount_19',['rowcount',['../d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a92351f3189fe1adade98ccec8d21a6b2',1,'Lightweight::SqlBackup::TableInfo::rowCount'],['../d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html#aa96489eada966b8294d4cc0e950cdbc3',1,'Lightweight::SqlBackup::ColumnBatch::rowCount']]],
+  ['rowsperchunk_20',['rowsPerChunk',['../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#ae10e3a3fa9942cd75572e2a1815708a6',1,'Lightweight::SqlBackup::BackupSettings']]]
 ];

@@ -6,6 +6,5 @@ var searchData=
   ['sql_20migrations_3',['SQL Migrations',['../d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html',1,'']]],
   ['sql_20query_4',['SQL Query',['../d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html',1,'']]],
   ['sql_20to_20lightweight_5',['SQL to Lightweight',['../d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html',1,'']]],
-  ['statistics_20and_20metrics_6',['Statistics and metrics',['../d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html',1,'']]],
-  ['support_20—_20design_7',['Composite key support — design',['../d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html',1,'']]]
+  ['support_20—_20design_6',['Composite key support — design',['../d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html',1,'']]]
 ];
