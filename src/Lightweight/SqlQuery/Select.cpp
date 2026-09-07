@@ -2,8 +2,32 @@
 
 #include "Select.hpp"
 
+#include <format>
+
 namespace Lightweight
 {
+
+void SqlSelectQueryBuilder::RecordProjectedFieldName(std::string name) const
+{
+    // A wildcard expands to an unknown number of columns, so nothing projected after it has a
+    // predictable position. Recording those names would misalign them with their result columns.
+    if (_query.projectionHasWildcard)
+        return;
+
+    _query.projectedFieldNames.emplace_back(std::move(name));
+}
+
+void SqlSelectQueryBuilder::RenameLastProjectedFieldName(std::string_view alias) const
+{
+    if (!_query.projectedFieldNames.empty())
+        _query.projectedFieldNames.back() = std::string(alias);
+}
+
+void SqlSelectQueryBuilder::RecordProjectionWildcard() const
+{
+    _query.projectionHasWildcard = true;
+    _query.projectedFieldNames.clear();
+}
 
 SqlSelectQueryBuilder& SqlSelectQueryBuilder::Field(std::string_view const& fieldName)
 {
@@ -11,13 +35,17 @@ SqlSelectQueryBuilder& SqlSelectQueryBuilder::Field(std::string_view const& fiel
         _query.fields += ", ";
 
     if (fieldName == "*")
+    {
         _query.fields += fieldName;
+        RecordProjectionWildcard();
+    }
     else
     {
         _query.fields += '"';
         _query.fields += fieldName;
         _query.fields += '"';
         _aliasAllowed = true;
+        RecordProjectedFieldName(std::string(fieldName));
     }
 
     return *this;
@@ -31,13 +59,17 @@ SqlSelectQueryBuilder& SqlSelectQueryBuilder::Field(SqlQualifiedTableColumnName 
     _query.fields += '"';
     _query.fields += fieldName.tableName;
     if (fieldName.columnName == "*")
+    {
         _query.fields += "\".*";
+        RecordProjectionWildcard();
+    }
     else
     {
         _query.fields += "\".\"";
         _query.fields += fieldName.columnName;
         _query.fields += '"';
         _aliasAllowed = true;
+        RecordProjectedFieldName(std::format("{}.{}", fieldName.tableName, fieldName.columnName));
     }
 
     return *this;
@@ -51,6 +83,10 @@ SqlSelectQueryBuilder& SqlSelectQueryBuilder::Field(SqlFieldExpression const& fi
     _query.fields += fieldExpression.expression;
     _aliasAllowed = true;
 
+    // An aggregate carries no caller-given name until As() supplies one; the empty slot keeps the
+    // following entries aligned with their result columns.
+    RecordProjectedFieldName({});
+
     return *this;
 }
 
@@ -62,6 +98,7 @@ SqlSelectQueryBuilder& SqlSelectQueryBuilder::As(std::string_view alias)
     _query.fields += " AS \"";
     _query.fields += alias;
     _query.fields += "\"";
+    RenameLastProjectedFieldName(alias);
 
     return *this;
 }
@@ -76,6 +113,7 @@ SqlSelectQueryBuilder& SqlSelectQueryBuilder::FieldAs(std::string_view const& fi
     _query.fields += "\" AS \"";
     _query.fields += alias;
     _query.fields += '"';
+    RecordProjectedFieldName(std::string(alias));
 
     return *this;
 }
@@ -93,6 +131,7 @@ SqlSelectQueryBuilder& SqlSelectQueryBuilder::FieldAs(SqlQualifiedTableColumnNam
     _query.fields += "\" AS \"";
     _query.fields += alias;
     _query.fields += '"';
+    RecordProjectedFieldName(std::string(alias));
 
     return *this;
 }
@@ -107,6 +146,7 @@ SqlSelectQueryBuilder& SqlSelectQueryBuilder::Fields(std::vector<std::string_vie
         _query.fields += '"';
         _query.fields += fieldName;
         _query.fields += '"';
+        RecordProjectedFieldName(std::string(fieldName));
     }
     return *this;
 }
@@ -124,6 +164,7 @@ SqlSelectQueryBuilder& SqlSelectQueryBuilder::Fields(std::vector<std::string_vie
         _query.fields += "\".\"";
         _query.fields += fieldName;
         _query.fields += '"';
+        RecordProjectedFieldName(std::format("{}.{}", tableName, fieldName));
     }
     return *this;
 }
@@ -141,6 +182,7 @@ SqlSelectQueryBuilder& SqlSelectQueryBuilder::Fields(std::initializer_list<std::
         _query.fields += "\".\"";
         _query.fields += fieldName;
         _query.fields += '"';
+        RecordProjectedFieldName(std::format("{}.{}", tableName, fieldName));
     }
     return *this;
 }
@@ -161,6 +203,12 @@ SqlSelectQueryBuilder& SqlSelectQueryBuilder::Fields(std::span<SqlQualifiedTable
 
 SqlSelectQueryBuilder::ComposedQuery SqlSelectQueryBuilder::Count()
 {
+    // The Count finalizer discards the projection in favour of COUNT(*), so any recorded names
+    // would no longer describe the result columns. The wildcard flag goes with them: the discarded
+    // projection is no longer the reason named access is unavailable, and leaving it set would make
+    // the diagnostic blame a wildcard that no longer appears in the query.
+    _query.projectedFieldNames.clear();
+    _query.projectionHasWildcard = false;
     _query.selectType = SelectType::Count;
     return std::move(_query);
 }

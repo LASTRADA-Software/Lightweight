@@ -10,6 +10,9 @@
 #include <concepts>
 #include <optional>
 #include <ranges>
+#include <span>
+#include <string>
+#include <vector>
 
 namespace Lightweight
 {
@@ -471,6 +474,21 @@ namespace detail
 
         std::string fields;
 
+        /// @brief The name of each projected column, in result-column order, as spelled by the caller.
+        ///
+        /// Populated by the projection methods of @c SqlSelectQueryBuilder so that result columns can be
+        /// addressed by name without asking the driver for result-set metadata (which cannot report table
+        /// names portably). An entry is empty for a projection that carries no caller-given name, such as
+        /// an un-aliased aggregate; the empty slot keeps the remaining entries aligned with their columns.
+        std::vector<std::string> projectedFieldNames;
+
+        /// @brief Whether the projection contains a wildcard, whose column count is unknown at build time.
+        ///
+        /// A wildcard makes every position after it unpredictable, so named column access is unavailable
+        /// for the whole query. Kept separate from an empty @c projectedFieldNames so the diagnostic can
+        /// name the actual cause.
+        bool projectionHasWildcard = false;
+
         std::string orderBy;
         std::string groupBy;
 
@@ -478,6 +496,20 @@ namespace detail
         size_t limit = (std::numeric_limits<size_t>::max)();
 
         [[nodiscard]] LIGHTWEIGHT_API std::string ToSql() const;
+
+        /// @brief The projected column names, in result-column order, for named column access.
+        /// @return One entry per result column, empty for unnamed projections; an empty span when the
+        ///         query carries no usable mapping (e.g. the projection contains a wildcard).
+        [[nodiscard]] std::span<std::string const> ProjectedFieldNames() const noexcept
+        {
+            return projectedFieldNames;
+        }
+
+        /// @copydoc projectionHasWildcard
+        [[nodiscard]] bool ProjectionHasWildcard() const noexcept
+        {
+            return projectionHasWildcard;
+        }
     };
 } // namespace detail
 

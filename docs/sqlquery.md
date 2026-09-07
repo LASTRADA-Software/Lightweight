@@ -89,7 +89,7 @@ interface. Here we present a compressed list of functions that can be used to cr
     - Adds a DISTINCT clause to the SELECT query.
   - `Field()`
     - Simple usage `Field("field")` 
-    - With table name specification as `Field(SqlQualifiedTableColumnName { "Table", "field" })`
+    - With table name specification as `Field(SqlQualifiedTableColumnName { .tableName = "Table", .columnName = "field" })`
     - Helper function to construct `SqlQualifiedTableColumnName` from a string `QualifiedColumnName<"Table.field">`
   - `Fields()`
     - Simple usage `Fields({"a", "b", "c"})`
@@ -199,6 +199,54 @@ auto query = q.FromTable("Table_A")
               .Where(SqlQualifiedTableColumnName { .tableName = "Table_A", .columnName = "foo" }, 42)
               .All();
 ```
+
+
+### Reading result columns by name
+
+Result columns of a builder-composed query can be addressed by the name spelled in the builder,
+instead of by a 1-based index that shifts whenever the projection changes:
+
+```cpp
+auto cursor = stmt.ExecuteDirect(stmt.Query("Table_A")
+                                     .Select()
+                                     .Field(SqlQualifiedTableColumnName { .tableName = "Table_A", .columnName = "foo" })
+                                     .Fields({ "that_foo"sv, "that_id"sv }, "Table_B")
+                                     .Field(Aggregate::Count("id"sv)).As("total"sv)
+                                     .LeftOuterJoin("Table_B", "id"sv, "that_id"sv)
+                                     .All());
+
+while (cursor.FetchRow())
+{
+    auto const foo = cursor.GetColumn<int>("Table_A.foo");
+    auto const thatFoo = cursor.GetColumn<int>("Table_B.that_foo");
+    auto const total = cursor.GetColumn<int>("total");
+}
+```
+
+`GetNullableColumn<T>(name)` and `GetColumnOr<T>(name, defaultValue)` take a name the same way.
+
+The name is matched exactly as it was written in the builder — no case folding and no implicit
+qualification:
+
+| Builder call | Name to read it back by |
+|---|---|
+| `Field("foo")` | `"foo"` |
+| `Field({ "Table_A", "foo" })` | `"Table_A.foo"` |
+| `Fields({ "a"sv, "b"sv }, "Table_B")` | `"Table_B.a"`, `"Table_B.b"` |
+| `Field(...).As("total")` | `"total"` |
+| `Field(Aggregate::Count("id"sv))` | not addressable — add `.As(...)` |
+
+The mapping is recorded by the query builder as the projection is assembled, so it behaves
+identically on every supported database. Consequently it is available only for builder-composed
+queries: a statement prepared from a raw SQL string has no mapping, and neither does a projection
+containing a wildcard (`Field("*")`), whose column count is unknown at build time. Reading a name
+that is unknown, ambiguous (projected twice — alias one of them), or unavailable throws
+`std::invalid_argument`.
+
+> [!NOTE]
+> Columns must still be read in ascending column order. The SQL Server driver rejects out-of-order
+> `SQLGetData` with SQLSTATE 07009, and addressing columns by name makes it easy to reorder reads
+> without noticing.
 
 
 ### Examples of SQL to DataMapper mappings
