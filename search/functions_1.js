@@ -11,7 +11,8 @@ var searchData=
   ['bindoutputcolumnstorecord_8',['BindOutputColumnsToRecord',['../d8/d63/classLightweight_1_1SqlResultCursor.html#a2bb8b99ccecdb98d49a349c3fbff18f7',1,'Lightweight::SqlResultCursor']]],
   ['bookkeepingtablenames_9',['BookkeepingTableNames',['../d4/d61/classLightweight_1_1SqlAdvisoryLockHandler.html#a8a7f34faf5ae16c8ea0c810c6803fbf1',1,'Lightweight::SqlAdvisoryLockHandler']]],
   ['booleanliteral_10',['BooleanLiteral',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ad14092f4293a641b18b103a233b37a8f',1,'Lightweight::SqlQueryFormatter']]],
-  ['build_11',['build',['../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a44c828392a97cfb143e6c229555f444f',1,'Lightweight::SqlSelectQueryBuilder::Build(Callable const &amp;callable)'],['../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6a4796d8ea43ac70f86a7ba4698aab15',1,'Lightweight::SqlSelectQueryBuilder::Build(Callable const &amp;callable)']]],
-  ['buildforeignkeyconstraintname_12',['BuildForeignKeyConstraintName',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a36631dad45de6ee327dac3fb204c29e0',1,'Lightweight::SqlQueryFormatter']]],
-  ['bytes_13',['Bytes',['../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a5c11396e3bbbbffdb52d579a522474bb',1,'Lightweight::SqlDynamicBinary']]]
+  ['bucketof_11',['BucketOf',['../df/d78/structLightweight_1_1SqlLatencyHistogram.html#abb30252e60f201e0f6d11dc42ad8d7f8',1,'Lightweight::SqlLatencyHistogram']]],
+  ['build_12',['build',['../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a44c828392a97cfb143e6c229555f444f',1,'Lightweight::SqlSelectQueryBuilder::Build(Callable const &amp;callable)'],['../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6a4796d8ea43ac70f86a7ba4698aab15',1,'Lightweight::SqlSelectQueryBuilder::Build(Callable const &amp;callable)']]],
+  ['buildforeignkeyconstraintname_13',['BuildForeignKeyConstraintName',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a36631dad45de6ee327dac3fb204c29e0',1,'Lightweight::SqlQueryFormatter']]],
+  ['bytes_14',['Bytes',['../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a5c11396e3bbbbffdb52d579a522474bb',1,'Lightweight::SqlDynamicBinary']]]
 ];

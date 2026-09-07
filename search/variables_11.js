@@ -18,5 +18,6 @@ var searchData=
   ['sqlvalue_15',['sqlvalue',['../d9/de1/structLightweight_1_1SqlDate.html#ac22e4292f9c821d76c65c2dcd76ec3d2',1,'Lightweight::SqlDate::sqlValue'],['../d6/dfa/structLightweight_1_1SqlDateTime.html#a5f1844faef73c5040f1eeb5463a722d4',1,'Lightweight::SqlDateTime::sqlValue'],['../da/d96/structLightweight_1_1SqlNullType.html#abf2ca1881d4960c791dbe1d7a437c444',1,'Lightweight::SqlNullType::sqlValue'],['../d6/d1b/structLightweight_1_1SqlNumeric.html#a4e8b73d5a632b2c7decc4968015a8d0d',1,'Lightweight::SqlNumeric::sqlValue'],['../d7/d53/structLightweight_1_1SqlTime.html#aa3a8628bcc0afb2df5a174ed754d74df',1,'Lightweight::SqlTime::sqlValue']]],
   ['state_16',['state',['../d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#a7532c06b2575869bb04450eeb733ec24',1,'Lightweight::SqlBackup::Progress']]],
   ['steps_17',['steps',['../d3/ded/structLightweight_1_1SqlMigrationPlan.html#aa0f9b688696f6d9a0c8b46695ca501f1',1,'Lightweight::SqlMigrationPlan']]],
-  ['storedchecksum_18',['storedChecksum',['../da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html#ad7d7d1e51e7cc53def26f3de24754cb9',1,'Lightweight::SqlMigration::ChecksumVerificationResult']]]
+  ['storedchecksum_18',['storedChecksum',['../da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html#ad7d7d1e51e7cc53def26f3de24754cb9',1,'Lightweight::SqlMigration::ChecksumVerificationResult']]],
+  ['succeeded_19',['succeeded',['../d4/d7d/structLightweight_1_1SqlOperationStatistics.html#a030aebd35627204749f0a6a1959b1ec0',1,'Lightweight::SqlOperationStatistics']]]
 ];
