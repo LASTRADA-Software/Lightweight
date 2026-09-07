@@ -123,6 +123,11 @@ MigrationBase const* MigrationManager::GetMigration(MigrationTimestamp timestamp
     return it != std::end(_migrations) ? *it : nullptr;
 }
 
+void MigrationManager::RemoveMigration(MigrationBase const* migration) noexcept
+{
+    _migrations.remove(migration);
+}
+
 void MigrationManager::RemoveAllMigrations()
 {
     _migrations.clear();

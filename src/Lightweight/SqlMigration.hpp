@@ -237,6 +237,14 @@ namespace SqlMigration
         /// @return Pointer to the migration if found, nullptr otherwise.
         [[nodiscard]] LIGHTWEIGHT_API MigrationBase const* GetMigration(MigrationTimestamp timestamp) const noexcept;
 
+        /// Remove a single migration from the manager.
+        ///
+        /// Called by @c MigrationBase's destructor so a migration that goes out of scope does not
+        /// leave a dangling pointer behind. Removing a migration that was never added is a no-op.
+        ///
+        /// @param migration Pointer to the migration to remove.
+        LIGHTWEIGHT_API void RemoveMigration(MigrationBase const* migration) noexcept;
+
         /// Remove all migrations from the manager.
         ///
         /// This function is useful if the migration manager should be reset.
@@ -828,7 +836,16 @@ namespace SqlMigration
             MigrationManager::GetInstance().AddMigration(this);
         }
 
-        virtual ~MigrationBase() = default;
+        /// Unregisters this migration from the singleton manager the constructor registered it with.
+        ///
+        /// Registration is a side effect of construction, so deregistration has to be one of
+        /// destruction: otherwise the manager keeps a pointer to a dead object, and its
+        /// duplicate-timestamp lookup dereferences it. A later migration reusing that storage is then
+        /// reported as a duplicate of itself.
+        virtual ~MigrationBase()
+        {
+            MigrationManager::GetInstance().RemoveMigration(this);
+        }
 
         /// Apply the migration.
         ///

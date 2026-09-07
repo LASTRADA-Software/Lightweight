@@ -32,7 +32,10 @@ LIGHTWEIGHT_SQL_MIGRATION(20260126120000, "Create users table")
 }
 ```
 
-The migration is automatically registered with the MigrationManager when the program starts.
+The migration is automatically registered with the MigrationManager when the program starts, and
+unregistered again when it is destroyed. Registration is tied to the object's lifetime, so a
+migration that does not live for the whole program -- one with automatic storage duration, say --
+leaves no dangling pointer behind in the manager it registered with.
 
 ### Using the Migration Class
 
