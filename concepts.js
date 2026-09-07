@@ -8,7 +8,6 @@ var concepts =
       [ "RecordColumnMember", "d7/dfd/conceptLightweight_1_1RecordColumnMember.html", null ],
       [ "HasDescription", "d2/d93/conceptLightweight_1_1HasDescription.html", null ],
       [ "SqlQueryObject", "d4/da8/conceptLightweight_1_1SqlQueryObject.html", null ],
-      [ "SqlNamedProjectionQueryObject", "d0/daf/conceptLightweight_1_1SqlNamedProjectionQueryObject.html", null ],
       [ "SqlNativeRowBindableValue", "d4/dc2/conceptLightweight_1_1SqlNativeRowBindableValue.html", null ],
       [ "SqlOptionalRowBindable", "d0/dd4/conceptLightweight_1_1SqlOptionalRowBindable.html", null ],
       [ "SqlRowBindableColumn", "d7/d90/conceptLightweight_1_1SqlRowBindableColumn.html", null ],
