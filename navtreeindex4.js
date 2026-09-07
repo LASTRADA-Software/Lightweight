@@ -1,5 +1,6 @@
 var NAVTREEINDEX4 =
 {
+"d8/d63/classLightweight_1_1SqlResultCursor.html#af1167aa228464a5efaaae283ac9bf50f":[18,6,9,7],
 "d8/d63/classLightweight_1_1SqlResultCursor.html#af36c15db70c2dc5b5cfb3e5e1007867d":[18,6,9,8],
 "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html":[18,8,11],
 "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a09624a9cd55e3d64955ca8d5b4344c37":[18,8,11,4],
@@ -248,6 +249,5 @@ var NAVTREEINDEX4 =
 "da/d17/classLightweight_1_1SqlMigrationDeleteBuilder.html#a5ec19a8c6430cf4494eaab119d5799a1":[18,8,10,0],
 "da/d17/classLightweight_1_1SqlMigrationDeleteBuilder.html#aaa818fb734d443b4128bb822ec0d6bf6":[18,8,10,2],
 "da/d1a/SqlDate_8hpp_source.html":[21,0,1,1,5],
-"da/d23/BelongsTo_8hpp_source.html":[21,0,1,2,0],
-"da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html":[18,7,2]
+"da/d23/BelongsTo_8hpp_source.html":[21,0,1,2,0]
 };

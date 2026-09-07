@@ -356,13 +356,13 @@ var NAVTREEINDEX =
 [
 "annotated.html",
 "d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a515083c477fa7b7c42fe61e3132f9da6",
-"d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#a879a7a4543a7befff2a2dc2edf72310a",
-"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a51ab85e6d6b300bd68e5be87336013dc",
-"d8/d63/classLightweight_1_1SqlResultCursor.html#af36c15db70c2dc5b5cfb3e5e1007867d",
-"da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html#a23fd8a93e907e447544b0acf4a5453be",
-"db/dfd/classLightweight_1_1SqlLogger.html#a7d32ec109f6a93e7680a8ac63c92f2de",
-"de/d61/classLightweight_1_1DataMapper.html#a861abe24982b3d6a0ae7a786a9907b3a",
-"df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#affd0c623900ef5f568ab3ebc3a22c045"
+"d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#a81667cd2c45506e0b1e2b828f9008812",
+"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a4241be56beceebced167232d63f669db",
+"d8/d63/classLightweight_1_1SqlResultCursor.html#af1167aa228464a5efaaae283ac9bf50f",
+"da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html",
+"db/dfd/classLightweight_1_1SqlLogger.html#a77db8e52d519c4f915b0bc66644560db",
+"de/d61/classLightweight_1_1DataMapper.html#a81e4a5713d5efa40b8eb2588d969e90f",
+"df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#ac208ef0ccc537eb47f265169688f4313"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

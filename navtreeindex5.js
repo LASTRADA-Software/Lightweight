@@ -1,5 +1,6 @@
 var NAVTREEINDEX5 =
 {
+"da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html":[18,7,2],
 "da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html#a23fd8a93e907e447544b0acf4a5453be":[18,7,2,0],
 "da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html#a43d5cee600034783b2a864d126faf481":[18,7,2,3],
 "da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html#ad7d7d1e51e7cc53def26f3de24754cb9":[18,7,2,2],
@@ -248,6 +249,5 @@ var NAVTREEINDEX5 =
 "db/dfd/classLightweight_1_1SqlLogger.html#a3e441039e16eb59497da5163beb97fa0":[18,6,4,2],
 "db/dfd/classLightweight_1_1SqlLogger.html#a531204f908c6870f7e7e589ac0e20c2f":[18,6,4,25],
 "db/dfd/classLightweight_1_1SqlLogger.html#a5ecff57c48215be1497e9cf25b79cee8":[18,6,4,6],
-"db/dfd/classLightweight_1_1SqlLogger.html#a72208bb0ca09fe2b35837b60b9902fbb":[18,6,4,10],
-"db/dfd/classLightweight_1_1SqlLogger.html#a77db8e52d519c4f915b0bc66644560db":[18,6,4,7]
+"db/dfd/classLightweight_1_1SqlLogger.html#a72208bb0ca09fe2b35837b60b9902fbb":[18,6,4,10]
 };
