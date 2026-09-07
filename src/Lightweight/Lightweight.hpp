@@ -17,5 +17,6 @@
 #include "SqlScopedTraceLogger.hpp"
 #include "SqlServerType.hpp"
 #include "SqlStatement.hpp"
+#include "SqlStatistics.hpp"
 #include "SqlTransaction.hpp"
 #include "Utils.hpp"
