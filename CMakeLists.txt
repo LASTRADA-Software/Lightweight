@@ -164,6 +164,48 @@ if(stdexec_FOUND)
 else()
     message(STATUS "stdexec (>= ${LIGHTWEIGHT_STDEXEC_MIN_VERSION}) not found, "
                    "downloading ${LIGHTWEIGHT_STDEXEC_GIT_TAG} via CPM...")
+
+    # stdexec derives its own project VERSION from the `Revision: N` line of execution.bs, which its
+    # CMakeLists downloads from raw.githubusercontent.com at configure time -- with no status check.
+    # A failed or truncated fetch leaves an empty file behind and the configure dies inside stdexec:
+    #
+    #   string sub-command REGEX, mode REPLACE needs at least 6 arguments total to command.
+    #   VERSION "0..0" format invalid.
+    #
+    # That has broken CI legs at random (a network blip on one job while its siblings passed). Seed
+    # the file ourselves so a configure never depends on that fetch: stdexec skips its own download
+    # when the file already exists. We still try the network first, so the version it reports stays
+    # accurate when the fetch works, and fall back to a pinned revision when it does not.
+    set(LIGHTWEIGHT_STDEXEC_BS_REVISION_FALLBACK "11" CACHE STRING
+        "Revision recorded in the seeded execution.bs when the live copy cannot be fetched; only feeds \
+stdexec's own project(VERSION), which Lightweight does not consume")
+    # CPM resolves stdexec through FetchContent, whose per-package binary dir is
+    # <FETCHCONTENT_BASE_DIR>/<lowercased name>-build; the module defaults that base to
+    # ${CMAKE_BINARY_DIR}/_deps, which we mirror in case FetchContent has not been included yet.
+    set(_lightweight_stdexec_deps "${FETCHCONTENT_BASE_DIR}")
+    if(NOT _lightweight_stdexec_deps)
+        set(_lightweight_stdexec_deps "${CMAKE_BINARY_DIR}/_deps")
+    endif()
+    set(_lightweight_stdexec_bs "${_lightweight_stdexec_deps}/stdexec-build/execution.bs")
+    if(NOT EXISTS "${_lightweight_stdexec_bs}")
+        file(DOWNLOAD "https://raw.githubusercontent.com/cplusplus/sender-receiver/main/execution.bs"
+             "${_lightweight_stdexec_bs}"
+             TIMEOUT 30
+             STATUS _lightweight_stdexec_bs_status)
+        file(STRINGS "${_lightweight_stdexec_bs}" _lightweight_stdexec_bs_revision REGEX "Revision: [0-9]+")
+        if(NOT _lightweight_stdexec_bs_revision)
+            list(GET _lightweight_stdexec_bs_status 1 _lightweight_stdexec_bs_error)
+            message(STATUS "stdexec: execution.bs unavailable (${_lightweight_stdexec_bs_error}); "
+                           "seeding revision ${LIGHTWEIGHT_STDEXEC_BS_REVISION_FALLBACK}")
+            file(WRITE "${_lightweight_stdexec_bs}" "Revision: ${LIGHTWEIGHT_STDEXEC_BS_REVISION_FALLBACK}\n")
+        endif()
+        unset(_lightweight_stdexec_bs_revision)
+        unset(_lightweight_stdexec_bs_status)
+        unset(_lightweight_stdexec_bs_error)
+    endif()
+    unset(_lightweight_stdexec_bs)
+    unset(_lightweight_stdexec_deps)
+
     CPMAddPackage(
         NAME stdexec
         GITHUB_REPOSITORY NVIDIA/stdexec

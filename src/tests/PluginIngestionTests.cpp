@@ -86,11 +86,9 @@ void TouchPluginFile(std::filesystem::path const& path, std::filesystem::file_ti
 /// Minimal `MigrationBase` subclass usable as a fixture pointer for
 /// `AddMigration`. Constructing one auto-registers it with
 /// `MigrationManager::GetInstance()` (a hard-coded side effect of the
-/// `MigrationBase` ctor); the destructor below resets the singleton so a
-/// fixture instance going out of scope at end-of-test does not leave a
-/// dangling pointer in the singleton's list. Without this reset the
-/// next test's `FakeMigration` allocated at the same stack address is
-/// (incorrectly) reported as a duplicate by `AddMigration`'s lookup.
+/// `MigrationBase` ctor) and `~MigrationBase` unregisters it again, so a
+/// fixture instance going out of scope at end-of-test leaves no dangling
+/// pointer in the singleton's list for the next test to trip over.
 class FakeMigration: public Lightweight::SqlMigration::MigrationBase
 {
   public:
@@ -99,11 +97,7 @@ class FakeMigration: public Lightweight::SqlMigration::MigrationBase
     {
     }
 
-    ~FakeMigration() override
-    {
-        Lightweight::SqlMigration::MigrationManager::GetInstance().RemoveAllMigrations();
-        Lightweight::SqlMigration::MigrationManager::GetInstance().RemoveAllReleases();
-    }
+    ~FakeMigration() override = default;
 
     FakeMigration(FakeMigration const&) = delete;
     FakeMigration& operator=(FakeMigration const&) = delete;

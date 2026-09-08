@@ -2043,12 +2043,8 @@ class CapturingWarningLogger: public Lightweight::SqlLogger::Null
 /// We only need `GetTimestamp` to be callable from a `CompatPolicy` lambda.
 ///
 /// Constructing one auto-registers it with `MigrationManager::GetInstance()` (a
-/// hard-coded side effect of the `MigrationBase` ctor). These stubs have automatic
-/// storage duration, so the destructor below resets the singleton rather than leaving
-/// a dangling pointer behind: `AddMigration` compares timestamps through the stored
-/// pointers, so a later migration allocated at a recycled address is (incorrectly)
-/// reported as a duplicate of itself. PluginIngestionTests.cpp's `FakeMigration`
-/// carries the same reset for the same reason.
+/// hard-coded side effect of the `MigrationBase` ctor); `~MigrationBase` unregisters it
+/// again, so a stub with automatic storage duration leaves nothing behind.
 class StubMigration: public Lightweight::SqlMigration::MigrationBase
 {
   public:
@@ -2057,11 +2053,7 @@ class StubMigration: public Lightweight::SqlMigration::MigrationBase
     {
     }
 
-    ~StubMigration() override
-    {
-        Lightweight::SqlMigration::MigrationManager::GetInstance().RemoveAllMigrations();
-        Lightweight::SqlMigration::MigrationManager::GetInstance().RemoveAllReleases();
-    }
+    ~StubMigration() override = default;
 
     StubMigration(StubMigration const&) = delete;
     StubMigration& operator=(StubMigration const&) = delete;
@@ -2318,6 +2310,55 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     CHECK(mgr.CompatFlagsFor(modern).empty());
 
     mgr.SetCompatPolicy({});
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "MigrationBase: destruction unregisters the migration", "[SqlMigration]")
+{
+    auto& mgr = Lightweight::SqlMigration::MigrationManager::GetInstance();
+    REQUIRE(mgr.GetAllMigrations().empty()); // fixture clears state
+
+    {
+        StubMigration const scoped { 20'000'000'000'101ULL };
+        CHECK(mgr.GetAllMigrations().size() == 1);
+    }
+
+    // The constructor registered it, so the destructor has to deregister it: anything left behind is
+    // a pointer to a dead object that `AddMigration`'s duplicate lookup would dereference.
+    CHECK(mgr.GetAllMigrations().empty());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "MigrationBase: a migration reusing a dead one's storage is not a duplicate of itself",
+                 "[SqlMigration]")
+{
+    // Regression test for a CI flake: with the dead migration still listed, `AddMigration` compared
+    // the incoming timestamp against a dangling pointer. When the new migration happened to land on
+    // the freed storage, the pointer resolved back to the object being constructed and it was
+    // rejected as conflicting with itself ("'stub' conflicts with 'stub'").
+    constexpr uint64_t Timestamp = 20'000'000'000'102ULL;
+
+    {
+        StubMigration const first { Timestamp };
+        (void) first;
+    }
+
+    CHECK_NOTHROW([&] {
+        StubMigration const second { Timestamp };
+        (void) second;
+    }());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "MigrationManager::RemoveMigration: removing an unregistered migration is a no-op",
+                 "[SqlMigration]")
+{
+    // The ctor only ever registers with the singleton, so any other manager has never seen `stub`.
+    Lightweight::SqlMigration::MigrationManager other;
+    StubMigration const stub { 20'000'000'000'103ULL };
+
+    CHECK_NOTHROW(other.RemoveMigration(&stub));
+    CHECK(other.GetAllMigrations().empty());
+    CHECK(Lightweight::SqlMigration::MigrationManager::GetInstance().GetAllMigrations().size() == 1);
 }
 
 // ============================================================================
