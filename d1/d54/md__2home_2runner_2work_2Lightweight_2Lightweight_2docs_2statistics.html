@@ -196,7 +196,7 @@ Cost</h1>
 <p>Every recording method starts with one relaxed atomic-bool load and returns immediately if collection is disabled — no further atomics, no branching on the data. That is the entire cost for the <code>LIGHTWEIGHT_STATS_ROWS</code>, <code>_CONNECTION_OPENED/_CLOSED</code>, <code>_POOL_*</code> macros while disabled.</p>
 <p><code>LIGHTWEIGHT_STATS_SCOPE</code> (backing <code>Execute</code>, <code>ExecuteDirect</code>, <code>ExecuteBatch</code>, <code>Prepare</code>) is the one exception: its <code>SqlStatisticsScope</code> object still pays a <code>steady_clock::now()</code> and an <code>uncaught_exceptions()</code> call at construction, because the constructor cannot know whether collection will still be enabled by the time its destructor runs — that check happens once, in the destructor's <code>RecordOperation</code> call. This is the honest price of a runtime toggle: those two calls are cheap relative to an ODBC round-trip, but they are not literally zero the way a compiled-out macro would be.</p>
 <p>While enabled, an instrumented operation additionally costs a handful of relaxed atomic increments per sample — still negligible next to the round-trip itself.</p>
-<h1><a class="anchor" id="see-also-6"></a>
+<h1><a class="anchor" id="see-also-5"></a>
 See also</h1>
 <ul>
 <li><a class="el" href="../../d1/d4f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2logging.html">Logging and tracing</a> — the <code>SqlLogger</code> hook interface, which statistics deliberately does <em>not</em> go through: collection is compiled out entirely rather than dispatched to a no-op logger.</li>
