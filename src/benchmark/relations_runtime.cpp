@@ -244,8 +244,9 @@ int main(int argc, char** argv)
     }
 
     // (7)/(8) How much of one lazy load is the re-Prepare? The lazy loaders call
-    // SqlStatement::Prepare() on identical SQL for every owner; SqlStatement has no
-    // prepared-statement cache, so each iteration re-issues SQLPrepareW.
+    // SqlStatement::Prepare() on identical SQL for every owner, each through its own short-lived
+    // statement, so each iteration re-issues SQLPrepareW unless the connection's prepared-statement
+    // cache is enabled - see LightweightPreparedStatementCacheBenchmark for that comparison.
     {
         auto const sql = std::format(R"(SELECT "id", "label", "owner_id" FROM "BenchChild" WHERE "owner_id" = ?)");
         size_t rows = 0;

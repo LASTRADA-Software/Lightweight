@@ -210,6 +210,42 @@ The cache is active on Microsoft SQL Server, PostgreSQL and SQLite. On any other
 `SqlConnection::SupportsPreparedStatementReuse()` is false and the requested capacity stays inactive, so
 the same setup code is safe to run everywhere.
 
+### What it is worth, measured
+
+`src/benchmark/prepared_statement_cache.cpp` (target `LightweightPreparedStatementCacheBenchmark`) runs
+each workload below with the cache off and on, alternating the two settings so a busy database host does
+not favour either, and reports the fastest of eleven repetitions:
+
+```sh
+cmake --preset clang-release -D LIGHTWEIGHT_BUILD_BENCHMARK=ON
+cmake --build --preset clang-release --target LightweightPreparedStatementCacheBenchmark
+./out/build/clang-release/src/benchmark/LightweightPreparedStatementCacheBenchmark 1000 "<connection string>" 11
+```
+
+Speed-up with the cache enabled, 1000 iterations, Docker-local servers (so these are *lower* bounds — the
+saving is a round-trip, and a real network is slower than a loopback one):
+
+| workload | SQLite 3 | PostgreSQL 16.4 | MS SQL Server 2022 |
+|---|---|---|---|
+| fresh `SqlStatement` per call, prepare + execute + fetch | 1.4x | **4.2x** | **1.7x** |
+| fresh `SqlStatement` per call, prepare only | 4.1x | 1.2x | 1.1x |
+| one statement, 4 query texts interleaved | 1.3x | **4.0x** | 1.0x |
+| `DataMapper::Query<>().Where().All()` | 1.1x | **3.8x** | **1.3x** |
+| `DataMapper::Create()` | 0.9x | **1.9x** | **1.3x** |
+| `DataMapper::QuerySingle()` by primary key | 1.0x | 1.0x | 1.0x |
+
+Reading the table:
+
+- **The gain is concentrated in the shape the high-level API produces**: a short-lived `SqlStatement` per
+  call site re-preparing a query text the connection has already seen. That is what `DataMapper`'s query
+  builders and every `SqlQuery` DSL call site do.
+- **PostgreSQL benefits most.** psqlODBC prepares server-side, so a re-prepare is a real round-trip.
+- **`QuerySingle()` gains nothing** — it prepares through the mapper's own long-lived statement, which
+  already reuses its handle for a repeat of the same text whether or not the cache is enabled.
+- **`DataMapper::Create()` on SQLite is ~8% slower.** Its last-insert-id query goes through
+  `ExecuteDirect()`, which parks the prepared handle and allocates a fresh one; on an in-process engine
+  that costs more than the `SQLPrepare` it saves. Enable the cache for network-backed engines.
+
 ## SQL Query Builder
 
 Or construct statement using `SqlQueryBuilder`
