@@ -281,6 +281,58 @@ Speed-up with `PoolConfig::preparedStatementCacheCapacity` set, 500 operations (
 - **The pooled figures are lower than the single-connection ones** (2.2x rather than 3.8x on PostgreSQL)
   because the mix includes `QuerySingle()`, which gains nothing anywhere.
 
+#### As network latency grows
+
+Everything above is loopback Docker, which is the *least* favourable setting for the cache: what it
+removes is network round-trips, and on loopback a round-trip is nearly free. `latency_proxy.py`, next to
+the benchmark, puts the server behind a simulated WAN link so the same workload can be measured at a
+realistic round-trip time:
+
+```sh
+python3 src/benchmark/latency_proxy.py --listen 15432 --target 127.0.0.1:5432 --delay-ms 25 &  # 50 ms RTT
+./LightweightPreparedStatementCacheBenchmark 10 "Driver={PostgreSQL Unicode};...;Port=15432;..." 3 single 20
+```
+
+Time for **one** `DataMapper::Query<>().Where().All()` call, cache off versus on:
+
+| round-trip time | PostgreSQL off | on | speedup | MS SQL Server off | on | speedup |
+|---|---|---|---|---|---|---|
+| 0 ms (loopback) | 0.14 ms | 0.04 ms | 3.8x | 0.16 ms | 0.12 ms | 1.3x |
+| 5 ms | 25.3 ms | 7.6 ms | 3.3x | 12.8 ms | 6.5 ms | 2.0x |
+| 10 ms | 41.4 ms | 12.4 ms | 3.3x | 20.9 ms | 10.5 ms | 2.0x |
+| 25 ms | 113.5 ms | 34.1 ms | 3.3x | 57.1 ms | 28.6 ms | 2.0x |
+| **50 ms** | **201.8 ms** | **60.5 ms** | **3.3x** | **101.8 ms** | **51.0 ms** | **2.0x** |
+
+The ratio is flat, so the cost is purely round-trips and the table can be read as a count of them.
+Dividing each column by the round-trip time gives what a query actually costs on the wire:
+
+| | PostgreSQL | MS SQL Server |
+|---|---|---|
+| query-builder read, no cache | **≈4.0 round-trips** | **≈2.0 round-trips** |
+| query-builder read, cached | ≈1.2 round-trips | ≈1.0 round-trip |
+| saved per query | **≈2.8 round-trips** | **exactly 1 round-trip** |
+| `QuerySingle()`, either way | 1.0 round-trip | 1.0 round-trip |
+| `Prepare()` with no execute | **0** | **0** |
+
+Three things fall out of this:
+
+- **One round-trip is the floor**, and `QuerySingle()` already sits on it — measured at 1.01 round-trips
+  at a 50 ms link with the cache on *or* off. That is why it never gains anything.
+- **`Prepare()` costs no round-trip at all**, at any latency: 1000 prepares with no execute stay at
+  ~1.2 µs each even behind a 50 ms link. The parse travels with the first execute, never with
+  `SQLPrepare`.
+- **The two backends save different things.** psqlODBC spends about three extra round-trips per freshly
+  prepared statement (Parse/Describe plus the deallocate when the handle goes away); the Microsoft driver
+  folds the prepare into `sp_prepexec` and so spends exactly one extra — the `sp_unprepare` that follows
+  a short-lived handle. That single round-trip is the whole of the MS SQL Server win, which is also why
+  reusing *one* statement across several query texts gains nothing there (1.10x): no handle is torn down,
+  so there is no round-trip to save.
+
+For a service talking to a database across an availability zone (~1–2 ms) or a region (~25–50 ms), the
+cache is worth far more than the loopback numbers suggest: at 50 ms it takes a PostgreSQL query-builder
+read from 202 ms to 61 ms.
+
+
 ## SQL Query Builder
 
 Or construct statement using `SqlQueryBuilder`

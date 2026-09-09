@@ -6,7 +6,11 @@
 // prepared-statement cache disabled (the default) and enabled, so the feature can be judged on
 // numbers rather than on the expectation that skipping SQLPrepare must be faster.
 //
-//     LightweightPreparedStatementCacheBenchmark [iterations] [connectionString] [repetitions]
+//     LightweightPreparedStatementCacheBenchmark [iterations] [connectionString] [repetitions] [sections] [seedRows]
+//
+// `sections` is `single` (one connection), `pool` (the pooled workloads) or `all` (the default). The
+// split matters when measuring against a high-latency link, where the pooled shapes spend minutes
+// opening connections.
 //
 // The reported prepare counts come from a SqlLogger subclass and from the cache's own hit/miss
 // counters, so a scenario that accidentally stops exercising the cache shows up as a count rather
@@ -403,7 +407,10 @@ int main(int argc, char** argv)
         argc > 2 ? argv[2] : std::string { "DRIVER=SQLite3;Database=/tmp/lw-prepared-cache-bench.sqlite" };
     if (argc > 3)
         g_repetitions = std::stoul(argv[3]);
-    size_t const seedRows = 200;
+    auto const sections = std::string_view { argc > 4 ? argv[4] : "all" };
+    bool const runSingle = sections == "all" || sections == "single";
+    bool const runPool = sections == "all" || sections == "pool";
+    size_t const seedRows = argc > 5 ? std::stoul(argv[5]) : 200;
 
     SqlConnection::SetDefaultConnectionString(SqlConnectionString { connectionString });
     SqlLogger::SetLogger(g_logger);
@@ -437,44 +444,48 @@ int main(int argc, char** argv)
                 connectionString.c_str(),
                 std::format("{}", connection.ServerType()).c_str(),
                 connection.SupportsPreparedStatementReuse() ? "yes" : "no");
-    std::printf("%-44s %9s %9s   %7s   (cache enabled)\n", "scenario", "off/ms", "on/ms", "speedup");
+    if (runSingle)
+    {
+        std::printf("%-44s %9s %9s   %7s   (cache enabled)\n", "scenario", "off/ms", "on/ms", "speedup");
 
-    Report("fresh statement, prepare+execute+fetch", MeasureBoth(connection, [&] {
-               std::ignore = FreshStatementPerIteration(connection, selectByIdSql, iterations);
-           }));
+        Report("fresh statement, prepare+execute+fetch", MeasureBoth(connection, [&] {
+                   std::ignore = FreshStatementPerIteration(connection, selectByIdSql, iterations);
+               }));
 
-    Report("fresh statement, prepare only",
-           MeasureBoth(connection, [&] { FreshStatementPrepareOnly(connection, selectByIdSql, iterations); }));
+        Report("fresh statement, prepare only",
+               MeasureBoth(connection, [&] { FreshStatementPrepareOnly(connection, selectByIdSql, iterations); }));
 
-    Report("one statement, 4 interleaved queries",
-           MeasureBoth(connection, [&] { std::ignore = InterleavedQueries(connection, interleaved, iterations); }));
+        Report("one statement, 4 interleaved queries",
+               MeasureBoth(connection, [&] { std::ignore = InterleavedQueries(connection, interleaved, iterations); }));
 
-    Report("DataMapper::QuerySingle by primary key", MeasureBoth(connection, [&] {
-               for (size_t i = 1; i <= iterations; ++i)
-                   std::ignore = dm.QuerySingle<Item, DataMapperOptions { .loadRelations = false }>(
-                       static_cast<uint64_t>(i % seedRows) + 1);
-           }));
+        Report("DataMapper::QuerySingle by primary key", MeasureBoth(connection, [&] {
+                   for (size_t i = 1; i <= iterations; ++i)
+                       std::ignore = dm.QuerySingle<Item, DataMapperOptions { .loadRelations = false }>(
+                           static_cast<uint64_t>(i % seedRows) + 1);
+               }));
 
-    // The query-builder read path builds a fresh SqlStatement per call (unlike QuerySingle above,
-    // which reuses the mapper's own statement), so it is the DataMapper shape the cache can help.
-    Report("DataMapper::Query<>().Where().All()", MeasureBoth(connection, [&] {
-               for (size_t i = 0; i < iterations; ++i)
-                   std::ignore = dm.Query<Item, DataMapperOptions { .loadRelations = false }>()
-                                     .Where(FieldNameOf<Member(Item::value)>, static_cast<int32_t>(i % seedRows))
-                                     .All();
-           }));
+        // The query-builder read path builds a fresh SqlStatement per call (unlike QuerySingle above,
+        // which reuses the mapper's own statement), so it is the DataMapper shape the cache can help.
+        Report("DataMapper::Query<>().Where().All()", MeasureBoth(connection, [&] {
+                   for (size_t i = 0; i < iterations; ++i)
+                       std::ignore = dm.Query<Item, DataMapperOptions { .loadRelations = false }>()
+                                         .Where(FieldNameOf<Member(Item::value)>, static_cast<int32_t>(i % seedRows))
+                                         .All();
+               }));
 
-    Report("DataMapper::Create (INSERT + last id)", MeasureBoth(connection, [&] {
-               auto transaction = SqlTransaction { connection };
-               for (size_t i = 0; i < iterations; ++i)
-               {
-                   auto item =
-                       Item { .name = SqlAnsiString<40> { std::format("new-{}", i) }, .value = static_cast<int32_t>(i) };
-                   dm.Create(item);
-               }
-               transaction.Rollback();
-           }));
+        Report("DataMapper::Create (INSERT + last id)", MeasureBoth(connection, [&] {
+                   auto transaction = SqlTransaction { connection };
+                   for (size_t i = 0; i < iterations; ++i)
+                   {
+                       auto item =
+                           Item { .name = SqlAnsiString<40> { std::format("new-{}", i) }, .value = static_cast<int32_t>(i) };
+                       dm.Create(item);
+                   }
+                   transaction.Rollback();
+               }));
+    }
 
-    RunPooledScenarios(iterations, seedRows);
+    if (runPool)
+        RunPooledScenarios(iterations, seedRows);
     return 0;
 }
