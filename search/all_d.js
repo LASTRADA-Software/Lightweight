@@ -47,6 +47,7 @@ var searchData=
   ['gettitle_44',['GetTitle',['../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a120faae4809045b0fd412b6550b634f0',1,'Lightweight::SqlMigration::MigrationBase']]],
   ['giveup_45',['GiveUp',['../d1/d7b/group__Retry.html#gga342e14df587d6a9b4a42d34038e2fdc5abf9deec9cf8f3d92bff5d1edeff93206',1,'Lightweight']]],
   ['group_20by_46',['GROUP BY',['../d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#group-by',1,'']]],
-  ['growthstrategy_47',['growthstrategy',['../d6/de4/group__ConnectionPool.html#gadf7777be559a52bca78d24e4a99a4f0c',1,'Lightweight::GrowthStrategy'],['../df/d1a/structLightweight_1_1PoolConfig.html#a82b19e524cdb6dc43c0ec8aab3201e6f',1,'Lightweight::PoolConfig::growthStrategy']]],
-  ['guid_48',['Guid',['../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2ac195f641dd597766b98e4ffa9e2f0e75',1,'Lightweight::RowArrayCursor']]]
+  ['growth_20strategies_47',['Growth strategies',['../d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#growth-strategies',1,'']]],
+  ['growthstrategy_48',['growthstrategy',['../d6/de4/group__ConnectionPool.html#gadf7777be559a52bca78d24e4a99a4f0c',1,'Lightweight::GrowthStrategy'],['../df/d1a/structLightweight_1_1PoolConfig.html#a82b19e524cdb6dc43c0ec8aab3201e6f',1,'Lightweight::PoolConfig::growthStrategy']]],
+  ['guid_49',['Guid',['../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2ac195f641dd597766b98e4ffa9e2f0e75',1,'Lightweight::RowArrayCursor']]]
 ];

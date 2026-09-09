@@ -36,7 +36,6 @@ var NAVTREE =
       [ "Raw SQL Queries", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#raw-sql-queries", null ],
       [ "Transparent block-prefetch (fewer network round-trips)", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#transparent-block-prefetch-fewer-network-round-trips", null ],
       [ "Prepared Statements", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#prepared-statements", null ],
-      [ "Prepared-statement cache (fewer prepare round-trips)", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#prepared-statement-cache-fewer-prepare-round-trips", null ],
       [ "SQL Query Builder", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sql-query-builder", null ],
       [ "High level Data Mapping", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#high-level-data-mapping", [
         [ "Batched insert and update", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#batched-insert-and-update", null ],
@@ -115,8 +114,7 @@ var NAVTREE =
         [ "Use Prepared Statements", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-prepared-statements", null ],
         [ "Use Pagination or Infinite Scrolling", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-pagination-or-infinite-scrolling", null ],
         [ "Load relations for a whole result set, not per record", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#load-relations-for-a-whole-result-set-not-per-record", null ],
-        [ "Let block-prefetch cut network round-trips", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#let-block-prefetch-cut-network-round-trips", null ],
-        [ "Enable the prepared-statement cache for recurring queries", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#enable-the-prepared-statement-cache-for-recurring-queries", null ]
+        [ "Let block-prefetch cut network round-trips", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#let-block-prefetch-cut-network-round-trips", null ]
       ] ],
       [ "SQL Server Variation Challenges", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#sql-server-variation-challenges", [
         [ "64-bit Integer Handling in Oracle Database", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#autotoc_md64-bit-integer-handling-in-oracle-database", null ]
@@ -277,12 +275,24 @@ var NAVTREE =
         [ "Interop with <tt>std::execution</tt>", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#interop-with-stdexecution", null ]
       ] ]
     ] ],
+    [ "Connection pooling", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html", [
+      [ "Growth strategies", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#growth-strategies", null ],
+      [ "Acquire timeout", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#acquire-timeout", null ],
+      [ "Keeping pooled connections healthy", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#keeping-pooled-connections-healthy", [
+        [ "Validation on borrow", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#validation-on-borrow", null ],
+        [ "<tt>maxIdleTimeMs</tt>", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#maxidletimems", null ],
+        [ "<tt>maxLifetimeMs</tt>", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#maxlifetimems", null ],
+        [ "Retirement is lazy", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#retirement-is-lazy", null ]
+      ] ],
+      [ "Compile-time defaults", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#compile-time-defaults", null ],
+      [ "See also", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#see-also-4", null ]
+    ] ],
     [ "Logging and tracing", "d1/d4f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2logging.html", [
       [ "The built-in loggers", "d1/d4f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2logging.html#the-built-in-loggers", null ],
       [ "Redirecting the output", "d1/d4f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2logging.html#redirecting-the-output", null ],
       [ "Writing a custom logger", "d1/d4f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2logging.html#writing-a-custom-logger", null ],
       [ "Restoring the previous logger", "d1/d4f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2logging.html#restoring-the-previous-logger", null ],
-      [ "See also", "d1/d4f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2logging.html#see-also-4", null ]
+      [ "See also", "d1/d4f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2logging.html#see-also-5", null ]
     ] ],
     [ "Statistics and metrics", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html", [
       [ "Enabling it", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html#enabling-it", null ],
@@ -294,7 +304,7 @@ var NAVTREE =
       [ "Pools", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html#pools", null ],
       [ "Feeding Tracy", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html#feeding-tracy", null ],
       [ "Cost", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html#cost", null ],
-      [ "See also", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html#see-also-5", null ]
+      [ "See also", "d1/d54/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2statistics.html#see-also-6", null ]
     ] ],
     [ "Schema introspection", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html", [
       [ "Reading every table", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#reading-every-table", null ],
@@ -302,7 +312,7 @@ var NAVTREE =
       [ "Following relationships directly", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#following-relationships-directly", null ],
       [ "Turning a description back into DDL", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#turning-a-description-back-into-ddl", null ],
       [ "Event-driven reading", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#event-driven-reading", null ],
-      [ "See also", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#see-also-6", null ]
+      [ "See also", "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#see-also-7", null ]
     ] ],
     [ "Composite key support — design", "d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html", [
       [ "The design: <tt>CompositeForeignKey<Connection<...>, ...></tt>", "d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#the-design-compositeforeignkeyconnection-", null ],
@@ -357,14 +367,14 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a1e358b0f28cd16323fa55967128bbcce",
-"d4/d7c/group__DataTypes.html#gab8dd8d8b07e4d40ed1aa43984de429ea",
-"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a06ca946219ba863f4649323ae30015d4",
-"d8/d5b/structLightweight_1_1SqlErrorInfo.html#a8a612b03568fae3800296f774e91ce16",
-"da/d07/structLightweight_1_1SqlRawColumnMetadata.html",
-"db/dad/classLightweight_1_1SqlStatement.html#ac394d28a45e9b10a2edb1cdf0037281e",
-"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#size-suffixes",
-"df/d63/classLightweight_1_1HasOneThrough.html"
+"d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a515083c477fa7b7c42fe61e3132f9da6",
+"d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#a0ad4f33c05fc8af226a31dcd9ddd2d11",
+"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html",
+"d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html",
+"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a9437efb270ef1560d5cd08a1275d6d10",
+"db/dd1/SqlBackup_8hpp_source.html",
+"de/d61/classLightweight_1_1DataMapper.html#a26cf5a8f4f6f3cf5840bb6fe6974e168",
+"df/d63/classLightweight_1_1HasOneThrough.html#ae099c15e7beb285410872fc7c08be768"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
