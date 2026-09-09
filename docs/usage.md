@@ -246,6 +246,41 @@ Reading the table:
   `ExecuteDirect()`, which parks the prepared handle and allocates a fresh one; on an in-process engine
   that costs more than the `SQLPrepare` it saves. Enable the cache for network-backed engines.
 
+#### Under a connection pool
+
+A prepared handle belongs to one connection's `SQLHDBC` and can never be shared with another, so every
+connection a pool hands out warms up on its own. The same benchmark measures that directly: worker
+threads acquire a `DataMapper` from a `Pool`, run three distinct query shapes through it
+(`QuerySingle()`, a `Query<>().Where().All()` and a `Count()`) and hand it back.
+
+Speed-up with `PoolConfig::preparedStatementCacheCapacity` set, 500 operations (1500 queries), and the
+`SQLPrepare` calls the whole pool issued — on the first pass over the workload (cold) and on a later one
+(warm):
+
+| pool shape | SQLite | PostgreSQL | MS SQL Server | `SQLPrepare` cold → warm |
+|---|---|---|---|---|
+| 1 connection, 1 worker | 1.13x | **2.30x** | **1.21x** | 3 → 0 |
+| 1 connection, 4 workers (contended) | 1.13x | **2.18x** | **1.21x** | 3 → 0 |
+| 4 connections, 4 workers | 1.13x | **2.18x** | **1.40x** | 12 → 0 |
+| 2 idle connections, 8 workers (`BoundedOverflow`) | 1.02x | 1.48x | 1.11x | 30 → 24 |
+
+- **The warm-up is exactly `connections × distinct query texts`** — three texts over four connections is
+  twelve `SQLPrepare` calls, not three. That is the price of the cache being per connection, and it is
+  the whole of it: it is paid once, and a pool that keeps its connections converges to **zero**
+  `SQLPrepare` no matter how many connections it holds.
+- **Pool size does not dilute the steady-state win.** One connection and four connections reach the same
+  speed-up; adding connections adds warm-up, not per-query cost.
+- **Short-lived work does dilute it.** With only 6 operations per connection the cold-pass speed-up on
+  PostgreSQL falls from 2.55x to 1.40x, because the twelve prepares are still being paid off. Size the
+  cache for a pool whose connections live across many requests.
+- **`GrowthStrategy::BoundedOverflow` past the idle set never converges.** A connection created on
+  overflow is destroyed when returned, and its warmed cache with it — the warm column above still shows
+  24 `SQLPrepare` calls after many passes. The win drops from 2.18x to 1.48x on PostgreSQL and vanishes
+  on SQLite. If the pool overflows, raising `maxSize` to cover the real concurrency is worth more than
+  any cache capacity: in the same measurement the overflow shape spent most of its time *connecting*.
+- **The pooled figures are lower than the single-connection ones** (2.2x rather than 3.8x on PostgreSQL)
+  because the mix includes `QuerySingle()`, which gains nothing anywhere.
+
 ## SQL Query Builder
 
 Or construct statement using `SqlQueryBuilder`

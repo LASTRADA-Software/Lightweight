@@ -180,8 +180,13 @@ Keep in mind:
   `LIGHTWEIGHT_POOL_PREPARED_STATEMENT_CACHE_CAPACITY` CMake option for `GlobalDataMapperPool()`) instead
   of per acquired connection. Budget for the whole pool: handles cannot be shared between connections, so
   a warmed pool holds up to `maxSize * preparedStatementCacheCapacity` of them, and every connection pays
-  its own warm-up. Under `GrowthStrategy::BoundedOverflow`, connections returned to an already-full idle
-  set are destroyed and their warmed caches with them.
+  its own warm-up — measured, exactly `connections * distinct query texts` prepares, paid once. Pool size
+  does not dilute the steady-state win (one connection and four reach the same speed-up), but short-lived
+  work does: at six operations per connection the PostgreSQL gain fell from 2.55x to 1.40x.
+- **Make sure the pool does not overflow.** Under `GrowthStrategy::BoundedOverflow`, a connection created
+  past the idle set is destroyed when returned, taking its warmed cache with it, so the pool never stops
+  re-preparing: the PostgreSQL gain drops from 2.18x to 1.48x and SQLite's to nothing. Raising `maxSize`
+  to cover the real concurrency is worth more than any cache capacity.
 - A pooled handle carries the plan derived from the schema at preparation time. Call
   `ClearPreparedStatementCache()` after raw DDL; migrations and `MigrateDirect()` already do.
 - Statements whose plan must be re-derived opt out via
