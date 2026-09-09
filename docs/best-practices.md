@@ -184,11 +184,13 @@ Keep in mind:
   a warmed pool holds up to `maxSize * preparedStatementCacheCapacity` of them, and every connection pays
   its own warm-up — measured, exactly `connections * distinct query texts` prepares, paid once. Pool size
   does not dilute the steady-state win (one connection and four reach the same speed-up), but short-lived
-  work does: at six operations per connection the PostgreSQL gain fell from 2.55x to 1.40x.
-- **Make sure the pool does not overflow.** Under `GrowthStrategy::BoundedOverflow`, a connection created
-  past the idle set is destroyed when returned, taking its warmed cache with it, so the pool never stops
-  re-preparing: the PostgreSQL gain drops from 2.18x to 1.48x and SQLite's to nothing. Raising `maxSize`
-  to cover the real concurrency is worth more than any cache capacity.
+  work does: at six operations per connection the PostgreSQL gain fell from 2.35x to 1.69x.
+- **Anything that retires a connection discards its warmed cache.** Under
+  `GrowthStrategy::BoundedOverflow` a connection created past the idle set is destroyed when returned, so
+  the pool never stops re-preparing: the PostgreSQL gain drops from 2.5x to 1.4x and SQLite's to
+  nothing. Raising `maxSize` to cover the real concurrency is worth more than any cache capacity. The same
+  applies to `PoolConfig::maxIdleTimeMs`, `maxLifetimeMs` and a failed `validateOnBorrow` check — worth
+  keeping in mind when picking a recycle window, though a stale connection is still worse than a cold one.
 - A pooled handle carries the plan derived from the schema at preparation time. Call
   `ClearPreparedStatementCache()` after raw DDL; migrations and `MigrateDirect()` already do.
 - Statements whose plan must be re-derived opt out via
