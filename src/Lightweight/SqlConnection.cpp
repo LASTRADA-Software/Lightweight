@@ -4,6 +4,7 @@
 #include "DataBinder/UnicodeConverter.hpp"
 #include "SqlConnection.hpp"
 #include "SqlOdbcWide.hpp"
+#include "SqlPreparedStatementCache.hpp"
 #include "SqlQuery.hpp"
 #include "SqlQueryFormatter.hpp"
 #include "SqlStatement.hpp"
@@ -91,6 +92,13 @@ struct SqlConnection::Data
     std::unique_ptr<Async::IAsyncBackend> asyncBackend;      // Async execution backend (null until EnableAsync()).
     std::size_t defaultPrefetchDepth = PrefetchDepthDefault; // Rows requested per SQLFetchScroll on the
                                                              // transparent per-row prefetch path (<= 1 disables).
+    std::size_t requestedPreparedStatementCacheCapacity =
+        PreparedStatementCacheCapacityDefault; // Capacity the user asked for; only handed to the cache
+                                               // below once the connected backend is known to support
+                                               // prepared-handle reuse.
+    SqlPreparedStatementCache preparedStatementCache {
+        PreparedStatementCacheCapacityDefault
+    }; // Pool of already-prepared statement handles (inactive while its capacity is zero).
 };
 
 SqlConnection::SqlConnection():
@@ -217,6 +225,35 @@ void SqlConnection::SetDefaultPrefetchDepth(std::size_t depth) noexcept
     m_data->defaultPrefetchDepth = depth;
 }
 
+std::size_t SqlConnection::PreparedStatementCacheCapacity() const noexcept
+{
+    return m_data->preparedStatementCache.Capacity();
+}
+
+void SqlConnection::SetPreparedStatementCacheCapacity(std::size_t capacity) noexcept
+{
+    m_data->requestedPreparedStatementCacheCapacity = capacity;
+    ApplyPreparedStatementCacheCapacity();
+}
+
+void SqlConnection::ApplyPreparedStatementCacheCapacity() noexcept
+{
+    // A backend whose driver is not known to keep prepared handles re-executable never pools them, so
+    // the request is honoured as "inactive" rather than silently risking a stale handle.
+    m_data->preparedStatementCache.SetCapacity(
+        SupportsPreparedStatementReuse() ? m_data->requestedPreparedStatementCacheCapacity : 0);
+}
+
+void SqlConnection::ClearPreparedStatementCache() noexcept
+{
+    m_data->preparedStatementCache.Clear();
+}
+
+SqlPreparedStatementCache& SqlConnection::PreparedStatementCache() noexcept
+{
+    return m_data->preparedStatementCache;
+}
+
 void SqlConnection::EnableAsync(Async::IExecutor& dbWorkers, Async::IResumeScheduler& resume)
 {
     // TODO(async): once the native event backend lands, select it here via a per-connection
@@ -264,6 +301,10 @@ bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
     EnsureHandlesAllocated();
 
     m_data->defaultPrefetchDepth = info.defaultPrefetchDepth;
+    m_data->requestedPreparedStatementCacheCapacity = info.preparedStatementCacheCapacity;
+
+    // Handles prepared against the previous session die with the disconnect below.
+    m_data->preparedStatementCache.Clear();
 
     if (m_hDbc)
         SQLDisconnect(m_hDbc);
@@ -370,6 +411,9 @@ bool SqlConnection::Connect(SqlConnectionString sqlConnectionString) noexcept
     ZoneScopedN("SqlConnection::Connect(ConnectionString)");
     EnsureHandlesAllocated();
 
+    // Handles prepared against the previous session die with the disconnect below.
+    m_data->preparedStatementCache.Clear();
+
     if (m_hDbc)
         SQLDisconnect(m_hDbc);
 
@@ -449,6 +493,10 @@ void SqlConnection::PostConnect()
     // Get the driver name from the connection handle.
     m_driverName = GetInfoStringW(m_hDbc, SQL_DRIVER_NAME);
 
+    // The server type is only known now, so this is the earliest point at which the backend capability
+    // gate on the prepared-statement cache can be evaluated.
+    ApplyPreparedStatementCacheCapacity();
+
     if (m_serverType == SqlServerType::SQLITE)
     {
         // Set a busy timeout to prevent "database is locked" errors during concurrent access.
@@ -484,6 +532,10 @@ void SqlConnection::Close() noexcept
 
     SqlLogger::GetLogger().OnConnectionClosed(*this);
     LIGHTWEIGHT_STATS_CONNECTION_CLOSED();
+
+    // Statement handles are children of the DBC handle: free the pooled ones before it goes away.
+    if (m_data)
+        m_data->preparedStatementCache.Clear();
 
     SQLDisconnect(m_hDbc);
     SQLFreeHandle(SQL_HANDLE_DBC, m_hDbc);

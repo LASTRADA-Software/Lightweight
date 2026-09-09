@@ -11,6 +11,7 @@ set(LIGHTWEIGHT_POOL_GROWTH_STRATEGY "BoundedOverflow" CACHE STRING "Pool growth
 set(LIGHTWEIGHT_POOL_VALIDATE_ON_BORROW "Yes" CACHE STRING "Check a pooled connection is still alive before handing it out: Yes or No")
 set(LIGHTWEIGHT_POOL_MAX_IDLE_TIME_MS "0" CACHE STRING "Retire a pooled connection idle for longer than this many milliseconds (0 disables)")
 set(LIGHTWEIGHT_POOL_MAX_LIFETIME_MS "0" CACHE STRING "Retire a pooled connection older than this many milliseconds (0 disables)")
+set(LIGHTWEIGHT_POOL_PREPARED_STATEMENT_CACHE_CAPACITY "0" CACHE STRING "Prepared-statement cache capacity of each pooled connection (0 disables the cache)")
 
 if(NOT WIN32)
     find_package(SQLite3 REQUIRED)
@@ -94,6 +95,7 @@ set(HEADER_FILES
     SqlStatistics.hpp
     SqlMigration.hpp
     SqlOdbcWide.hpp
+    SqlPreparedStatementCache.hpp
     SqlQueryFormatter.hpp
     SqlRetryClassifier.hpp
     SqlRetryPolicy.hpp
@@ -131,6 +133,7 @@ set(SOURCE_FILES
     SqlLogger.cpp
     SqlStatistics.cpp
     SqlMigration.cpp
+    SqlPreparedStatementCache.cpp
     SqlQuery.cpp
     SqlQuery/Core.cpp
     SqlQuery/Migrate.cpp
@@ -200,6 +203,7 @@ target_compile_definitions(Lightweight PUBLIC
     LIGHTWEIGHT_POOL_VALIDATE_ON_BORROW=${LIGHTWEIGHT_POOL_VALIDATE_ON_BORROW}
     LIGHTWEIGHT_POOL_MAX_IDLE_TIME_MS=${LIGHTWEIGHT_POOL_MAX_IDLE_TIME_MS}
     LIGHTWEIGHT_POOL_MAX_LIFETIME_MS=${LIGHTWEIGHT_POOL_MAX_LIFETIME_MS}
+    LIGHTWEIGHT_POOL_PREPARED_STATEMENT_CACHE_CAPACITY=${LIGHTWEIGHT_POOL_PREPARED_STATEMENT_CACHE_CAPACITY}
 )
 
 add_library(LightweightTools STATIC)

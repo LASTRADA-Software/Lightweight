@@ -237,7 +237,8 @@ SqlStatement::SqlStatement(SqlStatement&& other) noexcept:
     m_projectionHasWildcard { other.m_projectionHasWildcard },
     m_expectedParameterCount { other.m_expectedParameterCount },
     m_preparedParameterCount { other.m_preparedParameterCount },
-    m_reusedPreparedQuery { other.m_reusedPreparedQuery }
+    m_reusedPreparedQuery { other.m_reusedPreparedQuery },
+    m_preparedStatementCaching { other.m_preparedStatementCaching }
 {
     other.m_data.reset();
     other.m_connection = nullptr;
@@ -258,6 +259,7 @@ SqlStatement& SqlStatement::operator=(SqlStatement&& other) noexcept
     m_reusedPreparedQuery = other.m_reusedPreparedQuery;
     m_projectedFieldNames = std::move(other.m_projectedFieldNames);
     m_projectionHasWildcard = other.m_projectionHasWildcard;
+    m_preparedStatementCaching = other.m_preparedStatementCaching;
 
     other.m_data.reset();
     other.m_connection = nullptr;
@@ -291,6 +293,9 @@ SqlStatement::~SqlStatement() noexcept
     // afterwards reads released driver memory, which segfaults under unixODBC. Skip it when the
     // connection is already closed and the handle is therefore gone with it.
     //
+    // This precedes the pooling below deliberately: a handle whose connection is gone must not be
+    // handed to that connection's cache either. Close() clears the cache for the same reason.
+    //
     // A moved-from SqlConnection also reports a null handle, and there the statement handle is still
     // live (owned by the connection it was moved into), so skipping the free leaks it. Distinguishing
     // the two is possible -- Close() leaves the connection's private data intact whereas the move
@@ -299,7 +304,104 @@ SqlStatement::~SqlStatement() noexcept
     // already leaves the statement unusable, so the crash is the case worth handling here.
     if (m_connection && !m_connection->NativeHandle())
         return;
+
+    // Hand the prepared handle back to the connection's pool, so the next statement preparing the same
+    // query text can re-execute it. Falls through to freeing it when the pool declines to take it.
+    if (ReleasePreparedHandle())
+        return;
+
     SQLFreeHandle(SQL_HANDLE_STMT, m_hStmt);
+}
+
+void SqlStatement::SetPreparedStatementCaching(SqlPreparedStatementCaching caching) noexcept
+{
+    m_preparedStatementCaching = caching;
+}
+
+SqlPreparedStatementCache* SqlStatement::UsablePreparedStatementCache() const noexcept
+{
+    if (m_preparedStatementCaching == SqlPreparedStatementCaching::Disabled || m_connection == nullptr)
+        return nullptr;
+
+    auto& cache = m_connection->PreparedStatementCache();
+    return cache.IsEnabled() ? &cache : nullptr;
+}
+
+bool SqlStatement::ReleasePreparedHandle() noexcept
+{
+    auto* const cache = UsablePreparedStatementCache();
+    if (cache == nullptr || m_hStmt == SQL_NULL_HSTMT || m_preparedQuery.empty())
+        return false;
+
+    // BindInputParameter() replaces m_expectedParameterCount with the "count unknown" sentinel, so that
+    // member no longer describes the query once a caller bound parameters by hand; pooling the sentinel
+    // would make every later Execute(args...) on this query text reject its arguments.
+    // m_preparedParameterCount is the untouched count for m_preparedQuery — SQLNumParams() reported it
+    // at prepare time, and a cache hit copies it off the pooled handle — so the real count is already
+    // known here and asking the driver again would add an ODBC call to every release.
+    auto const parameterCount = m_preparedParameterCount;
+
+    // The pooled handle must come back neutral: cursor closed (CloseCursor also tears down any block
+    // prefetch still referencing the handle), columns unbound, parameter buffers and the parameter-array
+    // attributes reset. None of these unprepare the statement.
+    CloseCursor();
+    SQLFreeStmt(m_hStmt, SQL_UNBIND);
+    SQLFreeStmt(m_hStmt, SQL_RESET_PARAMS);
+    ResetParameterArrayBinding();
+
+    cache->Release(m_preparedQuery,
+                   SqlPreparedStatementCache::PreparedHandle { .nativeHandle = m_hStmt, .parameterCount = parameterCount });
+
+    m_hStmt = SQL_NULL_HSTMT;
+    m_preparedQuery.clear();
+    m_expectedParameterCount = 0;
+    m_numColumns.reset();
+    return true;
+}
+
+void SqlStatement::EnsureStatementHandle()
+{
+    if (m_hStmt == SQL_NULL_HSTMT && m_connection != nullptr)
+        m_connection->RequireSuccess(SQLAllocHandle(SQL_HANDLE_STMT, m_connection->NativeHandle(), &m_hStmt));
+}
+
+void SqlStatement::ReleasePreparedHandleForDirectExecution()
+{
+    // SQLExecDirect discards whatever this handle was prepared for, so park it in the connection's pool
+    // first: a later Prepare() of that query text then still finds it. This matters for the DataMapper,
+    // which drives its INSERT through one statement and immediately reuses it for the direct
+    // last-insert-id query.
+    if (ReleasePreparedHandle())
+        EnsureStatementHandle();
+}
+
+bool SqlStatement::AcquirePreparedHandle(std::string_view query)
+{
+    auto* const cache = UsablePreparedStatementCache();
+    if (cache == nullptr)
+        return false;
+
+    // Park the handle we hold before looking one up: re-preparing the same query then finds exactly the
+    // handle just parked, which is what makes a repeated Prepare() of one query text free.
+    ReleasePreparedHandle();
+
+    auto const pooled = cache->Acquire(query);
+    if (!pooled)
+    {
+        EnsureStatementHandle();
+        return false;
+    }
+
+    // Whatever we still hold was not worth pooling (it carries no prepared query), so it is surplus now.
+    if (m_hStmt != SQL_NULL_HSTMT)
+        SQLFreeHandle(SQL_HANDLE_STMT, m_hStmt);
+
+    m_hStmt = pooled->nativeHandle;
+    // Both counts: m_expectedParameterCount is what Execute() validates against, m_preparedParameterCount
+    // is what a later release pools again (and what the own-handle reuse path restores).
+    m_expectedParameterCount = pooled->parameterCount;
+    m_preparedParameterCount = pooled->parameterCount;
+    return true;
 }
 
 SqlStatement SqlStatement::Prepare(std::string_view query) &&
@@ -327,9 +429,34 @@ void SqlStatement::Prepare(std::string_view query) &
     // indicators, post-execute callbacks and possibly parameter-array attributes from the previous
     // execution, and those must be torn down whether or not the query text changed.
     bool const reusePreparedQuery = !m_preparedQuery.empty() && m_preparedQuery == query;
-    m_reusedPreparedQuery = reusePreparedQuery;
-    if (!reusePreparedQuery)
-        m_preparedQuery = std::string(query);
+
+    // Copy the query text up front: AcquirePreparedHandle() clears m_preparedQuery when it parks the
+    // handle we currently hold, which would dangle a `query` that views this statement's own text
+    // (e.g. stmt.Prepare(stmt.PreparedQuery())).
+    auto queryText = std::string(query);
+
+    // Repeating the query text this statement already holds is served from its own handle, cache or no
+    // cache. Routing it through the pool instead - park the handle, look the same text straight back up -
+    // reaches the same handle without a SQLPrepare, but pays a cursor close, a parameter reset and two
+    // string allocations for the trip; measured over 1000 DataMapper::QuerySingle calls, which re-prepare
+    // one query text through the mapper's own statement, that trip cost 10% on MS SQL Server and 6% on
+    // SQLite. The pool is consulted only when this statement cannot answer from the handle it holds.
+    // The reuse is still counted, as Statistics::directReuses, so "no SQLPrepare was issued" stays
+    // observable for every prepare the cache is responsible for.
+    auto* const cache = UsablePreparedStatementCache();
+    if (cache != nullptr && reusePreparedQuery)
+        cache->RecordDirectReuse();
+
+    bool const acquiredFromCache = cache != nullptr && !reusePreparedQuery && AcquirePreparedHandle(queryText);
+    bool const skipReprepare = acquiredFromCache || reusePreparedQuery;
+
+    // Either form of reuse can go stale server-side (a schema change invalidates the cached plan), so
+    // both are covered by the same retry below.
+    m_reusedPreparedQuery = skipReprepare;
+
+    // AcquirePreparedHandle() clears m_preparedQuery when it parks the handle we used to hold, whether
+    // or not it found a pooled match - so this is the one assignment that always restores it.
+    m_preparedQuery = std::move(queryText);
     const_cast<SqlStatement*>(this)->m_numColumns.reset();
 
     // Raw SQL carries no column-name mapping; drop the previous one so its names cannot resolve
@@ -358,20 +485,22 @@ void SqlStatement::Prepare(std::string_view query) &
     // but psqlODBC has historically treated SQL_C_CHAR parameter binds differently
     // depending on the variant of the most recent statement-text call — so we keep
     // the path uniformly W to side-step that.
-    if (!reusePreparedQuery)
+    if (!skipReprepare)
     {
-        auto wQuery = detail::OdbcWideArg { query };
+        auto wQuery = detail::OdbcWideArg { std::string_view { m_preparedQuery } };
         RequireSuccess(SQLPrepareW(m_hStmt, wQuery.data(), static_cast<SQLINTEGER>(wQuery.buffer.size())));
         RequireSuccess(SQLNumParams(m_hStmt, &m_expectedParameterCount));
         m_preparedParameterCount = m_expectedParameterCount;
     }
-    else
-        // SQLNumParams() was skipped, so restore what it would have reported. BindInputParameter()
-        // overwrites m_expectedParameterCount with SQLSMALLINT max to mean "the caller bound the
-        // parameters by hand"; leaving that in place would make the next Execute()/ExecuteBatch()
-        // reject its argument count (e.g. Create() followed by CreateAll(), which prepare byte-identical
-        // INSERT text), and would size the indicator vector to 32768 entries.
+    else if (!acquiredFromCache)
+        // The own-handle fast path skipped SQLNumParams(), so restore what it would have reported.
+        // BindInputParameter() overwrites m_expectedParameterCount with SQLSMALLINT max to mean "the
+        // caller bound the parameters by hand"; leaving that in place would make the next
+        // Execute()/ExecuteBatch() reject its argument count (e.g. Create() followed by CreateAll(),
+        // which prepare byte-identical INSERT text), and would size the indicator vector to 32768 entries.
         m_expectedParameterCount = m_preparedParameterCount;
+    // else: acquiredFromCache — AcquirePreparedHandle() already restored m_expectedParameterCount from
+    // the pooled handle's recorded (never-sentinel) parameter count; see ReleasePreparedHandle().
 
     m_data->indicators.resize(static_cast<size_t>(m_expectedParameterCount) + 1);
 }
@@ -468,6 +597,8 @@ SqlResultCursor SqlStatement::ExecuteDirect(std::string_view const& query, std::
     ZoneTextObject(query);
     if (query.empty())
         return SqlResultCursor { *this };
+
+    ReleasePreparedHandleForDirectExecution();
 
     m_preparedQuery.clear();
     m_reusedPreparedQuery = false;
@@ -576,6 +707,8 @@ RowArrayCursor SqlStatement::ExecuteBatchFetch(std::string_view query, std::size
 
     if (arrayDepth == 0)
         throw std::invalid_argument { "arrayDepth must be greater than zero" };
+
+    ReleasePreparedHandleForDirectExecution();
 
     m_preparedQuery.clear();
     m_reusedPreparedQuery = false;
