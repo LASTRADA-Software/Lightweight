@@ -17,6 +17,13 @@ add_executable(LightweightRelationBenchmark relations_runtime.cpp)
 target_compile_features(LightweightRelationBenchmark PUBLIC cxx_std_23)
 target_link_libraries(LightweightRelationBenchmark Lightweight::Lightweight)
 
+# Runtime benchmark for the prepared-statement cache (issue #552): measures repeated-prepare
+# workloads with the connection cache off and on, so the feature can be judged on numbers. Needs a
+# live database to run, but builds without one.
+add_executable(LightweightPreparedStatementCacheBenchmark prepared_statement_cache.cpp)
+target_compile_features(LightweightPreparedStatementCacheBenchmark PUBLIC cxx_std_23)
+target_link_libraries(LightweightPreparedStatementCacheBenchmark Lightweight::Lightweight)
+
 # Compilation-time profiling. When enabled (and building with Clang), emit a
 # Chrome-trace (`benchmark.cpp.json`) next to the object file that
 # measure_compile_time.py aggregates into per-template-instantiation timings.

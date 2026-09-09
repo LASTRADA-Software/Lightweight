@@ -140,6 +140,11 @@ round-trips instead of one per row — see [Transparent block-prefetch](usage.md
 connection.SetDefaultPrefetchDepth(1000); // rows per SQLFetchScroll round-trip; <= 1 disables
 ```
 
+Measured against Docker-local servers, this is worth **4.2x** on PostgreSQL, **1.7x** on MS SQL Server and
+**1.4x** on SQLite for a repeatedly re-prepared single-row read, and **3.8x / 1.3x / 1.1x** for the same
+query driven through `DataMapper::Query<>()`. The full table, and the workloads that gain nothing, are in
+[usage.md](usage.md).
+
 Keep in mind:
 
 - It engages only for **fixed-width numeric/temporal** result sets; result sets with character,
@@ -163,6 +168,12 @@ connection.SetPreparedStatementCacheCapacity(Lightweight::PreparedStatementCache
 Keep in mind:
 
 - It is **opt-in** (default capacity `0`), and transparent once enabled — no call-site changes.
+- It pays off where a **short-lived statement re-prepares a text the connection has seen** — the shape the
+  query builders produce. Code that already drives one long-lived `SqlStatement` through one query text
+  (as `DataMapper::QuerySingle()` does) reuses its own handle regardless and gains nothing.
+- On **SQLite it is roughly break-even**: with no network there is no round-trip to save, and
+  `DataMapper::Create()` measures ~8% slower because its last-insert-id `ExecuteDirect()` has to park the
+  prepared handle. Enable it for the network-backed engines.
 - Size it to your working set of distinct query texts. Too small and the LRU thrashes; too large and you
   risk the server-side cap on live prepared statements per session.
 - With a connection pool, set it once via `PoolConfig::preparedStatementCacheCapacity` (or the
