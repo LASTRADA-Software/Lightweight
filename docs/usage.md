@@ -122,6 +122,69 @@ while (cursor.FetchRow())
     std::println("{}|{}|{}", record.a, record.b, record.c);
 ```
 
+## Prepared-statement cache (fewer prepare round-trips)
+
+Preparing a query costs a server-side parse and plan on Microsoft SQL Server and PostgreSQL, paid again
+every time the same query text is prepared. Applications built on `DataMapper` or the query builders
+re-prepare the same handful of statements constantly, because each call site creates its own short-lived
+`SqlStatement`.
+
+Both drivers *defer* that work rather than doing it inside `SQLPrepare`: measured, `Prepare()` on its own
+costs about 1.2 µs on either backend and sends nothing. The parse is folded into the **first execute** of
+a freshly prepared handle (`sp_prepexec` on the Microsoft driver, a Parse/Describe exchange on psqlODBC),
+with a matching deallocate when the handle is freed. Re-executing a handle that is already prepared skips
+all of it — which is what makes keeping the handle alive worth anything.
+
+A connection can keep the already-prepared handles alive in a bounded LRU pool, so re-preparing a query
+it has seen before skips `SQLPrepare` entirely:
+
+```cpp
+auto conn = SqlConnection {};
+conn.SetPreparedStatementCacheCapacity(Lightweight::PreparedStatementCacheCapacitySuggested); // 64
+```
+
+The cache is **opt-in** (default capacity `Lightweight::PreparedStatementCacheCapacityDefault`, i.e. `0`
+= disabled) but, once enabled, **transparent**: every `SqlStatement` on that connection participates, so
+`DataMapper`, the `SqlQuery` DSL, and raw `Prepare()` call sites all benefit without a code change. It
+can also be requested up-front via `SqlConnectionDataSource::preparedStatementCacheCapacity`.
+
+How it works: a handle is *checked out* while a statement uses it and returned to the pool when that
+statement is re-prepared or destroyed. Two statements preparing the same text at the same time therefore
+each get their own handle. When the pool exceeds its capacity the least recently returned handle is
+freed — a bound that matters because several backends cap the number of live prepared statements per
+session. Statistics are available for diagnostics:
+
+```cpp
+auto const& stats = conn.PreparedStatementCache().Stats();
+std::println("prepare hits={} misses={} evictions={} directReuses={}",
+             stats.hits, stats.misses, stats.evictions, stats.directReuses);
+```
+
+`directReuses` counts prepares a statement served from the handle it was already holding — a repeat of
+the query text it last prepared. Those cost no `SQLPrepare` either, but they never consult the pool:
+parking the handle only to look that same text straight back up would be pure overhead.
+
+**Schema changes invalidate cached plans.** A pooled handle carries the plan the driver derived from the
+schema as it was at preparation time, so DDL must drop it:
+
+```cpp
+conn.ClearPreparedStatementCache();
+```
+
+Lightweight does this for you where it owns the DDL — `SqlStatement::MigrateDirect()` and the
+`MigrationManager` executor clear the cache after applying a script — and disconnecting or reconnecting a
+connection clears it as well. Raw DDL you send through `ExecuteDirect()` is your responsibility. A single
+statement that must never reuse a plan opts out:
+
+```cpp
+auto stmt = SqlStatement { conn };
+stmt.SetPreparedStatementCaching(SqlPreparedStatementCaching::Disabled);
+```
+
+The cache is active on Microsoft SQL Server, PostgreSQL and SQLite. On any other backend
+`SqlConnection::SupportsPreparedStatementReuse()` is false and the requested capacity stays inactive, so
+the same setup code is safe to run everywhere.
+
 ## SQL Query Builder
 
 Or construct statement using `SqlQueryBuilder`
