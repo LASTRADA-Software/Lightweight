@@ -122,6 +122,223 @@ while (cursor.FetchRow())
     std::println("{}|{}|{}", record.a, record.b, record.c);
 ```
 
+## Prepared-statement cache (fewer prepare round-trips)
+
+Preparing a query costs a server-side parse and plan on Microsoft SQL Server and PostgreSQL, paid again
+every time the same query text is prepared. Applications built on `DataMapper` or the query builders
+re-prepare the same handful of statements constantly, because each call site creates its own short-lived
+`SqlStatement`.
+
+Both drivers *defer* that work rather than doing it inside `SQLPrepare`: measured, `Prepare()` on its own
+costs about 1.2 µs on either backend and sends nothing. The parse is folded into the **first execute** of
+a freshly prepared handle (`sp_prepexec` on the Microsoft driver, a Parse/Describe exchange on psqlODBC),
+with a matching deallocate when the handle is freed. Re-executing a handle that is already prepared skips
+all of it — which is what makes keeping the handle alive worth anything.
+
+A connection can keep the already-prepared handles alive in a bounded LRU pool, so re-preparing a query
+it has seen before skips `SQLPrepare` entirely:
+
+```cpp
+auto conn = SqlConnection {};
+conn.SetPreparedStatementCacheCapacity(Lightweight::PreparedStatementCacheCapacitySuggested); // 64
+```
+
+The cache is **opt-in** (default capacity `Lightweight::PreparedStatementCacheCapacityDefault`, i.e. `0`
+= disabled) but, once enabled, **transparent**: every `SqlStatement` on that connection participates, so
+`DataMapper`, the `SqlQuery` DSL, and raw `Prepare()` call sites all benefit without a code change. It
+can also be requested up-front via `SqlConnectionDataSource::preparedStatementCacheCapacity`.
+
+For pooled applications, configure it on the pool rather than on each acquired connection.
+`PoolConfig::preparedStatementCacheCapacity` is applied to every connection the pool creates, so no
+call site has to remember to enable it:
+
+```cpp
+constexpr auto MyPoolConfig = Lightweight::PoolConfig {
+    .initialSize = 4,
+    .maxSize = 16,
+    .growthStrategy = Lightweight::GrowthStrategy::BoundedOverflow,
+    .preparedStatementCacheCapacity = Lightweight::PreparedStatementCacheCapacitySuggested,
+};
+auto pool = Lightweight::Pool<MyPoolConfig> {};
+```
+
+The global pool returned by `GlobalDataMapperPool()` takes the same setting from the CMake option
+`LIGHTWEIGHT_POOL_PREPARED_STATEMENT_CACHE_CAPACITY` (default `0`, i.e. disabled), alongside the
+existing `LIGHTWEIGHT_POOL_INITIAL_SIZE`, `LIGHTWEIGHT_POOL_MAX_SIZE` and
+`LIGHTWEIGHT_POOL_GROWTH_STRATEGY`.
+
+A pooled connection keeps its warmed handles across acquires, since the pool hands back the same live
+connection rather than reconnecting it — but only for as long as the pool keeps that connection. Anything
+that retires one discards its warmed cache with it: `PoolConfig::maxIdleTimeMs`, `maxLifetimeMs`, a failed
+`validateOnBorrow` check, and `GrowthStrategy::BoundedOverflow` above the idle set. See
+[connection-pool.md](connection-pool.md). Note that the capacity is **per connection**: the cache is a set
+of ODBC statement handles owned by one connection's `SQLHDBC` and can never be shared with another
+connection, so each pooled connection warms up separately and a fully warmed pool holds up to
+`maxSize * preparedStatementCacheCapacity` prepared statements on the server.
+
+How it works: a handle is *checked out* while a statement uses it and returned to the pool when that
+statement is re-prepared or destroyed. Two statements preparing the same text at the same time therefore
+each get their own handle. When the pool exceeds its capacity the least recently returned handle is
+freed — a bound that matters because several backends cap the number of live prepared statements per
+session. Statistics are available for diagnostics:
+
+```cpp
+auto const& stats = conn.PreparedStatementCache().Stats();
+std::println("prepare hits={} misses={} evictions={} directReuses={}",
+             stats.hits, stats.misses, stats.evictions, stats.directReuses);
+```
+
+`directReuses` counts prepares a statement served from the handle it was already holding — a repeat of
+the query text it last prepared. Those cost no `SQLPrepare` either, but they never consult the pool:
+parking the handle only to look that same text straight back up would be pure overhead.
+
+**Schema changes invalidate cached plans.** A pooled handle carries the plan the driver derived from the
+schema as it was at preparation time, so DDL must drop it:
+
+```cpp
+conn.ClearPreparedStatementCache();
+```
+
+Lightweight does this for you where it owns the DDL — `SqlStatement::MigrateDirect()` and the
+`MigrationManager` executor clear the cache after applying a script — and disconnecting or reconnecting a
+connection clears it as well. Raw DDL you send through `ExecuteDirect()` is your responsibility. A single
+statement that must never reuse a plan opts out:
+
+```cpp
+auto stmt = SqlStatement { conn };
+stmt.SetPreparedStatementCaching(SqlPreparedStatementCaching::Disabled);
+```
+
+The cache is active on Microsoft SQL Server, PostgreSQL and SQLite. On any other backend
+`SqlConnection::SupportsPreparedStatementReuse()` is false and the requested capacity stays inactive, so
+the same setup code is safe to run everywhere.
+
+### What it is worth, measured
+
+`src/benchmark/prepared_statement_cache.cpp` (target `LightweightPreparedStatementCacheBenchmark`) runs
+each workload below with the cache off and on, alternating the two settings so a busy database host does
+not favour either, and reports the fastest of eleven repetitions:
+
+```sh
+cmake --preset clang-release -D LIGHTWEIGHT_BUILD_BENCHMARK=ON
+cmake --build --preset clang-release --target LightweightPreparedStatementCacheBenchmark
+./out/build/clang-release/src/benchmark/LightweightPreparedStatementCacheBenchmark 1000 "<connection string>" 11
+```
+
+Speed-up with the cache enabled, 1000 iterations, Docker-local servers (so these are *lower* bounds — the
+saving is a round-trip, and a real network is slower than a loopback one):
+
+| workload | SQLite 3 | PostgreSQL 16.4 | MS SQL Server 2022 |
+|---|---|---|---|
+| fresh `SqlStatement` per call, prepare + execute + fetch | 1.4x | **4.2x** | **1.7x** |
+| fresh `SqlStatement` per call, prepare only | 4.1x | 1.2x | 1.1x |
+| one statement, 4 query texts interleaved | 1.3x | **4.0x** | 1.0x |
+| `DataMapper::Query<>().Where().All()` | 1.1x | **3.8x** | **1.3x** |
+| `DataMapper::Create()` | 0.9x | **1.9x** | **1.3x** |
+| `DataMapper::QuerySingle()` by primary key | 1.0x | 1.0x | 1.0x |
+
+Reading the table:
+
+- **The gain is concentrated in the shape the high-level API produces**: a short-lived `SqlStatement` per
+  call site re-preparing a query text the connection has already seen. That is what `DataMapper`'s query
+  builders and every `SqlQuery` DSL call site do.
+- **PostgreSQL benefits most.** psqlODBC prepares server-side, so a re-prepare is a real round-trip.
+- **`QuerySingle()` gains nothing** — it prepares through the mapper's own long-lived statement, which
+  already reuses its handle for a repeat of the same text whether or not the cache is enabled.
+- **`DataMapper::Create()` on SQLite is ~8% slower.** Its last-insert-id query goes through
+  `ExecuteDirect()`, which parks the prepared handle and allocates a fresh one; on an in-process engine
+  that costs more than the `SQLPrepare` it saves. Enable the cache for network-backed engines.
+
+#### Under a connection pool
+
+A prepared handle belongs to one connection's `SQLHDBC` and can never be shared with another, so every
+connection a pool hands out warms up on its own. The same benchmark measures that directly: worker
+threads acquire a `DataMapper` from a `Pool`, run three distinct query shapes through it
+(`QuerySingle()`, a `Query<>().Where().All()` and a `Count()`) and hand it back.
+
+Speed-up with `PoolConfig::preparedStatementCacheCapacity` set, 500 operations (1500 queries), and the
+`SQLPrepare` calls the whole pool issued — on the first pass over the workload (cold) and on a later one
+(warm):
+
+| pool shape | SQLite | PostgreSQL | MS SQL Server | `SQLPrepare` cold → warm |
+|---|---|---|---|---|
+| 1 connection, 1 worker | 1.14x | **2.79x** | **1.35x** | 3 → 0 |
+| 1 connection, 4 workers (contended) | 1.17x | **2.71x** | **1.22x** | 3 → 0 |
+| 4 connections, 4 workers | 1.13x | **2.53x** | **1.35x** | 12 → 0 |
+| 2 idle connections, 8 workers (`BoundedOverflow`) | 1.01x | 1.41x | 1.13x | ~30 → ~24 |
+
+Taken with `validateOnBorrow` at its default (`Yes`), so each acquire from the idle set also pays an
+`IsAlive()` check — the configuration a pool has unless it opts out.
+
+- **The warm-up is exactly `connections × distinct query texts`** — three texts over four connections is
+  twelve `SQLPrepare` calls, not three. That is the price of the cache being per connection, and it is
+  the whole of it: it is paid once, and a pool that keeps its connections converges to **zero**
+  `SQLPrepare` no matter how many connections it holds.
+- **Pool size does not dilute the steady-state win.** One connection and four reach much the same
+  speed-up; adding connections adds warm-up, not per-query cost.
+- **Short-lived work does dilute it.** With only 6 operations per connection the cold-pass speed-up on
+  PostgreSQL falls from 2.35x to 1.69x, because the twelve prepares are still being paid off. Size the
+  cache for a pool whose connections live across many requests.
+- **`GrowthStrategy::BoundedOverflow` past the idle set never converges.** A connection created on
+  overflow is destroyed when returned, and its warmed cache with it — the warm column above still shows
+  ~24 `SQLPrepare` calls after many passes. The win drops from 2.5x to 1.4x on PostgreSQL and vanishes on
+  SQLite. If the pool overflows, raising `maxSize` to cover the real concurrency is worth more than
+  any cache capacity: in the same measurement the overflow shape spent most of its time *connecting*.
+- **The pooled figures are lower than the single-connection ones** (2.5x rather than 3.8x on PostgreSQL)
+  because the mix includes `QuerySingle()`, which gains nothing anywhere.
+
+#### As network latency grows
+
+Everything above is loopback Docker, which is the *least* favourable setting for the cache: what it
+removes is network round-trips, and on loopback a round-trip is nearly free. `latency_proxy.py`, next to
+the benchmark, puts the server behind a simulated WAN link so the same workload can be measured at a
+realistic round-trip time:
+
+```sh
+python3 src/benchmark/latency_proxy.py --listen 15432 --target 127.0.0.1:5432 --delay-ms 25 &  # 50 ms RTT
+./LightweightPreparedStatementCacheBenchmark 10 "Driver={PostgreSQL Unicode};...;Port=15432;..." 3 single 20
+```
+
+Time for **one** `DataMapper::Query<>().Where().All()` call, cache off versus on:
+
+| round-trip time | PostgreSQL off | on | speedup | MS SQL Server off | on | speedup |
+|---|---|---|---|---|---|---|
+| 0 ms (loopback) | 0.14 ms | 0.04 ms | 3.8x | 0.16 ms | 0.12 ms | 1.3x |
+| 5 ms | 25.3 ms | 7.6 ms | 3.3x | 12.8 ms | 6.5 ms | 2.0x |
+| 10 ms | 41.4 ms | 12.4 ms | 3.3x | 20.9 ms | 10.5 ms | 2.0x |
+| 25 ms | 113.5 ms | 34.1 ms | 3.3x | 57.1 ms | 28.6 ms | 2.0x |
+| **50 ms** | **201.8 ms** | **60.5 ms** | **3.3x** | **101.8 ms** | **51.0 ms** | **2.0x** |
+
+The ratio is flat, so the cost is purely round-trips and the table can be read as a count of them.
+Dividing each column by the round-trip time gives what a query actually costs on the wire:
+
+| | PostgreSQL | MS SQL Server |
+|---|---|---|
+| query-builder read, no cache | **≈4.0 round-trips** | **≈2.0 round-trips** |
+| query-builder read, cached | ≈1.2 round-trips | ≈1.0 round-trip |
+| saved per query | **≈2.8 round-trips** | **exactly 1 round-trip** |
+| `QuerySingle()`, either way | 1.0 round-trip | 1.0 round-trip |
+| `Prepare()` with no execute | **0** | **0** |
+
+Three things fall out of this:
+
+- **One round-trip is the floor**, and `QuerySingle()` already sits on it — measured at 1.01 round-trips
+  at a 50 ms link with the cache on *or* off. That is why it never gains anything.
+- **`Prepare()` costs no round-trip at all**, at any latency: 1000 prepares with no execute stay at
+  ~1.2 µs each even behind a 50 ms link. The parse travels with the first execute, never with
+  `SQLPrepare`.
+- **The two backends save different things.** psqlODBC spends about three extra round-trips per freshly
+  prepared statement (Parse/Describe plus the deallocate when the handle goes away); the Microsoft driver
+  folds the prepare into `sp_prepexec` and so spends exactly one extra — the `sp_unprepare` that follows
+  a short-lived handle. That single round-trip is the whole of the MS SQL Server win, which is also why
+  reusing *one* statement across several query texts gains nothing there (1.10x): no handle is torn down,
+  so there is no round-trip to save.
+
+For a service talking to a database across an availability zone (~1–2 ms) or a region (~25–50 ms), the
+cache is worth far more than the loopback numbers suggest: at 50 ms it takes a PostgreSQL query-builder
+read from 202 ms to 61 ms.
+
+
 ## SQL Query Builder
 
 Or construct statement using `SqlQueryBuilder`

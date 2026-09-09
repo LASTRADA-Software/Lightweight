@@ -25,6 +25,19 @@ namespace Lightweight
 /// a value <= 1 disables prefetch.
 constexpr std::size_t PrefetchDepthDefault = 1000;
 
+/// @brief Default capacity of a connection's prepared-statement cache: the number of already-prepared
+/// ODBC statement handles kept alive for reuse.
+///
+/// Zero — the cache is opt-in. Reusing a prepared handle also reuses the query plan the driver derived
+/// from the schema at preparation time, so enabling it is a deliberate per-connection decision. See
+/// @c SqlConnection::SetPreparedStatementCacheCapacity and
+/// @ref SqlConnectionDataSource::preparedStatementCacheCapacity.
+inline constexpr std::size_t PreparedStatementCacheCapacityDefault = 0;
+
+/// @brief A sensible capacity for enabling the prepared-statement cache on a connection serving a
+/// bounded set of recurring queries (the typical DataMapper workload).
+inline constexpr std::size_t PreparedStatementCacheCapacitySuggested = 64;
+
 /// @ingroup CoreApi
 /// @brief Whether the client/server connection is TLS-encrypted.
 ///
@@ -135,6 +148,14 @@ struct [[nodiscard]] SqlConnectionDataSource
     /// charge. Any other value is applied to the connection handle before connecting, and a driver that
     /// rejects it fails the connection rather than silently downgrading to plaintext.
     SqlEncryptionMode encryption = SqlEncryptionMode::DriverDefault;
+
+    /// @brief Capacity of the prepared-statement cache on the resulting connection: how many
+    /// already-prepared ODBC statement handles are kept alive so that re-preparing the same SQL text
+    /// re-executes one instead of paying the server-side parse again.
+    ///
+    /// Defaults to @c PreparedStatementCacheCapacityDefault (zero, i.e. disabled). See
+    /// @c SqlConnection::SetPreparedStatementCacheCapacity for the implications of enabling it.
+    std::size_t preparedStatementCacheCapacity = PreparedStatementCacheCapacityDefault;
 
     /// Constructs a SqlConnectionDataSource from the given connection string.
     LIGHTWEIGHT_API static SqlConnectionDataSource FromConnectionString(SqlConnectionString const& value);

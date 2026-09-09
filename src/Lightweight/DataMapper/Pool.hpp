@@ -3,6 +3,7 @@
 
 #include "../Async/Executor.hpp"
 #include "../Async/Task.hpp"
+#include "../SqlConnectInfo.hpp"
 #include "../SqlLogger.hpp"
 #include "../SqlStatistics.hpp"
 #include "DataMapper.hpp"
@@ -129,6 +130,18 @@ struct PoolConfig
     ///
     /// @note Retirement is lazy, as described for @ref maxIdleTimeMs.
     std::chrono::milliseconds::rep maxLifetimeMs {};
+
+    /// Prepared-statement cache capacity given to the connection of every data mapper this pool creates,
+    /// i.e. how many already-prepared ODBC statement handles that connection keeps for reuse. Zero (the
+    /// default) leaves the cache disabled, exactly as an unpooled connection.
+    ///
+    /// The bound is per connection, not per pool: a pool may hold up to `maxSize` connections, each with
+    /// its own cache of this size, so the live prepared handles a fully warmed pool holds on the server
+    /// are `maxSize * preparedStatementCacheCapacity`. Size it against the backend's per-session limit
+    /// on prepared statements, not against the number of distinct queries alone.
+    ///
+    /// @see SqlConnection::SetPreparedStatementCacheCapacity for what enabling the cache implies.
+    size_t preparedStatementCacheCapacity { PreparedStatementCacheCapacityDefault };
 
     /// @return @ref maxIdleTimeMs as a duration.
     [[nodiscard]] constexpr std::chrono::milliseconds MaxIdleTime() const noexcept
@@ -268,7 +281,13 @@ class Pool
     [[nodiscard]] Entry MakeEntry() const
     {
         auto const now = NowIfTracking();
-        return Entry { std::make_unique<DataMapper>(), now, now };
+        auto mapper = std::make_unique<DataMapper>();
+        // The one place a pooled connection comes into existence, so a pool-wide connection setting is
+        // applied here rather than at each call site. Compile-time gated, so a pool left at the default
+        // capacity emits exactly the code it did before the setting existed.
+        if constexpr (Config.preparedStatementCacheCapacity != 0)
+            mapper->Connection().SetPreparedStatementCacheCapacity(Config.preparedStatementCacheCapacity);
+        return Entry { std::move(mapper), now, now };
     }
 
     /// Decides whether an idle connection may still be handed to a caller.
@@ -938,6 +957,7 @@ class Pool
 //     Accepted values: Yes, No
 //   LIGHTWEIGHT_POOL_MAX_IDLE_TIME_MS   (default: 0, meaning no bound)
 //   LIGHTWEIGHT_POOL_MAX_LIFETIME_MS    (default: 0, meaning no bound)
+//   LIGHTWEIGHT_POOL_PREPARED_STATEMENT_CACHE_CAPACITY (default: 0, i.e. disabled)
 
 #if !defined(LIGHTWEIGHT_POOL_INITIAL_SIZE)
     #define LIGHTWEIGHT_POOL_INITIAL_SIZE 4
@@ -966,6 +986,10 @@ class Pool
     #define LIGHTWEIGHT_POOL_MAX_LIFETIME_MS 0
 #endif
 
+#if !defined(LIGHTWEIGHT_POOL_PREPARED_STATEMENT_CACHE_CAPACITY)
+    #define LIGHTWEIGHT_POOL_PREPARED_STATEMENT_CACHE_CAPACITY 0
+#endif
+
 inline constexpr PoolConfig DefaultPoolConfig {
     .initialSize = LIGHTWEIGHT_POOL_INITIAL_SIZE,
     .maxSize = LIGHTWEIGHT_POOL_MAX_SIZE,
@@ -973,6 +997,7 @@ inline constexpr PoolConfig DefaultPoolConfig {
     .validateOnBorrow = ValidateOnBorrow::LIGHTWEIGHT_POOL_VALIDATE_ON_BORROW,
     .maxIdleTimeMs = LIGHTWEIGHT_POOL_MAX_IDLE_TIME_MS,
     .maxLifetimeMs = LIGHTWEIGHT_POOL_MAX_LIFETIME_MS,
+    .preparedStatementCacheCapacity = LIGHTWEIGHT_POOL_PREPARED_STATEMENT_CACHE_CAPACITY,
 };
 
 using DataMapperPool = Pool<DefaultPoolConfig>;
