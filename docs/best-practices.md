@@ -140,11 +140,6 @@ round-trips instead of one per row — see [Transparent block-prefetch](usage.md
 connection.SetDefaultPrefetchDepth(1000); // rows per SQLFetchScroll round-trip; <= 1 disables
 ```
 
-Measured against Docker-local servers, this is worth **4.2x** on PostgreSQL, **1.7x** on MS SQL Server and
-**1.4x** on SQLite for a repeatedly re-prepared single-row read, and **3.8x / 1.3x / 1.1x** for the same
-query driven through `DataMapper::Query<>()`. The full table, and the workloads that gain nothing, are in
-[usage.md](usage.md).
-
 Keep in mind:
 
 - It engages only for **fixed-width numeric/temporal** result sets; result sets with character,
@@ -164,6 +159,13 @@ see [Prepared-statement cache](usage.md):
 ```cpp
 connection.SetPreparedStatementCacheCapacity(Lightweight::PreparedStatementCacheCapacitySuggested);
 ```
+
+Measured against Docker-local servers, this is worth **4.2x** on PostgreSQL, **1.7x** on MS SQL Server and
+**1.4x** on SQLite for a repeatedly re-prepared single-row read, and **3.8x / 1.3x / 1.1x** for the same
+query driven through `DataMapper::Query<>()`. What it removes is network round-trips — about **2.8 per
+query** on PostgreSQL and **exactly one** on MS SQL Server — so the further away the server, the more it
+is worth: across a 50 ms link the same PostgreSQL read goes from 202 ms to 61 ms. The full tables, the
+latency sweep and the workloads that gain nothing are in [usage.md](usage.md).
 
 Keep in mind:
 
