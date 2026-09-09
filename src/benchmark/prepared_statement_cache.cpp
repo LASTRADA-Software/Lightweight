@@ -15,6 +15,7 @@
 #include <Lightweight/Lightweight.hpp>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
@@ -23,6 +24,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -57,16 +59,17 @@ namespace
 class CountingLogger final: public SqlLogger::Null
 {
   public:
-    size_t prepares = 0;
+    // Atomic because the pooled workloads below drive several worker threads through one logger.
+    std::atomic<size_t> prepares { 0 };
 
     void OnPrepare(std::string_view const& /*query*/) override
     {
-        ++prepares;
+        prepares.fetch_add(1, std::memory_order_relaxed);
     }
 
     void Reset() noexcept
     {
-        prepares = 0;
+        prepares.store(0, std::memory_order_relaxed);
     }
 };
 
@@ -184,6 +187,213 @@ size_t InterleavedQueries(SqlConnection& connection, std::span<std::string const
     return rows;
 }
 
+// --- Pooled workloads -------------------------------------------------------------------------
+//
+// A prepared handle is a child of one connection's SQLHDBC, so the cache can never be shared between
+// pooled connections: every connection a pool hands out warms up on its own. These scenarios measure
+// what that costs and what survives it.
+
+/// The prepared-statement cache counters summed over every pooled connection a run touched. Each
+/// worker snapshots its connection's counters at acquire and adds the delta back at release, which is
+/// the only way to total them: the pool owns the connections and does not expose them.
+struct PoolCacheCounters
+{
+    std::atomic<uint64_t> hits { 0 };
+    std::atomic<uint64_t> misses { 0 };
+    std::atomic<uint64_t> directReuses { 0 };
+
+    void Add(SqlPreparedStatementCache::Statistics const& before,
+             SqlPreparedStatementCache::Statistics const& after) noexcept
+    {
+        hits.fetch_add(after.hits - before.hits, std::memory_order_relaxed);
+        misses.fetch_add(after.misses - before.misses, std::memory_order_relaxed);
+        directReuses.fetch_add(after.directReuses - before.directReuses, std::memory_order_relaxed);
+    }
+
+    void Reset() noexcept
+    {
+        hits.store(0, std::memory_order_relaxed);
+        misses.store(0, std::memory_order_relaxed);
+        directReuses.store(0, std::memory_order_relaxed);
+    }
+};
+
+/// One unit of work: acquire a mapper, run a mix of query shapes through it, hand it back. Three
+/// distinct query texts, because a pool whose connections each cache one statement says nothing about
+/// how a real working set behaves.
+template <typename PooledMapper>
+size_t QueryMix(PooledMapper& pooled, size_t index, size_t seedRows)
+{
+    auto& dm = pooled.Get();
+    size_t rows = 0;
+
+    // (1) By primary key - goes through the mapper's own long-lived statement.
+    if (dm.template QuerySingle<Item, DataMapperOptions { .loadRelations = false }>(static_cast<uint64_t>(index % seedRows)
+                                                                                    + 1))
+        ++rows;
+
+    // (2) and (3) Query-builder reads - a fresh SqlStatement per call, the shape the cache targets.
+    rows += dm.template Query<Item, DataMapperOptions { .loadRelations = false }>()
+                .Where(FieldNameOf<Member(Item::value)>, static_cast<int32_t>(index % seedRows))
+                .All()
+                .size();
+    rows += static_cast<size_t>(dm.template Query<Item, DataMapperOptions { .loadRelations = false }>()
+                                    .Where(FieldNameOf<Member(Item::id)>, "<=", static_cast<uint64_t>(seedRows))
+                                    .Count());
+    return rows;
+}
+
+/// Runs @p operations units of work spread over @p workers threads against @p pool.
+template <typename PoolType>
+void RunPoolWorkload(PoolType& pool, size_t workers, size_t operations, size_t seedRows, PoolCacheCounters& counters)
+{
+    auto const worker = [&](size_t workerIndex) {
+        for (size_t i = workerIndex; i < operations; i += workers)
+        {
+            auto pooled = pool.Acquire();
+            auto const before = pooled.Get().Connection().PreparedStatementCache().Stats();
+            std::ignore = QueryMix(pooled, i, seedRows);
+            counters.Add(before, pooled.Get().Connection().PreparedStatementCache().Stats());
+        }
+    };
+
+    auto threads = std::vector<std::jthread> {};
+    threads.reserve(workers);
+    for (size_t w = 0; w < workers; ++w)
+        threads.emplace_back(worker, w);
+}
+
+/// A pooled measurement keeps the cold run apart from the warm ones. The cold run is the interesting
+/// one here: it carries the per-connection warm-up the pool cannot amortise away.
+struct PoolMeasurement
+{
+    double coldMilliseconds {};
+    double warmMilliseconds { 1e18 };
+    /// SQLPrepare calls on the cold run: one per connection per distinct query text, the warm-up a
+    /// pool cannot share between its connections.
+    uint64_t coldMisses {};
+    uint64_t coldHits {};
+    /// Same counters on the last (warm) repetition. Non-zero misses here mean connections are being
+    /// destroyed and rebuilt faster than their caches can pay for themselves.
+    uint64_t warmMisses {};
+    uint64_t warmHits {};
+    uint64_t warmDirectReuses {};
+};
+
+/// Measures one pool shape. The pool is constructed once and reused across repetitions, so connecting
+/// is paid once and the first repetition reports the cost of warming every connection's cache.
+template <PoolConfig Config>
+PoolMeasurement MeasurePool(size_t workers, size_t operations, size_t seedRows)
+{
+    auto pool = Pool<Config> {};
+    auto counters = PoolCacheCounters {};
+    auto result = PoolMeasurement {};
+
+    for (size_t i = 0; i < g_repetitions; ++i)
+    {
+        counters.Reset();
+        auto const start = steady_clock::now();
+        RunPoolWorkload(pool, workers, operations, seedRows, counters);
+        auto const elapsed = duration<double, std::milli>(steady_clock::now() - start).count();
+
+        if (i == 0)
+        {
+            result.coldMilliseconds = elapsed;
+            result.coldMisses = counters.misses.load(std::memory_order_relaxed);
+            result.coldHits = counters.hits.load(std::memory_order_relaxed);
+        }
+        else
+            result.warmMilliseconds = std::min(result.warmMilliseconds, elapsed);
+
+        result.warmMisses = counters.misses.load(std::memory_order_relaxed);
+        result.warmHits = counters.hits.load(std::memory_order_relaxed);
+        result.warmDirectReuses = counters.directReuses.load(std::memory_order_relaxed);
+    }
+    return result;
+}
+
+void ReportPool(char const* name, PoolMeasurement const& off, PoolMeasurement const& on)
+{
+    auto const warmSpeedup = on.warmMilliseconds > 0.0 ? off.warmMilliseconds / on.warmMilliseconds : 0.0;
+    auto const coldSpeedup = on.coldMilliseconds > 0.0 ? off.coldMilliseconds / on.coldMilliseconds : 0.0;
+    std::printf("%-38s %8.2f %8.2f %6.2fx  %9.2f %8.2f %6.2fx   SQLPrepare cold=%-4llu warm=%-4llu  hit=%-6llu "
+                "direct=%llu\n",
+                name,
+                off.warmMilliseconds,
+                on.warmMilliseconds,
+                warmSpeedup,
+                off.coldMilliseconds,
+                on.coldMilliseconds,
+                coldSpeedup,
+                static_cast<unsigned long long>(on.coldMisses),
+                static_cast<unsigned long long>(on.warmMisses),
+                static_cast<unsigned long long>(on.warmHits),
+                static_cast<unsigned long long>(on.warmDirectReuses));
+}
+
+/// The pool shapes compared below. `preparedStatementCacheCapacity` is a compile-time policy, so each
+/// on/off pair is two distinct pool types rather than one type configured twice.
+constexpr auto PoolCacheCapacity = PreparedStatementCacheCapacitySuggested;
+
+constexpr auto SharedPoolOff = PoolConfig { .initialSize = 4, .maxSize = 4, .growthStrategy = GrowthStrategy::BoundedWait };
+constexpr auto SharedPoolOn = PoolConfig { .initialSize = 4,
+                                           .maxSize = 4,
+                                           .growthStrategy = GrowthStrategy::BoundedWait,
+                                           .preparedStatementCacheCapacity = PoolCacheCapacity };
+
+constexpr auto SingleConnectionPoolOff =
+    PoolConfig { .initialSize = 1, .maxSize = 1, .growthStrategy = GrowthStrategy::BoundedWait };
+constexpr auto SingleConnectionPoolOn = PoolConfig { .initialSize = 1,
+                                                     .maxSize = 1,
+                                                     .growthStrategy = GrowthStrategy::BoundedWait,
+                                                     .preparedStatementCacheCapacity = PoolCacheCapacity };
+
+constexpr auto OverflowPoolOff =
+    PoolConfig { .initialSize = 2, .maxSize = 2, .growthStrategy = GrowthStrategy::BoundedOverflow };
+constexpr auto OverflowPoolOn = PoolConfig { .initialSize = 2,
+                                             .maxSize = 2,
+                                             .growthStrategy = GrowthStrategy::BoundedOverflow,
+                                             .preparedStatementCacheCapacity = PoolCacheCapacity };
+
+/// Runs the pooled comparisons. Each line is one pool shape measured with the cache off and on; the
+/// cold column is the first repetition, which pays one SQLPrepare per connection per query text.
+void RunPooledScenarios(size_t operations, size_t seedRows)
+{
+    std::printf("\n%-38s %8s %8s %7s  %9s %8s %7s   (cache enabled)\n",
+                "pooled scenario (3 queries per op)",
+                "warm off",
+                "warm on",
+                "speedup",
+                "cold off",
+                "cold on",
+                "speedup");
+
+    // One connection, one worker: the pool recycles the same warmed connection, so this is the best
+    // case a pool can offer - and the yardstick the others are read against.
+    ReportPool("1 conn, 1 worker",
+               MeasurePool<SingleConnectionPoolOff>(1, operations, seedRows),
+               MeasurePool<SingleConnectionPoolOn>(1, operations, seedRows));
+
+    // Four workers sharing one connection: the cache is warmed once and every worker rides it, at the
+    // price of serialising on the pool.
+    ReportPool("1 conn, 4 workers (contended)",
+               MeasurePool<SingleConnectionPoolOff>(4, operations, seedRows),
+               MeasurePool<SingleConnectionPoolOn>(4, operations, seedRows));
+
+    // Four workers, four connections: no contention, but nothing is shared either - the pool pays the
+    // warm-up four times over. This is the shape a worker-per-request server has.
+    ReportPool("4 conns, 4 workers",
+               MeasurePool<SharedPoolOff>(4, operations, seedRows),
+               MeasurePool<SharedPoolOn>(4, operations, seedRows));
+
+    // Eight workers against a pool that idles at most two connections under BoundedOverflow: every
+    // acquire past the idle set builds a connection that is destroyed on return, taking its warmed
+    // cache with it. The cache cannot amortise anything it does not survive to reuse.
+    ReportPool("2 idle conns, 8 workers (overflow)",
+               MeasurePool<OverflowPoolOff>(8, operations, seedRows),
+               MeasurePool<OverflowPoolOn>(8, operations, seedRows));
+}
+
 } // namespace
 
 int main(int argc, char** argv)
@@ -265,5 +475,6 @@ int main(int argc, char** argv)
                transaction.Rollback();
            }));
 
+    RunPooledScenarios(iterations, seedRows);
     return 0;
 }
