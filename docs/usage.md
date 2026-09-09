@@ -168,7 +168,10 @@ existing `LIGHTWEIGHT_POOL_INITIAL_SIZE`, `LIGHTWEIGHT_POOL_MAX_SIZE` and
 `LIGHTWEIGHT_POOL_GROWTH_STRATEGY`.
 
 A pooled connection keeps its warmed handles across acquires, since the pool hands back the same live
-connection rather than reconnecting it. Note that the capacity is **per connection**: the cache is a set
+connection rather than reconnecting it — but only for as long as the pool keeps that connection. Anything
+that retires one discards its warmed cache with it: `PoolConfig::maxIdleTimeMs`, `maxLifetimeMs`, a failed
+`validateOnBorrow` check, and `GrowthStrategy::BoundedOverflow` above the idle set. See
+[connection-pool.md](connection-pool.md). Note that the capacity is **per connection**: the cache is a set
 of ODBC statement handles owned by one connection's `SQLHDBC` and can never be shared with another
 connection, so each pooled connection warms up separately and a fully warmed pool holds up to
 `maxSize * preparedStatementCacheCapacity` prepared statements on the server.
@@ -259,26 +262,29 @@ Speed-up with `PoolConfig::preparedStatementCacheCapacity` set, 500 operations (
 
 | pool shape | SQLite | PostgreSQL | MS SQL Server | `SQLPrepare` cold → warm |
 |---|---|---|---|---|
-| 1 connection, 1 worker | 1.13x | **2.30x** | **1.21x** | 3 → 0 |
-| 1 connection, 4 workers (contended) | 1.13x | **2.18x** | **1.21x** | 3 → 0 |
-| 4 connections, 4 workers | 1.13x | **2.18x** | **1.40x** | 12 → 0 |
-| 2 idle connections, 8 workers (`BoundedOverflow`) | 1.02x | 1.48x | 1.11x | 30 → 24 |
+| 1 connection, 1 worker | 1.14x | **2.79x** | **1.35x** | 3 → 0 |
+| 1 connection, 4 workers (contended) | 1.17x | **2.71x** | **1.22x** | 3 → 0 |
+| 4 connections, 4 workers | 1.13x | **2.53x** | **1.35x** | 12 → 0 |
+| 2 idle connections, 8 workers (`BoundedOverflow`) | 1.01x | 1.41x | 1.13x | ~30 → ~24 |
+
+Taken with `validateOnBorrow` at its default (`Yes`), so each acquire from the idle set also pays an
+`IsAlive()` check — the configuration a pool has unless it opts out.
 
 - **The warm-up is exactly `connections × distinct query texts`** — three texts over four connections is
   twelve `SQLPrepare` calls, not three. That is the price of the cache being per connection, and it is
   the whole of it: it is paid once, and a pool that keeps its connections converges to **zero**
   `SQLPrepare` no matter how many connections it holds.
-- **Pool size does not dilute the steady-state win.** One connection and four connections reach the same
+- **Pool size does not dilute the steady-state win.** One connection and four reach much the same
   speed-up; adding connections adds warm-up, not per-query cost.
 - **Short-lived work does dilute it.** With only 6 operations per connection the cold-pass speed-up on
-  PostgreSQL falls from 2.55x to 1.40x, because the twelve prepares are still being paid off. Size the
+  PostgreSQL falls from 2.35x to 1.69x, because the twelve prepares are still being paid off. Size the
   cache for a pool whose connections live across many requests.
 - **`GrowthStrategy::BoundedOverflow` past the idle set never converges.** A connection created on
   overflow is destroyed when returned, and its warmed cache with it — the warm column above still shows
-  24 `SQLPrepare` calls after many passes. The win drops from 2.18x to 1.48x on PostgreSQL and vanishes
-  on SQLite. If the pool overflows, raising `maxSize` to cover the real concurrency is worth more than
+  ~24 `SQLPrepare` calls after many passes. The win drops from 2.5x to 1.4x on PostgreSQL and vanishes on
+  SQLite. If the pool overflows, raising `maxSize` to cover the real concurrency is worth more than
   any cache capacity: in the same measurement the overflow shape spent most of its time *connecting*.
-- **The pooled figures are lower than the single-connection ones** (2.2x rather than 3.8x on PostgreSQL)
+- **The pooled figures are lower than the single-connection ones** (2.5x rather than 3.8x on PostgreSQL)
   because the mix includes `QuerySingle()`, which gains nothing anywhere.
 
 #### As network latency grows
