@@ -50,6 +50,7 @@ set(SOURCE_FILES
     DataMapper/CreateTests.cpp
     DataMapper/EagerLoadingTests.cpp
     DataMapper/MiscTests.cpp
+    DataMapper/PoolHealthTests.cpp
     DataMapper/NamingTests.cpp
     DataMapper/ReadTests.cpp
     DataMapper/RowWiseFetchTests.cpp
