@@ -5,7 +5,6 @@ var searchData=
   ['pool_2',['Pool',['../d3/d30/classLightweight_1_1Pool.html',1,'Lightweight']]],
   ['poolconfig_3',['PoolConfig',['../df/d1a/structLightweight_1_1PoolConfig.html',1,'Lightweight']]],
   ['pooleddatamapper_4',['PooledDataMapper',['../de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html',1,'Lightweight::Pool']]],
-  ['preparedhandle_5',['PreparedHandle',['../de/d91/structLightweight_1_1SqlPreparedStatementCache_1_1PreparedHandle.html',1,'Lightweight::SqlPreparedStatementCache']]],
-  ['progress_6',['Progress',['../d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html',1,'Lightweight::SqlBackup']]],
-  ['progressmanager_7',['ProgressManager',['../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html',1,'Lightweight::SqlBackup']]]
+  ['progress_5',['Progress',['../d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html',1,'Lightweight::SqlBackup']]],
+  ['progressmanager_6',['ProgressManager',['../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html',1,'Lightweight::SqlBackup']]]
 ];
