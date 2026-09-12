@@ -55,7 +55,11 @@ namespace
 template <typename Signature>
 void ForceInstantiation(Signature function)
 {
-    static Signature volatile sink;
+    // [[maybe_unused]] because GCC counts a write-only variable as "set but not used" even when it
+    // is volatile, and -Werror is on under the `pedantic` presets. The attribute only silences the
+    // diagnostic: the volatile store below is still a side effect the optimizer must keep, which is
+    // what makes the instantiation survive.
+    [[maybe_unused]] static Signature volatile sink;
     sink = function;
 }
 

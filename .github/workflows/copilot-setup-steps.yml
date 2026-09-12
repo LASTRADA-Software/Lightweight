@@ -15,7 +15,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Fetch tags
-        run: git fetch --prune --unshallow --tags
+        # --unshallow is an error on an already-complete clone ("does not make sense"), and the
+        # agent's checkout is not guaranteed to be shallow, so fall back to a plain fetch.
+        run: git fetch --prune --unshallow --tags || git fetch --prune --tags
 
       - name: Update APT database
         run: sudo apt -q update
@@ -32,11 +34,18 @@ jobs:
             libsqliteodbc \
             uuid-dev \
             libyaml-cpp-dev \
+            libzip-dev \
             g++-14 \
             libstdc++-14-dev
 
       - name: Configure CMake
-        run: cmake --preset gcc-debug -D CMAKE_CXX_COMPILER=g++-14
+        # PEDANTIC_COMPILER_WERROR=OFF deliberately. The `gcc-debug` preset inherits `pedantic`,
+        # which turns every warning into an error, and no CI job builds that configuration - CI's
+        # Linux legs all use `gcc-release` (no -Werror) or Clang. A GCC-debug-only warning therefore
+        # reaches nobody until it breaks *this* workflow, leaving the coding agent with no build at
+        # all for a diagnostic no PR ever showed. Warnings are still enforced where they belong, on
+        # the PR itself, by the Ubuntu/Windows legs of build.yml.
+        run: cmake --preset gcc-debug -D CMAKE_CXX_COMPILER=g++-14 -D PEDANTIC_COMPILER_WERROR=OFF
 
       - name: Build project
         run: cmake --build --preset gcc-debug -- -j$(nproc)
