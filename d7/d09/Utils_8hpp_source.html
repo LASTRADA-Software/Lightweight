@@ -606,147 +606,76 @@ $(document).ready(function(){initNavTree('d7/d09/Utils_8hpp_source.html','../../
 <div class="line"><a id="l00501" name="l00501"></a><span class="lineno">  501</span><span class="comment">    /// @return The error to inject, or @c std::nullopt to let the successful call through.</span></div>
 <div class="line"><a id="l00502" name="l00502"></a><span class="lineno"><a class="line" href="../../d4/d1a/classLightweight_1_1SqlFaultSource.html#a183b84e14ad19111747cda413e51115d">  502</a></span><span class="comment"></span>    [[nodiscard]] <span class="keyword">virtual</span> std::optional&lt;SqlErrorInfo&gt; <a class="code hl_function" href="../../d4/d1a/classLightweight_1_1SqlFaultSource.html#a183b84e14ad19111747cda413e51115d">NextFailure</a>(SQLHSTMT hStmt,</div>
 <div class="line"><a id="l00503" name="l00503"></a><span class="lineno">  503</span>                                                                  std::source_location <span class="keyword">const</span>&amp; sourceLocation) = 0;</div>
-<div class="line"><a id="l00504" name="l00504"></a><span class="lineno">  504</span><span class="comment"></span> </div>
-<div class="line"><a id="l00505" name="l00505"></a><span class="lineno">  505</span><span class="comment">    /// @brief Decides whether the next connection-handle check should fail.</span></div>
-<div class="line"><a id="l00506" name="l00506"></a><span class="lineno">  506</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00507" name="l00507"></a><span class="lineno">  507</span><span class="comment">    /// The connection-side counterpart of @ref NextFailure, consulted by</span></div>
-<div class="line"><a id="l00508" name="l00508"></a><span class="lineno">  508</span><span class="comment">    /// @c detail::OdbcConnectionCallSucceeded for a call that the driver reported as successful on a</span></div>
-<div class="line"><a id="l00509" name="l00509"></a><span class="lineno">  509</span><span class="comment">    /// @c SQLHDBC rather than a @c SQLHSTMT (e.g. a pre-connect attribute set). Returning an engaged</span></div>
-<div class="line"><a id="l00510" name="l00510"></a><span class="lineno">  510</span><span class="comment">    /// optional makes the caller treat the call as failed, exactly as an injected @ref NextFailure</span></div>
-<div class="line"><a id="l00511" name="l00511"></a><span class="lineno">  511</span><span class="comment">    /// does for a statement check.</span></div>
-<div class="line"><a id="l00512" name="l00512"></a><span class="lineno">  512</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00513" name="l00513"></a><span class="lineno">  513</span><span class="comment">    /// Defaults to never injecting, so a fake that predates connection-handle support and overrides</span></div>
-<div class="line"><a id="l00514" name="l00514"></a><span class="lineno">  514</span><span class="comment">    /// only @ref NextFailure keeps compiling and behaving exactly as before.</span></div>
-<div class="line"><a id="l00515" name="l00515"></a><span class="lineno">  515</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00516" name="l00516"></a><span class="lineno">  516</span><span class="comment">    /// @note Never called for a null connection handle, for the same reason @ref NextFailure is never</span></div>
-<div class="line"><a id="l00517" name="l00517"></a><span class="lineno">  517</span><span class="comment">    ///       called for a null statement handle: a fault injected while a @c SqlConnection is still</span></div>
-<div class="line"><a id="l00518" name="l00518"></a><span class="lineno">  518</span><span class="comment">    ///       being constructed or is in the middle of tearing down its handle could leave the handle</span></div>
-<div class="line"><a id="l00519" name="l00519"></a><span class="lineno">  519</span><span class="comment">    ///       leaked or double-released.</span></div>
-<div class="line"><a id="l00520" name="l00520"></a><span class="lineno">  520</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00521" name="l00521"></a><span class="lineno">  521</span><span class="comment">    /// @param hDbc The connection handle being checked, never @c SQL_NULL_HDBC. A fake may ignore it.</span></div>
-<div class="line"><a id="l00522" name="l00522"></a><span class="lineno">  522</span><span class="comment">    /// @param sourceLocation Where in the library the check is happening.</span></div>
-<div class="line"><a id="l00523" name="l00523"></a><span class="lineno">  523</span><span class="comment">    /// @return The error to inject, or @c std::nullopt to let the successful call through.</span></div>
-<div class="foldopen" id="foldopen00524" data-start="{" data-end="}">
-<div class="line"><a id="l00524" name="l00524"></a><span class="lineno"><a class="line" href="../../d4/d1a/classLightweight_1_1SqlFaultSource.html#a6f883242d7396f3e986625e0c7e8c74f">  524</a></span><span class="comment"></span>    [[nodiscard]] <span class="keyword">virtual</span> std::optional&lt;SqlErrorInfo&gt; <a class="code hl_function" href="../../d4/d1a/classLightweight_1_1SqlFaultSource.html#a6f883242d7396f3e986625e0c7e8c74f">NextConnectionFailure</a>(SQLHDBC <span class="comment">/*hDbc*/</span>,</div>
-<div class="line"><a id="l00525" name="l00525"></a><span class="lineno">  525</span>                                                                            std::source_location <span class="keyword">const</span>&amp; <span class="comment">/*sourceLocation*/</span>)</div>
-<div class="line"><a id="l00526" name="l00526"></a><span class="lineno">  526</span>    {</div>
-<div class="line"><a id="l00527" name="l00527"></a><span class="lineno">  527</span>        <span class="keywordflow">return</span> std::nullopt;</div>
-<div class="line"><a id="l00528" name="l00528"></a><span class="lineno">  528</span>    }</div>
+<div class="line"><a id="l00504" name="l00504"></a><span class="lineno">  504</span>};</div>
 </div>
-<div class="line"><a id="l00529" name="l00529"></a><span class="lineno">  529</span>};</div>
-</div>
+<div class="line"><a id="l00505" name="l00505"></a><span class="lineno">  505</span><span class="comment"></span> </div>
+<div class="line"><a id="l00506" name="l00506"></a><span class="lineno">  506</span><span class="comment">/// @brief Installs a fault source process-wide.</span></div>
+<div class="line"><a id="l00507" name="l00507"></a><span class="lineno">  507</span><span class="comment">///</span></div>
+<div class="line"><a id="l00508" name="l00508"></a><span class="lineno">  508</span><span class="comment">/// Intended for tests. Ownership is not transferred and remains with the caller, which must keep</span></div>
+<div class="line"><a id="l00509" name="l00509"></a><span class="lineno">  509</span><span class="comment">/// @p source alive until it is cleared. Pass @c nullptr to disable fault injection.</span></div>
+<div class="line"><a id="l00510" name="l00510"></a><span class="lineno">  510</span><span class="comment">///</span></div>
+<div class="line"><a id="l00511" name="l00511"></a><span class="lineno">  511</span><span class="comment">/// @param source The source to install, or @c nullptr to disable.</span></div>
+<div class="line"><a id="l00512" name="l00512"></a><span class="lineno">  512</span><span class="comment"></span>LIGHTWEIGHT_API <span class="keywordtype">void</span> SetFaultSource(<a class="code hl_class" href="../../d4/d1a/classLightweight_1_1SqlFaultSource.html">SqlFaultSource</a>* source) <span class="keyword">noexcept</span>;</div>
+<div class="line"><a id="l00513" name="l00513"></a><span class="lineno">  513</span><span class="comment"></span> </div>
+<div class="line"><a id="l00514" name="l00514"></a><span class="lineno">  514</span><span class="comment">/// @brief Returns the currently installed fault source, or @c nullptr if none is installed.</span></div>
+<div class="line"><a id="l00515" name="l00515"></a><span class="lineno">  515</span><span class="comment"></span>[[nodiscard]] LIGHTWEIGHT_API <a class="code hl_class" href="../../d4/d1a/classLightweight_1_1SqlFaultSource.html">SqlFaultSource</a>* GetFaultSource() noexcept;</div>
+<div class="line"><a id="l00516" name="l00516"></a><span class="lineno">  516</span><span class="comment"></span> </div>
+<div class="line"><a id="l00517" name="l00517"></a><span class="lineno">  517</span><span class="comment">/// @brief Throws unless the given ODBC return code indicates success.</span></div>
+<div class="line"><a id="l00518" name="l00518"></a><span class="lineno">  518</span><span class="comment">///</span></div>
+<div class="line"><a id="l00519" name="l00519"></a><span class="lineno">  519</span><span class="comment">/// Retrieves the diagnostics for @p hStmt and applies @ref ClassifyOdbcResult to decide how the</span></div>
+<div class="line"><a id="l00520" name="l00520"></a><span class="lineno">  520</span><span class="comment">/// failure surfaces: @c std::invalid_argument for a soft failure the caller is expected to recover</span></div>
+<div class="line"><a id="l00521" name="l00521"></a><span class="lineno">  521</span><span class="comment">/// from, @c SqlException otherwise.</span></div>
+<div class="line"><a id="l00522" name="l00522"></a><span class="lineno">  522</span><span class="comment">///</span></div>
+<div class="line"><a id="l00523" name="l00523"></a><span class="lineno">  523</span><span class="comment">/// @param hStmt The statement handle @p error came from.</span></div>
+<div class="line"><a id="l00524" name="l00524"></a><span class="lineno">  524</span><span class="comment">/// @param error The ODBC return code to check.</span></div>
+<div class="line"><a id="l00525" name="l00525"></a><span class="lineno">  525</span><span class="comment">/// @param sourceLocation Where the check originated; reported in the exception message. Defaults to</span></div>
+<div class="line"><a id="l00526" name="l00526"></a><span class="lineno">  526</span><span class="comment">///                       the caller&#39;s location.</span></div>
+<div class="line"><a id="l00527" name="l00527"></a><span class="lineno">  527</span><span class="comment"></span>LIGHTWEIGHT_API <span class="keywordtype">void</span> RequireSuccess(SQLHSTMT hStmt,</div>
+<div class="line"><a id="l00528" name="l00528"></a><span class="lineno">  528</span>                                    SQLRETURN error,</div>
+<div class="line"><a id="l00529" name="l00529"></a><span class="lineno">  529</span>                                    std::source_location sourceLocation = std::source_location::current());</div>
 <div class="line"><a id="l00530" name="l00530"></a><span class="lineno">  530</span><span class="comment"></span> </div>
-<div class="line"><a id="l00531" name="l00531"></a><span class="lineno">  531</span><span class="comment">/// @brief Installs a fault source process-wide.</span></div>
-<div class="line"><a id="l00532" name="l00532"></a><span class="lineno">  532</span><span class="comment">///</span></div>
-<div class="line"><a id="l00533" name="l00533"></a><span class="lineno">  533</span><span class="comment">/// Intended for tests. Ownership is not transferred and remains with the caller, which must keep</span></div>
-<div class="line"><a id="l00534" name="l00534"></a><span class="lineno">  534</span><span class="comment">/// @p source alive until it is cleared. Pass @c nullptr to disable fault injection.</span></div>
-<div class="line"><a id="l00535" name="l00535"></a><span class="lineno">  535</span><span class="comment">///</span></div>
-<div class="line"><a id="l00536" name="l00536"></a><span class="lineno">  536</span><span class="comment">/// @param source The source to install, or @c nullptr to disable.</span></div>
-<div class="line"><a id="l00537" name="l00537"></a><span class="lineno">  537</span><span class="comment"></span>LIGHTWEIGHT_API <span class="keywordtype">void</span> SetFaultSource(SqlFaultSource* source) <span class="keyword">noexcept</span>;</div>
-<div class="line"><a id="l00538" name="l00538"></a><span class="lineno">  538</span><span class="comment"></span> </div>
-<div class="line"><a id="l00539" name="l00539"></a><span class="lineno">  539</span><span class="comment">/// @brief Returns the currently installed fault source, or @c nullptr if none is installed.</span></div>
-<div class="line"><a id="l00540" name="l00540"></a><span class="lineno">  540</span><span class="comment"></span>[[nodiscard]] LIGHTWEIGHT_API SqlFaultSource* GetFaultSource() noexcept;</div>
-<div class="line"><a id="l00541" name="l00541"></a><span class="lineno">  541</span><span class="comment"></span> </div>
-<div class="line"><a id="l00542" name="l00542"></a><span class="lineno">  542</span><span class="comment">/// @brief Throws unless the given ODBC return code indicates success.</span></div>
-<div class="line"><a id="l00543" name="l00543"></a><span class="lineno">  543</span><span class="comment">///</span></div>
-<div class="line"><a id="l00544" name="l00544"></a><span class="lineno">  544</span><span class="comment">/// Retrieves the diagnostics for @p hStmt and applies @ref ClassifyOdbcResult to decide how the</span></div>
-<div class="line"><a id="l00545" name="l00545"></a><span class="lineno">  545</span><span class="comment">/// failure surfaces: @c std::invalid_argument for a soft failure the caller is expected to recover</span></div>
-<div class="line"><a id="l00546" name="l00546"></a><span class="lineno">  546</span><span class="comment">/// from, @c SqlException otherwise.</span></div>
-<div class="line"><a id="l00547" name="l00547"></a><span class="lineno">  547</span><span class="comment">///</span></div>
-<div class="line"><a id="l00548" name="l00548"></a><span class="lineno">  548</span><span class="comment">/// @param hStmt The statement handle @p error came from.</span></div>
-<div class="line"><a id="l00549" name="l00549"></a><span class="lineno">  549</span><span class="comment">/// @param error The ODBC return code to check.</span></div>
-<div class="line"><a id="l00550" name="l00550"></a><span class="lineno">  550</span><span class="comment">/// @param sourceLocation Where the check originated; reported in the exception message. Defaults to</span></div>
-<div class="line"><a id="l00551" name="l00551"></a><span class="lineno">  551</span><span class="comment">///                       the caller&#39;s location.</span></div>
-<div class="line"><a id="l00552" name="l00552"></a><span class="lineno">  552</span><span class="comment"></span>LIGHTWEIGHT_API <span class="keywordtype">void</span> RequireSuccess(SQLHSTMT hStmt,</div>
-<div class="line"><a id="l00553" name="l00553"></a><span class="lineno">  553</span>                                    SQLRETURN error,</div>
-<div class="line"><a id="l00554" name="l00554"></a><span class="lineno">  554</span>                                    std::source_location sourceLocation = std::source_location::current());</div>
-<div class="line"><a id="l00555" name="l00555"></a><span class="lineno">  555</span> </div>
-<div class="line"><a id="l00556" name="l00556"></a><span class="lineno">  556</span>namespace detail</div>
-<div class="line"><a id="l00557" name="l00557"></a><span class="lineno">  557</span>{<span class="comment"></span></div>
-<div class="line"><a id="l00558" name="l00558"></a><span class="lineno">  558</span><span class="comment">    /// @brief Non-throwing checked-call helper for inline `SQL_SUCCEEDED` recovery checks against a</span></div>
-<div class="line"><a id="l00559" name="l00559"></a><span class="lineno">  559</span><span class="comment">    ///        statement handle.</span></div>
-<div class="line"><a id="l00560" name="l00560"></a><span class="lineno">  560</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00561" name="l00561"></a><span class="lineno">  561</span><span class="comment">    /// Some recovery arms cannot go through @ref RequireSuccess because they must not throw: the</span></div>
-<div class="line"><a id="l00562" name="l00562"></a><span class="lineno">  562</span><span class="comment">    /// caller recovers by branching on a @c bool (e.g. declining to retry, or declining to pool a</span></div>
-<div class="line"><a id="l00563" name="l00563"></a><span class="lineno">  563</span><span class="comment">    /// handle), and that recovery is the whole point of being able to drive the call to its failure</span></div>
-<div class="line"><a id="l00564" name="l00564"></a><span class="lineno">  564</span><span class="comment">    /// branch from a test. This helper gives such a call site the same fault-injection seam</span></div>
-<div class="line"><a id="l00565" name="l00565"></a><span class="lineno">  565</span><span class="comment">    /// @ref RequireSuccess already offers, without the throw: it returns the @c SQL_SUCCEEDED verdict</span></div>
-<div class="line"><a id="l00566" name="l00566"></a><span class="lineno">  566</span><span class="comment">    /// for @p result, unless an installed @ref SqlFaultSource overrides a real success into an</span></div>
-<div class="line"><a id="l00567" name="l00567"></a><span class="lineno">  567</span><span class="comment">    /// injected failure via @ref SqlFaultSource::NextFailure.</span></div>
-<div class="line"><a id="l00568" name="l00568"></a><span class="lineno">  568</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00569" name="l00569"></a><span class="lineno">  569</span><span class="comment">    /// Mirrors @ref RequireSuccess&#39;s safety property: never consults the fault source while @p hStmt</span></div>
-<div class="line"><a id="l00570" name="l00570"></a><span class="lineno">  570</span><span class="comment">    /// is @c SQL_NULL_HSTMT, so a call made before a statement handle is fully valid cannot be</span></div>
-<div class="line"><a id="l00571" name="l00571"></a><span class="lineno">  571</span><span class="comment">    /// disturbed by injection.</span></div>
-<div class="line"><a id="l00572" name="l00572"></a><span class="lineno">  572</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00573" name="l00573"></a><span class="lineno">  573</span><span class="comment">    /// @param result The ODBC return code to check.</span></div>
-<div class="line"><a id="l00574" name="l00574"></a><span class="lineno">  574</span><span class="comment">    /// @param hStmt The statement handle @p result came from.</span></div>
-<div class="line"><a id="l00575" name="l00575"></a><span class="lineno">  575</span><span class="comment">    /// @param sourceLocation Where the check originated; forwarded to the fault source. Defaults to</span></div>
-<div class="line"><a id="l00576" name="l00576"></a><span class="lineno">  576</span><span class="comment">    ///                       the caller&#39;s location.</span></div>
-<div class="line"><a id="l00577" name="l00577"></a><span class="lineno">  577</span><span class="comment">    /// @return @c true if @p result should be treated as success.</span></div>
-<div class="line"><a id="l00578" name="l00578"></a><span class="lineno">  578</span><span class="comment"></span>    [[nodiscard]] LIGHTWEIGHT_API <span class="keywordtype">bool</span> OdbcCallSucceeded(</div>
-<div class="line"><a id="l00579" name="l00579"></a><span class="lineno">  579</span>        SQLRETURN result, SQLHSTMT hStmt, std::source_location sourceLocation = std::source_location::current());</div>
-<div class="line"><a id="l00580" name="l00580"></a><span class="lineno">  580</span><span class="comment"></span> </div>
-<div class="line"><a id="l00581" name="l00581"></a><span class="lineno">  581</span><span class="comment">    /// @brief Non-throwing checked-call helper for inline `SQL_SUCCEEDED` recovery checks against a</span></div>
-<div class="line"><a id="l00582" name="l00582"></a><span class="lineno">  582</span><span class="comment">    ///        connection handle.</span></div>
-<div class="line"><a id="l00583" name="l00583"></a><span class="lineno">  583</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00584" name="l00584"></a><span class="lineno">  584</span><span class="comment">    /// The connection-handle counterpart of @ref OdbcCallSucceeded(SQLRETURN, SQLHSTMT,</span></div>
-<div class="line"><a id="l00585" name="l00585"></a><span class="lineno">  585</span><span class="comment">    /// std::source_location): same contract, keyed on a @c SQLHDBC via</span></div>
-<div class="line"><a id="l00586" name="l00586"></a><span class="lineno">  586</span><span class="comment">    /// @ref SqlFaultSource::NextConnectionFailure instead of @ref SqlFaultSource::NextFailure. Never</span></div>
-<div class="line"><a id="l00587" name="l00587"></a><span class="lineno">  587</span><span class="comment">    /// consults the fault source while @p hDbc is @c SQL_NULL_HDBC, for the same reason the</span></div>
-<div class="line"><a id="l00588" name="l00588"></a><span class="lineno">  588</span><span class="comment">    /// statement-handle overload skips a null @c SQLHSTMT.</span></div>
-<div class="line"><a id="l00589" name="l00589"></a><span class="lineno">  589</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00590" name="l00590"></a><span class="lineno">  590</span><span class="comment">    /// @param result The ODBC return code to check.</span></div>
-<div class="line"><a id="l00591" name="l00591"></a><span class="lineno">  591</span><span class="comment">    /// @param hDbc The connection handle @p result came from.</span></div>
-<div class="line"><a id="l00592" name="l00592"></a><span class="lineno">  592</span><span class="comment">    /// @param sourceLocation Where the check originated; forwarded to the fault source. Defaults to</span></div>
-<div class="line"><a id="l00593" name="l00593"></a><span class="lineno">  593</span><span class="comment">    ///                       the caller&#39;s location.</span></div>
-<div class="line"><a id="l00594" name="l00594"></a><span class="lineno">  594</span><span class="comment">    /// @return @c true if @p result should be treated as success.</span></div>
-<div class="line"><a id="l00595" name="l00595"></a><span class="lineno">  595</span><span class="comment"></span>    [[nodiscard]] LIGHTWEIGHT_API <span class="keywordtype">bool</span> OdbcConnectionCallSucceeded(</div>
-<div class="line"><a id="l00596" name="l00596"></a><span class="lineno">  596</span>        SQLRETURN result, SQLHDBC hDbc, std::source_location sourceLocation = std::source_location::current());</div>
-<div class="line"><a id="l00597" name="l00597"></a><span class="lineno">  597</span>} <span class="comment">// namespace detail</span></div>
-<div class="line"><a id="l00598" name="l00598"></a><span class="lineno">  598</span><span class="comment"></span> </div>
-<div class="line"><a id="l00599" name="l00599"></a><span class="lineno">  599</span><span class="comment">/// Defines the naming convention for use (e.g. for C++ column names or table names in C++ struct names).</span></div>
-<div class="line"><a id="l00600" name="l00600"></a><span class="lineno">  600</span><span class="comment"></span><span class="keyword">enum class</span> FormatType : uint8_t</div>
-<div class="line"><a id="l00601" name="l00601"></a><span class="lineno">  601</span>{<span class="comment"></span></div>
-<div class="line"><a id="l00602" name="l00602"></a><span class="lineno">  602</span><span class="comment">    /// Preserve the original naming convention.</span></div>
-<div class="line"><a id="l00603" name="l00603"></a><span class="lineno">  603</span><span class="comment"></span>    preserve,</div>
-<div class="line"><a id="l00604" name="l00604"></a><span class="lineno">  604</span><span class="comment"></span> </div>
-<div class="line"><a id="l00605" name="l00605"></a><span class="lineno">  605</span><span class="comment">    /// Ensure the name is formatted in snake_case naming convention.</span></div>
-<div class="line"><a id="l00606" name="l00606"></a><span class="lineno">  606</span><span class="comment"></span>    snakeCase,</div>
-<div class="line"><a id="l00607" name="l00607"></a><span class="lineno">  607</span><span class="comment"></span> </div>
-<div class="line"><a id="l00608" name="l00608"></a><span class="lineno">  608</span><span class="comment">    /// Ensure the name is formatted in CamelCase naming convention.</span></div>
-<div class="line"><a id="l00609" name="l00609"></a><span class="lineno">  609</span><span class="comment"></span>    camelCase,</div>
-<div class="line"><a id="l00610" name="l00610"></a><span class="lineno">  610</span>};</div>
-<div class="line"><a id="l00611" name="l00611"></a><span class="lineno">  611</span><span class="comment"></span> </div>
-<div class="line"><a id="l00612" name="l00612"></a><span class="lineno">  612</span><span class="comment">/// @brief Converts a string to a format that is more suitable for C++ code.</span></div>
-<div class="line"><a id="l00613" name="l00613"></a><span class="lineno">  613</span><span class="comment"></span>LIGHTWEIGHT_API std::string FormatName(std::string <span class="keyword">const</span>&amp; name, FormatType formatType);</div>
-<div class="line"><a id="l00614" name="l00614"></a><span class="lineno">  614</span><span class="comment"></span> </div>
-<div class="line"><a id="l00615" name="l00615"></a><span class="lineno">  615</span><span class="comment">/// @brief Converts a string to a format that is more suitable for C++ code.</span></div>
-<div class="line"><a id="l00616" name="l00616"></a><span class="lineno">  616</span><span class="comment"></span>LIGHTWEIGHT_API std::string FormatName(std::string_view name, FormatType formatType);</div>
-<div class="line"><a id="l00617" name="l00617"></a><span class="lineno">  617</span><span class="comment"></span> </div>
-<div class="line"><a id="l00618" name="l00618"></a><span class="lineno">  618</span><span class="comment">/// Maintains collisions to create unique names</span></div>
-<div class="foldopen" id="foldopen00619" data-start="{" data-end="};">
-<div class="line"><a id="l00619" name="l00619"></a><span class="lineno"><a class="line" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html">  619</a></span><span class="comment"></span><span class="keyword">class </span><a class="code hl_class" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html">UniqueNameBuilder</a></div>
-<div class="line"><a id="l00620" name="l00620"></a><span class="lineno">  620</span>{</div>
-<div class="line"><a id="l00621" name="l00621"></a><span class="lineno">  621</span>  <span class="keyword">public</span>:<span class="comment"></span></div>
-<div class="line"><a id="l00622" name="l00622"></a><span class="lineno">  622</span><span class="comment">    /// Tests if the given name is already registered.</span></div>
-<div class="line"><a id="l00623" name="l00623"></a><span class="lineno"><a class="line" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#acfe934b57fa65da4863c45e150bcc1e3">  623</a></span><span class="comment"></span>    [[nodiscard]] LIGHTWEIGHT_API <span class="keywordtype">bool</span> <a class="code hl_function" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#acfe934b57fa65da4863c45e150bcc1e3">IsColliding</a>(std::string <span class="keyword">const</span>&amp; name) <span class="keyword">const</span> <span class="keyword">noexcept</span>;</div>
-<div class="line"><a id="l00624" name="l00624"></a><span class="lineno">  624</span><span class="comment"></span> </div>
-<div class="line"><a id="l00625" name="l00625"></a><span class="lineno">  625</span><span class="comment">    /// Tries to declare a name and returns it, otherwise returns std::nullopt.</span></div>
-<div class="line"><a id="l00626" name="l00626"></a><span class="lineno"><a class="line" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#ae617f589c4e2314b8ca94c3113cd3f44">  626</a></span><span class="comment"></span>    [[nodiscard]] LIGHTWEIGHT_API std::optional&lt;std::string&gt; <a class="code hl_function" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#ae617f589c4e2314b8ca94c3113cd3f44">TryDeclareName</a>(std::string name);</div>
-<div class="line"><a id="l00627" name="l00627"></a><span class="lineno">  627</span><span class="comment"></span> </div>
-<div class="line"><a id="l00628" name="l00628"></a><span class="lineno">  628</span><span class="comment">    /// Creates a name that is definitely not colliding.</span></div>
-<div class="line"><a id="l00629" name="l00629"></a><span class="lineno"><a class="line" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#ab97998627c36c8d0bce204db1f8f4d26">  629</a></span><span class="comment"></span>    [[nodiscard]] LIGHTWEIGHT_API std::string <a class="code hl_function" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#ab97998627c36c8d0bce204db1f8f4d26">DeclareName</a>(std::string name);</div>
-<div class="line"><a id="l00630" name="l00630"></a><span class="lineno">  630</span> </div>
-<div class="line"><a id="l00631" name="l00631"></a><span class="lineno">  631</span>  <span class="keyword">private</span>:</div>
-<div class="line"><a id="l00632" name="l00632"></a><span class="lineno">  632</span>    std::unordered_map&lt;std::string, size_t&gt; _collisionMap;</div>
-<div class="line"><a id="l00633" name="l00633"></a><span class="lineno">  633</span>};</div>
+<div class="line"><a id="l00531" name="l00531"></a><span class="lineno">  531</span><span class="comment">/// Defines the naming convention for use (e.g. for C++ column names or table names in C++ struct names).</span></div>
+<div class="line"><a id="l00532" name="l00532"></a><span class="lineno">  532</span><span class="comment"></span>enum class FormatType : uint8_t</div>
+<div class="line"><a id="l00533" name="l00533"></a><span class="lineno">  533</span>{<span class="comment"></span></div>
+<div class="line"><a id="l00534" name="l00534"></a><span class="lineno">  534</span><span class="comment">    /// Preserve the original naming convention.</span></div>
+<div class="line"><a id="l00535" name="l00535"></a><span class="lineno">  535</span><span class="comment"></span>    preserve,</div>
+<div class="line"><a id="l00536" name="l00536"></a><span class="lineno">  536</span><span class="comment"></span> </div>
+<div class="line"><a id="l00537" name="l00537"></a><span class="lineno">  537</span><span class="comment">    /// Ensure the name is formatted in snake_case naming convention.</span></div>
+<div class="line"><a id="l00538" name="l00538"></a><span class="lineno">  538</span><span class="comment"></span>    snakeCase,</div>
+<div class="line"><a id="l00539" name="l00539"></a><span class="lineno">  539</span><span class="comment"></span> </div>
+<div class="line"><a id="l00540" name="l00540"></a><span class="lineno">  540</span><span class="comment">    /// Ensure the name is formatted in CamelCase naming convention.</span></div>
+<div class="line"><a id="l00541" name="l00541"></a><span class="lineno">  541</span><span class="comment"></span>    camelCase,</div>
+<div class="line"><a id="l00542" name="l00542"></a><span class="lineno">  542</span>};</div>
+<div class="line"><a id="l00543" name="l00543"></a><span class="lineno">  543</span><span class="comment"></span> </div>
+<div class="line"><a id="l00544" name="l00544"></a><span class="lineno">  544</span><span class="comment">/// @brief Converts a string to a format that is more suitable for C++ code.</span></div>
+<div class="line"><a id="l00545" name="l00545"></a><span class="lineno">  545</span><span class="comment"></span>LIGHTWEIGHT_API std::string FormatName(std::string <span class="keyword">const</span>&amp; name, FormatType formatType);</div>
+<div class="line"><a id="l00546" name="l00546"></a><span class="lineno">  546</span><span class="comment"></span> </div>
+<div class="line"><a id="l00547" name="l00547"></a><span class="lineno">  547</span><span class="comment">/// @brief Converts a string to a format that is more suitable for C++ code.</span></div>
+<div class="line"><a id="l00548" name="l00548"></a><span class="lineno">  548</span><span class="comment"></span>LIGHTWEIGHT_API std::string FormatName(std::string_view name, FormatType formatType);</div>
+<div class="line"><a id="l00549" name="l00549"></a><span class="lineno">  549</span><span class="comment"></span> </div>
+<div class="line"><a id="l00550" name="l00550"></a><span class="lineno">  550</span><span class="comment">/// Maintains collisions to create unique names</span></div>
+<div class="foldopen" id="foldopen00551" data-start="{" data-end="};">
+<div class="line"><a id="l00551" name="l00551"></a><span class="lineno"><a class="line" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html">  551</a></span><span class="comment"></span><span class="keyword">class </span><a class="code hl_class" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html">UniqueNameBuilder</a></div>
+<div class="line"><a id="l00552" name="l00552"></a><span class="lineno">  552</span>{</div>
+<div class="line"><a id="l00553" name="l00553"></a><span class="lineno">  553</span>  <span class="keyword">public</span>:<span class="comment"></span></div>
+<div class="line"><a id="l00554" name="l00554"></a><span class="lineno">  554</span><span class="comment">    /// Tests if the given name is already registered.</span></div>
+<div class="line"><a id="l00555" name="l00555"></a><span class="lineno"><a class="line" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#acfe934b57fa65da4863c45e150bcc1e3">  555</a></span><span class="comment"></span>    [[nodiscard]] LIGHTWEIGHT_API <span class="keywordtype">bool</span> <a class="code hl_function" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#acfe934b57fa65da4863c45e150bcc1e3">IsColliding</a>(std::string <span class="keyword">const</span>&amp; name) <span class="keyword">const</span> <span class="keyword">noexcept</span>;</div>
+<div class="line"><a id="l00556" name="l00556"></a><span class="lineno">  556</span><span class="comment"></span> </div>
+<div class="line"><a id="l00557" name="l00557"></a><span class="lineno">  557</span><span class="comment">    /// Tries to declare a name and returns it, otherwise returns std::nullopt.</span></div>
+<div class="line"><a id="l00558" name="l00558"></a><span class="lineno"><a class="line" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#ae617f589c4e2314b8ca94c3113cd3f44">  558</a></span><span class="comment"></span>    [[nodiscard]] LIGHTWEIGHT_API std::optional&lt;std::string&gt; <a class="code hl_function" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#ae617f589c4e2314b8ca94c3113cd3f44">TryDeclareName</a>(std::string name);</div>
+<div class="line"><a id="l00559" name="l00559"></a><span class="lineno">  559</span><span class="comment"></span> </div>
+<div class="line"><a id="l00560" name="l00560"></a><span class="lineno">  560</span><span class="comment">    /// Creates a name that is definitely not colliding.</span></div>
+<div class="line"><a id="l00561" name="l00561"></a><span class="lineno"><a class="line" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#ab97998627c36c8d0bce204db1f8f4d26">  561</a></span><span class="comment"></span>    [[nodiscard]] LIGHTWEIGHT_API std::string <a class="code hl_function" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#ab97998627c36c8d0bce204db1f8f4d26">DeclareName</a>(std::string name);</div>
+<div class="line"><a id="l00562" name="l00562"></a><span class="lineno">  562</span> </div>
+<div class="line"><a id="l00563" name="l00563"></a><span class="lineno">  563</span>  <span class="keyword">private</span>:</div>
+<div class="line"><a id="l00564" name="l00564"></a><span class="lineno">  564</span>    std::unordered_map&lt;std::string, size_t&gt; _collisionMap;</div>
+<div class="line"><a id="l00565" name="l00565"></a><span class="lineno">  565</span>};</div>
 </div>
-<div class="line"><a id="l00634" name="l00634"></a><span class="lineno">  634</span> </div>
-<div class="line"><a id="l00635" name="l00635"></a><span class="lineno">  635</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="line"><a id="l00566" name="l00566"></a><span class="lineno">  566</span> </div>
+<div class="line"><a id="l00567" name="l00567"></a><span class="lineno">  567</span>} <span class="comment">// namespace Lightweight</span></div>
 <div class="ttc" id="aclassLightweight_1_1SqlFaultSource_html"><div class="ttname"><a href="../../d4/d1a/classLightweight_1_1SqlFaultSource.html">Lightweight::SqlFaultSource</a></div><div class="ttdoc">Substitutes a scripted failure for an ODBC call that actually succeeded.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d09/Utils_8hpp_source.html#l00476">Utils.hpp:477</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlFaultSource_html_a183b84e14ad19111747cda413e51115d"><div class="ttname"><a href="../../d4/d1a/classLightweight_1_1SqlFaultSource.html#a183b84e14ad19111747cda413e51115d">Lightweight::SqlFaultSource::NextFailure</a></div><div class="ttdeci">virtual std::optional&lt; SqlErrorInfo &gt; NextFailure(SQLHSTMT hStmt, std::source_location const &amp;sourceLocation)=0</div><div class="ttdoc">Decides whether the next statement-handle check should fail.</div></div>
-<div class="ttc" id="aclassLightweight_1_1SqlFaultSource_html_a6f883242d7396f3e986625e0c7e8c74f"><div class="ttname"><a href="../../d4/d1a/classLightweight_1_1SqlFaultSource.html#a6f883242d7396f3e986625e0c7e8c74f">Lightweight::SqlFaultSource::NextConnectionFailure</a></div><div class="ttdeci">virtual std::optional&lt; SqlErrorInfo &gt; NextConnectionFailure(SQLHDBC, std::source_location const &amp;)</div><div class="ttdoc">Decides whether the next connection-handle check should fail.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d09/Utils_8hpp_source.html#l00524">Utils.hpp:524</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1UniqueNameBuilder_html"><div class="ttname"><a href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html">Lightweight::UniqueNameBuilder</a></div><div class="ttdoc">Maintains collisions to create unique names.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d09/Utils_8hpp_source.html#l00619">Utils.hpp:620</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1UniqueNameBuilder_html"><div class="ttname"><a href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html">Lightweight::UniqueNameBuilder</a></div><div class="ttdoc">Maintains collisions to create unique names.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d09/Utils_8hpp_source.html#l00551">Utils.hpp:552</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1UniqueNameBuilder_html_ab97998627c36c8d0bce204db1f8f4d26"><div class="ttname"><a href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#ab97998627c36c8d0bce204db1f8f4d26">Lightweight::UniqueNameBuilder::DeclareName</a></div><div class="ttdeci">LIGHTWEIGHT_API std::string DeclareName(std::string name)</div><div class="ttdoc">Creates a name that is definitely not colliding.</div></div>
 <div class="ttc" id="aclassLightweight_1_1UniqueNameBuilder_html_acfe934b57fa65da4863c45e150bcc1e3"><div class="ttname"><a href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#acfe934b57fa65da4863c45e150bcc1e3">Lightweight::UniqueNameBuilder::IsColliding</a></div><div class="ttdeci">LIGHTWEIGHT_API bool IsColliding(std::string const &amp;name) const noexcept</div><div class="ttdoc">Tests if the given name is already registered.</div></div>
 <div class="ttc" id="aclassLightweight_1_1UniqueNameBuilder_html_ae617f589c4e2314b8ca94c3113cd3f44"><div class="ttname"><a href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#ae617f589c4e2314b8ca94c3113cd3f44">Lightweight::UniqueNameBuilder::TryDeclareName</a></div><div class="ttdeci">LIGHTWEIGHT_API std::optional&lt; std::string &gt; TryDeclareName(std::string name)</div><div class="ttdoc">Tries to declare a name and returns it, otherwise returns std::nullopt.</div></div>
