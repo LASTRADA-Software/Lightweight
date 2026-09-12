@@ -381,7 +381,8 @@ bool SqlStatement::RetryStalePreparedStatement(SQLRETURN result)
     // Going through the seam here, rather than a bare SQL_SUCCEEDED(result), lets a test install a
     // SqlFaultSource that forces this gate to treat an actually-successful SQLExecute as a failure,
     // so the recovery arms below are reachable without a driver that will fail on demand (see #585).
-    if (detail::OdbcCallSucceeded(result, m_hStmt) || result == SQL_NO_DATA || !m_reusedPreparedQuery)
+    auto const executeOutcome = detail::CheckOdbcCall(result, m_hStmt);
+    if (executeOutcome || result == SQL_NO_DATA || !m_reusedPreparedQuery)
         return false;
 
     // SQLSTATEs that mean "the prepared statement this handle holds can no longer be executed", as
@@ -403,7 +404,11 @@ bool SqlStatement::RetryStalePreparedStatement(SQLRETURN result)
     static constexpr auto StalePreparedStatementStates =
         std::array<std::string_view, 5> { "42S02", "42P01", "0A000", "26000", "42P05" };
 
-    auto const errorInfo = SqlErrorInfo::FromStatementHandle(m_hStmt);
+    // An injected failure carries its own diagnostic, because the real SQLExecute succeeded and so
+    // left none on the handle. Reading the handle regardless would see an empty SQLSTATE, match no
+    // stale-plan state, and return before re-preparing - which would make the recovery arm below
+    // unreachable from a test and defeat the seam this gate goes through.
+    auto const errorInfo = executeOutcome.EffectiveError([this] { return SqlErrorInfo::FromStatementHandle(m_hStmt); });
     if (!std::ranges::contains(StalePreparedStatementStates, std::string_view { errorInfo.sqlState }))
         return false;
 

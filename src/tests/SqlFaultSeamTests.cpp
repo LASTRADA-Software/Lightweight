@@ -21,11 +21,13 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <optional>
 #include <source_location>
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 using namespace Lightweight;
 
@@ -49,9 +51,12 @@ namespace
 class ScriptedFaultSource: public SqlFaultSource
 {
   public:
+    // Deliberately not noexcept: _locationFilter is a std::string built from a string_view, so
+    // construction allocates and can throw. Declaring it noexcept would turn a bad_alloc into a
+    // std::terminate.
     explicit ScriptedFaultSource(SqlErrorInfo error,
                                  int failureCount,
-                                 std::string_view locationFilter = "SqlFaultSeamTests") noexcept:
+                                 std::string_view locationFilter = "SqlFaultSeamTests"):
         _error { std::move(error) },
         _remaining { failureCount },
         _locationFilter { locationFilter }
@@ -117,6 +122,60 @@ class StatementOnlyFaultSource: public SqlFaultSource
 
   private:
     SqlErrorInfo _error;
+};
+
+/// Catches every `OnWarning` made while it is the active logger, restoring the previous logger on
+/// scope exit. `RetryStalePreparedStatement` announces a re-prepare through exactly one warning, so
+/// this is how a test observes that the recovery arm really ran rather than merely that the gate
+/// was passed.
+class CapturingWarningLogger: public SqlLogger::Null
+{
+  public:
+    CapturingWarningLogger():
+        _previous { &SqlLogger::GetLogger() }
+    {
+        SqlLogger::SetLogger(*this);
+    }
+
+    ~CapturingWarningLogger() override
+    {
+        SqlLogger::SetLogger(*_previous);
+    }
+
+    CapturingWarningLogger(CapturingWarningLogger const&) = delete;
+    CapturingWarningLogger(CapturingWarningLogger&&) = delete;
+    CapturingWarningLogger& operator=(CapturingWarningLogger const&) = delete;
+    CapturingWarningLogger& operator=(CapturingWarningLogger&&) = delete;
+
+    void OnWarning(std::string_view const& message) override
+    {
+        _warnings.emplace_back(message);
+    }
+
+    void OnError(SqlErrorInfo const& errorInfo, std::source_location /*sourceLocation*/) override
+    {
+        _errors.emplace_back(errorInfo);
+    }
+
+    /// @param needle Substring to look for.
+    /// @return Whether any captured warning contains @p needle.
+    [[nodiscard]] bool AnyWarningContains(std::string_view needle) const
+    {
+        return std::ranges::any_of(_warnings, [needle](std::string const& w) { return w.contains(needle); });
+    }
+
+    /// @param sqlState The five-character SQLSTATE to look for.
+    /// @return Whether any diagnostic reported through @c OnError carries @p sqlState.
+    [[nodiscard]] bool AnyErrorHasState(std::string_view sqlState) const
+    {
+        return std::ranges::any_of(
+            _errors, [sqlState](SqlErrorInfo const& e) { return std::string_view { e.sqlState } == sqlState; });
+    }
+
+  private:
+    SqlLogger* _previous;
+    std::vector<std::string> _warnings;
+    std::vector<SqlErrorInfo> _errors;
 };
 
 /// Installs a fault source for the duration of a scope and clears it again, so a failing
@@ -248,53 +307,121 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlFaultSource costs nothing when no source is
 
 // ================================================================================================
 // Retrofitted call sites (#585): inline SQL_SUCCEEDED(...) checks that now go through the seam via
-// detail::OdbcCallSucceeded / detail::OdbcConnectionCallSucceeded instead of checking the return
+// detail::CheckOdbcCall / detail::CheckOdbcConnectionCall instead of checking the return
 // code directly. Both were previously invisible to SqlFaultSource entirely.
 // ================================================================================================
 
+/// Creates a fresh probe table for the stale-plan retry tests and returns a parameterless INSERT
+/// against it.
+///
+/// A statement that yields no result set is deliberate. The seam turns a *successful* SQLExecute
+/// into a failure verdict, so the retry runs on a handle the driver still considers busy: with a
+/// SELECT, the first execute leaves its cursor open and the re-execute fails with
+/// 24000 Invalid cursor state on MS SQL Server and PostgreSQL. That situation cannot arise in
+/// production - this arm is only ever reached after an execute that genuinely failed, and a failed
+/// execute opens no cursor - so the test avoids it rather than the library defending against it.
+///
+/// @param stmt Statement to create the table through.
+/// @param tableName Probe table to create.
+/// @return The INSERT statement text, to be prepared byte-identically on every round.
+std::string CreateRetryProbeTable(SqlStatement& stmt, std::string_view tableName)
+{
+    stmt.MigrateDirect([tableName](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable(std::string(tableName))
+            .PrimaryKeyWithAutoIncrement("id")
+            .RequiredColumn("value", SqlColumnTypeDefinitions::Integer {});
+    });
+    return stmt.Query(tableName).Insert().Set("value", 42).ToSql();
+}
+
+/// @param tableName Table to count.
+/// @return The number of rows currently in @p tableName.
+///
+/// Deliberately counts through a statement of its own. Reusing the statement under test would
+/// prepare a different query on that handle, which clears `m_reusedPreparedQuery` - the very
+/// precondition `RetryStalePreparedStatement` gates on - and silently disarm the test.
+[[nodiscard]] int RowCount(std::string_view tableName)
+{
+    auto stmt = SqlStatement {};
+    return stmt.ExecuteDirectScalar<int>(stmt.Query(tableName).Select().Count()).value_or(-1);
+}
+
+/// Prepares and executes @p query once, so that a later `Prepare` of the same text reuses the
+/// handle's already-prepared statement and sets `m_reusedPreparedQuery` - the precondition
+/// `RetryStalePreparedStatement` needs before an installed fault source can matter at all.
+///
+/// @param stmt Statement to warm up.
+/// @param query Query text, reused byte-identically on the next round.
+void WarmUpReusedPreparedQuery(SqlStatement& stmt, std::string_view query)
+{
+    stmt.Prepare(query);
+    (void) stmt.Execute();
+}
+
 TEST_CASE_METHOD(SqlTestFixture,
-                 "SqlFaultSource forces RetryStalePreparedStatement past its initial success gate",
+                 "SqlFaultSource drives RetryStalePreparedStatement through an actual re-prepare",
                  "[SqlFaultSeam]")
 {
-    // RetryStalePreparedStatement's initial gate now reads
-    // `detail::OdbcCallSucceeded(result, m_hStmt) || result == SQL_NO_DATA || !m_reusedPreparedQuery`
-    // instead of a bare `SQL_SUCCEEDED(result) || ...`. Before that retrofit, GetFaultSource() was
-    // never even consulted here: the early return happened first, unconditionally, on a real success.
+    // The point of routing this gate through the seam is not that the seam gets consulted - it is
+    // that the recovery arm behind the gate becomes reachable. That needs the injected diagnostic
+    // to survive: the real SQLExecute succeeded, so SqlErrorInfo::FromStatementHandle would report
+    // an empty SQLSTATE, match no stale-plan state, and return before re-preparing.
     auto stmt = SqlStatement {};
-    auto const* const query = "SELECT 1";
+    auto const query = CreateRetryProbeTable(stmt, "FaultSeamRetry");
+    WarmUpReusedPreparedQuery(stmt, query);
 
-    // First round: not a reused prepare (m_reusedPreparedQuery is still false), so this round must
-    // not consult the seam at all - the fault source is only installed afterwards.
+    // 42S02 is one of the SQLSTATEs the function treats as "the cached plan is stale", so this is
+    // the diagnostic that must reach the state comparison for the re-prepare to happen.
+    ScriptedFaultSource source { MakeError("42S02", "cached plan is stale"), 1, "RetryStalePreparedStatement" };
+    ScopedFaultSource const installed { &source };
+    CapturingWarningLogger const warnings;
+
     stmt.Prepare(query);
-    {
-        auto cursor = stmt.Execute();
-        CHECK(cursor.FetchRow());
-    }
+    (void) stmt.Execute();
 
-    // Second round: byte-identical query text, so Prepare() reuses the handle's prepared statement
-    // and m_reusedPreparedQuery becomes true - the precondition the gate needs before an installed
-    // fault source can matter.
+    // The re-prepare announces itself with exactly one warning, so this is the assertion that the
+    // recovery arm ran rather than the gate merely being passed. It fails if the injected error is
+    // dropped on the way out of the seam: the handle would report an empty SQLSTATE, match no
+    // stale-plan state, and return before re-preparing.
+    CHECK(warnings.AnyWarningContains("Re-preparing statement"));
+    CHECK(source.ConsultCount() >= 1);
+
+    // Three rows, and every one of them is evidence: the warm-up wrote the first, the execute that
+    // the seam then reported as failed really did write the second, and the third exists only
+    // because the recovery arm re-prepared and the caller re-executed. A retry that did not happen
+    // leaves two.
+    CHECK(RowCount("FaultSeamRetry") == 3);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlFaultSource's injected non-stale diagnostic leaves the prepared statement alone",
+                 "[SqlFaultSeam]")
+{
+    // The complement of the test above, and the reason the injected diagnostic has to be the real
+    // one rather than a stand-in for "something failed": only the stale-plan SQLSTATEs earn a
+    // re-prepare, and 08S01 is not one of them.
+    auto stmt = SqlStatement {};
+    auto const query = CreateRetryProbeTable(stmt, "FaultSeamNoRetry");
+    WarmUpReusedPreparedQuery(stmt, query);
+
     ScriptedFaultSource source { MakeError("08S01", "connection dropped"), 1, "RetryStalePreparedStatement" };
     ScopedFaultSource const installed { &source };
+    CapturingWarningLogger const warnings;
 
     stmt.Prepare(query);
-    auto cursor = stmt.Execute();
+    (void) stmt.Execute();
 
-    // The real SQLExecute succeeded and the fault source's diagnostic never lands on the handle
-    // (only the seam's boolean verdict is faked, not SqlErrorInfo::FromStatementHandle), so the
-    // SQLSTATE the function inspects is not one of the stale-plan states and no re-prepare happens.
-    // The observable behaviour is therefore unchanged - the row still comes back...
-    CHECK(cursor.FetchRow());
-    // ...but the seam was reached and asked, which is only possible once the gate stops
-    // short-circuiting on the bare return code. This is the assertion that fails if the retrofit is
-    // reverted: ConsultCount stays 0 when the gate goes back to a bare SQL_SUCCEEDED(result).
     CHECK(source.ConsultCount() >= 1);
+    CHECK_FALSE(warnings.AnyWarningContains("Re-preparing statement"));
+    // Two rows rather than three: the gate was passed, but 08S01 is not a stale-plan state, so no
+    // re-prepare and no second execute.
+    CHECK(RowCount("FaultSeamNoRetry") == 2);
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlFaultSource forces the SQL_COPT_SS_ENCRYPT connection check to fail", "[SqlFaultSeam]")
 {
     // SqlConnection::Connect(SqlConnectionDataSource const&) checks the pre-connect encryption
-    // attribute via detail::OdbcConnectionCallSucceeded(sqlReturn, m_hDbc) instead of a bare
+    // attribute via detail::CheckOdbcConnectionCall(sqlReturn, m_hDbc) instead of a bare
     // SQL_SUCCEEDED(sqlReturn). No driver in the test matrix rejects SQL_COPT_SS_ENCRYPT at set
     // time (see the comment at the call site), so a fault source is the only way to exercise the
     // "fail the connection rather than silently downgrade" branch at all.
@@ -315,36 +442,42 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlFaultSource forces the SQL_COPT_SS_ENCRYPT 
     // bare SQL_SUCCEEDED(sqlReturn), Connect() still returns false eventually (SQLConnectW rejects
     // the unresolvable DSN), but the seam is never consulted - ConsultCount stays 0. With the
     // retrofit, the injected failure fires first, before SQLConnectW is ever called.
+    CapturingWarningLogger const diagnostics;
     CHECK_FALSE(connection.Connect(dataSource));
     CHECK(source.ConsultCount() >= 1);
+
+    // And the branch reports the diagnostic it was actually given. The SQLSetConnectAttrW that
+    // preceded it really succeeded, so LastError() has nothing to do with this failure: reading the
+    // handle instead of the outcome would log an empty or unrelated driver diagnostic here.
+    CHECK(diagnostics.AnyErrorHasState("HYC00"));
 }
 
 // ================================================================================================
-// detail::OdbcCallSucceeded / detail::OdbcConnectionCallSucceeded: direct coverage of the helpers'
+// detail::CheckOdbcCall / detail::CheckOdbcConnectionCall: direct coverage of the helpers'
 // own safety guards, exercised without going through a real recovery call site.
 // ================================================================================================
 
-TEST_CASE("detail::OdbcCallSucceeded is never consulted for a null statement handle", "[SqlFaultSeam]")
+TEST_CASE("detail::CheckOdbcCall is never consulted for a null statement handle", "[SqlFaultSeam]")
 {
     // Mirrors "SqlFaultSource is never consulted for a null statement handle" above, but calls the
     // helper directly rather than through RequireSuccess.
     ScriptedFaultSource source { MakeError("08S01"), 1000 };
     ScopedFaultSource const installed { &source };
 
-    CHECK(detail::OdbcCallSucceeded(SQL_SUCCESS, SQL_NULL_HSTMT));
+    CHECK(detail::CheckOdbcCall(SQL_SUCCESS, SQL_NULL_HSTMT));
     CHECK(source.ConsultCount() == 0);
 }
 
-TEST_CASE("detail::OdbcConnectionCallSucceeded is never consulted for a null connection handle", "[SqlFaultSeam]")
+TEST_CASE("detail::CheckOdbcConnectionCall is never consulted for a null connection handle", "[SqlFaultSeam]")
 {
     ScriptedFaultSource source { MakeError("HYC00"), 1000 };
     ScopedFaultSource const installed { &source };
 
-    CHECK(detail::OdbcConnectionCallSucceeded(SQL_SUCCESS, SQL_NULL_HDBC));
+    CHECK(detail::CheckOdbcConnectionCall(SQL_SUCCESS, SQL_NULL_HDBC));
     CHECK(source.ConsultCount() == 0);
 }
 
-TEST_CASE("detail::OdbcConnectionCallSucceeded returns false for a genuine failure without consulting the seam",
+TEST_CASE("detail::CheckOdbcConnectionCall returns false for a genuine failure without consulting the seam",
           "[SqlFaultSeam]")
 {
     // Injection only ever turns a success into a failure, never the reverse: a call that actually
@@ -353,7 +486,7 @@ TEST_CASE("detail::OdbcConnectionCallSucceeded returns false for a genuine failu
     ScriptedFaultSource source { MakeError("HYC00"), 1000 };
     ScopedFaultSource const installed { &source };
 
-    CHECK_FALSE(detail::OdbcConnectionCallSucceeded(SQL_ERROR, SQL_NULL_HDBC));
+    CHECK_FALSE(detail::CheckOdbcConnectionCall(SQL_ERROR, SQL_NULL_HDBC));
     CHECK(source.ConsultCount() == 0);
 }
 
@@ -374,5 +507,5 @@ TEST_CASE_METHOD(SqlTestFixture,
     StatementOnlyFaultSource source { MakeError("HYC00", "should never surface on a connection check") };
     ScopedFaultSource const installed { &source };
 
-    CHECK(detail::OdbcConnectionCallSucceeded(SQL_SUCCESS, hDbc));
+    CHECK(detail::CheckOdbcConnectionCall(SQL_SUCCESS, hDbc));
 }

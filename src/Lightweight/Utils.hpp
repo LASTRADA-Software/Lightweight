@@ -555,16 +555,61 @@ LIGHTWEIGHT_API void RequireSuccess(SQLHSTMT hStmt,
 
 namespace detail
 {
+    /// @brief Verdict of a non-throwing checked ODBC call, carrying the diagnostic that justifies a
+    ///        failure verdict whenever that failure was injected rather than real.
+    ///
+    /// A bare @c bool is not enough here. When an installed @ref SqlFaultSource overrides a real
+    /// success into a failure, the underlying ODBC call genuinely succeeded, so the handle holds no
+    /// diagnostic records at all: a caller that recovers by *inspecting* the error (rather than
+    /// merely branching on it) would read an empty or stale diagnostic off the handle and take the
+    /// wrong recovery arm. Carrying the injected error alongside the verdict is what makes such an
+    /// arm reachable from a test, which is the whole point of the seam.
+    ///
+    /// @see CheckOdbcCall, CheckOdbcConnectionCall
+    struct OdbcCallOutcome
+    {
+        /// Whether the checked call should be treated as having succeeded.
+        bool succeeded {};
+
+        /// The injected diagnostic, engaged only when a @ref SqlFaultSource turned a real success
+        /// into a failure. Never engaged for a genuine failure — that one's diagnostic is on the
+        /// handle, where the caller can read it. Prefer @ref EffectiveError over branching on this
+        /// directly.
+        std::optional<SqlErrorInfo> injectedError {};
+
+        /// @return @ref succeeded, so an outcome can be tested directly in an `if`.
+        [[nodiscard]] explicit constexpr operator bool() const noexcept
+        {
+            return succeeded;
+        }
+
+        /// @brief The diagnostic describing this failure, from whichever source actually has one.
+        ///
+        /// @param readFromHandle Invoked only when the failure was not injected, to read the real
+        ///                       handle's diagnostic (e.g. @c SqlErrorInfo::FromStatementHandle or
+        ///                       @c SqlConnection::LastError). Deliberately lazy: reading
+        ///                       diagnostics off a handle is an ODBC round-trip, and there is
+        ///                       nothing to read when the failure was injected.
+        /// @return The injected diagnostic when there is one, otherwise @p readFromHandle's result.
+        template <typename ReadFromHandle>
+            requires std::is_invocable_r_v<SqlErrorInfo, ReadFromHandle const&>
+        [[nodiscard]] SqlErrorInfo EffectiveError(ReadFromHandle const& readFromHandle) const
+        {
+            return injectedError.has_value() ? *injectedError : readFromHandle();
+        }
+    };
+
     /// @brief Non-throwing checked-call helper for inline `SQL_SUCCEEDED` recovery checks against a
     ///        statement handle.
     ///
     /// Some recovery arms cannot go through @ref RequireSuccess because they must not throw: the
-    /// caller recovers by branching on a @c bool (e.g. declining to retry, or declining to pool a
-    /// handle), and that recovery is the whole point of being able to drive the call to its failure
-    /// branch from a test. This helper gives such a call site the same fault-injection seam
-    /// @ref RequireSuccess already offers, without the throw: it returns the @c SQL_SUCCEEDED verdict
+    /// caller recovers by branching (e.g. declining to retry, or declining to pool a handle), and
+    /// that recovery is the whole point of being able to drive the call to its failure branch from a
+    /// test. This helper gives such a call site the same fault-injection seam @ref RequireSuccess
+    /// already offers, without the throw: the returned outcome carries the @c SQL_SUCCEEDED verdict
     /// for @p result, unless an installed @ref SqlFaultSource overrides a real success into an
-    /// injected failure via @ref SqlFaultSource::NextFailure.
+    /// injected failure via @ref SqlFaultSource::NextFailure — in which case it also carries that
+    /// injected diagnostic, since the handle has none to offer.
     ///
     /// Mirrors @ref RequireSuccess's safety property: never consults the fault source while @p hStmt
     /// is @c SQL_NULL_HSTMT, so a call made before a statement handle is fully valid cannot be
@@ -574,14 +619,14 @@ namespace detail
     /// @param hStmt The statement handle @p result came from.
     /// @param sourceLocation Where the check originated; forwarded to the fault source. Defaults to
     ///                       the caller's location.
-    /// @return @c true if @p result should be treated as success.
-    [[nodiscard]] LIGHTWEIGHT_API bool OdbcCallSucceeded(
-        SQLRETURN result, SQLHSTMT hStmt, std::source_location sourceLocation = std::source_location::current());
+    /// @return The verdict for @p result, plus the injected diagnostic when one was injected.
+    [[nodiscard]] LIGHTWEIGHT_API OdbcCallOutcome
+    CheckOdbcCall(SQLRETURN result, SQLHSTMT hStmt, std::source_location sourceLocation = std::source_location::current());
 
     /// @brief Non-throwing checked-call helper for inline `SQL_SUCCEEDED` recovery checks against a
     ///        connection handle.
     ///
-    /// The connection-handle counterpart of @ref OdbcCallSucceeded(SQLRETURN, SQLHSTMT,
+    /// The connection-handle counterpart of @ref CheckOdbcCall(SQLRETURN, SQLHSTMT,
     /// std::source_location): same contract, keyed on a @c SQLHDBC via
     /// @ref SqlFaultSource::NextConnectionFailure instead of @ref SqlFaultSource::NextFailure. Never
     /// consults the fault source while @p hDbc is @c SQL_NULL_HDBC, for the same reason the
@@ -591,8 +636,8 @@ namespace detail
     /// @param hDbc The connection handle @p result came from.
     /// @param sourceLocation Where the check originated; forwarded to the fault source. Defaults to
     ///                       the caller's location.
-    /// @return @c true if @p result should be treated as success.
-    [[nodiscard]] LIGHTWEIGHT_API bool OdbcConnectionCallSucceeded(
+    /// @return The verdict for @p result, plus the injected diagnostic when one was injected.
+    [[nodiscard]] LIGHTWEIGHT_API OdbcCallOutcome CheckOdbcConnectionCall(
         SQLRETURN result, SQLHDBC hDbc, std::source_location sourceLocation = std::source_location::current());
 } // namespace detail
 
