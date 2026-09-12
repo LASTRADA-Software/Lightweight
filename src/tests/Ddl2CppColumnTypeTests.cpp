@@ -440,13 +440,10 @@ TEST_CASE_METHOD(SqlTestFixture, "ddl2cpp: a TIMESTAMP column maps to SqlDateTim
 
     auto const table = ReadTable(stmt, "ColumnTypeTimestamp");
 
-    // KNOWN DEFECT on MS SQL Server: `TIMESTAMP` there is a synonym for `rowversion` — an 8-byte,
-    // server-generated, non-writable binary counter, not a point in time. The SQL Server formatter
-    // emits it verbatim for `Timestamp{}`, so the catalog reports binary(8) and ddl2cpp generates a
-    // binary member. Asserted as-is so the behaviour is recorded rather than unnoticed; replacing
-    // the emitted type (DATETIME2 being the natural candidate) is a formatter change of its own.
-    auto const expected = stmt.Connection().ServerType() == SqlServerType::MICROSOFT_SQL
-                              ? std::string_view { "Light::SqlDynamicBinary<8>" }
-                              : std::string_view { "Light::SqlDateTime" };
-    CHECK(GeneratedCxxType(ColumnOf(table, "timestampColumn"), "ColumnTypeTimestamp") == expected);
+    // On MS SQL Server, `TIMESTAMP` is a synonym for `rowversion` — an 8-byte, server-generated,
+    // non-writable binary counter, not a point in time. The SQL Server formatter therefore emits
+    // `DATETIME2` for `Timestamp{}` (the same as it would for a genuine point-in-time column),
+    // so the catalog reports a temporal type and ddl2cpp generates `Light::SqlDateTime` on every
+    // backend.
+    CHECK(GeneratedCxxType(ColumnOf(table, "timestampColumn"), "ColumnTypeTimestamp") == "Light::SqlDateTime");
 }

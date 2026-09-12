@@ -355,7 +355,11 @@ EXEC sp_executesql @sql;)",
                               [](Smallint const&) -> std::string { return "SMALLINT"; },
                               [](Text const&) -> std::string { return "VARCHAR(MAX)"; },
                               [](Time const&) -> std::string { return "TIME"; },
-                              [](Timestamp const&) -> std::string { return "TIMESTAMP"; },
+                              // On SQL Server, `TIMESTAMP` is a deprecated synonym for `rowversion`: an
+                              // 8-byte, server-generated, non-writable binary counter, not a point in
+                              // time. Emit `DATETIME2` instead, so the column is an actual writable
+                              // temporal type, matching `Light::SqlDateTime` on the C++ side.
+                              [](Timestamp const&) -> std::string { return "DATETIME2"; },
                               [](Tinyint const&) -> std::string { return "TINYINT"; },
                               [](VarBinary const& type) -> std::string {
                                   if (type.size == 0 || type.size > 8000)
