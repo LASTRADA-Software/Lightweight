@@ -73,6 +73,18 @@ namespace
         PostgresFloatTypePrecision { .dialectTypeName = "float8"sv, .precision = 53 },
     };
 
+    /// Looks up @p dialectTypeName in @ref PostgresFloatTypeNameToPrecision.
+    ///
+    /// @return The matching precision, or @c std::nullopt if @p dialectTypeName is not one of
+    ///         PostgreSQL's floating-point type names.
+    constexpr std::optional<std::size_t> LookupPostgresFloatPrecision(std::string_view dialectTypeName) noexcept
+    {
+        for (auto const& entry: PostgresFloatTypeNameToPrecision)
+            if (entry.dialectTypeName == dialectTypeName)
+                return entry.precision;
+        return std::nullopt;
+    }
+
     std::vector<TableWithSchema> AllTables(SqlStatement& stmt, std::string_view database, std::string_view schema)
     {
         auto wDatabase = OdbcWideArg { database };
@@ -1465,12 +1477,10 @@ namespace detail
                     // match them. Map each to the precision that makes CxxModelPrinter::MakeType
                     // pick the correctly-sized C++ type (float for <=24, double otherwise) instead
                     // of silently narrowing `double precision` (float8) to `float`.
-                    else if (auto const* const it = std::ranges::find(PostgresFloatTypeNameToPrecision,
-                                                                      column.dialectDependantTypeString,
-                                                                      &PostgresFloatTypePrecision::dialectTypeName);
-                             it != std::ranges::end(PostgresFloatTypeNameToPrecision))
+                    else if (auto const precision = LookupPostgresFloatPrecision(column.dialectDependantTypeString);
+                             precision.has_value())
                     {
-                        column.type = SqlColumnTypeDefinitions::Real { .precision = it->precision };
+                        column.type = SqlColumnTypeDefinitions::Real { .precision = *precision };
                     }
                     // PostgreSQL ODBC driver reports BOOLEAN as VARCHAR - handle it specially
                     else if (column.dialectDependantTypeString == "bool")
