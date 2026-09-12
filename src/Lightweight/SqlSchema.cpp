@@ -8,6 +8,7 @@
 #include "SqlStatement.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cctype>
 #include <charconv>
@@ -16,6 +17,7 @@
 #include <map>
 #include <optional>
 #include <set>
+#include <string_view>
 #include <utility>
 
 #include <sql.h>
@@ -54,6 +56,34 @@ namespace
         std::string schema;
         std::string name;
     };
+
+    /// Maps a PostgreSQL-specific floating-point dialect type name onto the precision that
+    /// `SqlColumnTypeDefinitions::Real` must carry so `CxxModelPrinter::MakeType` emits the
+    /// correctly-sized C++ type (`float` for `<= 24`, `double` otherwise).
+    struct PostgresFloatTypePrecision
+    {
+        std::string_view dialectTypeName;
+        std::size_t precision;
+    };
+
+    /// PostgreSQL names its floating-point types `float4` (4-byte) and `float8` (8-byte) rather
+    /// than the `real`/`float` names recognized elsewhere, so they need their own table entry.
+    constexpr auto PostgresFloatTypeNameToPrecision = std::array {
+        PostgresFloatTypePrecision { .dialectTypeName = "float4"sv, .precision = 24 },
+        PostgresFloatTypePrecision { .dialectTypeName = "float8"sv, .precision = 53 },
+    };
+
+    /// Looks up @p dialectTypeName in @ref PostgresFloatTypeNameToPrecision.
+    ///
+    /// @return The matching precision, or @c std::nullopt if @p dialectTypeName is not one of
+    ///         PostgreSQL's floating-point type names.
+    constexpr std::optional<std::size_t> LookupPostgresFloatPrecision(std::string_view dialectTypeName) noexcept
+    {
+        for (auto const& entry: PostgresFloatTypeNameToPrecision)
+            if (entry.dialectTypeName == dialectTypeName)
+                return entry.precision;
+        return std::nullopt;
+    }
 
     std::vector<TableWithSchema> AllTables(SqlStatement& stmt, std::string_view database, std::string_view schema)
     {
@@ -1441,6 +1471,16 @@ namespace detail
                     {
                         column.type = SqlColumnTypeDefinitions::Real { .precision = 53 };
                         // column.size = 15; // Try letting it be default (from SQLColumns or 0)
+                    }
+                    // PostgreSQL names its floating-point types `float4` (4-byte) and `float8`
+                    // (8-byte) rather than `real`/`float`, so the literal comparisons above never
+                    // match them. Map each to the precision that makes CxxModelPrinter::MakeType
+                    // pick the correctly-sized C++ type (float for <=24, double otherwise) instead
+                    // of silently narrowing `double precision` (float8) to `float`.
+                    else if (auto const floatPrecision = LookupPostgresFloatPrecision(column.dialectDependantTypeString);
+                             floatPrecision.has_value())
+                    {
+                        column.type = SqlColumnTypeDefinitions::Real { .precision = *floatPrecision };
                     }
                     // PostgreSQL ODBC driver reports BOOLEAN as VARCHAR - handle it specially
                     else if (column.dialectDependantTypeString == "bool")
