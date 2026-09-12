@@ -1,6 +1,5 @@
 var NAVTREEINDEX3 =
 {
-"d7/d0f/DataBinder_2Core_8hpp_source.html":[22,0,1,1,1],
 "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html":[19,8,3],
 "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a034d2ea6e30aa6d5d52833da134f2e6c":[19,8,3,26],
 "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a05d79f6ee1c786ce016f5e8789d13a15":[19,8,3,12],
@@ -249,5 +248,6 @@ var NAVTREEINDEX3 =
 "d8/d53/WorkerChunkArchive_8hpp_source.html":[22,0,1,4,11],
 "d8/d5b/structLightweight_1_1SqlErrorInfo.html":[19,6,3],
 "d8/d5b/structLightweight_1_1SqlErrorInfo.html#a073c9e1ed64ec6ad89d35571a6c41b21":[19,6,3,0],
-"d8/d5b/structLightweight_1_1SqlErrorInfo.html#a6f37a42c40ff6b1c873e2f9be2cce148":[19,6,3,2]
+"d8/d5b/structLightweight_1_1SqlErrorInfo.html#a6f37a42c40ff6b1c873e2f9be2cce148":[19,6,3,2],
+"d8/d5b/structLightweight_1_1SqlErrorInfo.html#a8a612b03568fae3800296f774e91ce16":[19,6,3,1]
 };
