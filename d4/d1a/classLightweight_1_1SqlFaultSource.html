@@ -119,6 +119,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a183b84e14ad19111747cda413e51115d" id="r_a183b84e14ad19111747cda413e51115d"><td class="memItemLeft" align="right" valign="top">virtual std::optional&lt; <a class="el" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html">SqlErrorInfo</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d1a/classLightweight_1_1SqlFaultSource.html#a183b84e14ad19111747cda413e51115d">NextFailure</a> (SQLHSTMT hStmt, std::source_location const &amp;sourceLocation)=0</td></tr>
 <tr class="memdesc:a183b84e14ad19111747cda413e51115d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Decides whether the next statement-handle check should fail.  <br /></td></tr>
 <tr class="separator:a183b84e14ad19111747cda413e51115d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a04aa1bbedcc60e03d869408c4a3838d8" id="r_a04aa1bbedcc60e03d869408c4a3838d8"><td class="memItemLeft" align="right" valign="top">virtual std::optional&lt; <a class="el" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html">SqlErrorInfo</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d1a/classLightweight_1_1SqlFaultSource.html#a04aa1bbedcc60e03d869408c4a3838d8">NextConnectionFailure</a> (SQLHDBC hDbc, std::source_location const &amp;sourceLocation)</td></tr>
+<tr class="memdesc:a04aa1bbedcc60e03d869408c4a3838d8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Decides whether the next connection-handle check should fail.  <br /></td></tr>
+<tr class="separator:a04aa1bbedcc60e03d869408c4a3838d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Substitutes a scripted failure for an ODBC call that actually succeeded. </p>
@@ -173,6 +176,57 @@ Public Member Functions</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The error to inject, or <code>std::nullopt</code> to let the successful call through. </dd></dl>
+
+</div>
+</div>
+<a id="a04aa1bbedcc60e03d869408c4a3838d8" name="a04aa1bbedcc60e03d869408c4a3838d8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a04aa1bbedcc60e03d869408c4a3838d8">&#9670;&#160;</a></span>NextConnectionFailure()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual std::optional&lt; <a class="el" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html">SqlErrorInfo</a> &gt; Lightweight::SqlFaultSource::NextConnectionFailure </td>
+          <td>(</td>
+          <td class="paramtype">SQLHDBC&#160;</td>
+          <td class="paramname"><em>hDbc</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::source_location const &amp;&#160;</td>
+          <td class="paramname"><em>sourceLocation</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Decides whether the next connection-handle check should fail. </p>
+<p>The connection-side counterpart of <a class="el" href="../../d4/d1a/classLightweight_1_1SqlFaultSource.html#a183b84e14ad19111747cda413e51115d">NextFailure</a>, consulted by <code>detail::OdbcConnectionCallSucceeded</code> for a call that the driver reported as successful on a <code>SQLHDBC</code> rather than a <code>SQLHSTMT</code> (e.g. a pre-connect attribute set). Returning an engaged optional makes the caller treat the call as failed, exactly as an injected <a class="el" href="../../d4/d1a/classLightweight_1_1SqlFaultSource.html#a183b84e14ad19111747cda413e51115d">NextFailure</a> does for a statement check.</p>
+<p>Defaults to never injecting, so a fake that predates connection-handle support and overrides only <a class="el" href="../../d4/d1a/classLightweight_1_1SqlFaultSource.html#a183b84e14ad19111747cda413e51115d">NextFailure</a> keeps compiling and behaving exactly as before.</p>
+<dl class="section note"><dt>Note</dt><dd>Never called for a null connection handle, for the same reason <a class="el" href="../../d4/d1a/classLightweight_1_1SqlFaultSource.html#a183b84e14ad19111747cda413e51115d">NextFailure</a> is never called for a null statement handle: a fault injected while a <code><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html" title="Represents a connection to a SQL database.">SqlConnection</a></code> is still being constructed or is in the middle of tearing down its handle could leave the handle leaked or double-released.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">hDbc</td><td>The connection handle being checked, never <code>SQL_NULL_HDBC</code>. A fake may ignore it. </td></tr>
+    <tr><td class="paramname">sourceLocation</td><td>Where in the library the check is happening. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The error to inject, or <code>std::nullopt</code> to let the successful call through. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00524">524</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
 
 </div>
 </div>
