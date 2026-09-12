@@ -266,6 +266,38 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: SqlGuid", "[SqlDataBinder],[SqlVar
     CHECK_THROWS_AS(nonGuidVariant.TryGetGuid(), std::bad_variant_access);
 }
 
+// Regression test for https://github.com/LASTRADA-Software/Lightweight/issues/596:
+// SqlDataBinder<SqlGuid> used to pass SqlGuid::data straight through as raw SQL_C_GUID bytes, but
+// the SQL_C_GUID/Win32 GUID wire format transmits Data1/Data2/Data3 in native byte order, not the
+// textual order SqlGuid::data is stored in. A WHERE-clause comparison against the exact literal
+// string exercises the DBMS's own GUID<->text conversion, independent of (and previously
+// disagreeing with) SqlDataBinder<SqlGuid>'s own insert/fetch round trip.
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlGuid: inserted value matches the DB's own literal GUID string",
+                 "[SqlDataBinder],[SqlGuid]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect(
+        [](auto& migration) { migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::Guid {}); });
+
+    constexpr std::string_view text = "1E772AED-3E73-4C72-8684-5DFFAA17330E";
+    auto const guid = SqlGuid::TryParse(text);
+    REQUIRE(guid.has_value());
+
+    stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
+    (void) stmt.Execute(*guid);
+
+    auto const matchCount =
+        stmt.ExecuteDirectScalar<int>(std::format(R"(SELECT COUNT(*) FROM "Test" WHERE "Value" = '{}')", text));
+    CHECK(matchCount.value_or(-1) == 1);
+
+    // The value we read back through our own binder must still match what we wrote (and, by the
+    // check above, what the DB itself considers that value to be).
+    auto const readBack = stmt.ExecuteDirectScalar<SqlGuid>(R"(SELECT "Value" FROM "Test")");
+    REQUIRE(readBack.has_value());
+    CHECK(*readBack == *guid);
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: SqlDate", "[SqlDataBinder],[SqlVariant]")
 {
     auto stmt = SqlStatement {};
