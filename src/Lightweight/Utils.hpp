@@ -521,8 +521,8 @@ class SqlFaultSource
     /// @param hDbc The connection handle being checked, never @c SQL_NULL_HDBC. A fake may ignore it.
     /// @param sourceLocation Where in the library the check is happening.
     /// @return The error to inject, or @c std::nullopt to let the successful call through.
-    [[nodiscard]] virtual std::optional<SqlErrorInfo> NextConnectionFailure(SQLHDBC /*hDbc*/,
-                                                                            std::source_location const& /*sourceLocation*/)
+    [[nodiscard]] virtual std::optional<SqlErrorInfo> NextConnectionFailure(
+        [[maybe_unused]] SQLHDBC hDbc, [[maybe_unused]] std::source_location const& sourceLocation)
     {
         return std::nullopt;
     }
