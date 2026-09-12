@@ -1498,6 +1498,13 @@ struct GuidBatchColumn: BatchColumn
 
     SqlRawColumn ToRaw() override
     {
+        // `data` holds canonical-order SqlGuid values (as TryParse() produced them); the raw
+        // SQL_C_GUID array bind below expects native wire byte order. Convert in place — `data` is
+        // discarded by BatchManager::Flush()'s Clear() right after the bind executes.
+        // See SwapGuidWireByteOrder()'s doc comment.
+        for (auto& guid: data)
+            detail::SwapGuidWireByteOrder(guid.data);
+
         SqlRawColumnMetadata meta = metadata;
         meta.bufferLength = sizeof(SqlGuid);
         return SqlRawColumn { .metadata = meta,

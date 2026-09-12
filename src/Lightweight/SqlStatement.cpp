@@ -1440,11 +1440,13 @@ std::optional<SqlGuid> RowArrayCursor::GetGuid(std::size_t rowInBatch, SQLUSMALL
     auto const* cell = CheckedCell(rowInBatch, column, BoundType::Guid, "GetGuid");
     if (!cell)
         return std::nullopt;
-    // The cell holds the driver-filled SQLGUID; SqlGuid::data carries the same raw 16 bytes the
-    // single-row SQLGetData(SQL_C_GUID) fill produces, so to_string yields identical text.
+    // The cell holds the driver-filled SQLGUID in native wire byte order; convert to the library's
+    // canonical order (same as single-row SQLGetData(SQL_C_GUID) does) so to_string yields the same
+    // text as the single-row path. See SwapGuidWireByteOrder()'s doc comment.
     SqlGuid value;
     static_assert(sizeof(value.data) == sizeof(SQLGUID));
     std::memcpy(value.data, cell, sizeof(value.data));
+    detail::SwapGuidWireByteOrder(value.data);
     return value;
 }
 

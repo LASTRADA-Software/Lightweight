@@ -4,6 +4,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
+#include <cstdint>
 #include <format>
 #include <optional>
 #include <stdexcept>
@@ -152,4 +154,41 @@ TEST_CASE("SqlGuid::Create yields non-empty, non-equal values across calls", "[S
     CHECK(static_cast<bool>(a));
     CHECK(static_cast<bool>(b));
     CHECK(a != b);
+}
+
+// ================================================================================================
+// detail::SwapGuidWireByteOrder — converts between SqlGuid's canonical (textual) byte order and
+// the native SQL_C_GUID/Win32 GUID wire layout used at the ODBC boundary.
+//
+// Regression coverage for https://github.com/LASTRADA-Software/Lightweight/issues/596.
+// ================================================================================================
+
+TEST_CASE("detail::SwapGuidWireByteOrder converts canonical order to the native GUID wire order", "[SqlGuid]")
+{
+    // Textbook example: text group N maps to Data1=0x01020304, Data2=0x0506, Data3=0x4708,
+    // Data4={0x09..0x10} (Data3's leading nibble is fixed to a valid version digit so TryParse()
+    // accepts the string). The native (Win32 GUID / SQL_C_GUID) in-memory layout stores Data1,
+    // Data2, and Data3 in little-endian byte order, which is the byte-reverse of how each group
+    // reads left to right in the canonical text; Data4 is a plain byte array and is identical in
+    // both representations.
+    auto guid = RequireParsed("01020304-0506-4708-090a-0b0c0d0e0f10");
+    uint8_t const canonical[16] = {
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x47, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10,
+    };
+    uint8_t const wire[16] = {
+        0x04, 0x03, 0x02, 0x01, 0x06, 0x05, 0x08, 0x47, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10,
+    };
+    CHECK(std::equal(std::begin(guid.data), std::end(guid.data), std::begin(canonical)));
+
+    detail::SwapGuidWireByteOrder(guid.data);
+    CHECK(std::equal(std::begin(guid.data), std::end(guid.data), std::begin(wire)));
+}
+
+TEST_CASE("detail::SwapGuidWireByteOrder is self-inverse", "[SqlGuid]")
+{
+    auto const original = RequireParsed("AABBCCDD-EEFF-1122-8899-001122334455");
+    auto roundTripped = original;
+    detail::SwapGuidWireByteOrder(roundTripped.data);
+    detail::SwapGuidWireByteOrder(roundTripped.data);
+    CHECK(roundTripped == original);
 }
