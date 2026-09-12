@@ -1,5 +1,6 @@
 var NAVTREEINDEX2 =
 {
+"d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html":[21,0,0,5,1],
 "d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#a0ad4f33c05fc8af226a31dcd9ddd2d11":[21,0,0,5,1,4],
 "d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#a192e02f26f23abc45ed8fb719db4d7c8":[21,0,0,5,1,7],
 "d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#a4309cc9457aca91537652763dd817095":[21,0,0,5,1,8],
@@ -248,6 +249,5 @@ var NAVTREEINDEX2 =
 "d7/d09/structLightweight_1_1Zip_1_1EntryInfo.html#a0731a4941cd0e4cbdfa4a3dfc159a750":[21,0,0,5,0,0],
 "d7/d09/structLightweight_1_1Zip_1_1EntryInfo.html#a3dd2493f216573af2f9247f7ed0c7b59":[21,0,0,5,0,3],
 "d7/d09/structLightweight_1_1Zip_1_1EntryInfo.html#a8c43d6a1b9f70a2b0bd77b8ead208850":[21,0,0,5,0,2],
-"d7/d09/structLightweight_1_1Zip_1_1EntryInfo.html#afb5c349a95c807faa4907c7bb4b08cd0":[21,0,0,5,0,1],
-"d7/d0f/DataBinder_2Core_8hpp_source.html":[22,0,1,1,1]
+"d7/d09/structLightweight_1_1Zip_1_1EntryInfo.html#afb5c349a95c807faa4907c7bb4b08cd0":[21,0,0,5,0,1]
 };
