@@ -30,16 +30,27 @@
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <utility>
 #include <vector>
 
-/// Declared but never defined: yields a builder reference without constructing one (a real builder
-/// needs a live DataMapper and a live database connection). Only ever named inside functions that
-/// are themselves never called, so the missing definition can never be linked against.
+/// Yields a builder reference without constructing one: a real builder needs a live DataMapper and
+/// a live database connection, and this is only ever named inside functions that exist to have
+/// their bodies emitted and are themselves never called.
+///
+/// Defined, not merely declared, and the difference is load-bearing. A never-called function is
+/// still *emitted* at -O0, so the call below remains a relocation the linker has to resolve; only
+/// an optimizing build discards the caller first and lets a missing definition go unnoticed. The
+/// `gcc-debug` preset is exactly that unoptimized case, which is how the Copilot setup workflow -
+/// the one job that builds it - hit an undefined reference that no CI leg sees.
 ///
 /// Deliberately at external linkage — inside the anonymous namespace below, an undefined internal
 /// function trips -Wundefined-internal, which is fatal under PEDANTIC_COMPILER_WERROR.
 template <typename Record>
-Lightweight::SqlAllFieldsQueryBuilder<Record, Lightweight::DataMapperOptions {}>& UnreachableBuilder();
+Lightweight::SqlAllFieldsQueryBuilder<Record, Lightweight::DataMapperOptions {}>& UnreachableBuilder()
+{
+    // Never reached: nothing calls the functions that name this one.
+    std::unreachable();
+}
 
 namespace
 {
