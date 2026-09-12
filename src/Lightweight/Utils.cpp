@@ -93,6 +93,55 @@ void RequireSuccess(SQLHSTMT hStmt, SQLRETURN error, std::source_location source
     }
 }
 
+namespace detail
+{
+    OdbcCallOutcome CheckOdbcCall(SQLRETURN result, SQLHSTMT hStmt, std::source_location sourceLocation)
+    {
+        // A genuine failure short-circuits before the fault source is consulted: injection only
+        // ever turns a success into a failure, never the reverse. The diagnostic for this one is on
+        // the handle, so none is carried here.
+        if (!SQL_SUCCEEDED(result))
+            return { .succeeded = false, .injectedError = std::nullopt };
+
+        // Mirrors RequireSuccess: only a test ever installs a source, so this is one extra null
+        // check on the success path when none is installed.
+        auto* const faultSource = GetFaultSource();
+        if (faultSource == nullptr) [[likely]]
+            return { .succeeded = true, .injectedError = std::nullopt };
+
+        // Mirrors RequireSuccess's null-handle guard: a call made before the statement handle is
+        // fully valid must not be disturbed by injection.
+        if (hStmt == SQL_NULL_HSTMT)
+            return { .succeeded = true, .injectedError = std::nullopt };
+
+        // The injected diagnostic travels with the verdict rather than being dropped: the real call
+        // succeeded, so the handle holds no diagnostic records for a caller to inspect instead.
+        auto injectedError = faultSource->NextFailure(hStmt, sourceLocation);
+        auto const succeeded = !injectedError.has_value();
+        return { .succeeded = succeeded, .injectedError = std::move(injectedError) };
+    }
+
+    OdbcCallOutcome CheckOdbcConnectionCall(SQLRETURN result, SQLHDBC hDbc, std::source_location sourceLocation)
+    {
+        if (!SQL_SUCCEEDED(result))
+            return { .succeeded = false, .injectedError = std::nullopt };
+
+        auto* const faultSource = GetFaultSource();
+        if (faultSource == nullptr) [[likely]]
+            return { .succeeded = true, .injectedError = std::nullopt };
+
+        // A call made while the connection handle is not yet (or no longer) valid must not be
+        // disturbed by injection, for the same reason the statement-handle overload skips
+        // SQL_NULL_HSTMT: it would risk a half-constructed/half-destroyed SqlConnection.
+        if (hDbc == SQL_NULL_HDBC)
+            return { .succeeded = true, .injectedError = std::nullopt };
+
+        auto injectedError = faultSource->NextConnectionFailure(hDbc, sourceLocation);
+        auto const succeeded = !injectedError.has_value();
+        return { .succeeded = succeeded, .injectedError = std::move(injectedError) };
+    }
+} // namespace detail
+
 std::string FormatName(std::string const& name, FormatType formatType)
 {
     return FormatName(std::string_view { name }, formatType);

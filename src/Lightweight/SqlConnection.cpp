@@ -317,13 +317,19 @@ bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
         {
             // NOLINTNEXTLINE(performance-no-int-to-ptr)
             sqlReturn = SQLSetConnectAttrW(m_hDbc, SqlCoptSsEncrypt, (SQLPOINTER) *encryptValue, SQL_IS_UINTEGER);
-            if (!SQL_SUCCEEDED(sqlReturn))
+            auto const encryptOutcome = detail::CheckOdbcConnectionCall(sqlReturn, m_hDbc);
+            if (!encryptOutcome)
             {
-                // Not reachable from the test suite: this needs a driver manager that rejects
-                // SQL_COPT_SS_ENCRYPT at set time. Both unixODBC and the Windows driver manager defer
-                // driver-specific connection attributes until a driver is loaded, so every driver in
-                // the matrix accepts the call here and surfaces a refusal from SQLConnectW instead.
-                SqlLogger::GetLogger().OnError(LastError());
+                // No driver in the test matrix rejects SQL_COPT_SS_ENCRYPT at set time (both unixODBC
+                // and the Windows driver manager defer driver-specific connection attributes until a
+                // driver is loaded, and surface a refusal from SQLConnectW instead) - but going
+                // through the seam above, rather than a bare SQL_SUCCEEDED(sqlReturn), lets a test
+                // install a SqlFaultSource that forces this branch anyway (see #585).
+                //
+                // The reported diagnostic comes from the outcome, not unconditionally from the
+                // handle: an injected failure follows a SQLSetConnectAttrW that really succeeded, so
+                // LastError() would report an empty or unrelated driver diagnostic for it.
+                SqlLogger::GetLogger().OnError(encryptOutcome.EffectiveError([this] { return LastError(); }));
                 return false;
             }
         }
