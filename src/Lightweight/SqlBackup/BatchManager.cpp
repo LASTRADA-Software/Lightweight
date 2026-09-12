@@ -1410,6 +1410,15 @@ struct GuidBatchColumn: BatchColumn
         indicators.push_back(SQL_NULL_DATA);
     }
 
+    /// Appends @p guid in the native SQL_C_GUID wire byte order that ToRaw()'s raw array bind
+    /// expects, so `data` never holds a value in the wrong order. See SwapGuidWireByteOrder().
+    void PushGuid(SqlGuid guid)
+    {
+        detail::SwapGuidWireByteOrder(guid.data);
+        data.push_back(guid);
+        indicators.push_back(sizeof(SqlGuid));
+    }
+
     void PushFromBatch(ColumnBatch::ColumnData const& colData,
                        std::vector<bool> const& nulls,
                        size_t offset,
@@ -1440,10 +1449,7 @@ struct GuidBatchColumn: BatchColumn
                             if (s == "NULL" || s.empty())
                                 PushNull();
                             else if (auto guid = SqlGuid::TryParse(s); guid.has_value())
-                            {
-                                data.push_back(*guid);
-                                indicators.push_back(sizeof(SqlGuid));
-                            }
+                                PushGuid(*guid);
                             else
                                 PushNull();
                         }
@@ -1473,10 +1479,7 @@ struct GuidBatchColumn: BatchColumn
                     if (arg == "NULL" || arg.empty())
                         this->PushNull();
                     else if (auto guid = SqlGuid::TryParse(arg); guid.has_value())
-                    {
-                        this->data.push_back(*guid);
-                        this->indicators.push_back(sizeof(SqlGuid));
-                    }
+                        this->PushGuid(*guid);
                     else
                         this->PushNull();
                 }
