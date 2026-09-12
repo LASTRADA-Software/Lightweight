@@ -501,6 +501,31 @@ class SqlFaultSource
     /// @return The error to inject, or @c std::nullopt to let the successful call through.
     [[nodiscard]] virtual std::optional<SqlErrorInfo> NextFailure(SQLHSTMT hStmt,
                                                                   std::source_location const& sourceLocation) = 0;
+
+    /// @brief Decides whether the next connection-handle check should fail.
+    ///
+    /// The connection-side counterpart of @ref NextFailure, consulted by
+    /// @c detail::OdbcConnectionCallSucceeded for a call that the driver reported as successful on a
+    /// @c SQLHDBC rather than a @c SQLHSTMT (e.g. a pre-connect attribute set). Returning an engaged
+    /// optional makes the caller treat the call as failed, exactly as an injected @ref NextFailure
+    /// does for a statement check.
+    ///
+    /// Defaults to never injecting, so a fake that predates connection-handle support and overrides
+    /// only @ref NextFailure keeps compiling and behaving exactly as before.
+    ///
+    /// @note Never called for a null connection handle, for the same reason @ref NextFailure is never
+    ///       called for a null statement handle: a fault injected while a @c SqlConnection is still
+    ///       being constructed or is in the middle of tearing down its handle could leave the handle
+    ///       leaked or double-released.
+    ///
+    /// @param hDbc The connection handle being checked, never @c SQL_NULL_HDBC. A fake may ignore it.
+    /// @param sourceLocation Where in the library the check is happening.
+    /// @return The error to inject, or @c std::nullopt to let the successful call through.
+    [[nodiscard]] virtual std::optional<SqlErrorInfo> NextConnectionFailure(SQLHDBC /*hDbc*/,
+                                                                            std::source_location const& /*sourceLocation*/)
+    {
+        return std::nullopt;
+    }
 };
 
 /// @brief Installs a fault source process-wide.
@@ -527,6 +552,49 @@ LIGHTWEIGHT_API void SetFaultSource(SqlFaultSource* source) noexcept;
 LIGHTWEIGHT_API void RequireSuccess(SQLHSTMT hStmt,
                                     SQLRETURN error,
                                     std::source_location sourceLocation = std::source_location::current());
+
+namespace detail
+{
+    /// @brief Non-throwing checked-call helper for inline `SQL_SUCCEEDED` recovery checks against a
+    ///        statement handle.
+    ///
+    /// Some recovery arms cannot go through @ref RequireSuccess because they must not throw: the
+    /// caller recovers by branching on a @c bool (e.g. declining to retry, or declining to pool a
+    /// handle), and that recovery is the whole point of being able to drive the call to its failure
+    /// branch from a test. This helper gives such a call site the same fault-injection seam
+    /// @ref RequireSuccess already offers, without the throw: it returns the @c SQL_SUCCEEDED verdict
+    /// for @p result, unless an installed @ref SqlFaultSource overrides a real success into an
+    /// injected failure via @ref SqlFaultSource::NextFailure.
+    ///
+    /// Mirrors @ref RequireSuccess's safety property: never consults the fault source while @p hStmt
+    /// is @c SQL_NULL_HSTMT, so a call made before a statement handle is fully valid cannot be
+    /// disturbed by injection.
+    ///
+    /// @param result The ODBC return code to check.
+    /// @param hStmt The statement handle @p result came from.
+    /// @param sourceLocation Where the check originated; forwarded to the fault source. Defaults to
+    ///                       the caller's location.
+    /// @return @c true if @p result should be treated as success.
+    [[nodiscard]] LIGHTWEIGHT_API bool OdbcCallSucceeded(
+        SQLRETURN result, SQLHSTMT hStmt, std::source_location sourceLocation = std::source_location::current());
+
+    /// @brief Non-throwing checked-call helper for inline `SQL_SUCCEEDED` recovery checks against a
+    ///        connection handle.
+    ///
+    /// The connection-handle counterpart of @ref OdbcCallSucceeded(SQLRETURN, SQLHSTMT,
+    /// std::source_location): same contract, keyed on a @c SQLHDBC via
+    /// @ref SqlFaultSource::NextConnectionFailure instead of @ref SqlFaultSource::NextFailure. Never
+    /// consults the fault source while @p hDbc is @c SQL_NULL_HDBC, for the same reason the
+    /// statement-handle overload skips a null @c SQLHSTMT.
+    ///
+    /// @param result The ODBC return code to check.
+    /// @param hDbc The connection handle @p result came from.
+    /// @param sourceLocation Where the check originated; forwarded to the fault source. Defaults to
+    ///                       the caller's location.
+    /// @return @c true if @p result should be treated as success.
+    [[nodiscard]] LIGHTWEIGHT_API bool OdbcConnectionCallSucceeded(
+        SQLRETURN result, SQLHDBC hDbc, std::source_location sourceLocation = std::source_location::current());
+} // namespace detail
 
 /// Defines the naming convention for use (e.g. for C++ column names or table names in C++ struct names).
 enum class FormatType : uint8_t

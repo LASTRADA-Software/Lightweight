@@ -378,7 +378,10 @@ void SqlStatement::Prepare(std::string_view query) &
 
 bool SqlStatement::RetryStalePreparedStatement(SQLRETURN result)
 {
-    if (SQL_SUCCEEDED(result) || result == SQL_NO_DATA || !m_reusedPreparedQuery)
+    // Going through the seam here, rather than a bare SQL_SUCCEEDED(result), lets a test install a
+    // SqlFaultSource that forces this gate to treat an actually-successful SQLExecute as a failure,
+    // so the recovery arms below are reachable without a driver that will fail on demand (see #585).
+    if (detail::OdbcCallSucceeded(result, m_hStmt) || result == SQL_NO_DATA || !m_reusedPreparedQuery)
         return false;
 
     // SQLSTATEs that mean "the prepared statement this handle holds can no longer be executed", as

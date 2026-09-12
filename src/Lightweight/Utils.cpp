@@ -93,6 +93,46 @@ void RequireSuccess(SQLHSTMT hStmt, SQLRETURN error, std::source_location source
     }
 }
 
+namespace detail
+{
+    bool OdbcCallSucceeded(SQLRETURN result, SQLHSTMT hStmt, std::source_location sourceLocation)
+    {
+        if (!SQL_SUCCEEDED(result))
+            return false;
+
+        // Mirrors RequireSuccess: only a test ever installs a source, so this is one extra null
+        // check on the success path when none is installed.
+        auto* const faultSource = GetFaultSource();
+        if (faultSource == nullptr) [[likely]]
+            return true;
+
+        // Mirrors RequireSuccess's null-handle guard: a call made before the statement handle is
+        // fully valid must not be disturbed by injection.
+        if (hStmt == SQL_NULL_HSTMT)
+            return true;
+
+        return !faultSource->NextFailure(hStmt, sourceLocation).has_value();
+    }
+
+    bool OdbcConnectionCallSucceeded(SQLRETURN result, SQLHDBC hDbc, std::source_location sourceLocation)
+    {
+        if (!SQL_SUCCEEDED(result))
+            return false;
+
+        auto* const faultSource = GetFaultSource();
+        if (faultSource == nullptr) [[likely]]
+            return true;
+
+        // A call made while the connection handle is not yet (or no longer) valid must not be
+        // disturbed by injection, for the same reason the statement-handle overload skips
+        // SQL_NULL_HSTMT: it would risk a half-constructed/half-destroyed SqlConnection.
+        if (hDbc == SQL_NULL_HDBC)
+            return true;
+
+        return !faultSource->NextConnectionFailure(hDbc, sourceLocation).has_value();
+    }
+} // namespace detail
+
 std::string FormatName(std::string const& name, FormatType formatType)
 {
     return FormatName(std::string_view { name }, formatType);

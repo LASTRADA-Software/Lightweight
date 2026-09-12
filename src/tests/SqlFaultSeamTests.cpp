@@ -34,30 +34,53 @@ namespace
 
 /// Fails the first @c failureCount checks with a scripted diagnostic, then lets calls through.
 /// Mirrors how a transient outage behaves: a burst of failures followed by recovery.
+///
+/// Narrows which call site it reacts to via a substring match against the reported
+/// @c std::source_location, so an injected fault cannot disturb unrelated library work happening on
+/// the same connection. The default, "SqlFaultSeamTests", matches an execution requested from this
+/// file (SqlStatement::ExecuteDirect defaults its `location` parameter to the caller's
+/// source_location and forwards it); a call passed explicitly narrows to one specific internal call
+/// site instead (e.g. "RetryStalePreparedStatement" or "Connect"), which is needed for checks the
+/// library performs internally and reports its own file/function for.
+///
+/// This narrowing is a convenience, not a safety requirement: the seam itself skips injection while
+/// the handle is still null, so the half-constructed/half-destroyed-object hazard is closed in the
+/// library rather than by this filter.
 class ScriptedFaultSource: public SqlFaultSource
 {
   public:
-    ScriptedFaultSource(SqlErrorInfo error, int failureCount) noexcept:
+    explicit ScriptedFaultSource(SqlErrorInfo error,
+                                 int failureCount,
+                                 std::string_view locationFilter = "SqlFaultSeamTests") noexcept:
         _error { std::move(error) },
-        _remaining { failureCount }
+        _remaining { failureCount },
+        _locationFilter { locationFilter }
     {
     }
 
     [[nodiscard]] std::optional<SqlErrorInfo> NextFailure(SQLHSTMT /*hStmt*/,
                                                           std::source_location const& sourceLocation) override
     {
-        // Only fail an execution this test file asked for, so an injected fault cannot disturb
-        // unrelated library work happening on the same connection.
-        //
-        // SqlStatement::ExecuteDirect defaults its `location` parameter to the *caller's*
-        // source_location and forwards it, so an execution requested from here reports this file;
-        // the library's own internal checks (SQLAllocHandle, SQLFreeStmt) report SqlStatement.cpp.
-        //
-        // This narrowing is a convenience, not a safety requirement: RequireSuccess itself skips
-        // injection while the handle is still SQL_NULL_HSTMT, so the half-constructed-statement
-        // hazard is closed in the library rather than by this filter.
+        return Consult(sourceLocation);
+    }
+
+    [[nodiscard]] std::optional<SqlErrorInfo> NextConnectionFailure(SQLHDBC /*hDbc*/,
+                                                                    std::source_location const& sourceLocation) override
+    {
+        return Consult(sourceLocation);
+    }
+
+    [[nodiscard]] int ConsultCount() const noexcept
+    {
+        return _consultCount;
+    }
+
+  private:
+    [[nodiscard]] std::optional<SqlErrorInfo> Consult(std::source_location const& sourceLocation)
+    {
         auto const file = std::string_view { sourceLocation.file_name() };
-        if (!file.contains("SqlFaultSeamTests"))
+        auto const function = std::string_view { sourceLocation.function_name() };
+        if (!file.contains(_locationFilter) && !function.contains(_locationFilter))
             return std::nullopt;
 
         ++_consultCount;
@@ -68,15 +91,10 @@ class ScriptedFaultSource: public SqlFaultSource
         return _error;
     }
 
-    [[nodiscard]] int ConsultCount() const noexcept
-    {
-        return _consultCount;
-    }
-
-  private:
     SqlErrorInfo _error;
     int _remaining;
     int _consultCount = 0;
+    std::string _locationFilter;
 };
 
 /// Installs a fault source for the duration of a scope and clears it again, so a failing
@@ -204,4 +222,77 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlFaultSource costs nothing when no source is
     // With no source configured the success path is the plain early return it always was.
     auto stmt = SqlStatement {};
     CHECK_NOTHROW(stmt.ExecuteDirect("SELECT 1"));
+}
+
+// ================================================================================================
+// Retrofitted call sites (#585): inline SQL_SUCCEEDED(...) checks that now go through the seam via
+// detail::OdbcCallSucceeded / detail::OdbcConnectionCallSucceeded instead of checking the return
+// code directly. Both were previously invisible to SqlFaultSource entirely.
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlFaultSource forces RetryStalePreparedStatement past its initial success gate",
+                 "[SqlFaultSeam]")
+{
+    // RetryStalePreparedStatement's initial gate now reads
+    // `detail::OdbcCallSucceeded(result, m_hStmt) || result == SQL_NO_DATA || !m_reusedPreparedQuery`
+    // instead of a bare `SQL_SUCCEEDED(result) || ...`. Before that retrofit, GetFaultSource() was
+    // never even consulted here: the early return happened first, unconditionally, on a real success.
+    auto stmt = SqlStatement {};
+    auto const* const query = "SELECT 1";
+
+    // First round: not a reused prepare (m_reusedPreparedQuery is still false), so this round must
+    // not consult the seam at all - the fault source is only installed afterwards.
+    stmt.Prepare(query);
+    {
+        auto cursor = stmt.Execute();
+        CHECK(cursor.FetchRow());
+    }
+
+    // Second round: byte-identical query text, so Prepare() reuses the handle's prepared statement
+    // and m_reusedPreparedQuery becomes true - the precondition the gate needs before an installed
+    // fault source can matter.
+    ScriptedFaultSource source { MakeError("08S01", "connection dropped"), 1, "RetryStalePreparedStatement" };
+    ScopedFaultSource const installed { &source };
+
+    stmt.Prepare(query);
+    auto cursor = stmt.Execute();
+
+    // The real SQLExecute succeeded and the fault source's diagnostic never lands on the handle
+    // (only the seam's boolean verdict is faked, not SqlErrorInfo::FromStatementHandle), so the
+    // SQLSTATE the function inspects is not one of the stale-plan states and no re-prepare happens.
+    // The observable behaviour is therefore unchanged - the row still comes back...
+    CHECK(cursor.FetchRow());
+    // ...but the seam was reached and asked, which is only possible once the gate stops
+    // short-circuiting on the bare return code. This is the assertion that fails if the retrofit is
+    // reverted: ConsultCount stays 0 when the gate goes back to a bare SQL_SUCCEEDED(result).
+    CHECK(source.ConsultCount() >= 1);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlFaultSource forces the SQL_COPT_SS_ENCRYPT connection check to fail", "[SqlFaultSeam]")
+{
+    // SqlConnection::Connect(SqlConnectionDataSource const&) checks the pre-connect encryption
+    // attribute via detail::OdbcConnectionCallSucceeded(sqlReturn, m_hDbc) instead of a bare
+    // SQL_SUCCEEDED(sqlReturn). No driver in the test matrix rejects SQL_COPT_SS_ENCRYPT at set
+    // time (see the comment at the call site), so a fault source is the only way to exercise the
+    // "fail the connection rather than silently downgrade" branch at all.
+    ScriptedFaultSource source { MakeError("HYC00", "encryption attribute rejected"), 1, "Connect" };
+    ScopedFaultSource const installed { &source };
+
+    // The datasource name never has to resolve to anything real: the injected failure fires before
+    // SQLConnectW is ever reached, at the attribute-set step that precedes it.
+    auto connection = SqlConnection { std::nullopt };
+    auto const dataSource = SqlConnectionDataSource {
+        .datasource = "lightweight-585-does-not-exist",
+        .username = {},
+        .password = {},
+        .encryption = SqlEncryptionMode::Enabled,
+    };
+
+    // This fails if the retrofit is reverted for a different reason than a bogus DSN would: with a
+    // bare SQL_SUCCEEDED(sqlReturn), Connect() still returns false eventually (SQLConnectW rejects
+    // the unresolvable DSN), but the seam is never consulted - ConsultCount stays 0. With the
+    // retrofit, the injected failure fires first, before SQLConnectW is ever called.
+    CHECK_FALSE(connection.Connect(dataSource));
+    CHECK(source.ConsultCount() >= 1);
 }
