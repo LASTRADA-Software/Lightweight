@@ -1477,10 +1477,10 @@ namespace detail
                     // match them. Map each to the precision that makes CxxModelPrinter::MakeType
                     // pick the correctly-sized C++ type (float for <=24, double otherwise) instead
                     // of silently narrowing `double precision` (float8) to `float`.
-                    else if (auto const precision = LookupPostgresFloatPrecision(column.dialectDependantTypeString);
-                             precision.has_value())
+                    else if (auto const floatPrecision = LookupPostgresFloatPrecision(column.dialectDependantTypeString);
+                             floatPrecision.has_value())
                     {
-                        column.type = SqlColumnTypeDefinitions::Real { .precision = *precision };
+                        column.type = SqlColumnTypeDefinitions::Real { .precision = *floatPrecision };
                     }
                     // PostgreSQL ODBC driver reports BOOLEAN as VARCHAR - handle it specially
                     else if (column.dialectDependantTypeString == "bool")
