@@ -1,6 +1,5 @@
 var NAVTREEINDEX4 =
 {
-"d8/d5b/structLightweight_1_1SqlErrorInfo.html#a8a612b03568fae3800296f774e91ce16":[19,6,3,1],
 "d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html":[19,3,16],
 "d8/d63/classLightweight_1_1SqlResultCursor.html":[19,6,9],
 "d8/d63/classLightweight_1_1SqlResultCursor.html#a08b25c66bec4d15ab028d75d3eaa52a8":[19,6,9,15],
@@ -249,5 +248,6 @@ var NAVTREEINDEX4 =
 "da/d07/structLightweight_1_1SqlRawColumnMetadata.html":[21,0,0,69],
 "da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a2838b8c9fd55745b05cc38a622836419":[21,0,0,69,0],
 "da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a76a7fc936dc18d3af22496f7e3d88017":[21,0,0,69,2],
-"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a7cc9f36813cfe7afbb318d8c0c99963e":[21,0,0,69,5]
+"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a7cc9f36813cfe7afbb318d8c0c99963e":[21,0,0,69,5],
+"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a8ce0577acded3840d02009304a73888a":[21,0,0,69,3]
 };
