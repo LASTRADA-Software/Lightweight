@@ -298,6 +298,73 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK(*readBack == *guid);
 }
 
+// Companion to the test above (issue #596): a GUID does not only live in a native GUID column —
+// the same value is also stored as text, here embedded inside a larger binary payload (BLOB),
+// where it is produced and consumed by to_string()/TryParse() and never passes through the raw
+// SQL_C_GUID bind path. For the two representations to keep denoting the same value, the DBMS' own
+// GUID<->text conversion has to agree with ours in both directions: a GUID bound through
+// SqlDataBinder<SqlGuid> must match, inside the database, the string the BLOB carries for it, and
+// a GUID the *database* parsed from such a string must read back through SqlDataBinder<SqlGuid> as
+// the very same SqlGuid. Both fail — byte-reversed in the first three GUID groups — on MS SQL
+// Server and PostgreSQL without the SwapGuidWireByteOrder() conversion, which the string/BLOB side
+// never applies.
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlGuid: native GUID column and GUID text stored in a BLOB denote the same value",
+                 "[SqlDataBinder],[SqlGuid]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("Test")
+            .Column("Id", SqlColumnTypeDefinitions::Integer {})
+            .Column("NativeGuid", SqlColumnTypeDefinitions::Guid {})
+            .Column("BlobPayload", SqlColumnTypeDefinitions::VarBinary { 64 });
+    });
+
+    constexpr auto text = "1E772AED-3E73-4C72-8684-5DFFAA17330E"sv;
+    auto const guid = SqlGuid::TryParse(text);
+    REQUIRE(guid.has_value());
+
+    // An opaque binary payload carrying the GUID as text at a known offset, mimicking a record
+    // blob that embeds the identifier as a string rather than as a typed column.
+    constexpr auto blobPrefix = "REF:"sv;
+    constexpr auto blobSuffix = ";END"sv;
+    auto const payloadText = std::format("{}{}{}", blobPrefix, text, blobSuffix);
+    auto const payload = SqlBinary(payloadText.begin(), payloadText.end());
+
+    // Row 1: the GUID enters the typed column through SqlDataBinder<SqlGuid>, alongside the BLOB.
+    stmt.Prepare(
+        stmt.Query("Test").Insert().Set("Id", SqlWildcard).Set("NativeGuid", SqlWildcard).Set("BlobPayload", SqlWildcard));
+    (void) stmt.Execute(1, *guid, payload);
+
+    // Row 2: the same GUID enters the typed column as a string literal the *database* parses.
+    (void) stmt.ExecuteDirect(std::format(R"(INSERT INTO "Test" ("Id", "NativeGuid") VALUES (2, '{}'))", text));
+
+    // Recover the GUID string from the BLOB exactly as application code would: read the payload
+    // back byte-exact, then parse the identifier out of it.
+    auto const blob = stmt.ExecuteDirectScalar<SqlBinary>(R"(SELECT "BlobPayload" FROM "Test" WHERE "Id" = 1)");
+    REQUIRE(blob.has_value());
+    auto const blobText = std::string_view(reinterpret_cast<char const*>(blob->data()), blob->size());
+    REQUIRE(blobText == payloadText);
+    auto const embeddedText = blobText.substr(blobPrefix.size(), text.size());
+    REQUIRE(SqlGuid::TryParse(embeddedText) == guid);
+
+    // Leg 1: inside the database, the typed-bound GUID must equal the string the BLOB carries.
+    auto const matchCount = stmt.ExecuteDirectScalar<int>(
+        std::format(R"(SELECT COUNT(*) FROM "Test" WHERE "Id" = 1 AND "NativeGuid" = '{}')", embeddedText));
+    CHECK(matchCount.value_or(-1) == 1);
+
+    // Leg 2: both rows — the one bound as a typed parameter and the one the database parsed from
+    // the string form — must read back through SqlDataBinder<SqlGuid> as the same value.
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "NativeGuid" FROM "Test" ORDER BY "Id")");
+    REQUIRE(cursor.FetchRow());
+    auto const fromTypedInsert = cursor.GetColumn<SqlGuid>(1);
+    REQUIRE(cursor.FetchRow());
+    auto const fromStringInsert = cursor.GetColumn<SqlGuid>(1);
+
+    CHECK(fromTypedInsert == *guid);
+    CHECK(fromStringInsert == *guid);
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: SqlDate", "[SqlDataBinder],[SqlVariant]")
 {
     auto stmt = SqlStatement {};
