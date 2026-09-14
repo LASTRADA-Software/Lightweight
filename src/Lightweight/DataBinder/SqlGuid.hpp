@@ -5,9 +5,11 @@
 #include "../SqlColumnTypeDefinitions.hpp"
 #include "Core.hpp"
 
+#include <algorithm>
 #include <charconv>
 #include <format>
 #include <optional>
+#include <span>
 #include <string>
 
 namespace Lightweight
@@ -136,6 +138,30 @@ inline LIGHTWEIGHT_FORCE_INLINE std::string to_string(SqlGuid const& guid)
 {
     return std::format("{}", guid);
 }
+
+namespace detail
+{
+    /// Swaps `data[0..7]` between `SqlGuid`'s canonical byte order (the order `TryParse()`,
+    /// `UnsafeParse()`, and the `std::formatter` specialization agree on: `data[i]` is the i-th
+    /// hex-pair of the textual representation, left to right) and the physical `SQL_C_GUID` /
+    /// Win32 `GUID` wire layout that ODBC drivers expect for `Data1`/`Data2`/`Data3` (those three
+    /// fields are transmitted in native/little-endian byte order, not textual order). `data[8..15]`
+    /// (`Data4`) is a plain byte array in both representations and is left untouched.
+    ///
+    /// Self-inverse: applying this twice restores the original bytes. Every call site that binds
+    /// or fetches raw `SQL_C_GUID` bytes (bypassing `SqlDataBinder<SqlGuid>`'s own conversion) must
+    /// apply this exactly once when crossing that boundary, in either direction.
+    ///
+    /// @param data The 16-byte GUID payload to convert in place.
+    inline void SwapGuidWireByteOrder(std::span<uint8_t, 16> data) noexcept
+    {
+        // Data1 (4 bytes), Data2 (2) and Data3 (2) differ between the two representations;
+        // Data4 (the trailing 8) is a plain byte array in both and is left untouched.
+        std::ranges::reverse(data.first<4>());
+        std::ranges::reverse(data.subspan<4, 2>());
+        std::ranges::reverse(data.subspan<6, 2>());
+    }
+} // namespace detail
 
 template <>
 struct LIGHTWEIGHT_API SqlDataBinder<SqlGuid>
