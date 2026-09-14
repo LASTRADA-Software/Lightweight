@@ -93,6 +93,61 @@ void RequireSuccess(SQLHSTMT hStmt, SQLRETURN error, std::source_location source
     }
 }
 
+namespace
+{
+    /// Shared body of the checked-call helpers. `SQLHSTMT` and `SQLHDBC` are the same opaque
+    /// handle type, so the two cannot be overloads and differ only in which @ref SqlFaultSource
+    /// virtual decides the injection.
+    ///
+    /// @param result The ODBC return code to check.
+    /// @param handle The handle @p result came from; the fault source is never consulted for a null
+    ///               one.
+    /// @param nextFailure Asks the installed fault source whether to inject.
+    /// @return The verdict for @p result, plus the injected diagnostic when one was injected.
+    template <typename NextFailure>
+    detail::OdbcCallOutcome CheckOdbcCallOn(SQLRETURN result, SQLHANDLE handle, NextFailure const& nextFailure)
+    {
+        // A genuine failure short-circuits before the fault source is consulted: injection only
+        // ever turns a success into a failure, never the reverse. The diagnostic for this one is on
+        // the handle, so none is carried here.
+        if (!SQL_SUCCEEDED(result))
+            return { .succeeded = false, .injectedError = std::nullopt };
+
+        // Mirrors RequireSuccess: only a test ever installs a source, so this is one extra null
+        // check on the success path when none is installed.
+        auto* const faultSource = GetFaultSource();
+        if (faultSource == nullptr) [[likely]]
+            return { .succeeded = true, .injectedError = std::nullopt };
+
+        // Mirrors RequireSuccess's null-handle guard: a call made while the handle is not yet (or no
+        // longer) fully valid must not be disturbed by injection - it would risk leaving a
+        // half-constructed or half-destroyed owner behind.
+        if (handle == nullptr)
+            return { .succeeded = true, .injectedError = std::nullopt };
+
+        // The injected diagnostic travels with the verdict rather than being dropped: the real call
+        // succeeded, so the handle holds no diagnostic records for a caller to inspect instead.
+        auto injectedError = nextFailure(*faultSource);
+        auto const succeeded = !injectedError.has_value();
+        return { .succeeded = succeeded, .injectedError = std::move(injectedError) };
+    }
+} // namespace
+
+namespace detail
+{
+    OdbcCallOutcome CheckOdbcCall(SQLRETURN result, SQLHSTMT hStmt, std::source_location sourceLocation)
+    {
+        return CheckOdbcCallOn(
+            result, hStmt, [&](SqlFaultSource& source) { return source.NextFailure(hStmt, sourceLocation); });
+    }
+
+    OdbcCallOutcome CheckOdbcConnectionCall(SQLRETURN result, SQLHDBC hDbc, std::source_location sourceLocation)
+    {
+        return CheckOdbcCallOn(
+            result, hDbc, [&](SqlFaultSource& source) { return source.NextConnectionFailure(hDbc, sourceLocation); });
+    }
+} // namespace detail
+
 std::string FormatName(std::string const& name, FormatType formatType)
 {
     return FormatName(std::string_view { name }, formatType);
