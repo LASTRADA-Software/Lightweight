@@ -139,6 +139,38 @@ that path would mean a connection attempt that can fail on a code path that must
 connection was in active use moments earlier, and it is checked normally the next time it comes out
 of the idle set.
 
+## Reusing prepared statements
+
+`preparedStatementCacheCapacity` gives every connection the pool creates a
+[prepared-statement cache](usage.md) of that size, so no call site has to remember to enable it:
+
+```cpp
+constexpr auto CachingPoolConfig = PoolConfig {
+    .initialSize = 4,
+    .maxSize = 16,
+    .growthStrategy = GrowthStrategy::BoundedWait,
+    .preparedStatementCacheCapacity = PreparedStatementCacheCapacitySuggested, // 64
+};
+```
+
+The bound is **per connection**, not per pool: a prepared handle belongs to one connection's `SQLHDBC`
+and can never be shared with another. Two consequences worth sizing for:
+
+- A fully warmed pool holds up to `maxSize * preparedStatementCacheCapacity` prepared statements on the
+  server. Size the capacity against the backend's per-session limit, not just against the number of
+  distinct queries.
+- Every connection warms up on its own — measured, exactly `connections × distinct query texts` prepares.
+  That is a one-off: a pool that keeps its connections converges to zero re-prepares, and pool size does
+  not dilute the steady-state win.
+
+**Retirement discards a warmed cache along with the connection.** `maxIdleTimeMs`, `maxLifetimeMs`, a
+failed `validateOnBorrow` check and `GrowthStrategy::BoundedOverflow` above the idle set all destroy the
+connection, and its prepared handles with it, so the replacement starts cold. That is the right trade —
+a stale or dead connection is worse than a cold one — but it does mean a recycle window set aggressively
+short relative to how fast connections warm up will keep paying the warm-up. Measured against a pool
+overflowing on every acquire, the gain fell from 2.5x to 1.4x on PostgreSQL and to nothing on SQLite.
+Sizing `maxSize` to the real concurrency is worth more there than any cache capacity.
+
 ## Compile-time defaults
 
 `DataMapperPool` and `GlobalDataMapperPool()` are configured through CMake:
@@ -151,6 +183,7 @@ of the idle set.
 | `LIGHTWEIGHT_POOL_VALIDATE_ON_BORROW` | `Yes` | `Yes` or `No` |
 | `LIGHTWEIGHT_POOL_MAX_IDLE_TIME_MS` | `0` (disabled) | Idle bound, in milliseconds |
 | `LIGHTWEIGHT_POOL_MAX_LIFETIME_MS` | `0` (disabled) | Lifetime bound, in milliseconds |
+| `LIGHTWEIGHT_POOL_PREPARED_STATEMENT_CACHE_CAPACITY` | `0` (disabled) | Prepared handles each pooled connection keeps for reuse |
 
 The lifetime bounds default to disabled because a default recycle window would silently change the
 behaviour of every existing deployment, and the right value depends on the infrastructure the
