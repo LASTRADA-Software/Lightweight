@@ -17,6 +17,5 @@ var searchData=
   ['method_14',['method',['../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#a24b981baad3240eee5b41c2654c2ccd3',1,'Lightweight::SqlBackup::BackupSettings']]],
   ['minarraydepth_15',['MinArrayDepth',['../da/d6c/classLightweight_1_1RowArrayCursor.html#a947bd46f16c4c567f0ffb2463388c50f',1,'Lightweight::RowArrayCursor']]],
   ['minmicroseconds_16',['minMicroseconds',['../df/d78/structLightweight_1_1SqlLatencyHistogram.html#a327c4c2f63f374dc7b71c414989ef972',1,'Lightweight::SqlLatencyHistogram']]],
-  ['mismatchcount_17',['mismatchCount',['../d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html#a05dd8547017c74830846316c54a1a415',1,'Lightweight::SqlMigration::MigrationStatus']]],
-  ['misses_18',['misses',['../d7/dd3/structLightweight_1_1SqlPreparedStatementCache_1_1Statistics.html#a45107dcfd1759e9ad1010b89007972dd',1,'Lightweight::SqlPreparedStatementCache::Statistics']]]
+  ['mismatchcount_17',['mismatchCount',['../d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html#a05dd8547017c74830846316c54a1a415',1,'Lightweight::SqlMigration::MigrationStatus']]]
 ];

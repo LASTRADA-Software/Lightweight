@@ -109,10 +109,10 @@ $(document).ready(function(){initNavTree('d5/d77/md__2home_2runner_2work_2Lightw
 <div class="line">    <span class="keyword">auto</span> users = mapper-&gt;<a class="code hl_function" href="../../de/d61/classLightweight_1_1DataMapper.html#af1c52aba8ccacf105070b0ecfea7c747">Query</a>&lt;User&gt;().All();</div>
 <div class="line">}</div>
 <div class="ttc" id="aclassLightweight_1_1DataMapper_html_af1c52aba8ccacf105070b0ecfea7c747"><div class="ttname"><a href="../../de/d61/classLightweight_1_1DataMapper.html#af1c52aba8ccacf105070b0ecfea7c747">Lightweight::DataMapper::Query</a></div><div class="ttdeci">std::vector&lt; Record &gt; Query(SqlSelectQueryBuilder::ComposedQuery const &amp;selectQuery, InputParameters &amp;&amp;... inputParameters)</div></div>
-<div class="ttc" id="aclassLightweight_1_1Pool_html"><div class="ttname"><a href="../../d3/d30/classLightweight_1_1Pool.html">Lightweight::Pool</a></div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00164">Pool.hpp:165</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1Pool_html_ab88d9cb504f2ccbe155f0b8b2b7a0197"><div class="ttname"><a href="../../d3/d30/classLightweight_1_1Pool.html#ab88d9cb504f2ccbe155f0b8b2b7a0197">Lightweight::Pool::Acquire</a></div><div class="ttdeci">PooledDataMapper Acquire()</div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00561">Pool.hpp:561</a></div></div>
-<div class="ttc" id="astructLightweight_1_1PoolConfig_html"><div class="ttname"><a href="../../df/d1a/structLightweight_1_1PoolConfig.html">Lightweight::PoolConfig</a></div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00091">Pool.hpp:92</a></div></div>
-<div class="ttc" id="astructLightweight_1_1PoolConfig_html_a8ff366daa9e0eb6c99e5a1e3fc5ec8d4"><div class="ttname"><a href="../../df/d1a/structLightweight_1_1PoolConfig.html#a8ff366daa9e0eb6c99e5a1e3fc5ec8d4">Lightweight::PoolConfig::initialSize</a></div><div class="ttdeci">size_t initialSize</div><div class="ttdoc">Initial number of data mappers to pre-create and store in the pool, must be less than or equal to max...</div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00094">Pool.hpp:94</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1Pool_html"><div class="ttname"><a href="../../d3/d30/classLightweight_1_1Pool.html">Lightweight::Pool</a></div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00151">Pool.hpp:152</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1Pool_html_ab88d9cb504f2ccbe155f0b8b2b7a0197"><div class="ttname"><a href="../../d3/d30/classLightweight_1_1Pool.html#ab88d9cb504f2ccbe155f0b8b2b7a0197">Lightweight::Pool::Acquire</a></div><div class="ttdeci">PooledDataMapper Acquire()</div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00542">Pool.hpp:542</a></div></div>
+<div class="ttc" id="astructLightweight_1_1PoolConfig_html"><div class="ttname"><a href="../../df/d1a/structLightweight_1_1PoolConfig.html">Lightweight::PoolConfig</a></div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00090">Pool.hpp:91</a></div></div>
+<div class="ttc" id="astructLightweight_1_1PoolConfig_html_a8ff366daa9e0eb6c99e5a1e3fc5ec8d4"><div class="ttname"><a href="../../df/d1a/structLightweight_1_1PoolConfig.html#a8ff366daa9e0eb6c99e5a1e3fc5ec8d4">Lightweight::PoolConfig::initialSize</a></div><div class="ttdeci">size_t initialSize</div><div class="ttdoc">Initial number of data mappers to pre-create and store in the pool, must be less than or equal to max...</div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00093">Pool.hpp:93</a></div></div>
 </div><!-- fragment --><p><code>DataMapperPool</code> is the pre-configured alias used by <code>GlobalDataMapperPool()</code>; its defaults come from the <code>LIGHTWEIGHT_POOL_*</code> CMake options listed at the bottom of this page.</p>
 <h1><a class="anchor" id="growth-strategies"></a>
 Growth strategies</h1>
@@ -169,21 +169,6 @@ Retirement is lazy</h2>
 <p>The pool has no background thread. Retirement happens when the pool is next used: expired connections are dropped as they are taken from or placed into the idle set. A pool that goes completely idle therefore keeps its sockets open until the next <code>Acquire</code>.</p>
 <p>This does not affect correctness — an expired connection is discarded rather than handed out, however long it has been sitting — but it does mean the pool is not a mechanism for releasing connections during quiet periods.</p>
 <p>One case deliberately bypasses both the bounds and the validation check: on a <code>BoundedWait</code> pool with callers already waiting, a returned connection goes straight to the longest-waiting one. Retiring it there would strand a waiter that can only be woken by a hand-off, and building a replacement inside that path would mean a connection attempt that can fail on a code path that must not. Such a connection was in active use moments earlier, and it is checked normally the next time it comes out of the idle set.</p>
-<h1><a class="anchor" id="reusing-prepared-statements"></a>
-Reusing prepared statements</h1>
-<p><code>preparedStatementCacheCapacity</code> gives every connection the pool creates a <a class="el" href="../../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html">prepared-statement cache</a> of that size, so no call site has to remember to enable it:</p>
-<div class="fragment"><div class="line"><span class="keyword">constexpr</span> <span class="keyword">auto</span> CachingPoolConfig = <a class="code hl_struct" href="../../df/d1a/structLightweight_1_1PoolConfig.html">PoolConfig</a> {</div>
-<div class="line">    .<a class="code hl_variable" href="../../df/d1a/structLightweight_1_1PoolConfig.html#a8ff366daa9e0eb6c99e5a1e3fc5ec8d4">initialSize</a> = 4,</div>
-<div class="line">    .maxSize = 16,</div>
-<div class="line">    .growthStrategy = GrowthStrategy::BoundedWait,</div>
-<div class="line">    .preparedStatementCacheCapacity = PreparedStatementCacheCapacitySuggested, <span class="comment">// 64</span></div>
-<div class="line">};</div>
-</div><!-- fragment --><p>The bound is <b>per connection</b>, not per pool: a prepared handle belongs to one connection's <code>SQLHDBC</code> and can never be shared with another. Two consequences worth sizing for:</p>
-<ul>
-<li>A fully warmed pool holds up to <code>maxSize * preparedStatementCacheCapacity</code> prepared statements on the server. Size the capacity against the backend's per-session limit, not just against the number of distinct queries.</li>
-<li>Every connection warms up on its own — measured, exactly <code>connections × distinct query texts</code> prepares. That is a one-off: a pool that keeps its connections converges to zero re-prepares, and pool size does not dilute the steady-state win.</li>
-</ul>
-<p><b>Retirement discards a warmed cache along with the connection.</b> <code>maxIdleTimeMs</code>, <code>maxLifetimeMs</code>, a failed <code>validateOnBorrow</code> check and <code>GrowthStrategy::BoundedOverflow</code> above the idle set all destroy the connection, and its prepared handles with it, so the replacement starts cold. That is the right trade — a stale or dead connection is worse than a cold one — but it does mean a recycle window set aggressively short relative to how fast connections warm up will keep paying the warm-up. Measured against a pool overflowing on every acquire, the gain fell from 2.5x to 1.4x on PostgreSQL and to nothing on SQLite. Sizing <code>maxSize</code> to the real concurrency is worth more there than any cache capacity.</p>
 <h1><a class="anchor" id="compile-time-defaults"></a>
 Compile-time defaults</h1>
 <p><code>DataMapperPool</code> and <code>GlobalDataMapperPool()</code> are configured through CMake:</p>
@@ -201,9 +186,7 @@ Compile-time defaults</h1>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>LIGHTWEIGHT_POOL_MAX_IDLE_TIME_MS</code>   </td><td class="markdownTableBodyNone"><code>0</code> (disabled)   </td><td class="markdownTableBodyNone">Idle bound, in milliseconds    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>LIGHTWEIGHT_POOL_MAX_LIFETIME_MS</code>   </td><td class="markdownTableBodyNone"><code>0</code> (disabled)   </td><td class="markdownTableBodyNone">Lifetime bound, in milliseconds    </td></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>LIGHTWEIGHT_POOL_PREPARED_STATEMENT_CACHE_CAPACITY</code>   </td><td class="markdownTableBodyNone"><code>0</code> (disabled)   </td><td class="markdownTableBodyNone">Prepared handles each pooled connection keeps for reuse   </td></tr>
+<td class="markdownTableBodyNone"><code>LIGHTWEIGHT_POOL_MAX_LIFETIME_MS</code>   </td><td class="markdownTableBodyNone"><code>0</code> (disabled)   </td><td class="markdownTableBodyNone">Lifetime bound, in milliseconds   </td></tr>
 </table>
 <p>The lifetime bounds default to disabled because a default recycle window would silently change the behaviour of every existing deployment, and the right value depends on the infrastructure the connections traverse.</p>
 <h1><a class="anchor" id="see-also-4"></a>
