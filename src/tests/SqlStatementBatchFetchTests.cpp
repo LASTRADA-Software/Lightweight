@@ -407,6 +407,48 @@ TEST_CASE_METHOD(SqlTestFixture, "RowArrayCursor reads GUID cells natively on MS
     CHECK_FALSE(actual.back().has_value());
 }
 
+// The test above pins RowArrayCursor::GetGuid against the single-row SqlDataBinder<SqlGuid> path.
+// Both apply the same SQL_C_GUID wire byte-order conversion, so that comparison stays green even
+// if the conversion disappears from both. Anchor the array-fetch path to an oracle outside our own
+// binder instead: GUIDs the *database* parsed from string literals, compared against the very same
+// text. See https://github.com/LASTRADA-Software/Lightweight/issues/596.
+TEST_CASE_METHOD(SqlTestFixture, "RowArrayCursor GUID cells match the text the database parsed", "[batchfetch]")
+{
+    auto stmt = SqlStatement {};
+    if (stmt.Connection().ServerType() == SqlServerType::SQLITE)
+        return; // SQLite stores GUIDs as text (TryParse single-row path); no SQL_GUID to array-bind.
+
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("BatchFetchGuidText")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .Column("G", SqlColumnTypeDefinitions::Guid {});
+    });
+
+    // Upper case, because that is what std::formatter<SqlGuid> emits; the DBMS accepts either.
+    constexpr auto firstText = "1E772AED-3E73-4C72-8684-5DFFAA17330E"sv;
+    constexpr auto secondText = "01234567-89AB-4DEF-8123-456789ABCDEF"sv;
+
+    // Inserted as string literals, so what lands in the column is purely the database's own parse.
+    (void) stmt.ExecuteDirect(std::format(R"(INSERT INTO "BatchFetchGuidText" ("Id", "G") VALUES (1, '{}'))", firstText));
+    (void) stmt.ExecuteDirect(std::format(R"(INSERT INTO "BatchFetchGuidText" ("Id", "G") VALUES (2, '{}'))", secondText));
+
+    std::vector<std::string> actual;
+    {
+        auto cursor = stmt.ExecuteBatchFetch(R"(SELECT "Id", "G" FROM "BatchFetchGuidText" ORDER BY "Id")"sv, 8);
+        while (auto const fetched = cursor.FetchArray())
+            for (auto const r: std::views::iota(std::size_t { 0 }, fetched))
+            {
+                auto const guid = cursor.GetGuid(r, 2);
+                REQUIRE(guid.has_value());
+                actual.push_back(to_string(*guid));
+            }
+    }
+
+    REQUIRE(actual.size() == 2);
+    CHECK(actual[0] == firstText);
+    CHECK(actual[1] == secondText);
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "RowArrayCursor adapts its depth to the per-cursor memory budget", "[batchfetch]")
 {
     auto stmt = SqlStatement {};
