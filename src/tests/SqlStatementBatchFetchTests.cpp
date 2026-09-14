@@ -440,7 +440,8 @@ TEST_CASE_METHOD(SqlTestFixture, "RowArrayCursor GUID cells match the text the d
             {
                 auto const guid = cursor.GetGuid(r, 2);
                 REQUIRE(guid.has_value());
-                actual.push_back(to_string(*guid));
+                if (guid.has_value())
+                    actual.push_back(to_string(*guid));
             }
     }
 

@@ -159,7 +159,8 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: round-trip every supported column t
     // SQL_C_GUID byte order is pinned separately, in BatchManagerTests.cpp.)
     auto const restoredGuid = stmt.ExecuteDirectScalar<SqlGuid>(R"(SELECT "guid_v" FROM "all_types")");
     REQUIRE(restoredGuid.has_value());
-    CHECK(*restoredGuid == *guidOpt);
+    if (restoredGuid.has_value())
+        CHECK(*restoredGuid == *guidOpt);
 
     // Final cleanup — wrapped in try/catch because MSSQL emits a transient-feeling
     // 3701 ("table does not exist") for a freshly-restored table that hasn't yet been
