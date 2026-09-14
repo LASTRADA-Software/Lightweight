@@ -15,6 +15,16 @@
 // `DialectException` carrying the reason. That list is a large part of the point of these tests:
 // it is the only place the per-DBMS column-type divergences are written down and continuously
 // verified.
+//
+// The catalog is only half the story, though, and the cheaper half to believe. `ReadAllTables`
+// reports what a column *is*; it cannot report whether that column accepts and returns the C++
+// type `ddl2cpp` generates for it. Issue #587 lived in exactly that gap: `Timestamp{}` produced a
+// SQL Server rowversion, which reads back out of the catalog as an entirely plausible binary
+// column and rejects every write. A catalog-only assertion could do no better than record that as
+// a curious mapping, which is exactly what it did.
+//
+// So every declared type also carries a `ColumnSample`: a value written into the column and read
+// straight back. A type that cannot survive that is broken no matter how its catalog entry reads.
 
 #include "Utils.hpp"
 
@@ -23,10 +33,14 @@
 #include <Lightweight/Tools/CxxModelPrinter.hpp>
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <algorithm>
+#include <chrono>
+#include <concepts>
 #include <format>
+#include <functional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -48,6 +62,60 @@ struct DialectException
     std::string_view reason {};
 };
 
+/// One column's sample value, type-erased so a single table can carry a differently typed sample
+/// per column.
+///
+/// The value is captured by value in both closures, which live for as long as the case table does.
+/// That matters rather than being incidental: ODBC binds an input parameter *by pointer*, so
+/// whatever is handed to `BindInputParameter` has to still be alive when `Execute` runs.
+struct ColumnSample
+{
+    /// Binds the sample as 1-based input parameter @p parameterIndex of a prepared INSERT.
+    std::function<void(SqlStatement&, SQLSMALLINT)> bind;
+    /// Checks that 1-based result column @p columnIndex of the current row holds the sample.
+    std::function<void(SqlResultCursor&, SQLUSMALLINT)> verify;
+};
+
+/// @param value Sample to write and expect back unchanged.
+/// @return A @ref ColumnSample binding and verifying @p value as a `T`.
+///
+/// `T` is deliberately the C++ type belonging to the *declared* SQL type rather than the one the
+/// catalog reports back. "You declared `Tinyint`, so a `uint8_t` fits" is the promise the library
+/// makes, and it has to hold even where a backend widens the storage underneath — PostgreSQL has
+/// no 1-byte integer and stores `Tinyint` as SMALLINT.
+template <typename T>
+[[nodiscard]] ColumnSample SampleOf(T const& value)
+{
+    return ColumnSample {
+        .bind = [value](SqlStatement& stmt, SQLSMALLINT parameterIndex) { stmt.BindInputParameter(parameterIndex, value); },
+        .verify = [value](SqlResultCursor& cursor,
+                          SQLUSMALLINT columnIndex) { CHECK(cursor.GetColumn<T>(columnIndex) == value); },
+    };
+}
+
+/// Like @ref SampleOf, but compares to a relative @p tolerance instead of exactly.
+///
+/// Only for a value a third-party driver can legitimately perturb: some SQLite ODBC driver builds
+/// convert SQL_C_DOUBLE through a text intermediate representation rather than binding
+/// sqlite3_bind_double()/sqlite3_column_double() directly, which can lose the last few bits of a
+/// mantissa for a value that needs all of them — reproducible on Linux/Windows CI's driver build,
+/// not locally. Keep @p tolerance far tighter than the deviation an actual defect would produce.
+///
+/// @param value Sample to write and expect back.
+/// @param tolerance Relative tolerance the read-back value must stay within.
+/// @return A @ref ColumnSample binding and verifying @p value as a `T`.
+template <std::floating_point T>
+[[nodiscard]] ColumnSample SampleNear(T value, T tolerance)
+{
+    return ColumnSample {
+        .bind = [value](SqlStatement& stmt, SQLSMALLINT parameterIndex) { stmt.BindInputParameter(parameterIndex, value); },
+        .verify =
+            [value, tolerance](SqlResultCursor& cursor, SQLUSMALLINT columnIndex) {
+                CHECK_THAT(cursor.GetColumn<T>(columnIndex), Catch::Matchers::WithinRel(value, tolerance));
+            },
+    };
+}
+
 /// One declared SQL column type and the C++ type `ddl2cpp` must generate for it.
 struct ColumnTypeCase
 {
@@ -57,6 +125,8 @@ struct ColumnTypeCase
     SqlColumnTypeDefinition declaredType {};
     /// C++ type expected on every DBMS not listed in @ref dialectExceptions.
     std::string_view expectedCxxType {};
+    /// Value written to and read back from the column. See @ref SampleOf.
+    ColumnSample sample {};
     /// DBMS-specific deviations from @ref expectedCxxType.
     std::vector<DialectException> dialectExceptions {};
 
@@ -125,6 +195,42 @@ constexpr std::string_view SqliteTextFollowsDriverBuild =
     "SQLite's single TEXT storage class is reported as narrow or wide text depending on the ODBC "
     "driver build";
 
+// The sample values written into each probe column. Every one is chosen so that no supported
+// backend can legitimately return something different: a value that survives all three is
+// evidence about the column, whereas a value needing a per-dialect tolerance would only ever be
+// evidence about the tolerance.
+
+/// Whole seconds only, so no dialect's fractional-second precision — DATETIME2's 100ns,
+/// PostgreSQL's microseconds, SQLite's textual rendering — can make a faithfully stored value
+/// compare unequal.
+constexpr auto SampleDateTime =
+    SqlDateTime { std::chrono::year { 2026 },    std::chrono::August,         std::chrono::day { 19 },
+                  std::chrono::hours { 17 },     std::chrono::minutes { 30 }, std::chrono::seconds { 45 },
+                  std::chrono::nanoseconds { 0 } };
+
+constexpr auto SampleDate = SqlDate { std::chrono::year { 2026 }, std::chrono::August, std::chrono::day { 19 } };
+
+constexpr auto SampleTime = SqlTime { std::chrono::hours { 17 }, std::chrono::minutes { 30 }, std::chrono::seconds { 45 } };
+
+/// 2.5 is a dyadic rational: exact in a 4-byte float, so a REAL column cannot round it.
+constexpr auto SampleReal = 2.5F;
+
+/// Deliberately *not* dyadic. A third needs the full 53-bit mantissa, so this value compares
+/// unequal the moment a backend stores or returns it through 4-byte storage — which is precisely
+/// the question `doubleColumn`'s recorded PostgreSQL narrowing raises.
+constexpr auto SampleDouble = 1.0 / 3.0;
+
+/// Exactly the declared width of `charColumn` / `nCharColumn`, so that CHAR(n) padding — which
+/// the backends apply inconsistently — never enters the value comparison. Padding is asserted
+/// through the generated C++ type instead, which is where `ddl2cpp` can actually see it.
+std::string const SampleChar8 = "abcdefgh";
+
+/// @return 16 bytes spanning the full octet range, so a driver that mangles high bytes or stops
+///         at an embedded NUL is caught rather than accommodated.
+SqlBinary const SampleBinary {
+    0x00, 0x01, 0x7F, 0x80, 0xFE, 0xFF, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x90, 0xA0, 0xB0
+};
+
 /// The column types every supported DBMS must round-trip, mirroring issue #191's DDL script.
 ///
 /// The columns are declared NOT NULL so each expectation reads as the bare C++ type; nullability is
@@ -138,17 +244,28 @@ std::vector<ColumnTypeCase> const& ColumnTypeCases()
         { .columnName = "tinyIntColumn",
           .declaredType = Tinyint {},
           .expectedCxxType = "uint8_t",
+          .sample = SampleOf(uint8_t { 200 }),
           .dialectExceptions = { { .serverType = SqlServerType::POSTGRESQL,
                                    .cxxType = "int16_t",
                                    .reason = "PostgreSQL has no 1-byte integer; Tinyint is emitted as SMALLINT" } } },
-        { .columnName = "smallIntColumn", .declaredType = Smallint {}, .expectedCxxType = "int16_t" },
-        { .columnName = "integerColumn", .declaredType = Integer {}, .expectedCxxType = "int32_t" },
-        { .columnName = "bigIntColumn", .declaredType = Bigint {}, .expectedCxxType = "int64_t" },
+        { .columnName = "smallIntColumn",
+          .declaredType = Smallint {},
+          .expectedCxxType = "int16_t",
+          .sample = SampleOf(int16_t { -12345 }) },
+        { .columnName = "integerColumn",
+          .declaredType = Integer {},
+          .expectedCxxType = "int32_t",
+          .sample = SampleOf(int32_t { -1234567 }) },
+        { .columnName = "bigIntColumn",
+          .declaredType = Bigint {},
+          .expectedCxxType = "int64_t",
+          .sample = SampleOf(int64_t { -1234567890123 }) },
 
         // ------------------------------------------------------- fixed-point and floating-point
         { .columnName = "numericColumn",
           .declaredType = Decimal { .precision = 10, .scale = 2 },
-          .expectedCxxType = "Light::SqlNumeric<10, 2>" },
+          .expectedCxxType = "Light::SqlNumeric<10, 2>",
+          .sample = SampleOf(SqlNumeric<10, 2> { 1234.56 }) },
 
         // A 4-byte REAL comes back as `double` on SQLite and MS SQL Server: the schema reader
         // deliberately collapses every column whose dialect type name is `float` or `real` to
@@ -158,6 +275,7 @@ std::vector<ColumnTypeCase> const& ColumnTypeCases()
         { .columnName = "realColumn",
           .declaredType = Real { .precision = 24 },
           .expectedCxxType = "double",
+          .sample = SampleOf(SampleReal),
           .dialectExceptions = { { .serverType = SqlServerType::POSTGRESQL,
                                    .cxxType = "float",
                                    .reason = "PostgreSQL reports float4 with its true 4-byte width" } } },
@@ -170,25 +288,42 @@ std::vector<ColumnTypeCase> const& ColumnTypeCases()
         // silent 8-to-4-byte narrowing in generated records. Asserted as-is so the behaviour is
         // recorded rather than unnoticed; update this entry (do not add a new exception) once the
         // reader's float fixup learns PostgreSQL's float4/float8 type names.
+        //
+        // The round-trip below bounds how bad that defect is, and it is worth stating explicitly:
+        // `SampleDouble` is a third, which needs the full 53-bit mantissa, and it comes back bit-
+        // exact on PostgreSQL. The stored column really is a `float8`; only the *generated member
+        // type* is wrong. So this is a codegen defect that would narrow values in a record written
+        // against generated code — not data already lost inside the database.
         { .columnName = "doubleColumn",
           .declaredType = Real { .precision = 53 },
           .expectedCxxType = "double",
+          .sample = SampleNear(SampleDouble, 1e-12),
           .dialectExceptions = { { .serverType = SqlServerType::POSTGRESQL,
                                    .cxxType = "float",
                                    .reason = "KNOWN DEFECT: float8 is narrowed to float32 by the schema reader" } } },
 
         // ------------------------------------------------------------------------- boolean
-        { .columnName = "booleanColumn", .declaredType = Bool {}, .expectedCxxType = "bool" },
+        { .columnName = "booleanColumn", .declaredType = Bool {}, .expectedCxxType = "bool", .sample = SampleOf(true) },
 
         // -------------------------------------------------------------------- date and time
-        { .columnName = "dateColumn", .declaredType = Date {}, .expectedCxxType = "Light::SqlDate" },
-        { .columnName = "timeColumn", .declaredType = Time {}, .expectedCxxType = "Light::SqlTime" },
-        { .columnName = "datetimeColumn", .declaredType = DateTime {}, .expectedCxxType = "Light::SqlDateTime" },
+        { .columnName = "dateColumn",
+          .declaredType = Date {},
+          .expectedCxxType = "Light::SqlDate",
+          .sample = SampleOf(SampleDate) },
+        { .columnName = "timeColumn",
+          .declaredType = Time {},
+          .expectedCxxType = "Light::SqlTime",
+          .sample = SampleOf(SampleTime) },
+        { .columnName = "datetimeColumn",
+          .declaredType = DateTime {},
+          .expectedCxxType = "Light::SqlDateTime",
+          .sample = SampleOf(SampleDateTime) },
 
         // ------------------------------------------------------------------ non-Unicode text
         { .columnName = "charColumn",
           .declaredType = Char { .size = 8 },
           .expectedCxxType = "Light::SqlTrimmedFixedString<8>",
+          .sample = SampleOf(SampleChar8),
           .dialectExceptions = { { .serverType = SqlServerType::SQLITE,
                                    .cxxType = SqliteText("Light::SqlAnsiString<8>", "Light::SqlDynamicUtf16String<8>"),
                                    .reason = SqliteHasOneTextType },
@@ -198,6 +333,7 @@ std::vector<ColumnTypeCase> const& ColumnTypeCases()
         { .columnName = "varcharColumn",
           .declaredType = Varchar { .size = 30 },
           .expectedCxxType = "Light::SqlAnsiString<30>",
+          .sample = SampleOf(std::string { "varchar sample" }),
           .dialectExceptions = { { .serverType = SqlServerType::SQLITE,
                                    .cxxType = SqliteText("Light::SqlAnsiString<30>", "Light::SqlDynamicUtf16String<30>"),
                                    .reason = SqliteTextFollowsDriverBuild },
@@ -209,12 +345,14 @@ std::vector<ColumnTypeCase> const& ColumnTypeCases()
         { .columnName = "nCharColumn",
           .declaredType = NChar { .size = 8 },
           .expectedCxxType = "Light::SqlTrimmedFixedString<8, wchar_t>",
+          .sample = SampleOf(SqlDynamicUtf16String<8> { u"nchar008" }),
           .dialectExceptions = { { .serverType = SqlServerType::SQLITE,
                                    .cxxType = SqliteText("Light::SqlAnsiString<8>", "Light::SqlDynamicUtf16String<8>"),
                                    .reason = SqliteHasOneTextType } } },
         { .columnName = "nVarCharColumn",
           .declaredType = NVarchar { .size = 30 },
           .expectedCxxType = "Light::SqlDynamicUtf16String<30>",
+          .sample = SampleOf(SqlDynamicUtf16String<30> { u"nvarchar sample" }),
           .dialectExceptions = { { .serverType = SqlServerType::SQLITE,
                                    .cxxType = SqliteText("Light::SqlAnsiString<30>", "Light::SqlDynamicUtf16String<30>"),
                                    .reason = SqliteHasOneTextType } } },
@@ -226,6 +364,7 @@ std::vector<ColumnTypeCase> const& ColumnTypeCases()
         { .columnName = "binaryColumn",
           .declaredType = Binary { .size = 16 },
           .expectedCxxType = "Light::SqlBinary",
+          .sample = SampleOf(SampleBinary),
           .dialectExceptions = { { .serverType = SqlServerType::MICROSOFT_SQL,
                                    .cxxType = "Light::SqlDynamicBinary<16>",
                                    .reason = "the SQL Server formatter emits VARBINARY(n) for Binary{n}" },
@@ -235,6 +374,7 @@ std::vector<ColumnTypeCase> const& ColumnTypeCases()
         { .columnName = "varBinaryColumn",
           .declaredType = VarBinary { .size = 16 },
           .expectedCxxType = "Light::SqlDynamicBinary<16>",
+          .sample = SampleOf(SampleBinary),
           .dialectExceptions = { { .serverType = SqlServerType::POSTGRESQL,
                                    .cxxType = "Light::SqlDynamicBinary<0>",
                                    .reason = "PostgreSQL BYTEA carries no declared length" } } },
@@ -266,6 +406,37 @@ std::string GeneratedCxxType(SqlSchema::Column const& column, std::string const&
     return CxxModelPrinter::MakeType(column, tableName, /*forceUnicodeTextColumn=*/false, {}, SqlOptimalMaxColumnSize);
 }
 
+/// Writes @p value into @p columnName of @p tableName and reads it straight back — the half of the
+/// contract the catalog cannot answer (see this file's header comment).
+///
+/// @param stmt Statement to run the INSERT and SELECT through.
+/// @param tableName Probe table holding @p columnName.
+/// @param columnName Column to write and read.
+/// @param value Sample to write and expect back unchanged.
+template <typename T>
+void CheckValueRoundTrip(SqlStatement& stmt, std::string_view tableName, std::string_view columnName, T const& value)
+{
+    INFO(std::format("round-trip of column {}", columnName));
+    stmt.Prepare(stmt.Query(tableName).Insert().Set(columnName, SqlWildcard));
+    (void) stmt.Execute(value);
+
+    auto cursor = stmt.ExecuteDirect(stmt.Query(tableName).Select().Field(columnName).All());
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetColumn<T>(1) == value);
+}
+
+/// Creates @p tableName with an auto-increment primary key and one required column per entry of
+/// @ref ColumnTypeCases, so the mapping and round-trip tests probe an identical schema.
+void CreateProbeTable(SqlStatement& stmt, std::string_view tableName)
+{
+    stmt.MigrateDirect([tableName](SqlMigrationQueryBuilder& migration) {
+        auto table = migration.CreateTable(std::string(tableName));
+        table.PrimaryKeyWithAutoIncrement("id");
+        for (auto const& testCase: ColumnTypeCases())
+            table.RequiredColumn(std::string(testCase.columnName), testCase.declaredType);
+    });
+}
+
 /// Creates a single-column table holding @p testCase's primary key, reads it back, and checks both
 /// that the catalog reports it as the primary key and that `ddl2cpp` generates the expected type.
 void CheckPrimaryKeyColumnType(SqlStatement& stmt, std::string_view tableName, ColumnTypeCase const& testCase)
@@ -290,12 +461,7 @@ TEST_CASE_METHOD(SqlTestFixture, "ddl2cpp: SQL column types map to their documen
     auto stmt = SqlStatement {};
     auto const serverType = stmt.Connection().ServerType();
 
-    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
-        auto table = migration.CreateTable("ColumnTypeTest1");
-        table.PrimaryKeyWithAutoIncrement("integerAutoincrementPK");
-        for (auto const& testCase: ColumnTypeCases())
-            table.RequiredColumn(std::string(testCase.columnName), testCase.declaredType);
-    });
+    CreateProbeTable(stmt, "ColumnTypeTest1");
 
     auto const table = ReadTable(stmt, "ColumnTypeTest1");
 
@@ -305,6 +471,48 @@ TEST_CASE_METHOD(SqlTestFixture, "ddl2cpp: SQL column types map to their documen
         auto const& column = ColumnOf(table, testCase.columnName);
         CHECK_FALSE(column.isNullable);
         CHECK(GeneratedCxxType(column, "ColumnTypeTest1") == testCase.ExpectedFor(serverType));
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "ddl2cpp: declared column types round-trip their values", "[ddl2cpp][SqlSchema]")
+{
+    // The companion to the mapping test above: same probe columns, but each one is written to and
+    // read back rather than only inspected in the catalog (see this file's header comment).
+    //
+    // Every column goes into one row of one table on purpose. A column type that only works when
+    // it is the sole column in the statement is not a column type that works.
+    auto stmt = SqlStatement {};
+    auto const serverType = stmt.Connection().ServerType();
+    auto const& testCases = ColumnTypeCases();
+
+    CreateProbeTable(stmt, "ColumnTypeRoundTrip");
+
+    auto insert = stmt.Query("ColumnTypeRoundTrip").Insert();
+    for (auto const& testCase: testCases)
+        insert.Set(testCase.columnName, SqlWildcard);
+    stmt.Prepare(insert);
+
+    auto parameterIndex = SQLSMALLINT { 1 };
+    for (auto const& testCase: testCases)
+        testCase.sample.bind(stmt, parameterIndex++);
+    (void) stmt.Execute();
+
+    auto columnNames = std::vector<std::string_view> {};
+    columnNames.reserve(testCases.size());
+    for (auto const& testCase: testCases)
+        columnNames.push_back(testCase.columnName);
+
+    auto cursor = stmt.ExecuteDirect(stmt.Query("ColumnTypeRoundTrip").Select().Fields(columnNames).All());
+    REQUIRE(cursor.FetchRow());
+
+    // Retrieved in declared order, and that is load-bearing rather than tidy: `GetColumn` maps
+    // onto SQLGetData, and the SQL Server driver rejects out-of-order retrieval with
+    // 07009 Invalid Descriptor Index.
+    auto columnIndex = SQLUSMALLINT { 1 };
+    for (auto const& testCase: testCases)
+    {
+        INFO(FailureContext(testCase, serverType));
+        testCase.sample.verify(cursor, columnIndex++);
     }
 }
 
@@ -440,13 +648,16 @@ TEST_CASE_METHOD(SqlTestFixture, "ddl2cpp: a TIMESTAMP column maps to SqlDateTim
 
     auto const table = ReadTable(stmt, "ColumnTypeTimestamp");
 
-    // KNOWN DEFECT on MS SQL Server: `TIMESTAMP` there is a synonym for `rowversion` — an 8-byte,
-    // server-generated, non-writable binary counter, not a point in time. The SQL Server formatter
-    // emits it verbatim for `Timestamp{}`, so the catalog reports binary(8) and ddl2cpp generates a
-    // binary member. Asserted as-is so the behaviour is recorded rather than unnoticed; replacing
-    // the emitted type (DATETIME2 being the natural candidate) is a formatter change of its own.
-    auto const expected = stmt.Connection().ServerType() == SqlServerType::MICROSOFT_SQL
-                              ? std::string_view { "Light::SqlDynamicBinary<8>" }
-                              : std::string_view { "Light::SqlDateTime" };
-    CHECK(GeneratedCxxType(ColumnOf(table, "timestampColumn"), "ColumnTypeTimestamp") == expected);
+    // On MS SQL Server, `TIMESTAMP` is a synonym for `rowversion` — an 8-byte, server-generated,
+    // non-writable binary counter, not a point in time. The SQL Server formatter therefore emits
+    // `DATETIME2` for `Timestamp{}` (the same as it would for a genuine point-in-time column),
+    // so the catalog reports a temporal type and ddl2cpp generates `Light::SqlDateTime` on every
+    // backend.
+    CHECK(GeneratedCxxType(ColumnOf(table, "timestampColumn"), "ColumnTypeTimestamp") == "Light::SqlDateTime");
+
+    // Regression guard for #587. The catalog mapping above is only half the contract: a column
+    // that reads back as `SqlDateTime` must also *accept* one. That is the half a rowversion
+    // column fails — it is server-generated and rejects every INSERT with 42000 — so this write
+    // is what makes the defect impossible to record as merely a curious catalog reading.
+    CheckValueRoundTrip(stmt, "ColumnTypeTimestamp", "timestampColumn", SampleDateTime);
 }

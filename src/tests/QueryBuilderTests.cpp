@@ -2092,7 +2092,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryFormatter.ColumnType per dialect", "[S
         ColumnTypeExpectation { .type = Text {}, .sqlite = "TEXT", .postgres = "TEXT", .sqlServer = "VARCHAR(MAX)" },
         ColumnTypeExpectation { .type = Time {}, .sqlite = "TIME", .postgres = "TIME", .sqlServer = "TIME" },
         ColumnTypeExpectation {
-            .type = Timestamp {}, .sqlite = "TIMESTAMP", .postgres = "TIMESTAMP", .sqlServer = "TIMESTAMP" },
+            .type = Timestamp {}, .sqlite = "TIMESTAMP", .postgres = "TIMESTAMP", .sqlServer = "DATETIME2" },
         ColumnTypeExpectation { .type = Tinyint {}, .sqlite = "TINYINT", .postgres = "SMALLINT", .sqlServer = "TINYINT" },
         ColumnTypeExpectation {
             .type = VarBinary { 100 }, .sqlite = "VARBINARY(100)", .postgres = "BYTEA", .sqlServer = "VARBINARY(100)" },
