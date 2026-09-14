@@ -8,6 +8,7 @@
 #include "SqlStatement.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cctype>
 #include <charconv>
@@ -16,6 +17,7 @@
 #include <map>
 #include <optional>
 #include <set>
+#include <string_view>
 #include <utility>
 
 #include <sql.h>
@@ -54,6 +56,45 @@ namespace
         std::string schema;
         std::string name;
     };
+
+    /// Maps a dialect-specific floating-point type name onto the ODBC type code that carries the
+    /// `SqlColumnTypeDefinitions::Real` precision the column must report, so `CxxModelPrinter`
+    /// emits the correctly-sized C++ type (`float` for `SQL_REAL`, `double` for `SQL_DOUBLE`).
+    struct FloatTypeNameMapping
+    {
+        std::string_view dialectTypeName;
+        int odbcType;
+    };
+
+    /// Floating-point dialect type names whose driver-reported width must be overridden.
+    ///
+    /// SQLite and MS SQL Server report `float`/`real` with a width that would narrow the column,
+    /// so both are deliberately widened to `double` rather than risk losing data. PostgreSQL names
+    /// its types `float4` (4-byte) and `float8` (8-byte) instead, and reports each width truthfully.
+    constexpr auto FloatTypeNameMappings = std::array {
+        FloatTypeNameMapping { .dialectTypeName = "float"sv, .odbcType = SQL_DOUBLE },
+        FloatTypeNameMapping { .dialectTypeName = "FLOAT"sv, .odbcType = SQL_DOUBLE },
+        FloatTypeNameMapping { .dialectTypeName = "real"sv, .odbcType = SQL_DOUBLE },
+        FloatTypeNameMapping { .dialectTypeName = "REAL"sv, .odbcType = SQL_DOUBLE },
+        FloatTypeNameMapping { .dialectTypeName = "float4"sv, .odbcType = SQL_REAL },
+        FloatTypeNameMapping { .dialectTypeName = "float8"sv, .odbcType = SQL_DOUBLE },
+    };
+
+    /// Looks up @p dialectTypeName in @ref FloatTypeNameMappings.
+    ///
+    /// @return The column type to report, or @c std::nullopt if @p dialectTypeName is not one of
+    ///         the floating-point type names that need the fixup.
+    constexpr std::optional<SqlColumnTypeDefinition> LookupFloatColumnType(std::string_view dialectTypeName)
+    {
+        // Scanned rather than looked up with std::ranges::find on purpose: libstdc++ spells
+        // std::array's iterator as a raw pointer, so readability-qualified-auto demands `auto const*`
+        // for the result - which then fails to compile against MSVC's class-type iterator.
+        for (auto const& entry: FloatTypeNameMappings)
+            if (entry.dialectTypeName == dialectTypeName)
+                // SQL_REAL and SQL_DOUBLE carry a fixed precision, so size and scale go unused.
+                return MakeColumnTypeFromNative(entry.odbcType, 0, 0);
+        return std::nullopt;
+    }
 
     std::vector<TableWithSchema> AllTables(SqlStatement& stmt, std::string_view database, std::string_view schema)
     {
@@ -1436,11 +1477,9 @@ namespace detail
                     // MakeColumnTypeFromNative turns into Decimal { 19, 4 } above. Overwriting
                     // the precision here would report a wrong precision and scale to every
                     // consumer of SqlSchema::Column.
-                    if (column.dialectDependantTypeString == "float" || column.dialectDependantTypeString == "FLOAT"
-                        || column.dialectDependantTypeString == "real" || column.dialectDependantTypeString == "REAL")
+                    if (auto const floatType = LookupFloatColumnType(column.dialectDependantTypeString))
                     {
-                        column.type = SqlColumnTypeDefinitions::Real { .precision = 53 };
-                        // column.size = 15; // Try letting it be default (from SQLColumns or 0)
+                        column.type = *floatType;
                     }
                     // PostgreSQL ODBC driver reports BOOLEAN as VARCHAR - handle it specially
                     else if (column.dialectDependantTypeString == "bool")
