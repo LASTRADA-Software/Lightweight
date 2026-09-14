@@ -163,19 +163,9 @@ std::vector<ColumnTypeCase> const& ColumnTypeCases()
                                    .reason = "PostgreSQL reports float4 with its true 4-byte width" } } },
 
         // The same fixup is what makes an 8-byte column correct on SQLite and MS SQL Server. On
-        // PostgreSQL the dialect type name is `float8`, the fixup misses it, and the driver's
-        // reported width narrows the column to `float`.
-        //
-        // KNOWN DEFECT: `double precision` on PostgreSQL must generate `double`. `float` here is a
-        // silent 8-to-4-byte narrowing in generated records. Asserted as-is so the behaviour is
-        // recorded rather than unnoticed; update this entry (do not add a new exception) once the
-        // reader's float fixup learns PostgreSQL's float4/float8 type names.
-        { .columnName = "doubleColumn",
-          .declaredType = Real { .precision = 53 },
-          .expectedCxxType = "double",
-          .dialectExceptions = { { .serverType = SqlServerType::POSTGRESQL,
-                                   .cxxType = "float",
-                                   .reason = "KNOWN DEFECT: float8 is narrowed to float32 by the schema reader" } } },
+        // PostgreSQL the dialect type name is `float8`; the reader's float fixup recognizes that
+        // name too, so all three databases agree that `double precision` round-trips as `double`.
+        { .columnName = "doubleColumn", .declaredType = Real { .precision = 53 }, .expectedCxxType = "double" },
 
         // ------------------------------------------------------------------------- boolean
         { .columnName = "booleanColumn", .declaredType = Bool {}, .expectedCxxType = "bool" },
