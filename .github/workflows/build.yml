@@ -71,8 +71,17 @@ jobs:
 
   check_docs:
     name: "Check documentation coverage"
-    runs-on: ubuntu-24.04
+    needs: probe-self-hosted
+    runs-on: ${{ fromJSON(needs.probe-self-hosted.outputs.runs_on) }}
     if: github.ref != 'refs/heads/master'
+    env:
+      # See check_clang_tidy's identical env block for why FASTCACHE_ADDR is
+      # conditional, and why FASTCACHE_AUTO_INSTALL has to be a -D flag
+      # (LIGHTWEIGHT_FASTCACHE_AUTO_INSTALL_FLAG) rather than an env var of
+      # that name -- CompileCache.cmake declares it as a plain option(),
+      # which CMake never reads from the environment.
+      FASTCACHE_ADDR: ${{ contains(needs.probe-self-hosted.outputs.runs_on, 'self-hosted') && 'host.docker.internal:6674' || '' }}
+      LIGHTWEIGHT_FASTCACHE_AUTO_INSTALL_FLAG: ${{ contains(needs.probe-self-hosted.outputs.runs_on, 'self-hosted') && '-DFASTCACHE_AUTO_INSTALL=ON' || '' }}
     steps:
       - uses: actions/checkout@v6
       - name: Fetch tags
@@ -82,7 +91,7 @@ jobs:
       - name: "install dependencies"
         run: sudo apt install -y cmake ninja-build doxygen g++-14 catch2 unixodbc-dev sqlite3 libsqlite3-dev uuid-dev libyaml-cpp-dev libzip-dev
       - name: "cmake"
-        run: cmake --preset gcc-release -D LIGHTWEIGHT_BUILD_DOCUMENTATION=ON -D LIGHTWEIGHT_DOCS_WARN_AS_ERROR=ON
+        run: cmake --preset gcc-release -D LIGHTWEIGHT_BUILD_DOCUMENTATION=ON -D LIGHTWEIGHT_DOCS_WARN_AS_ERROR=ON $LIGHTWEIGHT_FASTCACHE_AUTO_INSTALL_FLAG
       - name: "check documentation"
         run: cmake --build --preset gcc-release --target doc
       - name: "check doc code snippets are in sync with tested source"
@@ -90,13 +99,38 @@ jobs:
 
   check_clang_tidy:
     name: "Check clang-tidy"
-    runs-on: ubuntu-24.04
+    needs: probe-self-hosted
+    runs-on: ${{ fromJSON(needs.probe-self-hosted.outputs.runs_on) }}
     if: github.ref != 'refs/heads/master'
+    env:
+      # Only set on the self-hosted path: host.docker.internal does not
+      # resolve on a GitHub-hosted VM (it is not a Docker container), and an
+      # address that is merely unreachable rather than refusing the
+      # connection stalls fastcache-cc's TCP connect for a long time instead
+      # of failing fast -- so this must stay empty on that path, not just
+      # "wrong but harmless".
+      FASTCACHE_ADDR: ${{ contains(needs.probe-self-hosted.outputs.runs_on, 'self-hosted') && 'host.docker.internal:6674' || '' }}
+      # FASTCACHE_AUTO_INSTALL is a plain CMake option(), not something
+      # CompileCache.cmake reads from the environment the way it does
+      # FASTCACHE_ADDR -- an env var of this name is silently ignored, only
+      # -DFASTCACHE_AUTO_INSTALL=ON on the cmake command line reaches it.
+      # This is that flag, precomputed once so the Configure step below can
+      # just splice it in.
+      LIGHTWEIGHT_FASTCACHE_AUTO_INSTALL_FLAG: ${{ contains(needs.probe-self-hosted.outputs.runs_on, 'self-hosted') && '-DFASTCACHE_AUTO_INSTALL=ON' || '' }}
     steps:
       - uses: actions/checkout@v6
       - name: Fetch tags
         run: git fetch --prune --unshallow --tags
+      # Skipped on the self-hosted path: the runner image clears leftover
+      # ccache/sccache before every job precisely so CompileCache.cmake's
+      # FASTCACHE_AUTO_INSTALL path can fire (it only fetches fastcache-cc
+      # when NONE of fastcache-cc/sccache/ccache are already on PATH).
+      # Installing ccache unconditionally here, as this step used to,
+      # would permanently defeat auto-install: ccache would always be
+      # present, so the auto-install guard would always see it and skip.
+      # GitHub-hosted's fallback still gets ccache exactly as before.
       - name: ccache
+        if: "!contains(needs.probe-self-hosted.outputs.runs_on, 'self-hosted')"
         uses: hendrikmuhs/ccache-action@v1.2
         with:
           key: "ccache-ubuntu2404-clang-tidy"
@@ -118,9 +152,78 @@ jobs:
           cmake --preset clang-debug \
                 -D CMAKE_CXX_COMPILER=clang++-${{ env.CLANG_TOOLS_VERSION }} \
                 -D CMAKE_C_COMPILER=clang-${{ env.CLANG_TOOLS_VERSION }} \
-                -B build
+                -B build \
+                $LIGHTWEIGHT_FASTCACHE_AUTO_INSTALL_FLAG
       - name: "run clang-tidy"
         run: run-clang-tidy-${{ env.CLANG_TOOLS_VERSION }} -p ./build -clang-tidy-binary clang-tidy-${{ env.CLANG_TOOLS_VERSION }} -config-file .clang-tidy -header-filter='^(?!(.*/)?stdexec-src/|(.*/)?libzip-src/).*$' -source-filter='^(?!.*_deps/).*$'
+
+  # }}}
+  # {{{ Self-hosted runner probe
+
+  # Picks a self-hosted lastrada-docker runner for the Linux legs when one is
+  # registered, online, and idle; falls back to the GitHub-hosted label
+  # otherwise. The runners are ORGANISATION-level (one fleet serves morph,
+  # fastcached and Lightweight), so this queries the org endpoint -- the
+  # repo endpoint returns zero for them and every run would silently go
+  # GitHub-hosted with no error anywhere.
+  #
+  # GITHUB_TOKEN can't call the runners API, so this needs
+  # RUNNER_STATUS_TOKEN: a PAT with organisation self-hosted-runner read
+  # access (admin:org, or fine-grained "Self-hosted runners: Read-only" on
+  # LASTRADA-Software), stored as a repo secret. It does not exist in this
+  # repo yet, so the probe below always falls back to GitHub-hosted until a
+  # maintainer adds it -- safely, since a missing token is treated exactly
+  # like a forked-repo PR that never receives repo secrets. A failed curl, or
+  # a 200 response whose body is missing or the wrong shape for `.runners`,
+  # are treated the same way.
+  probe-self-hosted:
+    name: Probe self-hosted runner
+    runs-on: ubuntu-24.04
+    outputs:
+      runs_on: ${{ steps.probe.outputs.runs_on }}
+    steps:
+      - name: Check for an idle lastrada-docker runner
+        id: probe
+        env:
+          RUNNER_STATUS_TOKEN: ${{ secrets.RUNNER_STATUS_TOKEN }}
+        run: |
+          set -euo pipefail
+          fallback='["ubuntu-24.04"]'
+
+          if [ -z "${RUNNER_STATUS_TOKEN}" ]; then
+            echo "No RUNNER_STATUS_TOKEN (e.g. a forked-repo PR) -- using GitHub-hosted."
+            echo "runs_on=${fallback}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          runners=$(curl -fsSL \
+            -H "Authorization: Bearer ${RUNNER_STATUS_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/orgs/LASTRADA-Software/actions/runners") || {
+              echo "Runners API call failed -- using GitHub-hosted."
+              echo "runs_on=${fallback}" >> "$GITHUB_OUTPUT"
+              exit 0
+            }
+
+          online=$(echo "${runners}" | jq '[(.runners // [])[] |
+            select(.status == "online" and .busy == false and
+                   (.labels | map(.name) | contains(["lastrada-docker"])))] | length') || {
+              echo "Malformed runners response -- using GitHub-hosted."
+              echo "runs_on=${fallback}" >> "$GITHUB_OUTPUT"
+              exit 0
+            }
+
+          if ! [[ "${online}" =~ ^[0-9]+$ ]]; then
+            online=0
+          fi
+
+          if [ "${online}" -gt 0 ]; then
+            echo "Found an idle lastrada-docker runner -- using self-hosted."
+            echo 'runs_on=["self-hosted", "Linux", "X64", "lastrada-docker"]' >> "$GITHUB_OUTPUT"
+          else
+            echo "No idle lastrada-docker runner -- using GitHub-hosted."
+            echo "runs_on=${fallback}" >> "$GITHUB_OUTPUT"
+          fi
 
   # }}}
   # {{{ Windows
@@ -577,14 +680,32 @@ jobs:
         build_type: ["RelWithDebInfo"]
         compiler: ["GCC 14", "Clang 19"]
     name: "Ubuntu Linux 24.04 (${{ matrix.compiler }}, C++${{ matrix.cxx }})"
-    runs-on: ubuntu-24.04
+    needs: probe-self-hosted
+    runs-on: ${{ fromJSON(needs.probe-self-hosted.outputs.runs_on) }}
     outputs:
       id: "${{ matrix.compiler }} (C++${{ matrix.cxx }}, ${{ matrix.build_type }})"
+    env:
+      # See check_clang_tidy's identical env block for why FASTCACHE_ADDR is
+      # conditional, and why FASTCACHE_AUTO_INSTALL has to be a -D flag
+      # (LIGHTWEIGHT_FASTCACHE_AUTO_INSTALL_FLAG) rather than an env var of
+      # that name -- CompileCache.cmake declares it as a plain option(),
+      # which CMake never reads from the environment.
+      FASTCACHE_ADDR: ${{ contains(needs.probe-self-hosted.outputs.runs_on, 'self-hosted') && 'host.docker.internal:6674' || '' }}
+      LIGHTWEIGHT_FASTCACHE_AUTO_INSTALL_FLAG: ${{ contains(needs.probe-self-hosted.outputs.runs_on, 'self-hosted') && '-DFASTCACHE_AUTO_INSTALL=ON' || '' }}
     steps:
       - uses: actions/checkout@v6
       - name: Fetch tags
         run: git fetch --prune --unshallow --tags
+      # Skipped on the self-hosted path: the runner image clears leftover
+      # ccache/sccache before every job precisely so CompileCache.cmake's
+      # FASTCACHE_AUTO_INSTALL path can fire (it only fetches fastcache-cc
+      # when NONE of fastcache-cc/sccache/ccache are already on PATH).
+      # Installing ccache unconditionally here would permanently defeat
+      # auto-install: ccache would always be present, so the auto-install
+      # guard would always see it and skip. GitHub-hosted's fallback still
+      # gets ccache exactly as before.
       - name: ccache
+        if: "!contains(needs.probe-self-hosted.outputs.runs_on, 'self-hosted')"
         uses: hendrikmuhs/ccache-action@v1.2
         with:
           key: "ccache-ubuntu2404-${{ matrix.compiler }}-${{ matrix.cxx }}-${{ matrix.build_type }}"
@@ -634,7 +755,8 @@ jobs:
               -DCMAKE_INSTALL_PREFIX="/usr/local" \
               -DPEDANTIC_COMPILER_WERROR=OFF \
               -DLIGHTWEIGHT_BUILD_SHARED=ON \
-              --preset gcc-release
+              --preset gcc-release \
+              $LIGHTWEIGHT_FASTCACHE_AUTO_INSTALL_FLAG
       - name: "build"
         run: cmake --build --preset gcc-release -- -j3
       # NB: Don't run the tests here, as we want to run them later for each individual database
@@ -1086,12 +1208,30 @@ jobs:
       matrix:
         sanitizer: ["asan-ubsan", "tsan"]
     name: "Sanitizers (${{ matrix.sanitizer }})"
-    runs-on: ubuntu-24.04
+    needs: probe-self-hosted
+    runs-on: ${{ fromJSON(needs.probe-self-hosted.outputs.runs_on) }}
+    env:
+      # See check_clang_tidy's identical env block for why FASTCACHE_ADDR is
+      # conditional, and why FASTCACHE_AUTO_INSTALL has to be a -D flag
+      # (LIGHTWEIGHT_FASTCACHE_AUTO_INSTALL_FLAG) rather than an env var of
+      # that name -- CompileCache.cmake declares it as a plain option(),
+      # which CMake never reads from the environment.
+      FASTCACHE_ADDR: ${{ contains(needs.probe-self-hosted.outputs.runs_on, 'self-hosted') && 'host.docker.internal:6674' || '' }}
+      LIGHTWEIGHT_FASTCACHE_AUTO_INSTALL_FLAG: ${{ contains(needs.probe-self-hosted.outputs.runs_on, 'self-hosted') && '-DFASTCACHE_AUTO_INSTALL=ON' || '' }}
     steps:
       - uses: actions/checkout@v6
       - name: Fetch tags
         run: git fetch --prune --unshallow --tags
+      # Skipped on the self-hosted path: the runner image clears leftover
+      # ccache/sccache before every job precisely so CompileCache.cmake's
+      # FASTCACHE_AUTO_INSTALL path can fire (it only fetches fastcache-cc
+      # when NONE of fastcache-cc/sccache/ccache are already on PATH).
+      # Installing ccache unconditionally here would permanently defeat
+      # auto-install: ccache would always be present, so the auto-install
+      # guard would always see it and skip. GitHub-hosted's fallback still
+      # gets ccache exactly as before.
       - name: ccache
+        if: "!contains(needs.probe-self-hosted.outputs.runs_on, 'self-hosted')"
         uses: hendrikmuhs/ccache-action@v1.2
         with:
           key: "ccache-ubuntu2404-clang-${{ matrix.sanitizer }}"
@@ -1113,7 +1253,8 @@ jobs:
         run: |
           cmake --preset clang-${{ matrix.sanitizer }} \
                 -D CMAKE_CXX_COMPILER=clang++-${{ env.CLANG_TOOLS_VERSION }} \
-                -D CMAKE_C_COMPILER=clang-${{ env.CLANG_TOOLS_VERSION }}
+                -D CMAKE_C_COMPILER=clang-${{ env.CLANG_TOOLS_VERSION }} \
+                $LIGHTWEIGHT_FASTCACHE_AUTO_INSTALL_FLAG
       - name: "build"
         run: cmake --build --preset clang-${{ matrix.sanitizer }} -- -j$(nproc)
       - name: "Run tests with ${{ matrix.sanitizer }}"
