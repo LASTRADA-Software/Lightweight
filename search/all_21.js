@@ -1,10 +1,20 @@
 var searchData=
 [
-  ['—_20a_20single_20condition_0',['WHERE — a single condition',['../d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#where--a-single-condition',1,'']]],
-  ['—_20design_1',['Composite key support — design',['../d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html',1,'']]],
-  ['—_20many_20to_20many_20across_20a_20join_20table_2',['2. &lt;tt&gt;HasManyThrough&lt;/tt&gt; — many-to-many across a join table',['../d5/dd9/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2ddl2cpp-relation-generation.html#autotoc_md2-hasmanythrough--many-to-many-across-a-join-table',1,'']]],
-  ['—_20multiple_20conditions_20and_20or_3',['WHERE — multiple conditions (AND / OR)',['../d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#where--multiple-conditions-and--or',1,'']]],
-  ['—_20null_20not_20null_4',['WHERE — NULL / NOT NULL',['../d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#where--null--not-null',1,'']]],
-  ['—_20settled_20by_20test_5',['Ordering — settled by test',['../d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#ordering--settled-by-test',1,'']]],
-  ['—_20the_20inverse_20of_20every_20single_20column_20foreign_20key_6',['1. &lt;tt&gt;HasMany&lt;/tt&gt; — the inverse of every single-column foreign key',['../d5/dd9/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2ddl2cpp-relation-generation.html#autotoc_md1-hasmany--the-inverse-of-every-single-column-foreign-key',1,'']]]
+  ['_7easyncsqltransaction_0',['~AsyncSqlTransaction',['../d9/d0c/classLightweight_1_1Async_1_1AsyncSqlTransaction.html#af8714f87a29ed48adec5f3a57bcdc52f',1,'Lightweight::Async::AsyncSqlTransaction']]],
+  ['_7emigrationbase_1',['~MigrationBase',['../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a27b0f6caa86899cd3c4fffc87b9d508c',1,'Lightweight::SqlMigration::MigrationBase']]],
+  ['_7epool_2',['~Pool',['../d3/d30/classLightweight_1_1Pool.html#a33074cde6ef2e6fd95658e3447a2be71',1,'Lightweight::Pool']]],
+  ['_7erowarraycursor_3',['~RowArrayCursor',['../da/d6c/classLightweight_1_1RowArrayCursor.html#a54f69ffeb333ab2b68301443ad1ab863',1,'Lightweight::RowArrayCursor']]],
+  ['_7esqladvisorylockhandler_4',['~SqlAdvisoryLockHandler',['../d4/d61/classLightweight_1_1SqlAdvisoryLockHandler.html#ab066140910453f5dc44f5b6dbdcd7f5c',1,'Lightweight::SqlAdvisoryLockHandler']]],
+  ['_7esqlconnection_5',['~SqlConnection',['../da/da8/classLightweight_1_1SqlConnection.html#a62a9dd35027a98c52b3fcb66fcf2e731',1,'Lightweight::SqlConnection']]],
+  ['_7esqldynamicbinary_6',['~SqlDynamicBinary',['../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a9c7fdd77f1342a6808fa7d02b77ecf92',1,'Lightweight::SqlDynamicBinary']]],
+  ['_7esqldynamicstring_7',['~SqlDynamicString',['../d7/d9a/classLightweight_1_1SqlDynamicString.html#aaa452af46fd8e3a02f29a71971c6d347',1,'Lightweight::SqlDynamicString']]],
+  ['_7esqlfixedstring_8',['~SqlFixedString',['../de/dae/classLightweight_1_1SqlFixedString.html#a612a6159015bf954929f7e3eb6b3a904',1,'Lightweight::SqlFixedString']]],
+  ['_7esqlretryclassifier_9',['~SqlRetryClassifier',['../db/d4d/classLightweight_1_1SqlRetryClassifier.html#ad1cb796dc6a43390e66b5a02567ab5ac',1,'Lightweight::SqlRetryClassifier']]],
+  ['_7esqlretrysleeper_10',['~SqlRetrySleeper',['../df/dc1/classLightweight_1_1SqlRetrySleeper.html#abbb277e4363a15f6b62dfdecf34ee70a',1,'Lightweight::SqlRetrySleeper']]],
+  ['_7esqlscopedlock_11',['~SqlScopedLock',['../d3/de6/classLightweight_1_1SqlScopedLock.html#acf8f751e119821245240d8751ea22051',1,'Lightweight::SqlScopedLock']]],
+  ['_7esqltransaction_12',['~SqlTransaction',['../d0/ddc/classLightweight_1_1SqlTransaction.html#a08cd992cb104b7a6f40e71c6956d2c93',1,'Lightweight::SqlTransaction']]],
+  ['_7esqlvariant_13',['~SqlVariant',['../df/d3f/structLightweight_1_1SqlVariant.html#adf3c49cf96b4f0dca466e6a2d56088ff',1,'Lightweight::SqlVariant']]],
+  ['_7ethreadpoolexecutor_14',['~ThreadPoolExecutor',['../d4/d1e/classLightweight_1_1Async_1_1ThreadPoolExecutor.html#a85b1254219ed5790b81ba06ecef7fe0b',1,'Lightweight::Async::ThreadPoolExecutor']]],
+  ['_7eziparchive_15',['~ZipArchive',['../d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#a81667cd2c45506e0b1e2b828f9008812',1,'Lightweight::Zip::ZipArchive']]],
+  ['_7ezipentry_16',['~ZipEntry',['../d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a2299e18f28f3ace1f4f16512a58dcc7d',1,'Lightweight::Zip::ZipEntry']]]
 ];

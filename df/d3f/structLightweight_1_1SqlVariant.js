@@ -1,6 +1,6 @@
 var structLightweight_1_1SqlVariant =
 [
-    [ "InnerType", "df/d3f/structLightweight_1_1SqlVariant.html#a2159a23a1405bd28c3faf04c19cf6f0c", null ],
+    [ "InnerType", "df/d3f/structLightweight_1_1SqlVariant.html#a38a15e4299571b77d9a4a9fa90bcc3ab", null ],
     [ "SqlVariant", "df/d3f/structLightweight_1_1SqlVariant.html#a6457e307fb255ca89589215d0e699b8e", null ],
     [ "SqlVariant", "df/d3f/structLightweight_1_1SqlVariant.html#a246d2d6a8cca8a93a293937aa6945b9a", null ],
     [ "SqlVariant", "df/d3f/structLightweight_1_1SqlVariant.html#ae9c6a738dcee0915f91d450760f1df60", null ],
@@ -37,6 +37,8 @@ var structLightweight_1_1SqlVariant =
     [ "TryGetTime", "df/d3f/structLightweight_1_1SqlVariant.html#a9d315a730b44cf9db2840803e2bbb8ca", null ],
     [ "TryGetDateTime", "df/d3f/structLightweight_1_1SqlVariant.html#a118c7ea1064e337ea3a7af5296f3dd4d", null ],
     [ "TryGetGuid", "df/d3f/structLightweight_1_1SqlVariant.html#a2be73331793cddcd6795abfeda4ec4dd", null ],
+    [ "TryGetNumeric", "df/d3f/structLightweight_1_1SqlVariant.html#a0f850e66d1dfecd9d333a5ef2beffca6", null ],
+    [ "TryGetBinary", "df/d3f/structLightweight_1_1SqlVariant.html#a8ab06b8e1024a734ee68ab1a4e737bbf", null ],
     [ "ToString", "df/d3f/structLightweight_1_1SqlVariant.html#a04b24b9c04888b9b4d3f550c96f8bc29", null ],
     [ "value", "df/d3f/structLightweight_1_1SqlVariant.html#a4f64e61f01ab290315362b696a6d7f90", null ]
 ];

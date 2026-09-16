@@ -98,6 +98,8 @@ var hierarchy =
     [ "Lightweight::SqlConnectionString", "de/d6a/structLightweight_1_1SqlConnectionString.html", null ],
     [ "Lightweight::SqlCreateIndexPlan", "dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html", null ],
     [ "Lightweight::SqlCreateTableQueryBuilder", "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html", null ],
+    [ "Lightweight::SqlDataBinder< SqlDynamicNumeric >", "da/d2d/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4.html", null ],
+    [ "Lightweight::SqlDataBinder< SqlDynamicNumeric >::Literal", "db/d29/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4_1_1Literal.html", null ],
     [ "Lightweight::SqlDataBinderCallback", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html", [
       [ "Lightweight::SqlStatement", "db/dad/classLightweight_1_1SqlStatement.html", null ]
     ] ],
@@ -107,6 +109,7 @@ var hierarchy =
     [ "Lightweight::SqlDiagnosticSource", "dd/dde/classLightweight_1_1SqlDiagnosticSource.html", null ],
     [ "Lightweight::SqlDropTablePlan", "dd/d47/structLightweight_1_1SqlDropTablePlan.html", null ],
     [ "Lightweight::SqlDynamicBinary< N >", "d6/db6/classLightweight_1_1SqlDynamicBinary.html", null ],
+    [ "Lightweight::SqlDynamicNumeric", "d7/d2c/structLightweight_1_1SqlDynamicNumeric.html", null ],
     [ "Lightweight::SqlDynamicString< N, T >", "d7/d9a/classLightweight_1_1SqlDynamicString.html", null ],
     [ "Lightweight::SqlErrorInfo", "d8/d5b/structLightweight_1_1SqlErrorInfo.html", null ],
     [ "Lightweight::SqlFaultSource", "d4/d1a/classLightweight_1_1SqlFaultSource.html", null ],

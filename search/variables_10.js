@@ -20,9 +20,10 @@ var searchData=
   ['retried_17',['retried',['../d4/d7d/structLightweight_1_1SqlOperationStatistics.html#a327c97e76f35bc0417fa3e591be97d6c',1,'Lightweight::SqlOperationStatistics']]],
   ['retriessofar_18',['retriesSoFar',['../da/def/structLightweight_1_1SqlRetryState.html#a0fc445febcec32eacd5275d181bca773',1,'Lightweight::SqlRetryState']]],
   ['retrynumber_19',['retryNumber',['../d6/d00/structLightweight_1_1SqlRetryAttempt.html#aef554ecc759e7a9c6fab88c67637b23e',1,'Lightweight::SqlRetryAttempt']]],
-  ['reused_20',['reused',['../da/da6/structLightweight_1_1SqlPoolStatistics.html#ab94ec8b9865e5d838d4942cdbc45700a',1,'Lightweight::SqlPoolStatistics']]],
-  ['revertedtimestamps_21',['revertedTimestamps',['../d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html#a14223384e1e346debcb57e6c4383154f',1,'Lightweight::SqlMigration::RevertResult']]],
-  ['rowcount_22',['rowcount',['../d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a92351f3189fe1adade98ccec8d21a6b2',1,'Lightweight::SqlBackup::TableInfo::rowCount'],['../d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html#aa96489eada966b8294d4cc0e950cdbc3',1,'Lightweight::SqlBackup::ColumnBatch::rowCount']]],
-  ['rowsfetched_23',['rowsFetched',['../df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html#ac92cee860cb6d2eac2a8fc9ad0cf7940',1,'Lightweight::SqlStatisticsSnapshot']]],
-  ['rowsperchunk_24',['rowsPerChunk',['../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#ae10e3a3fa9942cd75572e2a1815708a6',1,'Lightweight::SqlBackup::BackupSettings']]]
+  ['returncode_20',['returnCode',['../db/d29/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4_1_1Literal.html#acef0301710c28fd926dcbbc4a1c6dccf',1,'Lightweight::SqlDataBinder&lt; SqlDynamicNumeric &gt;::Literal']]],
+  ['reused_21',['reused',['../da/da6/structLightweight_1_1SqlPoolStatistics.html#ab94ec8b9865e5d838d4942cdbc45700a',1,'Lightweight::SqlPoolStatistics']]],
+  ['revertedtimestamps_22',['revertedTimestamps',['../d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html#a14223384e1e346debcb57e6c4383154f',1,'Lightweight::SqlMigration::RevertResult']]],
+  ['rowcount_23',['rowcount',['../d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a92351f3189fe1adade98ccec8d21a6b2',1,'Lightweight::SqlBackup::TableInfo::rowCount'],['../d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html#aa96489eada966b8294d4cc0e950cdbc3',1,'Lightweight::SqlBackup::ColumnBatch::rowCount']]],
+  ['rowsfetched_24',['rowsFetched',['../df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html#ac92cee860cb6d2eac2a8fc9ad0cf7940',1,'Lightweight::SqlStatisticsSnapshot']]],
+  ['rowsperchunk_25',['rowsPerChunk',['../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#ae10e3a3fa9942cd75572e2a1815708a6',1,'Lightweight::SqlBackup::BackupSettings']]]
 ];

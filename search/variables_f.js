@@ -4,7 +4,7 @@ var searchData=
   ['pendingcount_1',['pendingCount',['../d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html#aad711e9003b262ff1dc9e576dd8e4ef7',1,'Lightweight::SqlMigration::MigrationStatus']]],
   ['pool_2',['pool',['../df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html#ad529acd9a233c856b9723593a2105e61',1,'Lightweight::SqlStatisticsSnapshot']]],
   ['postretrieveoperation_3',['PostRetrieveOperation',['../de/dae/classLightweight_1_1SqlFixedString.html#a1506e367d2dc8f943423c01241a42e66',1,'Lightweight::SqlFixedString']]],
-  ['precision_4',['Precision',['../d6/d1b/structLightweight_1_1SqlNumeric.html#a4d0e788a6bd81554e8afb79cae14c5fa',1,'Lightweight::SqlNumeric']]],
+  ['precision_4',['precision',['../d6/d1b/structLightweight_1_1SqlNumeric.html#a4d0e788a6bd81554e8afb79cae14c5fa',1,'Lightweight::SqlNumeric::Precision'],['../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a6be7bfb48b56b029e73afbdab75233b1',1,'Lightweight::SqlDynamicNumeric::precision']]],
   ['preservedtables_5',['preservedTables',['../d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#a5da7e6fd9a84f00e8aafb68637ac0c62',1,'Lightweight::SqlMigration::MigrationManager::HardResetResult']]],
   ['primarykey_6',['primaryKey',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a64c002c93535164bed683e2a3de11ae7',1,'Lightweight::SqlColumnDeclaration']]],
   ['primarykeyindex_7',['primaryKeyIndex',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#adc6c2316125cc865139f3dae21badfb6',1,'Lightweight::SqlColumnDeclaration']]],

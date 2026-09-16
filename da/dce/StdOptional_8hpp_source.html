@@ -221,12 +221,12 @@ $(document).ready(function(){initNavTree('da/dce/StdOptional_8hpp_source.html','
 <div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>        });</div>
 <div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span>        <span class="keywordflow">return</span> sqlReturn;</div>
 <div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span>    }</div>
-<div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span> </div>
-<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt,</div>
-<div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span>                                                        SQLUSMALLINT column,</div>
-<div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span>                                                        OptionalValue* result,</div>
-<div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span>                                                        SQLLEN* indicator,</div>
-<div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span>                                                        SqlDataBinderCallback <span class="keyword">const</span>&amp; cb) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span><span class="comment"></span> </div>
+<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span><span class="comment">    /// @throws Whatever `SqlDataBinder&lt;T&gt;::GetColumn` throws — this forwards to an arbitrary binder</span></div>
+<div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span><span class="comment">    ///         and cannot promise more than the one it wraps. `SqlDynamicNumeric` reports a value too</span></div>
+<div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span><span class="comment">    ///         wide for its carrier that way, and `SqlNumeric` a failed descriptor call.</span></div>
+<div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span><span class="comment"></span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN</div>
+<div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span>    GetColumn(SQLHSTMT stmt, SQLUSMALLINT column, OptionalValue* result, SQLLEN* indicator, SqlDataBinderCallback <span class="keyword">const</span>&amp; cb)</div>
 <div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span>    {</div>
 <div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span>        <span class="keyword">auto</span> <span class="keyword">const</span> sqlReturn = SqlDataBinder&lt;T&gt;::GetColumn(stmt, column, &amp;result-&gt;emplace(), indicator, cb);</div>
 <div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>        <span class="keywordflow">if</span> (indicator &amp;&amp; *indicator == SQL_NULL_DATA)</div>

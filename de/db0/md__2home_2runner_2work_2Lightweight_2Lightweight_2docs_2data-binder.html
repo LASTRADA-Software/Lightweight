@@ -246,8 +246,40 @@ How &lt;tt&gt;SqlVariant&lt;/tt&gt; decides which alternative to fill</h1>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone">TIME   </td><td class="markdownTableBodyNone"><code>SQL_TYPE_TIME</code> (92)   </td><td class="markdownTableBodyNone"><code>SqlTime</code>    </td></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">TIMESTAMP   </td><td class="markdownTableBodyNone"><code>SQL_TYPE_TIMESTAMP</code> (93)   </td><td class="markdownTableBodyNone"><code>SqlDateTime</code>   </td></tr>
+<td class="markdownTableBodyNone">TIMESTAMP   </td><td class="markdownTableBodyNone"><code>SQL_TYPE_TIMESTAMP</code> (93)   </td><td class="markdownTableBodyNone"><code>SqlDateTime</code>    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">DECIMAL / NUMERIC   </td><td class="markdownTableBodyNone"><code>SQL_DECIMAL</code> (3), <code>SQL_NUMERIC</code> (2)   </td><td class="markdownTableBodyNone"><code>SqlDynamicNumeric</code>    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">BINARY / VARBINARY / LONGVARBINARY   </td><td class="markdownTableBodyNone"><code>SQL_BINARY</code> (-2), <code>SQL_VARBINARY</code> (-3), <code>SQL_LONGVARBINARY</code> (-4)   </td><td class="markdownTableBodyNone"><code>SqlBinary</code>   </td></tr>
 </table>
+<h1><a class="anchor" id="sqldynamicnumeric-exact-decimals-in-a-sqlvariant"></a>
+&lt;tt&gt;SqlDynamicNumeric&lt;/tt&gt;: exact decimals in a &lt;tt&gt;SqlVariant&lt;/tt&gt;</h1>
+<p><code>SqlNumeric&lt;Precision, Scale&gt;</code> fixes both at compile time. A value arriving through a <code>SqlVariant</code> learns its precision and scale from the result-set metadata instead, so DECIMAL/NUMERIC columns fill a <code>SqlDynamicNumeric</code>, which carries them alongside the value.</p>
+<p>The number is stored as the unscaled integer <code>value * 10^scale</code> and never passes through a binary floating-point type:</p>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> amount = value.TryGetNumeric().value();</div>
+<div class="line">amount.unscaledValue;   <span class="comment">// 92233720368547  — exact</span></div>
+<div class="line">amount.scale;           <span class="comment">// 4</span></div>
+<div class="line">amount.ToString();      <span class="comment">// &quot;9223372036.8547&quot;</span></div>
+<div class="line">amount.ToDouble();      <span class="comment">// approximation; lossy beyond a double&#39;s 15–16 significant digits</span></div>
+</div><!-- fragment --><p><code>TryGetLongLong()</code> still works for a <code>DECIMAL(p, 0)</code> column, which has no fractional part.</p>
+<p>Both directions use the column's decimal literal rather than <code>SQL_C_NUMERIC</code>. Retrieving <code>SQL_C_NUMERIC</code> requires the application to publish precision and scale on the descriptor before each call and a driver that honours them — SQL Server returns scale-0 values otherwise, and SQLite has no native <code>SQL_NUMERIC_STRUCT</code> support at all. These are the same two backends <code>SqlDataBinder&lt;SqlNumeric&lt;P, S&gt;&gt;</code> routes around via <code>NativeNumericSupportIsBroken()</code>. Every supported driver converts a decimal column to and from its literal exactly, so the literal is the portable representation.</p>
+<p>This is why <code>SqlNumeric&lt;P, S&gt;</code> is not simply reused here. On those same two backends its own binder falls back to <code>SQL_C_DOUBLE</code>, so it is the exact type only where the driver's <code>SQL_NUMERIC_STRUCT</code> support is sound — precisely the backends LASTRADA does not run on. <code>SqlDynamicNumeric</code> also carries precision and scale as <em>runtime</em> values, which a variant filled from a column described only at runtime needs.</p>
+<h2><a class="anchor" id="when-a-column-does-not-fit"></a>
+When a column does not fit</h2>
+<p><code>SqlDynamicNumeric</code> holds the unscaled value in an <code>int64_t</code>, so it represents at most <code>SqlMaxDynamicNumericPrecision</code> (19) significant digits. A wider column — <code>DECIMAL(38, 0)</code> is legal ODBC — cannot be read exactly, and the binder refuses rather than returning a rounded number. The driver does not fail in that case, so no ODBC diagnostic exists to report:</p>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">Entry point   </th><th class="markdownTableHeadNone">On an unrepresentable value    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>GetColumn</code>   </td><td class="markdownTableBodyNone">Throws <code>SqlException</code> with a synthesized <code>SQLSTATE 22003</code> and a message naming the limit. Reading the statement's last error instead would yield an empty — or stale — diagnostic. Consequently it is <b>not</b> <code>noexcept</code>.    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>TryGetColumn</code>   </td><td class="markdownTableBodyNone">Returns <code>SQL_ERROR</code> and posts nothing. For callers that can degrade.    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>SqlVariant</code>   </td><td class="markdownTableBodyNone">Falls back to <code>double</code>, so such a column stays readable (approximately) exactly as it was before this arm became exact.   </td></tr>
+</table>
+<p>Retrieving the column is split from interpreting it — <code>ReadLiteral</code> and <code>FromColumnLiteral</code> — because <b>ODBC does not let you read the same column twice.</b> A second <code>SQLGetData</code> is permitted only while a character or binary value is still being delivered in parts; once it has arrived in full, a conforming driver answers <code>SQL_NO_DATA</code>, and SQL Server's and PostgreSQL's both do. So <code>SqlVariant</code> derives the exact value <em>and</em> its <code>double</code> fallback from one retrieved literal rather than re-reading the column.</p>
+<p>Because <code>GetColumn</code> can now throw, the generic forwarders that wrap an arbitrary binder — <code>SqlDataBinder&lt;std::optional&lt;T&gt;&gt;</code>, <code>Field&lt;T&gt;</code>, <code>BelongsTo&lt;T&gt;</code> — are no longer <code>noexcept</code> either. They never could honour it: <code>SqlDataBinder&lt;SqlNumeric&lt;P, S&gt;&gt;::GetColumn</code> has always thrown from <code>RequireSuccess</code> on a failed descriptor call, so a <code>std::optional&lt;SqlNumeric&lt;19, 4&gt;&gt;</code> column was a latent <code>std::terminate</code>.</p>
+<p>Binary columns keep their own <code>SqlBinary</code> alternative rather than collapsing into <code>std::string</code>: <code>InputParameter</code> dispatches on the alternative, so a value read from a binary column and written straight back must stay distinguishable from text to bind as <code>SQL_C_BINARY</code> instead of <code>SQL_C_CHAR</code>. <code>TryGetBinary()</code> hands back a copy; <code>TryGetStringView()</code> is the zero-copy view over the same bytes.</p>
 <h1><a class="anchor" id="driver-specific-connection-string-requirements"></a>
 Driver-specific connection-string requirements</h1>
 <p>When using <code>SqlVariant</code> (or any binder that dispatches on the driver-reported column type) against PostgreSQL via psqlODBC, the following options must appear in the connection string:</p>

@@ -131,6 +131,9 @@ var NAVTREE =
         [ "How many of those digits survive a round-trip", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-many-of-those-digits-survive-a-round-trip", null ]
       ] ],
       [ "How <tt>SqlVariant</tt> decides which alternative to fill", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-sqlvariant-decides-which-alternative-to-fill", null ],
+      [ "<tt>SqlDynamicNumeric</tt>: exact decimals in a <tt>SqlVariant</tt>", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#sqldynamicnumeric-exact-decimals-in-a-sqlvariant", [
+        [ "When a column does not fit", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#when-a-column-does-not-fit", null ]
+      ] ],
       [ "Driver-specific connection-string requirements", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#driver-specific-connection-string-requirements", null ]
     ] ],
     [ "SQL Backup: How It Works", "dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html", [
@@ -370,11 +373,11 @@ var NAVTREEINDEX =
 "d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a515083c477fa7b7c42fe61e3132f9da6",
 "d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html",
 "d7/d0f/DataBinder_2Core_8hpp_source.html",
-"d8/d5b/structLightweight_1_1SqlErrorInfo.html#a8a612b03568fae3800296f774e91ce16",
-"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a8ce0577acded3840d02009304a73888a",
-"db/dca/classLightweight_1_1Async_1_1InlineExecutor.html#a6090956e5d57a975246e070f0a5c0c70",
-"de/d61/classLightweight_1_1DataMapper.html#a2169593bd11e17f7d602a5246b0ce5ea",
-"df/d63/classLightweight_1_1HasOneThrough.html#ab462d4092c9971e36888f29cae67df2b"
+"d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html#a1ac8a6b73ea294f3a7bee66b97feb2c1",
+"d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ae825585f8af8a8d21b07068e9bfc9e98",
+"db/dad/classLightweight_1_1SqlStatement.html#abe60fdd5ccc0a2c07cf183eac8d83cd2",
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#rollback-to-release-version",
+"df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html#a4af9edaef74e02bed9c146251cb6d28c"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

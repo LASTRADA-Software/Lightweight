@@ -70,6 +70,15 @@ var group__DataTypes =
       [ "data", "d6/db6/classLightweight_1_1SqlDynamicBinary.html#abb0fb2bd2b731b496c411009e4c7b6d0", null ],
       [ "clear", "d6/db6/classLightweight_1_1SqlDynamicBinary.html#a340084c9996257e6f2dacda7bc1cfac2", null ]
     ] ],
+    [ "Lightweight::SqlDynamicNumeric", "d7/d2c/structLightweight_1_1SqlDynamicNumeric.html", [
+      [ "operator==", "d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a0a161e5e98d4a854826bd19343f04d3f", null ],
+      [ "operator!=", "d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#af5daacfcd1c5b1dd495ee38b662d219d", null ],
+      [ "ToDouble", "d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#ac0af22cded9c058e863daf3321da5962", null ],
+      [ "ToString", "d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a1ce5944fd87bfb86e2b62b903fe9a7d4", null ],
+      [ "unscaledValue", "d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a382ccb6256488ea32a9346b418d0fdea", null ],
+      [ "precision", "d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a6be7bfb48b56b029e73afbdab75233b1", null ],
+      [ "scale", "d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a3cb6255578d6d5fe15ac528409497d7e", null ]
+    ] ],
     [ "Lightweight::SqlDynamicString< N, T >", "d7/d9a/classLightweight_1_1SqlDynamicString.html", [
       [ "value_type", "d7/d9a/classLightweight_1_1SqlDynamicString.html#a19e5bb98b44338dc3c316fd057a213c2", null ],
       [ "string_type", "d7/d9a/classLightweight_1_1SqlDynamicString.html#aa0494eff634a5aa37ff7657caca85876", null ],
@@ -217,7 +226,7 @@ var group__DataTypes =
       [ "sqlValue", "d7/d53/structLightweight_1_1SqlTime.html#aa3a8628bcc0afb2df5a174ed754d74df", null ]
     ] ],
     [ "Lightweight::SqlVariant", "df/d3f/structLightweight_1_1SqlVariant.html", [
-      [ "InnerType", "df/d3f/structLightweight_1_1SqlVariant.html#a2159a23a1405bd28c3faf04c19cf6f0c", null ],
+      [ "InnerType", "df/d3f/structLightweight_1_1SqlVariant.html#a38a15e4299571b77d9a4a9fa90bcc3ab", null ],
       [ "SqlVariant", "df/d3f/structLightweight_1_1SqlVariant.html#a6457e307fb255ca89589215d0e699b8e", null ],
       [ "SqlVariant", "df/d3f/structLightweight_1_1SqlVariant.html#a246d2d6a8cca8a93a293937aa6945b9a", null ],
       [ "SqlVariant", "df/d3f/structLightweight_1_1SqlVariant.html#ae9c6a738dcee0915f91d450760f1df60", null ],
@@ -254,6 +263,8 @@ var group__DataTypes =
       [ "TryGetTime", "df/d3f/structLightweight_1_1SqlVariant.html#a9d315a730b44cf9db2840803e2bbb8ca", null ],
       [ "TryGetDateTime", "df/d3f/structLightweight_1_1SqlVariant.html#a118c7ea1064e337ea3a7af5296f3dd4d", null ],
       [ "TryGetGuid", "df/d3f/structLightweight_1_1SqlVariant.html#a2be73331793cddcd6795abfeda4ec4dd", null ],
+      [ "TryGetNumeric", "df/d3f/structLightweight_1_1SqlVariant.html#a0f850e66d1dfecd9d333a5ef2beffca6", null ],
+      [ "TryGetBinary", "df/d3f/structLightweight_1_1SqlVariant.html#a8ab06b8e1024a734ee68ab1a4e737bbf", null ],
       [ "ToString", "df/d3f/structLightweight_1_1SqlVariant.html#a04b24b9c04888b9b4d3f550c96f8bc29", null ],
       [ "value", "df/d3f/structLightweight_1_1SqlVariant.html#a4f64e61f01ab290315362b696a6d7f90", null ]
     ] ],
