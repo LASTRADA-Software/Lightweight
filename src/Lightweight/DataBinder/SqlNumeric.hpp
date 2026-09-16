@@ -364,7 +364,10 @@ struct SqlDataBinder<SqlNumeric<Precision, Scale>>
         return SQLBindCol(stmt, column, SQL_C_NUMERIC, &result->sqlValue, sizeof(ValueType), indicator);
     }
 
-    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt, SQLUSMALLINT column, ValueType* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) noexcept
+    /// @throws SqlException The descriptor calls below failed. This is deliberately not `noexcept`:
+    ///         RequireSuccess throws, so promising otherwise would turn a reportable ODBC failure
+    ///         into std::terminate.
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt, SQLUSMALLINT column, ValueType* result, SQLLEN* indicator, SqlDataBinderCallback const& cb)
     {
         if (NativeNumericSupportIsBroken(cb.ServerType()))
         {

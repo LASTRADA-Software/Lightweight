@@ -8,7 +8,10 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <ranges>
+#include <string>
 #include <variant>
+#include <vector>
 
 using namespace Lightweight;
 
@@ -124,6 +127,57 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadAllTables invokes per-table cal
     CHECK(progressCalls >= 2); // at least Orders and OrderItems
     CHECK(readyCalls == tables.size());
     CHECK(tables.size() >= 2);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadTable describes a single table", "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+    CreateOrdersAndItemsSchema(stmt);
+
+    auto const table = SqlSchema::ReadTable(
+        stmt, SqlSchema::FullyQualifiedTableName { .catalog = stmt.Connection().DatabaseName(), .table = "OrderItems" });
+
+    REQUIRE(table.has_value());
+    CHECK(table.value().name == "OrderItems");
+
+    auto const columnNames = table.value().columns | std::views::transform(&SqlSchema::Column::name);
+    CHECK(std::ranges::contains(columnNames, "ItemID"));
+    CHECK(std::ranges::contains(columnNames, "OrderID"));
+
+    CHECK(std::ranges::contains(table.value().primaryKeys, "ItemID"));
+    CHECK(table.value().foreignKeys.size() == 1);
+    CHECK(table.value().foreignKeys.front().foreignKey.columns == std::vector<std::string> { "OrderID" });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadTable agrees with ReadAllTables for the same table", "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+    CreateOrdersAndItemsSchema(stmt);
+
+    auto const database = stmt.Connection().DatabaseName();
+    auto const allTables = SqlSchema::ReadAllTables(stmt, database, /*schema=*/"");
+    auto const fromAll = std::ranges::find(allTables, "OrderItems", &SqlSchema::Table::name);
+    REQUIRE(fromAll != allTables.end());
+
+    auto const single =
+        SqlSchema::ReadTable(stmt, SqlSchema::FullyQualifiedTableName { .catalog = database, .table = "OrderItems" });
+    REQUIRE(single.has_value());
+
+    // Both paths share ReadOneTableLegacy, so the descriptions must not diverge.
+    CHECK(single.value().columns.size() == fromAll->columns.size());
+    CHECK(single.value().primaryKeys == fromAll->primaryKeys);
+    CHECK(single.value().foreignKeys.size() == fromAll->foreignKeys.size());
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadTable returns nullopt for a table that does not exist", "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+    CreateOrdersAndItemsSchema(stmt);
+
+    auto const missing = SqlSchema::ReadTable(
+        stmt,
+        SqlSchema::FullyQualifiedTableName { .catalog = stmt.Connection().DatabaseName(), .table = "NoSuchTable_5f3a91" });
+    CHECK_FALSE(missing.has_value());
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadAllTables honours the table filter predicate", "[SqlSchema]")

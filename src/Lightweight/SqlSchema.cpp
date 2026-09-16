@@ -1321,7 +1321,227 @@ namespace detail
             EmitMssqlTable(data, tableEntry, schema, eventHandler);
     }
 
+    /// Reads one table's columns, keys and indexes, reporting them through @p eventHandler.
+    ///
+    /// Extracted from the per-table body of @ref ReadAllTablesLegacy so a single table can be read
+    /// without enumerating the whole catalog; both callers therefore share one implementation.
+    ///
+    /// @param stmt Statement to issue the ODBC catalog calls on.
+    /// @param database Catalog the table belongs to; may be empty.
+    /// @param tableSchema Schema the table belongs to; may be empty.
+    /// @param tableName Table to describe.
+    /// @param eventHandler Receives the primary keys, foreign keys, indexes and columns.
     // NOLINTNEXTLINE(readability-function-cognitive-complexity)
+    void ReadOneTableLegacy(SqlStatement& stmt,
+                            std::string_view database,
+                            std::string const& tableSchema,
+                            std::string const& tableName,
+                            EventHandler& eventHandler)
+    {
+        auto const fullyQualifiedTableName = FullyQualifiedTableName {
+            .catalog = std::string(database),
+            .schema = tableSchema,
+            .table = tableName,
+        };
+
+        auto const primaryKeys = AllPrimaryKeys(stmt, fullyQualifiedTableName);
+        eventHandler.OnPrimaryKeys(tableName, primaryKeys);
+
+        auto const uniqueColumns = AllUniqueColumns(stmt, fullyQualifiedTableName);
+        auto const identityColumns = AllIdentityColumns(stmt, fullyQualifiedTableName);
+
+        std::vector<ForeignKeyConstraint> const foreignKeys = AllForeignKeysFrom(stmt, fullyQualifiedTableName);
+        std::vector<ForeignKeyConstraint> const incomingForeignKeys = AllForeignKeysTo(stmt, fullyQualifiedTableName);
+
+        for (auto const& foreignKey: foreignKeys)
+            eventHandler.OnForeignKey(foreignKey);
+
+        for (auto const& foreignKey: incomingForeignKeys)
+            eventHandler.OnExternalForeignKey(foreignKey);
+
+        auto const indexes = AllIndexes(stmt, fullyQualifiedTableName, primaryKeys);
+        eventHandler.OnIndexes(indexes);
+
+        auto columnStmt = SqlStatement { stmt.Connection() };
+        auto wDatabase = OdbcWideArg { database };
+        auto wTableSchema = OdbcWideArg { tableSchema };
+        auto wTableName = OdbcWideArg { tableName };
+        auto const sqlResult = SQLColumnsW(columnStmt.NativeHandle(),
+                                           wDatabase.data(),
+                                           wDatabase.length(),
+                                           wTableSchema.data(),
+                                           wTableSchema.length(),
+                                           wTableName.data(),
+                                           wTableName.length(),
+                                           nullptr /* column name */,
+                                           0 /* column name length */);
+        if (!SQL_SUCCEEDED(sqlResult))
+            throw std::runtime_error(std::format("SQLColumns failed: {}", columnStmt.LastError()));
+
+        // ODBC SQLColumns() should return 18 columns per the spec.
+        // However, some drivers may return fewer columns. Track the actual column count
+        // to avoid accessing non-existent columns which causes ODBC errors.
+        auto columnCursor = SqlResultCursor(columnStmt);
+        auto const numColumns = columnCursor.NumColumnsAffected();
+
+        Column column;
+
+        while (columnCursor.FetchRow())
+        {
+            // std::cerr << "DEBUG: FetchRow success for " << tableName << "\n";
+            int type = 0;
+            try
+            {
+                column.name = columnCursor.GetNullableColumn<std::string>(4).value_or("");
+                type = columnCursor.GetColumn<int>(5); // DATA_TYPE
+                column.dialectDependantTypeString = columnCursor.GetNullableColumn<std::string>(6).value_or("");
+                // COLUMN_SIZE (column 7) can be negative for some drivers (e.g., PostgreSQL returns -4 for BYTEA)
+                // to indicate "unknown" size. Treat negative values as 0.
+                auto const rawSize = columnCursor.GetColumn<int>(7);
+                column.size = rawSize > 0 ? static_cast<size_t>(rawSize) : 0;
+
+                // 8 - bufferLength
+                column.decimalDigits = numColumns >= 9 ? columnCursor.GetNullableColumn<uint16_t>(9).value_or(0) : 0;
+            }
+            catch (std::exception const&)
+            {
+                // std::cerr << "DEBUG: Exception reading column meta for table " << tableName << ": " << e.what() <<
+                // "\n";
+                continue;
+            }
+
+            // 10 - NUM_PREC_RADIX
+            // 11 - NULLABLE
+            if (numColumns >= 11)
+            {
+                try
+                {
+                    column.isNullable = columnCursor.GetColumn<bool>(11);
+                }
+                catch (std::exception&)
+                {
+                    column.isNullable = true;
+                }
+            }
+            else
+            {
+                column.isNullable = true;
+            }
+
+            // 12 - REMARKS
+            // 13 - COLUMN_DEF
+            if (numColumns >= 13)
+            {
+                try
+                {
+                    column.defaultValue = columnCursor.GetNullableColumn<std::string>(13).value_or("");
+                }
+                catch (std::exception&)
+                {
+                    column.defaultValue = {};
+                }
+            }
+            else
+            {
+                column.defaultValue = {};
+            }
+
+            if (auto cType = MakeColumnTypeFromNative(type, column.size, column.decimalDigits); cType.has_value())
+                column.type = *cType;
+            else
+            {
+                SqlLogger::GetLogger().OnError(SqlError::UNSUPPORTED_TYPE);
+                throw std::runtime_error(std::format("Unsupported data type: {}", type));
+            }
+
+            try
+            {
+                // some special handling of weird types
+                // NB: `money` needs no fixup: the driver reports its true COLUMN_SIZE /
+                // DECIMAL_DIGITS (19 / 4 on MS SQL Server), which is exactly what
+                // MakeColumnTypeFromNative turns into Decimal { 19, 4 } above. Overwriting
+                // the precision here would report a wrong precision and scale to every
+                // consumer of SqlSchema::Column.
+                if (auto const floatType = LookupFloatColumnType(column.dialectDependantTypeString))
+                {
+                    column.type = *floatType;
+                }
+                // PostgreSQL ODBC driver reports BOOLEAN as VARCHAR - handle it specially
+                else if (column.dialectDependantTypeString == "bool")
+                {
+                    column.type = SqlColumnTypeDefinitions::Bool {};
+                }
+                // SQLite is dynamically typed; the ODBC driver reports columns declared as
+                // `DECIMAL(p, s)` as SQL_VARCHAR (so they fall into the Varchar branch
+                // above). Recover the canonical Decimal by parsing the dialect type string
+                // when it carries `(p, s)`. Drivers that reported the column as SQL_DECIMAL/
+                // SQL_NUMERIC already produced a Decimal — leave those untouched, and don't
+                // collapse a parenless `numeric` to `Decimal(0,0)`.
+                else if ((column.dialectDependantTypeString.starts_with("DECIMAL")
+                          || column.dialectDependantTypeString.starts_with("decimal")
+                          || column.dialectDependantTypeString.starts_with("NUMERIC")
+                          || column.dialectDependantTypeString.starts_with("numeric"))
+                         && column.dialectDependantTypeString.contains('('))
+                {
+                    auto precision = std::size_t {};
+                    auto scale = std::size_t {};
+                    auto const open = column.dialectDependantTypeString.find('(');
+                    auto const close = column.dialectDependantTypeString.find(')', open);
+                    if (close != std::string::npos)
+                    {
+                        auto const inner =
+                            std::string_view { column.dialectDependantTypeString }.substr(open + 1, close - open - 1);
+                        auto parseSize = [](std::string_view sv) -> std::size_t {
+                            while (!sv.empty() && std::isspace(static_cast<unsigned char>(sv.front())))
+                                sv.remove_prefix(1);
+                            while (!sv.empty() && std::isspace(static_cast<unsigned char>(sv.back())))
+                                sv.remove_suffix(1);
+                            auto value = std::size_t {};
+                            auto const result = std::from_chars(sv.data(), sv.data() + sv.size(), value);
+                            return result.ec == std::errc {} ? value : 0;
+                        };
+                        auto const comma = inner.find(',');
+                        if (comma != std::string_view::npos)
+                        {
+                            precision = parseSize(inner.substr(0, comma));
+                            scale = parseSize(inner.substr(comma + 1));
+                        }
+                        else
+                        {
+                            precision = parseSize(inner);
+                        }
+                    }
+                    column.type = SqlColumnTypeDefinitions::Decimal { .precision = precision, .scale = scale };
+                }
+            }
+            // NOLINTNEXTLINE(bugprone-empty-catch) - intentionally ignoring column type detection errors
+            catch (std::exception&)
+            {
+            }
+
+            // accumulated properties
+            column.isPrimaryKey = std::ranges::contains(primaryKeys, column.name);
+            column.isUnique = std::ranges::contains(uniqueColumns, column.name);
+            column.isAutoIncrement = std::ranges::contains(identityColumns, column.name);
+            // column.isForeignKey = ...;
+            column.isForeignKey = std::ranges::any_of(foreignKeys, [&column](ForeignKeyConstraint const& fk) {
+                return std::ranges::contains(fk.foreignKey.columns, column.name);
+            });
+            if (auto const p = std::ranges::find_if(foreignKeys,
+                                                    [&column](ForeignKeyConstraint const& fk) {
+                                                        return std::ranges::contains(fk.foreignKey.columns, column.name);
+                                                    });
+                p != foreignKeys.end())
+            {
+                column.foreignKeyConstraint = *p;
+            }
+
+            eventHandler.OnColumn(column);
+        }
+
+        eventHandler.OnTableEnd();
+    }
+
     void ReadAllTablesLegacy(SqlStatement& stmt,
                              std::string_view database,
                              std::string_view schema,
@@ -1353,208 +1573,7 @@ namespace detail
             if (!eventHandler.OnTable(tableSchema, tableName))
                 continue;
 
-            auto const fullyQualifiedTableName = FullyQualifiedTableName {
-                .catalog = std::string(database),
-                .schema = tableSchema,
-                .table = tableName,
-            };
-
-            auto const primaryKeys = AllPrimaryKeys(stmt, fullyQualifiedTableName);
-            eventHandler.OnPrimaryKeys(tableName, primaryKeys);
-
-            auto const uniqueColumns = AllUniqueColumns(stmt, fullyQualifiedTableName);
-            auto const identityColumns = AllIdentityColumns(stmt, fullyQualifiedTableName);
-
-            std::vector<ForeignKeyConstraint> const foreignKeys = AllForeignKeysFrom(stmt, fullyQualifiedTableName);
-            std::vector<ForeignKeyConstraint> const incomingForeignKeys = AllForeignKeysTo(stmt, fullyQualifiedTableName);
-
-            for (auto const& foreignKey: foreignKeys)
-                eventHandler.OnForeignKey(foreignKey);
-
-            for (auto const& foreignKey: incomingForeignKeys)
-                eventHandler.OnExternalForeignKey(foreignKey);
-
-            auto const indexes = AllIndexes(stmt, fullyQualifiedTableName, primaryKeys);
-            eventHandler.OnIndexes(indexes);
-
-            auto columnStmt = SqlStatement { stmt.Connection() };
-            auto wDatabase = OdbcWideArg { database };
-            auto wTableSchema = OdbcWideArg { tableSchema };
-            auto wTableName = OdbcWideArg { tableName };
-            auto const sqlResult = SQLColumnsW(columnStmt.NativeHandle(),
-                                               wDatabase.data(),
-                                               wDatabase.length(),
-                                               wTableSchema.data(),
-                                               wTableSchema.length(),
-                                               wTableName.data(),
-                                               wTableName.length(),
-                                               nullptr /* column name */,
-                                               0 /* column name length */);
-            if (!SQL_SUCCEEDED(sqlResult))
-                throw std::runtime_error(std::format("SQLColumns failed: {}", columnStmt.LastError()));
-
-            // ODBC SQLColumns() should return 18 columns per the spec.
-            // However, some drivers may return fewer columns. Track the actual column count
-            // to avoid accessing non-existent columns which causes ODBC errors.
-            auto columnCursor = SqlResultCursor(columnStmt);
-            auto const numColumns = columnCursor.NumColumnsAffected();
-
-            Column column;
-
-            while (columnCursor.FetchRow())
-            {
-                // std::cerr << "DEBUG: FetchRow success for " << tableName << "\n";
-                int type = 0;
-                try
-                {
-                    column.name = columnCursor.GetNullableColumn<std::string>(4).value_or("");
-                    type = columnCursor.GetColumn<int>(5); // DATA_TYPE
-                    column.dialectDependantTypeString = columnCursor.GetNullableColumn<std::string>(6).value_or("");
-                    // COLUMN_SIZE (column 7) can be negative for some drivers (e.g., PostgreSQL returns -4 for BYTEA)
-                    // to indicate "unknown" size. Treat negative values as 0.
-                    auto const rawSize = columnCursor.GetColumn<int>(7);
-                    column.size = rawSize > 0 ? static_cast<size_t>(rawSize) : 0;
-
-                    // 8 - bufferLength
-                    column.decimalDigits = numColumns >= 9 ? columnCursor.GetNullableColumn<uint16_t>(9).value_or(0) : 0;
-                }
-                catch (std::exception const&)
-                {
-                    // std::cerr << "DEBUG: Exception reading column meta for table " << tableName << ": " << e.what() <<
-                    // "\n";
-                    continue;
-                }
-
-                // 10 - NUM_PREC_RADIX
-                // 11 - NULLABLE
-                if (numColumns >= 11)
-                {
-                    try
-                    {
-                        column.isNullable = columnCursor.GetColumn<bool>(11);
-                    }
-                    catch (std::exception&)
-                    {
-                        column.isNullable = true;
-                    }
-                }
-                else
-                {
-                    column.isNullable = true;
-                }
-
-                // 12 - REMARKS
-                // 13 - COLUMN_DEF
-                if (numColumns >= 13)
-                {
-                    try
-                    {
-                        column.defaultValue = columnCursor.GetNullableColumn<std::string>(13).value_or("");
-                    }
-                    catch (std::exception&)
-                    {
-                        column.defaultValue = {};
-                    }
-                }
-                else
-                {
-                    column.defaultValue = {};
-                }
-
-                if (auto cType = MakeColumnTypeFromNative(type, column.size, column.decimalDigits); cType.has_value())
-                    column.type = *cType;
-                else
-                {
-                    SqlLogger::GetLogger().OnError(SqlError::UNSUPPORTED_TYPE);
-                    throw std::runtime_error(std::format("Unsupported data type: {}", type));
-                }
-
-                try
-                {
-                    // some special handling of weird types
-                    // NB: `money` needs no fixup: the driver reports its true COLUMN_SIZE /
-                    // DECIMAL_DIGITS (19 / 4 on MS SQL Server), which is exactly what
-                    // MakeColumnTypeFromNative turns into Decimal { 19, 4 } above. Overwriting
-                    // the precision here would report a wrong precision and scale to every
-                    // consumer of SqlSchema::Column.
-                    if (auto const floatType = LookupFloatColumnType(column.dialectDependantTypeString))
-                    {
-                        column.type = *floatType;
-                    }
-                    // PostgreSQL ODBC driver reports BOOLEAN as VARCHAR - handle it specially
-                    else if (column.dialectDependantTypeString == "bool")
-                    {
-                        column.type = SqlColumnTypeDefinitions::Bool {};
-                    }
-                    // SQLite is dynamically typed; the ODBC driver reports columns declared as
-                    // `DECIMAL(p, s)` as SQL_VARCHAR (so they fall into the Varchar branch
-                    // above). Recover the canonical Decimal by parsing the dialect type string
-                    // when it carries `(p, s)`. Drivers that reported the column as SQL_DECIMAL/
-                    // SQL_NUMERIC already produced a Decimal — leave those untouched, and don't
-                    // collapse a parenless `numeric` to `Decimal(0,0)`.
-                    else if ((column.dialectDependantTypeString.starts_with("DECIMAL")
-                              || column.dialectDependantTypeString.starts_with("decimal")
-                              || column.dialectDependantTypeString.starts_with("NUMERIC")
-                              || column.dialectDependantTypeString.starts_with("numeric"))
-                             && column.dialectDependantTypeString.contains('('))
-                    {
-                        auto precision = std::size_t {};
-                        auto scale = std::size_t {};
-                        auto const open = column.dialectDependantTypeString.find('(');
-                        auto const close = column.dialectDependantTypeString.find(')', open);
-                        if (close != std::string::npos)
-                        {
-                            auto const inner =
-                                std::string_view { column.dialectDependantTypeString }.substr(open + 1, close - open - 1);
-                            auto parseSize = [](std::string_view sv) -> std::size_t {
-                                while (!sv.empty() && std::isspace(static_cast<unsigned char>(sv.front())))
-                                    sv.remove_prefix(1);
-                                while (!sv.empty() && std::isspace(static_cast<unsigned char>(sv.back())))
-                                    sv.remove_suffix(1);
-                                auto value = std::size_t {};
-                                auto const result = std::from_chars(sv.data(), sv.data() + sv.size(), value);
-                                return result.ec == std::errc {} ? value : 0;
-                            };
-                            auto const comma = inner.find(',');
-                            if (comma != std::string_view::npos)
-                            {
-                                precision = parseSize(inner.substr(0, comma));
-                                scale = parseSize(inner.substr(comma + 1));
-                            }
-                            else
-                            {
-                                precision = parseSize(inner);
-                            }
-                        }
-                        column.type = SqlColumnTypeDefinitions::Decimal { .precision = precision, .scale = scale };
-                    }
-                }
-                // NOLINTNEXTLINE(bugprone-empty-catch) - intentionally ignoring column type detection errors
-                catch (std::exception&)
-                {
-                }
-
-                // accumulated properties
-                column.isPrimaryKey = std::ranges::contains(primaryKeys, column.name);
-                column.isUnique = std::ranges::contains(uniqueColumns, column.name);
-                column.isAutoIncrement = std::ranges::contains(identityColumns, column.name);
-                // column.isForeignKey = ...;
-                column.isForeignKey = std::ranges::any_of(foreignKeys, [&column](ForeignKeyConstraint const& fk) {
-                    return std::ranges::contains(fk.foreignKey.columns, column.name);
-                });
-                if (auto const p = std::ranges::find_if(foreignKeys,
-                                                        [&column](ForeignKeyConstraint const& fk) {
-                                                            return std::ranges::contains(fk.foreignKey.columns, column.name);
-                                                        });
-                    p != foreignKeys.end())
-                {
-                    column.foreignKeyConstraint = *p;
-                }
-
-                eventHandler.OnColumn(column);
-            }
-
-            eventHandler.OnTableEnd();
+            ReadOneTableLegacy(stmt, database, tableSchema, tableName, eventHandler);
         }
     }
 
@@ -1739,6 +1758,62 @@ TableList ReadAllTables(SqlStatement& stmt,
     }
 
     return tables;
+}
+
+std::optional<Table> ReadTable(SqlStatement& stmt, FullyQualifiedTableName const& table)
+{
+    ZoneScopedN("SqlSchema::ReadTable");
+    ZoneTextObject(table.table);
+
+    /// Collects the events for one table into a Table description.
+    struct SingleTableEventHandler final: EventHandler
+    {
+        Table table;
+
+        void OnTables(std::vector<std::string> const& /*tables*/) override {}
+        bool OnTable(std::string_view /*schema*/, std::string_view /*table*/) override
+        {
+            return true;
+        }
+        void OnPrimaryKeys(std::string_view /*table*/, std::vector<std::string> const& columns) override
+        {
+            table.primaryKeys = columns;
+        }
+        void OnForeignKey(ForeignKeyConstraint const& constraint) override
+        {
+            table.foreignKeys.emplace_back(constraint);
+        }
+        void OnExternalForeignKey(ForeignKeyConstraint const& constraint) override
+        {
+            table.externalForeignKeys.emplace_back(constraint);
+        }
+        void OnColumn(Column const& column) override
+        {
+            table.columns.emplace_back(column);
+        }
+        void OnIndexes(std::vector<IndexDefinition> const& indexes) override
+        {
+            table.indexes = indexes;
+        }
+        void OnTableEnd() override
+        {
+            // Match ReadAllTables, whose output is compared byte-for-byte against backup metadata.
+            detail::CanonicalizeForeignKeys(table.foreignKeys);
+            detail::CanonicalizeForeignKeys(table.externalForeignKeys);
+        }
+    };
+
+    auto handler = SingleTableEventHandler {};
+    handler.table.schema = table.schema;
+    handler.table.name = table.table;
+
+    detail::ReadOneTableLegacy(stmt, table.catalog, table.schema, table.table, handler);
+
+    // A table that does not exist yields no columns; every real table has at least one.
+    if (handler.table.columns.empty())
+        return std::nullopt;
+
+    return std::move(handler.table);
 }
 
 std::vector<ForeignKeyConstraint> AllForeignKeysTo(SqlStatement& stmt, FullyQualifiedTableName const& table)

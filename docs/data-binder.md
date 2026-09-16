@@ -220,6 +220,40 @@ it cannot distinguish DATE from TIME from TIMESTAMP. The concise type does:
 | DATE         | `SQL_TYPE_DATE` (91)     | `SqlDate`           |
 | TIME         | `SQL_TYPE_TIME` (92)     | `SqlTime`           |
 | TIMESTAMP    | `SQL_TYPE_TIMESTAMP` (93)| `SqlDateTime`       |
+| DECIMAL / NUMERIC | `SQL_DECIMAL` (3), `SQL_NUMERIC` (2) | `SqlDynamicNumeric` |
+| BINARY / VARBINARY / LONGVARBINARY | `SQL_BINARY` (-2), `SQL_VARBINARY` (-3), `SQL_LONGVARBINARY` (-4) | `SqlBinary` |
+
+## `SqlDynamicNumeric`: exact decimals in a `SqlVariant`
+
+`SqlNumeric<Precision, Scale>` fixes both at compile time. A value arriving through a
+`SqlVariant` learns its precision and scale from the result-set metadata instead, so
+DECIMAL/NUMERIC columns fill a `SqlDynamicNumeric`, which carries them alongside the value.
+
+The number is stored as the unscaled integer `value * 10^scale` and never passes through a
+binary floating-point type:
+
+```cpp
+auto const amount = value.TryGetNumeric().value();
+amount.unscaledValue;   // 92233720368547  — exact
+amount.scale;           // 4
+amount.ToString();      // "9223372036.8547"
+amount.ToDouble();      // approximation; lossy beyond a double's 15–16 significant digits
+```
+
+`TryGetLongLong()` still works for a `DECIMAL(p, 0)` column, which has no fractional part.
+
+Both directions use the column's decimal literal rather than `SQL_C_NUMERIC`. Retrieving
+`SQL_C_NUMERIC` requires the application to publish precision and scale on the descriptor
+before each call and a driver that honours them — SQL Server returns scale-0 values
+otherwise, and SQLite has no native `SQL_NUMERIC_STRUCT` support at all. These are the same
+two backends `SqlDataBinder<SqlNumeric<P, S>>` routes around via
+`NativeNumericSupportIsBroken()`. Every supported driver converts a decimal column to and
+from its literal exactly, so the literal is the portable representation.
+
+Binary columns keep their own `SqlBinary` alternative rather than collapsing into
+`std::string`: `InputParameter` dispatches on the alternative, so a value read from a binary
+column and written straight back must stay distinguishable from text to bind as
+`SQL_C_BINARY` instead of `SQL_C_CHAR`.
 
 ## Driver-specific connection-string requirements
 

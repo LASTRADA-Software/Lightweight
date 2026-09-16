@@ -7,6 +7,7 @@
 
 #include <format>
 #include <functional>
+#include <optional>
 #include <string_view>
 #include <tuple>
 #include <vector>
@@ -302,6 +303,19 @@ namespace SqlSchema
                                             ReadAllTablesCallback callback = {},
                                             TableReadyCallback tableReadyCallback = {},
                                             TableFilterPredicate tableFilter = {});
+
+    /// Reads the schema of a single table.
+    ///
+    /// Use this instead of @ref ReadAllTables when only one table is of interest: it issues the
+    /// catalog calls for that table alone, rather than enumerating and describing the whole
+    /// database. Lazily describing tables one at a time is what an application mapping many tables
+    /// on demand wants; reading the entire catalog per lookup does not scale.
+    ///
+    /// @param stmt The SQL statement to use for reading.
+    /// @param table The fully qualified name of the table to describe. An empty catalog or schema
+    ///              means "the connection's default", exactly as in @ref ReadAllTables.
+    /// @retval std::nullopt No such table exists.
+    [[nodiscard]] LIGHTWEIGHT_API std::optional<Table> ReadTable(SqlStatement& stmt, FullyQualifiedTableName const& table);
 
     /// Retrieves all tables in the given database and schema that have a foreign key to the given table.
     LIGHTWEIGHT_API std::vector<ForeignKeyConstraint> AllForeignKeysTo(SqlStatement& stmt,

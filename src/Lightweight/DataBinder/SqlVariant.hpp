@@ -6,8 +6,10 @@
 #include "../SqlLogger.hpp"
 #include "Core.hpp"
 #include "Primitives.hpp"
+#include "SqlBinary.hpp"
 #include "SqlDate.hpp"
 #include "SqlDateTime.hpp"
+#include "SqlDynamicNumeric.hpp"
 #include "SqlFixedString.hpp"
 #include "SqlGuid.hpp"
 #include "SqlNullValue.hpp"
@@ -63,6 +65,8 @@ struct SqlVariant
                                    std::u16string,
                                    std::u16string_view,
                                    SqlText,
+                                   SqlBinary,
+                                   SqlDynamicNumeric,
                                    SqlDate,
                                    SqlTime,
                                    SqlDateTime>;
@@ -226,6 +230,13 @@ struct SqlVariant
         // clang-format off
         return std::visit(detail::overloaded {
             []<typename T>(T v) -> std::optional<ResultType> requires(std::is_integral_v<T>) { return static_cast<ResultType>(v); },
+            // A DECIMAL(p, 0) column carries no fractional part, so it still reads as an integer —
+            // which is how this accessor behaved before such columns gained their own alternative.
+            [](SqlDynamicNumeric const& v) -> std::optional<ResultType> {
+                if (v.scale != 0)
+                    return std::nullopt;
+                return static_cast<ResultType>(v.unscaledValue);
+            },
             [](auto) -> std::optional<ResultType> { return std::nullopt; } // NOLINT(performance-unnecessary-value-param)
         }, value);
         // clang-format on
@@ -340,6 +351,40 @@ struct SqlVariant
 
         if (auto const* guid = std::get_if<SqlGuid>(&value))
             return *guid;
+
+        throw std::bad_variant_access();
+    }
+
+    /// @brief Retrieve the exact fixed-point decimal from the variant, or std::nullopt if NULL.
+    ///
+    /// DECIMAL and NUMERIC columns land on this alternative, keeping every digit the column declares.
+    /// Use @ref SqlDynamicNumeric::ToDouble only where an approximation is acceptable.
+    ///
+    /// @throws std::bad_variant_access The value is neither NULL nor a fixed-point decimal.
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE std::optional<SqlDynamicNumeric> TryGetNumeric() const
+    {
+        if (IsNull())
+            return std::nullopt;
+
+        if (auto const* numeric = std::get_if<SqlDynamicNumeric>(&value))
+            return *numeric;
+
+        throw std::bad_variant_access();
+    }
+
+    /// @brief Retrieve the binary payload from the variant, or std::nullopt if the value is NULL.
+    ///
+    /// BINARY, VARBINARY and LONGVARBINARY columns land on this alternative, which keeps the bytes
+    /// distinguishable from text so they bind back as `SQL_C_BINARY`.
+    ///
+    /// @throws std::bad_variant_access The value is neither NULL nor binary.
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE std::optional<SqlBinary> TryGetBinary() const
+    {
+        if (IsNull())
+            return std::nullopt;
+
+        if (auto const* binary = std::get_if<SqlBinary>(&value))
+            return *binary;
 
         throw std::bad_variant_access();
     }

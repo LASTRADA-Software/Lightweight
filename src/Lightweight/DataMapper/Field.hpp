@@ -359,8 +359,10 @@ struct SqlDataBinder<Field<T, P1, P2>>
         return SqlDataBinder<T>::OutputColumn(stmt, column, &result->MutableValue(), indicator, cb);
     }
 
-    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(
-        SQLHSTMT stmt, SQLUSMALLINT column, ValueType* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) noexcept
+    /// @throws Whatever `SqlDataBinder<T>::GetColumn` throws — this forwards to an arbitrary binder
+    ///         and cannot promise more than the one it wraps.
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN
+    GetColumn(SQLHSTMT stmt, SQLUSMALLINT column, ValueType* result, SQLLEN* indicator, SqlDataBinderCallback const& cb)
     {
         return SqlDataBinder<T>::GetColumn(stmt, column, &result->emplace(), indicator, cb);
     }

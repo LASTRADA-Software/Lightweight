@@ -122,11 +122,11 @@ struct SqlDataBinder<std::optional<T>>
         return sqlReturn;
     }
 
-    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt,
-                                                        SQLUSMALLINT column,
-                                                        OptionalValue* result,
-                                                        SQLLEN* indicator,
-                                                        SqlDataBinderCallback const& cb) noexcept
+    /// @throws Whatever `SqlDataBinder<T>::GetColumn` throws — this forwards to an arbitrary binder
+    ///         and cannot promise more than the one it wraps. `SqlDynamicNumeric` reports a value too
+    ///         wide for its carrier that way, and `SqlNumeric` a failed descriptor call.
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN
+    GetColumn(SQLHSTMT stmt, SQLUSMALLINT column, OptionalValue* result, SQLLEN* indicator, SqlDataBinderCallback const& cb)
     {
         auto const sqlReturn = SqlDataBinder<T>::GetColumn(stmt, column, &result->emplace(), indicator, cb);
         if (indicator && *indicator == SQL_NULL_DATA)
