@@ -1384,10 +1384,14 @@ namespace detail
         auto columnCursor = SqlResultCursor(columnStmt);
         auto const numColumns = columnCursor.NumColumnsAffected();
 
-        Column column;
-
         while (columnCursor.FetchRow())
         {
+            // Per row, not hoisted: foreignKeyConstraint is the one field written only conditionally,
+            // so a reused instance would carry a previous column's constraint onto every column after
+            // it, reporting isForeignKey == false while still naming a foreign key. The MSSQL batched
+            // path constructs per row for the same reason.
+            Column column;
+
             // std::cerr << "DEBUG: FetchRow success for " << tableName << "\n";
             int type = 0;
             try
@@ -1577,6 +1581,40 @@ namespace detail
         }
     }
 
+    /// Lower-cases an ASCII identifier, for case-insensitive table-name lookup.
+    std::string ToLowerCaseIdentifier(std::string_view text)
+    {
+        auto result = std::string(text);
+        // Cast to unsigned char before std::tolower — passing a signed `char` with the high bit set
+        // is undefined behaviour per the standard.
+        std::ranges::transform(
+            result, result.begin(), [](char c) { return static_cast<char>(std::tolower(static_cast<unsigned char>(c))); });
+        return result;
+    }
+
+    /// Restores the catalog's own spelling of the table names a foreign key references.
+    ///
+    /// At least the SQLite driver reports referenced table names in lower case, so a constraint read
+    /// back names a table that does not exist under that spelling. Both @ref ReadAllTables and
+    /// @ref ReadTable route through here so the two cannot drift apart.
+    ///
+    /// @param foreignKeys Constraints to rewrite in place.
+    /// @param tableNameCaseMap Lower-cased table name to the catalog's spelling.
+    void ApplyForeignKeyTableNameCasing(std::vector<ForeignKeyConstraint>& foreignKeys,
+                                        std::map<std::string, std::string> const& tableNameCaseMap)
+    {
+        auto const restore = [&](std::string& tableName) {
+            if (auto const entry = tableNameCaseMap.find(ToLowerCaseIdentifier(tableName)); entry != tableNameCaseMap.end())
+                tableName = entry->second;
+        };
+
+        for (auto& key: foreignKeys)
+        {
+            restore(key.primaryKey.table.table);
+            restore(key.foreignKey.table.table);
+        }
+    }
+
     void CanonicalizeForeignKeys(std::vector<ForeignKeyConstraint>& foreignKeys)
     {
         // Order by (foreignKey {table, columns}, primaryKey {table, columns}) — a total,
@@ -1615,16 +1653,6 @@ TableList ReadAllTables(SqlStatement& stmt,
     ZoneScopedN("SqlSchema::ReadAllTables");
     if (!schema.empty())
         ZoneTextObject(schema);
-
-    auto ToLowerCase = [](std::string_view str) -> std::string {
-        std::string result(str);
-        std::ranges::transform(result, result.begin(), [](char c) {
-            // Cast to unsigned char before std::tolower — passing a signed `char` with
-            // the high bit set is undefined behaviour per the standard.
-            return static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-        });
-        return result;
-    };
 
     TableList tables;
     std::map<std::string, std::string> tableNameCaseMap;
@@ -1745,16 +1773,8 @@ TableList ReadAllTables(SqlStatement& stmt,
     // (Because at least Sqlite returns them in lowercase)
     for (auto& table: tables)
     {
-        for (auto& key: table.foreignKeys)
-        {
-            key.primaryKey.table.table = tableNameCaseMap.at(ToLowerCase(key.primaryKey.table.table));
-            key.foreignKey.table.table = tableNameCaseMap.at(ToLowerCase(key.foreignKey.table.table));
-        }
-        for (auto& key: table.externalForeignKeys)
-        {
-            key.primaryKey.table.table = tableNameCaseMap.at(ToLowerCase(key.primaryKey.table.table));
-            key.foreignKey.table.table = tableNameCaseMap.at(ToLowerCase(key.foreignKey.table.table));
-        }
+        detail::ApplyForeignKeyTableNameCasing(table.foreignKeys, tableNameCaseMap);
+        detail::ApplyForeignKeyTableNameCasing(table.externalForeignKeys, tableNameCaseMap);
     }
 
     return tables;
@@ -1803,15 +1823,31 @@ std::optional<Table> ReadTable(SqlStatement& stmt, FullyQualifiedTableName const
         }
     };
 
-    auto handler = SingleTableEventHandler {};
-    handler.table.schema = table.schema;
-    handler.table.name = table.table;
-
-    detail::ReadOneTableLegacy(stmt, table.catalog, table.schema, table.table, handler);
-
-    // A table that does not exist yields no columns; every real table has at least one.
-    if (handler.table.columns.empty())
+    // Resolve against the catalog first. This settles existence before any per-table query runs —
+    // so an absent table is distinguished from one whose column metadata cannot be read — reports
+    // the schema the catalog actually returned rather than echoing the caller's (which is empty
+    // when it means "the connection default"), and supplies the name casing the foreign-key fixup
+    // below needs.
+    auto const tablesWithSchema = AllTables(stmt, table.catalog, table.schema);
+    auto const requestedName = detail::ToLowerCaseIdentifier(table.table);
+    auto const entry = std::ranges::find_if(tablesWithSchema, [&](TableWithSchema const& candidate) {
+        return detail::ToLowerCaseIdentifier(candidate.name) == requestedName;
+    });
+    if (entry == tablesWithSchema.end())
         return std::nullopt;
+
+    auto tableNameCaseMap = std::map<std::string, std::string> {};
+    for (auto const& candidate: tablesWithSchema)
+        tableNameCaseMap[detail::ToLowerCaseIdentifier(candidate.name)] = candidate.name;
+
+    auto handler = SingleTableEventHandler {};
+    handler.table.schema = entry->schema.empty() ? std::string(table.schema) : entry->schema;
+    handler.table.name = entry->name;
+
+    detail::ReadOneTableLegacy(stmt, table.catalog, handler.table.schema, entry->name, handler);
+
+    detail::ApplyForeignKeyTableNameCasing(handler.table.foreignKeys, tableNameCaseMap);
+    detail::ApplyForeignKeyTableNameCasing(handler.table.externalForeignKeys, tableNameCaseMap);
 
     return std::move(handler.table);
 }

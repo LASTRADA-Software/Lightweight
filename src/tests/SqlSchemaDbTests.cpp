@@ -163,10 +163,49 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadTable agrees with ReadAllTables
         SqlSchema::ReadTable(stmt, SqlSchema::FullyQualifiedTableName { .catalog = database, .table = "OrderItems" });
     REQUIRE(single.has_value());
 
-    // Both paths share ReadOneTableLegacy, so the descriptions must not diverge.
-    CHECK(single.value().columns.size() == fromAll->columns.size());
+    // Both paths share ReadOneTableLegacy, so the descriptions must not diverge. Comparing the
+    // fields individually rather than just their sizes is deliberate: the foreign-key table-name
+    // casing fixup and the reported schema are exactly the parts that can silently drift, and a
+    // size-only comparison cannot see either.
+    CHECK(single.value().name == fromAll->name);
+    CHECK(single.value().schema == fromAll->schema);
     CHECK(single.value().primaryKeys == fromAll->primaryKeys);
-    CHECK(single.value().foreignKeys.size() == fromAll->foreignKeys.size());
+    CHECK(single.value().indexes.size() == fromAll->indexes.size());
+
+    REQUIRE(single.value().columns.size() == fromAll->columns.size());
+    for (auto const& [lhs, rhs]: std::views::zip(single.value().columns, fromAll->columns))
+    {
+        CHECK(lhs.name == rhs.name);
+        CHECK(lhs.isNullable == rhs.isNullable);
+        CHECK(lhs.isPrimaryKey == rhs.isPrimaryKey);
+        CHECK(lhs.isForeignKey == rhs.isForeignKey);
+    }
+
+    REQUIRE(single.value().foreignKeys.size() == fromAll->foreignKeys.size());
+    for (auto const& [lhs, rhs]: std::views::zip(single.value().foreignKeys, fromAll->foreignKeys))
+    {
+        // The referenced table name must carry the catalog's own casing in both paths; the SQLite
+        // driver reports it lower-cased, and only the fixup restores it.
+        CHECK(lhs.primaryKey.table.table == rhs.primaryKey.table.table);
+        CHECK(lhs.foreignKey.table.table == rhs.foreignKey.table.table);
+        CHECK(lhs.foreignKey.columns == rhs.foreignKey.columns);
+        CHECK(lhs.primaryKey.columns == rhs.primaryKey.columns);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadTable restores the referenced table name casing", "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+    CreateOrdersAndItemsSchema(stmt);
+
+    auto const single = SqlSchema::ReadTable(
+        stmt, SqlSchema::FullyQualifiedTableName { .catalog = stmt.Connection().DatabaseName(), .table = "OrderItems" });
+    REQUIRE(single.has_value());
+    REQUIRE(single.value().foreignKeys.size() == 1);
+
+    // "Orders", not "orders" — some drivers report the referenced name lower-cased, and a consumer
+    // generating DDL from it would otherwise reference a table that does not exist.
+    CHECK(single.value().foreignKeys.front().primaryKey.table.table == "Orders");
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadTable returns nullopt for a table that does not exist", "[SqlSchema]")
@@ -633,4 +672,57 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadAllTables resolves MS SQL Serve
     (void) stmt.ExecuteDirect(R"(DROP TABLE "AliasProbe")");
     (void) stmt.ExecuteDirect(R"(DROP TYPE IF EXISTS "LightweightAliasNVarchar")");
     (void) stmt.ExecuteDirect(R"(DROP TYPE IF EXISTS "LightweightAliasVarchar")");
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlSchema does not carry a foreign key onto the columns that follow it", "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+
+    // The legacy reader used to build one Column and reuse it for every row. foreignKeyConstraint is
+    // the only field written conditionally, so once a foreign-key column had set it, every later
+    // column of the same table reported isForeignKey == false while still naming that constraint.
+    // "note" comes after "customer_id" precisely to catch that.
+    (void) stmt.ExecuteDirect(R"(DROP TABLE IF EXISTS "FkOrder")");
+    (void) stmt.ExecuteDirect(R"(DROP TABLE IF EXISTS "FkCustomer")");
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("FkCustomer").PrimaryKeyWithAutoIncrement("id", SqlColumnTypeDefinitions::Integer {});
+    });
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("FkOrder")
+            .PrimaryKeyWithAutoIncrement("id", SqlColumnTypeDefinitions::Integer {})
+            .ForeignKey("customer_id",
+                        SqlColumnTypeDefinitions::Integer {},
+                        SqlForeignKeyReferenceDefinition { .tableName = "FkCustomer", .columnName = "id" })
+            .Column("note", SqlColumnTypeDefinitions::Varchar { 50 });
+    });
+
+    auto const assertNoPhantomForeignKey = [](SqlSchema::Table const& table) {
+        auto const note = std::ranges::find_if(table.columns, [](SqlSchema::Column const& c) { return c.name == "note"; });
+        REQUIRE(note != table.columns.end());
+        CHECK_FALSE(note->isForeignKey);
+        CHECK_FALSE(note->foreignKeyConstraint.has_value());
+
+        auto const fk =
+            std::ranges::find_if(table.columns, [](SqlSchema::Column const& c) { return c.name == "customer_id"; });
+        REQUIRE(fk != table.columns.end());
+        CHECK(fk->isForeignKey);
+    };
+
+    SECTION("through ReadTable")
+    {
+        auto const table = SqlSchema::ReadTable(stmt, SqlSchema::FullyQualifiedTableName { .table = "FkOrder" });
+        REQUIRE(table.has_value());
+        assertNoPhantomForeignKey(table.value());
+    }
+
+    SECTION("and identically through ReadAllTables")
+    {
+        auto const tables = SqlSchema::ReadAllTables(stmt, stmt.Connection().DatabaseName(), /*schema=*/"");
+        auto const table = std::ranges::find_if(tables, [](SqlSchema::Table const& t) { return t.name == "FkOrder"; });
+        REQUIRE(table != tables.end());
+        assertNoPhantomForeignKey(*table);
+    }
+
+    (void) stmt.ExecuteDirect(R"(DROP TABLE IF EXISTS "FkOrder")");
+    (void) stmt.ExecuteDirect(R"(DROP TABLE IF EXISTS "FkCustomer")");
 }

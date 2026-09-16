@@ -306,15 +306,23 @@ namespace SqlSchema
 
     /// Reads the schema of a single table.
     ///
-    /// Use this instead of @ref ReadAllTables when only one table is of interest: it issues the
-    /// catalog calls for that table alone, rather than enumerating and describing the whole
-    /// database. Lazily describing tables one at a time is what an application mapping many tables
-    /// on demand wants; reading the entire catalog per lookup does not scale.
+    /// Use this instead of @ref ReadAllTables when only one table is of interest: it *describes* only
+    /// that table, rather than describing every table in the database. The table list is still
+    /// enumerated on each call — that is how existence is settled, and where the name casing the
+    /// foreign-key fixup needs comes from — but the per-table column, key and index queries, which
+    /// dominate the cost, run once instead of once per table.
+    ///
+    /// A missing table is reported as @c std::nullopt rather than an error, because asking whether a
+    /// table exists is a normal thing to do. Everything that genuinely went wrong — a broken
+    /// connection, a catalog call the driver rejected — throws @ref SqlException, as everywhere else
+    /// in @ref SqlSchema. So an empty result always means "absent", never "could not tell".
     ///
     /// @param stmt The SQL statement to use for reading.
     /// @param table The fully qualified name of the table to describe. An empty catalog or schema
     ///              means "the connection's default", exactly as in @ref ReadAllTables.
-    /// @retval std::nullopt No such table exists.
+    /// @retval std::nullopt No table of that name exists in the given catalog and schema.
+    /// @throws SqlException The catalog could not be read. Absence is not an error and is reported
+    ///         as @c std::nullopt; anything arriving as an exception is a genuine SQL failure.
     [[nodiscard]] LIGHTWEIGHT_API std::optional<Table> ReadTable(SqlStatement& stmt, FullyQualifiedTableName const& table);
 
     /// Retrieves all tables in the given database and schema that have a foreign key to the given table.
