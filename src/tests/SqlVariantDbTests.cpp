@@ -9,6 +9,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <chrono>
 #include <string>
@@ -557,6 +558,90 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant round-trips a money column without 
     REQUIRE(seen.size() == 2);
     CHECK(seen[0] == "9223372036.8547");
     CHECK(seen[1] == "9223372036.8547");
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicNumeric binds directly as an input parameter", "[SqlVariant][SqlDynamicNumeric]")
+{
+    auto stmt = SqlStatement {};
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::SQLITE); // SQLite has no native DECIMAL
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("Ledger").RequiredColumn("amount",
+                                                       SqlColumnTypeDefinitions::Decimal { .precision = 19, .scale = 4 });
+    });
+
+    // Every other test reaches the binder through SqlVariant. This one exercises
+    // SqlDataBinder<SqlDynamicNumeric>::InputParameter on its own, including the staging buffer it
+    // now takes from the statement rather than from the value.
+    auto const written = std::vector {
+        SqlDynamicNumeric { .unscaledValue = 92233720368547LL, .precision = 19, .scale = 4 },
+        SqlDynamicNumeric { .unscaledValue = -125000LL, .precision = 19, .scale = 4 },
+        SqlDynamicNumeric { .unscaledValue = 0, .precision = 19, .scale = 4 },
+    };
+
+    stmt.Prepare(R"(INSERT INTO "Ledger" ("amount") VALUES (?))");
+    for (auto const& value: written)
+        (void) stmt.Execute(value);
+
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "amount" FROM "Ledger" ORDER BY "amount")");
+    auto readBack = std::vector<std::string> {};
+    while (cursor.FetchRow())
+    {
+        auto value = SqlDynamicNumeric {};
+        REQUIRE(cursor.GetColumn(1, &value));
+        readBack.emplace_back(value.ToString());
+    }
+
+    REQUIRE(readBack.size() == 3);
+    CHECK(readBack[0] == "-12.5000");
+    CHECK(readBack[1] == "0.0000");
+    CHECK(readBack[2] == "9223372036.8547");
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "A decimal too wide for the exact carrier is described, not silently wrong",
+                 "[SqlVariant][SqlDynamicNumeric]")
+{
+    auto stmt = SqlStatement {};
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::SQLITE); // SQLite has no native DECIMAL
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("HugeNumbers")
+            .RequiredColumn("amount", SqlColumnTypeDefinitions::Decimal { .precision = 38, .scale = 0 });
+    });
+
+    // 29 digits: legal DECIMAL(38, 0), but well past the 19 an int64 unscaled value carries.
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "HugeNumbers" ("amount") VALUES (12345678901234567890123456789))");
+
+    SECTION("reading it as SqlDynamicNumeric throws an exception that says why")
+    {
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "amount" FROM "HugeNumbers")");
+        REQUIRE(cursor.FetchRow());
+
+        auto value = SqlDynamicNumeric {};
+        try
+        {
+            (void) cursor.GetColumn(1, &value);
+            FAIL("Expected SqlException for a value beyond the exact carrier");
+        }
+        catch (SqlException const& error)
+        {
+            // The driver posts no diagnostic here — it did not fail — so without a synthesized one
+            // the caller would see an empty message, or a stale one left by an earlier statement.
+            CHECK(error.info().sqlState == "22003");
+            CHECK_FALSE(error.info().message.empty());
+            CHECK_THAT(error.info().message, Catch::Matchers::ContainsSubstring("SqlDynamicNumeric"));
+        }
+    }
+
+    SECTION("reading it as SqlVariant degrades to double instead of failing the row")
+    {
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "amount" FROM "HugeNumbers")");
+        REQUIRE(cursor.FetchRow());
+
+        auto value = SqlVariant {};
+        REQUIRE(cursor.GetColumn(1, &value));
+        CHECK_FALSE(value.IsNull());
+        CHECK_THAT(value.Get<double>(), Catch::Matchers::WithinRel(1.2345678901234568e28, 1e-12));
+    }
 }
 
 // ================================================================================================

@@ -1,11 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include <Lightweight/DataBinder/SqlBinary.hpp>
 #include <Lightweight/DataBinder/SqlDynamicNumeric.hpp>
+#include <Lightweight/DataBinder/SqlVariant.hpp>
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <charconv>
 #include <cstdint>
 #include <limits>
+#include <string>
 
 using namespace Lightweight;
 
@@ -143,6 +149,135 @@ TEST_CASE("SqlDynamicNumeric::ToDouble approximates the value", "[SqlDynamicNume
 
     auto const negative = SqlDynamicNumeric { .unscaledValue = -1234, .precision = 19, .scale = 2 };
     CHECK(negative.ToDouble() == -12.34);
+}
+
+TEST_CASE("SqlDynamicNumeric::ToDouble scales in a single division", "[SqlDynamicNumeric]")
+{
+    // Dividing by ten `scale` times rounds at every step: these three land on
+    // 0.12345678900000004, 0.12345599999999998 and 0.12345678000000002 respectively, so a caller
+    // comparing against the literal it inserted would see a mismatch.
+    auto const asDouble = [](std::int64_t unscaled, std::uint8_t scale) {
+        return SqlDynamicNumeric { .unscaledValue = unscaled, .precision = 19, .scale = scale }.ToDouble();
+    };
+
+    CHECK(asDouble(123456789, 9) == 0.123456789);
+    CHECK(asDouble(123456, 6) == 0.123456);
+    CHECK(asDouble(12345678, 8) == 0.12345678);
+    CHECK(asDouble(-123456789, 9) == -0.123456789);
+}
+
+TEST_CASE("SqlDynamicNumeric scales correctly at the widest scale", "[SqlDynamicNumeric]")
+{
+    // The int64 power table must stop at 10^18, the largest power of ten that fits. Sizing it one
+    // entry longer made the generator saturate, so index 19 silently held 10^18 and every
+    // DECIMAL(19, 19) converted ten times too large.
+    STATIC_REQUIRE(Lightweight::detail::PowersOfTen.back() == 1'000'000'000'000'000'000LL);
+    STATIC_REQUIRE(Lightweight::detail::DoublePowersOfTen.back() == 1.0e19);
+
+    auto const allFractional = SqlDynamicNumeric { .unscaledValue = 1234567890123456789LL, .precision = 19, .scale = 19 };
+    CHECK_THAT(allFractional.ToDouble(), Catch::Matchers::WithinRel(0.1234567890123456789, 1e-15));
+
+    SECTION("a rescale that cannot fit reports failure rather than a wrong answer")
+    {
+        // 10^19 overflows int64, so nothing but zero survives the shift.
+        auto const deepest = SqlDynamicNumeric { .unscaledValue = 5, .precision = 19, .scale = 19 };
+        auto const whole = SqlDynamicNumeric { .unscaledValue = 5, .precision = 19, .scale = 0 };
+        CHECK(deepest != whole);
+
+        auto const zeroDeep = SqlDynamicNumeric { .unscaledValue = 0, .precision = 19, .scale = 19 };
+        auto const zeroWhole = SqlDynamicNumeric { .unscaledValue = 0, .precision = 19, .scale = 0 };
+        CHECK(zeroDeep == zeroWhole);
+    }
+}
+
+TEST_CASE("SqlDynamicNumeric::operator== survives INT64_MIN", "[SqlDynamicNumeric]")
+{
+    // Negating INT64_MIN to strip the sign before rescaling is undefined behaviour, and a hard
+    // failure under UBSan. Rescaling it can only overflow, so the comparison must simply say "not
+    // equal" rather than wrap or trap.
+    auto const extreme = SqlDynamicNumeric { .unscaledValue = INT64_MIN, .precision = 19, .scale = 1 };
+    auto const other = SqlDynamicNumeric { .unscaledValue = -5, .precision = 19, .scale = 2 };
+
+    CHECK(extreme != other);
+    CHECK(extreme == extreme);
+}
+
+TEST_CASE("detail::FractionDigitsOf recovers the scale a driver did not declare", "[SqlDynamicNumeric]")
+{
+    using Lightweight::detail::FractionDigitsOf;
+
+    // A padded literal must score the same as the trimmed one: ParseUnscaledDecimal trims, so
+    // scoring "12.34  " as zero would make the recovered scale reject digits that are really there.
+    CHECK(FractionDigitsOf("12.34  ") == 2);
+    CHECK(FractionDigitsOf("  12.34") == 2);
+    CHECK(FractionDigitsOf("\t-0.500\n") == 3);
+
+    CHECK(FractionDigitsOf("99.50") == 2);
+    CHECK(FractionDigitsOf("0.123456789") == 9);
+    CHECK(FractionDigitsOf("7") == 0);
+    CHECK(FractionDigitsOf("-12.5") == 1);
+    CHECK(FractionDigitsOf("") == 0);
+    // Not a plain decimal literal — no scale can be claimed from it.
+    CHECK(FractionDigitsOf("1.2e5") == 0);
+    CHECK(FractionDigitsOf("abc") == 0);
+}
+
+TEST_CASE("SqlVariant accessors degrade instead of aborting on the new alternatives", "[SqlDynamicNumeric][SqlVariant]")
+{
+    // Get<T>() and ValueOr<T>() are noexcept and reach std::get, so a type mismatch would abort the
+    // process rather than throw. DECIMAL and BINARY columns changed which alternative they fill, so
+    // these conversions are what keeps existing callers working.
+    SECTION("a decimal reads back as a floating-point value")
+    {
+        auto v = SqlVariant { SqlDynamicNumeric { .unscaledValue = 9950, .precision = 19, .scale = 2 } };
+        CHECK_THAT(v.ValueOr<double>(0.0), Catch::Matchers::WithinAbs(99.50, 1e-9));
+        CHECK_THAT(v.Get<double>(), Catch::Matchers::WithinAbs(99.50, 1e-9));
+        CHECK(v.ValueOr<std::string>({}) == "99.50");
+    }
+
+    SECTION("binary bytes remain reachable as a string")
+    {
+        auto v = SqlVariant { SqlBinary { 0x41, 0x42, 0x43 } };
+        CHECK(v.ValueOr<std::string>({}) == "ABC");
+        CHECK(v.Get<std::string>() == "ABC");
+        auto const view = v.TryGetStringView();
+        REQUIRE(view.has_value());
+        CHECK(view.value() == "ABC");
+    }
+
+    SECTION("asking for an alternative the variant does not hold yields the fallback, not a crash")
+    {
+        auto const v = SqlVariant { SqlDynamicNumeric { .unscaledValue = 1, .precision = 19, .scale = 0 } };
+        CHECK(v.ValueOr<SqlGuid>(SqlGuid {}) == SqlGuid {});
+    }
+}
+
+TEST_CASE("A padded or signed literal parses the same both ways", "[SqlDynamicNumeric]")
+{
+    // SqlVariant reads a DECIMAL exactly and, when it does not fit, falls back to std::from_chars on
+    // the same literal. from_chars skips no leading whitespace and rejects a leading '+', while the
+    // exact parser accepts both — so a driver that pads or signs its output could make the fallback
+    // refuse a literal the exact path would have taken. ReadLiteral trims once for both; this pins
+    // the parsers' agreement on the forms that difference would have split.
+    auto const acceptedExactly = [](std::string_view text) {
+        return SqlDynamicNumeric::FromString(text, 19, 2).has_value();
+    };
+    auto const acceptedApproximately = [](std::string_view text) {
+        auto const signless = text.starts_with('+') ? text.substr(1) : text;
+        auto value = 0.0;
+        return std::from_chars(signless.data(), signless.data() + signless.size(), value).ec == std::errc {};
+    };
+
+    for (auto const& text: { "12.34", "+12.34", "-12.34", "0.50" })
+    {
+        INFO("literal: " << text);
+        CHECK(acceptedExactly(text));
+        CHECK(acceptedApproximately(text));
+    }
+
+    // Padding is removed before either parser sees the text, so both still accept it.
+    CHECK(acceptedExactly("  12.34  "));
+    CHECK(acceptedApproximately(detail::TrimAsciiWhitespace("  12.34  ")));
 }
 
 TEST_CASE("SqlDynamicNumeric formats through std::format", "[SqlDynamicNumeric]")
