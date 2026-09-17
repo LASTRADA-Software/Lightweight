@@ -254,5 +254,6 @@ var group__QueryBuilder =
     [ "Lightweight::SqlPrimaryKeyType", "d6/daa/group__QueryBuilder.html#ga7d3d803ee8e7236cf6257b7bf760b471", null ],
     [ "Lightweight::ToSql", "d6/daa/group__QueryBuilder.html#ga4c68045b2a9228548ad924f9699f036f", null ],
     [ "Lightweight::ToSql", "d6/daa/group__QueryBuilder.html#gaf9ef87a2dfb32d1e09850a53a5ca73eb", null ],
+    [ "Lightweight::SqlMaxBoundSetSize", "d6/daa/group__QueryBuilder.html#gaf5129886f9f25ac627e908d6ce38406b", null ],
     [ "Lightweight::SqlColumnTypeDefinitionOf", "d6/daa/group__QueryBuilder.html#gaeba5ba4ebe64ce27d81a82bdf1ea11d7", null ]
 ];

@@ -1,5 +1,6 @@
 var NAVTREEINDEX3 =
 {
+"d7/d09/structLightweight_1_1Zip_1_1EntryInfo.html#afb5c349a95c807faa4907c7bb4b08cd0":[21,0,0,5,0,1],
 "d7/d0f/DataBinder_2Core_8hpp_source.html":[22,0,1,1,1],
 "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html":[19,8,3],
 "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a034d2ea6e30aa6d5d52833da134f2e6c":[19,8,3,26],
@@ -248,6 +249,5 @@ var NAVTREEINDEX3 =
 "d8/d0c/classLightweight_1_1Async_1_1Task.html#adc674cdc919080bc08e1619d196f15f3":[19,0,8,5],
 "d8/d0c/classLightweight_1_1Async_1_1Task.html#ae86bea26c59ca2299131f19c225ea696":[19,0,8,1],
 "d8/d0c/classLightweight_1_1Async_1_1Task.html#aea5feb26b3d9da4b4e355d9cd375412c":[19,0,8,4],
-"d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html":[19,7,4],
-"d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html#a05dd8547017c74830846316c54a1a415":[19,7,4,2]
+"d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html":[19,7,4]
 };
