@@ -792,6 +792,17 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereFa
     return Where(columnName, "=", false);
 }
 
+/// @brief Largest IN-set that WhereIn passes as bound parameters.
+///
+/// Beyond this the set is written into the SQL text as literals, which is what WhereIn did before
+/// it learned to bind. Drivers cap how many parameters one statement may carry -- MS SQL Server
+/// refuses more than 2100 with "07002 COUNT field incorrect" -- and a caller filtering on a few
+/// thousand keys would otherwise build a statement no driver accepts. The margin below that cap
+/// leaves room for the parameters the rest of the statement contributes.
+///
+/// @ingroup QueryBuilder
+constexpr inline std::size_t SqlMaxBoundSetSize = 2000;
+
 template <typename T>
 struct WhereConditionLiteralType
 {
@@ -1206,10 +1217,17 @@ detail::RawSqlCondition SqlWhereClauseBuilder<Derived>::PopulateSqlSetExpression
             return (value);
     };
 
+    // A set too large to be passed as parameters goes into the SQL text instead. Only a sized range
+    // can be measured without consuming it; an unsized one keeps binding, as it did before.
+    bool bindValues = searchCondition.inputBindings != nullptr;
+    if constexpr (std::ranges::sized_range<LiteralType>)
+        if (std::ranges::size(values) > SqlMaxBoundSetSize)
+            bindValues = false;
+
     auto const appendValue = [&](auto const& value) {
         if constexpr (isBindable)
         {
-            if (searchCondition.inputBindings)
+            if (bindValues)
             {
                 fragment << '?';
                 searchCondition.inputBindings->emplace_back(asBindable(value));

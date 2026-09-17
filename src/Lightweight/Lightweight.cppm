@@ -262,6 +262,7 @@ using Lightweight::SqlVariant;
 using Lightweight::SqlVariantRow;
 using Lightweight::SqlVariantRowCursor;
 using Lightweight::SqlVariantRowIterator;
+using Lightweight::SqlMaxBoundSetSize;
 using Lightweight::SqlWhereClauseBuilder;
 using Lightweight::SqlWideString;
 using Lightweight::SqlWildcardType;

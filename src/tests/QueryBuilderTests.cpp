@@ -743,6 +743,46 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn", "[SqlQueryBuilder]")
                                                    WHERE "foo" IN (1, 2, 3))"));
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn writes an oversized set as literals", "[SqlQueryBuilder]")
+{
+    // Drivers cap how many parameters one statement may carry, so past SqlMaxBoundSetSize the set
+    // goes into the SQL text instead of becoming that many markers. Binding it would build a
+    // statement the driver refuses outright -- MS SQL Server answers "07002 COUNT field incorrect".
+    auto const buildSet = [](std::size_t count) {
+        auto values = std::vector<int> {};
+        values.reserve(count);
+        for (auto const value: std::views::iota(std::size_t { 0 }, count))
+            values.push_back(static_cast<int>(value));
+        return values;
+    };
+
+    auto const renderWhereIn = [](std::vector<int> const& values, std::vector<SqlVariant>& inputBindings) {
+        auto const& formatter = SqlQueryFormatter::Sqlite();
+        auto queryBuilder = SqlQueryBuilder(formatter);
+        return queryBuilder.FromTable("That").Update(&inputBindings).Set("a", 1).WhereIn("foo", values).ToSql();
+    };
+
+    SECTION("at the cap the values still bind")
+    {
+        std::vector<SqlVariant> inputBindings;
+        auto const sql = renderWhereIn(buildSet(SqlMaxBoundSetSize), inputBindings);
+
+        CHECK(std::ranges::count(sql, '?') == static_cast<std::ptrdiff_t>(SqlMaxBoundSetSize + 1));
+        CHECK(inputBindings.size() == SqlMaxBoundSetSize + 1);
+    }
+
+    SECTION("one past the cap nothing of the set binds")
+    {
+        std::vector<SqlVariant> inputBindings;
+        auto const sql = renderWhereIn(buildSet(SqlMaxBoundSetSize + 1), inputBindings);
+
+        // Only the SET value is a parameter; the whole IN-set is spelled out.
+        CHECK(std::ranges::count(sql, '?') == 1);
+        CHECK(inputBindings.size() == 1);
+        CHECK(sql.contains("IN (0, 1, 2,"));
+    }
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn binds its values when bindings are requested", "[SqlQueryBuilder]")
 {
     using namespace std::string_view_literals;
