@@ -363,6 +363,22 @@ TEST_CASE_METHOD(SqlTestFixture, "Doc.Select.Raw", "[DocExample]")
         }
         //! [doc-where-single-raw]
     }
+
+    SECTION("where single builder bound")
+    {
+        //! [doc-where-single-builder-bound]
+        // Query builder — hand the WHERE value to the driver instead of writing it into the text.
+        // Needed whenever the value must reach the database byte for byte (a narrow string in a
+        // character set the driver does not read the statement in, for one).
+        std::vector<SqlVariant> bound;
+        auto stmt = SqlStatement { dm.Connection() };
+        stmt.Prepare(dm.FromTable("Employees").Select(&bound).Field("lastName").Where("salary", ">=", 55'000).All());
+        auto cursor = stmt.ExecuteWithVariants(bound);
+        while (cursor.FetchRow())
+            std::println("{}", cursor.GetColumn<std::string>(1));
+        //! [doc-where-single-builder-bound]
+        CHECK(bound.size() == 1);
+    }
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "Doc.OptionalFilters", "[DocExample]")
@@ -601,6 +617,18 @@ TEST_CASE_METHOD(SqlTestFixture, "Doc.Delete", "[DocExample]")
         auto query = dm.FromTable("Employees").Delete().WhereIn("department_id", std::vector { 1, 2, 3 });
         //! [doc-delete-builder]
         CHECK(query.ToSql().contains("DELETE FROM"));
+    }
+
+    SECTION("delete builder bound")
+    {
+        //! [doc-delete-builder-bound]
+        // Query builder — same, with the WHERE values bound rather than written into the text
+        std::vector<SqlVariant> bound;
+        auto stmt = SqlStatement { dm.Connection() };
+        stmt.Prepare(dm.FromTable("Employees").Delete(&bound).WhereIn("department_id", std::vector { 1, 2, 3 }));
+        std::ignore = stmt.ExecuteWithVariants(bound);
+        //! [doc-delete-builder-bound]
+        CHECK(bound.size() == 3);
     }
 }
 

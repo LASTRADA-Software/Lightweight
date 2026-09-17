@@ -36,9 +36,9 @@ SqlInsertQueryBuilder SqlQueryBuilder::Insert(std::vector<SqlVariant>* boundInpu
     return SqlInsertQueryBuilder(m_formatter, std::move(m_table), boundInputs);
 }
 
-SqlSelectQueryStarter SqlQueryBuilder::Select() noexcept
+SqlSelectQueryStarter SqlQueryBuilder::Select(std::vector<SqlVariant>* boundInputs) noexcept
 {
-    return { m_formatter, std::move(m_table), std::move(m_tableAlias) };
+    return { m_formatter, std::move(m_table), std::move(m_tableAlias), boundInputs };
 }
 
 SqlUpdateQueryBuilder SqlQueryBuilder::Update(std::vector<SqlVariant>* boundInputs) noexcept
@@ -46,9 +46,9 @@ SqlUpdateQueryBuilder SqlQueryBuilder::Update(std::vector<SqlVariant>* boundInpu
     return SqlUpdateQueryBuilder { m_formatter, std::move(m_table), std::move(m_tableAlias), boundInputs };
 }
 
-SqlDeleteQueryBuilder SqlQueryBuilder::Delete() noexcept
+SqlDeleteQueryBuilder SqlQueryBuilder::Delete(std::vector<SqlVariant>* boundInputs) noexcept
 {
-    return SqlDeleteQueryBuilder(m_formatter, std::move(m_table), std::move(m_tableAlias));
+    return SqlDeleteQueryBuilder(m_formatter, std::move(m_table), std::move(m_tableAlias), boundInputs);
 }
 
 SqlMigrationQueryBuilder SqlQueryBuilder::Migration()

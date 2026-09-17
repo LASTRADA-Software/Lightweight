@@ -2432,3 +2432,181 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlSelectQueryBuilder records projected field 
         CHECK(ProjectedNamesOf(query) == std::vector<std::string> { "FirstName", "LastName", "Salary" });
     }
 }
+
+/// Runs @p check against every dialect the suite supports, so a query-builder assertion that holds
+/// only for SQLite cannot pass unnoticed.
+template <typename Check>
+void ForEachQueryFormatter(Check const& check)
+{
+    {
+        INFO("Testing SQLite");
+        check(SqlQueryFormatter::Sqlite());
+    }
+    {
+        INFO("Testing Postgres");
+        check(SqlQueryFormatter::PostgrSQL());
+    }
+    {
+        INFO("Testing SQL Server");
+        check(SqlQueryFormatter::SqlServer());
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlQueryBuilder.Select binds its WHERE values when bindings are requested",
+                 "[SqlQueryBuilder]")
+{
+    using namespace std::string_view_literals;
+
+    // A value written into the query text has to survive being parsed back out of it, and a string
+    // in a character set the driver does not read the statement in does not. Binding hands such a
+    // value over unchanged without the caller having to place a SqlWildcard per value, so a SELECT
+    // has to offer it exactly as INSERT and UPDATE do.
+
+    SECTION("with a bindings vector every WHERE value becomes a parameter")
+    {
+        ForEachQueryFormatter([](SqlQueryFormatter const& formatter) {
+            std::vector<SqlVariant> inputBindings;
+            auto queryBuilder = SqlQueryBuilder(formatter);
+            auto const sql = queryBuilder.FromTable("Employees")
+                                 .Select(&inputBindings)
+                                 .Field("FirstName"sv)
+                                 .Where("LastName"sv, "Sm'ith"sv)
+                                 .Where("Salary"sv, ">=", 50000)
+                                 .All()
+                                 .ToSql();
+
+            CHECK(std::ranges::count(sql, '?') == 2);
+            REQUIRE(inputBindings.size() == 2);
+            CHECK(std::get<std::string_view>(inputBindings[0].value) == "Sm'ith"sv);
+            CHECK(std::get<int>(inputBindings[1].value) == 50000);
+
+            // And neither value is anywhere in the text, quoting included -- that is the point.
+            CHECK(!sql.contains("Sm'ith"));
+            CHECK(!sql.contains("50000"));
+        });
+    }
+
+    SECTION("without one the values stay in the query text, as before")
+    {
+        ForEachQueryFormatter([](SqlQueryFormatter const& formatter) {
+            auto queryBuilder = SqlQueryBuilder(formatter);
+            auto const sql = queryBuilder.FromTable("Employees")
+                                 .Select()
+                                 .Field("FirstName"sv)
+                                 .Where("LastName"sv, "Smith"sv)
+                                 .All()
+                                 .ToSql();
+
+            CHECK(std::ranges::count(sql, '?') == 0);
+            CHECK(sql.contains("'Smith'"));
+        });
+    }
+
+    SECTION("every finalizer keeps the bindings the WHERE clause collected")
+    {
+        // Each finalizer moves the composed query out of the builder. The values are already in the
+        // caller's vector by then, so the marker count has to keep matching it whichever one runs.
+        auto const checkFinalizer = [](auto const& finalize) {
+            ForEachQueryFormatter([&](SqlQueryFormatter const& formatter) {
+                std::vector<SqlVariant> inputBindings;
+                auto queryBuilder = SqlQueryBuilder(formatter);
+                auto starter = queryBuilder.FromTable("Employees").Select(&inputBindings);
+                auto& query = starter.Field("FirstName"sv);
+                std::ignore = query.Where("Salary"sv, 50000);
+                // SqlServerFormatter::SelectRange asserts on an empty ORDER BY, so Range() needs one.
+                std::ignore = query.OrderBy("Salary"sv);
+
+                auto const sql = finalize(query).ToSql();
+
+                CHECK(std::ranges::count(sql, '?') == 1);
+                REQUIRE(inputBindings.size() == 1);
+                CHECK(std::get<int>(inputBindings[0].value) == 50000);
+            });
+        };
+
+        checkFinalizer([](SqlSelectQueryBuilder& query) { return query.All(); });
+        checkFinalizer([](SqlSelectQueryBuilder& query) { return query.First(1); });
+        checkFinalizer([](SqlSelectQueryBuilder& query) { return query.Range(0, 10); });
+        checkFinalizer([](SqlSelectQueryBuilder& query) { return query.Count(); });
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlQueryBuilder.Delete binds its WHERE values when bindings are requested",
+                 "[SqlQueryBuilder]")
+{
+    using namespace std::string_view_literals;
+
+    SECTION("with a bindings vector every WHERE value becomes a parameter")
+    {
+        ForEachQueryFormatter([](SqlQueryFormatter const& formatter) {
+            std::vector<SqlVariant> inputBindings;
+            auto queryBuilder = SqlQueryBuilder(formatter);
+            auto const sql =
+                queryBuilder.FromTable("Employees").Delete(&inputBindings).Where("LastName"sv, "Smith"sv).ToSql();
+
+            CHECK(std::ranges::count(sql, '?') == 1);
+            REQUIRE(inputBindings.size() == 1);
+            CHECK(std::get<std::string_view>(inputBindings[0].value) == "Smith"sv);
+            CHECK(!sql.contains("Smith"));
+        });
+    }
+
+    SECTION("without one the values stay in the query text, as before")
+    {
+        ForEachQueryFormatter([](SqlQueryFormatter const& formatter) {
+            auto queryBuilder = SqlQueryBuilder(formatter);
+            auto const sql = queryBuilder.FromTable("Employees").Delete().Where("LastName"sv, "Smith"sv).ToSql();
+
+            CHECK(std::ranges::count(sql, '?') == 0);
+            CHECK(sql.contains("'Smith'"));
+        });
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "A bound SELECT and DELETE execute against the driver", "[SqlQueryBuilder]")
+{
+    using namespace std::string_view_literals;
+
+    // Rendering the markers is only half of it: the values still have to reach the driver in the
+    // right order and match the same rows the inline spelling would have matched.
+    auto stmt = SqlStatement {};
+
+    CreateEmployeesTable(stmt);
+    FillEmployeesTable(stmt);
+
+    SECTION("the SELECT finds the row its bound value names")
+    {
+        std::vector<SqlVariant> inputBindings;
+        stmt.Prepare(stmt.Connection()
+                         .Query("Employees")
+                         .Select(&inputBindings)
+                         .Fields("FirstName", "LastName")
+                         .Where("Salary", 60'000)
+                         .All());
+        REQUIRE(inputBindings.size() == 1);
+
+        auto cursor = stmt.ExecuteWithVariants(inputBindings);
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<std::string>(1) == "Bob");
+        CHECK(cursor.GetColumn<std::string>(2) == "Johnson");
+        CHECK(!cursor.FetchRow());
+    }
+
+    SECTION("the DELETE removes exactly the row its bound value names")
+    {
+        std::vector<SqlVariant> inputBindings;
+        stmt.Prepare(stmt.Connection().Query("Employees").Delete(&inputBindings).Where("LastName", "Brown"));
+        REQUIRE(inputBindings.size() == 1);
+
+        std::ignore = stmt.ExecuteWithVariants(inputBindings);
+
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "LastName" FROM "Employees" ORDER BY "LastName")");
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<std::string>(1) == "Johnson");
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<std::string>(1) == "Smith");
+        CHECK(!cursor.FetchRow());
+    }
+}
