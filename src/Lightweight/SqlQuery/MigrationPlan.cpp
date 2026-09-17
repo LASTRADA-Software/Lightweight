@@ -38,6 +38,10 @@ namespace
             },
             [&](std::string const& v) { return formatter.StringLiteral(v); },
             [&](SqlText const& v) { return formatter.StringLiteral(v.value); },
+            // An exact decimal is emitted unquoted: quoting it would make the backend parse a string
+            // back into a number, reintroducing the rounding this type exists to avoid.
+            [&](SqlDynamicNumeric const& v) { return v.ToString(); },
+            [&](SqlBinary const& v) { return formatter.BinaryLiteral(v); },
             [&](SqlDate const& v) { return formatter.StringLiteral(std::format("{}", v)); },
             [&](SqlTime const& v) { return formatter.StringLiteral(std::format("{}", v)); },
             [&](SqlDateTime const& v) { return formatter.StringLiteral(std::format("{}", v)); }

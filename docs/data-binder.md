@@ -220,6 +220,72 @@ it cannot distinguish DATE from TIME from TIMESTAMP. The concise type does:
 | DATE         | `SQL_TYPE_DATE` (91)     | `SqlDate`           |
 | TIME         | `SQL_TYPE_TIME` (92)     | `SqlTime`           |
 | TIMESTAMP    | `SQL_TYPE_TIMESTAMP` (93)| `SqlDateTime`       |
+| DECIMAL / NUMERIC | `SQL_DECIMAL` (3), `SQL_NUMERIC` (2) | `SqlDynamicNumeric` |
+| BINARY / VARBINARY / LONGVARBINARY | `SQL_BINARY` (-2), `SQL_VARBINARY` (-3), `SQL_LONGVARBINARY` (-4) | `SqlBinary` |
+
+## `SqlDynamicNumeric`: exact decimals in a `SqlVariant`
+
+`SqlNumeric<Precision, Scale>` fixes both at compile time. A value arriving through a
+`SqlVariant` learns its precision and scale from the result-set metadata instead, so
+DECIMAL/NUMERIC columns fill a `SqlDynamicNumeric`, which carries them alongside the value.
+
+The number is stored as the unscaled integer `value * 10^scale` and never passes through a
+binary floating-point type:
+
+```cpp
+auto const amount = value.TryGetNumeric().value();
+amount.unscaledValue;   // 92233720368547  — exact
+amount.scale;           // 4
+amount.ToString();      // "9223372036.8547"
+amount.ToDouble();      // approximation; lossy beyond a double's 15–16 significant digits
+```
+
+`TryGetLongLong()` still works for a `DECIMAL(p, 0)` column, which has no fractional part.
+
+Both directions use the column's decimal literal rather than `SQL_C_NUMERIC`. Retrieving
+`SQL_C_NUMERIC` requires the application to publish precision and scale on the descriptor
+before each call and a driver that honours them — SQL Server returns scale-0 values
+otherwise, and SQLite has no native `SQL_NUMERIC_STRUCT` support at all. These are the same
+two backends `SqlDataBinder<SqlNumeric<P, S>>` routes around via
+`NativeNumericSupportIsBroken()`. Every supported driver converts a decimal column to and
+from its literal exactly, so the literal is the portable representation.
+
+This is why `SqlNumeric<P, S>` is not simply reused here. On those same two backends its own
+binder falls back to `SQL_C_DOUBLE`, so it is the exact type only where the driver's
+`SQL_NUMERIC_STRUCT` support is sound — precisely the backends LASTRADA does not run on.
+`SqlDynamicNumeric` also carries precision and scale as *runtime* values, which a variant
+filled from a column described only at runtime needs.
+
+### When a column does not fit
+
+`SqlDynamicNumeric` holds the unscaled value in an `int64_t`, so it represents at most
+`SqlMaxDynamicNumericPrecision` (19) significant digits. A wider column — `DECIMAL(38, 0)` is
+legal ODBC — cannot be read exactly, and the binder refuses rather than returning a rounded
+number. The driver does not fail in that case, so no ODBC diagnostic exists to report:
+
+| Entry point                   | On an unrepresentable value                                            |
+|-------------------------------|------------------------------------------------------------------------|
+| `GetColumn`                   | Throws `SqlException` with a synthesized `SQLSTATE 22003` and a message naming the limit. Reading the statement's last error instead would yield an empty — or stale — diagnostic. Consequently it is **not** `noexcept`. |
+| `TryGetColumn`                | Returns `SQL_ERROR` and posts nothing. For callers that can degrade.    |
+| `SqlVariant`                  | Falls back to `double`, so such a column stays readable (approximately) exactly as it was before this arm became exact. |
+
+Retrieving the column is split from interpreting it — `ReadLiteral` and `FromColumnLiteral` — because
+**ODBC does not let you read the same column twice.** A second `SQLGetData` is permitted only while a
+character or binary value is still being delivered in parts; once it has arrived in full, a conforming
+driver answers `SQL_NO_DATA`, and SQL Server's and PostgreSQL's both do. So `SqlVariant` derives the
+exact value *and* its `double` fallback from one retrieved literal rather than re-reading the column.
+
+Because `GetColumn` can now throw, the generic forwarders that wrap an arbitrary binder —
+`SqlDataBinder<std::optional<T>>`, `Field<T>`, `BelongsTo<T>` — are no longer `noexcept` either. They
+never could honour it: `SqlDataBinder<SqlNumeric<P, S>>::GetColumn` has always thrown from
+`RequireSuccess` on a failed descriptor call, so a `std::optional<SqlNumeric<19, 4>>` column was a
+latent `std::terminate`.
+
+Binary columns keep their own `SqlBinary` alternative rather than collapsing into
+`std::string`: `InputParameter` dispatches on the alternative, so a value read from a binary
+column and written straight back must stay distinguishable from text to bind as
+`SQL_C_BINARY` instead of `SQL_C_CHAR`. `TryGetBinary()` hands back a copy; `TryGetStringView()`
+is the zero-copy view over the same bytes.
 
 ## Driver-specific connection-string requirements
 

@@ -81,6 +81,7 @@ set(SOURCE_FILES
     SqlConnectInfoEdgeTests.cpp
     SqlDateTimeArithmeticTests.cpp
     SqlDateTimeDbTests.cpp
+    SqlDynamicNumericTests.cpp
     SqlNumericTests.cpp
     SqlRealNameTests.cpp
     SqlRetryPolicyTests.cpp

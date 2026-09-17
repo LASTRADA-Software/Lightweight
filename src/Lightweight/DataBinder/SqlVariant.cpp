@@ -4,6 +4,11 @@
 #include "SqlBinary.hpp"
 #include "SqlVariant.hpp"
 
+#include <array>
+#include <charconv>
+#include <string>
+#include <string_view>
+
 namespace Lightweight
 {
 
@@ -125,20 +130,22 @@ SQLRETURN SqlDataBinder<SqlVariant>::GetColumn(
             // byte payload to a hex ASCII string. The previous `SqlDataBinder<std::string>`
             // call asked for SQL_C_CHAR and got back "01AB23…" — double the byte count and
             // not the original bytes.
-            SqlBinary binary;
-            returnCode = SqlDataBinder<SqlBinary>::GetColumn(stmt, column, &binary, indicator, cb);
-            if (SQL_SUCCEEDED(returnCode))
+            //
+            // The result stays a SqlBinary rather than collapsing into std::string: the alternative
+            // is what InputParameter dispatches on, so a value read from a binary column and written
+            // straight back must remain distinguishable from text to bind as SQL_C_BINARY again.
+            returnCode = SqlDataBinder<SqlBinary>::GetColumn(stmt, column, &variant.emplace<SqlBinary>(), indicator, cb);
+            if (SQL_SUCCEEDED(returnCode) && cb.ServerType() == SqlServerType::SQLITE)
             {
-                auto& bytes = variant.emplace<std::string>();
-                bytes.assign(reinterpret_cast<char const*>(binary.data()), binary.size());
-
-                if (cb.ServerType() == SqlServerType::SQLITE)
-                {
-                    // The SQLite driver may return GUID columns as binary data.
-                    // Try to parse as GUID if the bytes look like one.
-                    if (auto maybeGuid = SqlGuid::TryParse(bytes); maybeGuid)
-                        variant = maybeGuid.value();
-                }
+                // The SQLite driver may return GUID columns as binary data.
+                // Try to parse as GUID if the bytes look like one.
+                //
+                // Parse from a copy: assigning the GUID destroys the SqlBinary alternative, so a
+                // view into it must not still be live at that point.
+                auto const& binary = std::get<SqlBinary>(variant);
+                auto const bytes = std::string(reinterpret_cast<char const*>(binary.data()), binary.size());
+                if (auto maybeGuid = SqlGuid::TryParse(bytes); maybeGuid)
+                    variant = maybeGuid.value();
             }
             break;
         }
@@ -166,28 +173,67 @@ SQLRETURN SqlDataBinder<SqlVariant>::GetColumn(
             break;
         case SQL_DECIMAL:
         case SQL_NUMERIC: {
-            auto numeric = SQL_NUMERIC_STRUCT {};
-            returnCode = SQLGetData(stmt, column, SQL_C_NUMERIC, &numeric, sizeof(numeric), indicator);
-
-            if (SQL_SUCCEEDED(returnCode) && *indicator != SQL_NULL_DATA)
+            // Read exactly, as a decimal literal. This arm used to go through SQL_C_NUMERIC into a
+            // double via a hard-coded SqlNumeric<15, N> ladder, which lost digits beyond a double's
+            // range and — on SQL Server, whose driver ignores an unpublished descriptor scale —
+            // truncated the fraction outright (99.50 arrived as 99). SqlDynamicNumeric keeps the
+            // unscaled integer instead, so DECIMAL(19, 4) money columns survive the round trip.
+            //
+            // The column is retrieved once and both interpretations derive from that one literal:
+            // re-reading it for the fallback below returns SQL_NO_DATA on a conforming driver,
+            // because the value has already been delivered in full.
+            using DecimalBinder = SqlDataBinder<SqlDynamicNumeric>;
+            std::array<char, 128> buffer {};
+            auto const literal = DecimalBinder::ReadLiteral(stmt, column, indicator, buffer);
+            returnCode = literal.returnCode;
+            if (literal.text.empty())
             {
-                // clang-format off
-                switch (numeric.scale)
+                // Every other arm emplaces before reading, so a variant reused across a fetch loop is
+                // never left holding the previous row's value. This arm reads first, so it has to say
+                // so explicitly — and it cannot defer to the indicator check below, which a caller
+                // passing no indicator never reaches.
+                if (literal.isNull)
+                    variant = SqlNullValue;
+                else
                 {
-                    case 0: variant = static_cast<int64_t>(SqlNumeric<15, 0>(numeric).ToUnscaledValue()); break;
-                    case 1: variant = SqlNumeric<15, 1>(numeric).ToDouble(); break;
-                    case 2: variant = SqlNumeric<15, 2>(numeric).ToDouble(); break;
-                    case 3: variant = SqlNumeric<15, 3>(numeric).ToDouble(); break;
-                    case 4: variant = SqlNumeric<15, 4>(numeric).ToDouble(); break;
-                    case 5: variant = SqlNumeric<15, 5>(numeric).ToDouble(); break;
-                    case 6: variant = SqlNumeric<15, 6>(numeric).ToDouble(); break;
-                    case 7: variant = SqlNumeric<15, 7>(numeric).ToDouble(); break;
-                    case 8: variant = SqlNumeric<15, 8>(numeric).ToDouble(); break;
-                    default: variant = SqlNumeric<15, 9>(numeric).ToDouble(); break;
+                    // A synthesized failure the driver knows nothing about, so it posted no
+                    // diagnostic: log the reason rather than let an empty SQLSTATE stand for it.
+                    variant.emplace<SqlDynamicNumeric>();
+                    if (returnCode == SQL_ERROR)
+                        SqlLogger::GetLogger().OnError(SqlError::INVALID_ARGUMENT);
                 }
-                // clang-format on
+                break;
             }
 
+            if (auto const exact = DecimalBinder::FromColumnLiteral(stmt, column, literal.text))
+            {
+                variant = *exact;
+                break;
+            }
+
+            // The value needs more digits than the exact carrier holds — DECIMAL(38, 0) is legal
+            // ODBC but exceeds a 64-bit unscaled integer. Such a column was readable (approximately)
+            // before this arm became exact, so degrade to the previous behaviour rather than making
+            // it unreadable.
+            //
+            // std::from_chars is stricter than the exact parser: it accepts no leading '+', and the
+            // literal is already trimmed by ReadLiteral. Skipping the sign here keeps the two in
+            // agreement, so this fallback cannot reject a literal the exact path would have taken.
+            auto const signless = literal.text.starts_with('+') ? literal.text.substr(1) : literal.text;
+            auto approximate = 0.0;
+            auto const* const first = signless.data();
+            auto const* const last = first + signless.size();
+            if (std::from_chars(first, last, approximate).ec == std::errc {})
+            {
+                variant = approximate;
+                break;
+            }
+
+            // Neither representation worked. Record why: this arm returns SQL_ERROR without the
+            // driver having posted a diagnostic, so the exception the caller ultimately sees would
+            // otherwise carry an empty — or stale — SQLSTATE from the handle.
+            SqlLogger::GetLogger().OnError(SqlError::INVALID_ARGUMENT);
+            returnCode = SQL_ERROR;
             break;
         }
         case SQL_GUID:
@@ -233,6 +279,11 @@ std::string SqlVariant::ToString() const
         },
         [&](std::string const& v) { return v; },
         [&](SqlText const& v) { return v.value; },
+        // Renders the bytes rather than a summary: operator== compares two variants by their
+        // ToString(), so a size-only form would make any two equal-length BLOBs compare equal.
+        // This is byte-for-byte what a binary column produced before it gained its own alternative.
+        [&](SqlBinary const& v) { return std::string(reinterpret_cast<char const*>(v.data()), v.size()); },
+        [&](SqlDynamicNumeric const& v) { return v.ToString(); },
         [&](SqlDate const& v) { return std::format("{}-{}-{}", v.sqlValue.year, v.sqlValue.month, v.sqlValue.day); },
         [&](SqlTime const& v) { return std::format("{}:{}:{}", v.sqlValue.hour, v.sqlValue.minute, v.sqlValue.second); },
         [&](SqlDateTime const& v) { return std::format("{}-{}-{} {}:{}:{}", v.sqlValue.year, v.sqlValue.month, v.sqlValue.day, v.sqlValue.hour, v.sqlValue.minute, v.sqlValue.second); }

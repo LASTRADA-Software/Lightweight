@@ -505,8 +505,10 @@ struct SqlDataBinder<BelongsTo<ReferencedField, ColumnNameOverrideString, Nullab
         return sqlReturn;
     }
 
-    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(
-        SQLHSTMT stmt, SQLUSMALLINT column, SelfType* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) noexcept
+    /// @throws Whatever `SqlDataBinder<InnerType>::GetColumn` throws — this forwards to an arbitrary
+    ///         binder and cannot promise more than the one it wraps.
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN
+    GetColumn(SQLHSTMT stmt, SQLUSMALLINT column, SelfType* result, SQLLEN* indicator, SqlDataBinderCallback const& cb)
     {
         auto const sqlReturn = SqlDataBinder<InnerType>::GetColumn(stmt, column, &result->MutableValue(), indicator, cb);
         if (SQL_SUCCEEDED(sqlReturn))

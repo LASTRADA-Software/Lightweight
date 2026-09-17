@@ -9,6 +9,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <chrono>
 #include <string>
@@ -243,7 +244,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches BOOL columns as bool varian
     CHECK_FALSE(std::get<bool>(v2.value));
 }
 
-TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches BINARY/VARBINARY as std::string bytes", "[SqlVariant]")
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches BINARY/VARBINARY as SqlBinary", "[SqlVariant]")
 {
     auto stmt = SqlStatement {};
     UNSUPPORTED_DATABASE(stmt, SqlServerType::SQLITE); // sqlite reports binary as BLOB; check below
@@ -260,12 +261,59 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches BINARY/VARBINARY as std::st
     SqlVariant v;
     CHECK(cursor.GetColumn(1, &v));
     CHECK_FALSE(v.IsNull());
-    // SQL_VARBINARY lands on std::string in the variant (raw byte payload).
-    REQUIRE(std::holds_alternative<std::string>(v.value));
-    auto const& bytesOut = std::get<std::string>(v.value);
-    REQUIRE(bytesOut.size() == bytes.size());
-    for (std::size_t i = 0; i < bytes.size(); ++i)
-        CHECK(static_cast<uint8_t>(bytesOut[i]) == bytes[i]);
+    // SQL_VARBINARY keeps its own alternative rather than collapsing into std::string: the variant's
+    // alternative is what InputParameter dispatches on, so bytes must stay distinguishable from text
+    // to bind back as SQL_C_BINARY instead of SQL_C_CHAR.
+    REQUIRE(std::holds_alternative<SqlBinary>(v.value));
+    auto const& bytesOut = std::get<SqlBinary>(v.value);
+    CHECK(bytesOut == bytes);
+
+    SECTION("the accessor returns the same payload")
+    {
+        auto const viaAccessor = v.TryGetBinary();
+        CHECK(viaAccessor.has_value());
+        CHECK(viaAccessor.value_or(SqlBinary {}) == bytes);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant round-trips a binary column back into the database", "[SqlVariant]")
+{
+    auto stmt = SqlStatement {};
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::SQLITE); // sqlite reports binary as BLOB
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("BlobRoundTrip").RequiredColumn("payload", SqlColumnTypeDefinitions::VarBinary { 64 });
+    });
+
+    // Embedded NUL and high bytes: writing these back as SQL_C_CHAR would truncate or re-encode them.
+    auto const bytes = SqlBinary { 0x00, 0x01, 0x80, 0xFE, 0xFF, 0x00, 0x7F };
+    stmt.Prepare(R"(INSERT INTO "BlobRoundTrip" ("payload") VALUES (?))");
+    (void) stmt.Execute(bytes);
+
+    auto readBack = SqlVariant {};
+    {
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "payload" FROM "BlobRoundTrip")");
+        REQUIRE(cursor.FetchRow());
+        REQUIRE(cursor.GetColumn(1, &readBack));
+    }
+
+    // Write the fetched variant straight back and confirm the bytes survive unchanged.
+    stmt.Prepare(R"(INSERT INTO "BlobRoundTrip" ("payload") VALUES (?))");
+    (void) stmt.Execute(readBack);
+
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "payload" FROM "BlobRoundTrip")");
+    auto seen = std::vector<SqlBinary> {};
+    while (cursor.FetchRow())
+    {
+        SqlVariant v;
+        REQUIRE(cursor.GetColumn(1, &v));
+        auto const payload = v.TryGetBinary();
+        CHECK(payload.has_value());
+        seen.emplace_back(payload.value_or(SqlBinary {}));
+    }
+
+    REQUIRE(seen.size() == 2);
+    CHECK(seen[0] == bytes);
+    CHECK(seen[1] == bytes);
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches NVARCHAR (wide) columns", "[SqlVariant]")
@@ -439,35 +487,162 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches DECIMAL columns by scale", 
     auto const v7 = fetchVariant(8);
     auto const v8 = fetchVariant(9);
 
-    // scale=0 returns the unscaled value as a 64-bit integer regardless of dialect.
+    // A DECIMAL(p, 0) column carries no fractional part, so it still reads as a plain integer.
     CHECK(v0.TryGetLongLong().value_or(0) == 12345);
 
-    // Non-zero scales: the SqlVariant DECIMAL/NUMERIC arm reads scale via SQL_C_NUMERIC,
-    // which is reliable on PostgreSQL/SQLite. KNOWN BUG: on MSSQL, the ODBC driver returns
-    // the bound `SQL_C_NUMERIC` value at scale=0 unless the application sets
-    // SQL_DESC_SCALE on the IRD beforehand; SqlVariant.cpp does not do that, so the value
-    // comes back integer-truncated (99.50 → 99, 0.123456 → 0). Cover scale=0 on every DBMS
-    // and the non-zero scales only where they currently round-trip.
-    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+    // Every scale round-trips exactly, on every backend. This previously held only on
+    // PostgreSQL and SQLite: the arm fetched SQL_C_NUMERIC without publishing the column's
+    // scale on the descriptor, and the SQL Server driver answers such a request at scale 0 —
+    // 99.50 arrived as 99 and 0.123456 as 0. Reading the value as an exact decimal literal
+    // removes both that truncation and the double rounding that followed it.
+    auto const exact = [](SqlVariant const& v) {
+        return v.TryGetNumeric().value_or(SqlDynamicNumeric {}).ToString();
+    };
+
+    CHECK(exact(v1) == "7.5");
+    CHECK(exact(v2) == "99.50");
+    CHECK(exact(v3) == "1.125");
+    CHECK(exact(v4) == "2.0625");
+    CHECK(exact(v5) == "3.03125");
+    CHECK(exact(v6) == "0.123456");
+    CHECK(exact(v7) == "0.1234567");
+    CHECK(exact(v8) == "0.12345678");
+
+    // The unscaled integer is the exact carrier; ToDouble stays available as an approximation.
+    auto const exactV2 = v2.TryGetNumeric().value_or(SqlDynamicNumeric {});
+    CHECK(exactV2.unscaledValue == 9950);
+    CHECK(exactV2.scale == 2);
+    CHECK_THAT(exactV2.ToDouble(), Catch::Matchers::WithinAbs(99.50, 1e-6));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant round-trips a money column without losing cents", "[SqlVariant]")
+{
+    auto stmt = SqlStatement {};
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::SQLITE); // SQLite has no native DECIMAL
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("Wallet").RequiredColumn("amount",
+                                                       SqlColumnTypeDefinitions::Decimal { .precision = 19, .scale = 4 });
+    });
+
+    // DECIMAL(19, 4) is what MS SQL Server's `money` maps to. This amount needs more significant
+    // digits than a double carries, so any path through floating point corrupts it. It is inserted
+    // as a SQL literal so the value reaching the column is exact by construction, independent of
+    // any binder under test.
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "Wallet" ("amount") VALUES (9223372036.8547))");
+
+    auto readBack = SqlVariant {};
     {
-        auto asDouble = [](SqlVariant const& v) -> std::optional<double> {
-            return std::visit(
-                []<typename T>(T const& alt) -> std::optional<double> {
-                    if constexpr (std::is_arithmetic_v<T>)
-                        return static_cast<double>(alt);
-                    else
-                        return std::nullopt;
-                },
-                v.value);
-        };
-        CHECK_THAT(asDouble(v2).value_or(0.0), Catch::Matchers::WithinAbs(99.50, 1e-6));
-        CHECK_THAT(asDouble(v6).value_or(0.0), Catch::Matchers::WithinAbs(0.123456, 1e-9));
-        CHECK_THAT(asDouble(v1).value_or(0.0), Catch::Matchers::WithinAbs(7.5, 1e-6));
-        CHECK_THAT(asDouble(v3).value_or(0.0), Catch::Matchers::WithinAbs(1.125, 1e-6));
-        CHECK_THAT(asDouble(v4).value_or(0.0), Catch::Matchers::WithinAbs(2.0625, 1e-6));
-        CHECK_THAT(asDouble(v5).value_or(0.0), Catch::Matchers::WithinAbs(3.03125, 1e-6));
-        CHECK_THAT(asDouble(v7).value_or(0.0), Catch::Matchers::WithinAbs(0.1234567, 1e-7));
-        CHECK_THAT(asDouble(v8).value_or(0.0), Catch::Matchers::WithinAbs(0.12345678, 1e-8));
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "amount" FROM "Wallet")");
+        REQUIRE(cursor.FetchRow());
+        REQUIRE(cursor.GetColumn(1, &readBack));
+    }
+
+    auto const maybeExact = readBack.TryGetNumeric();
+    CHECK(maybeExact.has_value());
+    auto const exact = maybeExact.value_or(SqlDynamicNumeric {});
+    CHECK(exact.unscaledValue == 92233720368547LL);
+    CHECK(exact.scale == 4);
+    CHECK(exact.ToString() == "9223372036.8547");
+
+    // Writing the fetched variant back must preserve every digit as well.
+    stmt.Prepare(R"(INSERT INTO "Wallet" ("amount") VALUES (?))");
+    (void) stmt.Execute(readBack);
+
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "amount" FROM "Wallet")");
+    auto seen = std::vector<std::string> {};
+    while (cursor.FetchRow())
+    {
+        SqlVariant v;
+        REQUIRE(cursor.GetColumn(1, &v));
+        seen.emplace_back(v.TryGetNumeric().value_or(SqlDynamicNumeric {}).ToString());
+    }
+
+    REQUIRE(seen.size() == 2);
+    CHECK(seen[0] == "9223372036.8547");
+    CHECK(seen[1] == "9223372036.8547");
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicNumeric binds directly as an input parameter", "[SqlVariant][SqlDynamicNumeric]")
+{
+    auto stmt = SqlStatement {};
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::SQLITE); // SQLite has no native DECIMAL
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("Ledger").RequiredColumn("amount",
+                                                       SqlColumnTypeDefinitions::Decimal { .precision = 19, .scale = 4 });
+    });
+
+    // Every other test reaches the binder through SqlVariant. This one exercises
+    // SqlDataBinder<SqlDynamicNumeric>::InputParameter on its own, including the staging buffer it
+    // now takes from the statement rather than from the value.
+    auto const written = std::vector {
+        SqlDynamicNumeric { .unscaledValue = 92233720368547LL, .precision = 19, .scale = 4 },
+        SqlDynamicNumeric { .unscaledValue = -125000LL, .precision = 19, .scale = 4 },
+        SqlDynamicNumeric { .unscaledValue = 0, .precision = 19, .scale = 4 },
+    };
+
+    stmt.Prepare(R"(INSERT INTO "Ledger" ("amount") VALUES (?))");
+    for (auto const& value: written)
+        (void) stmt.Execute(value);
+
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "amount" FROM "Ledger" ORDER BY "amount")");
+    auto readBack = std::vector<std::string> {};
+    while (cursor.FetchRow())
+    {
+        auto value = SqlDynamicNumeric {};
+        REQUIRE(cursor.GetColumn(1, &value));
+        readBack.emplace_back(value.ToString());
+    }
+
+    REQUIRE(readBack.size() == 3);
+    CHECK(readBack[0] == "-12.5000");
+    CHECK(readBack[1] == "0.0000");
+    CHECK(readBack[2] == "9223372036.8547");
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "A decimal too wide for the exact carrier is described, not silently wrong",
+                 "[SqlVariant][SqlDynamicNumeric]")
+{
+    auto stmt = SqlStatement {};
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::SQLITE); // SQLite has no native DECIMAL
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("HugeNumbers")
+            .RequiredColumn("amount", SqlColumnTypeDefinitions::Decimal { .precision = 38, .scale = 0 });
+    });
+
+    // 29 digits: legal DECIMAL(38, 0), but well past the 19 an int64 unscaled value carries.
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "HugeNumbers" ("amount") VALUES (12345678901234567890123456789))");
+
+    SECTION("reading it as SqlDynamicNumeric throws an exception that says why")
+    {
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "amount" FROM "HugeNumbers")");
+        REQUIRE(cursor.FetchRow());
+
+        auto value = SqlDynamicNumeric {};
+        try
+        {
+            (void) cursor.GetColumn(1, &value);
+            FAIL("Expected SqlException for a value beyond the exact carrier");
+        }
+        catch (SqlException const& error)
+        {
+            // The driver posts no diagnostic here — it did not fail — so without a synthesized one
+            // the caller would see an empty message, or a stale one left by an earlier statement.
+            CHECK(error.info().sqlState == "22003");
+            CHECK_FALSE(error.info().message.empty());
+            CHECK_THAT(error.info().message, Catch::Matchers::ContainsSubstring("SqlDynamicNumeric"));
+        }
+    }
+
+    SECTION("reading it as SqlVariant degrades to double instead of failing the row")
+    {
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "amount" FROM "HugeNumbers")");
+        REQUIRE(cursor.FetchRow());
+
+        auto value = SqlVariant {};
+        REQUIRE(cursor.GetColumn(1, &value));
+        CHECK_FALSE(value.IsNull());
+        CHECK_THAT(value.Get<double>(), Catch::Matchers::WithinRel(1.2345678901234568e28, 1e-12));
     }
 }
 
@@ -596,10 +771,10 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches TINYINT columns", "[SqlVari
         CHECK(std::holds_alternative<int8_t>(tiny.value));
 }
 
-// The DECIMAL/NUMERIC branch dispatches on numeric.scale through a switch whose `default:` arm
-// handles every scale >= 9. The existing "by scale" test stops at scale 8, so the default arm was
-// never taken.
-TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches DECIMAL with scale beyond the enumerated cases", "[SqlVariant]")
+// A scale deeper than the "by scale" test above covers. That test stops at scale 8; this one pins
+// scale 9, where the predecessor implementation fell into a catch-all arm that rounded through a
+// double. Reading the decimal literal makes the depth irrelevant, so the value must survive intact.
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches DECIMAL with a deep scale", "[SqlVariant]")
 {
     auto stmt = SqlStatement {};
     UNSUPPORTED_DATABASE(stmt, SqlServerType::SQLITE); // SQLite has no native DECIMAL
@@ -618,20 +793,14 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches DECIMAL with scale beyond t
     SqlVariant deep;
     CHECK(cursor.GetColumn(1, &deep));
 
-    // Same MSSQL scale limitation as the "by scale" test above: the driver hands back the
-    // SQL_C_NUMERIC value at scale 0 unless SQL_DESC_SCALE is set on the IRD, which
-    // SqlVariant.cpp does not do. The default arm still executes on every DBMS; only the
-    // round-tripped value is asserted where it is currently reliable.
-    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
-    {
-        auto const asDouble = std::visit(
-            []<typename T>(T const& alt) -> std::optional<double> {
-                if constexpr (std::is_arithmetic_v<T>)
-                    return static_cast<double>(alt);
-                else
-                    return std::nullopt;
-            },
-            deep.value);
-        CHECK_THAT(asDouble.value_or(0.0), Catch::Matchers::WithinAbs(0.123456789, 1e-9));
-    }
+    // Exact on every backend, MS SQL Server included. This assertion previously had to be skipped
+    // there: the arm fetched SQL_C_NUMERIC without publishing the column's scale on the descriptor,
+    // and that driver answers such a request at scale 0.
+    auto const maybeExact = deep.TryGetNumeric();
+    CHECK(maybeExact.has_value());
+    auto const exact = maybeExact.value_or(SqlDynamicNumeric {});
+    CHECK(exact.unscaledValue == 123456789);
+    CHECK(exact.scale == 9);
+    CHECK(exact.ToString() == "0.123456789");
+    CHECK_THAT(exact.ToDouble(), Catch::Matchers::WithinAbs(0.123456789, 1e-9));
 }
