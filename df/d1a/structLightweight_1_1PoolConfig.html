@@ -122,12 +122,14 @@ Public Attributes</h2></td></tr>
 <tr class="separator:ad9943a108490072e4ac98266abc784a2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acad5623b52d85dc1ab20820cd58d8a2f" id="r_acad5623b52d85dc1ab20820cd58d8a2f"><td class="memItemLeft" align="right" valign="top">std::chrono::milliseconds::rep&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.html#acad5623b52d85dc1ab20820cd58d8a2f">maxLifetimeMs</a> {}</td></tr>
 <tr class="separator:acad5623b52d85dc1ab20820cd58d8a2f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa040aa4b0901f8d562248b4b98f0dd16" id="r_aa040aa4b0901f8d562248b4b98f0dd16"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.html#aa040aa4b0901f8d562248b4b98f0dd16">preparedStatementCacheCapacity</a> { PreparedStatementCacheCapacityDefault }</td></tr>
+<tr class="separator:aa040aa4b0901f8d562248b4b98f0dd16"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Structure to hold the configuration of the pool, including the initial size, maximum size and growth strategy. Structure is used as a template parameter for the <a class="el" href="../../d3/d30/classLightweight_1_1Pool.html">Pool</a> class to configure its behavior at compile time.</p>
 <dl class="section note"><dt>Note</dt><dd>The lifetime bounds are expressed as plain millisecond counts rather than <code>std::chrono::milliseconds</code> because this structure is used as a non-type template parameter: <code>std::chrono::duration</code> keeps its representation private and is therefore not a structural type. Use <a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.html#a090de1dcf0f8f78bb03664ce5f999856">PoolConfig::MaxIdleTime</a> and <a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.html#a27ee17aa9854a15e16d385ee1d26b045">PoolConfig::MaxLifetime</a> to read them back as durations. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00090">90</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00091">91</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="a090de1dcf0f8f78bb03664ce5f999856" name="a090de1dcf0f8f78bb03664ce5f999856"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a090de1dcf0f8f78bb03664ce5f999856">&#9670;&#160;</a></span>MaxIdleTime()</h2>
@@ -153,9 +155,9 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <dl class="section return"><dt>Returns</dt><dd><a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.html#ad9943a108490072e4ac98266abc784a2">maxIdleTimeMs</a> as a duration. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00134">134</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00147">147</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00119">maxIdleTimeMs</a>.</p>
+<p class="reference">References <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00120">maxIdleTimeMs</a>.</p>
 
 </div>
 </div>
@@ -183,9 +185,9 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <dl class="section return"><dt>Returns</dt><dd><a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.html#acad5623b52d85dc1ab20820cd58d8a2f">maxLifetimeMs</a> as a duration. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00140">140</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00153">153</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00131">maxLifetimeMs</a>.</p>
+<p class="reference">References <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00132">maxLifetimeMs</a>.</p>
 
 </div>
 </div>
@@ -204,7 +206,7 @@ Public Attributes</h2></td></tr>
 
 <p>Initial number of data mappers to pre-create and store in the pool, must be less than or equal to maxSize. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00093">93</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00094">94</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 </div>
 </div>
@@ -221,7 +223,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Maximum number of data mappers that can exist in the pool, must be greater than or equal to initialSize this is used for the Bounded* strategies to determine when to block or when to stop accepting returned data mappers, for the UnboundedGrow strategy this is ignored </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00097">97</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00098">98</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 </div>
 </div>
@@ -238,7 +240,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Strategy to determine how the pool should grow when there are no idle data mappers available, default is BoundedWait which blocks until a data mapper is returned to the pool </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00100">100</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00101">101</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 </div>
 </div>
@@ -256,7 +258,7 @@ Public Attributes</h2></td></tr>
 <p>Whether a connection is checked for liveness before it is handed to a caller, enabled by default.</p>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="../../d6/de4/group__ConnectionPool.html#ga52b249d4b537b9627a2b2bdd483dd274">ValidateOnBorrow</a> </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00105">105</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00106">106</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 </div>
 </div>
@@ -275,9 +277,9 @@ Public Attributes</h2></td></tr>
 <p>Set this below any idle timeout imposed by the network path (a firewall or NAT dropping idle flows) or by the server, so a connection is never idle long enough to be reaped behind the pool's back. This removes the failure mode that <a class="el" href="../../d6/de4/group__ConnectionPool.html#ga52b249d4b537b9627a2b2bdd483dd274">ValidateOnBorrow</a> can only detect, and then only when the driver has noticed.</p>
 <dl class="section note"><dt>Note</dt><dd>Retirement is lazy: it happens when the pool is next used, so a pool that goes completely idle keeps its connections until the next <a class="el" href="../../d3/d30/classLightweight_1_1Pool.html#ab88d9cb504f2ccbe155f0b8b2b7a0197">Pool::Acquire</a>. Correctness is unaffected — an expired connection is discarded rather than handed out — but the pool does not shrink on its own. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00119">119</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00120">120</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00134">MaxIdleTime()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00147">MaxIdleTime()</a>.</p>
 
 </div>
 </div>
@@ -296,9 +298,28 @@ Public Attributes</h2></td></tr>
 <p>Unlike <a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.html#a5c2abddf40a2e7e08845af824560e5f6">validateOnBorrow</a>, this retires connections that are perfectly alive but no longer appropriate: after a failover or a rolling restart a pooled connection stays bound to the old node, and nothing else in the pool will ever move it. Setting this shorter than any connection-age ceiling imposed by the database or the infrastructure also means connections are retired while idle, which is free, rather than being cut mid-query by something else.</p>
 <dl class="section note"><dt>Note</dt><dd>Retirement is lazy, as described for <a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.html#ad9943a108490072e4ac98266abc784a2">maxIdleTimeMs</a>. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00131">131</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00132">132</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00140">MaxLifetime()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00153">MaxLifetime()</a>.</p>
+
+</div>
+</div>
+<a id="aa040aa4b0901f8d562248b4b98f0dd16" name="aa040aa4b0901f8d562248b4b98f0dd16"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa040aa4b0901f8d562248b4b98f0dd16">&#9670;&#160;</a></span>preparedStatementCacheCapacity</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_t Lightweight::PoolConfig::preparedStatementCacheCapacity { PreparedStatementCacheCapacityDefault }</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Prepared-statement cache capacity given to the connection of every data mapper this pool creates, i.e. how many already-prepared ODBC statement handles that connection keeps for reuse. Zero (the default) leaves the cache disabled, exactly as an unpooled connection.</p>
+<p>The bound is per connection, not per pool: a pool may hold up to <code>maxSize</code> connections, each with its own cache of this size, so the live prepared handles a fully warmed pool holds on the server are <code>maxSize * preparedStatementCacheCapacity</code>. Size it against the backend's per-session limit on prepared statements, not against the number of distinct queries alone.</p>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a54843f56005b5675dd963285a189d324" title="Enables (or resizes) this connection&#39;s prepared-statement cache.">SqlConnection::SetPreparedStatementCacheCapacity</a> for what enabling the cache implies. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00144">144</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 </div>
 </div>

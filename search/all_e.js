@@ -37,7 +37,7 @@ var searchData=
   ['getnullablecolumn_34',['getnullablecolumn',['../d8/d63/classLightweight_1_1SqlResultCursor.html#a9584b83387781b98d5251839cf2c581d',1,'Lightweight::SqlResultCursor::GetNullableColumn(SQLUSMALLINT column) const'],['../d8/d63/classLightweight_1_1SqlResultCursor.html#a951a43777480d379682c76014b0d1be7',1,'Lightweight::SqlResultCursor::GetNullableColumn(std::string_view name) const']]],
   ['getoperation_35',['GetOperation',['../d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#a53cfe81acb8bc98d0d67e9a45fbb5fc6',1,'Lightweight::SqlMigration::MigrationException']]],
   ['getpending_36',['GetPending',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a5f02a99faee92eb68b52a9cb49876c0e',1,'Lightweight::SqlMigration::MigrationManager']]],
-  ['getplan_37',['getplan',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a503a9d905ab222a68bb4fcbec1510154',1,'Lightweight::SqlMigrationQueryBuilder::GetPlan() &amp;&amp;'],['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a52eaec0c096b8f29fce67268c22cf433',1,'Lightweight::SqlMigrationQueryBuilder::GetPlan() const &amp;']]],
+  ['getplan_37',['getplan',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a52eaec0c096b8f29fce67268c22cf433',1,'Lightweight::SqlMigrationQueryBuilder::GetPlan() const &amp;'],['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a503a9d905ab222a68bb4fcbec1510154',1,'Lightweight::SqlMigrationQueryBuilder::GetPlan() &amp;&amp;']]],
   ['getprimarykeyfield_38',['GetPrimaryKeyField',['../d7/d2f/group__DataMapper.html#ga0690ab017d7ae25c81a0889a6385ba33',1,'Lightweight']]],
   ['getprimarykeyfields_39',['GetPrimaryKeyFields',['../d7/d2f/group__DataMapper.html#ga26e1044be43f92bbb88188317ffba9b5',1,'Lightweight']]],
   ['getrecordmemberat_40',['GetRecordMemberAt',['../d7/d2f/group__DataMapper.html#ga3803a99a6793b7b2dcd55824b002fc69',1,'Lightweight']]],
@@ -47,7 +47,8 @@ var searchData=
   ['gettitle_44',['GetTitle',['../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a120faae4809045b0fd412b6550b634f0',1,'Lightweight::SqlMigration::MigrationBase']]],
   ['giveup_45',['GiveUp',['../d1/d7b/group__Retry.html#gga342e14df587d6a9b4a42d34038e2fdc5abf9deec9cf8f3d92bff5d1edeff93206',1,'Lightweight']]],
   ['group_20by_46',['GROUP BY',['../d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#group-by',1,'']]],
-  ['growth_20strategies_47',['Growth strategies',['../d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#growth-strategies',1,'']]],
-  ['growthstrategy_48',['growthstrategy',['../df/d1a/structLightweight_1_1PoolConfig.html#a82b19e524cdb6dc43c0ec8aab3201e6f',1,'Lightweight::PoolConfig::growthStrategy'],['../d6/de4/group__ConnectionPool.html#gadf7777be559a52bca78d24e4a99a4f0c',1,'Lightweight::GrowthStrategy']]],
-  ['guid_49',['Guid',['../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2ac195f641dd597766b98e4ffa9e2f0e75',1,'Lightweight::RowArrayCursor']]]
+  ['grows_47',['As network latency grows',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#as-network-latency-grows',1,'']]],
+  ['growth_20strategies_48',['Growth strategies',['../d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#growth-strategies',1,'']]],
+  ['growthstrategy_49',['growthstrategy',['../d6/de4/group__ConnectionPool.html#gadf7777be559a52bca78d24e4a99a4f0c',1,'Lightweight::GrowthStrategy'],['../df/d1a/structLightweight_1_1PoolConfig.html#a82b19e524cdb6dc43c0ec8aab3201e6f',1,'Lightweight::PoolConfig::growthStrategy']]],
+  ['guid_50',['Guid',['../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2ac195f641dd597766b98e4ffa9e2f0e75',1,'Lightweight::RowArrayCursor']]]
 ];
