@@ -271,8 +271,8 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches BINARY/VARBINARY as SqlBina
     SECTION("the accessor returns the same payload")
     {
         auto const viaAccessor = v.TryGetBinary();
-        REQUIRE(viaAccessor.has_value());
-        CHECK(*viaAccessor == bytes);
+        CHECK(viaAccessor.has_value());
+        CHECK(viaAccessor.value_or(SqlBinary {}) == bytes);
     }
 }
 
@@ -307,8 +307,8 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant round-trips a binary column back in
         SqlVariant v;
         REQUIRE(cursor.GetColumn(1, &v));
         auto const payload = v.TryGetBinary();
-        REQUIRE(payload.has_value());
-        seen.emplace_back(*payload);
+        CHECK(payload.has_value());
+        seen.emplace_back(payload.value_or(SqlBinary {}));
     }
 
     REQUIRE(seen.size() == 2);
@@ -496,7 +496,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches DECIMAL columns by scale", 
     // 99.50 arrived as 99 and 0.123456 as 0. Reading the value as an exact decimal literal
     // removes both that truncation and the double rounding that followed it.
     auto const exact = [](SqlVariant const& v) {
-        return v.TryGetNumeric().value().ToString();
+        return v.TryGetNumeric().value_or(SqlDynamicNumeric {}).ToString();
     };
 
     CHECK(exact(v1) == "7.5");
@@ -509,9 +509,10 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches DECIMAL columns by scale", 
     CHECK(exact(v8) == "0.12345678");
 
     // The unscaled integer is the exact carrier; ToDouble stays available as an approximation.
-    CHECK(v2.TryGetNumeric().value().unscaledValue == 9950);
-    CHECK(v2.TryGetNumeric().value().scale == 2);
-    CHECK_THAT(v2.TryGetNumeric().value().ToDouble(), Catch::Matchers::WithinAbs(99.50, 1e-6));
+    auto const exactV2 = v2.TryGetNumeric().value_or(SqlDynamicNumeric {});
+    CHECK(exactV2.unscaledValue == 9950);
+    CHECK(exactV2.scale == 2);
+    CHECK_THAT(exactV2.ToDouble(), Catch::Matchers::WithinAbs(99.50, 1e-6));
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlVariant round-trips a money column without losing cents", "[SqlVariant]")
@@ -536,11 +537,12 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant round-trips a money column without 
         REQUIRE(cursor.GetColumn(1, &readBack));
     }
 
-    auto const exact = readBack.TryGetNumeric();
-    REQUIRE(exact.has_value());
-    CHECK(exact.value().unscaledValue == 92233720368547LL);
-    CHECK(exact.value().scale == 4);
-    CHECK(exact.value().ToString() == "9223372036.8547");
+    auto const maybeExact = readBack.TryGetNumeric();
+    CHECK(maybeExact.has_value());
+    auto const exact = maybeExact.value_or(SqlDynamicNumeric {});
+    CHECK(exact.unscaledValue == 92233720368547LL);
+    CHECK(exact.scale == 4);
+    CHECK(exact.ToString() == "9223372036.8547");
 
     // Writing the fetched variant back must preserve every digit as well.
     stmt.Prepare(R"(INSERT INTO "Wallet" ("amount") VALUES (?))");
@@ -552,7 +554,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant round-trips a money column without 
     {
         SqlVariant v;
         REQUIRE(cursor.GetColumn(1, &v));
-        seen.emplace_back(v.TryGetNumeric().value().ToString());
+        seen.emplace_back(v.TryGetNumeric().value_or(SqlDynamicNumeric {}).ToString());
     }
 
     REQUIRE(seen.size() == 2);
@@ -794,10 +796,11 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches DECIMAL with a deep scale",
     // Exact on every backend, MS SQL Server included. This assertion previously had to be skipped
     // there: the arm fetched SQL_C_NUMERIC without publishing the column's scale on the descriptor,
     // and that driver answers such a request at scale 0.
-    auto const exact = deep.TryGetNumeric();
-    REQUIRE(exact.has_value());
-    CHECK(exact.value().unscaledValue == 123456789);
-    CHECK(exact.value().scale == 9);
-    CHECK(exact.value().ToString() == "0.123456789");
-    CHECK_THAT(exact.value().ToDouble(), Catch::Matchers::WithinAbs(0.123456789, 1e-9));
+    auto const maybeExact = deep.TryGetNumeric();
+    CHECK(maybeExact.has_value());
+    auto const exact = maybeExact.value_or(SqlDynamicNumeric {});
+    CHECK(exact.unscaledValue == 123456789);
+    CHECK(exact.scale == 9);
+    CHECK(exact.ToString() == "0.123456789");
+    CHECK_THAT(exact.ToDouble(), Catch::Matchers::WithinAbs(0.123456789, 1e-9));
 }

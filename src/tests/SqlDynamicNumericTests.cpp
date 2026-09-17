@@ -15,64 +15,73 @@
 
 using namespace Lightweight;
 
+namespace
+{
+
+/// Parses and unwraps in one step, asserting the parse succeeded.
+///
+/// Returning the value rather than the optional keeps bugprone-unchecked-optional-access satisfied
+/// without wrapping every assertion in an `if (x.has_value())`; a failed parse yields a defaulted
+/// value, which no assertion below accepts.
+[[nodiscard]] SqlDynamicNumeric Parsed(std::string_view text, std::uint8_t precision, std::uint8_t scale)
+{
+    auto const parsed = SqlDynamicNumeric::FromString(text, precision, scale);
+    CHECK(parsed.has_value());
+    return parsed.value_or(SqlDynamicNumeric {});
+}
+
+} // namespace
+
 TEST_CASE("SqlDynamicNumeric::FromString parses plain decimal literals", "[SqlDynamicNumeric]")
 {
     SECTION("integral literal scaled up to the column scale")
     {
-        auto const value = SqlDynamicNumeric::FromString("7", 19, 4);
-        REQUIRE(value.has_value());
-        CHECK(value.value().unscaledValue == 70000);
-        CHECK(value.value().scale == 4);
-        CHECK(value.value().precision == 19);
+        auto const value = Parsed("7", 19, 4);
+        CHECK(value.unscaledValue == 70000);
+        CHECK(value.scale == 4);
+        CHECK(value.precision == 19);
     }
 
     SECTION("fractional literal with fewer digits than the scale")
     {
-        auto const value = SqlDynamicNumeric::FromString("1.5", 19, 4);
-        REQUIRE(value.has_value());
-        CHECK(value.value().unscaledValue == 15000);
+        auto const value = Parsed("1.5", 19, 4);
+        CHECK(value.unscaledValue == 15000);
     }
 
     SECTION("fractional literal filling the scale exactly")
     {
-        auto const value = SqlDynamicNumeric::FromString("99.5000", 19, 4);
-        REQUIRE(value.has_value());
-        CHECK(value.value().unscaledValue == 995000);
+        auto const value = Parsed("99.5000", 19, 4);
+        CHECK(value.unscaledValue == 995000);
     }
 
     SECTION("negative literal")
     {
-        auto const value = SqlDynamicNumeric::FromString("-12.34", 19, 2);
-        REQUIRE(value.has_value());
-        CHECK(value.value().unscaledValue == -1234);
+        auto const value = Parsed("-12.34", 19, 2);
+        CHECK(value.unscaledValue == -1234);
     }
 
     SECTION("explicit plus sign")
     {
-        auto const value = SqlDynamicNumeric::FromString("+12.34", 19, 2);
-        REQUIRE(value.has_value());
-        CHECK(value.value().unscaledValue == 1234);
+        auto const value = Parsed("+12.34", 19, 2);
+        CHECK(value.unscaledValue == 1234);
     }
 
     SECTION("leading decimal point")
     {
-        auto const value = SqlDynamicNumeric::FromString(".5", 19, 2);
-        REQUIRE(value.has_value());
-        CHECK(value.value().unscaledValue == 50);
+        auto const value = Parsed(".5", 19, 2);
+        CHECK(value.unscaledValue == 50);
     }
 
     SECTION("surrounding whitespace is ignored")
     {
-        auto const value = SqlDynamicNumeric::FromString("  42.25  ", 19, 2);
-        REQUIRE(value.has_value());
-        CHECK(value.value().unscaledValue == 4225);
+        auto const value = Parsed("  42.25  ", 19, 2);
+        CHECK(value.unscaledValue == 4225);
     }
 
     SECTION("zero at scale 0")
     {
-        auto const value = SqlDynamicNumeric::FromString("0", 19, 0);
-        REQUIRE(value.has_value());
-        CHECK(value.value().unscaledValue == 0);
+        auto const value = Parsed("0", 19, 0);
+        CHECK(value.unscaledValue == 0);
     }
 }
 
@@ -118,10 +127,9 @@ TEST_CASE("SqlDynamicNumeric keeps precision a double would lose", "[SqlDynamicN
     // A DECIMAL(19, 4) money value beyond the 2^53 exactly-representable range of a double.
     // Reading this column as double — what SqlVariant did before — cannot return it unchanged.
     constexpr auto exactCents = std::int64_t { 92233720368547 };
-    auto const value = SqlDynamicNumeric::FromString("9223372036.8547", 19, 4);
-    REQUIRE(value.has_value());
-    CHECK(value.value().unscaledValue == exactCents);
-    CHECK(value.value().ToString() == "9223372036.8547");
+    auto const value = Parsed("9223372036.8547", 19, 4);
+    CHECK(value.unscaledValue == exactCents);
+    CHECK(value.ToString() == "9223372036.8547");
 }
 
 TEST_CASE("SqlDynamicNumeric compares by mathematical value, not representation", "[SqlDynamicNumeric]")
@@ -241,8 +249,8 @@ TEST_CASE("SqlVariant accessors degrade instead of aborting on the new alternati
         CHECK(v.ValueOr<std::string>({}) == "ABC");
         CHECK(v.Get<std::string>() == "ABC");
         auto const view = v.TryGetStringView();
-        REQUIRE(view.has_value());
-        CHECK(view.value() == "ABC");
+        CHECK(view.has_value());
+        CHECK(view.value_or(std::string_view {}) == "ABC");
     }
 
     SECTION("asking for an alternative the variant does not hold yields the fallback, not a crash")

@@ -134,19 +134,22 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadTable describes a single table"
     auto stmt = SqlStatement {};
     CreateOrdersAndItemsSchema(stmt);
 
-    auto const table = SqlSchema::ReadTable(
-        stmt, SqlSchema::FullyQualifiedTableName { .catalog = stmt.Connection().DatabaseName(), .table = "OrderItems" });
+    auto const described =
+        SqlSchema::ReadTable(stmt,
+                             SqlSchema::FullyQualifiedTableName {
+                                 .catalog = stmt.Connection().DatabaseName(), .schema = "", .table = "OrderItems" });
 
-    REQUIRE(table.has_value());
-    CHECK(table.value().name == "OrderItems");
+    CHECK(described.has_value());
+    auto const table = described.value_or(SqlSchema::Table {});
+    CHECK(table.name == "OrderItems");
 
-    auto const columnNames = table.value().columns | std::views::transform(&SqlSchema::Column::name);
+    auto const columnNames = table.columns | std::views::transform(&SqlSchema::Column::name);
     CHECK(std::ranges::contains(columnNames, "ItemID"));
     CHECK(std::ranges::contains(columnNames, "OrderID"));
 
-    CHECK(std::ranges::contains(table.value().primaryKeys, "ItemID"));
-    CHECK(table.value().foreignKeys.size() == 1);
-    CHECK(table.value().foreignKeys.front().foreignKey.columns == std::vector<std::string> { "OrderID" });
+    CHECK(std::ranges::contains(table.primaryKeys, "ItemID"));
+    CHECK(table.foreignKeys.size() == 1);
+    CHECK(table.foreignKeys.front().foreignKey.columns == std::vector<std::string> { "OrderID" });
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadTable agrees with ReadAllTables for the same table", "[SqlSchema]")
@@ -159,21 +162,22 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadTable agrees with ReadAllTables
     auto const fromAll = std::ranges::find(allTables, "OrderItems", &SqlSchema::Table::name);
     REQUIRE(fromAll != allTables.end());
 
-    auto const single =
-        SqlSchema::ReadTable(stmt, SqlSchema::FullyQualifiedTableName { .catalog = database, .table = "OrderItems" });
-    REQUIRE(single.has_value());
+    auto const single = SqlSchema::ReadTable(
+        stmt, SqlSchema::FullyQualifiedTableName { .catalog = database, .schema = "", .table = "OrderItems" });
+    CHECK(single.has_value());
+    auto const described = single.value_or(SqlSchema::Table {});
 
     // Both paths share ReadOneTableLegacy, so the descriptions must not diverge. Comparing the
     // fields individually rather than just their sizes is deliberate: the foreign-key table-name
     // casing fixup and the reported schema are exactly the parts that can silently drift, and a
     // size-only comparison cannot see either.
-    CHECK(single.value().name == fromAll->name);
-    CHECK(single.value().schema == fromAll->schema);
-    CHECK(single.value().primaryKeys == fromAll->primaryKeys);
-    CHECK(single.value().indexes.size() == fromAll->indexes.size());
+    CHECK(described.name == fromAll->name);
+    CHECK(described.schema == fromAll->schema);
+    CHECK(described.primaryKeys == fromAll->primaryKeys);
+    CHECK(described.indexes.size() == fromAll->indexes.size());
 
-    REQUIRE(single.value().columns.size() == fromAll->columns.size());
-    for (auto const& [lhs, rhs]: std::views::zip(single.value().columns, fromAll->columns))
+    REQUIRE(described.columns.size() == fromAll->columns.size());
+    for (auto const& [lhs, rhs]: std::views::zip(described.columns, fromAll->columns))
     {
         CHECK(lhs.name == rhs.name);
         CHECK(lhs.isNullable == rhs.isNullable);
@@ -181,8 +185,8 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadTable agrees with ReadAllTables
         CHECK(lhs.isForeignKey == rhs.isForeignKey);
     }
 
-    REQUIRE(single.value().foreignKeys.size() == fromAll->foreignKeys.size());
-    for (auto const& [lhs, rhs]: std::views::zip(single.value().foreignKeys, fromAll->foreignKeys))
+    REQUIRE(described.foreignKeys.size() == fromAll->foreignKeys.size());
+    for (auto const& [lhs, rhs]: std::views::zip(described.foreignKeys, fromAll->foreignKeys))
     {
         // The referenced table name must carry the catalog's own casing in both paths; the SQLite
         // driver reports it lower-cased, and only the fixup restores it.
@@ -198,14 +202,17 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadTable restores the referenced t
     auto stmt = SqlStatement {};
     CreateOrdersAndItemsSchema(stmt);
 
-    auto const single = SqlSchema::ReadTable(
-        stmt, SqlSchema::FullyQualifiedTableName { .catalog = stmt.Connection().DatabaseName(), .table = "OrderItems" });
-    REQUIRE(single.has_value());
-    REQUIRE(single.value().foreignKeys.size() == 1);
+    auto const single =
+        SqlSchema::ReadTable(stmt,
+                             SqlSchema::FullyQualifiedTableName {
+                                 .catalog = stmt.Connection().DatabaseName(), .schema = "", .table = "OrderItems" });
+    CHECK(single.has_value());
+    auto const described = single.value_or(SqlSchema::Table {});
+    REQUIRE(described.foreignKeys.size() == 1);
 
     // "Orders", not "orders" — some drivers report the referenced name lower-cased, and a consumer
     // generating DDL from it would otherwise reference a table that does not exist.
-    CHECK(single.value().foreignKeys.front().primaryKey.table.table == "Orders");
+    CHECK(described.foreignKeys.front().primaryKey.table.table == "Orders");
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadTable returns nullopt for a table that does not exist", "[SqlSchema]")
@@ -213,9 +220,10 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadTable returns nullopt for a tab
     auto stmt = SqlStatement {};
     CreateOrdersAndItemsSchema(stmt);
 
-    auto const missing = SqlSchema::ReadTable(
-        stmt,
-        SqlSchema::FullyQualifiedTableName { .catalog = stmt.Connection().DatabaseName(), .table = "NoSuchTable_5f3a91" });
+    auto const missing =
+        SqlSchema::ReadTable(stmt,
+                             SqlSchema::FullyQualifiedTableName {
+                                 .catalog = stmt.Connection().DatabaseName(), .schema = "", .table = "NoSuchTable_5f3a91" });
     CHECK_FALSE(missing.has_value());
 }
 
@@ -710,9 +718,10 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlSchema does not carry a foreign key onto th
 
     SECTION("through ReadTable")
     {
-        auto const table = SqlSchema::ReadTable(stmt, SqlSchema::FullyQualifiedTableName { .table = "FkOrder" });
-        REQUIRE(table.has_value());
-        assertNoPhantomForeignKey(table.value());
+        auto const described = SqlSchema::ReadTable(
+            stmt, SqlSchema::FullyQualifiedTableName { .catalog = "", .schema = "", .table = "FkOrder" });
+        CHECK(described.has_value());
+        assertNoPhantomForeignKey(described.value_or(SqlSchema::Table {}));
     }
 
     SECTION("and identically through ReadAllTables")
