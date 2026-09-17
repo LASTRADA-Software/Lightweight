@@ -1,5 +1,6 @@
 var NAVTREEINDEX4 =
 {
+"d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html#a05dd8547017c74830846316c54a1a415":[19,7,4,2],
 "d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html#a1ac8a6b73ea294f3a7bee66b97feb2c1":[19,7,4,0],
 "d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html#a5ae7285c2d9fe56478bbd53631e5fb27":[19,7,4,4],
 "d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html#aad711e9003b262ff1dc9e576dd8e4ef7":[19,7,4,1],
@@ -248,6 +249,5 @@ var NAVTREEINDEX4 =
 "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a92351f3189fe1adade98ccec8d21a6b2":[21,0,0,2,10,5],
 "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a9de53272af6d3db165c4f8964223d8a1":[21,0,0,2,10,2],
 "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ac5078f37747a5a12b4d3d7e8df8b7595":[21,0,0,2,10,4],
-"d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ad0650ea29db5c33bcebf5af75b9be9d8":[21,0,0,2,10,1],
-"d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ad1aedd312e0a7ea569f6d9ac712a39e6":[21,0,0,2,10,3]
+"d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ad0650ea29db5c33bcebf5af75b9be9d8":[21,0,0,2,10,1]
 };

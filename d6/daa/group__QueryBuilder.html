@@ -211,6 +211,9 @@ Functions</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
 Variables</h2></td></tr>
+<tr class="memitem:gaf5129886f9f25ac627e908d6ce38406b" id="r_gaf5129886f9f25ac627e908d6ce38406b"><td class="memItemLeft" align="right" valign="top">constexpr std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/daa/group__QueryBuilder.html#gaf5129886f9f25ac627e908d6ce38406b">Lightweight::SqlMaxBoundSetSize</a> = 2000</td></tr>
+<tr class="memdesc:gaf5129886f9f25ac627e908d6ce38406b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Largest IN-set that WhereIn passes as bound parameters.  <br /></td></tr>
+<tr class="separator:gaf5129886f9f25ac627e908d6ce38406b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaeba5ba4ebe64ce27d81a82bdf1ea11d7" id="r_gaeba5ba4ebe64ce27d81a82bdf1ea11d7"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
 <tr class="memitem:gaeba5ba4ebe64ce27d81a82bdf1ea11d7"><td class="memTemplItemLeft" align="right" valign="top">constexpr auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d6/daa/group__QueryBuilder.html#gaeba5ba4ebe64ce27d81a82bdf1ea11d7">Lightweight::SqlColumnTypeDefinitionOf</a> = detail::SqlColumnTypeDefinitionOf&lt;T&gt;::value</td></tr>
 <tr class="memdesc:gaeba5ba4ebe64ce27d81a82bdf1ea11d7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a SQL column type definition of T.  <br /></td></tr>
@@ -394,6 +397,33 @@ Variables</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Variable Documentation</h2>
+<a id="gaf5129886f9f25ac627e908d6ce38406b" name="gaf5129886f9f25ac627e908d6ce38406b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaf5129886f9f25ac627e908d6ce38406b">&#9670;&#160;</a></span>SqlMaxBoundSetSize</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr std::size_t Lightweight::SqlMaxBoundSetSize = 2000</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Largest IN-set that WhereIn passes as bound parameters. </p>
+<p>Beyond this the set is written into the SQL text as literals, which is what WhereIn did before it learned to bind. Drivers cap how many parameters one statement may carry &ndash; MS SQL Server refuses more than 2100 with "07002 COUNT field incorrect" &ndash; and a caller filtering on a few thousand keys would otherwise build a statement no driver accepts. The margin below that cap leaves room for the parameters the rest of the statement contributes. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00804">804</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+
+</div>
+</div>
 <a id="gaeba5ba4ebe64ce27d81a82bdf1ea11d7" name="gaeba5ba4ebe64ce27d81a82bdf1ea11d7"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#gaeba5ba4ebe64ce27d81a82bdf1ea11d7">&#9670;&#160;</a></span>SqlColumnTypeDefinitionOf</h2>
 
