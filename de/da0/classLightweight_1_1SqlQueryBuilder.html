@@ -135,9 +135,7 @@ LIGHTWEIGHT_API SqlLastInsertIdQuery&#160;</td><td class="memItemRight" valign="
 <tr class="separator:a8091e75095d65f0d5b3bab9b92b5b670"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:adeb820498dd1bc9a5c575244e1bdf853" id="r_adeb820498dd1bc9a5c575244e1bdf853"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API SqlUpdateQueryBuilder&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html#adeb820498dd1bc9a5c575244e1bdf853">Update</a> (std::vector&lt; <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html">SqlVariant</a> &gt; *boundInputs=nullptr) noexcept</td></tr>
 <tr class="separator:adeb820498dd1bc9a5c575244e1bdf853"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4304109a0852dc27b6fe864389a71777" id="r_a4304109a0852dc27b6fe864389a71777"><td class="memItemLeft" align="right" valign="top"><a id="a4304109a0852dc27b6fe864389a71777" name="a4304109a0852dc27b6fe864389a71777"></a>
-LIGHTWEIGHT_API <a class="el" href="../../d1/d57/classLightweight_1_1SqlDeleteQueryBuilder.html">SqlDeleteQueryBuilder</a>&#160;</td><td class="memItemRight" valign="bottom"><b>Delete</b> (std::vector&lt; <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html">SqlVariant</a> &gt; *boundInputs=nullptr) noexcept</td></tr>
-<tr class="memdesc:a4304109a0852dc27b6fe864389a71777"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initiates DELETE query building. <br /></td></tr>
+<tr class="memitem:a4304109a0852dc27b6fe864389a71777" id="r_a4304109a0852dc27b6fe864389a71777"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d1/d57/classLightweight_1_1SqlDeleteQueryBuilder.html">SqlDeleteQueryBuilder</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html#a4304109a0852dc27b6fe864389a71777">Delete</a> (std::vector&lt; <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html">SqlVariant</a> &gt; *boundInputs=nullptr) noexcept</td></tr>
 <tr class="separator:a4304109a0852dc27b6fe864389a71777"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa69bce960ab6b67f3a39750799754c4e" id="r_aa69bce960ab6b67f3a39750799754c4e"><td class="memItemLeft" align="right" valign="top"><a id="aa69bce960ab6b67f3a39750799754c4e" name="aa69bce960ab6b67f3a39750799754c4e"></a>
 LIGHTWEIGHT_API <a class="el" href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html">SqlMigrationQueryBuilder</a>&#160;</td><td class="memItemRight" valign="bottom"><b>Migration</b> ()</td></tr>
@@ -191,7 +189,7 @@ LIGHTWEIGHT_API <a class="el" href="../../d8/d65/classLightweight_1_1SqlMigratio
 
 <p>Constructs a new query builder for the given table. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../dc/dcc/SqlQuery_8hpp_source.html#l00101">101</a> of file <a class="el" href="../../dc/dcc/SqlQuery_8hpp_source.html">SqlQuery.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../dc/dcc/SqlQuery_8hpp_source.html#l00115">115</a> of file <a class="el" href="../../dc/dcc/SqlQuery_8hpp_source.html">SqlQuery.hpp</a>.</p>
 
 </div>
 </div>
@@ -322,7 +320,13 @@ template&lt;size_t N&gt; </div>
 </table>
 </div><div class="memdoc">
 <p>Initiates SELECT query building.</p>
-<p>Returns a <a class="el" href="../../d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html">SqlSelectQueryStarter</a> — a type that intentionally does not expose <code>All</code> / <code>First</code> / <code>Range</code>, so <code><a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html#a8091e75095d65f0d5b3bab9b92b5b670">Select()</a>.All()</code> and the equivalent <code>auto q = <a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html#a8091e75095d65f0d5b3bab9b92b5b670">Select()</a>; q.All();</code> (both empty-projection patterns) fail to compile. Add a column via <code>.Field(...)</code>, <code>.Fields(...)</code>, <code>.FieldAs(...)</code>, or <code>.Build([](auto&amp; q){ ... })</code> — each returns a <code><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html" title="Query builder for building SELECT ... queries.">SqlSelectQueryBuilder</a>&amp;</code> that exposes the finalizers. <code>.<a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102ae93f994f01c537c4e2f7d8528c3eb5e9" title="Number of enumerators; not an operation itself.">Count()</a></code> is exposed on the starter directly, since <code>SELECT COUNT(*)</code> is well-formed without an explicit field list. </p>
+<p>Returns a <a class="el" href="../../d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html">SqlSelectQueryStarter</a> — a type that intentionally does not expose <code>All</code> / <code>First</code> / <code>Range</code>, so <code><a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html#a8091e75095d65f0d5b3bab9b92b5b670">Select()</a>.All()</code> and the equivalent <code>auto q = <a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html#a8091e75095d65f0d5b3bab9b92b5b670">Select()</a>; q.All();</code> (both empty-projection patterns) fail to compile. Add a column via <code>.Field(...)</code>, <code>.Fields(...)</code>, <code>.FieldAs(...)</code>, or <code>.Build([](auto&amp; q){ ... })</code> — each returns a <code><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html" title="Query builder for building SELECT ... queries.">SqlSelectQueryBuilder</a>&amp;</code> that exposes the finalizers. <code>.<a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102ae93f994f01c537c4e2f7d8528c3eb5e9" title="Number of enumerators; not an operation itself.">Count()</a></code> is exposed on the starter directly, since <code>SELECT COUNT(*)</code> is well-formed without an explicit field list.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">boundInputs</td><td>Optional vector to store bound inputs. If provided, the WHERE values will be appended to this vector as parameter markers instead of being written into the query text, and the query must then be run via SqlStatement::ExecuteWithVariants(...) rather than <a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a85990d18cace92b043008dc0ef0c1b93" title="SQLExecDirect of a one-shot statement.">ExecuteDirect(...)</a>. See <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html" title="Query builder for building SELECT ... queries.">SqlSelectQueryBuilder</a>'s constructor for the lifetime and marker-count caveats. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 <p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02363">Lightweight::DataMapper::QuerySingle()</a>.</p>
 
@@ -360,6 +364,41 @@ template&lt;size_t N&gt; </div>
 </dl>
 
 <p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02165">Lightweight::DataMapper::Update()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02271">Lightweight::DataMapper::UpdateAll()</a>.</p>
+
+</div>
+</div>
+<a id="a4304109a0852dc27b6fe864389a71777" name="a4304109a0852dc27b6fe864389a71777"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4304109a0852dc27b6fe864389a71777">&#9670;&#160;</a></span>Delete()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../d1/d57/classLightweight_1_1SqlDeleteQueryBuilder.html">SqlDeleteQueryBuilder</a> Lightweight::SqlQueryBuilder::Delete </td>
+          <td>(</td>
+          <td class="paramtype">std::vector&lt; <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html">SqlVariant</a> &gt; *&#160;</td>
+          <td class="paramname"><em>boundInputs</em> = <code>nullptr</code></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Initiates DELETE query building.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">boundInputs</td><td>Optional vector to store bound inputs. If provided, the WHERE values will be appended to this vector as parameter markers instead of being written into the query text, and the query must then be run via SqlStatement::ExecuteWithVariants(...) rather than <a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a85990d18cace92b043008dc0ef0c1b93" title="SQLExecDirect of a one-shot statement.">ExecuteDirect(...)</a>. See <a class="el" href="../../d1/d57/classLightweight_1_1SqlDeleteQueryBuilder.html" title="Query builder for building DELETE FROM ... queries.">SqlDeleteQueryBuilder</a>'s constructor for the lifetime and marker-count caveats. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02307">Lightweight::DataMapper::Delete()</a>.</p>
 
 </div>
 </div>

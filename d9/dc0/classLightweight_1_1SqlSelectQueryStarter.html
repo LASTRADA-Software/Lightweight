@@ -284,7 +284,7 @@ Additional Inherited Members</h2></td></tr>
 <div class="line">    query.Field(columns[i].name);</div>
 <div class="line"><span class="keywordflow">return</span> query.All();</div>
 </div><!-- fragment --> 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00397">397</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00406">406</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a9b7346feef2c5cad0499feefe1a4260f" name="a9b7346feef2c5cad0499feefe1a4260f"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a9b7346feef2c5cad0499feefe1a4260f">&#9670;&#160;</a></span>SqlSelectQueryStarter()</h2>
@@ -340,12 +340,13 @@ Additional Inherited Members</h2></td></tr>
     <tr><td class="paramname">formatter</td><td>Dialect the query is written in. </td></tr>
     <tr><td class="paramname">table</td><td>Table to select from. </td></tr>
     <tr><td class="paramname">tableAlias</td><td>Alias for that table, empty for none. </td></tr>
-    <tr><td class="paramname">inputBindings</td><td>Receives the WHERE values as bound parameters instead of having them written into the query text; null keeps them inline. Must outlive the execution of the query built here.   </td></tr>
+    <tr><td class="paramname">inputBindings</td><td>Receives the WHERE values as bound parameters instead of having them written into the query text; null keeps them inline. Values are appended, never cleared. Execute the result with <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a3c5b640b862f0b9d30fc55e76f8f362f" title="Binds the given arguments to the prepared statement and executes it.">SqlStatement::ExecuteWithVariants()</a>, not <a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a85990d18cace92b043008dc0ef0c1b93" title="SQLExecDirect of a one-shot statement.">ExecuteDirect()</a>, which would leave the markers unbound. Both the vector and anything a stored std::string_view / std::u16string_view points at must outlive the execution, because the binder hands the driver that pointer directly. </td></tr>
   </table>
   </dd>
 </dl>
+<dl class="section note"><dt>Note</dt><dd>An explicit SqlWildcard emits its marker without recording a value here, and a <a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a2ddbde7303bed8c785b749667e49e028" title="Constructs or extends an WHERE/OR clause to test for a value, satisfying std::ranges::input_range.">WhereIn()</a> set larger than SqlMaxBoundSetSize falls back to inline literals; either makes the marker count differ from the vector size. A finalizer (<a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6b49922eb4ac9d74b7f67cb41d6fd111" title="Finalizes building the query as SELECT field names FROM ... query.">All()</a>, <a class="el" href="../../d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#af7d085eb90fabbec24d1493d0a4d725a" title="Empty-projection guard for the First finalizer — see All.">First()</a>, <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ab999c7e4572e60e907a06615d040bb2e">Count()</a>, <a class="el" href="../../d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#aecde81ddfa2e95f916a035eb5afe1e1f" title="Empty-projection guard for the Range finalizer — see All.">Range()</a>) moves the query out of the builder, so keep building only until the first one: a Where() issued afterwards still appends here while its marker is gone.   </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00406">406</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00415">415</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -380,7 +381,7 @@ template&lt;typename Self &gt; </div>
 <p>Empty-projection guard for the <code>All</code> finalizer. </p>
 <p>Instantiating this template emits a <code>static_assert</code> telling the caller to add a projection first. Calling <code><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6b49922eb4ac9d74b7f67cb41d6fd111" title="Finalizes building the query as SELECT field names FROM ... query.">All()</a></code> on a <code><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html" title="Query builder for building SELECT ... queries.">SqlSelectQueryBuilder</a>&amp;</code> returned by <code>Field(...)</code> / <code>Fields(...)</code> bypasses the shadow and reaches the real <code><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6b49922eb4ac9d74b7f67cb41d6fd111" title="Finalizes building the query as SELECT field names FROM ... query.">SqlSelectQueryBuilder::All()</a></code>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00421">421</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00430">430</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -423,7 +424,7 @@ template&lt;typename Self &gt; </div>
 
 <p>Empty-projection guard for the <code>First</code> finalizer — see <a class="el" href="../../d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#a854831226a9aefce1afeb1ad06f871f2">All</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00433">433</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00442">442</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -472,7 +473,7 @@ template&lt;typename Self &gt; </div>
 
 <p>Empty-projection guard for the <code>Range</code> finalizer — see <a class="el" href="../../d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#a854831226a9aefce1afeb1ad06f871f2">All</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00445">445</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00454">454</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -504,7 +505,7 @@ template&lt;typename Self &gt; </div>
 
 <p>State-preserving override: returns <code>Self&amp;&amp;</code>, so the starter identity survives the call and the <code>All</code> / <code>First</code> / <code>Range</code> guards above keep their gate against <code>Select().Distinct().<a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6b49922eb4ac9d74b7f67cb41d6fd111" title="Finalizes building the query as SELECT field names FROM ... query.">All()</a></code>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00460">460</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00469">469</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>

@@ -326,12 +326,13 @@ LIGHTWEIGHT_API ComposedQuery&#160;</td><td class="memItemRight" valign="bottom"
     <tr><td class="paramname">formatter</td><td>Dialect the query is written in. </td></tr>
     <tr><td class="paramname">table</td><td>Table to select from. </td></tr>
     <tr><td class="paramname">tableAlias</td><td>Alias for that table, empty for none. </td></tr>
-    <tr><td class="paramname">inputBindings</td><td>Receives the WHERE values as bound parameters instead of having them written into the query text; null keeps them inline. Must outlive the execution of the query built here. </td></tr>
+    <tr><td class="paramname">inputBindings</td><td>Receives the WHERE values as bound parameters instead of having them written into the query text; null keeps them inline. Values are appended, never cleared. Execute the result with <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a3c5b640b862f0b9d30fc55e76f8f362f" title="Binds the given arguments to the prepared statement and executes it.">SqlStatement::ExecuteWithVariants()</a>, not <a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a85990d18cace92b043008dc0ef0c1b93" title="SQLExecDirect of a one-shot statement.">ExecuteDirect()</a>, which would leave the markers unbound. Both the vector and anything a stored std::string_view / std::u16string_view points at must outlive the execution, because the binder hands the driver that pointer directly. </td></tr>
   </table>
   </dd>
 </dl>
+<dl class="section note"><dt>Note</dt><dd>An explicit SqlWildcard emits its marker without recording a value here, and a <a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a2ddbde7303bed8c785b749667e49e028" title="Constructs or extends an WHERE/OR clause to test for a value, satisfying std::ranges::input_range.">WhereIn()</a> set larger than SqlMaxBoundSetSize falls back to inline literals; either makes the marker count differ from the vector size. A finalizer (<a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6b49922eb4ac9d74b7f67cb41d6fd111" title="Finalizes building the query as SELECT field names FROM ... query.">All()</a>, <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a51a14d7bdefcf68ab7dd44885607ca32" title="Finalizes building the query as SELECT TOP n field names FROM ... query.">First()</a>, <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ab999c7e4572e60e907a06615d040bb2e">Count()</a>, <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#af0bb9fac51166cdbd7346d78b668be09" title="Finalizes building the query as SELECT field names FROM ... query with a range.">Range()</a>) moves the query out of the builder, so keep building only until the first one: a Where() issued afterwards still appends here while its marker is gone. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00107">107</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00116">116</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -366,7 +367,7 @@ template&lt;typename... MoreFields&gt; </div>
 
 <p>Adds a sequence of columns to the SELECT clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00283">283</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00292">292</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -716,7 +717,7 @@ template&lt;typename... MoreFields&gt; </div>
 
 <p>Returns the search condition for the query. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00245">245</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00254">254</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -745,7 +746,7 @@ template&lt;typename... MoreFields&gt; </div>
 
 <p>Returns the SQL query formatter. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00253">253</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00262">262</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -777,7 +778,7 @@ template&lt;typename Callable &gt; </div>
 
 <p>Builds the query using a callable. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00306">306</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00315">315</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -808,7 +809,7 @@ template&lt;typename FirstRecord , typename... MoreRecords&gt; </div>
 
 <p>Adds fields from one or more record types to the SELECT clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00314">314</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00323">323</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00327">Lightweight::SqlQualifiedTableColumnName::tableName</a>.</p>
 

@@ -194,8 +194,20 @@ WHERE — a single condition</h2>
 <div class="line">    <span class="keyword">auto</span> firstName = cursor.GetColumn&lt;std::string&gt;(1);</div>
 <div class="line">    std::println(<span class="stringliteral">&quot;{}&quot;</span>, firstName);</div>
 <div class="line">}</div>
+</div><!-- fragment --><div class="fragment"><div class="line"><span class="comment">// Query builder — hand the WHERE value to the driver instead of writing it into the text.</span></div>
+<div class="line"><span class="comment">// Needed whenever the value must reach the database byte for byte (a narrow string in a</span></div>
+<div class="line"><span class="comment">// character set the driver does not read the statement in, for one).</span></div>
+<div class="line">std::vector&lt;SqlVariant&gt; bound;</div>
+<div class="line"><span class="keyword">auto</span> stmt = <a class="code hl_class" href="../../db/dad/classLightweight_1_1SqlStatement.html">SqlStatement</a> { dm.<a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#a34d2659a84a934d2c67c6b31f64a7d4a">Connection</a>() };</div>
+<div class="line">stmt.Prepare(dm.FromTable(<span class="stringliteral">&quot;Employees&quot;</span>).Select(&amp;bound).Field(<span class="stringliteral">&quot;lastName&quot;</span>).Where(<span class="stringliteral">&quot;salary&quot;</span>, <span class="stringliteral">&quot;&gt;=&quot;</span>, 55&#39;000).All());</div>
+<div class="line"><span class="keyword">auto</span> cursor = stmt.ExecuteWithVariants(bound);</div>
+<div class="line"><span class="keywordflow">while</span> (cursor.FetchRow())</div>
+<div class="line">    std::println(<span class="stringliteral">&quot;{}&quot;</span>, cursor.GetColumn&lt;std::string&gt;(1));</div>
 </div><!-- fragment --><blockquote class="doxtable">
 <p>&zwj;The two-argument <code>Where(column, value)</code> is shorthand for equality: <code>Where(FieldNameOf&lt;&amp;Employee::id&gt;, id)</code> emits <code>WHERE "id" = ?</code>. </p>
+</blockquote>
+<blockquote class="doxtable">
+<p>&zwj;<b>Passing a bindings vector changes how the query must be run.</b> <code>Select(&amp;bound)</code> and <code>Delete(&amp;bound)</code> emit <code>?</code> markers, so the query has to go through <code>Prepare()</code> + <code>ExecuteWithVariants(bound)</code>; <code>ExecuteDirect()</code> would leave the markers unbound and quietly return nothing. Values are <em>appended</em> to the vector, never cleared, and anything a stored <code>std::string_view</code> points at must outlive the execution. An explicit <code>SqlWildcard</code> and a <code>WhereIn</code> set larger than <code>SqlMaxBoundSetSize</code> are the two cases that still do not land in the vector — do not mix either with a bindings vector, or the marker count stops matching it. </p>
 </blockquote>
 <h2><a class="anchor" id="where--multiple-conditions-and--or"></a>
 WHERE — multiple conditions (AND / OR)</h2>
@@ -419,6 +431,11 @@ DELETE</h1>
 <div class="line">dm.Delete(employee);</div>
 </div><!-- fragment --><div class="fragment"><div class="line"><span class="comment">// Query builder</span></div>
 <div class="line"><span class="keyword">auto</span> query = dm.FromTable(<span class="stringliteral">&quot;Employees&quot;</span>).Delete().WhereIn(<span class="stringliteral">&quot;department_id&quot;</span>, std::vector { 1, 2, 3 });</div>
+</div><!-- fragment --><div class="fragment"><div class="line"><span class="comment">// Query builder — same, with the WHERE values bound rather than written into the text</span></div>
+<div class="line">std::vector&lt;SqlVariant&gt; bound;</div>
+<div class="line"><span class="keyword">auto</span> stmt = <a class="code hl_class" href="../../db/dad/classLightweight_1_1SqlStatement.html">SqlStatement</a> { dm.<a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#a34d2659a84a934d2c67c6b31f64a7d4a">Connection</a>() };</div>
+<div class="line">stmt.Prepare(dm.FromTable(<span class="stringliteral">&quot;Employees&quot;</span>).Delete(&amp;bound).WhereIn(<span class="stringliteral">&quot;department_id&quot;</span>, std::vector { 1, 2, 3 }));</div>
+<div class="line">std::ignore = stmt.ExecuteWithVariants(bound);</div>
 </div><!-- fragment --><hr  />
 <h1><a class="anchor" id="relationships"></a>
 Relationships</h1>

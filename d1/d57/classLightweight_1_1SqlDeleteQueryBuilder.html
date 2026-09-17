@@ -308,7 +308,7 @@ Public Member Functions</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Query builder for building DELETE FROM ... queries. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/dec/Delete_8hpp_source.html#l00015">15</a> of file <a class="el" href="../../d8/dec/Delete_8hpp_source.html">Delete.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/dec/Delete_8hpp_source.html#l00016">16</a> of file <a class="el" href="../../d8/dec/Delete_8hpp_source.html">Delete.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="aadbc1401950ba9d59f94dca2a55384af" name="aadbc1401950ba9d59f94dca2a55384af"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aadbc1401950ba9d59f94dca2a55384af">&#9670;&#160;</a></span>SqlDeleteQueryBuilder()</h2>
@@ -361,12 +361,13 @@ Public Member Functions</h2></td></tr>
     <tr><td class="paramname">formatter</td><td>Dialect the query is written in. </td></tr>
     <tr><td class="paramname">table</td><td>Table to delete from. </td></tr>
     <tr><td class="paramname">tableAlias</td><td>Alias for that table, empty for none. </td></tr>
-    <tr><td class="paramname">inputBindings</td><td>Receives the WHERE values as bound parameters instead of having them written into the query text; null keeps them inline. Must outlive the execution of the query built here. </td></tr>
+    <tr><td class="paramname">inputBindings</td><td>Receives the WHERE values as bound parameters instead of having them written into the query text; null keeps them inline. Values are appended, never cleared. Execute the result with <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a3c5b640b862f0b9d30fc55e76f8f362f" title="Binds the given arguments to the prepared statement and executes it.">SqlStatement::ExecuteWithVariants()</a>, not <a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a85990d18cace92b043008dc0ef0c1b93" title="SQLExecDirect of a one-shot statement.">ExecuteDirect()</a>, which would leave the markers unbound. Both the vector and anything a stored std::string_view / std::u16string_view points at must outlive the execution, because the binder hands the driver that pointer directly. </td></tr>
   </table>
   </dd>
 </dl>
+<dl class="section note"><dt>Note</dt><dd>An explicit SqlWildcard emits its marker without recording a value here, and a <a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a2ddbde7303bed8c785b749667e49e028" title="Constructs or extends an WHERE/OR clause to test for a value, satisfying std::ranges::input_range.">WhereIn()</a> set larger than SqlMaxBoundSetSize falls back to inline literals; either makes the marker count differ from the vector size. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/dec/Delete_8hpp_source.html#l00026">26</a> of file <a class="el" href="../../d8/dec/Delete_8hpp_source.html">Delete.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/dec/Delete_8hpp_source.html#l00034">34</a> of file <a class="el" href="../../d8/dec/Delete_8hpp_source.html">Delete.hpp</a>.</p>
 
 </div>
 </div>
@@ -396,7 +397,7 @@ Public Member Functions</h2></td></tr>
 
 <p>Returns the search condition for the query. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/dec/Delete_8hpp_source.html#l00039">39</a> of file <a class="el" href="../../d8/dec/Delete_8hpp_source.html">Delete.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/dec/Delete_8hpp_source.html#l00047">47</a> of file <a class="el" href="../../d8/dec/Delete_8hpp_source.html">Delete.hpp</a>.</p>
 
 </div>
 </div>
@@ -425,7 +426,7 @@ Public Member Functions</h2></td></tr>
 
 <p>Returns the SQL query formatter. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/dec/Delete_8hpp_source.html#l00046">46</a> of file <a class="el" href="../../d8/dec/Delete_8hpp_source.html">Delete.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/dec/Delete_8hpp_source.html#l00054">54</a> of file <a class="el" href="../../d8/dec/Delete_8hpp_source.html">Delete.hpp</a>.</p>
 
 </div>
 </div>
@@ -454,7 +455,7 @@ Public Member Functions</h2></td></tr>
 
 <p>Finalizes building the query as DELETE FROM ... query. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/dec/Delete_8hpp_source.html#l00060">60</a> of file <a class="el" href="../../d8/dec/Delete_8hpp_source.html">Delete.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/dec/Delete_8hpp_source.html#l00068">68</a> of file <a class="el" href="../../d8/dec/Delete_8hpp_source.html">Delete.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a747bb2c6c82c186199ebfc698e4d5c3a">Lightweight::SqlQueryFormatter::Delete()</a>.</p>
 
