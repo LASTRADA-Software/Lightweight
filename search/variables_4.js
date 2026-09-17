@@ -12,8 +12,7 @@ var searchData=
   ['description_9',['description',['../dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#aede084084d8c094a9f4e08d86b8f13f8',1,'Lightweight::SqlMigration::MigrationMetadata']]],
   ['dialectdependanttypestring_10',['dialectDependantTypeString',['../d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a79e8994c6ba75988730278e4e2d3db73',1,'Lightweight::SqlSchema::Column']]],
   ['digestsize_11',['DigestSize',['../d2/d43/classLightweight_1_1SqlBackup_1_1Sha256.html#aa43767809a7b035b251b75085fdc91f5',1,'Lightweight::SqlBackup::Sha256']]],
-  ['directreuses_12',['directReuses',['../d7/dd3/structLightweight_1_1SqlPreparedStatementCache_1_1Statistics.html#a919a87788cedd2b83f983666d284b704',1,'Lightweight::SqlPreparedStatementCache::Statistics']]],
-  ['discarded_13',['discarded',['../da/da6/structLightweight_1_1SqlPoolStatistics.html#a18c2c21391e5400271d03e1676e75a45',1,'Lightweight::SqlPoolStatistics']]],
-  ['droppedtables_14',['droppedTables',['../d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#abfd242340ca076711738bf65659e5081',1,'Lightweight::SqlMigration::MigrationManager::HardResetResult']]],
-  ['dynamiccapacity_15',['dynamiccapacity',['../d6/db6/classLightweight_1_1SqlDynamicBinary.html#ababc7f508bb66c88f96847906bc6fff3',1,'Lightweight::SqlDynamicBinary::DynamicCapacity'],['../d7/d9a/classLightweight_1_1SqlDynamicString.html#a02df0e015d38e31d7226dd74de0d30a6',1,'Lightweight::SqlDynamicString::DynamicCapacity']]]
+  ['discarded_12',['discarded',['../da/da6/structLightweight_1_1SqlPoolStatistics.html#a18c2c21391e5400271d03e1676e75a45',1,'Lightweight::SqlPoolStatistics']]],
+  ['droppedtables_13',['droppedTables',['../d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#abfd242340ca076711738bf65659e5081',1,'Lightweight::SqlMigration::MigrationManager::HardResetResult']]],
+  ['dynamiccapacity_14',['dynamiccapacity',['../d6/db6/classLightweight_1_1SqlDynamicBinary.html#ababc7f508bb66c88f96847906bc6fff3',1,'Lightweight::SqlDynamicBinary::DynamicCapacity'],['../d7/d9a/classLightweight_1_1SqlDynamicString.html#a02df0e015d38e31d7226dd74de0d30a6',1,'Lightweight::SqlDynamicString::DynamicCapacity']]]
 ];
