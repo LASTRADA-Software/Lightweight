@@ -1,6 +1,5 @@
 var NAVTREEINDEX7 =
 {
-"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#rollback-timestamp":[9,3,6],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#rollback-to-release-version":[9,3,9],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#rollback-to-timestamp":[9,3,7],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#see-also-2":[9,9],
@@ -249,5 +248,6 @@ var NAVTREEINDEX7 =
 "df/d49/classLightweight_1_1SqlRetryPolicy.html#af205f1a6c81ed8ecea6abd51214d059c":[19,9,6,2],
 "df/d49/classLightweight_1_1SqlRetryPolicy.html#af7d7298bf71cb5196aafc25a9d015a8a":[19,9,6,8],
 "df/d49/classLightweight_1_1SqlRetryPolicy.html#afada65643617d53abb16d4352e99f604":[19,9,6,4],
-"df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html":[19,6,13]
+"df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html":[19,6,13],
+"df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html#a0ccfea4a72de1785d7c55b598ce18bfa":[19,6,13,3]
 };
