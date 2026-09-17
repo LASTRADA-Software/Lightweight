@@ -9,9 +9,9 @@ var group__QueryBuilder =
       [ "FromSchemaTable", "de/da0/classLightweight_1_1SqlQueryBuilder.html#a06617b326815751e2e22a114b3f0300e", null ],
       [ "Insert", "de/da0/classLightweight_1_1SqlQueryBuilder.html#a779ace23d8860b4c47ba61750a068065", null ],
       [ "LastInsertId", "de/da0/classLightweight_1_1SqlQueryBuilder.html#ad9d7e0290e84a1b8560e32a9f37d5a1f", null ],
-      [ "Select", "de/da0/classLightweight_1_1SqlQueryBuilder.html#a4a0f2b9056d0afaa3e6ae3fbd3f55516", null ],
+      [ "Select", "de/da0/classLightweight_1_1SqlQueryBuilder.html#a8091e75095d65f0d5b3bab9b92b5b670", null ],
       [ "Update", "de/da0/classLightweight_1_1SqlQueryBuilder.html#adeb820498dd1bc9a5c575244e1bdf853", null ],
-      [ "Delete", "de/da0/classLightweight_1_1SqlQueryBuilder.html#a9220ec49d875faa49983e9a53a507ef3", null ],
+      [ "Delete", "de/da0/classLightweight_1_1SqlQueryBuilder.html#a4304109a0852dc27b6fe864389a71777", null ],
       [ "Migration", "de/da0/classLightweight_1_1SqlQueryBuilder.html#aa69bce960ab6b67f3a39750799754c4e", null ]
     ] ],
     [ "Lightweight::SqlWildcardType", "d2/d74/structLightweight_1_1SqlWildcardType.html", null ],
@@ -79,7 +79,7 @@ var group__QueryBuilder =
       [ "Join", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a8e7fe33501cc9bd570959f7e2ed5d0b0", null ]
     ] ],
     [ "Lightweight::SqlDeleteQueryBuilder", "d1/d57/classLightweight_1_1SqlDeleteQueryBuilder.html", [
-      [ "SqlDeleteQueryBuilder", "d1/d57/classLightweight_1_1SqlDeleteQueryBuilder.html#a8b05dc9f1620e01561ae67ff55c8e097", null ],
+      [ "SqlDeleteQueryBuilder", "d1/d57/classLightweight_1_1SqlDeleteQueryBuilder.html#aadbc1401950ba9d59f94dca2a55384af", null ],
       [ "SearchCondition", "d1/d57/classLightweight_1_1SqlDeleteQueryBuilder.html#a4d2fe9bcfa05056c2c2d006a64cfe46c", null ],
       [ "Formatter", "d1/d57/classLightweight_1_1SqlDeleteQueryBuilder.html#a52c0d64b37d9e5a5a7cbc4a6c5fefa69", null ],
       [ "ToSql", "d1/d57/classLightweight_1_1SqlDeleteQueryBuilder.html#ab49269646040f9515262e01cc59c1a4c", null ]

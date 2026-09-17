@@ -113,9 +113,8 @@ Inheritance diagram for Lightweight::SqlDeleteQueryBuilder:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a8b05dc9f1620e01561ae67ff55c8e097" id="r_a8b05dc9f1620e01561ae67ff55c8e097"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d57/classLightweight_1_1SqlDeleteQueryBuilder.html#a8b05dc9f1620e01561ae67ff55c8e097">SqlDeleteQueryBuilder</a> (<a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const &amp;formatter, std::string table, std::string tableAlias) noexcept</td></tr>
-<tr class="memdesc:a8b05dc9f1620e01561ae67ff55c8e097"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs a DELETE query builder.  <br /></td></tr>
-<tr class="separator:a8b05dc9f1620e01561ae67ff55c8e097"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aadbc1401950ba9d59f94dca2a55384af" id="r_aadbc1401950ba9d59f94dca2a55384af"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d57/classLightweight_1_1SqlDeleteQueryBuilder.html#aadbc1401950ba9d59f94dca2a55384af">SqlDeleteQueryBuilder</a> (<a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const &amp;formatter, std::string table, std::string tableAlias, std::vector&lt; <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html">SqlVariant</a> &gt; *inputBindings=nullptr) noexcept</td></tr>
+<tr class="separator:aadbc1401950ba9d59f94dca2a55384af"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4d2fe9bcfa05056c2c2d006a64cfe46c" id="r_a4d2fe9bcfa05056c2c2d006a64cfe46c"><td class="memItemLeft" align="right" valign="top">SqlSearchCondition &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d57/classLightweight_1_1SqlDeleteQueryBuilder.html#a4d2fe9bcfa05056c2c2d006a64cfe46c">SearchCondition</a> () noexcept</td></tr>
 <tr class="memdesc:a4d2fe9bcfa05056c2c2d006a64cfe46c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the search condition for the query.  <br /></td></tr>
 <tr class="separator:a4d2fe9bcfa05056c2c2d006a64cfe46c"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -311,8 +310,8 @@ Public Member Functions</h2></td></tr>
 
 <p class="definition">Definition at line <a class="el" href="../../d8/dec/Delete_8hpp_source.html#l00015">15</a> of file <a class="el" href="../../d8/dec/Delete_8hpp_source.html">Delete.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="a8b05dc9f1620e01561ae67ff55c8e097" name="a8b05dc9f1620e01561ae67ff55c8e097"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8b05dc9f1620e01561ae67ff55c8e097">&#9670;&#160;</a></span>SqlDeleteQueryBuilder()</h2>
+<a id="aadbc1401950ba9d59f94dca2a55384af" name="aadbc1401950ba9d59f94dca2a55384af"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aadbc1401950ba9d59f94dca2a55384af">&#9670;&#160;</a></span>SqlDeleteQueryBuilder()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -336,7 +335,13 @@ Public Member Functions</h2></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">std::string&#160;</td>
-          <td class="paramname"><em>tableAlias</em>&#160;</td>
+          <td class="paramname"><em>tableAlias</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::vector&lt; <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html">SqlVariant</a> &gt; *&#160;</td>
+          <td class="paramname"><em>inputBindings</em> = <code>nullptr</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -350,10 +355,18 @@ Public Member Functions</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>Constructs a DELETE query builder.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">formatter</td><td>Dialect the query is written in. </td></tr>
+    <tr><td class="paramname">table</td><td>Table to delete from. </td></tr>
+    <tr><td class="paramname">tableAlias</td><td>Alias for that table, empty for none. </td></tr>
+    <tr><td class="paramname">inputBindings</td><td>Receives the WHERE values as bound parameters instead of having them written into the query text; null keeps them inline. Must outlive the execution of the query built here. </td></tr>
+  </table>
+  </dd>
+</dl>
 
-<p>Constructs a DELETE query builder. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d8/dec/Delete_8hpp_source.html#l00019">19</a> of file <a class="el" href="../../d8/dec/Delete_8hpp_source.html">Delete.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/dec/Delete_8hpp_source.html#l00026">26</a> of file <a class="el" href="../../d8/dec/Delete_8hpp_source.html">Delete.hpp</a>.</p>
 
 </div>
 </div>
@@ -383,7 +396,7 @@ Public Member Functions</h2></td></tr>
 
 <p>Returns the search condition for the query. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/dec/Delete_8hpp_source.html#l00028">28</a> of file <a class="el" href="../../d8/dec/Delete_8hpp_source.html">Delete.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/dec/Delete_8hpp_source.html#l00039">39</a> of file <a class="el" href="../../d8/dec/Delete_8hpp_source.html">Delete.hpp</a>.</p>
 
 </div>
 </div>
@@ -412,7 +425,7 @@ Public Member Functions</h2></td></tr>
 
 <p>Returns the SQL query formatter. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/dec/Delete_8hpp_source.html#l00035">35</a> of file <a class="el" href="../../d8/dec/Delete_8hpp_source.html">Delete.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/dec/Delete_8hpp_source.html#l00046">46</a> of file <a class="el" href="../../d8/dec/Delete_8hpp_source.html">Delete.hpp</a>.</p>
 
 </div>
 </div>
@@ -441,7 +454,7 @@ Public Member Functions</h2></td></tr>
 
 <p>Finalizes building the query as DELETE FROM ... query. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/dec/Delete_8hpp_source.html#l00049">49</a> of file <a class="el" href="../../d8/dec/Delete_8hpp_source.html">Delete.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/dec/Delete_8hpp_source.html#l00060">60</a> of file <a class="el" href="../../d8/dec/Delete_8hpp_source.html">Delete.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a747bb2c6c82c186199ebfc698e4d5c3a">Lightweight::SqlQueryFormatter::Delete()</a>.</p>
 

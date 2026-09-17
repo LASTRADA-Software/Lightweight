@@ -120,9 +120,8 @@ Public Types</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a14d230b26b041223ba97cc6d04443a5d" id="r_a14d230b26b041223ba97cc6d04443a5d"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a14d230b26b041223ba97cc6d04443a5d">SqlSelectQueryBuilder</a> (<a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const &amp;formatter, std::string table, std::string tableAlias) noexcept</td></tr>
-<tr class="memdesc:a14d230b26b041223ba97cc6d04443a5d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs a SELECT query builder.  <br /></td></tr>
-<tr class="separator:a14d230b26b041223ba97cc6d04443a5d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab515cc8acf45c6c5a2b5775eca95deed" id="r_ab515cc8acf45c6c5a2b5775eca95deed"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ab515cc8acf45c6c5a2b5775eca95deed">SqlSelectQueryBuilder</a> (<a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const &amp;formatter, std::string table, std::string tableAlias, std::vector&lt; <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html">SqlVariant</a> &gt; *inputBindings=nullptr) noexcept</td></tr>
+<tr class="separator:ab515cc8acf45c6c5a2b5775eca95deed"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7baedc7ddf58b2b9b1beb1dbfae43c17" id="r_a7baedc7ddf58b2b9b1beb1dbfae43c17"><td class="memTemplParams" colspan="2">template&lt;typename... MoreFields&gt; </td></tr>
 <tr class="memitem:a7baedc7ddf58b2b9b1beb1dbfae43c17"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html">SqlSelectQueryBuilder</a> &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a7baedc7ddf58b2b9b1beb1dbfae43c17">Fields</a> (std::string_view const &amp;firstField, MoreFields &amp;&amp;... moreFields)</td></tr>
 <tr class="memdesc:a7baedc7ddf58b2b9b1beb1dbfae43c17"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds a sequence of columns to the SELECT clause.  <br /></td></tr>
@@ -250,7 +249,7 @@ LIGHTWEIGHT_API ComposedQuery&#160;</td><td class="memItemRight" valign="bottom"
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Query builder for building SELECT ... queries. </p>
-<p>Not constructed directly by user code; obtained by adding a projection (<code><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a></code> / <code>Fields</code> / <code>FieldAs</code> / <code>Build</code>) to a <a class="el" href="../../d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html">SqlSelectQueryStarter</a> — the type returned by <code><a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html#a4a0f2b9056d0afaa3e6ae3fbd3f55516">SqlQueryBuilder::Select()</a></code>. The starter intentionally hides the finalizers <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6b49922eb4ac9d74b7f67cb41d6fd111">All</a>, <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a51a14d7bdefcf68ab7dd44885607ca32">First</a>, and <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#af0bb9fac51166cdbd7346d78b668be09">Range</a> so that an empty <code>Select().<a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6b49922eb4ac9d74b7f67cb41d6fd111" title="Finalizes building the query as SELECT field names FROM ... query.">All()</a></code> (which would emit malformed <code>SELECT FROM "T"</code> SQL) fails at compile time; the gate is in the starter, not here.</p>
+<p>Not constructed directly by user code; obtained by adding a projection (<code><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a></code> / <code>Fields</code> / <code>FieldAs</code> / <code>Build</code>) to a <a class="el" href="../../d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html">SqlSelectQueryStarter</a> — the type returned by <code><a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html#a8091e75095d65f0d5b3bab9b92b5b670">SqlQueryBuilder::Select()</a></code>. The starter intentionally hides the finalizers <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6b49922eb4ac9d74b7f67cb41d6fd111">All</a>, <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a51a14d7bdefcf68ab7dd44885607ca32">First</a>, and <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#af0bb9fac51166cdbd7346d78b668be09">Range</a> so that an empty <code>Select().<a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6b49922eb4ac9d74b7f67cb41d6fd111" title="Finalizes building the query as SELECT field names FROM ... query.">All()</a></code> (which would emit malformed <code>SELECT FROM "T"</code> SQL) fails at compile time; the gate is in the starter, not here.</p>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html" title="API Entry point for building SQL queries.">SqlQueryBuilder</a> </dd>
 <dd>
 <a class="el" href="../../d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html" title="Compile-time gate for SELECT query construction.">SqlSelectQueryStarter</a> </dd></dl>
@@ -276,8 +275,8 @@ LIGHTWEIGHT_API ComposedQuery&#160;</td><td class="memItemRight" valign="bottom"
 </div>
 </div>
 <h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="a14d230b26b041223ba97cc6d04443a5d" name="a14d230b26b041223ba97cc6d04443a5d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a14d230b26b041223ba97cc6d04443a5d">&#9670;&#160;</a></span>SqlSelectQueryBuilder()</h2>
+<a id="ab515cc8acf45c6c5a2b5775eca95deed" name="ab515cc8acf45c6c5a2b5775eca95deed"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab515cc8acf45c6c5a2b5775eca95deed">&#9670;&#160;</a></span>SqlSelectQueryBuilder()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -301,7 +300,13 @@ LIGHTWEIGHT_API ComposedQuery&#160;</td><td class="memItemRight" valign="bottom"
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">std::string&#160;</td>
-          <td class="paramname"><em>tableAlias</em>&#160;</td>
+          <td class="paramname"><em>tableAlias</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::vector&lt; <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html">SqlVariant</a> &gt; *&#160;</td>
+          <td class="paramname"><em>inputBindings</em> = <code>nullptr</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -315,10 +320,18 @@ LIGHTWEIGHT_API ComposedQuery&#160;</td><td class="memItemRight" valign="bottom"
   </tr>
 </table>
 </div><div class="memdoc">
+<p>Constructs a SELECT query builder.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">formatter</td><td>Dialect the query is written in. </td></tr>
+    <tr><td class="paramname">table</td><td>Table to select from. </td></tr>
+    <tr><td class="paramname">tableAlias</td><td>Alias for that table, empty for none. </td></tr>
+    <tr><td class="paramname">inputBindings</td><td>Receives the WHERE values as bound parameters instead of having them written into the query text; null keeps them inline. Must outlive the execution of the query built here. </td></tr>
+  </table>
+  </dd>
+</dl>
 
-<p>Constructs a SELECT query builder. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00100">100</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00107">107</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -353,7 +366,7 @@ template&lt;typename... MoreFields&gt; </div>
 
 <p>Adds a sequence of columns to the SELECT clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00272">272</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00283">283</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -703,7 +716,7 @@ template&lt;typename... MoreFields&gt; </div>
 
 <p>Returns the search condition for the query. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00234">234</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00245">245</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -732,7 +745,7 @@ template&lt;typename... MoreFields&gt; </div>
 
 <p>Returns the SQL query formatter. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00242">242</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00253">253</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -764,7 +777,7 @@ template&lt;typename Callable &gt; </div>
 
 <p>Builds the query using a callable. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00295">295</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00306">306</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -795,7 +808,7 @@ template&lt;typename FirstRecord , typename... MoreRecords&gt; </div>
 
 <p>Adds fields from one or more record types to the SELECT clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00303">303</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00314">314</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00327">Lightweight::SqlQualifiedTableColumnName::tableName</a>.</p>
 
