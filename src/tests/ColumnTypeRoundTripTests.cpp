@@ -133,7 +133,7 @@ struct Requirement
 /// @param expected The only acceptable value.
 /// @return A @ref Requirement satisfied solely by @p expected.
 template <typename T>
-[[nodiscard]] Requirement<T> Exactly(T expected)
+[[nodiscard]] Requirement<T> Exactly(T const& expected)
 {
     return Requirement<T> { .matches = [expected](T const& actual) { return actual == expected; },
                             .description = Describe(expected) };
@@ -228,7 +228,7 @@ struct ColumnSample
 /// @param value Sample written into the column and expected back unchanged.
 /// @return A @ref ColumnSample round-tripping @p value as a `T`.
 template <typename T>
-[[nodiscard]] ColumnSample SampleOf(T value)
+[[nodiscard]] ColumnSample SampleOf(T const& value)
 {
     return ColumnSample {
         .bind = [value](SqlStatement& stmt, SQLSMALLINT parameterIndex) { stmt.BindInputParameter(parameterIndex, value); },
