@@ -6,6 +6,7 @@
 #include "Core.hpp"
 
 #include <algorithm>
+#include <bit>
 #include <charconv>
 #include <format>
 #include <optional>
@@ -155,6 +156,12 @@ namespace detail
     /// @param data The 16-byte GUID payload to convert in place.
     inline void SwapGuidWireByteOrder(std::span<uint8_t, 16> data) noexcept
     {
+        // The reversal below undoes exactly the byte-order change a little-endian host applies
+        // when it stores Data1/Data2/Data3 as native integers; on a big-endian host those fields
+        // are already in textual order and reversing them would corrupt the GUID instead. Assume
+        // little-endian, matching the project-wide precedent in SqlNumeric.hpp.
+        static_assert(std::endian::native == std::endian::little);
+
         // Data1 (4 bytes), Data2 (2) and Data3 (2) differ between the two representations;
         // Data4 (the trailing 8) is a plain byte array in both and is left untouched.
         std::ranges::reverse(data.first<4>());
