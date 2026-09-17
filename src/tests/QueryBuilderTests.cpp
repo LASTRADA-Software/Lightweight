@@ -642,6 +642,34 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.IfThenWhere with std::st
                                      WHERE "name" = 'Alice')SQL"));
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Update.Where with a boolean literal", "[SqlQueryBuilder]")
+{
+    // A boolean is the only WHERE literal that reaches Formatter(), and SqlUpdateQueryBuilder used
+    // to name that accessor FormatterLocal. SqlWhereClauseBuilder resolves it through the CRTP
+    // derived type, so the lookup landed back on the base and recursed on every control path --
+    // diagnosed by MSVC as C4717 and a stack overflow at run time. Every other literal either binds
+    // or formats itself, which is why no existing case instantiated it.
+    CheckSqlQueryBuilder([&](SqlQueryBuilder& q) { return q.FromTable("T").Update().Set("a", 1).Where("active", true); },
+                         QueryExpectations {
+                             .sqlite = R"SQL(UPDATE "T" SET "a" = 1
+                                             WHERE "active" = TRUE)SQL",
+                             .postgres = R"SQL(UPDATE "T" SET "a" = 1
+                                               WHERE "active" = TRUE)SQL",
+                             .sqlServer = R"SQL(UPDATE "T" SET "a" = 1
+                                                WHERE "active" = 1)SQL",
+                         });
+
+    CheckSqlQueryBuilder([&](SqlQueryBuilder& q) { return q.FromTable("T").Delete().Where("active", false); },
+                         QueryExpectations {
+                             .sqlite = R"SQL(DELETE FROM "T"
+                                             WHERE "active" = FALSE)SQL",
+                             .postgres = R"SQL(DELETE FROM "T"
+                                               WHERE "active" = FALSE)SQL",
+                             .sqlServer = R"SQL(DELETE FROM "T"
+                                                WHERE "active" = 0)SQL",
+                         });
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.IfThenWhere on Update and Delete", "[SqlQueryBuilder]")
 {
     std::optional<int> const empty {};
