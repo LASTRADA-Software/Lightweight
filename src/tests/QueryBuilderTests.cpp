@@ -668,6 +668,19 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Update.Where with a boolean li
                              .sqlServer = R"SQL(DELETE FROM "T"
                                                 WHERE "active" = 0)SQL",
                          });
+
+    // Select completes the set: all three builders inherit SqlWhereClauseBuilder and each must name
+    // its own formatter accessor Formatter(), or the base resolves back to itself.
+    CheckSqlQueryBuilder(
+        [&](SqlQueryBuilder& q) { return q.FromTable("T").Select().Field("a").Where("active", true).All(); },
+        QueryExpectations {
+            .sqlite = R"SQL(SELECT "a" FROM "T"
+                                             WHERE "active" = TRUE)SQL",
+            .postgres = R"SQL(SELECT "a" FROM "T"
+                                               WHERE "active" = TRUE)SQL",
+            .sqlServer = R"SQL(SELECT "a" FROM "T"
+                                                WHERE "active" = 1)SQL",
+        });
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.IfThenWhere on Update and Delete", "[SqlQueryBuilder]")
