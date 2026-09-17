@@ -372,12 +372,12 @@ struct SqlDataBinder<SqlDynamicNumeric>
     /// A decimal column's text, as delivered by a single SQLGetData call.
     struct Literal
     {
-        /// What SQLGetData reported, or SQL_ERROR when the text did not fit @ref text's buffer.
+        /// What SQLGetData reported, or SQL_ERROR when the text did not fit the caller's buffer.
         SQLRETURN returnCode = SQL_SUCCESS;
         /// The literal, or empty when the column is NULL, the read failed, or the text was truncated.
         std::string_view text;
         /// Whether the column was NULL. Reported here rather than left to the caller's @c indicator,
-        /// which @ref ReadLiteral accepts as null — a caller passing none could not otherwise tell a
+        /// which @c ReadLiteral accepts as null — a caller passing none could not otherwise tell a
         /// NULL apart from a failed read.
         bool isNull = false;
     };
@@ -389,7 +389,11 @@ struct SqlDataBinder<SqlDynamicNumeric>
     /// SQL_NO_DATA — SQL Server's does. So a caller that wants the value exactly and, failing that,
     /// approximately must derive both from this one read rather than retrieving the column twice.
     ///
-    /// @param buffer Storage for the text; @ref Literal::text points into it, so it must outlive the
+    /// @param stmt The ODBC statement handle to read from.
+    /// @param column The 1-based index of the column to read.
+    /// @param indicator Where to report the length; may be null, in which case the length is still
+    ///                  needed internally and is discarded afterwards.
+    /// @param buffer Storage for the text; @c Literal::text points into it, so it must outlive the
     ///               returned value. 128 bytes is always enough: ODBC caps DECIMAL precision at 38,
     ///               leaving room for the sign, decimal point, terminator and driver padding.
     [[nodiscard]] static LIGHTWEIGHT_FORCE_INLINE Literal ReadLiteral(SQLHSTMT stmt,
@@ -431,7 +435,7 @@ struct SqlDataBinder<SqlDynamicNumeric>
     /// Converts a decimal literal into an exact value, using the column's declared precision and scale.
     ///
     /// @retval std::nullopt The value needs more digits than the unscaled 64-bit carrier holds; see
-    ///                      @ref SqlMaxDynamicNumericPrecision.
+    ///                      @c SqlMaxDynamicNumericPrecision.
     [[nodiscard]] static LIGHTWEIGHT_FORCE_INLINE std::optional<SqlDynamicNumeric> FromColumnLiteral(
         SQLHSTMT stmt, SQLUSMALLINT column, std::string_view literal) noexcept
     {
@@ -458,7 +462,7 @@ struct SqlDataBinder<SqlDynamicNumeric>
     /// Retrieves the column as an exact decimal without throwing, for callers that can degrade.
     ///
     /// @retval SQL_ERROR The driver truncated the literal, or the value needs more digits than the
-    ///                   unscaled 64-bit carrier holds (see @ref SqlMaxDynamicNumericPrecision).
+    ///                   unscaled 64-bit carrier holds (see @c SqlMaxDynamicNumericPrecision).
     ///                   No ODBC diagnostic is posted for this — the driver did not fail, the value
     ///                   simply does not fit — so read the return code rather than the statement's
     ///                   last error. @ref GetColumn turns it into a described exception;
