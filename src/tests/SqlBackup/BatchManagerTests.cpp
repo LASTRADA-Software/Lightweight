@@ -744,11 +744,15 @@ TEST_CASE("BatchManager: GUID column", "[SqlBackup]")
     std::vector<SqlColumnDeclaration> cols = { { .name = "id", .type = SqlColumnTypeDefinitions::Guid {} } };
 
     std::vector<SQLLEN> capturedIndicators;
+    std::vector<uint8_t> capturedFirstGuid;
 
     BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         REQUIRE(rawCols.size() == 1);
         auto const& col = rawCols[0];
         REQUIRE(col.metadata.cType == SQL_C_GUID);
+
+        auto const* bytes = reinterpret_cast<uint8_t const*>(col.data.data());
+        capturedFirstGuid.assign(bytes, bytes + sizeof(SqlGuid));
 
         for (size_t i = 0; i < count; ++i)
             capturedIndicators.push_back(col.indicators[i]);
@@ -769,6 +773,13 @@ TEST_CASE("BatchManager: GUID column", "[SqlBackup]")
     REQUIRE(capturedIndicators[2] == SQL_NULL_DATA);
     REQUIRE(capturedIndicators[3] == SQL_NULL_DATA);
     REQUIRE(capturedIndicators[4] == SQL_NULL_DATA);
+
+    // The batch is bound as a raw SQL_C_GUID array, which carries Data1/Data2/Data3 in native wire
+    // byte order — not the canonical order SqlGuid::TryParse() produced from the archived string.
+    // Asserting the indicator alone cannot see a missing conversion here (see issue #596).
+    auto expected = SqlGuid::UnsafeParse("12345678-1234-1234-1234-123456789ABC");
+    SwapGuidWireByteOrder(expected.data);
+    CHECK(std::ranges::equal(capturedFirstGuid, expected.data));
 }
 
 TEST_CASE("BatchManager: GUID PushFromBatch", "[SqlBackup]")
@@ -776,9 +787,12 @@ TEST_CASE("BatchManager: GUID PushFromBatch", "[SqlBackup]")
     std::vector<SqlColumnDeclaration> cols = { { .name = "id", .type = SqlColumnTypeDefinitions::Guid {} } };
 
     std::vector<SQLLEN> capturedIndicators;
+    std::vector<uint8_t> capturedFirstGuid;
 
     BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         auto const& col = rawCols[0];
+        auto const* bytes = reinterpret_cast<uint8_t const*>(col.data.data());
+        capturedFirstGuid.assign(bytes, bytes + sizeof(SqlGuid));
         for (size_t i = 0; i < count; ++i)
             capturedIndicators.push_back(col.indicators[i]);
     };
@@ -800,6 +814,12 @@ TEST_CASE("BatchManager: GUID PushFromBatch", "[SqlBackup]")
     REQUIRE(capturedIndicators[1] == SQL_NULL_DATA);
     REQUIRE(capturedIndicators[2] == SQL_NULL_DATA);
     REQUIRE(capturedIndicators[3] == SQL_NULL_DATA); // Invalid GUID
+
+    // Same wire byte-order contract as the single-value push above, reached through the
+    // column-batch code path.
+    auto expected = SqlGuid::UnsafeParse("AAAAAAAA-BBBB-4CCC-DDDD-EEEEEEEEEEEE");
+    SwapGuidWireByteOrder(expected.data);
+    CHECK(std::ranges::equal(capturedFirstGuid, expected.data));
 }
 
 // =============================================================================

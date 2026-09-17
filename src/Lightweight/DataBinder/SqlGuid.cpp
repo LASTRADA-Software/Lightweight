@@ -145,10 +145,24 @@ SQLRETURN SqlDataBinder<SqlGuid>::InputParameter(SQLHSTMT stmt,
         case SqlServerType::MYSQL: // TODO
         case SqlServerType::POSTGRESQL:
         case SqlServerType::MICROSOFT_SQL:
-        case SqlServerType::UNKNOWN:
-            return SQLBindParameter(
-                stmt, column, SQL_PARAM_INPUT, SQL_C_GUID, SQL_GUID, sizeof(value), 0, (SQLPOINTER) &value, 0, nullptr);
-            break;
+        case SqlServerType::UNKNOWN: {
+            // Bind a wire-order copy so `value` itself stays canonical; see SwapGuidWireByteOrder().
+            auto wireGuid = std::make_shared<SqlGuid>(value);
+            detail::SwapGuidWireByteOrder(wireGuid->data);
+            auto const rv = SQLBindParameter(stmt,
+                                             column,
+                                             SQL_PARAM_INPUT,
+                                             SQL_C_GUID,
+                                             SQL_GUID,
+                                             sizeof(*wireGuid),
+                                             0,
+                                             (SQLPOINTER) wireGuid.get(),
+                                             0,
+                                             nullptr);
+            if (SQL_SUCCEEDED(rv))
+                cb.PlanPostExecuteCallback([wireGuid = std::move(wireGuid)] {});
+            return rv;
+        }
     }
     std::unreachable();
 }
@@ -170,9 +184,10 @@ SQLRETURN SqlDataBinder<SqlGuid>::OutputColumn(
         case SqlServerType::MYSQL: // TODO
         case SqlServerType::POSTGRESQL:
         case SqlServerType::MICROSOFT_SQL:
-            return SQLBindCol(stmt, column, SQL_C_GUID, (SQLPOINTER) result->data, sizeof(result->data), indicator);
         case SqlServerType::UNKNOWN:
-            break;
+            // The driver fills `result->data` in wire order; see SwapGuidWireByteOrder().
+            cb.PlanPostProcessOutputColumn([result] { detail::SwapGuidWireByteOrder(result->data); });
+            return SQLBindCol(stmt, column, SQL_C_GUID, (SQLPOINTER) result->data, sizeof(result->data), indicator);
     }
 
     std::unreachable();
@@ -194,8 +209,13 @@ SQLRETURN SqlDataBinder<SqlGuid>::GetColumn(
         case SqlServerType::MYSQL: // TODO
         case SqlServerType::MICROSOFT_SQL:
         case SqlServerType::POSTGRESQL:
-        case SqlServerType::UNKNOWN:
-            return SQLGetData(stmt, column, SQL_C_GUID, result->data, sizeof(result->data), indicator);
+        case SqlServerType::UNKNOWN: {
+            auto const rv = SQLGetData(stmt, column, SQL_C_GUID, result->data, sizeof(result->data), indicator);
+            if (SQL_SUCCEEDED(rv))
+                // The driver wrote wire order; see SwapGuidWireByteOrder().
+                detail::SwapGuidWireByteOrder(result->data);
+            return rv;
+        }
     }
     std::unreachable();
 }

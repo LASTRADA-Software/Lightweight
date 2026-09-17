@@ -153,6 +153,15 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: round-trip every supported column t
     if (count.has_value())
         CHECK(count.value() == 1);
 
+    // The archive carries GUIDs as text, so a restored GUID has made a full
+    // SqlGuid -> to_string -> archive -> TryParse -> bind round trip. Check the value, not only the
+    // row count, so that round trip cannot silently corrupt it. (The batched restore path's raw
+    // SQL_C_GUID byte order is pinned separately, in BatchManagerTests.cpp.)
+    auto const restoredGuid = stmt.ExecuteDirectScalar<SqlGuid>(R"(SELECT "guid_v" FROM "all_types")");
+    REQUIRE(restoredGuid.has_value());
+    if (restoredGuid.has_value())
+        CHECK(*restoredGuid == *guidOpt);
+
     // Final cleanup — wrapped in try/catch because MSSQL emits a transient-feeling
     // 3701 ("table does not exist") for a freshly-restored table that hasn't yet been
     // commited into the catalog from a different connection's perspective. We don't
