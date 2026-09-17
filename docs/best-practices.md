@@ -148,6 +148,54 @@ Keep in mind:
   on a connection used for cursors you intend to abandon early or where memory is tight.
 - It does not change results — values are identical to the per-row path.
 
+### Enable the prepared-statement cache for recurring queries
+
+Every fresh prepare costs a server-side parse and plan on Microsoft SQL Server and PostgreSQL — charged
+at the statement's first execute, not inside `SQLPrepare` — and the `DataMapper` / query-builder layers
+re-prepare the same handful of statements on every call because each call site builds a fresh
+`SqlStatement`. A connection can pool the already-prepared handles so repeats re-execute one instead —
+see [Prepared-statement cache](usage.md):
+
+```cpp
+connection.SetPreparedStatementCacheCapacity(Lightweight::PreparedStatementCacheCapacitySuggested);
+```
+
+Measured against Docker-local servers, this is worth **4.2x** on PostgreSQL, **1.7x** on MS SQL Server and
+**1.4x** on SQLite for a repeatedly re-prepared single-row read, and **3.8x / 1.3x / 1.1x** for the same
+query driven through `DataMapper::Query<>()`. What it removes is network round-trips — about **2.8 per
+query** on PostgreSQL and **exactly one** on MS SQL Server — so the further away the server, the more it
+is worth: across a 50 ms link the same PostgreSQL read goes from 202 ms to 61 ms. The full tables, the
+latency sweep and the workloads that gain nothing are in [usage.md](usage.md).
+
+Keep in mind:
+
+- It is **opt-in** (default capacity `0`), and transparent once enabled — no call-site changes.
+- It pays off where a **short-lived statement re-prepares a text the connection has seen** — the shape the
+  query builders produce. Code that already drives one long-lived `SqlStatement` through one query text
+  (as `DataMapper::QuerySingle()` does) reuses its own handle regardless and gains nothing.
+- On **SQLite it is roughly break-even**: with no network there is no round-trip to save, and
+  `DataMapper::Create()` measures ~8% slower because its last-insert-id `ExecuteDirect()` has to park the
+  prepared handle. Enable it for the network-backed engines.
+- Size it to your working set of distinct query texts. Too small and the LRU thrashes; too large and you
+  risk the server-side cap on live prepared statements per session.
+- With a connection pool, set it once via `PoolConfig::preparedStatementCacheCapacity` (or the
+  `LIGHTWEIGHT_POOL_PREPARED_STATEMENT_CACHE_CAPACITY` CMake option for `GlobalDataMapperPool()`) instead
+  of per acquired connection. Budget for the whole pool: handles cannot be shared between connections, so
+  a warmed pool holds up to `maxSize * preparedStatementCacheCapacity` of them, and every connection pays
+  its own warm-up — measured, exactly `connections * distinct query texts` prepares, paid once. Pool size
+  does not dilute the steady-state win (one connection and four reach the same speed-up), but short-lived
+  work does: at six operations per connection the PostgreSQL gain fell from 2.35x to 1.69x.
+- **Anything that retires a connection discards its warmed cache.** Under
+  `GrowthStrategy::BoundedOverflow` a connection created past the idle set is destroyed when returned, so
+  the pool never stops re-preparing: the PostgreSQL gain drops from 2.5x to 1.4x and SQLite's to
+  nothing. Raising `maxSize` to cover the real concurrency is worth more than any cache capacity. The same
+  applies to `PoolConfig::maxIdleTimeMs`, `maxLifetimeMs` and a failed `validateOnBorrow` check — worth
+  keeping in mind when picking a recycle window, though a stale connection is still worse than a cold one.
+- A pooled handle carries the plan derived from the schema at preparation time. Call
+  `ClearPreparedStatementCache()` after raw DDL; migrations and `MigrateDirect()` already do.
+- Statements whose plan must be re-derived opt out via
+  `SqlStatement::SetPreparedStatementCaching(SqlPreparedStatementCaching::Disabled)`.
+
 ## SQL Server Variation Challenges
 
 ### 64-bit Integer Handling in Oracle Database
