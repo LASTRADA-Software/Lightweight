@@ -105,7 +105,7 @@ $(document).ready(function(){initNavTree('db/d29/structLightweight_1_1SqlDataBin
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
 <tr class="memitem:acef0301710c28fd926dcbbc4a1c6dccf" id="r_acef0301710c28fd926dcbbc4a1c6dccf"><td class="memItemLeft" align="right" valign="top">SQLRETURN&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/d29/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4_1_1Literal.html#acef0301710c28fd926dcbbc4a1c6dccf">returnCode</a> = SQL_SUCCESS</td></tr>
-<tr class="memdesc:acef0301710c28fd926dcbbc4a1c6dccf"><td class="mdescLeft">&#160;</td><td class="mdescRight">What SQLGetData reported, or SQL_ERROR when the text did not fit text's buffer.  <br /></td></tr>
+<tr class="memdesc:acef0301710c28fd926dcbbc4a1c6dccf"><td class="mdescLeft">&#160;</td><td class="mdescRight">What SQLGetData reported, or SQL_ERROR when the text did not fit the caller's buffer.  <br /></td></tr>
 <tr class="separator:acef0301710c28fd926dcbbc4a1c6dccf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af9dd1ca2ebae50443d4c503cd7bc199e" id="r_af9dd1ca2ebae50443d4c503cd7bc199e"><td class="memItemLeft" align="right" valign="top">std::string_view&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/d29/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4_1_1Literal.html#af9dd1ca2ebae50443d4c503cd7bc199e">text</a></td></tr>
 <tr class="memdesc:af9dd1ca2ebae50443d4c503cd7bc199e"><td class="mdescLeft">&#160;</td><td class="mdescRight">The literal, or empty when the column is NULL, the read failed, or the text was truncated.  <br /></td></tr>
@@ -130,7 +130,7 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>What SQLGetData reported, or SQL_ERROR when the text did not fit text's buffer. </p>
+<p>What SQLGetData reported, or SQL_ERROR when the text did not fit the caller's buffer. </p>
 
 <p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00376">376</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
@@ -165,7 +165,7 @@ Public Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Whether the column was NULL. Reported here rather than left to the caller's <code>indicator</code>, which ReadLiteral accepts as null — a caller passing none could not otherwise tell a NULL apart from a failed read. </p>
+<p>Whether the column was NULL. Reported here rather than left to the caller's <code>indicator</code>, which <code>ReadLiteral</code> accepts as null — a caller passing none could not otherwise tell a NULL apart from a failed read. </p>
 
 <p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00382">382</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 

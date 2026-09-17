@@ -237,12 +237,15 @@ Static Public Attributes</h2></td></tr>
 <p>ODBC allows a second SQLGetData on the same column only while a character or binary value is still being delivered in parts. Once it has arrived in full, a conforming driver answers SQL_NO_DATA — SQL Server's does. So a caller that wants the value exactly and, failing that, approximately must derive both from this one read rather than retrieving the column twice.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">buffer</td><td>Storage for the text; <a class="el" href="../../db/d29/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4_1_1Literal.html#af9dd1ca2ebae50443d4c503cd7bc199e">Literal::text</a> points into it, so it must outlive the returned value. 128 bytes is always enough: ODBC caps DECIMAL precision at 38, leaving room for the sign, decimal point, terminator and driver padding. </td></tr>
+    <tr><td class="paramname">stmt</td><td>The ODBC statement handle to read from. </td></tr>
+    <tr><td class="paramname">column</td><td>The 1-based index of the column to read. </td></tr>
+    <tr><td class="paramname">indicator</td><td>Where to report the length; may be null, in which case the length is still needed internally and is discarded afterwards. </td></tr>
+    <tr><td class="paramname">buffer</td><td>Storage for the text; <code><a class="el" href="../../db/d29/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4_1_1Literal.html#af9dd1ca2ebae50443d4c503cd7bc199e" title="The literal, or empty when the column is NULL, the read failed, or the text was truncated.">Literal::text</a></code> points into it, so it must outlive the returned value. 128 bytes is always enough: ODBC caps DECIMAL precision at 38, leaving room for the sign, decimal point, terminator and driver padding. </td></tr>
   </table>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00395">395</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00399">399</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
 </div>
 </div>
@@ -288,12 +291,12 @@ Static Public Attributes</h2></td></tr>
 <p>Converts a decimal literal into an exact value, using the column's declared precision and scale.</p>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
-    <tr><td class="paramname">std::nullopt</td><td>The value needs more digits than the unscaled 64-bit carrier holds; see SqlMaxDynamicNumericPrecision. </td></tr>
+    <tr><td class="paramname">std::nullopt</td><td>The value needs more digits than the unscaled 64-bit carrier holds; see <code>SqlMaxDynamicNumericPrecision</code>. </td></tr>
   </table>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00435">435</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00439">439</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00317">Lightweight::SqlDynamicNumeric::FromString()</a>.</p>
 
@@ -353,12 +356,12 @@ Static Public Attributes</h2></td></tr>
 <p>Retrieves the column as an exact decimal without throwing, for callers that can degrade.</p>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
-    <tr><td class="paramname">SQL_ERROR</td><td>The driver truncated the literal, or the value needs more digits than the unscaled 64-bit carrier holds (see SqlMaxDynamicNumericPrecision). No ODBC diagnostic is posted for this — the driver did not fail, the value simply does not fit — so read the return code rather than the statement's last error. <a class="el" href="../../da/d2d/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4.html#a5ef6381ee31c1298636a6860161dc607">GetColumn</a> turns it into a described exception; <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html">SqlVariant</a> reuses <a class="el" href="../../da/d2d/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4.html#adf9871bcc5f37911fa216b1126f82879">ReadLiteral</a> and falls back to <code>double</code> instead. </td></tr>
+    <tr><td class="paramname">SQL_ERROR</td><td>The driver truncated the literal, or the value needs more digits than the unscaled 64-bit carrier holds (see <code>SqlMaxDynamicNumericPrecision</code>). No ODBC diagnostic is posted for this — the driver did not fail, the value simply does not fit — so read the return code rather than the statement's last error. <a class="el" href="../../da/d2d/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4.html#a5ef6381ee31c1298636a6860161dc607">GetColumn</a> turns it into a described exception; <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html">SqlVariant</a> reuses <a class="el" href="../../da/d2d/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4.html#adf9871bcc5f37911fa216b1126f82879">ReadLiteral</a> and falls back to <code>double</code> instead. </td></tr>
   </table>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00466">466</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00470">470</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
 </div>
 </div>
@@ -421,7 +424,7 @@ Static Public Attributes</h2></td></tr>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00495">495</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00499">499</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d9/d02/SqlError_8hpp_source.html#l00034">Lightweight::SqlErrorInfo::nativeErrorCode</a>.</p>
 
@@ -453,7 +456,7 @@ Static Public Attributes</h2></td></tr>
 
 <p>Renders the value for SQL trace logs. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00515">515</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00519">519</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00294">Lightweight::SqlDynamicNumeric::ToString()</a>.</p>
 
