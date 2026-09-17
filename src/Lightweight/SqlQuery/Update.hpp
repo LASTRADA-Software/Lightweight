@@ -42,7 +42,10 @@ class [[nodiscard]] SqlUpdateQueryBuilder final: public SqlWhereClauseBuilder<Sq
     }
 
     /// @brief Returns the SQL query formatter.
-    [[nodiscard]] SqlQueryFormatter const& FormatterLocal()
+    ///
+    /// Named Formatter() because SqlWhereClauseBuilder resolves it through the CRTP derived type;
+    /// the apparent shadowing is the mechanism, not an accident.
+    [[nodiscard]] SqlQueryFormatter const& Formatter()
         const noexcept // NOLINT(bugprone-derived-method-shadowing-base-method)
     {
         return m_formatter;
