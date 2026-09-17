@@ -7,5 +7,6 @@ var structLightweight_1_1PoolConfig =
     [ "growthStrategy", "df/d1a/structLightweight_1_1PoolConfig.html#a82b19e524cdb6dc43c0ec8aab3201e6f", null ],
     [ "validateOnBorrow", "df/d1a/structLightweight_1_1PoolConfig.html#a5c2abddf40a2e7e08845af824560e5f6", null ],
     [ "maxIdleTimeMs", "df/d1a/structLightweight_1_1PoolConfig.html#ad9943a108490072e4ac98266abc784a2", null ],
-    [ "maxLifetimeMs", "df/d1a/structLightweight_1_1PoolConfig.html#acad5623b52d85dc1ab20820cd58d8a2f", null ]
+    [ "maxLifetimeMs", "df/d1a/structLightweight_1_1PoolConfig.html#acad5623b52d85dc1ab20820cd58d8a2f", null ],
+    [ "preparedStatementCacheCapacity", "df/d1a/structLightweight_1_1PoolConfig.html#aa040aa4b0901f8d562248b4b98f0dd16", null ]
 ];
