@@ -22,6 +22,8 @@ var group__CoreApi =
       [ "SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html#ab9e2b5679f7ca67ead13107a020e7c65", null ],
       [ "~SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html#a62a9dd35027a98c52b3fcb66fcf2e731", null ],
       [ "operator=", "da/da8/classLightweight_1_1SqlConnection.html#a6632efa15e669b5892bcb1fe0e0dc683", null ],
+      [ "StringTruncationMode", "da/da8/classLightweight_1_1SqlConnection.html#a65a42e46a8954b2a4f88e0403c85ccff", null ],
+      [ "SetStringTruncationMode", "da/da8/classLightweight_1_1SqlConnection.html#ad564a1c5ac5491bfdefad0bd38d83bbe", null ],
       [ "ConnectionId", "da/da8/classLightweight_1_1SqlConnection.html#a63ba202ba517a1dbe5d36afe4654a85b", null ],
       [ "Close", "da/da8/classLightweight_1_1SqlConnection.html#a85b56ddb608b6c84fe33b7bff71a7f24", null ],
       [ "Connect", "da/da8/classLightweight_1_1SqlConnection.html#aff53cd88345bf8822f5fd34e676c48d0", null ],
@@ -291,6 +293,10 @@ var group__CoreApi =
       [ "Lightweight::SqlEncryptionMode::DriverDefault", "d9/d8a/group__CoreApi.html#gga8be4e3766b268b1d751ef7df237af144a94e2c1bbb08c3b4ddbaead16d30c7f64", null ],
       [ "Lightweight::SqlEncryptionMode::Disabled", "d9/d8a/group__CoreApi.html#gga8be4e3766b268b1d751ef7df237af144ab9f5c797ebbf55adccdd8539a65a0241", null ],
       [ "Lightweight::SqlEncryptionMode::Enabled", "d9/d8a/group__CoreApi.html#gga8be4e3766b268b1d751ef7df237af144a00d23a76e43b46dae9ec7aa9dcbebb32", null ]
+    ] ],
+    [ "Lightweight::SqlStringTruncationMode", "d9/d8a/group__CoreApi.html#ga99e5e92107ae68dfd09cca5fc6ef1106", [
+      [ "Lightweight::SqlStringTruncationMode::Truncate", "d9/d8a/group__CoreApi.html#gga99e5e92107ae68dfd09cca5fc6ef1106aa8156810bfee2bd2b44765b9e91db3bd", null ],
+      [ "Lightweight::SqlStringTruncationMode::Error", "d9/d8a/group__CoreApi.html#gga99e5e92107ae68dfd09cca5fc6ef1106a902b0d55fddef6f8d651fe1035b7d4bd", null ]
     ] ],
     [ "Lightweight::SqlPreparedStatementCaching", "d9/d8a/group__CoreApi.html#ga826d0a33e14c546691afe196b566b77d", [
       [ "Lightweight::SqlPreparedStatementCaching::Enabled", "d9/d8a/group__CoreApi.html#gga826d0a33e14c546691afe196b566b77da00d23a76e43b46dae9ec7aa9dcbebb32", null ],

@@ -7,6 +7,7 @@ var searchData=
   ['sqlretryaction_4',['SqlRetryAction',['../d1/d7b/group__Retry.html#ga342e14df587d6a9b4a42d34038e2fdc5',1,'Lightweight']]],
   ['sqlretrygiveupreason_5',['SqlRetryGiveUpReason',['../d1/d7b/group__Retry.html#ga736570debff7c5c20bb31ef7b87a75e2',1,'Lightweight']]],
   ['sqlstatisticsoperation_6',['SqlStatisticsOperation',['../d9/d8a/group__CoreApi.html#ga8637d070f06ecc36b5699c5b7ea1b102',1,'Lightweight']]],
-  ['state_7',['State',['../d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#af3e84864298e18e83f13b0ad84ded7fc',1,'Lightweight::SqlBackup::Progress']]],
-  ['supportbindlogging_8',['SupportBindLogging',['../db/dfd/classLightweight_1_1SqlLogger.html#aa6670d16a93f71b21831b76d057b3750',1,'Lightweight::SqlLogger']]]
+  ['sqlstringtruncationmode_7',['SqlStringTruncationMode',['../d9/d8a/group__CoreApi.html#ga99e5e92107ae68dfd09cca5fc6ef1106',1,'Lightweight']]],
+  ['state_8',['State',['../d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#af3e84864298e18e83f13b0ad84ded7fc',1,'Lightweight::SqlBackup::Progress']]],
+  ['supportbindlogging_9',['SupportBindLogging',['../db/dfd/classLightweight_1_1SqlLogger.html#aa6670d16a93f71b21831b76d057b3750',1,'Lightweight::SqlLogger']]]
 ];

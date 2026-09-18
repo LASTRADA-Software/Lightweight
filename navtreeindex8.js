@@ -1,5 +1,10 @@
 var NAVTREEINDEX8 =
 {
+"df/d36/Playlist_8hpp_source.html":[22,0,0,0,0,8],
+"df/d3f/structLightweight_1_1SqlVariant.html":[19,1,12],
+"df/d3f/structLightweight_1_1SqlVariant.html#a001b083ef4020390b319901974533265":[19,1,12,5],
+"df/d3f/structLightweight_1_1SqlVariant.html#a03f3abedb73fca7403adafd87d2e3ad0":[19,1,12,6],
+"df/d3f/structLightweight_1_1SqlVariant.html#a04b24b9c04888b9b4d3f550c96f8bc29":[19,1,12,39],
 "df/d3f/structLightweight_1_1SqlVariant.html#a0554153abf1859d854b5ea865c53bd4e":[19,1,12,28],
 "df/d3f/structLightweight_1_1SqlVariant.html#a06288408eded97794ac5215272b609c9":[19,1,12,12],
 "df/d3f/structLightweight_1_1SqlVariant.html#a0c88051cb048b8cc50fa3ae9bc77a3ef":[19,1,12,10],
@@ -138,8 +143,8 @@ var NAVTREEINDEX8 =
 "dir_e931c1a3f0014e624d0645a271726ad2.html":[22,0,0],
 "dir_ecfaae8a45938684577693db3462ec86.html":[22,0,1,0],
 "files.html":[22,0],
-"functions.html":[21,2,0],
 "functions.html":[21,2,0,0],
+"functions.html":[21,2,0],
 "functions_a.html":[21,2,0,1],
 "functions_b.html":[21,2,0,2],
 "functions_c.html":[21,2,0,3],
