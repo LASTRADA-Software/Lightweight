@@ -146,3 +146,81 @@ TEST_CASE("SqlText: comparison operators", "[SqlText]")
     CHECK(a != c);
     CHECK(a < c);
 }
+
+// ================================================================================================
+// An unsigned TINYINT above 127 read through the variant cursor
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: an unsigned TINYINT above 127", "[SqlVariant]")
+{
+    // SQL Server's TINYINT is unsigned 0..255. Read into a signed int8_t it would either wrap
+    // 128..255 to negatives (the prefetch path) or make the driver reject the row with 22003 (the
+    // per-row path) -- and a rejected column mid-row unwinds through the noexcept cursor into a
+    // hard crash. So a value above 127 is the case that separates a faithful read from either.
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect(
+        [](auto& migration) { migration.CreateTable("Tiny").Column("kind", SqlColumnTypeDefinitions::Tinyint {}); });
+
+    stmt.Prepare(stmt.Query("Tiny").Insert().Set("kind", SqlWildcard));
+    (void) stmt.Execute(255);
+
+    stmt.Prepare(stmt.Query("Tiny").Select().Field("kind").All());
+    auto cursor = stmt.ExecuteWithVariants({});
+
+    std::size_t rowsRead = 0;
+    for (auto& row: SqlVariantRowCursor(std::move(cursor)))
+    {
+        REQUIRE(row.size() == 1);
+        // Whatever integral alternative the variant chose, the value has to survive as 255 rather
+        // than come back negative.
+        long long const value = std::visit(
+            [](auto const& held) -> long long {
+                if constexpr (std::is_integral_v<std::remove_cvref_t<decltype(held)>>)
+                    return static_cast<long long>(held);
+                else
+                    return -1;
+            },
+            row[0].value);
+        CHECK(value == 255);
+        ++rowsRead;
+    }
+    CHECK(rowsRead == 1);
+}
+
+// ================================================================================================
+// A LOB column followed by an out-of-range unsigned TINYINT
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: a LOB column followed by an unsigned TINYINT", "[SqlVariant][SqlText]")
+{
+    // The shape of a real row that used to crash: a LOB disables the block-prefetch (the LOB is not
+    // a prefetchable type), so the whole row falls to the per-row path -- and there the following
+    // TINYINT of 255 hit the 22003 rejection. This pins that a LOB and an out-of-range column read
+    // together in one row.
+    //
+    // A LOB column is needed to disable prefetch. TEXT is a large-object type on every supported
+    // dialect, so the table is created with raw DDL. The trailing column is TINYINT on SQL Server --
+    // the exact unsigned-0..255 regression -- but PostgreSQL has no TINYINT keyword, so there (and
+    // wherever else) it is SMALLINT, which still exercises reading a column after a chunked LOB.
+    auto stmt = SqlStatement {};
+
+    auto const* const kindType = stmt.Connection().ServerType() == SqlServerType::MICROSOFT_SQL ? "TINYINT" : "SMALLINT";
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "LobThenTiny" ("note" TEXT, "kind" )" + std::string { kindType } + ")");
+
+    // Longer than the reader's first buffer, so the chunked LOB path is the one taken.
+    auto const longNote = std::string(2000, 'x');
+    stmt.Prepare(R"(INSERT INTO "LobThenTiny" ("note", "kind") VALUES (?, ?))");
+    (void) stmt.Execute(longNote, 255);
+
+    stmt.Prepare(R"(SELECT "note", "kind" FROM "LobThenTiny")");
+    auto cursor = stmt.ExecuteWithVariants({});
+
+    std::size_t rowsRead = 0;
+    for (auto& row: SqlVariantRowCursor(std::move(cursor)))
+    {
+        REQUIRE(row.size() == 2);
+        CHECK(std::get<std::string>(row[0].value).size() == longNote.size());
+        ++rowsRead;
+    }
+    CHECK(rowsRead == 1);
+}

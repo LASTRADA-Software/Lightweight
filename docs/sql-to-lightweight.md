@@ -141,8 +141,29 @@ while (cursor.FetchRow())
 }
 ```
 
+<!-- snippet: doc-where-single-builder-bound -->
+```cpp
+// Query builder — hand the WHERE value to the driver instead of writing it into the text.
+// Needed whenever the value must reach the database byte for byte (a narrow string in a
+// character set the driver does not read the statement in, for one).
+std::vector<SqlVariant> bound;
+auto stmt = SqlStatement { dm.Connection() };
+stmt.Prepare(dm.FromTable("Employees").Select(&bound).Field("lastName").Where("salary", ">=", 55'000).All());
+auto cursor = stmt.ExecuteWithVariants(bound);
+while (cursor.FetchRow())
+    std::println("{}", cursor.GetColumn<std::string>(1));
+```
+
 > The two-argument `Where(column, value)` is shorthand for equality:
 > `Where(FieldNameOf<&Employee::id>, id)` emits `WHERE "id" = ?`.
+
+> **Passing a bindings vector changes how the query must be run.** `Select(&bound)` and
+> `Delete(&bound)` emit `?` markers, so the query has to go through `Prepare()` +
+> `ExecuteWithVariants(bound)`; `ExecuteDirect()` would leave the markers unbound and quietly
+> return nothing. Values are *appended* to the vector, never cleared, and anything a stored
+> `std::string_view` points at must outlive the execution. An explicit `SqlWildcard` and a
+> `WhereIn` set larger than `SqlMaxBoundSetSize` are the two cases that still do not land in the
+> vector — do not mix either with a bindings vector, or the marker count stops matching it.
 
 ### WHERE — multiple conditions (AND / OR)
 
@@ -542,6 +563,15 @@ dm.Delete(employee);
 ```cpp
 // Query builder
 auto query = dm.FromTable("Employees").Delete().WhereIn("department_id", std::vector { 1, 2, 3 });
+```
+
+<!-- snippet: doc-delete-builder-bound -->
+```cpp
+// Query builder — same, with the WHERE values bound rather than written into the text
+std::vector<SqlVariant> bound;
+auto stmt = SqlStatement { dm.Connection() };
+stmt.Prepare(dm.FromTable("Employees").Delete(&bound).WhereIn("department_id", std::vector { 1, 2, 3 }));
+std::ignore = stmt.ExecuteWithVariants(bound);
 ```
 
 ---

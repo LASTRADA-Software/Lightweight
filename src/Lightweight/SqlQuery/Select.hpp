@@ -97,13 +97,33 @@ class [[nodiscard]] SqlSelectQueryBuilder: public SqlBasicSelectQueryBuilder<Sql
     using SelectType = detail::SelectType;
 
     /// Constructs a SELECT query builder.
-    explicit SqlSelectQueryBuilder(SqlQueryFormatter const& formatter, std::string table, std::string tableAlias) noexcept:
+    ///
+    /// @param formatter     Dialect the query is written in.
+    /// @param table         Table to select from.
+    /// @param tableAlias    Alias for that table, empty for none.
+    /// @param inputBindings Receives the WHERE values as bound parameters instead of having them
+    ///                      written into the query text; null keeps them inline. Values are
+    ///                      appended, never cleared. Execute the result with
+    ///                      SqlStatement::ExecuteWithVariants(), not ExecuteDirect(), which would
+    ///                      leave the markers unbound. Both the vector and anything a stored
+    ///                      std::string_view / std::u16string_view points at must outlive the
+    ///                      execution, because the binder hands the driver that pointer directly.
+    /// @note An explicit SqlWildcard emits its marker without recording a value here, and a
+    ///       WhereIn() set larger than SqlMaxBoundSetSize falls back to inline literals; either
+    ///       makes the marker count differ from the vector size. A finalizer (All(), First(),
+    ///       Count(), Range()) moves the query out of the builder, so keep building only until the
+    ///       first one: a Where() issued afterwards still appends here while its marker is gone.
+    explicit SqlSelectQueryBuilder(SqlQueryFormatter const& formatter,
+                                   std::string table,
+                                   std::string tableAlias,
+                                   std::vector<SqlVariant>* inputBindings = nullptr) noexcept:
         SqlBasicSelectQueryBuilder<SqlSelectQueryBuilder> {},
         _formatter { formatter }
     {
         _query.formatter = &formatter;
         _query.searchCondition.tableName = std::move(table);
         _query.searchCondition.tableAlias = std::move(tableAlias);
+        _query.searchCondition.inputBindings = inputBindings;
         _query.fields.reserve(256);
     }
 
@@ -390,8 +410,13 @@ class [[nodiscard]] SqlSelectQueryStarter final: public SqlSelectQueryBuilder
     ///
     /// Intentionally not @c explicit so the factory in @ref SqlQueryBuilder::Select
     /// can return via braced init.
-    SqlSelectQueryStarter(SqlQueryFormatter const& formatter, std::string table, std::string tableAlias) noexcept:
-        SqlSelectQueryBuilder { formatter, std::move(table), std::move(tableAlias) }
+    ///
+    /// @copydetails SqlSelectQueryBuilder::SqlSelectQueryBuilder
+    SqlSelectQueryStarter(SqlQueryFormatter const& formatter,
+                          std::string table,
+                          std::string tableAlias,
+                          std::vector<SqlVariant>* inputBindings = nullptr) noexcept:
+        SqlSelectQueryBuilder { formatter, std::move(table), std::move(tableAlias), inputBindings }
     {
     }
 

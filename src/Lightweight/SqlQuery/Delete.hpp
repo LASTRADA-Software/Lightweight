@@ -5,6 +5,7 @@
 #include "Core.hpp"
 
 #include <string>
+#include <vector>
 
 namespace Lightweight
 {
@@ -16,12 +17,30 @@ class LIGHTWEIGHT_API SqlDeleteQueryBuilder final: public SqlWhereClauseBuilder<
 {
   public:
     /// Constructs a DELETE query builder.
-    explicit SqlDeleteQueryBuilder(SqlQueryFormatter const& formatter, std::string table, std::string tableAlias) noexcept:
+    ///
+    /// @param formatter     Dialect the query is written in.
+    /// @param table         Table to delete from.
+    /// @param tableAlias    Alias for that table, empty for none.
+    /// @param inputBindings Receives the WHERE values as bound parameters instead of having them
+    ///                      written into the query text; null keeps them inline. Values are
+    ///                      appended, never cleared. Execute the result with
+    ///                      SqlStatement::ExecuteWithVariants(), not ExecuteDirect(), which would
+    ///                      leave the markers unbound. Both the vector and anything a stored
+    ///                      std::string_view / std::u16string_view points at must outlive the
+    ///                      execution, because the binder hands the driver that pointer directly.
+    /// @note An explicit SqlWildcard emits its marker without recording a value here, and a
+    ///       WhereIn() set larger than SqlMaxBoundSetSize falls back to inline literals; either
+    ///       makes the marker count differ from the vector size.
+    explicit SqlDeleteQueryBuilder(SqlQueryFormatter const& formatter,
+                                   std::string table,
+                                   std::string tableAlias,
+                                   std::vector<SqlVariant>* inputBindings = nullptr) noexcept:
         SqlWhereClauseBuilder<SqlDeleteQueryBuilder> {},
         m_formatter { formatter }
     {
         m_searchCondition.tableName = std::move(table);
         m_searchCondition.tableAlias = std::move(tableAlias);
+        m_searchCondition.inputBindings = inputBindings;
     }
 
     /// Returns the search condition for the query.

@@ -1002,7 +1002,9 @@ SqlVariant SqlStatement::MakePrefetchVariantCell(RowArrayCursor const& cursor, s
         case SQL_BIT:
             return SqlVariant { SqlVariant::InnerType { static_cast<bool>(cursor.GetI64(row, column).value_or(0)) } };
         case SQL_TINYINT:
-            return SqlVariant { SqlVariant::InnerType { static_cast<int8_t>(cursor.GetI64(row, column).value_or(0)) } };
+            // Unsigned 0..255 on SQL Server; int8_t would wrap 128..255 to negatives. Widen to short,
+            // matching the per-row SqlVariant path so a prefetched cell compares equal to a per-row one.
+            return SqlVariant { SqlVariant::InnerType { static_cast<short>(cursor.GetI64(row, column).value_or(0)) } };
         case SQL_SMALLINT:
             return SqlVariant { SqlVariant::InnerType { static_cast<short>(cursor.GetI64(row, column).value_or(0)) } };
         case SQL_INTEGER:

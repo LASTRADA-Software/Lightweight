@@ -76,7 +76,14 @@ class [[nodiscard]] SqlQueryBuilder final
     /// or `.Build([](auto& q){ ... })` — each returns a `SqlSelectQueryBuilder&`
     /// that exposes the finalizers. `.Count()` is exposed on the starter directly,
     /// since `SELECT COUNT(*)` is well-formed without an explicit field list.
-    LIGHTWEIGHT_API SqlSelectQueryStarter Select() noexcept;
+    ///
+    /// @param boundInputs Optional vector to store bound inputs.
+    ///                    If provided, the WHERE values will be appended to this vector as parameter
+    ///                    markers instead of being written into the query text, and the query must
+    ///                    then be run via SqlStatement::ExecuteWithVariants(...) rather than
+    ///                    ExecuteDirect(...). See SqlSelectQueryBuilder's constructor for the
+    ///                    lifetime and marker-count caveats.
+    LIGHTWEIGHT_API SqlSelectQueryStarter Select(std::vector<SqlVariant>* boundInputs = nullptr) noexcept;
 
     /// Initiates UPDATE query building.
     ///
@@ -86,7 +93,14 @@ class [[nodiscard]] SqlQueryBuilder final
     LIGHTWEIGHT_API SqlUpdateQueryBuilder Update(std::vector<SqlVariant>* boundInputs = nullptr) noexcept;
 
     /// Initiates DELETE query building.
-    LIGHTWEIGHT_API SqlDeleteQueryBuilder Delete() noexcept;
+    ///
+    /// @param boundInputs Optional vector to store bound inputs.
+    ///                    If provided, the WHERE values will be appended to this vector as parameter
+    ///                    markers instead of being written into the query text, and the query must
+    ///                    then be run via SqlStatement::ExecuteWithVariants(...) rather than
+    ///                    ExecuteDirect(...). See SqlDeleteQueryBuilder's constructor for the
+    ///                    lifetime and marker-count caveats.
+    LIGHTWEIGHT_API SqlDeleteQueryBuilder Delete(std::vector<SqlVariant>* boundInputs = nullptr) noexcept;
 
     /// Initiates query for building database migrations.
     LIGHTWEIGHT_API SqlMigrationQueryBuilder Migration();

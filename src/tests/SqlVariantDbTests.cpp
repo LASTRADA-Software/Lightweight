@@ -743,8 +743,10 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches BIGINT columns and untyped 
     CHECK(big.TryGetLongLong().value_or(0) == 1'234'567'890'123LL);
 }
 
-// SQL_TINYINT is its own branch in SqlVariant::GetColumn, landing on int8_t. No other test in the
-// suite creates a TINYINT column, so that branch had no coverage on any database.
+// SQL_TINYINT is its own branch in SqlVariant::GetColumn. SQL Server's TINYINT is unsigned 0..255,
+// so it lands on `short` -- wide enough for the whole range -- rather than the signed int8_t that
+// would reject anything above 127. No other test in the suite creates a TINYINT column, so that
+// branch had no coverage on any database.
 TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches TINYINT columns", "[SqlVariant]")
 {
     auto stmt = SqlStatement {};
@@ -753,22 +755,23 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches TINYINT columns", "[SqlVari
         migration.CreateTable("variant_tinyint").RequiredColumn("tiny", SqlColumnTypeDefinitions::Tinyint {});
     });
 
+    // 200 is above int8_t's 127: a signed read would wrap it negative or be rejected outright.
     stmt.Prepare(R"(INSERT INTO "variant_tinyint" ("tiny") VALUES (?))");
-    (void) stmt.Execute(static_cast<int16_t>(42));
+    (void) stmt.Execute(static_cast<int16_t>(200));
 
     auto cursor = stmt.ExecuteDirect(R"(SELECT "tiny" FROM "variant_tinyint")");
     REQUIRE(cursor.FetchRow());
     SqlVariant tiny;
     CHECK(cursor.GetColumn(1, &tiny));
 
-    CHECK(tiny.TryGetInt().value_or(0) == 42);
+    CHECK(tiny.TryGetInt().value_or(0) == 200);
 
     // Only MS SQL Server has a native TINYINT. PostgreSqlFormatter maps Tinyint to SMALLINT and
     // SQLite has no distinct type, so on those the column reports as SQL_SMALLINT/SQL_INTEGER and
-    // the int8_t arm this test exists to cover is never taken. Assert the alternative only where
+    // the TINYINT arm this test exists to cover is never taken. Assert the alternative only where
     // the branch is genuinely reachable, so the coverage claim above is not overstated elsewhere.
     if (stmt.Connection().ServerType() == SqlServerType::MICROSOFT_SQL)
-        CHECK(std::holds_alternative<int8_t>(tiny.value));
+        CHECK(std::holds_alternative<short>(tiny.value));
 }
 
 // A scale deeper than the "by scale" test above covers. That test stops at scale 8; this one pins
