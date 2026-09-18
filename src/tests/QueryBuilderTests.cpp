@@ -993,6 +993,160 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Join", "[SqlQueryBuilder]")
                WHERE "Table_A"."foo" = 42)"));
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "Join ON clause: values, null tests and groups", "[SqlQueryBuilder]")
+{
+    using namespace std::string_view_literals;
+
+    // A term that belongs in the ON clause of an outer join cannot be moved to the WHERE clause:
+    // there it would discard the unmatched rows the outer join exists to keep.
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            return q.FromTable("Table_A")
+                .Select()
+                .Fields({ "foo"sv, "bar"sv }, "Table_A")
+                .LeftOuterJoin("Table_B",
+                               [](SqlJoinConditionBuilder join) {
+                                   return join.On("a_id", { .tableName = "Table_A", .columnName = "id" }).OnValue("kind", 7);
+                               })
+                .All();
+        },
+        QueryExpectations::All(R"(SELECT "Table_A"."foo", "Table_A"."bar" FROM "Table_A"
+                                  LEFT OUTER JOIN "Table_B" ON "Table_B"."a_id" = "Table_A"."id" AND "Table_B"."kind" = 7)"));
+
+    // An explicit operator, and a null test, which has no right-hand operand at all.
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            return q.FromTable("Table_A")
+                .Select()
+                .Fields({ "foo"sv, "bar"sv }, "Table_A")
+                .InnerJoin("Table_B",
+                           [](SqlJoinConditionBuilder join) {
+                               return join.On("a_id", { .tableName = "Table_A", .columnName = "id" })
+                                   .OnValue("rank", "<=", 3)
+                                   .OnNotNull("name");
+                           })
+                .All();
+        },
+        QueryExpectations::All(R"(SELECT "Table_A"."foo", "Table_A"."bar" FROM "Table_A"
+                                  INNER JOIN "Table_B" ON "Table_B"."a_id" = "Table_A"."id" AND "Table_B"."rank" <= 3 AND "Table_B"."name" IS NOT NULL)"));
+
+    // The grouping is the point: without the parentheses this reads as
+    // (a_id = id AND archive IS NULL) OR archive <= 0, which matches rows of every table_A row.
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            return q.FromTable("Table_A")
+                .Select()
+                .Fields({ "foo"sv, "bar"sv }, "Table_A")
+                .InnerJoin(
+                    "Table_B",
+                    [](SqlJoinConditionBuilder join) {
+                        return join.On("a_id", { .tableName = "Table_A", .columnName = "id" }).OnGroup([](auto& group) {
+                            group.OnNull("archive").OrOnValue("archive", "<=", 0);
+                        });
+                    })
+                .All();
+        },
+        QueryExpectations::All(R"(SELECT "Table_A"."foo", "Table_A"."bar" FROM "Table_A"
+                                  INNER JOIN "Table_B" ON "Table_B"."a_id" = "Table_A"."id" AND ("Table_B"."archive" IS NULL OR "Table_B"."archive" <= 0))"));
+
+    // A group that adds nothing leaves no "()" behind, which no dialect accepts.
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            return q.FromTable("Table_A")
+                .Select()
+                .Fields({ "foo"sv, "bar"sv }, "Table_A")
+                .InnerJoin("Table_B",
+                           [](SqlJoinConditionBuilder join) {
+                               return join.On("a_id", { .tableName = "Table_A", .columnName = "id" }).OnGroup([](auto&) {});
+                           })
+                .All();
+        },
+        QueryExpectations::All(R"(SELECT "Table_A"."foo", "Table_A"."bar" FROM "Table_A"
+                                  INNER JOIN "Table_B" ON "Table_B"."a_id" = "Table_A"."id")"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Join ON clause binds its values when bindings are requested", "[SqlQueryBuilder]")
+{
+    using namespace std::string_view_literals;
+
+    std::vector<SqlVariant> inputBindings;
+
+    // The ON value binds ahead of the WHERE value, because the JOIN clause comes first in the
+    // statement -- and it does so even though the WHERE term was written first.
+    CheckSqlQueryBuilder(
+        [&](SqlQueryBuilder& q) {
+            inputBindings.clear();
+            return q.FromTable("Table_A")
+                .Select(&inputBindings)
+                .Fields({ "foo"sv, "bar"sv }, "Table_A")
+                .Where(SqlQualifiedTableColumnName { .tableName = "Table_A", .columnName = "foo" }, 42)
+                .InnerJoin("Table_B",
+                           [](SqlJoinConditionBuilder join) {
+                               return join.On("a_id", { .tableName = "Table_A", .columnName = "id" }).OnValue("kind", 7);
+                           })
+                .All();
+        },
+        QueryExpectations::All(R"(SELECT "Table_A"."foo", "Table_A"."bar" FROM "Table_A"
+                                  INNER JOIN "Table_B" ON "Table_B"."a_id" = "Table_A"."id" AND "Table_B"."kind" = ?
+                                  WHERE "Table_A"."foo" = ?)"),
+        [&]() {
+            REQUIRE(inputBindings.size() == 2);
+            CHECK(std::get<int>(inputBindings[0].value) == 7);
+            CHECK(std::get<int>(inputBindings[1].value) == 42);
+        });
+
+    // Two joins keep their own order among themselves.
+    CheckSqlQueryBuilder(
+        [&](SqlQueryBuilder& q) {
+            inputBindings.clear();
+            return q.FromTable("Table_A")
+                .Select(&inputBindings)
+                .Fields({ "foo"sv, "bar"sv }, "Table_A")
+                .InnerJoin("Table_B",
+                           [](SqlJoinConditionBuilder join) {
+                               return join.On("a_id", { .tableName = "Table_A", .columnName = "id" }).OnValue("kind", 7);
+                           })
+                .InnerJoin("Table_C",
+                           [](SqlJoinConditionBuilder join) {
+                               return join.On("a_id", { .tableName = "Table_A", .columnName = "id" }).OnValue("kind", 9);
+                           })
+                .Where(SqlQualifiedTableColumnName { .tableName = "Table_A", .columnName = "foo" }, 42)
+                .All();
+        },
+        QueryExpectations::All(R"(SELECT "Table_A"."foo", "Table_A"."bar" FROM "Table_A"
+                                  INNER JOIN "Table_B" ON "Table_B"."a_id" = "Table_A"."id" AND "Table_B"."kind" = ?
+                                  INNER JOIN "Table_C" ON "Table_C"."a_id" = "Table_A"."id" AND "Table_C"."kind" = ?
+                                  WHERE "Table_A"."foo" = ?)"),
+        [&]() {
+            REQUIRE(inputBindings.size() == 3);
+            CHECK(std::get<int>(inputBindings[0].value) == 7);
+            CHECK(std::get<int>(inputBindings[1].value) == 9);
+            CHECK(std::get<int>(inputBindings[2].value) == 42);
+        });
+
+    // A string reaches the driver verbatim rather than being escaped into the statement text --
+    // the reason for binding an ON value at all.
+    CheckSqlQueryBuilder(
+        [&](SqlQueryBuilder& q) {
+            inputBindings.clear();
+            return q.FromTable("Table_A")
+                .Select(&inputBindings)
+                .Fields({ "foo"sv, "bar"sv }, "Table_A")
+                .InnerJoin(
+                    "Table_B",
+                    [](SqlJoinConditionBuilder join) {
+                        return join.On("a_id", { .tableName = "Table_A", .columnName = "id" }).OnValue("name", "O\'Brien"sv);
+                    })
+                .All();
+        },
+        QueryExpectations::All(R"(SELECT "Table_A"."foo", "Table_A"."bar" FROM "Table_A"
+                                  INNER JOIN "Table_B" ON "Table_B"."a_id" = "Table_A"."id" AND "Table_B"."name" = ?)"),
+        [&]() {
+            REQUIRE(inputBindings.size() == 1);
+            CHECK(std::get<std::string_view>(inputBindings[0].value) == "O\'Brien"sv);
+        });
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "Join with table aliasing", "[SqlQueryBuilder]")
 {
     SECTION("simple case")

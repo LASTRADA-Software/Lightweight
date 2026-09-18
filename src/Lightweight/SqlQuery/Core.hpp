@@ -57,6 +57,18 @@ namespace detail
         std::string condition;
     };
 
+    /// @brief Writes a literal value into a SQL fragment.
+    ///
+    /// Shared by the WHERE and the ON clause so a value is spelled the same way wherever it lands.
+    ///
+    /// @param value     The value to write. Column names, NULL, wildcards and raw conditions are
+    ///                  written as themselves; everything else is formatted, and quoted when its
+    ///                  type needs quoting.
+    /// @param target    The fragment to append to.
+    /// @param formatter Supplies the dialect's spelling of a boolean literal.
+    template <typename LiteralType, typename TargetType>
+    void AppendLiteralValueInto(LiteralType const& value, TargetType& target, SqlQueryFormatter const& formatter);
+
 } // namespace detail
 
 /// @brief Helper function to create a SqlQualifiedTableColumnName from string_view
@@ -138,17 +150,38 @@ struct [[nodiscard]] SqlSearchCondition
     std::string tableJoins;
     std::string condition;
     std::vector<SqlVariant>* inputBindings = nullptr;
+
+    /// How many of @c inputBindings were contributed by ON clauses.
+    ///
+    /// A JOIN precedes the WHERE clause in the statement, so a value bound by an ON clause is
+    /// inserted ahead of the WHERE values rather than appended. Tracking the count is what keeps
+    /// the vector in statement order however the caller interleaves joins and WHERE terms.
+    std::size_t joinBindingCount = 0;
 };
 
 /// @brief Query builder for building JOIN conditions.
+///
+/// An ON clause can say what a WHERE clause can: compare the joined table's column against another
+/// table's column or against a value, test it for null, and group terms in parentheses. The
+/// distinction matters for an outer join, where moving a term from the ON clause to the WHERE
+/// clause turns the join into an inner one.
+///
 /// @ingroup QueryBuilder
 class SqlJoinConditionBuilder
 {
   public:
     /// Constructs a new SqlJoinConditionBuilder.
-    explicit SqlJoinConditionBuilder(std::string_view referenceTable, std::string* condition) noexcept:
+    ///
+    /// @param referenceTable  The table being joined; the left operand of every condition.
+    /// @param searchCondition The query's search condition, whose @c tableJoins is written into and
+    ///                        whose bindings vector, when present, receives the compared values.
+    /// @param formatter       Supplies the dialect's spelling of a boolean literal.
+    explicit SqlJoinConditionBuilder(std::string_view referenceTable,
+                                     SqlSearchCondition* searchCondition,
+                                     SqlQueryFormatter const* formatter) noexcept:
         _referenceTable { referenceTable },
-        _condition { *condition }
+        _searchCondition { *searchCondition },
+        _formatter { *formatter }
     {
     }
 
@@ -169,27 +202,183 @@ class SqlJoinConditionBuilder
                                       SqlQualifiedTableColumnName onOtherColumn,
                                       std::string_view op)
     {
-        if (_firstCall)
-            _firstCall = !_firstCall;
-        else
-            _condition += std::format(" {} ", op);
+        AppendJunctor(op);
+        AppendReferenceColumn(joinColumnName);
+        Condition() += " = ";
+        detail::AppendLiteralValueInto(onOtherColumn, Condition(), _formatter);
+        return *this;
+    }
 
-        _condition += '"';
-        _condition += _referenceTable;
-        _condition += "\".\"";
-        _condition += joinColumnName;
-        _condition += "\" = \"";
-        _condition += onOtherColumn.tableName;
-        _condition += "\".\"";
-        _condition += onOtherColumn.columnName;
-        _condition += '"';
+    /// Adds an AND join condition testing the joined column against @p value for equality.
+    ///
+    /// The value is bound when the query was given a bindings vector, and written into the
+    /// statement text otherwise -- the same rule the WHERE clause follows. A query whose ON clause
+    /// binds must be run through @c SqlStatement::ExecuteWithVariants, and the vector and anything
+    /// a stored string_view points at have to outlive the execution.
+    template <typename T>
+    SqlJoinConditionBuilder& OnValue(std::string_view joinColumnName, T const& value)
+    {
+        return ValueOperator(joinColumnName, "=", value, "AND");
+    }
+
+    /// Adds an AND join condition testing the joined column against @p value with @p binaryOp.
+    template <typename T>
+    SqlJoinConditionBuilder& OnValue(std::string_view joinColumnName, std::string_view binaryOp, T const& value)
+    {
+        return ValueOperator(joinColumnName, binaryOp, value, "AND");
+    }
+
+    /// Adds an OR join condition testing the joined column against @p value for equality.
+    template <typename T>
+    SqlJoinConditionBuilder& OrOnValue(std::string_view joinColumnName, T const& value)
+    {
+        return ValueOperator(joinColumnName, "=", value, "OR");
+    }
+
+    /// Adds an OR join condition testing the joined column against @p value with @p binaryOp.
+    template <typename T>
+    SqlJoinConditionBuilder& OrOnValue(std::string_view joinColumnName, std::string_view binaryOp, T const& value)
+    {
+        return ValueOperator(joinColumnName, binaryOp, value, "OR");
+    }
+
+    /// Adds an AND join condition testing the joined column for NULL.
+    SqlJoinConditionBuilder& OnNull(std::string_view joinColumnName)
+    {
+        return NullTest(joinColumnName, NullSense::Null, "AND");
+    }
+
+    /// Adds an AND join condition testing the joined column for NOT NULL.
+    SqlJoinConditionBuilder& OnNotNull(std::string_view joinColumnName)
+    {
+        return NullTest(joinColumnName, NullSense::NotNull, "AND");
+    }
+
+    /// Adds an OR join condition testing the joined column for NULL.
+    SqlJoinConditionBuilder& OrOnNull(std::string_view joinColumnName)
+    {
+        return NullTest(joinColumnName, NullSense::Null, "OR");
+    }
+
+    /// Adds an OR join condition testing the joined column for NOT NULL.
+    SqlJoinConditionBuilder& OrOnNotNull(std::string_view joinColumnName)
+    {
+        return NullTest(joinColumnName, NullSense::NotNull, "OR");
+    }
+
+    /// Adds an AND group of join conditions, in parentheses.
+    ///
+    /// The parentheses are what keep `a AND (b OR c)` from becoming `a AND b OR c`, which selects
+    /// strictly more.
+    template <typename Callable>
+        requires std::invocable<Callable, SqlJoinConditionBuilder&>
+    SqlJoinConditionBuilder& OnGroup(Callable const& build)
+    {
+        return Group(build, "AND");
+    }
+
+    /// Adds an OR group of join conditions, in parentheses.
+    template <typename Callable>
+        requires std::invocable<Callable, SqlJoinConditionBuilder&>
+    SqlJoinConditionBuilder& OrOnGroup(Callable const& build)
+    {
+        return Group(build, "OR");
+    }
+
+  private:
+    [[nodiscard]] std::string& Condition() noexcept
+    {
+        return _searchCondition.tableJoins;
+    }
+
+    void AppendJunctor(std::string_view op)
+    {
+        if (_firstCall)
+            _firstCall = false;
+        else
+            Condition() += std::format(" {} ", op);
+    }
+
+    void AppendReferenceColumn(std::string_view joinColumnName)
+    {
+        Condition() += '"';
+        Condition() += _referenceTable;
+        Condition() += "\".\"";
+        Condition() += joinColumnName;
+        Condition() += '"';
+    }
+
+    template <typename T>
+    SqlJoinConditionBuilder& ValueOperator(std::string_view joinColumnName,
+                                           std::string_view binaryOp,
+                                           T const& value,
+                                           std::string_view op)
+    {
+        AppendJunctor(op);
+        AppendReferenceColumn(joinColumnName);
+        Condition() += std::format(" {} ", binaryOp);
+
+        if (_searchCondition.inputBindings != nullptr)
+        {
+            Condition() += '?';
+            // Ahead of the WHERE values, because the JOIN clause precedes the WHERE clause.
+            _searchCondition.inputBindings->insert(_searchCondition.inputBindings->begin()
+                                                       + static_cast<std::ptrdiff_t>(_searchCondition.joinBindingCount),
+                                                   SqlVariant { value });
+            ++_searchCondition.joinBindingCount;
+        }
+        else
+            detail::AppendLiteralValueInto(value, Condition(), _formatter);
 
         return *this;
     }
 
-  private:
+    enum class NullSense : std::uint8_t
+    {
+        Null,
+        NotNull,
+    };
+
+    SqlJoinConditionBuilder& NullTest(std::string_view joinColumnName, NullSense sense, std::string_view op)
+    {
+        AppendJunctor(op);
+        AppendReferenceColumn(joinColumnName);
+        Condition() += sense == NullSense::Null ? " IS NULL" : " IS NOT NULL";
+        return *this;
+    }
+
+    template <typename Callable>
+    SqlJoinConditionBuilder& Group(Callable const& build, std::string_view op)
+    {
+        // Remember the state before the junctor so an empty group can roll the junctor back too --
+        // otherwise a dangling " AND " is left where the group would have been.
+        auto const sizeBeforeJunctor = Condition().size();
+        bool const wasFirstCall = _firstCall;
+
+        AppendJunctor(op);
+
+        auto const sizeBeforeParen = Condition().size();
+        Condition() += '(';
+
+        SqlJoinConditionBuilder nested { _referenceTable, &_searchCondition, &_formatter };
+        build(nested);
+
+        // An empty group would render as "()", which no dialect accepts. Drop the junctor and the
+        // opening parenthesis, and restore the first-call flag so the next condition is not junctored.
+        if (Condition().size() == sizeBeforeParen + 1)
+        {
+            Condition().resize(sizeBeforeJunctor);
+            _firstCall = wasFirstCall;
+            return *this;
+        }
+
+        Condition() += ')';
+        return *this;
+    }
+
     std::string_view _referenceTable;
-    std::string& _condition;
+    SqlSearchCondition& _searchCondition;
+    SqlQueryFormatter const& _formatter;
     bool _firstCall = true;
 };
 
@@ -1143,44 +1332,55 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlWhereClauseBuilder<Derived>::AppendLiter
     }
 }
 
+namespace detail
+{
+
+    template <typename LiteralType, typename TargetType>
+    void AppendLiteralValueInto(LiteralType const& value, TargetType& target, SqlQueryFormatter const& formatter)
+    {
+        if constexpr (std::is_same_v<LiteralType, SqlQualifiedTableColumnName>)
+        {
+            target += '"';
+            target += value.tableName;
+            target += "\".\"";
+            target += value.columnName;
+            target += '"';
+        }
+        else if constexpr (detail::OneOf<LiteralType, SqlNullType, std::nullopt_t>)
+        {
+            target += "NULL";
+        }
+        else if constexpr (std::is_same_v<LiteralType, SqlWildcardType>)
+        {
+            target += '?';
+        }
+        else if constexpr (std::is_same_v<LiteralType, detail::RawSqlCondition>)
+        {
+            target += value.condition;
+        }
+        else if constexpr (std::is_same_v<LiteralType, bool>)
+        {
+            target += formatter.BooleanLiteral(value);
+        }
+        else if constexpr (!WhereConditionLiteralType<LiteralType>::needsQuotes)
+        {
+            target += std::format("{}", value);
+        }
+        else
+        {
+            target += detail::MakeEscapedSqlString(std::format("{}", value));
+        }
+    }
+
+} // namespace detail
+
 /// Populates a literal value into the target string.
 template <typename Derived>
 template <typename LiteralType, typename TargetType>
 inline LIGHTWEIGHT_FORCE_INLINE void SqlWhereClauseBuilder<Derived>::PopulateLiteralValueInto(LiteralType const& value,
                                                                                               TargetType& target)
 {
-    if constexpr (std::is_same_v<LiteralType, SqlQualifiedTableColumnName>)
-    {
-        target += '"';
-        target += value.tableName;
-        target += "\".\"";
-        target += value.columnName;
-        target += '"';
-    }
-    else if constexpr (detail::OneOf<LiteralType, SqlNullType, std::nullopt_t>)
-    {
-        target += "NULL";
-    }
-    else if constexpr (std::is_same_v<LiteralType, SqlWildcardType>)
-    {
-        target += '?';
-    }
-    else if constexpr (std::is_same_v<LiteralType, detail::RawSqlCondition>)
-    {
-        target += value.condition;
-    }
-    else if constexpr (std::is_same_v<LiteralType, bool>)
-    {
-        target += Formatter().BooleanLiteral(value);
-    }
-    else if constexpr (!WhereConditionLiteralType<LiteralType>::needsQuotes)
-    {
-        target += std::format("{}", value);
-    }
-    else
-    {
-        target += detail::MakeEscapedSqlString(std::format("{}", value));
-    }
+    detail::AppendLiteralValueInto(value, target, Formatter());
 }
 
 template <typename Derived>
@@ -1325,7 +1525,7 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Join(Jo
     SearchCondition().tableJoins +=
         std::format("\n {0} JOIN \"{1}\" ON ", JoinTypeStrings[static_cast<std::size_t>(joinType)], joinTable);
     size_t const sizeBefore = SearchCondition().tableJoins.size();
-    onClauseBuilder(SqlJoinConditionBuilder { joinTable, &SearchCondition().tableJoins });
+    onClauseBuilder(SqlJoinConditionBuilder { joinTable, &SearchCondition(), &Formatter() });
     size_t const sizeAfter = SearchCondition().tableJoins.size();
     if (sizeBefore == sizeAfter)
         SearchCondition().tableJoins.resize(originalSize);
