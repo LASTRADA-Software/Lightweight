@@ -48,7 +48,11 @@ SQLRETURN SqlDataBinder<SqlVariant>::GetColumn(
             returnCode = SqlDataBinder<bool>::GetColumn(stmt, column, &variant.emplace<bool>(), indicator, cb);
             break;
         case SQL_TINYINT:
-            returnCode = SqlDataBinder<int8_t>::GetColumn(stmt, column, &variant.emplace<int8_t>(), indicator, cb);
+            // SQL Server's TINYINT is unsigned 0..255, but SQL_C_STINYINT tops out at 127, so a value
+            // above it makes the driver report 22003 ("numeric value out of range") and fail the whole
+            // row. Read into a signed short, which holds the entire unsigned-tinyint range -- the same
+            // widening the SMALLINT case below applies for the mirror-image reason.
+            returnCode = SqlDataBinder<short>::GetColumn(stmt, column, &variant.emplace<short>(), indicator, cb);
             break;
         case SQL_SMALLINT:
             // SQL_SMALLINT is a signed 16-bit integer. Fetching into `unsigned short` makes the
