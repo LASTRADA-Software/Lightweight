@@ -104,9 +104,8 @@ $(document).ready(function(){initNavTree('dd/d97/classLightweight_1_1SqlJoinCond
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a20d79f682c02518bae99131795adb28b" id="r_a20d79f682c02518bae99131795adb28b"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#a20d79f682c02518bae99131795adb28b">SqlJoinConditionBuilder</a> (std::string_view referenceTable, std::string *condition) noexcept</td></tr>
-<tr class="memdesc:a20d79f682c02518bae99131795adb28b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs a new <a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html" title="Query builder for building JOIN conditions.">SqlJoinConditionBuilder</a>.  <br /></td></tr>
-<tr class="separator:a20d79f682c02518bae99131795adb28b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac42b259ddb9cbf5fa94ff36a44d3bc1e" id="r_ac42b259ddb9cbf5fa94ff36a44d3bc1e"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#ac42b259ddb9cbf5fa94ff36a44d3bc1e">SqlJoinConditionBuilder</a> (std::string_view referenceTable, SqlSearchCondition *searchCondition, <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const *formatter) noexcept</td></tr>
+<tr class="separator:ac42b259ddb9cbf5fa94ff36a44d3bc1e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a07b8c6e89aa7cbfd31eed3997d5dbf4f" id="r_a07b8c6e89aa7cbfd31eed3997d5dbf4f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#a07b8c6e89aa7cbfd31eed3997d5dbf4f">On</a> (std::string_view joinColumnName, <a class="el" href="../../db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html">SqlQualifiedTableColumnName</a> onOtherColumn)</td></tr>
 <tr class="memdesc:a07b8c6e89aa7cbfd31eed3997d5dbf4f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds an AND join condition.  <br /></td></tr>
 <tr class="separator:a07b8c6e89aa7cbfd31eed3997d5dbf4f"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -116,14 +115,51 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:ae323751c667fa84bef366866e65ea0e3" id="r_ae323751c667fa84bef366866e65ea0e3"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#ae323751c667fa84bef366866e65ea0e3">Operator</a> (std::string_view joinColumnName, <a class="el" href="../../db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html">SqlQualifiedTableColumnName</a> onOtherColumn, std::string_view op)</td></tr>
 <tr class="memdesc:ae323751c667fa84bef366866e65ea0e3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds a join condition with a custom operator.  <br /></td></tr>
 <tr class="separator:ae323751c667fa84bef366866e65ea0e3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a87d3a571e6e6f056a27b034199c88faa" id="r_a87d3a571e6e6f056a27b034199c88faa"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a87d3a571e6e6f056a27b034199c88faa"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#a87d3a571e6e6f056a27b034199c88faa">OnValue</a> (std::string_view joinColumnName, T const &amp;value)</td></tr>
+<tr class="separator:a87d3a571e6e6f056a27b034199c88faa"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a63983dbff81bd4d1e516c039f7e9219f" id="r_a63983dbff81bd4d1e516c039f7e9219f"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a63983dbff81bd4d1e516c039f7e9219f"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#a63983dbff81bd4d1e516c039f7e9219f">OnValue</a> (std::string_view joinColumnName, std::string_view binaryOp, T const &amp;value)</td></tr>
+<tr class="memdesc:a63983dbff81bd4d1e516c039f7e9219f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds an AND join condition testing the joined column against <code>value</code> with <code>binaryOp</code>.  <br /></td></tr>
+<tr class="separator:a63983dbff81bd4d1e516c039f7e9219f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1357ddddc9888c3e784c6d96646b0c6a" id="r_a1357ddddc9888c3e784c6d96646b0c6a"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a1357ddddc9888c3e784c6d96646b0c6a"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#a1357ddddc9888c3e784c6d96646b0c6a">OrOnValue</a> (std::string_view joinColumnName, T const &amp;value)</td></tr>
+<tr class="memdesc:a1357ddddc9888c3e784c6d96646b0c6a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds an OR join condition testing the joined column against <code>value</code> for equality.  <br /></td></tr>
+<tr class="separator:a1357ddddc9888c3e784c6d96646b0c6a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae63013f56e91e0d56374d045984a632c" id="r_ae63013f56e91e0d56374d045984a632c"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:ae63013f56e91e0d56374d045984a632c"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#ae63013f56e91e0d56374d045984a632c">OrOnValue</a> (std::string_view joinColumnName, std::string_view binaryOp, T const &amp;value)</td></tr>
+<tr class="memdesc:ae63013f56e91e0d56374d045984a632c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds an OR join condition testing the joined column against <code>value</code> with <code>binaryOp</code>.  <br /></td></tr>
+<tr class="separator:ae63013f56e91e0d56374d045984a632c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4df028445ca438fe60ae175ee3452e73" id="r_a4df028445ca438fe60ae175ee3452e73"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#a4df028445ca438fe60ae175ee3452e73">OnNull</a> (std::string_view joinColumnName)</td></tr>
+<tr class="memdesc:a4df028445ca438fe60ae175ee3452e73"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds an AND join condition testing the joined column for NULL.  <br /></td></tr>
+<tr class="separator:a4df028445ca438fe60ae175ee3452e73"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa2faeac39a8957e57be358fbee44a9ba" id="r_aa2faeac39a8957e57be358fbee44a9ba"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#aa2faeac39a8957e57be358fbee44a9ba">OnNotNull</a> (std::string_view joinColumnName)</td></tr>
+<tr class="memdesc:aa2faeac39a8957e57be358fbee44a9ba"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds an AND join condition testing the joined column for NOT NULL.  <br /></td></tr>
+<tr class="separator:aa2faeac39a8957e57be358fbee44a9ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a62e61b743fa4062e7c87b19e7a35476f" id="r_a62e61b743fa4062e7c87b19e7a35476f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#a62e61b743fa4062e7c87b19e7a35476f">OrOnNull</a> (std::string_view joinColumnName)</td></tr>
+<tr class="memdesc:a62e61b743fa4062e7c87b19e7a35476f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds an OR join condition testing the joined column for NULL.  <br /></td></tr>
+<tr class="separator:a62e61b743fa4062e7c87b19e7a35476f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae5caf0f8f6b813be9d6119fdc96b1544" id="r_ae5caf0f8f6b813be9d6119fdc96b1544"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#ae5caf0f8f6b813be9d6119fdc96b1544">OrOnNotNull</a> (std::string_view joinColumnName)</td></tr>
+<tr class="memdesc:ae5caf0f8f6b813be9d6119fdc96b1544"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds an OR join condition testing the joined column for NOT NULL.  <br /></td></tr>
+<tr class="separator:ae5caf0f8f6b813be9d6119fdc96b1544"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afa1437023353d4ab52d977c4575e6289" id="r_afa1437023353d4ab52d977c4575e6289"><td class="memTemplParams" colspan="2">template&lt;typename Callable &gt; <br />
+requires std::invocable&lt;Callable, <a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a>&amp;&gt;</td></tr>
+<tr class="memitem:afa1437023353d4ab52d977c4575e6289"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#afa1437023353d4ab52d977c4575e6289">OnGroup</a> (Callable const &amp;build)</td></tr>
+<tr class="separator:afa1437023353d4ab52d977c4575e6289"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aaf27033f8050b36e4b9a518e79591dc5" id="r_aaf27033f8050b36e4b9a518e79591dc5"><td class="memTemplParams" colspan="2">template&lt;typename Callable &gt; <br />
+requires std::invocable&lt;Callable, <a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a>&amp;&gt;</td></tr>
+<tr class="memitem:aaf27033f8050b36e4b9a518e79591dc5"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#aaf27033f8050b36e4b9a518e79591dc5">OrOnGroup</a> (Callable const &amp;build)</td></tr>
+<tr class="memdesc:aaf27033f8050b36e4b9a518e79591dc5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds an OR group of join conditions, in parentheses.  <br /></td></tr>
+<tr class="separator:aaf27033f8050b36e4b9a518e79591dc5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Query builder for building JOIN conditions. </p>
+<p>An ON clause can say what a WHERE clause can: compare the joined table's column against another table's column or against a value, test it for null, and group terms in parentheses. The distinction matters for an outer join, where moving a term from the ON clause to the WHERE clause turns the join into an inner one. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00145">145</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00170">170</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="a20d79f682c02518bae99131795adb28b" name="a20d79f682c02518bae99131795adb28b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a20d79f682c02518bae99131795adb28b">&#9670;&#160;</a></span>SqlJoinConditionBuilder()</h2>
+<a id="ac42b259ddb9cbf5fa94ff36a44d3bc1e" name="ac42b259ddb9cbf5fa94ff36a44d3bc1e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac42b259ddb9cbf5fa94ff36a44d3bc1e">&#9670;&#160;</a></span>SqlJoinConditionBuilder()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -140,8 +176,14 @@ Public Member Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">std::string *&#160;</td>
-          <td class="paramname"><em>condition</em>&#160;</td>
+          <td class="paramtype">SqlSearchCondition *&#160;</td>
+          <td class="paramname"><em>searchCondition</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const *&#160;</td>
+          <td class="paramname"><em>formatter</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -155,10 +197,17 @@ Public Member Functions</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>Constructs a new <a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html" title="Query builder for building JOIN conditions.">SqlJoinConditionBuilder</a>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">referenceTable</td><td>The table being joined; the left operand of every condition. </td></tr>
+    <tr><td class="paramname">searchCondition</td><td>The query's search condition, whose <code>tableJoins</code> is written into and whose bindings vector, when present, receives the compared values. </td></tr>
+    <tr><td class="paramname">formatter</td><td>Supplies the dialect's spelling of a boolean literal. </td></tr>
+  </table>
+  </dd>
+</dl>
 
-<p>Constructs a new <a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html" title="Query builder for building JOIN conditions.">SqlJoinConditionBuilder</a>. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00149">149</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00179">179</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -199,9 +248,9 @@ Public Member Functions</h2></td></tr>
 
 <p>Adds an AND join condition. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00156">156</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00189">189</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00168">Operator()</a>.</p>
+<p class="reference">References <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00201">Operator()</a>.</p>
 
 </div>
 </div>
@@ -241,9 +290,9 @@ Public Member Functions</h2></td></tr>
 
 <p>Adds an OR join condition. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00162">162</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00195">195</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00168">Operator()</a>.</p>
+<p class="reference">References <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00201">Operator()</a>.</p>
 
 </div>
 </div>
@@ -289,11 +338,375 @@ Public Member Functions</h2></td></tr>
 
 <p>Adds a join condition with a custom operator. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00168">168</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00201">201</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00329">Lightweight::SqlQualifiedTableColumnName::columnName</a>, and <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00327">Lightweight::SqlQualifiedTableColumnName::tableName</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00189">On()</a>, and <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00195">OrOn()</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00156">On()</a>, and <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00162">OrOn()</a>.</p>
+</div>
+</div>
+<a id="a87d3a571e6e6f056a27b034199c88faa" name="a87d3a571e6e6f056a27b034199c88faa"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a87d3a571e6e6f056a27b034199c88faa">&#9670;&#160;</a></span>OnValue() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> &amp; Lightweight::SqlJoinConditionBuilder::OnValue </td>
+          <td>(</td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>joinColumnName</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">T const &amp;&#160;</td>
+          <td class="paramname"><em>value</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Adds an AND join condition testing the joined column against <code>value</code> for equality.</p>
+<p>The value is bound when the query was given a bindings vector, and written into the statement text otherwise &ndash; the same rule the WHERE clause follows. A query whose ON clause binds must be run through <code><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a3c5b640b862f0b9d30fc55e76f8f362f" title="Binds the given arguments to the prepared statement and executes it.">SqlStatement::ExecuteWithVariants</a></code>, and the vector and anything a stored string_view points at have to outlive the execution. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00219">219</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a63983dbff81bd4d1e516c039f7e9219f" name="a63983dbff81bd4d1e516c039f7e9219f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a63983dbff81bd4d1e516c039f7e9219f">&#9670;&#160;</a></span>OnValue() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> &amp; Lightweight::SqlJoinConditionBuilder::OnValue </td>
+          <td>(</td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>joinColumnName</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>binaryOp</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">T const &amp;&#160;</td>
+          <td class="paramname"><em>value</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Adds an AND join condition testing the joined column against <code>value</code> with <code>binaryOp</code>. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00226">226</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a1357ddddc9888c3e784c6d96646b0c6a" name="a1357ddddc9888c3e784c6d96646b0c6a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1357ddddc9888c3e784c6d96646b0c6a">&#9670;&#160;</a></span>OrOnValue() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> &amp; Lightweight::SqlJoinConditionBuilder::OrOnValue </td>
+          <td>(</td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>joinColumnName</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">T const &amp;&#160;</td>
+          <td class="paramname"><em>value</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Adds an OR join condition testing the joined column against <code>value</code> for equality. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00233">233</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+
+</div>
+</div>
+<a id="ae63013f56e91e0d56374d045984a632c" name="ae63013f56e91e0d56374d045984a632c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae63013f56e91e0d56374d045984a632c">&#9670;&#160;</a></span>OrOnValue() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> &amp; Lightweight::SqlJoinConditionBuilder::OrOnValue </td>
+          <td>(</td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>joinColumnName</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>binaryOp</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">T const &amp;&#160;</td>
+          <td class="paramname"><em>value</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Adds an OR join condition testing the joined column against <code>value</code> with <code>binaryOp</code>. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00240">240</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a4df028445ca438fe60ae175ee3452e73" name="a4df028445ca438fe60ae175ee3452e73"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4df028445ca438fe60ae175ee3452e73">&#9670;&#160;</a></span>OnNull()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> &amp; Lightweight::SqlJoinConditionBuilder::OnNull </td>
+          <td>(</td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>joinColumnName</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Adds an AND join condition testing the joined column for NULL. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00246">246</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+
+</div>
+</div>
+<a id="aa2faeac39a8957e57be358fbee44a9ba" name="aa2faeac39a8957e57be358fbee44a9ba"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa2faeac39a8957e57be358fbee44a9ba">&#9670;&#160;</a></span>OnNotNull()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> &amp; Lightweight::SqlJoinConditionBuilder::OnNotNull </td>
+          <td>(</td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>joinColumnName</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Adds an AND join condition testing the joined column for NOT NULL. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00249">249</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a62e61b743fa4062e7c87b19e7a35476f" name="a62e61b743fa4062e7c87b19e7a35476f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a62e61b743fa4062e7c87b19e7a35476f">&#9670;&#160;</a></span>OrOnNull()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> &amp; Lightweight::SqlJoinConditionBuilder::OrOnNull </td>
+          <td>(</td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>joinColumnName</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Adds an OR join condition testing the joined column for NULL. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00252">252</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+
+</div>
+</div>
+<a id="ae5caf0f8f6b813be9d6119fdc96b1544" name="ae5caf0f8f6b813be9d6119fdc96b1544"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae5caf0f8f6b813be9d6119fdc96b1544">&#9670;&#160;</a></span>OrOnNotNull()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> &amp; Lightweight::SqlJoinConditionBuilder::OrOnNotNull </td>
+          <td>(</td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>joinColumnName</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Adds an OR join condition testing the joined column for NOT NULL. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00255">255</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+
+</div>
+</div>
+<a id="afa1437023353d4ab52d977c4575e6289" name="afa1437023353d4ab52d977c4575e6289"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afa1437023353d4ab52d977c4575e6289">&#9670;&#160;</a></span>OnGroup()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Callable &gt; <br />
+requires std::invocable&lt;Callable, <a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a>&amp;&gt;</div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> &amp; Lightweight::SqlJoinConditionBuilder::OnGroup </td>
+          <td>(</td>
+          <td class="paramtype">Callable const &amp;&#160;</td>
+          <td class="paramname"><em>build</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Adds an AND group of join conditions, in parentheses.</p>
+<p>The parentheses are what keep <code>a AND (b OR c)</code> from becoming <code>a AND b OR c</code>, which selects strictly more. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00263">263</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+
+</div>
+</div>
+<a id="aaf27033f8050b36e4b9a518e79591dc5" name="aaf27033f8050b36e4b9a518e79591dc5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aaf27033f8050b36e4b9a518e79591dc5">&#9670;&#160;</a></span>OrOnGroup()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Callable &gt; <br />
+requires std::invocable&lt;Callable, <a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a>&amp;&gt;</div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> &amp; Lightweight::SqlJoinConditionBuilder::OrOnGroup </td>
+          <td>(</td>
+          <td class="paramtype">Callable const &amp;&#160;</td>
+          <td class="paramname"><em>build</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Adds an OR group of join conditions, in parentheses. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00271">271</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
