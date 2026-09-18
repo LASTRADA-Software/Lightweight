@@ -28,6 +28,7 @@ using namespace std::string_view_literals;
 static SqlConnectionString gDefaultConnectionString {};
 static std::atomic<uint64_t> gNextConnectionId { 1 };
 static std::function<void(SqlConnection&)> gPostConnectedHook {};
+static std::atomic<SqlStringTruncationMode> gDefaultStringTruncationMode { SqlStringTruncationMode::Truncate };
 static std::mutex gConnectionMutex {};
 
 namespace
@@ -147,6 +148,7 @@ SqlConnection::SqlConnection(SqlConnection&& other) noexcept:
     m_serverType { other.m_serverType },
     m_queryFormatter { other.m_queryFormatter },
     m_driverName { std::move(other.m_driverName) },
+    m_stringTruncationMode { other.m_stringTruncationMode },
     m_data { other.m_data }
 {
     other.m_hEnv = {};
@@ -168,6 +170,7 @@ SqlConnection& SqlConnection::operator=(SqlConnection&& other) noexcept
     m_serverType = other.m_serverType;
     m_queryFormatter = other.m_queryFormatter;
     m_driverName = std::move(other.m_driverName);
+    m_stringTruncationMode = other.m_stringTruncationMode;
     m_data = other.m_data;
 
     other.m_hEnv = {};
@@ -293,6 +296,34 @@ void SqlConnection::SetPostConnectedHook(std::function<void(SqlConnection&)> hoo
 void SqlConnection::ResetPostConnectedHook()
 {
     gPostConnectedHook = {};
+}
+
+SqlStringTruncationMode SqlConnection::DefaultStringTruncationMode() noexcept
+{
+    return gDefaultStringTruncationMode.load(std::memory_order_relaxed);
+}
+
+void SqlConnection::SetDefaultStringTruncationMode(SqlStringTruncationMode mode) noexcept
+{
+    gDefaultStringTruncationMode.store(mode, std::memory_order_relaxed);
+}
+
+void SqlConnection::SetStringTruncationMode(SqlStringTruncationMode mode)
+{
+    m_stringTruncationMode = mode;
+    ApplyStringTruncationMode();
+}
+
+void SqlConnection::ApplyStringTruncationMode()
+{
+    // Only Microsoft SQL Server distinguishes the two through a session setting; on every other
+    // backend the mode is carried but has no statement to apply.
+    if (m_serverType != SqlServerType::MICROSOFT_SQL)
+        return;
+
+    SqlStatement stmt(*this);
+    std::ignore = stmt.ExecuteDirect(m_stringTruncationMode == SqlStringTruncationMode::Truncate ? "SET ANSI_WARNINGS OFF"
+                                                                                                 : "SET ANSI_WARNINGS ON");
 }
 
 bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
@@ -499,6 +530,11 @@ void SqlConnection::PostConnect()
     // The server type is only known now, so this is the earliest point at which the backend capability
     // gate on the prepared-statement cache can be evaluated.
     ApplyPreparedStatementCacheCapacity();
+
+    // The server type is likewise required before the truncation mode can be applied, since it decides
+    // whether there is a session setting to issue at all.
+    m_stringTruncationMode = DefaultStringTruncationMode();
+    ApplyStringTruncationMode();
 
     if (m_serverType == SqlServerType::SQLITE)
     {

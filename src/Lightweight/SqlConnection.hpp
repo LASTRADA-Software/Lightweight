@@ -43,6 +43,29 @@ class SqlQueryFormatter;
 class SqlPreparedStatementCache;
 
 /// @ingroup CoreApi
+/// @brief How a connection treats a string or binary value written into a column too small to hold it.
+///
+/// The mode is applied per connection. On Microsoft SQL Server it is realised by toggling the
+/// session's @c ANSI_WARNINGS setting when the connection is established.
+enum class SqlStringTruncationMode : uint8_t
+{
+    /// The value is silently shortened to the column width (@c SET @c ANSI_WARNINGS @c OFF on SQL
+    /// Server). This matches the historical behaviour of some legacy data layers that clamp a value to
+    /// the column width before sending it.
+    ///
+    /// @warning On SQL Server this is @c ANSI_WARNINGS @c OFF, which also turns an arithmetic overflow
+    ///          into a NULL rather than an error and suppresses the NULL-in-aggregate warning, and
+    ///          makes INSERT/UPDATE fail on tables carrying an indexed view, a filtered index, or an
+    ///          index over a computed column. Prefer @ref Error unless bug-for-bug compatibility with
+    ///          such a legacy layer is required.
+    Truncate,
+
+    /// The server rejects the write with an error (@c SET @c ANSI_WARNINGS @c ON on SQL Server, which
+    /// is also the server default). No data is silently lost.
+    Error,
+};
+
+/// @ingroup CoreApi
 /// @brief Represents a connection to a SQL database.
 class SqlConnection final
 {
@@ -90,6 +113,24 @@ class SqlConnection final
 
     /// Resets the post connected hook.
     LIGHTWEIGHT_API static void ResetPostConnectedHook();
+
+    /// The string-truncation mode a newly established connection adopts. Defaults to
+    /// @ref SqlStringTruncationMode::Truncate.
+    [[nodiscard]] LIGHTWEIGHT_API static SqlStringTruncationMode DefaultStringTruncationMode() noexcept;
+
+    /// Sets the string-truncation mode newly established connections adopt. Existing connections are
+    /// unaffected; use @ref SetStringTruncationMode on those.
+    LIGHTWEIGHT_API static void SetDefaultStringTruncationMode(SqlStringTruncationMode mode) noexcept;
+
+    /// This connection's string-truncation mode. See @ref SqlStringTruncationMode.
+    [[nodiscard]] SqlStringTruncationMode StringTruncationMode() const noexcept
+    {
+        return m_stringTruncationMode;
+    }
+
+    /// Sets this connection's string-truncation mode, applying it immediately when the connection is
+    /// open (a no-op on backends other than Microsoft SQL Server).
+    LIGHTWEIGHT_API void SetStringTruncationMode(SqlStringTruncationMode mode);
 
     /// @brief Retrieves the connection ID.
     ///
@@ -379,6 +420,10 @@ class SqlConnection final
     /// Re-evaluates the backend capability gate on the requested prepared-statement cache capacity.
     void ApplyPreparedStatementCacheCapacity() noexcept;
 
+    /// Issues the SET statement that realises m_stringTruncationMode. A no-op unless connected to
+    /// Microsoft SQL Server. Throws if the SET statement fails, like the other connect-time settings.
+    void ApplyStringTruncationMode();
+
     // Private data members
     // Note: move/move assignment operators implemented manually
     // if adding new data members, make sure to update them accordingly.
@@ -388,6 +433,7 @@ class SqlConnection final
     SqlServerType m_serverType = SqlServerType::UNKNOWN;
     SqlQueryFormatter const* m_queryFormatter {};
     std::string m_driverName;
+    SqlStringTruncationMode m_stringTruncationMode = SqlStringTruncationMode::Truncate;
 
     struct Data;
     Data* m_data {};
