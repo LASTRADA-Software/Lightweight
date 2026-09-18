@@ -84,6 +84,22 @@ SqlUpdateQueryBuilder& SqlUpdateQueryBuilder::Set(std::string_view columnName, C
         m_values += "NULL"sv;
     else if constexpr (std::is_same_v<ColumnValue, SqlWildcardType>)
         m_values += '?';
+    else if constexpr (std::is_same_v<ColumnValue, SqlVariant>)
+    {
+        // A NULL variant becomes the SQL literal NULL rather than a bound parameter -- see the same
+        // branch in SqlInsertQueryBuilder::Set (Insert.hpp) for why a bound NULL cannot be typed
+        // reliably on MS SQL Server (SQLDescribeParam is rejected with 07009 once a parameter has been
+        // bound). A literal needs no type resolution.
+        if (value.IsNull())
+            m_values += "NULL"sv;
+        else if (m_searchCondition.inputBindings)
+        {
+            m_values += '?';
+            m_searchCondition.inputBindings->emplace_back(value);
+        }
+        else
+            m_values += m_formatter.StringLiteral(std::format("{}", value));
+    }
     else if (m_searchCondition.inputBindings)
     {
         m_values += '?';

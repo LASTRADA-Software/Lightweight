@@ -72,6 +72,26 @@ SqlInsertQueryBuilder& SqlInsertQueryBuilder::Set(std::string_view columnName, C
         m_values += "NULL"sv;
     else if constexpr (std::is_same_v<ColumnValue, SqlWildcardType>)
         m_values += '?';
+    else if constexpr (std::is_same_v<ColumnValue, SqlVariant>)
+    {
+        // A NULL variant becomes the SQL literal NULL rather than a bound parameter. A bound NULL has
+        // no type of its own, so the driver must be told one; the SqlNullType binder discovers it
+        // lazily with SQLDescribeParam while binding. But parameters are bound in order, and by the
+        // time a NULL is reached earlier parameters are already bound -- and the MS SQL Server driver
+        // rejects SQLDescribeParam once any parameter has been bound, with SQLSTATE 07009 ("Invalid
+        // Descriptor Index"). The NULL then falls back to a char-typed parameter, which the server
+        // refuses to assign to a binary column. A literal carries no type to resolve, so it needs no
+        // describe at all.
+        if (value.IsNull())
+            m_values += "NULL"sv;
+        else if (m_inputBindings)
+        {
+            m_values += '?';
+            m_inputBindings->emplace_back(value);
+        }
+        else
+            m_values += m_formatter.StringLiteral(std::format("{}", value));
+    }
     else if (m_inputBindings)
     {
         m_values += '?';

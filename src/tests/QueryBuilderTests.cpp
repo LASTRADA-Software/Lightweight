@@ -1406,6 +1406,47 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Update", "[SqlQueryBuilder]")
         });
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Insert with a null SqlVariant writes a literal NULL", "[SqlQueryBuilder]")
+{
+    // A NULL passed as a runtime SqlVariant must render as the SQL literal NULL, exactly as a
+    // compile-time SqlNullValue does, and must not become a bound parameter. A bound NULL leaves its
+    // type for the driver to resolve, which MS SQL Server's SQLDescribeParam cannot always do (e.g.
+    // for a statement touching a deprecated text/image column), and it then refuses a char-typed NULL
+    // bound to a binary column.
+    std::vector<SqlVariant> boundValues;
+    CheckSqlQueryBuilder(
+        [&](SqlQueryBuilder& q) {
+            return q.FromTableAs("Other", "O").Insert(&boundValues).Set("foo", SqlVariant { 42 }).Set("bar", SqlVariant { SqlNullValue });
+        },
+        QueryExpectations::All(R"(INSERT INTO "Other" ("foo", "bar") VALUES (?, NULL))"),
+        [&]() {
+            CHECK(boundValues.size() == 1);
+            CHECK(std::get<int>(boundValues[0].value) == 42);
+            boundValues.clear();
+        });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Update with a null SqlVariant writes a literal NULL", "[SqlQueryBuilder]")
+{
+    std::vector<SqlVariant> boundValues;
+    CheckSqlQueryBuilder(
+        [&](SqlQueryBuilder& q) {
+            return q.FromTableAs("Other", "O")
+                .Update(&boundValues)
+                .Set("foo", SqlVariant { 42 })
+                .Set("bar", SqlVariant { SqlNullValue })
+                .Where("id", 123);
+        },
+        QueryExpectations::All(R"(UPDATE "Other" AS "O" SET "foo" = ?, "bar" = NULL
+                                  WHERE "id" = ?)"),
+        [&]() {
+            CHECK(boundValues.size() == 2);
+            CHECK(std::get<int>(boundValues[0].value) == 42);
+            CHECK(std::get<int>(boundValues[1].value) == 123);
+            boundValues.clear();
+        });
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.Lambda", "[SqlQueryBuilder]")
 {
     CheckSqlQueryBuilder(
