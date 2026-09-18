@@ -9,6 +9,7 @@
 #include <chrono>
 #include <format>
 #include <optional>
+#include <string>
 #include <string_view>
 
 using namespace Lightweight;
@@ -258,4 +259,56 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlConnection::Close leaves dependent statemen
     CHECK_FALSE(mapper.Connection().IsAlive());
     // `mapper` (and the SqlStatement it owns) is destroyed here; reaching the end of the test is the
     // assertion.
+}
+
+// ================================================================================================
+// String truncation mode
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlConnection string truncation mode: default and per-connection setter",
+                 "[SqlConnection]")
+{
+    // The shipped default is Truncate.
+    CHECK(SqlConnection::DefaultStringTruncationMode() == SqlStringTruncationMode::Truncate);
+
+    auto stmt = SqlStatement {};
+    auto& conn = stmt.Connection();
+
+    // A freshly established connection adopts the default.
+    CHECK(conn.StringTruncationMode() == SqlStringTruncationMode::Truncate);
+
+    // The per-connection setter round-trips.
+    conn.SetStringTruncationMode(SqlStringTruncationMode::Error);
+    CHECK(conn.StringTruncationMode() == SqlStringTruncationMode::Error);
+    conn.SetStringTruncationMode(SqlStringTruncationMode::Truncate);
+    CHECK(conn.StringTruncationMode() == SqlStringTruncationMode::Truncate);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlConnection string truncation mode governs an over-long write", "[SqlConnection]")
+{
+    auto stmt = SqlStatement {};
+    auto& conn = stmt.Connection();
+
+    // The two modes are distinguished by a session setting only on Microsoft SQL Server; on other
+    // backends the mode is carried but there is no server rule to enforce, so there is nothing to
+    // assert here.
+    if (conn.ServerType() != SqlServerType::MICROSOFT_SQL)
+        return;
+
+    std::ignore = stmt.ExecuteDirect("CREATE TABLE #StringTruncationProbe (c VARCHAR(5))");
+
+    // Error mode rejects a value that does not fit the column.
+    conn.SetStringTruncationMode(SqlStringTruncationMode::Error);
+    CHECK_THROWS(std::ignore = stmt.ExecuteDirect("INSERT INTO #StringTruncationProbe (c) VALUES ('ABCDEFGHIJ')"));
+
+    // Truncate mode accepts it, storing the value shortened to the column width, with no error.
+    conn.SetStringTruncationMode(SqlStringTruncationMode::Truncate);
+    std::ignore = stmt.ExecuteDirect("INSERT INTO #StringTruncationProbe (c) VALUES ('ABCDEFGHIJ')");
+
+    auto const stored = stmt.ExecuteDirectScalar<std::string>("SELECT c FROM #StringTruncationProbe");
+    REQUIRE(stored.has_value());
+    CHECK(stored.value_or(std::string {}) == "ABCDE");
+
+    std::ignore = stmt.ExecuteDirect("DROP TABLE #StringTruncationProbe");
 }
