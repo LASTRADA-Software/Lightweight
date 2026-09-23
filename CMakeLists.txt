@@ -44,6 +44,7 @@ option(LIGHTWEIGHT_BUILD_SHARED "Build Lightweight as a shared library" ${LIGHTW
 # Component build options
 option(LIGHTWEIGHT_BUILD_TESTS "Build Lightweight tests" ON)
 option(LIGHTWEIGHT_BUILD_TOOLS "Build Lightweight tools" ON)
+option(LIGHTWEIGHT_INSTALL_RUNTIME_DEPENDENCIES "Install the tools' transitive runtime DLLs next to them (Windows). Turn off when a package manager such as vcpkg already installs them" ON)
 option(LIGHTWEIGHT_BUILD_EXAMPLES "Build Lightweight examples" ON)
 option(LIGHTWEIGHT_BUILD_BENCHMARK "Build Lightweight benchmark" OFF)
 
