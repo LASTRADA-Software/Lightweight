@@ -80,6 +80,20 @@ static_assert(detail::CanRowWiseFetchRecord<RowTemporalRecord>());
 static_assert(detail::CanRowWiseFetchRecord<RowFixedStringRecord>());
 static_assert(!detail::CanRowWiseFetchRecord<RowStringRecord>());
 
+// Single-char columns, incl. a nullable one: exercise every char bind path through the DataMapper
+// (row-wise CreateAll, single Create, row-wise All() fetch, per-row QuerySingle fetch).
+struct RowCharRecord
+{
+    Field<int64_t, PrimaryKey::AutoAssign> id;
+    Field<char> grade;
+    Field<std::optional<char>> flag;
+    Field<int32_t> number;
+};
+
+// A char needs a per-row length and a NUL-terminated staging buffer (see SqlDataBinder<char>), which
+// row-wise binding cannot give it: such records take the per-row paths.
+static_assert(!detail::CanRowWiseFetchRecord<RowCharRecord>());
+
 // The fixed-string record is flagged as narrow-text-bearing (so PostgreSQL falls back), the others not.
 static_assert(detail::RecordHasNarrowFixedStringColumn<RowFixedStringRecord>());
 static_assert(!detail::RecordHasNarrowFixedStringColumn<RowFixedRecord>());
@@ -383,6 +397,43 @@ TEST_CASE_METHOD(SqlTestFixture, "RowWiseFetch: statement is reusable after a fa
 // difference is the fetch mechanism. Locally (no network) this isolates the per-SQLFetch driver overhead,
 // which is the lower bound of the win: on a high-latency link each eliminated round-trip also saves a full
 // network RTT, so the real-world speedup is far larger than the local number.
+TEST_CASE_METHOD(SqlTestFixture, "RowWiseFetch: char and nullable char columns round-trip", "[DataMapper][rowwisefetch]")
+{
+    auto dm = DataMapper {};
+    dm.CreateTable<RowCharRecord>();
+
+    auto seed = std::vector<RowCharRecord> {};
+    seed.push_back({ .id = 1, .grade = 'A', .flag = 'y', .number = 10 });
+    seed.push_back({ .id = 2, .grade = 'B', .flag = std::nullopt, .number = 20 });
+    seed.push_back({ .id = 3, .grade = 'C', .flag = 'n', .number = 30 });
+    dm.CreateAll(seed);
+
+    auto single = RowCharRecord { .id = 4, .grade = 'D', .flag = 'z', .number = 40 };
+    dm.CreateExplicit(single);
+    seed.push_back(single);
+
+    auto const records = dm.Query<RowCharRecord>().All();
+    REQUIRE(records.size() == seed.size());
+
+    std::map<int64_t, RowCharRecord const*> byId;
+    for (auto const& r: records)
+        byId.emplace(r.id.Value(), &r);
+
+    for (auto const& expected: seed)
+    {
+        REQUIRE(byId.contains(expected.id.Value()));
+        auto const& actual = *byId[expected.id.Value()];
+        CHECK(actual.grade.Value() == expected.grade.Value());
+        CHECK(actual.flag.Value() == expected.flag.Value());
+        CHECK(actual.number.Value() == expected.number.Value());
+
+        auto const queried = dm.QuerySingle<RowCharRecord>(expected.id.Value());
+        REQUIRE(queried.has_value());
+        CHECK(queried->grade.Value() == expected.grade.Value());
+        CHECK(queried->flag.Value() == expected.flag.Value());
+    }
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "RowWiseFetch.benchmark: block fetch vs per-row", "[.][rowwisefetchbench]")
 {
     using std::chrono::microseconds;
