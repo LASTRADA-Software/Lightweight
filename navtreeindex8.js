@@ -1,5 +1,6 @@
 var NAVTREEINDEX8 =
 {
+"df/d25/Customer_8hpp_source.html":[22,0,0,0,0,2],
 "df/d36/Playlist_8hpp_source.html":[22,0,0,0,0,8],
 "df/d3f/structLightweight_1_1SqlVariant.html":[19,1,12],
 "df/d3f/structLightweight_1_1SqlVariant.html#a001b083ef4020390b319901974533265":[19,1,12,5],
