@@ -1984,8 +1984,8 @@ RecordPrimaryKeyType<Record> DataMapper::CreateInternal(
         else
             return RecordPrimaryKeyOf(record).Value();
     }
-
-    return {};
+    else
+        return {};
 }
 
 template <typename Record>
