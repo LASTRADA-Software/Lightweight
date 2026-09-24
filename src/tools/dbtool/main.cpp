@@ -17,6 +17,7 @@
 #include <array>
 #include <cctype>
 #include <chrono>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <expected>
@@ -38,6 +39,8 @@
 #include <PluginIngestion.hpp>
 #include <PluginLoader.hpp>
 #include <Secrets/SecretResolver.hpp>
+#include <core/tui/SgrBuilder.hpp>
+#include <core/tui/TerminalOutput.hpp>
 
 #if defined(__clang__)
     #pragma clang diagnostic push
@@ -49,7 +52,6 @@
 #endif
 
 #ifdef _WIN32
-    #include <io.h>
     #ifndef NOMINMAX
         #define NOMINMAX
     #endif
@@ -57,8 +59,6 @@
         #define WIN32_LEAN_AND_MEAN
     #endif
     #include <windows.h>
-#else
-    #include <unistd.h>
 #endif
 
 using namespace Lightweight;
@@ -87,39 +87,60 @@ void TraceBreadcrumb(std::string_view label)
     std::fflush(stderr);
 }
 
+/// Whether the process's standard output is a terminal, as core-cpp's terminal output asks the
+/// operating system about it.
 bool IsStdoutTerminal()
 {
-#ifdef _WIN32
-    return _isatty(_fileno(stdout)) != 0;
-#else
-    return isatty(fileno(stdout)) != 0;
-#endif
+    return core::tui::TerminalOutput {}.isTerminal();
 }
 
 struct HelpColors
 {
-    std::string_view reset;
-    std::string_view bold;
-    std::string_view dim;
-    std::string_view heading; // Section headings like "Commands:", "Options:"
-    std::string_view command; // Command names
-    std::string_view option;  // Option flags like --output
-    std::string_view param;   // Parameter placeholders like <FILE>
-    std::string_view example; // Example comments
-    std::string_view code;    // Example code/commands
+    std::string reset;
+    std::string bold;
+    std::string dim;
+    std::string heading; // Section headings like "Commands:", "Options:"
+    std::string command; // Command names
+    std::string option;  // Option flags like --output
+    std::string param;   // Parameter placeholders like <FILE>
+    std::string example; // Example comments
+    std::string code;    // Example code/commands
+
+    /// How bright an SGR sequence draws its text.
+    enum class Intensity : std::uint8_t
+    {
+        Normal,
+        Bold,
+        Dim,
+    };
+
+    /// Composes the SGR sequence for @p foreground at @p intensity.
+    static std::string Sgr(core::tui::Color foreground, Intensity intensity)
+    {
+        auto style = core::tui::Style {};
+        style.fg = foreground;
+        style.bold = intensity == Intensity::Bold;
+        style.dim = intensity == Intensity::Dim;
+        return core::tui::buildSgrSequence(style);
+    }
 
     static HelpColors Colored()
     {
+        // The eight ANSI colours by their indexes in the terminal's palette.
+        constexpr auto green = std::uint8_t { 2 };
+        constexpr auto yellow = std::uint8_t { 3 };
+        constexpr auto cyan = std::uint8_t { 6 };
+        constexpr auto white = std::uint8_t { 7 };
         return {
-            .reset = "\033[0m",
-            .bold = "\033[1m",
-            .dim = "\033[2m",
-            .heading = "\033[1;36m", // Bold cyan
-            .command = "\033[1;33m", // Bold yellow
-            .option = "\033[1;32m",  // Bold green
-            .param = "\033[33m",     // Yellow
-            .example = "\033[2;37m", // Dim white (for comments)
-            .code = "\033[37m",      // White
+            .reset = core::tui::buildSgrReset(),
+            .bold = Sgr({}, Intensity::Bold),
+            .dim = Sgr({}, Intensity::Dim),
+            .heading = Sgr(cyan, Intensity::Bold),
+            .command = Sgr(yellow, Intensity::Bold),
+            .option = Sgr(green, Intensity::Bold),
+            .param = Sgr(yellow, Intensity::Normal),
+            .example = Sgr(white, Intensity::Dim),
+            .code = Sgr(white, Intensity::Normal),
         };
     }
 

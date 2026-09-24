@@ -16,7 +16,7 @@ target_link_libraries(dbtool_lib PUBLIC Lightweight tools_shared zip)
 target_link_libraries(dbtool_lib PRIVATE core::tui_output)
 
 add_executable(dbtool main.cpp)
-target_link_libraries(dbtool PRIVATE dbtool_lib)
+target_link_libraries(dbtool PRIVATE dbtool_lib core::tui_output)
 
 install(TARGETS dbtool
     RUNTIME_DEPENDENCY_SET dbtool_deps
