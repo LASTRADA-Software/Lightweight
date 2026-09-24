@@ -1,6 +1,5 @@
 var NAVTREEINDEX5 =
 {
-"d9/dd1/structLightweight_1_1SqlAlterTableCommands_1_1DropIndexIfExists.html":[21,0,0,1,2],
 "d9/dd1/structLightweight_1_1SqlAlterTableCommands_1_1DropIndexIfExists.html#a596e4866ff359a5c173d8641501746d4":[21,0,0,1,2,0],
 "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html":[19,5,0],
 "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#a11b8c4dc97bf4360601e9834bf6db463":[19,5,0,4],
@@ -52,10 +51,10 @@ var NAVTREEINDEX5 =
 "da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#adf28af73f0aa2dd90a6691179f11e6d5":[19,5,1,2],
 "da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#aeb580bb715d992f63c551846b3965ff5":[19,5,1,1],
 "da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#af43bd7f7afe738d0d1b0cd4b0e6601ba":[19,5,1,4],
-"da/d15/classLightweight_1_1UniqueNameBuilder.html":[21,0,0,105],
-"da/d15/classLightweight_1_1UniqueNameBuilder.html#ab97998627c36c8d0bce204db1f8f4d26":[21,0,0,105,2],
-"da/d15/classLightweight_1_1UniqueNameBuilder.html#acfe934b57fa65da4863c45e150bcc1e3":[21,0,0,105,0],
-"da/d15/classLightweight_1_1UniqueNameBuilder.html#ae617f589c4e2314b8ca94c3113cd3f44":[21,0,0,105,1],
+"da/d15/classLightweight_1_1UniqueNameBuilder.html":[21,0,0,104],
+"da/d15/classLightweight_1_1UniqueNameBuilder.html#ab97998627c36c8d0bce204db1f8f4d26":[21,0,0,104,2],
+"da/d15/classLightweight_1_1UniqueNameBuilder.html#acfe934b57fa65da4863c45e150bcc1e3":[21,0,0,104,0],
+"da/d15/classLightweight_1_1UniqueNameBuilder.html#ae617f589c4e2314b8ca94c3113cd3f44":[21,0,0,104,1],
 "da/d17/classLightweight_1_1SqlMigrationDeleteBuilder.html":[19,8,10],
 "da/d17/classLightweight_1_1SqlMigrationDeleteBuilder.html#a48e12558d7a0f123cbfce91dedf4d154":[19,8,10,1],
 "da/d17/classLightweight_1_1SqlMigrationDeleteBuilder.html#a5ec19a8c6430cf4494eaab119d5799a1":[19,8,10,0],
@@ -249,5 +248,6 @@ var NAVTREEINDEX5 =
 "db/d83/SqlQuery_2Core_8hpp_source.html":[22,0,1,5,0],
 "db/d8a/SqlDynamicBinary_8hpp_source.html":[22,0,1,1,7],
 "db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html":[19,8,9],
-"db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#a1ce4484daf2a224ff8f4ca1fc74793a6":[19,8,9,3]
+"db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#a1ce4484daf2a224ff8f4ca1fc74793a6":[19,8,9,3],
+"db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#a66b58e33428cc7a16fa1ca967e2db0a5":[19,8,9,4]
 };

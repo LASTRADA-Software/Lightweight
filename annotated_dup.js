@@ -141,7 +141,6 @@ var annotated_dup =
       [ "SqlScopedTraceLogger", "df/d9c/classLightweight_1_1SqlScopedTraceLogger.html", "df/d9c/classLightweight_1_1SqlScopedTraceLogger" ],
       [ "SqlSelectQueryBuilder", "de/d33/classLightweight_1_1SqlSelectQueryBuilder.html", "de/d33/classLightweight_1_1SqlSelectQueryBuilder" ],
       [ "SqlSelectQueryStarter", "d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html", "d9/dc0/classLightweight_1_1SqlSelectQueryStarter" ],
-      [ "SqlSimpleDataBinder", "d7/db6/structLightweight_1_1SqlSimpleDataBinder.html", null ],
       [ "SqlStatement", "db/dad/classLightweight_1_1SqlStatement.html", "db/dad/classLightweight_1_1SqlStatement" ],
       [ "SqlStatistics", "dd/de6/classLightweight_1_1SqlStatistics.html", "dd/de6/classLightweight_1_1SqlStatistics" ],
       [ "SqlStatisticsScope", "d9/d5c/classLightweight_1_1SqlStatisticsScope.html", "d9/d5c/classLightweight_1_1SqlStatisticsScope" ],

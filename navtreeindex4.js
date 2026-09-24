@@ -3,7 +3,6 @@ var NAVTREEINDEX4 =
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#update-1":[10,3,1],
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#using-the-lightweight_sql_migration-macro":[10,1,0],
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#using-the-migration-class":[10,1,1],
-"d7/db6/structLightweight_1_1SqlSimpleDataBinder.html":[21,0,0,90],
 "d7/dbe/SqlDynamicNumeric_8hpp_source.html":[22,0,1,1,8],
 "d7/dd3/structLightweight_1_1SqlPreparedStatementCache_1_1Statistics.html":[19,6,5,1],
 "d7/dd3/structLightweight_1_1SqlPreparedStatementCache_1_1Statistics.html#a45107dcfd1759e9ad1010b89007972dd":[19,6,5,1,1],
@@ -249,5 +248,6 @@ var NAVTREEINDEX4 =
 "d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#aecde81ddfa2e95f916a035eb5afe1e1f":[21,0,0,89,3],
 "d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#af7d085eb90fabbec24d1493d0a4d725a":[21,0,0,89,2],
 "d9/dc2/SqlGuid_8hpp_source.html":[22,0,1,1,11],
-"d9/dc3/StdStringView_8hpp_source.html":[22,0,1,1,20]
+"d9/dc3/StdStringView_8hpp_source.html":[22,0,1,1,20],
+"d9/dd1/structLightweight_1_1SqlAlterTableCommands_1_1DropIndexIfExists.html":[21,0,0,1,2]
 };
