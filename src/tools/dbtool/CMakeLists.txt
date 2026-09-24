@@ -22,8 +22,10 @@ install(TARGETS dbtool
 # Collect transitive DLLs for the Windows MSI: Lightweight.dll, libzip,
 # yaml-cpp, zlib, bz2, icu, and the VC++ runtime. PRE_EXCLUDE filters Windows
 # API stubs that are never redistributable; POST_EXCLUDE drops anything that
-# resolved to a system32 path (kernel32, ole32, etc.).
-if(WIN32)
+# resolved to a system32 path (kernel32, ole32, etc.). Off under a package
+# manager that installs those DLLs from their own packages: vcpkg refuses a file
+# owned by two ports, so bundling them here aborts the install step.
+if(WIN32 AND LIGHTWEIGHT_INSTALL_RUNTIME_DEPENDENCIES)
     install(RUNTIME_DEPENDENCY_SET dbtool_deps
         PRE_EXCLUDE_REGEXES  "api-ms-.*" "ext-ms-.*"
         POST_EXCLUDE_REGEXES ".*[Ss]ystem32[/\\\\].*\\.dll"
