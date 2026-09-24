@@ -17,6 +17,7 @@
 #include "HasOneThrough.hpp"
 #include "QueryBuilders.hpp"
 #include "Record.hpp"
+#include "RelationLoadSource.hpp"
 
 #include <reflection-cpp/reflection.hpp>
 
@@ -129,7 +130,8 @@ class DataMapper
     /// Move constructor.
     DataMapper(DataMapper&& other) noexcept:
         _connection(std::move(other._connection)),
-        _stmt(_connection)
+        _stmt(_connection),
+        _relationLoadSource(std::move(other._relationLoadSource))
     {
         other._stmt = SqlStatement(std::nullopt);
     }
@@ -143,6 +145,7 @@ class DataMapper
         _connection = std::move(other._connection);
         _stmt = SqlStatement(_connection);
         other._stmt = SqlStatement(std::nullopt);
+        _relationLoadSource = std::move(other._relationLoadSource);
 
         return *this;
     }
@@ -595,6 +598,30 @@ class DataMapper
     template <typename BuilderRecord, typename Derived, DataMapperOptions BuilderQueryOptions>
     friend class SqlCoreDataMapperQueryBuilder;
 
+    friend void detail::AdoptRelationLoadSource(DataMapper& dataMapper,
+                                                std::shared_ptr<detail::RelationLoadSource> source) noexcept;
+
+    /// The source this mapper's relation auto-loaders borrow from (see @ref detail::RelationLoadSource).
+    ///
+    /// Chosen on first use unless adopted from a pool: the process-wide pool when this mapper is
+    /// connected with the current default connection string, otherwise a source that reconnects with
+    /// this mapper's own connection string, so that relations load from the database the record was
+    /// read from.
+    ///
+    /// @return The source; never null.
+    [[nodiscard]] LIGHTWEIGHT_API std::shared_ptr<detail::RelationLoadSource> const& RelationLoadSourceForLoaders();
+
+    /// Runs @p query and hands each row to @p each as an auto-loading @p Record, reusing one instance.
+    ///
+    /// Backs the streaming @c Each() of the relation loaders. Runs on this mapper's own statement,
+    /// which is safe because the loaders only ever call it on a mapper borrowed for that one load.
+    ///
+    /// @param query The query to run.
+    /// @param each Called once per row.
+    /// @param inputParameters Bound to the query's parameters.
+    template <typename Record, typename QueryText, typename Callable, typename... InputParameters>
+    void StreamRecords(QueryText const& query, Callable const& each, InputParameters const&... inputParameters);
+
     /// Builds the comma-separated, fully-qualified (`"Table"."Column"`) field list for @p Record.
     ///
     /// Shared by @c Query and @c QueryAsync so the SELECT projection is produced in exactly one place.
@@ -814,7 +841,13 @@ class DataMapper
 
     SqlConnection _connection;
     SqlStatement _stmt;
+    std::shared_ptr<detail::RelationLoadSource> _relationLoadSource;
 };
+
+inline void detail::AdoptRelationLoadSource(DataMapper& dataMapper, std::shared_ptr<RelationLoadSource> source) noexcept
+{
+    dataMapper._relationLoadSource = std::move(source);
+}
 
 // ------------------------------------------------------------------------------------------------
 
@@ -3455,18 +3488,48 @@ Record& DataMapper::BindOutputColumns(Record& record, SqlResultCursor& cursor)
 
     return record;
 }
+template <typename Record, typename QueryText, typename Callable, typename... InputParameters>
+void DataMapper::StreamRecords(QueryText const& query, Callable const& each, InputParameters const&... inputParameters)
+{
+    _stmt.Prepare(query);
+    auto cursor = _stmt.Execute(inputParameters...);
+
+    auto record = Record {};
+    BindOutputColumns(record, cursor);
+    while (cursor.FetchRow())
+    {
+        // Installed only now that the row is fetched: the loaders capture the record's key values when
+        // installed, and before the fetch those are still default-constructed.
+        ConfigureRelationAutoLoading(record);
+        each(record);
+
+        // Reset before rebinding for the next row. The same record instance is reused across rows, and a
+        // fetch does not necessarily overwrite the whole of a variable-width buffer: a shorter value
+        // leaves the tail of the previous one in place, so a string column can come back as a blend of
+        // two rows. Assigning a fresh record clears every field's buffer and indicator first.
+        record = Record {};
+        BindOutputColumns(record, cursor);
+    }
+}
+
 template <typename Record>
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void DataMapper::ConfigureRelationAutoLoading(Record& record)
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
+    // Every loader below borrows a mapper of its own from this source for the duration of one load,
+    // rather than running on this mapper (which a record may outlive) or on a shared thread-local one:
+    // no two loads - nor a load nested inside a streaming Each() - share a statement or connection.
+    auto const& source = RelationLoadSourceForLoaders();
+
     auto const callback = [&]<size_t FieldIndex, typename FieldType>(FieldType& field) {
         if constexpr (IsBelongsTo<FieldType>)
         {
             field.SetAutoLoader(typename FieldType::Loader {
-                .loadReference = [value = field.Value()]() -> std::optional<typename FieldType::ReferencedRecord> {
-                    DataMapper& dm = DataMapper::AcquireThreadLocal();
+                .loadReference = [source, value = field.Value()]() -> std::optional<typename FieldType::ReferencedRecord> {
+                    auto const borrowed = source->Borrow();
+                    DataMapper& dm = *borrowed;
                     return dm.LoadBelongsTo<FieldType>(value);
                 },
             });
@@ -3490,8 +3553,9 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
             // value to the wrong predicate whenever the two orders differ, which with same-typed key
             // columns fetches a wrong row rather than failing. See CompositeKeyOrderingTests.cpp.
             field.SetAutoLoader(typename FieldType::Loader {
-                .loadReference = [keys = FieldType::OrderedValuesOf(record)]() -> std::shared_ptr<ReferencedRecord> {
-                    DataMapper& dm = DataMapper::AcquireThreadLocal();
+                .loadReference = [source, keys = FieldType::OrderedValuesOf(record)]() -> std::shared_ptr<ReferencedRecord> {
+                    auto const borrowed = source->Borrow();
+                    DataMapper& dm = *borrowed;
                     return dm.LoadCompositeForeignKeyRecord<FieldType>(keys);
                 },
             });
@@ -3505,8 +3569,9 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
                 // Capture the PK value by value to avoid dangling references if the record is moved.
                 auto pkValue = GetPrimaryKeyField(record);
                 hasMany.SetAutoLoader(typename FieldType::Loader {
-                    .count = [pkValue]() -> size_t {
-                        DataMapper& dm = DataMapper::AcquireThreadLocal();
+                    .count = [source, pkValue]() -> size_t {
+                        auto const borrowed = source->Borrow();
+                        DataMapper& dm = *borrowed;
                         auto selectQuery =
                             dm.BuildHasManySelectQuery<Record, ReferencedRecord, FieldType::InverseSelector>();
                         dm._stmt.Prepare(selectQuery.Count());
@@ -3516,39 +3581,20 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
                             count = cursor.GetColumn<size_t>(1);
                         return count;
                     },
-                    .all = [pkValue]() -> FieldType::ReferencedRecordList {
-                        DataMapper& dm = DataMapper::AcquireThreadLocal();
+                    .all = [source, pkValue]() -> FieldType::ReferencedRecordList {
+                        auto const borrowed = source->Borrow();
+                        DataMapper& dm = *borrowed;
                         auto selectQuery =
                             dm.BuildHasManySelectQuery<Record, ReferencedRecord, FieldType::InverseSelector>();
                         return detail::ToSharedPtrList(dm.Query<ReferencedRecord>(selectQuery.All(), pkValue));
                     },
                     .each =
-                        [pkValue](auto const& each) {
-                            DataMapper& dm = DataMapper::AcquireThreadLocal();
+                        [source, pkValue](auto const& each) {
+                            auto const borrowed = source->Borrow();
+                            DataMapper& dm = *borrowed;
                             auto selectQuery =
                                 dm.BuildHasManySelectQuery<Record, ReferencedRecord, FieldType::InverseSelector>();
-                            auto stmt = SqlStatement { dm._connection };
-                            stmt.Prepare(selectQuery.All());
-                            auto cursor = stmt.Execute(pkValue);
-
-                            auto referencedRecord = ReferencedRecord {};
-                            dm.BindOutputColumns(referencedRecord, cursor);
-                            dm.ConfigureRelationAutoLoading(referencedRecord);
-
-                            while (cursor.FetchRow())
-                            {
-                                each(referencedRecord);
-
-                                // Reset before rebinding for the next row. The same record instance is
-                                // reused across rows, and a fetch does not necessarily overwrite the
-                                // whole of a variable-width buffer: a shorter value leaves the tail of
-                                // the previous one in place, so a string column can come back as a
-                                // blend of two rows. Assigning a fresh record clears every field's
-                                // buffer and indicator first.
-                                referencedRecord = ReferencedRecord {};
-                                dm.BindOutputColumns(referencedRecord, cursor);
-                                dm.ConfigureRelationAutoLoading(referencedRecord);
-                            }
+                            dm.StreamRecords<ReferencedRecord>(selectQuery.All(), each, pkValue);
                         },
                 });
             }
@@ -3560,8 +3606,9 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
             // Capture the PK value by value to avoid dangling references if the record is moved.
             auto pkValue = GetPrimaryKeyField(record);
             field.SetAutoLoader(typename FieldType::Loader {
-                .loadReference = [pkValue]() -> std::shared_ptr<ReferencedRecord> {
-                    DataMapper& dm = DataMapper::AcquireThreadLocal();
+                .loadReference = [source, pkValue]() -> std::shared_ptr<ReferencedRecord> {
+                    auto const borrowed = source->Borrow();
+                    DataMapper& dm = *borrowed;
                     return dm.LoadHasOneThroughByPK<ReferencedRecord,
                                                     ThroughRecord,
                                                     Record,
@@ -3577,10 +3624,11 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
             // Capture the PK value by value to avoid dangling references if the record is moved.
             auto pkValue = GetPrimaryKeyField(record);
             field.SetAutoLoader(typename FieldType::Loader {
-                .count = [pkValue]() -> size_t {
+                .count = [source, pkValue]() -> size_t {
                     // Load result for Count()
                     size_t count = 0;
-                    DataMapper& dm = DataMapper::AcquireThreadLocal();
+                    auto const borrowed = source->Borrow();
+                    DataMapper& dm = *borrowed;
                     dm.CallOnHasManyThroughByPK<ReferencedRecord,
                                                 ThroughRecord,
                                                 Record,
@@ -3594,9 +3642,10 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
                         });
                     return count;
                 },
-                .all = [pkValue]() -> FieldType::ReferencedRecordList {
+                .all = [source, pkValue]() -> FieldType::ReferencedRecordList {
                     // Load result for All()
-                    DataMapper& dm = DataMapper::AcquireThreadLocal();
+                    auto const borrowed = source->Borrow();
+                    DataMapper& dm = *borrowed;
                     typename FieldType::ReferencedRecordList result;
                     dm.CallOnHasManyThroughByPK<ReferencedRecord,
                                                 ThroughRecord,
@@ -3609,34 +3658,17 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
                     return result;
                 },
                 .each =
-                    [pkValue](auto const& each) {
+                    [source, pkValue](auto const& each) {
                         // Load result for Each()
-                        DataMapper& dm = DataMapper::AcquireThreadLocal();
+                        auto const borrowed = source->Borrow();
+                        DataMapper& dm = *borrowed;
                         dm.CallOnHasManyThroughByPK<ReferencedRecord,
                                                     ThroughRecord,
                                                     Record,
                                                     FieldType::OwnerSelector,
                                                     FieldType::ReferencedSelector>(
                             pkValue, [&](SqlSelectQueryBuilder& selectQuery, auto const& pk) {
-                                auto stmt = SqlStatement { dm._connection };
-                                stmt.Prepare(selectQuery.All());
-                                auto cursor = stmt.Execute(pk);
-                                auto referencedRecord = ReferencedRecord {};
-                                dm.BindOutputColumns(referencedRecord, cursor);
-                                dm.ConfigureRelationAutoLoading(referencedRecord);
-
-                                while (cursor.FetchRow())
-                                {
-                                    each(referencedRecord);
-
-                                    // Reset before rebinding: see the matching comment in the HasMany
-                                    // loader above. Reusing one instance across rows lets a shorter
-                                    // value leave the tail of the previous one in a variable-width
-                                    // buffer.
-                                    referencedRecord = ReferencedRecord {};
-                                    dm.BindOutputColumns(referencedRecord, cursor);
-                                    dm.ConfigureRelationAutoLoading(referencedRecord);
-                                }
+                                dm.StreamRecords<ReferencedRecord>(selectQuery.All(), each, pk);
                             });
                     },
             });

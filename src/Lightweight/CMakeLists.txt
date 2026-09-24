@@ -74,6 +74,7 @@ set(HEADER_FILES
     DataMapper/HasManyThrough.hpp
     DataMapper/HasOneThrough.hpp
     DataMapper/QueryBuilders.hpp
+    DataMapper/RelationLoadSource.hpp
 
     SqlBackup.hpp
     SqlBackup/Backup.hpp

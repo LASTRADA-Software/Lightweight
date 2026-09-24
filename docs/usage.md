@@ -529,6 +529,30 @@ Measured on 1000 owners with 10 children each, comparing the on-demand path with
 | `HasMany` | 1001 | 2 | 8.7x | 45x | 45x |
 | `BelongsTo` | 10001 | 2 | 37x | 464x | 407x |
 
+#### Where an on-demand load runs
+
+A relation that was not eager-loaded runs its query when first touched. That query does not run on the
+mapper the record was read through - a record may outlive it, and a pooled mapper goes back to the pool
+long before the record dies. Instead, each load borrows a mapper of its own for the duration of that one
+query, from the place the record came from:
+
+- a record read through a pooled mapper borrows from **that pool**, so the load counts against the
+  pool's capacity and uses its per-connection settings;
+- a record read through a plain `DataMapper` with the default connection string borrows from
+  `GlobalDataMapperPool()`;
+- a record read through a `DataMapper` with any other connection string reconnects with **that**
+  string, so a record from a second database resolves its relations in that database.
+
+No two loads share a statement or a connection, so a relation touched from inside `HasMany::Each()` -
+which keeps its cursor open while calling back - works on every backend, including SQL Server without
+MARS. A load never waits for a pooled connection either: when a `BoundedWait` pool is at capacity
+(typically because the caller still holds the mapper the record was read through), the load runs on a
+one-off connection instead.
+
+Because the load runs on a connection of its own, it does **not** see rows the caller has written in an
+uncommitted transaction, and on SQL Server it can block on that transaction's locks. Load the relations
+inside the transaction on the caller's own mapper instead - with `With<>()` or `LoadRelations()`.
+
 ## Simple row retrieval via structs
 
 When only read access is needed, you can use a simple `struct` to represent the row,
