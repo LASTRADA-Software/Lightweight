@@ -1,5 +1,6 @@
 var NAVTREEINDEX8 =
 {
+"df/d25/Customer_8hpp_source.html":[22,0,0,0,0,2],
 "df/d36/Playlist_8hpp_source.html":[22,0,0,0,0,8],
 "df/d3f/structLightweight_1_1SqlVariant.html":[19,1,12],
 "df/d3f/structLightweight_1_1SqlVariant.html#a001b083ef4020390b319901974533265":[19,1,12,5],
@@ -101,10 +102,10 @@ var NAVTREEINDEX8 =
 "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#ac208ef0ccc537eb47f265169688f4313":[19,7,6,3,5],
 "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#ae8ebcc9ddb16471d4a17bb73ad4f9083":[19,7,6,3,3],
 "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#affd0c623900ef5f568ab3ebc3a22c045":[19,7,6,3,7],
-"df/d9c/classLightweight_1_1SqlScopedTraceLogger.html":[21,0,0,87],
-"df/d9c/classLightweight_1_1SqlScopedTraceLogger.html#a4fda8ec6c7637ab7872101fbf98bc366":[21,0,0,87,2],
-"df/d9c/classLightweight_1_1SqlScopedTraceLogger.html#a9b01ab6331d7dc988f9928e0b292e2a2":[21,0,0,87,1],
-"df/d9c/classLightweight_1_1SqlScopedTraceLogger.html#aa7263f43e0c0664b773e8d569a20b324":[21,0,0,87,0],
+"df/d9c/classLightweight_1_1SqlScopedTraceLogger.html":[21,0,0,88],
+"df/d9c/classLightweight_1_1SqlScopedTraceLogger.html#a4fda8ec6c7637ab7872101fbf98bc366":[21,0,0,88,2],
+"df/d9c/classLightweight_1_1SqlScopedTraceLogger.html#a9b01ab6331d7dc988f9928e0b292e2a2":[21,0,0,88,1],
+"df/d9c/classLightweight_1_1SqlScopedTraceLogger.html#aa7263f43e0c0664b773e8d569a20b324":[21,0,0,88,0],
 "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html":[21,0,0,4,3],
 "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html#a11394d602f3ebb20d53a20cf1f853d8a":[21,0,0,4,3,9],
 "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html#a229b2e055772d6ec35827a8aefc5c6b4":[21,0,0,4,3,1],

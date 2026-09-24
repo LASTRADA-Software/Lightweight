@@ -87,6 +87,7 @@ var annotated_dup =
       [ "SqlCoreDataMapperQueryBuilder", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder" ],
       [ "SqlCreateIndexPlan", "dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html", "dd/d2b/structLightweight_1_1SqlCreateIndexPlan" ],
       [ "SqlCreateTableQueryBuilder", "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html", "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder" ],
+      [ "SqlDataBinder< char >", "d8/dca/structLightweight_1_1SqlDataBinder_3_01char_01_4.html", null ],
       [ "SqlDataBinder< SqlDynamicNumeric >", "da/d2d/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4.html", "da/d2d/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4" ],
       [ "SqlDataBinderCallback", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html", "d9/dbb/classLightweight_1_1SqlDataBinderCallback" ],
       [ "SqlDate", "d9/de1/structLightweight_1_1SqlDate.html", "d9/de1/structLightweight_1_1SqlDate" ],
