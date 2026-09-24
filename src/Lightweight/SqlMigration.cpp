@@ -426,7 +426,7 @@ void MigrationManager::PersistVirtualAppliedMigrations()
     }
 }
 
-MigrationManager::MigrationList MigrationManager::GetPending() const noexcept
+MigrationManager::MigrationList MigrationManager::GetPending() const
 {
     auto const applied = GetAppliedMigrationIds();
     auto pending = MigrationList {};
@@ -440,7 +440,7 @@ MigrationManager::MigrationList MigrationManager::GetPending() const noexcept
     }
     catch (...)
     {
-        // noexcept contract: fall back to timestamp-ordered list on error.
+        // Fall back to the timestamp-ordered list on a dependency error.
         // The error will surface again when ApplyPendingMigrations/ValidateDependencies is called.
         auto fallback = MigrationList {};
         for (auto const* migration: _migrations)

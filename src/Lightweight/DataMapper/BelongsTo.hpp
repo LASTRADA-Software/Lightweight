@@ -285,7 +285,7 @@ class BelongsTo
     /// Retrieves the record from the relationship.
     /// Only available when the relationship is mandatory.
     template <typename Self>
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& operator*(this Self&& self) noexcept
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& operator*(this Self&& self)
         requires(IsMandatory)
     {
         self.RequireLoaded();

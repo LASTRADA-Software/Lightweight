@@ -74,10 +74,10 @@ class HasOneThrough
     LIGHTWEIGHT_FORCE_INLINE constexpr void EmplaceRecord(std::shared_ptr<ReferencedRecord> record) { _record = std::move(record); }
 
     /// Retrieves the record in this relationship.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& Record() noexcept { RequireLoaded(); return *_record.get(); }
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& Record() { RequireLoaded(); return *_record.get(); }
 
     /// Retrieves the record in this relationship.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const& Record() const noexcept { RequireLoaded(); return *_record.get(); }
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const& Record() const { RequireLoaded(); return *_record.get(); }
 
     /// Checks if the record is loaded.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr bool IsLoaded() const noexcept { return _record.get() != nullptr; }
@@ -87,19 +87,19 @@ class HasOneThrough
 
     /// @brief Retrieves the record in this relationship.
     /// @note On-demand loads the record if it is not already loaded.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& operator*() noexcept { RequireLoaded(); return *_record; }
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& operator*() { RequireLoaded(); return *_record; }
 
     /// @brief Retrieves the record in this relationship.
     /// @note On-demand loads the record if it is not already loaded.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const& operator*() const noexcept { RequireLoaded(); return *_record; }
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const& operator*() const { RequireLoaded(); return *_record; }
 
     /// @brief Retrieves the record in this relationship.
     /// @note On-demand loads the record if it is not already loaded.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord* operator->() noexcept { RequireLoaded(); return _record.get(); }
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord* operator->() { RequireLoaded(); return _record.get(); }
 
     /// @brief Retrieves the record in this relationship.
     /// @note On-demand loads the record if it is not already loaded.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const* operator->() const noexcept { RequireLoaded(); return _record.get(); }
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const* operator->() const { RequireLoaded(); return _record.get(); }
     // clang-format on
 
     /// Default three-way comparison operator.

@@ -175,8 +175,10 @@ struct SqlVariant
     ///       column fills @ref SqlBinary. Asking for a floating-point or `std::string` @p T converts
     ///       from those and therefore yields a value rather than a reference. Use
     ///       @ref TryGetNumeric when the exact decimal matters.
+    /// @throws std::bad_variant_access The variant holds neither @p T nor one of the alternatives
+    ///         converted above. Use the `TryGet*` accessors to probe instead.
     template <typename T>
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE decltype(auto) Get() noexcept
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE decltype(auto) Get()
     {
         if constexpr (IsSpecializationOf<std::optional, T>)
         {

@@ -122,10 +122,10 @@ class HasMany
     }
 
     /// Retrieves the number of records in this 1-to-many relationship.
-    [[nodiscard]] std::size_t Count() const noexcept;
+    [[nodiscard]] std::size_t Count() const;
 
     /// Checks if this 1-to-many relationship is empty.
-    [[nodiscard]] bool IsEmpty() const noexcept;
+    [[nodiscard]] bool IsEmpty() const;
 
     /// @brief Retrieves the record at the given index.
     ///
@@ -279,7 +279,7 @@ inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::Reference
 }
 
 template <typename OtherRecord, auto InverseSelector>
-inline LIGHTWEIGHT_FORCE_INLINE std::size_t HasMany<OtherRecord, InverseSelector>::Count() const noexcept
+inline LIGHTWEIGHT_FORCE_INLINE std::size_t HasMany<OtherRecord, InverseSelector>::Count() const
 {
     if (_records)
         return _records->size();
@@ -291,7 +291,7 @@ inline LIGHTWEIGHT_FORCE_INLINE std::size_t HasMany<OtherRecord, InverseSelector
 }
 
 template <typename OtherRecord, auto InverseSelector>
-inline LIGHTWEIGHT_FORCE_INLINE bool HasMany<OtherRecord, InverseSelector>::IsEmpty() const noexcept
+inline LIGHTWEIGHT_FORCE_INLINE bool HasMany<OtherRecord, InverseSelector>::IsEmpty() const
 {
     return Count() == 0;
 }

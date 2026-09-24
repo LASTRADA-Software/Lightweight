@@ -988,7 +988,8 @@ class [[nodiscard]] SqlVariantRowIterator
     {
     }
 
-    explicit SqlVariantRowIterator(SqlResultCursor& cursor) noexcept:
+    /// @throws SqlException Fetching the first row failed.
+    explicit SqlVariantRowIterator(SqlResultCursor& cursor):
         _numResultColumns { static_cast<SQLUSMALLINT>(cursor.NumColumnsAffected()) },
         _cursor { &cursor }
     {
@@ -1006,7 +1007,8 @@ class [[nodiscard]] SqlVariantRowIterator
         return _row;
     }
 
-    SqlVariantRowIterator& operator++() noexcept
+    /// @throws SqlException Fetching or reading the next row failed.
+    SqlVariantRowIterator& operator++()
     {
         _end = !_cursor->FetchRow();
         if (!_end)
@@ -1043,7 +1045,8 @@ class [[nodiscard]] SqlVariantRowCursor
     {
     }
 
-    SqlVariantRowIterator begin() noexcept
+    /// @throws SqlException Fetching the first row failed.
+    SqlVariantRowIterator begin()
     {
         return SqlVariantRowIterator { _resultCursor };
     }
@@ -1134,7 +1137,8 @@ class SqlRowIterator
             return *this;
         }
 
-        LIGHTWEIGHT_FORCE_INLINE value_type operator*() noexcept
+        /// @throws SqlException Reading a column of the current row failed.
+        LIGHTWEIGHT_FORCE_INLINE value_type operator*()
         {
             auto res = T {};
 
