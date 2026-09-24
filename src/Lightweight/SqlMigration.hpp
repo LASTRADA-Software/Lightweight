@@ -252,8 +252,13 @@ namespace SqlMigration
 
         /// Get all migrations that have not been applied yet.
         ///
+        /// A dependency cycle does not throw: the list then falls back to timestamp order, and the error
+        /// surfaces again from ApplyPendingMigrations() / ValidateDependencies().
+        ///
         /// @return List of pending migrations.
-        [[nodiscard]] LIGHTWEIGHT_API std::list<MigrationBase const*> GetPending() const noexcept;
+        /// @throws std::runtime_error Reading the applied migrations failed in a way other than the
+        ///         table being absent (e.g. an unexpected NULL in `schema_migrations`).
+        [[nodiscard]] LIGHTWEIGHT_API std::list<MigrationBase const*> GetPending() const;
 
         /// Callback type invoked during migration execution to report progress.
         using ExecuteCallback =
