@@ -273,6 +273,55 @@ TEST_CASE_METHOD(SqlTestFixture, "Prepare of the same query survives a schema ch
     CHECK(rows == 3);
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "A failed Prepare does not leave its query marked as prepared", "[SqlStatement]")
+{
+    // Prepare() used to record the query text as "prepared" before SQLPrepareW ran. When that call
+    // failed - SQLite prepares eagerly, so a table that does not exist yet fails right there - the
+    // next Prepare() of the same text took the reuse fast path above and skipped SQLPrepareW, keeping
+    // the parameter count and the handle of the query prepared before it. Depending on whether the
+    // counts matched, that surfaced as "Invalid argument count" or ran the previous query with the
+    // new arguments. A long-lived statement (DataMapper's, reused by every lazy relation load on a
+    // thread) stayed poisoned for that query text from then on.
+    auto stmt = SqlStatement {};
+    CreateEmployeesTable(stmt);
+    FillEmployeesTable(stmt);
+
+    // Something with one parameter is prepared on the handle first.
+    stmt.Prepare(R"(SELECT "FirstName" FROM "Employees" WHERE "Salary" > ?)");
+    std::ignore = stmt.Execute(45'000);
+
+    auto const createLater = [&] {
+        auto other = SqlStatement { stmt.Connection() };
+        (void) other.ExecuteDirect(R"(CREATE TABLE "LaterCreated" ("Id" INTEGER, "Value" INTEGER))");
+        (void) other.ExecuteDirect(R"(INSERT INTO "LaterCreated" ("Id", "Value") VALUES (1, 42))");
+    };
+
+    SECTION("same parameter count as the previous query")
+    {
+        auto const* const query = R"(SELECT "Value" FROM "LaterCreated" WHERE "Id" = ?)";
+        // Fails in Prepare() on SQLite, in Execute() on drivers that defer the prepare.
+        CHECK_THROWS_AS((stmt.Prepare(query), std::ignore = stmt.Execute(1)), SqlException);
+
+        createLater();
+        stmt.Prepare(query);
+        auto cursor = stmt.Execute(1);
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<int>(1) == 42);
+    }
+
+    SECTION("different parameter count than the previous query")
+    {
+        auto const* const query = R"(SELECT "Value" FROM "LaterCreated" WHERE "Id" = ? AND "Value" = ?)";
+        CHECK_THROWS_AS((stmt.Prepare(query), std::ignore = stmt.Execute(1, 42)), SqlException);
+
+        createLater();
+        stmt.Prepare(query);
+        auto cursor = stmt.Execute(1, 42);
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<int>(1) == 42);
+    }
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "Prepare reuse returns correct rows after the table is recreated", "[SqlStatement]")
 {
     using namespace Lightweight::SqlColumnTypeDefinitions;
