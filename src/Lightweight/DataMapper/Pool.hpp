@@ -19,6 +19,7 @@
 #include <memory>
 #include <mutex>
 #include <ranges>
+#include <shared_mutex>
 #include <stdexcept>
 #include <vector>
 
@@ -298,6 +299,9 @@ class Pool
         // capacity emits exactly the code it did before the setting existed.
         if constexpr (Config.preparedStatementCacheCapacity != 0)
             mapper->Connection().SetPreparedStatementCacheCapacity(Config.preparedStatementCacheCapacity);
+        // Records read through this mapper load their relations from this pool, not from the mapper
+        // itself, which goes back to the pool (and to other callers) long before a record dies.
+        detail::AdoptRelationLoadSource(*mapper, _relationLoadSource);
         return Entry { .mapper = std::move(mapper), .createdAt = now, .idleSince = now, .generation = generation };
     }
 
@@ -645,6 +649,8 @@ class Pool
     /// which may leak resources if not handled properly.
     ~Pool() noexcept
     {
+        // Records read through this pool may outlive it; their relation loads fall back from now on.
+        _relationLoadSource->Detach();
         // A parked AcquireAsync coroutine (or a thread blocked in Acquire) holds a reference back to this
         // pool, so destroying the pool out from under it is undefined: drive every AcquireAsync task to
         // completion and let every blocked Acquire() return first. The assert catches this in debug; the
@@ -832,6 +838,21 @@ class Pool
         _clock = std::move(clock);
     }
 
+    /// The source through which records read from this pool's mappers load their relations.
+    ///
+    /// Each lazy relation load borrows a mapper from this pool for its own duration, so it counts
+    /// against the pool's capacity, is health-checked like any other checkout, and uses the pool's
+    /// per-connection settings. A load never waits for a connection, though: when a
+    /// @ref GrowthStrategy::BoundedWait pool is at capacity - typically because the caller still holds
+    /// the mapper the record was read through - the load runs on a one-off connection instead.
+    ///
+    /// @return The source; never null. Outlives the pool as long as records hold it, falling back
+    ///         to a fresh connection with the default connection string once the pool is destroyed.
+    [[nodiscard]] std::shared_ptr<detail::RelationLoadSource> RelationLoadSource() const noexcept
+    {
+        return _relationLoadSource;
+    }
+
 #if defined(BUILD_TESTS)
     [[nodiscard]] size_t IdleCount() noexcept
     {
@@ -849,6 +870,66 @@ class Pool
 #endif
 
   private:
+    /// Lends this pool's mappers to relation auto-loaders, one load at a time (see @ref RelationLoadSource).
+    class PoolRelationLoadSource final:
+        public detail::RelationLoadSource,
+        public std::enable_shared_from_this<PoolRelationLoadSource>
+    {
+      public:
+        explicit PoolRelationLoadSource(Pool& pool) noexcept:
+            _pool { &pool }
+        {
+        }
+
+        [[nodiscard]] std::shared_ptr<DataMapper> Borrow() override
+        {
+            // Shared: concurrent loads borrow in parallel; only Detach() excludes them, so the pool
+            // cannot be destroyed while one of them is still inside Acquire().
+            auto const lock = std::shared_lock { _mutex };
+            if (!_pool)
+                return OwnConnection();
+            if constexpr (Config.growthStrategy == GrowthStrategy::BoundedWait)
+            {
+                // Never wait: the caller commonly still holds the pooled mapper the record came from,
+                // and a load nested in Each() holds one more, so waiting on a small pool for a slot the
+                // caller itself occupies would deadlock. At capacity, a one-off connection serves this
+                // load and is closed afterwards.
+                if (auto pooled = _pool->Acquire(std::chrono::milliseconds { 0 }); pooled)
+                    return Share(std::move(*pooled));
+                return OwnConnection();
+            }
+            else
+                return Share(_pool->Acquire());
+        }
+
+        /// Called by the pool's destructor; later loads connect on their own.
+        void Detach() noexcept
+        {
+            auto const lock = std::unique_lock { _mutex };
+            _pool = nullptr;
+        }
+
+      private:
+        /// @return @p pooled as a shared mapper that goes back to the pool with its last copy.
+        [[nodiscard]] static std::shared_ptr<DataMapper> Share(PooledDataMapper pooled)
+        {
+            auto holder = std::make_shared<PooledDataMapper>(std::move(pooled));
+            return { holder, &holder->Get() };
+        }
+
+        /// @return A connection of its own, for a load the pool cannot serve without waiting (or once
+        ///         the pool is gone). Records read through it still load their relations from here.
+        [[nodiscard]] std::shared_ptr<DataMapper> OwnConnection()
+        {
+            auto mapper = std::make_shared<DataMapper>();
+            detail::AdoptRelationLoadSource(*mapper, this->shared_from_this());
+            return mapper;
+        }
+
+        std::shared_mutex _mutex;
+        Pool* _pool;
+    };
+
     /// A parked acquirer awaiting a DataMapper — a suspended @ref AcquireAsync coroutine (@c Kind::Async)
     /// or a blocked synchronous @ref Acquire thread (@c Kind::Sync). Both share one FIFO queue
     /// (@c _waiters), served in arrival order so neither kind starves the other.
@@ -1051,6 +1132,8 @@ class Pool
     std::mutex _mutex;
     std::vector<Entry> _idleDataMappers;
     size_t _checkedOut {};
+    /// Shared with every record read through this pool; see @ref RelationLoadSource().
+    std::shared_ptr<PoolRelationLoadSource> _relationLoadSource = std::make_shared<PoolRelationLoadSource>(*this);
     /// Injected clock; the real @c Clock::now is used when unset. @see SetClock
     ///
     /// Deliberately not compiled out in non-test builds: this is a data member of a class template
