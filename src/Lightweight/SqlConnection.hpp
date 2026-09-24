@@ -111,11 +111,11 @@ class SqlConnection final
     /// Identifies the current default connection string.
     ///
     /// Incremented by every @ref SetDefaultConnectionString and @ref SetDefaultDataSource, so anything
-    /// that caches a connection made from the default - @ref DataMapperPool, the thread-local mapper of
-    /// @ref DataMapper::AcquireThreadLocal - can tell that it now points at a database the application
-    /// has switched away from. Compare for equality only; the counter wraps.
+    /// that caches a connection made from the default - a connection pool, the migration manager's
+    /// mapper - can tell that it now points at a database the application has switched away from.
+    /// Compare for equality only; the counter wraps.
     ///
-    /// Read it *before* reading @ref DefaultConnectionString: the setters publish the new string
+    /// Read it *before* reading @ref DefaultConnectionString(), since the setters publish the new string
     /// first and the new generation second, so a connection stamped that way can only ever be
     /// considered older than it is, never newer.
     ///

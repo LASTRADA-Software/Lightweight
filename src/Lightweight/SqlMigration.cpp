@@ -149,15 +149,20 @@ struct SchemaMigration
 
 DataMapper& MigrationManager::GetDataMapper()
 {
+    // Read before connecting, as for the pool: a default replaced meanwhile can only make the mapper
+    // look stale early (one reconnect too many), never current late.
+    auto const generation = SqlConnection::DefaultConnectionStringGeneration();
     if (!_dataMapper)
-        _dataMapper = &DataMapper::AcquireThreadLocal();
-
+        _dataMapper = std::make_unique<DataMapper>();
+    else if (generation != _dataMapperGeneration)
+        *_dataMapper = DataMapper {}; // in place: references handed out earlier stay valid
+    _dataMapperGeneration = generation;
     return *_dataMapper;
 }
 
 void MigrationManager::CloseDataMapper()
 {
-    _dataMapper = nullptr;
+    _dataMapper.reset();
 }
 
 void MigrationManager::SetCompatPolicy(CompatPolicy policy)

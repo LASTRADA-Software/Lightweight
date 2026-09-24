@@ -10,12 +10,6 @@
 namespace Lightweight
 {
 
-DataMapper& DataMapper::AcquireThreadLocal()
-{
-    thread_local auto instance = DataMapper { SqlConnection::DefaultConnectionString() };
-    return instance;
-}
-
 namespace
 {
     /// Relation-load source of a plain mapper connected with the default connection string: loads
