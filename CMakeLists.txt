@@ -393,6 +393,7 @@ endif()
 add_subdirectory(src/Lightweight)
 
 if(LIGHTWEIGHT_BUILD_TOOLS)
+    include(CoreCpp)
     add_subdirectory(src/tools)
 endif()
 
