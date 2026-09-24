@@ -1,10 +1,5 @@
 var NAVTREEINDEX5 =
 {
-"d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#aecde81ddfa2e95f916a035eb5afe1e1f":[21,0,0,89,3],
-"d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#af7d085eb90fabbec24d1493d0a4d725a":[21,0,0,89,2],
-"d9/dc2/SqlGuid_8hpp_source.html":[22,0,1,1,11],
-"d9/dc3/StdStringView_8hpp_source.html":[22,0,1,1,20],
-"d9/dd1/structLightweight_1_1SqlAlterTableCommands_1_1DropIndexIfExists.html":[21,0,0,1,2],
 "d9/dd1/structLightweight_1_1SqlAlterTableCommands_1_1DropIndexIfExists.html#a596e4866ff359a5c173d8641501746d4":[21,0,0,1,2,0],
 "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html":[19,5,0],
 "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#a11b8c4dc97bf4360601e9834bf6db463":[19,5,0,4],
@@ -212,16 +207,16 @@ var NAVTREEINDEX5 =
 "da/df4/classLightweight_1_1HasMany.html#a4e79f4cd1e47011c65246f1c66348695":[19,3,12,9],
 "da/df4/classLightweight_1_1HasMany.html#a6075386eef78a9d44b0c550c09943199":[19,3,12,13],
 "da/df4/classLightweight_1_1HasMany.html#a64f0bce1911a2b64ef588a53319b631d":[19,3,12,0],
+"da/df4/classLightweight_1_1HasMany.html#a6941f2a1e60d4d4166a4b3394f066b3a":[19,3,12,10],
 "da/df4/classLightweight_1_1HasMany.html#a79b236d81a5c14a1d182f38259eaec3d":[19,3,12,22],
 "da/df4/classLightweight_1_1HasMany.html#a912f7efdc0849850402f16a9f74ce6e8":[19,3,12,21],
-"da/df4/classLightweight_1_1HasMany.html#a927a962d99cd893f8c0ce44f9133e206":[19,3,12,11],
 "da/df4/classLightweight_1_1HasMany.html#a98565450c593eea389e2cbee809012ea":[19,3,12,14],
 "da/df4/classLightweight_1_1HasMany.html#a987a429deffc21289fe5ed6558bd051e":[19,3,12,18],
 "da/df4/classLightweight_1_1HasMany.html#aacd34af6daf6df9db2a190f742a73494":[19,3,12,6],
 "da/df4/classLightweight_1_1HasMany.html#abfd68589b8a929ab84222686cbb692dd":[19,3,12,2],
 "da/df4/classLightweight_1_1HasMany.html#ac2b0a1f7b093b6f2b6b217b1c2c6953e":[19,3,12,23],
-"da/df4/classLightweight_1_1HasMany.html#ad2b533f051d5cec4a3f1534723ba9f8b":[19,3,12,10],
 "da/df4/classLightweight_1_1HasMany.html#adf7fa16a2675805c7efd66dbae4e867f":[19,3,12,1],
+"da/df4/classLightweight_1_1HasMany.html#ae47768e025f17d4693590441c495c042":[19,3,12,11],
 "da/df4/classLightweight_1_1HasMany.html#ae4b936d0efdeb726b2a7eda4c9f1de73":[19,3,12,5],
 "da/df4/classLightweight_1_1HasMany.html#ae6f5268d6ea5c279215c47d73fc1c598":[19,3,12,19],
 "da/df4/classLightweight_1_1HasMany.html#afefaf546a1594762fd0836f988374963":[19,3,12,8],
@@ -249,5 +244,10 @@ var NAVTREEINDEX5 =
 "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#single-threaded-vs-multi-threaded":[11,5],
 "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#transactions-1":[11,6],
 "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#why-offloading-and-not-true-async-odbc":[11,0],
-"db/d76/conceptLightweight_1_1SqlRowWiseFetchableColumn.html":[20,0,11]
+"db/d76/conceptLightweight_1_1SqlRowWiseFetchableColumn.html":[20,0,11],
+"db/d83/SqlQuery_2Core_8hpp_source.html":[22,0,1,5,0],
+"db/d8a/SqlDynamicBinary_8hpp_source.html":[22,0,1,1,7],
+"db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html":[19,8,9],
+"db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#a1ce4484daf2a224ff8f4ca1fc74793a6":[19,8,9,3],
+"db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#a66b58e33428cc7a16fa1ca967e2db0a5":[19,8,9,4]
 };

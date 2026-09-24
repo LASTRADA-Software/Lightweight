@@ -214,7 +214,7 @@ template&lt;typename Record , typename Derived , <a class="el" href="../../d3/db
 
 <p>Constructs a query builder with the given data mapper and field list. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01241">1241</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01211">1211</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 </div>
 </div>
@@ -354,7 +354,7 @@ requires DataMapperRecord&lt;Record&gt; &amp;&amp; (sizeof...(RelationPath) &gt;
 </div><!-- fragment --><dl class="section note"><dt>Note</dt><dd>Relations that were not named keep their usual on-demand behaviour. Combining <code>With&lt;&gt;()</code> with <code><a class="el" href="../../d3/db2/structLightweight_1_1DataMapperOptions.html">DataMapperOptions</a> { .loadRelations = false }</code> therefore makes any <em>unrequested</em> relation throw <code><a class="el" href="../../da/df2/classLightweight_1_1SqlRequireLoadedError.html" title="Represents an error when a record is required to be loaded but is not.">SqlRequireLoadedError</a></code> on access rather than quietly issuing a query. To eagerly load everything instead of naming paths, see <a class="el" href="../../d3/db2/structLightweight_1_1DataMapperOptions.html#a36aba21c30727bc5933d1797efca7543">DataMapperOptions::eagerLoadDepth</a>.</dd></dl>
 <dl class="section return"><dt>Returns</dt><dd>This builder, for chaining. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01269">1269</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01239">1239</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 </div>
 </div>
@@ -429,7 +429,7 @@ requires std::is_member_object_pointer_v&lt;decltype(<a class="el" href="../../d
 <div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> ages = dm.<a class="code hl_function" href="../../de/d61/classLightweight_1_1DataMapper.html#af1c52aba8ccacf105070b0ecfea7c747">Query</a>&lt;Person&gt;()</div>
 <div class="line">                    .OrderBy(FieldNameOf&lt;&amp;Person::age&gt;, SqlResultOrdering::ASCENDING)</div>
 <div class="line">                    .All&lt;&amp;Person::age&gt;();</div>
-<div class="ttc" id="aclassLightweight_1_1DataMapper_html"><div class="ttname"><a href="../../de/d61/classLightweight_1_1DataMapper.html">Lightweight::DataMapper</a></div><div class="ttdoc">Main API for mapping records to and from the database using high level C++ syntax.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d4f/DataMapper_8hpp_source.html#l00100">DataMapper.hpp:101</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1DataMapper_html"><div class="ttname"><a href="../../de/d61/classLightweight_1_1DataMapper.html">Lightweight::DataMapper</a></div><div class="ttdoc">Main API for mapping records to and from the database using high level C++ syntax.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d4f/DataMapper_8hpp_source.html#l00099">DataMapper.hpp:100</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1DataMapper_html_af1c52aba8ccacf105070b0ecfea7c747"><div class="ttname"><a href="../../de/d61/classLightweight_1_1DataMapper.html#af1c52aba8ccacf105070b0ecfea7c747">Lightweight::DataMapper::Query</a></div><div class="ttdeci">std::vector&lt; Record &gt; Query(SqlSelectQueryBuilder::ComposedQuery const &amp;selectQuery, InputParameters &amp;&amp;... inputParameters)</div></div>
 </div><!-- fragment --> 
 <p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00203">203</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>

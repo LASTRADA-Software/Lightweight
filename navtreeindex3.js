@@ -1,9 +1,5 @@
 var NAVTREEINDEX3 =
 {
-"d6/dfa/structLightweight_1_1SqlDateTime.html#a63f32910bfa3c1dee896bddf23e69e96":[19,1,2,18],
-"d6/dfa/structLightweight_1_1SqlDateTime.html#a6cc185c14476e3a2aad0db9a1bf52622":[19,1,2,16],
-"d6/dfa/structLightweight_1_1SqlDateTime.html#a7caa34aea54756006662814867fdcb72":[19,1,2,20],
-"d6/dfa/structLightweight_1_1SqlDateTime.html#a7fbd687b6c3324075471f0e25239a6c2":[19,1,2,4],
 "d6/dfa/structLightweight_1_1SqlDateTime.html#a811af944dcb1894e543003d5ddf5d2c5":[19,1,2,9],
 "d6/dfa/structLightweight_1_1SqlDateTime.html#a864ea837f4bd552b8b2b640a32dc4cd4":[19,1,2,1],
 "d6/dfa/structLightweight_1_1SqlDateTime.html#a87a2b5b93a1dd9151dc3f3f4245062d8":[19,1,2,17],
@@ -249,5 +245,9 @@ var NAVTREEINDEX3 =
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#raw-sql":[10,4],
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#rollback":[10,6,4],
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#schema_migrations-table":[10,7,0],
-"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#see-also-3":[10,9]
+"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#see-also-3":[10,9],
+"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#sql-column-types":[10,5],
+"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#status--verification":[10,6,2],
+"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#table-operations":[10,2],
+"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#timestamp-format":[10,1,2]
 };

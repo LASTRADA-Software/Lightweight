@@ -15,7 +15,7 @@ var classLightweight_1_1SqlMigration_1_1MigrationManager =
     [ "GetMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a56194b41fc9b404256d379bd51f5002d", null ],
     [ "RemoveMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a7611c88a34f8863aae59392f4d13c7d3", null ],
     [ "RemoveAllMigrations", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a301e0219e6dcd600640c63e5b53839eb", null ],
-    [ "GetPending", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#aab92b49c10d74eed31938623707627d4", null ],
+    [ "GetPending", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a5f02a99faee92eb68b52a9cb49876c0e", null ],
     [ "ApplySingleMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#add42626ceb43ee64238c5a1dd0d0d27f", null ],
     [ "ApplySingleMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a599a131dcadf355c1a79db6c29c4e6e6", null ],
     [ "RevertSingleMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a416865e209264f27605aff0e547e7d66", null ],
