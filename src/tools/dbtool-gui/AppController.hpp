@@ -542,13 +542,6 @@ class AppController: public QObject
     /// the "Failed migration: TS  title" line in the failure report.
     QString _lastFailedTimestamp;
     QString _lastFailedTitle;
-    /// `true` once the first successful connect has happened in this
-    /// process. Used to distinguish "lazy-init the thread-local
-    /// DataMapper" (first connect) from "rebuild the cached instance
-    /// because the connection string just changed" (every subsequent
-    /// connect).
-    bool _everConnected = false;
-
     /// Log messages produced before the QML `LogPanel` connected its
     /// receiver (i.e. before `attachLogSink()` ran). Replayed in order on
     /// first attach and then permanently bypassed.

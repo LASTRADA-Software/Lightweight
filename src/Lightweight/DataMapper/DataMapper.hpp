@@ -100,9 +100,6 @@ namespace detail
 class DataMapper
 {
   public:
-    /// Acquires a thread-local DataMapper instance that is safe for reuse within that thread.
-    LIGHTWEIGHT_API static DataMapper& AcquireThreadLocal();
-
     /// Constructs a new data mapper, using the default connection.
     DataMapper():
         _connection {},

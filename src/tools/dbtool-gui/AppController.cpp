@@ -703,27 +703,11 @@ bool AppController::connectToProfile()
         return false;
     }
 
-    // `DataMapper::AcquireThreadLocal` caches its `DataMapper` in a
-    // `thread_local` that is constructed exactly once per thread using
-    // whichever connection string was default at the moment of first
-    // access. Subsequent `SetDefaultConnectionString` calls do not reach
-    // the cached instance, so switching profiles / DSNs appears to
-    // succeed but keeps talking to the old database. We force a rebuild
-    // here by move-assigning a fresh `DataMapper` built from the current
-    // default, keeping the same storage address so `MigrationManager`'s
-    // internal pointer (after `CloseDataMapper`) remains valid once it
-    // re-acquires.
-    //
-    // The first call has already been exercised by the thread-local
-    // lazy-init path — skipping the explicit rebuild on the first
-    // connect avoids a double construction that could trip ODBC drivers
-    // which hold per-connection locks.
-    manager.CloseDataMapper();
+    // The default connection string was just replaced, so this reconnects the manager's data mapper
+    // to it - now, where a failure can be reported, rather than on the manager's first use.
     try
     {
-        auto& threadDm = Lightweight::DataMapper::AcquireThreadLocal();
-        if (_everConnected)
-            threadDm = Lightweight::DataMapper { Lightweight::SqlConnection::DefaultConnectionString() };
+        std::ignore = manager.GetDataMapper();
     }
     catch (std::exception const& e)
     {
@@ -732,7 +716,6 @@ bool AppController::connectToProfile()
         ReportError(QStringLiteral("Could not open the database connection: %1").arg(failureMsg));
         return false;
     }
-    _everConnected = true;
 
     // Connection is up — surface server flavour / database / version so the
     // user knows *which* DB they just opened. Pulling these from
@@ -740,7 +723,7 @@ bool AppController::connectToProfile()
     // actually negotiated, not what was in the typed-in connection string.
     try
     {
-        auto const& connection = Lightweight::DataMapper::AcquireThreadLocal().Connection();
+        auto const& connection = manager.GetDataMapper().Connection();
         auto const serverDisplay = ServerTypeDisplayName(connection.ServerType());
         auto const databaseName = QString::fromStdString(connection.DatabaseName());
         auto const serverVersion = QString::fromStdString(connection.ServerVersion());
@@ -776,10 +759,9 @@ bool AppController::connectToProfile()
     // so introspection-only connects against a fresh or unmanaged database
     // leave the schema untouched.
     Lightweight::Tools::RunPluginPostInitHooks(
-        _plugins->entries,
-        Lightweight::DataMapper::AcquireThreadLocal().Connection(),
-        manager,
-        [this](std::string_view message) { LogError(QString::fromUtf8(message.data(), static_cast<int>(message.size()))); });
+        _plugins->entries, manager.GetDataMapper().Connection(), manager, [this](std::string_view message) {
+            LogError(QString::fromUtf8(message.data(), static_cast<int>(message.size())));
+        });
 
     // `Refresh` reads `GetAppliedMigrationIds` which merges the plugin-supplied
     // overlay with whatever rows exist in `schema_migrations`. The accessor

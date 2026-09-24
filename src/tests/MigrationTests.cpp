@@ -103,6 +103,25 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "access global migration macro", "[Sql
     CHECK(migrationManager.ApplyPendingMigrations() == 0);
 }
 
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "MigrationManager reconnects its data mapper after the default connection string changed",
+                 "[SqlMigration]")
+{
+    auto& migrationManager = SqlMigration::MigrationManager::GetInstance();
+    auto& before = migrationManager.GetDataMapper();
+    auto const connectionIdBefore = before.Connection().ConnectionId();
+    CHECK(&migrationManager.GetDataMapper() == &before); // unchanged default: same connection
+    CHECK(migrationManager.GetDataMapper().Connection().ConnectionId() == connectionIdBefore);
+
+    // Re-setting the default to itself changes its generation without switching the database.
+    SqlConnection::SetDefaultConnectionString(SqlConnection::DefaultConnectionString());
+
+    auto& after = migrationManager.GetDataMapper();
+    CHECK(&after == &before); // reconnected in place: references handed out earlier stay valid
+    CHECK(after.Connection().ConnectionId() != connectionIdBefore);
+    CHECK(after.Connection().IsAlive());
+}
+
 TEST_CASE_METHOD(SqlMigrationTestFixture, "CreateTable", "[SqlMigration]")
 {
     using namespace SqlColumnTypeDefinitions;
