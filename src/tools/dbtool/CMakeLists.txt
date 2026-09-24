@@ -11,6 +11,10 @@ add_library(dbtool_lib STATIC
 # CPM fallback if not found — #543); re-resolving libzip here would hard-fail a CPM-fallback build.
 target_link_libraries(dbtool_lib PUBLIC Lightweight tools_shared zip)
 
+# StandardProgressManager draws through core-cpp's terminal output (cmake/CoreCpp.cmake). PRIVATE:
+# its header names no core-cpp type, so neither the tests nor dbtool see core-cpp through it.
+target_link_libraries(dbtool_lib PRIVATE core::tui_output)
+
 add_executable(dbtool main.cpp)
 target_link_libraries(dbtool PRIVATE dbtool_lib)
 
