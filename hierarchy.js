@@ -98,7 +98,6 @@ var hierarchy =
     [ "Lightweight::SqlConnectionString", "de/d6a/structLightweight_1_1SqlConnectionString.html", null ],
     [ "Lightweight::SqlCreateIndexPlan", "dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html", null ],
     [ "Lightweight::SqlCreateTableQueryBuilder", "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html", null ],
-    [ "Lightweight::SqlDataBinder< char >", "d8/dca/structLightweight_1_1SqlDataBinder_3_01char_01_4.html", null ],
     [ "Lightweight::SqlDataBinder< SqlDynamicNumeric >", "da/d2d/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4.html", null ],
     [ "Lightweight::SqlDataBinder< SqlDynamicNumeric >::Literal", "db/d29/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4_1_1Literal.html", null ],
     [ "Lightweight::SqlDataBinderCallback", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html", [

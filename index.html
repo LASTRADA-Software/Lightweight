@@ -241,7 +241,7 @@ Foreign keys relation</h2>
 <div class="fragment"><div class="line"><span class="keyword">auto</span> dm = <a class="code hl_class" href="de/d61/classLightweight_1_1DataMapper.html">Light::DataMapper</a>();</div>
 <div class="line"><span class="keyword">auto</span> email = dm.QuerySingle&lt;Email&gt;(some_email_id).value_or(Email{});</div>
 <div class="line"><span class="keyword">auto</span> user_name = email.user-&gt;name; <span class="comment">// lazily loads the user record</span></div>
-<div class="ttc" id="aclassLightweight_1_1DataMapper_html"><div class="ttname"><a href="de/d61/classLightweight_1_1DataMapper.html">Lightweight::DataMapper</a></div><div class="ttdoc">Main API for mapping records to and from the database using high level C++ syntax.</div><div class="ttdef"><b>Definition</b> <a href="df/d4f/DataMapper_8hpp_source.html#l00099">DataMapper.hpp:100</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1DataMapper_html"><div class="ttname"><a href="de/d61/classLightweight_1_1DataMapper.html">Lightweight::DataMapper</a></div><div class="ttdoc">Main API for mapping records to and from the database using high level C++ syntax.</div><div class="ttdef"><b>Definition</b> <a href="df/d4f/DataMapper_8hpp_source.html#l00100">DataMapper.hpp:101</a></div></div>
 </div><!-- fragment --><blockquote class="doxtable">
 <p>&zwj;<b>Note:</b> lazy loading (<code>email.user-&gt;name</code> above) does <em>not</em> use <code>dm</code>. It uses a thread-local <code>DataMapper</code> built from the default connection string, so it runs on a different connection and outside any transaction <code>dm</code> may be in. See <a class="el" href="index.html#known-limitations">Known limitations</a>. </p>
 </blockquote>
