@@ -4,6 +4,7 @@
 #include "Pool.hpp"
 
 #include <cstdint>
+#include <format>
 #include <mutex>
 #include <utility>
 #include <vector>
@@ -19,7 +20,7 @@ namespace
     class GlobalPoolLoadSource final: public detail::RelationLoadSource
     {
       public:
-        [[nodiscard]] std::shared_ptr<DataMapper> Borrow() override
+        [[nodiscard]] RelationResult<std::shared_ptr<DataMapper>> Borrow() override
         {
             return GlobalDataMapperPool().LoadSourceForRelations()->Borrow();
         }
@@ -34,7 +35,8 @@ namespace
     };
 
     /// Serves loads from a default-following source (a pool) only while the default is still the
-    /// connection string the records were read with, and fails them once the application switched it.
+    /// connection string the records were read with; once the application switched it, reports
+    /// @ref RelationError::Outdated without connecting anywhere.
     class DefaultPinnedLoadSource final: public detail::RelationLoadSource
     {
       public:
@@ -47,20 +49,22 @@ namespace
         {
         }
 
-        [[nodiscard]] std::shared_ptr<DataMapper> Borrow() override
+        [[nodiscard]] RelationResult<std::shared_ptr<DataMapper>> Borrow() override
         {
             // The generation spares the comparison while the default is untouched; switching away and
             // back again leaves the same string, and the same database, so that still loads.
             if (SqlConnection::DefaultConnectionStringGeneration() != _generation
                 && SqlConnection::DefaultConnectionString() != _connectionString)
-                throw SqlDefaultConnectionChangedError {};
+                return std::unexpected { RelationError::Outdated };
 
-            auto borrowed = _inner->Borrow();
             // A switch between the check above and the borrow would hand out a connection to the new
             // database; the connection itself says which one it is.
-            if (borrowed->Connection().ConnectionString() != _connectionString)
-                throw SqlDefaultConnectionChangedError {};
-            return borrowed;
+            return _inner->Borrow().and_then(
+                [this](std::shared_ptr<DataMapper> borrowed) -> RelationResult<std::shared_ptr<DataMapper>> {
+                    if (borrowed->Connection().ConnectionString() != _connectionString)
+                        return std::unexpected { RelationError::Outdated };
+                    return borrowed;
+                });
         }
 
       private:
@@ -85,7 +89,7 @@ namespace
         {
         }
 
-        [[nodiscard]] std::shared_ptr<DataMapper> Borrow() override
+        [[nodiscard]] RelationResult<std::shared_ptr<DataMapper>> Borrow() override
         {
             auto mapper = TakeIdle();
             if (!mapper)
@@ -94,18 +98,22 @@ namespace
                 {
                     mapper = std::make_unique<DataMapper>(_connectionString);
                 }
-                catch (...)
+                catch (std::exception const& error)
                 {
-                    auto const lock = std::scoped_lock { _mutex };
-                    --_outstanding;
-                    throw;
+                    {
+                        auto const lock = std::scoped_lock { _mutex };
+                        --_outstanding;
+                    }
+                    SqlLogger::GetLogger().OnWarning(std::format("Connecting for a relation load failed: {}", error.what()));
+                    return std::unexpected { RelationError::QueryFailed };
                 }
             }
             detail::AdoptRelationLoadSource(*mapper, shared_from_this());
             // Should allocating the control block fail, the deleter still runs, so the mapper comes back.
-            return { mapper.release(), [self = shared_from_this()](DataMapper* borrowed) noexcept {
-                        self->GiveBack(std::unique_ptr<DataMapper> { borrowed });
-                    } };
+            return std::shared_ptr<DataMapper> { mapper.release(),
+                                                 [self = shared_from_this()](DataMapper* borrowed) noexcept {
+                                                     self->GiveBack(std::unique_ptr<DataMapper> { borrowed });
+                                                 } };
         }
 
       private:

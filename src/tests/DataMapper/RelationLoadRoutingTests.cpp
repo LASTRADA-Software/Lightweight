@@ -178,21 +178,26 @@ TEST_CASE_METHOD(SqlTestFixture,
     SECTION("BelongsTo of each child")
     {
         auto parentNames = std::vector<std::string> {};
-        loaded->children.Each(
-            [&](RoutingChild const& child) { parentNames.emplace_back(std::string { child.parent->name.Value() }); });
+        CHECK(loaded->children
+                  .Each([&](RoutingChild const& child) {
+                      parentNames.emplace_back(std::string { child.parent->name.Value() });
+                  })
+                  .has_value());
         CHECK(parentNames == std::vector<std::string> { "parent", "parent", "parent" });
     }
 
     SECTION("HasMany::Count of the same relation")
     {
         auto counts = std::vector<size_t> {};
-        loaded->children.Each([&](RoutingChild const& /*child*/) {
-            auto again = dm.QuerySingle<RoutingParent>(parent.id.Value());
-            REQUIRE(again.has_value());
-            if (!again.has_value())
-                return;
-            counts.push_back(again->children.Count());
-        });
+        CHECK(loaded->children
+                  .Each([&](RoutingChild const& /*child*/) {
+                      auto again = dm.QuerySingle<RoutingParent>(parent.id.Value());
+                      REQUIRE(again.has_value());
+                      if (!again.has_value())
+                          return;
+                      counts.push_back(again->children.Count().value_or(0));
+                  })
+                  .has_value());
         CHECK(counts == std::vector<size_t> { 3, 3, 3 });
     }
 }
@@ -215,18 +220,42 @@ TEST_CASE_METHOD(SqlTestFixture,
     auto const fromPoolAfterReturn = *fromPool;
 
     // A different string for the same database: the switch is what matters, not where it points. The
-    // loads below fail before connecting anywhere.
+    // loads below are not attempted: the relations are marked outdated without connecting anywhere.
     auto const previous = SqlConnectionString { .value = SqlConnection::DefaultConnectionString().value };
     auto const restore = detail::Finally([&] { SqlConnection::SetDefaultConnectionString(previous); });
     SqlConnection::SetDefaultConnectionString(SqlConnectionString { previous.value + ";" });
 
     SECTION("a record read through a plain mapper")
     {
-        CHECK_THROWS_AS(std::ignore = fromPlain->owner->name, SqlDefaultConnectionChangedError);
+        auto const owner = fromPlain->owner.Record();
+        REQUIRE_FALSE(owner.has_value());
+        CHECK(owner.error() == RelationError::Outdated);
     }
     SECTION("a record read through a pooled mapper")
     {
-        CHECK_THROWS_AS(std::ignore = fromPool->owner->name, SqlDefaultConnectionChangedError);
+        auto const owner = fromPool->owner.Record();
+        REQUIRE_FALSE(owner.has_value());
+        CHECK(owner.error() == RelationError::Outdated);
+    }
+    SECTION("an outdated relation stays outdated, even once the default is switched back")
+    {
+        REQUIRE(fromPlain->owner.Record().error() == RelationError::Outdated);
+        SqlConnection::SetDefaultConnectionString(previous);
+        auto const owner = fromPlain->owner.Record();
+        REQUIRE_FALSE(owner.has_value());
+        CHECK(owner.error() == RelationError::Outdated);
+    }
+    SECTION("the -> shortcut reports it as SqlRequireLoadedError")
+    {
+        try
+        {
+            std::ignore = fromPlain->owner->name;
+            FAIL("expected SqlRequireLoadedError");
+        }
+        catch (SqlRequireLoadedError const& error)
+        {
+            CHECK(error.Error() == RelationError::Outdated);
+        }
     }
     SECTION("switching back to the string the records were read with loads again")
     {

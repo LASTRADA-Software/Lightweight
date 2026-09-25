@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <deque>
 #include <expected>
+#include <format>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -887,7 +888,30 @@ class Pool
         {
         }
 
-        [[nodiscard]] std::shared_ptr<DataMapper> Borrow() override
+        [[nodiscard]] RelationResult<std::shared_ptr<DataMapper>> Borrow() override
+        {
+            try
+            {
+                return Lend();
+            }
+            catch (std::exception const& error)
+            {
+                // Connecting failed (no idle connection to reuse): reported, not thrown.
+                SqlLogger::GetLogger().OnWarning(std::format("Connecting for a relation load failed: {}", error.what()));
+                return std::unexpected { RelationError::QueryFailed };
+            }
+        }
+
+        /// Called by the pool's destructor; later loads connect on their own.
+        void Detach() noexcept
+        {
+            auto const lock = std::unique_lock { _mutex };
+            _pool = nullptr;
+        }
+
+      private:
+        /// @return A mapper for one load; throws whatever connecting throws.
+        [[nodiscard]] std::shared_ptr<DataMapper> Lend()
         {
             // Shared: concurrent loads borrow in parallel; only Detach() excludes them, so the pool
             // cannot be destroyed while one of them is still inside Acquire().
@@ -908,14 +932,6 @@ class Pool
                 return Share(_pool->Acquire());
         }
 
-        /// Called by the pool's destructor; later loads connect on their own.
-        void Detach() noexcept
-        {
-            auto const lock = std::unique_lock { _mutex };
-            _pool = nullptr;
-        }
-
-      private:
         /// @return @p pooled as a shared mapper that goes back to the pool with its last copy.
         [[nodiscard]] static std::shared_ptr<DataMapper> Share(PooledDataMapper pooled)
         {

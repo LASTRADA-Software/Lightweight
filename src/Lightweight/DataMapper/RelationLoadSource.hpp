@@ -4,6 +4,7 @@
 
 #include "../Api.hpp"
 #include "../SqlConnectInfo.hpp"
+#include "Error.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -48,9 +49,10 @@ namespace detail
         /// mapper back to where it came from (a pool, or this source), so no two loads ever share its
         /// connection or statement.
         ///
-        /// @return The borrowed mapper; never null.
-        /// @throws SqlException Connecting failed, when no idle connection was available.
-        [[nodiscard]] virtual std::shared_ptr<DataMapper> Borrow() = 0;
+        /// @return The borrowed mapper (never null); @ref RelationError::Outdated when the records this
+        ///         source serves belong to a default connection string the application has switched
+        ///         away from; @ref RelationError::QueryFailed when connecting failed.
+        [[nodiscard]] virtual RelationResult<std::shared_ptr<DataMapper>> Borrow() = 0;
     };
 
     /// Wraps @p inner, a source that follows the default connection string (a pool), so that it only
@@ -60,8 +62,8 @@ namespace detail
     /// @param connectionString The connection string the records' mapper was connected with.
     /// @param generation The @ref SqlConnection::DefaultConnectionStringGeneration that string was
     ///                   current under; lets an unchanged default skip the string comparison.
-    /// @return A source whose @c Borrow() throws @ref SqlDefaultConnectionChangedError once the default
-    ///         no longer is @p connectionString.
+    /// @return A source whose @c Borrow() reports @ref RelationError::Outdated - without connecting -
+    ///         once the default no longer is @p connectionString.
     [[nodiscard]] LIGHTWEIGHT_API std::shared_ptr<RelationLoadSource> PinToDefaultConnectionString(
         std::shared_ptr<RelationLoadSource> inner, SqlConnectionString connectionString, std::uint32_t generation);
 

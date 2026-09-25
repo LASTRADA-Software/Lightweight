@@ -187,7 +187,7 @@ TEST_CASE_METHOD(SqlTestFixture, "With<HasMany> loads every owner's children in 
     for (auto& owner: owners)
     {
         CHECK(owner.children.Count() == 3);
-        for (auto const& child: owner.children.All())
+        for (auto const& child: owner.children.All().value().get())
             CHECK(child->owner.Value() == owner.id.Value());
     }
 
@@ -208,8 +208,8 @@ TEST_CASE_METHOD(SqlTestFixture, "With<BelongsTo> loads every child's owner in o
     REQUIRE(children.size() == 12);
     for (auto& child: children)
     {
-        CHECK(child.owner.Record().id.Value() == child.owner.Value());
-        CHECK(child.owner.Record().name.Value().ToStringView().starts_with("owner-"));
+        CHECK(child.owner.Record().value().get().id.Value() == child.owner.Value());
+        CHECK(child.owner.Record().value().get().name.Value().ToStringView().starts_with("owner-"));
     }
 
     CHECK(counter.Count() == 2);
@@ -228,7 +228,7 @@ TEST_CASE_METHOD(SqlTestFixture, "With<> chains across several relations", "[Dat
     CHECK(counter.Count() == 3);
     REQUIRE(children.size() == 6);
     for (auto& child: children)
-        CHECK(child.owner.Record().id.Value() == child.owner.Value());
+        CHECK(child.owner.Record().value().get().id.Value() == child.owner.Value());
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "With<BelongsTo> skips rows whose foreign key is NULL", "[DataMapper][With]")
@@ -249,8 +249,8 @@ TEST_CASE_METHOD(SqlTestFixture, "With<BelongsTo> skips rows whose foreign key i
             continue;
         ++withCategory;
 
-        // A nullable BelongsTo hands back an optional reference; throwing rather than CHECK-ing makes
-        // the dereference below provably safe (a Catch2 assertion is a loop the analyser cannot follow).
+        // Record() hands back a std::expected reference; throwing rather than CHECK-ing makes the
+        // dereference below provably safe (a Catch2 assertion is a loop the analyser cannot follow).
         auto const category = child.category.Record();
         if (!category.has_value())
             throw std::runtime_error("The eagerly loaded category must be present.");
@@ -285,7 +285,7 @@ TEST_CASE_METHOD(SqlTestFixture, "With<HasMany> marks childless owners loaded-em
     REQUIRE(it != owners.end());
 
     // The empty result is already known, so asking for it must not produce a query.
-    CHECK(it->children.IsEmpty());
+    CHECK(it->children.IsEmpty() == true);
     CHECK(it->children.Count() == 0);
     CHECK(counter.Count() == 2);
 }
@@ -304,7 +304,7 @@ TEST_CASE_METHOD(SqlTestFixture, "With<> applies to First(n) and Range() too", "
         CHECK(counter.Count() == 2);
         REQUIRE(owners.size() == 3);
         for (auto& owner: owners)
-            CHECK(owner.children.Count() == 2);
+            CHECK(owner.children.Count().value() == 2);
     }
 
     {
@@ -316,7 +316,7 @@ TEST_CASE_METHOD(SqlTestFixture, "With<> applies to First(n) and Range() too", "
         CHECK(counter.Count() == 2);
         REQUIRE(owners.size() == 2);
         for (auto& owner: owners)
-            CHECK(owner.children.Count() == 2);
+            CHECK(owner.children.Count().value() == 2);
     }
 }
 
@@ -351,7 +351,7 @@ TEST_CASE_METHOD(SqlTestFixture, "With<> survives a batch larger than one IN chu
 
     size_t childrenSeen = 0;
     for (auto& owner: owners)
-        childrenSeen += owner.children.Count();
+        childrenSeen += owner.children.Count().value();
     CHECK(childrenSeen == ownerCount);
     CHECK(counter.Count() == 3);
 }
@@ -367,7 +367,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Relations not named by With<> keep loading on 
 
     // No With<> was requested, so the first access still goes to the database - the feature must not
     // change what an unrequested relation does.
-    CHECK(children.front().owner.Record().id.Value() != 0);
+    CHECK(children.front().owner.Record().value().get().id.Value() != 0);
     CHECK(counter.Count() > 1);
 }
 
@@ -391,9 +391,9 @@ TEST_CASE_METHOD(SqlTestFixture, "With<> walks a nested BelongsTo path in one qu
     REQUIRE(children.size() == 12);
     for (auto& child: children)
     {
-        auto const& owner = child.owner.Record();
+        auto const& owner = child.owner.Record().value().get();
         CHECK(owner.id.Value() == child.owner.Value());
-        CHECK(owner.region.Record().label.Value().ToStringView() == "north");
+        CHECK(owner.region.Record().value().get().label.Value().ToStringView() == "north");
     }
 
     // Reading the whole nested graph must not have gone back to the database.
@@ -418,7 +418,7 @@ TEST_CASE_METHOD(SqlTestFixture, "With<> walks a path through a HasMany", "[Data
 
     size_t categorized = 0;
     for (auto& owner: owners)
-        for (auto const& child: owner.children.All())
+        for (auto const& child: owner.children.All().value().get())
             if (child->category.Value().has_value())
             {
                 auto const category = child->category.Record();
@@ -447,7 +447,7 @@ TEST_CASE_METHOD(SqlTestFixture, "eagerLoadDepth loads every relation of the res
     REQUIRE(children.size() == 10);
 
     for (auto& child: children)
-        CHECK(child.owner.Record().id.Value() == child.owner.Value());
+        CHECK(child.owner.Record().value().get().id.Value() == child.owner.Value());
 
     CHECK(counter.Count() == 3);
 }
@@ -466,9 +466,9 @@ TEST_CASE_METHOD(SqlTestFixture, "eagerLoadDepth descends through the relation g
 
     for (auto& child: children)
     {
-        auto const& owner = child.owner.Record();
-        CHECK(owner.region.Record().label.Value().ToStringView() == "north");
-        CHECK(owner.children.Count() == 2);
+        auto const& owner = child.owner.Record().value().get();
+        CHECK(owner.region.Record().value().get().label.Value().ToStringView() == "north");
+        CHECK(owner.children.Count().value() == 2);
     }
 
     // Whatever the exact number of levels walked, it must be a small constant - not one query per
@@ -491,7 +491,7 @@ TEST_CASE_METHOD(SqlTestFixture, "A named path is not re-fetched by eagerLoadDep
     CHECK(counter.Count() == 3);
     REQUIRE(children.size() == 6);
     for (auto& child: children)
-        CHECK(child.owner.Record().id.Value() == child.owner.Value());
+        CHECK(child.owner.Record().value().get().id.Value() == child.owner.Value());
 }
 
 TEST_CASE_METHOD(SqlTestFixture,
@@ -549,7 +549,7 @@ TEST_CASE_METHOD(SqlTestFixture, "eagerLoadDepth descends into a level that load
     for (auto& owner: owners)
     {
         CHECK(owner.children.Count() == 0);
-        CHECK(owner.region.Record().label.Value().ToStringView() == "north");
+        CHECK(owner.region.Record().value().get().label.Value().ToStringView() == "north");
     }
 }
 

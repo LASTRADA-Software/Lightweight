@@ -13,9 +13,11 @@
 #include <reflection-cpp/reflection.hpp>
 
 #include <compare>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace Lightweight
@@ -86,26 +88,28 @@ class HasMany
     /// Const iterator type for the list of records.
     using const_iterator = ReferencedRecordList::const_iterator;
 
-    /// @brief Retrieves the list of loaded records.
+    /// @brief Retrieves the records, loading them on first access.
     ///
-    /// @note This method will on-demand load the records if they are not already loaded, and
-    ///       therefore throws whatever the loader throws. It also throws SqlRequireLoadedError if
-    ///       no auto-loader was configured for this relation.
-    [[nodiscard]] ReferencedRecordList const& All() const;
+    /// Never throws for unavailable records: the reason comes back as the error instead.
+    ///
+    /// @return The records; or @ref RelationError::NotConfigured when there is no loader (a hand-built
+    ///         record, or one read with `loadRelations = false`), @ref RelationError::Outdated when the
+    ///         default connection string changed since the record was read, @ref RelationError::QueryFailed
+    ///         when the load query failed.
+    [[nodiscard]] RelationResult<std::reference_wrapper<ReferencedRecordList const>> All() const;
 
-    /// @brief Retrieves the list of records as mutable reference.
-    ///
-    /// @note This method will on-demand load the records if they are not already loaded, and
-    ///       therefore throws whatever the loader throws. It also throws SqlRequireLoadedError if
-    ///       no auto-loader was configured for this relation.
-    [[nodiscard]] ReferencedRecordList& All();
+    /// @copydoc All() const
+    [[nodiscard]] RelationResult<std::reference_wrapper<ReferencedRecordList>> All();
 
-    /// @brief Iterates over the list of records and calls the given callable for each record.
+    /// @brief Calls @p callable for each record, without holding them all in memory when not loaded yet.
     ///
-    /// @note Use this method if you want to iterate over all records but do not need to store them all in memory, e.g.
-    ///       because the full data set wuold be too large.
+    /// Use this to iterate over all records when the full data set would be too large to keep.
+    /// An exception thrown by @p callable propagates unchanged.
+    ///
+    /// @param callable Called once per record.
+    /// @return Nothing, or why the records are unavailable (see @ref All()).
     template <typename Callable>
-    void Each(Callable const& callable);
+    RelationResult<void> Each(Callable const& callable);
 
     /// Emplaces the given list of records.
     ReferencedRecordList& Emplace(ReferencedRecordList&& records) noexcept;
@@ -121,51 +125,43 @@ class HasMany
         return _records ? &*_records : nullptr;
     }
 
-    /// Retrieves the number of records in this 1-to-many relationship.
-    [[nodiscard]] std::size_t Count() const;
+    /// @return The number of records in this 1-to-many relationship - counted by a query, without
+    ///         loading them, unless they are loaded already - or why it is unavailable (see @ref All()).
+    [[nodiscard]] RelationResult<std::size_t> Count() const;
 
-    /// Checks if this 1-to-many relationship is empty.
-    [[nodiscard]] bool IsEmpty() const;
+    /// @return Whether this 1-to-many relationship is empty, or why that is unknown (see @ref All()).
+    [[nodiscard]] RelationResult<bool> IsEmpty() const;
 
-    /// @brief Retrieves the record at the given index.
+    /// @brief Retrieves the record at the given index, loading the records on first access.
     ///
     /// @param index The index of the record to retrieve.
-    /// @note This method will on-demand load the records if they are not already loaded.
-    /// @note This method will throw if the index is out of bounds.
+    /// @throws SqlRequireLoadedError The records are unavailable; @ref All() reports why without throwing.
+    /// @throws std::out_of_range @p index is out of bounds.
     [[nodiscard]] OtherRecord const& At(std::size_t index) const;
 
-    /// @brief Retrieves the record at the given index.
-    ///
-    /// @param index The index of the record to retrieve.
-    /// @note This method will on-demand load the records if they are not already loaded.
-    /// @note This method will throw if the index is out of bounds.
+    /// @copydoc At(std::size_t) const
     [[nodiscard]] OtherRecord& At(std::size_t index);
 
-    /// @brief Retrieves the record at the given index.
+    /// @brief Retrieves the record at the given index, loading the records on first access.
     ///
-    /// @param index The index of the record to retrieve.
-    /// @note This method will on-demand load the records if they are not already loaded.
-    /// @note This method will NOT throw if the index is out of bounds. The behaviour is undefined.
+    /// @param index The index of the record to retrieve; out of bounds is undefined behaviour.
+    /// @throws SqlRequireLoadedError The records are unavailable; @ref All() reports why without throwing.
     [[nodiscard]] OtherRecord const& operator[](std::size_t index) const;
 
-    /// @brief Retrieves the record at the given index.
-    ///
-    /// @param index The index of the record to retrieve.
-    /// @note This method will on-demand load the records if they are not already loaded.
-    /// @note This method will NOT throw if the index is out of bounds. The behaviour is undefined.
+    /// @copydoc operator[](std::size_t) const
     [[nodiscard]] OtherRecord& operator[](std::size_t index);
 
-    /// Returns an iterator to the beginning of the record list.
-    /// @note On-demand loads the records, and therefore throws what the loader throws.
+    /// Returns an iterator to the beginning of the record list, loading the records on first access.
+    /// @throws SqlRequireLoadedError The records are unavailable; @ref All() reports why without throwing.
     [[nodiscard]] iterator begin();
-    /// Returns an iterator to the end of the record list.
-    /// @note On-demand loads the records, and therefore throws what the loader throws.
+    /// Returns an iterator to the end of the record list, loading the records on first access.
+    /// @throws SqlRequireLoadedError The records are unavailable; @ref All() reports why without throwing.
     [[nodiscard]] iterator end();
-    /// Returns a const iterator to the beginning of the record list.
-    /// @note On-demand loads the records, and therefore throws what the loader throws.
+    /// Returns a const iterator to the beginning of the record list, loading the records on first access.
+    /// @throws SqlRequireLoadedError The records are unavailable; @ref All() reports why without throwing.
     [[nodiscard]] const_iterator begin() const;
-    /// Returns a const iterator to the end of the record list.
-    /// @note On-demand loads the records, and therefore throws what the loader throws.
+    /// Returns a const iterator to the end of the record list, loading the records on first access.
+    /// @throws SqlRequireLoadedError The records are unavailable; @ref All() reports why without throwing.
     [[nodiscard]] const_iterator end() const;
 
     /// Three-way comparison operator.
@@ -175,12 +171,17 @@ class HasMany
     /// Inequality comparison operator.
     constexpr bool operator!=(HasMany const& other) const noexcept = default;
 
+    /// Carries the deferred loads, installed by the DataMapper.
     struct Loader
     {
-        std::function<size_t()> count {};
-        std::function<ReferencedRecordList()> all {};
-        std::function<void(std::function<void(ReferencedRecord const&)>)> each {};
+        /// Counts the records without loading them.
+        std::function<RelationResult<size_t>()> count {};
+        /// Loads all records.
+        std::function<RelationResult<ReferencedRecordList>()> all {};
+        /// Streams the records to a callback.
+        std::function<RelationResult<void>(std::function<void(ReferencedRecord const&)>)> each {};
 
+        /// Loaders carry no comparable state of their own, so any two are considered equivalent.
         std::weak_ordering operator<=>(Loader const& /*other*/) const noexcept
         {
             return std::weak_ordering::equivalent; // Loader is not comparable, so we return equivalent
@@ -191,11 +192,19 @@ class HasMany
     void SetAutoLoader(Loader loader) noexcept;
 
   private:
-    void RequireLoaded();
+    /// Loads the records unless they already are, or their unavailability is already known.
+    ///
+    /// @ref RelationError::Outdated is remembered - it does not change by asking again - until records
+    /// are emplaced; a failed query is retried on the next access.
+    [[nodiscard]] RelationResult<void> Load() const;
+
+    /// @return The loaded records, or throws SqlRequireLoadedError.
+    [[nodiscard]] ReferencedRecordList& LoadOrThrow() const;
 
     Loader _loader;
-    std::optional<ReferencedRecordList> _records;
-    std::optional<size_t> _count;
+    mutable std::optional<ReferencedRecordList> _records;
+    mutable std::optional<size_t> _count;
+    mutable std::optional<RelationError> _loadError;
 };
 
 namespace detail
@@ -222,20 +231,37 @@ inline LIGHTWEIGHT_FORCE_INLINE void HasMany<OtherRecord, InverseSelector>::SetA
 }
 
 template <typename OtherRecord, auto InverseSelector>
-inline LIGHTWEIGHT_FORCE_INLINE void HasMany<OtherRecord, InverseSelector>::RequireLoaded()
+inline LIGHTWEIGHT_FORCE_INLINE RelationResult<void> HasMany<OtherRecord, InverseSelector>::Load() const
 {
     if (_records)
-        return;
+        return {};
+    if (_loadError)
+        return std::unexpected { *_loadError };
 
     // The loader is only populated by ConfigureRelationAutoLoading(). A hand-constructed record
     // never went through it, so calling the empty std::function would be std::bad_function_call.
-    // Mirrors HasManyThrough::RequireLoaded(), which reports the same condition as
-    // SqlRequireLoadedError.
-    if (_loader.all)
-        _records = _loader.all();
+    if (!_loader.all)
+        return std::unexpected { RelationError::NotConfigured };
 
-    if (!_records)
-        throw SqlRequireLoadedError(Reflection::TypeNameOf<std::remove_cvref_t<decltype(*this)>>);
+    auto loaded = _loader.all();
+    if (!loaded)
+    {
+        if (loaded.error() != RelationError::QueryFailed)
+            _loadError = loaded.error();
+        return std::unexpected { loaded.error() };
+    }
+    _records = std::move(*loaded);
+    return {};
+}
+
+template <typename OtherRecord, auto InverseSelector>
+inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::ReferencedRecordList& HasMany<
+    OtherRecord,
+    InverseSelector>::LoadOrThrow() const
+{
+    if (auto const loaded = Load(); !loaded)
+        throw SqlRequireLoadedError(Reflection::TypeNameOf<std::remove_cvref_t<decltype(*this)>>, loaded.error());
+    return *_records; // NOLINT(bugprone-unchecked-optional-access)
 }
 
 template <typename OtherRecord, auto InverseSelector>
@@ -244,115 +270,117 @@ inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::Reference
     InverseSelector>::Emplace(ReferencedRecordList&& records) noexcept
 {
     _records = { std::move(records) };
+    _loadError.reset();
     return *_records;
 }
 
 template <typename OtherRecord, auto InverseSelector>
-inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::ReferencedRecordList& HasMany<OtherRecord,
-                                                                                                     InverseSelector>::All()
+inline LIGHTWEIGHT_FORCE_INLINE auto HasMany<OtherRecord, InverseSelector>::All()
+    -> RelationResult<std::reference_wrapper<ReferencedRecordList>>
 {
-    RequireLoaded();
-    return *_records; // NOLINT(bugprone-unchecked-optional-access)
+    return Load().transform([this] { return std::reference_wrapper<ReferencedRecordList> { *_records }; });
+}
+
+template <typename OtherRecord, auto InverseSelector>
+inline LIGHTWEIGHT_FORCE_INLINE auto HasMany<OtherRecord, InverseSelector>::All() const
+    -> RelationResult<std::reference_wrapper<ReferencedRecordList const>>
+{
+    return Load().transform([this] { return std::reference_wrapper<ReferencedRecordList const> { *_records }; });
 }
 
 template <typename OtherRecord, auto InverseSelector>
 template <typename Callable>
-void HasMany<OtherRecord, InverseSelector>::Each(Callable const& callable)
+RelationResult<void> HasMany<OtherRecord, InverseSelector>::Each(Callable const& callable)
 {
-    if (!_records && _loader.each)
+    if (!_records && !_loadError && _loader.each)
     {
-        _loader.each(callable);
-        return;
+        auto streamed = _loader.each(callable);
+        if (!streamed && streamed.error() != RelationError::QueryFailed)
+            _loadError = streamed.error();
+        return streamed;
     }
 
-    for (auto const& record: All())
-        callable(*record);
+    return All().transform([&callable](ReferencedRecordList const& records) {
+        for (auto const& record: records)
+            callable(*record);
+    });
 }
 
 template <typename OtherRecord, auto InverseSelector>
-inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::ReferencedRecordList const& HasMany<
-    OtherRecord,
-    InverseSelector>::All() const
-{
-    const_cast<HasMany*>(this)->RequireLoaded();
-    return *_records; // NOLINT(bugprone-unchecked-optional-access)
-}
-
-template <typename OtherRecord, auto InverseSelector>
-inline LIGHTWEIGHT_FORCE_INLINE std::size_t HasMany<OtherRecord, InverseSelector>::Count() const
+inline LIGHTWEIGHT_FORCE_INLINE RelationResult<std::size_t> HasMany<OtherRecord, InverseSelector>::Count() const
 {
     if (_records)
         return _records->size();
+    if (_count)
+        return *_count;
+    if (_loadError)
+        return std::unexpected { *_loadError };
+    if (!_loader.count)
+        return std::unexpected { RelationError::NotConfigured };
 
-    if (!_count && _loader.count)
-        const_cast<HasMany<OtherRecord, InverseSelector>*>(this)->_count = _loader.count();
-
-    return _count.value_or(0);
+    auto counted = _loader.count();
+    if (counted)
+        _count = *counted;
+    else if (counted.error() != RelationError::QueryFailed)
+        _loadError = counted.error();
+    return counted;
 }
 
 template <typename OtherRecord, auto InverseSelector>
-inline LIGHTWEIGHT_FORCE_INLINE bool HasMany<OtherRecord, InverseSelector>::IsEmpty() const
+inline LIGHTWEIGHT_FORCE_INLINE RelationResult<bool> HasMany<OtherRecord, InverseSelector>::IsEmpty() const
 {
-    return Count() == 0;
+    return Count().transform([](std::size_t count) { return count == 0; });
 }
 
 template <typename OtherRecord, auto InverseSelector>
 inline LIGHTWEIGHT_FORCE_INLINE OtherRecord const& HasMany<OtherRecord, InverseSelector>::At(std::size_t index) const
 {
-    const_cast<HasMany*>(this)->RequireLoaded();
-    return *_records->at(index); // NOLINT(bugprone-unchecked-optional-access)
+    return *LoadOrThrow().at(index);
 }
 
 template <typename OtherRecord, auto InverseSelector>
 inline LIGHTWEIGHT_FORCE_INLINE OtherRecord& HasMany<OtherRecord, InverseSelector>::At(std::size_t index)
 {
-    RequireLoaded();
-    return *_records->at(index); // NOLINT(bugprone-unchecked-optional-access)
+    return *LoadOrThrow().at(index);
 }
 
 template <typename OtherRecord, auto InverseSelector>
 inline LIGHTWEIGHT_FORCE_INLINE OtherRecord const& HasMany<OtherRecord, InverseSelector>::operator[](std::size_t index) const
 {
-    const_cast<HasMany*>(this)->RequireLoaded();
-    return *(*_records)[index]; // NOLINT(bugprone-unchecked-optional-access)
+    return *LoadOrThrow()[index];
 }
 
 template <typename OtherRecord, auto InverseSelector>
 inline LIGHTWEIGHT_FORCE_INLINE OtherRecord& HasMany<OtherRecord, InverseSelector>::operator[](std::size_t index)
 {
-    RequireLoaded();
-    return *(*_records)[index]; // NOLINT(bugprone-unchecked-optional-access)
+    return *LoadOrThrow()[index];
 }
 
 template <typename OtherRecord, auto InverseSelector>
 inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::iterator HasMany<OtherRecord,
                                                                                         InverseSelector>::begin()
 {
-    RequireLoaded();
-    return _records->begin(); // NOLINT(bugprone-unchecked-optional-access)
+    return LoadOrThrow().begin();
 }
 
 template <typename OtherRecord, auto InverseSelector>
 inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::iterator HasMany<OtherRecord, InverseSelector>::end()
 {
-    RequireLoaded();
-    return _records->end(); // NOLINT(bugprone-unchecked-optional-access)
+    return LoadOrThrow().end();
 }
 
 template <typename OtherRecord, auto InverseSelector>
 inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::const_iterator HasMany<OtherRecord,
                                                                                               InverseSelector>::begin() const
 {
-    const_cast<HasMany*>(this)->RequireLoaded();
-    return _records->begin(); // NOLINT(bugprone-unchecked-optional-access)
+    return std::as_const(LoadOrThrow()).begin();
 }
 
 template <typename OtherRecord, auto InverseSelector>
 inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord, InverseSelector>::const_iterator HasMany<OtherRecord,
                                                                                               InverseSelector>::end() const
 {
-    const_cast<HasMany*>(this)->RequireLoaded();
-    return _records->end(); // NOLINT(bugprone-unchecked-optional-access)
+    return std::as_const(LoadOrThrow()).end();
 }
 
 } // namespace Lightweight

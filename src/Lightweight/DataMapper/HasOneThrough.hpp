@@ -8,7 +8,9 @@
 #include "Record.hpp"
 
 #include <compare>
+#include <functional>
 #include <memory>
+#include <optional>
 #include <type_traits>
 
 namespace Lightweight
@@ -68,46 +70,84 @@ class HasOneThrough
     /// Singles out @ref ReferencedRecord's foreign key pointing at @ref ThroughRecord.
     static constexpr auto ThroughSelector = TheThroughSelector;
 
-    // clang-format off
-
     /// Emplaces the given record into this relationship.
-    LIGHTWEIGHT_FORCE_INLINE constexpr void EmplaceRecord(std::shared_ptr<ReferencedRecord> record) { _record = std::move(record); }
+    LIGHTWEIGHT_FORCE_INLINE constexpr void EmplaceRecord(std::shared_ptr<ReferencedRecord> record)
+    {
+        _record = std::move(record);
+        _loadError.reset();
+    }
 
-    /// Retrieves the record in this relationship.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& Record() { RequireLoaded(); return *_record.get(); }
+    /// @brief Retrieves the record in this relationship, loading it on first access.
+    ///
+    /// Never throws for an unavailable record: the reason comes back as the error instead.
+    ///
+    /// @return The record; or @ref RelationError::NotFound when there is none,
+    ///         @ref RelationError::NotConfigured when there is no loader (a hand-built record, or one read
+    ///         with `loadRelations = false`), @ref RelationError::Outdated when the default connection
+    ///         string changed since the record was read, @ref RelationError::QueryFailed when the load
+    ///         query failed.
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE RelationResult<std::reference_wrapper<ReferencedRecord>> Record()
+    {
+        return Load().transform([this] { return std::reference_wrapper<ReferencedRecord> { *_record }; });
+    }
 
-    /// Retrieves the record in this relationship.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const& Record() const { RequireLoaded(); return *_record.get(); }
+    /// @copydoc Record()
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE RelationResult<std::reference_wrapper<ReferencedRecord const>> Record() const
+    {
+        return Load().transform([this] { return std::reference_wrapper<ReferencedRecord const> { *_record }; });
+    }
 
     /// Checks if the record is loaded.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr bool IsLoaded() const noexcept { return _record.get() != nullptr; }
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr bool IsLoaded() const noexcept
+    {
+        return _record.get() != nullptr;
+    }
 
-    /// Unloads the record from memory.
-    LIGHTWEIGHT_FORCE_INLINE void Unload() noexcept { _record.reset(); }
+    /// Unloads the record from memory, so the next access loads it again.
+    LIGHTWEIGHT_FORCE_INLINE void Unload() noexcept
+    {
+        _record.reset();
+        _loadError.reset();
+    }
 
-    /// @brief Retrieves the record in this relationship.
-    /// @note On-demand loads the record if it is not already loaded.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& operator*() { RequireLoaded(); return *_record; }
+    /// @brief Retrieves the record in this relationship, loading it on first access.
+    /// @throws SqlRequireLoadedError The record is unavailable; @ref Record() reports why without throwing.
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE ReferencedRecord& operator*()
+    {
+        LoadOrThrow();
+        return *_record;
+    }
 
-    /// @brief Retrieves the record in this relationship.
-    /// @note On-demand loads the record if it is not already loaded.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const& operator*() const { RequireLoaded(); return *_record; }
+    /// @copydoc operator*()
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE ReferencedRecord const& operator*() const
+    {
+        LoadOrThrow();
+        return *_record;
+    }
 
-    /// @brief Retrieves the record in this relationship.
-    /// @note On-demand loads the record if it is not already loaded.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord* operator->() { RequireLoaded(); return _record.get(); }
+    /// @brief Retrieves the record in this relationship, loading it on first access.
+    /// @throws SqlRequireLoadedError The record is unavailable; @ref Record() reports why without throwing.
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE ReferencedRecord* operator->()
+    {
+        LoadOrThrow();
+        return _record.get();
+    }
 
-    /// @brief Retrieves the record in this relationship.
-    /// @note On-demand loads the record if it is not already loaded.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const* operator->() const { RequireLoaded(); return _record.get(); }
-    // clang-format on
+    /// @copydoc operator->()
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE ReferencedRecord const* operator->() const
+    {
+        LoadOrThrow();
+        return _record.get();
+    }
 
     /// Default three-way comparison operator.
     std::weak_ordering operator<=>(HasOneThrough const& other) const noexcept = default;
 
+    /// Carries the deferred load, installed by the DataMapper.
     struct Loader
     {
-        std::function<std::shared_ptr<ReferencedRecord>()> loadReference {};
+        /// Loads the referenced record: @ref RelationError::NotFound when there is none.
+        std::function<RelationResult<std::shared_ptr<ReferencedRecord>>()> loadReference {};
     };
 
     /// Used internally to configure on-demand loading of the record.
@@ -117,22 +157,41 @@ class HasOneThrough
     }
 
   private:
-    void RequireLoaded() const
+    /// Loads the record unless it already is, or its unavailability is already known.
+    ///
+    /// @ref RelationError::NotFound and @ref RelationError::Outdated are remembered until the record is
+    /// emplaced or unloaded; a failed query is retried on the next access.
+    [[nodiscard]] RelationResult<void> Load() const
     {
         if (IsLoaded())
-            return;
+            return {};
+        if (_loadError)
+            return std::unexpected { *_loadError };
+        if (!_loader.loadReference)
+            return std::unexpected { RelationError::NotConfigured };
 
-        if (_loader.loadReference)
-            _record = _loader.loadReference();
+        auto loaded = _loader.loadReference();
+        if (!loaded)
+        {
+            if (loaded.error() != RelationError::QueryFailed)
+                _loadError = loaded.error();
+            return std::unexpected { loaded.error() };
+        }
+        _record = std::move(*loaded);
+        return {};
+    }
 
-        if (!IsLoaded())
-            throw SqlRequireLoadedError { Reflection::TypeNameOf<std::remove_cvref_t<decltype(*this)>> };
+    void LoadOrThrow() const
+    {
+        if (auto const loaded = Load(); !loaded)
+            throw SqlRequireLoadedError(Reflection::TypeNameOf<std::remove_cvref_t<decltype(*this)>>, loaded.error());
     }
 
     Loader _loader {};
 
     // We use shared_ptr to not require ReferencedRecord to be declared before HasOneThrough.
     mutable std::shared_ptr<ReferencedRecord> _record {};
+    mutable std::optional<RelationError> _loadError {};
 };
 
 namespace detail

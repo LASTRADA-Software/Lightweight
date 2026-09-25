@@ -123,7 +123,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Through: both spellings load the same relation
         REQUIRE(knuth.books.Count() == 2);
 
         auto titles = std::set<std::string> {};
-        knuth.books.Each([&](Book const& book) { titles.emplace(book.title.Value()); });
+        CHECK(knuth.books.Each([&](Book const& book) { titles.emplace(book.title.Value()); }).has_value());
         CHECK(titles == std::set<std::string> { "Structured Programming", "TAOCP" });
     }
 
@@ -132,7 +132,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Through: both spellings load the same relation
         REQUIRE(structured.authors.Count() == 2);
 
         auto names = std::set<std::string> {};
-        structured.authors.Each([&](Author const& author) { names.emplace(author.name.Value()); });
+        CHECK(structured.authors.Each([&](Author const& author) { names.emplace(author.name.Value()); }).has_value());
         CHECK(names == std::set<std::string> { "Dijkstra", "Knuth" });
     }
 

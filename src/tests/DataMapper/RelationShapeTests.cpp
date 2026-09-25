@@ -241,7 +241,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     auto& root = ValueOf(rootOpt);
 
     auto names = std::set<std::string> {};
-    for (auto const& child: root.children.All())
+    for (auto const& child: root.children.All().value().get())
         names.emplace(child->name.Value());
 
     CHECK(names == std::set<std::string> { "childA", "childB" });
@@ -263,7 +263,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Self-referencing HasMany is traversable with E
     auto& root = ValueOf(rootOpt);
 
     auto names = std::set<std::string> {};
-    root.children.Each([&](TreeNode const& child) { names.emplace(child.name.Value()); });
+    REQUIRE(root.children.Each([&](TreeNode const& child) { names.emplace(child.name.Value()); }).has_value());
 
     CHECK(names == std::set<std::string> { "childA", "childB" });
 }
@@ -286,7 +286,7 @@ TEST_CASE_METHOD(SqlTestFixture, "A NULL foreign key is attributed to no parent"
     auto loadedRootOpt = dm.QuerySingle<TreeNode>(root.id.Value());
     auto& loadedRoot = ValueOf(loadedRootOpt);
     CHECK(loadedRoot.children.Count() == 0);
-    CHECK(loadedRoot.children.All().empty());
+    CHECK(loadedRoot.children.All().value().get().empty());
 
     auto loadedOrphanOpt = dm.QuerySingle<TreeNode>(orphan.id.Value());
     auto& loadedOrphan = ValueOf(loadedOrphanOpt);
@@ -358,7 +358,7 @@ TEST_CASE_METHOD(SqlTestFixture, "A NULL foreign key belongs to no parent", "[Da
     CHECK(loadedParent.children.Count() == 1);
 
     auto names = std::set<std::string> {};
-    for (auto const& child: loadedParent.children.All())
+    for (auto const& child: loadedParent.children.All().value().get())
         names.emplace(child->name.Value());
     CHECK(names == std::set<std::string> { "attached" });
 
@@ -591,7 +591,7 @@ TEST_CASE_METHOD(SqlTestFixture, "LoadRelations on a record without a BelongsTo"
     auto loadedAOpt = dm.QuerySingle<ChainA>(a.id.Value());
     auto& loadedA = ValueOf(loadedAOpt);
     dm.LoadRelations(loadedA);
-    REQUIRE(loadedA.bs.All().size() == 1);
+    REQUIRE(loadedA.bs.All().value().get().size() == 1);
     CHECK(loadedA.bs.At(0).label.Value() == "b");
 }
 
@@ -622,13 +622,13 @@ TEST_CASE_METHOD(SqlTestFixture, "LoadRelations fills a non-nullable BelongsTo",
     auto& loadedB = ValueOf(loadedBOpt);
     dm.LoadRelations(loadedB);
 
-    CHECK(loadedB.cs.All().size() == 1);
+    CHECK(loadedB.cs.All().value().get().size() == 1);
     CHECK(loadedB.a.Value() == a.id.Value());
 
     // The BelongsTo is now loaded, so the referenced record is reachable through it. For a mandatory
     // relationship Record() returns the record by reference and would throw if it were still
     // unloaded, so reaching the label at all is the assertion that the adoption happened.
-    CHECK(loadedB.a.Record().label.Value() == "a");
+    CHECK(loadedB.a.Record().value().get().label.Value() == "a");
 
     // ...and adopting a fetched record is not a pending change: the foreign key was already whatever
     // the row said, so the field must not come back marked modified.
@@ -660,7 +660,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     dm.LoadRelations(loadedAttached);
     CHECK(ValueOf(loadedAttached.parent.Value()) == parent.id.Value());
     // For an optional relationship Record() yields an optional over a reference_wrapper, hence .get().
-    CHECK(ValueOf(loadedAttached.parent.Record()).get().name.Value() == "parent");
+    CHECK(loadedAttached.parent.Record().value().get().name.Value() == "parent");
     CHECK_FALSE(loadedAttached.parent.IsModified());
 
     // The NULL foreign key has nothing to load. It must remain unset - not resolved to some arbitrary
