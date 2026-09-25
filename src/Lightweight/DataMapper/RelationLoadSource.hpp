@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "../Api.hpp"
+#include "../SqlConnectInfo.hpp"
+
+#include <cstdint>
 #include <memory>
 
 namespace Lightweight
@@ -37,6 +41,18 @@ namespace detail
         /// @throws SqlException Connecting failed, when no idle connection was available.
         [[nodiscard]] virtual std::shared_ptr<DataMapper> Borrow() = 0;
     };
+
+    /// Wraps @p inner, a source that follows the default connection string (a pool), so that it only
+    /// serves records read while the default was @p connectionString.
+    ///
+    /// @param inner The default-following source to borrow from.
+    /// @param connectionString The connection string the records' mapper was connected with.
+    /// @param generation The @ref SqlConnection::DefaultConnectionStringGeneration that string was
+    ///                   current under; lets an unchanged default skip the string comparison.
+    /// @return A source whose @c Borrow() throws @ref SqlDefaultConnectionChangedError once the default
+    ///         no longer is @p connectionString.
+    [[nodiscard]] LIGHTWEIGHT_API std::shared_ptr<RelationLoadSource> PinToDefaultConnectionString(
+        std::shared_ptr<RelationLoadSource> inner, SqlConnectionString connectionString, std::uint32_t generation);
 
     /// Makes @p source the relation-load source of @p dataMapper, for the records it reads from now on.
     ///

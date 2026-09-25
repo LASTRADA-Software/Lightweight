@@ -301,7 +301,9 @@ class Pool
             mapper->Connection().SetPreparedStatementCacheCapacity(Config.preparedStatementCacheCapacity);
         // Records read through this mapper load their relations from this pool, not from the mapper
         // itself, which goes back to the pool (and to other callers) long before a record dies.
-        detail::AdoptRelationLoadSource(*mapper, _relationLoadSource);
+        detail::AdoptRelationLoadSource(
+            *mapper,
+            detail::PinToDefaultConnectionString(_relationLoadSource, mapper->Connection().ConnectionString(), generation));
         return Entry { .mapper = std::move(mapper), .createdAt = now, .idleSince = now, .generation = generation };
     }
 
@@ -921,8 +923,12 @@ class Pool
         ///         the pool is gone). Records read through it still load their relations from here.
         [[nodiscard]] std::shared_ptr<DataMapper> OwnConnection()
         {
+            auto const generation = SqlConnection::DefaultConnectionStringGeneration();
             auto mapper = std::make_shared<DataMapper>();
-            detail::AdoptRelationLoadSource(*mapper, this->shared_from_this());
+            detail::AdoptRelationLoadSource(*mapper,
+                                            detail::PinToDefaultConnectionString(this->shared_from_this(),
+                                                                                 mapper->Connection().ConnectionString(),
+                                                                                 generation));
             return mapper;
         }
 
