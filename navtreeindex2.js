@@ -1,8 +1,5 @@
 var NAVTREEINDEX2 =
 {
-"d4/d7c/group__DataTypes.html#ga04372f5ac238ef704eda6ebed92399c0":[19,1,19],
-"d4/d7c/group__DataTypes.html#ga0dbead6947816ba0c19885a4c774cade":[19,1,15],
-"d4/d7c/group__DataTypes.html#ga13c851268190d19b75e7de49c523fd31":[19,1,20],
 "d4/d7c/group__DataTypes.html#ga151c371c5f22ebb4ff0fa48cc99d1338":[19,1,21],
 "d4/d7c/group__DataTypes.html#ga4c7230912e188a9744ab3a6bf6821df3":[19,1,14],
 "d4/d7c/group__DataTypes.html#ga514572725cc330d6c418c96fc4d969a2":[19,1,22],
@@ -91,16 +88,14 @@ var NAVTREEINDEX2 =
 "d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#af96c4af24cdc9ce53b3a27f507fbfc1e":[19,7,6,2,0],
 "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html":[12],
 "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#acquire-timeout":[12,1],
-"d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#compile-time-defaults":[12,6],
+"d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#compile-time-defaults":[12,4],
 "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#growth-strategies":[12,0],
 "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#keeping-pooled-connections-healthy":[12,2],
 "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#maxidletimems":[12,2,1],
 "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#maxlifetimems":[12,2,2],
-"d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#relation-loads":[12,4],
 "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#retirement-is-lazy":[12,2,3],
-"d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#reusing-prepared-statements":[12,5],
-"d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#see-also-4":[12,7],
-"d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#switching-the-default-connection-string":[12,3],
+"d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#reusing-prepared-statements":[12,3],
+"d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#see-also-4":[12,5],
 "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#validation-on-borrow":[12,2,0],
 "d5/d8e/SqlPreparedStatementCache_8hpp_source.html":[22,0,1,24],
 "d5/d8f/structLightweight_1_1SqlForeignKeyReferenceDefinition.html":[19,8,12],
@@ -249,5 +244,10 @@ var NAVTREEINDEX2 =
 "d6/dfa/structLightweight_1_1SqlDateTime.html#a50c214ccbdedd65463ff121de8489e60":[19,1,2,21],
 "d6/dfa/structLightweight_1_1SqlDateTime.html#a580b08490f5eff7dec0a3e4534d191d5":[19,1,2,6],
 "d6/dfa/structLightweight_1_1SqlDateTime.html#a5cfbb0f2fc1b68b0fd3983316b203ebc":[19,1,2,0],
-"d6/dfa/structLightweight_1_1SqlDateTime.html#a5dcb89336b1f32506a60b63e62c788d2":[19,1,2,14]
+"d6/dfa/structLightweight_1_1SqlDateTime.html#a5dcb89336b1f32506a60b63e62c788d2":[19,1,2,14],
+"d6/dfa/structLightweight_1_1SqlDateTime.html#a5f1844faef73c5040f1eeb5463a722d4":[19,1,2,26],
+"d6/dfa/structLightweight_1_1SqlDateTime.html#a63f32910bfa3c1dee896bddf23e69e96":[19,1,2,18],
+"d6/dfa/structLightweight_1_1SqlDateTime.html#a6cc185c14476e3a2aad0db9a1bf52622":[19,1,2,16],
+"d6/dfa/structLightweight_1_1SqlDateTime.html#a7caa34aea54756006662814867fdcb72":[19,1,2,20],
+"d6/dfa/structLightweight_1_1SqlDateTime.html#a7fbd687b6c3324075471f0e25239a6c2":[19,1,2,4]
 };

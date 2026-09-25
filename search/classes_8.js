@@ -1,5 +1,5 @@
 var searchData=
 [
   ['literal_0',['Literal',['../db/d29/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4_1_1Literal.html',1,'Lightweight::SqlDataBinder&lt; SqlDynamicNumeric &gt;']]],
-  ['loader_1',['loader',['../dd/d4c/structLightweight_1_1BelongsTo_1_1Loader.html',1,'Lightweight::BelongsTo&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::Loader'],['../d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html',1,'Lightweight::CompositeForeignKey&lt; Connections &gt;::Loader'],['../dd/d27/structLightweight_1_1HasMany_1_1Loader.html',1,'Lightweight::HasMany&lt; OtherRecord, TheInverseSelector &gt;::Loader'],['../d8/da3/structLightweight_1_1HasManyThrough_1_1Loader.html',1,'Lightweight::HasManyThrough&lt; ReferencedRecordT, ThroughSpec, TheOwnerSelector, TheReferencedSelector &gt;::Loader'],['../d0/d52/structLightweight_1_1HasOneThrough_1_1Loader.html',1,'Lightweight::HasOneThrough&lt; OtherTable, ThroughSpec, TheOwnerSelector, TheThroughSelector &gt;::Loader']]]
+  ['loader_1',['Loader',['../d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html',1,'Lightweight::CompositeForeignKey']]]
 ];

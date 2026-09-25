@@ -149,8 +149,8 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a7611c88a34f8863aae59392f4d13c7d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a301e0219e6dcd600640c63e5b53839eb" id="r_a301e0219e6dcd600640c63e5b53839eb"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a301e0219e6dcd600640c63e5b53839eb">RemoveAllMigrations</a> ()</td></tr>
 <tr class="separator:a301e0219e6dcd600640c63e5b53839eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aab92b49c10d74eed31938623707627d4" id="r_aab92b49c10d74eed31938623707627d4"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::list&lt; <a class="el" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html">MigrationBase</a> const * &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#aab92b49c10d74eed31938623707627d4">GetPending</a> () const</td></tr>
-<tr class="separator:aab92b49c10d74eed31938623707627d4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5f02a99faee92eb68b52a9cb49876c0e" id="r_a5f02a99faee92eb68b52a9cb49876c0e"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::list&lt; <a class="el" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html">MigrationBase</a> const * &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a5f02a99faee92eb68b52a9cb49876c0e">GetPending</a> () const noexcept</td></tr>
+<tr class="separator:a5f02a99faee92eb68b52a9cb49876c0e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:add42626ceb43ee64238c5a1dd0d0d27f" id="r_add42626ceb43ee64238c5a1dd0d0d27f"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#add42626ceb43ee64238c5a1dd0d0d27f">ApplySingleMigration</a> (<a class="el" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html">MigrationBase</a> const &amp;migration)</td></tr>
 <tr class="separator:add42626ceb43ee64238c5a1dd0d0d27f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a599a131dcadf355c1a79db6c29c4e6e6" id="r_a599a131dcadf355c1a79db6c29c4e6e6"><td class="memItemLeft" align="right" valign="top"><a id="a599a131dcadf355c1a79db6c29c4e6e6" name="a599a131dcadf355c1a79db6c29c4e6e6"></a>
@@ -184,7 +184,9 @@ LIGHTWEIGHT_API std::string_view&#160;</td><td class="memItemRight" valign="bott
 <tr class="separator:ab2a6221c1ff25a622629b8a3a79746cb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad118fa0bc45f292869406719db3f2cdc" id="r_ad118fa0bc45f292869406719db3f2cdc"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ad118fa0bc45f292869406719db3f2cdc">Log</a> (std::string_view message) const</td></tr>
 <tr class="separator:ad118fa0bc45f292869406719db3f2cdc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1869bb06cd3794f327182136cccff094" id="r_a1869bb06cd3794f327182136cccff094"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html">DataMapper</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1869bb06cd3794f327182136cccff094">GetDataMapper</a> ()</td></tr>
+<tr class="memitem:a1869bb06cd3794f327182136cccff094" id="r_a1869bb06cd3794f327182136cccff094"><td class="memItemLeft" align="right" valign="top"><a id="a1869bb06cd3794f327182136cccff094" name="a1869bb06cd3794f327182136cccff094"></a>
+LIGHTWEIGHT_API <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html">DataMapper</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>GetDataMapper</b> ()</td></tr>
+<tr class="memdesc:a1869bb06cd3794f327182136cccff094"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the data mapper used for migrations. <br /></td></tr>
 <tr class="separator:a1869bb06cd3794f327182136cccff094"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a48ed86737153cbf627f517f3b0d11322" id="r_a48ed86737153cbf627f517f3b0d11322"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html">DataMapper</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a48ed86737153cbf627f517f3b0d11322">GetDataMapper</a> () const</td></tr>
 <tr class="memdesc:a48ed86737153cbf627f517f3b0d11322"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the data mapper used for migrations.  <br /></td></tr>
@@ -266,7 +268,7 @@ Static Public Member Functions</h2></td></tr>
 <div class="textblock"><p>Main API to use for managing SQL migrations</p>
 <p>This class is a singleton and can be accessed using the <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ae03991a2dff12fb763353d0327c29bf8">GetInstance()</a> method. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00211">211</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00210">210</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 </div><h2 class="groupheader">Member Typedef Documentation</h2>
 <a id="a259626f016bf24f265c81c1bc4446ae1" name="a259626f016bf24f265c81c1bc4446ae1"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a259626f016bf24f265c81c1bc4446ae1">&#9670;&#160;</a></span>MigrationList</h2>
@@ -282,7 +284,7 @@ Static Public Member Functions</h2></td></tr>
 
 <p>Type alias for a list of migration pointers. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00215">215</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00214">214</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -300,7 +302,7 @@ Static Public Member Functions</h2></td></tr>
 
 <p>Callback type invoked during migration execution to report progress. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00265">265</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00259">259</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -317,7 +319,7 @@ Static Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 <p>Optional sink for informational status messages emitted by plugin hooks (e.g. the "Transitioning from LASTRADA_PROPERTIES …" banner). <code>dbtool</code> installs a sink that prints to <code>stdout</code> to preserve the historical CLI output; <code>dbtool-gui</code> installs a sink that routes through its <code>LogInfo</code> channel so the banner shows up in the activity log instead of going to a hidden stream. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00378">378</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00372">372</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -336,7 +338,7 @@ Static Public Member Functions</h2></td></tr>
 <p>Per-migration compat policy. </p>
 <p>Given a migration about to be applied (or previewed), returns the set of compat flags that should be active while rendering it. Plugins that ship legacy migrations use this to scope compat behaviour to their own timestamp range (e.g. a plugin enables <code>lup-truncate</code> for migrations predating a given release). Unset means "strict for every migration". </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00421">421</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00408">408</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -368,7 +370,7 @@ Static Public Member Functions</h2></td></tr>
 <dd>
 Reference to the migration manager. </dd></dl>
 
-<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00847">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>, and <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00860">Lightweight::SqlMigration::MigrationBase::~MigrationBase()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00832">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>, and <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00845">Lightweight::SqlMigration::MigrationBase::~MigrationBase()</a>.</p>
 
 </div>
 </div>
@@ -395,7 +397,7 @@ Reference to the migration manager. </dd></dl>
   </dd>
 </dl>
 
-<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00847">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00832">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>.</p>
 
 </div>
 </div>
@@ -492,7 +494,7 @@ Reference to the migration manager. </dd></dl>
   </dd>
 </dl>
 
-<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00860">Lightweight::SqlMigration::MigrationBase::~MigrationBase()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00845">Lightweight::SqlMigration::MigrationBase::~MigrationBase()</a>.</p>
 
 </div>
 </div>
@@ -515,11 +517,14 @@ Reference to the migration manager. </dd></dl>
 
 </div>
 </div>
-<a id="aab92b49c10d74eed31938623707627d4" name="aab92b49c10d74eed31938623707627d4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aab92b49c10d74eed31938623707627d4">&#9670;&#160;</a></span>GetPending()</h2>
+<a id="a5f02a99faee92eb68b52a9cb49876c0e" name="a5f02a99faee92eb68b52a9cb49876c0e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5f02a99faee92eb68b52a9cb49876c0e">&#9670;&#160;</a></span>GetPending()</h2>
 
 <div class="memitem">
 <div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">LIGHTWEIGHT_API std::list&lt; <a class="el" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html">MigrationBase</a> const  * &gt; Lightweight::SqlMigration::MigrationManager::GetPending </td>
@@ -528,16 +533,14 @@ Reference to the migration manager. </dd></dl>
           <td> const</td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 <p>Get all migrations that have not been applied yet.</p>
-<p>A dependency cycle does not throw: the list then falls back to timestamp order, and the error surfaces again from <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a9f6136aee1902543bdb428d6890574ee">ApplyPendingMigrations()</a> / <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ab30c624d73149913fc06226b9d7b595a">ValidateDependencies()</a>.</p>
 <dl class="section return"><dt>Returns</dt><dd>List of pending migrations. </dd></dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">std::runtime_error</td><td>Reading the applied migrations failed in a way other than the table being absent (e.g. an unexpected NULL in <code>schema_migrations</code>). </td></tr>
-  </table>
-  </dd>
-</dl>
 
 </div>
 </div>
@@ -805,36 +808,8 @@ Reference to the migration manager. </dd></dl>
 
 </div>
 </div>
-<a id="a1869bb06cd3794f327182136cccff094" name="a1869bb06cd3794f327182136cccff094"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1869bb06cd3794f327182136cccff094">&#9670;&#160;</a></span>GetDataMapper() <span class="overload">[1/2]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html">DataMapper</a> &amp; Lightweight::SqlMigration::MigrationManager::GetDataMapper </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Get the data mapper used for migrations.</p>
-<p>Owned by the manager and connected with the default connection string on first use. When the application replaces the default (<a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#aa33c11dd502607734cfecf81488e1fea">SqlConnection::SetDefaultConnectionString</a>), the next call reconnects the same instance - the reference stays valid - to the new default.</p>
-<dl class="section return"><dt>Returns</dt><dd>The migration data mapper. </dd></dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">SqlException</td><td>Connecting failed. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00403">GetDataMapper()</a>.</p>
-
-</div>
-</div>
 <a id="a48ed86737153cbf627f517f3b0d11322" name="a48ed86737153cbf627f517f3b0d11322"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a48ed86737153cbf627f517f3b0d11322">&#9670;&#160;</a></span>GetDataMapper() <span class="overload">[2/2]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a48ed86737153cbf627f517f3b0d11322">&#9670;&#160;</a></span>GetDataMapper()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -858,7 +833,7 @@ Reference to the migration manager. </dd></dl>
 
 <p>Get the data mapper used for migrations. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00403">403</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00390">390</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1869bb06cd3794f327182136cccff094">GetDataMapper()</a>.</p>
 

@@ -476,71 +476,69 @@ $(document).ready(function(){initNavTree('d1/d26/SqlNumeric_8hpp_source.html','.
 <div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span>                                <span class="keyword">nullptr</span>);</div>
 <div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span>    }</div>
 <div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span> </div>
-<div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span><span class="comment"></span> </div>
-<div class="line"><a id="l00350" name="l00350"></a><span class="lineno">  350</span><span class="comment">    /// @throws SqlException The descriptor calls below failed. Not `noexcept` for the same reason as</span></div>
-<div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span><span class="comment">    ///         GetColumn: RequireSuccess throws.</span></div>
-<div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span><span class="comment"></span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(</div>
-<div class="line"><a id="l00353" name="l00353"></a><span class="lineno">  353</span>        SQLHSTMT stmt, SQLUSMALLINT column, ValueType* result, SQLLEN* indicator, SqlDataBinderCallback&amp; cb)</div>
-<div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span>    {</div>
-<div class="line"><a id="l00355" name="l00355"></a><span class="lineno">  355</span>        <span class="keywordflow">if</span> (NativeNumericSupportIsBroken(cb.ServerType()))</div>
-<div class="line"><a id="l00356" name="l00356"></a><span class="lineno">  356</span>        {</div>
-<div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span>            result-&gt;sqlValue = { .precision = Precision, .scale = Scale, .sign = 0, .val = {} };</div>
-<div class="line"><a id="l00358" name="l00358"></a><span class="lineno">  358</span>            <span class="keywordflow">return</span> SQLBindCol(stmt, column, SQL_C_DOUBLE, &amp;result-&gt;nativeValue, <span class="keyword">sizeof</span>(result-&gt;nativeValue), indicator);</div>
-<div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span>        }</div>
-<div class="line"><a id="l00360" name="l00360"></a><span class="lineno">  360</span> </div>
-<div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span>        SQLHDESC hDesc {};</div>
-<div class="line"><a id="l00362" name="l00362"></a><span class="lineno">  362</span>        RequireSuccess(stmt, SQLGetStmtAttr(stmt, SQL_ATTR_APP_ROW_DESC, (SQLPOINTER) &amp;hDesc, 0, <span class="keyword">nullptr</span>));</div>
-<div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span>        RequireSuccess(stmt, SQLSetDescField(hDesc, (SQLSMALLINT) column, SQL_DESC_PRECISION, (SQLPOINTER) Precision, 0)); <span class="comment">// NOLINT(performance-no-int-to-ptr)</span></div>
-<div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span>        RequireSuccess(stmt, SQLSetDescField(hDesc, (SQLSMALLINT) column, SQL_DESC_SCALE, (SQLPOINTER) Scale, 0)); <span class="comment">// NOLINT(performance-no-int-to-ptr)</span></div>
-<div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span> </div>
-<div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span>        <span class="keywordflow">return</span> SQLBindCol(stmt, column, SQL_C_NUMERIC, &amp;result-&gt;sqlValue, <span class="keyword">sizeof</span>(ValueType), indicator);</div>
-<div class="line"><a id="l00367" name="l00367"></a><span class="lineno">  367</span>    }</div>
-<div class="line"><a id="l00368" name="l00368"></a><span class="lineno">  368</span><span class="comment"></span> </div>
-<div class="line"><a id="l00369" name="l00369"></a><span class="lineno">  369</span><span class="comment">    /// @throws SqlException The descriptor calls below failed. This is deliberately not `noexcept`:</span></div>
-<div class="line"><a id="l00370" name="l00370"></a><span class="lineno">  370</span><span class="comment">    ///         RequireSuccess throws, so promising otherwise would turn a reportable ODBC failure</span></div>
-<div class="line"><a id="l00371" name="l00371"></a><span class="lineno">  371</span><span class="comment">    ///         into std::terminate.</span></div>
-<div class="line"><a id="l00372" name="l00372"></a><span class="lineno">  372</span><span class="comment"></span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt, SQLUSMALLINT column, ValueType* result, SQLLEN* indicator, SqlDataBinderCallback <span class="keyword">const</span>&amp; cb)</div>
-<div class="line"><a id="l00373" name="l00373"></a><span class="lineno">  373</span>    {</div>
-<div class="line"><a id="l00374" name="l00374"></a><span class="lineno">  374</span>        <span class="keywordflow">if</span> (NativeNumericSupportIsBroken(cb.ServerType()))</div>
-<div class="line"><a id="l00375" name="l00375"></a><span class="lineno">  375</span>        {</div>
-<div class="line"><a id="l00376" name="l00376"></a><span class="lineno">  376</span>            result-&gt;sqlValue = { .precision = Precision, .scale = Scale, .sign = 0, .val = {} };</div>
-<div class="line"><a id="l00377" name="l00377"></a><span class="lineno">  377</span>            <span class="keywordflow">return</span> SQLGetData(stmt, column, SQL_C_DOUBLE, &amp;result-&gt;nativeValue, <span class="keyword">sizeof</span>(result-&gt;nativeValue), indicator);</div>
-<div class="line"><a id="l00378" name="l00378"></a><span class="lineno">  378</span>        }</div>
-<div class="line"><a id="l00379" name="l00379"></a><span class="lineno">  379</span> </div>
-<div class="line"><a id="l00380" name="l00380"></a><span class="lineno">  380</span>        SQLHDESC hDesc {};</div>
-<div class="line"><a id="l00381" name="l00381"></a><span class="lineno">  381</span>        RequireSuccess(stmt, SQLGetStmtAttr(stmt, SQL_ATTR_APP_ROW_DESC, (SQLPOINTER) &amp;hDesc, 0, <span class="keyword">nullptr</span>));</div>
-<div class="line"><a id="l00382" name="l00382"></a><span class="lineno">  382</span>        RequireSuccess(stmt, SQLSetDescField(hDesc, (SQLSMALLINT) column, SQL_DESC_PRECISION, (SQLPOINTER) Precision, 0)); <span class="comment">// NOLINT(performance-no-int-to-ptr)</span></div>
-<div class="line"><a id="l00383" name="l00383"></a><span class="lineno">  383</span>        RequireSuccess(stmt, SQLSetDescField(hDesc, (SQLSMALLINT) column, SQL_DESC_SCALE, (SQLPOINTER) Scale, 0)); <span class="comment">// NOLINT(performance-no-int-to-ptr)</span></div>
-<div class="line"><a id="l00384" name="l00384"></a><span class="lineno">  384</span> </div>
-<div class="line"><a id="l00385" name="l00385"></a><span class="lineno">  385</span>        <span class="keywordflow">return</span> SQLGetData(stmt, column, SQL_C_NUMERIC, &amp;result-&gt;sqlValue, <span class="keyword">sizeof</span>(ValueType), indicator);</div>
-<div class="line"><a id="l00386" name="l00386"></a><span class="lineno">  386</span>    }</div>
-<div class="line"><a id="l00387" name="l00387"></a><span class="lineno">  387</span> </div>
-<div class="line"><a id="l00388" name="l00388"></a><span class="lineno">  388</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE std::string Inspect(ValueType <span class="keyword">const</span>&amp; value) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00389" name="l00389"></a><span class="lineno">  389</span>    {</div>
-<div class="line"><a id="l00390" name="l00390"></a><span class="lineno">  390</span>        <span class="keywordflow">return</span> value.ToString();</div>
-<div class="line"><a id="l00391" name="l00391"></a><span class="lineno">  391</span>    }</div>
-<div class="line"><a id="l00392" name="l00392"></a><span class="lineno">  392</span>};</div>
-<div class="line"><a id="l00393" name="l00393"></a><span class="lineno">  393</span> </div>
-<div class="line"><a id="l00394" name="l00394"></a><span class="lineno">  394</span><span class="comment">// SqlNumeric binds a fixed-width inline struct and is row-wise batchable for non-nullable columns. It</span></div>
-<div class="line"><a id="l00395" name="l00395"></a><span class="lineno">  395</span><span class="comment">// is flagged as numeric so the std::optional batch path excludes it (its contained value is not bound</span></div>
-<div class="line"><a id="l00396" name="l00396"></a><span class="lineno">  396</span><span class="comment">// at a uniform offset/representation across backends).</span></div>
+<div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span> </div>
+<div class="line"><a id="l00350" name="l00350"></a><span class="lineno">  350</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(</div>
+<div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span>        SQLHSTMT stmt, SQLUSMALLINT column, ValueType* result, SQLLEN* indicator, SqlDataBinderCallback&amp; cb) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span>    {</div>
+<div class="line"><a id="l00353" name="l00353"></a><span class="lineno">  353</span>        <span class="keywordflow">if</span> (NativeNumericSupportIsBroken(cb.ServerType()))</div>
+<div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span>        {</div>
+<div class="line"><a id="l00355" name="l00355"></a><span class="lineno">  355</span>            result-&gt;sqlValue = { .precision = Precision, .scale = Scale, .sign = 0, .val = {} };</div>
+<div class="line"><a id="l00356" name="l00356"></a><span class="lineno">  356</span>            <span class="keywordflow">return</span> SQLBindCol(stmt, column, SQL_C_DOUBLE, &amp;result-&gt;nativeValue, <span class="keyword">sizeof</span>(result-&gt;nativeValue), indicator);</div>
+<div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span>        }</div>
+<div class="line"><a id="l00358" name="l00358"></a><span class="lineno">  358</span> </div>
+<div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span>        SQLHDESC hDesc {};</div>
+<div class="line"><a id="l00360" name="l00360"></a><span class="lineno">  360</span>        RequireSuccess(stmt, SQLGetStmtAttr(stmt, SQL_ATTR_APP_ROW_DESC, (SQLPOINTER) &amp;hDesc, 0, <span class="keyword">nullptr</span>));</div>
+<div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span>        RequireSuccess(stmt, SQLSetDescField(hDesc, (SQLSMALLINT) column, SQL_DESC_PRECISION, (SQLPOINTER) Precision, 0)); <span class="comment">// NOLINT(performance-no-int-to-ptr)</span></div>
+<div class="line"><a id="l00362" name="l00362"></a><span class="lineno">  362</span>        RequireSuccess(stmt, SQLSetDescField(hDesc, (SQLSMALLINT) column, SQL_DESC_SCALE, (SQLPOINTER) Scale, 0)); <span class="comment">// NOLINT(performance-no-int-to-ptr)</span></div>
+<div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span> </div>
+<div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span>        <span class="keywordflow">return</span> SQLBindCol(stmt, column, SQL_C_NUMERIC, &amp;result-&gt;sqlValue, <span class="keyword">sizeof</span>(ValueType), indicator);</div>
+<div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span>    }</div>
+<div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span><span class="comment"></span> </div>
+<div class="line"><a id="l00367" name="l00367"></a><span class="lineno">  367</span><span class="comment">    /// @throws SqlException The descriptor calls below failed. This is deliberately not `noexcept`:</span></div>
+<div class="line"><a id="l00368" name="l00368"></a><span class="lineno">  368</span><span class="comment">    ///         RequireSuccess throws, so promising otherwise would turn a reportable ODBC failure</span></div>
+<div class="line"><a id="l00369" name="l00369"></a><span class="lineno">  369</span><span class="comment">    ///         into std::terminate.</span></div>
+<div class="line"><a id="l00370" name="l00370"></a><span class="lineno">  370</span><span class="comment"></span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt, SQLUSMALLINT column, ValueType* result, SQLLEN* indicator, SqlDataBinderCallback <span class="keyword">const</span>&amp; cb)</div>
+<div class="line"><a id="l00371" name="l00371"></a><span class="lineno">  371</span>    {</div>
+<div class="line"><a id="l00372" name="l00372"></a><span class="lineno">  372</span>        <span class="keywordflow">if</span> (NativeNumericSupportIsBroken(cb.ServerType()))</div>
+<div class="line"><a id="l00373" name="l00373"></a><span class="lineno">  373</span>        {</div>
+<div class="line"><a id="l00374" name="l00374"></a><span class="lineno">  374</span>            result-&gt;sqlValue = { .precision = Precision, .scale = Scale, .sign = 0, .val = {} };</div>
+<div class="line"><a id="l00375" name="l00375"></a><span class="lineno">  375</span>            <span class="keywordflow">return</span> SQLGetData(stmt, column, SQL_C_DOUBLE, &amp;result-&gt;nativeValue, <span class="keyword">sizeof</span>(result-&gt;nativeValue), indicator);</div>
+<div class="line"><a id="l00376" name="l00376"></a><span class="lineno">  376</span>        }</div>
+<div class="line"><a id="l00377" name="l00377"></a><span class="lineno">  377</span> </div>
+<div class="line"><a id="l00378" name="l00378"></a><span class="lineno">  378</span>        SQLHDESC hDesc {};</div>
+<div class="line"><a id="l00379" name="l00379"></a><span class="lineno">  379</span>        RequireSuccess(stmt, SQLGetStmtAttr(stmt, SQL_ATTR_APP_ROW_DESC, (SQLPOINTER) &amp;hDesc, 0, <span class="keyword">nullptr</span>));</div>
+<div class="line"><a id="l00380" name="l00380"></a><span class="lineno">  380</span>        RequireSuccess(stmt, SQLSetDescField(hDesc, (SQLSMALLINT) column, SQL_DESC_PRECISION, (SQLPOINTER) Precision, 0)); <span class="comment">// NOLINT(performance-no-int-to-ptr)</span></div>
+<div class="line"><a id="l00381" name="l00381"></a><span class="lineno">  381</span>        RequireSuccess(stmt, SQLSetDescField(hDesc, (SQLSMALLINT) column, SQL_DESC_SCALE, (SQLPOINTER) Scale, 0)); <span class="comment">// NOLINT(performance-no-int-to-ptr)</span></div>
+<div class="line"><a id="l00382" name="l00382"></a><span class="lineno">  382</span> </div>
+<div class="line"><a id="l00383" name="l00383"></a><span class="lineno">  383</span>        <span class="keywordflow">return</span> SQLGetData(stmt, column, SQL_C_NUMERIC, &amp;result-&gt;sqlValue, <span class="keyword">sizeof</span>(ValueType), indicator);</div>
+<div class="line"><a id="l00384" name="l00384"></a><span class="lineno">  384</span>    }</div>
+<div class="line"><a id="l00385" name="l00385"></a><span class="lineno">  385</span> </div>
+<div class="line"><a id="l00386" name="l00386"></a><span class="lineno">  386</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE std::string Inspect(ValueType <span class="keyword">const</span>&amp; value) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00387" name="l00387"></a><span class="lineno">  387</span>    {</div>
+<div class="line"><a id="l00388" name="l00388"></a><span class="lineno">  388</span>        <span class="keywordflow">return</span> value.ToString();</div>
+<div class="line"><a id="l00389" name="l00389"></a><span class="lineno">  389</span>    }</div>
+<div class="line"><a id="l00390" name="l00390"></a><span class="lineno">  390</span>};</div>
+<div class="line"><a id="l00391" name="l00391"></a><span class="lineno">  391</span> </div>
+<div class="line"><a id="l00392" name="l00392"></a><span class="lineno">  392</span><span class="comment">// SqlNumeric binds a fixed-width inline struct and is row-wise batchable for non-nullable columns. It</span></div>
+<div class="line"><a id="l00393" name="l00393"></a><span class="lineno">  393</span><span class="comment">// is flagged as numeric so the std::optional batch path excludes it (its contained value is not bound</span></div>
+<div class="line"><a id="l00394" name="l00394"></a><span class="lineno">  394</span><span class="comment">// at a uniform offset/representation across backends).</span></div>
+<div class="line"><a id="l00395" name="l00395"></a><span class="lineno">  395</span><span class="keyword">template</span> &lt;std::<span class="keywordtype">size_t</span> ThePrecision, std::<span class="keywordtype">size_t</span> TheScale&gt;</div>
+<div class="line"><a id="l00396" name="l00396"></a><span class="lineno">  396</span><span class="keyword">inline</span> <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> SqlIsNativeRowBindableValue&lt;SqlNumeric&lt;ThePrecision, TheScale&gt;&gt; = <span class="keyword">true</span>;</div>
 <div class="line"><a id="l00397" name="l00397"></a><span class="lineno">  397</span><span class="keyword">template</span> &lt;std::<span class="keywordtype">size_t</span> ThePrecision, std::<span class="keywordtype">size_t</span> TheScale&gt;</div>
-<div class="line"><a id="l00398" name="l00398"></a><span class="lineno">  398</span><span class="keyword">inline</span> <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> SqlIsNativeRowBindableValue&lt;SqlNumeric&lt;ThePrecision, TheScale&gt;&gt; = <span class="keyword">true</span>;</div>
-<div class="line"><a id="l00399" name="l00399"></a><span class="lineno">  399</span><span class="keyword">template</span> &lt;std::<span class="keywordtype">size_t</span> ThePrecision, std::<span class="keywordtype">size_t</span> TheScale&gt;</div>
-<div class="line"><a id="l00400" name="l00400"></a><span class="lineno">  400</span><span class="keyword">inline</span> <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> SqlIsNumericValue&lt;SqlNumeric&lt;ThePrecision, TheScale&gt;&gt; = <span class="keyword">true</span>;</div>
-<div class="line"><a id="l00401" name="l00401"></a><span class="lineno">  401</span><span class="comment">// clang-format off</span></div>
+<div class="line"><a id="l00398" name="l00398"></a><span class="lineno">  398</span><span class="keyword">inline</span> <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> SqlIsNumericValue&lt;SqlNumeric&lt;ThePrecision, TheScale&gt;&gt; = <span class="keyword">true</span>;</div>
+<div class="line"><a id="l00399" name="l00399"></a><span class="lineno">  399</span><span class="comment">// clang-format off</span></div>
+<div class="line"><a id="l00400" name="l00400"></a><span class="lineno">  400</span> </div>
+<div class="line"><a id="l00401" name="l00401"></a><span class="lineno">  401</span>} <span class="comment">// namespace Lightweight</span></div>
 <div class="line"><a id="l00402" name="l00402"></a><span class="lineno">  402</span> </div>
-<div class="line"><a id="l00403" name="l00403"></a><span class="lineno">  403</span>} <span class="comment">// namespace Lightweight</span></div>
-<div class="line"><a id="l00404" name="l00404"></a><span class="lineno">  404</span> </div>
-<div class="line"><a id="l00405" name="l00405"></a><span class="lineno">  405</span><span class="keyword">template</span> &lt;Lightweight::SqlNumericType Type&gt;</div>
-<div class="line"><a id="l00406" name="l00406"></a><span class="lineno">  406</span><span class="keyword">struct </span>std::formatter&lt;Type&gt;: std::formatter&lt;std::string&gt;</div>
-<div class="line"><a id="l00407" name="l00407"></a><span class="lineno">  407</span>{</div>
-<div class="line"><a id="l00408" name="l00408"></a><span class="lineno">  408</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> FormatContext&gt;</div>
-<div class="line"><a id="l00409" name="l00409"></a><span class="lineno">  409</span>    <span class="keyword">auto</span> format(Type <span class="keyword">const</span>&amp; value, FormatContext&amp; ctx)<span class="keyword"> const</span></div>
-<div class="line"><a id="l00410" name="l00410"></a><span class="lineno">  410</span><span class="keyword">    </span>{</div>
-<div class="line"><a id="l00411" name="l00411"></a><span class="lineno">  411</span>        <span class="keywordflow">return</span> formatter&lt;std::string&gt;::format(value.ToString(), ctx);</div>
-<div class="line"><a id="l00412" name="l00412"></a><span class="lineno">  412</span>    }</div>
-<div class="line"><a id="l00413" name="l00413"></a><span class="lineno">  413</span>};</div>
+<div class="line"><a id="l00403" name="l00403"></a><span class="lineno">  403</span><span class="keyword">template</span> &lt;Lightweight::SqlNumericType Type&gt;</div>
+<div class="line"><a id="l00404" name="l00404"></a><span class="lineno">  404</span><span class="keyword">struct </span>std::formatter&lt;Type&gt;: std::formatter&lt;std::string&gt;</div>
+<div class="line"><a id="l00405" name="l00405"></a><span class="lineno">  405</span>{</div>
+<div class="line"><a id="l00406" name="l00406"></a><span class="lineno">  406</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> FormatContext&gt;</div>
+<div class="line"><a id="l00407" name="l00407"></a><span class="lineno">  407</span>    <span class="keyword">auto</span> format(Type <span class="keyword">const</span>&amp; value, FormatContext&amp; ctx)<span class="keyword"> const</span></div>
+<div class="line"><a id="l00408" name="l00408"></a><span class="lineno">  408</span><span class="keyword">    </span>{</div>
+<div class="line"><a id="l00409" name="l00409"></a><span class="lineno">  409</span>        <span class="keywordflow">return</span> formatter&lt;std::string&gt;::format(value.ToString(), ctx);</div>
+<div class="line"><a id="l00410" name="l00410"></a><span class="lineno">  410</span>    }</div>
+<div class="line"><a id="l00411" name="l00411"></a><span class="lineno">  411</span>};</div>
 <div class="ttc" id="astructLightweight_1_1SqlErrorInfo_html_a8c5df558d7e9cd5263d15c3b13461944"><div class="ttname"><a href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html#a8c5df558d7e9cd5263d15c3b13461944">Lightweight::SqlErrorInfo::FromStatementHandle</a></div><div class="ttdeci">static SqlErrorInfo FromStatementHandle(SQLHSTMT hStmt)</div><div class="ttdoc">Constructs an ODBC error info object from the given ODBC statement handle.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d02/SqlError_8hpp_source.html#l00047">SqlError.hpp:47</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlNumeric_html"><div class="ttname"><a href="../../d6/d1b/structLightweight_1_1SqlNumeric.html">Lightweight::SqlNumeric</a></div><div class="ttdef"><b>Definition</b> <a href="../../d1/d26/SqlNumeric_8hpp_source.html#l00094">SqlNumeric.hpp:95</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlNumeric_html_a0a227a6c3d19f108cc14788a9503fddd"><div class="ttname"><a href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a0a227a6c3d19f108cc14788a9503fddd">Lightweight::SqlNumeric::ToLongDouble</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE long double ToLongDouble() const noexcept</div><div class="ttdoc">Converts the numeric to a long double precision floating point value.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d26/SqlNumeric_8hpp_source.html#l00212">SqlNumeric.hpp:212</a></div></div>
