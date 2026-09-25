@@ -850,7 +850,7 @@ class Pool
     ///
     /// @return The source; never null. Outlives the pool as long as records hold it, falling back
     ///         to a fresh connection with the default connection string once the pool is destroyed.
-    [[nodiscard]] std::shared_ptr<detail::RelationLoadSource> RelationLoadSource() const noexcept
+    [[nodiscard]] std::shared_ptr<detail::RelationLoadSource> LoadSourceForRelations() const noexcept
     {
         return _relationLoadSource;
     }
@@ -872,7 +872,11 @@ class Pool
 #endif
 
   private:
-    /// Lends this pool's mappers to relation auto-loaders, one load at a time (see @ref RelationLoadSource).
+    /// Lends this pool's mappers to relation auto-loaders, one load at a time.
+    ///
+    /// @ref MakeEntry attaches it - pinned to the entry's connection string - to every mapper this pool
+    /// creates; the loaders that mapper then installs on the records it reads call @c Borrow(). See
+    /// @c detail::RelationLoadSource for the full call path.
     class PoolRelationLoadSource final:
         public detail::RelationLoadSource,
         public std::enable_shared_from_this<PoolRelationLoadSource>
@@ -1138,7 +1142,7 @@ class Pool
     std::mutex _mutex;
     std::vector<Entry> _idleDataMappers;
     size_t _checkedOut {};
-    /// Shared with every record read through this pool; see @ref RelationLoadSource().
+    /// Shared with every record read through this pool; see @ref LoadSourceForRelations().
     std::shared_ptr<PoolRelationLoadSource> _relationLoadSource = std::make_shared<PoolRelationLoadSource>(*this);
     /// Injected clock; the real @c Clock::now is used when unset. @see SetClock
     ///

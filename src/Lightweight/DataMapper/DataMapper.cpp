@@ -21,7 +21,7 @@ namespace
       public:
         [[nodiscard]] std::shared_ptr<DataMapper> Borrow() override
         {
-            return GlobalDataMapperPool().RelationLoadSource()->Borrow();
+            return GlobalDataMapperPool().LoadSourceForRelations()->Borrow();
         }
 
         /// @return The one instance, shared by every such mapper.
@@ -111,16 +111,25 @@ namespace
       private:
         /// Counts the mapper about to be lent, and reserves room for it to come back: every lent mapper
         /// has an idle slot waiting, so @ref GiveBack - run from a deleter - never has to allocate.
+        ///
+        /// Idle connections the driver reports dead (the server restarted, the network dropped) are
+        /// discarded rather than lent, the way the pool's validate-on-borrow does it; otherwise every
+        /// later load through this source would fail on them for as long as its records live.
         [[nodiscard]] std::unique_ptr<DataMapper> TakeIdle()
         {
+            auto dead = std::vector<std::unique_ptr<DataMapper>> {}; // disconnected after the lock is released
             auto const lock = std::scoped_lock { _mutex };
             _idle.reserve(_idle.size() + _outstanding + 1);
             ++_outstanding;
-            if (_idle.empty())
-                return nullptr;
-            auto mapper = std::move(_idle.back());
-            _idle.pop_back();
-            return mapper;
+            while (!_idle.empty())
+            {
+                auto mapper = std::move(_idle.back());
+                _idle.pop_back();
+                if (mapper->Connection().IsAlive())
+                    return mapper;
+                dead.push_back(std::move(mapper));
+            }
+            return nullptr;
         }
 
         void GiveBack(std::unique_ptr<DataMapper> mapper) noexcept

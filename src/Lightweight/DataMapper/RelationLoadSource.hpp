@@ -18,7 +18,18 @@ namespace detail
     /// Where the lazy relation loaders of a record obtain the data mapper they run their query on.
     ///
     /// Every data mapper carries one and hands it to the loaders it installs, which keep it alive by
-    /// shared ownership. A record may therefore outlive the mapper - or pool lease - it was read
+    /// shared ownership. @c Borrow() is called from exactly one place: the loader lambdas that
+    /// @c DataMapper::ConfigureRelationAutoLoading installs, when a relation is first touched.
+    ///
+    /// Implementations:
+    /// - @c Pool::PoolRelationLoadSource (Pool.hpp) - attached by @c Pool::MakeEntry to every mapper the
+    ///   pool creates, via @ref AdoptRelationLoadSource; borrows from that pool.
+    /// - @c GlobalPoolLoadSource (DataMapper.cpp) - chosen by @c DataMapper::RelationLoadSourceForLoaders
+    ///   for a plain mapper on the default connection string; forwards to @ref GlobalDataMapperPool.
+    /// - @c ConnectionStringLoadSource (DataMapper.cpp) - chosen for a plain mapper on any other
+    ///   connection string; reconnects with it.
+    /// - @c DefaultPinnedLoadSource (DataMapper.cpp) - wraps the first two, see
+    ///   @ref PinToDefaultConnectionString. A record may therefore outlive the mapper - or pool lease - it was read
     /// through, and still load its relations from the same database: a pooled mapper's source borrows
     /// from its pool, and a plain mapper's source reconnects with its connection string.
     class RelationLoadSource
