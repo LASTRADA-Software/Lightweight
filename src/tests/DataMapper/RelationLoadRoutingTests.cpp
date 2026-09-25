@@ -59,6 +59,12 @@ constexpr auto SingleConnectionPoolConfig = PoolConfig {
     .growthStrategy = GrowthStrategy::BoundedWait,
 };
 
+constexpr auto OverflowOfTwoConfig = PoolConfig {
+    .initialSize = 0,
+    .maxSize = 2,
+    .growthStrategy = GrowthStrategy::BoundedOverflow,
+};
+
 // Seeds one owner and one item referencing it, returning the item's id.
 int64_t SeedOwnerAndItem(DataMapper& dm, std::string_view ownerName)
 {
@@ -68,13 +74,6 @@ int64_t SeedOwnerAndItem(DataMapper& dm, std::string_view ownerName)
     auto item = RoutingItem { .id = {}, .label = "item", .owner = owner };
     dm.Create(item);
     return item.id.Value();
-}
-
-// The id the next SqlConnection will get. Every construction takes one, connected or not, so the
-// difference between two probes is the number of connections created in between, plus the probe.
-std::uint64_t NextConnectionId()
-{
-    return SqlConnection { std::nullopt }.ConnectionId();
 }
 } // namespace
 
@@ -119,15 +118,18 @@ TEST_CASE_METHOD(SqlTestFixture,
     auto dm = DataMapper {};
     auto const itemId = SeedOwnerAndItem(dm, "owner");
 
-    auto pool = Pool<SingleConnectionPoolConfig> {};
-    auto item = pool.Acquire()->QuerySingle<RoutingItem>(itemId); // the connection is back in the pool
+    auto pool = Pool<OverflowOfTwoConfig> {};
+    auto item = pool.Acquire()->QuerySingle<RoutingItem>(itemId); // its connection goes back to the pool
     REQUIRE(item.has_value());
     if (!item.has_value())
         return;
 
-    auto const before = NextConnectionId();
+    // Take that connection out again, so the pool is empty when the relation is touched: a load that
+    // borrows from this pool has to make the pool's second connection, and leaves it idle there. Any
+    // other connection a load could run on - a thread-local, a one-off - leaves the pool empty.
+    auto const held = pool.Acquire();
+    REQUIRE(pool.IdleCount() == 0);
     CHECK(item->owner->name.Value() == "owner");
-    CHECK(NextConnectionId() == before + 1); // the probe itself: the load reused the pooled connection
     CHECK(pool.IdleCount() == 1);
 }
 
