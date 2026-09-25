@@ -91,12 +91,14 @@ TEST_CASE_METHOD(SqlTestFixture, "Description-carrying record auto-loads its Has
             return;
         auto const& loaded = *queried;
 
+        auto const albums = loaded.albums.All();
+        REQUIRE(albums.has_value());
         auto titles = std::set<std::string> {};
-        for (auto const& album: loaded.albums.All())
+        for (auto const& album: albums->get())
             titles.emplace(album->title.Value());
 
         CHECK(titles == std::set<std::string> { "Let There Be Rock", "Powerage" });
-        CHECK(loaded.albums.Count() == 2);
+        CHECK(loaded.albums.Count().value() == 2);
     }
 
     SECTION("Query with loadRelations configures the loader")
@@ -108,7 +110,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Description-carrying record auto-loads its Has
         if (!queried.has_value())
             return;
 
-        CHECK(queried->albums.Count() == 2);
+        CHECK(queried->albums.Count().value() == 2);
     }
 }
 

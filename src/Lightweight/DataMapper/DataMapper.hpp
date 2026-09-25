@@ -23,7 +23,12 @@
 
 #include <cassert>
 #include <concepts>
+#include <exception>
+#include <expected>
+#include <format>
+#include <functional>
 #include <memory>
+#include <optional>
 #include <ranges>
 #include <tuple>
 #include <type_traits>
@@ -618,6 +623,38 @@ class DataMapper
     /// @param inputParameters Bound to the query's parameters.
     template <typename Record, typename QueryText, typename Callable, typename... InputParameters>
     void StreamRecords(QueryText const& query, Callable const& each, InputParameters const&... inputParameters);
+
+    /// Runs one relation load on a mapper borrowed from @p source, reporting every failure as a
+    /// @ref RelationError rather than an exception: an unusable source as whatever @c Borrow() reports,
+    /// a failing query as @ref RelationError::QueryFailed (its diagnostic goes to @c SqlLogger).
+    ///
+    /// @param source Where the load borrows its mapper from.
+    /// @param load Runs the query on the borrowed mapper and returns its result.
+    /// @return What @p load returned, or why the load did not happen.
+    template <typename Load>
+    static auto RunRelationLoad(detail::RelationLoadSource& source, Load const& load)
+        -> RelationResult<std::invoke_result_t<Load const&, DataMapper&>>;
+
+    /// @ref RunRelationLoad for the streaming @c Each() loaders. An exception thrown by the caller's
+    /// @p each callback is not a failed load: it propagates unchanged instead of being reported.
+    ///
+    /// @param source Where the load borrows its mapper from.
+    /// @param each The caller's per-record callback.
+    /// @param stream Runs the query on the borrowed mapper, calling the callback it is given per row.
+    /// @return Nothing, or why the load did not happen.
+    template <typename Each, typename Stream>
+    static RelationResult<void> RunRelationStream(detail::RelationLoadSource& source,
+                                                  Each const& each,
+                                                  Stream const& stream);
+
+    /// @return @p record, or @ref RelationError::NotFound for a null one.
+    template <typename Record>
+    static RelationResult<std::shared_ptr<Record>> NotFoundIfNull(std::shared_ptr<Record> record)
+    {
+        if (!record)
+            return std::unexpected { RelationError::NotFound };
+        return record;
+    }
 
     /// Builds the comma-separated, fully-qualified (`"Table"."Column"`) field list for @p Record.
     ///
@@ -3485,6 +3522,53 @@ Record& DataMapper::BindOutputColumns(Record& record, SqlResultCursor& cursor)
 
     return record;
 }
+template <typename Load>
+auto DataMapper::RunRelationLoad(detail::RelationLoadSource& source, Load const& load)
+    -> RelationResult<std::invoke_result_t<Load const&, DataMapper&>>
+{
+    using Result = std::invoke_result_t<Load const&, DataMapper&>;
+    return source.Borrow().and_then([&load](std::shared_ptr<DataMapper> const& borrowed) -> RelationResult<Result> {
+        try
+        {
+            if constexpr (std::is_void_v<Result>)
+            {
+                load(*borrowed);
+                return {};
+            }
+            else
+                return load(*borrowed);
+        }
+        catch (std::exception const& error)
+        {
+            SqlLogger::GetLogger().OnWarning(std::format("Loading a relation failed: {}", error.what()));
+            return std::unexpected { RelationError::QueryFailed };
+        }
+    });
+}
+
+template <typename Each, typename Stream>
+RelationResult<void> DataMapper::RunRelationStream(detail::RelationLoadSource& source,
+                                                   Each const& each,
+                                                   Stream const& stream)
+{
+    auto callbackError = std::exception_ptr {};
+    auto const guarded = [&each, &callbackError](auto const& row) {
+        try
+        {
+            each(row);
+        }
+        catch (...)
+        {
+            callbackError = std::current_exception();
+            throw;
+        }
+    };
+    auto result = RunRelationLoad(source, [&](DataMapper& dm) { stream(dm, guarded); });
+    if (callbackError)
+        std::rethrow_exception(callbackError);
+    return result;
+}
+
 template <typename Record, typename QueryText, typename Callable, typename... InputParameters>
 void DataMapper::StreamRecords(QueryText const& query, Callable const& each, InputParameters const&... inputParameters)
 {
@@ -3523,11 +3607,15 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
     auto const callback = [&]<size_t FieldIndex, typename FieldType>(FieldType& field) {
         if constexpr (IsBelongsTo<FieldType>)
         {
+            using ReferencedRecord = typename FieldType::ReferencedRecord;
             field.SetAutoLoader(typename FieldType::Loader {
-                .loadReference = [source, value = field.Value()]() -> std::optional<typename FieldType::ReferencedRecord> {
-                    auto const borrowed = source->Borrow();
-                    DataMapper& dm = *borrowed;
-                    return dm.LoadBelongsTo<FieldType>(value);
+                .loadReference = [source, value = field.Value()]() -> RelationResult<ReferencedRecord> {
+                    return RunRelationLoad(*source, [&](DataMapper& dm) { return dm.LoadBelongsTo<FieldType>(value); })
+                        .and_then([](std::optional<ReferencedRecord> loaded) -> RelationResult<ReferencedRecord> {
+                            if (!loaded)
+                                return std::unexpected { RelationError::NotFound };
+                            return std::move(*loaded);
+                        });
                 },
             });
         }
@@ -3550,10 +3638,11 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
             // value to the wrong predicate whenever the two orders differ, which with same-typed key
             // columns fetches a wrong row rather than failing. See CompositeKeyOrderingTests.cpp.
             field.SetAutoLoader(typename FieldType::Loader {
-                .loadReference = [source, keys = FieldType::OrderedValuesOf(record)]() -> std::shared_ptr<ReferencedRecord> {
-                    auto const borrowed = source->Borrow();
-                    DataMapper& dm = *borrowed;
-                    return dm.LoadCompositeForeignKeyRecord<FieldType>(keys);
+                .loadReference = [source, keys = FieldType::OrderedValuesOf(record)]()
+                    -> RelationResult<std::shared_ptr<ReferencedRecord>> {
+                    return RunRelationLoad(*source,
+                                           [&](DataMapper& dm) { return dm.LoadCompositeForeignKeyRecord<FieldType>(keys); })
+                        .and_then(NotFoundIfNull<ReferencedRecord>);
                 },
             });
         }
@@ -3566,33 +3655,32 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
                 // Capture the PK value by value to avoid dangling references if the record is moved.
                 auto pkValue = GetPrimaryKeyField(record);
                 hasMany.SetAutoLoader(typename FieldType::Loader {
-                    .count = [source, pkValue]() -> size_t {
-                        auto const borrowed = source->Borrow();
-                        DataMapper& dm = *borrowed;
-                        auto selectQuery =
-                            dm.BuildHasManySelectQuery<Record, ReferencedRecord, FieldType::InverseSelector>();
-                        dm._stmt.Prepare(selectQuery.Count());
-                        SqlResultCursor cursor = dm._stmt.Execute(pkValue);
-                        size_t count = 0;
-                        if (cursor.FetchRow())
-                            count = cursor.GetColumn<size_t>(1);
-                        return count;
-                    },
-                    .all = [source, pkValue]() -> FieldType::ReferencedRecordList {
-                        auto const borrowed = source->Borrow();
-                        DataMapper& dm = *borrowed;
-                        auto selectQuery =
-                            dm.BuildHasManySelectQuery<Record, ReferencedRecord, FieldType::InverseSelector>();
-                        return detail::ToSharedPtrList(dm.Query<ReferencedRecord>(selectQuery.All(), pkValue));
-                    },
-                    .each =
-                        [source, pkValue](auto const& each) {
-                            auto const borrowed = source->Borrow();
-                            DataMapper& dm = *borrowed;
+                    .count = [source, pkValue]() -> RelationResult<size_t> {
+                        return RunRelationLoad(*source, [&](DataMapper& dm) {
                             auto selectQuery =
                                 dm.BuildHasManySelectQuery<Record, ReferencedRecord, FieldType::InverseSelector>();
-                            dm.StreamRecords<ReferencedRecord>(selectQuery.All(), each, pkValue);
-                        },
+                            dm._stmt.Prepare(selectQuery.Count());
+                            SqlResultCursor cursor = dm._stmt.Execute(pkValue);
+                            size_t count = 0;
+                            if (cursor.FetchRow())
+                                count = cursor.GetColumn<size_t>(1);
+                            return count;
+                        });
+                    },
+                    .all = [source, pkValue]() -> RelationResult<typename FieldType::ReferencedRecordList> {
+                        return RunRelationLoad(*source, [&](DataMapper& dm) {
+                            auto selectQuery =
+                                dm.BuildHasManySelectQuery<Record, ReferencedRecord, FieldType::InverseSelector>();
+                            return detail::ToSharedPtrList(dm.Query<ReferencedRecord>(selectQuery.All(), pkValue));
+                        });
+                    },
+                    .each = [source, pkValue](auto const& each) -> RelationResult<void> {
+                        return RunRelationStream(*source, each, [&](DataMapper& dm, auto const& guarded) {
+                            auto selectQuery =
+                                dm.BuildHasManySelectQuery<Record, ReferencedRecord, FieldType::InverseSelector>();
+                            dm.StreamRecords<ReferencedRecord>(selectQuery.All(), guarded, pkValue);
+                        });
+                    },
                 });
             }
         }
@@ -3603,14 +3691,16 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
             // Capture the PK value by value to avoid dangling references if the record is moved.
             auto pkValue = GetPrimaryKeyField(record);
             field.SetAutoLoader(typename FieldType::Loader {
-                .loadReference = [source, pkValue]() -> std::shared_ptr<ReferencedRecord> {
-                    auto const borrowed = source->Borrow();
-                    DataMapper& dm = *borrowed;
-                    return dm.LoadHasOneThroughByPK<ReferencedRecord,
-                                                    ThroughRecord,
-                                                    Record,
-                                                    FieldType::OwnerSelector,
-                                                    FieldType::ThroughSelector>(pkValue);
+                .loadReference = [source, pkValue]() -> RelationResult<std::shared_ptr<ReferencedRecord>> {
+                    return RunRelationLoad(*source,
+                                           [&](DataMapper& dm) {
+                                               return dm.LoadHasOneThroughByPK<ReferencedRecord,
+                                                                               ThroughRecord,
+                                                                               Record,
+                                                                               FieldType::OwnerSelector,
+                                                                               FieldType::ThroughSelector>(pkValue);
+                                           })
+                        .and_then(NotFoundIfNull<ReferencedRecord>);
                 },
             });
         }
@@ -3621,53 +3711,49 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
             // Capture the PK value by value to avoid dangling references if the record is moved.
             auto pkValue = GetPrimaryKeyField(record);
             field.SetAutoLoader(typename FieldType::Loader {
-                .count = [source, pkValue]() -> size_t {
-                    // Load result for Count()
-                    size_t count = 0;
-                    auto const borrowed = source->Borrow();
-                    DataMapper& dm = *borrowed;
-                    dm.CallOnHasManyThroughByPK<ReferencedRecord,
-                                                ThroughRecord,
-                                                Record,
-                                                FieldType::OwnerSelector,
-                                                FieldType::ReferencedSelector>(
-                        pkValue, [&](SqlSelectQueryBuilder& selectQuery, auto const& pk) {
-                            dm._stmt.Prepare(selectQuery.Count());
-                            SqlResultCursor cursor = dm._stmt.Execute(pk);
-                            if (cursor.FetchRow())
-                                count = cursor.GetColumn<size_t>(1);
-                        });
-                    return count;
-                },
-                .all = [source, pkValue]() -> FieldType::ReferencedRecordList {
-                    // Load result for All()
-                    auto const borrowed = source->Borrow();
-                    DataMapper& dm = *borrowed;
-                    typename FieldType::ReferencedRecordList result;
-                    dm.CallOnHasManyThroughByPK<ReferencedRecord,
-                                                ThroughRecord,
-                                                Record,
-                                                FieldType::OwnerSelector,
-                                                FieldType::ReferencedSelector>(
-                        pkValue, [&](SqlSelectQueryBuilder& selectQuery, auto const& pk) {
-                            result = detail::ToSharedPtrList(dm.Query<ReferencedRecord>(selectQuery.All(), pk));
-                        });
-                    return result;
-                },
-                .each =
-                    [source, pkValue](auto const& each) {
-                        // Load result for Each()
-                        auto const borrowed = source->Borrow();
-                        DataMapper& dm = *borrowed;
+                .count = [source, pkValue]() -> RelationResult<size_t> {
+                    return RunRelationLoad(*source, [&](DataMapper& dm) {
+                        size_t count = 0;
                         dm.CallOnHasManyThroughByPK<ReferencedRecord,
                                                     ThroughRecord,
                                                     Record,
                                                     FieldType::OwnerSelector,
                                                     FieldType::ReferencedSelector>(
                             pkValue, [&](SqlSelectQueryBuilder& selectQuery, auto const& pk) {
-                                dm.StreamRecords<ReferencedRecord>(selectQuery.All(), each, pk);
+                                dm._stmt.Prepare(selectQuery.Count());
+                                SqlResultCursor cursor = dm._stmt.Execute(pk);
+                                if (cursor.FetchRow())
+                                    count = cursor.GetColumn<size_t>(1);
                             });
-                    },
+                        return count;
+                    });
+                },
+                .all = [source, pkValue]() -> RelationResult<typename FieldType::ReferencedRecordList> {
+                    return RunRelationLoad(*source, [&](DataMapper& dm) {
+                        typename FieldType::ReferencedRecordList result;
+                        dm.CallOnHasManyThroughByPK<ReferencedRecord,
+                                                    ThroughRecord,
+                                                    Record,
+                                                    FieldType::OwnerSelector,
+                                                    FieldType::ReferencedSelector>(
+                            pkValue, [&](SqlSelectQueryBuilder& selectQuery, auto const& pk) {
+                                result = detail::ToSharedPtrList(dm.Query<ReferencedRecord>(selectQuery.All(), pk));
+                            });
+                        return result;
+                    });
+                },
+                .each = [source, pkValue](auto const& each) -> RelationResult<void> {
+                    return RunRelationStream(*source, each, [&](DataMapper& dm, auto const& guarded) {
+                        dm.CallOnHasManyThroughByPK<ReferencedRecord,
+                                                    ThroughRecord,
+                                                    Record,
+                                                    FieldType::OwnerSelector,
+                                                    FieldType::ReferencedSelector>(
+                            pkValue, [&](SqlSelectQueryBuilder& selectQuery, auto const& pk) {
+                                dm.StreamRecords<ReferencedRecord>(selectQuery.All(), guarded, pk);
+                            });
+                    });
+                },
             });
         }
     };

@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// An accessor that can run a query must not be `noexcept`: a failing query then calls std::terminate
-// instead of reaching the caller's handler. The relation accessors below run their lazy loader on
-// first touch, and the loader's query can fail for any runtime reason (lost connection, a busy
-// connection on SQL Server without MARS, a dropped table, ...). Each test drops the table the loader
-// is about to read and asserts the failure arrives as an ordinary, catchable SqlException.
+// A relation accessor runs its lazy loader on first touch, and the loader's query can fail for any
+// runtime reason (lost connection, a busy connection on SQL Server without MARS, a dropped table, ...).
+// Such a failure must reach the caller as an ordinary value or exception - never std::terminate from a
+// noexcept boundary. The accessors returning RelationResult report it as RelationError::QueryFailed;
+// the shortcuts that cannot (operator->, operator*, begin()/end(), At()) throw SqlRequireLoadedError.
+// Each test drops the tables the loader is about to read.
 
 #include "../Utils.hpp"
 #include "Entities.hpp"
@@ -93,7 +94,8 @@ TEST_CASE_METHOD(SqlTestFixture, "noexcept contract: BelongsTo::operator* report
         return;
     DropTableTree<User>(dm);
 
-    CHECK_THROWS_AS(std::ignore = *loaded->user, SqlException);
+    CHECK(loaded->user.Record().error() == RelationError::QueryFailed);
+    CHECK_THROWS_AS(std::ignore = *loaded->user, SqlRequireLoadedError);
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "noexcept contract: HasMany::Count/IsEmpty report a failed load", "[DataMapper][noexcept]")
@@ -109,8 +111,8 @@ TEST_CASE_METHOD(SqlTestFixture, "noexcept contract: HasMany::Count/IsEmpty repo
         return;
     DropTableTree<User>(dm);
 
-    CHECK_THROWS_AS(std::ignore = loaded->emails.Count(), SqlException);
-    CHECK_THROWS_AS(std::ignore = loaded->emails.IsEmpty(), SqlException);
+    CHECK(loaded->emails.Count().error() == RelationError::QueryFailed);
+    CHECK(loaded->emails.IsEmpty().error() == RelationError::QueryFailed);
 }
 
 TEST_CASE_METHOD(SqlTestFixture,
@@ -130,15 +132,15 @@ TEST_CASE_METHOD(SqlTestFixture,
 
     SECTION("All")
     {
-        CHECK_THROWS_AS(std::ignore = loaded->patients.All(), SqlException);
+        CHECK(loaded->patients.All().error() == RelationError::QueryFailed);
     }
     SECTION("begin")
     {
-        CHECK_THROWS_AS(std::ignore = loaded->patients.begin(), SqlException);
+        CHECK_THROWS_AS(std::ignore = loaded->patients.begin(), SqlRequireLoadedError);
     }
     SECTION("end")
     {
-        CHECK_THROWS_AS(std::ignore = std::as_const(loaded->patients).end(), SqlException);
+        CHECK_THROWS_AS(std::ignore = std::as_const(loaded->patients).end(), SqlRequireLoadedError);
     }
 }
 
@@ -157,15 +159,15 @@ TEST_CASE_METHOD(SqlTestFixture, "noexcept contract: HasOneThrough accessors rep
 
     SECTION("Record")
     {
-        CHECK_THROWS_AS(std::ignore = loaded->accountHistory.Record(), SqlException);
+        CHECK(loaded->accountHistory.Record().error() == RelationError::QueryFailed);
     }
     SECTION("operator*")
     {
-        CHECK_THROWS_AS(std::ignore = *loaded->accountHistory, SqlException);
+        CHECK_THROWS_AS(std::ignore = *loaded->accountHistory, SqlRequireLoadedError);
     }
     SECTION("operator->")
     {
-        CHECK_THROWS_AS(std::ignore = loaded->accountHistory->creditRating, SqlException);
+        CHECK_THROWS_AS(std::ignore = loaded->accountHistory->creditRating, SqlRequireLoadedError);
     }
 }
 

@@ -59,6 +59,7 @@ set(SOURCE_FILES
     DataMapper/RelationTests.cpp
     DataMapper/NoexceptContractTests.cpp
     DataMapper/RelationLoadRoutingTests.cpp
+    DataMapper/RelationResultTests.cpp
     DataMapper/BelongsToStateTests.cpp
     DataMapper/DescriptorRelationTests.cpp
     DataMapper/InstantiationCoverageTests.cpp

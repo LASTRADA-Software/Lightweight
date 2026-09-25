@@ -595,26 +595,30 @@ if (auto employee = dm.QuerySingle<Employee>(id))
 {
     dm.ConfigureRelationAutoLoading(*employee);
 
-    // BelongsTo: the parent record is fetched on demand. The FK here is nullable, so
-    // Record() yields an optional; Unwrap turns the optional-reference into a value.
+    // BelongsTo: the parent record is fetched on demand. Record() yields a std::expected - the
+    // record, or a RelationError saying why there is none; Unwrap turns the reference into a value.
     if (auto const dept = employee->department.Record().transform(Unwrap))
         std::println("Department: {}", dept->name.Value());
 }
 
-// HasMany: Count() and All() on the collection
+// HasMany: All() yields the collection, or a RelationError saying why it is unavailable
 if (auto department = dm.QuerySingle<Department>(deptId))
 {
     dm.ConfigureRelationAutoLoading(*department);
-    std::println("{} employees", department->employees.Count());
-    for (auto const& emp: department->employees.All())
-        std::println("  {}", emp->lastName.Value());
+    if (auto const employees = department->employees.All())
+    {
+        std::println("{} employees", employees->get().size());
+        for (auto const& emp: employees->get())
+            std::println("  {}", emp->lastName.Value());
+    }
 }
 ```
 
 When the `BelongsTo` is **mandatory** (omit `SqlNullable::Null`), the parent is reached with the
 cleaner `employee.department->name` / `*employee.department`. Query with
-`DataMapperOptions { .loadRelations = false }` when you do not want relations populated; accessing an
-unloaded relation then throws rather than issuing a query. `HasManyThrough<Other, Through<Join>>`
+`DataMapperOptions { .loadRelations = false }` when you do not want relations populated; an unloaded
+relation then reports `RelationError::NotConfigured` rather than issuing a query (the `->` / `*`
+shortcuts throw it as `SqlRequireLoadedError`). `HasManyThrough<Other, Through<Join>>`
 and `HasOneThrough<Other, Through<Join>>` model many-to-many / one-through relationships across a
 junction table - the `Through<>` marker names which of the two records is the junction table.
 
@@ -752,13 +756,16 @@ if (auto meeting = dm.QuerySingle<Meeting>(planningId))
     // A mandatory BelongsTo dereferences straight through.
     std::println("{} - organized by {}", meeting->topic.Value(), meeting->organizer->name.Value());
 
-    // A nullable one yields an optional instead.
+    // Record() yields a std::expected instead: the record, or a RelationError saying why not.
     if (auto const scribe = meeting->minuteTaker.Record().transform(Unwrap))
         std::println("  minutes by {}", scribe->name.Value());
 
-    std::println("  {} attendees:", meeting->attendees.Count());
-    for (auto const& attendee: meeting->attendees.All())
-        std::println("    {}", attendee->name.Value());
+    if (auto const attendees = meeting->attendees.All())
+    {
+        std::println("  {} attendees:", attendees->get().size());
+        for (auto const& attendee: attendees->get())
+            std::println("    {}", attendee->name.Value());
+    }
 }
 
 // And the same relationships read from the other side.
@@ -767,9 +774,9 @@ if (auto human = dm.QuerySingle<Human>(aliceId))
     dm.ConfigureRelationAutoLoading(*human);
     std::println("{} organized {}, minuted {} and attended {} meeting(s)",
                  human->name.Value(),
-                 human->organizedMeetings.Count(),
-                 human->minutedMeetings.Count(),
-                 human->attendedMeetings.Count());
+                 human->organizedMeetings.Count().value_or(0),
+                 human->minutedMeetings.Count().value_or(0),
+                 human->attendedMeetings.Count().value_or(0));
 }
 ```
 

@@ -151,8 +151,8 @@ The waiting hand-off of a `BoundedWait` pool is the one place that does not chec
 stale one is not handed over there either: the waiter receives the returned connection's slot instead
 and connects for itself, with the new default.
 
-Records read before the switch stay with the old database: touching a relation of theirs that is not
-loaded yet throws `SqlDefaultConnectionChangedError` rather than loading it from the new default (see
+Records read before the switch stay with the old database: a relation of theirs that is not loaded yet
+reports `RelationError::Outdated`, without a query, rather than loading from the new default (see
 [Where an on-demand load runs](usage.md)).
 
 ## Relation loads

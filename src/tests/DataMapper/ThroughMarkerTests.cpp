@@ -120,19 +120,19 @@ TEST_CASE_METHOD(SqlTestFixture, "Through: both spellings load the same relation
 
     SECTION("deprecated bare spelling")
     {
-        REQUIRE(knuth.books.Count() == 2);
+        REQUIRE(knuth.books.Count().value() == 2);
 
         auto titles = std::set<std::string> {};
-        knuth.books.Each([&](Book const& book) { titles.emplace(book.title.Value()); });
+        CHECK(knuth.books.Each([&](Book const& book) { titles.emplace(book.title.Value()); }).has_value());
         CHECK(titles == std::set<std::string> { "Structured Programming", "TAOCP" });
     }
 
     SECTION("Through<> spelling")
     {
-        REQUIRE(structured.authors.Count() == 2);
+        REQUIRE(structured.authors.Count().value() == 2);
 
         auto names = std::set<std::string> {};
-        structured.authors.Each([&](Author const& author) { names.emplace(author.name.Value()); });
+        CHECK(structured.authors.Each([&](Author const& author) { names.emplace(author.name.Value()); }).has_value());
         CHECK(names == std::set<std::string> { "Dijkstra", "Knuth" });
     }
 
@@ -144,8 +144,8 @@ TEST_CASE_METHOD(SqlTestFixture, "Through: both spellings load the same relation
         auto queriedTaocp = RequireValue(dm.QuerySingle<Book>(taocp.id.Value()));
         dm.ConfigureRelationAutoLoading(queriedTaocp);
 
-        REQUIRE(queriedDijkstra.books.Count() == 1);
-        REQUIRE(queriedTaocp.authors.Count() == 1);
+        REQUIRE(queriedDijkstra.books.Count().value() == 1);
+        REQUIRE(queriedTaocp.authors.Count().value() == 1);
         CHECK(queriedDijkstra.books.At(0).title.Value() == "Structured Programming");
         CHECK(queriedTaocp.authors.At(0).name.Value() == "Knuth");
     }

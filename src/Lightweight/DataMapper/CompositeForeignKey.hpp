@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <ranges>
 #include <tuple>
 #include <type_traits>
@@ -348,11 +349,18 @@ class CompositeForeignKey
         }(std::index_sequence_for<Connections...> {});
     }
 
-    /// @return The referenced record, loading it on first access.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE ReferencedRecord const& Record() const
+    /// @brief Retrieves the referenced record, loading it on first access.
+    ///
+    /// Never throws for an unavailable record: the reason comes back as the error instead.
+    ///
+    /// @return The record; or @ref RelationError::NotFound when no row matches the key,
+    ///         @ref RelationError::NotConfigured when there is no loader (a hand-built record, or one read
+    ///         with `loadRelations = false`), @ref RelationError::Outdated when the default connection
+    ///         string changed since the record was read, @ref RelationError::QueryFailed when the load
+    ///         query failed.
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE RelationResult<std::reference_wrapper<ReferencedRecord const>> Record() const
     {
-        RequireLoaded();
-        return *_record;
+        return Load().transform([this] { return std::reference_wrapper<ReferencedRecord const> { *_record }; });
     }
 
     /// @return `true` if the referenced record has been loaded.
@@ -365,6 +373,7 @@ class CompositeForeignKey
     LIGHTWEIGHT_FORCE_INLINE void Unload() noexcept
     {
         _record.reset();
+        _loadError.reset();
     }
 
     /// Adopts an already-fetched referenced record, marking the relation loaded.
@@ -373,20 +382,23 @@ class CompositeForeignKey
     LIGHTWEIGHT_FORCE_INLINE constexpr void EmplaceRecord(std::shared_ptr<ReferencedRecord> record) noexcept
     {
         _record = std::move(record);
+        _loadError.reset();
     }
 
     /// @return A pointer to the referenced record, loading it on first access.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const* operator->() const
+    /// @throws SqlRequireLoadedError The record is unavailable; @ref Record() reports why without throwing.
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE ReferencedRecord const* operator->() const
     {
-        RequireLoaded();
+        if (auto const loaded = Load(); !loaded)
+            throw SqlRequireLoadedError(Reflection::TypeNameOf<std::remove_cvref_t<decltype(*this)>>, loaded.error());
         return _record.get();
     }
 
     /// Carries the deferred load, installed by the DataMapper.
     struct Loader
     {
-        /// Loads and returns the referenced record, or `nullptr` if none exists.
-        std::function<std::shared_ptr<ReferencedRecord>()> loadReference {};
+        /// Loads the referenced record: @ref RelationError::NotFound when none exists.
+        std::function<RelationResult<std::shared_ptr<ReferencedRecord>>()> loadReference {};
 
         /// Loaders carry no comparable state of their own, so any two are considered equivalent.
         std::weak_ordering operator<=>(Loader const& /*other*/) const noexcept
@@ -425,20 +437,33 @@ class CompositeForeignKey
     bool operator==(CompositeForeignKey const& other) const noexcept = default;
 
   private:
-    void RequireLoaded() const
+    /// Loads the record unless it already is, or its unavailability is already known.
+    ///
+    /// @ref RelationError::NotFound and @ref RelationError::Outdated are remembered until the record is
+    /// emplaced or unloaded; a failed query is retried on the next access.
+    [[nodiscard]] RelationResult<void> Load() const
     {
         if (_record)
-            return;
+            return {};
+        if (_loadError)
+            return std::unexpected { *_loadError };
+        if (!_loader.loadReference)
+            return std::unexpected { RelationError::NotConfigured };
 
-        if (_loader.loadReference)
-            _record = _loader.loadReference();
-
-        if (!_record)
-            throw SqlRequireLoadedError(Reflection::TypeNameOf<std::remove_cvref_t<decltype(*this)>>);
+        auto loaded = _loader.loadReference();
+        if (!loaded)
+        {
+            if (loaded.error() != RelationError::QueryFailed)
+                _loadError = loaded.error();
+            return std::unexpected { loaded.error() };
+        }
+        _record = std::move(*loaded);
+        return {};
     }
 
     Loader _loader {};
     mutable std::shared_ptr<ReferencedRecord> _record {};
+    mutable std::optional<RelationError> _loadError {};
 };
 
 namespace detail
