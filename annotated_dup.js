@@ -91,6 +91,7 @@ var annotated_dup =
       [ "SqlDataBinderCallback", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html", "d9/dbb/classLightweight_1_1SqlDataBinderCallback" ],
       [ "SqlDate", "d9/de1/structLightweight_1_1SqlDate.html", "d9/de1/structLightweight_1_1SqlDate" ],
       [ "SqlDateTime", "d6/dfa/structLightweight_1_1SqlDateTime.html", "d6/dfa/structLightweight_1_1SqlDateTime" ],
+      [ "SqlDefaultConnectionChangedError", "d3/d2a/classLightweight_1_1SqlDefaultConnectionChangedError.html", "d3/d2a/classLightweight_1_1SqlDefaultConnectionChangedError" ],
       [ "SqlDeleteDataPlan", "d2/d72/structLightweight_1_1SqlDeleteDataPlan.html", "d2/d72/structLightweight_1_1SqlDeleteDataPlan" ],
       [ "SqlDeleteQueryBuilder", "d1/d57/classLightweight_1_1SqlDeleteQueryBuilder.html", "d1/d57/classLightweight_1_1SqlDeleteQueryBuilder" ],
       [ "SqlDiagnosticSource", "dd/dde/classLightweight_1_1SqlDiagnosticSource.html", "dd/dde/classLightweight_1_1SqlDiagnosticSource" ],

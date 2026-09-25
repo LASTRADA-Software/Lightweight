@@ -47,7 +47,8 @@ var NAVTREE =
         [ "Batched insert and update", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#batched-insert-and-update", null ],
         [ "Eager loading of relations (<tt>With<>()</tt>)", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#eager-loading-of-relations-with", [
           [ "Nested relations", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#nested-relations", null ],
-          [ "Loading everything reachable", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#loading-everything-reachable", null ]
+          [ "Loading everything reachable", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#loading-everything-reachable", null ],
+          [ "Where an on-demand load runs", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#where-an-on-demand-load-runs", null ]
         ] ]
       ] ],
       [ "Simple row retrieval via structs", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#simple-row-retrieval-via-structs", null ],
@@ -294,6 +295,8 @@ var NAVTREE =
         [ "<tt>maxLifetimeMs</tt>", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#maxlifetimems", null ],
         [ "Retirement is lazy", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#retirement-is-lazy", null ]
       ] ],
+      [ "Switching the default connection string", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#switching-the-default-connection-string", null ],
+      [ "Relation loads", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#relation-loads", null ],
       [ "Reusing prepared statements", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#reusing-prepared-statements", null ],
       [ "Compile-time defaults", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#compile-time-defaults", null ],
       [ "See also", "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#see-also-4", null ]
@@ -378,14 +381,15 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a1e358b0f28cd16323fa55967128bbcce",
-"d4/d7c/group__DataTypes.html#ga151c371c5f22ebb4ff0fa48cc99d1338",
-"d6/dfa/structLightweight_1_1SqlDateTime.html#a811af944dcb1894e543003d5ddf5d2c5",
-"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#update-1",
-"d9/dd1/structLightweight_1_1SqlAlterTableCommands_1_1DropIndexIfExists.html#a596e4866ff359a5c173d8641501746d4",
-"db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#a89072cc6f0d70a556d2a16a52ab698d7",
-"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ab999c7e4572e60e907a06615d040bb2e",
-"df/d36/Playlist_8hpp_source.html"
+"d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a1c968d8d9cf8634b19730e4532dc9695",
+"d4/d7c/group__DataTypes.html",
+"d6/dfa/structLightweight_1_1SqlDateTime.html#a5dcb89336b1f32506a60b63e62c788d2",
+"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#schema_migrations-table",
+"d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#a9b7346feef2c5cad0499feefe1a4260f",
+"db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#why-offloading-and-not-true-async-odbc",
+"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a8cbb6905afe836b32189d6cc3a428b7f",
+"df/d1a/structLightweight_1_1PoolConfig.html#a6a3e753156f65b2aa0ad1fdd0090a72c",
+"index.html#why-odbc"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

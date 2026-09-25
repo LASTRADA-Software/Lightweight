@@ -125,8 +125,33 @@ $(document).ready(function(){initNavTree('d1/d93/Error_8hpp_source.html','../../
 </div>
 <div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>};</div>
 </div>
-<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span> </div>
-<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span><span class="comment"></span> </div>
+<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span><span class="comment">/// @brief Raised when a relation of a record is loaded after the default connection string changed</span></div>
+<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span><span class="comment">/// since the record was read.</span></div>
+<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span><span class="comment">///</span></div>
+<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span><span class="comment">/// Records read through a pool, or through a mapper connected with the default connection string,</span></div>
+<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span><span class="comment">/// load their relations from the default database. Once the application has switched it</span></div>
+<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span><span class="comment">/// (@ref SqlConnection::SetDefaultConnectionString), loading them there would silently mix two</span></div>
+<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span><span class="comment">/// databases, so the load fails instead. Re-read the record, or load its relations before switching.</span></div>
+<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span><span class="comment">///</span></div>
+<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span><span class="comment">/// @ingroup DataMapper</span></div>
+<div class="foldopen" id="foldopen00034" data-start="{" data-end="};">
+<div class="line"><a id="l00034" name="l00034"></a><span class="lineno"><a class="line" href="../../d3/d2a/classLightweight_1_1SqlDefaultConnectionChangedError.html">   34</a></span><span class="comment"></span><span class="keyword">class </span><a class="code hl_class" href="../../d3/d2a/classLightweight_1_1SqlDefaultConnectionChangedError.html">SqlDefaultConnectionChangedError</a>: <span class="keyword">public</span> std::runtime_error</div>
+<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>{</div>
+<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>  <span class="keyword">public</span>:<span class="comment"></span></div>
+<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span><span class="comment">    /// Constructs the error.</span></div>
+<div class="foldopen" id="foldopen00038" data-start="{" data-end="}">
+<div class="line"><a id="l00038" name="l00038"></a><span class="lineno"><a class="line" href="../../d3/d2a/classLightweight_1_1SqlDefaultConnectionChangedError.html#a37dfa8f42ec5764ca1af7716af00fdd5">   38</a></span><span class="comment"></span>    <a class="code hl_function" href="../../d3/d2a/classLightweight_1_1SqlDefaultConnectionChangedError.html#a37dfa8f42ec5764ca1af7716af00fdd5">SqlDefaultConnectionChangedError</a>():</div>
+<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span>        std::runtime_error(<span class="stringliteral">&quot;Cannot load a relation of a record read before the default connection string changed&quot;</span>)</div>
+<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span>    {</div>
+<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>    }</div>
+</div>
+<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>};</div>
+</div>
+<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span> </div>
+<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="ttc" id="aclassLightweight_1_1SqlDefaultConnectionChangedError_html"><div class="ttname"><a href="../../d3/d2a/classLightweight_1_1SqlDefaultConnectionChangedError.html">Lightweight::SqlDefaultConnectionChangedError</a></div><div class="ttdoc">Raised when a relation of a record is loaded after the default connection string changed since the re...</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d93/Error_8hpp_source.html#l00034">Error.hpp:35</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlDefaultConnectionChangedError_html_a37dfa8f42ec5764ca1af7716af00fdd5"><div class="ttname"><a href="../../d3/d2a/classLightweight_1_1SqlDefaultConnectionChangedError.html#a37dfa8f42ec5764ca1af7716af00fdd5">Lightweight::SqlDefaultConnectionChangedError::SqlDefaultConnectionChangedError</a></div><div class="ttdeci">SqlDefaultConnectionChangedError()</div><div class="ttdoc">Constructs the error.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d93/Error_8hpp_source.html#l00038">Error.hpp:38</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlRequireLoadedError_html"><div class="ttname"><a href="../../da/df2/classLightweight_1_1SqlRequireLoadedError.html">Lightweight::SqlRequireLoadedError</a></div><div class="ttdoc">Represents an error when a record is required to be loaded but is not.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d93/Error_8hpp_source.html#l00015">Error.hpp:16</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlRequireLoadedError_html_a96304f8f159d5cdd3ef3a0065a464ca2"><div class="ttname"><a href="../../da/df2/classLightweight_1_1SqlRequireLoadedError.html#a96304f8f159d5cdd3ef3a0065a464ca2">Lightweight::SqlRequireLoadedError::SqlRequireLoadedError</a></div><div class="ttdeci">SqlRequireLoadedError(std::string_view columnType)</div><div class="ttdoc">Constructs the error with the name of the column type that failed to load.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d93/Error_8hpp_source.html#l00019">Error.hpp:19</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
