@@ -47,13 +47,14 @@ var searchData=
   ['with_20tt_44',['Eager loading of relations (&lt;tt&gt;With&lt;&gt;()&lt;/tt&gt;)',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#eager-loading-of-relations-with',1,'']]],
   ['with_20tt_20sqlrowiterator_20tt_45',['Streaming a table with &lt;tt&gt;SqlRowIterator&lt;/tt&gt;',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#streaming-a-table-with-sqlrowiterator',1,'']]],
   ['with_20tt_20std_3a_3aexecution_20tt_46',['Interop with &lt;tt&gt;std::execution&lt;/tt&gt;',['../db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#interop-with-stdexecution',1,'']]],
-  ['withschema_47',['WithSchema',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a711667d1ef5b5b5a168aa21b2150a394',1,'Lightweight::SqlMigrationQueryBuilder']]],
-  ['workerarchivebytes_48',['workerArchiveBytes',['../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#a11b8c4dc97bf4360601e9834bf6db463',1,'Lightweight::SqlBackup::BackupSettings']]],
-  ['workflow_49',['Full Migration Workflow',['../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#full-migration-workflow',1,'']]],
-  ['workflow_20examples_50',['Workflow Examples',['../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#workflow-examples',1,'']]],
-  ['works_51',['works',['../d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#how-it-works',1,'How it works'],['../dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html',1,'SQL Backup: How It Works']]],
-  ['worth_20measured_52',['What it is worth, measured',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#what-it-is-worth-measured',1,'']]],
-  ['writerow_53',['WriteRow',['../dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#ae02440293597aaf830d7ce2dc4ef6a26',1,'Lightweight::SqlBackup::ChunkWriter']]],
-  ['writing_20a_20custom_20logger_54',['Writing a custom logger',['../d1/d4f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2logging.html#writing-a-custom-logger',1,'']]],
-  ['writing_20the_20rows_55',['Writing the rows',['../d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#writing-the-rows',1,'']]]
+  ['without_20exceptions_47',['Accessing relations without exceptions',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#accessing-relations-without-exceptions',1,'']]],
+  ['withschema_48',['WithSchema',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a711667d1ef5b5b5a168aa21b2150a394',1,'Lightweight::SqlMigrationQueryBuilder']]],
+  ['workerarchivebytes_49',['workerArchiveBytes',['../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#a11b8c4dc97bf4360601e9834bf6db463',1,'Lightweight::SqlBackup::BackupSettings']]],
+  ['workflow_50',['Full Migration Workflow',['../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#full-migration-workflow',1,'']]],
+  ['workflow_20examples_51',['Workflow Examples',['../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#workflow-examples',1,'']]],
+  ['works_52',['works',['../d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#how-it-works',1,'How it works'],['../dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html',1,'SQL Backup: How It Works']]],
+  ['worth_20measured_53',['What it is worth, measured',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#what-it-is-worth-measured',1,'']]],
+  ['writerow_54',['WriteRow',['../dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#ae02440293597aaf830d7ce2dc4ef6a26',1,'Lightweight::SqlBackup::ChunkWriter']]],
+  ['writing_20a_20custom_20logger_55',['Writing a custom logger',['../d1/d4f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2logging.html#writing-a-custom-logger',1,'']]],
+  ['writing_20the_20rows_56',['Writing the rows',['../d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#writing-the-rows',1,'']]]
 ];

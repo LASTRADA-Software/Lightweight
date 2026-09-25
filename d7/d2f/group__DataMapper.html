@@ -94,6 +94,7 @@ $(document).ready(function(){initNavTree('d7/d2f/group__DataMapper.html','../../
 <a href="#concepts">Concepts</a> &#124;
 <a href="#nested-classes">Classes</a> &#124;
 <a href="#typedef-members">Typedefs</a> &#124;
+<a href="#enum-members">Enumerations</a> &#124;
 <a href="#func-members">Functions</a> &#124;
 <a href="#var-members">Variables</a>  </div>
   <div class="headertitle"><div class="title">Data Mapper</div></div>
@@ -138,10 +139,7 @@ Classes</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Main API for mapping records to and from the database using high level C++ syntax.  <a href="../../de/d61/classLightweight_1_1DataMapper.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df2/classLightweight_1_1SqlRequireLoadedError.html">Lightweight::SqlRequireLoadedError</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents an error when a record is required to be loaded but is not.  <a href="../../da/df2/classLightweight_1_1SqlRequireLoadedError.html#details">More...</a><br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/d2a/classLightweight_1_1SqlDefaultConnectionChangedError.html">Lightweight::SqlDefaultConnectionChangedError</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Raised when a relation of a record is loaded after the default connection string changed since the record was read.  <a href="../../d3/d2a/classLightweight_1_1SqlDefaultConnectionChangedError.html#details">More...</a><br /></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Raised by the relation shortcuts that cannot return a <a class="el" href="../../d7/d2f/group__DataMapper.html#ga4be41b60128a724d65b80270ef863741">RelationResult</a> - <code>operator-&gt;</code>, <code>operator*</code>, <code>begin()</code>/<code>end()</code>, <code>At()</code> and <code>operator[]</code> - when the relation is unavailable.  <a href="../../da/df2/classLightweight_1_1SqlRequireLoadedError.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field&lt; T, P1, P2 &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a single column in a table.  <a href="../../d2/dd0/structLightweight_1_1Field.html#details">More...</a><br /></td></tr>
@@ -172,6 +170,10 @@ Classes</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="typedef-members" name="typedef-members"></a>
 Typedefs</h2></td></tr>
+<tr class="memitem:ga4be41b60128a724d65b80270ef863741" id="r_ga4be41b60128a724d65b80270ef863741"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:ga4be41b60128a724d65b80270ef863741"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#ga4be41b60128a724d65b80270ef863741">Lightweight::RelationResult</a> = std::expected&lt; T, <a class="el" href="../../d7/d2f/group__DataMapper.html#gaccfed183e72fab87179bacefc80b23e1">RelationError</a> &gt;</td></tr>
+<tr class="memdesc:ga4be41b60128a724d65b80270ef863741"><td class="mdescLeft">&#160;</td><td class="mdescRight">The outcome of a relation access: the requested value, or why it is unavailable.  <br /></td></tr>
+<tr class="separator:ga4be41b60128a724d65b80270ef863741"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaeebbb701afbe9efa3118910e348b4e61" id="r_gaeebbb701afbe9efa3118910e348b4e61"><td class="memTemplParams" colspan="2">template&lt;auto Field&gt; </td></tr>
 <tr class="memitem:gaeebbb701afbe9efa3118910e348b4e61"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#gaeebbb701afbe9efa3118910e348b4e61">Lightweight::ReferencedFieldTypeOf</a> = std::remove_cvref_t&lt; decltype(std::declval&lt; MemberClassType&lt; decltype(<a class="el" href="../../d2/dd0/structLightweight_1_1Field.html">Field</a>)&gt; &gt;().*<a class="el" href="../../d2/dd0/structLightweight_1_1Field.html">Field</a>)&gt;::ValueType</td></tr>
 <tr class="memdesc:gaeebbb701afbe9efa3118910e348b4e61"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the type of a member field in a record.  <br /></td></tr>
@@ -192,6 +194,16 @@ Typedefs</h2></td></tr>
 <tr class="memitem:gaf8d513471d088e755ea2e628689086fb"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#gaf8d513471d088e755ea2e628689086fb">Lightweight::RecordMemberTypeOf</a> = detail::RecordMemberTypeOfDispatch&lt; I, std::remove_cvref_t&lt; Record &gt;, HasDescription&lt; Record &gt; &gt;::type</td></tr>
 <tr class="memdesc:gaf8d513471d088e755ea2e628689086fb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type of the member at index <code>I</code> — from the descriptor if present, else via reflection.  <br /></td></tr>
 <tr class="separator:gaf8d513471d088e755ea2e628689086fb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="enum-members" name="enum-members"></a>
+Enumerations</h2></td></tr>
+<tr class="memitem:gaccfed183e72fab87179bacefc80b23e1" id="r_gaccfed183e72fab87179bacefc80b23e1"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#gaccfed183e72fab87179bacefc80b23e1">Lightweight::RelationError</a> : std::uint8_t { <a class="el" href="../../d7/d2f/group__DataMapper.html#ggaccfed183e72fab87179bacefc80b23e1a52c1415ae26d69e91093beaac88e0815">RelationError::NotConfigured</a>
+, <a class="el" href="../../d7/d2f/group__DataMapper.html#ggaccfed183e72fab87179bacefc80b23e1a38c300f4fc9ce8a77aad4a30de05cad8">RelationError::NotFound</a>
+, <a class="el" href="../../d7/d2f/group__DataMapper.html#ggaccfed183e72fab87179bacefc80b23e1a6f64ae857ab55cba2c3941fbc59285d5">RelationError::Outdated</a>
+, <a class="el" href="../../d7/d2f/group__DataMapper.html#ggaccfed183e72fab87179bacefc80b23e1ad14f393e86cbe5976f0457ae2a0fcc49">RelationError::QueryFailed</a>
+ }</td></tr>
+<tr class="memdesc:gaccfed183e72fab87179bacefc80b23e1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Why a relation could not provide its record(s).  <a href="../../d7/d2f/group__DataMapper.html#gaccfed183e72fab87179bacefc80b23e1">More...</a><br /></td></tr>
+<tr class="separator:gaccfed183e72fab87179bacefc80b23e1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
@@ -286,6 +298,26 @@ Variables</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>The data mapper is a high level API for mapping records to and from the database using high level C++ syntax. </p>
 <h2 class="groupheader">Typedef Documentation</h2>
+<a id="ga4be41b60128a724d65b80270ef863741" name="ga4be41b60128a724d65b80270ef863741"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga4be41b60128a724d65b80270ef863741">&#9670;&#160;</a></span>RelationResult</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="../../d7/d2f/group__DataMapper.html#ga4be41b60128a724d65b80270ef863741">Lightweight::RelationResult</a> = typedef std::expected&lt;T, <a class="el" href="../../d7/d2f/group__DataMapper.html#gaccfed183e72fab87179bacefc80b23e1">RelationError</a>&gt;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>The outcome of a relation access: the requested value, or why it is unavailable. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/d93/Error_8hpp_source.html#l00044">44</a> of file <a class="el" href="../../d1/d93/Error_8hpp_source.html">Error.hpp</a>.</p>
+
+</div>
+</div>
 <a id="gaeebbb701afbe9efa3118910e348b4e61" name="gaeebbb701afbe9efa3118910e348b4e61"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#gaeebbb701afbe9efa3118910e348b4e61">&#9670;&#160;</a></span>ReferencedFieldTypeOf</h2>
 
@@ -405,6 +437,44 @@ template&lt;std::size_t I, typename Record &gt; </div>
 
 </div>
 </div>
+<h2 class="groupheader">Enumeration Type Documentation</h2>
+<a id="gaccfed183e72fab87179bacefc80b23e1" name="gaccfed183e72fab87179bacefc80b23e1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaccfed183e72fab87179bacefc80b23e1">&#9670;&#160;</a></span>RelationError</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum class <a class="el" href="../../d7/d2f/group__DataMapper.html#gaccfed183e72fab87179bacefc80b23e1">Lightweight::RelationError</a> : std::uint8_t</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">strong</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Why a relation could not provide its record(s). </p>
+<p>Returned by the relation accessors (<code><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#adb5b5bb3b0d9aaa6ecd4e26a3ecda7af" title="Retrieves the referenced record, loading it on first access.">BelongsTo::Record()</a></code>, <code><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#a91f16021eb50e544b3dd86f5c17de48a" title="Retrieves the records, loading them on first access.">HasMany::All()</a></code>, <code><a class="el" href="../../da/df4/classLightweight_1_1HasMany.html#afda314a78188c2cee466a697a74852f6">HasMany::Count()</a></code>, ...) through <a class="el" href="../../d7/d2f/group__DataMapper.html#ga4be41b60128a724d65b80270ef863741">RelationResult</a> instead of throwing. </p>
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="ggaccfed183e72fab87179bacefc80b23e1a52c1415ae26d69e91093beaac88e0815" name="ggaccfed183e72fab87179bacefc80b23e1a52c1415ae26d69e91093beaac88e0815"></a>NotConfigured&#160;</td><td class="fielddoc"><p>No loader is installed and nothing was loaded: the record was built by hand, or read with <code><a class="el" href="../../d3/db2/structLightweight_1_1DataMapperOptions.html">DataMapperOptions</a> { .loadRelations = false }</code>. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ggaccfed183e72fab87179bacefc80b23e1a38c300f4fc9ce8a77aad4a30de05cad8" name="ggaccfed183e72fab87179bacefc80b23e1a38c300f4fc9ce8a77aad4a30de05cad8"></a>NotFound&#160;</td><td class="fielddoc"><p>There is nothing to load: the foreign key is NULL, or the referenced row does not exist. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ggaccfed183e72fab87179bacefc80b23e1a6f64ae857ab55cba2c3941fbc59285d5" name="ggaccfed183e72fab87179bacefc80b23e1a6f64ae857ab55cba2c3941fbc59285d5"></a>Outdated&#160;</td><td class="fielddoc"><p>The default connection string changed since the record was read (see <code><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#aa33c11dd502607734cfecf81488e1fea">SqlConnection::SetDefaultConnectionString</a></code>), so the record belongs to a database the application has switched away from. No query is attempted. Re-read the record, or load its relations before switching. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ggaccfed183e72fab87179bacefc80b23e1ad14f393e86cbe5976f0457ae2a0fcc49" name="ggaccfed183e72fab87179bacefc80b23e1ad14f393e86cbe5976f0457ae2a0fcc49"></a>QueryFailed&#160;</td><td class="fielddoc"><p>The load query failed (lost connection, missing table, ...). The driver's diagnostic is reported through <code><a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html">SqlLogger</a></code>. Unlike the other errors this one is not remembered: the next access retries. </p>
+</td></tr>
+</table>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/d93/Error_8hpp_source.html#l00020">20</a> of file <a class="el" href="../../d1/d93/Error_8hpp_source.html">Error.hpp</a>.</p>
+
+</div>
+</div>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="ga26e1044be43f92bbb88188317ffba9b5" name="ga26e1044be43f92bbb88188317ffba9b5"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga26e1044be43f92bbb88188317ffba9b5">&#9670;&#160;</a></span>GetPrimaryKeyFields()</h2>
@@ -469,7 +539,7 @@ template&lt;typename Record &gt; </div>
 
 <p class="reference">References <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00188">Lightweight::EnumerateRecordMembers()</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l03514">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02139">Lightweight::DataMapper::Create()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l03598">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02176">Lightweight::DataMapper::Create()</a>.</p>
 
 </div>
 </div>
@@ -546,7 +616,7 @@ template&lt;typename Record , typename Callable &gt; </div>
 
 <p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00188">188</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l03514">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02337">Lightweight::DataMapper::Delete()</a>, <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00592">Lightweight::GetPrimaryKeyField()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l03346">Lightweight::DataMapper::LoadRelations()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l03409">Lightweight::DataMapper::SetId()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02677">Lightweight::DataMapper::SetModifiedState()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02195">Lightweight::DataMapper::Update()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l03598">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02374">Lightweight::DataMapper::Delete()</a>, <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00592">Lightweight::GetPrimaryKeyField()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l03383">Lightweight::DataMapper::LoadRelations()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l03446">Lightweight::DataMapper::SetId()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02714">Lightweight::DataMapper::SetModifiedState()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02232">Lightweight::DataMapper::Update()</a>.</p>
 
 </div>
 </div>
@@ -694,7 +764,7 @@ template&lt;typename T &gt; </div>
 
 <p>Whether <code>T</code> is a <a class="el" href="../../dc/dc9/classLightweight_1_1CompositeForeignKey.html">CompositeForeignKey</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d0/d28/CompositeForeignKey_8hpp_source.html#l00461">461</a> of file <a class="el" href="../../d0/d28/CompositeForeignKey_8hpp_source.html">CompositeForeignKey.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d0/d28/CompositeForeignKey_8hpp_source.html#l00486">486</a> of file <a class="el" href="../../d0/d28/CompositeForeignKey_8hpp_source.html">CompositeForeignKey.hpp</a>.</p>
 
 </div>
 </div>

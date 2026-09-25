@@ -55,6 +55,7 @@ var hierarchy =
     ] ],
     [ "Lightweight::Async::Task< T >", "d8/d0c/classLightweight_1_1Async_1_1Task.html", null ],
     [ "Lightweight::BelongsTo< TheReferencedField, ColumnNameOverrideString, Nullable >", "d0/df7/classLightweight_1_1BelongsTo.html", null ],
+    [ "Lightweight::BelongsTo< TheReferencedField, ColumnNameOverrideString, Nullable >::Loader", "dd/d4c/structLightweight_1_1BelongsTo_1_1Loader.html", null ],
     [ "Lightweight::CompositeForeignKey< Connections >", "dc/dc9/classLightweight_1_1CompositeForeignKey.html", null ],
     [ "Lightweight::CompositeForeignKey< Connections >::Loader", "d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html", null ],
     [ "Lightweight::Connection< FromPtr, IntoPtr >", "d4/d03/structLightweight_1_1Connection.html", null ],
@@ -63,8 +64,11 @@ var hierarchy =
     [ "Lightweight::Description< Record >", "de/d22/structLightweight_1_1Description.html", null ],
     [ "Lightweight::Field< T, P1, P2 >", "d2/dd0/structLightweight_1_1Field.html", null ],
     [ "Lightweight::HasMany< OtherRecord, TheInverseSelector >", "da/df4/classLightweight_1_1HasMany.html", null ],
+    [ "Lightweight::HasMany< OtherRecord, TheInverseSelector >::Loader", "dd/d27/structLightweight_1_1HasMany_1_1Loader.html", null ],
     [ "Lightweight::HasManyThrough< ReferencedRecordT, ThroughSpec, TheOwnerSelector, TheReferencedSelector >", "de/d73/classLightweight_1_1HasManyThrough.html", null ],
+    [ "Lightweight::HasManyThrough< ReferencedRecordT, ThroughSpec, TheOwnerSelector, TheReferencedSelector >::Loader", "d8/da3/structLightweight_1_1HasManyThrough_1_1Loader.html", null ],
     [ "Lightweight::HasOneThrough< OtherTable, ThroughSpec, TheOwnerSelector, TheThroughSelector >", "df/d63/classLightweight_1_1HasOneThrough.html", null ],
+    [ "Lightweight::HasOneThrough< OtherTable, ThroughSpec, TheOwnerSelector, TheThroughSelector >::Loader", "d0/d52/structLightweight_1_1HasOneThrough_1_1Loader.html", null ],
     [ "Lightweight::MigrationRenderContext", "d4/d23/structLightweight_1_1MigrationRenderContext.html", null ],
     [ "Lightweight::MigrationRenderContext::ColumnKey", "da/dcb/structLightweight_1_1MigrationRenderContext_1_1ColumnKey.html", null ],
     [ "Lightweight::MigrationRenderContext::TableKey", "d4/d6d/structLightweight_1_1MigrationRenderContext_1_1TableKey.html", null ],
@@ -202,7 +206,6 @@ var hierarchy =
       [ "std::runtime_error", null, [
         [ "Lightweight::Async::OperationCancelledError", "d3/dd5/classLightweight_1_1Async_1_1OperationCancelledError.html", null ],
         [ "Lightweight::RowArrayCursorUnsupported", "de/d9f/classLightweight_1_1RowArrayCursorUnsupported.html", null ],
-        [ "Lightweight::SqlDefaultConnectionChangedError", "d3/d2a/classLightweight_1_1SqlDefaultConnectionChangedError.html", null ],
         [ "Lightweight::SqlRequireLoadedError", "da/df2/classLightweight_1_1SqlRequireLoadedError.html", null ],
         [ "Lightweight::SqlTransactionException", "d5/d19/classLightweight_1_1SqlTransactionException.html", null ]
       ] ]

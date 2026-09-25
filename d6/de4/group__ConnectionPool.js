@@ -22,7 +22,7 @@ var group__ConnectionPool =
       [ "SetAsyncExecutors", "d3/d30/classLightweight_1_1Pool.html#ad0b73779e3b92479684324ca2e6b9bf6", null ],
       [ "AcquireAsync", "d3/d30/classLightweight_1_1Pool.html#aeb3e33321379a9858cd889d664f85d83", null ],
       [ "SetClock", "d3/d30/classLightweight_1_1Pool.html#aa2f31f6dd54e7ccd110aff57f1fbe66c", null ],
-      [ "RelationLoadSource", "d3/d30/classLightweight_1_1Pool.html#ae284a83c2daf7540d758399024911ec2", null ]
+      [ "LoadSourceForRelations", "d3/d30/classLightweight_1_1Pool.html#a47dcfb0c85f734b9389e9c6f15ae77bd", null ]
     ] ],
     [ "Lightweight::Pool< Config >::PooledDataMapper", "de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html", [
       [ "PooledDataMapper", "de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#ab3f4130283fddc423a1911a3962e739c", null ],

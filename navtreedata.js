@@ -48,6 +48,7 @@ var NAVTREE =
         [ "Eager loading of relations (<tt>With<>()</tt>)", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#eager-loading-of-relations-with", [
           [ "Nested relations", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#nested-relations", null ],
           [ "Loading everything reachable", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#loading-everything-reachable", null ],
+          [ "Accessing relations without exceptions", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#accessing-relations-without-exceptions", null ],
           [ "Where an on-demand load runs", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#where-an-on-demand-load-runs", null ]
         ] ]
       ] ],
@@ -381,15 +382,15 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a1c968d8d9cf8634b19730e4532dc9695",
-"d4/d7c/group__DataTypes.html",
-"d6/dfa/structLightweight_1_1SqlDateTime.html#a5dcb89336b1f32506a60b63e62c788d2",
-"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#schema_migrations-table",
-"d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#a9b7346feef2c5cad0499feefe1a4260f",
-"db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#why-offloading-and-not-true-async-odbc",
-"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a8cbb6905afe836b32189d6cc3a428b7f",
-"df/d1a/structLightweight_1_1PoolConfig.html#a6a3e753156f65b2aa0ad1fdd0090a72c",
-"index.html#why-odbc"
+"d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a12db4219734a5dd38708ae443171f36b",
+"d4/d7c/group__DataTypes.html#ga04372f5ac238ef704eda6ebed92399c0",
+"d6/dfa/structLightweight_1_1SqlDateTime.html#a5f1844faef73c5040f1eeb5463a722d4",
+"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#migration-tracking",
+"d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html",
+"db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#build",
+"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a05334dcbc5535eac7751d18293a58eb6",
+"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a2ec317eaae756e721addecb505082902",
+"index.html#asynchronous-api"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

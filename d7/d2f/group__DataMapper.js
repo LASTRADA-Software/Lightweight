@@ -7,6 +7,9 @@ var group__DataMapper =
     [ "Lightweight::RecordColumnMember", "d7/dfd/conceptLightweight_1_1RecordColumnMember.html", null ],
     [ "Lightweight::HasDescription", "d2/d93/conceptLightweight_1_1HasDescription.html", null ],
     [ "Lightweight::BelongsTo< TheReferencedField, ColumnNameOverrideString, Nullable >", "d0/df7/classLightweight_1_1BelongsTo.html", [
+      [ "Loader", "dd/d4c/structLightweight_1_1BelongsTo_1_1Loader.html", [
+        [ "loadReference", "dd/d4c/structLightweight_1_1BelongsTo_1_1Loader.html#af2c25ae2649b898e5c65ce63c811ad1d", null ]
+      ] ],
       [ "ReferencedRecord", "d0/df7/classLightweight_1_1BelongsTo.html#ae3deecf75fdd98c06884f76ce07f077b", null ],
       [ "BaseType", "d0/df7/classLightweight_1_1BelongsTo.html#a1ea1e35fcc93942ed865c095b0546be9", null ],
       [ "ValueType", "d0/df7/classLightweight_1_1BelongsTo.html#ac108395e0094203583b03b195284d6b2", null ],
@@ -23,8 +26,7 @@ var group__DataMapper =
       [ "IsModified", "d0/df7/classLightweight_1_1BelongsTo.html#a760ee5ea51fd3c714f26a1d1f3366a37", null ],
       [ "Value", "d0/df7/classLightweight_1_1BelongsTo.html#aa440f0acb46beb1ff855d5d222358ec3", null ],
       [ "MutableValue", "d0/df7/classLightweight_1_1BelongsTo.html#a9c8d03efe79deeecbe6b949685ee0094", null ],
-      [ "Record", "d0/df7/classLightweight_1_1BelongsTo.html#ae4362d1a9adf6898e7f4a86f76159808", null ],
-      [ "Record", "d0/df7/classLightweight_1_1BelongsTo.html#ac7ffef2eda6a8788b04130f8d7bbb9d3", null ],
+      [ "Record", "d0/df7/classLightweight_1_1BelongsTo.html#adb5b5bb3b0d9aaa6ecd4e26a3ecda7af", null ],
       [ "operator*", "d0/df7/classLightweight_1_1BelongsTo.html#ad7802c01178e3c2e1ed55269c4cee44f", null ],
       [ "operator->", "d0/df7/classLightweight_1_1BelongsTo.html#a7e94600dce87ddf531eb86cae80d242d", null ],
       [ "operator!", "d0/df7/classLightweight_1_1BelongsTo.html#a4e9194a29545106a3e2d973e5348884a", null ],
@@ -52,17 +54,17 @@ var group__DataMapper =
       [ "Loader", "d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html", [
         [ "operator<=>", "d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html#a4e488a572408a095332f3dc38e5f2a46", null ],
         [ "operator==", "d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html#a3aa4b638408ac131ea7e1992ce5851be", null ],
-        [ "loadReference", "d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html#aa09380d173e9cc5e484d93faf1b35192", null ]
+        [ "loadReference", "d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html#ad8d03298ba1dcce4ca6900a12959b458", null ]
       ] ],
       [ "Child", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#a723f6f3b7369619a2b7446623f6300b9", null ],
       [ "ReferencedRecord", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#aadd30fc4ad067ad510d194e75ce72f18", null ],
       [ "ValueType", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#a8d3e00a5239178c02d426b01fb93f55d", null ],
       [ "OrderedValueType", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#aa9a8ed54c28b229df565eb94b3c628c4", null ],
-      [ "Record", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#a4349e2df41d2ea83e78f45add2d2b632", null ],
+      [ "Record", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#a157b6568629fdf2cc91b626cbfa92ebc", null ],
       [ "IsLoaded", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#a26b5472afe0aa239cd320d1792e3303d", null ],
       [ "Unload", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#a2602e8c703cbcedbb9b248fc3daa6ca7", null ],
       [ "EmplaceRecord", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#a81c36086d3355ec6dac94dd0a006427f", null ],
-      [ "operator->", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#ac4e0d3da7381896cfd2667357377358e", null ],
+      [ "operator->", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#a4eff38794b41c9c13c66316448360c4d", null ],
       [ "SetAutoLoader", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#aea0753865e30f9428c90ce6e3a5497f5", null ],
       [ "operator<=>", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#a614a4cb5ad2ce03b5b958f28b65d18f7", null ],
       [ "operator==", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#afdbe7152a76b6ab03d96af8e6329d8e2", null ]
@@ -114,10 +116,8 @@ var group__DataMapper =
       [ "BindOutputColumns", "de/d61/classLightweight_1_1DataMapper.html#a31796375b71cdc19158ee3a18ab60bcb", null ]
     ] ],
     [ "Lightweight::SqlRequireLoadedError", "da/df2/classLightweight_1_1SqlRequireLoadedError.html", [
-      [ "SqlRequireLoadedError", "da/df2/classLightweight_1_1SqlRequireLoadedError.html#a96304f8f159d5cdd3ef3a0065a464ca2", null ]
-    ] ],
-    [ "Lightweight::SqlDefaultConnectionChangedError", "d3/d2a/classLightweight_1_1SqlDefaultConnectionChangedError.html", [
-      [ "SqlDefaultConnectionChangedError", "d3/d2a/classLightweight_1_1SqlDefaultConnectionChangedError.html#a37dfa8f42ec5764ca1af7716af00fdd5", null ]
+      [ "SqlRequireLoadedError", "da/df2/classLightweight_1_1SqlRequireLoadedError.html#a48cd904e3bec196925b2d3ba4453ffcf", null ],
+      [ "Error", "da/df2/classLightweight_1_1SqlRequireLoadedError.html#aedd0cdd31e79b31e445c67b3603de80c", null ]
     ] ],
     [ "Lightweight::Field< T, P1, P2 >", "d2/dd0/structLightweight_1_1Field.html", [
       [ "ValueType", "d2/dd0/structLightweight_1_1Field.html#a0fd8a939fbdd169391d529caf940ad40", null ],
@@ -144,18 +144,24 @@ var group__DataMapper =
       [ "operator!=", "d2/dd0/structLightweight_1_1Field.html#ab971b90ecf62bcd13df1d3e7649fca3c", null ]
     ] ],
     [ "Lightweight::HasMany< OtherRecord, TheInverseSelector >", "da/df4/classLightweight_1_1HasMany.html", [
+      [ "Loader", "dd/d27/structLightweight_1_1HasMany_1_1Loader.html", [
+        [ "operator<=>", "dd/d27/structLightweight_1_1HasMany_1_1Loader.html#a0d597628213e2b9f84a1ec69e477524c", null ],
+        [ "count", "dd/d27/structLightweight_1_1HasMany_1_1Loader.html#ac87f69b7547f04809682e2f312948170", null ],
+        [ "all", "dd/d27/structLightweight_1_1HasMany_1_1Loader.html#aaabe04603600df384d30d62563315d4f", null ],
+        [ "each", "dd/d27/structLightweight_1_1HasMany_1_1Loader.html#a828c208745939b09132570ee08cca7e1", null ]
+      ] ],
       [ "ReferencedRecord", "da/df4/classLightweight_1_1HasMany.html#a64f0bce1911a2b64ef588a53319b631d", null ],
       [ "ReferencedRecordList", "da/df4/classLightweight_1_1HasMany.html#adf7fa16a2675805c7efd66dbae4e867f", null ],
       [ "value_type", "da/df4/classLightweight_1_1HasMany.html#abfd68589b8a929ab84222686cbb692dd", null ],
       [ "iterator", "da/df4/classLightweight_1_1HasMany.html#a2d4265d39feb3dabf87480af2a6503d8", null ],
       [ "const_iterator", "da/df4/classLightweight_1_1HasMany.html#a4dc6838deb95d12a735c7028f56a6ef7", null ],
-      [ "All", "da/df4/classLightweight_1_1HasMany.html#ae4b936d0efdeb726b2a7eda4c9f1de73", null ],
-      [ "All", "da/df4/classLightweight_1_1HasMany.html#aacd34af6daf6df9db2a190f742a73494", null ],
-      [ "Each", "da/df4/classLightweight_1_1HasMany.html#a2f9bf91b16596812acff9cf53c522310", null ],
+      [ "All", "da/df4/classLightweight_1_1HasMany.html#a91f16021eb50e544b3dd86f5c17de48a", null ],
+      [ "All", "da/df4/classLightweight_1_1HasMany.html#addafcabab1ec8c84c97b9d6aefdc120d", null ],
+      [ "Each", "da/df4/classLightweight_1_1HasMany.html#acaf60b0e8641924c5b7c98fc97d44043", null ],
       [ "Emplace", "da/df4/classLightweight_1_1HasMany.html#afefaf546a1594762fd0836f988374963", null ],
       [ "LoadedRecords", "da/df4/classLightweight_1_1HasMany.html#a4e79f4cd1e47011c65246f1c66348695", null ],
-      [ "Count", "da/df4/classLightweight_1_1HasMany.html#ad2b533f051d5cec4a3f1534723ba9f8b", null ],
-      [ "IsEmpty", "da/df4/classLightweight_1_1HasMany.html#a927a962d99cd893f8c0ce44f9133e206", null ],
+      [ "Count", "da/df4/classLightweight_1_1HasMany.html#afda314a78188c2cee466a697a74852f6", null ],
+      [ "IsEmpty", "da/df4/classLightweight_1_1HasMany.html#aec1d96bb38528a59f799654905786154", null ],
       [ "At", "da/df4/classLightweight_1_1HasMany.html#a11ea8a3b03758e086abf2643c34da70d", null ],
       [ "At", "da/df4/classLightweight_1_1HasMany.html#a6075386eef78a9d44b0c550c09943199", null ],
       [ "operator[]", "da/df4/classLightweight_1_1HasMany.html#a98565450c593eea389e2cbee809012ea", null ],
@@ -170,42 +176,50 @@ var group__DataMapper =
       [ "SetAutoLoader", "da/df4/classLightweight_1_1HasMany.html#ac2b0a1f7b093b6f2b6b217b1c2c6953e", null ]
     ] ],
     [ "Lightweight::HasManyThrough< ReferencedRecordT, ThroughSpec, TheOwnerSelector, TheReferencedSelector >", "de/d73/classLightweight_1_1HasManyThrough.html", [
+      [ "Loader", "d8/da3/structLightweight_1_1HasManyThrough_1_1Loader.html", [
+        [ "count", "d8/da3/structLightweight_1_1HasManyThrough_1_1Loader.html#a5c2d91b5ef4a25da02e515400ae703ed", null ],
+        [ "all", "d8/da3/structLightweight_1_1HasManyThrough_1_1Loader.html#a7da6ad55333f58bf876b528fc198f17c", null ],
+        [ "each", "d8/da3/structLightweight_1_1HasManyThrough_1_1Loader.html#a271f03f5d1792935cf231fda72654e22", null ]
+      ] ],
       [ "ThroughRecord", "de/d73/classLightweight_1_1HasManyThrough.html#a0e7a88f1823cfc8b84321b99e44c33ad", null ],
       [ "ReferencedRecord", "de/d73/classLightweight_1_1HasManyThrough.html#a8016c71face4112cff0cca874460c950", null ],
       [ "ReferencedRecordList", "de/d73/classLightweight_1_1HasManyThrough.html#a8004c5be1ce30c6a61f519bf637a0cb7", null ],
       [ "value_type", "de/d73/classLightweight_1_1HasManyThrough.html#abba7ce7d4fcbd909d2d3fc2e3a32828e", null ],
       [ "iterator", "de/d73/classLightweight_1_1HasManyThrough.html#afe1ee1610e3d0b005e995cdce6e1deec", null ],
       [ "const_iterator", "de/d73/classLightweight_1_1HasManyThrough.html#a4a816c720888d694f55328993b62d961", null ],
-      [ "All", "de/d73/classLightweight_1_1HasManyThrough.html#add887057fffb4ac18e3497d3c0f80a89", null ],
-      [ "All", "de/d73/classLightweight_1_1HasManyThrough.html#a027d5ee88dccae8f60b0c6f0ced71f14", null ],
-      [ "Emplace", "de/d73/classLightweight_1_1HasManyThrough.html#a00b0c54d7a008e1e86860fbd218326f8", null ],
-      [ "Count", "de/d73/classLightweight_1_1HasManyThrough.html#ac0c9e0c2ac7b848b2244975346838e12", null ],
-      [ "IsEmpty", "de/d73/classLightweight_1_1HasManyThrough.html#aa4ca524473f9a4182f74d8e84178ff2a", null ],
-      [ "At", "de/d73/classLightweight_1_1HasManyThrough.html#aa0a9d23a58854b7e2fad30b865ae3693", null ],
-      [ "At", "de/d73/classLightweight_1_1HasManyThrough.html#aa37606b196efb395aaee4fbb1c1df580", null ],
-      [ "operator[]", "de/d73/classLightweight_1_1HasManyThrough.html#a970874f76f97b0c329e305544f064363", null ],
-      [ "operator[]", "de/d73/classLightweight_1_1HasManyThrough.html#ab0ac9bacf9a0cbb5adb9c9b041bca4bc", null ],
-      [ "begin", "de/d73/classLightweight_1_1HasManyThrough.html#a526d76501ab3ede1c3c7c31db8bd904c", null ],
-      [ "end", "de/d73/classLightweight_1_1HasManyThrough.html#a4ed5fed25205ebdc367ae67dc95adb97", null ],
-      [ "begin", "de/d73/classLightweight_1_1HasManyThrough.html#a51dd8531b9c462e287ddc2b25e542bca", null ],
-      [ "end", "de/d73/classLightweight_1_1HasManyThrough.html#aca09c3974d2a20c9f12809a82c196bd0", null ],
+      [ "All", "de/d73/classLightweight_1_1HasManyThrough.html#ad51cda715c6caf63a6b6773c044d413a", null ],
+      [ "All", "de/d73/classLightweight_1_1HasManyThrough.html#a5ef0d201b04ead57e6ec369ebaee5cee", null ],
+      [ "Emplace", "de/d73/classLightweight_1_1HasManyThrough.html#a9f1500d9c84e6307773ed71ba515d7dc", null ],
+      [ "Count", "de/d73/classLightweight_1_1HasManyThrough.html#ad76735859537ae14a273e4ebd5d0e949", null ],
+      [ "IsEmpty", "de/d73/classLightweight_1_1HasManyThrough.html#ac6e6b0e544931c60ac1f9546d2a1a440", null ],
+      [ "At", "de/d73/classLightweight_1_1HasManyThrough.html#ac141eb8ac525972ea31bf163e477dfd6", null ],
+      [ "At", "de/d73/classLightweight_1_1HasManyThrough.html#a13ffd1a86e8e55712efea27e0f30d87e", null ],
+      [ "operator[]", "de/d73/classLightweight_1_1HasManyThrough.html#a2ac3a205662569c6148cbcb58dead9d2", null ],
+      [ "operator[]", "de/d73/classLightweight_1_1HasManyThrough.html#aca402b13d71296e1a8db82525e9b1ecc", null ],
+      [ "begin", "de/d73/classLightweight_1_1HasManyThrough.html#a47b1c3076157a754ad867dcf6dbf856f", null ],
+      [ "end", "de/d73/classLightweight_1_1HasManyThrough.html#a025462e3883fd4b20277d887f9c8cd76", null ],
+      [ "begin", "de/d73/classLightweight_1_1HasManyThrough.html#a24db2128a85b54e610829b27ed0caa29", null ],
+      [ "end", "de/d73/classLightweight_1_1HasManyThrough.html#a49863c4090016fe7bade878046a4ed8e", null ],
       [ "operator<=>", "de/d73/classLightweight_1_1HasManyThrough.html#a9031993ff3eccba716898b08ada7273f", null ],
       [ "SetAutoLoader", "de/d73/classLightweight_1_1HasManyThrough.html#a02fbfe86ea836ee8342902416a3152a0", null ],
-      [ "Reload", "de/d73/classLightweight_1_1HasManyThrough.html#af074808ae9b0062798393fc9d4343d08", null ],
-      [ "Each", "de/d73/classLightweight_1_1HasManyThrough.html#a7a1050e98d15086c261e5539b1f28441", null ]
+      [ "Reload", "de/d73/classLightweight_1_1HasManyThrough.html#a38804398bc0132ab532510175ded1a32", null ],
+      [ "Each", "de/d73/classLightweight_1_1HasManyThrough.html#a90364ffc213a39c70350757f68c83900", null ]
     ] ],
     [ "Lightweight::HasOneThrough< OtherTable, ThroughSpec, TheOwnerSelector, TheThroughSelector >", "df/d63/classLightweight_1_1HasOneThrough.html", [
+      [ "Loader", "d0/d52/structLightweight_1_1HasOneThrough_1_1Loader.html", [
+        [ "loadReference", "d0/d52/structLightweight_1_1HasOneThrough_1_1Loader.html#ad65df696cad90aee8fb46aff1515a587", null ]
+      ] ],
       [ "ThroughRecord", "df/d63/classLightweight_1_1HasOneThrough.html#ae099c15e7beb285410872fc7c08be768", null ],
       [ "ReferencedRecord", "df/d63/classLightweight_1_1HasOneThrough.html#af7ecac186a84c8a6b5b044b6fde34646", null ],
       [ "EmplaceRecord", "df/d63/classLightweight_1_1HasOneThrough.html#a6af60cbefcd9ba862c00f58f55730d9c", null ],
-      [ "Record", "df/d63/classLightweight_1_1HasOneThrough.html#a6cc1008f9724ecf2b1eafe040bb0c5f2", null ],
-      [ "Record", "df/d63/classLightweight_1_1HasOneThrough.html#a328dafecd4d5107ed21ca02e2d19da78", null ],
+      [ "Record", "df/d63/classLightweight_1_1HasOneThrough.html#abaa1888f48b2ed1bf9b372f209a2d539", null ],
+      [ "Record", "df/d63/classLightweight_1_1HasOneThrough.html#abe033c77708ce3fd7fbab2ecf2eaec04", null ],
       [ "IsLoaded", "df/d63/classLightweight_1_1HasOneThrough.html#a50b59e450827478bae329dc0d92a47b2", null ],
       [ "Unload", "df/d63/classLightweight_1_1HasOneThrough.html#a3d1290ce85cb14315ef539b0dea73534", null ],
-      [ "operator*", "df/d63/classLightweight_1_1HasOneThrough.html#a225b7ab17ee5ac0c9281e8372f0e80d2", null ],
-      [ "operator*", "df/d63/classLightweight_1_1HasOneThrough.html#ae6e92766bd3fe097a4fa294c1ed7da77", null ],
-      [ "operator->", "df/d63/classLightweight_1_1HasOneThrough.html#a0cacb8f4fe74d3fe55af249c42731757", null ],
-      [ "operator->", "df/d63/classLightweight_1_1HasOneThrough.html#a159e15015e70bbfeabf5148ae1054f91", null ],
+      [ "operator*", "df/d63/classLightweight_1_1HasOneThrough.html#a91a5ffed5ce974971122d68a5bee119a", null ],
+      [ "operator*", "df/d63/classLightweight_1_1HasOneThrough.html#ae5282a95b071ab829fbccdf0b820a366", null ],
+      [ "operator->", "df/d63/classLightweight_1_1HasOneThrough.html#a5b67d2f3b2f45d4c18728df2ddd0875a", null ],
+      [ "operator->", "df/d63/classLightweight_1_1HasOneThrough.html#aaa4859982797c7969c23fa62753e3440", null ],
       [ "operator<=>", "df/d63/classLightweight_1_1HasOneThrough.html#aaac133222d252d1a21e2cf1795c26f1e", null ],
       [ "SetAutoLoader", "df/d63/classLightweight_1_1HasOneThrough.html#a5084e94a0b76cde39f5f70d0da97fcfb", null ]
     ] ],
@@ -234,11 +248,18 @@ var group__DataMapper =
       [ "TypeAt", "d2/d94/structLightweight_1_1RecordMemberList.html#a755b6c987aa831fc86887b48966467fd", null ]
     ] ],
     [ "Lightweight::Description< Record >", "de/d22/structLightweight_1_1Description.html", null ],
+    [ "Lightweight::RelationResult", "d7/d2f/group__DataMapper.html#ga4be41b60128a724d65b80270ef863741", null ],
     [ "Lightweight::ReferencedFieldTypeOf", "d7/d2f/group__DataMapper.html#gaeebbb701afbe9efa3118910e348b4e61", null ],
     [ "Lightweight::SqlElements", "d7/d2f/group__DataMapper.html#ga7b2f2210747ec11d91a0d694b4c34b25", null ],
     [ "Lightweight::ThroughRecordOf", "d7/d2f/group__DataMapper.html#ga6908683ee1b573afc52f6020e8fcc051", null ],
     [ "Lightweight::RecordPrimaryKeyTuple", "d7/d2f/group__DataMapper.html#ga4792c3b28c2058e0226e1e6eb728e401", null ],
     [ "Lightweight::RecordMemberTypeOf", "d7/d2f/group__DataMapper.html#gaf8d513471d088e755ea2e628689086fb", null ],
+    [ "Lightweight::RelationError", "d7/d2f/group__DataMapper.html#gaccfed183e72fab87179bacefc80b23e1", [
+      [ "Lightweight::RelationError::NotConfigured", "d7/d2f/group__DataMapper.html#ggaccfed183e72fab87179bacefc80b23e1a52c1415ae26d69e91093beaac88e0815", null ],
+      [ "Lightweight::RelationError::NotFound", "d7/d2f/group__DataMapper.html#ggaccfed183e72fab87179bacefc80b23e1a38c300f4fc9ce8a77aad4a30de05cad8", null ],
+      [ "Lightweight::RelationError::Outdated", "d7/d2f/group__DataMapper.html#ggaccfed183e72fab87179bacefc80b23e1a6f64ae857ab55cba2c3941fbc59285d5", null ],
+      [ "Lightweight::RelationError::QueryFailed", "d7/d2f/group__DataMapper.html#ggaccfed183e72fab87179bacefc80b23e1ad14f393e86cbe5976f0457ae2a0fcc49", null ]
+    ] ],
     [ "Lightweight::GetPrimaryKeyFields", "d7/d2f/group__DataMapper.html#ga26e1044be43f92bbb88188317ffba9b5", null ],
     [ "Lightweight::GetPrimaryKeyField", "d7/d2f/group__DataMapper.html#ga0690ab017d7ae25c81a0889a6385ba33", null ],
     [ "Lightweight::GetRecordMemberAt", "d7/d2f/group__DataMapper.html#ga3803a99a6793b7b2dcd55824b002fc69", null ],
