@@ -553,6 +553,14 @@ Because the load runs on a connection of its own, it does **not** see rows the c
 uncommitted transaction, and on SQL Server it can block on that transaction's locks. Load the relations
 inside the transaction on the caller's own mapper instead - with `With<>()` or `LoadRelations()`.
 
+Records read through a pool or through a mapper on the default connection string belong to the database
+the default pointed at when they were read. After `SqlConnection::SetDefaultConnectionString()` switches
+databases, touching a relation of such a record that is not loaded yet throws
+`SqlDefaultConnectionChangedError` instead of resolving it in the new database. Load what you need before
+switching, or re-read the records afterwards. Switching back to the original connection string makes those
+relations loadable again. Records read through a mapper with a connection string of its own are not
+affected: they do not follow the default.
+
 ## Simple row retrieval via structs
 
 When only read access is needed, you can use a simple `struct` to represent the row,

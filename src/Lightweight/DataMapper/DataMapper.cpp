@@ -3,6 +3,7 @@
 #include "DataMapper.hpp"
 #include "Pool.hpp"
 
+#include <cstdint>
 #include <mutex>
 #include <utility>
 #include <vector>
@@ -30,6 +31,42 @@ namespace
                 std::shared_ptr<detail::RelationLoadSource> { std::make_shared<GlobalPoolLoadSource>() };
             return instance;
         }
+    };
+
+    /// Serves loads from a default-following source (a pool) only while the default is still the
+    /// connection string the records were read with, and fails them once the application switched it.
+    class DefaultPinnedLoadSource final: public detail::RelationLoadSource
+    {
+      public:
+        DefaultPinnedLoadSource(std::shared_ptr<detail::RelationLoadSource> inner,
+                                SqlConnectionString connectionString,
+                                std::uint32_t generation) noexcept:
+            _inner { std::move(inner) },
+            _connectionString { std::move(connectionString) },
+            _generation { generation }
+        {
+        }
+
+        [[nodiscard]] std::shared_ptr<DataMapper> Borrow() override
+        {
+            // The generation spares the comparison while the default is untouched; switching away and
+            // back again leaves the same string, and the same database, so that still loads.
+            if (SqlConnection::DefaultConnectionStringGeneration() != _generation
+                && SqlConnection::DefaultConnectionString() != _connectionString)
+                throw SqlDefaultConnectionChangedError {};
+
+            auto borrowed = _inner->Borrow();
+            // A switch between the check above and the borrow would hand out a connection to the new
+            // database; the connection itself says which one it is.
+            if (borrowed->Connection().ConnectionString() != _connectionString)
+                throw SqlDefaultConnectionChangedError {};
+            return borrowed;
+        }
+
+      private:
+        std::shared_ptr<detail::RelationLoadSource> _inner;
+        SqlConnectionString _connectionString;
+        std::uint32_t _generation;
     };
 
     /// Relation-load source of a plain (non-pooled) mapper connected with a connection string other
@@ -101,12 +138,23 @@ namespace
     };
 } // namespace
 
+std::shared_ptr<detail::RelationLoadSource> detail::PinToDefaultConnectionString(std::shared_ptr<RelationLoadSource> inner,
+                                                                                 SqlConnectionString connectionString,
+                                                                                 std::uint32_t generation)
+{
+    return std::make_shared<DefaultPinnedLoadSource>(std::move(inner), std::move(connectionString), generation);
+}
+
 std::shared_ptr<detail::RelationLoadSource> const& DataMapper::RelationLoadSourceForLoaders()
 {
     if (!_relationLoadSource)
     {
+        // Read before the string, as everywhere else: a switch in between can only make the pin look
+        // stale early (one string comparison per load), never current late.
+        auto const generation = SqlConnection::DefaultConnectionStringGeneration();
         if (_connection.ConnectionString() == SqlConnection::DefaultConnectionString())
-            _relationLoadSource = GlobalPoolLoadSource::Instance();
+            _relationLoadSource = detail::PinToDefaultConnectionString(
+                GlobalPoolLoadSource::Instance(), _connection.ConnectionString(), generation);
         else
             _relationLoadSource = std::make_shared<ConnectionStringLoadSource>(_connection.ConnectionString());
     }

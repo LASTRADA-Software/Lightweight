@@ -101,7 +101,15 @@ TEST_CASE_METHOD(SqlTestFixture,
     REQUIRE(item.has_value());
     if (!item.has_value())
         return;
+    auto again = *item; // a second record with its relation still unloaded, for after the switch below
     CHECK(item->owner->name.Value() == "from-other");
+
+    // A mapper with a connection string of its own does not follow the default, so switching the
+    // default does not concern its records.
+    auto const previous = SqlConnectionString { .value = SqlConnection::DefaultConnectionString().value };
+    auto const restore = detail::Finally([&] { SqlConnection::SetDefaultConnectionString(previous); });
+    SqlConnection::SetDefaultConnectionString(SqlConnectionString { previous.value + ";" });
+    CHECK(again.owner->name.Value() == "from-other");
 }
 
 TEST_CASE_METHOD(SqlTestFixture,
@@ -184,5 +192,44 @@ TEST_CASE_METHOD(SqlTestFixture,
             counts.push_back(again->children.Count());
         });
         CHECK(counts == std::vector<size_t> { 3, 3, 3 });
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Relation loading: a record read before the default connection string changed does not load",
+                 "[DataMapper][BelongsTo][Pool]")
+{
+    auto dm = DataMapper {};
+    auto const itemId = SeedOwnerAndItem(dm, "owner");
+
+    auto pool = Pool<SingleConnectionPoolConfig> {};
+    auto fromPlain = dm.QuerySingle<RoutingItem>(itemId);
+    auto fromPool = pool.Acquire()->QuerySingle<RoutingItem>(itemId);
+    REQUIRE(fromPlain.has_value());
+    REQUIRE(fromPool.has_value());
+    if (!fromPlain.has_value() || !fromPool.has_value())
+        return;
+    auto const fromPlainAfterReturn = *fromPlain; // copies with their relations still unloaded
+    auto const fromPoolAfterReturn = *fromPool;
+
+    // A different string for the same database: the switch is what matters, not where it points. The
+    // loads below fail before connecting anywhere.
+    auto const previous = SqlConnectionString { .value = SqlConnection::DefaultConnectionString().value };
+    auto const restore = detail::Finally([&] { SqlConnection::SetDefaultConnectionString(previous); });
+    SqlConnection::SetDefaultConnectionString(SqlConnectionString { previous.value + ";" });
+
+    SECTION("a record read through a plain mapper")
+    {
+        CHECK_THROWS_AS(std::ignore = fromPlain->owner->name, SqlDefaultConnectionChangedError);
+    }
+    SECTION("a record read through a pooled mapper")
+    {
+        CHECK_THROWS_AS(std::ignore = fromPool->owner->name, SqlDefaultConnectionChangedError);
+    }
+    SECTION("switching back to the string the records were read with loads again")
+    {
+        SqlConnection::SetDefaultConnectionString(previous);
+        CHECK(fromPlainAfterReturn.owner->name.Value() == "owner");
+        CHECK(fromPoolAfterReturn.owner->name.Value() == "owner");
     }
 }

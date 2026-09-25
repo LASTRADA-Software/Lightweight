@@ -151,6 +151,10 @@ The waiting hand-off of a `BoundedWait` pool is the one place that does not chec
 stale one is not handed over there either: the waiter receives the returned connection's slot instead
 and connects for itself, with the new default.
 
+Records read before the switch stay with the old database: touching a relation of theirs that is not
+loaded yet throws `SqlDefaultConnectionChangedError` rather than loading it from the new default (see
+[Where an on-demand load runs](usage.md)).
+
 ## Relation loads
 
 Records read through a pooled mapper load their on-demand relations through the same pool: each load
@@ -158,6 +162,11 @@ borrows a mapper for the duration of one query and returns it straight away (see
 [Where an on-demand load runs](usage.md)). Such a load never waits: at capacity, a `BoundedWait` pool
 serves it with a one-off connection that is closed afterwards, because the caller commonly still holds
 the mapper the record came from and waiting for it would never end.
+
+A pool you create yourself must therefore outlive not only every mapper acquired from it, but also every
+on-demand load still running on a record read through it: such a load holds one of the pool's mappers
+until its query finishes. (`GlobalDataMapperPool()` lives until program exit, so this only concerns
+pools of your own.)
 
 ## Reusing prepared statements
 
