@@ -15,6 +15,8 @@ class SqlStatement;
 }
 
 #include <compare>
+#include <functional>
+#include <memory>
 #include <optional>
 #include <string_view>
 #include <type_traits>
@@ -130,7 +132,8 @@ class BelongsTo
         _loader(std::move(other._loader)),
         _loaded(other._loaded),
         _modified(other._modified),
-        _record(other._record ? std::make_unique<ReferencedRecord>(*other._record) : nullptr)
+        _record(other._record ? std::make_unique<ReferencedRecord>(*other._record) : nullptr),
+        _loadError(other._loadError)
     {
     }
 
@@ -140,7 +143,8 @@ class BelongsTo
         _loader(std::move(other._loader)),
         _loaded(other._loaded),
         _modified(other._modified),
-        _record(std::move(other._record))
+        _record(std::move(other._record)),
+        _loadError(other._loadError)
     {
     }
 
@@ -151,6 +155,7 @@ class BelongsTo
             return *this;
         _loaded = false;
         _record.reset();
+        _loadError.reset();
         _referencedFieldValue = {};
         _modified = true;
         return *this;
@@ -176,6 +181,7 @@ class BelongsTo
         _referencedFieldValue = ValueType { std::forward<S>(value) };
         _loaded = false;
         _record.reset();
+        _loadError.reset();
         _modified = true;
         return *this;
     }
@@ -191,6 +197,7 @@ class BelongsTo
             return *this;
         _loaded = true;
         _record = std::make_unique<ReferencedRecord>(other);
+        _loadError.reset();
 #if defined(LIGHTWEIGHT_CXX26_REFLECTION)
         _referencedFieldValue = (other.[:ReferencedField:]).Value();
 #else
@@ -211,6 +218,7 @@ class BelongsTo
         _loaded = other._loaded;
         _modified = other._modified;
         _record = other._record ? std::make_unique<ReferencedRecord>(*other._record) : nullptr;
+        _loadError = other._loadError;
 
         return *this;
     }
@@ -225,6 +233,7 @@ class BelongsTo
         _loaded = other._loaded;
         _modified = other._modified;
         _record = std::move(other._record);
+        _loadError = other._loadError;
         other._loaded = false;
         return *this;
     }
@@ -257,48 +266,43 @@ class BelongsTo
 
     // NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 
-    /// Retrieves a record from the relationship. When the record is not optional
+    /// @brief Retrieves the referenced record, loading it on first access.
+    ///
+    /// Never throws for an unavailable record: the reason comes back as the error instead.
+    ///
+    /// @return The record; or @ref RelationError::NotFound when the foreign key is NULL or points at no
+    ///         row, @ref RelationError::NotConfigured when there is no loader (a hand-built record, or
+    ///         one read with `loadRelations = false`), @ref RelationError::Outdated when the default
+    ///         connection string changed since the record was read, @ref RelationError::QueryFailed when
+    ///         the load query failed.
     template <typename Self>
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const& Record(this Self&& self)
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr auto Record(this Self&& self) -> RelationResult<std::reference_wrapper<
+        std::conditional_t<std::is_const_v<std::remove_reference_t<Self>>, ReferencedRecord const, ReferencedRecord>>>
+    {
+        using Target =
+            std::conditional_t<std::is_const_v<std::remove_reference_t<Self>>, ReferencedRecord const, ReferencedRecord>;
+        return self.Load().transform([&self] { return std::reference_wrapper<Target> { *self._record }; });
+    }
+
+    /// @brief Retrieves the referenced record. Only available when the relationship is mandatory.
+    /// @throws SqlRequireLoadedError The record is unavailable; see @ref Record() for the reasons, which
+    ///         reports them without throwing.
+    template <typename Self>
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& operator*(this Self&& self)
         requires(IsMandatory)
     {
-        self.RequireLoaded();
+        self.LoadOrThrow();
         return *self._record;
     }
 
-    /// Retrieves a record from the relationship. When the record is optional
-    /// we return object similar to std::optional<ReferencedRecord&>
-    template <typename Self>
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr decltype(auto) Record(this Self&& self)
-        requires(IsOptional)
-    {
-        self.RequireLoaded();
-        return [&]() -> std::optional<std::reference_wrapper<ReferencedRecord>> {
-            if (self._record)
-                return *self._record;
-            return std::nullopt;
-        }();
-        //                    .transform([](auto v) { return v.get(); });
-        //                    requires at least clang-20
-    }
-
-    /// Retrieves the record from the relationship.
-    /// Only available when the relationship is mandatory.
-    template <typename Self>
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& operator*(this Self&& self) noexcept
-        requires(IsMandatory)
-    {
-        self.RequireLoaded();
-        return *self._record;
-    }
-
-    /// Retrieves the record from the relationship.
-    /// Only available when the relationship is mandatory.
+    /// @brief Retrieves the referenced record. Only available when the relationship is mandatory.
+    /// @throws SqlRequireLoadedError The record is unavailable; see @ref Record() for the reasons, which
+    ///         reports them without throwing.
     template <typename Self>
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord* operator->(this Self&& self)
         requires(IsMandatory)
     {
-        self.RequireLoaded();
+        self.LoadOrThrow();
         return self._record.get();
     }
 
@@ -338,6 +342,7 @@ class BelongsTo
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& EmplaceRecord()
     {
         _loaded = true;
+        _loadError.reset();
         _record = std::make_unique<ReferencedRecord>();
         return *_record;
     }
@@ -362,6 +367,7 @@ class BelongsTo
 
         _record = std::make_unique<ReferencedRecord>(std::move(record).value());
         _loaded = true;
+        _loadError.reset();
     }
 
     /// Binds the foreign key value to the given output column index on the statement.
@@ -410,9 +416,11 @@ class BelongsTo
         return (_referencedFieldValue <=> other.Value()) != std::weak_ordering::equivalent;
     }
 
+    /// Carries the deferred load, installed by the DataMapper.
     struct Loader
     {
-        std::function<std::optional<ReferencedRecord>()> loadReference {};
+        /// Loads the referenced record: @ref RelationError::NotFound when there is none.
+        std::function<RelationResult<ReferencedRecord>()> loadReference {};
     };
 
     /// Used internally to configure on-demand loading of the record.
@@ -422,24 +430,38 @@ class BelongsTo
     }
 
   private:
-    void RequireLoaded() const
+    /// Loads the record unless it already is, or its unavailability is already known.
+    ///
+    /// @ref RelationError::NotFound and @ref RelationError::Outdated are remembered - neither changes by
+    /// asking again - until the foreign key is re-pointed; a failed query is retried on the next access.
+    [[nodiscard]] RelationResult<void> Load() const
     {
         if (_loaded)
-            return;
+            return {};
+        if (_loadError)
+            return std::unexpected { *_loadError };
+        if constexpr (IsOptional)
+            if (!_referencedFieldValue)
+                return std::unexpected { RelationError::NotFound };
+        if (!_loader.loadReference)
+            return std::unexpected { RelationError::NotConfigured };
 
-        if (_loader.loadReference)
+        auto loaded = _loader.loadReference();
+        if (!loaded)
         {
-            auto value = _loader.loadReference();
-            if (value)
-            {
-                _record = std::make_unique<ReferencedRecord>(std::move(value.value()));
-                _loaded = true;
-            }
+            if (loaded.error() != RelationError::QueryFailed)
+                _loadError = loaded.error();
+            return std::unexpected { loaded.error() };
         }
+        _record = std::make_unique<ReferencedRecord>(std::move(*loaded));
+        _loaded = true;
+        return {};
+    }
 
-        if constexpr (IsMandatory)
-            if (!_loaded)
-                throw SqlRequireLoadedError(Reflection::TypeNameOf<std::remove_cvref_t<decltype(*this)>>);
+    void LoadOrThrow() const
+    {
+        if (auto const loaded = Load(); !loaded)
+            throw SqlRequireLoadedError(Reflection::TypeNameOf<std::remove_cvref_t<decltype(*this)>>, loaded.error());
     }
 
     ValueType _referencedFieldValue {};
@@ -447,6 +469,7 @@ class BelongsTo
     mutable bool _loaded = false;
     bool _modified = false;
     mutable std::unique_ptr<ReferencedRecord> _record {};
+    mutable std::optional<RelationError> _loadError {};
 };
 
 template <auto ReferencedField, auto ColumnNameOverrideString, SqlNullable Nullable>

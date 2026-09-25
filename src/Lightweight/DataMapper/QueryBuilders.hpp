@@ -161,8 +161,7 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
     ///                 .All();
     ///
     /// for (auto& track: tracks)
-    ///     std::println("{} - {}", track.album.Record().title,
-    ///                  track.album.Record().artist.Record().name);  // no queries here
+    ///     std::println("{} - {}", track.album->title, track.album->artist->name);  // no queries here
     /// @endcode
     ///
     /// @note Relations that were not named keep their usual on-demand behaviour. Combining `With<>()`

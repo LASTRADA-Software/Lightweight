@@ -237,7 +237,7 @@ TEST_CASE("CompositeForeignKey navigation reports load state", "[CompositeForeig
     child.parent.EmplaceRecord(parent);
 
     REQUIRE(child.parent.IsLoaded());
-    CHECK(child.parent.Record().partA.Value() == 1);
+    CHECK(child.parent.Record().value().get().partA.Value() == 1);
     CHECK(child.parent->partB.Value() == 2);
 
     // ...and unloading reverts it.
@@ -304,10 +304,10 @@ TEST_CASE_METHOD(SqlTestFixture, "CompositeForeignKey loads its referenced recor
     REQUIRE(child->parent.IsLoaded());
 
     // It resolves to (part_a=1, part_b=2), not to the transposed row.
-    CHECK(child->parent.Record().partA.Value() == 1);
-    CHECK(child->parent.Record().partB.Value() == 2);
-    REQUIRE(child->parent.Record().caption.Value().has_value());
-    CHECK(child->parent.Record().caption.Value().value() == "one-two");
+    CHECK(child->parent.Record().value().get().partA.Value() == 1);
+    CHECK(child->parent.Record().value().get().partB.Value() == 2);
+    REQUIRE(child->parent.Record().value().get().caption.Value().has_value());
+    CHECK(child->parent.Record().value().get().caption.Value().value() == "one-two");
     // NOLINTEND(bugprone-unchecked-optional-access)
 }
 
@@ -344,8 +344,8 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK_FALSE(child->parent.IsLoaded());
 
     // Triggers the lazy loader installed by QuerySingle, not the eager LoadRelations() path.
-    REQUIRE(child->parent.Record().partA.Value() == 1);
-    CHECK(child->parent.Record().partB.Value() == 2);
+    REQUIRE(child->parent.Record().value().get().partA.Value() == 1);
+    CHECK(child->parent.Record().value().get().partB.Value() == 2);
     // NOLINTEND(bugprone-unchecked-optional-access)
 }
 
@@ -377,8 +377,8 @@ TEST_CASE_METHOD(SqlTestFixture,
     REQUIRE(child.has_value());
     // NOLINTBEGIN(bugprone-unchecked-optional-access) - guarded above
     dm.LoadRelations(*child);
-    REQUIRE(child->parent.Record().caption.Value().has_value());
-    CHECK(child->parent.Record().caption.Value().value() == "one-two"); // not 'two-one'
+    REQUIRE(child->parent.Record().value().get().caption.Value().has_value());
+    CHECK(child->parent.Record().value().get().caption.Value().value() == "one-two"); // not 'two-one'
     // NOLINTEND(bugprone-unchecked-optional-access)
 }
 
@@ -458,8 +458,8 @@ TEST_CASE_METHOD(SqlTestFixture, "CompositeForeignKey loads across three columns
     REQUIRE(child.has_value());
     // NOLINTBEGIN(bugprone-unchecked-optional-access) - guarded above
     dm.LoadRelations(*child);
-    REQUIRE(child->parent.Record().note.Value().has_value());
-    CHECK(child->parent.Record().note.Value().value() == "target"); // not the reversed decoy
+    REQUIRE(child->parent.Record().value().get().note.Value().has_value());
+    CHECK(child->parent.Record().value().get().note.Value().value() == "target"); // not the reversed decoy
     // NOLINTEND(bugprone-unchecked-optional-access)
 }
 

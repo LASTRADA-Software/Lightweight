@@ -15,6 +15,7 @@
 #include <functional>
 #include <list>
 #include <map>
+#include <memory>
 #include <optional>
 #include <set>
 #include <span>
@@ -252,8 +253,13 @@ namespace SqlMigration
 
         /// Get all migrations that have not been applied yet.
         ///
+        /// A dependency cycle does not throw: the list then falls back to timestamp order, and the error
+        /// surfaces again from ApplyPendingMigrations() / ValidateDependencies().
+        ///
         /// @return List of pending migrations.
-        [[nodiscard]] LIGHTWEIGHT_API std::list<MigrationBase const*> GetPending() const noexcept;
+        /// @throws std::runtime_error Reading the applied migrations failed in a way other than the
+        ///         table being absent (e.g. an unexpected NULL in `schema_migrations`).
+        [[nodiscard]] LIGHTWEIGHT_API std::list<MigrationBase const*> GetPending() const;
 
         /// Callback type invoked during migration execution to report progress.
         using ExecuteCallback =
@@ -384,6 +390,13 @@ namespace SqlMigration
         LIGHTWEIGHT_API void Log(std::string_view message) const;
 
         /// Get the data mapper used for migrations.
+        ///
+        /// Owned by the manager and connected with the default connection string on first use. When
+        /// the application replaces the default (@ref SqlConnection::SetDefaultConnectionString), the
+        /// next call reconnects the same instance - the reference stays valid - to the new default.
+        ///
+        /// @return The migration data mapper.
+        /// @throws SqlException Connecting failed.
         [[nodiscard]] LIGHTWEIGHT_API DataMapper& GetDataMapper();
 
         /// Get the data mapper used for migrations.
@@ -771,7 +784,9 @@ namespace SqlMigration
 
         MigrationList _migrations;
         std::vector<MigrationRelease> _releases;
-        mutable DataMapper* _dataMapper { nullptr };
+        std::unique_ptr<DataMapper> _dataMapper;
+        /// The @ref SqlConnection::DefaultConnectionStringGeneration @c _dataMapper was connected under.
+        std::uint32_t _dataMapperGeneration {};
         CompatPolicy _compatPolicy;
         std::string _defaultSchema; ///< Default schema applied to migration connections, empty when unset.
 

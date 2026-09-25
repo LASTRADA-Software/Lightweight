@@ -11,6 +11,9 @@
 #include <compare>
 #include <functional>
 #include <memory>
+#include <optional>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace Lightweight
@@ -96,66 +99,132 @@ class HasManyThrough
     /// Const iterator type for the list of records.
     using const_iterator = ReferencedRecordList::const_iterator;
 
-    /// Retrieves the list of loaded records.
-    [[nodiscard]] ReferencedRecordList const& All() const noexcept;
+    /// @brief Retrieves the records, loading them on first access.
+    ///
+    /// Never throws for unavailable records: the reason comes back as the error instead.
+    ///
+    /// @return The records; or @ref RelationError::NotConfigured when there is no loader (a hand-built
+    ///         record, or one read with `loadRelations = false`), @ref RelationError::Outdated when the
+    ///         default connection string changed since the record was read, @ref RelationError::QueryFailed
+    ///         when the load query failed.
+    [[nodiscard]] RelationResult<std::reference_wrapper<ReferencedRecordList const>> All() const
+    {
+        return Load().transform([this] { return std::reference_wrapper<ReferencedRecordList const> { *_records }; });
+    }
 
-    /// Retrieves the list of records as mutable reference.
-    [[nodiscard]] ReferencedRecordList& All() noexcept;
+    /// @copydoc All() const
+    [[nodiscard]] RelationResult<std::reference_wrapper<ReferencedRecordList>> All()
+    {
+        return Load().transform([this] { return std::reference_wrapper<ReferencedRecordList> { *_records }; });
+    }
 
     /// Emplaces the given list of records into this relationship.
-    ReferencedRecordList& Emplace(ReferencedRecordList&& records) noexcept;
+    ReferencedRecordList& Emplace(ReferencedRecordList&& records) noexcept
+    {
+        _records = { std::move(records) };
+        _count = _records->size();
+        _loadError.reset();
+        return *_records;
+    }
 
-    /// Retrieves the number of records in this relationship.
-    [[nodiscard]] std::size_t Count() const;
+    /// @return The number of records in this relationship - counted by a query, without loading them,
+    ///         unless they are loaded already - or why it is unavailable (see @ref All()).
+    [[nodiscard]] RelationResult<std::size_t> Count() const
+    {
+        if (_records)
+            return _records->size();
+        if (_count)
+            return *_count;
+        if (_loadError)
+            return std::unexpected { *_loadError };
+        if (!_loader.count)
+            return std::unexpected { RelationError::NotConfigured };
 
-    /// Checks if this relationship is empty.
-    [[nodiscard]] bool IsEmpty() const;
+        auto counted = _loader.count();
+        if (counted)
+            _count = *counted;
+        else if (counted.error() != RelationError::QueryFailed)
+            _loadError = counted.error();
+        return counted;
+    }
 
-    /// @brief Retrieves the record at the given index.
+    /// @return Whether this relationship is empty, or why that is unknown (see @ref All()).
+    [[nodiscard]] RelationResult<bool> IsEmpty() const
+    {
+        return Count().transform([](std::size_t count) { return count == 0; });
+    }
+
+    /// @brief Retrieves the record at the given index, loading the records on first access.
     ///
     /// @param index The index of the record to retrieve.
-    /// @note This method will on-demand load the records if they are not already loaded.
-    /// @note This method will throw if the index is out of bounds.
-    [[nodiscard]] ReferencedRecord const& At(std::size_t index) const;
+    /// @throws SqlRequireLoadedError The records are unavailable; @ref All() reports why without throwing.
+    /// @throws std::out_of_range @p index is out of bounds.
+    [[nodiscard]] ReferencedRecord const& At(std::size_t index) const
+    {
+        return *LoadOrThrow().at(index);
+    }
 
-    /// @brief Retrieves the record at the given index.
+    /// @copydoc At(std::size_t) const
+    [[nodiscard]] ReferencedRecord& At(std::size_t index)
+    {
+        return *LoadOrThrow().at(index);
+    }
+
+    /// @brief Retrieves the record at the given index, loading the records on first access.
     ///
-    /// @param index The index of the record to retrieve.
-    /// @note This method will on-demand load the records if they are not already loaded.
-    /// @note This method will throw if the index is out of bounds.
-    [[nodiscard]] ReferencedRecord& At(std::size_t index);
+    /// @param index The index of the record to retrieve; out of bounds is undefined behaviour.
+    /// @throws SqlRequireLoadedError The records are unavailable; @ref All() reports why without throwing.
+    [[nodiscard]] ReferencedRecord const& operator[](std::size_t index) const
+    {
+        return *LoadOrThrow()[index];
+    }
 
-    /// @brief Retrieves the record at the given index.
-    ///
-    /// @param index The index of the record to retrieve.
-    /// @note This method will on-demand load the records if they are not already loaded.
-    /// @note This method will NOT throw if the index is out of bounds. The behaviour is undefined.
-    [[nodiscard]] ReferencedRecord const& operator[](std::size_t index) const;
+    /// @copydoc operator[](std::size_t) const
+    [[nodiscard]] ReferencedRecord& operator[](std::size_t index)
+    {
+        return *LoadOrThrow()[index];
+    }
 
-    /// @brief Retrieves the record at the given index.
-    ///
-    /// @param index The index of the record to retrieve.
-    /// @note This method will on-demand load the records if they are not already loaded.
-    /// @note This method will NOT throw if the index is out of bounds. The behaviour is undefined.
-    [[nodiscard]] ReferencedRecord& operator[](std::size_t index);
+    /// Returns an iterator to the beginning of the record list, loading the records on first access.
+    /// @throws SqlRequireLoadedError The records are unavailable; @ref All() reports why without throwing.
+    [[nodiscard]] iterator begin()
+    {
+        return LoadOrThrow().begin();
+    }
 
-    /// Returns an iterator to the beginning of the record list.
-    [[nodiscard]] iterator begin() noexcept;
-    /// Returns an iterator to the end of the record list.
-    [[nodiscard]] iterator end() noexcept;
-    /// Returns a const iterator to the beginning of the record list.
-    [[nodiscard]] const_iterator begin() const noexcept;
-    /// Returns a const iterator to the end of the record list.
-    [[nodiscard]] const_iterator end() const noexcept;
+    /// Returns an iterator to the end of the record list, loading the records on first access.
+    /// @throws SqlRequireLoadedError The records are unavailable; @ref All() reports why without throwing.
+    [[nodiscard]] iterator end()
+    {
+        return LoadOrThrow().end();
+    }
+
+    /// Returns a const iterator to the beginning of the record list, loading the records on first access.
+    /// @throws SqlRequireLoadedError The records are unavailable; @ref All() reports why without throwing.
+    [[nodiscard]] const_iterator begin() const
+    {
+        return std::as_const(LoadOrThrow()).begin();
+    }
+
+    /// Returns a const iterator to the end of the record list, loading the records on first access.
+    /// @throws SqlRequireLoadedError The records are unavailable; @ref All() reports why without throwing.
+    [[nodiscard]] const_iterator end() const
+    {
+        return std::as_const(LoadOrThrow()).end();
+    }
 
     /// Default three-way comparison operator.
     std::weak_ordering operator<=>(HasManyThrough const& other) const noexcept = default;
 
+    /// Carries the deferred loads, installed by the DataMapper.
     struct Loader
     {
-        std::function<size_t()> count;
-        std::function<ReferencedRecordList()> all;
-        std::function<void(std::function<void(ReferencedRecord const&)>)> each;
+        /// Counts the records without loading them.
+        std::function<RelationResult<size_t>()> count;
+        /// Loads all records.
+        std::function<RelationResult<ReferencedRecordList>()> all;
+        /// Streams the records to a callback.
+        std::function<RelationResult<void>(std::function<void(ReferencedRecord const&)>)> each;
     };
 
     /// Used internally to configure on-demand loading of the records.
@@ -164,49 +233,77 @@ class HasManyThrough
         _loader = std::move(loader);
     }
 
-    /// Reloads the records from the database.
-    void Reload()
+    /// @brief Loads the records from the database again, forgetting what was loaded or known before.
+    /// @return Nothing, or why the records are unavailable (see @ref All()).
+    RelationResult<void> Reload()
     {
         _count = std::nullopt;
         _records = std::nullopt;
-        RequireLoaded();
+        _loadError.reset();
+        return Load();
     }
 
-    /// @brief Iterates over all records in this relationship.
+    /// @brief Calls @p callable for each record, without holding them all in memory when not loaded yet.
     ///
-    /// @param callable The callable to invoke for each record.
-    /// @note This method will on-demand load the records if they are not already loaded,
-    ///       but not hold them all in memory.
+    /// An exception thrown by @p callable propagates unchanged.
+    ///
+    /// @param callable Called once per record.
+    /// @return Nothing, or why the records are unavailable (see @ref All()).
     template <typename Callable>
-    void Each(Callable const& callable)
+    RelationResult<void> Each(Callable const& callable)
     {
-        if (!_records && _loader.each)
+        if (!_records && !_loadError && _loader.each)
         {
-            _loader.each(callable);
-            return;
+            auto streamed = _loader.each(callable);
+            if (!streamed && streamed.error() != RelationError::QueryFailed)
+                _loadError = streamed.error();
+            return streamed;
         }
 
-        for (auto const& record: All())
-            callable(*record);
+        return All().transform([&callable](ReferencedRecordList const& records) {
+            for (auto const& record: records)
+                callable(*record);
+        });
     }
 
   private:
-    void RequireLoaded()
+    /// Loads the records unless they already are, or their unavailability is already known.
+    ///
+    /// @ref RelationError::Outdated is remembered - it does not change by asking again - until records
+    /// are emplaced or reloaded; a failed query is retried on the next access.
+    [[nodiscard]] RelationResult<void> Load() const
     {
         if (_records)
-            return;
+            return {};
+        if (_loadError)
+            return std::unexpected { *_loadError };
+        if (!_loader.all)
+            return std::unexpected { RelationError::NotConfigured };
 
-        if (_loader.all)
-            _records = _loader.all();
+        auto loaded = _loader.all();
+        if (!loaded)
+        {
+            if (loaded.error() != RelationError::QueryFailed)
+                _loadError = loaded.error();
+            return std::unexpected { loaded.error() };
+        }
+        _records = std::move(*loaded);
+        return {};
+    }
 
-        if (!_records)
-            throw SqlRequireLoadedError(Reflection::TypeNameOf<std::remove_cvref_t<decltype(*this)>>);
+    /// @return The loaded records, or throws SqlRequireLoadedError.
+    [[nodiscard]] ReferencedRecordList& LoadOrThrow() const
+    {
+        if (auto const loaded = Load(); !loaded)
+            throw SqlRequireLoadedError(Reflection::TypeNameOf<std::remove_cvref_t<decltype(*this)>>, loaded.error());
+        return *_records; // NOLINT(bugprone-unchecked-optional-access)
     }
 
     Loader _loader;
 
-    std::optional<size_t> _count;
-    std::optional<ReferencedRecordList> _records;
+    mutable std::optional<size_t> _count;
+    mutable std::optional<ReferencedRecordList> _records;
+    mutable std::optional<RelationError> _loadError;
 };
 
 namespace detail
@@ -226,110 +323,5 @@ namespace detail
 
 template <typename T>
 constexpr bool IsHasManyThrough = detail::IsHasManyThroughType<std::remove_cvref_t<T>>::value;
-
-template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
-HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::ReferencedRecordList const&
-HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::All() const noexcept
-{
-    const_cast<HasManyThrough*>(this)->RequireLoaded();
-
-    return _records.value();
-}
-
-template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
-HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::ReferencedRecordList&
-HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::All() noexcept
-{
-    RequireLoaded();
-
-    return _records.value(); // NOLINT(bugprone-unchecked-optional-access)
-}
-
-template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
-HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::ReferencedRecordList& HasManyThrough<
-    ReferencedRecordT,
-    ThroughSpec,
-    OwnerSelector,
-    ReferencedSelector>::Emplace(ReferencedRecordList&& records) noexcept
-{
-    _records = { std::move(records) };
-    _count = _records->size();
-    return *_records;
-}
-
-template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
-std::size_t HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::Count() const
-{
-    if (_records)
-        return _records->size();
-
-    if (!_count)
-        const_cast<HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>*>(this)->_count =
-            _loader.count();
-
-    return _count.value_or(0);
-}
-
-template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
-bool HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::IsEmpty() const
-{
-    return Count() == 0;
-}
-
-template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
-HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::ReferencedRecord const&
-HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::At(std::size_t index) const
-{
-    return *All().at(index);
-}
-
-template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
-HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::ReferencedRecord&
-HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::At(std::size_t index)
-{
-    return *All().at(index);
-}
-
-template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
-HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::ReferencedRecord const&
-HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::operator[](std::size_t index) const
-{
-    return *All()[index];
-}
-
-template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
-HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::ReferencedRecord&
-HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::operator[](std::size_t index)
-{
-    return *All()[index];
-}
-
-template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
-HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::iterator
-HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::begin() noexcept
-{
-    return All().begin();
-}
-
-template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
-HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::iterator
-HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::end() noexcept
-{
-    return All().end();
-}
-
-template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
-HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::const_iterator
-HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::begin() const noexcept
-{
-    return All().begin();
-}
-
-template <typename ReferencedRecordT, typename ThroughSpec, auto OwnerSelector, auto ReferencedSelector>
-HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::const_iterator
-HasManyThrough<ReferencedRecordT, ThroughSpec, OwnerSelector, ReferencedSelector>::end() const noexcept
-{
-    return All().end();
-}
 
 } // namespace Lightweight

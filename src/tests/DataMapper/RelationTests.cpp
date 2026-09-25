@@ -316,7 +316,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     {
         auto department = dm.QuerySingle<MisalignedDepartment>(engineering.id).value();
         CHECK(department.employees.Count() == 2);
-        CHECK_FALSE(department.employees.IsEmpty());
+        CHECK(department.employees.IsEmpty() == false);
 
         auto other = dm.QuerySingle<MisalignedDepartment>(sales.id).value();
         CHECK(other.employees.Count() == 1);
@@ -325,7 +325,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     SECTION("All")
     {
         auto department = dm.QuerySingle<MisalignedDepartment>(engineering.id).value();
-        auto const& employees = department.employees.All();
+        auto const& employees = department.employees.All().value().get();
         REQUIRE(employees.size() == 2);
 
         auto const lastNames = std::set<std::string> { std::string(employees[0]->lastName.Value()),
@@ -340,8 +340,9 @@ TEST_CASE_METHOD(SqlTestFixture,
     {
         auto department = dm.QuerySingle<MisalignedDepartment>(engineering.id).value();
         auto collectedLastNames = std::set<std::string> {};
-        department.employees.Each(
-            [&](MisalignedEmployee const& employee) { collectedLastNames.emplace(employee.lastName.Value()); });
+        REQUIRE(department.employees
+                    .Each([&](MisalignedEmployee const& employee) { collectedLastNames.emplace(employee.lastName.Value()); })
+                    .has_value());
         CHECK(collectedLastNames == std::set<std::string> { "Anders", "Brown" });
     }
 
@@ -358,7 +359,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     {
         auto department = dm.QuerySingle<MisalignedDepartment>(engineering.id).value();
         dm.LoadRelations(department);
-        CHECK(department.employees.All().size() == 2);
+        CHECK(department.employees.All().value().get().size() == 2);
     }
 
     SECTION("Emitted SQL filters on the foreign key column")
@@ -416,12 +417,12 @@ TEST_CASE_METHOD(SqlTestFixture,
         auto aliceLoaded = dm.QuerySingle<Human>(alice.id).value();
 
         auto organized = std::set<std::string> {};
-        for (auto const& meeting: aliceLoaded.organizedMeetings.All())
+        for (auto const& meeting: aliceLoaded.organizedMeetings.All().value().get())
             organized.emplace(meeting->topic.Value());
         CHECK(organized == std::set<std::string> { "Planning", "Retro" });
 
         auto attended = std::set<std::string> {};
-        for (auto const& meeting: aliceLoaded.attendedMeetings.All())
+        for (auto const& meeting: aliceLoaded.attendedMeetings.All().value().get())
             attended.emplace(meeting->topic.Value());
         CHECK(attended == std::set<std::string> { "One-on-one" });
     }
@@ -448,8 +449,8 @@ TEST_CASE_METHOD(SqlTestFixture,
     {
         auto human = dm.QuerySingle<Human>(bob.id).value();
         dm.LoadRelations(human);
-        CHECK(human.organizedMeetings.All().size() == 1);
-        CHECK(human.attendedMeetings.All().size() == 2);
+        CHECK(human.organizedMeetings.All().value().get().size() == 1);
+        CHECK(human.attendedMeetings.All().value().get().size() == 2);
     }
 }
 
@@ -485,7 +486,7 @@ TEST_CASE_METHOD(SqlTestFixture,
         auto aliceLoaded = dm.QuerySingle<Buddy>(alice.id).value();
 
         auto names = std::set<std::string> {};
-        for (auto const& buddy: aliceLoaded.buddies.All())
+        for (auto const& buddy: aliceLoaded.buddies.All().value().get())
             names.emplace(buddy->name.Value());
 
         CHECK(names == std::set<std::string> { "Bob", "Carol" });
@@ -508,7 +509,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     dm.CreateExplicit(ShopOrderLine { .article = "Widget", .order = order });
 
     auto const shopLoaded = dm.QuerySingle<Shop>(shop.shopKey).value();
-    CHECK(shopLoaded.firstOrderLine.Record().article.Value() == "Widget");
+    CHECK(shopLoaded.firstOrderLine.Record().value().get().article.Value() == "Widget");
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "BelongsTo", "[DataMapper][relations]")
@@ -599,7 +600,7 @@ TEST_CASE_METHOD(SqlTestFixture, "HasMany", "[DataMapper][relations]")
         auto getUser = dm.QuerySingle<User>(johnDoe.id).value();
 
         CHECK(getUser.emails.Count() == 2);
-        auto& emails = getUser.emails.All();
+        auto& emails = getUser.emails.All().value().get();
 
         auto const expectedIds = std::set<SqlGuid> { email1.id.Value(), email2.id.Value() };
         auto const actualIds = std::set<SqlGuid> { emails[0]->id.Value(), emails[1]->id.Value() };
@@ -621,7 +622,7 @@ TEST_CASE_METHOD(SqlTestFixture, "HasMany", "[DataMapper][relations]")
     SECTION("IsEmpty - user with emails")
     {
         auto getUser = dm.QuerySingle<User>(johnDoe.id).value();
-        CHECK_FALSE(getUser.emails.IsEmpty());
+        CHECK(getUser.emails.IsEmpty() == false);
     }
 
     SECTION("IsEmpty - user without emails")
@@ -629,7 +630,7 @@ TEST_CASE_METHOD(SqlTestFixture, "HasMany", "[DataMapper][relations]")
         auto emptyUser = User { .id = SqlGuid::Create(), .name = "No Emails" };
         dm.Create<DataMapperOptions { .loadRelations = false }>(emptyUser);
         auto loadedUser = dm.QuerySingle<User>(emptyUser.id).value();
-        CHECK(loadedUser.emails.IsEmpty());
+        CHECK(loadedUser.emails.IsEmpty() == true);
         CHECK(loadedUser.emails.Count() == 0);
     }
 
@@ -659,7 +660,7 @@ TEST_CASE_METHOD(SqlTestFixture, "HasMany", "[DataMapper][relations]")
     {
         auto getUser = dm.QuerySingle<User>(johnDoe.id).value();
         auto collectedIds = std::vector<SqlGuid> {};
-        getUser.emails.Each([&](Email const& email) { collectedIds.push_back(email.id.Value()); });
+        REQUIRE(getUser.emails.Each([&](Email const& email) { collectedIds.push_back(email.id.Value()); }).has_value());
         REQUIRE(collectedIds.size() == 2);
         CHECK(std::ranges::find(collectedIds, email1.id.Value()) != collectedIds.end());
         CHECK(std::ranges::find(collectedIds, email2.id.Value()) != collectedIds.end());
@@ -686,11 +687,11 @@ TEST_CASE_METHOD(SqlTestFixture, "HasMany", "[DataMapper][relations]")
         auto getUser = dm.QuerySingle<User>(johnDoe.id).value();
         auto const& constEmails = getUser.emails;
 
-        REQUIRE(constEmails.All().size() == 2);
+        REQUIRE(constEmails.All().value().get().size() == 2);
         // At() and operator[] dereference the stored pointer and hand back the record itself,
         // whereas All() exposes the underlying pointer list.
-        CHECK(constEmails.At(0).id.Value() == constEmails.All()[0]->id.Value());
-        CHECK(constEmails[0].id.Value() == constEmails.All()[0]->id.Value());
+        CHECK(constEmails.At(0).id.Value() == constEmails.All().value().get()[0]->id.Value());
+        CHECK(constEmails[0].id.Value() == constEmails.All().value().get()[0]->id.Value());
 
         // Iterating the const reference binds HasMany's const begin()/end() overloads, which is
         // the point of this section - a range-based for over `constEmails` resolves to exactly
@@ -727,7 +728,7 @@ TEST_CASE_METHOD(SqlTestFixture, "HasMany - Connected data mutations", "[DataMap
         REQUIRE(getUser.emails.Count() == 3);
 
         auto collectedIds = std::vector<SqlGuid> {};
-        getUser.emails.Each([&](Email const& email) { collectedIds.push_back(email.id.Value()); });
+        REQUIRE(getUser.emails.Each([&](Email const& email) { collectedIds.push_back(email.id.Value()); }).has_value());
         CHECK(std::ranges::find(collectedIds, email1.id.Value()) != collectedIds.end());
         CHECK(std::ranges::find(collectedIds, email2.id.Value()) != collectedIds.end());
         CHECK(std::ranges::find(collectedIds, email3.id.Value()) != collectedIds.end());
@@ -753,12 +754,14 @@ TEST_CASE_METHOD(SqlTestFixture, "HasMany - Connected data mutations", "[DataMap
 
         bool foundUpdated = false;
         bool foundOriginal = false;
-        getUser.emails.Each([&](Email const& email) {
-            if (email.id.Value() == email1.id.Value())
-                foundUpdated = (email.address.Value() == email1.address.Value());
-            if (email.id.Value() == email2.id.Value())
-                foundOriginal = (email.address.Value() == email2.address.Value());
-        });
+        REQUIRE(getUser.emails
+                    .Each([&](Email const& email) {
+                        if (email.id.Value() == email1.id.Value())
+                            foundUpdated = (email.address.Value() == email1.address.Value());
+                        if (email.id.Value() == email2.id.Value())
+                            foundOriginal = (email.address.Value() == email2.address.Value());
+                    })
+                    .has_value());
         CHECK(foundUpdated);
         CHECK(foundOriginal);
     }
@@ -1108,7 +1111,7 @@ TEST_CASE_METHOD(SqlTestFixture, "HasManyThrough", "[DataMapper][relations]")
     {
         size_t numPatientsIterated = 0;
         std::deque<Patient> retrievedPatients;
-        physician2.patients.Each([&](Patient const& patient) {
+        auto const iterated = physician2.patients.Each([&](Patient const& patient) {
             REQUIRE(numPatientsIterated == 0);
             ++numPatientsIterated;
             INFO("Patient: " << DataMapper::Inspect(patient));
@@ -1117,6 +1120,7 @@ TEST_CASE_METHOD(SqlTestFixture, "HasManyThrough", "[DataMapper][relations]")
             // Load the relations of the patient
             dm.ConfigureRelationAutoLoading(retrievedPatients.back());
         });
+        REQUIRE(iterated.has_value());
         auto const physician2Patients = MakeSetFromRange<Patient>(retrievedPatients);
         CHECK(physician2Patients.size() == 1);
         CHECK(physician2Patients.contains(patient1));
@@ -1125,7 +1129,8 @@ TEST_CASE_METHOD(SqlTestFixture, "HasManyThrough", "[DataMapper][relations]")
         Patient& patient = retrievedPatients.at(0);
         REQUIRE(patient.physicians.Count() == 2);
         auto const patient1Physicians = MakeSetFromRange<Physician>(
-            patient.physicians.All() | std::views::transform([](std::shared_ptr<Physician>& p) { return std::move(*p); }));
+            patient.physicians.All().value().get()
+            | std::views::transform([](std::shared_ptr<Physician>& p) { return std::move(*p); }));
         CHECK(patient1Physicians.size() == 2);
         CHECK(patient1Physicians.contains(physician1));
         CHECK(patient1Physicians.contains(physician2));
@@ -1204,14 +1209,14 @@ TEST_CASE_METHOD(SqlTestFixture, "HasManyThrough: element access and iteration",
 
     SECTION("IsEmpty reflects the relationship's contents")
     {
-        CHECK_FALSE(physician.patients.IsEmpty());
+        CHECK(physician.patients.IsEmpty() == false);
 
         // A physician with no appointments at all resolves to an empty relationship.
         Physician lonely;
         lonely.name = "Dr. Nobody";
         dm.Create(lonely);
         dm.ConfigureRelationAutoLoading(lonely);
-        CHECK(lonely.patients.IsEmpty());
+        CHECK(lonely.patients.IsEmpty() == true);
         CHECK(lonely.patients.Count() == 0);
     }
 
@@ -1266,7 +1271,7 @@ TEST_CASE_METHOD(SqlTestFixture, "HasManyThrough: element access and iteration",
         // The cached count and record list still describe the pre-insert state.
         CHECK(physician.patients.Count() == 2);
 
-        physician.patients.Reload();
+        REQUIRE(physician.patients.Reload().has_value());
         CHECK(physician.patients.Count() == 3);
     }
 
@@ -1279,36 +1284,35 @@ TEST_CASE_METHOD(SqlTestFixture, "HasManyThrough: element access and iteration",
         auto& emplaced = detached.patients.Emplace(std::move(replacement));
         CHECK(emplaced.size() == 1);
         CHECK(detached.patients.Count() == 1);
-        CHECK_FALSE(detached.patients.IsEmpty());
+        CHECK(detached.patients.IsEmpty() == false);
         CHECK(DataMapper::Inspect(detached.patients.At(0)) == DataMapper::Inspect(patient1));
     }
 
-    SECTION("A HasMany with no auto-loader reports SqlRequireLoadedError rather than terminating")
+    SECTION("A HasMany with no auto-loader reports NotConfigured rather than terminating")
     {
-        // `appointments` is the HasMany; `patients` above is a HasManyThrough, which already
-        // guarded this. A hand-constructed record never went through ConfigureRelationAutoLoading,
-        // so its loader holds an empty std::function. Calling it would be std::bad_function_call -
-        // and because these accessors used to be noexcept, that would have been std::terminate
-        // rather than an error the caller could handle. Both overloads must report it.
+        // `appointments` is the HasMany; `patients` above is a HasManyThrough. A hand-constructed
+        // record never went through ConfigureRelationAutoLoading, so its loader holds an empty
+        // std::function. Calling it would be std::bad_function_call - and because these accessors used
+        // to be noexcept, that would have been std::terminate rather than an error the caller could
+        // handle. The accessors returning RelationResult report it; the shortcuts throw it.
         Physician detached;
         Physician const& constDetached = detached;
 
-        CHECK_THROWS_AS(detached.appointments.All(), SqlRequireLoadedError);
-        CHECK_THROWS_AS(constDetached.appointments.All(), SqlRequireLoadedError);
+        CHECK(detached.appointments.All().error() == RelationError::NotConfigured);
+        CHECK(constDetached.appointments.All().error() == RelationError::NotConfigured);
+        CHECK(detached.appointments.Count().error() == RelationError::NotConfigured);
+        CHECK(detached.appointments.IsEmpty().error() == RelationError::NotConfigured);
+        CHECK(detached.appointments.Each([](Appointment const&) {}).error() == RelationError::NotConfigured);
+
         CHECK_THROWS_AS(detached.appointments.At(0), SqlRequireLoadedError);
         CHECK_THROWS_AS(detached.appointments.begin(), SqlRequireLoadedError);
         CHECK_THROWS_AS(constDetached.appointments.begin(), SqlRequireLoadedError);
         CHECK_THROWS_AS(constDetached.appointments.end(), SqlRequireLoadedError);
-
-        // Count()/IsEmpty() guard the loader themselves and stay noexcept, so they must not throw.
-        CHECK(detached.appointments.Count() == 0);
-        CHECK(detached.appointments.IsEmpty());
     }
 }
 
-// NOTE: HasMany::RequireLoaded() guarantees _records is engaged on return, or throws trying:
-// SqlRequireLoadedError when the relation never went through ConfigureRelationAutoLoading (the
-// loader holds an empty std::function), otherwise whatever the loader itself raises. The accessors
+// NOTE: HasMany::LoadOrThrow() guarantees _records is engaged on return, or throws
+// SqlRequireLoadedError carrying the RelationError that made the records unavailable. The shortcuts
 // that call it therefore dereference _records unconditionally, with no unreachable fallback branch,
 // and are deliberately not noexcept - a throw crossing a noexcept boundary would be std::terminate
 // rather than an error the caller can catch.
@@ -1443,7 +1447,7 @@ TEST_CASE("HasOneThrough: EmplaceRecord makes IsLoaded true and Unload reverts i
     HasOneThrough<AccountHistory, Through<Account>> rel {};
     rel.EmplaceRecord(std::make_shared<AccountHistory>(AccountHistory { .credit_rating = 750 }));
     REQUIRE(rel.IsLoaded());
-    CHECK(rel.Record().credit_rating.Value() == 750);
+    CHECK(rel.Record().value().get().credit_rating.Value() == 750);
 
     rel.Unload();
     CHECK_FALSE(rel.IsLoaded());

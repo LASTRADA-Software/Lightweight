@@ -154,8 +154,8 @@ TEST_CASE("BelongsTo<&User::id>::EmplaceRecord constructs a fresh referenced rec
     auto& user = email.user.EmplaceRecord();
     user.name = SqlAnsiString<30> { "Bob" };
 
-    REQUIRE_NOTHROW(email.user.Record());
-    CHECK(email.user.Record().name.Value() == "Bob");
+    REQUIRE(email.user.Record().has_value());
+    CHECK(email.user.Record()->get().name.Value() == "Bob");
 }
 
 // ================================================================================================

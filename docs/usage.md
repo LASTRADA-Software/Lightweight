@@ -463,7 +463,7 @@ auto albums = dm.Query<Album>()
                 .All();
 
 for (auto& album: albums)
-    for (auto const& track: album.tracks.All())  // already loaded, no query
+    for (auto const& track: album.tracks)  // already loaded, no query
         std::println("{} - {}", album.title, track->title);
 ```
 
@@ -480,7 +480,7 @@ for (auto& album: albums)
   a result already known.
 - Relations that were *not* named keep their on-demand behaviour. Combining `With<>()` with
   `DataMapperOptions { .loadRelations = false }` therefore turns any unrequested relation access into a
-  `SqlRequireLoadedError` instead of a silent query — useful to prove a code path issues no N+1.
+  `RelationError::NotConfigured` instead of a silent query — useful to prove a code path issues no N+1.
 
 #### Nested relations
 
@@ -495,8 +495,7 @@ auto tracks = dm.Query<Track>()
                 .All();
 
 for (auto& track: tracks)
-    std::println("{} - {}", track.album.Record().title,
-                 track.album.Record().artist.Record().name);   // no queries here
+    std::println("{} - {}", track.album->title, track.album->artist->name);   // no queries here
 ```
 
 Three queries in total, for any number of tracks. Each level is resolved for every record reached by
@@ -528,6 +527,77 @@ Measured on 1000 owners with 10 children each, comparing the on-demand path with
 |---|---:|---:|---:|---:|---:|
 | `HasMany` | 1001 | 2 | 8.7x | 45x | 45x |
 | `BelongsTo` | 10001 | 2 | 37x | 464x | 407x |
+
+#### Accessing relations without exceptions
+
+The relation accessors report an unavailable relation as a value, not an exception. They return
+`RelationResult<T>`, which is `std::expected<T, RelationError>`:
+
+| Accessor | Returns |
+|---|---|
+| `BelongsTo::Record()`, `CompositeForeignKey::Record()`, `HasOneThrough::Record()` | `RelationResult<std::reference_wrapper<Record>>` |
+| `HasMany::All()`, `HasManyThrough::All()` | `RelationResult<std::reference_wrapper<List>>` |
+| `HasMany::Count()`, `HasManyThrough::Count()` | `RelationResult<std::size_t>` |
+| `HasMany::IsEmpty()`, `HasManyThrough::IsEmpty()` | `RelationResult<bool>` |
+| `HasMany::Each()`, `HasManyThrough::Each()`, `HasManyThrough::Reload()` | `RelationResult<void>` |
+
+`RelationError` says why the relation is unavailable:
+
+- `NotConfigured` - no loader is installed: the record was built by hand, or read with
+  `DataMapperOptions { .loadRelations = false }`.
+- `NotFound` - there is nothing to load: the foreign key is NULL, or the referenced row does not exist.
+- `Outdated` - the default connection string changed since the record was read (see below). The
+  relation is marked outdated without a query being attempted.
+- `QueryFailed` - the load query failed; the driver's diagnostic goes to `SqlLogger`. It is the only
+  error not remembered: the next access retries. The others stick until the relation is re-pointed,
+  emplaced, unloaded or reloaded.
+
+```cpp
+if (auto const owner = item.owner.Record())
+    std::println("owner: {}", owner->get().name.Value());
+else if (owner.error() == RelationError::NotFound)
+    std::println("no owner");
+```
+
+The shortcuts that cannot return a value - `operator->`, `operator*`, `begin()`/`end()` (range-for),
+`At()` and `operator[]` - throw `SqlRequireLoadedError` instead; its `Error()` names the
+`RelationError`. Use them where the relation is known to be available.
+
+> **Note:** `IsEmpty()` returns a `RelationResult<bool>`, so `if (rel.IsEmpty())` tests whether the call
+> *succeeded*, not whether the relation is empty. Compare explicitly: `rel.IsEmpty() == true`, or
+> `rel.IsEmpty().value_or(false)`.
+
+#### Where an on-demand load runs
+
+A relation that was not eager-loaded runs its query when first touched. That query does not run on the
+mapper the record was read through - a record may outlive it, and a pooled mapper goes back to the pool
+long before the record dies. Instead, each load borrows a mapper of its own for the duration of that one
+query, from the place the record came from:
+
+- a record read through a pooled mapper borrows from **that pool**, so the load counts against the
+  pool's capacity and uses its per-connection settings;
+- a record read through a plain `DataMapper` with the default connection string borrows from
+  `GlobalDataMapperPool()`;
+- a record read through a `DataMapper` with any other connection string reconnects with **that**
+  string, so a record from a second database resolves its relations in that database.
+
+No two loads share a statement or a connection, so a relation touched from inside `HasMany::Each()` -
+which keeps its cursor open while calling back - works on every backend, including SQL Server without
+MARS. A load never waits for a pooled connection either: when a `BoundedWait` pool is at capacity
+(typically because the caller still holds the mapper the record was read through), the load runs on a
+one-off connection instead.
+
+Because the load runs on a connection of its own, it does **not** see rows the caller has written in an
+uncommitted transaction, and on SQL Server it can block on that transaction's locks. Load the relations
+inside the transaction on the caller's own mapper instead - with `With<>()` or `LoadRelations()`.
+
+Records read through a pool or through a mapper on the default connection string belong to the database
+the default pointed at when they were read. After `SqlConnection::SetDefaultConnectionString()` switches
+databases, a relation of such a record that is not loaded yet is marked `RelationError::Outdated` - no
+query is attempted - instead of being resolved in the new database. Load what you need before switching,
+or re-read the records afterwards. Once marked outdated, a relation stays so, even if the default is
+switched back. Records read through a mapper with a connection string of its own are not affected: they
+do not follow the default.
 
 ## Simple row retrieval via structs
 

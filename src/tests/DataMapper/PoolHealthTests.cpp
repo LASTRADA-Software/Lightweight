@@ -6,10 +6,16 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <atomic>
 #include <chrono>
+#include <cstdint>
+#include <filesystem>
 #include <optional>
 #include <ranges>
+#include <regex>
+#include <string>
 #include <thread>
+#include <vector>
 
 using namespace Lightweight;
 using namespace std::chrono_literals;
@@ -354,4 +360,154 @@ TEST_CASE_METHOD(SqlTestFixture, "Pool: UnboundedGrow retires a connection that 
     // ... and the pool still works, creating a fresh connection for the next acquirer.
     auto const fresh = pool.Acquire();
     CHECK(fresh->Connection().IsAlive());
+}
+
+// ================================================================================================
+// Default connection string changes
+//
+// Re-setting the default to its own current value advances the generation without switching the
+// database, so these tests exercise the retirement logic on every backend and leave nothing to restore.
+// ================================================================================================
+
+namespace
+{
+
+constexpr auto OverflowOfOneConfig = PoolConfig {
+    .initialSize = 1,
+    .maxSize = 1,
+    .growthStrategy = GrowthStrategy::BoundedOverflow,
+};
+
+constexpr auto UnboundedEmptyConfig = PoolConfig {
+    .initialSize = 0,
+    .maxSize = 0,
+    .growthStrategy = GrowthStrategy::UnboundedGrow,
+};
+
+} // namespace
+
+TEST_CASE("SqlConnection: every default-connection-string change advances the generation", "[Pool][SqlConnection]")
+{
+    auto const before = SqlConnection::DefaultConnectionStringGeneration();
+    SqlConnection::SetDefaultConnectionString(SqlConnection::DefaultConnectionString());
+    CHECK(SqlConnection::DefaultConnectionStringGeneration() != before);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Pool: an idle connection made before the default connection string changed is not reused",
+                 "[Pool]")
+{
+    auto pool = Pool<OverflowOfOneConfig> {};
+    auto const firstId = pool.Acquire()->Connection().ConnectionId(); // returned straight away
+
+    SqlConnection::SetDefaultConnectionString(SqlConnection::DefaultConnectionString());
+    auto const second = pool.Acquire();
+    CHECK(second->Connection().ConnectionId() != firstId);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Pool: a connection returned after the default connection string changed is retired",
+                 "[Pool]")
+{
+    auto pool = Pool<UnboundedEmptyConfig> {};
+    {
+        auto const held = pool.Acquire();
+        SqlConnection::SetDefaultConnectionString(SqlConnection::DefaultConnectionString());
+    }
+    CHECK(pool.IdleCount() == 0);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Pool: a BoundedWait waiter is not handed a connection to the old default", "[Pool]")
+{
+    auto pool = Pool<SingleSlotWaitConfig> {};
+    auto held = std::optional { pool.Acquire() };
+    auto const heldId = (*held)->Connection().ConnectionId();
+
+    auto waiterId = std::uint64_t {};
+    auto waiter = std::thread { [&] { waiterId = pool.Acquire()->Connection().ConnectionId(); } };
+    while (pool.WaiterCount() == 0)
+        std::this_thread::yield();
+
+    SqlConnection::SetDefaultConnectionString(SqlConnection::DefaultConnectionString());
+    held.reset(); // stale on return: retired, and its slot is handed to the waiter bare
+    waiter.join();
+
+    CHECK(waiterId != 0);
+    CHECK(waiterId != heldId);
+    // The waiter's fresh connection is current, so it came back to the idle set: no capacity leaked.
+    CHECK(pool.IdleCount() == 1);
+    CHECK(pool.Acquire(0ms).has_value());
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Pool: a BoundedWait connection returned stale with nobody waiting frees its slot",
+                 "[Pool]")
+{
+    auto pool = Pool<SingleSlotWaitConfig> {};
+    {
+        auto const held = pool.Acquire();
+        SqlConnection::SetDefaultConnectionString(SqlConnection::DefaultConnectionString());
+    }
+    CHECK(pool.IdleCount() == 0);
+    CHECK(pool.Acquire(0ms).has_value());
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Pool: follows the default connection string to a different database", "[Pool]")
+{
+    auto dm = DataMapper {};
+    if (dm.Connection().ServerType() != SqlServerType::SQLITE)
+        SKIP("needs a second, independent database; trivially a second SQLite file");
+
+    auto const otherFile = std::string { "pool-generation-other.db" };
+    std::filesystem::remove(otherFile);
+    // A copy, not the reference: that is this thread's snapshot, which the setter below rewrites.
+    auto const previous = SqlConnectionString { .value = SqlConnection::DefaultConnectionString().value };
+    // Not ParseConnectionString/BuildConnectionString: the latter braces every value, which the SQLite
+    // ODBC driver keeps as part of the file name.
+    auto const otherString = SqlConnectionString { std::regex_replace(
+        previous.value, std::regex { "Database=[^;]*", std::regex::icase }, "Database=" + otherFile) };
+    {
+        auto other = SqlConnection { otherString };
+        auto stmt = SqlStatement { other };
+        (void) stmt.ExecuteDirect(R"(CREATE TABLE "OnlyInOther" ("Id" INTEGER))");
+    }
+
+    auto pool = Pool<OverflowOfOneConfig> {}; // its idle connection points at the test database
+    SqlConnection::SetDefaultConnectionString(otherString);
+    auto const restore = detail::Finally([&] { SqlConnection::SetDefaultConnectionString(previous); });
+
+    auto const pooled = pool.Acquire();
+    auto stmt = SqlStatement { pooled->Connection() };
+    CHECK(stmt.ExecuteDirectScalar<int>(R"(SELECT COUNT(*) FROM "OnlyInOther")").value_or(-1) == 0);
+}
+
+TEST_CASE("SqlConnection: the default connection string can be replaced while other threads read it",
+          "[Pool][SqlConnection]")
+{
+    // A copy, not the reference: that is this thread's snapshot, which the setter below rewrites.
+    auto const previous = SqlConnectionString { .value = SqlConnection::DefaultConnectionString().value };
+    auto const restore = detail::Finally([&] { SqlConnection::SetDefaultConnectionString(previous); });
+    auto const first = SqlConnectionString { "DRIVER=A;Database=first" };
+    auto const second = SqlConnectionString { "DRIVER=B;Database=second-with-a-longer-value-to-force-reallocation" };
+    SqlConnection::SetDefaultConnectionString(first);
+
+    auto stop = std::atomic<bool> { false };
+    auto torn = std::atomic<int> { 0 };
+    auto readers = std::vector<std::thread> {};
+    for ([[maybe_unused]] auto const _: std::views::iota(0, 4))
+        readers.emplace_back([&] {
+            while (!stop.load())
+            {
+                auto const& value = SqlConnection::DefaultConnectionString().value;
+                if (value != first.value && value != second.value)
+                    ++torn;
+            }
+        });
+    for (auto const i: std::views::iota(0, 2'000))
+        SqlConnection::SetDefaultConnectionString(i % 2 == 0 ? second : first);
+    stop = true;
+    for (auto& reader: readers)
+        reader.join();
+
+    CHECK(torn == 0);
 }

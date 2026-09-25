@@ -91,8 +91,10 @@ TEST_CASE_METHOD(SqlTestFixture, "Description-carrying record auto-loads its Has
             return;
         auto const& loaded = *queried;
 
+        auto const albums = loaded.albums.All();
+        REQUIRE(albums.has_value());
         auto titles = std::set<std::string> {};
-        for (auto const& album: loaded.albums.All())
+        for (auto const& album: albums->get())
             titles.emplace(album->title.Value());
 
         CHECK(titles == std::set<std::string> { "Let There Be Rock", "Powerage" });
