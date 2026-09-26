@@ -120,7 +120,7 @@ jobs:
                 -D CMAKE_C_COMPILER=clang-${{ env.CLANG_TOOLS_VERSION }} \
                 -B build
       - name: "run clang-tidy"
-        run: run-clang-tidy-${{ env.CLANG_TOOLS_VERSION }} -p ./build -clang-tidy-binary clang-tidy-${{ env.CLANG_TOOLS_VERSION }} -config-file .clang-tidy -header-filter='^(?!(.*/)?stdexec-src/|(.*/)?libzip-src/).*$' -source-filter='^(?!.*_deps/).*$'
+        run: run-clang-tidy-${{ env.CLANG_TOOLS_VERSION }} -p ./build -clang-tidy-binary clang-tidy-${{ env.CLANG_TOOLS_VERSION }} -config-file .clang-tidy -header-filter='^(?!(.*/)?stdexec-src/|(.*/)?libzip-src/|(.*/)?\.cpm-cache/).*$' -source-filter='^(?!.*(_deps|\.cpm-cache)/).*$'
 
   # }}}
   # {{{ Windows

@@ -182,3 +182,51 @@ TEST_CASE("Progress capped at 99% before AllDone", "[dbtool][StandardProgressMan
     // The output should contain 99.xx% somewhere in the progress line
     REQUIRE(output.contains("99"));
 }
+
+namespace
+{
+
+/// Drives one table through every state, plus the summary line, and returns what was drawn.
+std::string DrawOneTable(StandardProgressManager& pm, std::stringstream const& out)
+{
+    pm.SetTotalItems(100);
+    SqlBackup::Progress p { .state = SqlBackup::Progress::State::InProgress,
+                            .tableName = "Table1",
+                            .currentRows = 50,
+                            .totalRows = 100,
+                            .message = "Processing" };
+    pm.Update(p);
+    pm.OnItemsProcessed(50);
+    p.state = SqlBackup::Progress::State::Finished;
+    p.currentRows = 100;
+    pm.Update(p);
+    pm.AllDone();
+    return out.str();
+}
+
+} // namespace
+
+TEST_CASE("No synchronized output when the destination is not a terminal", "[dbtool][StandardProgressManager]")
+{
+    // The two-argument constructor is what the other cases use: a stream that is not std::cout is
+    // never a terminal, whatever the process's own standard output is.
+    std::stringstream out;
+    StandardProgressManager pm(false, out);
+
+    std::string const output = DrawOneTable(pm, out);
+    CHECK(output.contains("Table1"));
+    CHECK_FALSE(output.contains("\x1b[?2026"));
+}
+
+TEST_CASE("Synchronized output brackets each frame on a terminal", "[dbtool][StandardProgressManager]")
+{
+    // The counterpart of the case above, so that one cannot pass by never emitting the sequence.
+    std::stringstream out;
+    StandardProgressManager pm(false, out, ProgressDestination::Terminal);
+
+    std::string const output = DrawOneTable(pm, out);
+    CHECK(output.contains("Table1"));
+    CHECK(output.contains("\x1b[?2026h"));
+    CHECK(output.contains("\x1b[?2026l"));
+    CHECK(output.ends_with("\x1b[?2026l"));
+}

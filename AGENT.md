@@ -37,7 +37,7 @@ Bundled tools (in `src/tools/`): `dbtool` (general DB CLI), `ddl2cpp` (schema �
 | `src/tools/`                              | `dbtool/`, `ddl2cpp.cpp`, `large-db-generator/`, `test_chinook.sh` |
 | `src/examples/`                           | Compilable usage samples + Chinook integration; `todo/` shows the async API driven through stdexec senders (`Async::AsSender`) |
 | `src/benchmark/`                          | Performance benchmarks |
-| `cmake/`                                  | `ClangTidy.cmake`, `Coverage.cmake`, `PedanticCompiler.cmake`, `Sanitizers.cmake`, `Version.cmake`, `Lightweight-config.cmake.in` |
+| `cmake/`                                  | `ClangTidy.cmake`, `Coverage.cmake`, `CoreCpp.cmake` (core-cpp for `dbtool`'s terminal output, fetched only with `LIGHTWEIGHT_BUILD_TOOLS`), `PedanticCompiler.cmake`, `Sanitizers.cmake`, `Version.cmake`, `Lightweight-config.cmake.in` |
 | `docs/`                                   | User-facing documentation (`data-binder.md`, `dbtool.md`, `how-to.md`, `sql-migrations.md`, `sqlquery.md`, `usage.md`, `best-practices.md`, `sql-backup-format.md`) |
 | `scripts/tests/docker-databases.py`       | Docker harness for MSSQL/Postgres test containers |
 | `.github/workflows/build.yml`             | Authoritative CI matrix (presets × databases × sanitizers) |

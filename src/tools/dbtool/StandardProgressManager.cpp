@@ -5,21 +5,68 @@
 #include <cmath>
 #include <format>
 #include <iostream>
+#include <string_view>
 
-#ifdef _WIN32
-    #include <io.h> // for _isatty, _fileno
-#else
-    #include <unistd.h> // for isatty, fileno
-#endif
+#include <core/tui/TerminalOutput.hpp>
 
 namespace Lightweight::Tools
 {
 
+/// core-cpp's terminal output, writing to an injected stream instead of the process's standard
+/// output. Composing the escape sequences is core-cpp's; this only says where the bytes go and
+/// whether that is a terminal.
+class OStreamTerminalOutput final: public core::tui::TerminalOutput
+{
+  public:
+    OStreamTerminalOutput(std::ostream& out, ProgressDestination destination):
+        _out { out },
+        _destination { destination }
+    {
+    }
+
+    [[nodiscard]] bool isTerminal() const noexcept override
+    {
+        return _destination == ProgressDestination::Terminal;
+    }
+
+  protected:
+    void writeToDestination(std::string_view bytes) override
+    {
+        _out.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+        _out.flush();
+    }
+
+  private:
+    std::ostream& _out;
+    ProgressDestination _destination;
+};
+
+namespace
+{
+
+    /// Whether @p out is a terminal: only std::cout can be, and only when the operating system says
+    /// the process's standard output is one.
+    ProgressDestination DestinationOf(std::ostream const& out)
+    {
+        if (&out != &std::cout || !core::tui::TerminalOutput {}.isTerminal())
+            return ProgressDestination::NotTerminal;
+        return ProgressDestination::Terminal;
+    }
+
+} // namespace
+
 StandardProgressManager::StandardProgressManager(bool useUnicode, std::ostream& out):
-    _out { out },
+    StandardProgressManager(useUnicode, out, DestinationOf(out))
+{
+}
+
+StandardProgressManager::StandardProgressManager(bool useUnicode, std::ostream& out, ProgressDestination destination):
+    _output { std::make_unique<OStreamTerminalOutput>(out, destination) },
     _useUnicode { useUnicode }
 {
 }
+
+StandardProgressManager::~StandardProgressManager() = default;
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 bool StandardProgressManager::IsPinnedTable(std::string const& tableName) const
@@ -32,58 +79,6 @@ void StandardProgressManager::InsertLineAbovePinned(std::string const& /*tableNa
 {
     // Not used in the new pinning approach
 }
-
-struct SynchronizedOutputGuard
-{
-    std::ostream& _out;
-    bool _enabled = false;
-
-    SynchronizedOutputGuard(std::ostream& out):
-        _out { out }
-    {
-        Begin();
-    }
-
-    ~SynchronizedOutputGuard()
-    {
-        End();
-    }
-
-    SynchronizedOutputGuard(SynchronizedOutputGuard const&) = delete;
-    SynchronizedOutputGuard& operator=(SynchronizedOutputGuard const&) = delete;
-    SynchronizedOutputGuard(SynchronizedOutputGuard&&) = delete;
-    SynchronizedOutputGuard& operator=(SynchronizedOutputGuard&&) = delete;
-
-    static bool IsStdoutTerminal()
-    {
-#ifdef _WIN32
-        return _isatty(_fileno(stdout)) != 0;
-#else
-        return isatty(fileno(stdout)) != 0;
-#endif
-    }
-
-    // Begin Synchronized Update (BSU) - prevents screen tearing
-    // See: https://github.com/contour-terminal/vt-extensions/blob/master/synchronized-output.md
-    void Begin()
-    {
-        if (_enabled || !IsStdoutTerminal())
-            return;
-        _out << "\033[?2026h";
-        _out.flush();
-        _enabled = true;
-    }
-
-    // End Synchronized Update (ESU) - terminal renders the complete frame now
-    void End()
-    {
-        if (!_enabled)
-            return;
-        _out << "\033[?2026l";
-        _out.flush();
-        _enabled = false;
-    }
-};
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void StandardProgressManager::Update(SqlBackup::Progress const& p)
@@ -105,8 +100,9 @@ void StandardProgressManager::Update(SqlBackup::Progress const& p)
 
     bool const isPinned = IsPinnedTable(p.tableName);
 
-    // Use synchronized output to prevent screen tearing
-    auto const synchronizedOutput = SynchronizedOutputGuard(_out);
+    // One repaint: syncGuard() flushes it to the stream as a unit when it ends, bracketed in
+    // synchronized output when the stream is a terminal, so the terminal never shows half of it.
+    auto const frame = _output->syncGuard();
 
     if (!_tableLines.contains(p.tableName))
     {
@@ -127,12 +123,12 @@ void StandardProgressManager::Update(SqlBackup::Progress const& p)
             _lineTableMapping.push_back(p.tableName);
             _pinnedTableName = p.tableName;
             _hasPinnedLine = true;
-            _out << "\n"; // Reserve a line
+            _output->linefeed(); // Reserve a line
 
             // If we have a summary line and haven't allocated it yet, do so now
             if (_hasSummaryLine && !_summaryLineAllocated)
             {
-                _out << "\n"; // Reserve a line for the summary
+                _output->linefeed(); // Reserve a line for the summary
                 _summaryLineAllocated = true;
                 PrintSummaryLine();
             }
@@ -153,14 +149,14 @@ void StandardProgressManager::Update(SqlBackup::Progress const& p)
             _lineTableMapping[static_cast<size_t>(newIndex)] = p.tableName;
 
             _nextLineIndex++;
-            _out << "\n"; // Reserve a new line
+            _output->linefeed(); // Reserve a new line
 
             // Handle summary line: allocate if needed, always repaint at new position
             if (_hasSummaryLine)
             {
                 if (!_summaryLineAllocated)
                 {
-                    _out << "\n"; // Reserve a line for the summary
+                    _output->linefeed(); // Reserve a line for the summary
                     _summaryLineAllocated = true;
                 }
             }
@@ -179,14 +175,14 @@ void StandardProgressManager::Update(SqlBackup::Progress const& p)
             // Normal case: no pinned line, just append
             _tableLines[p.tableName] = _nextLineIndex++;
             _lineTableMapping.push_back(p.tableName);
-            _out << "\n"; // Reserve a line
+            _output->linefeed(); // Reserve a line
 
             // Handle summary line: allocate if needed, always repaint at new position
             if (_hasSummaryLine)
             {
                 if (!_summaryLineAllocated)
                 {
-                    _out << "\n"; // Reserve a line for the summary
+                    _output->linefeed(); // Reserve a line for the summary
                     _summaryLineAllocated = true;
                 }
                 PrintSummaryLine();
@@ -250,7 +246,7 @@ void StandardProgressManager::AllDone()
 {
     std::scoped_lock lock(_mutex);
 
-    auto const synchronizedOutput = SynchronizedOutputGuard(_out);
+    auto const frame = _output->syncGuard();
 
     // Final repaint of summary line to show 100% complete
     _isFinished = true;
@@ -268,40 +264,40 @@ void StandardProgressManager::AllDone()
     auto const s = (total_ms % 60000) / 1000;
     auto const ms = total_ms % 1000;
 
-    _out << "\n";
+    _output->linefeed();
 
     // Include total items processed if ETA tracking was enabled
     if (_totalItems > 0)
     {
         size_t const processed = _processedItems.load();
         auto const rate = static_cast<double>(processed) / (static_cast<double>(total_ms) / 1000.0);
-        _out << std::format(
-            "Total time: {:02}:{:02}:{:02}.{:03} | {} rows processed | {:.0f} rows/s\n", h, m, s, ms, processed, rate);
+        _output->writeRaw(std::format(
+            "Total time: {:02}:{:02}:{:02}.{:03} | {} rows processed | {:.0f} rows/s\n", h, m, s, ms, processed, rate));
     }
     else
     {
-        _out << std::format("Total time: {:02}:{:02}:{:02}.{:03}\n", h, m, s, ms);
+        _output->writeRaw(std::format("Total time: {:02}:{:02}:{:02}.{:03}\n", h, m, s, ms));
     }
 
     if (_issuesByTable.empty())
         return;
 
-    _out << "\nIssues:\n";
+    _output->writeRaw("\nIssues:\n");
     for (auto const& [tableName, issues]: _issuesByTable)
     {
-        _out << std::format("  {}:\n", tableName);
+        _output->writeRaw(std::format("  {}:\n", tableName));
         for (auto const& issue: issues)
         {
             switch (issue.type)
             {
                 case IssueType::Error:
-                    _out << std::format("    ❌ {}\n", issue.message);
+                    _output->writeRaw(std::format("    ❌ {}\n", issue.message));
                     break;
                 case IssueType::Warning:
-                    _out << std::format("    ⚠️  {}\n", issue.message);
+                    _output->writeRaw(std::format("    ⚠️  {}\n", issue.message));
                     break;
                 case IssueType::Info:
-                    _out << std::format("    ℹ️  {}\n", issue.message);
+                    _output->writeRaw(std::format("    ℹ️  {}\n", issue.message));
                     break;
             }
         }
@@ -347,8 +343,9 @@ void StandardProgressManager::PrintLine(int lineIndex, SqlBackup::Progress const
     int const totalLines = _nextLineIndex + (_hasSummaryLine ? 1 : 0);
     int const linesUp = totalLines - lineIndex;
 
-    _out << "\033[" << linesUp << "A"; // Move up
-    _out << "\r\033[K";                // Clear line
+    _output->moveUp(linesUp);
+    _output->carriageReturn();
+    _output->clearToEndOfLine();
 
     // Render progress
     std::string statusIcon;
@@ -438,9 +435,10 @@ void StandardProgressManager::PrintLine(int lineIndex, SqlBackup::Progress const
     auto const timeStr = std::format("{:02}:{:02}:{:02}.{:03}", h, m, s, ms);
 
     // Icon + Time + Name + Bar + Load + Message
-    _out << std::format("{} {} {:<{}} {}{} {}", statusIcon, timeStr, p.tableName, _maxTableNameLength, bar, load, p.message);
-    _out << "\033[" << linesUp << "B"; // Move down
-    _out << "\r";                      // Return carriage
+    _output->writeRaw(
+        std::format("{} {} {:<{}} {}{} {}", statusIcon, timeStr, p.tableName, _maxTableNameLength, bar, load, p.message));
+    _output->moveDown(linesUp);
+    _output->carriageReturn();
 }
 
 void StandardProgressManager::SetTotalItems(size_t totalItems)
@@ -510,7 +508,7 @@ void StandardProgressManager::OnItemsProcessed(size_t count)
         // Update summary line
         if (_hasSummaryLine)
         {
-            auto const synchronizedOutput = SynchronizedOutputGuard(_out);
+            auto const frame = _output->syncGuard();
             PrintSummaryLine();
         }
     }
@@ -525,8 +523,9 @@ void StandardProgressManager::PrintSummaryLine()
     // Summary line is always 1 line above the cursor (at the bottom)
     int const linesUp = 1;
 
-    _out << "\033[" << linesUp << "A"; // Move up
-    _out << "\r\033[K";                // Clear line
+    _output->moveUp(linesUp);
+    _output->carriageReturn();
+    _output->clearToEndOfLine();
 
     size_t const processed = _processedItems.load();
     size_t const total = _totalItems;
@@ -635,11 +634,11 @@ void StandardProgressManager::PrintSummaryLine()
     auto const ms = total_ms % 1000;
     auto const timeStr = std::format("{:02}:{:02}:{:02}.{:03}", h, m, s, ms);
 
-    _out << std::format(
-        "📊 {} {:<{}} {}{:5.2f}% ({}, ETA: {})", timeStr, "progress ", _maxTableNameLength, bar, pct, rateStr, etaStr);
+    _output->writeRaw(std::format(
+        "📊 {} {:<{}} {}{:5.2f}% ({}, ETA: {})", timeStr, "progress ", _maxTableNameLength, bar, pct, rateStr, etaStr));
 
-    _out << "\033[" << linesUp << "B"; // Move down
-    _out << "\r";                      // Return carriage
+    _output->moveDown(linesUp);
+    _output->carriageReturn();
 }
 
 } // namespace Lightweight::Tools
