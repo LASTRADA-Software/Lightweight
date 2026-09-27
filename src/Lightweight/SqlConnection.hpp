@@ -13,6 +13,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <expected>
 #include <format>
 #include <functional>
@@ -98,15 +99,42 @@ class SqlConnection final
     LIGHTWEIGHT_API ~SqlConnection() noexcept;
 
     /// Retrieves the default connection information.
-    LIGHTWEIGHT_API static SqlConnectionString const& DefaultConnectionString() noexcept;
+    ///
+    /// Thread-safe: the reference is to the calling thread's own snapshot of the default, refreshed
+    /// when the application has replaced it since (see @ref SetDefaultConnectionString), so another
+    /// thread replacing the default never changes the string under a reader. The same thread's next
+    /// call may, so copy it if it must stay fixed across such a switch.
+    ///
+    /// @return The calling thread's snapshot of the current default connection string.
+    [[nodiscard]] LIGHTWEIGHT_API static SqlConnectionString const& DefaultConnectionString();
+
+    /// Identifies the current default connection string.
+    ///
+    /// Incremented by every @ref SetDefaultConnectionString and @ref SetDefaultDataSource, so anything
+    /// that caches a connection made from the default - a connection pool, the migration manager's
+    /// mapper - can tell that it now points at a database the application has switched away from.
+    /// Compare for equality only; the counter wraps.
+    ///
+    /// Read it *before* reading @ref DefaultConnectionString(), since the setters publish the new string
+    /// first and the new generation second, so a connection stamped that way can only ever be
+    /// considered older than it is, never newer.
+    ///
+    /// @return The generation of the current default connection string.
+    [[nodiscard]] LIGHTWEIGHT_API static std::uint32_t DefaultConnectionStringGeneration() noexcept;
 
     /// Sets the default connection information.
     ///
+    /// Thread-safe. Connections already made from the previous default are not touched; pooled ones
+    /// are retired as they are next borrowed or returned (see @ref DefaultConnectionStringGeneration).
+    ///
     /// @param connectionString The connection information to use.
-    LIGHTWEIGHT_API static void SetDefaultConnectionString(SqlConnectionString const& connectionString) noexcept;
+    LIGHTWEIGHT_API static void SetDefaultConnectionString(SqlConnectionString const& connectionString);
 
     /// Sets the default connection information as SqlConnectionDataSource.
-    LIGHTWEIGHT_API static void SetDefaultDataSource(SqlConnectionDataSource const& dataSource) noexcept;
+    ///
+    /// @param dataSource The data source to flatten into the default connection string.
+    /// @see SetDefaultConnectionString
+    LIGHTWEIGHT_API static void SetDefaultDataSource(SqlConnectionDataSource const& dataSource);
 
     /// Sets a callback to be called after each connection being established.
     LIGHTWEIGHT_API static void SetPostConnectedHook(std::function<void(SqlConnection&)> hook);

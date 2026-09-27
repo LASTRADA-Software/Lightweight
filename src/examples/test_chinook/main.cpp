@@ -190,9 +190,14 @@ int main()
     // The other direction: HasMany<Track> is a relation member, not a column, so it only loads if the
     // generated Description<Album> lists it alongside the columns (#556). Traversing it here keeps the
     // ddl2cpp CI leg covering that end to end.
-    Log("Album has {} tracks", album.Track_1.Count());
-    for (auto const& track: album.Track_1.All())
-        Log("  Track: {}", toString(track->Name.Value().ToStringView()));
+    if (auto const tracks = album.Track_1.All())
+    {
+        Log("Album has {} tracks", tracks->get().size());
+        for (auto const& track: tracks->get())
+            Log("  Track: {}", toString(track->Name.Value().ToStringView()));
+    }
+    else
+        Log("Album tracks are unavailable: {}", tracks.error());
 
     {
         // get an artist with the name "Sir Georg Solti, Sumi Jo & Wiener Philharmoniker"

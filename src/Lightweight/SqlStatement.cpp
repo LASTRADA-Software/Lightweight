@@ -443,24 +443,20 @@ void SqlStatement::Prepare(std::string_view query) &
     if (cache != nullptr && reusePreparedQuery)
         cache->RecordDirectReuse();
 
+    // m_preparedQuery names what the handle holds, so a new text is committed to it only once the handle
+    // holds it: straight away for a pooled handle prepared for it, otherwise by PrepareOnHandle() once
+    // SQLPrepareW succeeded. Copied up front because `query` may view m_preparedQuery itself (e.g.
+    // stmt.Prepare(stmt.PreparedQuery())), which AcquirePreparedHandle() clears when it parks the handle.
+    // Reusing needs neither: m_preparedQuery already holds exactly this text, and that is the hot path
+    // a repeated Prepare() of one query takes.
     auto acquiredFromCache = false;
-    if (cache != nullptr && !reusePreparedQuery)
+    auto queryText = std::string {};
+    if (!reusePreparedQuery)
     {
-        // Copy the query text up front: AcquirePreparedHandle() clears m_preparedQuery when it parks
-        // the handle we currently hold, which would dangle a `query` that views this statement's own
-        // text (e.g. stmt.Prepare(stmt.PreparedQuery())).
-        auto queryText = std::string(query);
-        acquiredFromCache = AcquirePreparedHandle(*cache, queryText);
-        // AcquirePreparedHandle() cleared m_preparedQuery whether or not it found a pooled match, so
-        // this is the assignment that restores it.
-        m_preparedQuery = std::move(queryText);
+        queryText = std::string(query);
+        if (cache != nullptr)
+            acquiredFromCache = AcquirePreparedHandle(*cache, queryText);
     }
-    else if (!reusePreparedQuery)
-        // Nothing could have parked the handle, so m_preparedQuery is simply replaced. Built from a
-        // temporary rather than assigned in place, because `query` may view m_preparedQuery itself.
-        m_preparedQuery = std::string(query);
-    // The remaining case needs no assignment at all: reusePreparedQuery means m_preparedQuery already
-    // holds exactly this text, and that is the hot path a repeated Prepare() of one query takes.
 
     bool const skipReprepare = acquiredFromCache || reusePreparedQuery;
 
@@ -495,22 +491,20 @@ void SqlStatement::Prepare(std::string_view query) &
     // but psqlODBC has historically treated SQL_C_CHAR parameter binds differently
     // depending on the variant of the most recent statement-text call — so we keep
     // the path uniformly W to side-step that.
-    if (!skipReprepare)
-    {
-        auto wQuery = detail::OdbcWideArg { std::string_view { m_preparedQuery } };
-        RequireSuccess(SQLPrepareW(m_hStmt, wQuery.data(), static_cast<SQLINTEGER>(wQuery.buffer.size())));
-        RequireSuccess(SQLNumParams(m_hStmt, &m_expectedParameterCount));
-        m_preparedParameterCount = m_expectedParameterCount;
-    }
-    else if (!acquiredFromCache)
+    if (acquiredFromCache)
+        // The pooled handle holds exactly this text, and AcquirePreparedHandle() already restored
+        // m_expectedParameterCount from its recorded (never-sentinel) parameter count; see
+        // ReleasePreparedHandle().
+        m_preparedQuery = std::move(queryText);
+    else if (!skipReprepare)
+        PrepareOnHandle(std::move(queryText));
+    else
         // The own-handle fast path skipped SQLNumParams(), so restore what it would have reported.
         // BindInputParameter() overwrites m_expectedParameterCount with SQLSMALLINT max to mean "the
         // caller bound the parameters by hand"; leaving that in place would make the next
         // Execute()/ExecuteBatch() reject its argument count (e.g. Create() followed by CreateAll(),
         // which prepare byte-identical INSERT text), and would size the indicator vector to 32768 entries.
         m_expectedParameterCount = m_preparedParameterCount;
-    // else: acquiredFromCache — AcquirePreparedHandle() already restored m_expectedParameterCount from
-    // the pooled handle's recorded (never-sentinel) parameter count; see ReleasePreparedHandle().
 
     m_data->indicators.resize(static_cast<size_t>(m_expectedParameterCount) + 1);
 }
@@ -553,12 +547,34 @@ bool SqlStatement::RetryStalePreparedStatement(SQLRETURN result)
     SqlLogger::GetLogger().OnWarning(std::format(
         "Re-preparing statement after the server rejected the cached one ({}): {}", errorInfo.sqlState, m_preparedQuery));
 
-    auto wQuery = detail::OdbcWideArg { std::string_view { m_preparedQuery } };
-    RequireSuccess(SQLPrepareW(m_hStmt, wQuery.data(), static_cast<SQLINTEGER>(wQuery.buffer.size())));
-    RequireSuccess(SQLNumParams(m_hStmt, &m_expectedParameterCount));
-    m_preparedParameterCount = m_expectedParameterCount;
+    PrepareOnHandle(std::string { m_preparedQuery });
     m_reusedPreparedQuery = false;
     return true;
+}
+
+void SqlStatement::PrepareOnHandle(std::string queryText)
+{
+    try
+    {
+        auto wQuery = detail::OdbcWideArg { std::string_view { queryText } };
+        RequireSuccess(SQLPrepareW(m_hStmt, wQuery.data(), static_cast<SQLINTEGER>(wQuery.buffer.size())));
+        RequireSuccess(SQLNumParams(m_hStmt, &m_expectedParameterCount));
+        m_preparedParameterCount = m_expectedParameterCount;
+        m_preparedQuery = std::move(queryText);
+    }
+    catch (...)
+    {
+        // After a failed prepare (SQLite prepares eagerly and fails right here) the handle holds no
+        // known statement, so no text may stay recorded for it: the next Prepare() of that text would
+        // take the reuse fast path, skip SQLPrepareW, and execute whatever the handle last held with a
+        // stale parameter count - and the handle must not be parked in the prepared-statement cache
+        // under it either.
+        m_preparedQuery.clear();
+        m_expectedParameterCount = 0;
+        m_preparedParameterCount = 0;
+        m_reusedPreparedQuery = false;
+        throw;
+    }
 }
 
 SQLUSMALLINT SqlStatement::ResolveColumnName(std::string_view name) const

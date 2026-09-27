@@ -347,8 +347,10 @@ struct SqlDataBinder<SqlNumeric<Precision, Scale>>
     }
 
 
+    /// @throws SqlException The descriptor calls below failed. Not `noexcept` for the same reason as
+    ///         GetColumn: RequireSuccess throws.
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(
-        SQLHSTMT stmt, SQLUSMALLINT column, ValueType* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept
+        SQLHSTMT stmt, SQLUSMALLINT column, ValueType* result, SQLLEN* indicator, SqlDataBinderCallback& cb)
     {
         if (NativeNumericSupportIsBroken(cb.ServerType()))
         {

@@ -34,7 +34,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Fetch from Local data mapper", "[DataMapper],[
 {
     auto pool = exec::static_thread_pool(3);
 
-    DataMapper& dm = DataMapper::AcquireThreadLocal();
+    auto dm = DataMapper {};
     dm.CreateTables<User, Email>();
 
     auto user = User { .id = SqlGuid::Create(), .name = "John Doe" };
@@ -51,7 +51,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Fetch from Local data mapper", "[DataMapper],[
     auto sched = pool.get_scheduler();
 
     auto fetch = [](Light::SqlGuid id) -> Email {
-        DataMapper& dm = DataMapper::AcquireThreadLocal();
+        auto dm = DataMapper {};
         return dm.QuerySingle<Email>(id).value();
     };
 
@@ -180,7 +180,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Pool: Concurrent acquire with thread pool", "[
 {
     auto pool = Pool<PoolConfig { .initialSize = 3, .maxSize = 0, .growthStrategy = GrowthStrategy::UnboundedGrow }>();
 
-    DataMapper& dm = DataMapper::AcquireThreadLocal();
+    auto dm = DataMapper {};
     dm.CreateTables<Person>();
 
     // Insert test data

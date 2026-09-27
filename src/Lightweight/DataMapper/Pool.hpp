@@ -15,10 +15,12 @@
 #include <cstdint>
 #include <deque>
 #include <expected>
+#include <format>
 #include <functional>
 #include <memory>
 #include <mutex>
 #include <ranges>
+#include <shared_mutex>
 #include <stdexcept>
 #include <vector>
 
@@ -178,12 +180,19 @@ class Pool
     /// measures the connection's total age rather than the time since it was last idled.
     /// @c idleSince is refreshed each time the mapper is stored in the idle set.
     ///
+    /// @c generation is the @ref SqlConnection::DefaultConnectionStringGeneration the connection was
+    /// made under. Once the application replaces the default connection string, entries of an older
+    /// generation point at a database it has switched away from, and are retired rather than reused.
+    ///
     /// An entry whose @c mapper is null is the empty result of @ref TakeIdleLocked, not a pooled entry.
+    /// Handed to a waiter, it transfers a checked-out slot without a connection (see
+    /// @ref ReleaseSlotLocked): the waiter then connects for itself.
     struct Entry
     {
         std::unique_ptr<DataMapper> mapper;
         Clock::time_point createdAt {};
         Clock::time_point idleSince {};
+        std::uint32_t generation {};
     };
 
   public:
@@ -281,13 +290,22 @@ class Pool
     [[nodiscard]] Entry MakeEntry() const
     {
         auto const now = NowIfTracking();
+        // Read before the mapper reads the default connection string: the setter publishes the string
+        // first and the generation second, so this order can only stamp an entry older than it is
+        // (retired early, harmlessly), never newer (reused against the wrong database).
+        auto const generation = SqlConnection::DefaultConnectionStringGeneration();
         auto mapper = std::make_unique<DataMapper>();
         // The one place a pooled connection comes into existence, so a pool-wide connection setting is
         // applied here rather than at each call site. Compile-time gated, so a pool left at the default
         // capacity emits exactly the code it did before the setting existed.
         if constexpr (Config.preparedStatementCacheCapacity != 0)
             mapper->Connection().SetPreparedStatementCacheCapacity(Config.preparedStatementCacheCapacity);
-        return Entry { std::move(mapper), now, now };
+        // Records read through this mapper load their relations from this pool, not from the mapper
+        // itself, which goes back to the pool (and to other callers) long before a record dies.
+        detail::AdoptRelationLoadSource(
+            *mapper,
+            detail::PinToDefaultConnectionString(_relationLoadSource, mapper->Connection().ConnectionString(), generation));
+        return Entry { .mapper = std::move(mapper), .createdAt = now, .idleSince = now, .generation = generation };
     }
 
     /// Decides whether an idle connection may still be handed to a caller.
@@ -301,11 +319,8 @@ class Pool
     ///         its connection is still reported alive.
     [[nodiscard]] bool IsUsable(Entry const& entry, Clock::time_point now) const noexcept
     {
-        if constexpr (Config.maxLifetimeMs > 0)
-        {
-            if (now - entry.createdAt >= Config.MaxLifetime())
-                return false;
-        }
+        if (MustRetire(entry, now))
+            return false;
         if constexpr (Config.maxIdleTimeMs > 0)
         {
             if (now - entry.idleSince >= Config.MaxIdleTime())
@@ -342,15 +357,26 @@ class Pool
         return {};
     }
 
-    /// @param entry The entry about to be stored in the idle set.
-    /// @param now The current time, as returned by @ref NowIfTracking.
-    /// @return true when the connection has outlived @ref PoolConfig::maxLifetimeMs and must be
-    ///         retired instead of idled. Checking this on return as well as on borrow releases the
-    ///         connection as soon as it is no longer wanted, rather than holding it until the next
-    ///         acquire. The idle bound is not checked here — the entry is idle for zero time.
-    [[nodiscard]] static bool IsPastLifetime([[maybe_unused]] Entry const& entry,
-                                             [[maybe_unused]] Clock::time_point now) noexcept
+    /// @param entry The entry under consideration.
+    /// @return true when @p entry was made from the current default connection string.
+    [[nodiscard]] static bool IsCurrentGeneration(Entry const& entry) noexcept
     {
+        return entry.generation == SqlConnection::DefaultConnectionStringGeneration();
+    }
+
+    /// The retirement rules that hold whether a connection is being borrowed or returned. Checking
+    /// them on return as well as on borrow releases the connection as soon as it is no longer
+    /// wanted, rather than holding it until the next acquire. The idle bound and the liveness check
+    /// apply to borrowing only (see @ref IsUsable): a returned entry has been idle for zero time.
+    ///
+    /// @param entry The entry under consideration.
+    /// @param now The current time, as returned by @ref NowIfTracking.
+    /// @return true when the connection has outlived @ref PoolConfig::maxLifetimeMs, or was made from
+    ///         a default connection string the application has since replaced.
+    [[nodiscard]] static bool MustRetire(Entry const& entry, [[maybe_unused]] Clock::time_point now) noexcept
+    {
+        if (!IsCurrentGeneration(entry))
+            return true;
         if constexpr (Config.maxLifetimeMs > 0)
             return now - entry.createdAt >= Config.MaxLifetime();
         else
@@ -363,7 +389,7 @@ class Pool
     {
         DropAsyncBackend(*entry.mapper);
         auto const now = NowIfTracking();
-        if (IsPastLifetime(entry, now))
+        if (MustRetire(entry, now))
         {
             // Retired rather than idled: destroyed here, so it counts as a discarded release. The
             // idle set is untouched, so the occupancy gauge needs no update (and _mutex is not held).
@@ -393,6 +419,21 @@ class Pool
         // Resume outside the lock to avoid re-entrancy (the resumed coroutine may call back into the pool).
         if (toResume)
             toResume->resume->Resume(toResume->handle);
+    }
+
+    /// Takes what @ref ReturnLocked or @ref ReleaseSlotLocked handed a fulfilled sync waiter: a
+    /// connection, or a bare slot to connect for (outside @c _mutex, see @ref ConnectForTransferredSlot).
+    ///
+    /// @param node The fulfilled waiter node.
+    /// @param lock The caller's lock on @c _mutex; released before a connect.
+    /// @return The pooled data mapper.
+    PooledDataMapper TakeHandedOff(WaiterNode& node, std::unique_lock<std::mutex>& lock)
+        requires(Config.growthStrategy == GrowthStrategy::BoundedWait)
+    {
+        if (node.entry.mapper)
+            return PooledDataMapper(*this, std::move(node.entry));
+        lock.unlock();
+        return PooledDataMapper(*this, ConnectForTransferredSlot());
     }
 
     /// Produces a data mapper for a caller without waiting: reuses a usable idle one, otherwise
@@ -442,14 +483,17 @@ class Pool
     std::shared_ptr<WaiterNode> ReturnLocked(Entry entry, Entry& retired) noexcept
         requires(Config.growthStrategy == GrowthStrategy::BoundedWait)
     {
-        while (!_waiters.empty())
+        if (!IsCurrentGeneration(entry))
         {
-            auto node = _waiters.front();
-            _waiters.pop_front();
-            // _waiters only ever holds parked nodes (an async awaitable de-registers itself on
-            // abandonment, and so does a timed-out Acquire(timeout)), but guard defensively.
-            if (node->state != WaiterNode::State::Parked)
-                continue;
+            // Made from a default connection string the application has replaced since: it must reach
+            // neither the idle set nor a waiter, who would silently talk to the old database. The slot
+            // it held is passed on bare instead, and the waiter connects for itself.
+            retired = std::move(entry); // destroyed by the caller, after _mutex is released
+            LIGHTWEIGHT_STATS_POOL_RELEASE(true);
+            return ReleaseSlotLocked();
+        }
+        if (auto node = NextParkedWaiterLocked())
+        {
             // A direct hand-off deliberately skips the health bounds and the liveness check. A waiter
             // is blocked on a predicate only a hand-off satisfies, so retiring the connection here
             // would strand it, and manufacturing a replacement means a DataMapper construction that
@@ -461,18 +505,13 @@ class Pool
             // The hand-off is both a release by the returner and a (reusing) acquire by the waiter.
             LIGHTWEIGHT_STATS_POOL_RELEASE(false);
             LIGHTWEIGHT_STATS_POOL_OCCUPANCY(_idleDataMappers.size(), _checkedOut);
-            node->state = WaiterNode::State::Fulfilled;
-            node->entry = std::move(entry); // hand off ownership; _checkedOut stays (transferred)
-            if (node->kind == WaiterNode::Kind::Async)
-                return node;       // resumed by the caller outside the lock
-            node->cv.notify_one(); // wake the blocked Acquire(); it consumes node->entry
-            return nullptr;
+            return FulfilLocked(std::move(node), std::move(entry));
         }
         // No waiter: the connection goes idle, so the lifetime bound applies. Releasing the slot
         // matters either way — a retired connection frees capacity just as an idled one does.
         --_checkedOut;
         auto const now = NowIfTracking();
-        if (IsPastLifetime(entry, now))
+        if (MustRetire(entry, now))
         {
             retired = std::move(entry); // destroyed by the caller, after _mutex is released
             // Retired rather than idled: the connection is destroyed, so it counts as a discard.
@@ -489,13 +528,92 @@ class Pool
         return nullptr;
     }
 
+    /// Releases a checked-out slot that no connection comes back with: hands it to the next FIFO
+    /// waiter as an entry with a null mapper (the waiter then connects for itself, see
+    /// @ref ConnectForTransferredSlot), or frees it when nobody waits.
+    ///
+    /// @pre @c _mutex is held by the caller.
+    /// @return The async waiter node handed the slot, to be resumed by the caller after releasing
+    ///         @c _mutex; @c nullptr if a sync waiter was woken in place, or the slot was freed.
+    std::shared_ptr<WaiterNode> ReleaseSlotLocked() noexcept
+        requires(Config.growthStrategy == GrowthStrategy::BoundedWait)
+    {
+        if (auto node = NextParkedWaiterLocked())
+            return FulfilLocked(std::move(node), Entry {}); // the slot alone: _checkedOut stays (transferred)
+        --_checkedOut;
+        LIGHTWEIGHT_STATS_POOL_OCCUPANCY(_idleDataMappers.size(), _checkedOut);
+        return nullptr;
+    }
+
+    /// Takes the longest-waiting parked acquirer off @c _waiters.
+    ///
+    /// @pre @c _mutex is held by the caller.
+    /// @return The waiter, or @c nullptr when none is parked.
+    [[nodiscard]] std::shared_ptr<WaiterNode> NextParkedWaiterLocked() noexcept
+    {
+        while (!_waiters.empty())
+        {
+            auto node = std::move(_waiters.front());
+            _waiters.pop_front();
+            // _waiters only ever holds parked nodes (an async awaitable de-registers itself on
+            // abandonment, and so does a timed-out Acquire(timeout)), but guard defensively.
+            if (node->state == WaiterNode::State::Parked)
+                return node;
+        }
+        return nullptr;
+    }
+
+    /// Hands @p entry - a connection, or a bare slot - to @p node, transferring the checked-out slot.
+    ///
+    /// @pre @c _mutex is held by the caller.
+    /// @param node The parked waiter to serve.
+    /// @param entry What it receives.
+    /// @return @p node when it is an async waiter, to be resumed by the caller after releasing
+    ///         @c _mutex; @c nullptr for a sync waiter, which is woken here.
+    [[nodiscard]] static std::shared_ptr<WaiterNode> FulfilLocked(std::shared_ptr<WaiterNode> node, Entry entry) noexcept
+    {
+        node->state = WaiterNode::State::Fulfilled;
+        node->entry = std::move(entry);
+        if (node->kind == WaiterNode::Kind::Async)
+            return node;       // resumed by the caller outside the lock
+        node->cv.notify_one(); // wake the blocked Acquire(); it consumes node->entry
+        return nullptr;
+    }
+
+    /// Connects for a waiter that was handed a bare slot by @ref ReleaseSlotLocked. The slot is
+    /// already counted in @c _checkedOut; if the connect fails, it is released again (to the next
+    /// waiter, or freed) so the pool's capacity does not shrink.
+    ///
+    /// @pre @c _mutex is not held by the caller.
+    /// @return The fresh entry; its mapper is never null.
+    /// @throws Whatever @ref MakeEntry throws, after releasing the slot.
+    [[nodiscard]] Entry ConnectForTransferredSlot()
+        requires(Config.growthStrategy == GrowthStrategy::BoundedWait)
+    {
+        try
+        {
+            return MakeEntry();
+        }
+        catch (...)
+        {
+            std::shared_ptr<WaiterNode> toResume;
+            {
+                std::scoped_lock const lock(_mutex);
+                toResume = ReleaseSlotLocked();
+            }
+            if (toResume)
+                toResume->resume->Resume(toResume->handle);
+            throw;
+        }
+    }
+
     /// for bounded overflow strategy, only return to pool if we have capacity, otherwise just destroy the data mapper
     void Return(Entry entry) noexcept
         requires(Config.growthStrategy == GrowthStrategy::BoundedOverflow)
     {
         DropAsyncBackend(*entry.mapper);
         auto const now = NowIfTracking();
-        if (IsPastLifetime(entry, now))
+        if (MustRetire(entry, now))
         {
             // Retired rather than idled: destroyed here, so it counts as a discarded release. The
             // idle set is untouched, so the occupancy gauge needs no update (and _mutex is not held).
@@ -534,6 +652,8 @@ class Pool
     /// which may leak resources if not handled properly.
     ~Pool() noexcept
     {
+        // Records read through this pool may outlive it; their relation loads fall back from now on.
+        _relationLoadSource->Detach();
         // A parked AcquireAsync coroutine (or a thread blocked in Acquire) holds a reference back to this
         // pool, so destroying the pool out from under it is undefined: drive every AcquireAsync task to
         // completion and let every blocked Acquire() return first. The assert catches this in debug; the
@@ -578,7 +698,7 @@ class Pool
             true,
             true);
         LIGHTWEIGHT_STATS_POOL_OCCUPANCY(_idleDataMappers.size(), _checkedOut);
-        return PooledDataMapper(*this, std::move(node->entry));
+        return TakeHandedOff(*node, lock);
     }
 
     /// Acquires a data mapper, giving up if none becomes available within @p timeout.
@@ -616,7 +736,7 @@ class Pool
             true,
             true);
         LIGHTWEIGHT_STATS_POOL_OCCUPANCY(_idleDataMappers.size(), _checkedOut);
-        return PooledDataMapper(*this, std::move(node->entry));
+        return TakeHandedOff(*node, lock);
     }
 
     /// Function to acquire a data mapper from the pool, the behavior of this function depends on the growth strategy
@@ -721,6 +841,21 @@ class Pool
         _clock = std::move(clock);
     }
 
+    /// The source through which records read from this pool's mappers load their relations.
+    ///
+    /// Each lazy relation load borrows a mapper from this pool for its own duration, so it counts
+    /// against the pool's capacity, is health-checked like any other checkout, and uses the pool's
+    /// per-connection settings. A load never waits for a connection, though: when a
+    /// @ref GrowthStrategy::BoundedWait pool is at capacity - typically because the caller still holds
+    /// the mapper the record was read through - the load runs on a one-off connection instead.
+    ///
+    /// @return The source; never null. Outlives the pool as long as records hold it, falling back
+    ///         to a fresh connection with the default connection string once the pool is destroyed.
+    [[nodiscard]] std::shared_ptr<detail::RelationLoadSource> LoadSourceForRelations() const noexcept
+    {
+        return _relationLoadSource;
+    }
+
 #if defined(BUILD_TESTS)
     [[nodiscard]] size_t IdleCount() noexcept
     {
@@ -738,6 +873,89 @@ class Pool
 #endif
 
   private:
+    /// Lends this pool's mappers to relation auto-loaders, one load at a time.
+    ///
+    /// @ref MakeEntry attaches it - pinned to the entry's connection string - to every mapper this pool
+    /// creates; the loaders that mapper then installs on the records it reads call @c Borrow(). See
+    /// @c detail::RelationLoadSource for the full call path.
+    class PoolRelationLoadSource final:
+        public detail::RelationLoadSource,
+        public std::enable_shared_from_this<PoolRelationLoadSource>
+    {
+      public:
+        explicit PoolRelationLoadSource(Pool& pool) noexcept:
+            _pool { &pool }
+        {
+        }
+
+        [[nodiscard]] RelationResult<std::shared_ptr<DataMapper>> Borrow() override
+        {
+            try
+            {
+                return Lend();
+            }
+            catch (std::exception const& error)
+            {
+                // Connecting failed (no idle connection to reuse): reported, not thrown.
+                SqlLogger::GetLogger().OnWarning(std::format("Connecting for a relation load failed: {}", error.what()));
+                return std::unexpected { RelationError::QueryFailed };
+            }
+        }
+
+        /// Called by the pool's destructor; later loads connect on their own.
+        void Detach() noexcept
+        {
+            auto const lock = std::unique_lock { _mutex };
+            _pool = nullptr;
+        }
+
+      private:
+        /// @return A mapper for one load; throws whatever connecting throws.
+        [[nodiscard]] std::shared_ptr<DataMapper> Lend()
+        {
+            // Shared: concurrent loads borrow in parallel; only Detach() excludes them, so the pool
+            // cannot be destroyed while one of them is still inside Acquire().
+            auto const lock = std::shared_lock { _mutex };
+            if (!_pool)
+                return OwnConnection();
+            if constexpr (Config.growthStrategy == GrowthStrategy::BoundedWait)
+            {
+                // Never wait: the caller commonly still holds the pooled mapper the record came from,
+                // and a load nested in Each() holds one more, so waiting on a small pool for a slot the
+                // caller itself occupies would deadlock. At capacity, a one-off connection serves this
+                // load and is closed afterwards.
+                if (auto pooled = _pool->Acquire(std::chrono::milliseconds { 0 }); pooled)
+                    return Share(std::move(*pooled));
+                return OwnConnection();
+            }
+            else
+                return Share(_pool->Acquire());
+        }
+
+        /// @return @p pooled as a shared mapper that goes back to the pool with its last copy.
+        [[nodiscard]] static std::shared_ptr<DataMapper> Share(PooledDataMapper pooled)
+        {
+            auto holder = std::make_shared<PooledDataMapper>(std::move(pooled));
+            return { holder, &holder->Get() };
+        }
+
+        /// @return A connection of its own, for a load the pool cannot serve without waiting (or once
+        ///         the pool is gone). Records read through it still load their relations from here.
+        [[nodiscard]] std::shared_ptr<DataMapper> OwnConnection()
+        {
+            auto const generation = SqlConnection::DefaultConnectionStringGeneration();
+            auto mapper = std::make_shared<DataMapper>();
+            detail::AdoptRelationLoadSource(*mapper,
+                                            detail::PinToDefaultConnectionString(this->shared_from_this(),
+                                                                                 mapper->Connection().ConnectionString(),
+                                                                                 generation));
+            return mapper;
+        }
+
+        std::shared_mutex _mutex;
+        Pool* _pool;
+    };
+
     /// A parked acquirer awaiting a DataMapper — a suspended @ref AcquireAsync coroutine (@c Kind::Async)
     /// or a blocked synchronous @ref Acquire thread (@c Kind::Sync). Both share one FIFO queue
     /// (@c _waiters), served in arrival order so neither kind starves the other.
@@ -842,6 +1060,8 @@ class Pool
                         {
                             if (node->entry.mapper)
                                 toResume = pool.ReturnLocked(std::move(node->entry), reclaimed);
+                            else
+                                toResume = pool.ReleaseSlotLocked(); // handed a bare slot
                         }
                         break;
                     case WaiterNode::State::Abandoned:
@@ -921,6 +1141,12 @@ class Pool
     Async::Task<PooledDataMapper> AcquireAsyncImpl(Async::IExecutor* dbWorkers, Async::IResumeScheduler* resume)
     {
         auto entry = co_await AsyncAcquireAwaitable { *this, *resume };
+        if constexpr (Config.growthStrategy == GrowthStrategy::BoundedWait)
+        {
+            // Handed a bare slot: the connection returned for this waiter was stale (see ReturnLocked).
+            if (!entry.mapper)
+                entry = ConnectForTransferredSlot();
+        }
         // Wrap in the RAII PooledDataMapper BEFORE the throwing EnableAsync call: if EnableAsync
         // throws (e.g. bad_alloc), ~PooledDataMapper returns the mapper to the pool, decrementing
         // _checkedOut and avoiding a permanent BoundedWait capacity leak.
@@ -932,6 +1158,8 @@ class Pool
     std::mutex _mutex;
     std::vector<Entry> _idleDataMappers;
     size_t _checkedOut {};
+    /// Shared with every record read through this pool; see @ref LoadSourceForRelations().
+    std::shared_ptr<PoolRelationLoadSource> _relationLoadSource = std::make_shared<PoolRelationLoadSource>(*this);
     /// Injected clock; the real @c Clock::now is used when unset. @see SetClock
     ///
     /// Deliberately not compiled out in non-test builds: this is a data member of a class template

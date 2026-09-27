@@ -540,6 +540,15 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// @return true if @c m_hStmt is already prepared for @p query, so @c SQLPrepare can be skipped.
     [[nodiscard]] bool AcquirePreparedHandle(SqlPreparedStatementCache& cache, std::string_view query);
 
+    /// @brief Prepares @p queryText on the handle and, once that succeeded, records it and its
+    /// parameter count as what the handle holds.
+    ///
+    /// On failure it forgets @c m_preparedQuery before rethrowing, so that no later @c Prepare() of
+    /// the same text mistakes the handle for one that holds it.
+    /// @param queryText The SQL text to prepare.
+    /// @throws SqlException The driver rejected the prepare, or could not report the parameter count.
+    void PrepareOnHandle(std::string queryText);
+
     /// @brief Hands @c m_hStmt to the pool if it carries a prepared query and caching is in effect.
     /// @return true if the handle was pooled (and must therefore not be freed by the caller).
     bool ReleasePreparedHandle() noexcept;
@@ -979,7 +988,8 @@ class [[nodiscard]] SqlVariantRowIterator
     {
     }
 
-    explicit SqlVariantRowIterator(SqlResultCursor& cursor) noexcept:
+    /// @throws SqlException Fetching the first row failed.
+    explicit SqlVariantRowIterator(SqlResultCursor& cursor):
         _numResultColumns { static_cast<SQLUSMALLINT>(cursor.NumColumnsAffected()) },
         _cursor { &cursor }
     {
@@ -997,7 +1007,8 @@ class [[nodiscard]] SqlVariantRowIterator
         return _row;
     }
 
-    SqlVariantRowIterator& operator++() noexcept
+    /// @throws SqlException Fetching or reading the next row failed.
+    SqlVariantRowIterator& operator++()
     {
         _end = !_cursor->FetchRow();
         if (!_end)
@@ -1034,7 +1045,8 @@ class [[nodiscard]] SqlVariantRowCursor
     {
     }
 
-    SqlVariantRowIterator begin() noexcept
+    /// @throws SqlException Fetching the first row failed.
+    SqlVariantRowIterator begin()
     {
         return SqlVariantRowIterator { _resultCursor };
     }
@@ -1125,7 +1137,8 @@ class SqlRowIterator
             return *this;
         }
 
-        LIGHTWEIGHT_FORCE_INLINE value_type operator*() noexcept
+        /// @throws SqlException Reading a column of the current row failed.
+        LIGHTWEIGHT_FORCE_INLINE value_type operator*()
         {
             auto res = T {};
 

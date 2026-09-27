@@ -646,19 +646,22 @@ TEST_CASE_METHOD(SqlTestFixture, "Doc.Relationships", "[DocExample]")
     {
         dm.ConfigureRelationAutoLoading(*employee);
 
-        // BelongsTo: the parent record is fetched on demand. The FK here is nullable, so
-        // Record() yields an optional; Unwrap turns the optional-reference into a value.
+        // BelongsTo: the parent record is fetched on demand. Record() yields a std::expected - the
+        // record, or a RelationError saying why there is none; Unwrap turns the reference into a value.
         if (auto const dept = employee->department.Record().transform(Unwrap))
             std::println("Department: {}", dept->name.Value());
     }
 
-    // HasMany: Count() and All() on the collection
+    // HasMany: All() yields the collection, or a RelationError saying why it is unavailable
     if (auto department = dm.QuerySingle<Department>(deptId))
     {
         dm.ConfigureRelationAutoLoading(*department);
-        std::println("{} employees", department->employees.Count());
-        for (auto const& emp: department->employees.All())
-            std::println("  {}", emp->lastName.Value());
+        if (auto const employees = department->employees.All())
+        {
+            std::println("{} employees", employees->get().size());
+            for (auto const& emp: employees->get())
+                std::println("  {}", emp->lastName.Value());
+        }
     }
     //! [doc-relationships]
 
@@ -667,7 +670,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Doc.Relationships", "[DocExample]")
     if (reloaded)
     {
         dm.ConfigureRelationAutoLoading(*reloaded);
-        CHECK(reloaded->employees.Count() == 3);
+        CHECK(reloaded->employees.Count().value() == 3);
     }
 }
 
@@ -711,13 +714,16 @@ TEST_CASE_METHOD(SqlTestFixture, "Doc.Meetings", "[DocExample]")
         // A mandatory BelongsTo dereferences straight through.
         std::println("{} - organized by {}", meeting->topic.Value(), meeting->organizer->name.Value());
 
-        // A nullable one yields an optional instead.
+        // Record() yields a std::expected instead: the record, or a RelationError saying why not.
         if (auto const scribe = meeting->minuteTaker.Record().transform(Unwrap))
             std::println("  minutes by {}", scribe->name.Value());
 
-        std::println("  {} attendees:", meeting->attendees.Count());
-        for (auto const& attendee: meeting->attendees.All())
-            std::println("    {}", attendee->name.Value());
+        if (auto const attendees = meeting->attendees.All())
+        {
+            std::println("  {} attendees:", attendees->get().size());
+            for (auto const& attendee: attendees->get())
+                std::println("    {}", attendee->name.Value());
+        }
     }
 
     // And the same relationships read from the other side.
@@ -726,9 +732,9 @@ TEST_CASE_METHOD(SqlTestFixture, "Doc.Meetings", "[DocExample]")
         dm.ConfigureRelationAutoLoading(*human);
         std::println("{} organized {}, minuted {} and attended {} meeting(s)",
                      human->name.Value(),
-                     human->organizedMeetings.Count(),
-                     human->minutedMeetings.Count(),
-                     human->attendedMeetings.Count());
+                     human->organizedMeetings.Count().value_or(0),
+                     human->minutedMeetings.Count().value_or(0),
+                     human->attendedMeetings.Count().value_or(0));
     }
     //! [doc-meeting-read]
 
@@ -738,7 +744,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Doc.Meetings", "[DocExample]")
     {
         dm.ConfigureRelationAutoLoading(*meeting);
         CHECK(meeting->organizer->name.Value() == "Alice");
-        CHECK(meeting->attendees.Count() == 3);
+        CHECK(meeting->attendees.Count().value() == 3);
 
         auto const scribe = meeting->minuteTaker.Record().transform(Unwrap);
         REQUIRE(scribe.has_value());
@@ -752,9 +758,9 @@ TEST_CASE_METHOD(SqlTestFixture, "Doc.Meetings", "[DocExample]")
     if (human)
     {
         dm.ConfigureRelationAutoLoading(*human);
-        CHECK(human->organizedMeetings.Count() == 1);
-        CHECK(human->minutedMeetings.Count() == 0);
-        CHECK(human->attendedMeetings.Count() == 2);
+        CHECK(human->organizedMeetings.Count().value() == 1);
+        CHECK(human->minutedMeetings.Count().value() == 0);
+        CHECK(human->attendedMeetings.Count().value() == 2);
     }
 
     auto bobLoaded = dm.QuerySingle<Human>(bob.id.Value());
@@ -762,9 +768,9 @@ TEST_CASE_METHOD(SqlTestFixture, "Doc.Meetings", "[DocExample]")
     if (bobLoaded)
     {
         dm.ConfigureRelationAutoLoading(*bobLoaded);
-        CHECK(bobLoaded->organizedMeetings.Count() == 0);
-        CHECK(bobLoaded->minutedMeetings.Count() == 1);
-        CHECK(bobLoaded->attendedMeetings.Count() == 1);
+        CHECK(bobLoaded->organizedMeetings.Count().value() == 0);
+        CHECK(bobLoaded->minutedMeetings.Count().value() == 1);
+        CHECK(bobLoaded->attendedMeetings.Count().value() == 1);
     }
 
     // The retrospective has no minute taker - a NULL foreign key loads as an empty optional, and
@@ -774,7 +780,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Doc.Meetings", "[DocExample]")
     if (retroLoaded)
     {
         dm.ConfigureRelationAutoLoading(*retroLoaded);
-        CHECK(retroLoaded->attendees.Count() == 2);
+        CHECK(retroLoaded->attendees.Count().value() == 2);
         CHECK_FALSE(retroLoaded->minuteTaker.Record().transform(Unwrap).has_value());
     }
 }

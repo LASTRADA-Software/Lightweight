@@ -237,12 +237,48 @@ TEST_CASE("CompositeForeignKey navigation reports load state", "[CompositeForeig
     child.parent.EmplaceRecord(parent);
 
     REQUIRE(child.parent.IsLoaded());
-    CHECK(child.parent.Record().partA.Value() == 1);
+    CHECK(child.parent.Record().value().get().partA.Value() == 1);
     CHECK(child.parent->partB.Value() == 2);
 
     // ...and unloading reverts it.
     child.parent.Unload();
     CHECK_FALSE(child.parent.IsLoaded());
+}
+
+TEST_CASE("CompositeForeignKey of a hand-built record reports NotConfigured", "[CompositeForeignKey]")
+{
+    auto const child = Child {};
+    CHECK(child.parent.Record().error() == RelationError::NotConfigured);
+    CHECK_THROWS_AS(std::ignore = child.parent->caption, SqlRequireLoadedError);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "CompositeForeignKey reports, and remembers, a missing referenced row",
+                 "[CompositeForeignKey]")
+{
+    auto stmt = SqlStatement {};
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "CfkParent" (
+                                     "part_a" INT NOT NULL,
+                                     "part_b" INT NOT NULL,
+                                     "caption" VARCHAR(20) NULL,
+                                     PRIMARY KEY ("part_a", "part_b")
+                                 ))");
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "CfkChild" (
+                                     "id" INT NOT NULL PRIMARY KEY,
+                                     "ref_a" INT NOT NULL,
+                                     "ref_b" INT NOT NULL
+                                 ))");
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "CfkChild" VALUES (100, 1, 2))"); // no parent (1, 2)
+
+    auto dm = DataMapper {};
+    auto child = dm.QuerySingle<Child>(100);
+    REQUIRE(child.has_value());
+    if (!child.has_value())
+        return;
+
+    // The second answer comes from what the relation remembered of the first.
+    CHECK(child->parent.Record().error() == RelationError::NotFound);
+    CHECK(child->parent.Record().error() == RelationError::NotFound);
 }
 
 TEST_CASE("CompositeForeignKey participates in CollectDifferences", "[CompositeForeignKey]")
@@ -304,10 +340,10 @@ TEST_CASE_METHOD(SqlTestFixture, "CompositeForeignKey loads its referenced recor
     REQUIRE(child->parent.IsLoaded());
 
     // It resolves to (part_a=1, part_b=2), not to the transposed row.
-    CHECK(child->parent.Record().partA.Value() == 1);
-    CHECK(child->parent.Record().partB.Value() == 2);
-    REQUIRE(child->parent.Record().caption.Value().has_value());
-    CHECK(child->parent.Record().caption.Value().value() == "one-two");
+    CHECK(child->parent.Record().value().get().partA.Value() == 1);
+    CHECK(child->parent.Record().value().get().partB.Value() == 2);
+    REQUIRE(child->parent.Record().value().get().caption.Value().has_value());
+    CHECK(child->parent.Record().value().get().caption.Value().value() == "one-two");
     // NOLINTEND(bugprone-unchecked-optional-access)
 }
 
@@ -344,8 +380,8 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK_FALSE(child->parent.IsLoaded());
 
     // Triggers the lazy loader installed by QuerySingle, not the eager LoadRelations() path.
-    REQUIRE(child->parent.Record().partA.Value() == 1);
-    CHECK(child->parent.Record().partB.Value() == 2);
+    REQUIRE(child->parent.Record().value().get().partA.Value() == 1);
+    CHECK(child->parent.Record().value().get().partB.Value() == 2);
     // NOLINTEND(bugprone-unchecked-optional-access)
 }
 
@@ -377,8 +413,8 @@ TEST_CASE_METHOD(SqlTestFixture,
     REQUIRE(child.has_value());
     // NOLINTBEGIN(bugprone-unchecked-optional-access) - guarded above
     dm.LoadRelations(*child);
-    REQUIRE(child->parent.Record().caption.Value().has_value());
-    CHECK(child->parent.Record().caption.Value().value() == "one-two"); // not 'two-one'
+    REQUIRE(child->parent.Record().value().get().caption.Value().has_value());
+    CHECK(child->parent.Record().value().get().caption.Value().value() == "one-two"); // not 'two-one'
     // NOLINTEND(bugprone-unchecked-optional-access)
 }
 
@@ -458,8 +494,8 @@ TEST_CASE_METHOD(SqlTestFixture, "CompositeForeignKey loads across three columns
     REQUIRE(child.has_value());
     // NOLINTBEGIN(bugprone-unchecked-optional-access) - guarded above
     dm.LoadRelations(*child);
-    REQUIRE(child->parent.Record().note.Value().has_value());
-    CHECK(child->parent.Record().note.Value().value() == "target"); // not the reversed decoy
+    REQUIRE(child->parent.Record().value().get().note.Value().has_value());
+    CHECK(child->parent.Record().value().get().note.Value().value() == "target"); // not the reversed decoy
     // NOLINTEND(bugprone-unchecked-optional-access)
 }
 

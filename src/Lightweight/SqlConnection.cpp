@@ -13,6 +13,8 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
+#include <cstdint>
 #include <mutex>
 #include <optional>
 #include <stdexcept>
@@ -25,7 +27,6 @@ namespace Lightweight
 using namespace std::chrono_literals;
 using namespace std::string_view_literals;
 
-static SqlConnectionString gDefaultConnectionString {};
 static std::atomic<uint64_t> gNextConnectionId { 1 };
 static std::function<void(SqlConnection&)> gPostConnectedHook {};
 static std::atomic<SqlStringTruncationMode> gDefaultStringTruncationMode { SqlStringTruncationMode::Truncate };
@@ -103,15 +104,8 @@ struct SqlConnection::Data
 };
 
 SqlConnection::SqlConnection():
-    m_connectionId { gNextConnectionId++ },
-    m_data { new Data() }
+    SqlConnection(std::optional { DefaultConnectionString() })
 {
-    SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &m_hEnv);
-    SQLSetEnvAttr(m_hEnv, SQL_ATTR_ODBC_VERSION, (SQLPOINTER) SQL_OV_ODBC3, 0);
-    SQLAllocHandle(SQL_HANDLE_DBC, m_hEnv, &m_hDbc);
-
-    if (!Connect(DefaultConnectionString()))
-        throw SqlException(LastError());
 }
 
 SqlConnection::SqlConnection(std::optional<SqlConnectionString> connectInfo):
@@ -186,21 +180,69 @@ SqlConnection::~SqlConnection() noexcept
     delete m_data;
 }
 
-SqlConnectionString const& SqlConnection::DefaultConnectionString() noexcept
+namespace
 {
-    return gDefaultConnectionString;
+    // The default connection string, guarded because it is read by every default-constructed
+    // SqlConnection - pool workers included - while the application may replace it from another thread.
+    struct DefaultConnection
+    {
+        std::mutex mutex;
+        SqlConnectionString value;
+        std::atomic<std::uint32_t> generation { 0 };
+    };
+
+    DefaultConnection& TheDefaultConnection()
+    {
+        static auto instance = DefaultConnection {};
+        return instance;
+    }
+} // namespace
+
+SqlConnectionString const& SqlConnection::DefaultConnectionString()
+{
+    // Per-thread snapshot, so a reader never sees the string change under it while another thread
+    // replaces the default, and the reference-returning signature stays safe. Refreshed by generation:
+    // reading the generation before copying can only leave the snapshot looking older than it is,
+    // which merely refreshes it once more on the next call. A fresh snapshot - generation 0, empty
+    // string - already matches the default before it was ever set.
+    struct Snapshot
+    {
+        std::uint32_t generation {};
+        SqlConnectionString value;
+    };
+    thread_local auto snapshot = Snapshot {};
+
+    if (auto const generation = DefaultConnectionStringGeneration(); snapshot.generation != generation)
+    {
+        auto& defaultConnection = TheDefaultConnection();
+        auto const lock = std::scoped_lock { defaultConnection.mutex };
+        snapshot.value = defaultConnection.value;
+        snapshot.generation = generation;
+    }
+    return snapshot.value;
 }
 
-void SqlConnection::SetDefaultConnectionString(SqlConnectionString const& connectionString) noexcept
+std::uint32_t SqlConnection::DefaultConnectionStringGeneration() noexcept
 {
-    gDefaultConnectionString = connectionString;
+    return TheDefaultConnection().generation.load(std::memory_order_acquire);
 }
 
-void SqlConnection::SetDefaultDataSource(SqlConnectionDataSource const& dataSource) noexcept
+void SqlConnection::SetDefaultConnectionString(SqlConnectionString const& connectionString)
+{
+    auto& defaultConnection = TheDefaultConnection();
+    {
+        auto const lock = std::scoped_lock { defaultConnection.mutex };
+        defaultConnection.value = connectionString;
+    }
+    // Published after the string, so a reader that sees the new generation also sees the new string.
+    defaultConnection.generation.fetch_add(1, std::memory_order_release);
+}
+
+void SqlConnection::SetDefaultDataSource(SqlConnectionDataSource const& dataSource)
 {
     // Delegate rather than re-format: ToConnectionString() is the single place that knows which fields
     // (including the optional `Encrypt=` keyword) have to survive the flattening into a connection string.
-    gDefaultConnectionString = dataSource.ToConnectionString();
+    SetDefaultConnectionString(dataSource.ToConnectionString());
 }
 
 SqlConnectionString const& SqlConnection::ConnectionString() const noexcept

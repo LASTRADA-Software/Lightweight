@@ -170,7 +170,7 @@ int main(int argc, char** argv)
         auto const ms = TimeMs([&] {
             auto parents = dm.Query<Owner>().All();
             for (auto& p: parents)
-                rows += p.children.All().size();
+                rows += p.children.All().value().get().size();
         });
         Report("HasMany lazy per parent (N+1)", ms, rows);
     }
@@ -207,7 +207,7 @@ int main(int argc, char** argv)
         auto const ms = TimeMs([&] {
             auto kids = dm.Query<Child>().All();
             for (auto& k: kids)
-                rows += k.owner.Record().id.Value() != 0 ? 1 : 0;
+                rows += k.owner.Record().value().get().id.Value() != 0 ? 1 : 0;
         });
         Report("BelongsTo lazy per child (N+1)", ms, rows);
     }
@@ -284,7 +284,7 @@ int main(int argc, char** argv)
         auto const ms = TimeMs([&] {
             auto parents = dm.Query<Owner>().With<Member(Owner::children)>().All();
             for (auto& p: parents)
-                rows += p.children.All().size();
+                rows += p.children.All().value().get().size();
         });
         Report("HasMany .With<>() eager", ms, rows);
     }
@@ -295,7 +295,7 @@ int main(int argc, char** argv)
         auto const ms = TimeMs([&] {
             auto kids = dm.Query<Child>().With<Member(Child::owner)>().All();
             for (auto& k: kids)
-                rows += k.owner.Record().id.Value() != 0 ? 1 : 0;
+                rows += k.owner.Record().value().get().id.Value() != 0 ? 1 : 0;
         });
         Report("BelongsTo .With<>() eager", ms, rows);
     }
