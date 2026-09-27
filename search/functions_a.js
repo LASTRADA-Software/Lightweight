@@ -8,6 +8,7 @@ var searchData=
   ['loadedrecords_5',['LoadedRecords',['../da/df4/classLightweight_1_1HasMany.html#a4e79f4cd1e47011c65246f1c66348695',1,'Lightweight::HasMany']]],
   ['loadrelations_6',['LoadRelations',['../de/d61/classLightweight_1_1DataMapper.html#a2cd193a868954406545c989fbefec702',1,'Lightweight::DataMapper']]],
   ['loadrelationsasync_7',['LoadRelationsAsync',['../de/d61/classLightweight_1_1DataMapper.html#a1c49ec5976087ab4899eb8d2b3c534b3',1,'Lightweight::DataMapper']]],
-  ['locateentry_8',['LocateEntry',['../d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#ad890fbbd6aadf8a5a2ceb6204a57a299',1,'Lightweight::Zip::ZipArchive']]],
-  ['log_9',['Log',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ad118fa0bc45f292869406719db3f2cdc',1,'Lightweight::SqlMigration::MigrationManager']]]
+  ['loadsourceforrelations_8',['LoadSourceForRelations',['../d3/d30/classLightweight_1_1Pool.html#a47dcfb0c85f734b9389e9c6f15ae77bd',1,'Lightweight::Pool']]],
+  ['locateentry_9',['LocateEntry',['../d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#ad890fbbd6aadf8a5a2ceb6204a57a299',1,'Lightweight::Zip::ZipArchive']]],
+  ['log_10',['Log',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ad118fa0bc45f292869406719db3f2cdc',1,'Lightweight::SqlMigration::MigrationManager']]]
 ];

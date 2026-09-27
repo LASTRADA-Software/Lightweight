@@ -245,7 +245,7 @@ var group__DataTypes =
       [ "operator=", "df/d3f/structLightweight_1_1SqlVariant.html#ab4b919a8e1ae022435d908bdab2684a0", null ],
       [ "IsNull", "df/d3f/structLightweight_1_1SqlVariant.html#a9a77d3cabe4f40396af1803e41c6b021", null ],
       [ "Is", "df/d3f/structLightweight_1_1SqlVariant.html#a1b6881f630dd2c5fc932236ced34e432", null ],
-      [ "Get", "df/d3f/structLightweight_1_1SqlVariant.html#ac5d8a6c99aa9aa19716c13511803a007", null ],
+      [ "Get", "df/d3f/structLightweight_1_1SqlVariant.html#a3156c4e8b23220e686c9ad43c5abd993", null ],
       [ "ValueOr", "df/d3f/structLightweight_1_1SqlVariant.html#a1fad24196895add9aa0209d6344b47e0", null ],
       [ "TryGetBool", "df/d3f/structLightweight_1_1SqlVariant.html#ad4df6e7ae555895c331c2675ed9e6ab8", null ],
       [ "TryGetInt8", "df/d3f/structLightweight_1_1SqlVariant.html#ae8582b210d51a2301ec3c5c4106f2568", null ],

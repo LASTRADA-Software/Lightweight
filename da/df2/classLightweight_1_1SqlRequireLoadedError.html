@@ -97,7 +97,7 @@ $(document).ready(function(){initNavTree('da/df2/classLightweight_1_1SqlRequireL
 </div><!--header-->
 <div class="contents">
 
-<p>Represents an error when a record is required to be loaded but is not.  
+<p>Raised by the relation shortcuts that cannot return a <a class="el" href="../../d7/d2f/group__DataMapper.html#ga4be41b60128a724d65b80270ef863741">RelationResult</a> - <code>operator-&gt;</code>, <code>operator*</code>, <code>begin()</code>/<code>end()</code>, <code>At()</code> and <code>operator[]</code> - when the relation is unavailable.  
  <a href="../../da/df2/classLightweight_1_1SqlRequireLoadedError.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="../../d1/d93/Error_8hpp_source.html">Error.hpp</a>&gt;</code></p>
@@ -110,17 +110,19 @@ Inheritance diagram for Lightweight::SqlRequireLoadedError:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a96304f8f159d5cdd3ef3a0065a464ca2" id="r_a96304f8f159d5cdd3ef3a0065a464ca2"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df2/classLightweight_1_1SqlRequireLoadedError.html#a96304f8f159d5cdd3ef3a0065a464ca2">SqlRequireLoadedError</a> (std::string_view columnType)</td></tr>
-<tr class="memdesc:a96304f8f159d5cdd3ef3a0065a464ca2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs the error with the name of the column type that failed to load.  <br /></td></tr>
-<tr class="separator:a96304f8f159d5cdd3ef3a0065a464ca2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a48cd904e3bec196925b2d3ba4453ffcf" id="r_a48cd904e3bec196925b2d3ba4453ffcf"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df2/classLightweight_1_1SqlRequireLoadedError.html#a48cd904e3bec196925b2d3ba4453ffcf">SqlRequireLoadedError</a> (std::string_view columnType, <a class="el" href="../../d7/d2f/group__DataMapper.html#gaccfed183e72fab87179bacefc80b23e1">RelationError</a> error=<a class="el" href="../../d7/d2f/group__DataMapper.html#ggaccfed183e72fab87179bacefc80b23e1a52c1415ae26d69e91093beaac88e0815">RelationError::NotConfigured</a>)</td></tr>
+<tr class="separator:a48cd904e3bec196925b2d3ba4453ffcf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aedd0cdd31e79b31e445c67b3603de80c" id="r_aedd0cdd31e79b31e445c67b3603de80c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d7/d2f/group__DataMapper.html#gaccfed183e72fab87179bacefc80b23e1">RelationError</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/df2/classLightweight_1_1SqlRequireLoadedError.html#aedd0cdd31e79b31e445c67b3603de80c">Error</a> () const noexcept</td></tr>
+<tr class="separator:aedd0cdd31e79b31e445c67b3603de80c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Represents an error when a record is required to be loaded but is not. </p>
+<div class="textblock"><p>Raised by the relation shortcuts that cannot return a <a class="el" href="../../d7/d2f/group__DataMapper.html#ga4be41b60128a724d65b80270ef863741">RelationResult</a> - <code>operator-&gt;</code>, <code>operator*</code>, <code>begin()</code>/<code>end()</code>, <code>At()</code> and <code>operator[]</code> - when the relation is unavailable. </p>
+<p>Prefer the accessors returning <a class="el" href="../../d7/d2f/group__DataMapper.html#ga4be41b60128a724d65b80270ef863741">RelationResult</a> (<code>Record()</code>, <code>All()</code>, <code><a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102ae93f994f01c537c4e2f7d8528c3eb5e9" title="Number of enumerators; not an operation itself.">Count()</a></code>, ...) to handle the unavailable case without exceptions. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d93/Error_8hpp_source.html#l00015">15</a> of file <a class="el" href="../../d1/d93/Error_8hpp_source.html">Error.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d93/Error_8hpp_source.html#l00070">70</a> of file <a class="el" href="../../d1/d93/Error_8hpp_source.html">Error.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="a96304f8f159d5cdd3ef3a0065a464ca2" name="a96304f8f159d5cdd3ef3a0065a464ca2"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a96304f8f159d5cdd3ef3a0065a464ca2">&#9670;&#160;</a></span>SqlRequireLoadedError()</h2>
+<a id="a48cd904e3bec196925b2d3ba4453ffcf" name="a48cd904e3bec196925b2d3ba4453ffcf"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a48cd904e3bec196925b2d3ba4453ffcf">&#9670;&#160;</a></span>SqlRequireLoadedError()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -132,8 +134,18 @@ Public Member Functions</h2></td></tr>
           <td class="memname">Lightweight::SqlRequireLoadedError::SqlRequireLoadedError </td>
           <td>(</td>
           <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>columnType</em></td><td>)</td>
+          <td class="paramname"><em>columnType</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype"><a class="el" href="../../d7/d2f/group__DataMapper.html#gaccfed183e72fab87179bacefc80b23e1">RelationError</a>&#160;</td>
+          <td class="paramname"><em>error</em> = <code><a class="el" href="../../d7/d2f/group__DataMapper.html#ggaccfed183e72fab87179bacefc80b23e1a52c1415ae26d69e91093beaac88e0815">RelationError::NotConfigured</a></code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
         </tr>
       </table>
   </td>
@@ -142,10 +154,45 @@ Public Member Functions</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>Constructs the error with the name of the column type that failed to load.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">columnType</td><td>The relation type, for the message. </td></tr>
+    <tr><td class="paramname">error</td><td>Why it failed. </td></tr>
+  </table>
+  </dd>
+</dl>
 
-<p>Constructs the error with the name of the column type that failed to load. </p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d93/Error_8hpp_source.html#l00077">77</a> of file <a class="el" href="../../d1/d93/Error_8hpp_source.html">Error.hpp</a>.</p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d93/Error_8hpp_source.html#l00019">19</a> of file <a class="el" href="../../d1/d93/Error_8hpp_source.html">Error.hpp</a>.</p>
+</div>
+</div>
+<h2 class="groupheader">Member Function Documentation</h2>
+<a id="aedd0cdd31e79b31e445c67b3603de80c" name="aedd0cdd31e79b31e445c67b3603de80c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aedd0cdd31e79b31e445c67b3603de80c">&#9670;&#160;</a></span>Error()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="../../d7/d2f/group__DataMapper.html#gaccfed183e72fab87179bacefc80b23e1">RelationError</a> Lightweight::SqlRequireLoadedError::Error </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<dl class="section return"><dt>Returns</dt><dd>Why the relation could not be loaded. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/d93/Error_8hpp_source.html#l00084">84</a> of file <a class="el" href="../../d1/d93/Error_8hpp_source.html">Error.hpp</a>.</p>
 
 </div>
 </div>

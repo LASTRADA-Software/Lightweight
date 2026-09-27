@@ -1,4 +1,5 @@
 var classLightweight_1_1SqlRequireLoadedError =
 [
-    [ "SqlRequireLoadedError", "da/df2/classLightweight_1_1SqlRequireLoadedError.html#a96304f8f159d5cdd3ef3a0065a464ca2", null ]
+    [ "SqlRequireLoadedError", "da/df2/classLightweight_1_1SqlRequireLoadedError.html#a48cd904e3bec196925b2d3ba4453ffcf", null ],
+    [ "Error", "da/df2/classLightweight_1_1SqlRequireLoadedError.html#aedd0cdd31e79b31e445c67b3603de80c", null ]
 ];
