@@ -14,6 +14,7 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <optional>
 #include <regex>
 #include <string>
 #include <string_view>
@@ -112,6 +113,37 @@ TEST_CASE_METHOD(SqlTestFixture,
 }
 
 TEST_CASE_METHOD(SqlTestFixture,
+                 "Relation loading: a second database that can no longer be reached reports QueryFailed",
+                 "[DataMapper][BelongsTo]")
+{
+    auto dmDefault = DataMapper {};
+    if (dmDefault.Connection().ServerType() != SqlServerType::SQLITE)
+        SKIP("needs a second database that can be made unreachable; trivially a SQLite file in a removed directory");
+
+    auto const otherDirectory = std::filesystem::path { "relation-routing-unreachable" };
+    std::filesystem::remove_all(otherDirectory);
+    std::filesystem::create_directory(otherDirectory);
+    auto const removeDirectory = detail::Finally([&] { std::filesystem::remove_all(otherDirectory); });
+    auto const otherFile = (otherDirectory / "other.db").string();
+
+    auto item = std::optional<RoutingItem> {};
+    {
+        auto dmOther =
+            DataMapper { SqlConnectionString { std::regex_replace(SqlConnection::DefaultConnectionString().value,
+                                                                  std::regex { "Database=[^;]*", std::regex::icase },
+                                                                  "Database=" + otherFile) } };
+        item = dmOther.QuerySingle<RoutingItem>(SeedOwnerAndItem(dmOther, "from-other"));
+    } // disconnects, so the file can be removed on every platform
+    REQUIRE(item.has_value());
+    if (!item.has_value())
+        return;
+
+    // Without its directory, SQLite cannot open (or create) the file, so connecting for the load fails.
+    std::filesystem::remove_all(otherDirectory);
+    CHECK(item->owner.Record().error() == RelationError::QueryFailed);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
                  "Relation loading: a pooled record borrows its load connection from the pool",
                  "[DataMapper][BelongsTo][Pool]")
 {
@@ -131,6 +163,24 @@ TEST_CASE_METHOD(SqlTestFixture,
     REQUIRE(pool.IdleCount() == 0);
     CHECK(item->owner->name.Value() == "owner");
     CHECK(pool.IdleCount() == 1);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Relation loading: a pooled record outliving its pool loads on a connection of its own",
+                 "[DataMapper][BelongsTo][Pool]")
+{
+    auto dm = DataMapper {};
+    auto const itemId = SeedOwnerAndItem(dm, "owner");
+
+    auto item = [&] {
+        auto pool = Pool<OverflowOfTwoConfig> {};
+        return pool.Acquire()->QuerySingle<RoutingItem>(itemId);
+    }();
+    REQUIRE(item.has_value());
+    if (!item.has_value())
+        return;
+
+    CHECK(item->owner->name.Value() == "owner");
 }
 
 TEST_CASE_METHOD(SqlTestFixture,

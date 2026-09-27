@@ -245,6 +245,42 @@ TEST_CASE("CompositeForeignKey navigation reports load state", "[CompositeForeig
     CHECK_FALSE(child.parent.IsLoaded());
 }
 
+TEST_CASE("CompositeForeignKey of a hand-built record reports NotConfigured", "[CompositeForeignKey]")
+{
+    auto const child = Child {};
+    CHECK(child.parent.Record().error() == RelationError::NotConfigured);
+    CHECK_THROWS_AS(std::ignore = child.parent->caption, SqlRequireLoadedError);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "CompositeForeignKey reports, and remembers, a missing referenced row",
+                 "[CompositeForeignKey]")
+{
+    auto stmt = SqlStatement {};
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "CfkParent" (
+                                     "part_a" INT NOT NULL,
+                                     "part_b" INT NOT NULL,
+                                     "caption" VARCHAR(20) NULL,
+                                     PRIMARY KEY ("part_a", "part_b")
+                                 ))");
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "CfkChild" (
+                                     "id" INT NOT NULL PRIMARY KEY,
+                                     "ref_a" INT NOT NULL,
+                                     "ref_b" INT NOT NULL
+                                 ))");
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "CfkChild" VALUES (100, 1, 2))"); // no parent (1, 2)
+
+    auto dm = DataMapper {};
+    auto child = dm.QuerySingle<Child>(100);
+    REQUIRE(child.has_value());
+    if (!child.has_value())
+        return;
+
+    // The second answer comes from what the relation remembered of the first.
+    CHECK(child->parent.Record().error() == RelationError::NotFound);
+    CHECK(child->parent.Record().error() == RelationError::NotFound);
+}
+
 TEST_CASE("CompositeForeignKey participates in CollectDifferences", "[CompositeForeignKey]")
 {
     // Regression test: without a comparison operator, CompositeForeignKey is neither

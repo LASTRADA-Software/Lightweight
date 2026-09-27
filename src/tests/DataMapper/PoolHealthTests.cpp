@@ -440,6 +440,41 @@ TEST_CASE_METHOD(SqlTestFixture, "Pool: a BoundedWait waiter is not handed a con
 }
 
 TEST_CASE_METHOD(SqlTestFixture,
+                 "Pool: a BoundedWait waiter that fails to connect for its handed-over slot gives the slot back",
+                 "[Pool]")
+{
+    auto pool = Pool<SingleSlotWaitConfig> {};
+    auto held = std::optional { pool.Acquire() };
+
+    auto waiterFailed = std::atomic_bool { false };
+    auto waiter = std::thread { [&] {
+        try
+        {
+            std::ignore = pool.Acquire();
+        }
+        catch (SqlException const&)
+        {
+            waiterFailed = true;
+        }
+    } };
+    while (pool.WaiterCount() == 0)
+        std::this_thread::yield();
+
+    // The returned connection is stale, so the waiter is handed the bare slot and has to connect -
+    // to a default nothing can connect to.
+    auto const previous = SqlConnectionString { .value = SqlConnection::DefaultConnectionString().value };
+    auto const restore = detail::Finally([&] { SqlConnection::SetDefaultConnectionString(previous); });
+    SqlConnection::SetDefaultConnectionString(SqlConnectionString { "DRIVER={Lightweight No Such Driver}" });
+    held.reset();
+    waiter.join();
+    SqlConnection::SetDefaultConnectionString(previous);
+
+    CHECK(waiterFailed);
+    // The failed connect released the slot rather than leaking the pool's only one.
+    CHECK(pool.Acquire(0ms).has_value());
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
                  "Pool: a BoundedWait connection returned stale with nobody waiting frees its slot",
                  "[Pool]")
 {
