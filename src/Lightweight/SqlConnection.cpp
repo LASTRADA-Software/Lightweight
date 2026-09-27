@@ -104,15 +104,8 @@ struct SqlConnection::Data
 };
 
 SqlConnection::SqlConnection():
-    m_connectionId { gNextConnectionId++ },
-    m_data { new Data() }
+    SqlConnection(std::optional { DefaultConnectionString() })
 {
-    SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &m_hEnv);
-    SQLSetEnvAttr(m_hEnv, SQL_ATTR_ODBC_VERSION, (SQLPOINTER) SQL_OV_ODBC3, 0);
-    SQLAllocHandle(SQL_HANDLE_DBC, m_hEnv, &m_hDbc);
-
-    if (!Connect(DefaultConnectionString()))
-        throw SqlException(LastError());
 }
 
 SqlConnection::SqlConnection(std::optional<SqlConnectionString> connectInfo):
