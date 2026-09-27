@@ -427,8 +427,8 @@ statement once and submit the whole batch, preferring native ODBC row-wise array
 `SQLExecute`, zero-copy) when every column is a fixed-width type — primitives, `SqlDate`/`SqlTime`/
 `SqlDateTime`, `SqlNumeric`, inline fixed-capacity strings (`SqlAnsiString`/`SqlFixedString`), or
 `std::optional` of a fixed non-numeric type (including nullable fixed-capacity strings) — and the driver
-supports parameter arrays. Records with variable-length columns (e.g. `std::string`) transparently fall
-back to a prepare-once + per-row execute, which is still far cheaper than calling `Create`/`CreateExplicit`
+supports parameter arrays. Records with variable-length columns (e.g. `std::string`) or a single-character
+`char` column (which ODBC binds as text, needing a per-row length) transparently fall back to a prepare-once + per-row execute, which is still far cheaper than calling `Create`/`CreateExplicit`
 in a loop (those re-prepare per row).
 
 ```cpp

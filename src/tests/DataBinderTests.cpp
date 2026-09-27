@@ -17,6 +17,7 @@
 #include <format>
 #include <limits>
 #include <numbers>
+#include <optional>
 #include <ranges>
 #include <type_traits>
 
@@ -2661,6 +2662,126 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlString<N, T> alias round-trip", "[SqlFixedS
     SECTION("wchar_t specialization")
     {
         RoundTripStringValue(SqlString<32, wchar_t> { L"WideAlias" }, SqlColumnTypeDefinitions::NVarchar { 32 });
+    }
+}
+
+namespace
+{
+// A single char bound as SQL_C_CHAR is not NUL-terminated, so the binder must hand ODBC its length.
+// The value sits in front of non-NUL bytes: a binder that leaves the length out (the driver then reads
+// it as a NUL-terminated string) sends "XYZ..." instead of "X" on every run, not only by chance.
+struct CharFollowedByText
+{
+    char value = 'X';
+    std::array<char, 7> trailing { 'Y', 'Z', 'Y', 'Z', 'Y', 'Z', 'Y' };
+};
+
+// Row-wise batch row carrying a char and a nullable char. sizeof is a multiple of alignof(SQLLEN), so
+// the native row-wise path (with its row-strided indicators) applies.
+struct CharBatchRow
+{
+    int64_t id {};
+    char value {};
+    std::optional<char> maybe {};
+};
+static_assert(sizeof(CharBatchRow) % alignof(SQLLEN) == 0);
+
+void CreateCharTestTable(SqlStatement& stmt)
+{
+    auto const& formatter = stmt.Connection().QueryFormatter();
+    (void) stmt.ExecuteDirect(std::format(R"(CREATE TABLE "Test" ("Id" {} NOT NULL, "Value" {} NULL, "Maybe" {} NULL))",
+                                          formatter.ColumnType(SqlColumnTypeDefinitions::Bigint {}),
+                                          formatter.ColumnType(SqlColumnTypeDefinitions::Char { 1 }),
+                                          formatter.ColumnType(SqlColumnTypeDefinitions::Char { 1 })));
+}
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder<char>: round-trip", "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    CreateCharTestTable(stmt);
+
+    SECTION("InputParameter, GetColumn")
+    {
+        // A character SQL type takes its length in characters as the ODBC column size, and MS SQL Server's
+        // ODBC Driver 18 rejects a zero there with HY104 "Invalid precision value".
+        auto const input = CharFollowedByText {};
+        stmt.Prepare(R"(INSERT INTO "Test" ("Id", "Value", "Maybe") VALUES (1, ?, ?))");
+        std::ignore = stmt.Execute(input.value, std::optional<char> { 'Q' });
+
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "Value", "Value", "Maybe", "Maybe" FROM "Test")");
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<std::string>(1) == "X");
+        CHECK(cursor.GetColumn<char>(2) == 'X');
+        CHECK(cursor.GetColumn<std::string>(3) == "Q");
+        CHECK(cursor.GetColumn<std::optional<char>>(4) == std::optional<char> { 'Q' });
+    }
+
+    SECTION("NULL through std::optional<char>")
+    {
+        stmt.Prepare(R"(INSERT INTO "Test" ("Id", "Value", "Maybe") VALUES (1, ?, ?))");
+        std::ignore = stmt.Execute('X', std::optional<char> {});
+
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "Maybe" FROM "Test")");
+        REQUIRE(cursor.FetchRow());
+        CHECK_FALSE(cursor.GetNullableColumn<char>(1).has_value());
+    }
+
+    SECTION("BindOutputColumns")
+    {
+        (void) stmt.ExecuteDirect(R"(INSERT INTO "Test" ("Id", "Value", "Maybe") VALUES (1, 'X', NULL))");
+
+        stmt.Prepare(R"(SELECT "Value", "Maybe" FROM "Test")");
+        auto cursor = stmt.Execute();
+        auto value = CharFollowedByText { .value = '?' };
+        auto maybe = std::optional<char> { '?' };
+        cursor.BindOutputColumns(&value.value, &maybe);
+        REQUIRE(cursor.FetchRow());
+        CHECK(value.value == 'X');
+        CHECK(value.trailing == CharFollowedByText {}.trailing);
+        CHECK_FALSE(maybe.has_value());
+    }
+
+    SECTION("ExecuteBatchNative (column-wise)")
+    {
+        auto const ids = std::array<int64_t, 3> { 1, 2, 3 };
+        auto const values = std::array { 'A', 'B', 'C' };
+
+        stmt.Prepare(R"(INSERT INTO "Test" ("Id", "Value") VALUES (?, ?))");
+        std::ignore = stmt.ExecuteBatchNative(ids, values);
+
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "Value" FROM "Test" ORDER BY "Id")");
+        for (auto const value: values)
+        {
+            REQUIRE(cursor.FetchRow());
+            CHECK(cursor.GetColumn<char>(1) == value);
+        }
+        CHECK_FALSE(cursor.FetchRow());
+    }
+
+    SECTION("ExecuteBatch (row-wise)")
+    {
+        auto const rows = std::array {
+            CharBatchRow { .id = 1, .value = 'A', .maybe = 'a' },
+            CharBatchRow { .id = 2, .value = 'B', .maybe = std::nullopt },
+            CharBatchRow { .id = 3, .value = 'C', .maybe = 'c' },
+        };
+
+        stmt.Prepare(R"(INSERT INTO "Test" ("Id", "Value", "Maybe") VALUES (?, ?, ?))");
+        std::ignore = stmt.ExecuteBatch(
+            std::span { rows },
+            [](CharBatchRow const& r) -> int64_t const& { return r.id; },
+            [](CharBatchRow const& r) -> char const& { return r.value; },
+            [](CharBatchRow const& r) -> std::optional<char> const& { return r.maybe; });
+
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "Value", "Maybe" FROM "Test" ORDER BY "Id")");
+        for (auto const& expected: rows)
+        {
+            REQUIRE(cursor.FetchRow());
+            CHECK(cursor.GetColumn<char>(1) == expected.value);
+            CHECK(cursor.GetColumn<std::optional<char>>(2) == expected.maybe);
+        }
+        CHECK_FALSE(cursor.FetchRow());
     }
 }
 
