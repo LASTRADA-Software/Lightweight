@@ -52,6 +52,52 @@ TEST_CASE_METHOD(SqlTestFixture, "Query.WhereIn binds its values", "[DataMapper]
     CHECK(dm.Query<Person>().WhereIn(FieldNameOf<Member(Person::name)>, std::vector<std::string> {}).All().empty());
 }
 
+// Regression test for #620: a DataMapper query builder points its search condition at its own list
+// of bound values. The implicit copy and move constructors copied that pointer verbatim, so a builder
+// copied mid-chain wrote its placeholders into its own SQL but its values into the source's list,
+// and executed with fewer values than placeholders ("Invalid argument count").
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Query builder copied mid-chain keeps its own bound values",
+                 "[DataMapper],[QueryBuilderCopy]")
+{
+    auto dm = DataMapper();
+
+    dm.CreateTable<Person>();
+    for (auto& person: std::array {
+             Person { .id = SqlGuid::Create(), .name = "O'Brien", .is_active = true, .age = 42 },
+             Person { .id = SqlGuid::Create(), .name = "Jane Doe", .is_active = true, .age = 36 },
+             Person { .id = SqlGuid::Create(), .name = "Jimbo Jones", .is_active = false, .age = 69 },
+         })
+        dm.Create(person);
+
+    SECTION("copy, then WhereIn")
+    {
+        // `auto` (no &) copy-constructs from the reference Where() returns into the temporary.
+        auto query = dm.Query<Person>().Where(FieldNameOf<Member(Person::is_active)>, "=", true);
+        std::ignore = query.WhereIn(FieldNameOf<Member(Person::name)>, std::vector { "O'Brien"s, "Jimbo Jones"s });
+        CHECK(query.All().size() == 1);
+    }
+
+    SECTION("copy, then Where on the copy leaves the source alone")
+    {
+        auto source = dm.Query<Person>();
+        std::ignore = source.Where(FieldNameOf<Member(Person::is_active)>, "=", true);
+        auto copy = source;
+        std::ignore = copy.Where(FieldNameOf<Member(Person::age)>, ">", 40);
+        CHECK(copy.All().size() == 1);
+        CHECK(source.All().size() == 2);
+    }
+
+    SECTION("move, then Where")
+    {
+        auto source = dm.Query<Person>();
+        std::ignore = source.Where(FieldNameOf<Member(Person::is_active)>, "=", true);
+        auto moved = std::move(source);
+        std::ignore = moved.Where(FieldNameOf<Member(Person::age)>, "<", 40);
+        CHECK(moved.All().size() == 1);
+    }
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "Query", "[DataMapper]")
 {
     auto dm = DataMapper();
