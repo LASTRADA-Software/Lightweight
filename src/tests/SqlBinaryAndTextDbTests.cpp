@@ -352,7 +352,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Where: compare a binary column with a bound bi
     SECTION("SqlDynamicBinary<N>")
     {
         auto const key = SqlDynamicBinary<32> { { 0x01, 0x00, 0x02 } };
-        auto const rows = dm.Query<BinaryKeyedRecord>().Where(FieldNameOf<&BinaryKeyedRecord::key>, "=", key).All();
+        auto const rows = dm.Query<BinaryKeyedRecord>().Where(FieldNameOf<Member(BinaryKeyedRecord::key)>, "=", key).All();
         REQUIRE(rows.size() == 1);
         CHECK(rows[0].value.Value() == 1);
     }
@@ -360,7 +360,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Where: compare a binary column with a bound bi
     SECTION("SqlBinary")
     {
         auto const key = SqlBinary { 0x03, 0x04 };
-        auto const rows = dm.Query<BinaryKeyedRecord>().Where(FieldNameOf<&BinaryKeyedRecord::key>, "=", key).All();
+        auto const rows = dm.Query<BinaryKeyedRecord>().Where(FieldNameOf<Member(BinaryKeyedRecord::key)>, "=", key).All();
         REQUIRE(rows.size() == 1);
         CHECK(rows[0].value.Value() == 2);
     }
