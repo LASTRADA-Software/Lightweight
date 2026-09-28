@@ -12,6 +12,7 @@
 #include <array>
 #include <cstdint>
 #include <ranges>
+#include <stdexcept>
 #include <string>
 
 using namespace Lightweight;
@@ -320,5 +321,65 @@ TEST_CASE_METHOD(SqlTestFixture,
     {
         CHECK(read->number.Value() == 42);
         CHECK(!read->payload.Value().has_value());
+    }
+}
+
+// ================================================================================================
+// Binary values in a WHERE clause (#618)
+//
+// A DataMapper query binds its WHERE values as SqlVariant, which had no way to hold a
+// SqlDynamicBinary<N>, so comparing a binary column did not compile.
+// ================================================================================================
+
+struct BinaryKeyedRecord
+{
+    Field<SqlGuid, PrimaryKey::AutoAssign> id;
+    Field<SqlDynamicBinary<32>> key;
+    Field<int> value;
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "Where: compare a binary column with a bound binary value", "[SqlBinary],[WhereBinary]")
+{
+    auto dm = DataMapper();
+    dm.CreateTable<BinaryKeyedRecord>();
+
+    // A NUL byte inside the key: exactly what a text column could not carry verbatim.
+    auto first = BinaryKeyedRecord { .id = {}, .key = SqlDynamicBinary<32> { { 0x01, 0x00, 0x02 } }, .value = 1 };
+    auto second = BinaryKeyedRecord { .id = {}, .key = SqlDynamicBinary<32> { { 0x03, 0x04 } }, .value = 2 };
+    dm.Create(first);
+    dm.Create(second);
+
+    SECTION("SqlDynamicBinary<N>")
+    {
+        auto const key = SqlDynamicBinary<32> { { 0x01, 0x00, 0x02 } };
+        auto const rows = dm.Query<BinaryKeyedRecord>().Where(FieldNameOf<&BinaryKeyedRecord::key>, "=", key).All();
+        REQUIRE(rows.size() == 1);
+        CHECK(rows[0].value.Value() == 1);
+    }
+
+    SECTION("SqlBinary")
+    {
+        auto const key = SqlBinary { 0x03, 0x04 };
+        auto const rows = dm.Query<BinaryKeyedRecord>().Where(FieldNameOf<&BinaryKeyedRecord::key>, "=", key).All();
+        REQUIRE(rows.size() == 1);
+        CHECK(rows[0].value.Value() == 2);
+    }
+
+    SECTION("a builder without bound parameters refuses to inline a binary value")
+    {
+        // A plain SqlQueryBuilder writes its WHERE values into the SQL text; a binary value has no
+        // literal form there, and formatting it would have produced "SqlBinary(size=2)" instead.
+        auto builder = dm.Connection().Query("BinaryKeyedRecord").Select();
+        CHECK_THROWS_AS(builder.Where("key", "=", SqlBinary { 0x03, 0x04 }), std::invalid_argument);
+        CHECK_THROWS_AS(builder.Where("key", "=", SqlDynamicBinary<32> { { 0x03, 0x04 } }), std::invalid_argument);
+    }
+
+    SECTION("SqlVariant built from SqlDynamicBinary<N> binds as binary")
+    {
+        auto stmt = SqlStatement { dm.Connection() };
+        stmt.Prepare(R"(SELECT COUNT(*) FROM "BinaryKeyedRecord" WHERE "key" = ?)");
+        auto cursor = stmt.ExecuteWithVariants({ SqlVariant { SqlDynamicBinary<32> { { 0x03, 0x04 } } } });
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<int>(1) == 1);
     }
 }

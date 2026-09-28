@@ -7,6 +7,7 @@
 #include "Core.hpp"
 
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <utility>
 #include <vector>
@@ -62,16 +63,13 @@ struct SqlDataBinder<SqlBinary>
         bool const isEmpty = value.empty();
         auto const* dataPtr = isEmpty ? &emptySentinel : value.data();
         SQLULEN const columnSize = isEmpty ? SQLULEN { 1 } : static_cast<SQLULEN>(value.size());
-        return SQLBindParameter(stmt,
-                                column,
-                                SQL_PARAM_INPUT,
-                                SQL_C_BINARY,
-                                SQL_LONGVARBINARY,
-                                columnSize,
-                                0,
-                                (SQLPOINTER) dataPtr,
-                                0,
-                                &value._indicator);
+        // A long binary parameter is sent to MS SQL Server as `image`, which cannot be compared, so
+        // a SqlBinary in a WHERE clause failed with "varbinary and image are incompatible" (#618).
+        // Mirrors SqlDynamicBinary: plain VARBINARY up to 8000 bytes, SQL Server's varbinary limit.
+        constexpr std::size_t MaxVarBinaryBytes = 8000;
+        auto const sqlType = static_cast<SQLSMALLINT>(value.size() > MaxVarBinaryBytes ? SQL_LONGVARBINARY : SQL_VARBINARY);
+        return SQLBindParameter(
+            stmt, column, SQL_PARAM_INPUT, SQL_C_BINARY, sqlType, columnSize, 0, (SQLPOINTER) dataPtr, 0, &value._indicator);
     }
 
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(
