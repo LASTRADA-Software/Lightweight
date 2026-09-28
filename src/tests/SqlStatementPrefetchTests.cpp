@@ -919,3 +919,30 @@ TEST_CASE_METHOD(SqlTestFixture, "Prefetch: SqlVariantRowCursor reads temporal a
     }
     CHECK(seen == rowCount);
 }
+
+// Regression test for #602: a VARBINARY column is not prefetchable, so its presence moves the whole
+// result set onto the per-row path, where a GUID read into std::string goes through the string
+// binder's growing buffer. That buffer starts at 15 bytes, and MS SQL Server refuses to hand out a
+// uniqueidentifier (36 characters) in chunks: it fails the first SQLGetData with 22003 "Numeric
+// value out of range" rather than reporting a truncation the loop could grow from.
+TEST_CASE_METHOD(SqlTestFixture, "Per-row fallback: a GUID column reads into std::string", "[prefetch],[SqlGuid]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("GuidText")
+            .RequiredColumn("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("G", SqlColumnTypeDefinitions::Guid {})
+            .Column("B", SqlColumnTypeDefinitions::VarBinary { 64 });
+    });
+
+    auto const guid = SqlGuid::Create();
+    stmt.Prepare(R"(INSERT INTO "GuidText" ("Id", "G", "B") VALUES (?, ?, ?))");
+    (void) stmt.Execute(1, guid, SqlBinary { 0x01, 0x02 });
+
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "G", "B" FROM "GuidText")");
+    REQUIRE(cursor.FetchRow());
+
+    auto const text = cursor.GetColumn<std::string>(1);
+    // The textual form differs in case between drivers; the value must not.
+    CHECK(SqlGuid::TryParse(text) == guid);
+}
