@@ -11,6 +11,5 @@ var classLightweight_1_1SqlDataBinderCallback =
     [ "ProvideInputIndicators", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ad2b577cf0e7a7cc9eb671677b42cb914", null ],
     [ "ProvideBatchStagingBuffer", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#af7acc1d446fc49ea446f8ae20f58518c", null ],
     [ "ServerType", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#aa4a1025e0d27d3e8f0c97081e2419875", null ],
-    [ "DriverName", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a151e499b5da3afcaea3326bfb35d3c36", null ],
-    [ "DescribeInputParameterType", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ad098c3dad4ee1a7363b6f2de5d875861", null ]
+    [ "DriverName", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a151e499b5da3afcaea3326bfb35d3c36", null ]
 ];
