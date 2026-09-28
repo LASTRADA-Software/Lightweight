@@ -310,4 +310,59 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateCopyOf: Multiple copies", "[DataMapper]"
     }
 }
 
+// Regression test for #616: one DataMapper's statement is re-prepared by every Create(), but the
+// parameter bindings of the previous record type used to survive the re-prepare. A NULL is bound
+// with the type the driver describes for its slot, and once one such describe has failed (07009,
+// see #614) the MS SQL Server driver answers the following ones from the parameter descriptors -
+// which still held the previous INSERT's bindings. The second NULL below thus went out typed as the
+// timestamp the previous record type had bound in that slot, and the insert failed with
+// "Operand type clash: datetime2 is incompatible with real".
+//
+// The keys are client-generated GUIDs so that nothing runs on the statement between the INSERTs: a
+// server-side auto-increment key is read back with a direct query, which clears the bindings.
+struct CreateAmountThenTimestamp
+{
+    Field<SqlGuid, PrimaryKey::AutoAssign> id;
+    Field<double> amount;
+    Field<SqlDateTime> timestamp;
+};
+
+struct CreateTwoNullableAmounts
+{
+    Field<SqlGuid, PrimaryKey::AutoAssign> id;
+    Field<std::optional<double>> first;
+    Field<std::optional<double>> second;
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "Create: different record types in sequence on one mapper", "[DataMapper],[Create]")
+{
+    auto dm = DataMapper();
+    dm.CreateTable<CreateAmountThenTimestamp>();
+    dm.CreateTable<CreateTwoNullableAmounts>();
+
+    auto initial = CreateAmountThenTimestamp { .amount = 1.5, .timestamp = SqlDateTime::Now() };
+    dm.Create(initial);
+
+    auto allNull = CreateTwoNullableAmounts {};
+    REQUIRE_NOTHROW(dm.Create(allNull));
+
+    auto partlyNull = CreateTwoNullableAmounts { .first = 2.5, .second = std::nullopt };
+    REQUIRE_NOTHROW(dm.Create(partlyNull));
+
+    // And back again: the first type must not inherit the second type's bindings either.
+    auto again = CreateAmountThenTimestamp { .amount = 4.5, .timestamp = SqlDateTime::Now() };
+    REQUIRE_NOTHROW(dm.Create(again));
+
+    auto const readAllNull = dm.QuerySingle<CreateTwoNullableAmounts>(allNull.id).value();
+    CHECK(!readAllNull.first.Value().has_value());
+    CHECK(!readAllNull.second.Value().has_value());
+
+    auto const readPartlyNull = dm.QuerySingle<CreateTwoNullableAmounts>(partlyNull.id).value();
+    CHECK(readPartlyNull.first.Value() == 2.5);
+    CHECK(!readPartlyNull.second.Value().has_value());
+
+    auto const readAgain = dm.QuerySingle<CreateAmountThenTimestamp>(again.id).value();
+    CHECK(readAgain.amount.Value() == 4.5);
+}
+
 // NOLINTEND(bugprone-unchecked-optional-access)
