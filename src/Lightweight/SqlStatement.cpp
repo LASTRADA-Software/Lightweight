@@ -485,6 +485,12 @@ void SqlStatement::Prepare(std::string_view query) &
     // Unbinds the columns, if any
     RequireSuccess(SQLFreeStmt(m_hStmt, SQL_UNBIND));
 
+    // Drops the previous query's parameter bindings. SQLPrepare does not clear them, and they are not
+    // inert: the MS SQL Server driver answers SQLDescribeParam from these descriptors once a describe
+    // has failed, so a NULL bound for the new query would take the type the previous query had bound
+    // in that slot - e.g. a datetime2 NULL sent into a float column (#616).
+    RequireSuccess(SQLFreeStmt(m_hStmt, SQL_RESET_PARAMS));
+
     // Prepares the statement on the W (Unicode) entry point so the ODBC driver stays
     // on the same Unicode-app track that SQLDriverConnectW set up. Mixing A and W
     // calls on the same handle works in theory (the Driver Manager auto-translates),
