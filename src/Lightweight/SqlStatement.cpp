@@ -19,6 +19,7 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <ranges>
 #include <stdexcept>
 #include <utility>
@@ -37,6 +38,10 @@ struct SqlStatement::Data
         batchStagingBuffers; // Holds temporary scratch buffers for batch input parameter binders
     std::vector<std::function<void()>> postExecuteCallbacks;
     std::vector<std::function<void()>> postProcessOutputColumnCallbacks;
+
+    // Declared SQL type of each parameter of the prepared query, described on first demand (a NULL
+    // being bound) and dropped whenever the handle is given a different query.
+    std::optional<std::vector<SQLSMALLINT>> describedParameterTypes;
 
     /// @brief Lifecycle of the transparent block-prefetch on the current result set.
     enum class PrefetchMode : std::uint8_t
@@ -117,6 +122,57 @@ std::byte* SqlStatement::ProvideBatchStagingBuffer(std::size_t byteCount)
     // std::vector<std::byte> allocates via operator new, which yields max_align_t-aligned storage.
     m_data->batchStagingBuffers.emplace_back(byteCount);
     return m_data->batchStagingBuffers.back().data();
+}
+
+std::optional<SQLSMALLINT> SqlStatement::DescribeInputParameterType(SQLUSMALLINT column) noexcept
+{
+    if (!m_data->describedParameterTypes)
+        m_data->describedParameterTypes = DescribeInputParameterTypes();
+
+    auto const& types = *m_data->describedParameterTypes;
+    if (column == 0 || column > types.size() || types[column - 1] == SQL_UNKNOWN_TYPE)
+        return std::nullopt;
+    return types[column - 1];
+}
+
+std::vector<SQLSMALLINT> SqlStatement::DescribeInputParameterTypes() noexcept
+{
+    if (m_preparedQuery.empty() || m_preparedParameterCount <= 0)
+        return {};
+
+    auto const describeAll = [count = static_cast<std::size_t>(m_preparedParameterCount)](SQLHSTMT handle) {
+        auto types = std::vector<SQLSMALLINT>(count, SQL_UNKNOWN_TYPE);
+        for (auto const index: std::views::iota(std::size_t { 0 }, count))
+        {
+            auto const column = static_cast<SQLUSMALLINT>(index + 1);
+            if (!SQL_SUCCEEDED(SQLDescribeParam(handle, column, &types[index], nullptr, nullptr, nullptr)))
+                types[index] = SQL_UNKNOWN_TYPE;
+        }
+        return types;
+    };
+
+    // Nothing bound yet (a NULL in the first slot, or the first NULL a caller binds before any other
+    // parameter): this handle can answer for itself, without a second prepare.
+    auto boundParameterCount = SQLSMALLINT { -1 };
+    auto parameterDescriptor = SQLHDESC {};
+    if (SQL_SUCCEEDED(SQLGetStmtAttr(m_hStmt, SQL_ATTR_APP_PARAM_DESC, &parameterDescriptor, 0, nullptr)))
+        if (!SQL_SUCCEEDED(SQLGetDescField(parameterDescriptor, 0, SQL_DESC_COUNT, &boundParameterCount, 0, nullptr)))
+            boundParameterCount = -1;
+    if (boundParameterCount == 0)
+        return describeAll(m_hStmt);
+
+    try
+    {
+        auto describer = SqlStatement { *m_connection };
+        describer.Prepare(m_preparedQuery);
+        return describeAll(describer.NativeHandle());
+    }
+    catch (...)
+    {
+        // E.g. the connection is busy with another statement's results. The caller falls back to
+        // its default type, which is what it would have bound without a description at all.
+        return std::vector<SQLSMALLINT>(static_cast<std::size_t>(m_preparedParameterCount), SQL_UNKNOWN_TYPE);
+    }
 }
 
 void SqlStatement::ClearBatchIndicators()
@@ -470,6 +526,9 @@ void SqlStatement::Prepare(std::string_view query) &
     m_projectedFieldNames.clear();
     m_projectionHasWildcard = false;
 
+    if (!reusePreparedQuery)
+        m_data->describedParameterTypes.reset();
+
     m_data->postExecuteCallbacks.clear();
     m_data->postProcessOutputColumnCallbacks.clear();
     m_data->inputIndicators.clear();
@@ -549,6 +608,7 @@ bool SqlStatement::RetryStalePreparedStatement(SQLRETURN result)
 
     PrepareOnHandle(std::string { m_preparedQuery });
     m_reusedPreparedQuery = false;
+    m_data->describedParameterTypes.reset();
     return true;
 }
 
@@ -635,6 +695,7 @@ SqlResultCursor SqlStatement::ExecuteDirect(std::string_view const& query, std::
 
     m_preparedQuery.clear();
     m_reusedPreparedQuery = false;
+    m_data->describedParameterTypes.reset();
     m_numColumns.reset();
 
     // See the note in Prepare(): raw SQL must not inherit a previous query's column names.
