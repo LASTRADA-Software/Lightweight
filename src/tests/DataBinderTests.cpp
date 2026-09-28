@@ -3775,6 +3775,9 @@ TEST_CASE_METHOD(SqlTestFixture, "std::optional<T>::OutputColumn: nullptr result
     DummyCallback cb;
     auto const rv = SqlDataBinder<std::optional<int>>::OutputColumn(nullptr, 1, nullptr, &indicator, cb);
     CHECK(rv == SQL_ERROR);
+
+    // A callback that knows nothing about parameter types says so, rather than guessing one.
+    CHECK(!cb.DescribeInputParameterType(1).has_value());
 }
 
 // =============================================================================

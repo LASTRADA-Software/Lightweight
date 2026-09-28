@@ -423,6 +423,12 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     LIGHTWEIGHT_API SQLLEN* ProvideInputIndicator() override;
     LIGHTWEIGHT_API SQLLEN* ProvideInputIndicators(size_t rowCount) override;
     LIGHTWEIGHT_API std::byte* ProvideBatchStagingBuffer(std::size_t byteCount) override;
+    /// Resolves the declared SQL type of a parameter of the prepared query. All parameters are
+    /// described on first use and remembered until a different query is prepared.
+    /// @param column The 1-based parameter index.
+    /// @return The declared SQL type, or @c std::nullopt when the driver cannot describe it.
+    [[nodiscard]] LIGHTWEIGHT_API std::optional<SQLSMALLINT> DescribeInputParameterType(
+        SQLUSMALLINT column) noexcept override;
     LIGHTWEIGHT_API void ClearBatchIndicators();
     /// Restores single-row, column-bound parameter binding (the ODBC default). @c noexcept so it can run
     /// from a scope guard on the native-batch exception path.
@@ -548,6 +554,14 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// @param queryText The SQL text to prepare.
     /// @throws SqlException The driver rejected the prepare, or could not report the parameter count.
     void PrepareOnHandle(std::string queryText);
+
+    /// @brief Describes every parameter of the prepared query.
+    ///
+    /// The MS SQL Server driver refuses @c SQLDescribeParam() (07009) once any parameter of the
+    /// handle is bound, so the parameters are described on this handle only while none is; otherwise
+    /// on a second statement that prepares the same text and binds nothing.
+    /// @return One declared SQL type per parameter, @c SQL_UNKNOWN_TYPE where the driver could not say.
+    [[nodiscard]] std::vector<SQLSMALLINT> DescribeInputParameterTypes() noexcept;
 
     /// @brief Hands @c m_hStmt to the pool if it carries a prepared query and caching is in effect.
     /// @return true if the handle was pooled (and must therefore not be freed by the caller).

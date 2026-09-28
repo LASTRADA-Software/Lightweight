@@ -35,16 +35,11 @@ struct SqlDataBinder<SqlNullType>
         // For MS SQL Server, we need to determine the actual SQL type of the column to bind the parameter correctly,
         // because requires a correctly convertible SQL type for NULL values.
         // e.g. MS SQL Server cannot convert a VARCHAR NULL to a binary column type (e.g. BLOB).
-        SQLSMALLINT const sqlType = [stmt, column, serverType = cb.ServerType()]() -> SQLSMALLINT {
-            if (serverType == SqlServerType::MICROSOFT_SQL)
-            {
-                SQLSMALLINT columnType {};
-                auto const sqlReturn = SQLDescribeParam(stmt, column, &columnType, nullptr, nullptr, nullptr);
-                if (SQL_SUCCEEDED(sqlReturn))
-                    return columnType;
-            }
-            return SQL_C_CHAR;
-        }();
+        // The type comes from the statement rather than a SQLDescribeParam() here: the driver
+        // refuses to describe once any parameter is bound, which a NULL after the first one always is.
+        SQLSMALLINT const sqlType = cb.ServerType() == SqlServerType::MICROSOFT_SQL
+                                        ? cb.DescribeInputParameterType(column).value_or(SQL_C_CHAR)
+                                        : SQLSMALLINT { SQL_C_CHAR };
 
         return SQLBindParameter(stmt,
                                 column,

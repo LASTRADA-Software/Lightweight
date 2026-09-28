@@ -98,6 +98,20 @@ class LIGHTWEIGHT_API SqlDataBinderCallback
 
     /// @return The driver name of the database.
     [[nodiscard]] virtual std::string const& DriverName() const noexcept = 0;
+
+    /// Resolves the SQL type the server declares for an input parameter of the prepared statement.
+    ///
+    /// A binder that has no value to derive the type from - a NULL - uses this to bind with a type
+    /// the target column accepts. Unlike a bare @c SQLDescribeParam() on the statement handle, it
+    /// answers regardless of how many parameters are already bound.
+    ///
+    /// @param column The 1-based parameter index.
+    /// @return The declared SQL type, or @c std::nullopt when it cannot be determined.
+    [[nodiscard]] virtual std::optional<SQLSMALLINT> DescribeInputParameterType(SQLUSMALLINT column) noexcept
+    {
+        (void) column;
+        return std::nullopt;
+    }
 };
 
 template <typename>

@@ -224,3 +224,101 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: a LOB column followed by an unsign
     }
     CHECK(rowsRead == 1);
 }
+
+// ================================================================================================
+// A NULL bound into a binary column after other parameters (#614)
+//
+// MS SQL Server rejects a NULL typed as char for a varbinary column, so the NULL binder asks the
+// driver for the parameter's type. The driver refuses SQLDescribeParam once any parameter is bound
+// (07009), which used to leave every NULL after the first parameter typed as char.
+// ================================================================================================
+
+namespace
+{
+
+void CreateNullableBinaryTable(SqlStatement& stmt)
+{
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("NullBin")
+            .RequiredColumn("id", SqlColumnTypeDefinitions::Integer {})
+            .Column("payload", SqlColumnTypeDefinitions::VarBinary { 64 });
+    });
+}
+
+/// @return The number of rows whose payload is NULL.
+std::size_t CountNullPayloads(SqlStatement& stmt)
+{
+    return stmt.ExecuteDirectScalar<std::size_t>(R"(SELECT COUNT(*) FROM "NullBin" WHERE "payload" IS NULL)").value_or(0);
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "NULL into a binary column after another parameter: ExecuteWithVariants",
+                 "[SqlBinary],[NullParameter]")
+{
+    auto stmt = SqlStatement {};
+    CreateNullableBinaryTable(stmt);
+
+    stmt.Prepare(R"(INSERT INTO "NullBin" ("id", "payload") VALUES (?, ?))");
+    REQUIRE_NOTHROW((void) stmt.ExecuteWithVariants({ SqlVariant { 1 }, SqlVariant { SqlNullValue } }));
+
+    CHECK(CountNullPayloads(stmt) == 1);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "NULL into a binary column after another parameter: Execute", "[SqlBinary],[NullParameter]")
+{
+    auto stmt = SqlStatement {};
+    CreateNullableBinaryTable(stmt);
+
+    stmt.Prepare(R"(INSERT INTO "NullBin" ("id", "payload") VALUES (?, ?))");
+    REQUIRE_NOTHROW((void) stmt.Execute(1, SqlNullValue));
+    // The same prepared statement again, which keeps the parameter types it resolved.
+    REQUIRE_NOTHROW((void) stmt.Execute(2, std::optional<SqlBinary> {}));
+    // A NULL in the first slot is described before anything is bound.
+    stmt.Prepare(R"(INSERT INTO "NullBin" ("payload", "id") VALUES (?, ?))");
+    REQUIRE_NOTHROW((void) stmt.Execute(SqlNullValue, 3));
+
+    CHECK(CountNullPayloads(stmt) == 3);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "NULL into a binary column after another parameter: BindInputParameter",
+                 "[SqlBinary],[NullParameter]")
+{
+    auto stmt = SqlStatement {};
+    CreateNullableBinaryTable(stmt);
+
+    stmt.Prepare(R"(INSERT INTO "NullBin" ("id", "payload") VALUES (?, ?))");
+    stmt.BindInputParameter(1, 1);
+    stmt.BindInputParameter(2, std::optional<SqlBinary> {});
+    REQUIRE_NOTHROW((void) stmt.Execute());
+
+    CHECK(CountNullPayloads(stmt) == 1);
+}
+
+struct NullableBinaryRecord
+{
+    Field<SqlGuid, PrimaryKey::AutoAssign> id;
+    Field<int> number;
+    Field<std::optional<SqlDynamicBinary<64>>> payload;
+};
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "NULL into a binary column after another parameter: DataMapper::Create",
+                 "[SqlBinary],[NullParameter]")
+{
+    auto dm = DataMapper();
+    dm.CreateTable<NullableBinaryRecord>();
+
+    auto record = NullableBinaryRecord { .id = {}, .number = 42, .payload = {} };
+    REQUIRE_NOTHROW(dm.Create(record));
+
+    auto const read = dm.QuerySingle<NullableBinaryRecord>(record.id);
+    REQUIRE(read.has_value());
+    if (read.has_value())
+    {
+        CHECK(read->number.Value() == 42);
+        CHECK(!read->payload.Value().has_value());
+    }
+}
