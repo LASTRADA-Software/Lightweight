@@ -5,6 +5,7 @@
 #include "Core.hpp"
 #include "UnicodeConverter.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <cstring>
@@ -103,6 +104,47 @@ namespace detail
         if (writeIndex > 0 && SQL_SUCCEEDED(sqlResult) && *indicator != SQL_NULL_DATA && *indicator != SQL_NO_TOTAL)
             result->resize(writeIndex + (static_cast<size_t>(*indicator) / sizeof(CharType)));
         return sqlResult;
+    }
+
+    /// Size of the first buffer a growing SQL_C_CHAR read of @p column starts with, including the
+    /// null terminator.
+    ///
+    /// Reading in chunks - a small buffer, grown as the driver reports truncation - is defined only
+    /// for character and binary sources. For any other source the value must fit the first buffer:
+    /// MS SQL Server fails a uniqueidentifier (36 characters) read into a short one with 22003
+    /// "Numeric value out of range", and the failed call counts as the column's retrieval, so no
+    /// retry with a larger buffer can follow (#602). Such columns start at their display width.
+    ///
+    /// @param stmt The statement holding the result set.
+    /// @param column The 1-based column index.
+    /// @return The initial buffer size, in bytes.
+    inline size_t InitialCharBufferSize(SQLHSTMT stmt, SQLUSMALLINT column) noexcept
+    {
+        constexpr size_t DefaultSize = 15;
+
+        SQLLEN sqlType {};
+        if (!SQL_SUCCEEDED(SQLColAttribute(stmt, column, SQL_DESC_CONCISE_TYPE, nullptr, 0, nullptr, &sqlType)))
+            return DefaultSize;
+        switch (sqlType)
+        {
+            case SQL_CHAR:
+            case SQL_VARCHAR:
+            case SQL_LONGVARCHAR:
+            case SQL_WCHAR:
+            case SQL_WVARCHAR:
+            case SQL_WLONGVARCHAR:
+            case SQL_BINARY:
+            case SQL_VARBINARY:
+            case SQL_LONGVARBINARY:
+                return DefaultSize;
+            default:
+                break;
+        }
+
+        SQLLEN displaySize {};
+        if (!SQL_SUCCEEDED(SQLColAttribute(stmt, column, SQL_DESC_DISPLAY_SIZE, nullptr, 0, nullptr, &displaySize)))
+            return DefaultSize;
+        return (std::max) (DefaultSize, static_cast<size_t>((std::max) (displaySize, SQLLEN { 0 })) + 1);
     }
 
     template <typename Utf16StringType>
@@ -556,7 +598,7 @@ struct SqlDataBinder<AnsiStringType>
         }
         else
         {
-            StringTraits::Reserve(result, 15);
+            StringTraits::Reserve(result, detail::InitialCharBufferSize(stmt, column));
             size_t writeIndex = 0;
             *indicator = 0;
             while (true)
