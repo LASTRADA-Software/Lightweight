@@ -21,7 +21,7 @@
 #include <ranges>
 #include <type_traits>
 
-// NOLINTBEGIN(readability-container-size-empty, bugprone-throwing-static-initialization, bugprone-unchecked-optional-access)
+// NOLINTBEGIN(readability-container-size-empty, bugprone-unchecked-optional-access)
 
 #if defined(_MSC_VER)
     // Disable the warning C4834: discarding return value of function with 'nodiscard' attribute.
@@ -3939,4 +3939,4 @@ TEST_CASE_METHOD(SqlTestFixture, "Single-character string round-trip", "[SqlData
     }
 }
 
-// NOLINTEND(readability-container-size-empty, bugprone-throwing-static-initialization, bugprone-unchecked-optional-access)
+// NOLINTEND(readability-container-size-empty, bugprone-unchecked-optional-access)
