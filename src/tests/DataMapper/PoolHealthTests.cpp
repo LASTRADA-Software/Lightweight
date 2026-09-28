@@ -546,3 +546,74 @@ TEST_CASE("SqlConnection: the default connection string can be replaced while ot
 
     CHECK(torn == 0);
 }
+
+// ================================================================================================
+// Transaction state on return (#583)
+//
+// A connection handed back with a transaction still open used to be idled as it was, so the next,
+// unrelated caller silently ran inside it - and on SQLite could stall on the lock it held.
+// ================================================================================================
+
+namespace
+{
+
+/// @return Whether @p connection runs in autocommit mode, i.e. no transaction is held open on it.
+bool IsAutoCommit(SqlConnection& connection)
+{
+    SQLULEN autoCommit {};
+    REQUIRE(SQL_SUCCEEDED(SQLGetConnectAttr(connection.NativeHandle(), SQL_ATTR_AUTOCOMMIT, &autoCommit, 0, nullptr)));
+    return autoCommit == SQL_AUTOCOMMIT_ON;
+}
+
+/// Leaves a transaction open on a pooled connection, returns it, and checks what the next caller of
+/// the same connection gets.
+template <PoolConfig Config>
+void CheckReturnRollsBackAnOpenTransaction()
+{
+    auto pool = Pool<Config> {};
+
+    auto firstId = std::uint64_t {};
+    {
+        auto held = pool.Acquire();
+        firstId = held->Connection().ConnectionId();
+        auto stmt = SqlStatement { held->Connection() };
+        (void) stmt.ExecuteDirect(R"(DROP TABLE IF EXISTS "PoolTx")"); // left behind by a previous section
+        stmt.MigrateDirect([](auto& migration) {
+            migration.CreateTable("PoolTx").RequiredColumn("id", SqlColumnTypeDefinitions::Integer {});
+        });
+
+        // SqlTransactionMode::NONE ends the transaction object without ending the transaction: the
+        // shape of a caller whose cleanup path was skipped.
+        auto transaction = SqlTransaction { held->Connection(), SqlTransactionMode::NONE };
+        (void) stmt.ExecuteDirect(R"(INSERT INTO "PoolTx" ("id") VALUES (1))");
+        REQUIRE_FALSE(IsAutoCommit(held->Connection()));
+    }
+
+    auto const next = pool.Acquire();
+    REQUIRE(next->Connection().ConnectionId() == firstId); // the same connection, not a fresh one
+    CHECK(IsAutoCommit(next->Connection()));
+
+    // The abandoned work was rolled back, not committed on the next caller's behalf.
+    auto stmt = SqlStatement { next->Connection() };
+    CHECK(stmt.ExecuteDirectScalar<int>(R"(SELECT COUNT(*) FROM "PoolTx")").value_or(-1) == 0);
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "Pool: a returned connection's open transaction is rolled back", "[Pool],[PoolTransaction]")
+{
+    SECTION("UnboundedGrow")
+    {
+        CheckReturnRollsBackAnOpenTransaction<PoolConfig {
+            .initialSize = 0, .maxSize = 1, .growthStrategy = GrowthStrategy::UnboundedGrow }>();
+    }
+    SECTION("BoundedOverflow")
+    {
+        CheckReturnRollsBackAnOpenTransaction<PoolConfig {
+            .initialSize = 0, .maxSize = 1, .growthStrategy = GrowthStrategy::BoundedOverflow }>();
+    }
+    SECTION("BoundedWait")
+    {
+        CheckReturnRollsBackAnOpenTransaction<SingleSlotWaitConfig>();
+    }
+}

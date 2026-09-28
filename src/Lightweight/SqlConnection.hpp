@@ -361,6 +361,18 @@ class SqlConnection final
     /// Tests if a transaction is active.
     [[nodiscard]] LIGHTWEIGHT_API bool TransactionActive() const noexcept;
 
+    /// Rolls back a transaction left open on this connection and restores autocommit mode.
+    ///
+    /// Recognizes a transaction the ODBC way, by autocommit being off - as @ref SqlTransaction and
+    /// any caller switching autocommit off leave it. A transaction opened by executing a raw
+    /// @c BEGIN statement while autocommit is on is not visible to ODBC and is not ended here.
+    ///
+    /// The connection pool calls this on every connection returned to it.
+    ///
+    /// @return @c true when the connection is in autocommit mode afterwards (including when no
+    ///         transaction was open); @c false when the rollback or the mode switch failed.
+    [[nodiscard]] LIGHTWEIGHT_API bool RollbackOpenTransaction() noexcept;
+
     /// Tests if transactions are allowed.
     [[nodiscard]] LIGHTWEIGHT_API bool TransactionsAllowed() const noexcept;
 

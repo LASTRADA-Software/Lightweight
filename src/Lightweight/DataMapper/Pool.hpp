@@ -193,6 +193,9 @@ class Pool
         Clock::time_point createdAt {};
         Clock::time_point idleSince {};
         std::uint32_t generation {};
+        /// Set on return when the connection could not be brought back to a clean state; such an
+        /// entry is retired rather than idled or handed to a waiter.
+        bool unusable = false;
     };
 
   public:
@@ -200,6 +203,12 @@ class Pool
     /// A wrapper around a DataMapper that returns it to the pool when destroyed
     /// can be created only from the Pool and is move-only to ensure it is always
     /// returned to the pool when it goes out of scope
+    ///
+    /// On return, a transaction still open on the connection is rolled back, so the next caller
+    /// starts outside any transaction. That covers transactions ODBC knows about - a
+    /// @ref SqlTransaction, or autocommit switched off by hand. A transaction opened by executing a
+    /// raw @c BEGIN statement is invisible to ODBC: ending it is the caller's responsibility, and
+    /// @ref SqlTransaction is the way to have it ended on every exit path.
     class PooledDataMapper
     {
       private:
@@ -258,17 +267,24 @@ class Pool
   private:
     struct WaiterNode; // defined below; referenced by ReturnLocked's signature.
 
-    /// Detaches the async backend from a returned mapper's connection before it is idled or handed
-    /// off, so a recycled connection never carries references to executors that may since have been
-    /// destroyed (the next @c AcquireAsync re-enables it fresh). Shared by every @c Return overload.
+    /// Brings a returned mapper's connection back to the state a fresh one is in, before it is idled
+    /// or handed off. Shared by every @c Return overload.
+    ///
+    /// - Detaches the async backend, so a recycled connection never carries references to executors
+    ///   that may since have been destroyed (the next @c AcquireAsync re-enables it fresh).
+    /// - Rolls back a transaction left open on it, so the next, unrelated caller does not silently run
+    ///   inside it (#583). A connection where that fails is marked @c unusable and retired.
     ///
     /// @warning The caller must not return a mapper that still has an async operation in flight on it:
     /// dropping the backend destroys the strand/executors an outstanding offloaded step references and
     /// races the worker still touching the ODBC handle. Await every async op before returning.
-    /// @param dm The mapper whose connection's async backend is dropped.
-    static void DropAsyncBackend(DataMapper& dm) noexcept
+    /// @param entry The returned entry.
+    static void ResetForReuse(Entry& entry) noexcept
     {
-        dm.Connection().DisableAsync();
+        auto& connection = entry.mapper->Connection();
+        connection.DisableAsync();
+        if (!connection.RollbackOpenTransaction())
+            entry.unusable = true;
     }
 
     /// @return The current time, or a default-constructed time point when this configuration enables
@@ -371,11 +387,12 @@ class Pool
     ///
     /// @param entry The entry under consideration.
     /// @param now The current time, as returned by @ref NowIfTracking.
-    /// @return true when the connection has outlived @ref PoolConfig::maxLifetimeMs, or was made from
-    ///         a default connection string the application has since replaced.
+    /// @return true when the connection has outlived @ref PoolConfig::maxLifetimeMs, was made from
+    ///         a default connection string the application has since replaced, or could not be reset
+    ///         on return (see @ref ResetForReuse).
     [[nodiscard]] static bool MustRetire(Entry const& entry, [[maybe_unused]] Clock::time_point now) noexcept
     {
-        if (!IsCurrentGeneration(entry))
+        if (entry.unusable || !IsCurrentGeneration(entry))
             return true;
         if constexpr (Config.maxLifetimeMs > 0)
             return now - entry.createdAt >= Config.MaxLifetime();
@@ -387,7 +404,7 @@ class Pool
     void Return(Entry entry) noexcept
         requires(Config.growthStrategy == GrowthStrategy::UnboundedGrow)
     {
-        DropAsyncBackend(*entry.mapper);
+        ResetForReuse(entry);
         auto const now = NowIfTracking();
         if (MustRetire(entry, now))
         {
@@ -409,7 +426,7 @@ class Pool
     void Return(Entry entry) noexcept
         requires(Config.growthStrategy == GrowthStrategy::BoundedWait)
     {
-        DropAsyncBackend(*entry.mapper);
+        ResetForReuse(entry);
         Entry retired; // declared before the lock so its disconnect runs after the lock is released
         std::shared_ptr<WaiterNode> toResume;
         {
@@ -483,11 +500,12 @@ class Pool
     std::shared_ptr<WaiterNode> ReturnLocked(Entry entry, Entry& retired) noexcept
         requires(Config.growthStrategy == GrowthStrategy::BoundedWait)
     {
-        if (!IsCurrentGeneration(entry))
+        if (entry.unusable || !IsCurrentGeneration(entry))
         {
-            // Made from a default connection string the application has replaced since: it must reach
-            // neither the idle set nor a waiter, who would silently talk to the old database. The slot
-            // it held is passed on bare instead, and the waiter connects for itself.
+            // Made from a default connection string the application has replaced since, or left in a
+            // transaction that could not be rolled back: it must reach neither the idle set nor a
+            // waiter, who would silently talk to the old database or run inside that transaction. The
+            // slot it held is passed on bare instead, and the waiter connects for itself.
             retired = std::move(entry); // destroyed by the caller, after _mutex is released
             LIGHTWEIGHT_STATS_POOL_RELEASE(true);
             return ReleaseSlotLocked();
@@ -611,7 +629,7 @@ class Pool
     void Return(Entry entry) noexcept
         requires(Config.growthStrategy == GrowthStrategy::BoundedOverflow)
     {
-        DropAsyncBackend(*entry.mapper);
+        ResetForReuse(entry);
         auto const now = NowIfTracking();
         if (MustRetire(entry, now))
         {

@@ -658,6 +658,16 @@ bool SqlConnection::TransactionActive() const noexcept
     return sqlResult == SQL_SUCCESS && state == SQL_AUTOCOMMIT_OFF;
 }
 
+bool SqlConnection::RollbackOpenTransaction() noexcept
+{
+    if (m_hDbc == SQL_NULL_HDBC || !TransactionActive())
+        return true;
+
+    return SQL_SUCCEEDED(SQLEndTran(SQL_HANDLE_DBC, m_hDbc, SQL_ROLLBACK))
+           && SQL_SUCCEEDED(
+               SQLSetConnectAttrW(m_hDbc, SQL_ATTR_AUTOCOMMIT, (SQLPOINTER) SQL_AUTOCOMMIT_ON, SQL_IS_UINTEGER));
+}
+
 bool SqlConnection::TransactionsAllowed() const noexcept
 {
     SQLUSMALLINT txn {};

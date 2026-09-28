@@ -8,6 +8,8 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <format>
+#include <source_location>
+#include <stdexcept>
 #include <string>
 
 using namespace Lightweight;
@@ -192,6 +194,68 @@ TEST_CASE("SqlTransactionException carries a message", "[SqlTransaction]")
     SqlTransactionException const ex { "boom" };
     std::string const what = ex.what();
     CHECK(what == "boom");
+}
+
+// ================================================================================================
+// Failure paths stay noexcept (#583)
+//
+// TryCommit(), TryRollback() and the destructor are noexcept, yet they report a failure through the
+// installed SqlLogger - which is user code, free to throw. A throw escaping them would terminate.
+// ================================================================================================
+
+namespace
+{
+
+/// Throws from every error callback while it is the active logger.
+class ThrowingErrorLogger: public SqlLogger::Null
+{
+  public:
+    ThrowingErrorLogger():
+        _previous { &SqlLogger::GetLogger() }
+    {
+        SqlLogger::SetLogger(*this);
+    }
+
+    ~ThrowingErrorLogger() override
+    {
+        SqlLogger::SetLogger(*_previous);
+    }
+
+    ThrowingErrorLogger(ThrowingErrorLogger const&) = delete;
+    ThrowingErrorLogger(ThrowingErrorLogger&&) = delete;
+    ThrowingErrorLogger& operator=(ThrowingErrorLogger const&) = delete;
+    ThrowingErrorLogger& operator=(ThrowingErrorLogger&&) = delete;
+
+    void OnError(SqlError /*errorCode*/, std::source_location /*sourceLocation*/) override
+    {
+        throw std::runtime_error { "logger failure" };
+    }
+
+    void OnError(SqlErrorInfo const& /*errorInfo*/, std::source_location /*sourceLocation*/) override
+    {
+        throw std::runtime_error { "logger failure" };
+    }
+
+  private:
+    SqlLogger* _previous;
+};
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlTransaction: a failing commit or rollback reports false and never throws",
+                 "[SqlTransaction]")
+{
+    auto connection = SqlConnection {};
+    {
+        auto transaction = SqlTransaction { connection, SqlTransactionMode::COMMIT };
+        // Ending the connection under the transaction makes both SQLEndTran calls fail.
+        connection.Close();
+
+        auto const logger = ThrowingErrorLogger {};
+        CHECK_FALSE(transaction.TryCommit());
+        CHECK_FALSE(transaction.TryRollback());
+    } // the destructor's commit fails the same way, and must not terminate either
 }
 
 // ================================================================================================
