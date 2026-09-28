@@ -340,17 +340,17 @@ TEST_CASE_METHOD(SqlTestFixture, "Create: different record types in sequence on 
     dm.CreateTable<CreateAmountThenTimestamp>();
     dm.CreateTable<CreateTwoNullableAmounts>();
 
-    auto initial = CreateAmountThenTimestamp { .amount = 1.5, .timestamp = SqlDateTime::Now() };
+    auto initial = CreateAmountThenTimestamp { .id = {}, .amount = 1.5, .timestamp = SqlDateTime::Now() };
     dm.Create(initial);
 
     auto allNull = CreateTwoNullableAmounts {};
     REQUIRE_NOTHROW(dm.Create(allNull));
 
-    auto partlyNull = CreateTwoNullableAmounts { .first = 2.5, .second = std::nullopt };
+    auto partlyNull = CreateTwoNullableAmounts { .id = {}, .first = 2.5, .second = std::nullopt };
     REQUIRE_NOTHROW(dm.Create(partlyNull));
 
     // And back again: the first type must not inherit the second type's bindings either.
-    auto again = CreateAmountThenTimestamp { .amount = 4.5, .timestamp = SqlDateTime::Now() };
+    auto again = CreateAmountThenTimestamp { .id = {}, .amount = 4.5, .timestamp = SqlDateTime::Now() };
     REQUIRE_NOTHROW(dm.Create(again));
 
     auto const readAllNull = dm.QuerySingle<CreateTwoNullableAmounts>(allNull.id).value();
