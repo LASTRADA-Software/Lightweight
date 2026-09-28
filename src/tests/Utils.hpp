@@ -163,7 +163,7 @@ std::ostream& operator<<(std::ostream& os, Lightweight::SqlNumeric<Precision, Sc
 //
 
 // clang-format off
-auto inline const DefaultTestConnectionString = Lightweight::SqlConnectionString { //NOLINT(bugprone-throwing-static-initialization)
+auto inline const DefaultTestConnectionString = Lightweight::SqlConnectionString {
     // clang-format on
     .value = std::format("DRIVER={};Database={}",
 #if defined(_WIN32) || defined(_WIN64)
@@ -397,7 +397,7 @@ inline std::optional<std::filesystem::path> FindTestEnvFile()
 class SqlTestFixture
 {
   public:
-    static inline std::string testDatabaseName = "LightweightTest"; // NOLINT(bugprone-throwing-static-initialization)
+    static inline std::string testDatabaseName = "LightweightTest";
     static inline bool odbcTrace = false;
     static inline std::atomic<bool> running = false;
 
