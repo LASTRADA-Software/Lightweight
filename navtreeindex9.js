@@ -1,6 +1,5 @@
 var NAVTREEINDEX9 =
 {
-"index.html":[],
 "index.html":[0],
 "index.html#asynchronous-api":[0,9],
 "index.html#backup-and-restore":[0,8],
