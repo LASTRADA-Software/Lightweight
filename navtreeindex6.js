@@ -1,5 +1,6 @@
 var NAVTREEINDEX6 =
 {
+"db/d4d/classLightweight_1_1SqlRetryClassifier.html#af55ee13a0a7cd88e4be1de0866cb049e":[19,9,0,1],
 "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html":[11],
 "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#build":[11,10],
 "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#cancellation":[11,7],
@@ -248,6 +249,5 @@ var NAVTREEINDEX6 =
 "dd/def/structLightweight_1_1Through.html":[19,3,17],
 "dd/def/structLightweight_1_1Through.html#a39aa5e6c1832409653d722994fdcffcd":[19,3,17,0],
 "de/d22/structLightweight_1_1Description.html":[19,3,19],
-"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html":[21,0,0,89],
-"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a01de5cb2f4d44d166b73b1d6dbd6da4e":[21,0,0,89,22]
+"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html":[21,0,0,89]
 };
