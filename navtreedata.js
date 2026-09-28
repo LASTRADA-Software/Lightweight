@@ -386,7 +386,7 @@ var NAVTREEINDEX =
 "d4/d7c/group__DataTypes.html#ga04372f5ac238ef704eda6ebed92399c0",
 "d6/dfa/structLightweight_1_1SqlDateTime.html#a5f1844faef73c5040f1eeb5463a722d4",
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#migration-tracking",
-"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#aecb8ed9927ded35a8b35dd570bf53170",
+"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#af7acc1d446fc49ea446f8ae20f58518c",
 "db/d4d/classLightweight_1_1SqlRetryClassifier.html#af55ee13a0a7cd88e4be1de0866cb049e",
 "de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a01de5cb2f4d44d166b73b1d6dbd6da4e",
 "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a1af4ea7db6effd658b141e8d599978dc",
