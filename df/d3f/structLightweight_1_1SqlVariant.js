@@ -8,6 +8,7 @@ var structLightweight_1_1SqlVariant =
     [ "SqlVariant", "df/d3f/structLightweight_1_1SqlVariant.html#a001b083ef4020390b319901974533265", null ],
     [ "SqlVariant", "df/d3f/structLightweight_1_1SqlVariant.html#a03f3abedb73fca7403adafd87d2e3ad0", null ],
     [ "SqlVariant", "df/d3f/structLightweight_1_1SqlVariant.html#a1390916c2cef8d54612cd91d17d38d95", null ],
+    [ "SqlVariant", "df/d3f/structLightweight_1_1SqlVariant.html#a0810e8424573975660165d16b06c9236", null ],
     [ "SqlVariant", "df/d3f/structLightweight_1_1SqlVariant.html#aa8eb8b271e456514198f64d2b5cc2da6", null ],
     [ "SqlVariant", "df/d3f/structLightweight_1_1SqlVariant.html#a29a11475e7425ca9e7e68dc0f48a2a24", null ],
     [ "SqlVariant", "df/d3f/structLightweight_1_1SqlVariant.html#a0c88051cb048b8cc50fa3ae9bc77a3ef", null ],
