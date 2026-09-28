@@ -1,5 +1,6 @@
 var NAVTREEINDEX5 =
 {
+"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#aecb8ed9927ded35a8b35dd570bf53170":[21,0,0,38,2],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#af7acc1d446fc49ea446f8ae20f58518c":[21,0,0,38,9],
 "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html":[3],
 "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#create-or-modify-database-schema":[3,0],
@@ -248,6 +249,5 @@ var NAVTREEINDEX5 =
 "db/d48/ThreadOffloadBackend_8hpp_source.html":[22,0,1,0,13],
 "db/d4d/classLightweight_1_1SqlRetryClassifier.html":[19,9,0],
 "db/d4d/classLightweight_1_1SqlRetryClassifier.html#a745d29742b7ff3e63916c8f21be20cc6":[19,9,0,2],
-"db/d4d/classLightweight_1_1SqlRetryClassifier.html#ad1cb796dc6a43390e66b5a02567ab5ac":[19,9,0,0],
-"db/d4d/classLightweight_1_1SqlRetryClassifier.html#af55ee13a0a7cd88e4be1de0866cb049e":[19,9,0,1]
+"db/d4d/classLightweight_1_1SqlRetryClassifier.html#ad1cb796dc6a43390e66b5a02567ab5ac":[19,9,0,0]
 };
