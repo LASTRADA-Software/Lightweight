@@ -225,8 +225,6 @@ var group__DataMapper =
     ] ],
     [ "Lightweight::SqlCoreDataMapperQueryBuilder< Record, Derived, QueryOptions >", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html", [
       [ "SqlCoreDataMapperQueryBuilder", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#aaebf198c4d7c903a2828d1bd74178f03", null ],
-      [ "SqlCoreDataMapperQueryBuilder", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a005b078df5fc4a050cff113564a3c03c", null ],
-      [ "SqlCoreDataMapperQueryBuilder", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a74ee9fc64ccfb7ab7a03c8dd50e9b296", null ],
       [ "Exist", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a6195f901f57b2d594e9b7c4d78db6ea9", null ],
       [ "Count", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a27f9b5b92afec1d8ca21de0eb978fbce", null ],
       [ "All", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#ae399be8931ae0508e99ee56454c37c6b", null ],
