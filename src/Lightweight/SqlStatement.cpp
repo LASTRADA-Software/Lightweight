@@ -154,8 +154,9 @@ std::vector<SQLSMALLINT> SqlStatement::DescribeInputParameterTypes() noexcept
     // Nothing bound yet (a NULL in the first slot, or the first NULL a caller binds before any other
     // parameter): this handle can answer for itself, without a second prepare.
     auto boundParameterCount = SQLSMALLINT { -1 };
-    auto parameterDescriptor = SQLHDESC {};
-    if (SQL_SUCCEEDED(SQLGetStmtAttr(m_hStmt, SQL_ATTR_APP_PARAM_DESC, &parameterDescriptor, 0, nullptr)))
+    SQLHDESC parameterDescriptor {};
+    if (SQL_SUCCEEDED(
+            SQLGetStmtAttr(m_hStmt, SQL_ATTR_APP_PARAM_DESC, static_cast<SQLPOINTER>(&parameterDescriptor), 0, nullptr)))
         if (!SQL_SUCCEEDED(SQLGetDescField(parameterDescriptor, 0, SQL_DESC_COUNT, &boundParameterCount, 0, nullptr)))
             boundParameterCount = -1;
     if (boundParameterCount == 0)
@@ -265,6 +266,7 @@ SqlStatement::SqlStatement():
                  .batchStagingBuffers = {},
                  .postExecuteCallbacks = {},
                  .postProcessOutputColumnCallbacks = {},
+                 .describedParameterTypes = {},
                  .prefetchMode = Data::PrefetchMode::Unarmed,
                  .prefetch = {},
                  .prefetchBlockRows = 0,

@@ -311,7 +311,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     auto dm = DataMapper();
     dm.CreateTable<NullableBinaryRecord>();
 
-    auto record = NullableBinaryRecord { .number = 42 };
+    auto record = NullableBinaryRecord { .id = {}, .number = 42, .payload = {} };
     REQUIRE_NOTHROW(dm.Create(record));
 
     auto const read = dm.QuerySingle<NullableBinaryRecord>(record.id);
