@@ -50,7 +50,6 @@ var group__CoreApi =
       [ "QueryAs", "da/da8/classLightweight_1_1SqlConnection.html#a4165425040fb439fdbfc44efdad7f550", null ],
       [ "Migration", "da/da8/classLightweight_1_1SqlConnection.html#a2ebd525676d985a7c81aa9fe233915e7", null ],
       [ "TransactionActive", "da/da8/classLightweight_1_1SqlConnection.html#a31d2a2e32bc2c8cd6473a312359f3c8d", null ],
-      [ "RollbackOpenTransaction", "da/da8/classLightweight_1_1SqlConnection.html#ac12b733086924c8706a25c55e9eb3e60", null ],
       [ "TransactionsAllowed", "da/da8/classLightweight_1_1SqlConnection.html#a59365fb5e67607dea67ec0c46cac83cc", null ],
       [ "IsAlive", "da/da8/classLightweight_1_1SqlConnection.html#a3c238ed531289bd1efff63f44ec1bb70", null ],
       [ "ConnectionString", "da/da8/classLightweight_1_1SqlConnection.html#ae27d606fd50f1921110b589ccfedfd1b", null ],
