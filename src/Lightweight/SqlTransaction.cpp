@@ -4,6 +4,8 @@
 #include "SqlTransaction.hpp"
 #include "TracyProfiler.hpp"
 
+#include <cstdio>
+
 namespace Lightweight
 {
 
@@ -19,7 +21,9 @@ namespace
         }
         catch (...)
         {
-            // The failure itself is still reported through the caller's return value.
+            // The failure itself still reaches the caller through its return value; only the
+            // report is lost, so leave a best-effort trace of that.
+            std::fputs("SqlTransaction: the logger failed while reporting a transaction error.\n", stderr);
         }
     }
 } // namespace
