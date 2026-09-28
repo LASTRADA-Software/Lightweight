@@ -101,6 +101,20 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
     LIGHTWEIGHT_FORCE_INLINE explicit SqlCoreDataMapperQueryBuilder(DataMapper& dm, std::string fields) noexcept;
 
   public:
+    // The search condition points at this builder's own _boundInputs, so the implicit copy and move
+    // would leave a new builder binding its values into the source's list (#620). Both re-point it.
+    // Assignment stays unavailable, as the reference members already made it.
+
+    /// Copies the builder; the copy binds further values into its own list.
+    SqlCoreDataMapperQueryBuilder(SqlCoreDataMapperQueryBuilder const& other);
+
+    /// Moves the builder; the new builder binds further values into its own list.
+    SqlCoreDataMapperQueryBuilder(SqlCoreDataMapperQueryBuilder&& other) noexcept;
+
+    SqlCoreDataMapperQueryBuilder& operator=(SqlCoreDataMapperQueryBuilder const&) = delete;
+    SqlCoreDataMapperQueryBuilder& operator=(SqlCoreDataMapperQueryBuilder&&) = delete;
+    ~SqlCoreDataMapperQueryBuilder() = default;
+
     // The public finisher methods below are thin dispatchers: each forwards to its synchronous
     // implementation (the *Impl members) through RunFinisher(), which either calls it directly
     // (Synchronous mode) or offloads it to the connection's async backend and returns an

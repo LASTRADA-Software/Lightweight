@@ -1285,6 +1285,33 @@ inline SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::SqlCoreData
 }
 
 template <typename Record, typename Derived, DataMapperOptions QueryOptions>
+inline SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::SqlCoreDataMapperQueryBuilder(
+    SqlCoreDataMapperQueryBuilder const& other):
+    SqlBasicSelectQueryBuilder<Derived> { other },
+    _dm { other._dm },
+    _formatter { other._formatter },
+    _fields { other._fields },
+    _boundInputs { other._boundInputs },
+    _relationPreloaders { other._relationPreloaders }
+{
+    this->_query.searchCondition.inputBindings = &_boundInputs;
+}
+
+template <typename Record, typename Derived, DataMapperOptions QueryOptions>
+inline SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::SqlCoreDataMapperQueryBuilder(
+    SqlCoreDataMapperQueryBuilder&& other) noexcept:
+    // Moves only the base subobject; the members below are still intact in `other`.
+    SqlBasicSelectQueryBuilder<Derived> { std::move(static_cast<SqlBasicSelectQueryBuilder<Derived>&>(other)) },
+    _dm { other._dm },
+    _formatter { other._formatter },
+    _fields { std::move(other._fields) },
+    _boundInputs { std::move(other._boundInputs) },
+    _relationPreloaders { std::move(other._relationPreloaders) }
+{
+    this->_query.searchCondition.inputBindings = &_boundInputs;
+}
+
+template <typename Record, typename Derived, DataMapperOptions QueryOptions>
 size_t SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::CountImpl()
 {
     auto stmt = SqlStatement { _dm.Connection() };
