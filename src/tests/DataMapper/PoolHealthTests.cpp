@@ -12,7 +12,6 @@
 #include <filesystem>
 #include <optional>
 #include <ranges>
-#include <regex>
 #include <string>
 #include <thread>
 #include <vector>
@@ -497,10 +496,9 @@ TEST_CASE_METHOD(SqlTestFixture, "Pool: follows the default connection string to
     std::filesystem::remove(otherFile);
     // A copy, not the reference: that is this thread's snapshot, which the setter below rewrites.
     auto const previous = SqlConnectionString { .value = SqlConnection::DefaultConnectionString().value };
-    // Not ParseConnectionString/BuildConnectionString: the latter braces every value, which the SQLite
-    // ODBC driver keeps as part of the file name.
-    auto const otherString = SqlConnectionString { std::regex_replace(
-        previous.value, std::regex { "Database=[^;]*", std::regex::icase }, "Database=" + otherFile) };
+    auto otherParameters = ParseConnectionString(previous);
+    otherParameters["DATABASE"] = otherFile;
+    auto const otherString = BuildConnectionString(otherParameters);
     {
         auto other = SqlConnection { otherString };
         auto stmt = SqlStatement { other };

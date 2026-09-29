@@ -57,6 +57,7 @@ using Lightweight::Field;
 using Lightweight::FieldNameAt;
 using Lightweight::FieldNameOf;
 using Lightweight::FieldWithStorage;
+using Lightweight::FormatConnectionStringValue;
 using Lightweight::FormatEncryptionMode;
 using Lightweight::FormatName;
 using Lightweight::FormatType;

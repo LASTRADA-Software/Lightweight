@@ -17,6 +17,17 @@ if (!sqlConnection.IsAlive())
 }
 ```
 
+A `SqlConnectionDataSource` is flattened into that same syntax by `ToConnectionString()`. A user name or
+password containing one of the connection-string metacharacters (`;`, `=`, `{`, `}`) is brace-quoted on
+the way, with every embedded `}` doubled — `PWD={p;w}` — the quoting ODBC defines for attribute values,
+which the driver managers and the SQL Server and PostgreSQL drivers read back, so such credentials reach
+the driver intact. (The SQLite ODBC driver takes a braced `Database=` path literally, so keep SQLite file
+names free of those characters.) When you assemble a raw `SqlConnectionString`
+yourself, run each value through `FormatConnectionStringValue()` instead of splicing it in with
+`std::format`; it returns plain values unchanged and quotes only the ones that need it.
+`BuildConnectionString()` does this for every value of the map it is given, and `ParseConnectionString()`
+reads the quoting back.
+
 ## Connection encryption
 
 By default Lightweight does not touch the driver's TLS configuration — whatever the ODBC driver, the

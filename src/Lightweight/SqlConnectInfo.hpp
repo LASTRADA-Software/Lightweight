@@ -103,10 +103,30 @@ struct SqlConnectionString
 using SqlConnectionStringMap = std::map<std::string, std::string>;
 
 /// Parses an ODBC connection string into a map.
+///
+/// Keys are upper-cased. Values follow the driver managers' quoting rules: a value that starts
+/// with @c { runs to the matching @c } even across @c ; characters, and a doubled @c }} inside it
+/// stands for one literal @c }. A value without a closing brace runs to the end of the string.
 LIGHTWEIGHT_API SqlConnectionStringMap ParseConnectionString(SqlConnectionString const& connectionString);
 
 /// Builds an ODBC connection string from a map.
+///
+/// Every value is rendered through @c FormatConnectionStringValue(), so the result parses back
+/// into the same map whatever characters the values contain.
 LIGHTWEIGHT_API SqlConnectionString BuildConnectionString(SqlConnectionStringMap const& map);
+
+/// Renders @p value so that it can be spliced after @c KEY= in an ODBC connection string.
+///
+/// A value containing one of the connection-string metacharacters @c ; @c = @c { @c }, or starting
+/// or ending with whitespace (which every parser trims away), is wrapped in braces with every
+/// embedded @c } doubled — @c p;w becomes @c {p;w} and @c a}b becomes @c {a}}b}. That is the quoting
+/// ODBC defines for attribute values: the driver managers and the SQL Server and PostgreSQL drivers
+/// read it back, whereas the SQLite ODBC driver takes a braced @c Database= path literally. Any
+/// other value is returned verbatim, so the common case keeps its plain spelling.
+///
+/// @param value The raw attribute value.
+/// @return The spelling to splice after @c KEY=.
+[[nodiscard]] LIGHTWEIGHT_API std::string FormatConnectionStringValue(std::string_view value);
 
 /// If `connectionString` targets a file-based SQLite database, ensures the
 /// parent directory exists and touches an empty file when missing.
@@ -165,13 +185,11 @@ struct [[nodiscard]] SqlConnectionDataSource
     /// The @c Encrypt= keyword is emitted only when @ref encryption is not
     /// @c SqlEncryptionMode::DriverDefault, so the rendering of a data source that did not opt in is
     /// byte-for-byte what it always was.
-    [[nodiscard]] LIGHTWEIGHT_API SqlConnectionString ToConnectionString() const
-    {
-        auto value = std::format("DSN={};UID={};PWD={};TIMEOUT={}", datasource, username, password, timeout.count());
-        if (auto const encryptValue = FormatEncryptionMode(encryption); !encryptValue.empty())
-            value += std::format(";Encrypt={}", encryptValue);
-        return SqlConnectionString { .value = std::move(value) };
-    }
+    ///
+    /// @ref datasource, @ref username and @ref password go through @c FormatConnectionStringValue(),
+    /// so a password such as @c p;w reaches the driver intact while plain credentials keep their
+    /// unquoted spelling.
+    [[nodiscard]] LIGHTWEIGHT_API SqlConnectionString ToConnectionString() const;
 
     /// Three-way comparison operator.
     auto operator<=>(SqlConnectionDataSource const&) const noexcept = default;
