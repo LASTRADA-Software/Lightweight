@@ -16,44 +16,17 @@ using namespace Lightweight;
 // SanitizePwd edge cases
 // ================================================================================================
 
-TEST_CASE("SanitizePwd: mixed-case match", "[SqlConnectInfo]")
-{
-    // The regex is icase, so PWD/Pwd/pwd should all be sanitized.
-    auto const cases = {
-        "DSN=test;PWD=secret;",
-        "DSN=test;Pwd=secret;",
-        "DSN=test;pwd=secret;",
-    };
-    for (auto const& s: cases)
-    {
-        INFO(std::string { "input: " } + s);
-        auto const sanitized = SqlConnectionString::SanitizePwd(s);
-        CHECK_FALSE(sanitized.contains("secret"));
-        CHECK(sanitized.contains("Pwd=***;"));
-    }
-}
-
-TEST_CASE("SanitizePwd: leaves a missing trailing semicolon untouched", "[SqlConnectInfo]")
-{
-    // The regex requires a trailing ';' — no replacement when missing.
-    auto const sanitized = SqlConnectionString::SanitizePwd("DSN=test;PWD=secret");
-    CHECK(sanitized == "DSN=test;PWD=secret");
-}
+// The quoting and key-matching rules are pinned exhaustively in SqlBackup/MetadataRedactionTests.cpp
+// through the delegating RedactConnectionStringSecrets(); only what that file does not cover lives here.
 
 TEST_CASE("SanitizePwd: replaces every PWD= occurrence", "[SqlConnectInfo]")
 {
-    auto const sanitized = SqlConnectionString::SanitizePwd("PWD=a;X=1;PWD=b;");
-    CHECK_FALSE(sanitized.contains("a"));
-    CHECK_FALSE(sanitized.contains("b"));
-    // Both occurrences should now be masked.
-    CHECK(sanitized.find("Pwd=***;") != sanitized.rfind("Pwd=***;"));
+    CHECK(SqlConnectionString::SanitizePwd("PWD=a;X=1;PWD=b;") == "PWD=***;X=1;PWD=***;");
 }
 
 TEST_CASE("SanitizePwd: empty password value still gets masked", "[SqlConnectInfo]")
 {
-    auto const sanitized = SqlConnectionString::SanitizePwd("DSN=test;PWD=;X=1;");
-    CHECK(sanitized.contains("Pwd=***;"));
-    CHECK_FALSE(sanitized.contains("PWD=;"));
+    CHECK(SqlConnectionString::SanitizePwd("DSN=test;PWD=;X=1;") == "DSN=test;PWD=***;X=1;");
 }
 
 // ================================================================================================

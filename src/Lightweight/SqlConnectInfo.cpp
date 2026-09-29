@@ -8,7 +8,6 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
-#include <regex>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -221,13 +220,23 @@ std::string SqlConnectionString::Sanitized() const
 
 std::string SqlConnectionString::SanitizePwd(std::string_view input)
 {
-    std::regex const pwdRegex {
-        R"(PWD=.*?;)",
-        std::regex_constants::ECMAScript | std::regex_constants::icase,
-    };
-    std::stringstream outputString;
-    std::regex_replace(std::ostreambuf_iterator<char> { outputString }, input.begin(), input.end(), pwdRegex, "Pwd=***;");
-    return outputString.str();
+    static constexpr std::array<std::string_view, 2> SensitiveKeys { "PWD", "Password" };
+
+    std::string result;
+    result.reserve(input.size());
+
+    // Copy verbatim between password values; the tokenizer's offsets honour `{...}` quoting.
+    std::size_t cursor = 0;
+    for (auto const& attribute: TokenizeConnectionString(input))
+    {
+        if (!std::ranges::any_of(SensitiveKeys, [&](std::string_view key) { return EqualsIgnoreCase(key, attribute.key); }))
+            continue;
+        result.append(input.substr(cursor, attribute.valueBegin - cursor));
+        result.append("***");
+        cursor = attribute.end;
+    }
+    result.append(input.substr(cursor));
+    return result;
 }
 
 SqlConnectionStringMap ParseConnectionString(SqlConnectionString const& connectionString)

@@ -93,10 +93,21 @@ struct SqlConnectionString
     /// Three-way comparison operator.
     auto operator<=>(SqlConnectionString const&) const noexcept = default;
 
-    /// Returns a sanitized copy of the connection string with the password masked.
+    /// Returns a copy of the connection string with every password value masked, see @ref SanitizePwd.
     [[nodiscard]] LIGHTWEIGHT_API std::string Sanitized() const;
 
-    /// Sanitizes the password in the given connection string input.
+    /// Returns a copy of @p input with the values of its @c PWD= and @c Password= attributes replaced
+    /// by @c ***, for logging and diagnostics.
+    ///
+    /// The string is parsed attribute-wise following the ODBC quoting rules (see
+    /// @c ParseConnectionString()), so a brace-quoted password such as @c PWD={p;w} is masked as a
+    /// whole and a @c ; inside another quoted value does not start a new attribute. Attribute names
+    /// match case-insensitively and only as a whole (@c MyPWD= and @c Database=PasswordVault are left
+    /// alone); everything that is not a password value, including the spelling of the keys and any
+    /// whitespace, is copied verbatim.
+    ///
+    /// @param input The raw connection string.
+    /// @return The masked copy.
     [[nodiscard]] LIGHTWEIGHT_API static std::string SanitizePwd(std::string_view input);
 };
 
