@@ -9,6 +9,7 @@
 #include "SqlBinary.hpp"
 #include "SqlDate.hpp"
 #include "SqlDateTime.hpp"
+#include "SqlDynamicBinary.hpp"
 #include "SqlDynamicNumeric.hpp"
 #include "SqlFixedString.hpp"
 #include "SqlGuid.hpp"
@@ -103,6 +104,15 @@ struct SqlVariant
     template <std::size_t N, typename T = char, SqlFixedStringMode Mode>
     constexpr LIGHTWEIGHT_FORCE_INLINE SqlVariant(SqlFixedString<N, T, Mode> const& other):
         value { std::string { other.data(), other.size() } }
+    {
+    }
+
+    /// @brief Construct a new SqlVariant from a SqlDynamicBinary, holding a copy of its bytes as
+    /// @ref SqlBinary. This is what lets a binary column be compared in a query builder's WHERE
+    /// clause, which binds its values as SqlVariant.
+    template <std::size_t N>
+    LIGHTWEIGHT_FORCE_INLINE SqlVariant(SqlDynamicBinary<N> const& other):
+        value { SqlBinary(other.data(), other.data() + other.size()) }
     {
     }
 

@@ -8,9 +8,11 @@
 
 #include <algorithm>
 #include <concepts>
+#include <cstddef>
 #include <optional>
 #include <ranges>
 #include <span>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -49,6 +51,10 @@ template <typename T>
 concept TableName =
     std::convertible_to<T, std::string_view> || std::convertible_to<T, std::string> || std::same_as<T, AliasedTableName>;
 
+class SqlBinary;
+template <std::size_t N>
+class SqlDynamicBinary;
+
 namespace detail
 {
 
@@ -56,6 +62,13 @@ namespace detail
     {
         std::string condition;
     };
+
+    /// @brief Whether @p T is a binary value, which has no textual SQL literal to be inlined as.
+    template <typename T>
+    inline constexpr bool IsBinaryLiteral = std::same_as<T, SqlBinary>;
+
+    template <std::size_t N>
+    inline constexpr bool IsBinaryLiteral<SqlDynamicBinary<N>> = true;
 
     /// @brief Writes a literal value into a SQL fragment.
     ///
@@ -1317,6 +1330,13 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlWhereClauseBuilder<Derived>::AppendLiter
     {
         searchCondition.condition += '?';
         searchCondition.inputBindings->emplace_back(value);
+    }
+    else if constexpr (detail::IsBinaryLiteral<LiteralType>)
+    {
+        // Formatting it would put a description of the value, not the value, into the SQL text.
+        throw std::invalid_argument { "A binary value cannot be written into the SQL text as a literal. Compare it "
+                                      "through a query that binds its values (e.g. DataMapper::Query()), or bind it "
+                                      "to a SqlWildcard placeholder." };
     }
     else if constexpr (std::is_same_v<LiteralType, bool>)
     {
