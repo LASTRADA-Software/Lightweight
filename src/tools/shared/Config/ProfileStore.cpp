@@ -2,6 +2,8 @@
 
 #include "ProfileStore.hpp"
 
+#include <Lightweight/SqlConnectInfo.hpp>
+
 #include <algorithm>
 #include <cstdlib>
 #include <format>
@@ -59,7 +61,7 @@ SqlConnectInfo Profile::ToConnectInfo(std::string_view password) const
     std::string extended = connectionString;
     if (!extended.empty() && extended.back() != ';')
         extended.push_back(';');
-    extended += std::format("PWD={}", password);
+    extended += std::format("PWD={}", FormatConnectionStringValue(password));
     return SqlConnectionString { std::move(extended) };
 }
 

@@ -422,7 +422,9 @@ def main():
                 "profiles:\n"
                 "  prod:\n"
                 "    schema: dbo\n"
-                "    connectionString: \"DRIVER=SQLite3;Database=prod.db;PWD=secret;UID=me\"\n"
+                # Brace-quoted, as ToConnectionString() renders a password carrying a `;`: the
+                # redaction must mask the whole value rather than stop at the embedded `;`.
+                "    connectionString: \"DRIVER=SQLite3;Database=prod.db;PWD={se;cret};UID=me\"\n"
                 "  dev:\n"
                 "    connectionString: \"DRIVER=SQLite3;Database=dev.db\"\n"
             )
@@ -440,7 +442,7 @@ def main():
         if len(default_lines) != 1:
             print(f"list-profiles did not mark exactly one profile as default:\n{out}")
             sys.exit(1)
-        if "secret" in out:
+        if "cret" in out:
             print(f"list-profiles leaked password value in output:\n{out}")
             sys.exit(1)
         if "PWD=***" not in out:

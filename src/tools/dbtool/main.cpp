@@ -14,7 +14,6 @@
 #include <Lightweight/Utils.hpp>
 
 #include <algorithm>
-#include <array>
 #include <cctype>
 #include <chrono>
 #include <cstdint>
@@ -420,51 +419,6 @@ struct Options
     return SqlConnectionString {};
 }
 
-/// Returns a copy of `connectionString` with the values of `PWD=` and `Password=`
-/// fields replaced by `***`. Matching is case-insensitive and stops at the next
-/// `;` or end-of-string. Used by `list-profiles` so a password the user pasted
-/// into the YAML's `connectionString` field is not echoed back to the terminal.
-[[nodiscard]] std::string RedactConnectionStringSecrets(std::string_view connectionString)
-{
-    static constexpr std::array<std::string_view, 2> SensitiveKeys { "PWD", "Password" };
-
-    std::string result;
-    result.reserve(connectionString.size());
-
-    std::size_t pos = 0;
-    while (pos < connectionString.size())
-    {
-        bool redacted = false;
-        for (auto const& key: SensitiveKeys)
-        {
-            if (pos + key.size() + 1 > connectionString.size())
-                continue;
-            auto const candidate = connectionString.substr(pos, key.size());
-            if (!std::ranges::equal(candidate, key, [](char a, char b) {
-                    return std::tolower(static_cast<unsigned char>(a)) == std::tolower(static_cast<unsigned char>(b));
-                }))
-                continue;
-            if (connectionString[pos + key.size()] != '=')
-                continue;
-            // Match must start at the beginning or after a `;`.
-            if (pos != 0 && connectionString[pos - 1] != ';')
-                continue;
-            result.append(connectionString.substr(pos, key.size() + 1));
-            result.append("***");
-            auto const valueEnd = connectionString.find(';', pos + key.size() + 1);
-            pos = (valueEnd == std::string_view::npos) ? connectionString.size() : valueEnd;
-            redacted = true;
-            break;
-        }
-        if (!redacted)
-        {
-            result.push_back(connectionString[pos]);
-            ++pos;
-        }
-    }
-    return result;
-}
-
 /// Loads a profile from a `ProfileStore` and fills `options` fields that were not
 /// already set on the CLI. Supports both the legacy single-profile YAML shape
 /// (top-level `PluginsDir` / `ConnectionString` / `Schema`) and the multi-profile
@@ -867,7 +821,7 @@ bool SetupConnectionString(SqlConnectionString const& connectionString)
 
     std::string s;
     if (!profile.connectionString.empty())
-        s = RedactConnectionStringSecrets(profile.connectionString);
+        s = SqlConnectionString::SanitizePwd(profile.connectionString);
     else if (!profile.dsn.empty())
         s = std::format("dsn={}", profile.dsn);
 
@@ -902,7 +856,7 @@ bool SetupConnectionString(SqlConnectionString const& connectionString)
 /// Implements the `list-profiles` command: enumerates every profile parsed by
 /// `Lightweight::Config::ProfileStore` and prints a compact table with the
 /// fields that are safe to display. `PWD=`/`Password=` values inside a profile's
-/// raw `connectionString` are redacted via `RedactConnectionStringSecrets`.
+/// raw `connectionString` are redacted via `SqlConnectionString::SanitizePwd`.
 ///
 /// Does not open a database connection — runs alongside `resolve-secret` /
 /// `help` / `show-examples` in the early dispatch block.
