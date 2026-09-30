@@ -720,7 +720,7 @@ class DataMapper
     /// @return The referenced record, or `nullptr` if no matching row exists.
     template <typename FieldType>
     std::shared_ptr<typename FieldType::ReferencedRecord> LoadCompositeForeignKeyRecord(
-        typename FieldType::OrderedValueType const& keys);
+        FieldType::OrderedValueType const& keys);
 
     /// Eagerly loads the record referenced by a composite foreign key.
     ///
@@ -2801,9 +2801,9 @@ inline LIGHTWEIGHT_FORCE_INLINE void CallOnBelongsTo(Callable const& callable)
 
 template <typename FieldType>
 std::shared_ptr<typename FieldType::ReferencedRecord> DataMapper::LoadCompositeForeignKeyRecord(
-    typename FieldType::OrderedValueType const& keys)
+    FieldType::OrderedValueType const& keys)
 {
-    using ReferencedRecord = typename FieldType::ReferencedRecord;
+    using ReferencedRecord = FieldType::ReferencedRecord;
 
     auto loaded =
         std::apply([this](auto const&... key) { return this->template QuerySingle<ReferencedRecord>(key...); }, keys);
@@ -2815,7 +2815,7 @@ std::shared_ptr<typename FieldType::ReferencedRecord> DataMapper::LoadCompositeF
 template <typename Record, typename FieldType>
 void DataMapper::LoadCompositeForeignKey(Record const& record, FieldType& field)
 {
-    using ReferencedRecord = typename FieldType::ReferencedRecord;
+    using ReferencedRecord = FieldType::ReferencedRecord;
 
     ZoneScopedN("DataMapper::LoadCompositeForeignKey");
     ZoneTextObject(RecordTableName<ReferencedRecord>);
@@ -2976,7 +2976,7 @@ template <typename Record, size_t FieldIndex>
 auto DataMapper::CollectRelationTargets(std::span<Record* const> records)
 {
     using FieldType = RecordMemberTypeOf<FieldIndex, Record>;
-    using TargetRecord = typename FieldType::ReferencedRecord;
+    using TargetRecord = FieldType::ReferencedRecord;
 
     auto targets = std::vector<TargetRecord*> {};
     targets.reserve(records.size());
@@ -3010,7 +3010,7 @@ void DataMapper::PreloadRelationPath(std::span<Record* const> records)
     if constexpr (sizeof...(RestOfPath) > 0)
     {
         using FieldType = RecordMemberTypeOf<FieldIndex, Record>;
-        using TargetRecord = typename FieldType::ReferencedRecord;
+        using TargetRecord = FieldType::ReferencedRecord;
 
         auto targets = CollectRelationTargets<Record, FieldIndex>(records);
         if (targets.empty())
@@ -3061,7 +3061,7 @@ void DataMapper::PreloadAllRelations(std::span<Record* const> records)
 
                 if constexpr (Depth > 1)
                 {
-                    using TargetRecord = typename FieldType::ReferencedRecord;
+                    using TargetRecord = FieldType::ReferencedRecord;
                     auto targets = CollectRelationTargets<Record, I>(records);
                     if (!targets.empty())
                         PreloadAllRelations<TargetRecord, Depth - 1>(std::span<TargetRecord* const> { targets });
@@ -3075,7 +3075,7 @@ template <typename Record, size_t FieldIndex>
 void DataMapper::PreloadBelongsTo(std::span<Record* const> records)
 {
     using FieldType = RecordMemberTypeOf<FieldIndex, Record>;
-    using ReferencedRecord = typename FieldType::ReferencedRecord;
+    using ReferencedRecord = FieldType::ReferencedRecord;
     using KeyType = RecordPrimaryKeyType<ReferencedRecord>;
 
     static_assert(HasPrimaryKey<ReferencedRecord>,
@@ -3165,8 +3165,8 @@ template <typename Record, size_t FieldIndex>
 void DataMapper::PreloadHasMany(std::span<Record* const> records)
 {
     using FieldType = RecordMemberTypeOf<FieldIndex, Record>;
-    using ReferencedRecord = typename FieldType::ReferencedRecord;
-    using ReferencedRecordList = typename FieldType::ReferencedRecordList;
+    using ReferencedRecord = FieldType::ReferencedRecord;
+    using ReferencedRecordList = FieldType::ReferencedRecordList;
     using KeyType = RecordPrimaryKeyType<Record>;
 
     static_assert(HasPrimaryKey<Record>, "Eager loading a HasMany requires the owning record to have a primary key");
@@ -3634,7 +3634,7 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
     auto const callback = [&]<size_t FieldIndex, typename FieldType>(FieldType& field) {
         if constexpr (IsBelongsTo<FieldType>)
         {
-            using ReferencedRecord = typename FieldType::ReferencedRecord;
+            using ReferencedRecord = FieldType::ReferencedRecord;
             field.SetAutoLoader(typename FieldType::Loader {
                 .loadReference = [source, value = field.Value()]() -> RelationResult<ReferencedRecord> {
                     return RunRelationLoad(*source, [&](DataMapper& dm) { return dm.LoadBelongsTo<FieldType>(value); })
@@ -3648,7 +3648,7 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
         }
         if constexpr (IsCompositeForeignKey<FieldType>)
         {
-            using ReferencedRecord = typename FieldType::ReferencedRecord;
+            using ReferencedRecord = FieldType::ReferencedRecord;
 
             // Captured by value, evaluated now while `record` is known to be live - not a pointer to
             // `record` read later from inside the closure. A `std::optional<Record>` returned by value
