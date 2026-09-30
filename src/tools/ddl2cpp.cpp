@@ -365,6 +365,8 @@ std::expected<Configuration, std::string> LoadConfigFile(std::filesystem::path c
             config.primaryKeyAssignment = PrimaryKey::ServerSideAutoIncrement;
         else if (primaryKey == "ClientSide")
             config.primaryKeyAssignment = PrimaryKey::AutoAssign;
+        else if (primaryKey == "Manual")
+            config.primaryKeyAssignment = PrimaryKey::Manual;
         else
             return std::unexpected(std::format("Unknown primary key assignment: {}", primaryKey));
     }

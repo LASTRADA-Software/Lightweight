@@ -68,7 +68,8 @@ CompositeForeignKey<Connection<&Leaf::a, &Hub::k1>,
 > in `GenerateAutoAssignPrimaryKey`, for the value types auto-assignment actually generates (GUIDs and
 > incrementable ones). Declare composite key members `PrimaryKey::Manual`: they remain the key for
 > `QuerySingle`, `Update` and `Delete`, but `Create()` neither generates them nor writes into them, so
-> the values you set before calling it are what is stored.
+> the values you set before calling it are what is stored. `ddl2cpp` emits `Manual` for every member
+> of a composite key regardless of its configured `PrimaryKeyAssignment`.
 
 ## Why the pairing matters
 
@@ -253,7 +254,7 @@ Deferred deliberately, and recorded as such rather than silently skipped:
 
 - **`ddl2cpp` generation** of the composite *relation*. Mechanical once the spelling is fixed (the
   schema reader already reports both ordered column lists), but it is a separate change on top of a
-  working library API.
+  working library API. The composite *key* itself is already generated as `PrimaryKey::Manual` members.
 - **The inverse (`HasMany` over a composite relation).** Needs the selector to name a column *list*;
   the surveyed schema has a table with three separate two-column foreign keys into one parent, so this
   is required eventually, not optional.

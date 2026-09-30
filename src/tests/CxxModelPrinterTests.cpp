@@ -619,9 +619,7 @@ TEST_CASE("CxxModelPrinter: table with primary key and several columns", "[CxxMo
         .schema = "",
         .name = "users",
         .columns = {
-            Lightweight::SqlSchema::Column { .name = "id",
-                                              .type = Integer {},
-                                              .isNullable = false },
+            Lightweight::SqlSchema::Column { .name = "id", .type = Integer {}, .isNullable = false, .isPrimaryKey = true },
             Lightweight::SqlSchema::Column { .name = "name", .type = Varchar { 50 }, .isNullable = false },
             Lightweight::SqlSchema::Column { .name = "balance", .type = Decimal { .precision = 10, .scale = 2 } },
         },
@@ -639,6 +637,73 @@ TEST_CASE("CxxModelPrinter: table with primary key and several columns", "[CxxMo
     CHECK(output.contains("balance"));
     CHECK(output.contains("Light::SqlAnsiString<50>"));
     CHECK(output.contains("Light::SqlNumeric<10, 2>"));
+    // A single-column key carries the configured assignment.
+    CHECK(output.contains("Light::PrimaryKey::ServerSideAutoIncrement> id;"));
+}
+
+TEST_CASE("CxxModelPrinter: PrimaryKey::Manual can be configured for single-column keys", "[CxxModelPrinter]")
+{
+    // A natural key (an ISO code, say) is neither generated client-side nor an identity column.
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    CxxModelPrinter::Config printerConfig;
+    printerConfig.primaryKeyAssignment = Lightweight::PrimaryKey::Manual;
+    CxxModelPrinter printer { printerConfig };
+    printer.PrintTable(Lightweight::SqlSchema::Table {
+        .schema = "",
+        .name = "countries",
+        .columns = { { .name = "code", .type = Char { 2 }, .isNullable = false, .isPrimaryKey = true } },
+        .primaryKeys = { "code" },
+    });
+    CHECK(printer.ToString("Models").contains("Light::PrimaryKey::Manual> code;"));
+}
+
+TEST_CASE("CxxModelPrinter: a composite primary key is emitted as PrimaryKey::Manual on every member", "[CxxModelPrinter]")
+{
+    // #609: with `PrimaryKeyAssignment: ClientSide` every key column used to get PrimaryKey::AutoAssign,
+    // which DataMapper::Create() rejects for more than one member (auto-assignment yields one value
+    // that would be written into every key member). A composite key is always supplied by the caller,
+    // so its members are Manual whatever the configured assignment for single-column keys is.
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto const junction = Lightweight::SqlSchema::Table {
+        .schema = "",
+        .name = "formula_list",
+        .columns = {
+            Lightweight::SqlSchema::Column { .name = "formula_no", .type = Integer {}, .isNullable = false, .isPrimaryKey = true },
+            Lightweight::SqlSchema::Column { .name = "list_no", .type = Integer {}, .isNullable = false, .isPrimaryKey = true },
+            Lightweight::SqlSchema::Column { .name = "seq_no", .type = Integer {} },
+        },
+        .primaryKeys = { "formula_no", "list_no" },
+    };
+
+    for (auto const assignment: { Lightweight::PrimaryKey::AutoAssign, Lightweight::PrimaryKey::ServerSideAutoIncrement })
+    {
+        CxxModelPrinter::Config printerConfig;
+        printerConfig.primaryKeyAssignment = assignment;
+        CxxModelPrinter printer { printerConfig };
+        printer.PrintTable(junction);
+        auto const output = printer.ToString("Models");
+        INFO(output);
+        CHECK(output.contains("Light::Field<int32_t, Light::PrimaryKey::Manual> formulaNo;"));
+        CHECK(output.contains("Light::Field<int32_t, Light::PrimaryKey::Manual> listNo;"));
+        CHECK_FALSE(output.contains("PrimaryKey::AutoAssign"));
+        CHECK_FALSE(output.contains("PrimaryKey::ServerSideAutoIncrement"));
+    }
+
+    // PrimaryKey::No means no key marker at all, composite or not.
+    CxxModelPrinter::Config noKeyConfig;
+    noKeyConfig.primaryKeyAssignment = Lightweight::PrimaryKey::No;
+    CxxModelPrinter noKeyPrinter { noKeyConfig };
+    noKeyPrinter.PrintTable(junction);
+    CHECK_FALSE(noKeyPrinter.ToString("Models").contains("PrimaryKey::"));
+
+    // The decision keys on the column flags, so a table whose key list was not filled in is still composite.
+    auto flaggedOnly = junction;
+    flaggedOnly.primaryKeys.clear();
+    CxxModelPrinter::Config flaggedPrinterConfig;
+    flaggedPrinterConfig.primaryKeyAssignment = Lightweight::PrimaryKey::AutoAssign;
+    CxxModelPrinter flaggedPrinter { flaggedPrinterConfig };
+    flaggedPrinter.PrintTable(flaggedOnly);
+    CHECK(flaggedPrinter.ToString("Models").contains("Light::PrimaryKey::Manual> listNo;"));
 }
 
 TEST_CASE("CxxModelPrinter: emits Description for a keyed table with a relation", "[CxxModelPrinter]")

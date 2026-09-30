@@ -949,13 +949,26 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table, std::vector<Plan
         return std::string { ", std::nullopt" };
     };
 
-    auto const primaryKeyPart = [this]() {
-        if (_config.primaryKeyAssignment == PrimaryKey::ServerSideAutoIncrement)
-            return ", Light::PrimaryKey::ServerSideAutoIncrement"sv;
-        else if (_config.primaryKeyAssignment == PrimaryKey::AutoAssign)
-            return ", Light::PrimaryKey::AutoAssign"sv;
-        else
-            return ""sv;
+    // Decided from the same column flag the per-column branch below keys on, so the two cannot drift.
+    auto const primaryKeyColumnCount = std::ranges::count_if(table.columns, &SqlSchema::Column::isPrimaryKey);
+    auto const primaryKeyPart = [this, primaryKeyColumnCount]() {
+        // A composite key is always supplied by the caller: neither client-side auto-assignment nor a
+        // server-side identity can produce more than one value, and DataMapper::Create() rejects
+        // several generated key members (#609).
+        if (primaryKeyColumnCount > 1 && _config.primaryKeyAssignment != PrimaryKey::No)
+            return ", Light::PrimaryKey::Manual"sv;
+        switch (_config.primaryKeyAssignment)
+        {
+            case PrimaryKey::ServerSideAutoIncrement:
+                return ", Light::PrimaryKey::ServerSideAutoIncrement"sv;
+            case PrimaryKey::AutoAssign:
+                return ", Light::PrimaryKey::AutoAssign"sv;
+            case PrimaryKey::Manual:
+                return ", Light::PrimaryKey::Manual"sv;
+            case PrimaryKey::No:
+                return ""sv;
+        }
+        return ""sv;
     };
 
     auto aliasTableName = [&](std::string_view name) {
