@@ -3204,21 +3204,14 @@ void DataMapper::PreloadHasMany(std::span<Record* const> records)
                     .OrderBy(FieldNameAt<RecordPrimaryKeyIndex<ReferencedRecord>, ReferencedRecord>);
             for (auto& child: Query<ReferencedRecord>(selectQuery.All()))
             {
-                auto const& ownerValue = GetRecordMemberAt<InverseIndex>(child).Value();
-                using InverseFieldType = RecordMemberTypeOf<InverseIndex, ReferencedRecord>;
-                if constexpr (InverseFieldType::IsOptional)
-                    if (!ownerValue.has_value())
-                        continue;
+                // The inverse BelongsTo holds the owner's key, or an optional of it when the foreign
+                // key is nullable; a NULL there is a child no owner in the batch can claim.
+                std::optional<KeyType> const ownerKey = GetRecordMemberAt<InverseIndex>(child).Value();
+                if (!ownerKey.has_value())
+                    continue;
 
-                auto const ownerKey = [&] {
-                    if constexpr (InverseFieldType::IsOptional)
-                        return *ownerValue;
-                    else
-                        return ownerValue;
-                }();
-
-                auto const it = std::ranges::lower_bound(keys, ownerKey);
-                if (it != keys.end() && *it == ownerKey)
+                auto const it = std::ranges::lower_bound(keys, *ownerKey);
+                if (it != keys.end() && *it == *ownerKey)
                     buckets[static_cast<size_t>(std::distance(keys.begin(), it))].emplace_back(
                         std::make_shared<ReferencedRecord>(std::move(child)));
             }
