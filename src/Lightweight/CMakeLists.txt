@@ -217,8 +217,8 @@ target_sources(LightweightTools PRIVATE
 target_link_libraries(LightweightTools PUBLIC Lightweight)
 
 if(CLANG_TIDY_EXE)
-    set_target_properties(Lightweight PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
-    set_target_properties(LightweightTools PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
+    set_target_properties(Lightweight PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_EXE};${LIGHTWEIGHT_CLANG_TIDY_HEADER_FILTER}")
+    set_target_properties(LightweightTools PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_EXE};${LIGHTWEIGHT_CLANG_TIDY_HEADER_FILTER}")
 endif()
 
 # Enable coverage instrumentation for library targets

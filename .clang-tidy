@@ -60,7 +60,9 @@ Checks: >-
   -readability-redundant-parentheses
 WarningsAsErrors: "*"
 UseColor: true
-HeaderFilterRegex: '.*/Lightweight/src/.*'
+# Fallback for editor integrations only: the build (cmake/ClangTidy.cmake) and CI pass a filter
+# anchored to the source root instead.
+HeaderFilterRegex: '.*/src/(Lightweight|tools|tests|examples|benchmark)/.*'
 FormatStyle:     none
 CheckOptions:
   - key:             readability-function-cognitive-complexity.Threshold
