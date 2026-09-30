@@ -162,7 +162,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Converts this data source to an ODBC connection string.</p>
 <p>The <code>Encrypt=</code> keyword is emitted only when <a class="el" href="../../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a3e8f610544a01c1fde5de73f85573377">encryption</a> is not <code><a class="el" href="../../d9/d8a/group__CoreApi.html#gga8be4e3766b268b1d751ef7df237af144a94e2c1bbb08c3b4ddbaead16d30c7f64">SqlEncryptionMode::DriverDefault</a></code>, so the rendering of a data source that did not opt in is byte-for-byte what it always was.</p>
-<p><a class="el" href="../../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a80dd0177d9c6605cb7eb2922c78a7d0a">datasource</a>, <a class="el" href="../../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae5c6b2a8de16cb5c82d6d82040f9de37">username</a> and <a class="el" href="../../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae17b13fef2ebddad615a9bae6d942709">password</a> go through FormatConnectionStringValue, so a password such as <code>p</code>;w reaches the driver intact while plain credentials keep their unquoted spelling. </p>
+<p><a class="el" href="../../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a80dd0177d9c6605cb7eb2922c78a7d0a">datasource</a>, <a class="el" href="../../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae5c6b2a8de16cb5c82d6d82040f9de37">username</a> and <a class="el" href="../../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae17b13fef2ebddad615a9bae6d942709">password</a> go through <code>FormatConnectionStringValue()</code>, so a password such as <code>p</code>;w reaches the driver intact while plain credentials keep their unquoted spelling. </p>
 
 </div>
 </div>

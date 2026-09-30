@@ -152,7 +152,7 @@ Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 <p>Returns a copy of <code>input</code> with the values of its <code>PWD=</code> and <code>Password=</code> attributes replaced by <code>***</code>, for logging and diagnostics.</p>
-<p>The string is parsed attribute-wise following the ODBC quoting rules (see ParseConnectionString), so a brace-quoted password such as <code>PWD={p</code>;w} is masked as a whole and a <code></code>; inside another quoted value does not start a new attribute. Attribute names match case-insensitively and only as a whole (<code>MyPWD=</code> and <code>Database=PasswordVault</code> are left alone); everything that is not a password value, including the spelling of the keys and any whitespace, is copied verbatim.</p>
+<p>The string is parsed attribute-wise following the ODBC quoting rules (see <code>ParseConnectionString()</code>), so a brace-quoted password such as <code>PWD={p</code>;w} is masked as a whole and a <code></code>; inside another quoted value does not start a new attribute. Attribute names match case-insensitively and only as a whole (<code>MyPWD=</code> and <code>Database=PasswordVault</code> are left alone); everything that is not a password value, including the spelling of the keys and any whitespace, is copied verbatim.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">input</td><td>The raw connection string. </td></tr>

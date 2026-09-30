@@ -203,7 +203,7 @@ $(document).ready(function(){initNavTree('d7/d24/SqlConnectInfo_8hpp_source.html
 <div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span><span class="comment">    /// by @c ***, for logging and diagnostics.</span></div>
 <div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span><span class="comment">    ///</span></div>
 <div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span><span class="comment">    /// The string is parsed attribute-wise following the ODBC quoting rules (see</span></div>
-<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span><span class="comment">    /// @ref ParseConnectionString), so a brace-quoted password such as @c PWD={p;w} is masked as a</span></div>
+<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span><span class="comment">    /// @c ParseConnectionString()), so a brace-quoted password such as @c PWD={p;w} is masked as a</span></div>
 <div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span><span class="comment">    /// whole and a @c ; inside another quoted value does not start a new attribute. Attribute names</span></div>
 <div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span><span class="comment">    /// match case-insensitively and only as a whole (@c MyPWD= and @c Database=PasswordVault are left</span></div>
 <div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span><span class="comment">    /// alone); everything that is not a password value, including the spelling of the keys and any</span></div>
@@ -226,7 +226,7 @@ $(document).ready(function(){initNavTree('d7/d24/SqlConnectInfo_8hpp_source.html
 <div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span><span class="comment"></span> </div>
 <div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span><span class="comment">/// Builds an ODBC connection string from a map.</span></div>
 <div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span><span class="comment">///</span></div>
-<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span><span class="comment">/// Every value is rendered through @ref FormatConnectionStringValue, so the result parses back</span></div>
+<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span><span class="comment">/// Every value is rendered through @c FormatConnectionStringValue(), so the result parses back</span></div>
 <div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span><span class="comment">/// into the same map whatever characters the values contain.</span></div>
 <div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span><span class="comment"></span>LIGHTWEIGHT_API <a class="code hl_struct" href="../../de/d6a/structLightweight_1_1SqlConnectionString.html">SqlConnectionString</a> BuildConnectionString(SqlConnectionStringMap <span class="keyword">const</span>&amp; map);</div>
 <div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span><span class="comment"></span> </div>
@@ -302,7 +302,7 @@ $(document).ready(function(){initNavTree('d7/d24/SqlConnectInfo_8hpp_source.html
 <div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span><span class="comment">    /// @c SqlEncryptionMode::DriverDefault, so the rendering of a data source that did not opt in is</span></div>
 <div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span><span class="comment">    /// byte-for-byte what it always was.</span></div>
 <div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span><span class="comment">    /// @ref datasource, @ref username and @ref password go through @ref FormatConnectionStringValue,</span></div>
+<div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span><span class="comment">    /// @ref datasource, @ref username and @ref password go through @c FormatConnectionStringValue(),</span></div>
 <div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span><span class="comment">    /// so a password such as @c p;w reaches the driver intact while plain credentials keep their</span></div>
 <div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span><span class="comment">    /// unquoted spelling.</span></div>
 <div class="line"><a id="l00203" name="l00203"></a><span class="lineno"><a class="line" href="../../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a294bef751b01e0f8e110c989afff2814">  203</a></span><span class="comment"></span>    [[nodiscard]] LIGHTWEIGHT_API <a class="code hl_struct" href="../../de/d6a/structLightweight_1_1SqlConnectionString.html">SqlConnectionString</a> <a class="code hl_function" href="../../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a294bef751b01e0f8e110c989afff2814">ToConnectionString</a>() <span class="keyword">const</span>;</div>
