@@ -169,6 +169,13 @@ TEST_CASE("Field traits: IsPrimaryKey / IsAutoAssignPrimaryKey / IsAutoIncrement
     STATIC_CHECK(Field<int, PrimaryKey::AutoAssign>::IsAutoAssignPrimaryKey);
     STATIC_CHECK_FALSE(Field<int, PrimaryKey::AutoAssign>::IsAutoIncrementPrimaryKey);
 
+    // Manual is a key the mapper never generates: a key for lookups, but neither assigned nor incremented.
+    STATIC_CHECK(Field<int, PrimaryKey::Manual>::IsPrimaryKey);
+    STATIC_CHECK(IsPrimaryKey<Field<int, PrimaryKey::Manual>>);
+    STATIC_CHECK(IsPrimaryKey<Field<int, SqlRealName { "k" }, PrimaryKey::Manual>>);
+    STATIC_CHECK_FALSE(Field<int, PrimaryKey::Manual>::IsAutoAssignPrimaryKey);
+    STATIC_CHECK_FALSE(Field<int, PrimaryKey::Manual>::IsAutoIncrementPrimaryKey);
+
     STATIC_CHECK(Field<int, PrimaryKey::ServerSideAutoIncrement>::IsPrimaryKey);
     STATIC_CHECK_FALSE(Field<int, PrimaryKey::ServerSideAutoIncrement>::IsAutoAssignPrimaryKey);
     STATIC_CHECK(Field<int, PrimaryKey::ServerSideAutoIncrement>::IsAutoIncrementPrimaryKey);

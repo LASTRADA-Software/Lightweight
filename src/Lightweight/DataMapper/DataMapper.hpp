@@ -1968,16 +1968,14 @@ void DataMapper::CreateTables()
 template <typename Record>
 std::optional<RecordPrimaryKeyType<Record>> DataMapper::GenerateAutoAssignPrimaryKey(Record const& record)
 {
-    // Auto-assignment produces exactly one value, and SetId() writes it into *every* primary key
-    // member - so a record with several auto-assigned key members would silently receive the same value
-    // in all of them. A composite key must therefore be supplied explicitly rather than generated.
-    // Rejected here rather than in SetId(), which legitimately serves multi-key records whose values
-    // the caller provides.
+    // Auto-assignment produces exactly one value, and SetId() writes it into every generated primary
+    // key member - so a record with several auto-assigned key members would silently receive the same
+    // value in all of them. A composite key is declared PrimaryKey::Manual instead; see that enumerator.
     static_assert(detail::AutoAssignPrimaryKeyFieldCount<Record> <= 1,
                   "A record may declare at most one auto-assigned primary key member. Auto-assignment yields a "
-                  "single value that would be written into every key member, so a composite key cannot be "
-                  "generated - declare the key members without PrimaryKey::AutoAssign and set their values "
-                  "yourself before calling Create().");
+                  "single value that would be written into every generated key member, so a composite key cannot "
+                  "be generated - declare its members PrimaryKey::Manual and set their values yourself before "
+                  "calling Create().");
 
     std::optional<RecordPrimaryKeyType<Record>> result;
     EnumerateRecordMembers(
@@ -2043,7 +2041,9 @@ RecordPrimaryKeyType<Record> DataMapper::CreateInternal(
         using FieldType = typename[:std::meta::type_of(el):];
         if constexpr (SqlInputParameterBinder<FieldType> && !IsAutoIncrementPrimaryKey<FieldType>)
         {
-            if constexpr (IsPrimaryKey<FieldType> && UsePkOverride == PrimaryKeySource::Override)
+            // The override replaces the generated member only; a PrimaryKey::Manual member is the caller's.
+            if constexpr (detail::IsAutoAssignPrimaryKeyField<FieldType>::value
+                          && UsePkOverride == PrimaryKeySource::Override)
                 _stmt.BindInputParameter(i++, *pkOverride, std::meta::identifier_of(el));
             else
                 _stmt.BindInputParameter(i++, record.[:el:], std::meta::identifier_of(el));
@@ -2055,7 +2055,9 @@ RecordPrimaryKeyType<Record> DataMapper::CreateInternal(
                                   Name const& name, FieldType const& field) mutable {
                                   if constexpr (SqlInputParameterBinder<FieldType> && !IsAutoIncrementPrimaryKey<FieldType>)
                                   {
-                                      if constexpr (IsPrimaryKey<FieldType> && UsePkOverride == PrimaryKeySource::Override)
+                                      // The override replaces the generated member only; a Manual member is the caller's.
+                                      if constexpr (detail::IsAutoAssignPrimaryKeyField<FieldType>::value
+                                                    && UsePkOverride == PrimaryKeySource::Override)
                                           _stmt.BindInputParameter(i++, *pkOverride, name);
                                       else
                                           _stmt.BindInputParameter(i++, field, name);
@@ -2188,6 +2190,13 @@ RecordPrimaryKeyType<Record> DataMapper::CreateCopyOf(Record const& originalReco
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
     static_assert(HasPrimaryKey<Record>, "CreateCopyOf requires a record type with a primary key");
+    static_assert(
+        HasAutoIncrementPrimaryKey<Record>
+            || detail::CheckFieldProperty<[]<typename Field>() { return detail::IsAutoAssignPrimaryKeyField<Field>::value; },
+                                          Record>,
+        "CreateCopyOf() needs a primary key the mapper generates (AutoAssign or ServerSideAutoIncrement). A "
+        "record keyed by PrimaryKey::Manual members only has no key to give the copy - set one on a copy "
+        "of your own and call Create() instead.");
 
     auto generatedKey = GenerateAutoAssignPrimaryKey(originalRecord);
     if (generatedKey)
@@ -3483,7 +3492,8 @@ inline LIGHTWEIGHT_FORCE_INLINE void DataMapper::SetId(Record& record, ValueType
         using FieldType = typename[:std::meta::type_of(el):];
         if constexpr (IsField<FieldType>)
         {
-            if constexpr (FieldType::IsPrimaryKey)
+            // Only a generated key member receives the value; a PrimaryKey::Manual member is the caller's.
+            if constexpr (FieldType::IsAutoAssignPrimaryKey || FieldType::IsAutoIncrementPrimaryKey)
             {
                 record.[:el:] = std::forward<ValueType>(id);
             }
@@ -3493,7 +3503,8 @@ inline LIGHTWEIGHT_FORCE_INLINE void DataMapper::SetId(Record& record, ValueType
     EnumerateRecordMembers(record, [&]<size_t I, typename FieldType>(FieldType& field) {
         if constexpr (IsField<FieldType>)
         {
-            if constexpr (FieldType::IsPrimaryKey)
+            // Only a generated key member receives the value; a PrimaryKey::Manual member is the caller's.
+            if constexpr (FieldType::IsAutoAssignPrimaryKey || FieldType::IsAutoIncrementPrimaryKey)
             {
                 field = std::forward<FieldType>(id);
             }

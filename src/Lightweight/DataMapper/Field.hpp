@@ -32,11 +32,19 @@ enum class PrimaryKey : uint8_t
     ///
     /// If the field is a GUID, it is automatically set to a new GUID value, if not manually set.
     ///
-    /// @note If the field is neither auto-incrementable nor a GUID, it must be manually set.
+    /// @note If the field is neither auto-incrementable nor a GUID, it must be manually set. For a key
+    ///       the mapper must never generate even when it could, use @c Manual.
     AutoAssign,
 
     /// The field is an integer primary key, and it is auto-incremented by the database.
     ServerSideAutoIncrement,
+
+    /// @brief The field is a primary key whose value the caller always supplies.
+    ///
+    /// The data mapper neither generates it nor writes a generated value into it, so this is the
+    /// assignment for every member of a composite primary key: auto-assignment produces one value,
+    /// which a composite key cannot be built from.
+    Manual,
 };
 
 namespace detail
@@ -216,10 +224,12 @@ struct IsFieldType<Field<T, P1, P2>>: std::true_type {};
 } // namespace detail
 // clang-format on
 
-/// Tests if T is a Field<> that is a primary key.
+/// Tests if T is a Field<> that is a primary key, of whichever @ref PrimaryKey kind.
 template <typename T>
-constexpr bool IsPrimaryKey =
-    detail::IsAutoAssignPrimaryKeyField<T>::value || detail::IsAutoIncrementPrimaryKeyField<T>::value;
+constexpr bool IsPrimaryKey = false;
+
+template <typename T, auto P1, auto P2>
+constexpr bool IsPrimaryKey<Field<T, P1, P2>> = Field<T, P1, P2>::IsPrimaryKey;
 
 /// Requires that T satisfies to be a field with storage and is considered a primary key.
 template <typename T>

@@ -37,6 +37,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <optional>
 #include <variant>
 
 using namespace Lightweight;
@@ -79,14 +80,14 @@ namespace CompositeKeyGap
 /// A record whose identity is a pair of columns, i.e. the C++ counterpart of
 /// `PRIMARY KEY ("tenant_id", "entry_no")`.
 ///
-/// Both members are declared as primary keys, which is the only spelling available. It compiles, but
-/// see the test below for what it actually means.
+/// Both members are PrimaryKey::Manual: the caller supplies the whole key, and Create() neither
+/// generates nor overwrites either part.
 struct CkCompositeRecord
 {
     static constexpr std::string_view TableName = "CkComposite";
 
-    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "tenant_id" }> tenantId {};
-    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "entry_no" }> entryNo {};
+    Field<int32_t, PrimaryKey::Manual, SqlRealName { "tenant_id" }> tenantId {};
+    Field<int32_t, PrimaryKey::Manual, SqlRealName { "entry_no" }> entryNo {};
     Field<std::optional<SqlAnsiString<40>>, SqlRealName { "label" }> label {};
 };
 
@@ -95,8 +96,8 @@ struct CkParentRecord
 {
     static constexpr std::string_view TableName = "CkParent";
 
-    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "part_a" }> partA {};
-    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "part_b" }> partB {};
+    Field<int32_t, PrimaryKey::Manual, SqlRealName { "part_a" }> partA {};
+    Field<int32_t, PrimaryKey::Manual, SqlRealName { "part_b" }> partB {};
     Field<std::optional<SqlAnsiString<40>>, SqlRealName { "caption" }> caption {};
 };
 
@@ -181,6 +182,101 @@ TEST_CASE_METHOD(SqlTestFixture, "A composite primary key does identify a row", 
     REQUIRE(third->label.Value().has_value());
     CHECK(third->label.Value().value() == "third");
     // NOLINTEND(bugprone-unchecked-optional-access)
+}
+
+/// One generated key member next to a manual one, in both declaration orders: the generated value
+/// must land in `seq` only, and be what Create() hands back.
+struct CkMixedRecord
+{
+    static constexpr std::string_view TableName = "CkMixed";
+
+    Field<int32_t, PrimaryKey::AutoAssign, SqlRealName { "seq" }> seq {};
+    Field<int32_t, PrimaryKey::Manual, SqlRealName { "tenant_id" }> tenantId {};
+    Field<std::optional<SqlAnsiString<40>>, SqlRealName { "label" }> label {};
+};
+
+struct CkMixedReversedRecord
+{
+    static constexpr std::string_view TableName = "CkMixedReversed";
+
+    Field<int32_t, PrimaryKey::Manual, SqlRealName { "tenant_id" }> tenantId {};
+    Field<int32_t, PrimaryKey::AutoAssign, SqlRealName { "seq" }> seq {};
+    Field<std::optional<SqlAnsiString<40>>, SqlRealName { "label" }> label {};
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "Create() stores a composite key supplied by the caller", "[CompositeKey]")
+{
+    // #609: the only assignment ddl2cpp could emit for a composite key was AutoAssign on every member,
+    // which Create() rejects. With Manual members the table is created with the composite constraint
+    // and the key the caller set is what gets stored.
+    auto dm = DataMapper {};
+    dm.CreateTable<CkCompositeRecord>();
+
+    auto first = CkCompositeRecord { .tenantId = 1, .entryNo = 1, .label = SqlAnsiString<40> { "first" } };
+    auto second = CkCompositeRecord { .tenantId = 1, .entryNo = 2, .label = SqlAnsiString<40> { "second" } };
+    dm.Create(first);
+    dm.Create(second);
+
+    // Neither key member was rewritten on the way in...
+    CHECK(second.tenantId.Value() == 1);
+    CHECK(second.entryNo.Value() == 2);
+
+    // ...and the row is found by the key that was supplied. (CreateCopyOf() is rejected at compile
+    // time for this record: with no generated member there is no key to give the copy.)
+    auto const found = dm.QuerySingle<CkCompositeRecord>(1, 2);
+    REQUIRE(found.has_value());
+    if (found.has_value())
+    {
+        REQUIRE(found->label.Value().has_value());
+        if (found->label.Value().has_value())
+            CHECK(*found->label.Value() == "second");
+    }
+}
+
+/// SetId() writes the generated value into generated members only, the Manual member has to survive,
+/// and the key Create() returns is the generated one whichever member is declared first.
+template <typename Record>
+void CheckGeneratedMemberNextToManualOne()
+{
+    auto dm = DataMapper {};
+    dm.CreateTable<Record>();
+
+    auto a = Record { .tenantId = 7, .label = SqlAnsiString<40> { "a" } };
+    auto b = Record { .tenantId = 7, .label = SqlAnsiString<40> { "b" } };
+    auto const createdA = dm.Create(a);
+    auto const createdB = dm.Create(b);
+
+    CHECK(a.tenantId.Value() == 7);
+    CHECK(b.tenantId.Value() == 7);
+    CHECK(a.seq.Value() != 0);
+    CHECK(b.seq.Value() != a.seq.Value());
+    CHECK(createdA == a.seq.Value());
+    CHECK(createdB == b.seq.Value());
+
+    // A copy gets a fresh generated member and keeps the Manual one.
+    auto const copied = dm.CreateCopyOf(b);
+    CHECK(copied != b.seq.Value());
+    auto const stored = dm.Query<Record>().Where("seq", copied).First();
+    REQUIRE(stored.has_value());
+    if (stored.has_value())
+    {
+        CHECK(stored->tenantId.Value() == 7);
+        REQUIRE(stored->label.Value().has_value());
+        if (stored->label.Value().has_value())
+            CHECK(*stored->label.Value() == "b");
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Create() generates only the auto-assigned member next to a Manual one", "[CompositeKey]")
+{
+    CheckGeneratedMemberNextToManualOne<CkMixedRecord>();
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Create() generates only the auto-assigned member declared after a Manual one",
+                 "[CompositeKey]")
+{
+    CheckGeneratedMemberNextToManualOne<CkMixedReversedRecord>();
 }
 
 // ================================================================================================
