@@ -107,8 +107,7 @@ Configure default connection information to the database</h1>
 <div class="line">                 SqlErrorInfo::fromConnectionHandle(sqlConnection.NativeHandle()));</div>
 <div class="line">    std::abort();</div>
 <div class="line">}</div>
-</div><!-- fragment --><p>A <code>SqlConnectionDataSource</code> is flattened into that same syntax by <code>ToConnectionString()</code>. A user name or password containing one of the connection-string metacharacters (<code>;</code>, <code>=</code>, <code>{</code>, <code>}</code>) is brace-quoted on the way, with every embedded <code>}</code> doubled — <code>PWD={p;w}</code> — the quoting ODBC defines for attribute values, which the driver managers and the SQL Server and PostgreSQL drivers read back, so such credentials reach the driver intact. (The SQLite ODBC driver takes a braced <code>Database=</code> path literally, so keep SQLite file names free of those characters.) When you assemble a raw <code>SqlConnectionString</code> yourself, run each value through <code>FormatConnectionStringValue()</code> instead of splicing it in with <code>std::format</code>; it returns plain values unchanged and quotes only the ones that need it. <code>BuildConnectionString()</code> does this for every value of the map it is given, and <code>ParseConnectionString()</code> reads the quoting back.</p>
-<h1><a class="anchor" id="connection-encryption"></a>
+</div><!-- fragment --><h1><a class="anchor" id="connection-encryption"></a>
 Connection encryption</h1>
 <p>By default Lightweight does not touch the driver's TLS configuration — whatever the ODBC driver, the DSN, or the connection string already says stays in force. To take explicit control, set the <code>encryption</code> field of <code>SqlConnectionDataSource</code>:</p>
 <div class="fragment"><div class="line">SqlConnection::SetDefaultDataSource(SqlConnectionDataSource {</div>
