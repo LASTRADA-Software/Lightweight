@@ -644,11 +644,13 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.IfThenWhere with std::st
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Update.Where with a boolean literal", "[SqlQueryBuilder]")
 {
-    // A boolean is the only WHERE literal that reaches Formatter(), and SqlUpdateQueryBuilder used
-    // to name that accessor FormatterLocal. SqlWhereClauseBuilder resolves it through the CRTP
-    // derived type, so the lookup landed back on the base and recursed on every control path --
-    // diagnosed by MSVC as C4717 and a stack overflow at run time. Every other literal either binds
-    // or formats itself, which is why no existing case instantiated it.
+    // A boolean is the only WHERE literal that reaches the builder's formatter, and
+    // SqlUpdateQueryBuilder used to name that accessor FormatterLocal. SqlWhereClauseBuilder reached
+    // it through a same-named forwarder of its own, so the lookup landed back on the base and
+    // recursed on every control path -- diagnosed by MSVC as C4717 and a stack overflow at run time.
+    // The base now asks the derived type by a distinct name (DerivedFormatter), so a missing
+    // Formatter() is a compile error; this case keeps the literal path instantiated regardless, since
+    // every other literal either binds or formats itself.
     CheckSqlQueryBuilder([&](SqlQueryBuilder& q) { return q.FromTable("T").Update().Set("a", 1).Where("active", true); },
                          QueryExpectations {
                              .sqlite = R"SQL(UPDATE "T" SET "a" = 1
@@ -669,8 +671,8 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Update.Where with a boolean li
                                                 WHERE "active" = 0)SQL",
                          });
 
-    // Select completes the set: all three builders inherit SqlWhereClauseBuilder and each must name
-    // its own formatter accessor Formatter(), or the base resolves back to itself.
+    // Select completes the set: all three builders inherit SqlWhereClauseBuilder and each provides
+    // the Formatter() the base reaches through the derived type.
     CheckSqlQueryBuilder(
         [&](SqlQueryBuilder& q) { return q.FromTable("T").Select().Field("a").Where("active", true).All(); },
         QueryExpectations {

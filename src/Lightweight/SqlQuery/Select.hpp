@@ -249,19 +249,15 @@ class [[nodiscard]] SqlSelectQueryBuilder: public SqlBasicSelectQueryBuilder<Sql
     /// Const overload: doesn't mutate @c *this — see @ref Count() const.
     [[nodiscard]] LIGHTWEIGHT_API ComposedQuery Range(std::size_t offset, std::size_t limit) const;
 
-    // clang-format off
     /// Returns the search condition for the query.
-    LIGHTWEIGHT_FORCE_INLINE SqlSearchCondition& SearchCondition() noexcept // NOLINT(bugprone-derived-method-shadowing-base-method)
+    LIGHTWEIGHT_FORCE_INLINE SqlSearchCondition& SearchCondition() noexcept
     {
-        // clang-format on
         return _query.searchCondition;
     }
 
-    // clang-format off
     /// Returns the SQL query formatter.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE SqlQueryFormatter const& Formatter() const noexcept // NOLINT(bugprone-derived-method-shadowing-base-method)
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE SqlQueryFormatter const& Formatter() const noexcept
     {
-        // clang-format on
         return _formatter;
     }
 
