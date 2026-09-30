@@ -253,8 +253,8 @@ var group__DataMapper =
     [ "Lightweight::RelationResult", "d7/d2f/group__DataMapper.html#ga4be41b60128a724d65b80270ef863741", null ],
     [ "Lightweight::ReferencedFieldTypeOf", "d7/d2f/group__DataMapper.html#gaeebbb701afbe9efa3118910e348b4e61", null ],
     [ "Lightweight::SqlElements", "d7/d2f/group__DataMapper.html#ga7b2f2210747ec11d91a0d694b4c34b25", null ],
-    [ "Lightweight::ThroughRecordOf", "d7/d2f/group__DataMapper.html#ga1d0fc491169f58bf2d8648a41db9b9c1", null ],
-    [ "Lightweight::RecordPrimaryKeyTuple", "d7/d2f/group__DataMapper.html#gad5cd7d364722cd78f20a0dc34befdf94", null ],
+    [ "Lightweight::ThroughRecordOf", "d7/d2f/group__DataMapper.html#ga6908683ee1b573afc52f6020e8fcc051", null ],
+    [ "Lightweight::RecordPrimaryKeyTuple", "d7/d2f/group__DataMapper.html#ga4792c3b28c2058e0226e1e6eb728e401", null ],
     [ "Lightweight::RecordMemberTypeOf", "d7/d2f/group__DataMapper.html#gaf8d513471d088e755ea2e628689086fb", null ],
     [ "Lightweight::RelationError", "d7/d2f/group__DataMapper.html#gaccfed183e72fab87179bacefc80b23e1", [
       [ "Lightweight::RelationError::NotConfigured", "d7/d2f/group__DataMapper.html#ggaccfed183e72fab87179bacefc80b23e1a52c1415ae26d69e91093beaac88e0815", null ],
