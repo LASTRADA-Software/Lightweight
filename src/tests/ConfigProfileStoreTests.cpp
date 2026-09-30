@@ -207,6 +207,29 @@ TEST_CASE("Profile::ToConnectInfo — a resolved password is appended with conne
     CHECK(ParseConnectionString(quoted).at("PWD") == "p;w");
 }
 
+TEST_CASE("Profile::ToConnectInfo — only a whole PWD/Password attribute counts as an existing password", "[ProfileStore]")
+{
+    using namespace Lightweight;
+    auto profile = Config::Profile {
+        .name = "dev",
+        .pluginsDir = {},
+        .schema = {},
+        .dsn = {},
+        .connectionString = "DRIVER=SQLite3;Database=mypwd=1.db",
+        .uid = {},
+        .secretRef = {},
+    };
+
+    // `pwd=` inside another attribute's value is not a password, so the resolved secret is appended.
+    auto const appended = std::get<SqlConnectionString>(profile.ToConnectInfo("s3cr3t"));
+    CHECK(ParseConnectionString(appended).at("PWD") == "s3cr3t");
+
+    // A real password attribute, whatever its spelling, wins over the resolved secret.
+    profile.connectionString = "DRIVER=SQLite3;Database=dev.db;Password=typed";
+    auto const kept = std::get<SqlConnectionString>(profile.ToConnectInfo("s3cr3t"));
+    CHECK(kept.value == "DRIVER=SQLite3;Database=dev.db;Password=typed");
+}
+
 TEST_CASE("ProfileStore — dsn and connectionString are mutually exclusive", "[ProfileStore]")
 {
     ScopedTempYaml const yaml(R"(profiles:

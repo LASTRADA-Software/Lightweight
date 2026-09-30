@@ -50,12 +50,10 @@ SqlConnectInfo Profile::ToConnectInfo(std::string_view password) const
     if (password.empty())
         return SqlConnectionString { connectionString };
 
-    std::string const lower = [&] {
-        std::string s = connectionString;
-        std::ranges::transform(s, s.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-        return s;
-    }();
-    if (lower.contains("pwd=") || lower.contains("password="))
+    // Whole attribute names only (keys come back upper-cased): a `pwd=` buried inside some other
+    // value, such as a database path, must not make the resolved secret vanish.
+    auto const attributes = ParseConnectionString(SqlConnectionString { connectionString });
+    if (attributes.contains("PWD") || attributes.contains("PASSWORD"))
         return SqlConnectionString { connectionString };
 
     std::string extended = connectionString;
