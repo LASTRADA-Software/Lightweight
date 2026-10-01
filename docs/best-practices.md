@@ -20,6 +20,15 @@ Keep the data model and business logic separate to improve the maintainability a
 
 Remember to also keep frontend (e.g., GUI) and backend (e.g., API) separate.
 
+### Let the Record Type Mirror the Schema
+
+Declare a column as `Field<T>` only when it is `NOT NULL`, and as `Field<std::optional<T>>` when it
+is nullable. A `NOT NULL` column that has no default member initializer is a
+[required field](usage.md#required-fields): the compiler rejects every place that creates the record
+without it, so adding such a column to a table points you at all the code that has to supply it.
+Reach for a default member initializer only when the default is a real business value, not to make
+the error go away.
+
 ### Use Transactions with Care
 
 Use transactions to group multiple database operations into a single unit of work.  
@@ -45,8 +54,8 @@ each fetch operation. If there are no nullable values, you do not have to.
 struct MixedNullRow
 {
     Field<SqlGuid, PrimaryKey::AutoAssign> id {};
-    Field<std::optional<SqlAnsiString<30>>> name;
-    Field<std::optional<int>> age;
+    Field<std::optional<SqlAnsiString<30>>> name {};
+    Field<std::optional<int>> age {};
 };
 
 void ForEachData(SqlStatement& stmt, auto&& onRow)

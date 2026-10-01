@@ -106,11 +106,25 @@ class BelongsTo
     /// Indicates that a BelongsTo field is never an auto-increment primary key.
     static constexpr auto IsAutoIncrementPrimaryKey = false;
 
+    /// Indicates whether the relationship must be given a value when its record is created by the
+    /// caller. A required relationship has no default constructor, so a record cannot be created
+    /// without it, unless the record declares a default member initializer for it.
+    static constexpr bool IsRequired = IsMandatory;
+
+    /// Default constructor. Not available for a required relationship, see @ref IsRequired.
+    constexpr BelongsTo() noexcept
+        requires(!IsRequired)
+    = default;
+
     /// Constructs a new BelongsTo with the given value(s) forwarded to the underlying value type.
+    ///
+    /// Like a Field constructed from a value, the relationship starts out modified, so that
+    /// DataMapper::Update() writes a foreign key given this way.
     template <typename... S>
-        requires std::constructible_from<ValueType, S...>
+        requires(sizeof...(S) != 0) && std::constructible_from<ValueType, S...>
     constexpr BelongsTo(S&&... value) noexcept:
-        _referencedFieldValue(std::forward<S>(value)...)
+        _referencedFieldValue(std::forward<S>(value)...),
+        _modified { true }
     {
     }
 
@@ -118,6 +132,7 @@ class BelongsTo
     constexpr explicit BelongsTo(detail::UninitializedTag /*tag*/) noexcept {}
 
     /// Constructs a new BelongsTo from the given referenced record, copying its primary key.
+    /// The relationship starts out modified, see the value constructor.
     constexpr BelongsTo(ReferencedRecord const& other) noexcept:
 #if defined(LIGHTWEIGHT_CXX26_REFLECTION)
         _referencedFieldValue { (other.[:ReferencedField:]).Value() },
@@ -125,6 +140,7 @@ class BelongsTo
         _referencedFieldValue { (other.*ReferencedField).Value() },
 #endif
         _loaded { true },
+        _modified { true },
         _record { std::make_unique<ReferencedRecord>(other) }
     {
     }
