@@ -591,8 +591,11 @@ class [[nodiscard]] SqlWhereClauseBuilder
     [[nodiscard]] Derived& FullOuterJoin(TableName auto joinTable, OnChainCallable const& onClauseBuilder);
 
   private:
-    SqlSearchCondition& SearchCondition() noexcept;
-    [[nodiscard]] SqlQueryFormatter const& Formatter() const noexcept;
+    /// The search condition of the derived builder, which SqlWhereClauseBuilder does not own itself.
+    [[nodiscard]] SqlSearchCondition& DerivedSearchCondition() noexcept;
+
+    /// The formatter of the derived builder, which SqlWhereClauseBuilder does not own itself.
+    [[nodiscard]] SqlQueryFormatter const& DerivedFormatter() const noexcept;
 
     enum class WhereJunctor : uint8_t
     {
@@ -892,7 +895,7 @@ template <typename Callable>
     requires std::invocable<Callable, SqlWhereClauseBuilder<Derived>&>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Where(Callable const& callable)
 {
-    auto& condition = SearchCondition().condition;
+    auto& condition = DerivedSearchCondition().condition;
 
     auto const originalSize = condition.size();
 
@@ -1029,7 +1032,7 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Where(C
                                                                                std::string_view binaryOp,
                                                                                T const& value)
 {
-    auto& searchCondition = SearchCondition();
+    auto& searchCondition = DerivedSearchCondition();
 
     AppendWhereJunctor();
     AppendColumnName(columnName);
@@ -1254,20 +1257,20 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereRa
 {
     AppendWhereJunctor();
 
-    auto& condition = SearchCondition().condition;
+    auto& condition = DerivedSearchCondition().condition;
     condition += sqlConditionExpression;
 
     return static_cast<Derived&>(*this);
 }
 
 template <typename Derived>
-inline LIGHTWEIGHT_FORCE_INLINE SqlSearchCondition& SqlWhereClauseBuilder<Derived>::SearchCondition() noexcept
+inline LIGHTWEIGHT_FORCE_INLINE SqlSearchCondition& SqlWhereClauseBuilder<Derived>::DerivedSearchCondition() noexcept
 {
     return static_cast<Derived*>(this)->SearchCondition();
 }
 
 template <typename Derived>
-inline LIGHTWEIGHT_FORCE_INLINE SqlQueryFormatter const& SqlWhereClauseBuilder<Derived>::Formatter() const noexcept
+inline LIGHTWEIGHT_FORCE_INLINE SqlQueryFormatter const& SqlWhereClauseBuilder<Derived>::DerivedFormatter() const noexcept
 {
     return static_cast<Derived const*>(this)->Formatter();
 }
@@ -1277,7 +1280,7 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlWhereClauseBuilder<Derived>::AppendWhere
 {
     using namespace std::string_view_literals;
 
-    auto& condition = SearchCondition().condition;
+    auto& condition = DerivedSearchCondition().condition;
 
     switch (m_nextWhereJunctor)
     {
@@ -1310,7 +1313,7 @@ template <typename ColumnName>
              || std::convertible_to<ColumnName, std::string>)
 inline LIGHTWEIGHT_FORCE_INLINE void SqlWhereClauseBuilder<Derived>::AppendColumnName(ColumnName const& columnName)
 {
-    SearchCondition().condition += detail::MakeSqlColumnName(columnName);
+    DerivedSearchCondition().condition += detail::MakeSqlColumnName(columnName);
 }
 
 /// Appends a literal value to the WHERE condition.
@@ -1318,7 +1321,7 @@ template <typename Derived>
 template <typename LiteralType>
 inline LIGHTWEIGHT_FORCE_INLINE void SqlWhereClauseBuilder<Derived>::AppendLiteralValue(LiteralType const& value)
 {
-    auto& searchCondition = SearchCondition();
+    auto& searchCondition = DerivedSearchCondition();
 
     if constexpr (std::is_same_v<LiteralType, SqlQualifiedTableColumnName>
                   || detail::OneOf<LiteralType, SqlNullType, std::nullopt_t> || std::is_same_v<LiteralType, SqlWildcardType>
@@ -1340,7 +1343,7 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlWhereClauseBuilder<Derived>::AppendLiter
     }
     else if constexpr (std::is_same_v<LiteralType, bool>)
     {
-        searchCondition.condition += Formatter().BooleanLiteral(value);
+        searchCondition.condition += DerivedFormatter().BooleanLiteral(value);
     }
     else if constexpr (!WhereConditionLiteralType<LiteralType>::needsQuotes)
     {
@@ -1400,7 +1403,7 @@ template <typename LiteralType, typename TargetType>
 inline LIGHTWEIGHT_FORCE_INLINE void SqlWhereClauseBuilder<Derived>::PopulateLiteralValueInto(LiteralType const& value,
                                                                                               TargetType& target)
 {
-    detail::AppendLiteralValueInto(value, target, Formatter());
+    detail::AppendLiteralValueInto(value, target, DerivedFormatter());
 }
 
 template <typename Derived>
@@ -1419,7 +1422,7 @@ detail::RawSqlCondition SqlWhereClauseBuilder<Derived>::PopulateSqlSetExpression
         !(std::is_same_v<ValueType, SqlQualifiedTableColumnName> || detail::OneOf<ValueType, SqlNullType, std::nullopt_t>
           || std::is_same_v<ValueType, SqlWildcardType> || std::is_same_v<ValueType, detail::RawSqlCondition>);
 
-    auto& searchCondition = SearchCondition();
+    auto& searchCondition = DerivedSearchCondition();
 
     std::ostringstream fragment;
 
@@ -1493,24 +1496,24 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Join(Jo
 
     if constexpr (std::is_same_v<std::remove_cvref_t<decltype(joinTable)>, AliasedTableName>)
     {
-        SearchCondition().tableJoins += std::format("\n"
-                                                    R"( {0} JOIN "{1}" AS "{2}" ON "{2}"."{3}" = "{4}"."{5}")",
-                                                    JoinTypeStrings[static_cast<std::size_t>(joinType)],
-                                                    joinTable.tableName,
-                                                    joinTable.alias,
-                                                    joinColumnName,
-                                                    onOtherColumn.tableName,
-                                                    onOtherColumn.columnName);
+        DerivedSearchCondition().tableJoins += std::format("\n"
+                                                           R"( {0} JOIN "{1}" AS "{2}" ON "{2}"."{3}" = "{4}"."{5}")",
+                                                           JoinTypeStrings[static_cast<std::size_t>(joinType)],
+                                                           joinTable.tableName,
+                                                           joinTable.alias,
+                                                           joinColumnName,
+                                                           onOtherColumn.tableName,
+                                                           onOtherColumn.columnName);
     }
     else
     {
-        SearchCondition().tableJoins += std::format("\n"
-                                                    R"( {0} JOIN "{1}" ON "{1}"."{2}" = "{3}"."{4}")",
-                                                    JoinTypeStrings[static_cast<std::size_t>(joinType)],
-                                                    joinTable,
-                                                    joinColumnName,
-                                                    onOtherColumn.tableName,
-                                                    onOtherColumn.columnName);
+        DerivedSearchCondition().tableJoins += std::format("\n"
+                                                           R"( {0} JOIN "{1}" ON "{1}"."{2}" = "{3}"."{4}")",
+                                                           JoinTypeStrings[static_cast<std::size_t>(joinType)],
+                                                           joinTable,
+                                                           joinColumnName,
+                                                           onOtherColumn.tableName,
+                                                           onOtherColumn.columnName);
     }
     return static_cast<Derived&>(*this);
 }
@@ -1521,10 +1524,11 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Join(Jo
                                                                               std::string_view joinColumnName,
                                                                               std::string_view onMainTableColumn)
 {
-    return Join(joinType,
-                joinTable,
-                joinColumnName,
-                SqlQualifiedTableColumnName { .tableName = SearchCondition().tableName, .columnName = onMainTableColumn });
+    return Join(
+        joinType,
+        joinTable,
+        joinColumnName,
+        SqlQualifiedTableColumnName { .tableName = DerivedSearchCondition().tableName, .columnName = onMainTableColumn });
 }
 
 /// Constructs a JOIN clause with a custom ON clause builder.
@@ -1541,14 +1545,14 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Join(Jo
         "FULL OUTER",
     };
 
-    size_t const originalSize = SearchCondition().tableJoins.size();
-    SearchCondition().tableJoins +=
+    size_t const originalSize = DerivedSearchCondition().tableJoins.size();
+    DerivedSearchCondition().tableJoins +=
         std::format("\n {0} JOIN \"{1}\" ON ", JoinTypeStrings[static_cast<std::size_t>(joinType)], joinTable);
-    size_t const sizeBefore = SearchCondition().tableJoins.size();
-    onClauseBuilder(SqlJoinConditionBuilder { joinTable, &SearchCondition(), &Formatter() });
-    size_t const sizeAfter = SearchCondition().tableJoins.size();
+    size_t const sizeBefore = DerivedSearchCondition().tableJoins.size();
+    onClauseBuilder(SqlJoinConditionBuilder { joinTable, &DerivedSearchCondition(), &DerivedFormatter() });
+    size_t const sizeAfter = DerivedSearchCondition().tableJoins.size();
     if (sizeBefore == sizeAfter)
-        SearchCondition().tableJoins.resize(originalSize);
+        DerivedSearchCondition().tableJoins.resize(originalSize);
 
     return static_cast<Derived&>(*this);
 }

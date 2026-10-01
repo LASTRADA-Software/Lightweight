@@ -23,9 +23,11 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <set>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 using namespace Lightweight;
 
@@ -293,6 +295,35 @@ TEST_CASE_METHOD(SqlTestFixture, "A NULL foreign key is attributed to no parent"
     CHECK_FALSE(loadedOrphan.parent.Value().has_value());
     CHECK(loadedOrphan.children.Count().value() == 0);
 }
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Self-referencing HasMany is eager-loaded through With<>()",
+                 "[DataMapper][relations][selfref][With]")
+{
+    // The inverse of TreeNode::children is the nullable parent_id, so this is the preload path that
+    // reads each fetched child's owner key out of an optional BelongsTo. Every node is an owner here,
+    // including the root whose own parent is NULL.
+    auto dm = DataMapper {};
+    dm.CreateTable<TreeNode>();
+    auto const ids = MakeTree(dm);
+
+    auto nodes = dm.Query<TreeNode>().With<Member(TreeNode::children)>().All();
+    REQUIRE(nodes.size() == 4);
+
+    auto const childrenOf = [&](uint64_t id) {
+        auto children = std::vector<uint64_t> {};
+        for (auto& node: nodes)
+            if (node.id.Value() == id)
+                for (auto const& child: node.children.All().value().get())
+                    children.push_back(child->id.Value());
+        std::ranges::sort(children);
+        return children;
+    };
+    CHECK(childrenOf(ids.root) == std::vector { ids.childA, ids.childB });
+    CHECK(childrenOf(ids.childA) == std::vector { ids.grandchild });
+    CHECK(childrenOf(ids.childB).empty());
+    CHECK(childrenOf(ids.grandchild).empty());
+}
+
 #endif // !LIGHTWEIGHT_SELFREF_BELONGSTO_MISCOMPILED
 
 #if defined(LIGHTWEIGHT_SELFREF_BELONGSTO_MISCOMPILED)

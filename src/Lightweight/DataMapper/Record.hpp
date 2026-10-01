@@ -206,7 +206,7 @@ namespace detail
     struct ThroughRecordOfHelper
     {
         static_assert(BareThroughRecord<ThroughSpec>::DeprecatedSpelling);
-        using type = typename BareThroughRecord<ThroughSpec>::type;
+        using type = BareThroughRecord<ThroughSpec>::type;
     };
 
     template <typename JoinRecordT>
@@ -228,7 +228,7 @@ namespace detail
 /// @see Through
 /// @ingroup DataMapper
 template <typename ThroughSpec>
-using ThroughRecordOf = typename detail::ThroughRecordOfHelper<ThroughSpec>::type;
+using ThroughRecordOf = detail::ThroughRecordOfHelper<ThroughSpec>::type;
 
 namespace detail
 {
@@ -537,7 +537,7 @@ namespace detail
 ///
 /// @ingroup DataMapper
 template <typename Record>
-using RecordPrimaryKeyTuple = typename detail::RecordPrimaryKeyTupleHelper<Record>::type;
+using RecordPrimaryKeyTuple = detail::RecordPrimaryKeyTupleHelper<Record>::type;
 
 /// @brief Number of members of @p Record marked as a primary key.
 ///

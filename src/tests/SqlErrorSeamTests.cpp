@@ -145,7 +145,9 @@ TEST_CASE("SqlDiagnosticSource: install and clear", "[SqlError][seam]")
 TEST_CASE("RequireSuccess: throws SqlException carrying the scripted diagnostics", "[SqlError][seam]")
 {
     auto source = ScriptedDiagnosticSource { MakeError("23000", 2627, "Violation of UNIQUE KEY constraint") };
-    auto const installed = ScopedDiagnosticSource { source };
+    // [[maybe_unused]]: FAIL() below ends the path clang-analyzer explores, so it reads the guard,
+    // which is held for its destructor, as never used.
+    [[maybe_unused]] auto const installed = ScopedDiagnosticSource { source };
 
     // A null handle is fine: the scripted source never dereferences it, which is precisely what
     // makes this path reachable without a live statement.

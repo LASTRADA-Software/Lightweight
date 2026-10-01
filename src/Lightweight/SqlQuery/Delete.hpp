@@ -44,16 +44,14 @@ class LIGHTWEIGHT_API SqlDeleteQueryBuilder final: public SqlWhereClauseBuilder<
     }
 
     /// Returns the search condition for the query.
-    SqlSearchCondition& SearchCondition() noexcept // NOLINT(bugprone-derived-method-shadowing-base-method)
+    SqlSearchCondition& SearchCondition() noexcept
     {
         return m_searchCondition;
     }
 
-    // clang-format off
     /// Returns the SQL query formatter.
-    [[nodiscard]] SqlQueryFormatter const& Formatter() const noexcept // NOLINT(bugprone-derived-method-shadowing-base-method)
+    [[nodiscard]] SqlQueryFormatter const& Formatter() const noexcept
     {
-        // clang-format on
         return m_formatter;
     }
 

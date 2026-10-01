@@ -36,17 +36,13 @@ class [[nodiscard]] SqlUpdateQueryBuilder final: public SqlWhereClauseBuilder<Sq
     }
 
     /// Returns the search condition for the query.
-    SqlSearchCondition& SearchCondition() noexcept // NOLINT(bugprone-derived-method-shadowing-base-method)
+    SqlSearchCondition& SearchCondition() noexcept
     {
         return m_searchCondition;
     }
 
-    /// @brief Returns the SQL query formatter.
-    ///
-    /// Named Formatter() because SqlWhereClauseBuilder resolves it through the CRTP derived type;
-    /// the apparent shadowing is the mechanism, not an accident.
-    [[nodiscard]] SqlQueryFormatter const& Formatter()
-        const noexcept // NOLINT(bugprone-derived-method-shadowing-base-method)
+    /// Returns the SQL query formatter.
+    [[nodiscard]] SqlQueryFormatter const& Formatter() const noexcept
     {
         return m_formatter;
     }

@@ -202,7 +202,7 @@ struct SqlDataBinder<char>
     /// @return @p value as a one-character string.
     static LIGHTWEIGHT_FORCE_INLINE std::string Inspect(char value)
     {
-        return std::string(1, value);
+        return { value };
     }
 
   private:
