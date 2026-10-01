@@ -130,9 +130,10 @@ Public Member Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Interface for an executor that runs posted work items.</p>
-<p>Executors are injected (dependency injection) and owned by the caller; the async layer only ever holds references to them. Every implementation's <a class="el" href="../../d3/d75/classLightweight_1_1Async_1_1IExecutor.html#acd1984963d20f7fa1c9a859d9d60b077">Post</a> is thread-safe. </p>
+<p>Executors are injected (dependency injection) and owned by the caller; the async layer only ever holds references to them. Every implementation's <a class="el" href="../../d3/d75/classLightweight_1_1Async_1_1IExecutor.html#acd1984963d20f7fa1c9a859d9d60b077">Post</a> is thread-safe.</p>
+<p>Marked <code>LIGHTWEIGHT_API</code> although it is header-only: the library's own executors (<a class="el" href="../../d4/d1e/classLightweight_1_1Async_1_1ThreadPoolExecutor.html">ThreadPoolExecutor</a>, <a class="el" href="../../dc/d8e/classLightweight_1_1Async_1_1StrandExecutor.html">StrandExecutor</a>, <a class="el" href="../../d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html">ManualExecutor</a>) are exported and derive from it, and MSVC requires the base of a dll-interface class to be dll-interface too — otherwise every consumer that includes them gets warning C4275. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d1a/Executor_8hpp_source.html#l00022">22</a> of file <a class="el" href="../../d4/d1a/Executor_8hpp_source.html">Executor.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d1a/Executor_8hpp_source.html#l00029">29</a> of file <a class="el" href="../../d4/d1a/Executor_8hpp_source.html">Executor.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="acd1984963d20f7fa1c9a859d9d60b077" name="acd1984963d20f7fa1c9a859d9d60b077"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#acd1984963d20f7fa1c9a859d9d60b077">&#9670;&#160;</a></span>Post()</h2>
