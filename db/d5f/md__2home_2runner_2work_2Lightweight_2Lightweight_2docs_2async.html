@@ -291,9 +291,9 @@ Interop with &lt;tt&gt;std::execution&lt;/tt&gt;</h2>
 <div class="line"><span class="preprocessor">#include &lt;stdexec/execution.hpp&gt;</span></div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Any Task&lt;T&gt; becomes a sender; compose it with then / let_value / when_all / sync_wait:</span></div>
-<div class="line"><span class="keyword">auto</span> user = stdexec::sync_wait(</div>
+<div class="line"><span class="keyword">auto</span> userName = stdexec::sync_wait(</div>
 <div class="line">    Async::AsSender(dm.<a class="code hl_function" href="../../de/d61/classLightweight_1_1DataMapper.html#ab5212501c86b9d469e4ffae6c3a45264">QueryAsync</a>&lt;User&gt;().Where(FieldNameOf&lt;&amp;User::id&gt;, <span class="stringliteral">&quot;=&quot;</span>, <span class="keywordtype">id</span>).First())</div>
-<div class="line">    | stdexec::then([](std::optional&lt;User&gt; u) { return u.value_or(User {}); }));</div>
+<div class="line">    | stdexec::then([](std::optional&lt;User&gt; u) { return u.transform(&amp;User::name); }));</div>
 </div><!-- fragment --><p><code>AsSender</code> maps the Task's outcome onto stdexec's completion channels: a produced value completes <code>set_value</code>, a thrown <code>OperationCancelledError</code> completes <code>set_stopped</code> (matching the cancellation contract above), and any other exception completes <code>set_error</code> carrying a <code>std::exception_ptr</code>. The Task stays lazy — nothing runs until the resulting sender is started (e.g. by <code>sync_wait</code> or an enclosing sender). Because the sender advertises a stopped channel, <code>stdexec::sync_wait</code> returns a <code>std::optional</code> that is disengaged only on cancellation.</p>
 <p><code>Async::SyncWait(task)</code> and <code>stdexec::sync_wait(sender)</code> remain distinct entry points — use the former on a bare <code>Task</code>, the latter on a sender (including one produced by <code>AsSender</code>).</p>
 <blockquote class="doxtable">

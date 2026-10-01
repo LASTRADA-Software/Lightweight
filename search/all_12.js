@@ -9,6 +9,6 @@ var searchData=
   ['key_20support_20—_20design_6',['Composite key support — design',['../d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html',1,'']]],
   ['keys_20into_20the_20same_20table_7',['Several foreign keys into the same table',['../d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#several-foreign-keys-into-the-same-table',1,'']]],
   ['keys_20relation_8',['Foreign keys relation',['../index.html#foreign-keys-relation',1,'']]],
-  ['kind_9',['kind',['../d6/dfb/structLightweight_1_1Tools_1_1CxxModelPrinter_1_1PlannedRelation.html#a2eef1942dd0b41833109a8c59ddc61f2',1,'Lightweight::Tools::CxxModelPrinter::PlannedRelation::Kind'],['../d6/dfb/structLightweight_1_1Tools_1_1CxxModelPrinter_1_1PlannedRelation.html#a15fd23005c8faef345ccd0d6a8738c75',1,'Lightweight::Tools::CxxModelPrinter::PlannedRelation::kind']]],
+  ['kind_9',['kind',['../d6/dfb/structLightweight_1_1Tools_1_1CxxModelPrinter_1_1PlannedRelation.html#a15fd23005c8faef345ccd0d6a8738c75',1,'Lightweight::Tools::CxxModelPrinter::PlannedRelation::kind'],['../d6/dfb/structLightweight_1_1Tools_1_1CxxModelPrinter_1_1PlannedRelation.html#a2eef1942dd0b41833109a8c59ddc61f2',1,'Lightweight::Tools::CxxModelPrinter::PlannedRelation::Kind']]],
   ['known_20limitations_10',['Known limitations',['../index.html#known-limitations',1,'']]]
 ];

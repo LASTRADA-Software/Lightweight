@@ -1,5 +1,13 @@
 var NAVTREEINDEX7 =
 {
+"dd/de6/classLightweight_1_1SqlStatistics.html#ab2ef9fa0cef77a2c2d0681e74ec991a0":[19,6,15,10],
+"dd/de6/classLightweight_1_1SqlStatistics.html#ab8546c7d0a149b9637d3b9d5b35cd7fe":[19,6,15,7],
+"dd/de6/classLightweight_1_1SqlStatistics.html#abc6374fecaaf3d3ab27a913186ea8704":[19,6,15,5],
+"dd/de6/classLightweight_1_1SqlStatistics.html#ac427f053e220d3e3eadbd6bceb5a8c48":[19,6,15,9],
+"dd/de6/classLightweight_1_1SqlStatistics.html#af6c818581aaed627f5cefa9607059743":[19,6,15,6],
+"dd/de6/classLightweight_1_1SqlStatistics.html#afb7385514ebc5345fadade8f5a135693":[19,6,15,1],
+"dd/de8/conceptLightweight_1_1ConnectionType.html":[19,3,0],
+"dd/def/structLightweight_1_1Through.html":[19,3,17],
 "dd/def/structLightweight_1_1Through.html#a39aa5e6c1832409653d722994fdcffcd":[19,3,17,0],
 "de/d22/structLightweight_1_1Description.html":[19,3,19],
 "de/d33/classLightweight_1_1SqlSelectQueryBuilder.html":[21,0,0,89],
@@ -241,13 +249,5 @@ var NAVTREEINDEX7 =
 "de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#a122267596e346b15d075ca4c347ac97d":[19,4,2,1],
 "de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#ab3f4130283fddc423a1911a3962e739c":[19,4,2,0],
 "de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#af18e106d18590f5e6b4f29a04389ecf5":[19,4,2,2],
-"de/dbb/StdString_8hpp_source.html":[22,0,1,1,19],
-"de/dc4/StrandExecutor_8hpp_source.html":[22,0,1,0,10],
-"de/dd3/ThreadPoolExecutor_8hpp_source.html":[22,0,1,0,14],
-"de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html":[19,8,5],
-"de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html#a56e97e4531a1f7f1fb125397397139df":[19,8,5,0],
-"de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html#a860d9eb4bef46431e061c9a72d4fe8f2":[19,8,5,3],
-"de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html#a9216791e7f16456f43eb1ad2a74942a8":[19,8,5,2],
-"de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html#ae9dcfc1dd432fa11965fa0315f252bee":[19,8,5,1],
-"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html":[19,7,7]
+"de/dbb/StdString_8hpp_source.html":[22,0,1,1,19]
 };
