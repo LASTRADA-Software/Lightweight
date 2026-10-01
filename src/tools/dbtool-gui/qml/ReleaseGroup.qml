@@ -1,22 +1,37 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Collapsible group header for a single release (or the "unreleased" bucket).
-// Mirrors the mockup's release-divider row with a chevron + tri-state select,
-// colour-coded status pill, and a per-release "N of M selected" counter.
+// Collapsible group header for a single release (or the "unreleased" bucket)
+// in the migration table (`dt-rg` in the Lastrada design): a 34 px warm
+// section-header band with a chevron, the bold version, faint meta text and,
+// right-aligned, a progress bar with an "applied / total" fraction. The bar
+// is green once the release is fully applied and amber while anything in it
+// is still pending.
+//
+// `MigrationView` uses it as the ListView section delegate. Rows can also be
+// placed below the header through `contentChildren` for standalone use.
 
 import QtQuick
 import QtQuick.Controls
 import Lightweight.Migrations
-import QtQuick.Layouts
 
 Column {
     id: root
 
+    /// Release version; empty for the "unreleased" bucket.
     property string version: ""
+    /// Aggregate status ("applied" | "partial" | "pending" | "empty").
     property string status: "pending"
+    /// Migrations in the release.
     property int total: 0
+    /// Migrations already applied.
+    property int applied: 0
+    /// Ticked rows in the release (drives the optional tri-state box).
     property int selected: 0
     property bool expanded: true
+    /// Faint text after the version (date, "newer than the latest release").
+    property string meta: ""
+    /// Show the tri-state "select every pending row in this release" box.
+    property bool selectable: false
 
     signal toggleExpanded()
     signal toggleSelection()
@@ -27,89 +42,116 @@ Column {
         id: header
         width: parent.width
         height: 34
-        color: hoverArea.containsMouse ? "#eef1f6" : "transparent"
+        color: hoverArea.containsMouse ? Qt.darker(Theme.clrSectionHdr, 1.015) : Theme.clrSectionHdr
+
+        Accessible.role: Accessible.Button
+        Accessible.name: (root.version === "" ? qsTr("Unreleased") : root.version)
+                         + (root.expanded ? qsTr(", expanded") : qsTr(", collapsed"))
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: 1
+            color: Theme.clrSectionHdrBorder
+        }
 
         MouseArea {
             id: hoverArea
             anchors.fill: parent
             hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
             onClicked: root.toggleExpanded()
         }
 
-        RowLayout {
-            anchors.fill: parent
-            anchors.leftMargin: 14
-            anchors.rightMargin: 14
+        Row {
+            anchors.left: parent.left
+            anchors.leftMargin: 10
+            anchors.verticalCenter: parent.verticalCenter
             spacing: 8
 
-            Label {
-                text: root.expanded ? "▾" : "▸"
-                color: "#5b6372"
-                Layout.preferredWidth: 14
+            Glyph {
+                anchors.verticalCenter: parent.verticalCenter
+                name: root.expanded ? "chevron-down" : "chevron"
+                size: 14
+                color: Theme.clrOnSurfaceSubtle
             }
 
-            // Tri-state select indicator, clicking it fires a separate signal.
+            // Tri-state select indicator; clicking it fires a separate signal.
             Rectangle {
                 id: tri
+                visible: root.selectable
+                anchors.verticalCenter: parent.verticalCenter
                 readonly property string selKind: root.selected === 0
                     ? "none"
                     : (root.selected === root.total ? "all" : "some")
-                width: 14
-                height: 14
+                width: 15
+                height: 15
                 radius: 3
-                border.width: 1
-                border.color: selKind === "none" ? "#cfd4dc" : "#0a66d6"
-                color: selKind === "none" ? "white" : "#0a66d6"
+                border.color: selKind === "none" ? Theme.clrBorderStrong : Theme.clrPrimary
+                color: selKind === "none" ? Theme.clrCard : Theme.clrPrimary
 
-                Label {
+                Glyph {
                     anchors.centerIn: parent
                     visible: tri.selKind === "all"
-                    text: "✓"
-                    color: "white"
-                    font.pixelSize: 11
+                    name: "check"
+                    size: 11
+                    color: "#ffffff"
                 }
                 Rectangle {
                     visible: tri.selKind === "some"
                     anchors.centerIn: parent
                     width: 8
                     height: 2
-                    color: "white"
+                    color: "#ffffff"
                 }
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: { root.toggleSelection(); mouse.accepted = true }
-                }
-            }
-
-            Rectangle {
-                color: root.version === "" ? "#f2f4f7" : "#dbeafe"
-                radius: 4
-                Layout.preferredWidth: versionLabel.implicitWidth + 14
-                Layout.preferredHeight: versionLabel.implicitHeight + 4
-                Label {
-                    id: versionLabel
-                    anchors.centerIn: parent
-                    text: root.version === "" ? "unreleased" : root.version
-                    color: root.version === "" ? "#5b6372" : "#0a66d6"
-                    font.family: "JetBrains Mono, Consolas, monospace"
-                    font.pixelSize: 11
-                    font.weight: Font.DemiBold
+                    onClicked: mouse => { root.toggleSelection(); mouse.accepted = true }
                 }
             }
 
             Label {
-                text: `${root.selected} of ${root.total} selected`
-                color: "#8a93a4"
-                font.pixelSize: 11
-                Layout.fillWidth: true
-                horizontalAlignment: Text.AlignLeft
+                anchors.verticalCenter: parent.verticalCenter
+                text: root.version === "" ? qsTr("Unreleased") : root.version
+                color: Theme.clrOnSurface
+                font.pixelSize: Theme.sizeBodySm + 1
+                font.weight: Font.DemiBold
             }
 
             Label {
-                text: root.status
-                color: root.status === "applied" ? "#0d7a37"
-                     : (root.status === "partial" ? "#925005" : "#925005")
-                font.pixelSize: 11
+                anchors.verticalCenter: parent.verticalCenter
+                visible: text.length > 0
+                text: root.meta
+                color: Theme.clrOnSurfaceSubtle
+                font.pixelSize: Theme.sizeLabel
+            }
+        }
+
+        Row {
+            anchors.right: parent.right
+            anchors.rightMargin: 12
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 8
+
+            ProgressTrack {
+                anchors.verticalCenter: parent.verticalCenter
+                width: 90
+                height: 5
+                trackColor: Theme.clrContainerHigh
+                to: Math.max(1, root.total)
+                value: root.applied
+                fillColor: root.total > 0 && root.applied >= root.total
+                           ? Theme.clrSuccessDot : Theme.clrWarningDot
+            }
+            Label {
+                anchors.verticalCenter: parent.verticalCenter
+                width: 40
+                horizontalAlignment: Text.AlignRight
+                text: "%1 / %2".arg(root.applied).arg(root.total)
+                color: Theme.clrOnSurfaceSubtle
+                font.pixelSize: Theme.sizeLabel
+                font.features: { "tnum": 1 }
             }
         }
     }

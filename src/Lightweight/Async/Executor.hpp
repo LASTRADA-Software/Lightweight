@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include "../Api.hpp"
+
 #include <coroutine>
 #include <functional>
 
@@ -19,7 +21,12 @@ using Work = std::function<void()>;
 ///
 /// Executors are injected (dependency injection) and owned by the caller; the async layer
 /// only ever holds references to them. Every implementation's @ref Post is thread-safe.
-class IExecutor
+///
+/// Marked @c LIGHTWEIGHT_API although it is header-only: the library's own executors
+/// (@ref ThreadPoolExecutor, @ref StrandExecutor, @ref ManualExecutor) are exported and derive
+/// from it, and MSVC requires the base of a dll-interface class to be dll-interface too —
+/// otherwise every consumer that includes them gets warning C4275.
+class LIGHTWEIGHT_API IExecutor
 {
   public:
     IExecutor() = default;
@@ -41,7 +48,9 @@ class IExecutor
 /// Kept separate from @ref IExecutor::Post so resumption can be expressed as a bare
 /// coroutine handle, which lets implementations avoid wrapping every resume in a
 /// @c Work allocation on hot paths.
-class IResumeScheduler
+///
+/// Exported for the same reason as @ref IExecutor (C4275 on the exported executors).
+class LIGHTWEIGHT_API IResumeScheduler
 {
   public:
     IResumeScheduler() = default;

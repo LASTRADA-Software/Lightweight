@@ -19,20 +19,22 @@ Rectangle {
     /// The already-pluralised caption, e.g. "3 running".
     property string text: ""
 
-    // [background, foreground text, dot] per kind.
+    // [background, foreground text, dot, border] per kind — the kit pill
+    // palette, so a tally reads the same as the status pills beside it.
     readonly property var _palette: ({
-        "running": [Theme.accentSoft, Theme.accent,   Theme.accent],
-        "queued":  [Theme.bgSubtle,   Theme.textMuted, Theme.textFaint],
-        "error":   [Theme.errSoft,    Theme.errText,   Theme.err],
-        "warning": [Theme.warnSoft,   Theme.warnText,  Theme.warn],
-        "done":    [Theme.okSoft,     Theme.okText,    Theme.ok]
+        "running": [Theme.clrInfoBg,    Theme.clrInfo,            Theme.clrInfo,            Theme.clrInfoBorder],
+        "queued":  [Theme.clrContainer, Theme.clrOnSurfaceMed,    Theme.clrOnSurfaceFaint,  Theme.clrContainerHighest],
+        "error":   [Theme.clrErrorBg,   Theme.clrError,           Theme.clrErrorDot,        Theme.clrErrorBorder],
+        "warning": [Theme.clrWarningBg, Theme.clrWarning,         Theme.clrWarningDot,      Theme.clrWarningBorder],
+        "done":    [Theme.clrSuccessBg, Theme.clrSuccess,         Theme.clrSuccessDot,      Theme.clrSuccessBorder]
     })
-    readonly property var _colours: _palette[kind] || [Theme.bgSubtle, Theme.textMuted, Theme.textFaint]
+    readonly property var _colours: _palette[kind] || _palette["queued"]
 
     color: _colours[0]
-    radius: 999
-    implicitWidth: chipRow.implicitWidth + 16
-    implicitHeight: chipRow.implicitHeight + 5
+    border.color: _colours[3]
+    radius: Theme.rPill
+    implicitWidth: chipRow.implicitWidth + 18
+    implicitHeight: 22
 
     Row {
         id: chipRow
@@ -50,8 +52,8 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             text: root.text
             color: root._colours[1]
-            font.pixelSize: 11
-            font.weight: Font.Medium
+            font.pixelSize: Theme.sizeLabel
+            font.weight: Font.DemiBold
         }
     }
 }

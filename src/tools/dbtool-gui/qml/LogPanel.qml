@@ -1,9 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Dark terminal-style log panel. The background is terminal-dark regardless
-// of the window palette — the mockup intentionally keeps the log looking
-// like a shell, and mixing it with the light theme loses the at-a-glance
-// distinction from the rest of the UI.
+// Log body of the bottom panel — one of the two dark surfaces in the
+// Lastrada design (the SQL editor is the other). It uses the rail's warm
+// black (`clrSidebarBg`) rather than slate, so the log reads as a terminal
+// and stays distinct from the light panels around it in every palette.
+//
+// Each line is rendered as `HH:MM:SS  LEVEL  message` (`dt-code`): the
+// receive time in the muted code colour, a fixed-width level tag in the
+// level's colour, and the message. Warnings and errors colour the message
+// too, so they can be spotted while scrolling.
 //
 // The body is a read-only `TextArea` (not a ListView) so the user can
 // rubber-band across lines and copy chunks of the log to the clipboard.
@@ -12,20 +17,21 @@
 // keeps long-running migrations from re-layouting the whole document on
 // each append.
 //
-// As of the SQL Query tab work, `LogPanel` is body-only: the collapse /
-// expand toggle moved to `BottomPanel.qml` so it can be shared with the
-// sibling tabs. `LogPanel` exposes `lineCount` so the parent can render
-// "Log — N line(s)" in the shared footer.
+// `LogPanel` is body-only: the tab strip, copy / clear tools and the
+// collapse toggle live in `BottomPanel.qml`, which calls `copyLog()` /
+// `clearLog()` and reads `lineCount`.
 
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Layouts
 import Lightweight.Migrations
 
 Rectangle {
     id: root
-    color: Theme.bgTerminal
-    radius: 0
+    color: Theme.clrSidebarBg
+    // Follow the host panel's rounded bottom corners so the dark body does
+    // not poke out past its border.
+    bottomLeftRadius: Theme.r3 - 1
+    bottomRightRadius: Theme.r3 - 1
 
     // Accumulating HTML document. Kept out of `TextArea.text` directly so
     // the viewport does not re-highlight existing text while the migration
@@ -35,11 +41,17 @@ Rectangle {
 
     // `level` is `DbtoolGui::LogLevel` from C++ — the QML side receives the
     // underlying integer (0=Info, 1=Warning, 2=Error). Keep this table in
-    // sync with `LogLevel.hpp` if the enum is ever extended.
-    function colorFor(level) {
-        if (level === 2) return "#f87171"; // Error
-        if (level === 1) return "#fbbf24"; // Warning
-        return "#cbd5e1";                  // Info
+    // sync with `LogLevel.hpp` if the enum is ever extended. Each entry is
+    // [tag, tag colour, message colour]; tags are padded to one width so the
+    // messages line up.
+    readonly property var _levels: [
+        ["INFO ", Theme.clrCodeOk,   Theme.clrCodeText],
+        ["WARN ", Theme.clrCodeWarn, Theme.clrCodeWarn],
+        ["ERROR", Theme.clrCodeErr,  Theme.clrCodeErr],
+    ]
+
+    function levelFor(level) {
+        return _levels[level] || _levels[0];
     }
 
     function escapeHtml(s) {
@@ -60,64 +72,6 @@ Rectangle {
         logText.deselect();
     }
 
-    // Thin coloured header matching the mockup's "Dry-run · 7 operations · …"
-    // strip. Kept compact so the log body dominates the panel.
-    Rectangle {
-        id: header
-        width: parent.width
-        height: 28
-        color: Theme.bgChrome
-        anchors.top: parent.top
-
-        Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            height: 1
-            color: Theme.border
-        }
-
-        RowLayout {
-            anchors.fill: parent
-            anchors.leftMargin: 14
-            anchors.rightMargin: 14
-            spacing: 8
-            Rectangle {
-                width: 7
-                height: 7
-                radius: 3.5
-                color: Theme.accent
-                Layout.alignment: Qt.AlignVCenter
-            }
-            Label {
-                text: AppController.runner.phase === MigrationRunner.Idle
-                    ? qsTr("Idle")
-                    : qsTr("Running…")
-                color: Theme.text
-                font.pixelSize: 12
-                font.weight: Font.Medium
-            }
-            Label {
-                text: qsTr("%1 log lines").arg(root.lineCount)
-                color: Theme.textFaint
-                font.pixelSize: 11
-            }
-            Item { Layout.fillWidth: true }
-            Button {
-                text: qsTr("Copy")
-                flat: true
-                enabled: root.lineCount > 0
-                onClicked: root.copyLog()
-            }
-            Button {
-                text: qsTr("Clear")
-                flat: true
-                enabled: root.lineCount > 0
-                onClicked: root.clearLog()
-            }
-        }
-    }
-
     // Drain any startup banner / plugin-discovery / connect lines that
     // `AppController` buffered before this panel existed. Idempotent on the
     // C++ side, so a panel re-instantiation does not replay the banner.
@@ -126,15 +80,22 @@ Rectangle {
     Connections {
         target: AppController
         function onLogLine(line, level) {
-            logText.append("<span style=\"color:" + root.colorFor(level) + ";\">"
-                + root.escapeHtml(line) + "</span>");
+            const lv = root.levelFor(level);
+            const time = Qt.formatTime(new Date(), "hh:mm:ss");
+            // Each append is its own paragraph; the line-height opens the
+            // log up to the design's ~1.6 rhythm (Qt's rich-text subset
+            // honours it as a proportional block line height).
+            logText.append("<p style=\"margin:0; line-height:160%;\">"
+                + "<span style=\"color:" + Theme.clrCodeMuted + ";\">" + time + "</span>"
+                + "&nbsp;&nbsp;<span style=\"color:" + lv[1] + ";\">" + root.escapeHtml(lv[0]) + "</span>"
+                + "&nbsp;&nbsp;<span style=\"color:" + lv[2] + ";\">" + root.escapeHtml(line) + "</span></p>");
             root.lineCount += 1;
         }
     }
 
     ScrollView {
         id: logScroll
-        anchors.top: header.bottom
+        anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
@@ -149,13 +110,15 @@ Rectangle {
             persistentSelection: true
             wrapMode: TextEdit.NoWrap
             textFormat: TextEdit.RichText
-            font: Theme.monoFont(12)
-            color: "#cbd5e1"
+            font: Theme.monoFont(Theme.sizeMono)
+            color: Theme.clrCodeText
+            selectionColor: Qt.rgba(Theme.clrPrimary.r, Theme.clrPrimary.g, Theme.clrPrimary.b, 0.55)
+            selectedTextColor: "#ffffff"
             background: null
             leftPadding: 14
             rightPadding: 14
-            topPadding: 4
-            bottomPadding: 4
+            topPadding: 8
+            bottomPadding: 8
             // Keep the view pinned to the tail as new lines arrive, but only
             // when the user is already at the bottom — otherwise they are
             // mid-copy or mid-scroll and auto-scrolling would yank the

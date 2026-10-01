@@ -35,13 +35,13 @@ Item {
     /// row count is still being counted).
     property bool indeterminate: false
 
-    /// Fill colour. Defaults to the accent; pass `Theme.ok` for a completed
-    /// run or `Theme.err` for a failed one so the bar carries the same
+    /// Fill colour. Defaults to the accent; pass `Theme.clrSuccessDot` for a completed
+    /// run or `Theme.clrErrorDot` for a failed one so the bar carries the same
     /// semantic as the row's status pill.
-    property color fillColor: Theme.accent
+    property color fillColor: Theme.clrPrimary
 
     /// Track (unfilled) colour.
-    property color trackColor: Theme.bgSubtle
+    property color trackColor: Theme.clrContainer
 
     implicitHeight: 4
     implicitWidth: 120
@@ -58,7 +58,7 @@ Item {
     Rectangle {
         id: track
         anchors.fill: parent
-        radius: Theme.radiusPill
+        radius: Theme.rPill
         color: root.trackColor
         clip: true
 
@@ -69,7 +69,7 @@ Item {
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             width: parent.width * root._fraction
-            radius: Theme.radiusPill
+            radius: Theme.rPill
             color: root.fillColor
 
             // Animate growth so a progress tick reads as motion rather than a
@@ -86,7 +86,7 @@ Item {
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             width: parent.width * 0.34
-            radius: Theme.radiusPill
+            radius: Theme.rPill
             color: root.fillColor
 
             // Driven only while visible so an idle panel full of finished

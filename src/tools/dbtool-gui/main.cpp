@@ -7,7 +7,6 @@
 // the original design notes.
 
 #include "AppController.hpp"
-#include "ThemeController.hpp"
 
 #include <cstdio>
 #include <cstdlib>
@@ -16,8 +15,10 @@
 #include <QtCore/QCommandLineParser>
 #include <QtCore/QDebug>
 #include <QtCore/QLoggingCategory>
-#include <QtCore/QSettings>
+#include <QtGui/QColor>
+#include <QtGui/QFont>
 #include <QtGui/QGuiApplication>
+#include <QtGui/QPalette>
 #include <QtGui/QStyleHints>
 #include <QtQml/QQmlApplicationEngine>
 #include <QtQuickControls2/QQuickStyle>
@@ -58,45 +59,53 @@ void LwQtMessageHandler(QtMsgType type, QMessageLogContext const& ctx, QString c
         std::abort();
 }
 
-/// Settings key for the persisted theme mode. Values: "dark", "light",
-/// "system". `system` defers to the platform (Windows personalization,
-/// macOS appearance, `gtk-application-prefer-dark-theme`, …) and switches
-/// live when the OS toggles.
-constexpr auto kKeyTheme = "ui/theme";
-
-/// Resolves the effective theme mode from (1) the command-line override if
-/// provided or (2) the persisted setting, falling back to `"system"`. When a
-/// CLI override is given it is also written back to settings so the next
-/// launch without flags keeps the user's last choice.
-QString ResolveThemeMode(QCommandLineParser const& parser, QCommandLineOption const& themeOpt, QSettings& settings)
+/// One palette role and the Lastrada token colour it takes. Mirrors the
+/// values in `qml/Theme.qml`; the Fusion style draws its stock controls
+/// (CheckBox, ComboBox, TextField, ScrollBar, ToolTip, menus) from the
+/// application palette, so seeding it here keeps those controls on-brand
+/// without restyling every instance in QML.
+struct PaletteEntry
 {
-    if (parser.isSet(themeOpt))
-    {
-        auto const normalized = parser.value(themeOpt).trimmed().toLower();
-        if (normalized == QStringLiteral("dark") || normalized == QStringLiteral("light")
-            || normalized == QStringLiteral("system"))
-        {
-            settings.setValue(kKeyTheme, normalized);
-            return normalized;
-        }
-        std::fprintf(stderr,
-                     "[WARN] Ignoring invalid --theme value '%s' (expected: dark, light, system)\n",
-                     normalized.toLocal8Bit().constData());
-        std::fflush(stderr);
-    }
-    return settings.value(kKeyTheme, QStringLiteral("system")).toString();
-}
+    QPalette::ColorRole role;
+    char const* color;
+};
 
-/// Maps a theme-mode string to the corresponding `Qt::ColorScheme` enum.
-/// `Qt::ColorScheme::Unknown` is Qt's sentinel for "follow the platform",
-/// which is exactly the "system" behaviour.
-Qt::ColorScheme ToColorScheme(QString const& mode)
+constexpr PaletteEntry kLastradaPalette[] = {
+    { QPalette::Window, "#f2f2f4" },          // clrBase
+    { QPalette::WindowText, "#15171c" },      // clrOnSurface
+    { QPalette::Base, "#ffffff" },            // clrCard
+    { QPalette::AlternateBase, "#f7f7f8" },   // clrContainerLow
+    { QPalette::Text, "#15171c" },            // clrOnSurface
+    { QPalette::PlaceholderText, "#9a9fab" }, // clrOnSurfaceFaint
+    { QPalette::Button, "#ffffff" },          // clrCard
+    { QPalette::ButtonText, "#15171c" },      // clrOnSurface
+    { QPalette::BrightText, "#ffffff" },
+    { QPalette::Highlight, "#a21928" }, // clrPrimary
+    { QPalette::HighlightedText, "#ffffff" },
+    { QPalette::Accent, "#a21928" },      // clrPrimary
+    { QPalette::Link, "#a21928" },        // clrPrimary
+    { QPalette::LinkVisited, "#8a1522" }, // clrPrimaryHover
+    { QPalette::ToolTipBase, "#15171c" }, // clrOnSurface (dark tooltip, as in the kit)
+    { QPalette::ToolTipText, "#ffffff" },
+    { QPalette::Light, "#ffffff" },
+    { QPalette::Midlight, "#ececee" }, // clrContainer
+    { QPalette::Mid, "#d2d3d8" },      // clrContainerHighest
+    { QPalette::Dark, "#aeb2bb" },     // clrBorderStrong
+    { QPalette::Shadow, "#6b717e" },   // clrOnSurfaceSubtle
+};
+
+/// Builds the light Lastrada palette used for every Fusion control.
+/// Disabled text is faded to `clrOnSurfaceFaint` so disabled controls read
+/// as such without per-control opacity tweaks.
+QPalette LastradaPalette()
 {
-    if (mode == QStringLiteral("dark"))
-        return Qt::ColorScheme::Dark;
-    if (mode == QStringLiteral("light"))
-        return Qt::ColorScheme::Light;
-    return Qt::ColorScheme::Unknown;
+    QPalette palette;
+    for (auto const& [role, color]: kLastradaPalette)
+        palette.setColor(role, QColor(QLatin1StringView(color)));
+    auto const faint = QColor(QStringLiteral("#9a9fab"));
+    for (auto const role: { QPalette::WindowText, QPalette::Text, QPalette::ButtonText })
+        palette.setColor(QPalette::Disabled, role, faint);
+    return palette;
 }
 
 } // namespace
@@ -118,11 +127,6 @@ int main(int argc, char* argv[])
     QCommandLineParser parser;
     parser.setApplicationDescription(QStringLiteral("Lightweight SQL migrations GUI."));
     parser.addHelpOption();
-    QCommandLineOption const themeOpt(
-        { QStringLiteral("t"), QStringLiteral("theme") },
-        QStringLiteral("Color theme: dark, light, or system (follow the OS). Persisted across runs."),
-        QStringLiteral("mode"));
-    parser.addOption(themeOpt);
     QCommandLineOption const verboseOpt(
         { QStringLiteral("v"), QStringLiteral("verbose") },
         QStringLiteral("Emit informational messages (e.g. shadowed plugins) via qInfo() to stderr."));
@@ -131,27 +135,20 @@ int main(int argc, char* argv[])
 
     DbtoolGui::AppController::SeedVerbose(parser.isSet(verboseOpt));
 
-    // QSettings requires the organization/application names set above; the
-    // stored value survives across runs and `--theme` overrides it on demand.
-    QSettings settings;
-    auto const themeMode = ResolveThemeMode(parser, themeOpt, settings);
-    QGuiApplication::styleHints()->setColorScheme(ToColorScheme(themeMode));
+    // The GUI follows the light-only Lastrada UI design system. Pin the
+    // platform colour scheme to light so a dark OS setting cannot flip the
+    // Fusion controls' palette underneath the QML `Theme` tokens.
+    QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Light);
 
-    // Seed the QML-facing ThemeController *before* loading the QML engine
-    // so the very first palette evaluation already sees the chosen mode.
-    // This is the authoritative source of light/dark for QML — the
-    // `setColorScheme` hint above is best-effort for the widget layer and
-    // is silently ignored by the KDE Plasma platform theme plugin.
-    auto const themeModeEnum = DbtoolGui::ThemeController::ModeFromString(themeMode);
-    DbtoolGui::ThemeController::SeedInitialMode(themeModeEnum);
-    // (Effective theme is logged into the GUI's log pane from
-    // `AppController`'s constructor — see the banner there.)
-
-    // "Fusion" gives us a consistent look across platforms until we commit to
-    // a native style per OS. The mockup in docs/migrations-gui-mockup.html is
-    // drawn in a Fluent-ish flavour that the default Fusion theme approximates
-    // closely enough for prototype work.
+    // "Fusion" draws every stock control from the application palette, which
+    // makes it the one style we can fully re-colour: the palette and base font
+    // below carry the Lastrada tokens (brand red highlight, Segoe UI 13 px).
     QQuickStyle::setStyle(QStringLiteral("Fusion"));
+    QGuiApplication::setPalette(LastradaPalette());
+    auto font = QGuiApplication::font();
+    font.setFamilies({ QStringLiteral("Segoe UI"), QStringLiteral("system-ui") });
+    font.setPixelSize(13);
+    QGuiApplication::setFont(font);
 
     QQmlApplicationEngine engine;
     QObject::connect(

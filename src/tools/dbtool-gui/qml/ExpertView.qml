@@ -1,9 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Expert view: the original three-pane body of `Main.qml` — connection +
-// status + releases (left), migration timeline + log panel (centre),
-// actions panel (right). Extracted verbatim so `Main.qml` can swap
-// between this and `SimpleView.qml` via the toolbar toggle.
+// Expert view (`migrations.html` option 1a in the Lastrada design): three
+// panes in a resizable SplitView —
+//   * left (`dt-side`): Connection, Status and Releases kit panels on the
+//     light container tone;
+//   * centre (`dt-center`): the migration table panel above the Log / SQL
+//     bottom panel, with a 12 px gutter that doubles as the vertical resize
+//     handle;
+//   * right (`dt-act`): target, options and the primary action anchored to
+//     the bottom of a white pane.
+//
+// The page header (title, connection chip, Simple | Expert switch, Refresh)
+// and the status bar belong to `Main.qml`, so this view draws neither.
 
 import QtQuick
 import QtQuick.Controls
@@ -22,18 +30,28 @@ SplitView {
     readonly property int preferredViewHeight: 860
     readonly property int minimumViewWidth: 900
     readonly property int minimumViewHeight: 520
+
+    // Pane separators are 1 px hairlines (the design's pane borders), but a
+    // 1 px target is unusable with a mouse — the containment mask widens the
+    // grab area to 9 px without taking layout space from the panes.
     handle: Rectangle {
-        implicitWidth: 4
-        color: SplitHandle.pressed ? Theme.accent
-             : SplitHandle.hovered ? Theme.borderStrong
-             : Theme.border
+        id: paneHandle
+        implicitWidth: 1
+        color: SplitHandle.pressed ? Theme.clrPrimary
+             : SplitHandle.hovered ? Theme.clrBorderStrong
+             : Theme.clrContainerHighest
+        containmentMask: Item {
+            x: -4
+            width: 9
+            height: paneHandle.height
+        }
     }
 
-    // Left pane — stacked cards, scrolls when the window is too short
+    // Left pane — stacked kit panels; scrolls when the window is too short.
     Rectangle {
-        SplitView.preferredWidth: 300
-        SplitView.minimumWidth: 260
-        color: Theme.bgSidebar
+        SplitView.preferredWidth: 272
+        SplitView.minimumWidth: 240
+        color: Theme.clrContainerLow
 
         ScrollView {
             id: leftScroll
@@ -41,89 +59,57 @@ SplitView {
             clip: true
             ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
             contentWidth: availableWidth
+            contentHeight: leftColumn.implicitHeight + 2 * Theme.sp3
 
             ColumnLayout {
-                width: leftScroll.availableWidth
-                spacing: 10
+                id: leftColumn
+                x: Theme.sp3
+                y: Theme.sp3
+                width: leftScroll.availableWidth - 2 * Theme.sp3
+                spacing: Theme.sp3
 
-                Label {
-                    text: qsTr("CONNECTION")
-                    color: Theme.textFaint
-                    font.pixelSize: 11
-                    font.weight: Font.DemiBold
-                    font.letterSpacing: 1
-                    Layout.leftMargin: 14
-                    Layout.topMargin: 14
+                Card {
                     Layout.fillWidth: true
-                }
-                ConnectionPanel {
-                    Layout.fillWidth: true
-                    Layout.leftMargin: 14
-                    Layout.rightMargin: 14
+                    title: qsTr("Connection")
+                    glyph: "server"
+
+                    ConnectionPanel {
+                        width: parent.width
+                    }
                 }
 
-                Label {
-                    text: qsTr("STATUS")
-                    color: Theme.textFaint
-                    font.pixelSize: 11
-                    font.weight: Font.DemiBold
-                    font.letterSpacing: 1
-                    Layout.leftMargin: 14
-                    Layout.topMargin: 4
-                    Layout.fillWidth: true
-                }
                 StatusCard {
                     Layout.fillWidth: true
-                    Layout.leftMargin: 14
-                    Layout.rightMargin: 14
                 }
 
-                Label {
-                    text: qsTr("RELEASES")
-                    color: Theme.textFaint
-                    font.pixelSize: 11
-                    font.weight: Font.DemiBold
-                    font.letterSpacing: 1
-                    Layout.leftMargin: 14
-                    Layout.topMargin: 4
-                    Layout.fillWidth: true
-                }
                 ReleasesSummary {
                     Layout.fillWidth: true
-                    Layout.leftMargin: 14
-                    Layout.rightMargin: 14
-                    Layout.bottomMargin: 14
                 }
             }
         }
     }
 
-    // Centre pane: migration list on top, log panel below.
+    // Centre pane: migration table on top, Log / SQL panel below.
     SplitView {
         id: centreSplit
         SplitView.fillWidth: true
         SplitView.minimumWidth: 320
         orientation: Qt.Vertical
-        handle: Rectangle {
-            implicitHeight: 7
-            color: SplitHandle.pressed ? Theme.accent
-                 : SplitHandle.hovered ? Theme.borderStrong
-                 : Theme.border
 
-            Row {
+        // The 12 px gutter between the two panels *is* the handle, so the
+        // resize affordance costs no extra space. It stays invisible until
+        // hovered, when a hairline appears to show what will move.
+        handle: Rectangle {
+            implicitHeight: Theme.sp3
+            color: Theme.clrBase
+
+            Rectangle {
                 anchors.centerIn: parent
-                spacing: 4
-                Repeater {
-                    model: 3
-                    Rectangle {
-                        width: 3
-                        height: 3
-                        radius: 1.5
-                        color: SplitHandle.pressed || SplitHandle.hovered
-                            ? Theme.bgPage : Theme.textFaint
-                        opacity: 0.7
-                    }
-                }
+                width: Math.min(parent.width - 2 * Theme.sp3, 48)
+                height: 3
+                radius: 1.5
+                color: SplitHandle.pressed ? Theme.clrPrimary : Theme.clrBorderStrong
+                visible: SplitHandle.pressed || SplitHandle.hovered
             }
 
             HoverHandler {
@@ -134,18 +120,19 @@ SplitView {
         Rectangle {
             SplitView.fillHeight: true
             SplitView.minimumHeight: 160
-            color: Theme.bgPage
+            color: Theme.clrBase
             MigrationView {
                 anchors.fill: parent
-                anchors.margins: 16
+                anchors.leftMargin: Theme.sp3
+                anchors.rightMargin: Theme.sp3
+                anchors.topMargin: Theme.sp3
             }
         }
 
         BottomPanel {
             id: bottomPanel
-            readonly property int defaultExpandedHeight: 280
-            readonly property int expandedMinHeight: 160
-            readonly property int collapsedHeight: 28
+            readonly property int defaultExpandedHeight: 240
+            readonly property int expandedMinHeight: 140
 
             property int rememberedExpandedHeight: defaultExpandedHeight
 
@@ -186,12 +173,13 @@ SplitView {
         }
     }
 
-    // Right pane — fixed toolbar-like column, scrolls vertically when
-    // the window is short.
+    // Right pane — target, options and the action buttons. Scrolls when the
+    // window is short; when there is spare height the panel is stretched to
+    // the viewport so its spacer can pin the buttons to the bottom edge.
     Rectangle {
-        SplitView.preferredWidth: 340
-        SplitView.minimumWidth: 300
-        color: Theme.bgSidebar
+        SplitView.preferredWidth: 304
+        SplitView.minimumWidth: 280
+        color: Theme.clrCard
 
         ScrollView {
             id: rightScroll
@@ -199,11 +187,34 @@ SplitView {
             clip: true
             ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
             contentWidth: availableWidth
+            contentHeight: actionsHost.height + 28
 
-            ActionsPanel {
-                width: rightScroll.availableWidth - 28
+            // The panel fills the pane when there is spare height (so its
+            // action buttons sit at the bottom edge) and scrolls otherwise.
+            //
+            // Binding the height to `max(implicitHeight, viewport)` directly
+            // re-enters the ColumnLayout: resizing it re-runs its layout,
+            // which re-announces `implicitHeight` while the binding is still
+            // being evaluated (a "binding loop for height" at startup). The
+            // natural height is therefore tracked one event-loop turn late in
+            // `panelNaturalHeight`, which breaks the synchronous cycle without
+            // changing the settled result.
+            Item {
+                id: actionsHost
                 x: 14
                 y: 14
+                width: rightScroll.width - 28
+                height: Math.max(panelNaturalHeight, rightScroll.availableHeight - 28)
+
+                property real panelNaturalHeight: 0
+                function syncNaturalHeight() { panelNaturalHeight = actionsPanel.implicitHeight }
+
+                ActionsPanel {
+                    id: actionsPanel
+                    anchors.fill: parent
+                    onImplicitHeightChanged: Qt.callLater(actionsHost.syncNaturalHeight)
+                    Component.onCompleted: actionsHost.syncNaturalHeight()
+                }
             }
         }
     }

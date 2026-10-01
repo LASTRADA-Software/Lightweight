@@ -51,11 +51,18 @@ void SqlSyntaxHighlighter::BuildRules()
 {
     _rules.clear();
 
-    // Identifier formatting (table / column names). Violet, distinct from
-    // the keyword blue, the type cyan, the string green, and the number
-    // yellow so the four token classes stay visually separable.
+    // Palette for the Lastrada code surfaces (log, SQL editor, SQL preview),
+    // which are all the rail's warm black `Theme.clrSidebarBg` (#1a1718).
+    // Hardcoded here because QSyntaxHighlighter has no access to the QML
+    // Theme singleton — mirroring the palette in C++ to plumb it through is
+    // more machinery than this small surface justifies. Values match the
+    // design's `.dt-code` token classes (`kw`, `str`, `num`, `cm`).
+
+    // Identifier formatting (table / column names). Soft lavender, distinct
+    // from the keyword pink-red, the type orange, the string green, and the
+    // number yellow so the token classes stay visually separable.
     QTextCharFormat identifierFormat;
-    identifierFormat.setForeground(QColor(QStringLiteral("#c084fc")));
+    identifierFormat.setForeground(QColor(QStringLiteral("#c4b5fd")));
 
     // Qualified-name parts: the left side of `schema.table` / `table.column`.
     // Capture group 1 is the identifier token; group 0 also includes the
@@ -81,11 +88,9 @@ void SqlSyntaxHighlighter::BuildRules()
     _rules.push_back({ tableContextRx, identifierFormat, 1 });
 
     QTextCharFormat keywordFormat;
-    // Slate-blue accent matches `Theme.accent` ("#0a66d6"). Hardcoded here
-    // because QSyntaxHighlighter has no access to the QML Theme singleton —
-    // the Theme palette would need to be mirrored in C++ to plumb through,
-    // which is more machinery than this small surface justifies.
-    keywordFormat.setForeground(QColor(QStringLiteral("#4c8bf5")));
+    // Brand-adjacent pink-red: a lightened `Theme.clrPrimary` (#a21928),
+    // which itself is too dark to read on the warm-black surface.
+    keywordFormat.setForeground(QColor(QStringLiteral("#ff8a95")));
     keywordFormat.setFontWeight(QFont::DemiBold);
     QStringList keywordPatterns;
     keywordPatterns.reserve(kKeywords.size());
@@ -98,7 +103,7 @@ void SqlSyntaxHighlighter::BuildRules()
     // Column-type words (INT, VARCHAR, TIMESTAMP, …) get their own colour
     // so a DDL preview reads as "keyword | identifier | type | literal".
     QTextCharFormat typeFormat;
-    typeFormat.setForeground(QColor(QStringLiteral("#22d3ee")));
+    typeFormat.setForeground(QColor(QStringLiteral("#fdba74")));
     QStringList typePatterns;
     typePatterns.reserve(kColumnTypes.size());
     for (auto const* t: kColumnTypes)
@@ -108,11 +113,11 @@ void SqlSyntaxHighlighter::BuildRules()
     _rules.push_back({ typeRx, typeFormat });
 
     QTextCharFormat numberFormat;
-    numberFormat.setForeground(QColor(QStringLiteral("#fbbf24")));
+    numberFormat.setForeground(QColor(QStringLiteral("#fcd34d")));
     _rules.push_back({ QRegularExpression(QStringLiteral("\\b\\d+(?:\\.\\d+)?\\b")), numberFormat });
 
     QTextCharFormat stringFormat;
-    stringFormat.setForeground(QColor(QStringLiteral("#4ade80")));
+    stringFormat.setForeground(QColor(QStringLiteral("#86efac")));
     // Single-quoted SQL strings with `''` doubled-up escapes. Greedy match
     // up to the next unescaped `'`.
     _rules.push_back({ QRegularExpression(QStringLiteral("'(?:[^']|'')*'")), stringFormat });
@@ -128,7 +133,8 @@ void SqlSyntaxHighlighter::BuildRules()
         0,
     });
 
-    _commentFormat.setForeground(QColor(QStringLiteral("#6b7380")));
+    // Same muted tone as `Theme.clrCodeMuted`, used for log timestamps.
+    _commentFormat.setForeground(QColor(QStringLiteral("#857b7d")));
     // `--` line comments to end of line. Block comments are handled
     // separately because they may span multiple QTextBlocks. Applied last
     // so comments win over every other rule along their span.

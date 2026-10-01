@@ -56,8 +56,6 @@ set(MIGRATIONS_GUI_CXX_SOURCES
     SqlQueryRunner.cpp
     SqlSyntaxHighlighter.hpp
     SqlSyntaxHighlighter.cpp
-    ThemeController.hpp
-    ThemeController.cpp
 
     Models/BackupActiveTablesModel.hpp
     Models/BackupActiveTablesModel.cpp
@@ -105,7 +103,14 @@ set(MIGRATIONS_GUI_QML_FILES
     qml/BackupDetailPanel.qml
     qml/DestructiveWarningBanner.qml
     qml/SqlPreviewDialog.qml
-    qml/ToolBar.qml
+    qml/NavRail.qml
+    qml/StatusBar.qml
+    qml/ConnectionChip.qml
+    qml/LsButton.qml
+    qml/Spinner.qml
+    qml/Banner.qml
+    qml/SegmentedControl.qml
+    qml/StepSection.qml
     qml/FilterTabs.qml
     qml/BulkControls.qml
     qml/Card.qml

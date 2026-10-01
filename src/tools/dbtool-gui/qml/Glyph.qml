@@ -23,7 +23,7 @@
 // level rather than per path.
 //
 // Usage:
-//     Glyph { name: "folder"; size: 13; color: Theme.textFaint }
+//     Glyph { name: "folder"; size: 13; color: Theme.clrOnSurfaceFaint }
 
 import QtQuick
 import QtQuick.Shapes
@@ -32,8 +32,9 @@ import Lightweight.Migrations
 Item {
     id: root
 
-    /// Which glyph to draw. One of: "folder", "archive", "search", "workers",
-    /// "warning", "check", "cross", "chevron". An unknown name draws nothing.
+    /// Which glyph to draw. One of the hand-built "folder", "archive",
+    /// "search", "workers", "warning", "check", "cross", "chevron", or any key
+    /// of `_svgPaths` (the Lastrada line icons). An unknown name draws nothing.
     property string name: ""
 
     /// Edge length in pixels. Geometry is authored on a 12×12 grid and scaled
@@ -42,13 +43,13 @@ Item {
 
     /// Stroke/fill colour, taken by every path so one assignment themes the
     /// whole glyph (the reason these replaced emoji).
-    property color color: Theme.text
+    property color color: Theme.clrOnSurface
 
     /// Surface colour used to punch the bang out of the "warning" triangle.
     /// Defaults to the panel background; set it to whatever the glyph actually
-    /// sits on (e.g. `Theme.warnSoft` inside a warning banner) so the cut-out
+    /// sits on (e.g. `Theme.clrWarningBg` inside a warning banner) so the cut-out
     /// matches instead of showing a panel-coloured notch.
-    property color knockout: Theme.bgPanel
+    property color knockout: Theme.clrCard
 
     /// Relative stroke weight on the 12-unit grid, scaled with `size`.
     property real strokeWidth: 1.6
@@ -72,7 +73,58 @@ Item {
             case "check":    return checkGlyph;
             case "cross":    return crossGlyph;
             case "chevron":  return chevronGlyph;
-            default:         return null;
+            default:         return root._svg !== undefined ? svgGlyph : null;
+            }
+        }
+    }
+
+    // Line icons from the Lastrada icon sprite (`ls-*` symbols in the design
+    // project), authored on a 24×24 grid. Data-driven: adding an icon is one
+    // table row, not a new Component. `fill: true` marks the solid ones.
+    readonly property var _svgPaths: ({
+        "layers":         { d: "M12 3 21 8 12 13 3 8 12 3zM3 13l9 5 9-5M3 17l9 5 9-5" },
+        "sliders":        { d: "M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1M13 6a2 2 0 1 0 4 0a2 2 0 1 0-4 0M7 12a2 2 0 1 0 4 0a2 2 0 1 0-4 0M15 18a2 2 0 1 0 4 0a2 2 0 1 0-4 0" },
+        "refresh":        { d: "M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5" },
+        "play":           { d: "M8 5.5v13l10.5-6.5z", fill: true },
+        "server":         { d: "M5 4h14a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM5 13h14a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2zM7 7.5h.01M7 16.5h.01" },
+        "info":           { d: "M3 12a9 9 0 1 0 18 0a9 9 0 1 0-18 0M12 11v5M12 8h.01" },
+        "alert":          { d: "M12 3 22 20H2L12 3zM12 9v5M12 17h.01" },
+        "check-circle":   { d: "M3 12a9 9 0 1 0 18 0a9 9 0 1 0-18 0M8 12.5l2.5 2.5L16 9.5" },
+        "clock":          { d: "M3 12a9 9 0 1 0 18 0a9 9 0 1 0-18 0M12 7v5l3 2" },
+        "chart":          { d: "M4 20V4M4 20h16M8 16v-5M12 16V8M16 16v-3M20 16V6" },
+        "terminal":       { d: "M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM7 9l3 3-3 3M13 15h4" },
+        "eye":            { d: "M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM9 12a3 3 0 1 0 6 0a3 3 0 1 0-6 0" },
+        "chevron-down":   { d: "M6 9l6 6 6-6" },
+        "chevron-left":   { d: "M15 6l-6 6 6 6" },
+        "database":       { d: "M4 5.5a8 2.5 0 1 0 16 0a8 2.5 0 1 0-16 0M4 5.5v13c0 1.4 3.6 2.5 8 2.5s8-1.1 8-2.5v-13M4 12c0 1.4 3.6 2.5 8 2.5s8-1.1 8-2.5" },
+        "folder-outline": { d: "M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" },
+        "archive-outline":{ d: "M4 4h16a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zM5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9M10 13h4" },
+        "download":       { d: "M12 3v12M7 10l5 5 5-5M4 20h16" },
+        "upload":         { d: "M12 15V3M7 8l5-5 5 5M4 20h16" },
+        "document":       { d: "M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8l-5-5zM14 3v5h5M8 13h8M8 17h6" },
+        "plug":           { d: "M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0V8zM12 17v4" },
+        "history":        { d: "M3 12a9 9 0 1 0 3-6.7M3 4v5h5M12 7v5l3 2" },
+        "copy":           { d: "M11 9h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zM5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" },
+        "external":       { d: "M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5" },
+        "more":           { d: "M5 10.2a1.8 1.8 0 1 0 0 3.6a1.8 1.8 0 1 0 0-3.6zM12 10.2a1.8 1.8 0 1 0 0 3.6a1.8 1.8 0 1 0 0-3.6zM19 10.2a1.8 1.8 0 1 0 0 3.6a1.8 1.8 0 1 0 0-3.6z", fill: true },
+    })
+    readonly property var _svg: _svgPaths[name]
+
+    // ---- 24-grid line icon from `_svgPaths` ----
+    Component {
+        id: svgGlyph
+        GlyphShape {
+            ShapePath {
+                readonly property bool solid: root._svg !== undefined && root._svg.fill === true
+                fillColor: solid ? root.color : "transparent"
+                strokeColor: solid ? "transparent" : root.color
+                // ShapePath.scale scales the geometry but not the pen, so the
+                // 1.8-unit stroke of the 24-grid sprite is scaled by hand.
+                strokeWidth: solid ? 0 : 1.8 * root.size / 24
+                capStyle: ShapePath.RoundCap
+                joinStyle: ShapePath.RoundJoin
+                scale: Qt.size(root.size / 24, root.size / 24)
+                PathSvg { path: root._svg !== undefined ? root._svg.d : "" }
             }
         }
     }

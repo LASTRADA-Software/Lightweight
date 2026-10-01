@@ -1,13 +1,20 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Compact two-button segmented control used for the "Expand all / Collapse
-// all" and "Select all / Deselect all" bulk actions in the filter bar.
+// Compact bulk-action control for the migration table toolbar: a ghost
+// "more" icon button (`k-btn ghost icon`) that opens a menu holding the two
+// paired actions ("Select all / Deselect all"). The toolbar already carries
+// the filter tabs and the search field, so two always-visible text buttons
+// no longer fit at the design's ~570 px centre width.
+//
+// The API is unchanged from the old two-segment control: `activeLeft` /
+// `activeRight` now mark the menu entry that matches the current state (it is
+// shown checked), and the tips become the entries' tooltips.
 
 import QtQuick
 import QtQuick.Controls
 import Lightweight.Migrations
 
-Rectangle {
+Item {
     id: root
 
     property string leftLabel: ""
@@ -20,76 +27,43 @@ Rectangle {
     signal leftClicked()
     signal rightClicked()
 
-    color: Theme.bgSubtle
-    border.color: Theme.border
-    radius: 6
-    implicitWidth: rowLayout.implicitWidth + 8
-    implicitHeight: 30
+    implicitWidth: button.implicitWidth
+    implicitHeight: button.implicitHeight
 
-    Row {
-        id: rowLayout
-        anchors.centerIn: parent
-        spacing: 2
+    LsButton {
+        id: button
+        variant: "ghost"
+        size: "sm"
+        iconOnly: true
+        glyph: "more"
+        text: root.leftLabel.length > 0 && root.rightLabel.length > 0
+              ? qsTr("%1 / %2").arg(root.leftLabel).arg(root.rightLabel)
+              : root.leftLabel + root.rightLabel
+        onClicked: menu.opened ? menu.close() : menu.popup(button, 0, button.height + 4)
+    }
 
-        Rectangle {
-            width: leftText.implicitWidth + 16
-            height: 24
-            radius: 4
-            color: root.activeLeft ? Theme.bgPanel : "transparent"
+    Menu {
+        id: menu
 
-            ToolTip.visible: leftHover.hovered && root.leftTip.length > 0
+        MenuItem {
+            text: root.leftLabel
+            checkable: true
+            checked: root.activeLeft
+            // Re-assert the binding after the click: the menu reflects state
+            // owned by the controller, not a local toggle.
+            onTriggered: { checked = Qt.binding(() => root.activeLeft); root.leftClicked() }
+            ToolTip.visible: hovered && root.leftTip.length > 0
             ToolTip.text: root.leftTip
             ToolTip.delay: 500
-            ToolTip.timeout: 10000
-            HoverHandler { id: leftHover }
-
-            Text {
-                id: leftText
-                anchors.centerIn: parent
-                text: root.leftLabel
-                color: root.activeLeft ? Theme.text : Theme.textMuted
-                font.pixelSize: 12
-                font.weight: Font.Medium
-            }
-            MouseArea {
-                anchors.fill: parent
-                onClicked: root.leftClicked()
-                cursorShape: Qt.PointingHandCursor
-            }
         }
-
-        Rectangle {
-            width: 1
-            height: 14
-            anchors.verticalCenter: parent.verticalCenter
-            color: Theme.border
-        }
-
-        Rectangle {
-            width: rightText.implicitWidth + 16
-            height: 24
-            radius: 4
-            color: root.activeRight ? Theme.bgPanel : "transparent"
-
-            ToolTip.visible: rightHover.hovered && root.rightTip.length > 0
+        MenuItem {
+            text: root.rightLabel
+            checkable: true
+            checked: root.activeRight
+            onTriggered: { checked = Qt.binding(() => root.activeRight); root.rightClicked() }
+            ToolTip.visible: hovered && root.rightTip.length > 0
             ToolTip.text: root.rightTip
             ToolTip.delay: 500
-            ToolTip.timeout: 10000
-            HoverHandler { id: rightHover }
-
-            Text {
-                id: rightText
-                anchors.centerIn: parent
-                text: root.rightLabel
-                color: root.activeRight ? Theme.text : Theme.textMuted
-                font.pixelSize: 12
-                font.weight: Font.Medium
-            }
-            MouseArea {
-                anchors.fill: parent
-                onClicked: root.rightClicked()
-                cursorShape: Qt.PointingHandCursor
-            }
         }
     }
 }

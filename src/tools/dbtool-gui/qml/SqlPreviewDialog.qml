@@ -9,10 +9,12 @@
 // manual resize grip in the bottom-right corner lets the user enlarge the
 // preview when a migration emits a long script — the default QML `Dialog`
 // is otherwise non-resizable.
+//
+// Styled as a Lastrada kit dialog; the SQL body is a dark code surface with
+// the same syntax colours as the SQL query editor.
 
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Layouts
 import Lightweight.Migrations
 
 Dialog {
@@ -54,43 +56,109 @@ Dialog {
         open();
     }
 
-    contentItem: ColumnLayout {
-        spacing: 8
+    // Kit dialog chrome (`dt-dlg`): white panel with a hairline border and a
+    // soft drop shadow, a 16 px title row, the dark code body, and a light
+    // footer bar carrying the actions.
+    padding: 0
+    topPadding: 0
+    bottomPadding: 0
 
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 10
+    // Kit scrim (`dt-scrim`): a light, cool dim rather than the style's
+    // default near-black, so the page stays legible behind the dialog.
+    Overlay.modal: Rectangle {
+        color: Qt.rgba(21 / 255, 23 / 255, 28 / 255, 0.38)
+    }
 
-            Label {
-                text: qsTr("Timestamp:")
-                color: Theme.textFaint
-                font.pixelSize: 12
-            }
-            Label {
-                text: root.migrationTimestamp
-                color: Theme.text
-                font: Theme.monoFont(12)
-            }
-            Item { Layout.fillWidth: true }
+    background: Rectangle {
+        color: Theme.clrCard
+        radius: Theme.r3
+        border.color: Theme.clrContainerHighest
+
+        // Two-step shadow approximating `--shadowDlg` without an effect
+        // pass: wide faint halo plus a tighter contact edge.
+        Rectangle {
+            z: -1
+            anchors.fill: parent
+            anchors.margins: -6
+            anchors.topMargin: -2
+            anchors.bottomMargin: -12
+            radius: parent.radius + 6
+            color: Theme.shadow
+            opacity: 0.6
+        }
+        Rectangle {
+            z: -1
+            anchors.fill: parent
+            anchors.margins: -1
+            anchors.bottomMargin: -3
+            radius: parent.radius + 1
+            color: Theme.shadow
+        }
+    }
+
+    header: Item {
+        implicitHeight: headerColumn.implicitHeight + 34
+
+        Glyph {
+            id: headerGlyph
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.leftMargin: 20
+            anchors.topMargin: 21
+            name: "document"
+            size: 18
+            color: Theme.clrOnSurfaceSubtle
         }
 
-        Label {
-            Layout.fillWidth: true
-            text: root.migrationTitle
-            color: Theme.text
-            font.pixelSize: 14
-            font.weight: Font.DemiBold
-            wrapMode: Text.WordWrap
-            elide: Text.ElideRight
-        }
+        Column {
+            id: headerColumn
+            anchors.left: headerGlyph.right
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.leftMargin: 12
+            anchors.rightMargin: 20
+            anchors.topMargin: 18
+            spacing: 4
 
+            Label {
+                width: parent.width
+                text: root.title
+                color: Theme.clrOnSurface
+                font.pixelSize: Theme.sizeTitle
+                font.weight: Font.DemiBold
+                elide: Text.ElideRight
+            }
+            Row {
+                width: parent.width
+                spacing: 8
+                Label {
+                    id: tsLabel
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: root.migrationTimestamp
+                    color: Theme.clrOnSurfaceSubtle
+                    font: Theme.monoFont(Theme.sizeMono)
+                }
+                Label {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: parent.width - tsLabel.width - parent.spacing
+                    text: root.migrationTitle
+                    color: Theme.clrOnSurfaceMed
+                    font.pixelSize: Theme.sizeBodySm + 1
+                    elide: Text.ElideRight
+                }
+            }
+        }
+    }
+
+    contentItem: Item {
         Rectangle {
             id: sqlView
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            color: Theme.bgTerminal
-            border.color: Theme.border
-            radius: 6
+            anchors.fill: parent
+            anchors.leftMargin: 20
+            anchors.rightMargin: 20
+            anchors.bottomMargin: 16
+            color: Theme.clrSidebarBg
+            radius: Theme.r2
 
             ScrollView {
                 anchors.fill: parent
@@ -104,32 +172,60 @@ Dialog {
                     persistentSelection: true
                     wrapMode: TextEdit.NoWrap
                     textFormat: TextEdit.PlainText
-                    font: Theme.monoFont(12)
-                    color: "#cbd5e1"
+                    font: Theme.monoFont(Theme.sizeMono)
+                    color: Theme.clrCodeText
+                    selectionColor: Qt.rgba(Theme.clrPrimary.r, Theme.clrPrimary.g, Theme.clrPrimary.b, 0.55)
+                    selectedTextColor: "#ffffff"
                     background: null
-                    leftPadding: 10
-                    rightPadding: 10
-                    topPadding: 8
-                    bottomPadding: 8
+                    leftPadding: 14
+                    rightPadding: 14
+                    topPadding: 10
+                    bottomPadding: 10
                     SqlSyntaxHighlighter {
                         textDocument: sqlText.textDocument
                     }
                 }
             }
+        }
+    }
 
+    footer: Rectangle {
+        implicitHeight: 52
+        color: Theme.clrContainerLow
+        // Only the bottom corners follow the dialog's radius.
+        bottomLeftRadius: Theme.r3
+        bottomRightRadius: Theme.r3
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            height: 1
+            color: Theme.clrContainerHighest
         }
 
-        RowLayout {
-            Layout.fillWidth: true
-            Label {
-                text: qsTr("%1 characters").arg(sqlText.length)
-                color: Theme.textFaint
-                font.pixelSize: 11
-            }
-            Item { Layout.fillWidth: true }
-            Button {
-                text: qsTr("Copy All")
-                flat: true
+        Label {
+            anchors.left: parent.left
+            anchors.leftMargin: 20
+            anchors.verticalCenter: parent.verticalCenter
+            text: qsTr("%1 characters").arg(sqlText.length)
+            color: Theme.clrOnSurfaceSubtle
+            font.pixelSize: Theme.sizeLabel
+        }
+
+        Row {
+            anchors.right: parent.right
+            // Trailing room for the resize grip anchored to the dialog's
+            // bottom-right corner, so the grip never overlaps Close.
+            anchors.rightMargin: 28
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 8
+
+            LsButton {
+                text: qsTr("Copy all")
+                variant: "secondary"
+                size: "md"
+                glyph: "copy"
                 enabled: sqlText.length > 0
                 onClicked: {
                     sqlText.selectAll();
@@ -137,29 +233,29 @@ Dialog {
                     sqlText.deselect();
                 }
             }
-            Button {
+            LsButton {
                 text: qsTr("Close")
-                flat: true
-                // Trailing spacer reserves room for the resize grip anchored
-                // to the dialog's bottom-right corner, so the grip never
-                // overlaps this button's hit area.
-                Layout.rightMargin: 20
+                variant: "secondary"
+                size: "md"
                 onClicked: root.close()
             }
         }
     }
 
     // Resize grip: diagonal handle pinned to the dialog's bottom-right
-    // corner. Reparented to the dialog background so it overlays the
-    // entire dialog, not the content margin. The Close button's trailing
-    // margin reserves space so the grip never eats its hit area.
+    // corner. Reparented to the footer bar — the topmost item in that
+    // corner — so it stays visible and clickable. The action row's trailing
+    // margin reserves space so the grip never eats the Close button's hit
+    // area.
     Item {
         id: resizeGrip
         width: 18
         height: 18
-        parent: root.background
+        parent: root.footer
         anchors.right: parent.right
         anchors.bottom: parent.bottom
+        anchors.rightMargin: 2
+        anchors.bottomMargin: 2
         z: 10
 
         Canvas {
@@ -167,7 +263,7 @@ Dialog {
             onPaint: {
                 const ctx = getContext("2d");
                 ctx.reset();
-                ctx.strokeStyle = Theme.textFaint;
+                ctx.strokeStyle = Theme.clrOnSurfaceFaint;
                 ctx.lineWidth = 1;
                 for (let i = 0; i < 3; ++i) {
                     const o = 4 + i * 4;
