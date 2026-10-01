@@ -598,9 +598,12 @@ TEST_CASE("CxxModelPrinter: relation members do not collide with column members"
 
     // Count the declarations of the colliding identifier: the column takes `book`, so the relation
     // must have been renamed.
+    // A member is declared either bare or, when it may be left out, with an empty initializer.
     auto occurrences = size_t { 0 };
-    for (auto offset = header.find("> book;"); offset != std::string::npos; offset = header.find("> book;", offset + 1))
-        ++occurrences;
+    for (auto const declaration: { std::string_view { "> book;" }, std::string_view { "> book {};" } })
+        for (auto offset = header.find(declaration); offset != std::string::npos;
+             offset = header.find(declaration, offset + 1))
+            ++occurrences;
     CHECK(occurrences <= 1);
 }
 
@@ -633,4 +636,5 @@ TEST_CASE("CxxModelPrinter: relation members do not collide with the referenced 
     CHECK(header.contains("Light::HasMany<book>"));
     // ...but the member itself must not be named exactly `book`, or it would shadow that very type.
     CHECK_FALSE(header.contains("> book;"));
+    CHECK_FALSE(header.contains("> book {};"));
 }
