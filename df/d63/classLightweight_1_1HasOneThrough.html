@@ -113,7 +113,7 @@ Classes</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:ae099c15e7beb285410872fc7c08be768" id="r_ae099c15e7beb285410872fc7c08be768"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#ae099c15e7beb285410872fc7c08be768">ThroughRecord</a> = <a class="el" href="../../d7/d2f/group__DataMapper.html#ga6908683ee1b573afc52f6020e8fcc051">ThroughRecordOf</a>&lt; ThroughSpec &gt;</td></tr>
+<tr class="memitem:ae099c15e7beb285410872fc7c08be768" id="r_ae099c15e7beb285410872fc7c08be768"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#ae099c15e7beb285410872fc7c08be768">ThroughRecord</a> = <a class="el" href="../../d7/d2f/group__DataMapper.html#ga1d0fc491169f58bf2d8648a41db9b9c1">ThroughRecordOf</a>&lt; ThroughSpec &gt;</td></tr>
 <tr class="memdesc:ae099c15e7beb285410872fc7c08be768"><td class="mdescLeft">&#160;</td><td class="mdescRight">The record type of the "through" side of the relationship.  <br /></td></tr>
 <tr class="separator:ae099c15e7beb285410872fc7c08be768"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af7ecac186a84c8a6b5b044b6fde34646" id="r_af7ecac186a84c8a6b5b044b6fde34646"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html#af7ecac186a84c8a6b5b044b6fde34646">ReferencedRecord</a> = OtherTable</td></tr>
@@ -178,7 +178,7 @@ class Lightweight::HasOneThrough&lt; OtherTable, ThroughSpec, TheOwnerSelector, 
 <div class="line">    <a class="code hl_class" href="../../df/d63/classLightweight_1_1HasOneThrough.html">HasOneThrough&lt;AccountHistory, Through&lt;Account&gt;</a>&gt; accountHistory;</div>
 <div class="line">};</div>
 <div class="ttc" id="aclassLightweight_1_1HasOneThrough_html"><div class="ttname"><a href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a></div><div class="ttdoc">Represents a one-to-one relationship through a join table.</div><div class="ttdef"><b>Definition</b> <a href="../../d4/d56/HasOneThrough_8hpp_source.html#l00050">HasOneThrough.hpp:51</a></div></div>
-<div class="ttc" id="astructLightweight_1_1Field_html"><div class="ttname"><a href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a></div><div class="ttdoc">Represents a single column in a table.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00083">Field.hpp:84</a></div></div>
+<div class="ttc" id="astructLightweight_1_1Field_html"><div class="ttname"><a href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a></div><div class="ttdoc">Represents a single column in a table.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00091">Field.hpp:92</a></div></div>
 </div><!-- fragment --><p>Both foreign keys are located by matching the relationship <em>type</em>. When either record holds more than one foreign key into the same table, name the column to single one out - see the RelationSelector concept and the example on <a class="el" href="../../de/d73/classLightweight_1_1HasManyThrough.html">HasManyThrough</a>.</p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
@@ -202,7 +202,7 @@ class Lightweight::HasOneThrough&lt; OtherTable, ThroughSpec, TheOwnerSelector, 
 template&lt;typename OtherTable , typename ThroughSpec , auto TheOwnerSelector = AutoDetectRelation, auto TheThroughSelector = AutoDetectRelation&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">using <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughSpec, TheOwnerSelector, TheThroughSelector &gt;::ThroughRecord =  <a class="el" href="../../d7/d2f/group__DataMapper.html#ga6908683ee1b573afc52f6020e8fcc051">ThroughRecordOf</a>&lt;ThroughSpec&gt;</td>
+          <td class="memname">using <a class="el" href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a>&lt; OtherTable, ThroughSpec, TheOwnerSelector, TheThroughSelector &gt;::ThroughRecord =  <a class="el" href="../../d7/d2f/group__DataMapper.html#ga1d0fc491169f58bf2d8648a41db9b9c1">ThroughRecordOf</a>&lt;ThroughSpec&gt;</td>
         </tr>
       </table>
 </div><div class="memdoc">
