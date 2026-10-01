@@ -7,10 +7,10 @@
 
 struct Person
 {
-    Light::Field<Light::SqlGuid, Light::PrimaryKey::AutoAssign> id;
+    Light::Field<Light::SqlGuid, Light::PrimaryKey::AutoAssign> id {};
     Light::Field<Light::SqlAnsiString<25>> name;
     Light::Field<bool> is_active { true };
-    Light::Field<std::optional<int>> age;
+    Light::Field<std::optional<int>> age {};
 
     std::weak_ordering operator<=>(Person const& other) const = default;
 };
@@ -18,7 +18,7 @@ struct Person
 // This is a test to only partially query a table row (a few columns)
 struct PersonName
 {
-    Light::Field<Light::SqlGuid, Light::PrimaryKey::AutoAssign> id;
+    Light::Field<Light::SqlGuid, Light::PrimaryKey::AutoAssign> id {};
     Light::Field<Light::SqlAnsiString<25>> name;
 
     static constexpr std::string_view TableName = Light::RecordTableName<Person>;
@@ -39,7 +39,7 @@ struct Email;
 struct User
 {
     Light::Field<Light::SqlGuid, Light::PrimaryKey::AutoAssign> id {};
-    Light::Field<Light::SqlAnsiString<30>> name {};
+    Light::Field<Light::SqlAnsiString<30>> name;
 
     Light::HasMany<Email> emails {};
 };
@@ -47,8 +47,8 @@ struct User
 struct Email
 {
     Light::Field<Light::SqlGuid, Light::PrimaryKey::AutoAssign> id {};
-    Light::Field<Light::SqlAnsiString<30>> address {};
-    Light::BelongsTo<Member(User::id), Light::SqlRealName { "user_id" }> user {};
+    Light::Field<Light::SqlAnsiString<30>> address;
+    Light::BelongsTo<Member(User::id), Light::SqlRealName { "user_id" }> user;
 
     constexpr std::weak_ordering operator<=>(Email const& other) const = default;
 };
@@ -65,10 +65,10 @@ struct Patient;
 
 struct Physician
 {
-    Light::Field<Light::SqlGuid, Light::PrimaryKey::AutoAssign> id;
+    Light::Field<Light::SqlGuid, Light::PrimaryKey::AutoAssign> id {};
     Light::Field<Light::SqlAnsiString<30>> name;
-    Light::HasMany<Appointment> appointments;
-    Light::HasManyThrough<Patient, Light::Through<Appointment>> patients;
+    Light::HasMany<Appointment> appointments {};
+    Light::HasManyThrough<Patient, Light::Through<Appointment>> patients {};
 
     constexpr std::weak_ordering operator<=>(Physician const& other) const
     {
@@ -84,11 +84,11 @@ struct Physician
 
 struct Patient
 {
-    Light::Field<Light::SqlGuid, Light::PrimaryKey::AutoAssign> id;
+    Light::Field<Light::SqlGuid, Light::PrimaryKey::AutoAssign> id {};
     Light::Field<Light::SqlAnsiString<30>> name;
     Light::Field<Light::SqlAnsiString<30>> comment;
-    Light::HasMany<Appointment> appointments;
-    Light::HasManyThrough<Physician, Light::Through<Appointment>> physicians;
+    Light::HasMany<Appointment> appointments {};
+    Light::HasManyThrough<Physician, Light::Through<Appointment>> physicians {};
 
     constexpr std::weak_ordering operator<=>(Patient const& other) const
     {
@@ -107,7 +107,7 @@ struct Patient
 
 struct Appointment
 {
-    Light::Field<Light::SqlGuid, Light::PrimaryKey::AutoAssign> id;
+    Light::Field<Light::SqlGuid, Light::PrimaryKey::AutoAssign> id {};
     Light::Field<Light::SqlDateTime> date;
     Light::Field<Light::SqlAnsiString<80>> comment;
     Light::BelongsTo<Member(Physician::id), Light::SqlRealName { "physician_id" }> physician;
@@ -136,6 +136,6 @@ struct Appointment
 
 struct EntryWithIntPrimaryKey
 {
-    Light::Field<int, Light::PrimaryKey::AutoAssign> id;
+    Light::Field<int, Light::PrimaryKey::AutoAssign> id {};
     Light::Field<Light::SqlAnsiString<30>> comment;
 };

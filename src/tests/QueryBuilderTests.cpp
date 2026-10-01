@@ -1202,27 +1202,27 @@ TEST_CASE_METHOD(SqlTestFixture, "Join with table aliasing", "[SqlQueryBuilder]"
 struct JoinTestA
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<int> value_a_first {};
-    Field<int> value_a_second {};
-    Field<int> value_a_third {};
+    Field<int> value_a_first;
+    Field<int> value_a_second;
+    Field<int> value_a_third;
 };
 
 struct JoinTestB
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<uint64_t> a_id {};
-    Field<uint64_t> c_id {};
-    Field<int> value_b_first {};
-    Field<int> value_b_second {};
-    Field<int> value_b_third {};
+    Field<uint64_t> a_id;
+    Field<uint64_t> c_id;
+    Field<int> value_b_first;
+    Field<int> value_b_second;
+    Field<int> value_b_third;
 };
 
 struct JoinTestC
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<int> value_c_first {};
-    Field<int> value_c_second {};
-    Field<int> value_c_third {};
+    Field<int> value_c_first;
+    Field<int> value_c_second;
+    Field<int> value_c_third;
 };
 
 TEST_CASE_METHOD(SqlTestFixture, "Query Join", "[DataMapper]")

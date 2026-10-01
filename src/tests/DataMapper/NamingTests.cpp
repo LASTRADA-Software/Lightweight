@@ -76,7 +76,7 @@ struct NamingTest2
 
 struct Person
 {
-    Light::Field<int, Light::PrimaryKey::AutoAssign, Light::SqlRealName { "index" }> id;
+    Light::Field<int, Light::PrimaryKey::AutoAssign, Light::SqlRealName { "index" }> id {};
     Light::Field<Light::SqlAnsiString<50>, Light::SqlRealName { "not_name" }> name;
     static constexpr std::string_view TableName = "Human"sv;
 };
@@ -100,8 +100,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Check aliasing of the columns and table for cr
 
     dm.CreateTable<Models::Person>();
 
-    auto record1 = Models::Person {};
-    record1.name = "42";
+    auto record1 = Models::Person { .name = "42" };
 
     CHECK(dm.Query<Models::Person>().Count() == 0);
     CHECK(record1.id.Value() == 0);

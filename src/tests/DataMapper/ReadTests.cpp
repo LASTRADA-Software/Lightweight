@@ -343,7 +343,7 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySparse.Range", "[DataMapper]")
 struct UserView
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<30>> name {};
+    Field<SqlAnsiString<30>> name;
 };
 
 TEST_CASE_METHOD(SqlTestFixture, "iterate over database", "[SqlRowIterator]")
@@ -353,9 +353,7 @@ TEST_CASE_METHOD(SqlTestFixture, "iterate over database", "[SqlRowIterator]")
 
     for (int i = 40; i <= 50; ++i)
     {
-        auto person = Person {};
-        person.name = std::format("John-{}", i);
-        person.age = i;
+        auto person = Person { .name = std::format("John-{}", i), .age = i };
         dm.Create(person);
     }
 
@@ -387,9 +385,7 @@ TEST_CASE_METHOD(SqlTestFixture, "iterate over subset of database", "[SqlRowIter
 
     for (int i = 40; i <= 50; ++i)
     {
-        auto person = Person {};
-        person.name = std::format("John-{}", i);
-        person.age = i;
+        auto person = Person { .name = std::format("John-{}", i), .age = i };
         dm.Create(person);
     }
 
@@ -542,7 +538,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Strings with null", "[String]")
     constexpr size_t SizeOfStringWithNull = 9;
     std::string nameWithNull("John Doe\0", SizeOfStringWithNull);
     CHECK(nameWithNull.size() == SizeOfStringWithNull);
-    auto person = Person { .id = SqlGuid::Create(), .name = nameWithNull, .is_active = true, .age = std::nullopt };
+    auto person = Person { .id = SqlGuid::Create(), .name = nameWithNull, .is_active = true };
 
     CHECK(person.name.Value() == nameWithNull);
     CHECK(person.name.Value().size() == SizeOfStringWithNull);
@@ -577,9 +573,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Query: Partial retriaval of the data", "[DataM
 
     for (auto const age: std::views::iota(StartAge, EndAge + 1))
     {
-        auto person = Person {};
-        person.name = std::format("John-{}", age);
-        person.age = age;
+        auto person = Person { .name = std::format("John-{}", age), .age = age };
         dm.Create(person);
         INFO("Created person: " << person);
     }
@@ -644,25 +638,25 @@ TEST_CASE_METHOD(SqlTestFixture, "Query First: into simple struct", "[DataMapper
 struct JoinA
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<int> value_a_first {};
-    Field<int> value_a_second {};
-    Field<int> value_a_third {};
+    Field<int> value_a_first;
+    Field<int> value_a_second;
+    Field<int> value_a_third;
 };
 
 struct JoinB
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<uint64_t> a_id {};
-    Field<uint64_t> c_id {};
+    Field<uint64_t> a_id;
+    Field<uint64_t> c_id;
 };
 
 struct JoinC
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<int> value_c_first {};
-    Field<int> value_c_second {};
-    Field<int> value_c_third {};
-    Field<int> value_c_fourth {};
+    Field<int> value_c_first;
+    Field<int> value_c_second;
+    Field<int> value_c_third;
+    Field<int> value_c_fourth;
 };
 
 TEST_CASE_METHOD(SqlTestFixture, "MapForJointStatement", "[DataMapper]")
@@ -771,27 +765,27 @@ struct CustomBindingA
 {
     static constexpr std::string_view TableName = "A";
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<int> number {};
-    Field<SqlAnsiString<20>> name {};
-    Field<SqlDynamicWideString<1000>> description {};
+    Field<int> number;
+    Field<SqlAnsiString<20>> name;
+    Field<SqlDynamicWideString<1000>> description;
 };
 
 struct CustomBindingB
 {
     static constexpr std::string_view TableName = "B";
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<20>> title {};
-    Field<SqlDateTime> date_time {};
-    Field<uint64_t> a_id {};
-    Field<uint64_t> c_id {};
+    Field<SqlAnsiString<20>> title;
+    Field<SqlDateTime> date_time;
+    Field<uint64_t> a_id;
+    Field<uint64_t> c_id;
 };
 
 struct CustomBindingC
 {
     static constexpr std::string_view TableName = "C";
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<double> value {};
-    Field<SqlAnsiString<20>> comment {};
+    Field<double> value;
+    Field<SqlAnsiString<20>> comment;
 };
 
 TEST_CASE_METHOD(SqlTestFixture, "GetMultileTypesAsVectorOfTuples", "[DataMapper]")
