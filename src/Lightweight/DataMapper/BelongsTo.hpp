@@ -114,6 +114,9 @@ class BelongsTo
     {
     }
 
+    /// Constructs a BelongsTo whose foreign key is about to be overwritten, e.g. by reading a result row.
+    constexpr explicit BelongsTo(detail::UninitializedTag /*tag*/) noexcept {}
+
     /// Constructs a new BelongsTo from the given referenced record, copying its primary key.
     constexpr BelongsTo(ReferencedRecord const& other) noexcept:
 #if defined(LIGHTWEIGHT_CXX26_REFLECTION)
@@ -343,7 +346,10 @@ class BelongsTo
     {
         _loaded = true;
         _loadError.reset();
-        _record = std::make_unique<ReferencedRecord>();
+        if constexpr (std::default_initializable<ReferencedRecord>)
+            _record = std::make_unique<ReferencedRecord>();
+        else
+            _record = std::make_unique<ReferencedRecord>(detail::MakeUninitialized<ReferencedRecord>());
         return *_record;
     }
 
