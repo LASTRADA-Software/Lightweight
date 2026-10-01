@@ -115,10 +115,10 @@ Example of its usage to save/load/update/delete entry in the database for one ta
 // Define a person structure, mapping to a table from the database
 struct Person
 {
-    Field<SqlGuid, PrimaryKey::AutoAssign> id;
+    Field<SqlGuid, PrimaryKey::AutoAssign> id {};
     Field<SqlAnsiString<25>> name;
     Field<bool> is_active { true };
-    Field<std::optional<int>> age;
+    Field<std::optional<int>> age {};
 };
 
 void CRUD(DataMapper& dm)
@@ -152,6 +152,11 @@ void CRUD(DataMapper& dm)
 }
 ```
 
+A `NOT NULL` column without a default - `name` above - is **required**: `Person {}` or a
+`Person { ... }` that leaves it out does not compile, so a record can never be inserted with a value
+nobody chose. Give a member a default member initializer (`Field<bool> is_active { true };`) or a
+`std::optional` type to make it optional. See [Required fields](docs/usage.md#required-fields).
+
 ### Foreign keys relation
 
 Now consider the following example we have two tables `User` and `Email`, with foreign key in `Email` pointing to the `User` 
@@ -161,14 +166,14 @@ this will translate in the following structs
 struct User
 {
     Light::Field<Light::SqlGuid, Light::PrimaryKey::AutoAssign, SqlRealName { "user_id" }> id {};
-    Light::Field<Light::SqlAnsiString<30>> name {};
+    Light::Field<Light::SqlAnsiString<30>> name;
 };
 
 struct Email
 {
     Light::Field<Light::SqlGuid, Light::PrimaryKey::AutoAssign> id {};
-    Light::Field<Light::SqlAnsiString<30>> address {};
-    Light::BelongsTo<&User::id, Light::SqlRealName { "user_id" }> user {};
+    Light::Field<Light::SqlAnsiString<30>> address;
+    Light::BelongsTo<&User::id, Light::SqlRealName { "user_id" }> user;
 };
 ```
 
@@ -181,8 +186,8 @@ you can query the email and get access to the user record as well
 
 ```cpp
 auto dm = Light::DataMapper();
-auto email = dm.QuerySingle<Email>(some_email_id).value_or(Email{});
-auto user_name = email.user->name; // lazily loads the user record
+if (auto email = dm.QuerySingle<Email>(some_email_id))
+    auto user_name = email->user->name; // lazily loads the user record
 ```
 
 > **Note:** lazy loading (`email.user->name` above) does *not* use `dm`. It uses a thread-local
@@ -227,25 +232,25 @@ Consider the following structs
 struct CustomBindingA
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<int> number {};
-    Field<SqlAnsiString<20>> name {};
-    Field<SqlDynamicWideString<1000>> description {};
+    Field<int> number;
+    Field<SqlAnsiString<20>> name;
+    Field<SqlDynamicWideString<1000>> description;
 };
 
 struct CustomBindingB
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<20>> title {};
-    Field<SqlDateTime> date_time {};
-    Field<uint64_t> a_id {};
-    Field<uint64_t> c_id {};
+    Field<SqlAnsiString<20>> title;
+    Field<SqlDateTime> date_time;
+    Field<uint64_t> a_id;
+    Field<uint64_t> c_id;
 };
 
 struct CustomBindingC
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<double> value {};
-    Field<SqlAnsiString<20>> comment {};
+    Field<double> value;
+    Field<SqlAnsiString<20>> comment;
 };
 
 ```
