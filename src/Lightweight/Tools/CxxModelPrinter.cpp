@@ -393,6 +393,34 @@ std::string CxxModelPrinter::HeaderFileForTheTable(std::string_view modelNamespa
 namespace
 {
 
+    /// The initializer of a generated member that may be left out when a record is created: a primary
+    /// key, a nullable column or a relation. It lets a designated initializer omit the member without
+    /// tripping -Wmissing-designated-field-initializers. A required member (a NOT NULL column) is
+    /// declared without one, since it has no default constructor.
+    constexpr std::string_view OptionalMemberInitializer = " {}";
+
+    /// @return The initializer to declare the member of @p column with.
+    constexpr std::string_view MemberInitializerFor(SqlSchema::Column const& column) noexcept
+    {
+        return column.isNullable || column.isPrimaryKey ? OptionalMemberInitializer : std::string_view {};
+    }
+
+    /// Drops @p initializer for a member named after its own struct, as a self-referencing relation is.
+    ///
+    /// `Light::HasMany<Employee> Employee {};` inside `struct Employee` is a valid member declaration,
+    /// but MSVC parses `Employee {}` as a constructor and rejects it (C2461).
+    ///
+    /// @param memberName The name the member is declared with.
+    /// @param structName The name of the struct declaring it.
+    /// @param initializer The initializer the member would otherwise get.
+    /// @return @p initializer, or nothing if the member is named like its struct.
+    constexpr std::string_view InitializerUnlessNamedLikeStruct(std::string_view memberName,
+                                                                std::string_view structName,
+                                                                std::string_view initializer) noexcept
+    {
+        return memberName == structName ? std::string_view {} : initializer;
+    }
+
     /// @return `true` if @p constraint links exactly one column to exactly one column.
     bool IsSingleColumn(SqlSchema::ForeignKeyConstraint const& constraint) noexcept
     {
@@ -1067,7 +1095,7 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table, std::vector<Plan
                     return FormatName(referencedColumn, _config.formatType);
                 }();
                 definition.text << std::format(
-                    "    Light::BelongsTo<&{}{}{}> {};\n",
+                    "    Light::BelongsTo<&{}{}{}> {}{};\n",
                     std::format("{}::{}", foreignTableName, referencedMemberName),
                     aliasNameOrNullopt(foreignKey.foreignKey.columns.at(0)),
                     [&] {
@@ -1076,7 +1104,10 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table, std::vector<Plan
                         else
                             return ""sv;
                     }(),
-                    emittedName);
+                    emittedName,
+                    InitializerUnlessNamedLikeStruct(emittedName,
+                                                     definition.structName,
+                                                     column.isNullable ? OptionalMemberInitializer : std::string_view {}));
                 definition.members.emplace_back(emittedName, column.name);
                 // A self-reference needs no include: the referenced struct is the one being defined.
                 if (!selfReferencing(column))
@@ -1093,7 +1124,12 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table, std::vector<Plan
             definition.members.emplace_back(emittedName, column.name);
             definition.text << MakeDecimalPrecisionNote(column);
             definition.text << std::format(
-                "    Light::Field<{}{}{}> {};", type, primaryKeyPart(), aliasName(column.name), emittedName);
+                "    Light::Field<{}{}{}> {}{};",
+                type,
+                primaryKeyPart(),
+                aliasName(column.name),
+                emittedName,
+                InitializerUnlessNamedLikeStruct(emittedName, definition.structName, OptionalMemberInitializer));
             if (column.isForeignKey)
                 definition.text << " // NB: This is also a foreign key";
             definition.text << "\n";
@@ -1104,7 +1140,12 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table, std::vector<Plan
         auto const emittedName = uniqueMemberNameBuilder.DeclareName(memberName);
         definition.members.emplace_back(emittedName, column.name);
         definition.text << MakeDecimalPrecisionNote(column);
-        definition.text << std::format("    Light::Field<{}{}> {};", type, aliasName(column.name), emittedName);
+        definition.text << std::format(
+            "    Light::Field<{}{}> {}{};",
+            type,
+            aliasName(column.name),
+            emittedName,
+            InitializerUnlessNamedLikeStruct(emittedName, definition.structName, MemberInitializerFor(column)));
         if (column.isForeignKey)
             definition.text << std::format(" // NB: This is also a foreign key");
         definition.text << '\n';
@@ -1174,7 +1215,11 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table, std::vector<Plan
                 [[fallthrough]];
             case PlannedRelation::Kind::HasMany:
                 definition.text << std::format(
-                    "    Light::HasMany<{}{}> {};\n", referencedStruct, ownerSelector, memberName);
+                    "    Light::HasMany<{}{}> {}{};\n",
+                    referencedStruct,
+                    ownerSelector,
+                    memberName,
+                    InitializerUnlessNamedLikeStruct(memberName, definition.structName, OptionalMemberInitializer));
                 break;
 
             case PlannedRelation::Kind::HasOneThrough:
@@ -1183,7 +1228,7 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table, std::vector<Plan
                 auto const templateName =
                     relation.kind == PlannedRelation::Kind::HasOneThrough ? "HasOneThrough"sv : "HasManyThrough"sv;
                 definition.text << std::format(
-                    "    Light::{}<{}, Light::Through<{}>{}{}> {};\n",
+                    "    Light::{}<{}, Light::Through<{}>{}{}> {}{};\n",
                     templateName,
                     referencedStruct,
                     throughStruct,
@@ -1191,7 +1236,8 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table, std::vector<Plan
                     relation.referencedSelectorRequired
                         ? std::format(", Light::SqlRealName {{ \"{}\" }}", relation.referencedForeignKeyColumn)
                         : std::string {},
-                    memberName);
+                    memberName,
+                    InitializerUnlessNamedLikeStruct(memberName, definition.structName, OptionalMemberInitializer));
                 break;
             }
         }
