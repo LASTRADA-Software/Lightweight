@@ -282,7 +282,7 @@ TEST_CASE("SqlConnectionString::SanitizePwd masks password", "[SqlConnectInfo]")
 {
     auto const sanitized = SqlConnectionString::SanitizePwd("Driver={SQLite3};DATABASE=test.db;UID=admin;PWD=secret123;");
     CHECK_FALSE(sanitized.contains("secret123"));
-    CHECK(sanitized.contains("Pwd=***"));
+    CHECK(sanitized.contains("PWD=***"));
 }
 
 TEST_CASE("SqlConnectionString::SanitizePwd handles missing password", "[SqlConnectInfo]")

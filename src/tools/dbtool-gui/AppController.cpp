@@ -3,6 +3,7 @@
 #include "AppController.hpp"
 
 #include <Lightweight/DataMapper/DataMapper.hpp>
+#include <Lightweight/SqlConnectInfo.hpp>
 #include <Lightweight/SqlConnection.hpp>
 #include <Lightweight/SqlError.hpp>
 #include <Lightweight/SqlMigration.hpp>
@@ -76,12 +77,11 @@ namespace
     constexpr auto kKeyLogVisible = "ui/logVisible";
     constexpr auto kKeyViewMode = "ui/viewMode";
 
-    /// Appends `;{key}={value}` to `cs` when `value` is non-empty. Kept
-    /// non-escaping on purpose: ODBC driver managers accept unescaped values as
-    /// long as they contain no `;` or `}` — passwords with those characters are
-    /// the user's responsibility to escape themselves (typically by picking a
-    /// different password). Matches the behaviour of every other dbtool-style
-    /// front-end that takes UID/PWD as plain fields.
+    /// Appends `;{key}={value}` to `cs` when `value` is non-empty. The value is
+    /// rendered through `FormatConnectionStringValue`, so a password the
+    /// connection-string syntax would misread (metacharacters or edge whitespace)
+    /// is brace-quoted instead of being cut into a stray keyword (#635); plain
+    /// values keep their spelling.
     void AppendAttr(std::string& cs, std::string_view key, std::string_view value)
     {
         if (value.empty())
@@ -89,7 +89,7 @@ namespace
         cs += ';';
         cs += key;
         cs += '=';
-        cs += value;
+        cs += Lightweight::FormatConnectionStringValue(value);
     }
 
     /// Extracts the friendliest available message from a thrown exception.
@@ -614,7 +614,7 @@ bool AppController::connectToProfile()
             ReportError(QStringLiteral("No ODBC DSN selected."));
             return false;
         }
-        connectionString = QStringLiteral("DSN=%1").arg(_selectedDsn).toStdString();
+        connectionString = "DSN=" + Lightweight::FormatConnectionStringValue(_selectedDsn.toStdString());
         // Append overrides only when the user actually typed them, so a DSN
         // with Windows-authentication still works with both fields empty.
         // SQL-Server-auth DSNs often don't persist credentials; this is how

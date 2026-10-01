@@ -5,8 +5,10 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <array>
 #include <chrono>
 #include <string>
+#include <string_view>
 
 using namespace Lightweight;
 
@@ -14,44 +16,17 @@ using namespace Lightweight;
 // SanitizePwd edge cases
 // ================================================================================================
 
-TEST_CASE("SanitizePwd: mixed-case match", "[SqlConnectInfo]")
-{
-    // The regex is icase, so PWD/Pwd/pwd should all be sanitized.
-    auto const cases = {
-        "DSN=test;PWD=secret;",
-        "DSN=test;Pwd=secret;",
-        "DSN=test;pwd=secret;",
-    };
-    for (auto const& s: cases)
-    {
-        INFO(std::string { "input: " } + s);
-        auto const sanitized = SqlConnectionString::SanitizePwd(s);
-        CHECK_FALSE(sanitized.contains("secret"));
-        CHECK(sanitized.contains("Pwd=***;"));
-    }
-}
-
-TEST_CASE("SanitizePwd: leaves a missing trailing semicolon untouched", "[SqlConnectInfo]")
-{
-    // The regex requires a trailing ';' — no replacement when missing.
-    auto const sanitized = SqlConnectionString::SanitizePwd("DSN=test;PWD=secret");
-    CHECK(sanitized == "DSN=test;PWD=secret");
-}
+// The quoting and key-matching rules are pinned exhaustively in SqlBackup/MetadataRedactionTests.cpp
+// through the delegating RedactConnectionStringSecrets(); only what that file does not cover lives here.
 
 TEST_CASE("SanitizePwd: replaces every PWD= occurrence", "[SqlConnectInfo]")
 {
-    auto const sanitized = SqlConnectionString::SanitizePwd("PWD=a;X=1;PWD=b;");
-    CHECK_FALSE(sanitized.contains("a"));
-    CHECK_FALSE(sanitized.contains("b"));
-    // Both occurrences should now be masked.
-    CHECK(sanitized.find("Pwd=***;") != sanitized.rfind("Pwd=***;"));
+    CHECK(SqlConnectionString::SanitizePwd("PWD=a;X=1;PWD=b;") == "PWD=***;X=1;PWD=***;");
 }
 
 TEST_CASE("SanitizePwd: empty password value still gets masked", "[SqlConnectInfo]")
 {
-    auto const sanitized = SqlConnectionString::SanitizePwd("DSN=test;PWD=;X=1;");
-    CHECK(sanitized.contains("Pwd=***;"));
-    CHECK_FALSE(sanitized.contains("PWD=;"));
+    CHECK(SqlConnectionString::SanitizePwd("DSN=test;PWD=;X=1;") == "DSN=test;PWD=***;X=1;");
 }
 
 // ================================================================================================
@@ -119,7 +94,7 @@ TEST_CASE("SqlConnection::SetDefaultDataSource updates the default connection st
     SqlConnectionDataSource const probe {
         .datasource = "ProbeDSN",
         .username = "ProbeUser",
-        .password = "ProbePass",
+        .password = "Probe;Pass", // the `;` must not become an attribute separator (#635)
         .timeout = std::chrono::seconds { 7 },
     };
 
@@ -128,6 +103,7 @@ TEST_CASE("SqlConnection::SetDefaultDataSource updates the default connection st
     CHECK(current.value.contains("ProbeDSN"));
     CHECK(current.value.contains("ProbeUser"));
     CHECK(current.value.contains("TIMEOUT=7"));
+    CHECK(ParseConnectionString(current).at("PWD") == "Probe;Pass");
 
     // Restore the previous default so subsequent tests still find a working DSN.
     SqlConnection::SetDefaultConnectionString(previous);
@@ -293,4 +269,119 @@ TEST_CASE("SqlConnection::SetDefaultDataSource carries the encryption setting ov
     CHECK(SqlConnection::DefaultConnectionString().value.contains("Encrypt=yes"));
 
     SqlConnection::SetDefaultConnectionString(previous);
+}
+
+// ================================================================================================
+// ODBC attribute-value quoting (issue #635)
+//
+// A connection string is `KEY=VALUE;...`, so a value carrying `;`, `{`, `}` or `=` has to be wrapped
+// in braces, with every embedded `}` doubled — that is what the driver managers parse
+// (unixODBC's __get_attr, and the Microsoft driver manager). Nothing here needs a database.
+// ================================================================================================
+
+TEST_CASE("FormatConnectionStringValue quotes only what the connection-string syntax would misread", "[SqlConnectInfo]")
+{
+    // Plain values keep their spelling, so existing renderings stay byte-for-byte unchanged.
+    CHECK(FormatConnectionStringValue("plain") == "plain");
+    CHECK(FormatConnectionStringValue("").empty());
+    CHECK(FormatConnectionStringValue("with space inside") == "with space inside");
+
+    // Metacharacters force braces, and an embedded `}` is doubled.
+    CHECK(FormatConnectionStringValue("p;w") == "{p;w}");
+    CHECK(FormatConnectionStringValue("a=b") == "{a=b}");
+    CHECK(FormatConnectionStringValue("a}b") == "{a}}b}");
+    CHECK(FormatConnectionStringValue("a{b") == "{a{b}");
+    CHECK(FormatConnectionStringValue("}") == "{}}}");
+    CHECK(FormatConnectionStringValue("{x}") == "{{x}}}");
+
+    // Leading/trailing whitespace is trimmed by every parser, so it survives only inside braces.
+    CHECK(FormatConnectionStringValue(" padded") == "{ padded}");
+    CHECK(FormatConnectionStringValue("padded ") == "{padded }");
+}
+
+TEST_CASE("ParseConnectionString honours brace quoting", "[SqlConnectInfo]")
+{
+    struct Row
+    {
+        std::string_view rationale;
+        std::string_view input;
+        SqlConnectionStringMap expected;
+    };
+    auto const rows = std::array {
+        Row { .rationale = "a `;` inside braces is part of the value, not a separator",
+              .input = "DSN=d;UID={p;w};PWD={a=b;c};X=1",
+              .expected = { { "DSN", "d" }, { "UID", "p;w" }, { "PWD", "a=b;c" }, { "X", "1" } } },
+        Row { .rationale = "`}}` is one literal `}`",
+              .input = "PWD={a}}b};UID={}}};DSN=d",
+              .expected = { { "PWD", "a}b" }, { "UID", "}" }, { "DSN", "d" } } },
+        Row { .rationale = "an unterminated brace swallows the rest of the string, as the driver managers do",
+              .input = "DSN=d;PWD={a;b",
+              .expected = { { "DSN", "d" }, { "PWD", "a;b" } } },
+        Row { .rationale =
+                  "`{` quotes only in the first position; a braced value followed by trailing text is taken verbatim",
+              .input = "A=x{y;B={q}z;C={q}",
+              .expected = { { "A", "x{y" }, { "B", "{q}z" }, { "C", "q" } } },
+        Row { .rationale = "whitespace around a quoted value is trimmed, whitespace inside it is kept",
+              .input = "A = { a b } ; B=c",
+              .expected = { { "A", " a b " }, { "B", "c" } } },
+    };
+    for (auto const& [rationale, input, expected]: rows)
+    {
+        INFO(rationale);
+        INFO(input);
+        CHECK(ParseConnectionString(SqlConnectionString { .value = std::string(input) }) == expected);
+    }
+}
+
+TEST_CASE("BuildConnectionString renders values so the map round-trips", "[SqlConnectInfo]")
+{
+    SqlConnectionStringMap input;
+    input["DRIVER"] = "SQLite3";
+    input["PWD"] = "a}b;c";
+    input["UID"] = "}";
+
+    auto const built = BuildConnectionString(input);
+    // Plain values are not braced: the SQLite ODBC driver would keep braces as part of a file name.
+    CHECK(built.value == "DRIVER=SQLite3;PWD={a}}b;c};UID={}}}");
+    CHECK(ParseConnectionString(built) == input);
+}
+
+TEST_CASE("SqlConnectionDataSource::ToConnectionString quotes credentials that carry separators", "[SqlConnectInfo]")
+{
+    SqlConnectionDataSource const ds {
+        .datasource = "My;DSN",
+        .username = "us=er",
+        .password = "p;w}",
+        .timeout = std::chrono::seconds { 5 },
+    };
+    CHECK(ds.ToConnectionString().value == "DSN={My;DSN};UID={us=er};PWD={p;w}}};TIMEOUT=5");
+}
+
+TEST_CASE("SqlConnectionDataSource::ToConnectionString leaves plain credentials unquoted", "[SqlConnectInfo]")
+{
+    // The common case must stay byte-for-byte as before, so a DSN that never needed quoting is
+    // rendered exactly as every existing deployment has seen it.
+    SqlConnectionDataSource const ds {
+        .datasource = "MyDSN",
+        .username = "alice",
+        .password = "pa ss.word!",
+        .timeout = std::chrono::seconds { 5 },
+    };
+    CHECK(ds.ToConnectionString().value == "DSN=MyDSN;UID=alice;PWD=pa ss.word!;TIMEOUT=5");
+}
+
+TEST_CASE("SqlConnectionDataSource: credentials with separators survive the round-trip", "[SqlConnectInfo]")
+{
+    auto const passwords = { "p;w", "a}b", "{braced}", "x=y", "}", " lead", "trail ", ";{}=;" };
+    for (auto const* password: passwords)
+    {
+        INFO(std::string { "password: " } + password);
+        SqlConnectionDataSource const original {
+            .datasource = "DS",
+            .username = password,
+            .password = password,
+            .timeout = std::chrono::seconds { 5 },
+        };
+        CHECK(SqlConnectionDataSource::FromConnectionString(original.ToConnectionString()) == original);
+    }
 }

@@ -6,6 +6,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <array>
 #include <chrono>
 #include <format>
 #include <optional>
@@ -147,6 +148,93 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlConnection::Close is idempotent", "[SqlConn
 // ================================================================================================
 // Configurable connection encryption (SQL_COPT_SS_ENCRYPT / Encrypt=)
 // ================================================================================================
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlConnection: a password carrying connection-string metacharacters logs in",
+                 "[SqlConnection]")
+{
+    auto probe = SqlStatement {};
+
+    // SQLite has no logins to create, and the remaining types are not part of the test matrix.
+    UNSUPPORTED_DATABASE(probe, SqlServerType::SQLITE);
+    UNSUPPORTED_DATABASE(probe, SqlServerType::MYSQL);
+    UNSUPPORTED_DATABASE(probe, SqlServerType::UNKNOWN);
+
+    // Every character the connection-string syntax could misread (#635): the `;` would end the
+    // attribute, the `}` would end a brace-quoted value, and the `=` splits a key from its value.
+    constexpr auto Login = std::string_view { "lightweight_quirky" };
+    constexpr auto Password = std::string_view { "p;w}x=y" };
+
+    struct LoginScript
+    {
+        SqlServerType server;
+        std::array<std::string_view, 2> create;
+        std::array<std::string_view, 2> drop;
+        std::string_view whoAmI;
+    };
+    // Idempotent in both directions, so a run that died half-way does not poison the next one.
+    constexpr auto Scripts = std::array {
+        LoginScript {
+            .server = SqlServerType::MICROSOFT_SQL,
+            .create = { "IF SUSER_ID('lightweight_quirky') IS NULL "
+                        "CREATE LOGIN [lightweight_quirky] WITH PASSWORD = 'p;w}x=y', CHECK_POLICY = OFF",
+                        "IF USER_ID('lightweight_quirky') IS NULL "
+                        "CREATE USER [lightweight_quirky] FOR LOGIN [lightweight_quirky]" },
+            .drop = { "DROP USER IF EXISTS [lightweight_quirky]",
+                      "IF SUSER_ID('lightweight_quirky') IS NOT NULL DROP LOGIN [lightweight_quirky]" },
+            .whoAmI = "SELECT SUSER_NAME()",
+        },
+        LoginScript {
+            .server = SqlServerType::POSTGRESQL,
+            .create = { "DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'lightweight_quirky') "
+                        "THEN CREATE ROLE lightweight_quirky LOGIN PASSWORD 'p;w}x=y'; END IF; END $$",
+                        "SELECT 1" },
+            .drop = { "DROP ROLE IF EXISTS lightweight_quirky", "SELECT 1" },
+            .whoAmI = "SELECT current_user",
+        },
+    };
+    auto const* script = static_cast<LoginScript const*>(nullptr);
+    for (auto const& candidate: Scripts)
+        if (candidate.server == probe.Connection().ServerType())
+            script = &candidate;
+    REQUIRE(script != nullptr);
+
+    for (auto const sql: script->create)
+        (void) probe.ExecuteDirect(sql); // throws on failure
+    auto const dropLogin = detail::Finally([&] {
+        for (auto const sql: script->drop)
+            (void) probe.ExecuteDirect(sql);
+    });
+
+    // Swap the credentials into the test connection string; the builder has to brace-quote the
+    // password and double its `}`, which is what the driver reads back.
+    auto parameters = ParseConnectionString(SqlConnection::DefaultConnectionString());
+    parameters.insert_or_assign("UID", std::string { Login });
+    parameters.insert_or_assign("PWD", std::string { Password });
+    // With `Trusted_Connection=yes` (the CI LocalDB leg) the driver authenticates as the Windows user
+    // and ignores UID/PWD, which would prove nothing about the quoting: force SQL authentication.
+    parameters.erase("TRUSTED_CONNECTION");
+    auto const quoted = BuildConnectionString(parameters);
+    CHECK(quoted.value.contains("PWD={p;w}}x=y}"));
+
+    auto connection = SqlConnection { std::nullopt };
+    if (!connection.Connect(quoted))
+    {
+        auto const error = connection.LastError();
+        // A server restricted to Windows authentication refuses every SQL login, quoted or not; that
+        // is a property of the instance, so skip only on that refusal and fail on anything else.
+        if (error.message.contains("not associated with a trusted SQL Server connection"))
+        {
+            WARN(std::format(
+                "TODO({}): this server does not accept SQL logins: {}", probe.Connection().ServerType(), error.message));
+            return;
+        }
+        FAIL(std::format("Login failed: {} - {}", error.sqlState, error.message));
+    }
+
+    auto stmt = SqlStatement { connection };
+    CHECK(stmt.ExecuteDirectScalar<std::string>(script->whoAmI) == Login);
+}
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: an explicitly encrypted connection is usable", "[SqlConnection]")
 {

@@ -15,7 +15,6 @@
 #include <cstdint>
 #include <filesystem>
 #include <optional>
-#include <regex>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -90,11 +89,9 @@ TEST_CASE_METHOD(SqlTestFixture,
 
     auto const otherFile = std::string { "relation-routing-other.db" };
     std::filesystem::remove(otherFile);
-    // Not ParseConnectionString/BuildConnectionString: the latter braces every value, which the SQLite
-    // ODBC driver keeps as part of the file name.
-    auto dmOther = DataMapper { SqlConnectionString { std::regex_replace(SqlConnection::DefaultConnectionString().value,
-                                                                         std::regex { "Database=[^;]*", std::regex::icase },
-                                                                         "Database=" + otherFile) } };
+    auto otherParameters = ParseConnectionString(SqlConnection::DefaultConnectionString());
+    otherParameters["DATABASE"] = otherFile;
+    auto dmOther = DataMapper { BuildConnectionString(otherParameters) };
     auto const itemId = SeedOwnerAndItem(dmOther, "from-other");
 
     auto item = dmOther.QuerySingle<RoutingItem>(itemId);
@@ -128,10 +125,9 @@ TEST_CASE_METHOD(SqlTestFixture,
 
     auto item = std::optional<RoutingItem> {};
     {
-        auto dmOther =
-            DataMapper { SqlConnectionString { std::regex_replace(SqlConnection::DefaultConnectionString().value,
-                                                                  std::regex { "Database=[^;]*", std::regex::icase },
-                                                                  "Database=" + otherFile) } };
+        auto otherParameters = ParseConnectionString(SqlConnection::DefaultConnectionString());
+        otherParameters["DATABASE"] = otherFile;
+        auto dmOther = DataMapper { BuildConnectionString(otherParameters) };
         item = dmOther.QuerySingle<RoutingItem>(SeedOwnerAndItem(dmOther, "from-other"));
     } // disconnects, so the file can be removed on every platform
     REQUIRE(item.has_value());

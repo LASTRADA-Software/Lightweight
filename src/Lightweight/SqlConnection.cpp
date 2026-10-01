@@ -501,7 +501,7 @@ bool SqlConnection::Connect(SqlConnectionString sqlConnectionString) noexcept
     // ANSI mode and runs every SQL_C_CHAR / SQL_C_WCHAR payload through the system
     // codepage, which mangles UTF-8 bytes ≥ 0x80 and UTF-16 surrogate pairs. The
     // try/catch defends the noexcept contract against std::bad_alloc from the UTF-16
-    // allocation (and from the regex allocation in SanitizePwd below).
+    // allocation (and from the allocations in SanitizePwd below).
     detail::OdbcWideArg wConnectionString { std::string_view {} };
     try
     {

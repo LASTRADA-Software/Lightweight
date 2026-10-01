@@ -10,12 +10,15 @@
 // Every test uses its own temp file under `temp_directory_path()` to stay
 // independent of the real user config at `$HOME/.config/dbtool/dbtool.yml`.
 
+#include <Lightweight/SqlConnectInfo.hpp>
+
 #include <catch2/catch_test_macros.hpp>
 
 #include <filesystem>
 #include <fstream>
 #include <string>
 #include <string_view>
+#include <variant>
 
 #include <Config/ProfileStore.hpp>
 
@@ -179,6 +182,52 @@ TEST_CASE("ProfileStore — malformed YAML returns a readable error", "[ProfileS
     auto const result = Lightweight::Config::ProfileStore::LoadOrDefault(yaml.Path());
     REQUIRE_FALSE(result.has_value());
     CHECK(result.error().contains("broken"));
+}
+
+TEST_CASE("Profile::ToConnectInfo — a resolved password is appended with connection-string quoting", "[ProfileStore]")
+{
+    using namespace Lightweight;
+    auto const profile = Config::Profile {
+        .name = "dev",
+        .pluginsDir = {},
+        .schema = {},
+        .dsn = {},
+        .connectionString = "DRIVER=SQLite3;Database=dev.db",
+        .uid = {},
+        .secretRef = {},
+    };
+
+    // A plain secret keeps the spelling every existing profile has seen.
+    auto const plain = std::get<SqlConnectionString>(profile.ToConnectInfo("s3cr3t"));
+    CHECK(plain.value == "DRIVER=SQLite3;Database=dev.db;PWD=s3cr3t");
+
+    // One carrying a `;` must not be spliced raw, or it becomes `PWD=p` plus a stray keyword (#635).
+    auto const quoted = std::get<SqlConnectionString>(profile.ToConnectInfo("p;w"));
+    CHECK(quoted.value == "DRIVER=SQLite3;Database=dev.db;PWD={p;w}");
+    CHECK(ParseConnectionString(quoted).at("PWD") == "p;w");
+}
+
+TEST_CASE("Profile::ToConnectInfo — only a whole PWD/Password attribute counts as an existing password", "[ProfileStore]")
+{
+    using namespace Lightweight;
+    auto profile = Config::Profile {
+        .name = "dev",
+        .pluginsDir = {},
+        .schema = {},
+        .dsn = {},
+        .connectionString = "DRIVER=SQLite3;Database=mypwd=1.db",
+        .uid = {},
+        .secretRef = {},
+    };
+
+    // `pwd=` inside another attribute's value is not a password, so the resolved secret is appended.
+    auto const appended = std::get<SqlConnectionString>(profile.ToConnectInfo("s3cr3t"));
+    CHECK(ParseConnectionString(appended).at("PWD") == "s3cr3t");
+
+    // A real password attribute, whatever its spelling, wins over the resolved secret.
+    profile.connectionString = "DRIVER=SQLite3;Database=dev.db;Password=typed";
+    auto const kept = std::get<SqlConnectionString>(profile.ToConnectInfo("s3cr3t"));
+    CHECK(kept.value == "DRIVER=SQLite3;Database=dev.db;Password=typed");
 }
 
 TEST_CASE("ProfileStore — dsn and connectionString are mutually exclusive", "[ProfileStore]")

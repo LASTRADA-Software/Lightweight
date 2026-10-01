@@ -352,18 +352,10 @@ LIGHTWEIGHT_API void Restore(std::filesystem::path const& inputFile,
 /// Returns a copy of `connectionString` with the values of `PWD=` and
 /// `Password=` attributes replaced by `***`.
 ///
-/// The string is parsed attribute-wise (`KEY=VALUE` pairs separated by `;`)
-/// following ODBC's quoting rules, so redaction is not fooled by:
-/// - brace-quoted values — `PWD={pa;ss}` masks the whole `{...}` group,
-///   including the embedded `;`, and a `;` inside any other brace-quoted value
-///   (e.g. a driver name) does not start a new attribute;
-/// - whitespace after a separator — `...; PWD=secret` is still matched.
-///
-/// Key matching is case-insensitive and only ever matches a whole attribute
-/// name, never a substring of another key (`MyPWD=`) or of a value
-/// (`Database=PasswordVault`). Applied by CreateMetadata() so a
-/// secretRef-resolved plaintext password never lands in an archive's
-/// metadata.json (mirrors dbtool's `list-profiles` redaction).
+/// Same as @ref SqlConnectionString::SanitizePwd, which defines the quoting
+/// and key-matching rules and is also what dbtool's `list-profiles` applies.
+/// Applied by CreateMetadata() so a secretRef-resolved plaintext password
+/// never lands in an archive's metadata.json.
 ///
 /// @param connectionString Raw ODBC connection string.
 /// @return The connection string with password values masked.
