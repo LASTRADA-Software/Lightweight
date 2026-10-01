@@ -37,8 +37,10 @@ TestCase {
     Component {
         id: rowComponent
         ProfileRow {
-            // The list gives every row the viewport width; mirror that here so
-            // wrapping is exercised against a realistic rail width.
+            // 380 px is a narrow single-column page: the row folds into its
+            // card layout (name on its own line), which is where wrapping of a
+            // long name is exercised. The wide table layout is covered by
+            // `wideRowComponent` below.
             width: 380
         }
     }
@@ -60,19 +62,42 @@ TestCase {
     }
 
     /// Finds the row's StatusPill by walking children (it has no objectName).
+    /// Keyed on `status` + `tooltipText` together: the kit Glyphs are Shapes,
+    /// which carry a `status` property of their own.
     function findPill(row) {
-        return findItemWithProperty(row, "status")
+        return findItemWithProperties(row, ["status", "tooltipText"])
     }
 
     /// Depth-first search for a child item declaring `propName`.
     function findItemWithProperty(item, propName) {
+        return findItemWithProperties(item, [propName])
+    }
+
+    /// Depth-first search for a child item declaring every name in `propNames`.
+    function findItemWithProperties(item, propNames) {
         for (let i = 0; i < item.children.length; ++i) {
             const child = item.children[i]
-            if (child.hasOwnProperty(propName))
+            if (propNames.every(p => child.hasOwnProperty(p)))
                 return child
-            const found = findItemWithProperty(child, propName)
+            const found = findItemWithProperties(child, propNames)
             if (found !== null)
                 return found
+        }
+        return null
+    }
+
+    /// Finds the wrapping name Label carrying exactly `want`. By text, not by
+    /// "first item with a wrapMode": the DBMS badge, the current tag and the
+    /// LAST BACKUP cell are text items too.
+    function findNameLabel(item, want) {
+        for (let i = 0; i < item.children.length; ++i) {
+            const c = item.children[i]
+            if (c.hasOwnProperty("wrapMode") && c.hasOwnProperty("truncated")
+                && String(c.text) === want)
+                return c
+            const f = findNameLabel(c, want)
+            if (f !== null)
+                return f
         }
         return null
     }
@@ -119,8 +144,8 @@ TestCase {
         const rowA = makeRow(longNameA, "applied", "backed up")
         const rowB = makeRow(longNameB, "applied", "backed up")
 
-        const labelA = findItemWithProperty(rowA, "wrapMode")
-        const labelB = findItemWithProperty(rowB, "wrapMode")
+        const labelA = findNameLabel(rowA, longNameA)
+        const labelB = findNameLabel(rowB, longNameB)
         verify(labelA !== null, "row must contain a wrapping name Label")
 
         // The full name is the Label's text (not a truncated copy) ...
@@ -144,13 +169,13 @@ TestCase {
                + shortRow.implicitHeight + " long=" + longRow.implicitHeight + ")")
 
         // And the name Label must fit inside the row, not overflow it.
-        const label = findItemWithProperty(longRow, "wrapMode")
+        const label = findNameLabel(longRow, longNameA)
         verify(label.height <= longRow.implicitHeight,
                "wrapped name (" + label.height + ") must fit the row ("
                + longRow.implicitHeight + ")")
     }
 
-    // Actions are revealed on hover/selection but must never be squeezed to
+    // The actions are always shown but must never be squeezed to
     // nothing — a zero-width Restore button is unclickable.
     function test_action_buttons_keep_their_width_when_selected() {
         const row = makeRow(longNameA, "applied", "backed up")
@@ -190,5 +215,87 @@ TestCase {
         verify(pill !== null)
         verify(pill.width > 20, "failed row must still show its status pill")
         verify(pill.height > 8)
+    }
+
+    // ---- Wide (table) layout ----
+
+    Component {
+        id: wideRowComponent
+        ProfileRow {
+            // A two-column Backups page gives the table ~900 px.
+            width: 900
+        }
+    }
+
+    function makeWideRow(props) {
+        const row = createTemporaryObject(wideRowComponent, root, props)
+        verify(row !== null)
+        wait(0)
+        return row
+    }
+
+    // At table width the row is one line of fixed columns: the pill sits in
+    // the STATUS column to the RIGHT of the name, not under it, and keeps its
+    // natural width even beside a 50-character name.
+    function test_wide_row_puts_status_in_its_own_column() {
+        const row = makeWideRow({ name: longNameA, pillStatus: "applied", pillLabel: "Backed up" })
+        verify(!row.compact, "a 900 px row must use the table layout")
+
+        const nameLabel = findNameLabel(row, longNameA)
+        const pill = findPill(row)
+        verify(nameLabel !== null && pill !== null)
+
+        const nameRight = nameLabel.mapToItem(row, nameLabel.width, 0).x
+        const pillLeft = pill.mapToItem(row, 0, 0).x
+        verify(pillLeft >= nameRight,
+               "pill (x=" + pillLeft + ") must sit right of the name (right=" + nameRight + ")")
+        verify(pill.width > 20, "pill width collapsed: " + pill.width)
+        verify(!nameLabel.truncated, "the name must wrap, not truncate")
+        // The kit row is at least 52 px tall.
+        verify(row.implicitHeight >= 52, "row height " + row.implicitHeight)
+    }
+
+    // The STATUS column starts at the same x on every row, whatever the name,
+    // so the column reads as a column (and lines up with the page's header).
+    function test_wide_rows_align_their_status_column() {
+        const a = makeWideRow({ name: shortName, pillStatus: "applied", pillLabel: "Backed up" })
+        const b = makeWideRow({ name: longNameA, pillStatus: "unknown", pillLabel: "Failed",
+                                meta: "Login failed for user 'sa'.", metaIsError: true })
+        const pa = findPill(a)
+        const pb = findPill(b)
+        fuzzyCompare(pa.mapToItem(a, 0, 0).x, pb.mapToItem(b, 0, 0).x, 0.5)
+    }
+
+    // A failed row gets the kit error row: warm tint, and the reason inline.
+    function test_failed_row_uses_the_error_row_treatment() {
+        const row = makeWideRow({ name: shortName, pillStatus: "unknown", pillLabel: "Failed",
+                                  meta: "Unable to open database file dev.db", metaIsError: true })
+        verify(Qt.colorEqual(row.color, Theme.clrErrorRowBg), "failed row must use clrErrorRowBg, got " + row.color)
+        const reason = findNameLabel(row, "Unable to open database file dev.db")
+        verify(reason !== null, "the failure reason must be shown on the row")
+        verify(Qt.colorEqual(reason.color, Theme.clrError), "the reason must be in clrError")
+    }
+
+    // The DBMS badge is derived from the connection string, and omitted when
+    // it cannot be (a DSN profile) rather than guessed.
+    function test_dbms_badge_is_derived_from_the_connection_string() {
+        const ms = makeWideRow({ name: "prod",
+            connectionString: "Driver={ODBC Driver 18 for SQL Server};Server=db1;Database=prod" })
+        compare(ms.dbmsBadge, "MS")
+        const pg = makeWideRow({ name: "staging",
+            connectionString: "Driver={PostgreSQL Unicode};Server=db2;Database=staging" })
+        compare(pg.dbmsBadge, "PG")
+        const sq = makeWideRow({ name: "dev", connectionString: "DRIVER=SQLite3;Database=dev.db" })
+        compare(sq.dbmsBadge, "SQ")
+        const dsn = makeWideRow({ name: "dsn-only", connectionString: "" })
+        compare(dsn.dbmsBadge, "")
+    }
+
+    // The connected profile is tagged "current".
+    function test_current_profile_shows_the_current_tag() {
+        const row = makeWideRow({ name: "staging", current: true })
+        const tag = findNameLabel(row, "current")
+        verify(tag !== null, "the current row must carry a 'current' tag")
+        verify(tag.width > 10)
     }
 }

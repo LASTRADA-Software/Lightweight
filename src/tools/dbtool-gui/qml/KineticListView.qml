@@ -49,10 +49,12 @@ ListView {
         policy: ScrollBar.AsNeeded
         interactive: true
 
+        // Slim kit scrollbar: 6 px thumb in the faint neutral, darkening on
+        // hover/press, so it reads as chrome rather than content.
         contentItem: Rectangle {
-            implicitWidth: 8
+            implicitWidth: 6
             radius: width / 2
-            color: vbar.pressed ? Theme.textMuted : Theme.textFaint
+            color: vbar.pressed ? Theme.clrOnSurfaceSubtle : Theme.clrOnSurfaceFaint
             opacity: vbar.size < 1.0 ? (vbar.pressed || vbar.hovered ? 0.85 : 0.55) : 0.0
             Behavior on opacity { NumberAnimation { duration: 150 } }
         }
@@ -67,8 +69,8 @@ ListView {
         property real _lastTs: 0
         property bool _hasPhase: false
 
-        // Pixels per mouse-wheel notch. 120 px ≈ 3 migration rows (rowHeight
-        // 40) and ≈ 4 release rows (rowHeight 30) — matches the "three lines
+        // Pixels per mouse-wheel notch. 120 px ≈ 4 migration rows (rowHeight
+        // 32) and ≈ 4 release rows (rowHeight 30) — close to the "three lines
         // per notch" convention used by GTK/macOS/Windows. The previous 40 px
         // stepped only a single row, which felt sluggish when scanning long
         // plugin lists.

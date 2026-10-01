@@ -79,7 +79,8 @@ TEST_CASE("AppController buffers a startup banner that replays on attachLogSink"
     // test does not break the next time a banner line is reworded.
     auto const joined = JoinLogLines(spy);
     CHECK(joined.contains(QStringLiteral("dbtool-gui starting")));
-    CHECK(joined.contains(QStringLiteral("Theme:")));
+    // The GUI is light-only (Lastrada UI); there is no theme choice to report.
+    CHECK_FALSE(joined.contains(QStringLiteral("Theme:")));
     CHECK(joined.contains(QStringLiteral("View mode:")));
     CHECK(joined.contains(QStringLiteral("Profile store:")));
     CHECK(joined.contains(QStringLiteral("Ready")));

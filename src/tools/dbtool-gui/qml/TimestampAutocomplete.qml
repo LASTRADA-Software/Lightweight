@@ -11,6 +11,10 @@
 //   property string value         — the resolved timestamp (empty if unset)
 //   property string placeholderText
 //   signal valueChanged()         — emitted when `value` is set from a pick
+//
+// The suggestion popup follows the kit menu look: white, hairline border,
+// 6 px radius, 34 px rows, the keyboard/hover row tinted brand-soft with a
+// brand bar on its left edge.
 
 import QtQuick
 import QtQuick.Controls
@@ -60,7 +64,8 @@ Item {
         id: field
         width: parent.width
         placeholderText: root.placeholderText
-        font: Theme.monoFont(12)
+        placeholderTextColor: Theme.clrOnSurfaceFaint
+        font: Theme.monoFont(Theme.sizeMono)
         // Two-way sync: external changes to `value` update the visible text;
         // user keystrokes are tracked separately and only promoted to
         // `value` when a popup match is selected (or when the raw entry is
@@ -101,27 +106,52 @@ Item {
 
     Popup {
         id: popup
-        y: field.height + 2
+        y: field.height + 4
         width: field.width
         padding: 0
-        height: Math.min(260, suggestionList.contentHeight + 2)
+        height: Math.min(260, suggestionList.contentHeight + 10)
         visible: false
 
         background: Rectangle {
-            color: Theme.bgPanel
-            border.color: Theme.border
-            radius: 6
+            color: Theme.clrCard
+            border.color: Theme.clrContainerHighest
+            radius: Theme.r2
+
+            // Single elevation step (`Theme.shadow`) lifting the list off
+            // the option card it overlaps.
+            Rectangle {
+                z: -1
+                anchors.fill: parent
+                anchors.margins: -1
+                anchors.topMargin: 1
+                anchors.bottomMargin: -4
+                radius: parent.radius + 1
+                color: Theme.shadow
+            }
         }
 
         ListView {
             id: suggestionList
             anchors.fill: parent
-            anchors.margins: 1
+            anchors.margins: 5
             model: root._matches
             clip: true
             currentIndex: _matches.length > 0 ? 0 : -1
             highlightMoveDuration: 0
-            highlight: Rectangle { color: Theme.bgSelected; radius: 4 }
+            highlight: Rectangle {
+                color: Theme.clrPrimarySoft
+                radius: Theme.r1
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    anchors.topMargin: 6
+                    anchors.bottomMargin: 6
+                    width: 3
+                    radius: 1.5
+                    color: Theme.clrPrimary
+                }
+            }
 
             delegate: Item {
                 required property var modelData
@@ -148,15 +178,15 @@ Item {
                     spacing: 2
                     Label {
                         text: modelData.title
-                        color: Theme.text
-                        font.pixelSize: 12
+                        color: Theme.clrOnSurface
+                        font.pixelSize: Theme.sizeBodySm
                         elide: Text.ElideRight
                         width: parent.width
                     }
                     Label {
                         text: modelData.timestamp
-                        color: Theme.textFaint
-                        font: Theme.monoFont(11)
+                        color: Theme.clrOnSurfaceSubtle
+                        font: Theme.monoFont(Theme.sizeLabel)
                         width: parent.width
                     }
                 }

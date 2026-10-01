@@ -25,6 +25,30 @@ a QML UI mirroring the mockup in `docs/migrations-gui-mockup.html`, and
 managed backups (see below). See `docs/migrations-gui-plan.md` for the full
 plan and deferred work.
 
+### Look and feel
+
+The UI follows the **Lastrada UI** design system (the "Lastrada UI" Claude
+Design project, pages under `dbtool/`):
+
+- **Shell** — a dark navigation rail (`NavRail.qml`) with *Migrations* and
+  *Backups*, *Settings* pinned at the bottom (Expert view only). Every page
+  opens with a 52 px kit header (`PageHeader.qml`: breadcrumb, title, status
+  chips, actions) and the window ends in a 26 px status bar (`StatusBar.qml`).
+  The rail starts collapsed in the Simple view and expanded in the Expert view;
+  the choice is remembered per view.
+- **Simple view** — a guided three-step flow: *Connection* → *Review what will
+  change* (current/resulting release and the exact pending list) → *Run*, with
+  running and done states that show per-migration progress and the pre-run
+  backup.
+- **Tokens** — `qml/Theme.qml` carries the design tokens under their
+  `_tokens.css` names (`clrPrimary`, `clrContainerLow`, `sp3`, `r2`, `ctlMd`, …).
+  The palette is light-only: the rail and the code surfaces (log, SQL editor)
+  are the only dark areas. `main.cpp` pins the light colour scheme and seeds the
+  Fusion palette from the same tokens so stock controls match.
+- **Kit components** — `LsButton` (primary / secondary / ghost / danger), `Card`
+  (kit panel with header), `Banner`, `SegmentedControl`, `StepSection`,
+  `StatusPill`, `Spinner`, and Lastrada line icons in `Glyph`.
+
 ### Managed backups
 
 The Backups page manages one `<profile>.zip` archive per configured profile

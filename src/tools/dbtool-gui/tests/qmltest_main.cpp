@@ -6,6 +6,7 @@
 // under test live wherever the `-input <dir>` argument points, supplied by
 // CMake's `add_test` line so the build tree stays out of the executable.
 
+#include <QtQuickControls2/QQuickStyle>
 #include <QtQuickTest/quicktest.h>
 
 #ifdef _WIN32
@@ -21,6 +22,10 @@
 int main(int argc, char** argv)
 {
     QTEST_SET_MAIN_SOURCE_PATH
+    // Match the application: `main.cpp` runs every control under Fusion, and
+    // the kit components (LsButton, …) replace `background` / `contentItem`,
+    // which the platform-native styles refuse to customise.
+    QQuickStyle::setStyle(QStringLiteral("Fusion"));
     // Source dir is supplied at runtime via `-input <dir>`; pass `nullptr`
     // here so qmltestrunner doesn't fall back to a build-time path that
     // wouldn't exist on the CI runner.

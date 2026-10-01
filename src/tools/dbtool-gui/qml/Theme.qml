@@ -1,106 +1,150 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Central palette used by every GUI component. `dark` is sourced from
-// `ThemeController` (C++), not `Qt.styleHints.colorScheme`, because on KDE
-// Plasma the platform theme plugin overrides `QStyleHints::setColorScheme`
-// and would render `--theme light` / `--theme dark` ineffective.
+// Central design tokens used by every GUI component.
 //
-// The palette mirrors the mockup in docs/migrations-gui-mockup.html: a
-// Fluent-ish neutral base with a bluish accent. Dark-mode values are picked
-// to match Windows 11 / macOS Sonoma defaults without looking washed out.
+// dbtool-gui follows the Lastrada UI design system (the "Lastrada UI" Claude
+// Design project, `_tokens.css` + the `dbtool/` pages). Token names mirror
+// that file one-to-one so a value looked up in the design can be found here
+// by the same name: `--clrPrimary` is `Theme.clrPrimary`, `--sp3` is
+// `Theme.sp3`, and so on.
+//
+// The palette is light-only by design: the dark navigation rail and the code
+// surfaces (log, SQL editor) are the only dark areas, and they are dark in
+// every configuration. `main.cpp` pins the platform colour scheme to light so
+// the Fusion controls never pick up a dark system palette underneath us.
 
 pragma Singleton
 
 import QtQuick
-import Lightweight.Migrations
 
 QtObject {
-    readonly property bool dark: ThemeController.dark
+    // ---- Brand ----
+    readonly property color clrPrimary:           "#a21928"
+    readonly property color clrPrimaryHover:      "#8a1522"
+    readonly property color clrPrimaryActive:     "#70101a"
+    readonly property color clrPrimarySoft:       "#fbe9eb"
+    readonly property color clrPrimarySoftBorder: "#f0bfc5"
+    readonly property color clrFocusRing:         Qt.rgba(162 / 255, 25 / 255, 40 / 255, 0.20)
 
-    // Surfaces
-    readonly property color bgPage:    dark ? "#0f1115" : "#eceef2"
-    readonly property color bgWindow:  dark ? "#161a21" : "#ffffff"
-    readonly property color bgChrome:  dark ? "#1b2029" : "#f6f7f9"
-    readonly property color bgSidebar: dark ? "#12161d" : "#fafbfc"
-    readonly property color bgPanel:   dark ? "#1a1f28" : "#ffffff"
-    readonly property color bgSubtle:  dark ? "#222832" : "#f2f4f7"
-    readonly property color bgHover:   dark ? "#262d38" : "#eef1f6"
-    readonly property color bgSelected: dark ? "#153050" : "#e8f1fe"
-    readonly property color bgTerminal: "#0f172a"
+    // ---- Neutrals: page -> card ----
+    readonly property color clrBase:             "#f2f2f4"
+    readonly property color clrContainerLow:     "#f7f7f8"
+    readonly property color clrContainer:        "#ececee"
+    readonly property color clrContainerHigh:    "#e4e5e8"
+    readonly property color clrContainerHighest: "#d2d3d8"
+    readonly property color clrCard:             "#ffffff"
 
-    // Lines
-    readonly property color border:       dark ? "#2a313c" : "#e3e6ec"
-    readonly property color borderStrong: dark ? "#3a4351" : "#cfd4dc"
-    readonly property color divider:      dark ? "#262d38" : "#eceff4"
+    readonly property color clrOnSurface:       "#15171c"
+    readonly property color clrOnSurfaceMed:    "#3a3f49"
+    readonly property color clrOnSurfaceSubtle: "#6b717e"
+    readonly property color clrOnSurfaceFaint:  "#9a9fab"
 
-    // Text
-    readonly property color text:      dark ? "#e6e9ef" : "#1f2430"
-    readonly property color textMuted: dark ? "#9ba3b0" : "#5b6372"
-    readonly property color textFaint: dark ? "#6b7380" : "#8a93a4"
+    readonly property color clrBorderStrong: "#aeb2bb"
+    readonly property color clrDivider:      "#e8e9ec"
 
-    // Accent
-    readonly property color accent:     "#0a66d6"
-    readonly property color accentHover: "#0a5cc2"
-    readonly property color accentSoft: dark ? "#1a345a" : "#dbeafe"
+    // ---- Dark rail and code surfaces ----
+    readonly property color clrSidebarBg:    "#1a1718"
+    readonly property color clrSidebarHi:    "#2a2526"
+    readonly property color clrSidebarText:  "#ebe6e7"
+    readonly property color clrSidebarMuted: "#a89fa1"
+    readonly property color clrSidebarDash:  "#4a4345"
+    /// Foreground on code surfaces (log, SQL editor, SQL preview).
+    readonly property color clrCodeText:     "#ebe6e7"
+    /// Timestamps and comments on code surfaces.
+    readonly property color clrCodeMuted:    "#857b7d"
 
-    // Semantic
-    readonly property color ok:        "#17a34a"
-    readonly property color okSoft:    dark ? "#113d22" : "#dcfce7"
-    readonly property color okText:    dark ? "#4ade80" : "#0d7a37"
-    readonly property color warn:      "#d97706"
-    readonly property color warnSoft:  dark ? "#3d2a0e" : "#fef3c7"
-    readonly property color warnText:  dark ? "#fbbf24" : "#925005"
-    readonly property color err:       "#dc2626"
-    readonly property color errSoft:   dark ? "#3e1414" : "#fee2e2"
-    readonly property color errText:   dark ? "#f87171" : "#991b1b"
-    readonly property color info:      "#0a66d6"
-    readonly property color infoSoft:  dark ? "#1a345a" : "#dbeafe"
-    readonly property color infoText:  dark ? "#93c5fd" : "#0a66d6"
+    // ---- Fields ----
+    readonly property color clrFieldBorder:  "#c6c9d0"
+    readonly property color clrFieldRoBg:    "#f5f5f6"
+    readonly property color clrFieldRoText:  "#7c828d"
+    readonly property color clrFieldRoBorder: "#e3e4e8"
+    readonly property color clrFieldFocusBg: "#fffbfb"
 
-    // Shape scale. Radii were previously hard-coded per call site (6 for
-    // inputs and banners, 10 for panels, 999 for pills), which drifted as
-    // components were added. Naming them keeps a new component consistent by
-    // default and makes a global adjustment one edit.
-    readonly property real radiusSmall: 6   // inputs, banners, buttons, table rows
-    readonly property real radiusMedium: 8  // nested boxes
-    readonly property real radiusLarge: 12  // top-level panels
-    readonly property real radiusPill: 999  // pills and progress tracks
+    // ---- Section headers ----
+    readonly property color clrSectionHdr:       "#faf5f5"
+    readonly property color clrSectionHdrBorder: "#e8dcdd"
 
-    // Single elevation step, used to lift panels and raised buttons off the
-    // page. Kept to one level on purpose: a second shadow depth on a dense
-    // data UI reads as noise rather than hierarchy.
-    readonly property color shadow: dark ? Qt.rgba(0, 0, 0, 0.35)
-                                         : Qt.rgba(0.06, 0.09, 0.16, 0.05)
+    // ---- Semantic. Error is warmer than brand and always carries an icon or text. ----
+    readonly property color clrSuccess:       "#0e6b44"
+    readonly property color clrSuccessBg:     "#d9f2e4"
+    readonly property color clrSuccessBorder: "#8fd8b3"
+    readonly property color clrSuccessDot:    "#17a34a"
+    readonly property color clrWarning:       "#8f4e00"
+    readonly property color clrWarningBg:     "#fdecc8"
+    readonly property color clrWarningBorder: "#f2c56d"
+    readonly property color clrWarningDot:    "#d97706"
+    readonly property color clrError:         "#b42318"
+    readonly property color clrErrorBg:       "#fee4e2"
+    readonly property color clrErrorBorder:   "#fda29b"
+    readonly property color clrErrorRowBg:    "#fff8f7"
+    readonly property color clrErrorDot:      "#dc2626"
+    readonly property color clrInfo:          "#1a56a8"
+    readonly property color clrInfoBg:        "#e4eefb"
+    readonly property color clrInfoBorder:    "#a8c4ee"
+
+    /// Status colours on dark code surfaces.
+    readonly property color clrCodeOk:   "#4ade80"
+    readonly property color clrCodeWarn: "#fbbf24"
+    readonly property color clrCodeErr:  "#f87171"
+
+    // ---- Typography (pixel sizes; QML pixelSize is integral) ----
+    readonly property string fontFamily: "Segoe UI"
+    readonly property int sizeDisplay: 22
+    readonly property int sizeValue:   20
+    readonly property int sizeTitle:   16
+    readonly property int sizeTitleSm: 14
+    readonly property int sizeBody:    13
+    readonly property int sizeBodySm:  12
+    readonly property int sizeLabel:   11
+    readonly property int sizeMono:    12
+    readonly property int sizeGroup:   10
+
+    // ---- Spacing ----
+    readonly property int sp1: 4
+    readonly property int sp2: 8
+    readonly property int sp3: 12
+    readonly property int sp4: 16
+    readonly property int sp5: 20
+    readonly property int sp6: 24
+    readonly property int sp8: 32
+
+    // ---- Shape ----
+    readonly property real r1: 4      // buttons, inputs
+    readonly property real r2: 6      // option cards, banners, rail items
+    readonly property real r3: 8      // panels
+    readonly property real r4: 12
+    readonly property real rPill: 999 // pills and progress tracks
+
+    // ---- Control and chrome sizes ----
+    readonly property int ctlSm: 28
+    readonly property int ctlMd: 32
+    readonly property int ctlLg: 40
+    readonly property int rowDense: 28
+    readonly property int row: 32
+    readonly property int railW: 216
+    readonly property int railNarrowW: 60
+    readonly property int topH: 52
+    readonly property int statusH: 26
+
+    /// Single elevation step, used to lift popups off the page.
+    readonly property color shadow: Qt.rgba(21 / 255, 23 / 255, 28 / 255, 0.10)
 
     // Monospace font fallback chain. Must be assigned via `font.families`
     // (the list-valued property) — `font.family` accepts only a single
     // family name and would treat a comma-joined string as one literal
     // lookup that never matches, silently falling back to the platform
     // default proportional font.
-    // Monospace font fallback chain.
     //
-    // Nerd Font variants come first — they ship with the same glyph metrics
-    // as their upstream face plus a patched icon range, so picking them when
-    // installed gives users a richer set of glyphs (e.g. for DB-icon-laden
-    // log lines) without changing any column alignment. The `* Nerd Font
-    // Mono` variants keep icons single-width, which is what we want in a
-    // SQL editor / preview where column alignment matters; the non-`Mono`
-    // variants follow as second choice. Plain unpatched faces and the
-    // generic `monospace` keyword close out the chain.
+    // Cascadia Mono comes first to match the design system's `--mono`. Nerd
+    // Font variants follow — they share upstream glyph metrics plus a patched
+    // icon range, so column alignment is unchanged; plain faces and the generic
+    // `monospace` keyword close out the chain.
     readonly property var monoFamilies: [
-        "JetBrainsMono Nerd Font Mono",
-        "JetBrainsMono Nerd Font",
-        "JetBrainsMonoNL Nerd Font Mono",
-        "JetBrainsMonoNL Nerd Font",
+        "Cascadia Mono",
         "CaskaydiaMono Nerd Font",
         "CaskaydiaCove Nerd Font Mono",
-        "CaskaydiaCove Nerd Font",
-        "FiraCode Nerd Font Mono",
-        "FiraMono Nerd Font Mono",
-        "Hack Nerd Font Mono",
-        "Hack Nerd Font",
+        "JetBrainsMono Nerd Font Mono",
         "JetBrains Mono",
-        "Cascadia Mono",
         "Consolas",
         "Menlo",
         "DejaVu Sans Mono",
@@ -112,7 +156,8 @@ QtObject {
     /// fallback chain baked in. Use this as `font: Theme.monoFont(12)`
     /// rather than `font.family: …` because QtQuick.Controls 2 elements
     /// (`TextField`, `ComboBox`, …) do not expose `font.families` through
-    /// their QML value-type adapter — only `Text`/`Label`/`TextArea` do.
+    /// their QML value-type adapter — and on Qt 6.11 neither do `Text` or
+    /// `Label`, so whole-value assignment is the only portable route.
     /// Assigning the whole `font` property side-steps that limitation by
     /// copying an underlying `QFont` that already has `setFamilies()`
     /// applied. Mixing `font: X` with `font.pixelSize: Y` on the same

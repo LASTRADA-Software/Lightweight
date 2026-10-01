@@ -1,14 +1,18 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Pill-style tab switcher: All / Pending / Applied / Issues, with per-tab
-// count badges. Drives `MigrationView.filterTab` (bound from the parent).
+// Underline tab strip (`k-tab` in the Lastrada design): All / Pending /
+// Applied / Issues, each with a count chip. The active tab is darker,
+// semibold and underlined in brand red, and its chip turns brand-filled.
+// Drives `MigrationView.filterTab` (bound from the parent).
+//
+// The strip only draws the tabs; the hairline under them belongs to the
+// containing toolbar so the active underline can sit on top of it.
 
 import QtQuick
 import QtQuick.Controls
 import Lightweight.Migrations
-import QtQuick.Layouts
 
-Rectangle {
+Item {
     id: root
 
     property string current: "all"
@@ -16,71 +20,80 @@ Rectangle {
 
     property var tabs: []
 
-    color: Theme.bgSubtle
-    border.color: Theme.border
-    radius: 999
-    implicitWidth: row.implicitWidth + 6
-    implicitHeight: 30
+    implicitWidth: row.implicitWidth
+    implicitHeight: 42
 
     Row {
         id: row
-        anchors.centerIn: parent
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
         spacing: 2
 
         Repeater {
             model: root.tabs
-            Rectangle {
-                id: tabRect
+
+            Item {
+                id: tab
                 required property var modelData
                 readonly property bool active: root.current === modelData.key
 
-                height: 24
-                width: label.implicitWidth + (countLabel.visible ? countLabel.implicitWidth + 14 : 0) + 18
-                radius: 999
-                color: active ? Theme.bgPanel : "transparent"
-                border.color: active ? Theme.border : "transparent"
+                height: row.height
+                width: content.implicitWidth + 24
 
-                ToolTip.visible: tabHover.hovered
+                Accessible.role: Accessible.PageTab
+                Accessible.name: modelData.label
+                Accessible.selected: active
+
+                ToolTip.visible: tabHover.hovered && (modelData.tip || "").length > 0
                 ToolTip.text: modelData.tip || ""
                 ToolTip.delay: 500
                 ToolTip.timeout: 10000
-                HoverHandler { id: tabHover }
+                HoverHandler { id: tabHover; cursorShape: Qt.PointingHandCursor }
+                TapHandler { onTapped: root.activated(tab.modelData.key) }
 
                 Row {
+                    id: content
                     anchors.centerIn: parent
-                    spacing: 6
+                    spacing: 7
 
                     Text {
-                        id: label
                         anchors.verticalCenter: parent.verticalCenter
-                        text: modelData.label
-                        color: tabRect.active ? Theme.text : Theme.textMuted
-                        font.pixelSize: 12
-                        font.weight: Font.Medium
+                        text: tab.modelData.label
+                        color: tab.active || tabHover.hovered ? Theme.clrOnSurface : Theme.clrOnSurfaceMed
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.sizeBody
+                        font.weight: tab.active ? Font.DemiBold : Font.Normal
                     }
 
                     Rectangle {
-                        id: countPill
                         anchors.verticalCenter: parent.verticalCenter
-                        visible: countLabel.text.length > 0
-                        color: tabRect.active ? Theme.accentSoft : Theme.bgHover
-                        radius: 999
-                        width: countLabel.implicitWidth + 10
-                        height: countLabel.implicitHeight + 2
+                        visible: tab.modelData.count !== undefined
+                        height: 17
+                        width: Math.max(height, countLabel.implicitWidth + 12)
+                        radius: Theme.rPill
+                        color: tab.active ? Theme.clrPrimary : Theme.clrContainer
+
                         Text {
                             id: countLabel
                             anchors.centerIn: parent
-                            text: modelData.count !== undefined ? String(modelData.count) : ""
-                            color: tabRect.active ? Theme.accent : Theme.textMuted
-                            font.pixelSize: 11
+                            text: tab.modelData.count !== undefined ? String(tab.modelData.count) : ""
+                            color: tab.active ? "#ffffff" : Theme.clrOnSurfaceMed
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.sizeLabel - 1
+                            font.weight: Font.DemiBold
                         }
                     }
                 }
 
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: root.activated(modelData.key)
-                    cursorShape: Qt.PointingHandCursor
+                // Active underline, 2 px brand red flush with the bottom edge.
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    height: 2
+                    color: Theme.clrPrimary
+                    visible: tab.active
                 }
             }
         }

@@ -201,8 +201,7 @@ class AppController: public QObject
     }
     /// Seeds the initial value of `_verbose` before the QML engine
     /// instantiates the singleton. Must be called before any QML access to
-    /// `AppController`. Mirrors `ThemeController::SeedInitialMode`; threads
-    /// the parsed `--verbose`/`-v` flag into the controller's first
+    /// `AppController`. Threads the parsed `--verbose`/`-v` flag into the controller's first
     /// `ReloadPlugins()`. Idempotent; later changes take effect on the next
     /// `ReloadPlugins()` only if the value is updated via `SetVerbose`.
     ///

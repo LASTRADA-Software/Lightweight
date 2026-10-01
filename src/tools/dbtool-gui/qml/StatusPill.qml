@@ -28,16 +28,17 @@ Rectangle {
     /// text) by passing a single space.
     property string tooltipText: ""
 
+    // [background, foreground, border] per status.
     readonly property var _palette: ({
-        "applied":           [Theme.okSoft,   Theme.okText,   Theme.ok],
-        "pending":           [Theme.warnSoft, Theme.warnText, Theme.warn],
-        "partial":           [Theme.warnSoft, Theme.warnText, Theme.warn],
-        "running":           [Theme.accentSoft, Theme.accent, Theme.accent],
-        "unknown":           [Theme.errSoft,  Theme.errText,  Theme.err],
-        "checksum-mismatch": [Theme.errSoft,  Theme.errText,  Theme.err],
-        "empty":             [Theme.bgSubtle, Theme.textMuted, Theme.textFaint]
+        "applied":           [Theme.clrSuccessBg, Theme.clrSuccess, Theme.clrSuccessBorder],
+        "pending":           [Theme.clrWarningBg, Theme.clrWarning, Theme.clrWarningBorder],
+        "partial":           [Theme.clrWarningBg, Theme.clrWarning, Theme.clrWarningBorder],
+        "running":           [Theme.clrInfoBg,    Theme.clrInfo,    Theme.clrInfoBorder],
+        "unknown":           [Theme.clrErrorBg,   Theme.clrError,   Theme.clrErrorBorder],
+        "checksum-mismatch": [Theme.clrErrorBg,   Theme.clrError,   Theme.clrErrorBorder],
+        "empty":             [Theme.clrContainer, Theme.clrOnSurfaceMed, Theme.clrContainerHighest]
     })
-    readonly property var _colours: _palette[status] || [Theme.bgSubtle, Theme.textMuted, Theme.textFaint]
+    readonly property var _colours: _palette[status] || _palette["empty"]
 
     // Per-status tooltip copy. The "checksum-mismatch" entry is intentionally
     // long: when the GUI flags a row, the user is staring at a red badge with
@@ -90,30 +91,50 @@ Rectangle {
     readonly property string _resolvedTooltip:
         tooltipText !== "" ? tooltipText : (_tooltips[status] || "")
 
+    // Kit pills (`k-pill`) pair every colour with a glyph so a status never
+    // relies on hue alone; "running" animates instead.
+    readonly property var _glyphs: ({
+        "applied":           "check",
+        "pending":           "clock",
+        "partial":           "clock",
+        "unknown":           "alert",
+        "checksum-mismatch": "alert",
+    })
+    readonly property string _glyph: _glyphs[status] || ""
+
     color: _colours[0]
-    radius: 999
-    implicitWidth: row.implicitWidth + 16
-    implicitHeight: row.implicitHeight + 4
+    border.color: _colours[2]
+    radius: Theme.rPill
+    implicitWidth: row.implicitWidth + 18
+    implicitHeight: 22
 
     Row {
         id: row
         anchors.centerIn: parent
         spacing: 5
 
-        Rectangle {
+        Glyph {
             anchors.verticalCenter: parent.verticalCenter
-            width: 6
-            height: 6
-            radius: 3
-            color: root._colours[2]
+            visible: root._glyph !== ""
+            name: root._glyph
+            size: 11
+            strokeWidth: 2
+            color: root._colours[1]
+        }
+        Spinner {
+            anchors.verticalCenter: parent.verticalCenter
+            visible: root.status === "running"
+            running: visible
+            diameter: 10
+            color: root._colours[1]
         }
 
         Text {
             anchors.verticalCenter: parent.verticalCenter
             text: root.label !== "" ? root.label : root.status
             color: root._colours[1]
-            font.pixelSize: 11
-            font.weight: Font.Medium
+            font.pixelSize: Theme.sizeLabel
+            font.weight: Font.DemiBold
         }
     }
 

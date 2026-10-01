@@ -1,12 +1,18 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Right-pane actions: Target picker (three radio-style option cards) plus
-// a plan-summary banner, an Options card with toggles, and the primary
-// action button. Each option has a trailing input where applicable (release
-// picker for "Release version", numeric text field for "Specific timestamp").
-// When the user ticks individual rows in the migration list, the primary
-// button switches to acting on just that selection and the target picker is
-// bypassed — shown via a blue banner above.
+// Right-pane actions (`dt-act` in the Lastrada design): Target picker (three
+// radio-style option cards) plus a plan-summary banner, the Options switch
+// rows, and — pinned to the bottom of the pane when there is room — the
+// primary action button, the destructive rollback and the CLI equivalent.
+// Each option has a trailing input where applicable (release picker for "Up
+// to a release", timestamp autocomplete for "Up to a timestamp"). When the
+// user ticks individual rows in the migration list, the primary button
+// switches to acting on just that selection and the target picker is
+// bypassed — shown via an info banner in place of the plan.
+//
+// The host gives this layout an explicit height of at least its implicit
+// height (see `ExpertView.qml`); the spacer above the buttons absorbs the
+// difference.
 
 import QtQuick
 import QtQuick.Controls
@@ -38,26 +44,32 @@ ColumnLayout {
         return "";
     }
 
-    Label {
-        text: qsTr("TARGET")
-        color: Theme.textFaint
-        font.pixelSize: 11
-        font.weight: Font.DemiBold
-        font.letterSpacing: 1
+    /// Kit group label (`dt-lbl`): 10 px bold uppercase, letter-spaced.
+    component GroupLabel: Label {
         Layout.fillWidth: true
+        color: Theme.clrOnSurfaceSubtle
+        font.pixelSize: Theme.sizeGroup
+        font.weight: Font.Bold
+        font.letterSpacing: 0.7
     }
 
-    // Target options
+    GroupLabel { text: qsTr("TARGET") }
+
+    // Target option cards (`dt-opt`): radio, title and one-line help; the
+    // active card takes the brand border, the field-focus tint and a focus
+    // halo, and grows to host its input (release picker / timestamp field).
     Repeater {
         model: [
-            { key: "latest",    label: qsTr("Latest (all pending)"),
-              help: qsTr("Apply every pending migration."),
+            { key: "latest",    label: qsTr("Latest — everything pending"),
+              help: AppController.pendingCount === 1
+                    ? qsTr("Apply the 1 pending migration.")
+                    : qsTr("Apply all %1 pending migrations.").arg(AppController.pendingCount),
               tip: qsTr("Apply every pending migration.") },
-            { key: "release",   label: qsTr("Release version"),
-              help: qsTr("Apply up to the highestTimestamp of a declared release."),
-              tip: qsTr("Apply up to the selected release.") },
-            { key: "timestamp", label: qsTr("Specific timestamp"),
-              help: qsTr("Apply every pending migration with timestamp ≤ this value."),
+            { key: "release",   label: qsTr("Up to a release"),
+              help: qsTr("Stop after the last migration of a declared release."),
+              tip: qsTr("Apply up to the highestTimestamp of the selected release.") },
+            { key: "timestamp", label: qsTr("Up to a timestamp"),
+              help: qsTr("Apply pending migrations with timestamp ≤ a value."),
               tip: qsTr("Apply up to a specific timestamp or migration title.") },
         ]
         Rectangle {
@@ -67,12 +79,28 @@ ColumnLayout {
             readonly property bool expanded: active && (modelData.key === "release" || modelData.key === "timestamp")
 
             Layout.fillWidth: true
-            Layout.preferredHeight: expanded ? 100 : 60
-            color: Theme.bgPanel
-            border.color: active ? Theme.accent : Theme.border
-            border.width: active ? 2 : 1
-            radius: 6
+            Layout.preferredHeight: optionBody.implicitHeight + 20
+            color: active ? Theme.clrFieldFocusBg : Theme.clrCard
+            border.color: active ? Theme.clrPrimary
+                        : (optionHover.hovered && !root.hasSelection ? Theme.clrBorderStrong
+                                                                     : Theme.clrContainerHighest)
+            radius: Theme.r2
             opacity: root.hasSelection ? 0.5 : 1.0
+
+            Accessible.role: Accessible.RadioButton
+            Accessible.name: modelData.label
+            Accessible.checked: active
+
+            // Focus halo around the active card.
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: -3
+                radius: parent.radius + 3
+                color: "transparent"
+                border.width: 3
+                border.color: Theme.clrFocusRing
+                visible: optionRect.active
+            }
 
             // Explanatory tooltip describing the full scope of the target
             // option. Richer than the inline one-liner, intended to remove
@@ -96,74 +124,70 @@ ColumnLayout {
                 id: radio
                 anchors.left: parent.left
                 anchors.top: parent.top
-                anchors.leftMargin: 10
-                anchors.topMargin: 12
+                anchors.leftMargin: 12
+                anchors.topMargin: 11
                 width: 16; height: 16; radius: 8
                 border.width: 1.5
-                border.color: optionRect.active ? Theme.accent : Theme.borderStrong
-                color: "transparent"
+                border.color: optionRect.active ? Theme.clrPrimary : Theme.clrBorderStrong
+                color: Theme.clrCard
                 Rectangle {
                     anchors.centerIn: parent
                     width: 8; height: 8; radius: 4
-                    color: Theme.accent
+                    color: Theme.clrPrimary
                     visible: optionRect.active
                 }
             }
 
-            Label {
-                id: optionLabel
+            Column {
+                id: optionBody
                 anchors.left: radio.right
                 anchors.right: parent.right
                 anchors.top: parent.top
+                anchors.leftMargin: 10
+                anchors.rightMargin: 12
                 anchors.topMargin: 10
-                anchors.leftMargin: 10
-                anchors.rightMargin: 10
-                text: optionRect.modelData.label
-                color: Theme.text
-                font.pixelSize: 13
-                font.weight: Font.Medium
-            }
+                spacing: 2
 
-            Label {
-                anchors.left: radio.right
-                anchors.right: parent.right
-                anchors.top: optionLabel.bottom
-                anchors.topMargin: 2
-                anchors.leftMargin: 10
-                anchors.rightMargin: 10
-                text: optionRect.modelData.help
-                color: Theme.textMuted
-                font.pixelSize: 11
-                wrapMode: Text.WordWrap
-            }
-
-            ComboBox {
-                anchors.left: radio.right
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                anchors.leftMargin: 10
-                anchors.rightMargin: 10
-                anchors.bottomMargin: 8
-                visible: optionRect.expanded && optionRect.modelData.key === "release"
-                model: AppController.releases
-                textRole: "version"
-                onActivated: index => {
-                    const idx = AppController.releases.index(index, 0);
-                    root.selectedRelease = AppController.releases.data(idx, 257);
+                Label {
+                    width: parent.width
+                    text: optionRect.modelData.label
+                    color: Theme.clrOnSurface
+                    font.pixelSize: Theme.sizeBodySm + 1
+                    font.weight: Font.DemiBold
+                    elide: Text.ElideRight
                 }
-            }
+                Label {
+                    width: parent.width
+                    text: optionRect.modelData.help
+                    color: Theme.clrOnSurfaceSubtle
+                    font.pixelSize: Theme.sizeLabel
+                    wrapMode: Text.WordWrap
+                }
 
-            TimestampAutocomplete {
-                anchors.left: radio.right
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                anchors.leftMargin: 10
-                anchors.rightMargin: 10
-                anchors.bottomMargin: 8
-                visible: optionRect.expanded && optionRect.modelData.key === "timestamp"
-                value: root.specificTimestamp
-                onValueChanged: root.specificTimestamp = value
-                placeholderText: qsTr("Type a timestamp or title — e.g. 'Initial'")
+                Item {
+                    width: parent.width
+                    height: 6
+                    visible: optionRect.expanded
+                }
+
+                ComboBox {
+                    width: parent.width
+                    visible: optionRect.expanded && optionRect.modelData.key === "release"
+                    model: AppController.releases
+                    textRole: "version"
+                    onActivated: index => {
+                        const idx = AppController.releases.index(index, 0);
+                        root.selectedRelease = AppController.releases.data(idx, 257);
+                    }
+                }
+
+                TimestampAutocomplete {
+                    width: parent.width
+                    visible: optionRect.expanded && optionRect.modelData.key === "timestamp"
+                    value: root.specificTimestamp
+                    onValueChanged: root.specificTimestamp = value
+                    placeholderText: qsTr("Type a timestamp or title — e.g. 'Initial'")
+                }
             }
         }
     }
@@ -171,155 +195,189 @@ ColumnLayout {
     // Selection-override banner — shown only when the user has ticked rows
     // in the migration list. The button and plan summary switch to acting
     // on the selection when this is visible.
-    Rectangle {
+    Banner {
         Layout.fillWidth: true
-        Layout.preferredHeight: 50
-        color: Theme.accentSoft
-        radius: 6
+        Layout.topMargin: 2
         visible: root.hasSelection
-        RowLayout {
-            anchors.fill: parent
-            anchors.margins: 10
-            spacing: 8
-            Label {
-                Layout.fillWidth: true
-                text: qsTr("%1 migration(s) selected — target picker is bypassed.")
-                        .arg(AppController.selectionCount)
-                color: Theme.accent
-                font.pixelSize: 12
-                font.weight: Font.Medium
-                wrapMode: Text.WordWrap
-            }
-            Button {
+        kind: "info"
+        title: AppController.selectionCount === 1
+               ? qsTr("1 migration selected")
+               : qsTr("%1 migrations selected").arg(AppController.selectionCount)
+        text: qsTr("The target picker is bypassed.")
+        actions: [
+            LsButton {
                 text: qsTr("Clear")
-                flat: true
+                variant: "ghost"
                 onClicked: AppController.selectAllPending(false)
             }
-        }
+        ]
     }
 
     // Plan summary banner
-    Rectangle {
+    Banner {
         Layout.fillWidth: true
-        Layout.preferredHeight: 50
-        color: Theme.infoSoft
-        radius: 6
+        Layout.topMargin: 2
         visible: !root.hasSelection
-        Label {
-            anchors.fill: parent
-            anchors.margins: 10
-            wrapMode: Text.WordWrap
-            text: {
-                if (root.target === "release" && root.selectedRelease.length > 0)
-                    return qsTr("<b>Plan:</b> apply every pending migration up to release <b>%1</b>.")
-                            .arg(root.selectedRelease);
-                if (root.target === "timestamp" && root.specificTimestamp.length > 0)
-                    return qsTr("<b>Plan:</b> apply every pending migration with timestamp ≤ <b>%1</b>.")
-                            .arg(root.specificTimestamp);
-                return qsTr("<b>Plan:</b> apply every pending migration.");
-            }
-            color: Theme.infoText
-            font.pixelSize: 12
-            textFormat: Text.RichText
+        kind: "info"
+        title: qsTr("Plan")
+        text: {
+            if (root.target === "release" && root.selectedRelease.length > 0)
+                return qsTr("Apply every pending migration up to release %1.")
+                        .arg(root.selectedRelease);
+            if (root.target === "timestamp" && root.specificTimestamp.length > 0)
+                return qsTr("Apply every pending migration with timestamp ≤ %1.")
+                        .arg(root.specificTimestamp);
+            return qsTr("Apply every pending migration.");
         }
     }
 
-    Label {
+    GroupLabel {
         text: qsTr("OPTIONS")
-        color: Theme.textFaint
-        font.pixelSize: 11
-        font.weight: Font.DemiBold
-        font.letterSpacing: 1
-        Layout.fillWidth: true
-        Layout.topMargin: 4
+        Layout.topMargin: 6
     }
 
-    Rectangle {
+    // Switch rows (`dt-swrow`): label + help on the left, kit switch on the
+    // right, hairline dividers between rows.
+    // A ColumnLayout rather than a Column: rows sized `width: parent.width`
+    // inside a Column feed the Column's own implicit width back into itself,
+    // which overflowed the switches past the pane edge.
+    ColumnLayout {
         Layout.fillWidth: true
-        Layout.preferredHeight: optionsColumn.implicitHeight + 16
-        color: Theme.bgPanel
-        border.color: Theme.border
-        radius: 10
+        spacing: 0
 
-        Column {
-            id: optionsColumn
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.margins: 8
-            spacing: 2
+        Repeater {
+            id: optionRows
+            model: [
+                { label: qsTr("Dry run"),
+                  desc: qsTr("Run in a transaction, then roll back."),
+                  prop: "dryRun",
+                  tip: qsTr("Run inside a transaction and roll back — no changes persist.") },
+                { label: qsTr("Acquire lock"),
+                  desc: qsTr("Block concurrent migrators (recommended)."),
+                  prop: "acquireLock",
+                  tip: qsTr("Advisory lock on schema_migrations — blocks concurrent migrators.") },
+                { label: qsTr("Back up first"),
+                  desc: qsTr("Snapshot schema + data to .zip."),
+                  prop: "backupBeforeApply",
+                  tip: qsTr("Write a snapshot before the first migration runs.") },
+            ]
+            Item {
+                id: switchRow
+                required property var modelData
+                required property int index
+                Layout.fillWidth: true
+                Layout.preferredHeight: Math.max(rowText.implicitHeight, toggleSwitch.implicitHeight) + 16
 
-            Repeater {
-                model: [
-                    { label: qsTr("Dry-run"),
-                      desc: qsTr("Show SQL & progress; roll back at end."),
-                      prop: "dryRun",
-                      tip: qsTr("Run inside a transaction and roll back — no changes persist.") },
-                    { label: qsTr("Acquire lock"),
-                      desc: qsTr("Prevent concurrent migrators (recommended)."),
-                      prop: "acquireLock",
-                      tip: qsTr("Advisory lock on schema_migrations — blocks concurrent migrators.") },
-                    { label: qsTr("Backup before apply"),
-                      desc: qsTr("Snapshot schema + data to .zip."),
-                      prop: "backupBeforeApply",
-                      tip: qsTr("Write a snapshot before the first migration runs.") },
-                ]
+                // Hover anywhere on the row to surface the long-form
+                // explanation — the inline `desc` label is deliberately
+                // one line so the tooltip carries the nuance.
+                ToolTip.visible: rowHover.hovered
+                ToolTip.text: modelData.tip
+                ToolTip.delay: 500
+                ToolTip.timeout: 10000
+                HoverHandler { id: rowHover }
+
+                Column {
+                    id: rowText
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: parent.width - toggleSwitch.width - 12
+                    spacing: 1
+                    Label {
+                        text: switchRow.modelData.label
+                        color: Theme.clrOnSurface
+                        font.pixelSize: Theme.sizeBodySm + 1
+                        font.weight: Font.DemiBold
+                        width: parent.width
+                        elide: Text.ElideRight
+                    }
+                    Label {
+                        text: switchRow.modelData.desc
+                        color: Theme.clrOnSurfaceSubtle
+                        font.pixelSize: Theme.sizeLabel
+                        width: parent.width
+                        elide: Text.ElideRight
+                    }
+                }
+
+                Switch {
+                    id: toggleSwitch
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    padding: 0
+                    // Fusion sizes a Switch from its (empty) content, not from
+                    // a custom indicator; without these the right-anchored
+                    // control is narrower than the 32 px pill, which then
+                    // hangs past the pane edge.
+                    implicitWidth: 32
+                    implicitHeight: 18
+                    checked: root[switchRow.modelData.prop]
+                    onToggled: root[switchRow.modelData.prop] = checked
+                    Accessible.name: switchRow.modelData.label
+
+                    // Kit switch (`dt-sw`): 32×18 pill, brand red when on,
+                    // white knob sliding between the ends.
+                    indicator: Rectangle {
+                        implicitWidth: 32
+                        implicitHeight: 18
+                        x: toggleSwitch.leftPadding
+                        y: (toggleSwitch.height - height) / 2
+                        radius: height / 2
+                        color: toggleSwitch.checked
+                               ? (toggleSwitch.hovered ? Theme.clrPrimaryHover : Theme.clrPrimary)
+                               : (toggleSwitch.hovered ? Theme.clrBorderStrong : Theme.clrContainerHighest)
+                        Behavior on color { ColorAnimation { duration: 120 } }
+
+                        Rectangle {
+                            width: 14
+                            height: 14
+                            radius: 7
+                            y: 2
+                            x: toggleSwitch.checked ? parent.width - width - 2 : 2
+                            color: "#ffffff"
+                            border.color: Qt.rgba(0, 0, 0, 0.08)
+                            Behavior on x { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+                        }
+
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.margins: -3
+                            radius: height / 2
+                            color: "transparent"
+                            border.width: 3
+                            border.color: Theme.clrFocusRing
+                            visible: toggleSwitch.visualFocus
+                        }
+                    }
+                    contentItem: Item {}
+                }
+
                 Rectangle {
-                    required property var modelData
-                    width: parent.width
-                    height: 46
-                    color: "transparent"
-
-                    // Hover anywhere on the row to surface the long-form
-                    // explanation — the inline `desc` label is deliberately
-                    // one line so the tooltip carries the nuance.
-                    ToolTip.visible: rowHover.hovered
-                    ToolTip.text: modelData.tip
-                    ToolTip.delay: 500
-                    ToolTip.timeout: 10000
-                    HoverHandler { id: rowHover }
-
-                    Column {
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: parent.width - toggleSwitch.width - 12
-                        spacing: 2
-                        Label {
-                            text: modelData.label
-                            color: Theme.text
-                            font.pixelSize: 12
-                            width: parent.width
-                        }
-                        Label {
-                            text: modelData.desc
-                            color: Theme.textMuted
-                            font.pixelSize: 11
-                            width: parent.width
-                            elide: Text.ElideRight
-                        }
-                    }
-                    Switch {
-                        id: toggleSwitch
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        checked: root[modelData.prop]
-                        onToggled: root[modelData.prop] = checked
-                        ToolTip.visible: hovered
-                        ToolTip.text: modelData.tip
-                        ToolTip.delay: 500
-                        ToolTip.timeout: 10000
-                    }
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    height: 1
+                    color: Theme.clrDivider
+                    visible: switchRow.index < optionRows.count - 1
                 }
             }
         }
     }
 
-    // Primary action button
-    Button {
+    // Takes the spare height when the hosting pane is taller than the
+    // content, pinning the action buttons to the bottom edge.
+    Item {
+        Layout.fillHeight: true
+        Layout.minimumHeight: 6
+    }
+
+    // Primary action button — the one brand-red action on the screen.
+    LsButton {
         Layout.fillWidth: true
-        Layout.topMargin: 4
-        Layout.preferredHeight: 38
-        highlighted: true
+        variant: "primary"
+        size: "lg"
+        glyph: "play"
+        busy: AppController.runner.phase !== MigrationRunner.Idle
         // The backup/managed-backup terms mirror the mutual busy guard wired in
         // AppController: applying migrations while a backup is writing an
         // archive tears that archive, and the C++ guard would refuse the click
@@ -367,9 +425,13 @@ ColumnLayout {
 
     // Secondary "Rollback to release" button — only meaningful with the
     // release target. Kept separate from the primary apply/dry-run button so
-    // the destructive action requires an explicit click.
-    Button {
+    // the destructive action requires an explicit click, and outlined in
+    // error red (`danger`) so it never reads as the main action.
+    LsButton {
         Layout.fillWidth: true
+        variant: "danger"
+        size: "md"
+        glyph: "history"
         visible: root.target === "release" && root.selectedRelease.length > 0
         enabled: AppController.connected
                  && AppController.runner.phase === MigrationRunner.Idle
@@ -387,9 +449,8 @@ ColumnLayout {
         Layout.fillWidth: true
         horizontalAlignment: Text.AlignHCenter
         text: qsTr("≈ dbtool migrate %1").arg(root.dryRun ? "--dry-run" : "")
-        color: Theme.textFaint
-        font: Theme.monoFont(11)
+        color: Theme.clrOnSurfaceFaint
+        font: Theme.monoFont(Theme.sizeLabel)
+        elide: Text.ElideRight
     }
-
-    Item { Layout.fillHeight: true }
 }

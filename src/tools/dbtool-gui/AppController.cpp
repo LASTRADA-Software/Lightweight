@@ -42,8 +42,6 @@ struct AppController::PluginsBundle
 #include <QtCore/QTimer>
 #include <QtCore/QUrl>
 #include <QtGui/QDesktopServices>
-#include <QtGui/QGuiApplication>
-#include <QtGui/QStyleHints>
 
 namespace DbtoolGui
 {
@@ -301,17 +299,6 @@ AppController::AppController(QObject* parent):
     // at which point they replay in order. Plain English throughout —
     // never the CLI flag name (e.g. "Plugins directory", not "--plugins-dir").
     LogInfo(QStringLiteral("dbtool-gui starting (Qt %1)").arg(QLatin1String(qVersion())));
-    {
-        // `ui/theme` is the same QSettings key `main.cpp` writes via `--theme`
-        // and reads back across runs. Kept as a string literal here so this
-        // file does not have to import the constant from `main.cpp`.
-        QSettings const settings;
-        auto const requestedTheme = settings.value(QStringLiteral("ui/theme"), QStringLiteral("system")).toString();
-        auto const effectiveTheme = QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark
-                                        ? QStringLiteral("dark")
-                                        : QStringLiteral("light");
-        LogInfo(QStringLiteral("Theme: %1 (requested %2)").arg(effectiveTheme, requestedTheme));
-    }
     LogInfo(QStringLiteral("View mode: %1").arg(_viewMode));
     {
         auto const storePath = !_profileStorePath.isEmpty()

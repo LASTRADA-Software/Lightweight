@@ -139,7 +139,6 @@ def main() -> int:
 
     cmd = [
         str(args.dbtool_gui),
-        "--theme=light",
         "--verbose",
         *args.extra_arg,
     ]

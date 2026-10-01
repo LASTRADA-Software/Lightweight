@@ -174,7 +174,8 @@ TestCase {
                + row.height + ")")
     }
 
-    // Status + both actions sit on the line BELOW the name, so none of them can
+    // In the narrow card layout (this 380 px row) status + both actions sit on
+    // the line BELOW the name, so none of them can
     // be squeezed by it. Verified geometrically: their tops are below the name's
     // bottom, and each has real width.
     function test_status_and_actions_sit_below_the_name() {

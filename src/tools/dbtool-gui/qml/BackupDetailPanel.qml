@@ -1,25 +1,27 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Live per-table detail pane for one profile's backup/restore run. Bound to a
+// Live per-table detail panel for one profile's backup/restore run. Bound to a
 // BackupTableListModel (the profile's `tables` role from BackupStatusListModel)
-// and rendered as the right-hand detail region of BackupsPage's master-detail
-// layout.
+// and rendered as the detail region beside (or, on a narrow page, below)
+// BackupsPage's profile table.
 //
-// The panel is deliberately two-tier so it stays readable even when a profile
-// has hundreds of tables:
+// Drawn as a kit panel (`k-panel`) of its own — a 40 px header with the
+// profile name, its run-state pill and the worker count — so the page lays it
+// out like any other card. The body is deliberately two-tier so it stays
+// readable even when a profile has hundreds of tables:
 //
-//   1. A SUMMARY header — the overall "142 / 700 tables" progress, an aggregate
+//   1. A SUMMARY — the overall "142 / 700 tables" readout, an aggregate
 //      progress bar, and per-state chips (running / queued / error / warning).
 //      These come straight from the model's cached tallies (totalCount,
 //      doneCount, …), so no row scan happens in QML.
-//   2. A live list of only the tables that still need attention — running,
-//      error, and warning. Completed ("done") and not-yet-started ("queued")
-//      tables are collapsed out of the list: the user asked to see progress on
-//      what is happening NOW, not a wall of finished rows.
+//   2. An "Active tables" section (kit section header + table header row)
+//      listing only the tables that still need attention — running, error,
+//      and warning. Completed ("done") and not-yet-started ("queued") tables
+//      are collapsed out of the list: the user asked to see progress on what
+//      is happening NOW, not a wall of finished rows.
 //
-// The panel is transparent: it fills a host `Card` in BackupsPage, so it must
-// not draw its own competing surface. Its own ListView scrolls independently of
-// the profile list on the left (each region owns its scrollbar).
+// The list owns its own scrollbar and scrolls independently of the profile
+// table (each region owns its scrollbar).
 
 import QtQuick
 import QtQuick.Controls
@@ -38,7 +40,10 @@ Rectangle {
     /// Number of parallel table workers (BackupConcurrency()), shown as a caption.
     property int workerCount: 1
 
-    color: "transparent"
+    color: Theme.clrCard
+    border.color: Theme.clrContainerHighest
+    radius: Theme.r3
+    clip: true
 
     // Proxy that surfaces only the running/error/warning rows of `tablesModel`,
     // re-filtering automatically as tables transition state. The list below
@@ -58,6 +63,10 @@ Rectangle {
     readonly property int _errors: tablesModel ? tablesModel.errorCount : 0
     readonly property int _warnings: tablesModel ? tablesModel.warningCount : 0
     readonly property bool _hasRun: _total > 0
+
+    // Width of the right-aligned ROWS column, shared by the table header and
+    // every row so the counts line up under their heading.
+    readonly property int _rowsColumnWidth: 76
 
     /// Compact row count: 4096 → "4.1k", 3_500_000 → "3.5M".
     ///
@@ -104,109 +113,115 @@ Rectangle {
     ColumnLayout {
         id: contentColumn
         anchors.fill: parent
-        spacing: 10
+        anchors.margins: 1
+        spacing: 0
 
-        // ---- Header: profile name + overall state pill + workers chip ----
-        RowLayout {
+        // ---- Header (k-panel .hd): glyph, profile name, state pill, workers ----
+        Item {
             Layout.fillWidth: true
-            spacing: 10
+            implicitHeight: 40
 
-            ColumnLayout {
-                // Must be shrinkable: its implicit width is the full
-                // untruncated profile name (~50 chars), which would otherwise
-                // act as a floor and squeeze the pill and workers chip away.
-                Layout.fillWidth: true
-                Layout.minimumWidth: 0
-                spacing: 3
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: 14
+                anchors.rightMargin: 12
+                spacing: 8
 
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 8
-
-                    Label {
-                        // `Layout.fillWidth` + `elide` yields the truncation.
-                        // Do NOT compute a `Layout.maximumWidth` from
-                        // `parent.width` minus a sibling's width here: the
-                        // sibling's width is itself an output of this layout
-                        // pass, so the binding feeds the layout its own result
-                        // and Qt aborts with "Detected recursive rearrange".
-                        // `Layout.minimumWidth: 0` is what lets the layout
-                        // shrink this Label instead of the status pill.
-                        Layout.fillWidth: true
-                        Layout.minimumWidth: 0
-                        text: root.profileName === "" ? qsTr("Backup details") : root.profileName
-                        color: Theme.text
-                        font.pixelSize: 15
-                        font.weight: Font.DemiBold
-                        elide: Text.ElideRight
-                        ToolTip.visible: titleHover.hovered && truncated
-                        ToolTip.delay: 400
-                        ToolTip.text: root.profileName
-                        HoverHandler { id: titleHover }
-                    }
-                    StatusPill {
-                        id: statePill
-                        visible: root.profileName !== ""
-                        // Reserve the pill's width so a long profile name elides
-                        // rather than collapsing the status out of the header.
-                        Layout.minimumWidth: visible ? implicitWidth : 0
-                        Layout.preferredWidth: implicitWidth
-                        status: root._pillStatus(root.overallState)
-                        label: root.overallState
-                    }
+                Glyph {
+                    Layout.alignment: Qt.AlignVCenter
+                    name: "history"
+                    size: 15
+                    color: Theme.clrOnSurfaceSubtle
                 }
-
-                // Archive identity line. Names the file the run is writing, so
-                // the panel says *which* archive these per-table rows belong to
-                // rather than only which profile.
                 Label {
+                    // `Layout.fillWidth` + `elide` yields the truncation. Do
+                    // NOT compute a `Layout.maximumWidth` from `parent.width`
+                    // minus a sibling's width here: the sibling's width is
+                    // itself an output of this layout pass, so the binding
+                    // feeds the layout its own result and Qt aborts with
+                    // "Detected recursive rearrange". `Layout.minimumWidth: 0`
+                    // is what lets the layout shrink this Label instead of the
+                    // status pill.
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    text: root.profileName === "" ? qsTr("Backup details") : root.profileName
+                    color: Theme.clrOnSurface
+                    font.pixelSize: Theme.sizeBody
+                    font.weight: Font.DemiBold
+                    elide: Text.ElideRight
+                    ToolTip.visible: titleHover.hovered && truncated
+                    ToolTip.delay: 400
+                    ToolTip.text: root.profileName
+                    HoverHandler { id: titleHover }
+                }
+                StatusPill {
+                    id: statePill
                     visible: root.profileName !== ""
-                    text: root.profileName + ".zip"
-                    color: Theme.textFaint
-                    font: Theme.monoFont(11)
-                    elide: Text.ElideMiddle
+                    // Reserve the pill's width so a long profile name elides
+                    // rather than collapsing the status out of the header.
+                    Layout.minimumWidth: visible ? implicitWidth : 0
+                    Layout.preferredWidth: implicitWidth
+                    status: root._pillStatus(root.overallState)
+                    label: root.overallState
+                }
+                // Worker-count chip (neutral kit pill).
+                Rectangle {
+                    visible: root.profileName !== ""
+                    Layout.minimumWidth: visible ? implicitWidth : 0
+                    implicitWidth: workersRow.implicitWidth + 16
+                    implicitHeight: 22
+                    radius: Theme.rPill
+                    color: Theme.clrContainer
+                    border.color: Theme.clrContainerHighest
+
+                    Row {
+                        id: workersRow
+                        anchors.centerIn: parent
+                        spacing: 5
+                        Glyph {
+                            anchors.verticalCenter: parent.verticalCenter
+                            name: "workers"
+                            size: 11
+                            color: Theme.clrOnSurfaceSubtle
+                            knockout: Theme.clrContainer
+                        }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: qsTr("%n worker(s)", "", root.workerCount)
+                            color: Theme.clrOnSurfaceMed
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.sizeLabel
+                            font.weight: Font.DemiBold
+                        }
+                    }
+                    ToolTip.visible: workerHover.hovered
+                    ToolTip.text: qsTr("Tables are backed up in parallel by up to %n worker thread(s).", "", root.workerCount)
+                    HoverHandler { id: workerHover }
                 }
             }
-            Rectangle {
-                visible: root.profileName !== ""
-                Layout.alignment: Qt.AlignTop
-                implicitWidth: workersRow.implicitWidth + 18
-                implicitHeight: workersRow.implicitHeight + 8
-                // Keep the chip at its natural size when the profile name is
-                // long; the name elides instead.
-                Layout.minimumWidth: visible ? implicitWidth : 0
-                radius: Theme.radiusPill
-                color: Theme.bgSubtle
-                border.color: Theme.border
 
-                RowLayout {
-                    id: workersRow
-                    anchors.centerIn: parent
-                    spacing: 5
-                    Glyph {
-                        name: "workers"
-                        size: 11
-                        color: Theme.textMuted
-                        knockout: Theme.bgSubtle
-                    }
-                    Label {
-                        text: qsTr("%n worker(s)", "", root.workerCount)
-                        color: Theme.textMuted
-                        font.pixelSize: 11
-                    }
-                }
-                ToolTip.visible: workerHover.hovered
-                ToolTip.text: qsTr("Tables are backed up in parallel by up to %n worker thread(s).", "", root.workerCount)
-                HoverHandler { id: workerHover }
+            Rectangle {
+                anchors.bottom: parent.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 1
+                color: Theme.clrDivider
             }
         }
 
-        // Divider under the header.
-        Rectangle {
+        // Archive identity line. Names the file the run is writing, so the
+        // panel says *which* archive these per-table rows belong to rather
+        // than only which profile.
+        Label {
             Layout.fillWidth: true
-            implicitHeight: 1
-            color: Theme.divider
+            Layout.leftMargin: 14
+            Layout.rightMargin: 14
+            Layout.topMargin: 10
+            visible: root.profileName !== ""
+            text: root.profileName + ".zip"
+            color: Theme.clrOnSurfaceFaint
+            font: Theme.monoFont(11)
+            elide: Text.ElideMiddle
         }
 
         // ---- Summary block (visible once the run has any tables) ----
@@ -214,22 +229,24 @@ Rectangle {
             id: summaryBlock
             visible: root._hasRun
             Layout.fillWidth: true
-            spacing: 6
+            Layout.leftMargin: 14
+            Layout.rightMargin: 14
+            Layout.topMargin: 6
+            Layout.bottomMargin: 12
+            spacing: 8
 
             // Aggregate readout. The done-count is the single number a user
             // watching a long run actually wants, so it gets display size and
             // tabular figures (so the digits don't shuffle sideways as it
-            // climbs), with the percentage right-aligned in the accent. It was
-            // previously a 13px label indistinguishable from the caption below
-            // it.
+            // climbs), with the percentage right-aligned.
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 8
 
                 Label {
                     text: "" + root._done
-                    color: Theme.text
-                    font.pixelSize: 22
+                    color: Theme.clrOnSurface
+                    font.pixelSize: Theme.sizeValue
                     font.weight: Font.DemiBold
                     // Tabular figures: a proportional '1' is narrower than a
                     // '7', so without this the number visibly jitters on every
@@ -239,8 +256,8 @@ Rectangle {
                 Label {
                     Layout.alignment: Qt.AlignBaseline
                     text: qsTr("/ %n table(s) done", "", root._total)
-                    color: Theme.textMuted
-                    font.pixelSize: 12
+                    color: Theme.clrOnSurfaceSubtle
+                    font.pixelSize: Theme.sizeBodySm
                 }
                 Item { Layout.fillWidth: true }
                 Label {
@@ -248,9 +265,9 @@ Rectangle {
                     text: root._total > 0
                           ? Math.floor(100 * root._done / root._total) + "%"
                           : ""
-                    color: root._errors > 0 ? Theme.errText
-                         : (root._done === root._total ? Theme.okText : Theme.accent)
-                    font.pixelSize: 14
+                    color: root._errors > 0 ? Theme.clrError
+                         : (root._done === root._total ? Theme.clrSuccess : Theme.clrOnSurfaceMed)
+                    font.pixelSize: Theme.sizeTitleSm
                     font.weight: Font.DemiBold
                     font.features: ({ "tnum": 1 })
                 }
@@ -258,14 +275,15 @@ Rectangle {
 
             ProgressTrack {
                 Layout.fillWidth: true
-                implicitHeight: 6
+                implicitHeight: 8
                 from: 0
                 to: root._total > 0 ? root._total : 1
                 value: root._done
+                trackColor: Theme.clrContainerHigh
                 // Carries the same semantic as the percentage above it: green
                 // once every table is in, red once a table has failed.
-                fillColor: root._errors > 0 ? Theme.err
-                         : (root._done === root._total && root._total > 0 ? Theme.ok : Theme.accent)
+                fillColor: root._errors > 0 ? Theme.clrErrorDot
+                         : (root._done === root._total && root._total > 0 ? Theme.clrSuccessDot : Theme.clrPrimary)
             }
 
             // Per-state chips — only the ones with a non-zero count show, so a
@@ -304,19 +322,102 @@ Rectangle {
                     text: qsTr("all done")
                 }
             }
+        }
 
-            // Caption for the active list below. When a run is in flight but
-            // nothing is currently active (e.g. between waves), say so rather
-            // than leaving a bare heading over empty space.
-            Label {
-                Layout.fillWidth: true
-                Layout.topMargin: 2
-                text: activeList.count > 0
-                      ? qsTr("Active tables")
-                      : qsTr("No tables in flight right now.")
-                color: Theme.textMuted
-                font.pixelSize: 11
-                font.weight: Font.DemiBold
+        // ---- "Active tables" section header (kit `dt-rg`) ----
+        // When a run is in flight but nothing is currently active (e.g. between
+        // waves), it says so rather than heading an empty list.
+        Rectangle {
+            visible: root._hasRun
+            Layout.fillWidth: true
+            implicitHeight: 34
+            color: Theme.clrSectionHdr
+
+            Rectangle {
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 1
+                color: Theme.clrSectionHdrBorder
+            }
+            Rectangle {
+                anchors.bottom: parent.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 1
+                color: Theme.clrSectionHdrBorder
+            }
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: 14
+                anchors.rightMargin: 14
+                spacing: 8
+
+                Glyph {
+                    name: "layers"
+                    size: 14
+                    color: Theme.clrOnSurfaceSubtle
+                    knockout: Theme.clrSectionHdr
+                }
+                Label {
+                    Layout.fillWidth: true
+                    text: activeList.count > 0
+                          ? qsTr("Active tables")
+                          : qsTr("No tables in flight right now.")
+                    color: activeList.count > 0 ? Theme.clrOnSurface : Theme.clrOnSurfaceSubtle
+                    font.pixelSize: Theme.sizeBodySm
+                    font.weight: activeList.count > 0 ? Font.DemiBold : Font.Normal
+                }
+                Label {
+                    visible: activeList.count > 0
+                    text: "" + activeList.count
+                    color: Theme.clrOnSurfaceSubtle
+                    font.pixelSize: Theme.sizeLabel
+                    font.features: ({ "tnum": 1 })
+                }
+            }
+        }
+
+        // ---- Table header row (kit `dt-mr.th`) ----
+        Rectangle {
+            visible: root._hasRun && activeList.count > 0
+            Layout.fillWidth: true
+            implicitHeight: 28
+            color: Theme.clrContainerLow
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: 14
+                anchors.rightMargin: 14
+                spacing: 10
+
+                Repeater {
+                    model: [
+                        { text: qsTr("Table"), width: -1 },
+                        { text: qsTr("Rows"), width: root._rowsColumnWidth },
+                        { text: qsTr("State"), width: 78 }
+                    ]
+                    Label {
+                        required property var modelData
+                        required property int index
+                        Layout.fillWidth: modelData.width < 0
+                        Layout.preferredWidth: modelData.width < 0 ? -1 : modelData.width
+                        horizontalAlignment: index === 0 ? Text.AlignLeft : Text.AlignRight
+                        text: modelData.text.toUpperCase()
+                        color: Theme.clrOnSurfaceSubtle
+                        font.pixelSize: Theme.sizeGroup
+                        font.weight: Font.Bold
+                        font.letterSpacing: 0.4
+                    }
+                }
+            }
+            Rectangle {
+                anchors.bottom: parent.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 1
+                color: Theme.clrContainerHighest
             }
         }
 
@@ -324,44 +425,54 @@ Rectangle {
         ColumnLayout {
             visible: !root._hasRun
             Layout.fillWidth: true
-            Layout.topMargin: 24
-            spacing: 6
+            Layout.topMargin: 28
+            Layout.leftMargin: 14
+            Layout.rightMargin: 14
+            spacing: 8
 
-            // Dashed placeholder box around an archive glyph, rather than an
-            // emoji — the emoji ignored `color`, so in dark mode it rendered as
-            // a full-colour sticker on a dark panel.
+            // Round placeholder well around an archive glyph, rather than an
+            // emoji — the emoji ignored `color` and rendered as a full-colour
+            // sticker.
             Rectangle {
                 Layout.alignment: Qt.AlignHCenter
-                implicitWidth: 34
-                implicitHeight: 34
-                radius: Theme.radiusMedium
-                color: "transparent"
-                border.color: Theme.borderStrong
-                border.width: 1
+                implicitWidth: 40
+                implicitHeight: 40
+                radius: 20
+                color: Theme.clrContainerLow
+                border.color: Theme.clrContainerHighest
 
                 Glyph {
                     anchors.centerIn: parent
-                    name: "archive"
-                    size: 16
-                    color: Theme.textFaint
+                    name: "archive-outline"
+                    size: 18
+                    color: Theme.clrOnSurfaceFaint
+                    knockout: Theme.clrContainerLow
                 }
             }
             Label {
-                Layout.alignment: Qt.AlignHCenter
+                Layout.fillWidth: true
                 horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
                 text: root.profileName === ""
                       ? qsTr("Select a profile to see its backup details.")
-                      : qsTr("No backup running for “%1”.\nPress Backup to start one.").arg(root.profileName)
-                color: Theme.textMuted
-                font.pixelSize: 12
+                      : qsTr("No backup running for “%1”.\nPress Back up to start one.").arg(root.profileName)
+                color: Theme.clrOnSurfaceSubtle
+                font.pixelSize: Theme.sizeBodySm
             }
+        }
+
+        // Absorbs the slack while the list is hidden, so the empty state sits
+        // at the top instead of being centred in a tall panel.
+        Item {
+            visible: !root._hasRun
+            Layout.fillHeight: true
         }
 
         // ---- Active-table list: running / error / warning only ----
         // Bound to `activeProxy`, which filters the source model in C++ so only
         // in-flight tables reach the view — hundreds of finished rows never
         // appear here. This ListView owns its own vertical scrollbar and
-        // scrolls independently of the profile master-list on the left.
+        // scrolls independently of the profile table.
         ListView {
             id: activeList
             visible: root._hasRun
@@ -370,7 +481,6 @@ Rectangle {
             Layout.minimumHeight: 0
             clip: true
             model: activeProxy
-            spacing: 6
             boundsBehavior: Flickable.StopAtBounds
 
             ScrollBar.vertical: ScrollBar {
@@ -378,7 +488,7 @@ Rectangle {
                         ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
             }
 
-            delegate: Item {
+            delegate: Rectangle {
                 id: tableRow
                 required property string tableName
                 required property var currentRows
@@ -387,39 +497,45 @@ Rectangle {
                 required property string message
 
                 readonly property bool hasTotal: tableRow.totalRows > 0
+                readonly property bool isError: tableRow.state === "error"
 
                 width: ListView.view ? ListView.view.width : 0
-                implicitHeight: rowCol.implicitHeight + 4
-
-                // Error rows get a tinted background so the one table that
+                implicitHeight: rowCol.implicitHeight + 14
+                height: implicitHeight
+                // Kit error row: warm tint + 3 px bar, so the one table that
                 // failed is findable in a scrolling list without reading every
                 // status pill.
+                color: isError ? Theme.clrErrorRowBg
+                     : (rowHover.hovered ? Theme.clrContainerLow : Theme.clrCard)
+                HoverHandler { id: rowHover }
+
                 Rectangle {
-                    anchors.fill: parent
-                    anchors.topMargin: 1
-                    anchors.bottomMargin: 1
-                    radius: Theme.radiusSmall
-                    color: tableRow.state === "error" ? Theme.errSoft
-                         : (rowHover.hovered ? Theme.bgHover : "transparent")
-                    HoverHandler { id: rowHover }
+                    visible: tableRow.isError
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    width: 3
+                    color: Theme.clrError
                 }
 
                 ColumnLayout {
                     id: rowCol
-                    width: parent.width
-                    spacing: 3
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.leftMargin: 14
+                    anchors.rightMargin: 14
+                    spacing: 5
 
                     RowLayout {
                         Layout.fillWidth: true
-                        Layout.leftMargin: 8
-                        Layout.rightMargin: 8
-                        Layout.topMargin: 4
                         spacing: 10
 
                         Label {
                             Layout.fillWidth: true
+                            Layout.minimumWidth: 0
                             text: tableRow.tableName
-                            color: Theme.text
+                            color: Theme.clrOnSurface
                             font: Theme.monoFont(11)
                             elide: Text.ElideMiddle
                         }
@@ -427,8 +543,8 @@ Rectangle {
                         // column so the numbers line up down the list instead of
                         // shifting with each table name's length.
                         Label {
-                            Layout.preferredWidth: 76
-                            Layout.minimumWidth: 76
+                            Layout.preferredWidth: root._rowsColumnWidth
+                            Layout.minimumWidth: root._rowsColumnWidth
                             horizontalAlignment: Text.AlignRight
                             // Abbreviated ("203M / 320T"), not raw digits — see
                             // _formatRows(). The exact figures are on hover.
@@ -436,7 +552,7 @@ Rectangle {
                                   ? (root._formatRows(tableRow.currentRows)
                                      + " / " + root._formatRows(tableRow.totalRows))
                                   : root._formatRows(tableRow.currentRows)
-                            color: Theme.textMuted
+                            color: Theme.clrOnSurfaceSubtle
                             // The mono face already has uniform digit widths, so
                             // the counts line up without a `tnum` feature (and
                             // `font: …` cannot be combined with `font.features:`
@@ -456,41 +572,60 @@ Rectangle {
                                                 .arg(Number(tableRow.currentRows).toLocaleString(Qt.locale()))
                             HoverHandler { id: countHover }
                         }
-                        StatusPill {
-                            status: root._pillStatus(tableRow.state)
-                            label: tableRow.state
-                            // The row's own message line carries the detail, so
-                            // the pill does not repeat the generic per-status
-                            // explanation on hover (a single space is
-                            // StatusPill's documented "no tooltip" value).
-                            tooltipText: " "
+                        // Fixed-width cell so pills right-align under STATE.
+                        Item {
+                            Layout.preferredWidth: 78
+                            Layout.minimumWidth: rowPill.implicitWidth
+                            implicitHeight: rowPill.implicitHeight
+
+                            StatusPill {
+                                id: rowPill
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: implicitWidth
+                                status: root._pillStatus(tableRow.state)
+                                label: tableRow.state
+                                // The row's own message line carries the detail,
+                                // so the pill does not repeat the generic
+                                // per-status explanation on hover (a single space
+                                // is StatusPill's documented "no tooltip" value).
+                                tooltipText: " "
+                            }
                         }
                     }
 
                     ProgressTrack {
                         Layout.fillWidth: true
-                        Layout.leftMargin: 8
-                        Layout.rightMargin: 8
                         // Indeterminate until we know the total row count.
                         indeterminate: !tableRow.hasTotal && tableRow.state === "running"
                         from: 0
                         to: tableRow.hasTotal ? tableRow.totalRows : 1
                         value: tableRow.hasTotal ? tableRow.currentRows : 0
-                        fillColor: tableRow.state === "error" ? Theme.err
-                                 : (tableRow.state === "warning" ? Theme.warn : Theme.accent)
+                        trackColor: Theme.clrContainerHigh
+                        fillColor: tableRow.isError ? Theme.clrErrorDot
+                                 : (tableRow.state === "warning" ? Theme.clrWarningDot : Theme.clrPrimary)
                     }
 
                     Label {
                         Layout.fillWidth: true
-                        Layout.leftMargin: 8
-                        Layout.rightMargin: 8
-                        Layout.bottomMargin: 4
                         visible: tableRow.message !== ""
                         text: tableRow.message
-                        color: tableRow.state === "error" ? Theme.errText : Theme.textFaint
-                        font.pixelSize: 10
+                        color: tableRow.isError ? Theme.clrError : Theme.clrOnSurfaceSubtle
+                        font.pixelSize: Theme.sizeLabel
                         elide: Text.ElideRight
+                        ToolTip.visible: msgHover.hovered && truncated
+                        ToolTip.delay: 400
+                        ToolTip.text: tableRow.message
+                        HoverHandler { id: msgHover }
                     }
+                }
+
+                Rectangle {
+                    anchors.bottom: parent.bottom
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 1
+                    color: Theme.clrDivider
                 }
             }
         }

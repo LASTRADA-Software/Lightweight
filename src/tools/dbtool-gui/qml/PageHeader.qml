@@ -1,23 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Full-width page header: an eyebrow / title / context stack on the left and
-// caller-supplied action buttons on the right, over a `bgWindow` band that
-// separates the page from the toolbar above it.
-//
-// The Backups page previously opened with a bare 22px label and two buttons on
-// one row, then spent an entire `Card` below the fold restating the backup
-// folder. That put a static configuration value — one the user changes rarely
-// but needs to *see* constantly to trust what "Back up all" will overwrite —
-// into the same visual weight as the live per-profile list. Folding the path
-// into the header's context line reclaims the card's vertical space for the
-// profile list while keeping the path permanently visible.
+// Kit page header (`k-top` in the Lastrada design): a 52 px white band with
+// a breadcrumb over the page title on the left, inline status items next to
+// the title (connection chip, run-state pill), and right-aligned actions.
+// Every page in the shell (Migrations, Backups, Settings) opens with one.
 //
 // Usage:
 //     PageHeader {
-//         eyebrow: qsTr("Managed archives")
-//         title: qsTr("Backups")
-//         contextItems: [ … ]        // any Items; laid out in a row
-//         actions: [ Button { … } ]  // right-aligned
+//         crumbs: [ "staging-postgres", qsTr("Migrations") ]
+//         title: qsTr("Migrations")
+//         contextItems: [ ConnectionChip { } ]   // inline, after the title
+//         actions: [ LsButton { … } ]            // right-aligned
 //     }
 
 import QtQuick
@@ -28,24 +21,26 @@ import Lightweight.Migrations
 Rectangle {
     id: root
 
-    /// Small uppercase label above the title. Names the section the page
-    /// belongs to; omit for a page that needs no such grouping.
+    /// Breadcrumb segments shown above the title, joined by chevrons.
+    property var crumbs: []
+
+    /// Legacy single-segment breadcrumb; used when `crumbs` is empty.
     property string eyebrow: ""
 
     /// The page title.
     property string title: ""
 
-    /// Items placed in the context row under the title (path labels, counts,
-    /// links). Declared as an item list so callers can mix Labels, Glyphs, and
-    /// clickable links without this component knowing their shapes.
+    /// Items placed inline right after the title (pills, connection chip).
     property list<Item> contextItems
 
-    /// Right-aligned action items, typically Buttons. The primary action
-    /// should come first so it sits nearest the title.
+    /// Right-aligned action items, typically `LsButton`s. The primary action
+    /// should come last so it sits at the trailing edge, as in the kit.
     property list<Item> actions
 
-    color: Theme.bgWindow
-    implicitHeight: headerRow.implicitHeight + 32
+    readonly property var _crumbs: crumbs.length > 0 ? crumbs : (eyebrow !== "" ? [eyebrow] : [])
+
+    color: Theme.clrCard
+    implicitHeight: Theme.topH
 
     // Hairline separating the header band from the page body below.
     Rectangle {
@@ -53,54 +48,69 @@ Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         height: 1
-        color: Theme.border
+        color: Theme.clrContainerHighest
     }
 
     RowLayout {
         id: headerRow
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.leftMargin: 20
-        anchors.rightMargin: 20
-        spacing: 24
+        anchors.fill: parent
+        anchors.leftMargin: Theme.sp4
+        anchors.rightMargin: Theme.sp4
+        spacing: 10
 
         ColumnLayout {
+            Layout.alignment: Qt.AlignVCenter
+            Layout.maximumWidth: implicitWidth
+            Layout.minimumWidth: 60
             Layout.fillWidth: true
-            // Bottom-align the text stack with the action row so the title's
-            // baseline and the buttons line up on the same optical row.
-            Layout.alignment: Qt.AlignBottom
-            spacing: 3
+            spacing: 1
 
-            Label {
-                visible: root.eyebrow !== ""
-                text: root.eyebrow
-                color: Theme.textFaint
-                font.pixelSize: 10
-                font.weight: Font.DemiBold
-                font.letterSpacing: 0.9
-                font.capitalization: Font.AllUppercase
+            Row {
+                visible: root._crumbs.length > 0
+                spacing: 5
+                Repeater {
+                    model: root._crumbs
+                    Row {
+                        required property string modelData
+                        required property int index
+                        spacing: 5
+                        Glyph {
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: index > 0
+                            name: "chevron"
+                            size: 10
+                            color: Theme.clrOnSurfaceFaint
+                        }
+                        Label {
+                            text: modelData
+                            color: Theme.clrOnSurfaceSubtle
+                            font.pixelSize: Theme.sizeLabel
+                            elide: Text.ElideRight
+                        }
+                    }
+                }
             }
             Label {
+                Layout.fillWidth: true
                 text: root.title
-                color: Theme.text
-                font.pixelSize: 21
+                color: Theme.clrOnSurface
+                font.pixelSize: Theme.sizeTitle
                 font.weight: Font.DemiBold
                 elide: Text.ElideRight
-                Layout.fillWidth: true
-            }
-            // Context row. `Flow` rather than `RowLayout` so a long path plus
-            // several counts wrap instead of forcing the window wider.
-            Flow {
-                Layout.fillWidth: true
-                visible: root.contextItems.length > 0
-                spacing: 7
-                children: root.contextItems
             }
         }
 
         Row {
-            Layout.alignment: Qt.AlignBottom
+            Layout.alignment: Qt.AlignVCenter
+            visible: root.contextItems.length > 0
+            spacing: 8
+            children: root.contextItems
+        }
+
+        Item { Layout.fillWidth: true }
+
+        Row {
+            Layout.alignment: Qt.AlignVCenter
             spacing: 8
             children: root.actions
         }

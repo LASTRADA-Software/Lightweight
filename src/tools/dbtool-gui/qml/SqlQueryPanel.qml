@@ -4,6 +4,11 @@
 // The user types a query in the editor on top, hits Execute (or
 // `Ctrl+Enter`) and sees results / errors below. Intended for the Expert
 // view only; not embedded by `SimpleView.qml`.
+//
+// The editor is the second dark code surface of the Lastrada design (next to
+// the log): warm black with the syntax colours from `SqlSyntaxHighlighter`,
+// which are tuned for that background. The toolbar and the result grid stay
+// light so query output reads like the rest of the app's tables.
 
 import QtQuick
 import QtQuick.Controls
@@ -12,7 +17,10 @@ import Lightweight.Migrations
 
 Rectangle {
     id: root
-    color: Theme.bgPanel
+    color: Theme.clrCard
+    // Follow the host panel's rounded bottom corners.
+    bottomLeftRadius: Theme.r3 - 1
+    bottomRightRadius: Theme.r3 - 1
 
     /// Number of rows in the most recent successful execution. Bound by
     /// `BottomPanel` so the shared footer can show "SQL — N row(s)".
@@ -152,18 +160,26 @@ Rectangle {
         id: split
         anchors.fill: parent
         orientation: Qt.Vertical
+        // 1 px hairline like the Expert view's pane separators; the
+        // containment mask keeps a usable 9 px grab area.
         handle: Rectangle {
-            implicitHeight: 4
-            color: SplitHandle.pressed ? Theme.accent
-                 : SplitHandle.hovered ? Theme.borderStrong
-                 : Theme.border
+            id: splitHandle
+            implicitHeight: 1
+            color: SplitHandle.pressed ? Theme.clrPrimary
+                 : SplitHandle.hovered ? Theme.clrBorderStrong
+                 : Theme.clrContainerHighest
+            containmentMask: Item {
+                y: -4
+                height: 9
+                width: splitHandle.width
+            }
         }
 
         // Editor + toolbar
         Rectangle {
             SplitView.preferredHeight: 140
             SplitView.minimumHeight: 80
-            color: Theme.bgPanel
+            color: Theme.clrSidebarBg
 
             ColumnLayout {
                 anchors.fill: parent
@@ -172,23 +188,25 @@ Rectangle {
                 // Toolbar row
                 Rectangle {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 32
-                    color: Theme.bgChrome
+                    Layout.preferredHeight: 36
+                    color: Theme.clrContainerLow
                     Rectangle {
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.bottom: parent.bottom
                         height: 1
-                        color: Theme.border
+                        color: Theme.clrContainerHighest
                     }
                     RowLayout {
                         anchors.fill: parent
                         anchors.leftMargin: 8
                         anchors.rightMargin: 8
                         spacing: 6
-                        Button {
+                        LsButton {
                             text: qsTr("Execute")
-                            highlighted: true
+                            variant: "secondary"
+                            glyph: "play"
+                            busy: AppController.sqlQueryRunner.busy
                             enabled: AppController.connected
                                      && !AppController.sqlQueryRunner.busy
                                      && editor.text.trim().length > 0
@@ -197,9 +215,9 @@ Rectangle {
                             ToolTip.text: qsTr("Run the SQL above against the connected database. Shortcut: Ctrl+Enter.")
                             onClicked: root.runQuery()
                         }
-                        Button {
+                        LsButton {
                             text: qsTr("Clear")
-                            flat: true
+                            variant: "ghost"
                             enabled: editor.text.length > 0 || root.hasError || root.rowCount > 0
                             onClicked: {
                                 editor.clear()
@@ -216,8 +234,8 @@ Rectangle {
                             text: AppController.connected
                                 ? root.statusText
                                 : qsTr("Not connected")
-                            color: root.hasError ? Theme.errText : Theme.textFaint
-                            font.pixelSize: 11
+                            color: root.hasError ? Theme.clrError : Theme.clrOnSurfaceSubtle
+                            font.pixelSize: Theme.sizeLabel
                         }
                     }
                 }
@@ -233,16 +251,18 @@ Rectangle {
                     TextArea {
                         id: editor
                         placeholderText: qsTr("Type SQL here. Ctrl+Enter to run.")
-                        placeholderTextColor: Theme.textFaint
-                        font: Theme.monoFont(13)
-                        color: Theme.text
+                        placeholderTextColor: Theme.clrCodeMuted
+                        font: Theme.monoFont(Theme.sizeMono)
+                        color: Theme.clrCodeText
+                        selectionColor: Qt.rgba(Theme.clrPrimary.r, Theme.clrPrimary.g, Theme.clrPrimary.b, 0.55)
+                        selectedTextColor: "#ffffff"
                         selectByMouse: true
                         wrapMode: TextEdit.NoWrap
-                        background: Rectangle { color: Theme.bgPanel }
+                        background: Rectangle { color: Theme.clrSidebarBg }
                         leftPadding: 14
                         rightPadding: 14
-                        topPadding: 6
-                        bottomPadding: 6
+                        topPadding: 8
+                        bottomPadding: 8
                         SqlSyntaxHighlighter {
                             textDocument: editor.textDocument
                         }
@@ -255,17 +275,17 @@ Rectangle {
         Rectangle {
             SplitView.fillHeight: true
             SplitView.minimumHeight: 80
-            color: Theme.bgPanel
+            color: Theme.clrCard
 
             // Error view: replaces the table when the last execution failed.
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: 8
                 visible: root.hasError
-                color: Theme.errSoft
-                border.color: Theme.err
+                color: Theme.clrErrorBg
+                border.color: Theme.clrErrorBorder
                 border.width: 1
-                radius: 4
+                radius: Theme.r2
 
                 ScrollView {
                     id: errorScroll
@@ -280,7 +300,7 @@ Rectangle {
                         selectByMouse: true
                         wrapMode: TextEdit.Wrap
                         font: Theme.monoFont(12)
-                        color: Theme.errText
+                        color: Theme.clrError
                         background: null
                         text: {
                             var msg = root.errorMessage
@@ -306,10 +326,10 @@ Rectangle {
                     clip: true
                     model: AppController.sqlQueryRunner.model
                     delegate: Rectangle {
-                        implicitHeight: 26
+                        implicitHeight: 28
                         implicitWidth: 100
-                        color: Theme.bgChrome
-                        border.color: Theme.border
+                        color: Theme.clrContainerLow
+                        border.color: Theme.clrContainerHighest
                         border.width: 1
                         Label {
                             anchors.fill: parent
@@ -318,8 +338,8 @@ Rectangle {
                             verticalAlignment: Text.AlignVCenter
                             elide: Text.ElideRight
                             text: display !== undefined ? display : ""
-                            color: Theme.text
-                            font.pixelSize: 11
+                            color: Theme.clrOnSurfaceMed
+                            font.pixelSize: Theme.sizeLabel
                             font.weight: Font.DemiBold
                         }
                     }
@@ -349,7 +369,7 @@ Rectangle {
                         contentItem: Rectangle {
                             implicitWidth: 8
                             radius: width / 2
-                            color: vbar.pressed ? Theme.textMuted : Theme.textFaint
+                            color: vbar.pressed ? Theme.clrOnSurfaceSubtle : Theme.clrOnSurfaceFaint
                             opacity: vbar.size < 1.0
                                 ? (vbar.pressed || vbar.hovered ? 0.85 : 0.55)
                                 : 0.0
@@ -363,7 +383,7 @@ Rectangle {
                         contentItem: Rectangle {
                             implicitHeight: 8
                             radius: height / 2
-                            color: hbar.pressed ? Theme.textMuted : Theme.textFaint
+                            color: hbar.pressed ? Theme.clrOnSurfaceSubtle : Theme.clrOnSurfaceFaint
                             opacity: hbar.size < 1.0
                                 ? (hbar.pressed || hbar.hovered ? 0.85 : 0.55)
                                 : 0.0
@@ -375,17 +395,17 @@ Rectangle {
 
                     delegate: Rectangle {
                         id: cellDelegate
-                        implicitHeight: 24
+                        implicitHeight: 26
                         implicitWidth: 140
                         readonly property bool selected: row === root.selectedRow
                                                          && column === root.selectedColumn
                         readonly property bool inSelectedRow: row === root.selectedRow
                         color: selected
-                            ? Theme.bgSelected
+                            ? Theme.clrPrimarySoft
                             : (inSelectedRow
-                                ? Theme.bgHover
-                                : (row % 2 === 0 ? Theme.bgPanel : Theme.bgSubtle))
-                        border.color: Theme.divider
+                                ? Theme.clrContainerLow
+                                : (row % 2 === 0 ? Theme.clrCard : Theme.clrContainerLow))
+                        border.color: Theme.clrDivider
                         border.width: 1
                         Label {
                             anchors.fill: parent
@@ -394,10 +414,10 @@ Rectangle {
                             verticalAlignment: Text.AlignVCenter
                             elide: Text.ElideRight
                             text: model.display !== undefined ? model.display : ""
-                            color: model.isNull ? Theme.textFaint : Theme.text
+                            color: model.isNull ? Theme.clrOnSurfaceFaint : Theme.clrOnSurface
                             font: Qt.font({
                                 families: Theme.monoFamilies,
-                                pixelSize: 12,
+                                pixelSize: Theme.sizeMono,
                                 italic: model.isNull === true,
                             })
                         }
@@ -430,8 +450,8 @@ Rectangle {
                         text: AppController.connected
                             ? qsTr("Type a query above and press Ctrl+Enter to run it.")
                             : qsTr("Connect to a database to run queries.")
-                        color: Theme.textFaint
-                        font.pixelSize: 12
+                        color: Theme.clrOnSurfaceSubtle
+                        font.pixelSize: Theme.sizeBodySm
                     }
                 }
             }
