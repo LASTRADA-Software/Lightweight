@@ -111,6 +111,9 @@ struct Field
     constexpr ~Field() noexcept = default;
     // clang-format on
 
+    /// Constructs a field whose value is about to be overwritten, e.g. by reading a result row.
+    constexpr explicit Field(detail::UninitializedTag /*tag*/) noexcept {}
+
     /// Constructs a new field with the given value.
     template <typename... S>
         requires std::constructible_from<T, S...>
