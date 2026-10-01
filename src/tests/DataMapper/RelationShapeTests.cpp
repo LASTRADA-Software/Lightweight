@@ -129,7 +129,7 @@ struct TreeNode
     static constexpr std::string_view TableName = "TreeNodes";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<30>> name {};
+    Field<SqlAnsiString<30>> name;
     BelongsTo<Member(TreeNode::id), SqlRealName { "parent_id" }, SqlNullable::Null> parent {};
     HasMany<TreeNode> children {};
 };
@@ -161,14 +161,17 @@ TreeIds MakeTree(DataMapper& dm)
     dm.Create(root);
 
     auto childA = TreeNode { .name = "childA" };
+
     childA.parent = root;
     dm.Create(childA);
 
     auto childB = TreeNode { .name = "childB" };
+
     childB.parent = root;
     dm.Create(childB);
 
     auto grandchild = TreeNode { .name = "grandchild" };
+
     grandchild.parent = childA;
     dm.Create(grandchild);
 
@@ -352,7 +355,7 @@ struct OptionalParent
     static constexpr std::string_view TableName = "OptionalParents";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<30>> name {};
+    Field<SqlAnsiString<30>> name;
     HasMany<struct OptionalChild> children {};
 };
 
@@ -361,7 +364,7 @@ struct OptionalChild
     static constexpr std::string_view TableName = "OptionalChildren";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<30>> name {};
+    Field<SqlAnsiString<30>> name;
     BelongsTo<Member(OptionalParent::id), SqlRealName { "parent_id" }, SqlNullable::Null> parent {};
 };
 
@@ -377,6 +380,7 @@ TEST_CASE_METHOD(SqlTestFixture, "A NULL foreign key belongs to no parent", "[Da
     dm.Create(parent);
 
     auto attached = OptionalChild { .name = "attached" };
+
     attached.parent = parent;
     dm.Create(attached);
 
@@ -415,6 +419,7 @@ TEST_CASE_METHOD(SqlTestFixture, "A nullable foreign key can be cleared", "[Data
     dm.Create(parent);
 
     auto child = OptionalChild { .name = "child" };
+
     child.parent = parent;
     dm.Create(child);
 
@@ -450,7 +455,7 @@ struct ChainA
     static constexpr std::string_view TableName = "ChainAs";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<20>> label {};
+    Field<SqlAnsiString<20>> label;
     HasMany<ChainB> bs {};
 };
 
@@ -459,8 +464,8 @@ struct ChainB
     static constexpr std::string_view TableName = "ChainBs";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<20>> label {};
-    BelongsTo<Member(ChainA::id)> a {};
+    Field<SqlAnsiString<20>> label;
+    BelongsTo<Member(ChainA::id)> a;
     HasMany<ChainC> cs {};
 };
 
@@ -469,8 +474,8 @@ struct ChainC
     static constexpr std::string_view TableName = "ChainCs";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<20>> label {};
-    BelongsTo<Member(ChainB::id)> b {};
+    Field<SqlAnsiString<20>> label;
+    BelongsTo<Member(ChainB::id)> b;
     HasMany<ChainD> ds {};
 };
 
@@ -479,8 +484,8 @@ struct ChainD
     static constexpr std::string_view TableName = "ChainDs";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<20>> label {};
-    BelongsTo<Member(ChainC::id)> c {};
+    Field<SqlAnsiString<20>> label;
+    BelongsTo<Member(ChainC::id)> c;
 };
 
 // Each hop resolves against its own record pair, and each must name the column of the correct table.
@@ -499,22 +504,18 @@ TEST_CASE_METHOD(SqlTestFixture, "Relations resolve along a four-table chain", "
     auto a = ChainA { .label = "a" };
     dm.Create(a);
 
-    auto b = ChainB { .label = "b" };
-    b.a = a;
+    auto b = ChainB { .label = "b", .a = a };
     dm.Create(b);
 
-    auto c = ChainC { .label = "c" };
-    c.b = b;
+    auto c = ChainC { .label = "c", .b = b };
     dm.Create(c);
 
-    auto d = ChainD { .label = "d" };
-    d.c = c;
+    auto d = ChainD { .label = "d", .c = c };
     dm.Create(d);
 
     // A second branch at the B level: a hop resolving to the wrong table shows up as a count of 2
     // where 1 is correct.
-    auto b2 = ChainB { .label = "b2" };
-    b2.a = a;
+    auto b2 = ChainB { .label = "b2", .a = a };
     dm.Create(b2);
 
     auto loadedAOpt = dm.QuerySingle<ChainA>(a.id.Value());
@@ -556,14 +557,11 @@ TEST_CASE_METHOD(SqlTestFixture, "Each level of a chain traverses independently"
     dm.Create(a);
 
     auto makeBranch = [&](std::string_view label) {
-        auto b = ChainB { .label = SqlAnsiString<20> { label } };
-        b.a = a;
+        auto b = ChainB { .label = SqlAnsiString<20> { label }, .a = a };
         dm.Create(b);
-        auto c = ChainC { .label = SqlAnsiString<20> { label } };
-        c.b = b;
+        auto c = ChainC { .label = SqlAnsiString<20> { label }, .b = b };
         dm.Create(c);
-        auto d = ChainD { .label = SqlAnsiString<20> { label } };
-        d.c = c;
+        auto d = ChainD { .label = SqlAnsiString<20> { label }, .c = c };
         dm.Create(d);
         return std::tuple { b.id.Value(), c.id.Value(), d.id.Value() };
     };
@@ -615,8 +613,7 @@ TEST_CASE_METHOD(SqlTestFixture, "LoadRelations on a record without a BelongsTo"
 
     auto a = ChainA { .label = "a" };
     dm.Create(a);
-    auto b = ChainB { .label = "b" };
-    b.a = a;
+    auto b = ChainB { .label = "b", .a = a };
     dm.Create(b);
 
     auto loadedAOpt = dm.QuerySingle<ChainA>(a.id.Value());
@@ -640,11 +637,9 @@ TEST_CASE_METHOD(SqlTestFixture, "LoadRelations fills a non-nullable BelongsTo",
 
     auto a = ChainA { .label = "a" };
     dm.Create(a);
-    auto b = ChainB { .label = "b" };
-    b.a = a;
+    auto b = ChainB { .label = "b", .a = a };
     dm.Create(b);
-    auto c = ChainC { .label = "c" };
-    c.b = b;
+    auto c = ChainC { .label = "c", .b = b };
     dm.Create(c);
 
     // ChainB carries both a BelongsTo (upwards) and a HasMany (downwards), so one call exercises both
@@ -680,6 +675,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     dm.Create(parent);
 
     auto attached = OptionalChild { .name = "attached" };
+
     attached.parent = parent;
     dm.Create(attached);
 
