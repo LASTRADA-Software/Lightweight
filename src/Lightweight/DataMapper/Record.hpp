@@ -71,12 +71,31 @@ namespace detail
         return std::nullopt;
     }
 
+    /// The member a generated key value belongs to: the first AutoAssign or ServerSideAutoIncrement
+    /// member, so that a PrimaryKey::Manual member declared before it does not claim the value.
+    template <std::size_t I, typename Record>
+    constexpr std::optional<size_t> FindGeneratedPrimaryKeyIndex()
+    {
+        if constexpr (I < RecordMemberCount<Record>)
+        {
+            using FieldType = RecordMemberTypeOf<I, Record>;
+            if constexpr (IsAutoAssignPrimaryKeyField<FieldType>::value || IsAutoIncrementPrimaryKeyField<FieldType>::value)
+                return { I };
+            else
+                return FindGeneratedPrimaryKeyIndex<I + 1, Record>();
+        }
+        return std::nullopt;
+    }
+
 } // namespace detail
 
 /// Declare RecordPrimaryKeyIndex<Record> to retrieve the primary key index of the given record.
+///
+/// The member the mapper generates a value for (AutoAssign or ServerSideAutoIncrement) if there is one,
+/// otherwise the first primary key member.
 template <typename Record>
-constexpr size_t RecordPrimaryKeyIndex =
-    detail::FindPrimaryKeyIndex<0, Record>().value_or((std::numeric_limits<size_t>::max)());
+constexpr size_t RecordPrimaryKeyIndex = detail::FindGeneratedPrimaryKeyIndex<0, Record>().value_or(
+    detail::FindPrimaryKeyIndex<0, Record>().value_or((std::numeric_limits<size_t>::max)()));
 
 /// Retrieves a reference to the given record's primary key.
 template <typename Record>
@@ -585,7 +604,11 @@ template <typename Record>
     }(record, std::make_index_sequence<RecordMemberCount<Record>> {});
 }
 
-/// Returns the first primary key field of the record.
+/// Returns the primary key value of the record.
+///
+/// Selected by type: the first primary key member of type @c RecordPrimaryKeyType, preferring a
+/// generated one (AutoAssign or ServerSideAutoIncrement) over a PrimaryKey::Manual one of the same type,
+/// so that a Manual member declared earlier does not stand in for the key the mapper generated.
 ///
 /// @ingroup DataMapper
 template <typename Record>
@@ -596,17 +619,23 @@ inline LIGHTWEIGHT_FORCE_INLINE RecordPrimaryKeyType<Record> GetPrimaryKeyField(
 
     auto result = RecordPrimaryKeyType<Record> {};
     bool found = false;
+    bool foundGenerated = false;
     EnumerateRecordMembers(record, [&]<size_t I, typename FieldType>(FieldType const& field) {
-        // std::same_as<typename FieldType::ValueType, RecordPrimaryKeyType<Record>>condition is for the case where there are
-        // multiple primary keys, we want to return the first one
-        if constexpr (IsField<FieldType>)
-            if constexpr (IsPrimaryKey<FieldType>)
-                if constexpr (std::same_as<typename FieldType::ValueType, RecordPrimaryKeyType<Record>>)
-                    if (!found)
-                    {
-                        result = field.Value();
-                        found = true;
-                    }
+        // Nested rather than one condition: ValueType exists only on a Field, so the type comparison
+        // may be formed only once IsField has been established.
+        if constexpr (IsField<FieldType> && IsPrimaryKey<FieldType>)
+        {
+            if constexpr (std::same_as<typename FieldType::ValueType, RecordPrimaryKeyType<Record>>)
+            {
+                constexpr bool Generated = FieldType::IsAutoAssignPrimaryKey || FieldType::IsAutoIncrementPrimaryKey;
+                if (!found || (Generated && !foundGenerated))
+                {
+                    result = field.Value();
+                    found = true;
+                    foundGenerated = Generated;
+                }
+            }
+        }
     });
     return result;
 }

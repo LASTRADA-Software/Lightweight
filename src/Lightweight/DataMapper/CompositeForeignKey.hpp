@@ -169,10 +169,9 @@ concept ConnectionType = detail::IsConnectionType<std::remove_cvref_t<T>>::value
 /// @code
 /// struct Parent
 /// {
-///     // Composite key members must not be PrimaryKey::AutoAssign: auto-assignment yields one value
-///     // that would be written into every key member. See GenerateAutoAssignPrimaryKey.
-///     Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "part_a" }> partA;
-///     Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "part_b" }> partB;
+///     // Composite key members are PrimaryKey::Manual; see that enumerator for why.
+///     Field<int32_t, PrimaryKey::Manual, SqlRealName { "part_a" }> partA;
+///     Field<int32_t, PrimaryKey::Manual, SqlRealName { "part_b" }> partB;
 /// };
 /// struct Child
 /// {

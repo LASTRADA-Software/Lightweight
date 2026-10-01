@@ -30,9 +30,9 @@ struct CkParent
 {
     static constexpr std::string_view TableName = "CkParent";
 
-    // One member per column, both primary keys. NOT AutoAssign - see the warning below.
-    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName{"part_a"}> partA;
-    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName{"part_b"}> partB;
+    // One member per column, both primary keys. Manual, not AutoAssign - see the warning below.
+    Field<int32_t, PrimaryKey::Manual, SqlRealName{"part_a"}> partA;
+    Field<int32_t, PrimaryKey::Manual, SqlRealName{"part_b"}> partB;
     Field<std::optional<SqlAnsiString<40>>, SqlRealName{"caption"}> caption;
 };
 
@@ -63,11 +63,13 @@ CompositeForeignKey<Connection<&Leaf::a, &Hub::k1>,
 ```
 
 > **Do not mark several key members `PrimaryKey::AutoAssign`.** Auto-assignment produces a single
-> value which `SetId()` then writes into *every* primary key member, so a composite key would receive
-> the same value in all of its columns. This is rejected at compile time by a `static_assert` in
-> `GenerateAutoAssignPrimaryKey`, for the value types auto-assignment actually generates (GUIDs and
-> incrementable ones). Declare composite key members without `AutoAssign` and set their values
-> yourself before calling `Create()`.
+> value which `SetId()` then writes into every generated primary key member, so a composite key would
+> receive the same value in all of its columns. This is rejected at compile time by a `static_assert`
+> in `GenerateAutoAssignPrimaryKey`, for the value types auto-assignment actually generates (GUIDs and
+> incrementable ones). Declare composite key members `PrimaryKey::Manual`: they remain the key for
+> `QuerySingle`, `Update` and `Delete`, but `Create()` neither generates them nor writes into them, so
+> the values you set before calling it are what is stored. `ddl2cpp` emits `Manual` for every member
+> of a composite key regardless of its configured `PrimaryKeyAssignment`.
 
 ## Why the pairing matters
 
@@ -250,14 +252,15 @@ Add to `Lightweight.cppm`, `CMakeLists.txt` header list, and `docs/usage.md`.
 
 Deferred deliberately, and recorded as such rather than silently skipped:
 
-- **`ddl2cpp` generation.** Mechanical once the spelling is fixed (the schema reader already reports
-  both ordered column lists), but it is a separate change on top of a working library API.
+- **`ddl2cpp` generation** of the composite *relation*. Mechanical once the spelling is fixed (the
+  schema reader already reports both ordered column lists), but it is a separate change on top of a
+  working library API. The composite *key* itself is already generated as `PrimaryKey::Manual` members.
 - **The inverse (`HasMany` over a composite relation).** Needs the selector to name a column *list*;
   the surveyed schema has a table with three separate two-column foreign keys into one parent, so this
   is required eventually, not optional.
-- **`AutoAssign` / `ServerSideAutoIncrement` semantics across several key columns.** Server-side
-  auto-increment is meaningless for a multi-column key and wants an explicit `static_assert`
-  rejection.
+- **`ServerSideAutoIncrement` across several key columns.** Server-side auto-increment is meaningless
+  for a multi-column key and wants an explicit `static_assert` rejection; `AutoAssign` already has one,
+  and `Manual` is the assignment a composite key should use.
 - **C++26 reflection branch.** No binder or column arithmetic changes here, so it should need nothing —
   to be confirmed by building that configuration, not assumed.
 
