@@ -15,7 +15,8 @@ struct Invoiceline final
 {
     static constexpr std::string_view TableName = "InvoiceLine";
 
-    Light::Field<int32_t, Light::PrimaryKey::ServerSideAutoIncrement, Light::SqlRealName { "InvoiceLineId" }> InvoiceLineId;
+    Light::Field<int32_t, Light::PrimaryKey::ServerSideAutoIncrement, Light::SqlRealName { "InvoiceLineId" }>
+        InvoiceLineId {};
     Light::BelongsTo<&Invoice::InvoiceId, Light::SqlRealName { "InvoiceId" }> InvoiceId;
     Light::BelongsTo<&Track::TrackId, Light::SqlRealName { "TrackId" }> TrackId;
     Light::Field<Light::SqlNumeric<10, 2>, Light::SqlRealName { "UnitPrice" }> UnitPrice;
