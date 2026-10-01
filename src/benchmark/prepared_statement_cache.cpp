@@ -50,8 +50,8 @@ struct Item
     static constexpr std::string_view TableName = "BenchCacheItem";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<40>> name {};
-    Field<int32_t> value {};
+    Field<SqlAnsiString<40>> name;
+    Field<int32_t> value;
 };
 
 namespace

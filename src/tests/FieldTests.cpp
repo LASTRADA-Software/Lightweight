@@ -19,7 +19,8 @@ using namespace Lightweight;
 
 TEST_CASE("Field<int>: default-constructed value is the value-initialized T", "[Field]")
 {
-    Field<int> const f;
+    // A required field has no default constructor; a primary key field still has one.
+    Field<int, PrimaryKey::AutoAssign> const f;
     CHECK(f.Value() == 0);
 }
 
@@ -37,15 +38,14 @@ TEST_CASE("Field<int>: copy construction preserves value", "[Field]")
     Field<int> const copy = original;
     CHECK(copy.Value() == 7);
 
-    Field<int> assigned;
+    Field<int> assigned { 0 };
     assigned = original;
     CHECK(assigned.Value() == 7);
 }
 
 TEST_CASE("Field<std::string>: move construction transfers payload", "[Field]")
 {
-    Field<std::string> source;
-    source = std::string { "moved" };
+    Field<std::string> source { std::string { "moved" } };
     Field<std::string> const moved = std::move(source);
     CHECK(moved.Value() == "moved");
 }
@@ -62,7 +62,7 @@ TEST_CASE("Field<std::optional<int>>: default-constructed is empty optional", "[
 
 TEST_CASE("Field<int>: assignment marks modified", "[Field]")
 {
-    Field<int> f;
+    Field<int> f { 0 };
     f.SetModified(false);
     REQUIRE_FALSE(f.IsModified());
 
@@ -73,7 +73,7 @@ TEST_CASE("Field<int>: assignment marks modified", "[Field]")
 
 TEST_CASE("Field<std::string>: assignment from string-like values", "[Field]")
 {
-    Field<std::string> f;
+    Field<std::string> f { ""s };
     f.SetModified(false);
 
     f = "hello"s;
@@ -114,8 +114,8 @@ TEST_CASE("Field<int>: equality vs convertible value", "[Field]")
 
 TEST_CASE("Field<int>: SetModified flips the dirty flag", "[Field]")
 {
-    Field<int> f;
-    REQUIRE(f.IsModified()); // default-constructed is "modified"
+    Field<int> f { 0 };
+    REQUIRE(f.IsModified()); // a freshly constructed field is "modified"
 
     f.SetModified(false);
     CHECK_FALSE(f.IsModified());
@@ -206,8 +206,7 @@ TEST_CASE("Field<int>::InspectValue formats numeric values", "[Field]")
 
 TEST_CASE("Field<std::string>::InspectValue quotes the string", "[Field]")
 {
-    Field<std::string> f;
-    f = "alice"s;
+    Field<std::string> const f { "alice"s };
     auto const s = f.InspectValue();
     CHECK(s.contains("alice"));
     CHECK(s.front() == '\'');
@@ -216,8 +215,7 @@ TEST_CASE("Field<std::string>::InspectValue quotes the string", "[Field]")
 
 TEST_CASE("Field<SqlText>::InspectValue quotes the text payload", "[Field]")
 {
-    Field<SqlText> f;
-    f = SqlText { .value = "hello" };
+    Field<SqlText> const f { SqlText { .value = "hello" } };
     auto const s = f.InspectValue();
     CHECK(s.contains("hello"));
     CHECK(s.front() == '\'');
@@ -226,8 +224,7 @@ TEST_CASE("Field<SqlText>::InspectValue quotes the text payload", "[Field]")
 
 TEST_CASE("Field<SqlDate>::InspectValue is single-quoted", "[Field]")
 {
-    Field<SqlDate> f;
-    f = SqlDate { std::chrono::year { 2026 }, std::chrono::month { 5 }, std::chrono::day { 6 } };
+    Field<SqlDate> const f { SqlDate { std::chrono::year { 2026 }, std::chrono::month { 5 }, std::chrono::day { 6 } } };
     auto const s = f.InspectValue();
     CHECK(s.front() == '\'');
     CHECK(s.back() == '\'');
@@ -236,8 +233,7 @@ TEST_CASE("Field<SqlDate>::InspectValue is single-quoted", "[Field]")
 
 TEST_CASE("Field<SqlNumeric>::InspectValue uses ToString", "[Field]")
 {
-    Field<SqlNumeric<10, 2>> f;
-    f = SqlNumeric<10, 2> { 12.34 };
+    Field<SqlNumeric<10, 2>> const f { SqlNumeric<10, 2> { 12.34 } };
     CHECK(f.InspectValue() == "12.34");
 }
 
@@ -295,8 +291,7 @@ TEST_CASE("SqlDataBinder<Field<T>>::Inspect mirrors Field::InspectValue", "[Fiel
     Field<int> const f { 42 };
     CHECK(SqlDataBinder<Field<int>>::Inspect(f) == f.InspectValue());
 
-    Field<std::string> g;
-    g = "abc"s;
+    Field<std::string> const g { "abc"s };
     CHECK(SqlDataBinder<Field<std::string>>::Inspect(g) == g.InspectValue());
 }
 
