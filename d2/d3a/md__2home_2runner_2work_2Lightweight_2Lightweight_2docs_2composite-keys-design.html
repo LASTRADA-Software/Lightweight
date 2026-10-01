@@ -107,9 +107,9 @@ The design: &lt;tt&gt;CompositeForeignKey&lt;Connection&lt;...&gt;, ...&gt;&lt;/
 <div class="line">{</div>
 <div class="line">    <span class="keyword">static</span> <span class="keyword">constexpr</span> std::string_view TableName = <span class="stringliteral">&quot;CkParent&quot;</span>;</div>
 <div class="line"> </div>
-<div class="line">    <span class="comment">// One member per column, both primary keys. Manual, not AutoAssign - see the warning below.</span></div>
-<div class="line">    Field&lt;int32_t, PrimaryKey::Manual, SqlRealName{<span class="stringliteral">&quot;part_a&quot;</span>}&gt; partA;</div>
-<div class="line">    Field&lt;int32_t, PrimaryKey::Manual, SqlRealName{<span class="stringliteral">&quot;part_b&quot;</span>}&gt; partB;</div>
+<div class="line">    <span class="comment">// One member per column, both primary keys. NOT AutoAssign - see the warning below.</span></div>
+<div class="line">    Field&lt;int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName{<span class="stringliteral">&quot;part_a&quot;</span>}&gt; partA;</div>
+<div class="line">    Field&lt;int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName{<span class="stringliteral">&quot;part_b&quot;</span>}&gt; partB;</div>
 <div class="line">    Field&lt;std::optional&lt;SqlAnsiString&lt;40&gt;&gt;, SqlRealName{<span class="stringliteral">&quot;caption&quot;</span>}&gt; caption;</div>
 <div class="line">};</div>
 <div class="line"> </div>
@@ -133,7 +133,7 @@ The design: &lt;tt&gt;CompositeForeignKey&lt;Connection&lt;...&gt;, ...&gt;&lt;/
 <div class="line">                    Connection&lt;&amp;Leaf::b, &amp;Hub::k2&gt;,</div>
 <div class="line">                    Connection&lt;&amp;Leaf::c, &amp;Hub::k3&gt;&gt; hub;</div>
 </div><!-- fragment --><blockquote class="doxtable">
-<p>&zwj;<b>Do not mark several key members <code>PrimaryKey::AutoAssign</code>.</b> Auto-assignment produces a single value which <code>SetId()</code> then writes into every generated primary key member, so a composite key would receive the same value in all of its columns. This is rejected at compile time by a <code>static_assert</code> in <code>GenerateAutoAssignPrimaryKey</code>, for the value types auto-assignment actually generates (GUIDs and incrementable ones). Declare composite key members <code>PrimaryKey::Manual</code>: they remain the key for <code>QuerySingle</code>, <code>Update</code> and <code>Delete</code>, but <code>Create()</code> neither generates them nor writes into them, so the values you set before calling it are what is stored. <code>ddl2cpp</code> emits <code>Manual</code> for every member of a composite key regardless of its configured <code>PrimaryKeyAssignment</code>. </p>
+<p>&zwj;<b>Do not mark several key members <code>PrimaryKey::AutoAssign</code>.</b> Auto-assignment produces a single value which <code>SetId()</code> then writes into <em>every</em> primary key member, so a composite key would receive the same value in all of its columns. This is rejected at compile time by a <code>static_assert</code> in <code>GenerateAutoAssignPrimaryKey</code>, for the value types auto-assignment actually generates (GUIDs and incrementable ones). Declare composite key members without <code>AutoAssign</code> and set their values yourself before calling <code>Create()</code>. </p>
 </blockquote>
 <h1><a class="anchor" id="why-the-pairing-matters"></a>
 Why the pairing matters</h1>
@@ -233,9 +233,9 @@ Implementation plan</h1>
 <p><b>Step 6 — export and document.</b> Add to <code>Lightweight.cppm</code>, <code>CMakeLists.txt</code> header list, and <code>docs/usage.md</code>.</p>
 <p>Deferred deliberately, and recorded as such rather than silently skipped:</p>
 <ul>
-<li>**<code>ddl2cpp</code> generation** of the composite <em>relation</em>. Mechanical once the spelling is fixed (the schema reader already reports both ordered column lists), but it is a separate change on top of a working library API. The composite <em>key</em> itself is already generated as <code>PrimaryKey::Manual</code> members.</li>
+<li>**<code>ddl2cpp</code> generation.** Mechanical once the spelling is fixed (the schema reader already reports both ordered column lists), but it is a separate change on top of a working library API.</li>
 <li>**The inverse (<code>HasMany</code> over a composite relation).** Needs the selector to name a column <em>list</em>; the surveyed schema has a table with three separate two-column foreign keys into one parent, so this is required eventually, not optional.</li>
-<li>**<code>ServerSideAutoIncrement</code> across several key columns.** Server-side auto-increment is meaningless for a multi-column key and wants an explicit <code>static_assert</code> rejection; <code>AutoAssign</code> already has one, and <code>Manual</code> is the assignment a composite key should use.</li>
+<li>**<code>AutoAssign</code> / <code>ServerSideAutoIncrement</code> semantics across several key columns.** Server-side auto-increment is meaningless for a multi-column key and wants an explicit <code>static_assert</code> rejection.</li>
 <li><b>C++26 reflection branch.</b> No binder or column arithmetic changes here, so it should need nothing — to be confirmed by building that configuration, not assumed.</li>
 </ul>
 <h1><a class="anchor" id="prototype"></a>

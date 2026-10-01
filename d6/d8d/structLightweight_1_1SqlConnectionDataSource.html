@@ -144,16 +144,13 @@ Public Attributes</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Represents a connection data source as a DSN, username, password, and timeout. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00127">127</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00158">158</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="a294bef751b01e0f8e110c989afff2814" name="a294bef751b01e0f8e110c989afff2814"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a294bef751b01e0f8e110c989afff2814">&#9670;&#160;</a></span>ToConnectionString()</h2>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../de/d6a/structLightweight_1_1SqlConnectionString.html">SqlConnectionString</a> Lightweight::SqlConnectionDataSource::ToConnectionString </td>
@@ -162,18 +159,10 @@ Public Attributes</h2></td></tr>
           <td> const</td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 <p>Converts this data source to an ODBC connection string.</p>
-<p>The <code>Encrypt=</code> keyword is emitted only when <a class="el" href="../../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a3e8f610544a01c1fde5de73f85573377">encryption</a> is not <code><a class="el" href="../../d9/d8a/group__CoreApi.html#gga8be4e3766b268b1d751ef7df237af144a94e2c1bbb08c3b4ddbaead16d30c7f64">SqlEncryptionMode::DriverDefault</a></code>, so the rendering of a data source that did not opt in is byte-for-byte what it always was. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00168">168</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
-
-<p class="reference">References <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00091">Lightweight::SqlConnectionString::value</a>.</p>
+<p>The <code>Encrypt=</code> keyword is emitted only when <a class="el" href="../../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a3e8f610544a01c1fde5de73f85573377">encryption</a> is not <code><a class="el" href="../../d9/d8a/group__CoreApi.html#gga8be4e3766b268b1d751ef7df237af144a94e2c1bbb08c3b4ddbaead16d30c7f64">SqlEncryptionMode::DriverDefault</a></code>, so the rendering of a data source that did not opt in is byte-for-byte what it always was.</p>
+<p><a class="el" href="../../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a80dd0177d9c6605cb7eb2922c78a7d0a">datasource</a>, <a class="el" href="../../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae5c6b2a8de16cb5c82d6d82040f9de37">username</a> and <a class="el" href="../../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae17b13fef2ebddad615a9bae6d942709">password</a> go through <code>FormatConnectionStringValue()</code>, so a password such as <code>p</code>;w reaches the driver intact while plain credentials keep their unquoted spelling. </p>
 
 </div>
 </div>
@@ -192,7 +181,7 @@ Public Attributes</h2></td></tr>
 
 <p>The ODBC data source name (DSN). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00130">130</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00161">161</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
 
 </div>
 </div>
@@ -210,7 +199,7 @@ Public Attributes</h2></td></tr>
 
 <p>The username for authentication. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00132">132</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00163">163</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
 
 </div>
 </div>
@@ -228,7 +217,7 @@ Public Attributes</h2></td></tr>
 
 <p>The password for authentication. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00134">134</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00165">165</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
 
 </div>
 </div>
@@ -246,7 +235,7 @@ Public Attributes</h2></td></tr>
 
 <p>The connection timeout duration. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00136">136</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00167">167</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
 
 </div>
 </div>
@@ -265,7 +254,7 @@ Public Attributes</h2></td></tr>
 <p>Default block-prefetch depth applied to statements created on the resulting connection (rows requested per <code>SQLFetchScroll</code> round-trip on the transparent per-row fetch path). </p>
 <p>A value &lt;= 1 disables prefetch (every classic loop keeps issuing one <code>SQLFetch</code> per row). Defaults to <code>PrefetchDepthDefault</code>. Has effect only on backends whose driver supports native row-array fetching (see <code><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a7577a4c8347fede96bb3953f84b068d4" title="Whether this connection&#39;s ODBC driver supports native row-array fetching (SQL_ATTR_ROW_ARRAY_SIZE &gt; 1...">SqlConnection::SupportsNativeRowArrayFetch</a></code>). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00143">143</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00174">174</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
 
 </div>
 </div>
@@ -284,7 +273,7 @@ Public Attributes</h2></td></tr>
 <p>Whether to request a TLS-encrypted connection. </p>
 <p>Defaults to <code><a class="el" href="../../d9/d8a/group__CoreApi.html#gga8be4e3766b268b1d751ef7df237af144a94e2c1bbb08c3b4ddbaead16d30c7f64">SqlEncryptionMode::DriverDefault</a></code>, which leaves the driver's own configuration in charge. Any other value is applied to the connection handle before connecting, and a driver that rejects it fails the connection rather than silently downgrading to plaintext. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00150">150</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00181">181</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
 
 </div>
 </div>
@@ -303,7 +292,7 @@ Public Attributes</h2></td></tr>
 <p>Capacity of the prepared-statement cache on the resulting connection: how many already-prepared ODBC statement handles are kept alive so that re-preparing the same SQL text re-executes one instead of paying the server-side parse again. </p>
 <p>Defaults to <code>PreparedStatementCacheCapacityDefault</code> (zero, i.e. disabled). See <code><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a54843f56005b5675dd963285a189d324" title="Enables (or resizes) this connection&#39;s prepared-statement cache.">SqlConnection::SetPreparedStatementCacheCapacity</a></code> for the implications of enabling it. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00158">158</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00189">189</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
 
 </div>
 </div>
