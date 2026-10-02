@@ -58,6 +58,7 @@ set(SOURCE_FILES
     DataMapper/PoolHealthTests.cpp
     DataMapper/NamingTests.cpp
     DataMapper/ReadTests.cpp
+    DataMapper/RequiredFieldTests.cpp
     DataMapper/RowWiseFetchTests.cpp
     DataMapper/RelationShapeTests.cpp
     DataMapper/RelationTests.cpp

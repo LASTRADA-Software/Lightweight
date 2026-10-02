@@ -308,9 +308,9 @@ sender pipeline — adapt it with `Async::AsSender(task)`:
 #include <stdexec/execution.hpp>
 
 // Any Task<T> becomes a sender; compose it with then / let_value / when_all / sync_wait:
-auto user = stdexec::sync_wait(
+auto userName = stdexec::sync_wait(
     Async::AsSender(dm.QueryAsync<User>().Where(FieldNameOf<&User::id>, "=", id).First())
-    | stdexec::then([](std::optional<User> u) { return u.value_or(User {}); }));
+    | stdexec::then([](std::optional<User> u) { return u.transform(&User::name); }));
 ```
 
 `AsSender` maps the Task's outcome onto stdexec's completion channels: a produced value completes

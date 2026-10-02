@@ -39,7 +39,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Constructor with connection string", "[DataMap
 
 TEST_CASE("Field: int", "[DataMapper],[Field]")
 {
-    Field<int> field;
+    Field<int> field { 0 };
 
     field = 42;
     CHECK(field == 42);
@@ -111,7 +111,7 @@ TEMPLATE_LIST_TEST_CASE("SqlDataBinder specializations", "[DataMapper],[Field],[
 
 TEST_CASE("Field: SqlAnsiString", "[DataMapper],[Field]")
 {
-    Field<SqlAnsiString<25>> field;
+    Field<SqlAnsiString<25>> field { "" };
 
     field = "Hello";
     CHECK(field == "Hello");
@@ -133,7 +133,7 @@ TEST_CASE("Field: SqlAnsiString", "[DataMapper],[Field]")
 
 struct PKTest0
 {
-    Field<int, PrimaryKey::AutoAssign> pk;
+    Field<int, PrimaryKey::AutoAssign> pk {};
     Field<char> field;
 };
 
@@ -145,7 +145,7 @@ static_assert(std::same_as<RecordPrimaryKeyType<PKTest0>, int>);
 struct PKTest1
 {
     Field<int> field;
-    Field<SqlTrimmedFixedString<10>, PrimaryKey::AutoAssign> pk;
+    Field<SqlTrimmedFixedString<10>, PrimaryKey::AutoAssign> pk {};
 };
 
 static_assert(!IsPrimaryKey<Reflection::MemberTypeOf<0, PKTest1>>);
@@ -157,8 +157,8 @@ struct PKTestMulti
 {
     Field<int> fieldA;
     Field<char> fieldB;
-    Field<SqlTrimmedFixedString<10>, PrimaryKey::AutoAssign> pk1;
-    Field<double, PrimaryKey::AutoAssign> pk2;
+    Field<SqlTrimmedFixedString<10>, PrimaryKey::AutoAssign> pk1 {};
+    Field<double, PrimaryKey::AutoAssign> pk2 {};
 };
 
 static_assert(RecordPrimaryKeyIndex<PKTestMulti> == 2,
@@ -179,15 +179,15 @@ static_assert(!HasPrimaryKey<NoPKRecord>);
 
 TEST_CASE_METHOD(SqlTestFixture, "Primary key access", "[DataMapper]")
 {
-    PKTest0 pk0;
+    auto pk0 = PKTest0 { .field = '\0' };
     RecordPrimaryKeyOf(pk0) = 42;
     CHECK(pk0.pk.Value() == 42);
 
-    PKTest1 pk1;
+    auto pk1 = PKTest1 { .field = 0 };
     RecordPrimaryKeyOf(pk1) = "Hello";
     CHECK(pk1.pk.Value() == "Hello");
 
-    PKTestMulti pkMulti;
+    auto pkMulti = PKTestMulti { .fieldA = 0, .fieldB = '\0' };
     RecordPrimaryKeyOf(pkMulti) = "World";
     CHECK(pkMulti.pk1.Value() == "World");
 }
@@ -196,31 +196,26 @@ TEST_CASE("GetPrimaryKeyField", "[DataMapper][Record]")
 {
     SECTION("int PK at field index 0")
     {
-        PKTest0 record;
-        record.pk = 42;
+        auto const record = PKTest0 { .pk = 42, .field = '\0' };
         CHECK(GetPrimaryKeyField(record) == 42);
     }
 
     SECTION("string PK at field index 1")
     {
-        PKTest1 record;
-        record.pk = "Hello";
+        auto const record = PKTest1 { .field = 0, .pk = "Hello" };
         CHECK(GetPrimaryKeyField(record) == SqlTrimmedFixedString<10> { "Hello" });
     }
 
     SECTION("first PK returned when multiple PKs present")
     {
-        PKTestMulti record;
-        record.pk1 = "World";
-        record.pk2 = 3.14;
+        auto const record = PKTestMulti { .fieldA = 0, .fieldB = '\0', .pk1 = "World", .pk2 = 3.14 };
         CHECK(GetPrimaryKeyField(record) == SqlTrimmedFixedString<10> { "World" });
     }
 
     SECTION("SqlGuid PK")
     {
         auto const guid = SqlGuid::Create();
-        Person record;
-        record.id = guid;
+        auto const record = Person { .id = guid, .name = "" };
         CHECK(GetPrimaryKeyField(record) == guid);
     }
 }
@@ -246,9 +241,9 @@ TEST_CASE_METHOD(SqlTestFixture, "MapFromRecordFields", "[DataMapper]")
 struct PersonDifferenceView
 {
     Field<SqlGuid, PrimaryKey::AutoAssign> id {};
-    Field<SqlAnsiString<25>> name {};
+    Field<SqlAnsiString<25>> name;
     Field<bool> is_active { true };
-    Field<int> age {};
+    Field<int> age;
 };
 
 TEST_CASE_METHOD(SqlTestFixture, "Test DifferenceView", "[DataMapper]")
@@ -276,17 +271,17 @@ TEST_CASE_METHOD(SqlTestFixture, "Test DifferenceView", "[DataMapper]")
 struct TestDynamicData
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlDynamicAnsiString<16000>> stringAnsi {};
-    Field<SqlDynamicUtf16String<16000>> stringUtf16 {};
-    Field<SqlDynamicUtf32String<16000>> stringUtf32 {};
-    Field<SqlDynamicWideString<16000>> stringWide {};
+    Field<SqlDynamicAnsiString<16000>> stringAnsi;
+    Field<SqlDynamicUtf16String<16000>> stringUtf16;
+    Field<SqlDynamicUtf32String<16000>> stringUtf32;
+    Field<SqlDynamicWideString<16000>> stringWide;
 };
 
 TEST_CASE_METHOD(SqlTestFixture, "TestDynamicData", "[DataMapper]")
 {
     auto dm = DataMapper();
     dm.CreateTable<TestDynamicData>();
-    TestDynamicData data {};
+    auto data = TestDynamicData { .stringAnsi = "", .stringUtf16 = u"", .stringUtf32 = U"", .stringWide = L"" };
     dm.Create(data);
 
     auto const checkSize = [&](size_t size) {
@@ -318,10 +313,12 @@ TEST_CASE_METHOD(SqlTestFixture, "TestQuerySingleDynamicData", "[DataMapper]")
 {
     auto dm = DataMapper();
     dm.CreateTable<TestDynamicData>();
-    TestDynamicData data {};
-    data.stringAnsi = std::string(10, 'a');
-    data.stringUtf32 = std::basic_string<char32_t>(10, U'a');
-    data.stringWide = std::basic_string<wchar_t>(10, L'a');
+    auto data = TestDynamicData {
+        .stringAnsi = std::string(10, 'a'),
+        .stringUtf16 = u"",
+        .stringUtf32 = std::basic_string<char32_t>(10, U'a'),
+        .stringWide = std::basic_string<wchar_t>(10, L'a'),
+    };
     dm.Create(data);
 
     auto const checkSize = [&](size_t size) {
@@ -346,10 +343,12 @@ TEST_CASE_METHOD(SqlTestFixture, "TestQuerySparseDynamicData", "[DataMapper]")
 {
     auto dm = DataMapper();
     dm.CreateTable<TestDynamicData>();
-    TestDynamicData data {};
-    data.stringAnsi = std::string(10, 'a');
-    data.stringUtf32 = std::basic_string<char32_t>(10, U'a');
-    data.stringWide = std::basic_string<wchar_t>(10, L'a');
+    auto data = TestDynamicData {
+        .stringAnsi = std::string(10, 'a'),
+        .stringUtf16 = u"",
+        .stringUtf32 = std::basic_string<char32_t>(10, U'a'),
+        .stringWide = std::basic_string<wchar_t>(10, L'a'),
+    };
     dm.Create(data);
 
     auto const checkSize = [&](size_t size) {
@@ -410,8 +409,12 @@ TEST_CASE_METHOD(SqlTestFixture, "TestQueryAllSingleDynamicField", "[DataMapper]
     auto const sizes = std::array<size_t, 3> { 5, 4000, 16000 };
     for (auto const size: sizes)
     {
-        TestDynamicData row {};
-        row.stringAnsi = std::string(size, 'a');
+        auto row = TestDynamicData {
+            .stringAnsi = std::string(size, 'a'),
+            .stringUtf16 = u"",
+            .stringUtf32 = U"",
+            .stringWide = L"",
+        };
         dm.Create(row);
     }
 
@@ -561,9 +564,7 @@ TEST_CASE_METHOD(SqlTestFixture, "CRUD", "[DataMapper]")
     dm.CreateTable<Person>();
 
     // Create
-    auto person = Person {};
-    person.name = "John Doe";
-    person.is_active = true;
+    auto person = Person { .name = "John Doe", .is_active = true };
 
     REQUIRE(!person.id.Value());
     dm.Create(person);
@@ -607,7 +608,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlGuid", "[DataMapper]")
         Person { .id = guid, .name = "John Doe", .is_active = true, .age = 42 },
         Person { .id = SqlGuid::Create(), .name = "Jimmy John", .is_active = false, .age = 24 },
         Person { .id = SqlGuid::Create(), .name = "Jane Doe", .is_active = true, .age = 36 },
-        Person {},
+        Person { .name = "" },
     };
 
     dm.CreateTable<Person>();

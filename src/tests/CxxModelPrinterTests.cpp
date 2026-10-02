@@ -139,8 +139,8 @@ TEST_CASE("CxxModelPrinter: simple table with default settings", "[CxxModelPrint
 
         struct test final
         {
-            Light::Field<std::optional<int32_t>> id;
-            Light::Field<std::optional<Light::SqlAnsiString<64>>> name;
+            Light::Field<std::optional<int32_t>> id {};
+            Light::Field<std::optional<Light::SqlAnsiString<64>>> name {};
         };
 
         } // end namespace Test
@@ -194,7 +194,9 @@ TEST_CASE("CxxModelPrinter: self-referencing foreign key becomes a BelongsTo", "
 
     // The relationship is modelled, and the self-reference pulls in no include of its own.
     CHECK(generated.contains("Light::BelongsTo<&employee::id"));
-    CHECK(generated.contains("Light::SqlNullable::Null> reportsTo;"));
+    CHECK(generated.contains("Light::SqlNullable::Null> reportsTo {};"));
+    // A member named after its own struct gets no `{}`: MSVC would parse `employee {}` as a constructor.
+    CHECK_FALSE(generated.contains("> employee {};"));
     CHECK_FALSE(generated.contains(R"(#include "employee.hpp")"));
 }
 
@@ -638,7 +640,7 @@ TEST_CASE("CxxModelPrinter: table with primary key and several columns", "[CxxMo
     CHECK(output.contains("Light::SqlAnsiString<50>"));
     CHECK(output.contains("Light::SqlNumeric<10, 2>"));
     // A single-column key carries the configured assignment.
-    CHECK(output.contains("Light::PrimaryKey::ServerSideAutoIncrement> id;"));
+    CHECK(output.contains("Light::PrimaryKey::ServerSideAutoIncrement> id {};"));
 }
 
 TEST_CASE("CxxModelPrinter: PrimaryKey::Manual can be configured for single-column keys", "[CxxModelPrinter]")
@@ -654,7 +656,7 @@ TEST_CASE("CxxModelPrinter: PrimaryKey::Manual can be configured for single-colu
         .columns = { { .name = "code", .type = Char { 2 }, .isNullable = false, .isPrimaryKey = true } },
         .primaryKeys = { "code" },
     });
-    CHECK(printer.ToString("Models").contains("Light::PrimaryKey::Manual> code;"));
+    CHECK(printer.ToString("Models").contains("Light::PrimaryKey::Manual> code {};"));
 }
 
 TEST_CASE("CxxModelPrinter: a composite primary key is emitted as PrimaryKey::Manual on every member", "[CxxModelPrinter]")
@@ -683,8 +685,8 @@ TEST_CASE("CxxModelPrinter: a composite primary key is emitted as PrimaryKey::Ma
         printer.PrintTable(junction);
         auto const output = printer.ToString("Models");
         INFO(output);
-        CHECK(output.contains("Light::Field<int32_t, Light::PrimaryKey::Manual> formulaNo;"));
-        CHECK(output.contains("Light::Field<int32_t, Light::PrimaryKey::Manual> listNo;"));
+        CHECK(output.contains("Light::Field<int32_t, Light::PrimaryKey::Manual> formulaNo {};"));
+        CHECK(output.contains("Light::Field<int32_t, Light::PrimaryKey::Manual> listNo {};"));
         CHECK_FALSE(output.contains("PrimaryKey::AutoAssign"));
         CHECK_FALSE(output.contains("PrimaryKey::ServerSideAutoIncrement"));
     }
@@ -703,7 +705,7 @@ TEST_CASE("CxxModelPrinter: a composite primary key is emitted as PrimaryKey::Ma
     flaggedPrinterConfig.primaryKeyAssignment = Lightweight::PrimaryKey::AutoAssign;
     CxxModelPrinter flaggedPrinter { flaggedPrinterConfig };
     flaggedPrinter.PrintTable(flaggedOnly);
-    CHECK(flaggedPrinter.ToString("Models").contains("Light::PrimaryKey::Manual> listNo;"));
+    CHECK(flaggedPrinter.ToString("Models").contains("Light::PrimaryKey::Manual> listNo {};"));
 }
 
 TEST_CASE("CxxModelPrinter: emits Description for a keyed table with a relation", "[CxxModelPrinter]")
@@ -1096,7 +1098,7 @@ TEST_CASE("CxxModelPrinter: Description covers relation members, not just column
     INFO(output);
 
     // The HasMany is emitted into the struct body ...
-    CHECK(output.contains("Light::HasMany<Orders> orders;"));
+    CHECK(output.contains("Light::HasMany<Orders> orders {};"));
     // ... so the descriptor must count it and list it too, or relation auto-loading never runs.
     CHECK(output.contains("static constexpr std::size_t FieldCount = 2;"));
     CHECK(output.contains("using Members = Lightweight::RecordMemberList<&Models::Customers::id, "
@@ -1104,4 +1106,30 @@ TEST_CASE("CxxModelPrinter: Description covers relation members, not just column
     // A relation has no SQL column of its own; reflection would report its C++ member name here, so
     // the descriptor mirrors that to keep the two enumeration paths interchangeable.
     CHECK(output.contains(R"(FieldNames = { "id", "orders" };)"));
+}
+
+TEST_CASE("CxxModelPrinter: only members that may be left out get an initializer", "[CxxModelPrinter]")
+{
+    // A NOT NULL column that is not a primary key is a required field, which has no default
+    // constructor, so it must be declared without `{}`. Every other member is given one, so that a
+    // designated initializer naming just the required members compiles without warnings.
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto const table = Lightweight::SqlSchema::Table {
+        .schema = "",
+        .name = "account",
+        .columns = {
+            Lightweight::SqlSchema::Column { .name = "id", .type = Integer {}, .isNullable = false, .isPrimaryKey = true },
+            Lightweight::SqlSchema::Column { .name = "owner", .type = Integer {}, .isNullable = false },
+            Lightweight::SqlSchema::Column { .name = "nickname", .type = Integer {}, .isNullable = true },
+        },
+        .primaryKeys = { "id" },
+    };
+
+    CxxModelPrinter printer { CxxModelPrinter::Config {} };
+    printer.PrintTable(table);
+    auto const output = printer.ToString("Models");
+    INFO(output);
+    CHECK(output.contains("> id {};"));
+    CHECK(output.contains("Light::Field<int32_t> owner;"));
+    CHECK(output.contains("Light::Field<std::optional<int32_t>> nickname {};"));
 }
