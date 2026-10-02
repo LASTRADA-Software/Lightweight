@@ -73,6 +73,39 @@ else()
     target_link_libraries(tools_shared PRIVATE OpenSSL::Crypto)
 endif()
 
+# Master key ring for profile-password encryption. Official builds get it from
+# the DBTOOL_MASTER_KEYS environment variable (a CI secret: "id=<64 hex>[,...]",
+# newest first). It is read from the environment on purpose — never cached in
+# CMakeCache.txt — and only lands in a generated, never-installed header of this
+# build tree. Without it the build uses the public development key.
+target_sources(tools_shared PRIVATE Secrets/KeyRing.cpp Secrets/KeyRing.hpp Secrets/ProfileCipher.cpp Secrets/ProfileCipher.hpp)
+set(DBTOOL_DEV_KEY_HEX "ba456ca44382fdc8bfd9c84ac989779fa0da3754722e2691f1e0d7a735a3b232")
+if(NOT "$ENV{DBTOOL_MASTER_KEYS}" STREQUAL "")
+    set(DBTOOL_KEYRING_SPEC "$ENV{DBTOOL_MASTER_KEYS}")
+    set(DBTOOL_KEYRING_IS_RELEASE true)
+    string(REPEAT "[0-9a-fA-F]" 64 _dbtool_hex64)
+    string(REPLACE "," ";" _dbtool_key_entries "${DBTOOL_KEYRING_SPEC}")
+    foreach(_dbtool_entry IN LISTS _dbtool_key_entries)
+        # Deliberately does not echo the entry: it contains key material.
+        if(NOT _dbtool_entry MATCHES "^[a-z0-9]+=${_dbtool_hex64}$")
+            message(FATAL_ERROR "DBTOOL_MASTER_KEYS is malformed; expected id=<64 hex digits>[,id=<64 hex digits>...]")
+        endif()
+        string(FIND "${_dbtool_entry}" "=" _dbtool_equals)
+        if(_dbtool_equals GREATER 16)
+            message(FATAL_ERROR "DBTOOL_MASTER_KEYS: key ids must be at most 16 characters")
+        endif()
+    endforeach()
+    message(STATUS "dbtool: using the master key ring from DBTOOL_MASTER_KEYS")
+else()
+    set(DBTOOL_KEYRING_SPEC "dev=${DBTOOL_DEV_KEY_HEX}")
+    set(DBTOOL_KEYRING_IS_RELEASE false)
+    message(STATUS "dbtool: no master key provided - using the public development key")
+endif()
+string(RANDOM LENGTH 64 ALPHABET "0123456789abcdef" DBTOOL_KEYRING_MASK)
+configure_file(Secrets/DbtoolKeyRing.inc.in "${CMAKE_CURRENT_BINARY_DIR}/generated/DbtoolKeyRing.inc" @ONLY)
+target_include_directories(tools_shared PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
+unset(DBTOOL_KEYRING_SPEC)
+
 if(NOT WIN32)
     set_target_properties(tools_shared PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()

@@ -16,9 +16,14 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <expected>
+#include <utility>
 #include <vector>
 
 #include <Secrets/Crypto/CryptoPrimitives.hpp>
+#include <Secrets/ProfileCipher.hpp>
+
+using namespace std::string_view_literals;
 
 namespace
 {
@@ -105,4 +110,150 @@ TEST_CASE("Crypto — RandomBytes produces distinct output on each call", "[Cryp
     REQUIRE(Crypto::RandomBytes(first).has_value());
     REQUIRE(Crypto::RandomBytes(second).has_value());
     CHECK(first != second);
+}
+
+namespace Secrets = Lightweight::Secrets;
+
+namespace
+{
+
+/// Reference value: "s3cr3t-P@ss" under the dev key with IV 00..0f.
+constexpr std::string_view DevVector =
+    "enc:dev:AAECAwQFBgcICQoLDA0OD6sS1oFu1kwIHI6a1+EY4VevOb7jEx+oT8+0ceuOpyZ0qgglTS0t8m638s+GnkICcg==";
+
+/// Reference value: "" under the dev key with IV 00..0f.
+constexpr std::string_view DevEmptyVector =
+    "enc:dev:AAECAwQFBgcICQoLDA0OD4e/nfkrNXAncseigUrvkuQv1B2I90y+b80luPRR2XRt/W1musybB6QYMi2ImOzsLw==";
+
+/// Deterministic IV source (00 01 .. 0f) so encryption output is reproducible.
+std::expected<void, std::string> SequentialIv(std::span<std::byte> out)
+{
+    for (auto&& [index, value]: std::views::enumerate(out))
+        value = static_cast<std::byte>(index);
+    return {};
+}
+
+/// Builds a key entry whose 32 key bytes all equal `fill`.
+Secrets::KeyEntry FilledKey(std::string id, unsigned char fill)
+{
+    auto entry = Secrets::KeyEntry { .id = std::move(id), .key = {} };
+    std::ranges::fill(entry.key, static_cast<std::byte>(fill));
+    return entry;
+}
+
+/// Replaces the base64 character at `index` of an `enc:` value's payload with a different one.
+std::string TamperPayloadChar(std::string value, std::size_t index)
+{
+    auto const payloadStart = value.find(':', 4) + 1;
+    auto& c = value.at(payloadStart + index);
+    c = c == 'A' ? 'B' : 'A';
+    return value;
+}
+
+} // namespace
+
+TEST_CASE("ProfileCipher — encrypting with a fixed IV reproduces the reference vectors", "[ProfileCipher]")
+{
+    auto const cipher = Secrets::ProfileCipher { { Secrets::DevKey() }, Secrets::DevKeyPolicy::Allow, SequentialIv };
+    CHECK(cipher.Encrypt("s3cr3t-P@ss") == DevVector);
+    CHECK(cipher.Encrypt("") == DevEmptyVector);
+}
+
+TEST_CASE("ProfileCipher — reference vectors decrypt on every platform", "[ProfileCipher]")
+{
+    auto const cipher = Secrets::ProfileCipher { { Secrets::DevKey() }, Secrets::DevKeyPolicy::Allow };
+    CHECK(cipher.Decrypt(DevVector) == "s3cr3t-P@ss");
+    CHECK(cipher.Decrypt(DevEmptyVector) == "");
+}
+
+TEST_CASE("ProfileCipher — random IVs make each encryption distinct", "[ProfileCipher]")
+{
+    auto const cipher = Secrets::ProfileCipher { { Secrets::DevKey() }, Secrets::DevKeyPolicy::Allow };
+    auto const first = cipher.Encrypt("same");
+    auto const second = cipher.Encrypt("same");
+    REQUIRE(first.has_value());
+    REQUIRE(second.has_value());
+    CHECK(*first != *second);
+    CHECK(cipher.Decrypt(*first) == "same");
+    CHECK(cipher.Decrypt(*second) == "same");
+}
+
+TEST_CASE("ProfileCipher — any modified byte fails the integrity check", "[ProfileCipher]")
+{
+    auto const cipher = Secrets::ProfileCipher { { Secrets::DevKey() }, Secrets::DevKeyPolicy::Allow };
+    // Base64 positions inside the IV (bytes 0-15), ciphertext (16-31) and tag (32-63).
+    for (auto const index: { std::size_t { 5 }, std::size_t { 30 }, std::size_t { 60 } })
+    {
+        auto const result = cipher.Decrypt(TamperPayloadChar(std::string { DevVector }, index));
+        REQUIRE_FALSE(result.has_value());
+        CHECK(result.error().contains("integrity"));
+    }
+}
+
+TEST_CASE("ProfileCipher — the key id is authenticated and cannot be relabelled", "[ProfileCipher]")
+{
+    auto const devAsV1 = Secrets::KeyEntry { .id = "v1", .key = Secrets::DevKey().key };
+    auto const cipher = Secrets::ProfileCipher { { Secrets::DevKey(), devAsV1 }, Secrets::DevKeyPolicy::Allow };
+    auto relabelled = std::string { DevVector };
+    relabelled.replace(4, 3, "v1");
+    auto const result = cipher.Decrypt(relabelled);
+    REQUIRE_FALSE(result.has_value());
+    CHECK(result.error().contains("integrity"));
+}
+
+TEST_CASE("ProfileCipher — unknown key id is reported by name", "[ProfileCipher]")
+{
+    auto const cipher = Secrets::ProfileCipher { { Secrets::DevKey() }, Secrets::DevKeyPolicy::Allow };
+    auto const result = cipher.Decrypt("enc:zz:AAECAwQFBgcICQoLDA0ODw==");
+    REQUIRE_FALSE(result.has_value());
+    CHECK(result.error().contains("unknown key id 'zz'"));
+}
+
+TEST_CASE("ProfileCipher — release builds refuse values encrypted with the development key", "[ProfileCipher]")
+{
+    auto const cipher = Secrets::ProfileCipher { { FilledKey("v1", 0x11) }, Secrets::DevKeyPolicy::Refuse };
+    auto const result = cipher.Decrypt(DevVector);
+    REQUIRE_FALSE(result.has_value());
+    CHECK(result.error().contains("development build"));
+}
+
+TEST_CASE("ProfileCipher — key rotation encrypts with the newest key and still decrypts older ones",
+          "[ProfileCipher]")
+{
+    auto const oldCipher = Secrets::ProfileCipher { { FilledKey("v1", 0x11) }, Secrets::DevKeyPolicy::Refuse };
+    auto const oldValue = oldCipher.Encrypt("rotated");
+    REQUIRE(oldValue.has_value());
+
+    auto const newCipher =
+        Secrets::ProfileCipher { { FilledKey("v2", 0x22), FilledKey("v1", 0x11) }, Secrets::DevKeyPolicy::Refuse };
+    auto const newValue = newCipher.Encrypt("rotated");
+    REQUIRE(newValue.has_value());
+    CHECK(newValue->starts_with("enc:v2:"));
+    CHECK(newCipher.Decrypt(*oldValue) == "rotated");
+}
+
+TEST_CASE("ProfileCipher — malformed values are rejected without crashing", "[ProfileCipher]")
+{
+    auto const cipher = Secrets::ProfileCipher { { Secrets::DevKey() }, Secrets::DevKeyPolicy::Allow };
+    for (auto const value: { "enc:"sv, "enc:dev"sv, "enc:dev:"sv, "enc:dev:!!!!"sv, "enc:dev:AAAA"sv, "enc::AAAA"sv })
+        CHECK_FALSE(cipher.Decrypt(value).has_value());
+}
+
+TEST_CASE("ProfileCipher — IsEncrypted recognises the enc: prefix only", "[ProfileCipher]")
+{
+    CHECK(Secrets::ProfileCipher::IsEncrypted("enc:dev:x"));
+    CHECK_FALSE(Secrets::ProfileCipher::IsEncrypted("hunter2"));
+    CHECK_FALSE(Secrets::ProfileCipher::IsEncrypted(""));
+}
+
+TEST_CASE("ProfileCipher — the built-in key ring matches the build flavour", "[ProfileCipher]")
+{
+    auto const ring = Secrets::BuiltinKeyRing();
+    REQUIRE_FALSE(ring.empty());
+    CHECK((ring.front().id == Secrets::DevKeyId) == !Secrets::BuiltinKeyRingIsRelease());
+
+    // Whatever ring this build carries, it must round-trip its own output.
+    auto const value = Secrets::ProfileCipher::Builtin().Encrypt("builtin");
+    REQUIRE(value.has_value());
+    CHECK(Secrets::ProfileCipher::Builtin().Decrypt(*value) == "builtin");
 }
