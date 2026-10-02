@@ -61,6 +61,26 @@ expect_result("long id" "" "abcdefghijklmnopq=${KEY_A}" "" "" "at most 16")
 expect_result("dev id reserved" "" "dev=${KEY_A}" "" "" "reserved")
 expect_result("duplicate id" "" "v1=${KEY_A},v1=${KEY_B}" "" "" "duplicate")
 
+# A tree once configured with a CI key ring must not silently fall back to the
+# development key when a later (re-)configure runs without the key variables.
+macro(expect_downgrade name wasRelease isRelease expectedErrorRegex)
+    dbtool_check_key_ring_downgrade("${wasRelease}" "${isRelease}" _downgradeError)
+    if("${expectedErrorRegex}" STREQUAL "")
+        if(NOT "${_downgradeError}" STREQUAL "")
+            message(SEND_ERROR "${name}: unexpected error '${_downgradeError}'")
+            math(EXPR _failures "${_failures} + 1")
+        endif()
+    elseif(NOT _downgradeError MATCHES "${expectedErrorRegex}")
+        message(SEND_ERROR "${name}: expected error matching '${expectedErrorRegex}', got '${_downgradeError}'")
+        math(EXPR _failures "${_failures} + 1")
+    endif()
+endmacro()
+
+expect_downgrade("fresh dev tree" "" "false" "")
+expect_downgrade("fresh release tree" "" "true" "")
+expect_downgrade("release stays release" "TRUE" "true" "")
+expect_downgrade("release loses its key" "TRUE" "false" "development key")
+
 file(REMOVE_RECURSE "${_scratch}")
 
 if(_failures GREATER 0)

@@ -95,3 +95,18 @@ function(dbtool_resolve_key_ring keyFile envKeys outSpec outRelease outError)
     set(${outRelease} "true" PARENT_SCOPE)
     set(${outError} "" PARENT_SCOPE)
 endfunction()
+
+# Guards a build tree that was once configured with a CI key ring against a
+# later configure — e.g. an automatic re-run during `cmake --build` in a shell
+# without DBTOOL_MASTER_KEYS — silently regenerating it with the public
+# development key.
+#   wasRelease  - cached flag from earlier configures ("" or TRUE)
+#   isRelease   - "true"/"false" from dbtool_resolve_key_ring
+#   outError    - "" when fine, otherwise the reason to stop
+function(dbtool_check_key_ring_downgrade wasRelease isRelease outError)
+    if(wasRelease AND NOT isRelease)
+        set(${outError} "this build tree was configured with the CI master key ring, but neither DBTOOL_MASTER_KEYS nor DBTOOL_MASTER_KEYS_FILE is set now; refusing to fall back to the public development key. Provide the key ring again, or use a fresh build directory (or -U DBTOOL_KEYRING_WAS_RELEASE) for a development build" PARENT_SCOPE)
+    else()
+        set(${outError} "" PARENT_SCOPE)
+    endif()
+endfunction()
