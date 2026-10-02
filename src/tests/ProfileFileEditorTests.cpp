@@ -6,13 +6,16 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <chrono>
 #include <expected>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <thread>
 
 #include <Config/ProfileFileEditor.hpp>
 #include <Config/ProfileStore.hpp>
@@ -293,3 +296,25 @@ TEST_CASE("ProfileFileEditor — EditConfigFile leaves the file untouched on fai
     CHECK(readOnly.error().contains("read-only"));
     CHECK(file.Read() == Sample);
 }
+
+#ifdef _WIN32
+TEST_CASE("ProfileFileEditor — EditConfigFile rides out a transient lock on the target", "[ProfileFileEditor]")
+{
+    // Virus scanners and the search indexer briefly open freshly written files
+    // without FILE_SHARE_DELETE, which makes the replacing rename fail with
+    // "Access is denied". Simulate that with a reader that lets go after a moment.
+    TempFile const file(Sample);
+    auto holder = std::make_unique<std::ifstream>(file.Path(), std::ios::binary);
+    REQUIRE(holder->is_open());
+    auto release = std::jthread { [&holder] {
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        holder.reset();
+    } };
+
+    auto const result = Cfg::EditConfigFile(
+        file.Path(), [](std::string_view) -> std::expected<std::string, std::string> { return std::string { "new\n" }; });
+    release.join();
+    REQUIRE(result.has_value());
+    CHECK(file.Read() == "new\n");
+}
+#endif

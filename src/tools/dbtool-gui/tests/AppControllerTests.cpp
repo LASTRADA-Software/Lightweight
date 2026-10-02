@@ -255,11 +255,17 @@ TEST_CASE("connectToProfile encrypts a working plaintext password in place", "[d
         << "};Database=" << (root / "gui-password.db").generic_string() << "\"\n    password: hunter2 # old\n";
 
     DbtoolGui::AppController controller;
+    QStringList log;
+    QObject::connect(&controller, &DbtoolGui::AppController::logLine, [&log](QString const& line, DbtoolGui::LogLevel) {
+        log.append(line);
+    });
+    controller.attachLogSink();
     REQUIRE(controller.loadProfiles(QString::fromStdString(configPath.string())));
     controller.setConnectionMode(QStringLiteral("profile"));
     controller.setCurrentProfile(QStringLiteral("p"));
     REQUIRE(controller.connectToProfile());
 
+    INFO("controller log:\n" << log.join(QLatin1Char('\n')).toStdString());
     auto const text = ReadFile(configPath);
     CHECK(text.starts_with("# hand-written\n"));
     CHECK(text.contains("# old"));

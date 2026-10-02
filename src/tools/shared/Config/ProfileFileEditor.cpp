@@ -4,12 +4,14 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <format>
 #include <fstream>
 #include <iterator>
 #include <optional>
 #include <random>
 #include <ranges>
+#include <thread>
 #include <utility>
 
 #include <yaml-cpp/yaml.h>
@@ -19,6 +21,10 @@ namespace Lightweight::Config
 
 namespace
 {
+
+    /// Bounded retry of the replacing rename (see EditConfigFile): 20 x 100 ms.
+    inline constexpr int RenameAttempts = 20;
+    inline constexpr auto RenameRetryDelay = std::chrono::milliseconds(100);
 
     /// Half-open byte range of a scalar in the source text.
     struct Extent
@@ -416,7 +422,16 @@ std::expected<void, std::string> EditConfigFile(std::filesystem::path const& pat
     if (exists)
         fs::permissions(temp, fs::status(path, ec).permissions(), ec);
 
-    fs::rename(temp, path, ec);
+    // Virus scanners and search indexers briefly hold freshly written files open
+    // without delete sharing, so on Windows a replacing rename can fail with
+    // "access denied" for a moment. Retry for a bounded time before giving up.
+    for (auto const attempt: std::views::iota(0, RenameAttempts))
+    {
+        fs::rename(temp, path, ec);
+        if (!ec || ec != std::errc::permission_denied || attempt + 1 == RenameAttempts)
+            break;
+        std::this_thread::sleep_for(RenameRetryDelay);
+    }
     if (ec)
     {
         auto const message = ec.message();
