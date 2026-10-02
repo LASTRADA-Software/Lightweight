@@ -33,6 +33,7 @@ if(MSVC)
 endif()
 
 set(SOURCE_FILES
+    ConfigDiscoveryTests.cpp
     ConfigProfileStoreTests.cpp
     ColumnTypeRoundTripTests.cpp
     CoreTests.cpp
