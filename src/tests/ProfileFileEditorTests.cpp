@@ -79,6 +79,13 @@ class TempFile
     fs::path _path;
 };
 
+/// The edited text, or a readable marker for an error. Comparing `std::expected` directly
+/// inside `CHECK` trips a recursive-constraint error in trunk libc++.
+std::string Edited(std::expected<std::string, std::string> const& result)
+{
+    return result ? *result : "<error: " + result.error() + ">";
+}
+
 /// Replaces the first occurrence of `from` with `to` (test helper for expected texts).
 std::string ReplaceOnce(std::string text, std::string_view from, std::string_view to)
 {
@@ -109,39 +116,39 @@ TEST_CASE("ProfileFileEditor — only the named profile's password changes", "[P
 TEST_CASE("ProfileFileEditor — replaces quoted passwords whole, including '#' inside quotes", "[ProfileFileEditor]")
 {
     auto const doubleQuoted = "profiles:\n  p:\n    password: \"pa#ss \\\" x\" # note\n"sv;
-    CHECK(Cfg::SetProfilePasswordText(doubleQuoted, { .profileName = "p", .newValue = "enc:dev:A" })
+    CHECK(Edited(Cfg::SetProfilePasswordText(doubleQuoted, { .profileName = "p", .newValue = "enc:dev:A" }))
           == "profiles:\n  p:\n    password: \"enc:dev:A\" # note\n");
 
     auto const singleQuoted = "profiles:\n  p:\n    password: 'it''s #1'\n"sv;
-    CHECK(Cfg::SetProfilePasswordText(singleQuoted, { .profileName = "p", .newValue = "enc:dev:A" })
+    CHECK(Edited(Cfg::SetProfilePasswordText(singleQuoted, { .profileName = "p", .newValue = "enc:dev:A" }))
           == "profiles:\n  p:\n    password: \"enc:dev:A\"\n");
 }
 
 TEST_CASE("ProfileFileEditor — replaces a password inside a flow mapping", "[ProfileFileEditor]")
 {
     auto const flow = "profiles:\n  p: {password: secret, uid: sa}\n"sv;
-    CHECK(Cfg::SetProfilePasswordText(flow, { .profileName = "p", .newValue = "enc:dev:A" })
+    CHECK(Edited(Cfg::SetProfilePasswordText(flow, { .profileName = "p", .newValue = "enc:dev:A" }))
           == "profiles:\n  p: {password: \"enc:dev:A\", uid: sa}\n");
 }
 
 TEST_CASE("ProfileFileEditor — does not touch a lookalike value elsewhere", "[ProfileFileEditor]")
 {
     auto const text = "defaultProfile: password\nprofiles:\n  password:\n    uid: password\n    password: x\n"sv;
-    CHECK(Cfg::SetProfilePasswordText(text, { .profileName = "password", .newValue = "enc:dev:A" })
+    CHECK(Edited(Cfg::SetProfilePasswordText(text, { .profileName = "password", .newValue = "enc:dev:A" }))
           == "defaultProfile: password\nprofiles:\n  password:\n    uid: password\n    password: \"enc:dev:A\"\n");
 }
 
 TEST_CASE("ProfileFileEditor — preserves CRLF line endings", "[ProfileFileEditor]")
 {
     auto const text = "profiles:\r\n  p:\r\n    password: x\r\n    uid: sa\r\n"sv;
-    CHECK(Cfg::SetProfilePasswordText(text, { .profileName = "p", .newValue = "enc:dev:A" })
+    CHECK(Edited(Cfg::SetProfilePasswordText(text, { .profileName = "p", .newValue = "enc:dev:A" }))
           == "profiles:\r\n  p:\r\n    password: \"enc:dev:A\"\r\n    uid: sa\r\n");
 }
 
 TEST_CASE("ProfileFileEditor — rewrites the legacy top-level Password", "[ProfileFileEditor]")
 {
     auto const text = "ConnectionString: \"Driver=x\"\nPassword: x\n"sv;
-    CHECK(Cfg::SetProfilePasswordText(text, { .profileName = "default", .newValue = "enc:dev:A" })
+    CHECK(Edited(Cfg::SetProfilePasswordText(text, { .profileName = "default", .newValue = "enc:dev:A" }))
           == "ConnectionString: \"Driver=x\"\nPassword: \"enc:dev:A\"\n");
 }
 
@@ -178,7 +185,7 @@ TEST_CASE("ProfileFileEditor — adding a profile to an empty file creates the p
                                            .schema = "main",
                                            .pluginsDir = {},
                                            .password = "enc:dev:A" };
-    CHECK(Cfg::AddProfileText("", profile, Cfg::ReplaceExisting::No)
+    CHECK(Edited(Cfg::AddProfileText("", profile, Cfg::ReplaceExisting::No))
           == "profiles:\n  \"new\":\n    connectionString: \"Driver=SQLite3;Database=x.db\"\n    schema: \"main\"\n"
              "    password: \"enc:dev:A\"\n");
 }
@@ -212,7 +219,7 @@ TEST_CASE("ProfileFileEditor — adding keeps comments and uses the file's inden
     auto const profile = Cfg::NewProfile {
         .name = "b", .connectionString = "Driver=x", .dsn = {}, .uid = {}, .schema = {}, .pluginsDir = {}, .password = {}
     };
-    CHECK(Cfg::AddProfileText(text, profile, Cfg::ReplaceExisting::No)
+    CHECK(Edited(Cfg::AddProfileText(text, profile, Cfg::ReplaceExisting::No))
           == "# top\nprofiles:\n    \"b\":\n        connectionString: \"Driver=x\"\n    a:\n        uid: x # keep\n");
 }
 
@@ -221,11 +228,11 @@ TEST_CASE("ProfileFileEditor — adding to an empty flow map or a null profiles 
     auto const profile = Cfg::NewProfile {
         .name = "b", .connectionString = "Driver=x", .dsn = {}, .uid = {}, .schema = {}, .pluginsDir = {}, .password = {}
     };
-    CHECK(Cfg::AddProfileText("profiles: {}\n", profile, Cfg::ReplaceExisting::No)
+    CHECK(Edited(Cfg::AddProfileText("profiles: {}\n", profile, Cfg::ReplaceExisting::No))
           == "profiles:\n  \"b\":\n    connectionString: \"Driver=x\"\n");
-    CHECK(Cfg::AddProfileText("profiles:\ndefaultPluginsDir: x\n", profile, Cfg::ReplaceExisting::No)
+    CHECK(Edited(Cfg::AddProfileText("profiles:\ndefaultPluginsDir: x\n", profile, Cfg::ReplaceExisting::No))
           == "profiles:\n  \"b\":\n    connectionString: \"Driver=x\"\ndefaultPluginsDir: x\n");
-    CHECK(Cfg::AddProfileText("defaultPluginsDir: x", profile, Cfg::ReplaceExisting::No)
+    CHECK(Edited(Cfg::AddProfileText("defaultPluginsDir: x", profile, Cfg::ReplaceExisting::No))
           == "defaultPluginsDir: x\nprofiles:\n  \"b\":\n    connectionString: \"Driver=x\"\n");
 }
 
@@ -265,9 +272,9 @@ TEST_CASE("ProfileFileEditor — legacy and flow-style files are not restructure
 
 TEST_CASE("ProfileFileEditor — sets or inserts defaultProfile", "[ProfileFileEditor]")
 {
-    CHECK(Cfg::SetDefaultProfileText(Sample, "other")
+    CHECK(Edited(Cfg::SetDefaultProfileText(Sample, "other"))
           == ReplaceOnce(std::string { Sample }, "defaultProfile: prod", "defaultProfile: \"other\""));
-    CHECK(Cfg::SetDefaultProfileText("profiles:\n  a:\n    uid: x\n", "a")
+    CHECK(Edited(Cfg::SetDefaultProfileText("profiles:\n  a:\n    uid: x\n", "a"))
           == "defaultProfile: \"a\"\nprofiles:\n  a:\n    uid: x\n");
 }
 
@@ -326,17 +333,17 @@ TEST_CASE("ProfileFileEditor — EditConfigFile rides out a transient lock on th
 TEST_CASE("ProfileFileEditor — files with a UTF-8 BOM are edited at the right offsets", "[ProfileFileEditor]")
 {
     auto const bom = std::string { "\xEF\xBB\xBF" };
-    CHECK(Cfg::SetProfilePasswordText(bom + "profiles:\n  p:\n    password: secret\n",
-                                      { .profileName = "p", .newValue = "enc:dev:A" })
+    CHECK(Edited(Cfg::SetProfilePasswordText(bom + "profiles:\n  p:\n    password: secret\n",
+                                             { .profileName = "p", .newValue = "enc:dev:A" }))
           == bom + "profiles:\n  p:\n    password: \"enc:dev:A\"\n");
 
     auto const profile = Cfg::NewProfile {
         .name = "b", .connectionString = "Driver=x", .dsn = {}, .uid = {}, .schema = {}, .pluginsDir = {}, .password = {}
     };
-    CHECK(Cfg::AddProfileText(bom + "profiles:\n  a:\n    uid: x\n", profile, Cfg::ReplaceExisting::No)
+    CHECK(Edited(Cfg::AddProfileText(bom + "profiles:\n  a:\n    uid: x\n", profile, Cfg::ReplaceExisting::No))
           == bom + "profiles:\n  \"b\":\n    connectionString: \"Driver=x\"\n  a:\n    uid: x\n");
 
-    CHECK(Cfg::SetDefaultProfileText(bom + "profiles:\n  a:\n    uid: x\n", "a")
+    CHECK(Edited(Cfg::SetDefaultProfileText(bom + "profiles:\n  a:\n    uid: x\n", "a"))
           == bom + "defaultProfile: \"a\"\nprofiles:\n  a:\n    uid: x\n");
 }
 

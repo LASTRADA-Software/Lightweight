@@ -28,6 +28,13 @@ using namespace std::string_view_literals;
 namespace
 {
 
+/// The value, or a readable marker for an error. Comparing `std::expected` directly inside
+/// `CHECK` trips a recursive-constraint error in trunk libc++.
+std::string Unwrapped(std::expected<std::string, std::string> const& result)
+{
+    return result ? *result : "<error: " + result.error() + ">";
+}
+
 /// Decodes a lowercase hex string into bytes (test helper; input is trusted).
 std::vector<std::byte> FromHex(std::string_view hex)
 {
@@ -156,15 +163,15 @@ std::string TamperPayloadChar(std::string value, std::size_t index)
 TEST_CASE("ProfileCipher — encrypting with a fixed IV reproduces the reference vectors", "[ProfileCipher]")
 {
     auto const cipher = Secrets::ProfileCipher { { Secrets::DevKey() }, Secrets::DevKeyPolicy::Allow, SequentialIv };
-    CHECK(cipher.Encrypt("s3cr3t-P@ss") == DevVector);
-    CHECK(cipher.Encrypt("") == DevEmptyVector);
+    CHECK(Unwrapped(cipher.Encrypt("s3cr3t-P@ss")) == DevVector);
+    CHECK(Unwrapped(cipher.Encrypt("")) == DevEmptyVector);
 }
 
 TEST_CASE("ProfileCipher — reference vectors decrypt on every platform", "[ProfileCipher]")
 {
     auto const cipher = Secrets::ProfileCipher { { Secrets::DevKey() }, Secrets::DevKeyPolicy::Allow };
-    CHECK(cipher.Decrypt(DevVector) == "s3cr3t-P@ss");
-    CHECK(cipher.Decrypt(DevEmptyVector) == "");
+    CHECK(Unwrapped(cipher.Decrypt(DevVector)) == "s3cr3t-P@ss");
+    CHECK(Unwrapped(cipher.Decrypt(DevEmptyVector)) == "");
 }
 
 TEST_CASE("ProfileCipher — random IVs make each encryption distinct", "[ProfileCipher]")
@@ -175,8 +182,8 @@ TEST_CASE("ProfileCipher — random IVs make each encryption distinct", "[Profil
     REQUIRE(first.has_value());
     REQUIRE(second.has_value());
     CHECK(*first != *second);
-    CHECK(cipher.Decrypt(*first) == "same");
-    CHECK(cipher.Decrypt(*second) == "same");
+    CHECK(Unwrapped(cipher.Decrypt(*first)) == "same");
+    CHECK(Unwrapped(cipher.Decrypt(*second)) == "same");
 }
 
 TEST_CASE("ProfileCipher — any modified byte fails the integrity check", "[ProfileCipher]")
@@ -229,7 +236,7 @@ TEST_CASE("ProfileCipher — key rotation encrypts with the newest key and still
     auto const newValue = newCipher.Encrypt("rotated");
     REQUIRE(newValue.has_value());
     CHECK(newValue->starts_with("enc:v2:"));
-    CHECK(newCipher.Decrypt(*oldValue) == "rotated");
+    CHECK(Unwrapped(newCipher.Decrypt(*oldValue)) == "rotated");
 }
 
 TEST_CASE("ProfileCipher — malformed values are rejected without crashing", "[ProfileCipher]")
@@ -255,5 +262,5 @@ TEST_CASE("ProfileCipher — the built-in key ring matches the build flavour", "
     // Whatever ring this build carries, it must round-trip its own output.
     auto const value = Secrets::ProfileCipher::Builtin().Encrypt("builtin");
     REQUIRE(value.has_value());
-    CHECK(Secrets::ProfileCipher::Builtin().Decrypt(*value) == "builtin");
+    CHECK(Unwrapped(Secrets::ProfileCipher::Builtin().Decrypt(*value)) == "builtin");
 }

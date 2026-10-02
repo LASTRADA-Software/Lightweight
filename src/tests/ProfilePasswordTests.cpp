@@ -29,6 +29,13 @@ namespace Secrets = Lightweight::Secrets;
 namespace
 {
 
+/// The value, or a readable marker for an error. Comparing `std::expected` directly inside
+/// `CHECK` trips a recursive-constraint error in trunk libc++.
+std::string Unwrapped(std::expected<std::string, std::string> const& result)
+{
+    return result ? *result : "<error: " + result.error() + ">";
+}
+
 /// Dev-key cipher used by every test so results do not depend on the build's key ring.
 Secrets::ProfileCipher const& DevCipher()
 {
@@ -170,7 +177,7 @@ TEST_CASE("ProfilePassword — upgrading encrypts the plaintext in place and kee
     CHECK_FALSE(text.contains("hunter2"));
     auto const stored = config.Load("p").password;
     REQUIRE(Secrets::ProfileCipher::IsEncrypted(stored));
-    CHECK(DevCipher().Decrypt(stored) == "hunter2");
+    CHECK(Unwrapped(DevCipher().Decrypt(stored)) == "hunter2");
 }
 
 TEST_CASE("ProfilePassword — upgrade reports whether the file is inside a git work tree", "[ProfilePassword]")
@@ -230,6 +237,6 @@ TEST_CASE("ProfilePassword — a profile that connects with its plaintext passwo
     REQUIRE(Cfg::UpgradePlaintextPassword(config.Path(), profile, DevCipher()).has_value());
     auto const upgraded = config.Load("db");
     REQUIRE(Secrets::ProfileCipher::IsEncrypted(upgraded.password));
-    CHECK(DevCipher().Decrypt(upgraded.password) == password);
+    CHECK(Unwrapped(DevCipher().Decrypt(upgraded.password)) == password);
     CHECK(upgraded.connectionString == connectionString);
 }
