@@ -322,3 +322,61 @@ TEST_CASE("ProfileFileEditor — EditConfigFile rides out a transient lock on th
     CHECK(file.Read() == "new\n");
 }
 #endif
+
+TEST_CASE("ProfileFileEditor — files with a UTF-8 BOM are edited at the right offsets", "[ProfileFileEditor]")
+{
+    auto const bom = std::string { "\xEF\xBB\xBF" };
+    CHECK(Cfg::SetProfilePasswordText(bom + "profiles:\n  p:\n    password: secret\n",
+                                      { .profileName = "p", .newValue = "enc:dev:A" })
+          == bom + "profiles:\n  p:\n    password: \"enc:dev:A\"\n");
+
+    auto const profile = Cfg::NewProfile {
+        .name = "b", .connectionString = "Driver=x", .dsn = {}, .uid = {}, .schema = {}, .pluginsDir = {}, .password = {}
+    };
+    CHECK(Cfg::AddProfileText(bom + "profiles:\n  a:\n    uid: x\n", profile, Cfg::ReplaceExisting::No)
+          == bom + "profiles:\n  \"b\":\n    connectionString: \"Driver=x\"\n  a:\n    uid: x\n");
+
+    CHECK(Cfg::SetDefaultProfileText(bom + "profiles:\n  a:\n    uid: x\n", "a")
+          == bom + "defaultProfile: \"a\"\nprofiles:\n  a:\n    uid: x\n");
+}
+
+TEST_CASE("ProfileFileEditor — anchored, aliased and tagged values are refused", "[ProfileFileEditor]")
+{
+    auto const text = "profiles:\n  p:\n    password: &pw secret\n  q:\n    password: *pw\n  r:\n    password: !!str x\n"sv;
+    for (auto const name: { "p"sv, "q"sv, "r"sv })
+    {
+        auto const result = Cfg::SetProfilePasswordText(text, { .profileName = name, .newValue = "enc:dev:A" });
+        REQUIRE_FALSE(result.has_value());
+        CHECK(result.error().contains("anchor"));
+    }
+}
+
+TEST_CASE("ProfileFileEditor — edits that would not round-trip exactly are refused", "[ProfileFileEditor]")
+{
+    // A multi-line plain scalar: replacing the first line alone would leave the rest behind.
+    auto const multiLine = Cfg::SetProfilePasswordText("profiles:\n  p:\n    password: first\n      second\n",
+                                                       { .profileName = "p", .newValue = "enc:dev:A" });
+    REQUIRE_FALSE(multiLine.has_value());
+    CHECK(multiLine.error().contains("left unchanged"));
+
+    // A document marker: a line inserted above it would start a separate document.
+    auto const documentMarker = Cfg::SetDefaultProfileText("---\nprofiles:\n  a:\n    uid: x\n", "a");
+    REQUIRE_FALSE(documentMarker.has_value());
+    CHECK(documentMarker.error().contains("left unchanged"));
+
+    // --force across a comment at column 0: the old profile's tail must not leak into the new one.
+    auto const profile = Cfg::NewProfile { .name = "prod",
+                                           .connectionString = "Driver=new",
+                                           .dsn = {},
+                                           .uid = {},
+                                           .schema = {},
+                                           .pluginsDir = {},
+                                           .password = {} };
+    auto const forced =
+        Cfg::AddProfileText("profiles:\n  prod:\n    uid: a\n# note\n    password: old\n  other:\n    uid: b\n",
+                            profile,
+                            Cfg::ReplaceExisting::Yes);
+    REQUIRE_FALSE(forced.has_value());
+    INFO(forced.error());
+    CHECK(forced.error().contains("left unchanged"));
+}

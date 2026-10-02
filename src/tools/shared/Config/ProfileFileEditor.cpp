@@ -24,6 +24,10 @@ namespace
 
     /// Bounded retry of the replacing rename (see EditConfigFile): 20 x 100 ms.
     inline constexpr int RenameAttempts = 20;
+
+    /// Returned whenever an edit cannot be applied exactly; the file is never written then.
+    inline constexpr std::string_view EditRefused =
+        "the configuration file could not be edited exactly and was left unchanged; edit it by hand";
     inline constexpr auto RenameRetryDelay = std::chrono::milliseconds(100);
 
     /// Half-open byte range of a scalar in the source text.
@@ -131,6 +135,11 @@ namespace
                 return DoubleQuotedExtent(yaml, begin);
             case '\'':
                 return SingleQuotedExtent(yaml, begin);
+            case '&':
+            case '*':
+            case '!':
+                return std::unexpected(
+                    std::string { "values with YAML anchors, aliases or tags cannot be rewritten in place" });
             default:
                 return PlainExtent(yaml, begin, inFlow);
         }
@@ -279,34 +288,188 @@ std::string QuoteYamlScalar(std::string_view value)
     return out;
 }
 
-std::expected<std::string, std::string> SetProfilePasswordText(std::string_view yaml, PasswordEdit const& edit)
+namespace
 {
-    auto const [profileName, newValue] = edit;
-    auto const root = Parse(yaml);
-    if (!root)
-        return std::unexpected(root.error());
 
-    auto const replacement = QuoteYamlScalar(newValue);
-    if (IsLegacyShape(*root))
+    /// Unverified password splice; see SetProfilePasswordText.
+    std::expected<std::string, std::string> SetProfilePasswordTextImpl(std::string_view yaml, PasswordEdit const& edit)
     {
-        auto const password = FindEntry(*root, "Password").or_else([&] { return FindEntry(*root, "password"); });
+        auto const [profileName, newValue] = edit;
+        auto const root = Parse(yaml);
+        if (!root)
+            return std::unexpected(root.error());
+
+        auto const replacement = QuoteYamlScalar(newValue);
+        if (IsLegacyShape(*root))
+        {
+            auto const password = FindEntry(*root, "Password").or_else([&] { return FindEntry(*root, "password"); });
+            if (!password || !password->second.IsScalar())
+                return std::unexpected(std::format("profile '{}' has no password to replace", profileName));
+            return ReplaceScalar(yaml, password->second, root->Style() == YAML::EmitterStyle::Flow, replacement);
+        }
+
+        auto const profiles = FindEntry(*root, "profiles");
+        auto const profile = profiles ? FindEntry(profiles->second, profileName) : std::nullopt;
+        if (!profile || !profile->second.IsMap())
+            return std::unexpected(std::format("profile '{}' not found in the configuration file", profileName));
+
+        auto const password = FindEntry(profile->second, "password");
         if (!password || !password->second.IsScalar())
             return std::unexpected(std::format("profile '{}' has no password to replace", profileName));
-        return ReplaceScalar(yaml, password->second, root->Style() == YAML::EmitterStyle::Flow, replacement);
+
+        return ReplaceScalar(yaml, password->second, profile->second.Style() == YAML::EmitterStyle::Flow, replacement)
+            .transform_error([&](std::string const& error) {
+                return std::format("cannot rewrite the password of profile '{}': {}", profileName, error);
+            });
     }
 
-    auto const profiles = FindEntry(*root, "profiles");
-    auto const profile = profiles ? FindEntry(profiles->second, profileName) : std::nullopt;
-    if (!profile || !profile->second.IsMap())
-        return std::unexpected(std::format("profile '{}' not found in the configuration file", profileName));
+    /// Unverified profile insertion; see AddProfileText.
+    std::expected<std::string, std::string> AddProfileTextImpl(std::string_view yaml,
+                                                               NewProfile const& profile,
+                                                               ReplaceExisting replace)
+    {
+        auto const root = Parse(yaml);
+        if (!root)
+            return std::unexpected(root.error());
+        auto const eol = LineEnding(yaml);
 
-    auto const password = FindEntry(profile->second, "password");
-    if (!password || !password->second.IsScalar())
-        return std::unexpected(std::format("profile '{}' has no password to replace", profileName));
+        if (IsLegacyShape(*root))
+            return std::unexpected(std::string { "the configuration file uses the legacy single-profile format; convert it "
+                                                 "to the 'profiles:' format first" });
+        if (!root->IsNull() && !root->IsMap())
+            return std::unexpected(std::string { "the configuration file is not a YAML mapping" });
+        if (root->IsMap() && root->Style() == YAML::EmitterStyle::Flow)
+            return std::unexpected(std::string { "flow-style ({...}) configuration files cannot be edited in place" });
 
-    return ReplaceScalar(yaml, password->second, profile->second.Style() == YAML::EmitterStyle::Flow, replacement)
-        .transform_error([&](std::string const& error) {
-            return std::format("cannot rewrite the password of profile '{}': {}", profileName, error);
+        auto const profiles = FindEntry(*root, "profiles");
+        if (!profiles)
+        {
+            auto edited = std::string { yaml };
+            if (!edited.empty() && !edited.ends_with('\n'))
+                edited += eol;
+            edited += std::format("profiles:{}", eol);
+            edited += RenderProfile(profile, 2, 4, eol);
+            return edited;
+        }
+
+        auto const& [profilesKey, profilesValue] = *profiles;
+        if (!profilesValue.IsNull() && !profilesValue.IsMap())
+            return std::unexpected(std::string { "'profiles' must be a mapping" });
+
+        if (profilesValue.IsMap() && profilesValue.Style() == YAML::EmitterStyle::Flow)
+        {
+            if (profilesValue.size() > 0)
+                return std::unexpected(std::string { "flow-style ({...}) 'profiles' maps cannot be edited in place" });
+            // `profiles: {}` — drop the empty braces and continue as for a bare `profiles:`.
+            auto const valuePos = static_cast<std::size_t>(profilesValue.Mark().pos);
+            auto const close = yaml.find('}', valuePos);
+            auto start = valuePos;
+            while (start > 0 && (yaml[start - 1] == ' ' || yaml[start - 1] == '\t'))
+                --start;
+            auto edited = std::string { yaml };
+            edited.erase(start, close + 1 - start);
+            return AddProfileTextImpl(edited, profile, replace);
+        }
+
+        if (auto const existing = FindEntry(profilesValue, profile.name))
+        {
+            if (replace == ReplaceExisting::No)
+                return std::unexpected(std::format("profile '{}' already exists (use --force to replace it)", profile.name));
+            auto const removed = RemoveProfileBlock(yaml, existing->first);
+            if (!Parse(removed))
+                return std::unexpected(std::string { EditRefused });
+            return AddProfileTextImpl(removed, profile, ReplaceExisting::No);
+        }
+
+        return InsertAfterProfilesKey(yaml, profilesKey, profilesValue, profile, eol);
+    }
+
+    /// Unverified defaultProfile splice; see SetDefaultProfileText.
+    std::expected<std::string, std::string> SetDefaultProfileTextImpl(std::string_view yaml, std::string_view profileName)
+    {
+        auto const root = Parse(yaml);
+        if (!root)
+            return std::unexpected(root.error());
+
+        auto const replacement = QuoteYamlScalar(profileName);
+        if (auto const current = FindEntry(*root, "defaultProfile"); current && current->second.IsScalar())
+            return ReplaceScalar(yaml, current->second, root->Style() == YAML::EmitterStyle::Flow, replacement);
+
+        return std::format("defaultProfile: {}{}{}", replacement, LineEnding(yaml), yaml);
+    }
+
+} // namespace
+
+namespace
+{
+
+    inline constexpr std::string_view Utf8Bom = "\xEF\xBB\xBF";
+
+    /// Structural equality of two YAML documents: same node kinds, same scalar
+    /// text, same sequence order, same mapping entries in any order.
+    bool NodesEqual(YAML::Node const& lhs, YAML::Node const& rhs)
+    {
+        if (lhs.Type() != rhs.Type())
+            return false;
+        switch (lhs.Type())
+        {
+            case YAML::NodeType::Scalar:
+                return lhs.Scalar() == rhs.Scalar();
+            case YAML::NodeType::Sequence:
+                return lhs.size() == rhs.size()
+                       && std::ranges::all_of(std::views::iota(std::size_t { 0 }, lhs.size()),
+                                              [&](std::size_t i) { return NodesEqual(lhs[i], rhs[i]); });
+            case YAML::NodeType::Map:
+                return lhs.size() == rhs.size() && std::ranges::all_of(lhs, [&](auto const& entry) {
+                           auto const other = FindEntry(rhs, entry.first.Scalar());
+                           return other && NodesEqual(entry.second, other->second);
+                       });
+            default:
+                return true;
+        }
+    }
+
+    /// Applies an unverified text edit and accepts it only if the edited document
+    /// equals the original with `expectChange` applied. Any byte-offset slip —
+    /// multi-line scalars, document markers, unusual layouts — therefore ends in a
+    /// clean refusal instead of a corrupted file. A UTF-8 BOM is set aside first
+    /// (yaml-cpp's offsets do not count it) and restored afterwards.
+    std::expected<std::string, std::string> VerifiedEdit(
+        std::string_view yaml,
+        std::function<std::expected<std::string, std::string>(std::string_view)> const& edit,
+        std::function<void(YAML::Node&)> const& expectChange)
+    {
+        auto const bom = yaml.starts_with(Utf8Bom) ? Utf8Bom : std::string_view {};
+        auto const body = yaml.substr(bom.size());
+
+        auto const before = Parse(body);
+        if (!before)
+            return std::unexpected(before.error());
+        auto edited = edit(body);
+        if (!edited)
+            return std::unexpected(std::move(edited.error()));
+
+        auto expected = YAML::Clone(*before);
+        expectChange(expected);
+        auto const after = Parse(*edited);
+        if (!after || !NodesEqual(expected, *after))
+            return std::unexpected(std::string { EditRefused });
+        return std::format("{}{}", bom, *edited);
+    }
+
+} // namespace
+
+std::expected<std::string, std::string> SetProfilePasswordText(std::string_view yaml, PasswordEdit const& edit)
+{
+    return VerifiedEdit(
+        yaml,
+        [&](std::string_view body) { return SetProfilePasswordTextImpl(body, edit); },
+        [&](YAML::Node& document) {
+            auto const value = std::string { edit.newValue };
+            if (IsLegacyShape(document))
+                document[FindEntry(document, "Password") ? "Password" : "password"] = value;
+            else
+                document["profiles"][std::string { edit.profileName }]["password"] = value;
         });
 }
 
@@ -314,70 +477,32 @@ std::expected<std::string, std::string> AddProfileText(std::string_view yaml,
                                                        NewProfile const& profile,
                                                        ReplaceExisting replace)
 {
-    auto const root = Parse(yaml);
-    if (!root)
-        return std::unexpected(root.error());
-    auto const eol = LineEnding(yaml);
-
-    if (IsLegacyShape(*root))
-        return std::unexpected(std::string {
-            "the configuration file uses the legacy single-profile format; convert it to the 'profiles:' format first" });
-    if (!root->IsNull() && !root->IsMap())
-        return std::unexpected(std::string { "the configuration file is not a YAML mapping" });
-    if (root->IsMap() && root->Style() == YAML::EmitterStyle::Flow)
-        return std::unexpected(std::string { "flow-style ({...}) configuration files cannot be edited in place" });
-
-    auto const profiles = FindEntry(*root, "profiles");
-    if (!profiles)
-    {
-        auto edited = std::string { yaml };
-        if (!edited.empty() && !edited.ends_with('\n'))
-            edited += eol;
-        edited += std::format("profiles:{}", eol);
-        edited += RenderProfile(profile, 2, 4, eol);
-        return edited;
-    }
-
-    auto const& [profilesKey, profilesValue] = *profiles;
-    if (!profilesValue.IsNull() && !profilesValue.IsMap())
-        return std::unexpected(std::string { "'profiles' must be a mapping" });
-
-    if (profilesValue.IsMap() && profilesValue.Style() == YAML::EmitterStyle::Flow)
-    {
-        if (profilesValue.size() > 0)
-            return std::unexpected(std::string { "flow-style ({...}) 'profiles' maps cannot be edited in place" });
-        // `profiles: {}` — drop the empty braces and continue as for a bare `profiles:`.
-        auto const valuePos = static_cast<std::size_t>(profilesValue.Mark().pos);
-        auto const close = yaml.find('}', valuePos);
-        auto start = valuePos;
-        while (start > 0 && (yaml[start - 1] == ' ' || yaml[start - 1] == '\t'))
-            --start;
-        auto edited = std::string { yaml };
-        edited.erase(start, close + 1 - start);
-        return AddProfileText(edited, profile, replace);
-    }
-
-    if (auto const existing = FindEntry(profilesValue, profile.name))
-    {
-        if (replace == ReplaceExisting::No)
-            return std::unexpected(std::format("profile '{}' already exists (use --force to replace it)", profile.name));
-        return AddProfileText(RemoveProfileBlock(yaml, existing->first), profile, ReplaceExisting::No);
-    }
-
-    return InsertAfterProfilesKey(yaml, profilesKey, profilesValue, profile, eol);
+    return VerifiedEdit(
+        yaml,
+        [&](std::string_view body) { return AddProfileTextImpl(body, profile, replace); },
+        [&](YAML::Node& document) {
+            auto node = YAML::Node { YAML::NodeType::Map };
+            auto const fields = std::array<std::pair<char const*, std::string const*>, 6> { {
+                { "connectionString", &profile.connectionString },
+                { "dsn", &profile.dsn },
+                { "uid", &profile.uid },
+                { "schema", &profile.schema },
+                { "pluginsDir", &profile.pluginsDir },
+                { "password", &profile.password },
+            } };
+            for (auto const& [key, value]: fields)
+                if (!value->empty())
+                    node[key] = *value;
+            document["profiles"][profile.name] = node;
+        });
 }
 
 std::expected<std::string, std::string> SetDefaultProfileText(std::string_view yaml, std::string_view profileName)
 {
-    auto const root = Parse(yaml);
-    if (!root)
-        return std::unexpected(root.error());
-
-    auto const replacement = QuoteYamlScalar(profileName);
-    if (auto const current = FindEntry(*root, "defaultProfile"); current && current->second.IsScalar())
-        return ReplaceScalar(yaml, current->second, root->Style() == YAML::EmitterStyle::Flow, replacement);
-
-    return std::format("defaultProfile: {}{}{}", replacement, LineEnding(yaml), yaml);
+    return VerifiedEdit(
+        yaml,
+        [&](std::string_view body) { return SetDefaultProfileTextImpl(body, profileName); },
+        [&](YAML::Node& document) { document["defaultProfile"] = std::string { profileName }; });
 }
 
 std::expected<void, std::string> EditConfigFile(std::filesystem::path const& path, ConfigTextTransform const& transform)
