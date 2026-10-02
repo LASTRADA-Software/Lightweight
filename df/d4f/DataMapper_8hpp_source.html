@@ -1646,7 +1646,7 @@ $(document).ready(function(){initNavTree('df/d4f/DataMapper_8hpp_source.html','.
 <div class="line"><a id="l01510" name="l01510"></a><span class="lineno"> 1510</span>    <span class="keyword">auto</span> <span class="keyword">const</span> outputColumnsBound = detail::CanSafelyBindOutputColumns&lt;Record&gt;(stmt.Connection().ServerType());</div>
 <div class="line"><a id="l01511" name="l01511"></a><span class="lineno"> 1511</span>    <span class="keywordflow">while</span> (<span class="keyword">true</span>)</div>
 <div class="line"><a id="l01512" name="l01512"></a><span class="lineno"> 1512</span>    {</div>
-<div class="line"><a id="l01513" name="l01513"></a><span class="lineno"> 1513</span>        <span class="keyword">auto</span>&amp; record = detail::EmplaceBackUninitialized(records);</div>
+<div class="line"><a id="l01513" name="l01513"></a><span class="lineno"> 1513</span>        <span class="keyword">auto</span>&amp; record = records.emplace_back();</div>
 <div class="line"><a id="l01514" name="l01514"></a><span class="lineno"> 1514</span>        <span class="keywordflow">if</span> (outputColumnsBound)</div>
 <div class="line"><a id="l01515" name="l01515"></a><span class="lineno"> 1515</span><span class="preprocessor">#if defined(LIGHTWEIGHT_CXX26_REFLECTION)</span></div>
 <div class="line"><a id="l01516" name="l01516"></a><span class="lineno"> 1516</span>            reader.BindOutputColumns(&amp;(record.[:ReferencedFields:])...);</div>
@@ -1737,7 +1737,7 @@ $(document).ready(function(){initNavTree('df/d4f/DataMapper_8hpp_source.html','.
 <div class="line"><a id="l01601" name="l01601"></a><span class="lineno"> 1601</span>                                        this-&gt;_query.groupBy,</div>
 <div class="line"><a id="l01602" name="l01602"></a><span class="lineno"> 1602</span>                                        1));</div>
 <div class="line"><a id="l01603" name="l01603"></a><span class="lineno"> 1603</span> </div>
-<div class="line"><a id="l01604" name="l01604"></a><span class="lineno"> 1604</span>    <span class="keyword">auto</span>&amp; record = detail::EmplaceUninitialized(optionalRecord);</div>
+<div class="line"><a id="l01604" name="l01604"></a><span class="lineno"> 1604</span>    <span class="keyword">auto</span>&amp; record = optionalRecord.emplace();</div>
 <div class="line"><a id="l01605" name="l01605"></a><span class="lineno"> 1605</span>    <span class="keyword">auto</span> reader = stmt.ExecuteWithVariants(_boundInputs);</div>
 <div class="line"><a id="l01606" name="l01606"></a><span class="lineno"> 1606</span>    <span class="keyword">auto</span> <span class="keyword">const</span> outputColumnsBound = detail::CanSafelyBindOutputColumns&lt;Record&gt;(stmt.Connection().ServerType());</div>
 <div class="line"><a id="l01607" name="l01607"></a><span class="lineno"> 1607</span>    <span class="keywordflow">if</span> (outputColumnsBound)</div>
@@ -1853,7 +1853,7 @@ $(document).ready(function(){initNavTree('df/d4f/DataMapper_8hpp_source.html','.
 <div class="line"><a id="l01717" name="l01717"></a><span class="lineno"> 1717</span>    <span class="keyword">auto</span> <span class="keyword">const</span> outputColumnsBound = detail::CanSafelyBindOutputColumns&lt;Record&gt;(stmt.Connection().ServerType());</div>
 <div class="line"><a id="l01718" name="l01718"></a><span class="lineno"> 1718</span>    <span class="keywordflow">while</span> (<span class="keyword">true</span>)</div>
 <div class="line"><a id="l01719" name="l01719"></a><span class="lineno"> 1719</span>    {</div>
-<div class="line"><a id="l01720" name="l01720"></a><span class="lineno"> 1720</span>        <span class="keyword">auto</span>&amp; record = detail::EmplaceBackUninitialized(records);</div>
+<div class="line"><a id="l01720" name="l01720"></a><span class="lineno"> 1720</span>        <span class="keyword">auto</span>&amp; record = records.emplace_back();</div>
 <div class="line"><a id="l01721" name="l01721"></a><span class="lineno"> 1721</span>        <span class="keywordflow">if</span> (outputColumnsBound)</div>
 <div class="line"><a id="l01722" name="l01722"></a><span class="lineno"> 1722</span><span class="preprocessor">#if defined(LIGHTWEIGHT_CXX26_REFLECTION)</span></div>
 <div class="line"><a id="l01723" name="l01723"></a><span class="lineno"> 1723</span>            reader.BindOutputColumns(&amp;(record.[:ReferencedFields:])...);</div>
@@ -1902,7 +1902,7 @@ $(document).ready(function(){initNavTree('df/d4f/DataMapper_8hpp_source.html','.
 <div class="line"><a id="l01766" name="l01766"></a><span class="lineno"> 1766</span>    <span class="keyword">auto</span> <span class="keyword">const</span> outputColumnsBound = detail::CanSafelyBindOutputColumns&lt;Record&gt;(stmt.Connection().ServerType());</div>
 <div class="line"><a id="l01767" name="l01767"></a><span class="lineno"> 1767</span>    <span class="keywordflow">while</span> (<span class="keyword">true</span>)</div>
 <div class="line"><a id="l01768" name="l01768"></a><span class="lineno"> 1768</span>    {</div>
-<div class="line"><a id="l01769" name="l01769"></a><span class="lineno"> 1769</span>        <span class="keyword">auto</span>&amp; record = detail::EmplaceBackUninitialized(records);</div>
+<div class="line"><a id="l01769" name="l01769"></a><span class="lineno"> 1769</span>        <span class="keyword">auto</span>&amp; record = records.emplace_back();</div>
 <div class="line"><a id="l01770" name="l01770"></a><span class="lineno"> 1770</span>        <span class="keywordflow">if</span> (outputColumnsBound)</div>
 <div class="line"><a id="l01771" name="l01771"></a><span class="lineno"> 1771</span><span class="preprocessor">#if defined(LIGHTWEIGHT_CXX26_REFLECTION)</span></div>
 <div class="line"><a id="l01772" name="l01772"></a><span class="lineno"> 1772</span>            reader.BindOutputColumns(&amp;(record.[:ReferencedFields:])...);</div>
@@ -1950,7 +1950,7 @@ $(document).ready(function(){initNavTree('df/d4f/DataMapper_8hpp_source.html','.
 <div class="line"><a id="l01814" name="l01814"></a><span class="lineno"> 1814</span> </div>
 <div class="line"><a id="l01815" name="l01815"></a><span class="lineno"> 1815</span>    <span class="keywordflow">while</span> (<span class="keyword">true</span>)</div>
 <div class="line"><a id="l01816" name="l01816"></a><span class="lineno"> 1816</span>    {</div>
-<div class="line"><a id="l01817" name="l01817"></a><span class="lineno"> 1817</span>        Record&amp; record = detail::EmplaceBackUninitialized(*records);</div>
+<div class="line"><a id="l01817" name="l01817"></a><span class="lineno"> 1817</span>        Record&amp; record = records-&gt;emplace_back();</div>
 <div class="line"><a id="l01818" name="l01818"></a><span class="lineno"> 1818</span>        <span class="keywordflow">if</span> (!detail::ReadSingleResult(sqlServerType, reader, record))</div>
 <div class="line"><a id="l01819" name="l01819"></a><span class="lineno"> 1819</span>        {</div>
 <div class="line"><a id="l01820" name="l01820"></a><span class="lineno"> 1820</span>            records-&gt;pop_back();</div>
@@ -1964,7 +1964,7 @@ $(document).ready(function(){initNavTree('df/d4f/DataMapper_8hpp_source.html','.
 <div class="line"><a id="l01828" name="l01828"></a><span class="lineno"> 1828</span>                                                                           SqlResultCursor reader,</div>
 <div class="line"><a id="l01829" name="l01829"></a><span class="lineno"> 1829</span>                                                                           std::optional&lt;Record&gt;* optionalRecord)</div>
 <div class="line"><a id="l01830" name="l01830"></a><span class="lineno"> 1830</span>{</div>
-<div class="line"><a id="l01831" name="l01831"></a><span class="lineno"> 1831</span>    Record&amp; record = detail::EmplaceUninitialized(*optionalRecord);</div>
+<div class="line"><a id="l01831" name="l01831"></a><span class="lineno"> 1831</span>    Record&amp; record = optionalRecord-&gt;emplace();</div>
 <div class="line"><a id="l01832" name="l01832"></a><span class="lineno"> 1832</span>    <span class="keywordflow">if</span> (!detail::ReadSingleResult(sqlServerType, reader, record))</div>
 <div class="line"><a id="l01833" name="l01833"></a><span class="lineno"> 1833</span>        optionalRecord-&gt;reset();</div>
 <div class="line"><a id="l01834" name="l01834"></a><span class="lineno"> 1834</span>}</div>
@@ -1986,7 +1986,7 @@ $(document).ready(function(){initNavTree('df/d4f/DataMapper_8hpp_source.html','.
 <div class="line"><a id="l01850" name="l01850"></a><span class="lineno"> 1850</span> </div>
 <div class="line"><a id="l01851" name="l01851"></a><span class="lineno"> 1851</span>    <span class="keywordflow">while</span> (<span class="keyword">true</span>)</div>
 <div class="line"><a id="l01852" name="l01852"></a><span class="lineno"> 1852</span>    {</div>
-<div class="line"><a id="l01853" name="l01853"></a><span class="lineno"> 1853</span>        <span class="keyword">auto</span>&amp; record = detail::EmplaceBackUninitialized(*records);</div>
+<div class="line"><a id="l01853" name="l01853"></a><span class="lineno"> 1853</span>        <span class="keyword">auto</span>&amp; record = records-&gt;emplace_back();</div>
 <div class="line"><a id="l01854" name="l01854"></a><span class="lineno"> 1854</span>        <span class="keyword">auto</span>&amp; [firstRecord, secondRecord] = record;</div>
 <div class="line"><a id="l01855" name="l01855"></a><span class="lineno"> 1855</span> </div>
 <div class="line"><a id="l01856" name="l01856"></a><span class="lineno"> 1856</span>        <span class="keyword">using </span>FirstRecordType = std::remove_cvref_t&lt;<span class="keyword">decltype</span>(firstRecord)&gt;;</div>
@@ -2664,7 +2664,7 @@ $(document).ready(function(){initNavTree('df/d4f/DataMapper_8hpp_source.html','.
 <div class="line"><a id="l02501" name="l02501"></a><span class="lineno"> 2501</span>    <span class="comment">// configured below (ConfigureRelationAutoLoading) captures a pointer to *resultRecord. An earlier</span></div>
 <div class="line"><a id="l02502" name="l02502"></a><span class="lineno"> 2502</span>    <span class="comment">// `return std::nullopt;` here defeats NRVO in both GCC and Clang (verified: it forces a move-construct</span></div>
 <div class="line"><a id="l02503" name="l02503"></a><span class="lineno"> 2503</span>    <span class="comment">// into the caller&#39;s storage at a new address), which would leave that captured pointer dangling.</span></div>
-<div class="line"><a id="l02504" name="l02504"></a><span class="lineno"> 2504</span>    <span class="keyword">auto</span> resultRecord = std::optional&lt;Record&gt; { detail::MakeUninitialized&lt;Record&gt;() };</div>
+<div class="line"><a id="l02504" name="l02504"></a><span class="lineno"> 2504</span>    <span class="keyword">auto</span> resultRecord = std::optional&lt;Record&gt; { Record {} };</div>
 <div class="line"><a id="l02505" name="l02505"></a><span class="lineno"> 2505</span>    <span class="keywordflow">if</span> (detail::ReadSingleResult(_stmt.<a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#a34d2659a84a934d2c67c6b31f64a7d4a">Connection</a>().<a class="code hl_function" href="../../da/da8/classLightweight_1_1SqlConnection.html#a2cf1b575719f949078c4a5c31145e501">ServerType</a>(), reader, *resultRecord))</div>
 <div class="line"><a id="l02506" name="l02506"></a><span class="lineno"> 2506</span>    {</div>
 <div class="line"><a id="l02507" name="l02507"></a><span class="lineno"> 2507</span>        SetModifiedState&lt;ModifiedState::NotModified&gt;(resultRecord.value());</div>
@@ -2699,7 +2699,7 @@ $(document).ready(function(){initNavTree('df/d4f/DataMapper_8hpp_source.html','.
 <div class="line"><a id="l02535" name="l02535"></a><span class="lineno"> 2535</span>    _stmt.<a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#a0123c0f721c9374f8992e7c454294721">Prepare</a>(composedSql);</div>
 <div class="line"><a id="l02536" name="l02536"></a><span class="lineno"> 2536</span>    <span class="keyword">auto</span> reader = _stmt.<a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#a5428626df850d1cd2a6390e1758d4698">Execute</a>(std::forward&lt;Args&gt;(args)...);</div>
 <div class="line"><a id="l02537" name="l02537"></a><span class="lineno"> 2537</span> </div>
-<div class="line"><a id="l02538" name="l02538"></a><span class="lineno"> 2538</span>    <span class="keyword">auto</span> resultRecord = std::optional&lt;Record&gt; { detail::MakeUninitialized&lt;Record&gt;() };</div>
+<div class="line"><a id="l02538" name="l02538"></a><span class="lineno"> 2538</span>    <span class="keyword">auto</span> resultRecord = std::optional&lt;Record&gt; { Record {} };</div>
 <div class="line"><a id="l02539" name="l02539"></a><span class="lineno"> 2539</span>    <span class="keywordflow">if</span> (!detail::ReadSingleResult(_stmt.<a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#a34d2659a84a934d2c67c6b31f64a7d4a">Connection</a>().<a class="code hl_function" href="../../da/da8/classLightweight_1_1SqlConnection.html#a2cf1b575719f949078c4a5c31145e501">ServerType</a>(), reader, *resultRecord))</div>
 <div class="line"><a id="l02540" name="l02540"></a><span class="lineno"> 2540</span>        <span class="keywordflow">return</span> std::nullopt;</div>
 <div class="line"><a id="l02541" name="l02541"></a><span class="lineno"> 2541</span> </div>
@@ -2756,7 +2756,7 @@ $(document).ready(function(){initNavTree('df/d4f/DataMapper_8hpp_source.html','.
 <div class="line"><a id="l02589" name="l02589"></a><span class="lineno"> 2589</span> </div>
 <div class="line"><a id="l02590" name="l02590"></a><span class="lineno"> 2590</span>        <span class="keywordflow">for</span> (;;)</div>
 <div class="line"><a id="l02591" name="l02591"></a><span class="lineno"> 2591</span>        {</div>
-<div class="line"><a id="l02592" name="l02592"></a><span class="lineno"> 2592</span>            <span class="keyword">auto</span>&amp; record = detail::EmplaceBackUninitialized(result);</div>
+<div class="line"><a id="l02592" name="l02592"></a><span class="lineno"> 2592</span>            <span class="keyword">auto</span>&amp; record = result.emplace_back();</div>
 <div class="line"><a id="l02593" name="l02593"></a><span class="lineno"> 2593</span> </div>
 <div class="line"><a id="l02594" name="l02594"></a><span class="lineno"> 2594</span>            <span class="keywordflow">if</span> (canSafelyBindOutputColumns)</div>
 <div class="line"><a id="l02595" name="l02595"></a><span class="lineno"> 2595</span>                BindOutputColumns(record, reader);</div>
@@ -2840,7 +2840,7 @@ $(document).ready(function(){initNavTree('df/d4f/DataMapper_8hpp_source.html','.
 <div class="line"><a id="l02671" name="l02671"></a><span class="lineno"> 2671</span> </div>
 <div class="line"><a id="l02672" name="l02672"></a><span class="lineno"> 2672</span>    <span class="keywordflow">for</span> (;;)</div>
 <div class="line"><a id="l02673" name="l02673"></a><span class="lineno"> 2673</span>    {</div>
-<div class="line"><a id="l02674" name="l02674"></a><span class="lineno"> 2674</span>        <span class="keyword">auto</span>&amp; record = detail::EmplaceBackUninitialized(result);</div>
+<div class="line"><a id="l02674" name="l02674"></a><span class="lineno"> 2674</span>        <span class="keyword">auto</span>&amp; record = result.emplace_back();</div>
 <div class="line"><a id="l02675" name="l02675"></a><span class="lineno"> 2675</span> </div>
 <div class="line"><a id="l02676" name="l02676"></a><span class="lineno"> 2676</span>        <span class="keywordflow">if</span> (canSafelyBindOutputColumns)</div>
 <div class="line"><a id="l02677" name="l02677"></a><span class="lineno"> 2677</span>            BindElements(record);</div>
@@ -2892,7 +2892,7 @@ $(document).ready(function(){initNavTree('df/d4f/DataMapper_8hpp_source.html','.
 <div class="line"><a id="l02721" name="l02721"></a><span class="lineno"> 2721</span> </div>
 <div class="line"><a id="l02722" name="l02722"></a><span class="lineno"> 2722</span>    <span class="keywordflow">for</span> (;;)</div>
 <div class="line"><a id="l02723" name="l02723"></a><span class="lineno"> 2723</span>    {</div>
-<div class="line"><a id="l02724" name="l02724"></a><span class="lineno"> 2724</span>        <span class="keyword">auto</span>&amp; record = detail::EmplaceBackUninitialized(records);</div>
+<div class="line"><a id="l02724" name="l02724"></a><span class="lineno"> 2724</span>        <span class="keyword">auto</span>&amp; record = records.emplace_back();</div>
 <div class="line"><a id="l02725" name="l02725"></a><span class="lineno"> 2725</span> </div>
 <div class="line"><a id="l02726" name="l02726"></a><span class="lineno"> 2726</span>        <span class="keywordflow">if</span> (canSafelyBindOutputColumns)</div>
 <div class="line"><a id="l02727" name="l02727"></a><span class="lineno"> 2727</span>            BindOutputColumns&lt;ElementMask&gt;(record, reader);</div>
@@ -3786,7 +3786,7 @@ $(document).ready(function(){initNavTree('df/d4f/DataMapper_8hpp_source.html','.
 <div class="line"><a id="l03606" name="l03606"></a><span class="lineno"> 3606</span>    _stmt.<a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#a0123c0f721c9374f8992e7c454294721">Prepare</a>(query);</div>
 <div class="line"><a id="l03607" name="l03607"></a><span class="lineno"> 3607</span>    <span class="keyword">auto</span> cursor = _stmt.<a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#a5428626df850d1cd2a6390e1758d4698">Execute</a>(inputParameters...);</div>
 <div class="line"><a id="l03608" name="l03608"></a><span class="lineno"> 3608</span> </div>
-<div class="line"><a id="l03609" name="l03609"></a><span class="lineno"> 3609</span>    <span class="keyword">auto</span> record = detail::MakeUninitialized&lt;Record&gt;();</div>
+<div class="line"><a id="l03609" name="l03609"></a><span class="lineno"> 3609</span>    <span class="keyword">auto</span> record = Record {};</div>
 <div class="line"><a id="l03610" name="l03610"></a><span class="lineno"> 3610</span>    BindOutputColumns(record, cursor);</div>
 <div class="line"><a id="l03611" name="l03611"></a><span class="lineno"> 3611</span>    <span class="keywordflow">while</span> (cursor.<a class="code hl_function" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html#af1167aa228464a5efaaae283ac9bf50f">FetchRow</a>())</div>
 <div class="line"><a id="l03612" name="l03612"></a><span class="lineno"> 3612</span>    {</div>
@@ -3799,7 +3799,7 @@ $(document).ready(function(){initNavTree('df/d4f/DataMapper_8hpp_source.html','.
 <div class="line"><a id="l03619" name="l03619"></a><span class="lineno"> 3619</span>        <span class="comment">// fetch does not necessarily overwrite the whole of a variable-width buffer: a shorter value</span></div>
 <div class="line"><a id="l03620" name="l03620"></a><span class="lineno"> 3620</span>        <span class="comment">// leaves the tail of the previous one in place, so a string column can come back as a blend of</span></div>
 <div class="line"><a id="l03621" name="l03621"></a><span class="lineno"> 3621</span>        <span class="comment">// two rows. Assigning a fresh record clears every field&#39;s buffer and indicator first.</span></div>
-<div class="line"><a id="l03622" name="l03622"></a><span class="lineno"> 3622</span>        record = detail::MakeUninitialized&lt;Record&gt;();</div>
+<div class="line"><a id="l03622" name="l03622"></a><span class="lineno"> 3622</span>        record = Record {};</div>
 <div class="line"><a id="l03623" name="l03623"></a><span class="lineno"> 3623</span>        BindOutputColumns(record, cursor);</div>
 <div class="line"><a id="l03624" name="l03624"></a><span class="lineno"> 3624</span>    }</div>
 <div class="line"><a id="l03625" name="l03625"></a><span class="lineno"> 3625</span>}</div>
@@ -4088,7 +4088,7 @@ $(document).ready(function(){initNavTree('df/d4f/DataMapper_8hpp_source.html','.
 <div class="ttc" id="agroup__DataMapper_html_ga0690ab017d7ae25c81a0889a6385ba33"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#ga0690ab017d7ae25c81a0889a6385ba33">Lightweight::GetPrimaryKeyField</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE RecordPrimaryKeyType&lt; Record &gt; GetPrimaryKeyField(Record const &amp;record) noexcept</div><div class="ttdef"><b>Definition</b> <a href="../../d3/d6b/Record_8hpp_source.html#l00615">Record.hpp:615</a></div></div>
 <div class="ttc" id="agroup__DataMapper_html_ga3803a99a6793b7b2dcd55824b002fc69"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#ga3803a99a6793b7b2dcd55824b002fc69">Lightweight::GetRecordMemberAt</a></div><div class="ttdeci">constexpr decltype(auto) GetRecordMemberAt(Record &amp;&amp;record)</div><div class="ttdoc">Returns a reference to the member at index I — from the descriptor if present, else via reflection.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/dbc/Description_8hpp_source.html#l00174">Description.hpp:174</a></div></div>
 <div class="ttc" id="agroup__DataMapper_html_ga4be41b60128a724d65b80270ef863741"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#ga4be41b60128a724d65b80270ef863741">Lightweight::RelationResult</a></div><div class="ttdeci">std::expected&lt; T, RelationError &gt; RelationResult</div><div class="ttdoc">The outcome of a relation access: the requested value, or why it is unavailable.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d93/Error_8hpp_source.html#l00044">Error.hpp:44</a></div></div>
-<div class="ttc" id="agroup__DataMapper_html_ga6b1b90405a8cf10bbb8fd88789543f24"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#ga6b1b90405a8cf10bbb8fd88789543f24">Lightweight::FieldNameAt</a></div><div class="ttdeci">constexpr std::string_view FieldNameAt</div><div class="ttdoc">Returns the SQL field name of the given field index in the record.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d09/Utils_8hpp_source.html#l00357">Utils.hpp:357</a></div></div>
+<div class="ttc" id="agroup__DataMapper_html_ga6b1b90405a8cf10bbb8fd88789543f24"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#ga6b1b90405a8cf10bbb8fd88789543f24">Lightweight::FieldNameAt</a></div><div class="ttdeci">constexpr std::string_view FieldNameAt</div><div class="ttdoc">Returns the SQL field name of the given field index in the record.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d09/Utils_8hpp_source.html#l00268">Utils.hpp:268</a></div></div>
 <div class="ttc" id="agroup__DataMapper_html_gaf264bb64d0d2c57aac9a058e4b9a2865"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#gaf264bb64d0d2c57aac9a058e4b9a2865">Lightweight::EnumerateRecordMembers</a></div><div class="ttdeci">constexpr void EnumerateRecordMembers(Record &amp;record, Callable &amp;&amp;callable)</div><div class="ttdoc">Invokes callable as callable&lt;I&gt;(member) for each member of record.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/dbc/Description_8hpp_source.html#l00188">Description.hpp:188</a></div></div>
 <div class="ttc" id="agroup__DataMapper_html_gaf8d513471d088e755ea2e628689086fb"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#gaf8d513471d088e755ea2e628689086fb">Lightweight::RecordMemberTypeOf</a></div><div class="ttdeci">detail::RecordMemberTypeOfDispatch&lt; I, std::remove_cvref_t&lt; Record &gt;, HasDescription&lt; Record &gt; &gt;::type RecordMemberTypeOf</div><div class="ttdoc">Type of the member at index I — from the descriptor if present, else via reflection.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/dbc/Description_8hpp_source.html#l00169">Description.hpp:169</a></div></div>
 <div class="ttc" id="agroup__DataMapper_html_ggaccfed183e72fab87179bacefc80b23e1a38c300f4fc9ce8a77aad4a30de05cad8"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#ggaccfed183e72fab87179bacefc80b23e1a38c300f4fc9ce8a77aad4a30de05cad8">Lightweight::RelationError::NotFound</a></div><div class="ttdeci">@ NotFound</div><div class="ttdoc">There is nothing to load: the foreign key is NULL, or the referenced row does not exist.</div></div>
@@ -4097,9 +4097,9 @@ $(document).ready(function(){initNavTree('df/d4f/DataMapper_8hpp_source.html','.
 <div class="ttc" id="astructLightweight_1_1DataMapperOptions_html_a36aba21c30727bc5933d1797efca7543"><div class="ttname"><a href="../../d3/db2/structLightweight_1_1DataMapperOptions.html#a36aba21c30727bc5933d1797efca7543">Lightweight::DataMapperOptions::eagerLoadDepth</a></div><div class="ttdeci">size_t eagerLoadDepth</div><div class="ttdoc">How many levels of relations to eagerly batch-load after a query materializes.</div><div class="ttdef"><b>Definition</b> <a href="../../df/db7/QueryBuilders_8hpp_source.html#l00049">QueryBuilders.hpp:49</a></div></div>
 <div class="ttc" id="astructLightweight_1_1DataMapperOptions_html_ae7030386be6995fdafef8903818bfe2a"><div class="ttname"><a href="../../d3/db2/structLightweight_1_1DataMapperOptions.html#ae7030386be6995fdafef8903818bfe2a">Lightweight::DataMapperOptions::loadRelations</a></div><div class="ttdeci">bool loadRelations</div><div class="ttdoc">Whether to automatically load relations when querying records.</div><div class="ttdef"><b>Definition</b> <a href="../../df/db7/QueryBuilders_8hpp_source.html#l00028">QueryBuilders.hpp:28</a></div></div>
 <div class="ttc" id="astructLightweight_1_1Field_html_a0fd8a939fbdd169391d529caf940ad40"><div class="ttname"><a href="../../d2/dd0/structLightweight_1_1Field.html#a0fd8a939fbdd169391d529caf940ad40">Lightweight::Field::ValueType</a></div><div class="ttdeci">T ValueType</div><div class="ttdoc">The underlying value type of this field.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00094">Field.hpp:94</a></div></div>
-<div class="ttc" id="astructLightweight_1_1Field_html_aca64dd154091663b93852e0589c95630"><div class="ttname"><a href="../../d2/dd0/structLightweight_1_1Field.html#aca64dd154091663b93852e0589c95630">Lightweight::Field::IsOptional</a></div><div class="ttdeci">static constexpr auto IsOptional</div><div class="ttdoc">Indicates if the field is optional, i.e., it can be NULL.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00102">Field.hpp:102</a></div></div>
+<div class="ttc" id="astructLightweight_1_1Field_html_aca64dd154091663b93852e0589c95630"><div class="ttname"><a href="../../d2/dd0/structLightweight_1_1Field.html#aca64dd154091663b93852e0589c95630">Lightweight::Field::IsOptional</a></div><div class="ttdeci">static constexpr auto IsOptional</div><div class="ttdoc">Indicates if the field is optional, i.e., it can be NULL.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00126">Field.hpp:126</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlGuid_html_aa6932e1f8842dd7878eaaa4e8c4496b3"><div class="ttname"><a href="../../df/d7c/structLightweight_1_1SqlGuid.html#aa6932e1f8842dd7878eaaa4e8c4496b3">Lightweight::SqlGuid::Create</a></div><div class="ttdeci">static SqlGuid Create() noexcept</div><div class="ttdoc">Creates a new non-empty GUID.</div></div>
-<div class="ttc" id="astructLightweight_1_1SqlQualifiedTableColumnName_html"><div class="ttname"><a href="../../db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html">Lightweight::SqlQualifiedTableColumnName</a></div><div class="ttdoc">SqlQualifiedTableColumnName represents a column name qualified with a table name.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d09/Utils_8hpp_source.html#l00413">Utils.hpp:414</a></div></div>
+<div class="ttc" id="astructLightweight_1_1SqlQualifiedTableColumnName_html"><div class="ttname"><a href="../../db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html">Lightweight::SqlQualifiedTableColumnName</a></div><div class="ttdoc">SqlQualifiedTableColumnName represents a column name qualified with a table name.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d09/Utils_8hpp_source.html#l00324">Utils.hpp:325</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlVariant_html"><div class="ttname"><a href="../../df/d3f/structLightweight_1_1SqlVariant.html">Lightweight::SqlVariant</a></div><div class="ttdoc">Represents a value that can be any of the supported SQL data types.</div><div class="ttdef"><b>Definition</b> <a href="../../d5/de3/SqlVariant_8hpp_source.html#l00047">SqlVariant.hpp:48</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->

@@ -98,7 +98,7 @@ $(document).ready(function(){initNavTree('d1/dde/md__2home_2runner_2work_2Lightw
 Rename column name</h1>
 <p>By default DataMapper will use the name of data member as a column name, to change the name that should be used in sql queries you have to provide it as a template argument to the <code>Field</code> template. For example if you have a data member named <code>foo</code>, that corresponds to the column named <code>bar</code> you need to declare it as following: </p><div class="fragment"><div class="line"><span class="keyword">struct </span>MyTable</div>
 <div class="line">{</div>
-<div class="line">    <a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Light::Field</a>&lt;int, SqlRealName { <span class="stringliteral">&quot;bar&quot;</span> }&gt; foo;</div>
+<div class="line">    <a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Light::Field</a>&lt;int, SqlRealName { <span class="stringliteral">&quot;bar&quot;</span> }&gt; foo {};</div>
 <div class="line">};</div>
 <div class="ttc" id="astructLightweight_1_1Field_html"><div class="ttname"><a href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a></div><div class="ttdoc">Represents a single column in a table.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00091">Field.hpp:92</a></div></div>
 </div><!-- fragment --><p>To directly get the name of the datamember that will be used for the sql queries you can use <code>FieldNameOf</code>, in the case presented above </p><div class="fragment"><div class="line">FieldNameOf&lt;&amp;MyTable::foo&gt;; <span class="comment">// is equivalent to std::string_view(&quot;bar&quot;);</span></div>

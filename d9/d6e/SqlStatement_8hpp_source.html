@@ -1311,7 +1311,7 @@ $(document).ready(function(){initNavTree('d9/d6e/SqlStatement_8hpp_source.html',
 <div class="line"><a id="l01154" name="l01154"></a><span class="lineno"> 1154</span><span class="comment">        /// @throws SqlException Reading a column of the current row failed.</span></div>
 <div class="line"><a id="l01155" name="l01155"></a><span class="lineno"> 1155</span><span class="comment"></span>        LIGHTWEIGHT_FORCE_INLINE value_type operator*()</div>
 <div class="line"><a id="l01156" name="l01156"></a><span class="lineno"> 1156</span>        {</div>
-<div class="line"><a id="l01157" name="l01157"></a><span class="lineno"> 1157</span>            <span class="keyword">auto</span> res = detail::MakeUninitialized&lt;T&gt;();</div>
+<div class="line"><a id="l01157" name="l01157"></a><span class="lineno"> 1157</span>            <span class="keyword">auto</span> res = T {};</div>
 <div class="line"><a id="l01158" name="l01158"></a><span class="lineno"> 1158</span> </div>
 <div class="line"><a id="l01159" name="l01159"></a><span class="lineno"> 1159</span>            <span class="comment">// begin() projects the record via Select().Fields&lt;T&gt;(), which emits one column per</span></div>
 <div class="line"><a id="l01160" name="l01160"></a><span class="lineno"> 1160</span>            <span class="comment">// RecordColumnMember. Enumerate by column position rather than by member position, so that</span></div>
@@ -2077,7 +2077,7 @@ $(document).ready(function(){initNavTree('d9/d6e/SqlStatement_8hpp_source.html',
 <div class="line"><a id="l01877" name="l01877"></a><span class="lineno"> 1877</span>    <span class="keywordflow">for</span> (;;)</div>
 <div class="line"><a id="l01878" name="l01878"></a><span class="lineno"> 1878</span>    {</div>
 <div class="line"><a id="l01879" name="l01879"></a><span class="lineno"> 1879</span>        std::size_t <span class="keyword">const</span> base = out.size();</div>
-<div class="line"><a id="l01880" name="l01880"></a><span class="lineno"> 1880</span>        detail::ResizeUninitialized(out, base + arrayDepth);</div>
+<div class="line"><a id="l01880" name="l01880"></a><span class="lineno"> 1880</span>        out.resize(base + arrayDepth);</div>
 <div class="line"><a id="l01881" name="l01881"></a><span class="lineno"> 1881</span>        Record* <span class="keyword">const</span> row0 = out.data() + base;</div>
 <div class="line"><a id="l01882" name="l01882"></a><span class="lineno"> 1882</span> </div>
 <div class="line"><a id="l01883" name="l01883"></a><span class="lineno"> 1883</span>        <span class="comment">// Rebind each column into this block&#39;s records (the value pointer follows out&#39;s storage across a</span></div>
@@ -2094,7 +2094,7 @@ $(document).ready(function(){initNavTree('d9/d6e/SqlStatement_8hpp_source.html',
 <div class="line"><a id="l01894" name="l01894"></a><span class="lineno"> 1894</span>        <span class="keyword">auto</span> <span class="keyword">const</span> fetchResult = SQLFetchScroll(m_hStmt, SQL_FETCH_NEXT, 0);</div>
 <div class="line"><a id="l01895" name="l01895"></a><span class="lineno"> 1895</span>        <span class="keywordflow">if</span> (fetchResult == SQL_NO_DATA)</div>
 <div class="line"><a id="l01896" name="l01896"></a><span class="lineno"> 1896</span>        {</div>
-<div class="line"><a id="l01897" name="l01897"></a><span class="lineno"> 1897</span>            detail::ResizeUninitialized(out, base);</div>
+<div class="line"><a id="l01897" name="l01897"></a><span class="lineno"> 1897</span>            out.resize(base);</div>
 <div class="line"><a id="l01898" name="l01898"></a><span class="lineno"> 1898</span>            <span class="keywordflow">break</span>;</div>
 <div class="line"><a id="l01899" name="l01899"></a><span class="lineno"> 1899</span>        }</div>
 <div class="line"><a id="l01900" name="l01900"></a><span class="lineno"> 1900</span>        <span class="comment">// SQL_SUCCESS_WITH_INFO is acceptable: rowsFetched stays valid. The fixed-width eligibility gate</span></div>
@@ -2111,7 +2111,7 @@ $(document).ready(function(){initNavTree('d9/d6e/SqlStatement_8hpp_source.html',
 <div class="line"><a id="l01911" name="l01911"></a><span class="lineno"> 1911</span>             std::addressof(accessors(*row0)), <span class="keyword">sizeof</span>(Record), fetched, indicators[finalizeIndex++]),</div>
 <div class="line"><a id="l01912" name="l01912"></a><span class="lineno"> 1912</span>         ...);</div>
 <div class="line"><a id="l01913" name="l01913"></a><span class="lineno"> 1913</span> </div>
-<div class="line"><a id="l01914" name="l01914"></a><span class="lineno"> 1914</span>        detail::ResizeUninitialized(out, base + fetched);</div>
+<div class="line"><a id="l01914" name="l01914"></a><span class="lineno"> 1914</span>        out.resize(base + fetched);</div>
 <div class="line"><a id="l01915" name="l01915"></a><span class="lineno"> 1915</span>        <span class="keywordflow">if</span> (fetched &lt; arrayDepth)</div>
 <div class="line"><a id="l01916" name="l01916"></a><span class="lineno"> 1916</span>            <span class="keywordflow">break</span>;</div>
 <div class="line"><a id="l01917" name="l01917"></a><span class="lineno"> 1917</span>    }</div>
@@ -2378,7 +2378,7 @@ $(document).ready(function(){initNavTree('d9/d6e/SqlStatement_8hpp_source.html',
 <div class="line"><a id="l02178" name="l02178"></a><span class="lineno"> 2178</span>        <span class="comment">// A target type the block buffer cannot reconstruct (e.g. a user type with a custom binder). The</span></div>
 <div class="line"><a id="l02179" name="l02179"></a><span class="lineno"> 2179</span>        <span class="comment">// bound path declines prefetch for such targets (see PrefetchConvertible); reaching here via a raw</span></div>
 <div class="line"><a id="l02180" name="l02180"></a><span class="lineno"> 2180</span>        <span class="comment">// GetColumn returns a default rather than crashing.</span></div>
-<div class="line"><a id="l02181" name="l02181"></a><span class="lineno"> 2181</span>        <span class="keywordflow">return</span> detail::MakeUninitialized&lt;T&gt;();</div>
+<div class="line"><a id="l02181" name="l02181"></a><span class="lineno"> 2181</span>        <span class="keywordflow">return</span> T {};</div>
 <div class="line"><a id="l02182" name="l02182"></a><span class="lineno"> 2182</span>}</div>
 <div class="line"><a id="l02183" name="l02183"></a><span class="lineno"> 2183</span> </div>
 <div class="line"><a id="l02184" name="l02184"></a><span class="lineno"> 2184</span><span class="keyword">template</span> &lt;SqlOutputColumnBinder T&gt;</div>
@@ -2417,7 +2417,7 @@ $(document).ready(function(){initNavTree('d9/d6e/SqlStatement_8hpp_source.html',
 <div class="line"><a id="l02217" name="l02217"></a><span class="lineno"> 2217</span>                <span class="keywordflow">throw</span> std::runtime_error { <span class="stringliteral">&quot;Column value is NULL&quot;</span> };</div>
 <div class="line"><a id="l02218" name="l02218"></a><span class="lineno"> 2218</span>        <span class="keywordflow">return</span> ConvertCell&lt;T&gt;(cursor, row, column);</div>
 <div class="line"><a id="l02219" name="l02219"></a><span class="lineno"> 2219</span>    }</div>
-<div class="line"><a id="l02220" name="l02220"></a><span class="lineno"> 2220</span>    <span class="keyword">auto</span> result = detail::MakeUninitialized&lt;T&gt;();</div>
+<div class="line"><a id="l02220" name="l02220"></a><span class="lineno"> 2220</span>    T result {};</div>
 <div class="line"><a id="l02221" name="l02221"></a><span class="lineno"> 2221</span>    SQLLEN indicator {};</div>
 <div class="line"><a id="l02222" name="l02222"></a><span class="lineno"> 2222</span>    {</div>
 <div class="line"><a id="l02223" name="l02223"></a><span class="lineno"> 2223</span>        <span class="comment">// SQLGetData is where the ODBC driver materializes the column value (driver/network I/O).</span></div>
@@ -2444,7 +2444,7 @@ $(document).ready(function(){initNavTree('d9/d6e/SqlStatement_8hpp_source.html',
 <div class="line"><a id="l02244" name="l02244"></a><span class="lineno"> 2244</span>            <span class="keywordflow">return</span> std::nullopt;</div>
 <div class="line"><a id="l02245" name="l02245"></a><span class="lineno"> 2245</span>        <span class="keywordflow">return</span> ConvertCell&lt;T&gt;(cursor, row, column);</div>
 <div class="line"><a id="l02246" name="l02246"></a><span class="lineno"> 2246</span>    }</div>
-<div class="line"><a id="l02247" name="l02247"></a><span class="lineno"> 2247</span>    <span class="keyword">auto</span> result = detail::MakeUninitialized&lt;T&gt;();</div>
+<div class="line"><a id="l02247" name="l02247"></a><span class="lineno"> 2247</span>    T result {};</div>
 <div class="line"><a id="l02248" name="l02248"></a><span class="lineno"> 2248</span>    SQLLEN indicator {}; <span class="comment">// TODO: Handle NULL values if we find out that we need them for our use-cases.</span></div>
 <div class="line"><a id="l02249" name="l02249"></a><span class="lineno"> 2249</span>    {</div>
 <div class="line"><a id="l02250" name="l02250"></a><span class="lineno"> 2250</span>        ZoneScopedN(<span class="stringliteral">&quot;SqlStatement::ColumnGetData&quot;</span>);</div>

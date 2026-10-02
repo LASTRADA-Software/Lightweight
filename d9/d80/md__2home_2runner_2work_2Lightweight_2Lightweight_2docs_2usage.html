@@ -322,10 +322,10 @@ High level Data Mapping</h1>
 <div class="line"><span class="comment">// Field&lt;&gt; is also used to track what fields are modified and need to be updated.</span></div>
 <div class="line"><span class="keyword">struct </span>Person</div>
 <div class="line">{</div>
-<div class="line">    Field&lt;SqlGuid, PrimaryKey::AutoAssign&gt; <span class="keywordtype">id</span> {};</div>
-<div class="line">    Field&lt;SqlAnsiString&lt;25&gt;&gt; name;          <span class="comment">// NOT NULL without a default: required</span></div>
-<div class="line">    Field&lt;bool&gt; is_active { <span class="keyword">true</span> };         <span class="comment">// NOT NULL with a default</span></div>
-<div class="line">    Field&lt;std::optional&lt;int&gt;&gt; age {};       <span class="comment">// nullable</span></div>
+<div class="line">    Field&lt;SqlGuid, PrimaryKey::AutoAssign&gt; id;</div>
+<div class="line">    Field&lt;SqlAnsiString&lt;25&gt;&gt; name;</div>
+<div class="line">    Field&lt;bool&gt; is_active { <span class="keyword">true</span> };</div>
+<div class="line">    Field&lt;std::optional&lt;int&gt;&gt; age;</div>
 <div class="line">};</div>
 <div class="line"> </div>
 <div class="line"><span class="keywordtype">void</span> CRUD(DataMapper&amp; dm)</div>
@@ -334,7 +334,9 @@ High level Data Mapping</h1>
 <div class="line">    dm.CreateTable&lt;Person&gt;();</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Create a new person</span></div>
-<div class="line">    <span class="keyword">auto</span> person = Person { .name = <span class="stringliteral">&quot;John Doe&quot;</span> };</div>
+<div class="line">    <span class="keyword">auto</span> person = Person {};</div>
+<div class="line">    person.name = <span class="stringliteral">&quot;John Doe&quot;</span>;</div>
+<div class="line">    person.is_active = <span class="keyword">true</span>;</div>
 <div class="line">    dm.Create(person);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Update the person</span></div>
@@ -360,36 +362,7 @@ High level Data Mapping</h1>
 <div class="line">    <span class="comment">// Delete the person</span></div>
 <div class="line">    dm.Delete(person);</div>
 <div class="line">}</div>
-</div><!-- fragment --><h2><a class="anchor" id="required-fields"></a>
-Required fields</h2>
-<p>A column that is <code>NOT NULL</code> and is not a primary key is <b>required</b>: the record cannot be created without a value for it. Leaving it out is a compile error rather than a row that silently holds &lsquo;&rsquo;'<code>or</code>0`:</p>
-<div class="fragment"><div class="line"><span class="keyword">auto</span> person = Person { .name = <span class="stringliteral">&quot;John Doe&quot;</span> };   <span class="comment">// OK</span></div>
-<div class="line"><span class="keyword">auto</span> nobody = Person {};                       <span class="comment">// error: `name` has no default constructor</span></div>
-<div class="line">Person someone;                                <span class="comment">// error, for the same reason</span></div>
-</div><!-- fragment --><p>A member is required when it is a <code>Field&lt;T&gt;</code> whose <code>T</code> is not a <code>std::optional</code>, or a <code>BelongsTo&lt;&gt;</code> that is not <code>SqlNullable::Null</code>, and it is not a primary key. <code>Field&lt;T&gt;::IsRequired</code> and <code>BelongsTo&lt;...&gt;::IsRequired</code> tell which it is.</p>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">Member declaration   </th><th class="markdownTableHeadNone">Required   </th><th class="markdownTableHeadNone">Why    </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>Field&lt;SqlAnsiString&lt;25&gt;&gt; name;</code>   </td><td class="markdownTableBodyNone">yes   </td><td class="markdownTableBodyNone"><code>NOT NULL</code>, no default    </td></tr>
-<tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>Field&lt;bool&gt; is_active { true };</code>   </td><td class="markdownTableBodyNone">no   </td><td class="markdownTableBodyNone">the default member initializer supplies the value    </td></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>Field&lt;std::optional&lt;int&gt;&gt; age {};</code>   </td><td class="markdownTableBodyNone">no   </td><td class="markdownTableBodyNone">nullable    </td></tr>
-<tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>Field&lt;SqlGuid, PrimaryKey::AutoAssign&gt; id {};</code>   </td><td class="markdownTableBodyNone">no   </td><td class="markdownTableBodyNone">primary keys are assigned by the mapper, the database or - for <code>PrimaryKey::Manual</code> - explicitly    </td></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>BelongsTo&lt;&amp;User::id&gt; user;</code>   </td><td class="markdownTableBodyNone">yes   </td><td class="markdownTableBodyNone"><code>NOT NULL</code> foreign key; initialize it from the record or its key: <code>.user = user</code>    </td></tr>
-<tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>BelongsTo&lt;&amp;User::id, std::nullopt, SqlNullable::Null&gt; user {};</code>   </td><td class="markdownTableBodyNone">no   </td><td class="markdownTableBodyNone">nullable foreign key   </td></tr>
-</table>
-<p>Write a required member without an initializer (<code>Field&lt;int&gt; count;</code>): <code>Field&lt;int&gt; count {};</code> asks for the very default constructor that does not exist. Give the members that may be left out an empty initializer (<code>id {}</code>, <code>age {}</code>, <code>emails {}</code>), so that omitting them from a designated initializer does not trip <code>-Wmissing-designated-field-initializers</code>.</p>
-<p>A database-side <code>DEFAULT</code> does not make a column optional, because the data mapper always sends every column of the record: mirror the default as a default member initializer if callers should be able to leave the member out.</p>
-<p>Reading is unaffected: <code>Query</code>, <code>QuerySingle</code>, <code>SqlRowIterator</code> and the relation loaders build records on their own. Only code that creates a record has to name its required members. Where a record with required members is read with only some of its columns selected, the members that were not selected are value-initialized.</p>
-<blockquote class="doxtable">
-<p>&zwj;<b>Migrating existing code.</b> <code>Person p; p.name = "John";</code> and <code>auto p = Person {};</code> stop compiling for a record with a required member - create the record with its required members instead, <code>Person { .name = "John" }</code>. A member that should keep working without a value needs a default member initializer (<code>Field&lt;int&gt; count { 0 };</code>) or a nullable type. Records generated by <code>ddl2cpp</code> follow the same rule: every <code>NOT NULL</code> column that is not a primary key is required, and every other member is generated with <code>{}</code>. Regenerate the models to pick that up. </p>
-</blockquote>
-<h2><a class="anchor" id="batched-insert-and-update"></a>
+</div><!-- fragment --><h2><a class="anchor" id="batched-insert-and-update"></a>
 Batched insert and update</h2>
 <p>To insert or update many records efficiently, use <code>CreateAll</code> and <code>UpdateAll</code>. They prepare a single statement once and submit the whole batch, preferring native ODBC row-wise array binding (one <code>SQLExecute</code>, zero-copy) when every column is a fixed-width type — primitives, <code>SqlDate</code>/<code>SqlTime</code>/ <code>SqlDateTime</code>, <code>SqlNumeric</code>, inline fixed-capacity strings (<code>SqlAnsiString</code>/<code>SqlFixedString</code>), or <code>std::optional</code> of a fixed non-numeric type (including nullable fixed-capacity strings) — and the driver supports parameter arrays. Records with variable-length columns (e.g. <code>std::string</code>) or a single-character <code>char</code> column (which ODBC binds as text, needing a per-row length) transparently fall back to a prepare-once + per-row execute, which is still far cheaper than calling <code>Create</code>/<code>CreateExplicit</code> in a loop (those re-prepare per row).</p>
 <div class="fragment"><div class="line"><span class="keywordtype">void</span> BulkInsert(DataMapper&amp; dm, std::vector&lt;Person&gt; <span class="keyword">const</span>&amp; people)</div>
