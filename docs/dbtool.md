@@ -209,7 +209,10 @@ reserved. The first entry encrypts and every entry decrypts, so to **rotate**, p
 (`v2=...,v1=...`), ship that build, then re-encrypt profiles at leisure. Only the file *path* is
 stored in `CMakeCache.txt`; the keys only land in a generated header inside the build tree, which
 is never installed. Configuring with neither input prints
-`dbtool: no master key provided - using the public development key`.
+`dbtool: no master key provided - using the public development key`. A build tree that was once
+configured with a key ring refuses to be re-configured without one (so an automatic re-configure
+cannot silently produce a development-key build); use a fresh build directory, or
+`-U DBTOOL_KEYRING_WAS_RELEASE`, when you really want that.
 
 ### Inspecting configured profiles
 
