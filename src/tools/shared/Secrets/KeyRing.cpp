@@ -118,7 +118,11 @@ KeyEntry DevKey()
 
 std::vector<KeyEntry> BuiltinKeyRing()
 {
-    return MaskedRing | std::views::transform(Unmask) | std::ranges::to<std::vector>();
+    auto ring = std::vector<KeyEntry> {};
+    ring.reserve(MaskedRing.size());
+    for (auto const& masked: MaskedRing)
+        ring.push_back(Unmask(masked));
+    return ring;
 }
 
 bool BuiltinKeyRingIsRelease() noexcept

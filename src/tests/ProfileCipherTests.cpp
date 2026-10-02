@@ -34,11 +34,10 @@ std::vector<std::byte> FromHex(std::string_view hex)
     auto const nibble = [](char c) {
         return static_cast<unsigned>(c >= 'a' ? c - 'a' + 10 : c - '0');
     };
-    return hex | std::views::chunk(2) | std::views::transform([&](auto pair) {
-               auto const it = pair.begin();
-               return static_cast<std::byte>((nibble(*it) << 4U) | nibble(*std::next(it)));
-           })
-           | std::ranges::to<std::vector>();
+    auto bytes = std::vector<std::byte> {};
+    for (auto const i: std::views::iota(std::size_t { 0 }, hex.size() / 2))
+        bytes.push_back(static_cast<std::byte>((nibble(hex[i * 2]) << 4U) | nibble(hex[(i * 2) + 1])));
+    return bytes;
 }
 
 /// Views a string's characters as bytes.
@@ -50,7 +49,10 @@ std::span<std::byte const> AsBytes(std::string_view text)
 /// Converts bytes back into a std::string for comparisons.
 std::string ToString(std::span<std::byte const> bytes)
 {
-    return bytes | std::views::transform([](std::byte b) { return static_cast<char>(b); }) | std::ranges::to<std::string>();
+    auto text = std::string {};
+    for (auto const b: bytes)
+        text.push_back(static_cast<char>(b));
+    return text;
 }
 
 // Dev-key encryption sub-key and IV from the format's reference vector.
@@ -127,8 +129,8 @@ constexpr std::string_view DevEmptyVector =
 /// Deterministic IV source (00 01 .. 0f) so encryption output is reproducible.
 std::expected<void, std::string> SequentialIv(std::span<std::byte> out)
 {
-    for (auto&& [index, value]: std::views::enumerate(out))
-        value = static_cast<std::byte>(index);
+    for (auto const index: std::views::iota(std::size_t { 0 }, out.size()))
+        out[index] = static_cast<std::byte>(index);
     return {};
 }
 

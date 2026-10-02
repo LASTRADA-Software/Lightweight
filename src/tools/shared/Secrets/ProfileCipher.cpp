@@ -36,16 +36,17 @@ namespace
     {
         auto out = std::string {};
         out.reserve(((data.size() + 2) / 3) * 4);
-        for (auto const chunk: data | std::views::chunk(3))
+        for (auto const start: std::views::iota(std::size_t { 0 }, (data.size() + 2) / 3))
         {
-            auto const bytes = chunk | std::views::transform([](std::byte b) { return std::to_integer<unsigned>(b); })
-                               | std::ranges::to<std::vector>();
-            auto const triple =
-                (bytes[0] << 16U) | ((bytes.size() > 1 ? bytes[1] : 0U) << 8U) | (bytes.size() > 2 ? bytes[2] : 0U);
+            auto const group = data.subspan(start * 3, std::min<std::size_t>(3, data.size() - (start * 3)));
+            auto const byteAt = [&](std::size_t i) {
+                return i < group.size() ? std::to_integer<unsigned>(group[i]) : 0U;
+            };
+            auto const triple = (byteAt(0) << 16U) | (byteAt(1) << 8U) | byteAt(2);
             out.push_back(Base64Alphabet[(triple >> 18U) & 0x3FU]);
             out.push_back(Base64Alphabet[(triple >> 12U) & 0x3FU]);
-            out.push_back(bytes.size() > 1 ? Base64Alphabet[(triple >> 6U) & 0x3FU] : '=');
-            out.push_back(bytes.size() > 2 ? Base64Alphabet[triple & 0x3FU] : '=');
+            out.push_back(group.size() > 1 ? Base64Alphabet[(triple >> 6U) & 0x3FU] : '=');
+            out.push_back(group.size() > 2 ? Base64Alphabet[triple & 0x3FU] : '=');
         }
         return out;
     }
@@ -56,36 +57,48 @@ namespace
         if (text.empty() || text.size() % 4 != 0)
             return std::nullopt;
         // Only the last two characters may be padding; misplaced `=` fail the slot check below.
-        auto const padding = static_cast<unsigned>(std::ranges::count(text.substr(text.size() - 2), '='));
+        auto const padding = static_cast<std::size_t>(std::ranges::count(text.substr(text.size() - 2), '='));
+        auto const quads = text.size() / 4;
         auto out = Crypto::Bytes {};
-        out.reserve((text.size() / 4) * 3);
-        for (auto const [quadIndex, quad]: std::views::enumerate(text | std::views::chunk(4)))
+        out.reserve(quads * 3);
+        for (auto const quadIndex: std::views::iota(std::size_t { 0 }, quads))
         {
-            auto const isLast = static_cast<std::size_t>(quadIndex + 1) * 4 == text.size();
+            auto const isLast = quadIndex + 1 == quads;
             auto value = 0U;
-            for (auto const [charIndex, c]: std::views::enumerate(quad))
+            for (auto const charIndex: std::views::iota(std::size_t { 0 }, std::size_t { 4 }))
             {
-                auto const paddingSlot = isLast && charIndex >= 4 - static_cast<std::ptrdiff_t>(padding);
+                auto const c = text[(quadIndex * 4) + charIndex];
+                auto const paddingSlot = isLast && charIndex >= 4 - padding;
                 auto const position = Base64Alphabet.find(c);
                 if (paddingSlot ? c != '=' : position == std::string_view::npos)
                     return std::nullopt;
                 value = (value << 6U) | (paddingSlot ? 0U : static_cast<unsigned>(position));
             }
-            auto const produced = isLast ? 3 - padding : 3U;
+            auto const produced = isLast ? 3 - padding : std::size_t { 3 };
             for (auto const shift: std::array { 16U, 8U, 0U } | std::views::take(produced))
                 out.push_back(static_cast<std::byte>((value >> shift) & 0xFFU));
         }
         return out;
     }
 
-    /// Constant-time equality of two MACs.
+    /// Constant-time equality of two MACs: every byte is compared, whatever differs first.
     bool ConstantTimeEqual(std::span<std::byte const> lhs, std::span<std::byte const> rhs) noexcept
     {
         if (lhs.size() != rhs.size())
             return false;
-        auto const diff = std::ranges::fold_left(
-            std::views::zip_transform(std::bit_xor<> {}, lhs, rhs), std::byte { 0 }, std::bit_or<> {});
+        auto diff = std::byte { 0 };
+        for (auto const i: std::views::iota(std::size_t { 0 }, lhs.size()))
+            diff |= lhs[i] ^ rhs[i];
         return diff == std::byte { 0 };
+    }
+
+    /// Comma-separated ids of a key ring, for error messages.
+    std::string KnownKeyIds(std::vector<KeyEntry> const& ring)
+    {
+        auto ids = std::string {};
+        for (auto const& entry: ring)
+            ids += ids.empty() ? entry.id : std::format(", {}", entry.id);
+        return ids;
     }
 
     /// Encryption and MAC sub-keys derived from one master key.
@@ -197,8 +210,7 @@ std::expected<std::string, std::string> ProfileCipher::Decrypt(std::string_view 
         return std::unexpected(
             std::format("unknown key id '{}' (this dbtool build knows: {}); the value was encrypted by a different build",
                         keyId,
-                        _ring | std::views::transform(&KeyEntry::id) | std::views::join_with(std::string_view { ", " })
-                            | std::ranges::to<std::string>()));
+                        KnownKeyIds(_ring)));
 
     auto const payload = Base64Decode(body.substr(separator + 1));
     constexpr auto MinimumSize = (Crypto::AesBlockSize * 2) + Crypto::HmacSize;
@@ -224,8 +236,11 @@ std::expected<std::string, std::string> ProfileCipher::Decrypt(std::string_view 
     if (!plainText)
         return std::unexpected(std::format("decryption failed: {}", plainText.error()));
 
-    return *plainText | std::views::transform([](std::byte b) { return static_cast<char>(b); })
-           | std::ranges::to<std::string>();
+    auto password = std::string {};
+    password.reserve(plainText->size());
+    for (auto const b: *plainText)
+        password.push_back(static_cast<char>(b));
+    return password;
 }
 
 } // namespace Lightweight::Secrets

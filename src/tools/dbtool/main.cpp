@@ -560,6 +560,8 @@ void ApplyProfileToOptions(Options& options)
 void EncryptPlaintextPasswordIfConnectable(Options const& options)
 {
     namespace Cfg = Lightweight::Config;
+    if (!options.selectedProfile)
+        return;
     auto const& profile = *options.selectedProfile;
     {
         auto probe = SqlConnection { std::nullopt };
