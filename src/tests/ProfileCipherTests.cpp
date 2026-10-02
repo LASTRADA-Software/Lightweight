@@ -171,7 +171,7 @@ TEST_CASE("ProfileCipher — reference vectors decrypt on every platform", "[Pro
 {
     auto const cipher = Secrets::ProfileCipher { { Secrets::DevKey() }, Secrets::DevKeyPolicy::Allow };
     CHECK(Unwrapped(cipher.Decrypt(DevVector)) == "s3cr3t-P@ss");
-    CHECK(Unwrapped(cipher.Decrypt(DevEmptyVector)) == "");
+    CHECK(Unwrapped(cipher.Decrypt(DevEmptyVector)).empty());
 }
 
 TEST_CASE("ProfileCipher — random IVs make each encryption distinct", "[ProfileCipher]")
