@@ -77,7 +77,7 @@ var NAVTREEINDEX0 =
 "d1/d0e/structLightweight_1_1AliasedTableName.html#a70c6b9023f10ba7732b1be3d75129b52":[21,0,0,6,1],
 "d1/d10/Genre_8hpp_source.html":[22,0,0,0,0,4],
 "d1/d26/SqlNumeric_8hpp_source.html":[22,0,1,1,13],
-"d1/d42/SqlServerType_8hpp_source.html":[22,0,1,34],
+"d1/d42/SqlServerType_8hpp_source.html":[22,0,1,33],
 "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html":[19,7,6,1],
 "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a396642e22f36188c7ea4dce037c2204e":[19,7,6,1,2],
 "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a669b503366f25cd1196612aa3354864f":[19,7,6,1,0],
@@ -185,7 +185,6 @@ var NAVTREEINDEX0 =
 "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html":[19,7,6,5],
 "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#a706afa7f5b94115ad9f9f41b51facf37":[19,7,6,5,0],
 "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#aa7e5278c2c378b5f0c42885abb3c487d":[19,7,6,5,1],
-"d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#ad2f1668e51bb59d1a7feea5cb49d1f64":[19,7,6,5,3],
 "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#ae1b60503143ebed45d9317789e47a684":[19,7,6,5,2],
 "d2/d24/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1RewriteChecksumsResult.html":[19,7,6,4],
 "d2/d24/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1RewriteChecksumsResult.html#a62e14af3a4f6e7049850c42c5a5e519b":[19,7,6,4,2],
@@ -249,5 +248,6 @@ var NAVTREEINDEX0 =
 "d2/d99/structLightweight_1_1SqlBackup_1_1ChunkReader.html":[19,5,7],
 "d2/d99/structLightweight_1_1SqlBackup_1_1ChunkReader.html#a3ab96599a03fe02a203abdeb39d89a31":[19,5,7,0],
 "d2/da0/TableFilter_8hpp_source.html":[22,0,1,4,10],
-"d2/db8/structLightweight_1_1SqlSchema_1_1Column.html":[19,6,6]
+"d2/db8/structLightweight_1_1SqlSchema_1_1Column.html":[19,6,6],
+"d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a095d9eb7ed4abef29c07a9a563c0da72":[19,6,6,0]
 };

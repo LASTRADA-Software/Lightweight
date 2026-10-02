@@ -186,7 +186,12 @@ var NAVTREE =
       ] ],
       [ "Configuration", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#configuration", [
         [ "Connection String", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#connection-string", null ],
+        [ "Where dbtool finds <tt>dbtool.yml</tt>", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#where-dbtool-finds-dbtoolyml", null ],
         [ "Configuration File Format", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#configuration-file-format", null ],
+        [ "Profile passwords", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#profile-passwords", [
+          [ "Security model", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#security-model", null ],
+          [ "Providing the master key at build time", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#providing-the-master-key-at-build-time", null ]
+        ] ],
         [ "Inspecting configured profiles", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#inspecting-configured-profiles", null ],
         [ "Database-Specific Connection Strings", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#database-specific-connection-strings", null ]
       ] ],
@@ -209,6 +214,7 @@ var NAVTREE =
         [ "unicode-upgrade-tables", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#unicode-upgrade-tables", null ],
         [ "exec <QUERY>", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#exec-query", null ],
         [ "list-profiles", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#list-profiles", null ],
+        [ "add-profile", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#add-profile", null ],
         [ "resolve-secret <REF>", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#resolve-secret-ref", null ]
       ] ],
       [ "Backup & Restore", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup--restore", [
@@ -261,7 +267,6 @@ var NAVTREE =
         [ "Custom Default Schema", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#custom-default-schema", null ],
         [ "Applying Migrations Programmatically", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#applying-migrations-programmatically", null ],
         [ "Status & Verification", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#status--verification", null ],
-        [ "Compatibility Flags", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#compatibility-flags", null ],
         [ "Preview (Dry-Run)", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#preview-dry-run", null ],
         [ "Rollback", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#rollback", null ],
         [ "Mark as Applied", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#mark-as-applied", null ]
@@ -383,15 +388,15 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a095d9eb7ed4abef29c07a9a563c0da72",
-"d4/d6d/structLightweight_1_1MigrationRenderContext_1_1TableKey.html#aa58a804d5d9e7a2a98da93c4ae2c8e0b",
-"d6/dfa/structLightweight_1_1SqlDateTime.html#a580b08490f5eff7dec0a3e4534d191d5",
-"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#insert-1",
-"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#abd90cf0b647d60af5bb130b7fe162bd2",
-"db/d29/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4_1_1Literal.html",
-"dd/de6/classLightweight_1_1SqlStatistics.html#abc6374fecaaf3d3ab27a913186ea8704",
-"de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html",
-"functions_vars_s.html"
+"d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a12db4219734a5dd38708ae443171f36b",
+"d4/d7c/group__DataTypes.html#ga04372f5ac238ef704eda6ebed92399c0",
+"d6/dfa/structLightweight_1_1SqlDateTime.html#a5f1844faef73c5040f1eeb5463a722d4",
+"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#migration-tracking",
+"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#aecb8ed9927ded35a8b35dd570bf53170",
+"db/d4d/classLightweight_1_1SqlRetryClassifier.html",
+"dd/def/structLightweight_1_1Through.html#a39aa5e6c1832409653d722994fdcffcd",
+"de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html#a56e97e4531a1f7f1fb125397397139df",
+"functions_vars_t.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

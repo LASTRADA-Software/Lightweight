@@ -148,8 +148,19 @@ Connection String</h2>
 <ol type="1">
 <li><b>Command-line option</b>: <code>--connection-string "..."</code></li>
 <li><b>Environment variable</b>: <code>SQL_CONNECTION_STRING</code> or <code>ODBC_CONNECTION_STRING</code></li>
-<li><b>Configuration file</b>: <code>~/.config/dbtool/dbtool.yml</code> (Linux) or <code>APPDATA%\dbtool\dbtool.yml</code> (Windows)</li>
+<li><b>Configuration file</b>: <code>dbtool.yml</code>, located as described below</li>
 </ol>
+<h2><a class="anchor" id="where-dbtool-finds-dbtoolyml"></a>
+Where dbtool finds &lt;tt&gt;dbtool.yml&lt;/tt&gt;</h2>
+<p>The first match wins:</p>
+<ol type="1">
+<li><code>--config &lt;FILE&gt;</code> (a missing file is an error);</li>
+<li><code>dbtool.yml</code> in the current directory or any parent directory — so a project can keep its own <code>dbtool.yml</code> at its root and every subdirectory picks it up;</li>
+<li><code>dbtool.yml</code> in the directory of the <code>dbtool</code> executable or any parent directory — handy for portable installs that ship a config next to the binary;</li>
+<li>the per-user file: <code>~/.config/dbtool/dbtool.yml</code> (Linux/macOS, honouring <code>$XDG_CONFIG_HOME</code>) or <code>APPDATA%\dbtool\dbtool.yml</code> (Windows).</li>
+</ol>
+<p>Files found by the upward searches (steps 2 and 3) are only used when they are owned by you or by the system (root; on Windows SYSTEM, Administrators or TrustedInstaller). A <code>dbtool.yml</code> that another user placed in a shared parent directory such as <code>/tmp</code> could otherwise redirect dbtool to their plugin libraries; such files are skipped with a warning — pass them with <code>--config</code> if you really mean to use them.</p>
+<p><code>dbtool list-profiles</code> shows which file was used and why; <code>--verbose</code> prints it for every other command. <code>dbtool-gui</code> uses the same lookup unless a profile-store path is set in its Settings.</p>
 <h2><a class="anchor" id="configuration-file-format"></a>
 Configuration File Format</h2>
 <p>Legacy single-profile shape (still supported):</p>
@@ -175,16 +186,58 @@ Configuration File Format</h2>
 <p>Pass <code>--verbose</code> (<code>-v</code>) to see one stderr line per discarded duplicate, e.g.:</p>
 <div class="fragment"><div class="line">plugin &#39;pricing.dll&#39; from ./plugins/pricing.dll shadowed by /opt/lightweight/plugins/pricing.dll (newer mtime)</div>
 </div><!-- fragment --><p>The effective plugin directory for a given run resolves as: <code>--plugins-dir</code> CLI option → profile's own <code>pluginsDir</code> → top-level <code>defaultPluginsDir</code> (possibly a list) → current working directory.</p>
+<h2><a class="anchor" id="profile-passwords"></a>
+Profile passwords</h2>
+<p>A profile can carry its password in <code>dbtool.yml</code>. dbtool stores it <b>encrypted</b>:</p>
+<div class="fragment"><div class="line">profiles:</div>
+<div class="line">  prod:</div>
+<div class="line">    connectionString: &quot;DRIVER={ODBC Driver 18 for SQL Server};Server=db;Database=prod;UID=deploy&quot;</div>
+<div class="line">    password: &quot;enc:v1:q8x0...==&quot;</div>
+</div><!-- fragment --><p>You never need to produce the <code>enc:</code> value by hand:</p>
+<ul>
+<li>**<code>dbtool add-profile</code>** prompts for the password and writes the profile with it encrypted (see <a class="el" href="../../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#add-profile">add-profile</a>).</li>
+<li><b>Plaintext is upgraded automatically.</b> If you write <code>password: hunter2</code>, dbtool uses it as is and — once a connection with it has succeeded — rewrites that one value in place as <code>enc:...</code>. The rest of the file (comments, ordering, formatting) is left untouched. A password that fails to connect is left alone. If the file is read-only, dbtool warns and carries on. If the file lives in a git repository, dbtool warns that the old plaintext may remain in its history — change the database password in that case.</li>
+</ul>
+<p><code>password</code> and <code>secretRef</code> are mutually exclusive. <code>secretRef</code> (<code>env:</code>, <code>file:</code>, <code>stdin:</code>) remains the choice for secrets that must not be in the file at all. <code>list-profiles</code> shows each profile's <code>AUTH</code> as <code>encrypted</code>, <code>plaintext</code>, <code>secretRef</code> or <code>-</code>.</p>
+<h3><a class="anchor" id="security-model"></a>
+Security model</h3>
+<p>Values are encrypted with AES-256-CBC + HMAC-SHA256 (encrypt-then-MAC) using only the operating system's cryptography (Windows CNG, OpenSSL libcrypto on Linux, CommonCrypto on macOS). The master key is built into official dbtool / dbtool-gui binaries by CI; nothing on the user's machine is needed, so the same <code>dbtool.yml</code> works on every machine.</p>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">Someone who has…   </th><th class="markdownTableHeadNone">can read the password?    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">only the <code>dbtool.yml</code> (repository, share, ticket, screenshot)   </td><td class="markdownTableBodyNone">No    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">the dbtool source code   </td><td class="markdownTableBodyNone">No — the key is not in the repository    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">modified an <code>enc:</code> value   </td><td class="markdownTableBodyNone">No — tampering is detected and the connection is refused    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">an official dbtool / dbtool-gui binary   </td><td class="markdownTableBodyNone"><b>Yes</b> — the key is embedded in it   </td></tr>
+</table>
+<p>In other words, the encryption keeps passwords out of plain sight in configuration files; it is not a vault. Use <code>secretRef</code> when holders of the binary must not be able to recover a password.</p>
+<p>Builds made without the CI key (local developer builds, forks, distribution packages) use a public development key and write <code>enc:dev:...</code> values. Official builds refuse those with a clear message; re-run <code>dbtool add-profile --force</code>, or replace the value with the plaintext password so it is re-encrypted on the next connect.</p>
+<h3><a class="anchor" id="providing-the-master-key-at-build-time"></a>
+Providing the master key at build time</h3>
+<p>The key ring is read when CMake configures the project, in exactly one of two ways:</p>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">Input   </th><th class="markdownTableHeadNone">Typical use    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>DBTOOL_MASTER_KEYS</code> environment variable: <code>id=&lt;64 hex&gt;[,id=&lt;64 hex&gt;...]</code>   </td><td class="markdownTableBodyNone">GitHub Actions secret exported to the configure step    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>-DDBTOOL_MASTER_KEYS_FILE=&lt;path&gt;</code> (or the env var of the same name): a file with one <code>id=&lt;64 hex&gt;</code> per line   </td><td class="markdownTableBodyNone">GitLab "File" variables; package ports (vcpkg/Conan) that strip the environment but forward CMake options   </td></tr>
+</table>
+<p>Generate a key with <code>openssl rand -hex 32</code>. Ids are <code>[a-z0-9]</code>, at most 16 characters; <code>dev</code> is reserved. The first entry encrypts and every entry decrypts, so to <b>rotate</b>, prepend a new key (<code>v2=...,v1=...</code>), ship that build, then re-encrypt profiles at leisure. Only the file <em>path</em> is stored in <code>CMakeCache.txt</code>; the keys only land in a generated header inside the build tree, which is never installed. Configuring with neither input prints <code>dbtool: no master key provided - using the public development key</code>. A build tree that was once configured with a key ring refuses to be re-configured without one (so an automatic re-configure cannot silently produce a development-key build); use a fresh build directory, or <code>-U DBTOOL_KEYRING_WAS_RELEASE</code>, when you really want that.</p>
 <h2><a class="anchor" id="inspecting-configured-profiles"></a>
 Inspecting configured profiles</h2>
 <p>Use <code>list-profiles</code> to enumerate every profile parsed from the configuration file. The command does not open a database connection, so it works against any platform. Values of <code>PWD=</code> / <code>Password=</code> inside a profile's raw <code>connectionString</code> are redacted to <code>***</code> in the output:</p>
 <div class="fragment"><div class="line">$ dbtool list-profiles</div>
-<div class="line">Profiles (from /home/me/.config/dbtool/dbtool.yml):</div>
+<div class="line">Profiles (from /home/me/project/dbtool.yml, found via current directory):</div>
 <div class="line"> </div>
-<div class="line">NAME  DEFAULT  CONNECTION                            SCHEMA  PLUGINSDIR</div>
-<div class="line">prod  *        DRIVER={ODBC Driver 18 for SQL Se...  dbo     ./migrations</div>
-<div class="line">dev            DRIVER=SQLite3;Database=dev.db                ./dev-plugins</div>
-</div><!-- fragment --><p>Use <code>--config &lt;FILE&gt;</code> to inspect a non-default configuration file. With no config file present at the default location, <code>list-profiles</code> prints a friendly notice and exits successfully.</p>
+<div class="line">NAME  DEFAULT  CONNECTION                            AUTH       SCHEMA  PLUGINSDIR</div>
+<div class="line">prod  *        DRIVER={ODBC Driver 18 for SQL Se...  encrypted  dbo     ./migrations</div>
+<div class="line">dev            DRIVER=SQLite3;Database=dev.db        -                  ./dev-plugins</div>
+</div><!-- fragment --><p>Use <code>--config &lt;FILE&gt;</code> to inspect a non-default configuration file. When no config file is found, <code>list-profiles</code> prints where it looked and exits successfully.</p>
 <h2><a class="anchor" id="database-specific-connection-strings"></a>
 Database-Specific Connection Strings</h2>
 <p><b>SQLite:</b> </p><div class="fragment"><div class="line">DRIVER=SQLite3;Database=/path/to/database.db</div>
@@ -289,7 +342,6 @@ unicode-upgrade-tables</h2>
 <div class="fragment"><div class="line">dbtool unicode-upgrade-tables --dry-run</div>
 <div class="line">dbtool unicode-upgrade-tables --yes</div>
 </div><!-- fragment --><p>This exists for databases created before a migration switched a column to a wide type: the migration history is already marked applied, so nothing would otherwise re-run to widen the existing columns. Run it with <code>--dry-run</code> first to see the planned <code>ALTER</code> statements.</p>
-<p>On SQL Server a column cannot change between narrow and wide text while anything depends on it. The command therefore reads every dependent object from the catalog — primary-key, unique, foreign-key (on either side, composite included), default and check constraints, indexes (with their included columns and filters) and statistics — drops them, alters the columns and recreates each object under its original name with its original definition, all in one transaction. The dry run lists those objects. Objects it cannot recreate safely — schema-bound views or functions, computed columns, columnstore, XML, spatial and full-text indexes — stop the command before anything changes; drop them, run it, and recreate them yourself.</p>
 <h2><a class="anchor" id="exec-query"></a>
 exec &lt;QUERY&gt;</h2>
 <p>Executes an SQL query and prints any result set:</p>
@@ -301,7 +353,35 @@ exec &lt;QUERY&gt;</h2>
 list-profiles</h2>
 <p>Lists the profiles defined in the configuration file (see <a class="el" href="../../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#configuration">Configuration</a>):</p>
 <div class="fragment"><div class="line">dbtool list-profiles</div>
-</div><!-- fragment --><h2><a class="anchor" id="resolve-secret-ref"></a>
+</div><!-- fragment --><h2><a class="anchor" id="add-profile"></a>
+add-profile</h2>
+<p>Adds a profile to <code>dbtool.yml</code> (the file found as described in <a class="el" href="../../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#where-dbtool-finds-dbtoolyml">Where dbtool finds `dbtool.yml`</a>, or <code>--config</code>; created if missing) with its password encrypted. Existing comments and formatting are preserved.</p>
+<div class="fragment"><div class="line"># Prompts for the password (no echo) and stores it encrypted</div>
+<div class="line">dbtool add-profile --name prod --dsn ACME_PROD --uid deploy --set-default</div>
+<div class="line"> </div>
+<div class="line"># Scripted: the password is read from stdin</div>
+<div class="line">printf &#39;%s\n&#39; &quot;$DB_PASSWORD&quot; | dbtool add-profile --name ci \</div>
+<div class="line">    --connection-string &quot;DRIVER={PostgreSQL Unicode};Server=db;Database=app;Uid=ci&quot;</div>
+</div><!-- fragment --><table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">Option   </th><th class="markdownTableHeadNone">Meaning    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>--name &lt;NAME&gt;</code>   </td><td class="markdownTableBodyNone">Profile name (required)    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>--connection-string &lt;STR&gt;</code> / <code>--dsn &lt;DSN&gt;</code>   </td><td class="markdownTableBodyNone">Exactly one is required. A <code>PWD=</code> inside the connection string is moved into the encrypted <code>password</code> field    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>--uid &lt;UID&gt;</code>   </td><td class="markdownTableBodyNone">User name for a DSN profile    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>--schema &lt;S&gt;</code>, <code>--plugins-dir &lt;DIR&gt;</code>   </td><td class="markdownTableBodyNone">Stored on the profile    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>--no-password</code>   </td><td class="markdownTableBodyNone">Store the profile without a password    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>--set-default</code>   </td><td class="markdownTableBodyNone">Make it the <code>defaultProfile</code>    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>--force</code>   </td><td class="markdownTableBodyNone">Replace an existing profile of the same name   </td></tr>
+</table>
+<p>Passwords are never accepted as command-line arguments.</p>
+<h2><a class="anchor" id="resolve-secret-ref"></a>
 resolve-secret &lt;REF&gt;</h2>
 <p>Resolves a single secret reference and prints it to stdout, without connecting to any database:</p>
 <div class="fragment"><div class="line">dbtool resolve-secret env:DB_PASSWORD</div>
@@ -354,7 +434,7 @@ Command-Line Options Reference</h1>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>--schema &lt;NAME&gt;</code>   </td><td class="markdownTableBodyNone">Database schema to use   </td><td class="markdownTableBodyNone"></td></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>--config &lt;FILE&gt;</code>   </td><td class="markdownTableBodyNone">Path to configuration file   </td><td class="markdownTableBodyNone"><code>~/.config/dbtool/dbtool.yml</code>    </td></tr>
+<td class="markdownTableBodyNone"><code>--config &lt;FILE&gt;</code>   </td><td class="markdownTableBodyNone">Path to configuration file   </td><td class="markdownTableBodyNone">nearest <code>dbtool.yml</code> upward, then the per-user file (see <a class="el" href="../../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#configuration">Configuration</a>)    </td></tr>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>--plugins-dir &lt;DIR&gt;</code>   </td><td class="markdownTableBodyNone">Directory to scan for migration plugins   </td><td class="markdownTableBodyNone"><code>.</code> (current directory)    </td></tr>
 <tr class="markdownTableRowOdd">
@@ -436,8 +516,8 @@ Creating a Migration Plugin</h2>
 <div class="line">        .RequiredColumn(<span class="stringliteral">&quot;email&quot;</span>, Varchar(255))</div>
 <div class="line">        .Timestamps();</div>
 <div class="line">}</div>
-<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01129">SqlMigration.hpp:1129</a></div></div>
-<div class="ttc" id="agroup__SqlMigration_html_gaef227c1f2230d962d19572a234ceaa73"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN()</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00811">SqlMigration.hpp:811</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01125">SqlMigration.hpp:1125</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_gaef227c1f2230d962d19572a234ceaa73"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN()</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00807">SqlMigration.hpp:807</a></div></div>
 </div><!-- fragment --><h2><a class="anchor" id="loading-plugins"></a>
 Loading Plugins</h2>
 <div class="fragment"><div class="line">dbtool migrate --plugins-dir ./build/plugins</div>
@@ -455,7 +535,7 @@ Optional Post-Init Hook</h2>
 <div class="line">    <span class="comment">// to do.</span></div>
 <div class="line">    MyPlugin::BridgeLegacyState(manager, connection);</div>
 <div class="line">}</div>
-<div class="ttc" id="agroup__SqlMigration_html_ga8292c8bc098a73ae82344c31693bb4ff"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga8292c8bc098a73ae82344c31693bb4ff">LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connArg, mgrArg)</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00834">SqlMigration.hpp:834</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_ga8292c8bc098a73ae82344c31693bb4ff"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga8292c8bc098a73ae82344c31693bb4ff">LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connArg, mgrArg)</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00830">SqlMigration.hpp:830</a></div></div>
 </div><!-- fragment --><p>The hook is <b>optional</b> — plugins that don't export the symbol behave exactly as before. Per-plugin exceptions are logged to stderr but do not abort <code>dbtool</code>.</p>
 <h1><a class="anchor" id="workflow-examples"></a>
 Workflow Examples</h1>

@@ -1,8 +1,5 @@
 var NAVTREEINDEX3 =
 {
-"d6/dfa/structLightweight_1_1SqlDateTime.html#a580b08490f5eff7dec0a3e4534d191d5":[19,1,2,6],
-"d6/dfa/structLightweight_1_1SqlDateTime.html#a5cfbb0f2fc1b68b0fd3983316b203ebc":[19,1,2,0],
-"d6/dfa/structLightweight_1_1SqlDateTime.html#a5dcb89336b1f32506a60b63e62c788d2":[19,1,2,14],
 "d6/dfa/structLightweight_1_1SqlDateTime.html#a5f1844faef73c5040f1eeb5463a722d4":[19,1,2,26],
 "d6/dfa/structLightweight_1_1SqlDateTime.html#a63f32910bfa3c1dee896bddf23e69e96":[19,1,2,18],
 "d6/dfa/structLightweight_1_1SqlDateTime.html#a6cc185c14476e3a2aad0db9a1bf52622":[19,1,2,16],
@@ -20,7 +17,7 @@ var NAVTREEINDEX3 =
 "d6/dfa/structLightweight_1_1SqlDateTime.html#ac9909a40a0ef444af5bf3e28dee1bd6a":[19,1,2,24],
 "d6/dfa/structLightweight_1_1SqlDateTime.html#ad9d7388657a62e1037680c4d4dab9eea":[19,1,2,23],
 "d6/dfa/structLightweight_1_1SqlDateTime.html#af92f3533cae7302542353e4fa358d581":[19,1,2,12],
-"d7/d09/Utils_8hpp_source.html":[22,0,1,40],
+"d7/d09/Utils_8hpp_source.html":[22,0,1,39],
 "d7/d09/structLightweight_1_1Zip_1_1EntryInfo.html":[21,0,0,5,0],
 "d7/d09/structLightweight_1_1Zip_1_1EntryInfo.html#a0731a4941cd0e4cbdfa4a3dfc159a750":[21,0,0,5,0,0],
 "d7/d09/structLightweight_1_1Zip_1_1EntryInfo.html#a3dd2493f216573af2f9247f7ed0c7b59":[21,0,0,5,0,3],
@@ -241,7 +238,6 @@ var NAVTREEINDEX3 =
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#altertable":[10,2,1],
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#applying-migrations-programmatically":[10,6,1],
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#best-practices-1":[10,8],
-"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#compatibility-flags":[10,6,3],
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#concurrency-control":[10,7,1],
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#createindex":[10,3,3],
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#createtable":[10,2,0],
@@ -249,5 +245,9 @@ var NAVTREEINDEX3 =
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#custom-default-schema":[10,6,0],
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#data-manipulation":[10,3],
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#delete-1":[10,3,2],
-"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#droptable":[10,2,2]
+"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#droptable":[10,2,2],
+"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#insert-1":[10,3,0],
+"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#introduction-1":[10,0],
+"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#mark-as-applied":[10,6,5],
+"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#migration-manager-api":[10,6]
 };
