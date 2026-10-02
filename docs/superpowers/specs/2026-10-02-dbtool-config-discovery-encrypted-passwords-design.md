@@ -198,8 +198,9 @@ struct ResolvedPassword { std::string value; PasswordOrigin origin; };
 
 Precedence: `password` → `secretRef` → none.
 
-Connect flow, shared by `dbtool` (all connecting commands) and `dbtool-gui` (`connectToProfile`
-and `ManagedBackupCore`, which already resolves `secretRef`):
+Connect flow, shared by `dbtool` (all connecting commands) and `dbtool-gui` (`connectToProfile`).
+`ManagedBackupCore` uses `ResolveProfilePassword` (decrypt) but does not auto-upgrade: it runs on
+worker threads, and concurrent rewrites of the config file are not worth the risk.
 
 1. `ResolveProfilePassword`. Decrypt failure → hard error naming the profile; no connection attempt.
 2. Connect with the resolved password.
@@ -229,20 +230,20 @@ scalar), the rewrite is refused with a warning — no partial edits.
 dbtool add-profile --name <NAME>
                    (--connection-string <CS> | --dsn <DSN> [--uid <UID>])
                    [--schema <S>] [--plugins-dir <DIR>]
-                   [--password-stdin] [--no-password] [--set-default] [--force]
+                   [--no-password] [--set-default] [--force]
                    [--config <FILE>]
 ```
 
 - Target file: `--config`, else the discovered file, else the user default (created with parent
   directories).
-- Password: interactive no-echo prompt by default (`StdinBackend`'s prompt helper);
-  `--password-stdin` reads one line from stdin for scripting; `--no-password` skips it. Never
+- Password: read via `StdinBackend` — a no-echo prompt when stdin is a terminal, otherwise one
+  line from the pipe (scripting); `--no-password` skips it. Never
   accepted on argv. If `--connection-string` contains `PWD=`, it is stripped from the stored
   string and treated as the password (so it gets encrypted), with a notice.
 - The profile is appended as a text block under `profiles:` (creating `profiles:` if absent) —
   no full re-serialisation, so existing comments survive. Existing name → error unless `--force`,
   which replaces that profile's block via the same locate-by-mark technique.
-- Option parsing is table-driven, consistent with the existing command table in `main.cpp`.
+- Option parsing follows the existing `ParseArguments` style in `main.cpp`.
 - `--set-default` updates `defaultProfile` in place.
 
 ## 6. Error handling
@@ -264,7 +265,7 @@ Catch2 (`src/tests/` for shared tools code; `src/tools/dbtool-gui/tests/` for GU
   file; legacy top-level form; block scalar refusal; read-only file → error.
 - Auto-upgrade: SQLite profile with plaintext password connects → file rewritten; failing
   connection → file untouched.
-- `src/tests/test_dbtool.py`: `add-profile` (prompt via `--password-stdin`, duplicate, `--force`,
+- `src/tests/test_dbtool.py`: `add-profile` (password piped via stdin, duplicate, `--force`,
   `--set-default`), discovery from a nested cwd, `list-profiles` shows source — against sqlite3,
   mssql2022, postgres. MSSQL/Postgres cases exercise a real password round-trip.
 
