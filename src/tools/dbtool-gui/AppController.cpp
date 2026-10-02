@@ -328,6 +328,9 @@ AppController::AppController(QObject* parent):
     // default). Both paths run through `loadProfiles` so the file watcher and
     // profile model are wired identically.
     auto const discoveredStore = DiscoverProfileStore();
+    for (auto const& skipped: discoveredStore.skipped)
+        LogWarn(QStringLiteral("Ignoring %1: it is owned by another user. Choose it in Settings to use it anyway.")
+                    .arg(QString::fromStdString(skipped.string())));
     auto const initialStorePath =
         !_profileStorePath.isEmpty() ? std::filesystem::path(_profileStorePath.toStdString()) : discoveredStore.path;
     if (std::filesystem::exists(initialStorePath))

@@ -423,6 +423,17 @@ struct Options
     bool force = false;         ///< --force: replace an existing profile of the same name
 };
 
+/// Tells the user about dbtool.yml files that discovery ignored because another
+/// user owns them (see `Config::IsTrustedConfigFile`).
+/// @param discovered Result of `Config::FindConfigFile`.
+void WarnAboutSkippedConfigs(Lightweight::Config::DiscoveredConfig const& discovered)
+{
+    for (auto const& path: discovered.skipped)
+        std::println(std::cerr,
+                     "Warning: ignoring {} because it is owned by another user; pass it with --config to use it anyway.",
+                     path.string());
+}
+
 /// Loads a profile from a `ProfileStore` and fills `options` fields that were not
 /// already set on the CLI. Supports both the legacy single-profile YAML shape
 /// (top-level `PluginsDir` / `ConnectionString` / `Schema`) and the multi-profile
@@ -454,6 +465,7 @@ void ApplyProfileToOptions(Options& options)
         std::println(std::cerr, "Error: {}", discovered.error());
         std::exit(EXIT_FAILURE);
     }
+    WarnAboutSkippedConfigs(*discovered);
     if (discovered->source == Cfg::ConfigSource::None)
         return; // No config at all — pure CLI / env mode.
     auto const& configPath = discovered->path;
@@ -977,6 +989,7 @@ int ListProfiles(Options const& options)
     auto const loadedConfig =
         Cfg::FindConfigFile(Cfg::DefaultDiscoveryInputs(options.configFile))
             .and_then([](Cfg::DiscoveredConfig discovered) -> std::expected<LoadedConfig, std::string> {
+                WarnAboutSkippedConfigs(discovered);
                 if (discovered.source == Cfg::ConfigSource::None)
                     return LoadedConfig { .store = {}, .discovered = std::move(discovered) };
                 return Cfg::ProfileStore::LoadOrDefault(discovered.path)

@@ -192,3 +192,29 @@ TEST_CASE("ConfigDiscovery — sources have human-readable names", "[ConfigDisco
     CHECK(Cfg::ToString(Cfg::ConfigSource::UserDefault) == "user default");
     CHECK(Cfg::ToString(Cfg::ConfigSource::None) == "none");
 }
+
+TEST_CASE("ConfigDiscovery — upward walks skip files owned by someone else", "[ConfigDiscovery]")
+{
+    TempTree const tree;
+    auto const planted = tree.Config("a/b");
+    auto const own = tree.Config("a");
+    auto inputs = Cfg::DiscoveryInputs {
+        .explicitPath = {}, .workingDirectory = tree.Dir("a/b/c"), .executableDirectory = {}, .userDefault = {}
+    };
+    inputs.isTrusted = [&](fs::path const& candidate) {
+        return candidate != planted;
+    };
+
+    auto const result = Cfg::FindConfigFile(inputs);
+    REQUIRE(result.has_value());
+    CHECK(result->path == own);
+    REQUIRE(result->skipped.size() == 1);
+    CHECK(result->skipped.front() == planted);
+}
+
+TEST_CASE("ConfigDiscovery — files created by the current user are trusted by default", "[ConfigDiscovery]")
+{
+    TempTree const tree;
+    auto const own = tree.Config("mine");
+    CHECK(Cfg::IsTrustedConfigFile(own));
+}

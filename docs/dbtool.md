@@ -85,6 +85,12 @@ The first match wins:
 4. the per-user file: `~/.config/dbtool/dbtool.yml` (Linux/macOS, honouring `$XDG_CONFIG_HOME`)
    or `%APPDATA%\dbtool\dbtool.yml` (Windows).
 
+Files found by the upward searches (steps 2 and 3) are only used when they are owned by you or by
+the system (root; on Windows SYSTEM, Administrators or TrustedInstaller). A `dbtool.yml` that
+another user placed in a shared parent directory such as `/tmp` could otherwise redirect dbtool to
+their plugin libraries; such files are skipped with a warning — pass them with `--config` if you
+really mean to use them.
+
 `dbtool list-profiles` shows which file was used and why; `--verbose` prints it for every other
 command. `dbtool-gui` uses the same lookup unless a profile-store path is set in its Settings.
 
