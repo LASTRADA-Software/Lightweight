@@ -13,6 +13,7 @@
 #include <string>
 
 #include <Config/ProfileStore.hpp>
+#include <Secrets/ProfileCipher.hpp>
 #include <Secrets/SecretResolver.hpp>
 
 #if defined(_WIN32)
@@ -321,4 +322,21 @@ TEST_CASE("CheckWritableFolder names a non-ASCII folder without mangling it", "[
 
     REQUIRE_FALSE(result.has_value());
     CHECK(result.error().find("M\xc3\xbcller") != std::string::npos);
+}
+
+TEST_CASE("ResolveConnectionString decrypts an encrypted profile password", "[dbtool-gui][managed-backup]")
+{
+    auto const encrypted = Lightweight::Secrets::ProfileCipher::Builtin().Encrypt("s3cr3t");
+    REQUIRE(encrypted.has_value());
+    Lightweight::Config::Profile profile;
+    profile.name = "enc";
+    profile.connectionString = "DRIVER=SQLite3;Database=x.db";
+    profile.password = *encrypted;
+    auto const resolver = Lightweight::Secrets::MakeDefaultResolver();
+
+    auto const cs = ResolveConnectionString(profile, resolver);
+
+    REQUIRE(cs.has_value());
+    CHECK(cs->contains("PWD=s3cr3t"));
+    CHECK_FALSE(cs->contains("enc:"));
 }

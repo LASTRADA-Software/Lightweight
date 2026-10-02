@@ -100,16 +100,16 @@ class AppController: public QObject
     /// server-side default schema".
     Q_PROPERTY(QString dsnSchema READ dsnSchema WRITE setDsnSchema NOTIFY dsnSchemaChanged)
     Q_PROPERTY(QString pluginsDir READ pluginsDir WRITE setPluginsDir NOTIFY pluginsDirChanged)
-    /// Custom path to the dbtool.yml profile store. Empty means "use the
-    /// platform default returned by `ProfileStore::DefaultPath()`". Persisted
+    /// Custom path to the dbtool.yml profile store. Empty means "discover it":
+    /// the nearest dbtool.yml above the working or executable directory, else
+    /// the per-user default (`Config::FindConfigFile`). Persisted
     /// under `config/profileStorePath` so site installs that ship the YAML
     /// outside `%APPDATA%` / `$XDG_CONFIG_HOME` can point the GUI at it
     /// without sym-links.
     Q_PROPERTY(QString profileStorePath READ profileStorePath WRITE setProfileStorePath NOTIFY profileStorePathChanged)
-    /// Platform default for the `dbtool.yml` location, exposed so the QML
-    /// Settings page can render it as the placeholder when the user hasn't
-    /// picked a custom path. CONSTANT — the platform default doesn't change
-    /// over the life of the process.
+    /// The `dbtool.yml` that discovery picks when no custom path is set, exposed
+    /// so the QML Settings page can render it as the placeholder. CONSTANT —
+    /// discovery inputs (working and executable directory) are fixed at startup.
     Q_PROPERTY(QString defaultProfileStorePath READ defaultProfileStorePath CONSTANT)
     Q_PROPERTY(QString connectionSummary READ connectionSummary NOTIFY connectionSummaryChanged)
     /// Absolute path of the profile file currently driving the profile
@@ -454,6 +454,10 @@ class AppController: public QObject
     void LogWarn(QString line);
     void LogError(QString line);
 
+    /// Encrypts the plaintext password of `profile` in the loaded dbtool.yml after a
+    /// successful connection, logging the outcome; never fails the connect.
+    void EncryptPlaintextPassword(Lightweight::Config::Profile const& profile);
+
     /// Computes the effective plugin search directories for the current
     /// connection mode: the user override wins in `dsn` / `custom` modes,
     /// whereas `profile` mode is locked to the profile's own `pluginsDir`.
@@ -510,8 +514,8 @@ class AppController: public QObject
     /// Plumbed into `MigrationManager::SetDefaultSchema` in `connectToProfile`.
     QString _dsnSchema;
     QString _pluginsDir;
-    /// User-customised `dbtool.yml` location; empty means "use the platform
-    /// default from `ProfileStore::DefaultPath()`".
+    /// User-customised `dbtool.yml` location; empty means "use the discovered
+    /// dbtool.yml" (see `Config::FindConfigFile`).
     QString _profileStorePath;
     QString _profilePath;
     QString _lastError;

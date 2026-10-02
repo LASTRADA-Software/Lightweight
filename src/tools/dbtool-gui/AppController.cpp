@@ -9,6 +9,11 @@
 #include <Lightweight/SqlMigration.hpp>
 #include <Lightweight/SqlServerType.hpp>
 
+#include <Secrets/ProfileCipher.hpp>
+#include <Secrets/SecretResolver.hpp>
+
+#include <Config/ConfigDiscovery.hpp>
+#include <Config/ProfilePassword.hpp>
 #include <PluginIngestion.hpp>
 #include <PluginLoader.hpp>
 #include <QtCore/QtGlobal>
@@ -129,6 +134,17 @@ namespace
     [[nodiscard]] QString FromUtf8View(std::string_view msg)
     {
         return QString::fromUtf8(msg.data(), static_cast<qsizetype>(msg.size()));
+    }
+
+    /// The dbtool.yml to use when the user has not picked one in Settings: the
+    /// nearest file above the working or executable directory, else the per-user
+    /// default (which may not exist yet).
+    [[nodiscard]] Lightweight::Config::DiscoveredConfig DiscoverProfileStore()
+    {
+        namespace Cfg = Lightweight::Config;
+        // Only an explicit path can make discovery fail, and none is passed here.
+        return Cfg::FindConfigFile(Cfg::DefaultDiscoveryInputs())
+            .value_or(Cfg::DiscoveredConfig { .path = Cfg::ProfileStore::DefaultPath(), .source = Cfg::ConfigSource::None });
     }
 
 } // namespace
@@ -284,11 +300,13 @@ AppController::AppController(QObject* parent):
     if (savedView == QStringLiteral("expert"))
         _viewMode = savedView;
 
-    // Honour the user-customised store path (if any); otherwise fall back to
-    // the platform default. Both paths run through `loadProfiles` so the file
-    // watcher and profile model are wired identically.
-    auto const initialStorePath = !_profileStorePath.isEmpty() ? std::filesystem::path(_profileStorePath.toStdString())
-                                                               : Lightweight::Config::ProfileStore::DefaultPath();
+    // Honour the user-customised store path (if any); otherwise discover the
+    // nearest dbtool.yml (working dir, then executable dir, then the per-user
+    // default). Both paths run through `loadProfiles` so the file watcher and
+    // profile model are wired identically.
+    auto const discoveredStore = DiscoverProfileStore();
+    auto const initialStorePath =
+        !_profileStorePath.isEmpty() ? std::filesystem::path(_profileStorePath.toStdString()) : discoveredStore.path;
     if (std::filesystem::exists(initialStorePath))
         (void) loadProfiles(QString::fromStdString(initialStorePath.string()));
 
@@ -301,10 +319,13 @@ AppController::AppController(QObject* parent):
     LogInfo(QStringLiteral("dbtool-gui starting (Qt %1)").arg(QLatin1String(qVersion())));
     LogInfo(QStringLiteral("View mode: %1").arg(_viewMode));
     {
-        auto const storePath = !_profileStorePath.isEmpty()
-                                   ? _profileStorePath
-                                   : QString::fromStdString(Lightweight::Config::ProfileStore::DefaultPath().string());
-        LogInfo(QStringLiteral("Profile store: %1 (%2 profile(s))").arg(storePath).arg(_profiles.rowCount()));
+        auto const storePath = QString::fromStdString(initialStorePath.string());
+        auto const source = !_profileStorePath.isEmpty()
+                                ? QStringLiteral("chosen in Settings")
+                                : QString::fromUtf8(Lightweight::Config::ToString(discoveredStore.source).data());
+        LogInfo(QStringLiteral("Profile store: %1 (found via %2, %3 profile(s))")
+                    .arg(storePath, source)
+                    .arg(_profiles.rowCount()));
     }
 
     // Load the plugin DLLs eagerly so the migration list is populated before
@@ -461,9 +482,28 @@ void AppController::setPluginsDir(QString const& pluginsDir)
     ReloadPlugins();
 }
 
+void AppController::EncryptPlaintextPassword(Lightweight::Config::Profile const& profile)
+{
+    auto const configPath = std::filesystem::path { _profilePath.toStdString() };
+    auto const upgraded =
+        Lightweight::Config::UpgradePlaintextPassword(configPath, profile, Lightweight::Secrets::ProfileCipher::Builtin());
+    if (!upgraded)
+    {
+        LogWarn(QStringLiteral("Could not encrypt the plaintext password of profile ‘%1’: %2")
+                       .arg(QString::fromStdString(profile.name), QString::fromStdString(upgraded.error())));
+        return;
+    }
+    LogInfo(QStringLiteral("Encrypted the plaintext password of profile ‘%1’ in %2")
+                .arg(QString::fromStdString(profile.name), _profilePath));
+    if (upgraded->insideGitWorkTree)
+        LogWarn(QStringLiteral("%1 is inside a git repository; the old plaintext password may remain in its "
+                                  "history. Consider changing the database password.")
+                       .arg(_profilePath));
+}
+
 QString AppController::defaultProfileStorePath() const
 {
-    return QString::fromStdString(Lightweight::Config::ProfileStore::DefaultPath().string());
+    return QString::fromStdString(DiscoverProfileStore().path.string());
 }
 
 void AppController::setProfileStorePath(QString const& path)
@@ -484,7 +524,7 @@ void AppController::setProfileStorePath(QString const& path)
         return;
     }
 
-    // `loadProfiles({})` resolves to `DefaultPath()`; non-empty `path` is
+    // `loadProfiles({})` resolves to the discovered dbtool.yml; non-empty `path` is
     // honoured verbatim. Missing files are tolerated — the profile dropdown
     // simply goes empty.
     if (path.isEmpty() || std::filesystem::exists(path.toStdString()))
@@ -543,7 +583,7 @@ void AppController::ClearError()
 bool AppController::loadProfiles(QString const& path)
 {
     auto const effectivePath =
-        path.isEmpty() ? QString::fromStdString(Lightweight::Config::ProfileStore::DefaultPath().string()) : path;
+        path.isEmpty() ? QString::fromStdString(DiscoverProfileStore().path.string()) : path;
 
     auto result = Lightweight::Config::ProfileStore::LoadOrDefault(effectivePath.toStdString());
     if (!result)
@@ -593,6 +633,7 @@ bool AppController::connectToProfile()
     // rules apply on startup, property change, and connect.
     std::string connectionString;
     Lightweight::Config::Profile const* profile = _store.Find(_currentProfile.toStdString());
+    auto passwordOrigin = Lightweight::Config::PasswordOrigin::None;
 
     if (_connectionMode == QStringLiteral("dsn"))
     {
@@ -625,19 +666,20 @@ bool AppController::connectToProfile()
             ReportError(QStringLiteral("No profile selected."));
             return false;
         }
-        if (!profile->connectionString.empty())
+        // Same password rules as dbtool: decrypt `enc:` values, use plaintext
+        // as-is (it is encrypted below once the connection proves it works),
+        // otherwise resolve `secretRef`.
+        auto const resolver = Lightweight::Secrets::MakeDefaultResolver();
+        auto const password =
+            Lightweight::Config::ResolveProfilePassword(*profile, Lightweight::Secrets::ProfileCipher::Builtin(), resolver);
+        if (!password)
         {
-            connectionString = profile->connectionString;
+            ReportError(QString::fromStdString(password.error()));
+            return false;
         }
-        else if (!profile->dsn.empty())
-        {
-            Lightweight::SqlConnectionDataSource const ds {
-                .datasource = profile->dsn,
-                .username = profile->uid,
-                .password = {},
-            };
-            connectionString = ds.ToConnectionString().value;
-        }
+        passwordOrigin = password->origin;
+        if (profile->HasConnection())
+            connectionString = std::format("{}", profile->ToConnectInfo(password->value));
     }
 
     if (connectionString.empty())
@@ -724,6 +766,12 @@ bool AppController::connectToProfile()
         // succeeded, so silently skip the descriptive line rather than
         // contradict the previous "Connecting …" with a misleading error.
     }
+
+    // A plaintext password just proved that it works: store it encrypted. The
+    // profile is copied because the rewrite triggers a watcher-driven reload
+    // that replaces `_store`.
+    if (passwordOrigin == Lightweight::Config::PasswordOrigin::Plaintext && profile)
+        EncryptPlaintextPassword(Lightweight::Config::Profile { *profile });
 
     // Route status banners emitted by plugin post-init hooks (e.g. the
     // "Transitioning from LASTRADA_PROPERTIES …" line from SqlMigrationsPlugin)
