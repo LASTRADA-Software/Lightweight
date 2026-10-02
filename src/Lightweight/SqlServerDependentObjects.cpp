@@ -54,7 +54,16 @@ namespace
     /// Comma-joined list of `items`.
     std::string Join(std::vector<std::string> const& items)
     {
-        return items | std::views::join_with(std::string_view { ", " }) | std::ranges::to<std::string>();
+        // A plain loop: libc++ has no views::join_with yet, and Clang cannot compile the
+        // `| std::ranges::to` pipe against GCC 14's libstdc++.
+        auto joined = std::string {};
+        for (auto const& item: items)
+        {
+            if (!joined.empty())
+                joined += ", ";
+            joined += item;
+        }
+        return joined;
     }
 
     /// `WITH affected (object_id, column_id) AS (...)` — the columns about to be retyped,
