@@ -75,35 +75,31 @@ else()
     target_link_libraries(tools_shared PRIVATE OpenSSL::Crypto)
 endif()
 
-# Master key ring for profile-password encryption. Official builds get it from
-# the DBTOOL_MASTER_KEYS environment variable (a CI secret: "id=<64 hex>[,...]",
-# newest first). It is read from the environment on purpose — never cached in
-# CMakeCache.txt — and only lands in a generated, never-installed header of this
-# build tree. Without it the build uses the public development key.
+# Master key ring for profile-password encryption — see cmake/DbtoolKeyRing.cmake
+# for the two ways CI can supply it (DBTOOL_MASTER_KEYS env var, or a key file
+# via DBTOOL_MASTER_KEYS_FILE). The keys only land in a generated, never-installed
+# header of this build tree; without them the public development key is used.
 target_sources(tools_shared PRIVATE Secrets/KeyRing.cpp Secrets/KeyRing.hpp Secrets/ProfileCipher.cpp Secrets/ProfileCipher.hpp)
-set(DBTOOL_DEV_KEY_HEX "ba456ca44382fdc8bfd9c84ac989779fa0da3754722e2691f1e0d7a735a3b232")
-if(NOT "$ENV{DBTOOL_MASTER_KEYS}" STREQUAL "")
-    set(DBTOOL_KEYRING_SPEC "$ENV{DBTOOL_MASTER_KEYS}")
-    set(DBTOOL_KEYRING_IS_RELEASE true)
-    string(REPEAT "[0-9a-fA-F]" 64 _dbtool_hex64)
-    string(REPLACE "," ";" _dbtool_key_entries "${DBTOOL_KEYRING_SPEC}")
-    foreach(_dbtool_entry IN LISTS _dbtool_key_entries)
-        # Deliberately does not echo the entry: it contains key material.
-        if(NOT _dbtool_entry MATCHES "^[a-z0-9]+=${_dbtool_hex64}$")
-            message(FATAL_ERROR "DBTOOL_MASTER_KEYS is malformed; expected id=<64 hex digits>[,id=<64 hex digits>...]")
-        endif()
-        string(FIND "${_dbtool_entry}" "=" _dbtool_equals)
-        if(_dbtool_equals GREATER 16)
-            message(FATAL_ERROR "DBTOOL_MASTER_KEYS: key ids must be at most 16 characters")
-        endif()
-    endforeach()
-    message(STATUS "dbtool: using the master key ring from DBTOOL_MASTER_KEYS")
+include("${CMAKE_CURRENT_LIST_DIR}/../../../cmake/DbtoolKeyRing.cmake")
+set(DBTOOL_MASTER_KEYS_FILE "$ENV{DBTOOL_MASTER_KEYS_FILE}" CACHE FILEPATH
+    "File holding the dbtool master key ring (id=<64 hex> per line); empty uses DBTOOL_MASTER_KEYS from the environment or the development key")
+dbtool_resolve_key_ring("${DBTOOL_MASTER_KEYS_FILE}" "$ENV{DBTOOL_MASTER_KEYS}" DBTOOL_KEYRING_SPEC DBTOOL_KEYRING_IS_RELEASE _dbtool_keyring_error)
+if(NOT _dbtool_keyring_error STREQUAL "")
+    message(FATAL_ERROR "${_dbtool_keyring_error}")
+endif()
+if(NOT DBTOOL_MASTER_KEYS_FILE STREQUAL "")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${DBTOOL_MASTER_KEYS_FILE}")
+endif()
+if(DBTOOL_KEYRING_IS_RELEASE)
+    message(STATUS "dbtool: using the CI-provided master key ring")
 else()
-    set(DBTOOL_KEYRING_SPEC "dev=${DBTOOL_DEV_KEY_HEX}")
-    set(DBTOOL_KEYRING_IS_RELEASE false)
     message(STATUS "dbtool: no master key provided - using the public development key")
 endif()
-string(RANDOM LENGTH 64 ALPHABET "0123456789abcdef" DBTOOL_KEYRING_MASK)
+# The XOR mask is generated once per build tree so reconfiguring does not force a rebuild.
+if(NOT DEFINED CACHE{DBTOOL_KEYRING_MASK})
+    string(RANDOM LENGTH 64 ALPHABET "0123456789abcdef" _dbtool_mask)
+    set(DBTOOL_KEYRING_MASK "${_dbtool_mask}" CACHE INTERNAL "XOR mask for the embedded dbtool key ring")
+endif()
 configure_file(Secrets/DbtoolKeyRing.inc.in "${CMAKE_CURRENT_BINARY_DIR}/generated/DbtoolKeyRing.inc" @ONLY)
 target_include_directories(tools_shared PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
 unset(DBTOOL_KEYRING_SPEC)

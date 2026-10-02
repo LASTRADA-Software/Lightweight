@@ -194,3 +194,9 @@ add_test(NAME DbToolIntegrationTest
         --connection-string "DRIVER=${SQLITE_DRIVER_NAME};Database=test_dbtool_ctest.db"
         ${LIGHTWEIGHT_TEST_ARGS_LIST}
 )
+
+# Script-mode tests for the dbtool master key ring resolution (cmake/DbtoolKeyRing.cmake).
+add_test(NAME DbtoolKeyRingConfigTest
+    COMMAND ${CMAKE_COMMAND} -P ${PROJECT_SOURCE_DIR}/cmake/tests/DbtoolKeyRingTest.cmake
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
