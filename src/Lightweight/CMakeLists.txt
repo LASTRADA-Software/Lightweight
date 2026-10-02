@@ -145,6 +145,7 @@ set(SOURCE_FILES
     SqlRetryPolicy.cpp
     SqlScopedLock.cpp
     SqlSchema.cpp
+    SqlServerDependentObjects.cpp
     SqlStatement.cpp
     SqlTransaction.cpp
     Utils.cpp

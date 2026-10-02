@@ -3773,3 +3773,326 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     (void) stmt.ExecuteDirect(R"(INSERT INTO "uu_generic" ("id", "note") VALUES (1, 'ok'))");
     CHECK(stmt.ExecuteDirectScalar<long long>(R"(SELECT COUNT(*) FROM "uu_generic")").value_or(0) == 1);
 }
+
+// ================================================================================================
+// fk-match-referenced-text: FK columns follow the referenced column's narrow/wide text kind (#643)
+// ================================================================================================
+
+namespace
+{
+
+/// Renders every step of `build`'s plan through the context-aware `ToSql`.
+std::string RenderWithContext(SqlQueryFormatter const& formatter,
+                              MigrationRenderContext& context,
+                              std::function<void(SqlMigrationQueryBuilder&)> const& build)
+{
+    auto builder = SqlQueryBuilder(formatter).Migration();
+    build(builder);
+    auto const plan = std::move(builder).GetPlan();
+    auto sql = std::string {};
+    for (auto const& step: plan.steps)
+        for (auto const& statement: ToSql(formatter, step, context))
+            sql += statement + "\n";
+    return sql;
+}
+
+/// A render context with the flag on and `fk_users.NAME` known as `referencedType`.
+MigrationRenderContext FkTextContext(SqlColumnTypeDefinition referencedType)
+{
+    auto context = MigrationRenderContext {};
+    context.fkMatchReferencedText = true;
+    context.textColumnTypes[MigrationRenderContext::ColumnKey { .schema = "", .table = "fk_users", .column = "NAME" }] =
+        referencedType;
+    // Mark the referenced table as already looked up so no live query is attempted.
+    context.lookupAttempted.insert(MigrationRenderContext::TableKey { .schema = "", .table = "fk_users" });
+    return context;
+}
+
+/// The migration from issue #643: a wide FK column referencing `fk_users.NAME`.
+void CreateOrdersWithCompositeFk(SqlMigrationQueryBuilder& plan)
+{
+    using namespace SqlColumnTypeDefinitions;
+    plan.CreateTable("fk_orders")
+        .PrimaryKey("NR", Integer())
+        .RequiredColumn("USER_NAME", NChar(30))
+        .ForeignKey({ "USER_NAME" }, "fk_users", { "NAME" });
+}
+
+} // namespace
+
+TEST_CASE("fk-match-referenced-text: SQL Server renders the referenced column's narrow variant",
+          "[SqlMigration][compat][fk-text]")
+{
+    using namespace SqlColumnTypeDefinitions;
+    auto context = FkTextContext(Char { 30 });
+    auto const sql = RenderWithContext(SqlQueryFormatter::SqlServer(), context, CreateOrdersWithCompositeFk);
+    CAPTURE(sql);
+    CHECK(sql.contains("CHAR(30)"));
+    CHECK_FALSE(sql.contains("NCHAR(30)"));
+}
+
+TEST_CASE("fk-match-referenced-text: single-column and ALTER TABLE foreign keys are adapted too",
+          "[SqlMigration][compat][fk-text]")
+{
+    using namespace SqlColumnTypeDefinitions;
+    {
+        auto context = FkTextContext(Varchar { 40 });
+        auto const sql = RenderWithContext(SqlQueryFormatter::SqlServer(), context, [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("fk_orders")
+                .PrimaryKey("NR", Integer())
+                .RequiredForeignKey("USER_NAME",
+                                    NVarchar(40),
+                                    SqlForeignKeyReferenceDefinition { .tableName = "fk_users", .columnName = "NAME" });
+        });
+        CAPTURE(sql);
+        CHECK(sql.contains("VARCHAR(40)"));
+        CHECK_FALSE(sql.contains("NVARCHAR(40)"));
+    }
+    {
+        auto context = FkTextContext(Varchar { 40 });
+        auto const sql = RenderWithContext(SqlQueryFormatter::SqlServer(), context, [](SqlMigrationQueryBuilder& plan) {
+            plan.AlterTable("fk_orders")
+                .AddForeignKeyColumn("USER_NAME",
+                                     NVarchar(40),
+                                     SqlForeignKeyReferenceDefinition { .tableName = "fk_users", .columnName = "NAME" });
+        });
+        CAPTURE(sql);
+        CHECK(sql.contains("VARCHAR(40)"));
+        CHECK_FALSE(sql.contains("NVARCHAR(40)"));
+    }
+}
+
+TEST_CASE("fk-match-referenced-text: nothing changes without the flag, on other backends, or on a length mismatch",
+          "[SqlMigration][compat][fk-text]")
+{
+    using namespace SqlColumnTypeDefinitions;
+    auto strict = MigrationRenderContext {};
+    auto const declared = RenderWithContext(SqlQueryFormatter::SqlServer(), strict, CreateOrdersWithCompositeFk);
+    REQUIRE(declared.contains("NCHAR(30)"));
+
+    auto flagOff = FkTextContext(Char { 30 });
+    flagOff.fkMatchReferencedText = false;
+    CHECK(RenderWithContext(SqlQueryFormatter::SqlServer(), flagOff, CreateOrdersWithCompositeFk) == declared);
+
+    auto mismatch = FkTextContext(Char { 20 });
+    CHECK(RenderWithContext(SqlQueryFormatter::SqlServer(), mismatch, CreateOrdersWithCompositeFk) == declared);
+
+    auto alreadyWide = FkTextContext(NChar { 30 });
+    CHECK(RenderWithContext(SqlQueryFormatter::SqlServer(), alreadyWide, CreateOrdersWithCompositeFk) == declared);
+
+    auto sqliteStrict = MigrationRenderContext {};
+    auto sqliteFlag = FkTextContext(Char { 30 });
+    CHECK(RenderWithContext(SqlQueryFormatter::Sqlite(), sqliteFlag, CreateOrdersWithCompositeFk)
+          == RenderWithContext(SqlQueryFormatter::Sqlite(), sqliteStrict, CreateOrdersWithCompositeFk));
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "fk-match-referenced-text: a wide FK applies against a narrow legacy column",
+                 "[SqlMigration][compat][fk-text]")
+{
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    mgr.CreateMigrationHistory();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    // Created outside the migration set, as legacy tooling did.
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "fk_users" ("NAME" CHAR(30) NOT NULL PRIMARY KEY))");
+
+    mgr.SetCompatPolicy([](SqlMigration::MigrationBase const&) {
+        return std::set<std::string> { std::string(CompatFlagFkMatchReferencedTextName) };
+    });
+    auto orders = SqlMigration::Migration<202610020001>("create orders", CreateOrdersWithCompositeFk);
+    REQUIRE(mgr.ApplyPendingMigrations() == 1);
+    mgr.SetCompatPolicy({});
+
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "fk_users" ("NAME") VALUES ('alice'))");
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "fk_orders" ("NR", "USER_NAME") VALUES (1, 'alice'))");
+    CHECK(stmt.ExecuteDirectScalar<long long>(R"(SELECT COUNT(*) FROM "fk_orders")").value_or(0) == 1);
+
+    // Checksums hash the plan as declared, so the adapted SQL must not show up as drift.
+    CHECK(mgr.VerifyChecksums().empty());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "fk-match-referenced-text: without the flag SQL Server still rejects the mismatch",
+                 "[SqlMigration][compat][fk-text]")
+{
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("only SQL Server distinguishes narrow and wide text in foreign keys");
+    mgr.CreateMigrationHistory();
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "fk_users" ("NAME" CHAR(30) NOT NULL PRIMARY KEY))");
+
+    auto orders = SqlMigration::Migration<202610020002>("create orders", CreateOrdersWithCompositeFk);
+    CHECK_THROWS(mgr.ApplyPendingMigrations());
+}
+
+// ================================================================================================
+// unicode-upgrade-tables: key columns and their dependent objects on SQL Server (#643)
+// ================================================================================================
+
+namespace
+{
+
+/// Runs a scalar catalog query and returns its single string result ("" when NULL / no row).
+std::string CatalogScalar(SqlStatement& stmt, std::string const& sql)
+{
+    return stmt.ExecuteDirectScalar<std::string>(sql).value_or(std::string {});
+}
+
+/// INFORMATION_SCHEMA data type of `table.column`.
+std::string LiveDataType(SqlStatement& stmt, std::string_view table, std::string_view column)
+{
+    return CatalogScalar(stmt,
+                         std::format("SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{}' AND "
+                                     "COLUMN_NAME = '{}'",
+                                     table,
+                                     column));
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server rebuilds keys, constraints and indexes on upgraded columns",
+                 "[SqlMigration][UnicodeUpgrade]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("only SQL Server needs dependent objects dropped to change a column between narrow and wide text");
+    mgr.CreateMigrationHistory();
+
+    // A legacy schema created outside the migration set: narrow key columns carrying every kind
+    // of dependent object, with names the migrations would never generate.
+    // Filtered indexes can only be created with ANSI_WARNINGS ON; the library's connections
+    // default to OFF, which is also what the upgrade itself runs under (restored below).
+    (void) stmt.ExecuteDirect("SET ANSI_WARNINGS ON");
+    for (auto const* sql: {
+             "CREATE TABLE uu_users (NAME CHAR(30) NOT NULL CONSTRAINT PK_legacy_users PRIMARY KEY, "
+             "NICK VARCHAR(20) NULL CONSTRAINT UQ_legacy_nick UNIQUE, "
+             "NOTE VARCHAR(50) NOT NULL CONSTRAINT DF_legacy_note DEFAULT 'none', "
+             "CONSTRAINT CK_legacy_note CHECK (NOTE <> ''))",
+             "CREATE NONCLUSTERED INDEX IX_legacy_note ON uu_users (NOTE DESC) INCLUDE (NICK) WHERE NICK IS NOT NULL",
+             "CREATE TABLE uu_orders (NR INT NOT NULL CONSTRAINT PK_legacy_orders PRIMARY KEY, "
+             "USER_NAME CHAR(30) NOT NULL CONSTRAINT FK_legacy_orders_user FOREIGN KEY REFERENCES uu_users (NAME) "
+             "ON DELETE CASCADE)",
+             "CREATE TABLE uu_lines (USER_NAME CHAR(30) NOT NULL, LINE INT NOT NULL, "
+             "CONSTRAINT PK_legacy_lines PRIMARY KEY (USER_NAME, LINE))",
+             "CREATE TABLE uu_line_refs (ID INT NOT NULL PRIMARY KEY, USER_NAME CHAR(30) NOT NULL, LINE INT NOT NULL, "
+             "CONSTRAINT FK_legacy_line_refs FOREIGN KEY (USER_NAME, LINE) REFERENCES uu_lines (USER_NAME, LINE))",
+             "INSERT INTO uu_users (NAME, NICK, NOTE) VALUES ('alice', 'al', 'first')",
+             "INSERT INTO uu_orders (NR, USER_NAME) VALUES (1, 'alice')",
+             "INSERT INTO uu_lines (USER_NAME, LINE) VALUES ('alice', 1)",
+             "INSERT INTO uu_line_refs (ID, USER_NAME, LINE) VALUES (1, 'alice', 1)",
+         })
+        (void) stmt.ExecuteDirect(sql);
+    (void) stmt.ExecuteDirect("SET ANSI_WARNINGS OFF");
+
+    // The registered migrations declare the same tables with wide text.
+    fold_test::FoldStub<20'26'10'02'00'01> decl {
+        "declare wide",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("uu_users")
+                .PrimaryKey("NAME", NChar(30))
+                .Column("NICK", NVarchar(20))
+                .RequiredColumn("NOTE", NVarchar(50));
+            plan.CreateTable("uu_orders").PrimaryKey("NR", Integer()).RequiredColumn("USER_NAME", NChar(30));
+            plan.CreateTable("uu_lines").RequiredColumn("USER_NAME", NChar(30)).RequiredColumn("LINE", Integer());
+            plan.CreateTable("uu_line_refs")
+                .PrimaryKey("ID", Integer())
+                .RequiredColumn("USER_NAME", NChar(30))
+                .RequiredColumn("LINE", Integer());
+        }
+    };
+
+    // A dry run reports what would be dropped and recreated, and changes nothing.
+    auto const preview = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    CHECK(std::ranges::contains(preview.rebuiltObjects, std::string { "PRIMARY KEY PK_legacy_users on dbo.uu_users" }));
+    CHECK(std::ranges::contains(preview.rebuiltObjects,
+                                std::string { "FOREIGN KEY FK_legacy_line_refs on dbo.uu_line_refs" }));
+    CHECK(LiveDataType(stmt, "uu_users", "NAME") == "char");
+
+    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    REQUIRE(result.columns.size() == 6);
+
+    CHECK(LiveDataType(stmt, "uu_users", "NAME") == "nchar");
+    CHECK(LiveDataType(stmt, "uu_users", "NICK") == "nvarchar");
+    CHECK(LiveDataType(stmt, "uu_users", "NOTE") == "nvarchar");
+    CHECK(LiveDataType(stmt, "uu_orders", "USER_NAME") == "nchar");
+    CHECK(LiveDataType(stmt, "uu_lines", "USER_NAME") == "nchar");
+    CHECK(LiveDataType(stmt, "uu_line_refs", "USER_NAME") == "nchar");
+
+    // Every dependent object is back, under its original name and with its definition.
+    CHECK(CatalogScalar(stmt, "SELECT type FROM sys.key_constraints WHERE name = 'PK_legacy_users'") == "PK");
+    CHECK(CatalogScalar(stmt, "SELECT type FROM sys.key_constraints WHERE name = 'UQ_legacy_nick'") == "UQ");
+    CHECK(CatalogScalar(stmt, "SELECT type FROM sys.key_constraints WHERE name = 'PK_legacy_lines'") == "PK");
+    CHECK(CatalogScalar(stmt, "SELECT definition FROM sys.default_constraints WHERE name = 'DF_legacy_note'") == "('none')");
+    CHECK(
+        CatalogScalar(stmt, "SELECT definition FROM sys.check_constraints WHERE name = 'CK_legacy_note'").contains("<>''"));
+    CHECK(CatalogScalar(stmt,
+                        "SELECT delete_referential_action_desc FROM sys.foreign_keys WHERE name = "
+                        "'FK_legacy_orders_user'")
+          == "CASCADE");
+    CHECK(CatalogScalar(stmt, "SELECT name FROM sys.foreign_keys WHERE name = 'FK_legacy_line_refs'")
+          == "FK_legacy_line_refs");
+    CHECK(CatalogScalar(stmt,
+                        "SELECT CAST(i.has_filter AS VARCHAR(1)) + CAST(ic.is_descending_key AS VARCHAR(1)) "
+                        "FROM sys.indexes i JOIN sys.index_columns ic ON ic.object_id = i.object_id AND "
+                        "ic.index_id = i.index_id AND ic.key_ordinal = 1 WHERE i.name = 'IX_legacy_note'")
+          == "11");
+    CHECK(CatalogScalar(stmt,
+                        "SELECT COL_NAME(ic.object_id, ic.column_id) FROM sys.indexes i JOIN sys.index_columns ic ON "
+                        "ic.object_id = i.object_id AND ic.index_id = i.index_id AND ic.is_included_column = 1 WHERE "
+                        "i.name = 'IX_legacy_note'")
+          == "NICK");
+
+    // Data and constraint enforcement survive: the cascade still fires, the check still bites.
+    // (Writes to a table with a filtered index need ANSI_WARNINGS ON as well.)
+    (void) stmt.ExecuteDirect("SET ANSI_WARNINGS ON");
+    CHECK(stmt.ExecuteDirectScalar<long long>("SELECT COUNT(*) FROM uu_line_refs").value_or(0) == 1);
+    CHECK_THROWS(stmt.ExecuteDirect("INSERT INTO uu_users (NAME, NOTE) VALUES ('bob', '')"));
+    (void) stmt.ExecuteDirect("DELETE FROM uu_users WHERE NAME = 'alice'");
+    CHECK(stmt.ExecuteDirectScalar<long long>("SELECT COUNT(*) FROM uu_orders").value_or(-1) == 0);
+    (void) stmt.ExecuteDirect("SET ANSI_WARNINGS OFF");
+
+    CHECK(mgr.UnicodeUpgradeTables(/*dryRun=*/true).columns.empty());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server refuses columns used by schema-bound views and changes nothing",
+                 "[SqlMigration][UnicodeUpgrade]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("schema-bound views are a SQL Server concept here");
+    mgr.CreateMigrationHistory();
+    (void) stmt.ExecuteDirect("DROP VIEW IF EXISTS uu_bound_view");
+    (void) stmt.ExecuteDirect("CREATE TABLE uu_bound (ID INT NOT NULL PRIMARY KEY, CODE VARCHAR(10) NOT NULL)");
+    (void) stmt.ExecuteDirect("CREATE VIEW uu_bound_view WITH SCHEMABINDING AS SELECT CODE FROM dbo.uu_bound");
+
+    fold_test::FoldStub<20'26'10'02'00'02> decl {
+        "declare wide",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("uu_bound").PrimaryKey("ID", Integer()).RequiredColumn("CODE", NVarchar(10));
+        }
+    };
+
+    try
+    {
+        std::ignore = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+        FAIL("expected the schema-bound view to block the upgrade");
+    }
+    catch (std::runtime_error const& e)
+    {
+        // Our up-front refusal (not the server's own error 5074 halfway through): it names the
+        // blocking object and says what to do, before a single statement has run.
+        CHECK(std::string_view { e.what() }.contains("uu_bound_view"));
+        CHECK(std::string_view { e.what() }.contains("drop them first"));
+    }
+    CHECK(LiveDataType(stmt, "uu_bound", "CODE") == "varchar");
+    CHECK(CatalogScalar(stmt, "SELECT type FROM sys.key_constraints WHERE parent_object_id = OBJECT_ID('uu_bound')")
+          == "PK");
+    (void) stmt.ExecuteDirect("DROP VIEW uu_bound_view");
+}

@@ -5,7 +5,10 @@
 #include "../SqlQueryFormatter.hpp"
 #include "MigrationPlan.hpp"
 
+#include <algorithm>
 #include <format>
+#include <optional>
+#include <ranges>
 #include <string_view>
 
 namespace Lightweight
@@ -191,55 +194,242 @@ namespace
                                                    .column = std::string(column) };
     }
 
-    /// @brief Populates the render context's column-width cache from a `CreateTable` step.
+    /// @brief True for the text types whose narrow/wide kind `fkMatchReferencedText` tracks.
+    bool IsTrackedTextType(SqlColumnTypeDefinition const& type) noexcept
+    {
+        return std::holds_alternative<SqlColumnTypeDefinitions::Char>(type)
+               || std::holds_alternative<SqlColumnTypeDefinitions::NChar>(type)
+               || std::holds_alternative<SqlColumnTypeDefinitions::Varchar>(type)
+               || std::holds_alternative<SqlColumnTypeDefinitions::NVarchar>(type);
+    }
+
+    /// @brief Records what the render context needs to know about one declared column:
+    /// its character width (for `lup-truncate`) and its text type (for `fkMatchReferencedText`).
+    void RememberColumn(MigrationRenderContext& context,
+                        MigrationRenderContext::ColumnKey const& key,
+                        SqlColumnTypeDefinition const& type)
+    {
+        if (auto const width = DeclaredCharWidth(type); width.value > 0)
+            context.columnWidths[key] = width;
+        if (IsTrackedTextType(type))
+            context.textColumnTypes[key] = type;
+        else
+            context.textColumnTypes.erase(key);
+    }
+
+    /// @brief Populates the render context's column caches from a `CreateTable` step.
     void RememberColumnWidths(MigrationRenderContext& context, SqlCreateTablePlan const& step)
     {
         for (auto const& col: step.columns)
-        {
-            auto const width = DeclaredCharWidth(col.type);
-            if (width.value == 0)
-                continue;
-            context.columnWidths[MakeColumnKey(step.schemaName, step.tableName, col.name)] = width;
-        }
+            RememberColumn(context, MakeColumnKey(step.schemaName, step.tableName, col.name), col.type);
     }
 
-    /// @brief Reacts to an `ALTER TABLE` step by updating the width cache for the columns
+    /// @brief Reacts to an `ALTER TABLE` step by updating the column caches for the columns
     /// it touches. Only add-column and alter-column commands carry a type definition.
     void RememberColumnWidths(MigrationRenderContext& context, SqlAlterTablePlan const& step)
     {
         for (auto const& cmd: step.commands)
         {
-            std::visit(detail::overloaded {
-                           [&](SqlAlterTableCommands::AddColumn const& c) {
-                               auto const width = DeclaredCharWidth(c.columnType);
-                               if (width.value > 0)
-                                   context.columnWidths[MakeColumnKey(step.schemaName, step.tableName, c.columnName)] =
-                                       width;
-                           },
-                           [&](SqlAlterTableCommands::AlterColumn const& c) {
-                               auto const width = DeclaredCharWidth(c.columnType);
-                               if (width.value > 0)
-                                   context.columnWidths[MakeColumnKey(step.schemaName, step.tableName, c.columnName)] =
-                                       width;
-                           },
-                           [&](SqlAlterTableCommands::DropColumn const& c) {
-                               context.columnWidths.erase(MakeColumnKey(step.schemaName, step.tableName, c.columnName));
-                           },
-                           [](auto const&) {}, // other commands don't change char widths we track
-                       },
-                       cmd);
+            std::visit(
+                detail::overloaded {
+                    [&](SqlAlterTableCommands::AddColumn const& c) {
+                        RememberColumn(context, MakeColumnKey(step.schemaName, step.tableName, c.columnName), c.columnType);
+                    },
+                    [&](SqlAlterTableCommands::AlterColumn const& c) {
+                        RememberColumn(context, MakeColumnKey(step.schemaName, step.tableName, c.columnName), c.columnType);
+                    },
+                    [&](SqlAlterTableCommands::DropColumn const& c) {
+                        auto const key = MakeColumnKey(step.schemaName, step.tableName, c.columnName);
+                        context.columnWidths.erase(key);
+                        context.textColumnTypes.erase(key);
+                    },
+                    [](auto const&) {}, // other commands don't change the column types we track
+                },
+                cmd);
         }
+    }
+
+    /// @brief Erases every entry of `table` from a `ColumnKey`-ordered cache.
+    template <typename Map>
+    void ForgetTableColumns(Map& cache, std::string_view schemaName, std::string_view tableName)
+    {
+        auto it = cache.lower_bound(MakeColumnKey(schemaName, tableName, {}));
+        while (it != cache.end() && it->first.schema == schemaName && it->first.table == tableName)
+            it = cache.erase(it);
     }
 
     /// @brief Forgets every cached column of `table` — used on `DROP TABLE`.
     void ForgetTableWidths(MigrationRenderContext& context, std::string_view schemaName, std::string_view tableName)
     {
-        auto const lo = MakeColumnKey(schemaName, tableName, {});
-        auto it = context.columnWidths.lower_bound(lo);
-        while (it != context.columnWidths.end() && it->first.schema == schemaName && it->first.table == tableName)
+        ForgetTableColumns(context.columnWidths, schemaName, tableName);
+        ForgetTableColumns(context.textColumnTypes, schemaName, tableName);
+    }
+
+    /// @brief The narrow/wide counterpart of `declared` that `referenced` requires, if the
+    /// two differ only in that respect: `CHAR(n)`<->`NCHAR(n)` or `VARCHAR(n)`<->`NVARCHAR(n)`.
+    /// Anything else — other types, different lengths, already matching — yields nullopt,
+    /// so a genuine mismatch still reaches the server and fails loudly.
+    std::optional<SqlColumnTypeDefinition> NarrowWideCounterpart(SqlColumnTypeDefinition const& declared,
+                                                                 SqlColumnTypeDefinition const& referenced)
+    {
+        using namespace SqlColumnTypeDefinitions;
+        auto const sameSize = [](auto const& a, auto const& b) {
+            return a.size == b.size;
+        };
+        if (auto const* d = std::get_if<NChar>(&declared); d)
+            if (auto const* r = std::get_if<Char>(&referenced); r && sameSize(*d, *r))
+                return referenced;
+        if (auto const* d = std::get_if<Char>(&declared); d)
+            if (auto const* r = std::get_if<NChar>(&referenced); r && sameSize(*d, *r))
+                return referenced;
+        if (auto const* d = std::get_if<NVarchar>(&declared); d)
+            if (auto const* r = std::get_if<Varchar>(&referenced); r && sameSize(*d, *r))
+                return referenced;
+        if (auto const* d = std::get_if<Varchar>(&declared); d)
+            if (auto const* r = std::get_if<NVarchar>(&referenced); r && sameSize(*d, *r))
+                return referenced;
+        return std::nullopt;
+    }
+
+    /// @brief Looks up the referenced column's text type: from columns rendered earlier in
+    /// this run, else via the live-schema `widthLookup` (queried once per table).
+    std::optional<SqlColumnTypeDefinition> ReferencedTextType(MigrationRenderContext& context,
+                                                              std::string_view schemaName,
+                                                              std::string_view tableName,
+                                                              std::string_view columnName)
+    {
+        auto const key = MakeColumnKey(schemaName, tableName, columnName);
+        auto const tableKey =
+            MigrationRenderContext::TableKey { .schema = std::string(schemaName), .table = std::string(tableName) };
+        if (!context.textColumnTypes.contains(key) && context.widthLookup && !context.lookupAttempted.contains(tableKey))
         {
-            it = context.columnWidths.erase(it);
+            context.lookupAttempted.insert(tableKey);
+            context.widthLookup(context, schemaName, tableName);
         }
+        if (auto const it = context.textColumnTypes.find(key); it != context.textColumnTypes.end())
+            return it->second;
+        return std::nullopt;
+    }
+
+    /// @brief One foreign-key column to reconcile with the column it references.
+    struct ForeignKeyColumnRef
+    {
+        std::string_view schemaName;       ///< Schema of the referencing (and referenced) table.
+        std::string_view tableName;        ///< Referencing table.
+        std::string_view columnName;       ///< Referencing column.
+        std::string_view referencedTable;  ///< Referenced table.
+        std::string_view referencedColumn; ///< Referenced column.
+    };
+
+    /// @brief Gives `type` (declared for `ref.columnName`) the referenced column's text kind
+    /// when they differ only in narrow vs. wide, logging the change.
+    void MatchReferencedText(SqlQueryFormatter const& formatter,
+                             MigrationRenderContext& context,
+                             ForeignKeyColumnRef const& ref,
+                             SqlColumnTypeDefinition& type)
+    {
+        auto const referencedType = ReferencedTextType(context, ref.schemaName, ref.referencedTable, ref.referencedColumn);
+        if (!referencedType)
+            return;
+        auto const counterpart = NarrowWideCounterpart(type, *referencedType);
+        if (!counterpart)
+            return;
+
+        SqlLogger::GetLogger().OnWarning(
+            std::format("{}: migration {} ({}): {}.{} is declared {} but references {}.{} of type {}; creating it as {}",
+                        CompatFlagFkMatchReferencedTextName,
+                        context.activeMigrationTimestamp,
+                        context.activeMigrationTitle,
+                        ref.tableName,
+                        ref.columnName,
+                        formatter.ColumnType(type),
+                        ref.referencedTable,
+                        ref.referencedColumn,
+                        formatter.ColumnType(*referencedType),
+                        formatter.ColumnType(*counterpart)));
+        type = *counterpart;
+    }
+
+    /// @brief `CreateTable`: adapts FK columns declared with an inline reference or in a
+    /// composite `ForeignKey({...}, table, {...})` constraint.
+    void MatchReferencedText(SqlQueryFormatter const& formatter, MigrationRenderContext& context, SqlCreateTablePlan& step)
+    {
+        for (auto& column: step.columns)
+            if (column.foreignKey)
+                MatchReferencedText(formatter,
+                                    context,
+                                    { .schemaName = step.schemaName,
+                                      .tableName = step.tableName,
+                                      .columnName = column.name,
+                                      .referencedTable = column.foreignKey->tableName,
+                                      .referencedColumn = column.foreignKey->columnName },
+                                    column.type);
+
+        for (auto const& fk: step.foreignKeys)
+            for (auto const& [columnName, referencedColumn]: std::views::zip(fk.columns, fk.referencedColumns))
+                if (auto const it = std::ranges::find(step.columns, columnName, &SqlColumnDeclaration::name);
+                    it != step.columns.end())
+                    MatchReferencedText(formatter,
+                                        context,
+                                        { .schemaName = step.schemaName,
+                                          .tableName = step.tableName,
+                                          .columnName = it->name,
+                                          .referencedTable = fk.referencedTableName,
+                                          .referencedColumn = referencedColumn },
+                                        it->type);
+    }
+
+    /// @brief `AlterTable`: adapts columns added by this same step that a foreign key in the
+    /// step references. Columns that already exist in the database are left alone — changing
+    /// them would need an `ALTER COLUMN` (see `MigrationManager::UnicodeUpgradeTables`).
+    void MatchReferencedText(SqlQueryFormatter const& formatter, MigrationRenderContext& context, SqlAlterTablePlan& step)
+    {
+        auto const adapt =
+            [&](std::string_view columnName, std::string_view referencedTable, std::string_view referencedColumn) {
+                for (auto& command: step.commands)
+                    if (auto* add = std::get_if<SqlAlterTableCommands::AddColumn>(&command);
+                        add && add->columnName == columnName)
+                        MatchReferencedText(formatter,
+                                            context,
+                                            { .schemaName = step.schemaName,
+                                              .tableName = step.tableName,
+                                              .columnName = add->columnName,
+                                              .referencedTable = referencedTable,
+                                              .referencedColumn = referencedColumn },
+                                            add->columnType);
+            };
+        for (auto const& command: step.commands)
+        {
+            if (auto const* fk = std::get_if<SqlAlterTableCommands::AddForeignKey>(&command))
+                adapt(fk->columnName, fk->referencedColumn.tableName, fk->referencedColumn.columnName);
+            else if (auto const* composite = std::get_if<SqlAlterTableCommands::AddCompositeForeignKey>(&command))
+                for (auto const& [columnName, referencedColumn]:
+                     std::views::zip(composite->columns, composite->referencedColumns))
+                    adapt(columnName, composite->referencedTableName, referencedColumn);
+        }
+    }
+
+    /// @brief Applies `fkMatchReferencedText` to a schema step. Returns the step to render
+    /// instead of `element` — an adapted copy — or nullopt when nothing applies.
+    std::optional<SqlMigrationPlanElement> AdaptForeignKeyTextTypes(SqlQueryFormatter const& formatter,
+                                                                    MigrationRenderContext& context,
+                                                                    SqlMigrationPlanElement const& element)
+    {
+        if (!context.fkMatchReferencedText || !formatter.DistinguishesNarrowAndWideText())
+            return std::nullopt;
+        if (auto const* create = std::get_if<SqlCreateTablePlan>(&element))
+        {
+            auto copy = *create;
+            MatchReferencedText(formatter, context, copy);
+            return copy;
+        }
+        if (auto const* alter = std::get_if<SqlAlterTablePlan>(&element))
+        {
+            auto copy = *alter;
+            MatchReferencedText(formatter, context, copy);
+            return copy;
+        }
+        return std::nullopt;
     }
 
     /// @brief Decodes the byte length of the UTF-8 sequence whose lead byte is `c`.
@@ -494,6 +684,13 @@ std::vector<std::string> SqlMigrationPlan::ToSql() const
     return result;
 }
 
+namespace
+{
+    std::vector<std::string> ToSqlRemembering(SqlQueryFormatter const& formatter,
+                                              SqlMigrationPlanElement const& element,
+                                              MigrationRenderContext& context);
+} // namespace
+
 std::vector<std::string> ToSql(SqlQueryFormatter const& formatter, SqlMigrationPlanElement const& element)
 {
     return RenderStep(formatter, element);
@@ -503,41 +700,58 @@ std::vector<std::string> ToSql(SqlQueryFormatter const& formatter,
                                SqlMigrationPlanElement const& element,
                                MigrationRenderContext& context)
 {
-    // First: consume schema-affecting steps to keep the width cache current, so INSERT/
-    // UPDATE steps that follow within the same migration plan see the column widths the
-    // same CREATE/ALTER declared.
-    std::visit(detail::overloaded {
-                   [&](SqlCreateTablePlan const& step) { RememberColumnWidths(context, step); },
-                   [&](SqlAlterTablePlan const& step) { RememberColumnWidths(context, step); },
-                   [&](SqlDropTablePlan const& step) { ForgetTableWidths(context, step.schemaName, step.tableName); },
-                   [](auto const&) {},
-               },
-               element);
-
-    // Then, for value-carrying steps, apply the active compat knobs. We mutate a local
-    // copy when truncation is needed so the caller's plan stays observationally const.
-    if (context.lupTruncate)
-    {
-        if (auto const* ins = std::get_if<SqlInsertDataPlan>(&element); ins && !ins->columns.empty())
-        {
-            SqlInsertDataPlan mutated = *ins;
-            auto const events = ApplyLupTruncate(context, mutated.schemaName, mutated.tableName, mutated.columns);
-            auto sql = ToSqlInsert(formatter, mutated);
-            LogLupTruncationEvents(context, "INSERT", mutated.schemaName, mutated.tableName, events, sql);
-            return sql;
-        }
-        if (auto const* upd = std::get_if<SqlUpdateDataPlan>(&element); upd && !upd->setColumns.empty())
-        {
-            SqlUpdateDataPlan mutated = *upd;
-            auto const events = ApplyLupTruncate(context, mutated.schemaName, mutated.tableName, mutated.setColumns);
-            auto sql = ToSqlUpdate(formatter, mutated);
-            LogLupTruncationEvents(context, "UPDATE", mutated.schemaName, mutated.tableName, events, sql);
-            return sql;
-        }
-    }
-
-    return RenderStep(formatter, element);
+    // First: let foreign-key columns follow the referenced column's narrow/wide text kind
+    // (`fk-match-referenced-text`). The adapted copy is what gets rendered — and remembered.
+    auto const adapted = AdaptForeignKeyTextTypes(formatter, context, element);
+    if (adapted)
+        return ToSqlRemembering(formatter, *adapted, context);
+    return ToSqlRemembering(formatter, element, context);
 }
+
+namespace
+{
+    /// @brief Second half of the context-aware `ToSql`: updates the column caches from the
+    /// step about to be rendered, then renders it with the value-level compat knobs applied.
+    std::vector<std::string> ToSqlRemembering(SqlQueryFormatter const& formatter,
+                                              SqlMigrationPlanElement const& element,
+                                              MigrationRenderContext& context)
+    {
+        // Consume schema-affecting steps to keep the width cache current, so INSERT/
+        // UPDATE steps that follow within the same migration plan see the column widths the
+        // same CREATE/ALTER declared.
+        std::visit(detail::overloaded {
+                       [&](SqlCreateTablePlan const& step) { RememberColumnWidths(context, step); },
+                       [&](SqlAlterTablePlan const& step) { RememberColumnWidths(context, step); },
+                       [&](SqlDropTablePlan const& step) { ForgetTableWidths(context, step.schemaName, step.tableName); },
+                       [](auto const&) {},
+                   },
+                   element);
+
+        // Then, for value-carrying steps, apply the active compat knobs. We mutate a local
+        // copy when truncation is needed so the caller's plan stays observationally const.
+        if (context.lupTruncate)
+        {
+            if (auto const* ins = std::get_if<SqlInsertDataPlan>(&element); ins && !ins->columns.empty())
+            {
+                SqlInsertDataPlan mutated = *ins;
+                auto const events = ApplyLupTruncate(context, mutated.schemaName, mutated.tableName, mutated.columns);
+                auto sql = ToSqlInsert(formatter, mutated);
+                LogLupTruncationEvents(context, "INSERT", mutated.schemaName, mutated.tableName, events, sql);
+                return sql;
+            }
+            if (auto const* upd = std::get_if<SqlUpdateDataPlan>(&element); upd && !upd->setColumns.empty())
+            {
+                SqlUpdateDataPlan mutated = *upd;
+                auto const events = ApplyLupTruncate(context, mutated.schemaName, mutated.tableName, mutated.setColumns);
+                auto sql = ToSqlUpdate(formatter, mutated);
+                LogLupTruncationEvents(context, "UPDATE", mutated.schemaName, mutated.tableName, events, sql);
+                return sql;
+            }
+        }
+
+        return RenderStep(formatter, element);
+    }
+} // namespace
 
 std::vector<std::string> ToSql(std::vector<SqlMigrationPlan> const& plans)
 {
