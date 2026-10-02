@@ -33,6 +33,7 @@ var dir_07cc544e6394bf3dfdd028b8dfeac742 =
     [ "SqlSchema.hpp", "db/d1c/SqlSchema_8hpp_source.html", null ],
     [ "SqlScopedLock.hpp", "d2/d7c/SqlScopedLock_8hpp_source.html", null ],
     [ "SqlScopedTraceLogger.hpp", "d6/d4a/SqlScopedTraceLogger_8hpp_source.html", null ],
+    [ "SqlServerDependentObjects.hpp", "da/dc3/SqlServerDependentObjects_8hpp_source.html", null ],
     [ "SqlServerType.hpp", "d1/d42/SqlServerType_8hpp_source.html", null ],
     [ "SqlStatement.hpp", "d9/d6e/SqlStatement_8hpp_source.html", null ],
     [ "SqlStatistics.hpp", "d9/d4f/SqlStatistics_8hpp_source.html", null ],
