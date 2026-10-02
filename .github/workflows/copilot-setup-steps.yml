@@ -35,6 +35,7 @@ jobs:
             uuid-dev \
             libyaml-cpp-dev \
             libzip-dev \
+            libssl-dev \
             g++-14 \
             libstdc++-14-dev
 
