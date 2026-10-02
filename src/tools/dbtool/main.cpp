@@ -35,6 +35,7 @@
 #include <vector>
 
 #include <Config/ConfigDiscovery.hpp>
+#include <Config/ProfileFileEditor.hpp>
 #include <Config/ProfilePassword.hpp>
 #include <Config/ProfileStore.hpp>
 #include <PluginDiscovery.hpp>
@@ -42,6 +43,7 @@
 #include <PluginLoader.hpp>
 #include <Secrets/ProfileCipher.hpp>
 #include <Secrets/SecretResolver.hpp>
+#include <Secrets/backends/StdinBackend.hpp>
 #include <core/tui/SgrBuilder.hpp>
 #include <core/tui/TerminalOutput.hpp>
 
@@ -210,6 +212,11 @@ void PrintUsage()
                  c.command, c.reset, c.param, c.reset);
     std::println("  {}list-profiles{}            Lists profiles from the configuration file (see --config)",
                  c.command, c.reset);
+    std::println("  {}add-profile{}              Adds a profile to dbtool.yml with its password encrypted:",
+                 c.command, c.reset);
+    std::println("                            --name <NAME> (--connection-string <STR> | --dsn <DSN> [--uid <UID>])");
+    std::println("                            [--schema <S>] [--plugins-dir <DIR>] [--no-password] [--set-default]");
+    std::println("                            [--force]. The password is prompted for (or read from stdin).");
     std::println("");
 
     // Descriptions start at column 29 (longest option is 27 chars + 2 space minimum gap)
@@ -352,6 +359,10 @@ void PrintExamples()
     std::println("  {}# List configured connection profiles (no DB connection needed):{}", c.example, c.reset);
     std::println("  {}dbtool list-profiles{}", c.code, c.reset);
     std::println("");
+
+    std::println("  {}# Add a profile; the password is prompted for and stored encrypted:{}", c.example, c.reset);
+    std::println("  {}dbtool add-profile --name prod --dsn ACME_PROD --uid deploy --set-default{}", c.code, c.reset);
+    std::println("");
     // clang-format on
 }
 
@@ -402,6 +413,14 @@ struct Options
 
     /// @brief `--up-to <X>` for migration commands. Empty = no bound.
     std::string upTo;
+
+    // `add-profile` inputs.
+    std::string newProfileName; ///< --name
+    std::string dsn;            ///< --dsn
+    std::string uid;            ///< --uid
+    bool noPassword = false;    ///< --no-password: store the profile without a password
+    bool setDefault = false;    ///< --set-default: make the new profile the default
+    bool force = false;         ///< --force: replace an existing profile of the same name
 };
 
 /// Loads a profile from a `ProfileStore` and fills `options` fields that were not
@@ -756,6 +775,31 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
         {
             options.yes = true;
         }
+        else if (arg == "--name" || arg == "--dsn" || arg == "--uid")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { std::format("Error: {} requires an argument", arg) };
+            auto& target = arg == "--name" ? options.newProfileName : arg == "--dsn" ? options.dsn : options.uid;
+            target = argv[++i];
+        }
+        else if (arg == "--no-password")
+        {
+            options.noPassword = true;
+        }
+        else if (arg == "--set-default")
+        {
+            options.setDefault = true;
+        }
+        else if (arg == "--force")
+        {
+            options.force = true;
+        }
+        else if (arg == "--password" || arg.starts_with("--password=") || arg == "--pwd")
+        {
+            return std::unexpected { std::string {
+                "Error: passwords are never accepted on the command line; dbtool add-profile prompts for it "
+                "(or reads it from stdin)" } };
+        }
         else if (arg == "--up-to")
         {
             if (i + 1 >= argc)
@@ -1026,6 +1070,105 @@ int ListProfiles(Options const& options)
                      schemaWidth,
                      row.pluginsDir);
 
+    return EXIT_SUCCESS;
+}
+
+/// Splits an inline `PWD=`/`Password=` attribute out of a connection string so the
+/// password can be stored encrypted instead of in clear inside the connection string.
+/// @param connectionString Connection string as typed by the user.
+/// @return The connection string without the password, and the password (empty if none).
+[[nodiscard]] std::pair<std::string, std::string> SplitInlinePassword(std::string const& connectionString)
+{
+    auto attributes = ParseConnectionString(SqlConnectionString { connectionString });
+    auto password = std::string {};
+    for (auto const* key: { "PWD", "PASSWORD" })
+    {
+        if (auto const node = attributes.extract(key); !node.empty())
+            password = node.mapped();
+    }
+    if (password.empty())
+        return { connectionString, {} };
+    return { BuildConnectionString(attributes).value, std::move(password) };
+}
+
+/// Implements `add-profile`: writes a new profile into dbtool.yml with its password
+/// encrypted, keeping the rest of the file (comments included) untouched. The
+/// password is read from a no-echo prompt, or one line of stdin when piped — never argv.
+int AddProfileCommand(Options const& options)
+{
+    namespace Cfg = Lightweight::Config;
+
+    if (options.newProfileName.empty())
+    {
+        std::println(std::cerr, "Error: add-profile requires --name <NAME>.");
+        return EXIT_FAILURE;
+    }
+    if (options.connectionStringSet == !options.dsn.empty()) // both, or neither
+    {
+        std::println(std::cerr, "Error: add-profile requires exactly one of --connection-string or --dsn.");
+        return EXIT_FAILURE;
+    }
+
+    auto const target = options.configFile.empty()
+                            ? Cfg::FindConfigFile(Cfg::DefaultDiscoveryInputs())
+                                  .transform([](Cfg::DiscoveredConfig found) { return std::move(found.path); })
+                            : std::expected<std::filesystem::path, std::string> { options.configFile };
+    if (!target)
+    {
+        std::println(std::cerr, "Error: {}", target.error());
+        return EXIT_FAILURE;
+    }
+
+    auto [connectionString, password] = options.connectionStringSet
+                                            ? SplitInlinePassword(options.connectionString.value)
+                                            : std::pair<std::string, std::string> {};
+    if (!password.empty())
+        std::println(std::cerr, "Note: the password in --connection-string will be stored encrypted instead.");
+    else if (!options.noPassword)
+    {
+        auto entered = Lightweight::Secrets::StdinBackend {}.Read(options.newProfileName);
+        if (!entered)
+        {
+            std::println(std::cerr, "Error: no password was entered (use --no-password for a profile without one).");
+            return EXIT_FAILURE;
+        }
+        password = std::move(*entered);
+    }
+
+    auto newProfile = Cfg::NewProfile {
+        .name = options.newProfileName,
+        .connectionString = std::move(connectionString),
+        .dsn = options.dsn,
+        .uid = options.uid,
+        .schema = options.schema,
+        .pluginsDir = options.pluginsDirSet ? options.pluginsDir.front().string() : std::string {},
+        .password = {},
+    };
+    if (!password.empty())
+    {
+        auto encrypted = Lightweight::Secrets::ProfileCipher::Builtin().Encrypt(password);
+        if (!encrypted)
+        {
+            std::println(std::cerr, "Error: {}", encrypted.error());
+            return EXIT_FAILURE;
+        }
+        newProfile.password = std::move(*encrypted);
+    }
+
+    auto const replace = options.force ? Cfg::ReplaceExisting::Yes : Cfg::ReplaceExisting::No;
+    auto const written = Cfg::EditConfigFile(*target, [&](std::string_view text) {
+        return Cfg::AddProfileText(text, newProfile, replace).and_then([&](std::string edited) {
+            return options.setDefault ? Cfg::SetDefaultProfileText(edited, newProfile.name)
+                                      : std::expected<std::string, std::string> { std::move(edited) };
+        });
+    });
+    if (!written)
+    {
+        std::println(std::cerr, "Error: {}", written.error());
+        return EXIT_FAILURE;
+    }
+
+    std::println("Added profile '{}' to {}.", newProfile.name, target->string());
     return EXIT_SUCCESS;
 }
 
@@ -2632,7 +2775,8 @@ int main(int argc, char** argv)
         Options options = optionsResult.value();
 
         TraceBreadcrumb("main: applying profile");
-        ApplyProfileToOptions(options); // Resolve a named (or default) profile and fill unset fields.
+        if (options.command != "add-profile")
+            ApplyProfileToOptions(options); // Resolve a named (or default) profile and fill unset fields.
 
 #if defined(_WIN32)
         TraceBreadcrumb("main: configuring Windows console");
@@ -2662,6 +2806,9 @@ int main(int argc, char** argv)
 
         if (options.command == "list-profiles")
             return ListProfiles(options);
+
+        if (options.command == "add-profile")
+            return AddProfileCommand(options);
 
         if (options.command == "backup-diff")
             return BackupDiffCommand(options);
