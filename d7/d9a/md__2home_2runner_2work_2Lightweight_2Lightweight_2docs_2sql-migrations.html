@@ -119,7 +119,7 @@ Using the LIGHTWEIGHT_SQL_MIGRATION Macro</h2>
 <div class="line">        .Column(<span class="stringliteral">&quot;phone&quot;</span>, Varchar(20))</div>
 <div class="line">        .Timestamps();</div>
 <div class="line">}</div>
-<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01125">SqlMigration.hpp:1125</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01129">SqlMigration.hpp:1129</a></div></div>
 </div><!-- fragment --><p>The migration is automatically registered with the MigrationManager when the program starts, and unregistered again when it is destroyed. Registration is tied to the object's lifetime, so a migration that does not live for the whole program &ndash; one with automatic storage duration, say &ndash; leaves no dangling pointer behind in the manager it registered with.</p>
 <h2><a class="anchor" id="using-the-migration-class"></a>
 Using the Migration Class</h2>
@@ -165,7 +165,7 @@ Plugin Macro for Shared Libraries</h2>
 <div class="line">{</div>
 <div class="line">    <span class="comment">// ...</span></div>
 <div class="line">}</div>
-<div class="ttc" id="agroup__SqlMigration_html_gaef227c1f2230d962d19572a234ceaa73"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN()</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00807">SqlMigration.hpp:807</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_gaef227c1f2230d962d19572a234ceaa73"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN()</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00811">SqlMigration.hpp:811</a></div></div>
 </div><!-- fragment --><p>The <code><a class="el" href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN()</a></code> macro exports the <code>AcquireMigrationManager()</code> function that dbtool uses to load migrations from the plugin.</p>
 <h1><a class="anchor" id="table-operations"></a>
 Table Operations</h1>
@@ -366,9 +366,9 @@ Applying Migrations Programmatically</h2>
 <div class="line">);</div>
 <div class="line"> </div>
 <div class="line">std::println(<span class="stringliteral">&quot;Applied {} migrations&quot;</span>, applied);</div>
-<div class="ttc" id="aclassLightweight_1_1SqlMigration_1_1MigrationBase_html"><div class="ttname"><a href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html">Lightweight::SqlMigration::MigrationBase</a></div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00837">SqlMigration.hpp:838</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1SqlMigration_1_1MigrationBase_html_a0ab6e8c26f230333862500cc5e39a03e"><div class="ttname"><a href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a0ab6e8c26f230333862500cc5e39a03e">Lightweight::SqlMigration::MigrationBase::GetTimestamp</a></div><div class="ttdeci">MigrationTimestamp GetTimestamp() const noexcept</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00924">SqlMigration.hpp:924</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1SqlMigration_1_1MigrationBase_html_a120faae4809045b0fd412b6550b634f0"><div class="ttname"><a href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a120faae4809045b0fd412b6550b634f0">Lightweight::SqlMigration::MigrationBase::GetTitle</a></div><div class="ttdeci">std::string_view GetTitle() const noexcept</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00932">SqlMigration.hpp:932</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlMigration_1_1MigrationBase_html"><div class="ttname"><a href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html">Lightweight::SqlMigration::MigrationBase</a></div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00841">SqlMigration.hpp:842</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlMigration_1_1MigrationBase_html_a0ab6e8c26f230333862500cc5e39a03e"><div class="ttname"><a href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a0ab6e8c26f230333862500cc5e39a03e">Lightweight::SqlMigration::MigrationBase::GetTimestamp</a></div><div class="ttdeci">MigrationTimestamp GetTimestamp() const noexcept</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00928">SqlMigration.hpp:928</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlMigration_1_1MigrationBase_html_a120faae4809045b0fd412b6550b634f0"><div class="ttname"><a href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a120faae4809045b0fd412b6550b634f0">Lightweight::SqlMigration::MigrationBase::GetTitle</a></div><div class="ttdeci">std::string_view GetTitle() const noexcept</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00936">SqlMigration.hpp:936</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlMigration_1_1MigrationTimestamp_html_a7ff59005141458f049508004b33e77ee"><div class="ttname"><a href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html#a7ff59005141458f049508004b33e77ee">Lightweight::SqlMigration::MigrationTimestamp::value</a></div><div class="ttdeci">uint64_t value</div><div class="ttdoc">The numeric timestamp value identifying the migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00052">SqlMigration.hpp:52</a></div></div>
 </div><!-- fragment --><h2><a class="anchor" id="status--verification"></a>
 Status &amp; Verification</h2>
@@ -384,7 +384,22 @@ Status &amp; Verification</h2>
 <div class="line">            result.timestamp.value, result.storedChecksum, result.computedChecksum);</div>
 <div class="line">    }</div>
 <div class="line">}</div>
-</div><!-- fragment --><h2><a class="anchor" id="preview-dry-run"></a>
+</div><!-- fragment --><h2><a class="anchor" id="compatibility-flags"></a>
+Compatibility Flags</h2>
+<p>Some databases predate the migration set — they were created by older tooling and differ from what the migrations declare. A <em>compat policy</em> returns, per migration, a set of opt-in flags that relax strict rendering for exactly those migrations. Migration plugins usually install one; it can also be set directly:</p>
+<div class="fragment"><div class="line">manager.SetCompatPolicy([](<a class="code hl_class" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html">SqlMigration::MigrationBase</a> <span class="keyword">const</span>&amp; migration) {</div>
+<div class="line">    <span class="keywordflow">return</span> std::set&lt;std::string&gt; { std::string(CompatFlagFkMatchReferencedTextName) };</div>
+<div class="line">});</div>
+</div><!-- fragment --><table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">Flag   </th><th class="markdownTableHeadNone">Effect    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>lup-truncate</code>   </td><td class="markdownTableBodyNone">String values in <code>Insert</code> / <code>Update</code> steps are truncated to the destination column's width, with a warning, instead of failing.    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>fk-match-referenced-text</code>   </td><td class="markdownTableBodyNone">A foreign-key column declared by <code>CreateTable</code> / <code>AlterTable</code> (<code>AddForeignKeyColumn</code>) takes the narrow/wide variant of the column it references when the two differ only in that respect (<code>CHAR(n)</code>↔<code>NCHAR(n)</code>, <code>VARCHAR(n)</code>↔<code>NVARCHAR(n)</code>). The referenced column's type is read from the live database (or from an earlier migration of the same run), and each change is logged as a warning. SQL Server only — PostgreSQL and SQLite store both kinds the same way.   </td></tr>
+</table>
+<p>Flags only change the SQL sent to the database. Checksums are computed from the migration as declared, so the same migration has the same checksum on every database.</p>
+<h2><a class="anchor" id="preview-dry-run"></a>
 Preview (Dry-Run)</h2>
 <p>Generate SQL without executing:</p>
 <div class="fragment"><div class="line"><span class="keyword">auto</span> statements = manager.PreviewPendingMigrations(</div>
