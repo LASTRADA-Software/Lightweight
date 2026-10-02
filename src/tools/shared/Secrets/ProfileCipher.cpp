@@ -7,6 +7,7 @@
 #include <array>
 #include <format>
 #include <functional>
+#include <iterator>
 #include <numeric>
 #include <optional>
 #include <ranges>
@@ -110,8 +111,8 @@ namespace
     {
         auto authenticated = Crypto::Bytes {};
         auto const label = std::format("{}{}:", EncryptedPrefix, keyId);
-        authenticated.append_range(AsBytes(label));
-        authenticated.append_range(ivAndCipherText);
+        std::ranges::copy(AsBytes(label), std::back_inserter(authenticated));
+        std::ranges::copy(ivAndCipherText, std::back_inserter(authenticated));
         return Crypto::HmacSha256(macKey, authenticated);
     }
 
@@ -162,12 +163,12 @@ std::expected<std::string, std::string> ProfileCipher::Encrypt(std::string_view 
         return std::unexpected(std::format("encryption failed: {}", cipherText.error()));
 
     auto payload = Crypto::Bytes {};
-    payload.append_range(iv);
-    payload.append_range(*cipherText);
+    std::ranges::copy(iv, std::back_inserter(payload));
+    std::ranges::copy(*cipherText, std::back_inserter(payload));
     auto const tag = ComputeTag(keys->mac, entry.id, payload);
     if (!tag)
         return std::unexpected(tag.error());
-    payload.append_range(*tag);
+    std::ranges::copy(*tag, std::back_inserter(payload));
 
     return std::format("{}{}:{}", EncryptedPrefix, entry.id, Base64Encode(payload));
 }
