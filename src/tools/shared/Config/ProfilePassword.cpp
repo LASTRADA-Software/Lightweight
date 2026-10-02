@@ -51,7 +51,9 @@ std::expected<UpgradeResult, std::string> UpgradePlaintextPassword(std::filesyst
             std::format("cannot encrypt the password of profile '{}': {}", profile.name, encrypted.error()));
 
     return EditConfigFile(configPath,
-                          [&](std::string_view text) { return SetProfilePasswordText(text, profile.name, *encrypted); })
+                          [&](std::string_view text) {
+                              return SetProfilePasswordText(text, { .profileName = profile.name, .newValue = *encrypted });
+                          })
         .transform([&] { return UpgradeResult { .insideGitWorkTree = IsInsideGitWorkTree(configPath) }; });
 }
 

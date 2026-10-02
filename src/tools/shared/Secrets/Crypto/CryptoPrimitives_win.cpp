@@ -129,7 +129,7 @@ namespace
         auto const& keyHandle = handles->second;
 
         auto const call = direction == Direction::Encrypt ? &BCryptEncrypt : &BCryptDecrypt;
-        auto const callName = direction == Direction::Encrypt ? "BCryptEncrypt" : "BCryptDecrypt";
+        auto const* const callName = direction == Direction::Encrypt ? "BCryptEncrypt" : "BCryptDecrypt";
 
         // CNG updates the IV buffer in place, so each call gets its own copy.
         auto ivCopy = std::array<std::byte, AesBlockSize> {};

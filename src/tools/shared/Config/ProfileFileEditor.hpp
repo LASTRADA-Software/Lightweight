@@ -60,15 +60,24 @@ enum class ReplaceExisting : std::uint8_t
 /// @return The quoted scalar, e.g. `"a\"b"`.
 [[nodiscard]] std::string QuoteYamlScalar(std::string_view value);
 
+/// The password replacement applied by `SetProfilePasswordText`. A struct rather
+/// than two adjacent string parameters so the name and the value cannot be swapped.
+struct PasswordEdit
+{
+    /// Profile whose password to replace.
+    std::string_view profileName;
+
+    /// New password value (written double-quoted).
+    std::string_view newValue;
+};
+
 /// Replaces the `password` value of one profile, leaving every other byte intact.
 /// For a legacy single-profile file the top-level `Password`/`password` is replaced.
 /// @param yaml Current file contents.
-/// @param profileName Profile whose password to replace.
-/// @param newValue New password value (written double-quoted).
+/// @param edit Which profile, and its new password value.
 /// @return The edited text, or an error (unknown profile, no password, block scalar, parse error).
 [[nodiscard]] std::expected<std::string, std::string> SetProfilePasswordText(std::string_view yaml,
-                                                                             std::string_view profileName,
-                                                                             std::string_view newValue);
+                                                                             PasswordEdit const& edit);
 
 /// Inserts a profile as the first entry under `profiles:` (creating the map if needed).
 /// @param yaml Current file contents (may be empty).

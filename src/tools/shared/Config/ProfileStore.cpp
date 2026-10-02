@@ -127,6 +127,48 @@ namespace
         return p;
     }
 
+    /// Parses `defaultPluginsDir`: a single string or a list of strings.
+    std::expected<std::vector<std::filesystem::path>, std::string> ParseDefaultPluginsDir(YAML::Node const& node,
+                                                                                          std::filesystem::path const& path)
+    {
+        auto const error = [&] {
+            return std::unexpected(
+                std::format("defaultPluginsDir in {} must be a string or a list of strings", path.string()));
+        };
+        if (node.IsScalar())
+            return std::vector<std::filesystem::path> { node.as<std::string>() };
+        if (!node.IsSequence())
+            return error();
+
+        auto dirs = std::vector<std::filesystem::path> {};
+        for (auto const& item: node)
+        {
+            if (!item.IsScalar())
+                return error();
+            dirs.emplace_back(item.as<std::string>());
+        }
+        return dirs;
+    }
+
+    /// Writes one profile as a YAML mapping entry; empty fields are omitted.
+    void EmitProfile(YAML::Emitter& out, Profile const& p)
+    {
+        out << YAML::Key << p.name << YAML::Value << YAML::BeginMap;
+        auto const emit = [&out](char const* key, std::string const& value) {
+            if (!value.empty())
+                out << YAML::Key << key << YAML::Value << value;
+        };
+        emit("pluginsDir", p.pluginsDir.string());
+        emit("schema", p.schema);
+        emit("dsn", p.dsn);
+        emit("connectionString", p.connectionString);
+        emit("uid", p.uid);
+        emit("secretRef", p.secretRef);
+        if (!p.password.empty())
+            out << YAML::Key << "password" << YAML::Value << YAML::DoubleQuoted << p.password;
+        out << YAML::EndMap;
+    }
+
     /// Rejects field combinations that make a profile ambiguous.
     std::expected<void, std::string> ValidateProfile(Profile const& p)
     {
@@ -185,25 +227,10 @@ std::expected<ProfileStore, std::string> ProfileStore::LoadOrDefault(std::filesy
 
     if (auto n = root["defaultPluginsDir"])
     {
-        if (n.IsScalar())
-        {
-            store._defaultPluginsDir.emplace_back(n.as<std::string>());
-        }
-        else if (n.IsSequence())
-        {
-            for (auto const& item: n)
-            {
-                if (!item.IsScalar())
-                    return std::unexpected(
-                        std::format("defaultPluginsDir in {} must be a string or a list of strings", path.string()));
-                store._defaultPluginsDir.emplace_back(item.as<std::string>());
-            }
-        }
-        else
-        {
-            return std::unexpected(
-                std::format("defaultPluginsDir in {} must be a string or a list of strings", path.string()));
-        }
+        auto dirs = ParseDefaultPluginsDir(n, path);
+        if (!dirs)
+            return std::unexpected(std::move(dirs.error()));
+        store._defaultPluginsDir = std::move(*dirs);
     }
 
     auto profiles = root["profiles"];
@@ -262,22 +289,7 @@ std::expected<void, std::string> ProfileStore::Save(std::filesystem::path path) 
     out << YAML::Key << "profiles" << YAML::Value << YAML::BeginMap;
     for (auto const& p: _profiles)
     {
-        out << YAML::Key << p.name << YAML::Value << YAML::BeginMap;
-        if (!p.pluginsDir.empty())
-            out << YAML::Key << "pluginsDir" << YAML::Value << p.pluginsDir.string();
-        if (!p.schema.empty())
-            out << YAML::Key << "schema" << YAML::Value << p.schema;
-        if (!p.dsn.empty())
-            out << YAML::Key << "dsn" << YAML::Value << p.dsn;
-        if (!p.connectionString.empty())
-            out << YAML::Key << "connectionString" << YAML::Value << p.connectionString;
-        if (!p.uid.empty())
-            out << YAML::Key << "uid" << YAML::Value << p.uid;
-        if (!p.secretRef.empty())
-            out << YAML::Key << "secretRef" << YAML::Value << p.secretRef;
-        if (!p.password.empty())
-            out << YAML::Key << "password" << YAML::Value << YAML::DoubleQuoted << p.password;
-        out << YAML::EndMap;
+        EmitProfile(out, p);
     }
     out << YAML::EndMap;
     out << YAML::EndMap;

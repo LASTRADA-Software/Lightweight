@@ -775,12 +775,23 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
         {
             options.yes = true;
         }
-        else if (arg == "--name" || arg == "--dsn" || arg == "--uid")
+        else if (arg == "--name")
         {
             if (i + 1 >= argc)
-                return std::unexpected { std::format("Error: {} requires an argument", arg) };
-            auto& target = arg == "--name" ? options.newProfileName : arg == "--dsn" ? options.dsn : options.uid;
-            target = argv[++i];
+                return std::unexpected { "Error: --name requires an argument" };
+            options.newProfileName = argv[++i];
+        }
+        else if (arg == "--dsn")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --dsn requires an argument" };
+            options.dsn = argv[++i];
+        }
+        else if (arg == "--uid")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --uid requires an argument" };
+            options.uid = argv[++i];
         }
         else if (arg == "--no-password")
         {

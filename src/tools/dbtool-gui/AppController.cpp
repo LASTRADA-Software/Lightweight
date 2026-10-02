@@ -135,6 +135,30 @@ namespace
         return QString::fromUtf8(msg.data(), static_cast<qsizetype>(msg.size()));
     }
 
+    /// A profile's connection string with its password folded in.
+    struct ProfileConnection
+    {
+        std::string connectionString;
+        Lightweight::Config::PasswordOrigin passwordOrigin = Lightweight::Config::PasswordOrigin::None;
+    };
+
+    /// Builds the connection string for a profile using the same password rules
+    /// as dbtool: decrypt `enc:` values, use plaintext as-is (the caller encrypts
+    /// it once the connection proves it works), otherwise resolve `secretRef`.
+    [[nodiscard]] std::expected<ProfileConnection, std::string> ProfileConnectionString(
+        Lightweight::Config::Profile const& profile)
+    {
+        auto const resolver = Lightweight::Secrets::MakeDefaultResolver();
+        return Lightweight::Config::ResolveProfilePassword(profile, Lightweight::Secrets::ProfileCipher::Builtin(), resolver)
+            .transform([&](Lightweight::Config::ResolvedPassword const& password) {
+                return ProfileConnection {
+                    .connectionString =
+                        profile.HasConnection() ? std::format("{}", profile.ToConnectInfo(password.value)) : std::string {},
+                    .passwordOrigin = password.origin,
+                };
+            });
+    }
+
     /// The dbtool.yml to use when the user has not picked one in Settings: the
     /// nearest file above the working or executable directory, else the per-user
     /// default (which may not exist yet).
@@ -664,20 +688,14 @@ bool AppController::connectToProfile()
             ReportError(QStringLiteral("No profile selected."));
             return false;
         }
-        // Same password rules as dbtool: decrypt `enc:` values, use plaintext
-        // as-is (it is encrypted below once the connection proves it works),
-        // otherwise resolve `secretRef`.
-        auto const resolver = Lightweight::Secrets::MakeDefaultResolver();
-        auto const password =
-            Lightweight::Config::ResolveProfilePassword(*profile, Lightweight::Secrets::ProfileCipher::Builtin(), resolver);
-        if (!password)
+        auto resolved = ProfileConnectionString(*profile);
+        if (!resolved)
         {
-            ReportError(QString::fromStdString(password.error()));
+            ReportError(QString::fromStdString(resolved.error()));
             return false;
         }
-        passwordOrigin = password->origin;
-        if (profile->HasConnection())
-            connectionString = std::format("{}", profile->ToConnectInfo(password->value));
+        connectionString = std::move(resolved->connectionString);
+        passwordOrigin = resolved->passwordOrigin;
     }
 
     if (connectionString.empty())
@@ -767,8 +785,9 @@ bool AppController::connectToProfile()
 
     // A plaintext password just proved that it works: store it encrypted. The
     // profile is copied because the rewrite triggers a watcher-driven reload
-    // that replaces `_store`.
-    if (passwordOrigin == Lightweight::Config::PasswordOrigin::Plaintext && profile)
+    // that replaces `_store`. A plaintext origin is only ever set in profile
+    // mode, which has already returned when no profile is selected.
+    if (passwordOrigin == Lightweight::Config::PasswordOrigin::Plaintext)
         EncryptPlaintextPassword(Lightweight::Config::Profile { *profile });
 
     // Route status banners emitted by plugin post-init hooks (e.g. the

@@ -55,7 +55,8 @@ namespace
     {
         if (text.empty() || text.size() % 4 != 0)
             return std::nullopt;
-        auto const padding = text.ends_with("==") ? 2U : text.ends_with('=') ? 1U : 0U;
+        // Only the last two characters may be padding; misplaced `=` fail the slot check below.
+        auto const padding = static_cast<unsigned>(std::ranges::count(text.substr(text.size() - 2), '='));
         auto out = Crypto::Bytes {};
         out.reserve((text.size() / 4) * 3);
         for (auto const [quadIndex, quad]: std::views::enumerate(text | std::views::chunk(4)))
@@ -127,8 +128,10 @@ namespace
 ProfileCipher::ProfileCipher(std::vector<KeyEntry> ring, DevKeyPolicy policy, RandomSource random):
     _ring { std::move(ring) },
     _policy { policy },
-    _random { random ? std::move(random) : RandomSource { OsRandom } }
+    _random { std::move(random) }
 {
+    if (!_random)
+        _random = OsRandom;
     if (_ring.empty())
         throw std::invalid_argument("ProfileCipher requires at least one key");
 }
@@ -198,7 +201,7 @@ std::expected<std::string, std::string> ProfileCipher::Decrypt(std::string_view 
                             | std::ranges::to<std::string>()));
 
     auto const payload = Base64Decode(body.substr(separator + 1));
-    constexpr auto MinimumSize = Crypto::AesBlockSize * 2 + Crypto::HmacSize;
+    constexpr auto MinimumSize = (Crypto::AesBlockSize * 2) + Crypto::HmacSize;
     if (!payload || payload->size() < MinimumSize || (payload->size() - Crypto::HmacSize) % Crypto::AesBlockSize != 0)
         return std::unexpected(std::string { "malformed encrypted password (bad encoding or length)" });
 

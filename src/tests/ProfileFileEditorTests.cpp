@@ -90,7 +90,7 @@ std::string ReplaceOnce(std::string text, std::string_view from, std::string_vie
 
 TEST_CASE("ProfileFileEditor — replaces a plain password and keeps its trailing comment", "[ProfileFileEditor]")
 {
-    auto const result = Cfg::SetProfilePasswordText(Sample, "prod", "enc:dev:AAA");
+    auto const result = Cfg::SetProfilePasswordText(Sample, { .profileName = "prod", .newValue = "enc:dev:AAA" });
     REQUIRE(result.has_value());
     CHECK(*result
           == ReplaceOnce(std::string { Sample },
@@ -100,7 +100,7 @@ TEST_CASE("ProfileFileEditor — replaces a plain password and keeps its trailin
 
 TEST_CASE("ProfileFileEditor — only the named profile's password changes", "[ProfileFileEditor]")
 {
-    auto const result = Cfg::SetProfilePasswordText(Sample, "other", "enc:dev:BBB");
+    auto const result = Cfg::SetProfilePasswordText(Sample, { .profileName = "other", .newValue = "enc:dev:BBB" });
     REQUIRE(result.has_value());
     CHECK(result->contains("password: hunter2  # rotate quarterly"));
     CHECK(result->ends_with("  other:\n    password: \"enc:dev:BBB\"\n"));
@@ -109,51 +109,55 @@ TEST_CASE("ProfileFileEditor — only the named profile's password changes", "[P
 TEST_CASE("ProfileFileEditor — replaces quoted passwords whole, including '#' inside quotes", "[ProfileFileEditor]")
 {
     auto const doubleQuoted = "profiles:\n  p:\n    password: \"pa#ss \\\" x\" # note\n"sv;
-    CHECK(Cfg::SetProfilePasswordText(doubleQuoted, "p", "enc:dev:A")
+    CHECK(Cfg::SetProfilePasswordText(doubleQuoted, { .profileName = "p", .newValue = "enc:dev:A" })
           == "profiles:\n  p:\n    password: \"enc:dev:A\" # note\n");
 
     auto const singleQuoted = "profiles:\n  p:\n    password: 'it''s #1'\n"sv;
-    CHECK(Cfg::SetProfilePasswordText(singleQuoted, "p", "enc:dev:A") == "profiles:\n  p:\n    password: \"enc:dev:A\"\n");
+    CHECK(Cfg::SetProfilePasswordText(singleQuoted, { .profileName = "p", .newValue = "enc:dev:A" })
+          == "profiles:\n  p:\n    password: \"enc:dev:A\"\n");
 }
 
 TEST_CASE("ProfileFileEditor — replaces a password inside a flow mapping", "[ProfileFileEditor]")
 {
     auto const flow = "profiles:\n  p: {password: secret, uid: sa}\n"sv;
-    CHECK(Cfg::SetProfilePasswordText(flow, "p", "enc:dev:A") == "profiles:\n  p: {password: \"enc:dev:A\", uid: sa}\n");
+    CHECK(Cfg::SetProfilePasswordText(flow, { .profileName = "p", .newValue = "enc:dev:A" })
+          == "profiles:\n  p: {password: \"enc:dev:A\", uid: sa}\n");
 }
 
 TEST_CASE("ProfileFileEditor — does not touch a lookalike value elsewhere", "[ProfileFileEditor]")
 {
     auto const text = "defaultProfile: password\nprofiles:\n  password:\n    uid: password\n    password: x\n"sv;
-    CHECK(Cfg::SetProfilePasswordText(text, "password", "enc:dev:A")
+    CHECK(Cfg::SetProfilePasswordText(text, { .profileName = "password", .newValue = "enc:dev:A" })
           == "defaultProfile: password\nprofiles:\n  password:\n    uid: password\n    password: \"enc:dev:A\"\n");
 }
 
 TEST_CASE("ProfileFileEditor — preserves CRLF line endings", "[ProfileFileEditor]")
 {
     auto const text = "profiles:\r\n  p:\r\n    password: x\r\n    uid: sa\r\n"sv;
-    CHECK(Cfg::SetProfilePasswordText(text, "p", "enc:dev:A")
+    CHECK(Cfg::SetProfilePasswordText(text, { .profileName = "p", .newValue = "enc:dev:A" })
           == "profiles:\r\n  p:\r\n    password: \"enc:dev:A\"\r\n    uid: sa\r\n");
 }
 
 TEST_CASE("ProfileFileEditor — rewrites the legacy top-level Password", "[ProfileFileEditor]")
 {
     auto const text = "ConnectionString: \"Driver=x\"\nPassword: x\n"sv;
-    CHECK(Cfg::SetProfilePasswordText(text, "default", "enc:dev:A")
+    CHECK(Cfg::SetProfilePasswordText(text, { .profileName = "default", .newValue = "enc:dev:A" })
           == "ConnectionString: \"Driver=x\"\nPassword: \"enc:dev:A\"\n");
 }
 
 TEST_CASE("ProfileFileEditor — password edits fail cleanly when they cannot be done exactly", "[ProfileFileEditor]")
 {
-    auto const block = Cfg::SetProfilePasswordText("profiles:\n  p:\n    password: |\n      x\n", "p", "enc:dev:A");
+    auto const block = Cfg::SetProfilePasswordText("profiles:\n  p:\n    password: |\n      x\n",
+                                                   { .profileName = "p", .newValue = "enc:dev:A" });
     REQUIRE_FALSE(block.has_value());
     CHECK(block.error().contains("block"));
 
-    auto const unknown = Cfg::SetProfilePasswordText(Sample, "nope", "enc:dev:A");
+    auto const unknown = Cfg::SetProfilePasswordText(Sample, { .profileName = "nope", .newValue = "enc:dev:A" });
     REQUIRE_FALSE(unknown.has_value());
     CHECK(unknown.error().contains("'nope'"));
 
-    auto const noPassword = Cfg::SetProfilePasswordText("profiles:\n  p:\n    uid: sa\n", "p", "enc:dev:A");
+    auto const noPassword =
+        Cfg::SetProfilePasswordText("profiles:\n  p:\n    uid: sa\n", { .profileName = "p", .newValue = "enc:dev:A" });
     REQUIRE_FALSE(noPassword.has_value());
     CHECK(noPassword.error().contains("no password"));
 }

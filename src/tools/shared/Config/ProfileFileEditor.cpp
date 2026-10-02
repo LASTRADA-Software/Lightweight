@@ -73,6 +73,48 @@ namespace
         return std::ranges::any_of(LegacyKeys, [&](char const* key) { return FindEntry(root, key).has_value(); });
     }
 
+    /// Extent of a double-quoted scalar starting at `begin` (which holds the opening quote).
+    std::expected<Extent, std::string> DoubleQuotedExtent(std::string_view yaml, std::size_t begin)
+    {
+        auto index = begin + 1;
+        while (index < yaml.size() && yaml[index] != '"')
+            index += yaml[index] == '\\' ? 2 : 1;
+        if (index >= yaml.size())
+            return std::unexpected(std::string { "unterminated double-quoted value" });
+        return Extent { .begin = begin, .end = index + 1 };
+    }
+
+    /// Extent of a single-quoted scalar starting at `begin`; `''` is an escaped quote.
+    std::expected<Extent, std::string> SingleQuotedExtent(std::string_view yaml, std::size_t begin)
+    {
+        auto index = yaml.find('\'', begin + 1);
+        while (index != std::string_view::npos && index + 1 < yaml.size() && yaml[index + 1] == '\'')
+            index = yaml.find('\'', index + 2);
+        if (index == std::string_view::npos)
+            return std::unexpected(std::string { "unterminated single-quoted value" });
+        return Extent { .begin = begin, .end = index + 1 };
+    }
+
+    /// Whether the plain scalar that started at `begin` ends before position `pos`.
+    bool EndsPlainScalar(std::string_view yaml, std::size_t begin, std::size_t pos, bool inFlow) noexcept
+    {
+        auto const c = yaml[pos];
+        auto const afterBlank = pos > begin && (yaml[pos - 1] == ' ' || yaml[pos - 1] == '\t');
+        return c == '\n' || c == '\r' || (c == '#' && afterBlank) || (inFlow && (c == ',' || c == '}' || c == ']'));
+    }
+
+    /// Extent of a plain scalar: up to the line end, a comment, or (inside {...}) a
+    /// flow indicator, without trailing blanks.
+    Extent PlainExtent(std::string_view yaml, std::size_t begin, bool inFlow) noexcept
+    {
+        auto end = begin;
+        while (end < yaml.size() && !EndsPlainScalar(yaml, begin, end, inFlow))
+            ++end;
+        while (end > begin && (yaml[end - 1] == ' ' || yaml[end - 1] == '\t'))
+            --end;
+        return Extent { .begin = begin, .end = end };
+    }
+
     /// Source extent of the scalar that starts at `begin`. Block scalars are refused
     /// because replacing them would require reflowing the following lines.
     std::expected<Extent, std::string> ScalarExtent(std::string_view yaml, std::size_t begin, bool inFlow)
@@ -80,55 +122,18 @@ namespace
         if (begin >= yaml.size())
             return std::unexpected(std::string { "value position is outside the file" });
 
-        auto const first = yaml[begin];
-        if (first == '|' || first == '>')
-            return std::unexpected(std::string { "block scalars (| or >) cannot be rewritten in place" });
-
-        if (first == '"')
+        switch (yaml[begin])
         {
-            auto index = begin + 1;
-            while (index < yaml.size() && yaml[index] != '"')
-                index += yaml[index] == '\\' ? 2 : 1;
-            if (index >= yaml.size())
-                return std::unexpected(std::string { "unterminated double-quoted value" });
-            return Extent { .begin = begin, .end = index + 1 };
+            case '|':
+            case '>':
+                return std::unexpected(std::string { "block scalars (| or >) cannot be rewritten in place" });
+            case '"':
+                return DoubleQuotedExtent(yaml, begin);
+            case '\'':
+                return SingleQuotedExtent(yaml, begin);
+            default:
+                return PlainExtent(yaml, begin, inFlow);
         }
-
-        if (first == '\'')
-        {
-            auto index = begin + 1;
-            while (index < yaml.size())
-            {
-                if (yaml[index] == '\'')
-                {
-                    if (index + 1 < yaml.size() && yaml[index + 1] == '\'')
-                    {
-                        index += 2;
-                        continue;
-                    }
-                    return Extent { .begin = begin, .end = index + 1 };
-                }
-                ++index;
-            }
-            return std::unexpected(std::string { "unterminated single-quoted value" });
-        }
-
-        // Plain scalar: ends at the line end, a comment, or (inside {...}) a flow indicator.
-        auto end = begin;
-        while (end < yaml.size())
-        {
-            auto const c = yaml[end];
-            if (c == '\n' || c == '\r')
-                break;
-            if (c == '#' && end > begin && (yaml[end - 1] == ' ' || yaml[end - 1] == '\t'))
-                break;
-            if (inFlow && (c == ',' || c == '}' || c == ']'))
-                break;
-            ++end;
-        }
-        while (end > begin && (yaml[end - 1] == ' ' || yaml[end - 1] == '\t'))
-            --end;
-        return Extent { .begin = begin, .end = end };
     }
 
     /// Replaces the scalar value node `value` with `replacement` (already quoted).
@@ -162,7 +167,8 @@ namespace
     std::optional<std::size_t> Indentation(std::string_view yaml, std::size_t lineStart) noexcept
     {
         auto const lineEnd = yaml.find_first_of("\r\n", lineStart);
-        auto const line = yaml.substr(lineStart, lineEnd == std::string_view::npos ? yaml.npos : lineEnd - lineStart);
+        auto const line =
+            yaml.substr(lineStart, lineEnd == std::string_view::npos ? std::string_view::npos : lineEnd - lineStart);
         auto const firstContent = line.find_first_not_of(" \t");
         if (firstContent == std::string_view::npos)
             return std::nullopt;
@@ -273,10 +279,9 @@ std::string QuoteYamlScalar(std::string_view value)
     return out;
 }
 
-std::expected<std::string, std::string> SetProfilePasswordText(std::string_view yaml,
-                                                               std::string_view profileName,
-                                                               std::string_view newValue)
+std::expected<std::string, std::string> SetProfilePasswordText(std::string_view yaml, PasswordEdit const& edit)
 {
+    auto const [profileName, newValue] = edit;
     auto const root = Parse(yaml);
     if (!root)
         return std::unexpected(root.error());
