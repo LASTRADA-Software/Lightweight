@@ -2,5 +2,6 @@ var structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResul
 [
     [ "wasDryRun", "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#a706afa7f5b94115ad9f9f41b51facf37", null ],
     [ "columns", "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#aa7e5278c2c378b5f0c42885abb3c487d", null ],
-    [ "rebuiltForeignKeys", "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#ae1b60503143ebed45d9317789e47a684", null ]
+    [ "rebuiltForeignKeys", "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#ae1b60503143ebed45d9317789e47a684", null ],
+    [ "rebuiltObjects", "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#ad2f1668e51bb59d1a7feea5cb49d1f64", null ]
 ];
