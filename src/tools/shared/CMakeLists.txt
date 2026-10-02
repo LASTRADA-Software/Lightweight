@@ -11,6 +11,8 @@ add_library(tools_shared STATIC
     Config/ConfigDiscovery.hpp
     Config/ProfileFileEditor.cpp
     Config/ProfileFileEditor.hpp
+    Config/ProfilePassword.cpp
+    Config/ProfilePassword.hpp
     Config/ProfileStore.cpp
     Config/ProfileStore.hpp
 

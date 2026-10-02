@@ -48,6 +48,7 @@ set(SOURCE_FILES
     PluginDiscoveryTests.cpp
     PluginIngestionTests.cpp
     ProfileFileEditorTests.cpp
+    ProfilePasswordTests.cpp
     ProfileCipherTests.cpp
     SecretResolverTests.cpp
     DataMapper/BatchTests.cpp
