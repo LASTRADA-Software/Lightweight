@@ -3773,3 +3773,155 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     (void) stmt.ExecuteDirect(R"(INSERT INTO "uu_generic" ("id", "note") VALUES (1, 'ok'))");
     CHECK(stmt.ExecuteDirectScalar<long long>(R"(SELECT COUNT(*) FROM "uu_generic")").value_or(0) == 1);
 }
+
+// ================================================================================================
+// fk-match-referenced-text: FK columns follow the referenced column's narrow/wide text kind (#643)
+// ================================================================================================
+
+namespace
+{
+
+/// Renders every step of `build`'s plan through the context-aware `ToSql`.
+std::string RenderWithContext(SqlQueryFormatter const& formatter,
+                              MigrationRenderContext& context,
+                              std::function<void(SqlMigrationQueryBuilder&)> const& build)
+{
+    auto builder = SqlQueryBuilder(formatter).Migration();
+    build(builder);
+    auto const plan = std::move(builder).GetPlan();
+    auto sql = std::string {};
+    for (auto const& step: plan.steps)
+        for (auto const& statement: ToSql(formatter, step, context))
+            sql += statement + "\n";
+    return sql;
+}
+
+/// A render context with the flag on and `fk_users.NAME` known as `referencedType`.
+MigrationRenderContext FkTextContext(SqlColumnTypeDefinition referencedType)
+{
+    auto context = MigrationRenderContext {};
+    context.fkMatchReferencedText = true;
+    context.textColumnTypes[MigrationRenderContext::ColumnKey { .schema = "", .table = "fk_users", .column = "NAME" }] =
+        referencedType;
+    // Mark the referenced table as already looked up so no live query is attempted.
+    context.lookupAttempted.insert(MigrationRenderContext::TableKey { .schema = "", .table = "fk_users" });
+    return context;
+}
+
+/// The migration from issue #643: a wide FK column referencing `fk_users.NAME`.
+void CreateOrdersWithCompositeFk(SqlMigrationQueryBuilder& plan)
+{
+    using namespace SqlColumnTypeDefinitions;
+    plan.CreateTable("fk_orders")
+        .PrimaryKey("NR", Integer())
+        .RequiredColumn("USER_NAME", NChar(30))
+        .ForeignKey({ "USER_NAME" }, "fk_users", { "NAME" });
+}
+
+} // namespace
+
+TEST_CASE("fk-match-referenced-text: SQL Server renders the referenced column's narrow variant",
+          "[SqlMigration][compat][fk-text]")
+{
+    using namespace SqlColumnTypeDefinitions;
+    auto context = FkTextContext(Char { 30 });
+    auto const sql = RenderWithContext(SqlQueryFormatter::SqlServer(), context, CreateOrdersWithCompositeFk);
+    CAPTURE(sql);
+    CHECK(sql.contains("CHAR(30)"));
+    CHECK_FALSE(sql.contains("NCHAR(30)"));
+}
+
+TEST_CASE("fk-match-referenced-text: single-column and ALTER TABLE foreign keys are adapted too",
+          "[SqlMigration][compat][fk-text]")
+{
+    using namespace SqlColumnTypeDefinitions;
+    {
+        auto context = FkTextContext(Varchar { 40 });
+        auto const sql = RenderWithContext(SqlQueryFormatter::SqlServer(), context, [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("fk_orders")
+                .PrimaryKey("NR", Integer())
+                .RequiredForeignKey("USER_NAME",
+                                    NVarchar(40),
+                                    SqlForeignKeyReferenceDefinition { .tableName = "fk_users", .columnName = "NAME" });
+        });
+        CAPTURE(sql);
+        CHECK(sql.contains("VARCHAR(40)"));
+        CHECK_FALSE(sql.contains("NVARCHAR(40)"));
+    }
+    {
+        auto context = FkTextContext(Varchar { 40 });
+        auto const sql = RenderWithContext(SqlQueryFormatter::SqlServer(), context, [](SqlMigrationQueryBuilder& plan) {
+            plan.AlterTable("fk_orders")
+                .AddForeignKeyColumn("USER_NAME",
+                                     NVarchar(40),
+                                     SqlForeignKeyReferenceDefinition { .tableName = "fk_users", .columnName = "NAME" });
+        });
+        CAPTURE(sql);
+        CHECK(sql.contains("VARCHAR(40)"));
+        CHECK_FALSE(sql.contains("NVARCHAR(40)"));
+    }
+}
+
+TEST_CASE("fk-match-referenced-text: nothing changes without the flag, on other backends, or on a length mismatch",
+          "[SqlMigration][compat][fk-text]")
+{
+    using namespace SqlColumnTypeDefinitions;
+    auto strict = MigrationRenderContext {};
+    auto const declared = RenderWithContext(SqlQueryFormatter::SqlServer(), strict, CreateOrdersWithCompositeFk);
+    REQUIRE(declared.contains("NCHAR(30)"));
+
+    auto flagOff = FkTextContext(Char { 30 });
+    flagOff.fkMatchReferencedText = false;
+    CHECK(RenderWithContext(SqlQueryFormatter::SqlServer(), flagOff, CreateOrdersWithCompositeFk) == declared);
+
+    auto mismatch = FkTextContext(Char { 20 });
+    CHECK(RenderWithContext(SqlQueryFormatter::SqlServer(), mismatch, CreateOrdersWithCompositeFk) == declared);
+
+    auto alreadyWide = FkTextContext(NChar { 30 });
+    CHECK(RenderWithContext(SqlQueryFormatter::SqlServer(), alreadyWide, CreateOrdersWithCompositeFk) == declared);
+
+    auto sqliteStrict = MigrationRenderContext {};
+    auto sqliteFlag = FkTextContext(Char { 30 });
+    CHECK(RenderWithContext(SqlQueryFormatter::Sqlite(), sqliteFlag, CreateOrdersWithCompositeFk)
+          == RenderWithContext(SqlQueryFormatter::Sqlite(), sqliteStrict, CreateOrdersWithCompositeFk));
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "fk-match-referenced-text: a wide FK applies against a narrow legacy column",
+                 "[SqlMigration][compat][fk-text]")
+{
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    mgr.CreateMigrationHistory();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    // Created outside the migration set, as legacy tooling did.
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "fk_users" ("NAME" CHAR(30) NOT NULL PRIMARY KEY))");
+
+    mgr.SetCompatPolicy([](SqlMigration::MigrationBase const&) {
+        return std::set<std::string> { std::string(CompatFlagFkMatchReferencedTextName) };
+    });
+    auto orders = SqlMigration::Migration<202610020001>("create orders", CreateOrdersWithCompositeFk);
+    REQUIRE(mgr.ApplyPendingMigrations() == 1);
+    mgr.SetCompatPolicy({});
+
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "fk_users" ("NAME") VALUES ('alice'))");
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "fk_orders" ("NR", "USER_NAME") VALUES (1, 'alice'))");
+    CHECK(stmt.ExecuteDirectScalar<long long>(R"(SELECT COUNT(*) FROM "fk_orders")").value_or(0) == 1);
+
+    // Checksums hash the plan as declared, so the adapted SQL must not show up as drift.
+    CHECK(mgr.VerifyChecksums().empty());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "fk-match-referenced-text: without the flag SQL Server still rejects the mismatch",
+                 "[SqlMigration][compat][fk-text]")
+{
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("only SQL Server distinguishes narrow and wide text in foreign keys");
+    mgr.CreateMigrationHistory();
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "fk_users" ("NAME" CHAR(30) NOT NULL PRIMARY KEY))");
+
+    auto orders = SqlMigration::Migration<202610020002>("create orders", CreateOrdersWithCompositeFk);
+    CHECK_THROWS(mgr.ApplyPendingMigrations());
+}

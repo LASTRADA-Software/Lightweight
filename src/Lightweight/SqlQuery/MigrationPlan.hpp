@@ -556,6 +556,13 @@ using SqlMigrationPlanElement = std::variant<
 /// source of truth; `Lightweight::Config::CompatFlagLupTruncate` aliases this value.
 inline constexpr std::string_view CompatFlagLupTruncateName = "lup-truncate";
 
+/// @brief Compat-flag name that lets a foreign-key column follow the narrow/wide text
+/// kind of the column it references (`CHAR`<->`NCHAR`, `VARCHAR`<->`NVARCHAR`, same
+/// length). Lets one migration apply to legacy databases whose referenced columns are
+/// narrow and to fresh ones where they are wide. Only takes effect on DBMSes whose
+/// formatter reports `DistinguishesNarrowAndWideText()` (SQL Server).
+inline constexpr std::string_view CompatFlagFkMatchReferencedTextName = "fk-match-referenced-text";
+
 /// @brief Opt-in behavioural knobs that the `ToSql` migration-plan renderer honours.
 ///
 /// When a profile declares a `compat:` flag (see `Lightweight::Config::CompatFlags`), dbtool
@@ -577,6 +584,12 @@ struct [[nodiscard]] MigrationRenderContext
     /// `SqlLogger::OnWarning`. Mirrors LUpd's client-side clipping behaviour; see
     /// `Lightweight::Config::CompatFlagLupTruncate`.
     bool lupTruncate = false;
+
+    /// When true (and the formatter distinguishes narrow and wide text), a foreign-key
+    /// column declared by a `CreateTable` / `AlterTable` step is rendered with the
+    /// narrow/wide variant of the referenced column's actual type when the two differ
+    /// only in that respect. See `CompatFlagFkMatchReferencedTextName`.
+    bool fkMatchReferencedText = false;
 
     /// Per-(schema, table, column) cache of declared character widths. Populated lazily
     /// from `SqlCreateTablePlan` / `SqlAlterTablePlan` as they are rendered; the key is
@@ -609,6 +622,10 @@ struct [[nodiscard]] MigrationRenderContext
 
     /// Cache of declared character widths, populated lazily as plan elements render.
     std::map<ColumnKey, ColumnWidth> columnWidths;
+
+    /// Per-column text types (`Char` / `NChar` / `Varchar` / `NVarchar` only), from steps
+    /// rendered so far and from `widthLookup`. Consulted by `fkMatchReferencedText`.
+    std::map<ColumnKey, SqlColumnTypeDefinition> textColumnTypes;
 
     /// @brief Optional fallback that fetches column widths for a `(schema, table)` from
     /// the live database when the cache has no entry for it.

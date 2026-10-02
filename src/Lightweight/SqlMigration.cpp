@@ -1767,6 +1767,23 @@ namespace
         return { .value = 0, .unit = Unit::Characters };
     }
 
+    /// @brief Maps an `INFORMATION_SCHEMA.DATA_TYPE` to the narrow/wide text type the
+    /// `fk-match-referenced-text` compat flag compares against. Only SQL Server reports
+    /// these four names; other DBMSes yield nullopt, which disables the adaptation.
+    [[nodiscard]] std::optional<SqlColumnTypeDefinition> TextTypeFromDataType(std::string_view dataType, std::size_t length)
+    {
+        using namespace SqlColumnTypeDefinitions;
+        if (dataType == "char")
+            return Char { length };
+        if (dataType == "nchar")
+            return NChar { length };
+        if (dataType == "varchar")
+            return Varchar { length };
+        if (dataType == "nvarchar")
+            return NVarchar { length };
+        return std::nullopt;
+    }
+
     /// @brief Builds a lazy `widthLookup` callback that resolves missing widths via
     /// `INFORMATION_SCHEMA.COLUMNS` against the supplied connection. The callback is
     /// safe to invoke many times — every (schema, table) is queried at most once per
@@ -1801,11 +1818,16 @@ namespace
                     auto const maxLengthOpt = cursor.GetNullableColumn<long long>(3);
                     if (!maxLengthOpt.has_value() || *maxLengthOpt <= 0)
                         continue;
-                    auto const width = CharacterWidthFromDataType(dataType, static_cast<std::size_t>(*maxLengthOpt));
+                    auto const length = static_cast<std::size_t>(*maxLengthOpt);
+                    auto const key = MigrationRenderContext::ColumnKey { .schema = std::string(schema),
+                                                                         .table = std::string(table),
+                                                                         .column = columnName };
+                    if (auto textType = TextTypeFromDataType(dataType, length))
+                        ctx.textColumnTypes[key] = *textType;
+                    auto const width = CharacterWidthFromDataType(dataType, length);
                     if (width.value == 0)
                         continue;
-                    ctx.columnWidths[MigrationRenderContext::ColumnKey {
-                        .schema = std::string(schema), .table = std::string(table), .column = columnName }] = width;
+                    ctx.columnWidths[key] = width;
                 }
             }
             catch (SqlException const&) // NOLINT(bugprone-empty-catch) — see function comment
@@ -1843,6 +1865,7 @@ void MigrationManager::ApplySingleMigration(MigrationBase const& migration, Migr
     // do not.
     auto const flags = CompatFlagsFor(migration);
     context.lupTruncate = flags.contains(std::string(CompatFlagLupTruncateName));
+    context.fkMatchReferencedText = flags.contains(std::string(CompatFlagFkMatchReferencedTextName));
     context.activeMigrationTimestamp = migration.GetTimestamp().value;
     context.activeMigrationTitle = std::string { migration.GetTitle() };
     // Check declared dependencies: every dependency must already be applied.
@@ -2090,6 +2113,7 @@ std::vector<std::string> MigrationManager::PreviewMigrationWithContext(Migration
 {
     auto const flags = CompatFlagsFor(migration);
     context.lupTruncate = flags.contains(std::string(CompatFlagLupTruncateName));
+    context.fkMatchReferencedText = flags.contains(std::string(CompatFlagFkMatchReferencedTextName));
     context.activeMigrationTimestamp = migration.GetTimestamp().value;
     context.activeMigrationTitle = std::string { migration.GetTitle() };
 

@@ -362,6 +362,27 @@ for (auto const& result : mismatches) {
 }
 ```
 
+### Compatibility Flags
+
+Some databases predate the migration set — they were created by older tooling and differ from
+what the migrations declare. A *compat policy* returns, per migration, a set of opt-in flags that
+relax strict rendering for exactly those migrations. Migration plugins usually install one; it can
+also be set directly:
+
+```cpp
+manager.SetCompatPolicy([](SqlMigration::MigrationBase const& migration) {
+    return std::set<std::string> { std::string(CompatFlagFkMatchReferencedTextName) };
+});
+```
+
+| Flag | Effect |
+|------|--------|
+| `lup-truncate` | String values in `Insert` / `Update` steps are truncated to the destination column's width, with a warning, instead of failing. |
+| `fk-match-referenced-text` | A foreign-key column declared by `CreateTable` / `AlterTable` (`AddForeignKeyColumn`) takes the narrow/wide variant of the column it references when the two differ only in that respect (`CHAR(n)`↔`NCHAR(n)`, `VARCHAR(n)`↔`NVARCHAR(n)`). The referenced column's type is read from the live database (or from an earlier migration of the same run), and each change is logged as a warning. SQL Server only — PostgreSQL and SQLite store both kinds the same way. |
+
+Flags only change the SQL sent to the database. Checksums are computed from the migration as
+declared, so the same migration has the same checksum on every database.
+
 ### Preview (Dry-Run)
 
 Generate SQL without executing:

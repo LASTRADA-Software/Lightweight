@@ -214,6 +214,20 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
         return false;
     }
 
+    /// @brief Whether the dialect treats narrow (`CHAR`/`VARCHAR`) and wide
+    /// (`NCHAR`/`NVARCHAR`) text as distinct types — distinct enough that a foreign key
+    /// between them is rejected and changing a column between them needs its dependent
+    /// constraints and indexes dropped first.
+    ///
+    /// Defaults to `false` (PostgreSQL and SQLite store both the same way). SQL Server
+    /// returns `true`.
+    ///
+    /// @return `true` if narrow and wide text are distinct types in this dialect.
+    [[nodiscard]] virtual bool DistinguishesNarrowAndWideText() const noexcept
+    {
+        return false;
+    }
+
     /// @brief Largest number of values this dialect should be handed in a single `WHERE ... IN (...)`
     /// predicate.
     ///
