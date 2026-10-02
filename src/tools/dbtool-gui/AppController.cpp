@@ -364,6 +364,10 @@ AppController::AppController(QObject* parent):
 
 AppController::~AppController()
 {
+    // The sink captures `this`; leaving it on the process-wide manager would let the
+    // next controller's first migration query call into a destroyed object.
+    if (_installedMigrationLogSink)
+        Lightweight::SqlMigration::MigrationManager::GetInstance().SetLogSink({});
     if (g_instance == this)
         g_instance = nullptr;
 }
@@ -805,6 +809,7 @@ bool AppController::connectToProfile()
     // the very first banner is captured.
     manager.SetLogSink(
         [this](std::string_view message) { LogInfo(QString::fromUtf8(message.data(), static_cast<int>(message.size()))); });
+    _installedMigrationLogSink = true;
 
     // Run plugin post-init hooks (e.g. SqlMigrationsPlugin's transition glue
     // that observes `LASTRADA_PROPERTIES NR=4` and populates the virtual

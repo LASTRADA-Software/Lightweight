@@ -521,6 +521,9 @@ class AppController: public QObject
     /// User-customised `dbtool.yml` location; empty means "use the discovered
     /// dbtool.yml" (see `Config::FindConfigFile`).
     QString _profileStorePath;
+    /// True once `connectToProfile` routed the migration manager's log sink into this
+    /// controller; the destructor removes it again so it cannot outlive us.
+    bool _installedMigrationLogSink = false;
     QString _profilePath;
     QString _lastError;
     QString _lastWarning;
