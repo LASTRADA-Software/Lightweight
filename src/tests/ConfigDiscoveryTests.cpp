@@ -89,10 +89,8 @@ TEST_CASE("ConfigDiscovery — an explicit path wins", "[ConfigDiscovery]")
     auto const explicitFile = tree.Config("explicit");
     std::ignore = tree.Config("cwd");
 
-    auto const result = Cfg::FindConfigFile({ .explicitPath = explicitFile,
-                                              .workingDirectory = tree.Dir("cwd"),
-                                              .executableDirectory = {},
-                                              .userDefault = {} });
+    auto const result = Cfg::FindConfigFile(
+        { .explicitPath = explicitFile, .workingDirectory = tree.Dir("cwd"), .executableDirectory = {}, .userDefault = {} });
     REQUIRE(result.has_value());
     CHECK(result->source == Cfg::ConfigSource::Explicit);
     CHECK(result->path == explicitFile);
@@ -113,10 +111,8 @@ TEST_CASE("ConfigDiscovery — walks up from the working directory to the neares
     TempTree const tree;
     std::ignore = tree.Config("a");
     auto const nearer = tree.Config("a/b");
-    auto const result = Cfg::FindConfigFile({ .explicitPath = {},
-                                              .workingDirectory = tree.Dir("a/b/c"),
-                                              .executableDirectory = {},
-                                              .userDefault = {} });
+    auto const result = Cfg::FindConfigFile(
+        { .explicitPath = {}, .workingDirectory = tree.Dir("a/b/c"), .executableDirectory = {}, .userDefault = {} });
     REQUIRE(result.has_value());
     CHECK(result->source == Cfg::ConfigSource::WorkingDirectory);
     CHECK(result->path == nearer);

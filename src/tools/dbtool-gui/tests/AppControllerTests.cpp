@@ -273,8 +273,7 @@ TEST_CASE("startup discovers dbtool.yml above the working directory", "[dbtool-g
     QTemporaryDir dir;
     auto const root = std::filesystem::path { dir.path().toStdString() };
     std::filesystem::create_directories(root / "sub");
-    std::ofstream(root / "dbtool.yml", std::ios::binary)
-        << "profiles:\n  found:\n    connectionString: \"Driver=x\"\n";
+    std::ofstream(root / "dbtool.yml", std::ios::binary) << "profiles:\n  found:\n    connectionString: \"Driver=x\"\n";
 
     auto const previous = std::filesystem::current_path();
     std::filesystem::current_path(root / "sub");

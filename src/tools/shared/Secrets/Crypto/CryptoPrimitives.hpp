@@ -54,7 +54,7 @@ using Bytes = std::vector<std::byte>;
 /// @param data Message to authenticate.
 /// @return The 32-byte MAC, or an error message.
 [[nodiscard]] std::expected<std::array<std::byte, HmacSize>, std::string> HmacSha256(std::span<std::byte const> key,
-                                                                                    std::span<std::byte const> data);
+                                                                                     std::span<std::byte const> data);
 
 /// Fills `out` with bytes from the OS cryptographically secure RNG.
 /// @param out Buffer to fill.

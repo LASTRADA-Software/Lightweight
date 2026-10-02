@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#include "ProfilePassword.hpp"
-
 #include "ProfileFileEditor.hpp"
+#include "ProfilePassword.hpp"
 
 #include <format>
 #include <system_error>

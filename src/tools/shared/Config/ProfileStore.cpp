@@ -133,8 +133,7 @@ namespace
         if (!p.dsn.empty() && !p.connectionString.empty())
             return std::unexpected(std::format("profile '{}' sets both 'dsn' and 'connectionString'; pick one", p.name));
         if (!p.password.empty() && !p.secretRef.empty())
-            return std::unexpected(
-                std::format("profile '{}' sets both 'password' and 'secretRef'; pick one", p.name));
+            return std::unexpected(std::format("profile '{}' sets both 'password' and 'secretRef'; pick one", p.name));
         return {};
     }
 

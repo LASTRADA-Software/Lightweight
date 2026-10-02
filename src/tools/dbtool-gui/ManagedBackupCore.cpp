@@ -4,13 +4,13 @@
 
 #include <Lightweight/SqlConnectInfo.hpp>
 
-#include <Config/ProfilePassword.hpp>
-#include <Secrets/ProfileCipher.hpp>
-
 #include <format>
 #include <fstream>
 #include <system_error>
 #include <unordered_set>
+
+#include <Config/ProfilePassword.hpp>
+#include <Secrets/ProfileCipher.hpp>
 
 namespace DbtoolGui::ManagedBackup
 {

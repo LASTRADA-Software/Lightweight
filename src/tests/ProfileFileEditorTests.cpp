@@ -202,16 +202,18 @@ TEST_CASE("ProfileFileEditor — an added profile round-trips through ProfileSto
 TEST_CASE("ProfileFileEditor — adding keeps comments and uses the file's indentation", "[ProfileFileEditor]")
 {
     auto const text = "# top\nprofiles:\n    a:\n        uid: x # keep\n"sv;
-    auto const profile = Cfg::NewProfile { .name = "b", .connectionString = "Driver=x", .dsn = {}, .uid = {},
-                                           .schema = {}, .pluginsDir = {}, .password = {} };
+    auto const profile = Cfg::NewProfile {
+        .name = "b", .connectionString = "Driver=x", .dsn = {}, .uid = {}, .schema = {}, .pluginsDir = {}, .password = {}
+    };
     CHECK(Cfg::AddProfileText(text, profile, Cfg::ReplaceExisting::No)
           == "# top\nprofiles:\n    \"b\":\n        connectionString: \"Driver=x\"\n    a:\n        uid: x # keep\n");
 }
 
 TEST_CASE("ProfileFileEditor — adding to an empty flow map or a null profiles key", "[ProfileFileEditor]")
 {
-    auto const profile = Cfg::NewProfile { .name = "b", .connectionString = "Driver=x", .dsn = {}, .uid = {},
-                                           .schema = {}, .pluginsDir = {}, .password = {} };
+    auto const profile = Cfg::NewProfile {
+        .name = "b", .connectionString = "Driver=x", .dsn = {}, .uid = {}, .schema = {}, .pluginsDir = {}, .password = {}
+    };
     CHECK(Cfg::AddProfileText("profiles: {}\n", profile, Cfg::ReplaceExisting::No)
           == "profiles:\n  \"b\":\n    connectionString: \"Driver=x\"\n");
     CHECK(Cfg::AddProfileText("profiles:\ndefaultPluginsDir: x\n", profile, Cfg::ReplaceExisting::No)
@@ -222,8 +224,13 @@ TEST_CASE("ProfileFileEditor — adding to an empty flow map or a null profiles 
 
 TEST_CASE("ProfileFileEditor — duplicate names are refused unless replacing", "[ProfileFileEditor]")
 {
-    auto const profile = Cfg::NewProfile { .name = "prod", .connectionString = "Driver=new", .dsn = {}, .uid = {},
-                                           .schema = {}, .pluginsDir = {}, .password = {} };
+    auto const profile = Cfg::NewProfile { .name = "prod",
+                                           .connectionString = "Driver=new",
+                                           .dsn = {},
+                                           .uid = {},
+                                           .schema = {},
+                                           .pluginsDir = {},
+                                           .password = {} };
     auto const refused = Cfg::AddProfileText(Sample, profile, Cfg::ReplaceExisting::No);
     REQUIRE_FALSE(refused.has_value());
     CHECK(refused.error().contains("already exists"));
@@ -237,8 +244,9 @@ TEST_CASE("ProfileFileEditor — duplicate names are refused unless replacing", 
 
 TEST_CASE("ProfileFileEditor — legacy and flow-style files are not restructured", "[ProfileFileEditor]")
 {
-    auto const profile = Cfg::NewProfile { .name = "b", .connectionString = "Driver=x", .dsn = {}, .uid = {},
-                                           .schema = {}, .pluginsDir = {}, .password = {} };
+    auto const profile = Cfg::NewProfile {
+        .name = "b", .connectionString = "Driver=x", .dsn = {}, .uid = {}, .schema = {}, .pluginsDir = {}, .password = {}
+    };
     auto const legacy = Cfg::AddProfileText("ConnectionString: x\n", profile, Cfg::ReplaceExisting::No);
     REQUIRE_FALSE(legacy.has_value());
     CHECK(legacy.error().contains("legacy"));
@@ -277,8 +285,8 @@ TEST_CASE("ProfileFileEditor — EditConfigFile leaves the file untouched on fai
     CHECK(transformError.error() == "boom");
     CHECK(file.Read() == Sample);
 
-    fs::permissions(file.Path(), fs::perms::owner_write | fs::perms::group_write | fs::perms::others_write,
-                    fs::perm_options::remove);
+    fs::permissions(
+        file.Path(), fs::perms::owner_write | fs::perms::group_write | fs::perms::others_write, fs::perm_options::remove);
     auto const readOnly = Cfg::EditConfigFile(
         file.Path(), [](std::string_view) -> std::expected<std::string, std::string> { return std::string { "x" }; });
     REQUIRE_FALSE(readOnly.has_value());

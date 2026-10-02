@@ -49,8 +49,9 @@ struct ResolvedPassword
 /// @param cipher Cipher for `enc:` values (normally `ProfileCipher::Builtin()`).
 /// @param resolver Resolver for `secretRef`.
 /// @return The password and its origin, or an error naming the profile (never containing the secret).
-[[nodiscard]] std::expected<ResolvedPassword, std::string> ResolveProfilePassword(
-    Profile const& profile, Secrets::ProfileCipher const& cipher, Secrets::SecretResolver const& resolver);
+[[nodiscard]] std::expected<ResolvedPassword, std::string> ResolveProfilePassword(Profile const& profile,
+                                                                                  Secrets::ProfileCipher const& cipher,
+                                                                                  Secrets::SecretResolver const& resolver);
 
 /// Outcome of a successful upgrade.
 struct UpgradeResult

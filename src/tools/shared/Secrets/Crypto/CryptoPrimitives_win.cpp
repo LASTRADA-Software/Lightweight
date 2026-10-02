@@ -172,8 +172,8 @@ namespace
 } // namespace
 
 std::expected<Bytes, std::string> AesCbcEncrypt(std::span<std::byte const, AesKeySize> key,
-                                                 std::span<std::byte const, AesBlockSize> iv,
-                                                 std::span<std::byte const> plaintext)
+                                                std::span<std::byte const, AesBlockSize> iv,
+                                                std::span<std::byte const> plaintext)
 {
     return AesCbc(Direction::Encrypt, key, iv, plaintext);
 }
@@ -214,10 +214,8 @@ std::expected<std::array<std::byte, HmacSize>, std::string> HmacSha256(std::span
 
 std::expected<void, std::string> RandomBytes(std::span<std::byte> out)
 {
-    if (auto const status = BCryptGenRandom(nullptr,
-                                            reinterpret_cast<PUCHAR>(out.data()),
-                                            static_cast<ULONG>(out.size()),
-                                            BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+    if (auto const status = BCryptGenRandom(
+            nullptr, reinterpret_cast<PUCHAR>(out.data()), static_cast<ULONG>(out.size()), BCRYPT_USE_SYSTEM_PREFERRED_RNG);
         !BCRYPT_SUCCESS(status))
         return std::unexpected(CngError("BCryptGenRandom", status));
     return {};

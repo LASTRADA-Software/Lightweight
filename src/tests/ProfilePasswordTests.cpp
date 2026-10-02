@@ -135,8 +135,7 @@ TEST_CASE("ProfilePassword — secretRef is resolved when there is no password",
 {
     SetEnv("LW_PROFILE_PASSWORD_TEST", "from-env");
     auto const resolver = Secrets::MakeDefaultResolver();
-    auto const result =
-        Cfg::ResolveProfilePassword(MakeProfile({}, "env:LW_PROFILE_PASSWORD_TEST"), DevCipher(), resolver);
+    auto const result = Cfg::ResolveProfilePassword(MakeProfile({}, "env:LW_PROFILE_PASSWORD_TEST"), DevCipher(), resolver);
     REQUIRE(result.has_value());
     CHECK(result->value == "from-env");
     CHECK(result->origin == Cfg::PasswordOrigin::SecretRef);
@@ -199,8 +198,7 @@ TEST_CASE("ProfilePassword — upgrading an already encrypted or empty password 
     CHECK_FALSE(Cfg::UpgradePlaintextPassword(config.Path(), MakeProfile({}), DevCipher()).has_value());
 }
 
-TEST_CASE("ProfilePassword — a profile that connects with its plaintext password is upgraded",
-          "[ProfilePassword][db]")
+TEST_CASE("ProfilePassword — a profile that connects with its plaintext password is upgraded", "[ProfilePassword][db]")
 {
     // Build a profile around the test environment's own connection string, with
     // any inline password moved into the profile's plaintext `password` field.
@@ -226,8 +224,8 @@ TEST_CASE("ProfilePassword — a profile that connects with its plaintext passwo
     REQUIRE(resolved->origin == Cfg::PasswordOrigin::Plaintext);
 
     auto connection = Lightweight::SqlConnection { std::nullopt };
-    REQUIRE(connection.Connect(
-        Lightweight::SqlConnectionString { std::format("{}", profile.ToConnectInfo(resolved->value)) }));
+    REQUIRE(
+        connection.Connect(Lightweight::SqlConnectionString { std::format("{}", profile.ToConnectInfo(resolved->value)) }));
 
     REQUIRE(Cfg::UpgradePlaintextPassword(config.Path(), profile, DevCipher()).has_value());
     auto const upgraded = config.Load("db");

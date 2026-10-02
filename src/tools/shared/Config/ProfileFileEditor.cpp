@@ -164,7 +164,9 @@ namespace
     }
 
     /// Renders a profile block: a key line at `keyIndent` and fields at `fieldIndent`.
-    std::string RenderProfile(NewProfile const& profile, std::size_t keyIndent, std::size_t fieldIndent,
+    std::string RenderProfile(NewProfile const& profile,
+                              std::size_t keyIndent,
+                              std::size_t fieldIndent,
                               std::string_view eol)
     {
         auto out = std::format("{}{}:{}", std::string(keyIndent, ' '), QuoteYamlScalar(profile.name), eol);
@@ -347,8 +349,7 @@ std::expected<std::string, std::string> AddProfileText(std::string_view yaml,
     if (auto const existing = FindEntry(profilesValue, profile.name))
     {
         if (replace == ReplaceExisting::No)
-            return std::unexpected(
-                std::format("profile '{}' already exists (use --force to replace it)", profile.name));
+            return std::unexpected(std::format("profile '{}' already exists (use --force to replace it)", profile.name));
         return AddProfileText(RemoveProfileBlock(yaml, existing->first), profile, ReplaceExisting::No);
     }
 

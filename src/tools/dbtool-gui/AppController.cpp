@@ -9,14 +9,13 @@
 #include <Lightweight/SqlMigration.hpp>
 #include <Lightweight/SqlServerType.hpp>
 
-#include <Secrets/ProfileCipher.hpp>
-#include <Secrets/SecretResolver.hpp>
-
 #include <Config/ConfigDiscovery.hpp>
 #include <Config/ProfilePassword.hpp>
 #include <PluginIngestion.hpp>
 #include <PluginLoader.hpp>
 #include <QtCore/QtGlobal>
+#include <Secrets/ProfileCipher.hpp>
+#include <Secrets/SecretResolver.hpp>
 
 namespace DbtoolGui
 {
@@ -490,15 +489,15 @@ void AppController::EncryptPlaintextPassword(Lightweight::Config::Profile const&
     if (!upgraded)
     {
         LogWarn(QStringLiteral("Could not encrypt the plaintext password of profile ‘%1’: %2")
-                       .arg(QString::fromStdString(profile.name), QString::fromStdString(upgraded.error())));
+                    .arg(QString::fromStdString(profile.name), QString::fromStdString(upgraded.error())));
         return;
     }
     LogInfo(QStringLiteral("Encrypted the plaintext password of profile ‘%1’ in %2")
                 .arg(QString::fromStdString(profile.name), _profilePath));
     if (upgraded->insideGitWorkTree)
         LogWarn(QStringLiteral("%1 is inside a git repository; the old plaintext password may remain in its "
-                                  "history. Consider changing the database password.")
-                       .arg(_profilePath));
+                               "history. Consider changing the database password.")
+                    .arg(_profilePath));
 }
 
 QString AppController::defaultProfileStorePath() const
@@ -582,8 +581,7 @@ void AppController::ClearError()
 
 bool AppController::loadProfiles(QString const& path)
 {
-    auto const effectivePath =
-        path.isEmpty() ? QString::fromStdString(DiscoverProfileStore().path.string()) : path;
+    auto const effectivePath = path.isEmpty() ? QString::fromStdString(DiscoverProfileStore().path.string()) : path;
 
     auto result = Lightweight::Config::ProfileStore::LoadOrDefault(effectivePath.toStdString());
     if (!result)

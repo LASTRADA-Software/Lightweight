@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#include "ProfileCipher.hpp"
-
 #include "Crypto/CryptoPrimitives.hpp"
+#include "ProfileCipher.hpp"
 
 #include <algorithm>
 #include <array>
@@ -20,8 +19,7 @@ namespace Lightweight::Secrets
 namespace
 {
 
-    inline constexpr std::string_view Base64Alphabet =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    inline constexpr std::string_view Base64Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
     inline constexpr std::string_view EncryptionLabel = "dbtool-enc";
     inline constexpr std::string_view MacLabel = "dbtool-mac";
@@ -41,8 +39,8 @@ namespace
         {
             auto const bytes = chunk | std::views::transform([](std::byte b) { return std::to_integer<unsigned>(b); })
                                | std::ranges::to<std::vector>();
-            auto const triple = (bytes[0] << 16U) | ((bytes.size() > 1 ? bytes[1] : 0U) << 8U)
-                                | (bytes.size() > 2 ? bytes[2] : 0U);
+            auto const triple =
+                (bytes[0] << 16U) | ((bytes.size() > 1 ? bytes[1] : 0U) << 8U) | (bytes.size() > 2 ? bytes[2] : 0U);
             out.push_back(Base64Alphabet[(triple >> 18U) & 0x3FU]);
             out.push_back(Base64Alphabet[(triple >> 12U) & 0x3FU]);
             out.push_back(bytes.size() > 1 ? Base64Alphabet[(triple >> 6U) & 0x3FU] : '=');
@@ -83,9 +81,8 @@ namespace
     {
         if (lhs.size() != rhs.size())
             return false;
-        auto const diff = std::ranges::fold_left(std::views::zip_transform(std::bit_xor<> {}, lhs, rhs),
-                                                 std::byte { 0 },
-                                                 std::bit_or<> {});
+        auto const diff = std::ranges::fold_left(
+            std::views::zip_transform(std::bit_xor<> {}, lhs, rhs), std::byte { 0 }, std::bit_or<> {});
         return diff == std::byte { 0 };
     }
 

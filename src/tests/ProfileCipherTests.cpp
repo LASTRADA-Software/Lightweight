@@ -12,11 +12,11 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <expected>
 #include <ranges>
 #include <span>
 #include <string>
 #include <string_view>
-#include <expected>
 #include <utility>
 #include <vector>
 
@@ -50,8 +50,7 @@ std::span<std::byte const> AsBytes(std::string_view text)
 /// Converts bytes back into a std::string for comparisons.
 std::string ToString(std::span<std::byte const> bytes)
 {
-    return bytes | std::views::transform([](std::byte b) { return static_cast<char>(b); })
-           | std::ranges::to<std::string>();
+    return bytes | std::views::transform([](std::byte b) { return static_cast<char>(b); }) | std::ranges::to<std::string>();
 }
 
 // Dev-key encryption sub-key and IV from the format's reference vector.
@@ -217,8 +216,7 @@ TEST_CASE("ProfileCipher — release builds refuse values encrypted with the dev
     CHECK(result.error().contains("development build"));
 }
 
-TEST_CASE("ProfileCipher — key rotation encrypts with the newest key and still decrypts older ones",
-          "[ProfileCipher]")
+TEST_CASE("ProfileCipher — key rotation encrypts with the newest key and still decrypts older ones", "[ProfileCipher]")
 {
     auto const oldCipher = Secrets::ProfileCipher { { FilledKey("v1", 0x11) }, Secrets::DevKeyPolicy::Refuse };
     auto const oldValue = oldCipher.Encrypt("rotated");

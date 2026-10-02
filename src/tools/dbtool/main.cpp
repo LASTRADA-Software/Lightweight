@@ -385,8 +385,8 @@ struct Options
     std::vector<std::filesystem::path> pluginsDir;
     SqlConnectionString connectionString;
     std::string configFile;
-    std::string profileName; ///< Named profile selected via --profile (empty = ProfileStore default)
-    std::filesystem::path resolvedConfigPath;                   ///< Config file the profile was loaded from
+    std::string profileName;                  ///< Named profile selected via --profile (empty = ProfileStore default)
+    std::filesystem::path resolvedConfigPath; ///< Config file the profile was loaded from
     std::optional<Lightweight::Config::Profile> selectedProfile; ///< Profile applied to this run, if any
     std::filesystem::path outputFile;
     std::filesystem::path inputFile;
@@ -541,8 +541,8 @@ void EncryptPlaintextPasswordIfConnectable(Options const& options)
             return;
     }
 
-    auto const upgraded = Cfg::UpgradePlaintextPassword(
-        options.resolvedConfigPath, profile, Lightweight::Secrets::ProfileCipher::Builtin());
+    auto const upgraded =
+        Cfg::UpgradePlaintextPassword(options.resolvedConfigPath, profile, Lightweight::Secrets::ProfileCipher::Builtin());
     if (!upgraded)
     {
         std::println(std::cerr,
@@ -1037,9 +1037,7 @@ int ListProfiles(Options const& options)
 
     auto const c = IsStdoutTerminal() ? HelpColors::Colored() : HelpColors::Plain();
 
-    std::println("Profiles (from {}, found via {}):",
-                 configPath.string(),
-                 Cfg::ToString(loadedConfig->discovered.source));
+    std::println("Profiles (from {}, found via {}):", configPath.string(), Cfg::ToString(loadedConfig->discovered.source));
     std::println("");
     std::println("{}{:<{}}  {:<{}}  {:<{}}  {:<{}}  {:<{}}  {}{}",
                  c.heading,
@@ -1110,8 +1108,9 @@ int AddProfileCommand(Options const& options)
     }
 
     auto const target = options.configFile.empty()
-                            ? Cfg::FindConfigFile(Cfg::DefaultDiscoveryInputs())
-                                  .transform([](Cfg::DiscoveredConfig found) { return std::move(found.path); })
+                            ? Cfg::FindConfigFile(Cfg::DefaultDiscoveryInputs()).transform([](Cfg::DiscoveredConfig found) {
+                                  return std::move(found.path);
+                              })
                             : std::expected<std::filesystem::path, std::string> { options.configFile };
     if (!target)
     {
@@ -1119,9 +1118,8 @@ int AddProfileCommand(Options const& options)
         return EXIT_FAILURE;
     }
 
-    auto [connectionString, password] = options.connectionStringSet
-                                            ? SplitInlinePassword(options.connectionString.value)
-                                            : std::pair<std::string, std::string> {};
+    auto [connectionString, password] = options.connectionStringSet ? SplitInlinePassword(options.connectionString.value)
+                                                                    : std::pair<std::string, std::string> {};
     if (!password.empty())
         std::println(std::cerr, "Note: the password in --connection-string will be stored encrypted instead.");
     else if (!options.noPassword)

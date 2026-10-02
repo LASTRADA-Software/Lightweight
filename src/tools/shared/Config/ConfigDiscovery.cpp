@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "ConfigDiscovery.hpp"
-
 #include "ProfileStore.hpp"
 
 #include <array>

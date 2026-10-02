@@ -46,8 +46,8 @@ namespace
 } // namespace
 
 std::expected<Bytes, std::string> AesCbcEncrypt(std::span<std::byte const, AesKeySize> key,
-                                                 std::span<std::byte const, AesBlockSize> iv,
-                                                 std::span<std::byte const> plaintext)
+                                                std::span<std::byte const, AesBlockSize> iv,
+                                                std::span<std::byte const> plaintext)
 {
     return AesCbc(kCCEncrypt, key, iv, plaintext);
 }
