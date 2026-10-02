@@ -33,9 +33,10 @@
 // directories the plugin loader keeps the file with the newest modification
 // time and discards the others (see `PluginDiscovery`).
 //
-// Secret material (`password`) is never written to the YAML file. Callers
-// resolve `secretRef` via `Lightweight::Secrets::SecretResolver` before
-// attempting to open a connection.
+// A profile authenticates either with a `password` stored in the file — kept
+// encrypted (`enc:<keyId>:...`); dbtool encrypts plaintext values in place
+// after a successful connect — or with a `secretRef` resolved by
+// `Lightweight::Secrets::SecretResolver`. See `Config/ProfilePassword.hpp`.
 
 #pragma once
 
@@ -83,6 +84,11 @@ struct Profile
     /// `env:ACME_PROD_PWD`, `file:~/.dbtool/acme-prod.pwd`,
     /// `keychain:lightweight/acme-prod`, `stdin:`.
     std::string secretRef;
+
+    /// Password stored in the file: either encrypted (`enc:<keyId>:...`, see
+    /// `Secrets::ProfileCipher`) or plaintext, which dbtool encrypts in place
+    /// after the first successful connection. Mutually exclusive with `secretRef`.
+    std::string password;
 
     /// True when the profile carries enough info to attempt a connection.
     [[nodiscard]] bool HasConnection() const noexcept

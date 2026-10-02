@@ -95,17 +95,15 @@ struct ArchiveStatus
 [[nodiscard]] std::string FormatRunSummary(int okCount, int failCount);
 
 /// Resolves a profile to a ready-to-use ODBC connection string via
-/// `Profile::ToConnectInfo`: the password resolved from `secretRef` (when
-/// set) through `resolver` is appended to a raw `connectionString` (unless
-/// it already carries `PWD=`/`Password=`), or folded into a DSN descriptor
-/// built from `dsn`/`uid` otherwise. A raw `connectionString` with no
-/// `secretRef` is returned unmodified. Unlike AppController::connectToProfile
-/// (which never resolves `secretRef`), this always resolves the profile's
-/// secret when one is set and fails with an error message when it cannot —
-/// managed backups run headless, so an unresolved password must abort rather
-/// than silently connect without one.
+/// `Profile::ToConnectInfo`, with the password from `Config::ResolveProfilePassword`
+/// (decrypted `password`, plaintext `password`, or `secretRef` through `resolver`)
+/// appended to a raw `connectionString` (unless it already carries
+/// `PWD=`/`Password=`) or folded into a DSN descriptor built from `dsn`/`uid`.
+/// A raw `connectionString` with no password is returned unmodified. Fails with
+/// an error message when the password cannot be decrypted or resolved — managed
+/// backups run headless, so they must abort rather than connect without one.
 /// @param profile Profile to resolve.
-/// @param resolver Secret resolver chain (see MakeDefaultResolver()).
+/// @param resolver Secret resolver chain (see MakeNonInteractiveResolver()).
 /// @return Connection string, or a user-displayable error message.
 [[nodiscard]] std::expected<std::string, std::string> ResolveConnectionString(
     Lightweight::Config::Profile const& profile, Lightweight::Secrets::SecretResolver const& resolver);

@@ -148,7 +148,7 @@ def _capture_diagnostics_on_hang(cmd, partial_stdout, partial_stderr):
             print(f"(sqlcmd diag failed: {e})", file=sys.stderr, flush=True)
 
 
-def run_command(cmd, check=True):
+def run_command(cmd, check=True, input=None, cwd=None):
     print(f"Running: {' '.join(cmd)}", flush=True)
     # dbtool emits UTF-8 (table names, progress glyphs, etc.) regardless of platform.
     # Without an explicit encoding, Python on Windows defaults to the console code
@@ -165,7 +165,9 @@ def run_command(cmd, check=True):
     try:
         result = subprocess.run(
             cmd,
-            stdin=subprocess.DEVNULL,
+            stdin=None if input is not None else subprocess.DEVNULL,
+            input=input,
+            cwd=cwd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
@@ -192,6 +194,25 @@ def run_command(cmd, check=True):
         print("Plugin reported a migration-retrieval error — see stderr above")
         sys.exit(1)
     return result
+
+
+def split_password(connection_string):
+    """Removes PWD/Password from an ODBC connection string, returning (rest, password)."""
+    kept, password = [], ""
+    for part in connection_string.split(";"):
+        key, sep, value = part.partition("=")
+        if sep and key.strip().lower() in ("pwd", "password"):
+            password = value.strip()
+            if password.startswith("{") and password.endswith("}"):
+                password = password[1:-1].replace("}}", "}")
+        elif part.strip():
+            kept.append(part)
+    return ";".join(kept), password
+
+
+def yaml_quote(value):
+    """Double-quoted YAML scalar."""
+    return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
 def main():
@@ -527,6 +548,106 @@ def main():
         if dir_new not in multi_result.stdout:
             print(f"newer plugin copy was not the one loaded:\n{multi_result.stdout}")
             sys.exit(1)
+
+    print("--- 12c. config discovery walks up from the working directory ---")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        project = os.path.join(tmpdir, "proj")
+        nested = os.path.join(project, "sub", "dir")
+        os.makedirs(nested)
+        with open(os.path.join(project, "dbtool.yml"), "w", encoding="utf-8") as f:
+            f.write("profiles:\n  discovered:\n    connectionString: \"DRIVER=SQLite3;Database=x.db\"\n")
+        found = run_command([args.dbtool, "list-profiles"], cwd=nested)
+        if "discovered" not in found.stdout or "current directory" not in found.stdout:
+            print(f"list-profiles did not use the dbtool.yml above the working directory:\n{found.stdout}")
+            sys.exit(1)
+
+    print("--- 12d. add-profile stores an encrypted password ---")
+    profile_cs, profile_pwd = split_password(connection_string)
+    secret = profile_pwd or "e2e-dummy-password"
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cfg_path = os.path.join(tmpdir, "nested", "dbtool.yml")
+        add_cmd = [args.dbtool, "--config", cfg_path, "add-profile", "--name", "e2e",
+                   "--connection-string", profile_cs, "--plugins-dir", args.plugins_dir]
+        run_command(add_cmd, input=secret + "\n")
+        with open(cfg_path, encoding="utf-8") as f:
+            stored = f.read()
+        if "enc:" not in stored or secret in stored:
+            print(f"add-profile did not store an encrypted password:\n{stored}")
+            sys.exit(1)
+        listed = run_command([args.dbtool, "--config", cfg_path, "list-profiles"]).stdout
+        if "encrypted" not in listed:
+            print(f"list-profiles does not report the password as encrypted:\n{listed}")
+            sys.exit(1)
+        # The encrypted profile must actually connect.
+        run_command([args.dbtool, "--config", cfg_path, "--profile", "e2e", "list-applied"])
+
+        duplicate = run_command(add_cmd, input=secret + "\n", check=False)
+        if duplicate.returncode == 0 or "already exists" not in duplicate.stderr:
+            print(f"add-profile accepted a duplicate name:\n{duplicate.stderr}")
+            sys.exit(1)
+        run_command(add_cmd + ["--force", "--set-default"], input=secret + "\n")
+        with open(cfg_path, encoding="utf-8") as f:
+            if f.read().count("\"e2e\":") != 1:
+                print("add-profile --force did not replace the existing profile")
+                sys.exit(1)
+
+        on_argv = run_command(add_cmd + ["--force", "--password", "hunter2"], input="", check=False)
+        if on_argv.returncode == 0 or "never accepted on the command line" not in on_argv.stderr:
+            print(f"add-profile accepted a password on the command line:\n{on_argv.stderr}")
+            sys.exit(1)
+
+    print("--- 12e. a working plaintext password is encrypted in place ---")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cfg_path = os.path.join(tmpdir, "dbtool.yml")
+        with open(cfg_path, "w", encoding="utf-8") as f:
+            f.write("# hand-written, keep this comment\n"
+                    "profiles:\n"
+                    "  plain:\n"
+                    f"    connectionString: {yaml_quote(profile_cs)}\n"
+                    f"    pluginsDir: {yaml_quote(args.plugins_dir)}\n"
+                    f"    password: {yaml_quote(secret)}  # will be encrypted\n")
+        upgraded = run_command([args.dbtool, "--config", cfg_path, "--profile", "plain", "list-applied"])
+        with open(cfg_path, encoding="utf-8") as f:
+            text = f.read()
+        if "enc:" not in text or secret in text or "keep this comment" not in text \
+                or "will be encrypted" not in text:
+            print(f"plaintext password was not encrypted in place:\n{text}")
+            sys.exit(1)
+        if "Encrypted the plaintext password" not in upgraded.stderr:
+            print(f"dbtool did not report the password upgrade:\n{upgraded.stderr}")
+            sys.exit(1)
+        # Second run uses the encrypted value.
+        run_command([args.dbtool, "--config", cfg_path, "--profile", "plain", "list-applied"])
+
+    if profile_pwd:
+        print("--- 12f. a wrong plaintext password is left untouched ---")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cfg_path = os.path.join(tmpdir, "dbtool.yml")
+            with open(cfg_path, "w", encoding="utf-8") as f:
+                f.write("profiles:\n"
+                        "  wrong:\n"
+                        f"    connectionString: {yaml_quote(profile_cs)}\n"
+                        f"    pluginsDir: {yaml_quote(args.plugins_dir)}\n"
+                        "    password: definitely-not-the-password\n")
+            failed = run_command([args.dbtool, "--config", cfg_path, "--profile", "wrong", "list-applied"],
+                                 check=False)
+            with open(cfg_path, encoding="utf-8") as f:
+                text = f.read()
+            if failed.returncode == 0 or "definitely-not-the-password" not in text or "enc:" in text:
+                print(f"a wrong plaintext password was rewritten or accepted:\n{text}")
+                sys.exit(1)
+    else:
+        print("--- 12f. skipped: the test connection string has no password ---")
+
+    print("--- 12g. help works even when a discovered dbtool.yml is broken ---")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(os.path.join(tmpdir, "dbtool.yml"), "w", encoding="utf-8") as f:
+            f.write("profiles: [this is: not valid\n")
+        for help_cmd in (["help"], ["--help"], ["show-examples"]):
+            helped = run_command([args.dbtool] + help_cmd, cwd=tmpdir, check=False)
+            if helped.returncode != 0:
+                print(f"dbtool {' '.join(help_cmd)} failed because of an unrelated broken dbtool.yml:\n{helped.stderr}")
+                sys.exit(1)
 
     print("--- 13. status fails fast when no migration plugin is loaded ---")
     with tempfile.TemporaryDirectory() as empty_plugins_dir:

@@ -7,6 +7,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -170,4 +171,17 @@ TEST_CASE("MakeDefaultResolver — registers env, file, stdin in that order", "[
     CHECK(names[0] == "env");
     CHECK(names[1] == "file");
     CHECK(names[2] == "stdin");
+}
+
+TEST_CASE("MakeNonInteractiveResolver never prompts on stdin", "[SecretResolver]")
+{
+    auto const resolver = Lightweight::Secrets::MakeNonInteractiveResolver();
+    auto const names = resolver.RegisteredBackendNames();
+    CHECK(std::ranges::find(names, "env") != names.end());
+    CHECK(std::ranges::find(names, "file") != names.end());
+    CHECK(std::ranges::find(names, "stdin") == names.end());
+
+    // An explicit stdin: reference must fail fast instead of blocking a GUI or worker thread.
+    auto const result = resolver.Resolve("stdin:", "prod");
+    REQUIRE_FALSE(result.has_value());
 }

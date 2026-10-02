@@ -501,7 +501,7 @@ void ManagedBackupController::RunBackups(std::vector<Lightweight::Config::Profil
                                                 plan = std::move(plan),
                                                 folder,
                                                 backupOperation = std::move(backupOperation)] {
-        auto resolver = Lightweight::Secrets::MakeDefaultResolver();
+        auto resolver = Lightweight::Secrets::MakeNonInteractiveResolver();
         int okCount = 0;
         int failCount = 0;
         for (auto const& [profile, entry]: std::views::zip(profiles, plan))
@@ -664,7 +664,7 @@ void ManagedBackupController::RunRestore(QString const& archiveProfile,
             auto cs = rawCs;
             if (targetProfile)
             {
-                auto resolver = Lightweight::Secrets::MakeDefaultResolver();
+                auto resolver = Lightweight::Secrets::MakeNonInteractiveResolver();
                 auto const resolved = ManagedBackup::ResolveConnectionString(*targetProfile, resolver);
                 if (!resolved)
                 {

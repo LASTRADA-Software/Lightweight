@@ -87,8 +87,8 @@ inside a single folder, instead of a one-off file picker:
 - **Status** — the page lists, per profile, whether an archive exists plus
   its size/mtime, and the live state of any in-flight run (queued / running /
   ok / failed, with the error text on failure).
-- **Credential safety** — a profile's password (resolved from its `secretRef`
-  to connect) is redacted to `***` before it is written into an archive's
+- **Credential safety** — a profile's password (decrypted from its `password`
+  field or resolved from its `secretRef` to connect) is redacted to `***` before it is written into an archive's
   `metadata.json`, so archives never carry plaintext credentials.
 
 This replaces the earlier experimental single-file backup/restore dialog and
@@ -134,10 +134,24 @@ cmake --build build --target dbtool-gui
 cmake -S . -B build -DLIGHTWEIGHT_BUILD_GUI=ON -DQt6_DIR=C:/Qt/6.11.0/msvc2022_64/lib/cmake/Qt6
 ```
 
+## Configuration file and passwords
+
+With no profile-store path set in Settings, the GUI locates `dbtool.yml` exactly
+like `dbtool`: the nearest file above the working directory, then above the
+executable's directory, then the per-user file. The startup log line
+`Profile store: <path> (found via <rule>, N profile(s))` shows which one was
+used, and the Settings page shows it as the placeholder path.
+
+Profile passwords follow the dbtool rules in
+[docs/dbtool.md](../../../docs/dbtool.md#profile-passwords): `enc:` values are
+decrypted, and a plaintext `password` is encrypted in place after the first
+successful connect. Managed backups decrypt but never rewrite the file.
+
 ## Running
 
 ```bash
-# Launch with a profile from ~/.config/dbtool/dbtool.yml:
+# Launch; profiles come from the nearest dbtool.yml above the working or
+# executable directory, else the per-user file (see docs/dbtool.md):
 ./build/target/dbtool-gui
 
 # Headless smoke test (uses Qt's offscreen platform — no display needed):

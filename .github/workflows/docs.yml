@@ -40,7 +40,7 @@ jobs:
         run: sudo apt -q update
 
       - name: Install dependencies
-        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc valgrind uuid-dev g++-14 libyaml-cpp-dev doxygen
+        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc valgrind uuid-dev g++-14 libyaml-cpp-dev doxygen libssl-dev
 
       - name: CMake configure
         run: cmake --preset gcc-release -D LIGHTWEIGHT_BUILD_DOCUMENTATION=ON

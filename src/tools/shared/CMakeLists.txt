@@ -7,6 +7,12 @@
 # also a tools-private STATIC library shared between dbtool and dbtool-gui.
 
 add_library(tools_shared STATIC
+    Config/ConfigDiscovery.cpp
+    Config/ConfigDiscovery.hpp
+    Config/ProfileFileEditor.cpp
+    Config/ProfileFileEditor.hpp
+    Config/ProfilePassword.cpp
+    Config/ProfilePassword.hpp
     Config/ProfileStore.cpp
     Config/ProfileStore.hpp
 
@@ -57,6 +63,55 @@ target_link_libraries(tools_shared PRIVATE yaml-cpp::yaml-cpp)
 if(UNIX)
     target_link_libraries(tools_shared PRIVATE ${CMAKE_DL_LIBS})
 endif()
+
+# Profile-password encryption uses only the OS's own cryptography (see
+# Secrets/Crypto/CryptoPrimitives.hpp): exactly one backend per platform.
+target_sources(tools_shared PRIVATE Secrets/Crypto/CryptoPrimitives.hpp)
+if(WIN32)
+    target_sources(tools_shared PRIVATE Secrets/Crypto/CryptoPrimitives_win.cpp)
+    target_link_libraries(tools_shared PRIVATE bcrypt)
+elseif(APPLE)
+    target_sources(tools_shared PRIVATE Secrets/Crypto/CryptoPrimitives_apple.cpp)
+    target_link_libraries(tools_shared PRIVATE "-framework Security")
+else()
+    find_package(OpenSSL REQUIRED COMPONENTS Crypto)
+    target_sources(tools_shared PRIVATE Secrets/Crypto/CryptoPrimitives_openssl.cpp)
+    target_link_libraries(tools_shared PRIVATE OpenSSL::Crypto)
+endif()
+
+# Master key ring for profile-password encryption — see cmake/DbtoolKeyRing.cmake
+# for the two ways CI can supply it (DBTOOL_MASTER_KEYS env var, or a key file
+# via DBTOOL_MASTER_KEYS_FILE). The keys only land in a generated, never-installed
+# header of this build tree; without them the public development key is used.
+target_sources(tools_shared PRIVATE Secrets/KeyRing.cpp Secrets/KeyRing.hpp Secrets/ProfileCipher.cpp Secrets/ProfileCipher.hpp)
+include("${CMAKE_CURRENT_LIST_DIR}/../../../cmake/DbtoolKeyRing.cmake")
+set(DBTOOL_MASTER_KEYS_FILE "$ENV{DBTOOL_MASTER_KEYS_FILE}" CACHE FILEPATH
+    "File holding the dbtool master key ring (id=<64 hex> per line); empty uses DBTOOL_MASTER_KEYS from the environment or the development key")
+dbtool_resolve_key_ring("${DBTOOL_MASTER_KEYS_FILE}" "$ENV{DBTOOL_MASTER_KEYS}" DBTOOL_KEYRING_SPEC DBTOOL_KEYRING_IS_RELEASE _dbtool_keyring_error)
+if(NOT _dbtool_keyring_error STREQUAL "")
+    message(FATAL_ERROR "${_dbtool_keyring_error}")
+endif()
+if(NOT DBTOOL_MASTER_KEYS_FILE STREQUAL "")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${DBTOOL_MASTER_KEYS_FILE}")
+endif()
+dbtool_check_key_ring_downgrade("${DBTOOL_KEYRING_WAS_RELEASE}" "${DBTOOL_KEYRING_IS_RELEASE}" _dbtool_keyring_error)
+if(NOT _dbtool_keyring_error STREQUAL "")
+    message(FATAL_ERROR "${_dbtool_keyring_error}")
+endif()
+if(DBTOOL_KEYRING_IS_RELEASE)
+    set(DBTOOL_KEYRING_WAS_RELEASE TRUE CACHE INTERNAL "This build tree was configured with a CI master key ring")
+    message(STATUS "dbtool: using the CI-provided master key ring")
+else()
+    message(STATUS "dbtool: no master key provided - using the public development key")
+endif()
+# The XOR mask is generated once per build tree so reconfiguring does not force a rebuild.
+if(NOT DEFINED CACHE{DBTOOL_KEYRING_MASK})
+    string(RANDOM LENGTH 64 ALPHABET "0123456789abcdef" _dbtool_mask)
+    set(DBTOOL_KEYRING_MASK "${_dbtool_mask}" CACHE INTERNAL "XOR mask for the embedded dbtool key ring")
+endif()
+configure_file(Secrets/DbtoolKeyRing.inc.in "${CMAKE_CURRENT_BINARY_DIR}/generated/DbtoolKeyRing.inc" @ONLY)
+target_include_directories(tools_shared PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
+unset(DBTOOL_KEYRING_SPEC)
 
 if(NOT WIN32)
     set_target_properties(tools_shared PROPERTIES POSITION_INDEPENDENT_CODE ON)

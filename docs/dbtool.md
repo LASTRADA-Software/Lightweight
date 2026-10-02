@@ -71,7 +71,28 @@ dbtool requires a database connection string, which can be provided in three way
 
 1. **Command-line option**: `--connection-string "..."`
 2. **Environment variable**: `SQL_CONNECTION_STRING` or `ODBC_CONNECTION_STRING`
-3. **Configuration file**: `~/.config/dbtool/dbtool.yml` (Linux) or `%APPDATA%\dbtool\dbtool.yml` (Windows)
+3. **Configuration file**: `dbtool.yml`, located as described below
+
+### Where dbtool finds `dbtool.yml`
+
+The first match wins:
+
+1. `--config <FILE>` (a missing file is an error);
+2. `dbtool.yml` in the current directory or any parent directory — so a project can keep its
+   own `dbtool.yml` at its root and every subdirectory picks it up;
+3. `dbtool.yml` in the directory of the `dbtool` executable or any parent directory — handy for
+   portable installs that ship a config next to the binary;
+4. the per-user file: `~/.config/dbtool/dbtool.yml` (Linux/macOS, honouring `$XDG_CONFIG_HOME`)
+   or `%APPDATA%\dbtool\dbtool.yml` (Windows).
+
+Files found by the upward searches (steps 2 and 3) are only used when they are owned by you or by
+the system (root; on Windows SYSTEM, Administrators or TrustedInstaller). A `dbtool.yml` that
+another user placed in a shared parent directory such as `/tmp` could otherwise redirect dbtool to
+their plugin libraries; such files are skipped with a warning — pass them with `--config` if you
+really mean to use them.
+
+`dbtool list-profiles` shows which file was used and why; `--verbose` prints it for every other
+command. `dbtool-gui` uses the same lookup unless a profile-store path is set in its Settings.
 
 ### Configuration File Format
 
@@ -126,6 +147,73 @@ The effective plugin directory for a given run resolves as: `--plugins-dir`
 CLI option → profile's own `pluginsDir` → top-level `defaultPluginsDir`
 (possibly a list) → current working directory.
 
+### Profile passwords
+
+A profile can carry its password in `dbtool.yml`. dbtool stores it **encrypted**:
+
+```yaml
+profiles:
+  prod:
+    connectionString: "DRIVER={ODBC Driver 18 for SQL Server};Server=db;Database=prod;UID=deploy"
+    password: "enc:v1:q8x0...=="
+```
+
+You never need to produce the `enc:` value by hand:
+
+- **`dbtool add-profile`** prompts for the password and writes the profile with it encrypted (see
+  [add-profile](#add-profile)).
+- **Plaintext is upgraded automatically.** If you write `password: hunter2`, dbtool uses it as is
+  and — once a connection with it has succeeded — rewrites that one value in place as `enc:...`.
+  The rest of the file (comments, ordering, formatting) is left untouched. A password that fails to
+  connect is left alone. If the file is read-only, dbtool warns and carries on. If the file lives
+  in a git repository, dbtool warns that the old plaintext may remain in its history — change the
+  database password in that case.
+
+`password` and `secretRef` are mutually exclusive. `secretRef` (`env:`, `file:`, `stdin:`) remains
+the choice for secrets that must not be in the file at all. `list-profiles` shows each profile's
+`AUTH` as `encrypted`, `plaintext`, `secretRef` or `-`.
+
+#### Security model
+
+Values are encrypted with AES-256-CBC + HMAC-SHA256 (encrypt-then-MAC) using only the operating
+system's cryptography (Windows CNG, OpenSSL libcrypto on Linux, CommonCrypto on macOS). The master
+key is built into official dbtool / dbtool-gui binaries by CI; nothing on the user's machine is
+needed, so the same `dbtool.yml` works on every machine.
+
+| Someone who has… | can read the password? |
+|---|---|
+| only the `dbtool.yml` (repository, share, ticket, screenshot) | No |
+| the dbtool source code | No — the key is not in the repository |
+| modified an `enc:` value | No — tampering is detected and the connection is refused |
+| an official dbtool / dbtool-gui binary | **Yes** — the key is embedded in it |
+
+In other words, the encryption keeps passwords out of plain sight in configuration files; it is
+not a vault. Use `secretRef` when holders of the binary must not be able to recover a password.
+
+Builds made without the CI key (local developer builds, forks, distribution packages) use a public
+development key and write `enc:dev:...` values. Official builds refuse those with a clear message;
+re-run `dbtool add-profile --force`, or replace the value with the plaintext password so it is
+re-encrypted on the next connect.
+
+#### Providing the master key at build time
+
+The key ring is read when CMake configures the project, in exactly one of two ways:
+
+| Input | Typical use |
+|---|---|
+| `DBTOOL_MASTER_KEYS` environment variable: `id=<64 hex>[,id=<64 hex>...]` | GitHub Actions secret exported to the configure step |
+| `-DDBTOOL_MASTER_KEYS_FILE=<path>` (or the env var of the same name): a file with one `id=<64 hex>` per line | GitLab "File" variables; package ports (vcpkg/Conan) that strip the environment but forward CMake options |
+
+Generate a key with `openssl rand -hex 32`. Ids are `[a-z0-9]`, at most 16 characters; `dev` is
+reserved. The first entry encrypts and every entry decrypts, so to **rotate**, prepend a new key
+(`v2=...,v1=...`), ship that build, then re-encrypt profiles at leisure. Only the file *path* is
+stored in `CMakeCache.txt`; the keys only land in a generated header inside the build tree, which
+is never installed. Configuring with neither input prints
+`dbtool: no master key provided - using the public development key`. A build tree that was once
+configured with a key ring refuses to be re-configured without one (so an automatic re-configure
+cannot silently produce a development-key build); use a fresh build directory, or
+`-U DBTOOL_KEYRING_WAS_RELEASE`, when you really want that.
+
 ### Inspecting configured profiles
 
 Use `list-profiles` to enumerate every profile parsed from the configuration
@@ -135,16 +223,15 @@ any platform. Values of `PWD=` / `Password=` inside a profile's raw
 
 ```bash
 $ dbtool list-profiles
-Profiles (from /home/me/.config/dbtool/dbtool.yml):
+Profiles (from /home/me/project/dbtool.yml, found via current directory):
 
-NAME  DEFAULT  CONNECTION                            SCHEMA  PLUGINSDIR
-prod  *        DRIVER={ODBC Driver 18 for SQL Se...  dbo     ./migrations
-dev            DRIVER=SQLite3;Database=dev.db                ./dev-plugins
+NAME  DEFAULT  CONNECTION                            AUTH       SCHEMA  PLUGINSDIR
+prod  *        DRIVER={ODBC Driver 18 for SQL Se...  encrypted  dbo     ./migrations
+dev            DRIVER=SQLite3;Database=dev.db        -                  ./dev-plugins
 ```
 
-Use `--config <FILE>` to inspect a non-default configuration file. With no
-config file present at the default location, `list-profiles` prints a
-friendly notice and exits successfully.
+Use `--config <FILE>` to inspect a non-default configuration file. When no
+config file is found, `list-profiles` prints where it looked and exits successfully.
 
 ### Database-Specific Connection Strings
 
@@ -394,6 +481,33 @@ Lists the profiles defined in the configuration file (see [Configuration](#confi
 dbtool list-profiles
 ```
 
+### add-profile
+
+Adds a profile to `dbtool.yml` (the file found as described in
+[Where dbtool finds `dbtool.yml`](#where-dbtool-finds-dbtoolyml), or `--config`; created if missing)
+with its password encrypted. Existing comments and formatting are preserved.
+
+```bash
+# Prompts for the password (no echo) and stores it encrypted
+dbtool add-profile --name prod --dsn ACME_PROD --uid deploy --set-default
+
+# Scripted: the password is read from stdin
+printf '%s\n' "$DB_PASSWORD" | dbtool add-profile --name ci \
+    --connection-string "DRIVER={PostgreSQL Unicode};Server=db;Database=app;Uid=ci"
+```
+
+| Option | Meaning |
+|---|---|
+| `--name <NAME>` | Profile name (required) |
+| `--connection-string <STR>` / `--dsn <DSN>` | Exactly one is required. A `PWD=` inside the connection string is moved into the encrypted `password` field |
+| `--uid <UID>` | User name for a DSN profile |
+| `--schema <S>`, `--plugins-dir <DIR>` | Stored on the profile |
+| `--no-password` | Store the profile without a password |
+| `--set-default` | Make it the `defaultProfile` |
+| `--force` | Replace an existing profile of the same name |
+
+Passwords are never accepted as command-line arguments.
+
 ### resolve-secret \<REF\>
 
 Resolves a single secret reference and prints it to stdout, without connecting to any database:
@@ -490,7 +604,7 @@ common table is identical and both archives hold the same set of tables, or `1` 
 |--------|-------------|---------|
 | `--connection-string <STR>` | ODBC connection string | |
 | `--schema <NAME>` | Database schema to use | |
-| `--config <FILE>` | Path to configuration file | `~/.config/dbtool/dbtool.yml` |
+| `--config <FILE>` | Path to configuration file | nearest `dbtool.yml` upward, then the per-user file (see [Configuration](#configuration)) |
 | `--plugins-dir <DIR>` | Directory to scan for migration plugins | `.` (current directory) |
 | `--output <FILE>` | Output file for backup | |
 | `--input <FILE>` | Input file for restore | |

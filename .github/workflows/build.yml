@@ -80,7 +80,7 @@ jobs:
       - name: "update APT database"
         run: sudo apt -q update
       - name: "install dependencies"
-        run: sudo apt install -y cmake ninja-build doxygen g++-14 catch2 unixodbc-dev sqlite3 libsqlite3-dev uuid-dev libyaml-cpp-dev libzip-dev
+        run: sudo apt install -y cmake ninja-build doxygen g++-14 catch2 unixodbc-dev sqlite3 libsqlite3-dev uuid-dev libyaml-cpp-dev libzip-dev libssl-dev
       - name: "cmake"
         run: cmake --preset gcc-release -D LIGHTWEIGHT_BUILD_DOCUMENTATION=ON -D LIGHTWEIGHT_DOCS_WARN_AS_ERROR=ON
       - name: "check documentation"
@@ -112,7 +112,7 @@ jobs:
           which clang-tidy-${{ env.CLANG_TOOLS_VERSION }}
           which run-clang-tidy-${{ env.CLANG_TOOLS_VERSION }}
       - name: "install dependencies"
-        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev gcc-14 libzip-dev
+        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev gcc-14 libzip-dev libssl-dev
       - name: "cmake"
         run: |
           cmake --preset clang-debug \
@@ -597,7 +597,7 @@ jobs:
           CC_VERSION=$( echo "${{ matrix.compiler }}" | awk '{ print $2; }')
           echo "CC_VERSION=${CC_VERSION}" >> "$GITHUB_OUTPUT"
       - name: "install dependencies"
-        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev libzip-dev
+        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev libzip-dev libssl-dev
       - name: Install GCC
         if: ${{ startsWith(matrix.compiler, 'GCC') }}
         run: sudo apt install -y g++-${{ steps.extract_matrix.outputs.CC_VERSION }}
@@ -716,7 +716,7 @@ jobs:
           sudo apt install -y \
             cmake ninja-build catch2 \
             unixodbc-dev libsqliteodbc \
-            uuid-dev libyaml-cpp-dev libzip-dev \
+            uuid-dev libyaml-cpp-dev libzip-dev libssl-dev \
             python3-yaml \
             libgl1-mesa-dev libegl1 libxkbcommon0 libfontconfig1
       - name: "install Clang 20"
@@ -785,7 +785,7 @@ jobs:
         run: |
           DDL2CPP=/usr/local/bin/ddl2cpp ./src/tools/test_chinook.sh --test-env=mssql2022
       - name: "Install build dependencies"
-        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev g++-14 libstdc++-14-dev libzip-dev
+        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev g++-14 libstdc++-14-dev libzip-dev libssl-dev
       - name: "Configure cmake"
         run: cmake --preset gcc-release -B build -D CMAKE_CXX_COMPILER=g++-14 -D LIGHTWEIGHT_BUILD_MODULES=ON
       - name: "Build chinook example"
@@ -807,7 +807,7 @@ jobs:
       - name: "Install build dependencies"
         run: |
           sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev \
-            libsqliteodbc uuid-dev libyaml-cpp-dev g++-14 libstdc++-14-dev libzip-dev odbcinst
+            libsqliteodbc uuid-dev libyaml-cpp-dev g++-14 libstdc++-14-dev libzip-dev libssl-dev odbcinst
       - name: "Install Tracy capture dependencies"
         run: sudo apt install -y libtbb-dev libdebuginfod-dev libdbus-1-dev pkg-config
       # tracy-capture / tracy-csvexport are the headless half of Tracy: capture connects to the
@@ -1107,7 +1107,7 @@ jobs:
         # Rename the libsqliteodbc driver section to match the Windows driver
         # name so the shared .test-env.yml works on both platforms.
         run: |
-          sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev libzip-dev
+          sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev libzip-dev libssl-dev
           sudo sed -i 's/^\[SQLite3\]$/[SQLite3 ODBC Driver]/' /etc/odbcinst.ini
       - name: "cmake"
         run: |
@@ -1149,7 +1149,7 @@ jobs:
         # Rename the libsqliteodbc driver section to match the Windows driver
         # name so the shared .test-env.yml works on both platforms.
         run: |
-          sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev libzip-dev lcov odbc-postgresql python3-yaml
+          sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev libzip-dev libssl-dev lcov odbc-postgresql python3-yaml
           sudo sed -i 's/^\[SQLite3\]$/[SQLite3 ODBC Driver]/' /etc/odbcinst.ini
       - name: "Install MS SQL ODBC drivers (17 + 18)"
         # Both driver generations, so coverage includes the Driver 17 and

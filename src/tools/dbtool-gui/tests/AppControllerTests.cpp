@@ -22,12 +22,15 @@
 
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <string>
 
+#include <QtCore/QSettings>
 #include <QtCore/QString>
 #include <QtCore/QStringList>
 #include <QtCore/QTemporaryDir>
 #include <QtTest/QSignalSpy>
+#include <Secrets/ProfileCipher.hpp>
 
 namespace
 {
@@ -221,4 +224,90 @@ TEST_CASE("the busy guard between the three runners is mutual", "[dbtool-gui][Ap
 
     REQUIRE((done.count() > 0 || done.wait(30000))); // drain the run before teardown
     managed->setBackupFolder(QString {});
+}
+
+namespace
+{
+
+/// SQLite ODBC driver name as registered on this platform.
+constexpr char const* SqliteDriver =
+#ifdef _WIN32
+    "SQLite3 ODBC Driver";
+#else
+    "SQLite3";
+#endif
+
+/// Reads a whole file as text.
+std::string ReadFile(std::filesystem::path const& path)
+{
+    std::ifstream in(path, std::ios::binary);
+    return { std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>() };
+}
+
+} // namespace
+
+TEST_CASE("connectToProfile encrypts a working plaintext password in place", "[dbtool-gui][AppController][password]")
+{
+    QTemporaryDir dir;
+    auto const root = std::filesystem::path { dir.path().toStdString() };
+    auto const configPath = root / "dbtool.yml";
+    std::ofstream(configPath, std::ios::binary)
+        << "# hand-written\nprofiles:\n  p:\n    connectionString: \"Driver={" << SqliteDriver
+        << "};Database=" << (root / "gui-password.db").generic_string() << "\"\n    password: hunter2 # old\n";
+
+    DbtoolGui::AppController controller;
+    QStringList log;
+    QObject::connect(&controller, &DbtoolGui::AppController::logLine, [&log](QString const& line, DbtoolGui::LogLevel) {
+        log.append(line);
+    });
+    controller.attachLogSink();
+    REQUIRE(controller.loadProfiles(QString::fromStdString(configPath.string())));
+    controller.setConnectionMode(QStringLiteral("profile"));
+    controller.setCurrentProfile(QStringLiteral("p"));
+    REQUIRE(controller.connectToProfile());
+
+    INFO("controller log:\n" << log.join(QLatin1Char('\n')).toStdString());
+    auto const text = ReadFile(configPath);
+    CHECK(text.starts_with("# hand-written\n"));
+    CHECK(text.contains("# old"));
+    CHECK(text.contains("password: \"enc:"));
+    CHECK_FALSE(text.contains("hunter2"));
+}
+
+TEST_CASE("startup discovers dbtool.yml above the working directory", "[dbtool-gui][AppController][discovery]")
+{
+    QSettings().remove(QStringLiteral("config/profileStorePath"));
+    QTemporaryDir dir;
+    auto const root = std::filesystem::path { dir.path().toStdString() };
+    std::filesystem::create_directories(root / "sub");
+    std::ofstream(root / "dbtool.yml", std::ios::binary) << "profiles:\n  found:\n    connectionString: \"Driver=x\"\n";
+
+    auto const previous = std::filesystem::current_path();
+    std::filesystem::current_path(root / "sub");
+    DbtoolGui::AppController controller;
+    std::filesystem::current_path(previous);
+
+    CHECK(std::filesystem::path { controller.profilePath().toStdString() } == root / "dbtool.yml");
+    CHECK(controller.profiles()->rowCount() == 1);
+}
+
+TEST_CASE("backup and restore use the connection string with the decrypted password",
+          "[dbtool-gui][AppController][password]")
+{
+    QTemporaryDir dir;
+    auto const root = std::filesystem::path { dir.path().toStdString() };
+    auto const configPath = root / "dbtool.yml";
+    auto const encrypted = Lightweight::Secrets::ProfileCipher::Builtin().Encrypt("s3cr3t");
+    REQUIRE(encrypted.has_value());
+    std::ofstream(configPath, std::ios::binary)
+        << "profiles:\n  p:\n    connectionString: \"Driver={" << SqliteDriver
+        << "};Database=" << (root / "gui-backup.db").generic_string() << "\"\n    password: \"" << *encrypted << "\"\n";
+
+    DbtoolGui::AppController controller;
+    REQUIRE(controller.loadProfiles(QString::fromStdString(configPath.string())));
+    controller.setConnectionMode(QStringLiteral("profile"));
+    controller.setCurrentProfile(QStringLiteral("p"));
+    REQUIRE(controller.connectToProfile());
+
+    CHECK(controller.backupRunner()->connectionString().contains(QStringLiteral("PWD=s3cr3t")));
 }

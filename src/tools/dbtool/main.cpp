@@ -14,6 +14,7 @@
 #include <Lightweight/Utils.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <chrono>
 #include <cstdint>
@@ -24,6 +25,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <optional>
 #include <print>
 #include <ranges>
 #include <set>
@@ -33,11 +35,16 @@
 #include <variant>
 #include <vector>
 
+#include <Config/ConfigDiscovery.hpp>
+#include <Config/ProfileFileEditor.hpp>
+#include <Config/ProfilePassword.hpp>
 #include <Config/ProfileStore.hpp>
 #include <PluginDiscovery.hpp>
 #include <PluginIngestion.hpp>
 #include <PluginLoader.hpp>
+#include <Secrets/ProfileCipher.hpp>
 #include <Secrets/SecretResolver.hpp>
+#include <Secrets/backends/StdinBackend.hpp>
 #include <core/tui/SgrBuilder.hpp>
 #include <core/tui/TerminalOutput.hpp>
 
@@ -206,6 +213,11 @@ void PrintUsage()
                  c.command, c.reset, c.param, c.reset);
     std::println("  {}list-profiles{}            Lists profiles from the configuration file (see --config)",
                  c.command, c.reset);
+    std::println("  {}add-profile{}              Adds a profile to dbtool.yml with its password encrypted:",
+                 c.command, c.reset);
+    std::println("                            --name <NAME> (--connection-string <STR> | --dsn <DSN> [--uid <UID>])");
+    std::println("                            [--schema <S>] [--plugins-dir <DIR>] [--no-password] [--set-default]");
+    std::println("                            [--force]. The password is prompted for (or read from stdin).");
     std::println("");
 
     // Descriptions start at column 29 (longest option is 27 chars + 2 space minimum gap)
@@ -221,8 +233,9 @@ void PrintUsage()
     std::println("                            on SQL Server the login's server-side DEFAULT_SCHEMA is what");
     std::println("                            applies — Lightweight does not switch it per-session). For");
     std::println("                            backup/restore the value also qualifies table names in the archive.");
-    std::println("  {}--config{} {}<FILE>{}           Path to configuration file",
+    std::println("  {}--config{} {}<FILE>{}           Config file (default: nearest dbtool.yml above the current",
                  c.option, c.reset, c.param, c.reset);
+    std::println("                            or executable directory, then the per-user config)");
     std::println("  {}--profile{} {}<NAME>{}          Named profile from the config file (default: the file's defaultProfile)",
                  c.option, c.reset, c.param, c.reset);
     std::println("  {}--output{} {}<FILE>{}           Output file for backup",
@@ -347,6 +360,10 @@ void PrintExamples()
     std::println("  {}# List configured connection profiles (no DB connection needed):{}", c.example, c.reset);
     std::println("  {}dbtool list-profiles{}", c.code, c.reset);
     std::println("");
+
+    std::println("  {}# Add a profile; the password is prompted for and stored encrypted:{}", c.example, c.reset);
+    std::println("  {}dbtool add-profile --name prod --dsn ACME_PROD --uid deploy --set-default{}", c.code, c.reset);
+    std::println("");
     // clang-format on
 }
 
@@ -369,7 +386,9 @@ struct Options
     std::vector<std::filesystem::path> pluginsDir;
     SqlConnectionString connectionString;
     std::string configFile;
-    std::string profileName; ///< Named profile selected via --profile (empty = ProfileStore default)
+    std::string profileName;                  ///< Named profile selected via --profile (empty = ProfileStore default)
+    std::filesystem::path resolvedConfigPath; ///< Config file the profile was loaded from
+    std::optional<Lightweight::Config::Profile> selectedProfile; ///< Profile applied to this run, if any
     std::filesystem::path outputFile;
     std::filesystem::path inputFile;
     std::filesystem::path leftFile;     ///< First archive for `backup-diff` (--left)
@@ -395,28 +414,38 @@ struct Options
 
     /// @brief `--up-to <X>` for migration commands. Empty = no bound.
     std::string upTo;
+
+    // `add-profile` inputs.
+    std::string newProfileName; ///< --name
+    std::string dsn;            ///< --dsn
+    std::string uid;            ///< --uid
+    bool noPassword = false;    ///< --no-password: store the profile without a password
+    bool setDefault = false;    ///< --set-default: make the new profile the default
+    bool force = false;         ///< --force: replace an existing profile of the same name
 };
 
-/// Flattens a parsed profile into an ODBC connection string, mirroring the legacy
-/// behaviour of `ApplyProfileToOptions`: prefer an explicit connection string, fall
-/// back to a DSN-flavoured profile (which is converted via `SqlConnectionDataSource`).
-///
-/// Returns an empty connection string when the profile carries neither — callers should
-/// fail with a meaningful error in that case.
-[[nodiscard]] SqlConnectionString ProfileToConnectionString(Lightweight::Config::Profile const& profile)
+/// Commands that never read a connection profile; `ApplyProfileToOptions` is skipped for them.
+inline constexpr auto CommandsWithoutProfile = std::array<std::string_view, 7> {
+    "", "help", "show-examples", "add-profile", "resolve-secret", "list-profiles", "backup-diff",
+};
+
+/// Whether `command` reads a connection profile from dbtool.yml.
+/// @param command The parsed command name.
+/// @return False for the commands in `CommandsWithoutProfile`.
+[[nodiscard]] bool CommandUsesProfile(std::string_view command) noexcept
 {
-    if (!profile.connectionString.empty())
-        return SqlConnectionString { profile.connectionString };
-    if (!profile.dsn.empty())
-    {
-        SqlConnectionDataSource ds {
-            .datasource = profile.dsn,
-            .username = profile.uid,
-            .password = {},
-        };
-        return ds.ToConnectionString();
-    }
-    return SqlConnectionString {};
+    return !std::ranges::contains(CommandsWithoutProfile, command);
+}
+
+/// Tells the user about dbtool.yml files that discovery ignored because another
+/// user owns them (see `Config::IsTrustedConfigFile`).
+/// @param discovered Result of `Config::FindConfigFile`.
+void WarnAboutSkippedConfigs(Lightweight::Config::DiscoveredConfig const& discovered)
+{
+    for (auto const& path: discovered.skipped)
+        std::println(std::cerr,
+                     "Warning: ignoring {} because it is owned by another user; pass it with --config to use it anyway.",
+                     path.string());
 }
 
 /// Loads a profile from a `ProfileStore` and fills `options` fields that were not
@@ -424,9 +453,13 @@ struct Options
 /// (top-level `PluginsDir` / `ConnectionString` / `Schema`) and the multi-profile
 /// shape (`profiles: {name: {...}}`) via `ProfileStore::LoadOrDefault`.
 ///
-/// When `--config` is given but points to a missing file we treat that as a hard
-/// error, matching the old loader's behaviour. A missing *default* config is not
-/// an error — callers may rely entirely on CLI flags / environment variables.
+/// The file is located by `Config::FindConfigFile`: `--config`, then the nearest
+/// dbtool.yml above the working directory, then above the executable, then the
+/// per-user default. A missing `--config` file is a hard error; finding no file at
+/// all is not — callers may rely entirely on CLI flags / environment variables.
+///
+/// The profile's password is deliberately *not* resolved here (see
+/// `ApplyProfilePassword`): commands that never connect must not prompt for it.
 void ApplyProfileToOptions(Options& options)
 {
     namespace Cfg = Lightweight::Config;
@@ -440,22 +473,18 @@ void ApplyProfileToOptions(Options& options)
     if (options.connectionStringSet && options.profileName.empty())
         return;
 
-    std::filesystem::path configPath;
-    if (!options.configFile.empty())
+    auto const discovered = Cfg::FindConfigFile(Cfg::DefaultDiscoveryInputs(options.configFile));
+    if (!discovered)
     {
-        configPath = options.configFile;
-        if (!std::filesystem::exists(configPath))
-        {
-            std::println(std::cerr, "Error: Config file not found: {}", configPath.string());
-            std::exit(EXIT_FAILURE);
-        }
+        std::println(std::cerr, "Error: {}", discovered.error());
+        std::exit(EXIT_FAILURE);
     }
-    else
-    {
-        configPath = Cfg::ProfileStore::DefaultPath();
-        if (!std::filesystem::exists(configPath))
-            return; // No config at all — pure CLI / env mode.
-    }
+    WarnAboutSkippedConfigs(*discovered);
+    if (discovered->source == Cfg::ConfigSource::None)
+        return; // No config at all — pure CLI / env mode.
+    auto const& configPath = discovered->path;
+    if (options.verbose)
+        std::println(std::cerr, "Using config: {} (found via {})", configPath.string(), Cfg::ToString(discovered->source));
 
     auto storeResult = Cfg::ProfileStore::LoadOrDefault(configPath);
     if (!storeResult)
@@ -492,17 +521,73 @@ void ApplyProfileToOptions(Options& options)
     if (!profile->schema.empty() && options.schema.empty())
         options.schema = profile->schema;
 
-    if (!options.connectionStringSet)
+    if (!options.connectionStringSet && profile->HasConnection())
     {
         // Profiles keyed by DSN are flattened into an ODBC connection string so the
         // rest of dbtool (which speaks `SqlConnectionString` everywhere) sees a
-        // uniform shape. Secret resolution lands in a follow-up; for now the profile's
-        // `secretRef` is ignored and the driver is expected to prompt or fall back to
-        // integrated auth.
-        auto const cs = ProfileToConnectionString(*profile);
-        if (!cs.value.empty())
-            options.connectionString = cs;
+        // uniform shape. The password is added later by `ApplyProfilePassword`.
+        options.connectionString = SqlConnectionString { std::format("{}", profile->ToConnectInfo()) };
+        options.selectedProfile = *profile;
+        options.resolvedConfigPath = configPath;
     }
+}
+
+/// Resolves the selected profile's password (decrypting `enc:` values, or via
+/// `secretRef`) and folds it into `options.connectionString`. Called only for
+/// commands that open a database connection.
+/// @param options Parsed options; updated in place.
+/// @return Where the password came from, or an error naming the profile.
+[[nodiscard]] std::expected<Lightweight::Config::PasswordOrigin, std::string> ApplyProfilePassword(Options& options)
+{
+    namespace Cfg = Lightweight::Config;
+    if (!options.selectedProfile)
+        return Cfg::PasswordOrigin::None;
+
+    auto const& profile = *options.selectedProfile;
+    auto const resolver = Lightweight::Secrets::MakeDefaultResolver();
+    return Cfg::ResolveProfilePassword(profile, Lightweight::Secrets::ProfileCipher::Builtin(), resolver)
+        .transform([&](Cfg::ResolvedPassword const& password) {
+            if (!password.value.empty())
+                options.connectionString = SqlConnectionString { std::format("{}", profile.ToConnectInfo(password.value)) };
+            return password.origin;
+        });
+}
+
+/// Encrypts the selected profile's plaintext password in its dbtool.yml once a
+/// probe connection has proven that it works. Never fails the command: a failed
+/// probe is left for the command itself to report, and a failed rewrite only warns.
+/// @param options Options after `ApplyProfilePassword`.
+void EncryptPlaintextPasswordIfConnectable(Options const& options)
+{
+    namespace Cfg = Lightweight::Config;
+    if (!options.selectedProfile)
+        return;
+    auto const& profile = *options.selectedProfile;
+    {
+        auto probe = SqlConnection { std::nullopt };
+        if (!probe.Connect(options.connectionString))
+            return;
+    }
+
+    auto const upgraded =
+        Cfg::UpgradePlaintextPassword(options.resolvedConfigPath, profile, Lightweight::Secrets::ProfileCipher::Builtin());
+    if (!upgraded)
+    {
+        std::println(std::cerr,
+                     "Warning: could not encrypt the plaintext password of profile '{}': {}",
+                     profile.name,
+                     upgraded.error());
+        return;
+    }
+    std::println(std::cerr,
+                 "Encrypted the plaintext password of profile '{}' in {}.",
+                 profile.name,
+                 options.resolvedConfigPath.string());
+    if (upgraded->insideGitWorkTree)
+        std::println(std::cerr,
+                     "Warning: {} is inside a git work tree; the old plaintext password may remain in its history. "
+                     "Consider rotating the database password.",
+                     options.resolvedConfigPath.string());
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -718,6 +803,42 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
         {
             options.yes = true;
         }
+        else if (arg == "--name")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --name requires an argument" };
+            options.newProfileName = argv[++i];
+        }
+        else if (arg == "--dsn")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --dsn requires an argument" };
+            options.dsn = argv[++i];
+        }
+        else if (arg == "--uid")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --uid requires an argument" };
+            options.uid = argv[++i];
+        }
+        else if (arg == "--no-password")
+        {
+            options.noPassword = true;
+        }
+        else if (arg == "--set-default")
+        {
+            options.setDefault = true;
+        }
+        else if (arg == "--force")
+        {
+            options.force = true;
+        }
+        else if (arg == "--password" || arg.starts_with("--password=") || arg == "--pwd")
+        {
+            return std::unexpected { std::string {
+                "Error: passwords are never accepted on the command line; dbtool add-profile prompts for it "
+                "(or reads it from stdin)" } };
+        }
         else if (arg == "--up-to")
         {
             if (i + 1 >= argc)
@@ -799,7 +920,7 @@ bool SetupConnectionString(SqlConnectionString const& connectionString)
     {
         std::println(std::cerr,
                      "Error: No connection string provided. Use --connection-string, set SQL_CONNECTION_STRING "
-                     "environment variable, or configure it in ~/.config/dbtool/dbtool.yml.\n");
+                     "environment variable, or configure a profile in dbtool.yml (see `dbtool list-profiles`).\n");
         return false;
     }
     TraceBreadcrumb("SetupConnectionString: looking up default connection string");
@@ -828,6 +949,17 @@ bool SetupConnectionString(SqlConnectionString const& connectionString)
     if (s.size() > MaxConnectionWidth)
         s = std::format("{}...", std::string_view { s }.substr(0, MaxConnectionWidth - 3));
     return s;
+}
+
+/// Describes how a profile authenticates for the `AUTH` column of `list-profiles`,
+/// without revealing the secret itself.
+[[nodiscard]] std::string_view BuildProfileAuthColumn(Lightweight::Config::Profile const& profile)
+{
+    if (!profile.password.empty())
+        return Lightweight::Secrets::ProfileCipher::IsEncrypted(profile.password) ? "encrypted" : "plaintext";
+    if (!profile.secretRef.empty())
+        return "secretRef";
+    return "-";
 }
 
 /// Joins a profile's effective plugin search directories into a single
@@ -867,41 +999,36 @@ int ListProfiles(Options const& options)
     struct LoadedConfig
     {
         Cfg::ProfileStore store;
-        std::filesystem::path path;
-        bool fileExists;
+        Cfg::DiscoveredConfig discovered;
     };
 
-    auto loadConfig = [&]() -> std::expected<LoadedConfig, std::string> {
-        std::filesystem::path path =
-            options.configFile.empty() ? Cfg::ProfileStore::DefaultPath() : std::filesystem::path { options.configFile };
-
-        if (!std::filesystem::exists(path))
-        {
-            if (!options.configFile.empty())
-                return std::unexpected(std::format("Config file not found: {}", path.string()));
-            return LoadedConfig { .store = {}, .path = std::move(path), .fileExists = false };
-        }
-
-        return Cfg::ProfileStore::LoadOrDefault(path)
-            .transform([&path](Cfg::ProfileStore s) {
-                return LoadedConfig { .store = std::move(s), .path = std::move(path), .fileExists = true };
-            })
-            .transform_error([](std::string e) { return std::format("Loading config file: {}", e); });
-    };
-
-    auto const loadedConfig = loadConfig();
+    auto const loadedConfig =
+        Cfg::FindConfigFile(Cfg::DefaultDiscoveryInputs(options.configFile))
+            .and_then([](Cfg::DiscoveredConfig discovered) -> std::expected<LoadedConfig, std::string> {
+                WarnAboutSkippedConfigs(discovered);
+                if (discovered.source == Cfg::ConfigSource::None)
+                    return LoadedConfig { .store = {}, .discovered = std::move(discovered) };
+                return Cfg::ProfileStore::LoadOrDefault(discovered.path)
+                    .transform([&](Cfg::ProfileStore s) {
+                        return LoadedConfig { .store = std::move(s), .discovered = std::move(discovered) };
+                    })
+                    .transform_error([](std::string e) { return std::format("Loading config file: {}", e); });
+            });
     if (!loadedConfig)
     {
         std::println(std::cerr, "Error: {}", loadedConfig.error());
         return EXIT_FAILURE;
     }
-    if (!loadedConfig->fileExists)
+    if (loadedConfig->discovered.source == Cfg::ConfigSource::None)
     {
-        std::println("No profile configuration found (looked at {}).", loadedConfig->path.string());
+        std::println("No profile configuration found (searched for {} above the current and executable "
+                     "directories, then {}).",
+                     Cfg::ConfigFileName,
+                     loadedConfig->discovered.path.string());
         return EXIT_SUCCESS;
     }
     auto const& store = loadedConfig->store;
-    auto const& configPath = loadedConfig->path;
+    auto const& configPath = loadedConfig->discovered.path;
     if (store.Empty())
     {
         std::println("No profiles configured in {}.", configPath.string());
@@ -918,6 +1045,7 @@ int ListProfiles(Options const& options)
         std::string name;
         std::string defaultMarker;
         std::string connection;
+        std::string auth;
         std::string schema;
         std::string pluginsDir;
     };
@@ -929,6 +1057,7 @@ int ListProfiles(Options const& options)
             .name = profile.name,
             .defaultMarker = profile.name == defaultName ? std::string { "*" } : std::string {},
             .connection = BuildProfileConnectionColumn(profile),
+            .auth = std::string { BuildProfileAuthColumn(profile) },
             .schema = profile.schema,
             .pluginsDir = BuildProfilePluginsDirColumn(store, profile),
         });
@@ -943,13 +1072,14 @@ int ListProfiles(Options const& options)
     auto const nameWidth = widthOf(&Row::name, "NAME");
     auto const defaultWidth = widthOf(&Row::defaultMarker, "DEFAULT");
     auto const connectionWidth = widthOf(&Row::connection, "CONNECTION");
+    auto const authWidth = widthOf(&Row::auth, "AUTH");
     auto const schemaWidth = widthOf(&Row::schema, "SCHEMA");
 
     auto const c = IsStdoutTerminal() ? HelpColors::Colored() : HelpColors::Plain();
 
-    std::println("Profiles (from {}):", configPath.string());
+    std::println("Profiles (from {}, found via {}):", configPath.string(), Cfg::ToString(loadedConfig->discovered.source));
     std::println("");
-    std::println("{}{:<{}}  {:<{}}  {:<{}}  {:<{}}  {}{}",
+    std::println("{}{:<{}}  {:<{}}  {:<{}}  {:<{}}  {:<{}}  {}{}",
                  c.heading,
                  "NAME",
                  nameWidth,
@@ -957,23 +1087,126 @@ int ListProfiles(Options const& options)
                  defaultWidth,
                  "CONNECTION",
                  connectionWidth,
+                 "AUTH",
+                 authWidth,
                  "SCHEMA",
                  schemaWidth,
                  "PLUGINSDIR",
                  c.reset);
 
     for (auto const& row: rows)
-        std::println("{:<{}}  {:<{}}  {:<{}}  {:<{}}  {}",
+        std::println("{:<{}}  {:<{}}  {:<{}}  {:<{}}  {:<{}}  {}",
                      row.name,
                      nameWidth,
                      row.defaultMarker,
                      defaultWidth,
                      row.connection,
                      connectionWidth,
+                     row.auth,
+                     authWidth,
                      row.schema,
                      schemaWidth,
                      row.pluginsDir);
 
+    return EXIT_SUCCESS;
+}
+
+/// Splits an inline `PWD=`/`Password=` attribute out of a connection string so the
+/// password can be stored encrypted instead of in clear inside the connection string.
+/// @param connectionString Connection string as typed by the user.
+/// @return The connection string without the password, and the password (empty if none).
+[[nodiscard]] std::pair<std::string, std::string> SplitInlinePassword(std::string const& connectionString)
+{
+    auto attributes = ParseConnectionString(SqlConnectionString { connectionString });
+    auto password = std::string {};
+    for (auto const* key: { "PWD", "PASSWORD" })
+    {
+        if (auto const node = attributes.extract(key); !node.empty())
+            password = node.mapped();
+    }
+    if (password.empty())
+        return { connectionString, {} };
+    return { BuildConnectionString(attributes).value, std::move(password) };
+}
+
+/// Implements `add-profile`: writes a new profile into dbtool.yml with its password
+/// encrypted, keeping the rest of the file (comments included) untouched. The
+/// password is read from a no-echo prompt, or one line of stdin when piped — never argv.
+int AddProfileCommand(Options const& options)
+{
+    namespace Cfg = Lightweight::Config;
+
+    if (options.newProfileName.empty())
+    {
+        std::println(std::cerr, "Error: add-profile requires --name <NAME>.");
+        return EXIT_FAILURE;
+    }
+    if (options.connectionStringSet == !options.dsn.empty()) // both, or neither
+    {
+        std::println(std::cerr, "Error: add-profile requires exactly one of --connection-string or --dsn.");
+        return EXIT_FAILURE;
+    }
+
+    auto const target = options.configFile.empty()
+                            ? Cfg::FindConfigFile(Cfg::DefaultDiscoveryInputs()).transform([](Cfg::DiscoveredConfig found) {
+                                  return std::move(found.path);
+                              })
+                            : std::expected<std::filesystem::path, std::string> { options.configFile };
+    if (!target)
+    {
+        std::println(std::cerr, "Error: {}", target.error());
+        return EXIT_FAILURE;
+    }
+
+    auto [connectionString, password] = options.connectionStringSet ? SplitInlinePassword(options.connectionString.value)
+                                                                    : std::pair<std::string, std::string> {};
+    if (!password.empty())
+        std::println(std::cerr, "Note: the password in --connection-string will be stored encrypted instead.");
+    else if (!options.noPassword)
+    {
+        auto entered = Lightweight::Secrets::StdinBackend {}.Read(options.newProfileName);
+        if (!entered)
+        {
+            std::println(std::cerr, "Error: no password was entered (use --no-password for a profile without one).");
+            return EXIT_FAILURE;
+        }
+        password = std::move(*entered);
+    }
+
+    auto newProfile = Cfg::NewProfile {
+        .name = options.newProfileName,
+        .connectionString = std::move(connectionString),
+        .dsn = options.dsn,
+        .uid = options.uid,
+        .schema = options.schema,
+        .pluginsDir = options.pluginsDirSet ? options.pluginsDir.front().string() : std::string {},
+        .password = {},
+    };
+    if (!password.empty())
+    {
+        auto encrypted = Lightweight::Secrets::ProfileCipher::Builtin().Encrypt(password);
+        if (!encrypted)
+        {
+            std::println(std::cerr, "Error: {}", encrypted.error());
+            return EXIT_FAILURE;
+        }
+        newProfile.password = std::move(*encrypted);
+    }
+
+    auto const replace = options.force ? Cfg::ReplaceExisting::Yes : Cfg::ReplaceExisting::No;
+    auto const written = Cfg::EditConfigFile(*target, [&](std::string_view text) {
+        return Cfg::AddProfileText(text, newProfile, replace).and_then([&](std::string edited) {
+            return options.setDefault ? Cfg::SetDefaultProfileText(edited, newProfile.name)
+                                      : std::expected<std::string, std::string> { std::move(edited) };
+        });
+    });
+    if (!written)
+    {
+        std::println(std::cerr, "Error: {}", written.error());
+        return EXIT_FAILURE;
+    }
+
+    std::println("Added profile '{}' to {}.", newProfile.name, target->string());
     return EXIT_SUCCESS;
 }
 
@@ -2588,7 +2821,10 @@ int main(int argc, char** argv)
         Options options = optionsResult.value();
 
         TraceBreadcrumb("main: applying profile");
-        ApplyProfileToOptions(options); // Resolve a named (or default) profile and fill unset fields.
+        // Resolve a named (or default) profile and fill unset fields — only for commands
+        // that use one, so a broken dbtool.yml found by discovery cannot break `help`.
+        if (CommandUsesProfile(options.command))
+            ApplyProfileToOptions(options);
 
 #if defined(_WIN32)
         TraceBreadcrumb("main: configuring Windows console");
@@ -2619,12 +2855,26 @@ int main(int argc, char** argv)
         if (options.command == "list-profiles")
             return ListProfiles(options);
 
+        if (options.command == "add-profile")
+            return AddProfileCommand(options);
+
         if (options.command == "backup-diff")
             return BackupDiffCommand(options);
+
+        TraceBreadcrumb("main: resolving profile password");
+        auto const passwordOrigin = ApplyProfilePassword(options);
+        if (!passwordOrigin)
+        {
+            std::println(std::cerr, "Error: {}", passwordOrigin.error());
+            return EXIT_FAILURE;
+        }
 
         TraceBreadcrumb("main: setting up connection string");
         if (!SetupConnectionString(options.connectionString))
             return EXIT_FAILURE;
+
+        if (*passwordOrigin == Lightweight::Config::PasswordOrigin::Plaintext)
+            EncryptPlaintextPasswordIfConnectable(options);
 
         TraceBreadcrumb("main: dispatching command");
         auto const rc = DispatchDbCommand(options);

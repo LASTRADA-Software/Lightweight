@@ -9,6 +9,9 @@
 #include <system_error>
 #include <unordered_set>
 
+#include <Config/ProfilePassword.hpp>
+#include <Secrets/ProfileCipher.hpp>
+
 namespace DbtoolGui::ManagedBackup
 {
 
@@ -159,21 +162,19 @@ std::expected<std::string, std::string> ResolveConnectionString(Lightweight::Con
     if (!profile.HasConnection())
         return std::unexpected(std::format("Profile '{}' has no connection information.", profile.name));
 
-    auto password = std::string {};
-    if (!profile.secretRef.empty())
-    {
-        auto resolved = resolver.Resolve(profile.secretRef, profile.name);
-        if (!resolved)
-            return std::unexpected(
-                std::format("Could not resolve secret for profile '{}': {}", profile.name, resolved.error().message));
-        password = std::move(*resolved);
-    }
+    // Decrypts an `enc:` password, uses a plaintext one as-is, or resolves
+    // `secretRef`. Plaintext passwords are not rewritten here: backups run on
+    // worker threads, and the interactive connect path does the upgrade.
+    auto const password =
+        Lightweight::Config::ResolveProfilePassword(profile, Lightweight::Secrets::ProfileCipher::Builtin(), resolver);
+    if (!password)
+        return std::unexpected(password.error());
 
     // Delegates to the canonical builder for both the raw-connection-string
-    // and DSN forms, so a resolved secretRef is honoured either way (a raw
+    // and DSN forms, so a resolved password is honoured either way (a raw
     // connection string with no resolved password is returned unmodified by
     // ToConnectInfo, preserving the "used as-is" contract).
-    return std::format("{}", profile.ToConnectInfo(password));
+    return std::format("{}", profile.ToConnectInfo(password->value));
 }
 
 } // namespace DbtoolGui::ManagedBackup
