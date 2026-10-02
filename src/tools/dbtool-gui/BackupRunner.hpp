@@ -50,6 +50,12 @@ class BackupRunner: public QObject
     /// empty means "use whatever was set via `SqlConnection::SetDefault*`".
     Q_INVOKABLE void setConnectionString(QString const& connectionString);
 
+    /// The connection string set by `setConnectionString`.
+    [[nodiscard]] QString const& connectionString() const noexcept
+    {
+        return _connectionString;
+    }
+
     /// Injects the "is some other runner busy?" probe consulted before a
     /// backup or restore starts. Ad-hoc backups, managed backups and
     /// migrations all touch the same database, so an ad-hoc run started during

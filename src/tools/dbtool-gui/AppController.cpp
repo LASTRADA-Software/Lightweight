@@ -841,10 +841,10 @@ bool AppController::connectToProfile()
     }
     emit migrationsChanged();
 
-    if (profile && !profile->connectionString.empty())
-        _backupRunner.setConnectionString(QString::fromStdString(profile->connectionString));
-    else if (!_connectionStringOverride.isEmpty())
-        _backupRunner.setConnectionString(_connectionStringOverride);
+    // Backup/restore reuse exactly the connection that just opened — including a
+    // decrypted or resolved password and the DSN form, which the raw profile
+    // fields would lack.
+    _backupRunner.setConnectionString(QString::fromStdString(connectionString));
 
     _connected = true;
     emit connectedChanged();

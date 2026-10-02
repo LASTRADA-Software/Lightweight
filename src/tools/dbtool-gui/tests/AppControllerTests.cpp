@@ -30,6 +30,7 @@
 #include <QtCore/QStringList>
 #include <QtCore/QTemporaryDir>
 #include <QtTest/QSignalSpy>
+#include <Secrets/ProfileCipher.hpp>
 
 namespace
 {
@@ -288,4 +289,25 @@ TEST_CASE("startup discovers dbtool.yml above the working directory", "[dbtool-g
 
     CHECK(std::filesystem::path { controller.profilePath().toStdString() } == root / "dbtool.yml");
     CHECK(controller.profiles()->rowCount() == 1);
+}
+
+TEST_CASE("backup and restore use the connection string with the decrypted password",
+          "[dbtool-gui][AppController][password]")
+{
+    QTemporaryDir dir;
+    auto const root = std::filesystem::path { dir.path().toStdString() };
+    auto const configPath = root / "dbtool.yml";
+    auto const encrypted = Lightweight::Secrets::ProfileCipher::Builtin().Encrypt("s3cr3t");
+    REQUIRE(encrypted.has_value());
+    std::ofstream(configPath, std::ios::binary)
+        << "profiles:\n  p:\n    connectionString: \"Driver={" << SqliteDriver
+        << "};Database=" << (root / "gui-backup.db").generic_string() << "\"\n    password: \"" << *encrypted << "\"\n";
+
+    DbtoolGui::AppController controller;
+    REQUIRE(controller.loadProfiles(QString::fromStdString(configPath.string())));
+    controller.setConnectionMode(QStringLiteral("profile"));
+    controller.setCurrentProfile(QStringLiteral("p"));
+    REQUIRE(controller.connectToProfile());
+
+    CHECK(controller.backupRunner()->connectionString().contains(QStringLiteral("PWD=s3cr3t")));
 }
