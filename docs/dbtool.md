@@ -362,6 +362,15 @@ This exists for databases created before a migration switched a column to a wide
 migration history is already marked applied, so nothing would otherwise re-run to widen the
 existing columns. Run it with `--dry-run` first to see the planned `ALTER` statements.
 
+On SQL Server a column cannot change between narrow and wide text while anything depends on it.
+The command therefore reads every dependent object from the catalog — primary-key, unique,
+foreign-key (on either side, composite included), default and check constraints, indexes (with
+their included columns and filters) and statistics — drops them, alters the columns and recreates
+each object under its original name with its original definition, all in one transaction. The
+dry run lists those objects. Objects it cannot recreate safely — schema-bound views or functions,
+computed columns, columnstore, XML, spatial and full-text indexes — stop the command before
+anything changes; drop them, run it, and recreate them yourself.
+
 ### exec \<QUERY\>
 
 Executes an SQL query and prints any result set:

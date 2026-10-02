@@ -618,6 +618,10 @@ namespace SqlMigration
             /// Foreign keys that had to be dropped + re-added to upgrade their
             /// participating columns. Reported so operators see the FK churn.
             std::vector<SqlCompositeForeignKeyConstraint> rebuiltForeignKeys;
+            /// SQL Server: every object that depends on an upgraded column — keys, unique,
+            /// foreign-key, default and check constraints, indexes, statistics — and is
+            /// dropped and recreated under its original name around the type change.
+            std::vector<std::string> rebuiltObjects;
         };
 
         /// @brief Rewrites legacy `VARCHAR/CHAR` columns to `NVARCHAR/NCHAR` where the

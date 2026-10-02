@@ -10,6 +10,7 @@
 #include "SqlLogger.hpp"
 #include "SqlMigration.hpp"
 #include "SqlSchema.hpp"
+#include "SqlServerDependentObjects.hpp"
 #include "SqlTransaction.hpp"
 #include "Utils.hpp"
 
@@ -3038,6 +3039,72 @@ namespace
             execAlter(p.key.schema, p.key.table, BuildAddFkCommands(p));
         }
     }
+
+    /// @brief Flattens the pending upgrades into the column list the dependency scripter takes.
+    [[nodiscard]] std::vector<::Lightweight::detail::ColumnToRetype> ColumnsToRetype(
+        std::vector<UnicodeUpgradePending> const& pending)
+    {
+        auto columns = std::vector<::Lightweight::detail::ColumnToRetype> {};
+        for (auto const& p: pending)
+            for (auto const& c: p.columns)
+                columns.push_back(::Lightweight::detail::ColumnToRetype {
+                    .schema = p.key.schema, .table = p.key.table, .column = c.column });
+        return columns;
+    }
+
+    /// @brief Turns `ANSI_WARNINGS` on for its lifetime and restores the connection's
+    /// configured setting afterwards (SQL Server only creates filtered indexes with it on).
+    class ScopedAnsiWarnings
+    {
+      public:
+        ScopedAnsiWarnings(SqlStatement& stmt, bool enable):
+            _stmt { stmt },
+            _active { enable }
+        {
+            if (_active)
+                (void) _stmt.ExecuteDirect("SET ANSI_WARNINGS ON");
+        }
+        ~ScopedAnsiWarnings()
+        {
+            if (!_active)
+                return;
+            try
+            {
+                auto const truncating = _stmt.Connection().StringTruncationMode() == SqlStringTruncationMode::Truncate;
+                (void) _stmt.ExecuteDirect(truncating ? "SET ANSI_WARNINGS OFF" : "SET ANSI_WARNINGS ON");
+            }
+            catch (SqlException const& e)
+            {
+                SqlLogger::GetLogger().OnWarning(std::format("could not restore ANSI_WARNINGS: {}", e.what()));
+            }
+        }
+        ScopedAnsiWarnings(ScopedAnsiWarnings const&) = delete;
+        ScopedAnsiWarnings(ScopedAnsiWarnings&&) = delete;
+        ScopedAnsiWarnings& operator=(ScopedAnsiWarnings const&) = delete;
+        ScopedAnsiWarnings& operator=(ScopedAnsiWarnings&&) = delete;
+
+      private:
+        SqlStatement& _stmt;
+        bool _active;
+    };
+
+    /// @brief SQL Server upgrade path: drop every dependent object (scripted beforehand from
+    /// the catalog), alter the columns, recreate the objects exactly. Runs inside the
+    /// caller's transaction, so any failure rolls the whole upgrade back.
+    void ExecuteUpgradeWithDependents(SqlStatement& stmt,
+                                      SqlQueryFormatter const& formatter,
+                                      std::vector<UnicodeUpgradePending> const& pending,
+                                      ::Lightweight::detail::DependentObjectScript const& dependents)
+    {
+        for (auto const& sql: dependents.drop)
+            (void) stmt.ExecuteDirect(sql);
+        for (auto const& p: pending)
+            for (auto const& sql: formatter.AlterTable(p.key.schema, p.key.table, BuildAlterColumnCommands(p)))
+                (void) stmt.ExecuteDirect(sql);
+        auto const ansiWarnings = ScopedAnsiWarnings { stmt, dependents.needsAnsiWarnings };
+        for (auto const& sql: dependents.recreate)
+            (void) stmt.ExecuteDirect(sql);
+    }
 } // namespace
 
 MigrationManager::UnicodeUpgradeResult MigrationManager::UnicodeUpgradeTables(bool dryRun)
@@ -3076,12 +3143,24 @@ MigrationManager::UnicodeUpgradeResult MigrationManager::UnicodeUpgradeTables(bo
         pendingPerTable.push_back(std::move(*upgrade));
     }
 
+    // Where narrow and wide text are distinct types (SQL Server), the column change is
+    // blocked by every key, constraint, index and statistic on the column: script them
+    // from the catalog now, so a dry run can report them and a real run can recreate them.
+    auto dependents = std::optional<::Lightweight::detail::DependentObjectScript> {};
+    if (formatter.DistinguishesNarrowAndWideText() && !pendingPerTable.empty())
+    {
+        dependents = ::Lightweight::detail::ScriptSqlServerDependentObjects(stmt, ColumnsToRetype(pendingPerTable));
+        result.rebuiltObjects = dependents->descriptions;
+    }
+
     if (dryRun || pendingPerTable.empty())
         return result;
 
     auto transaction = SqlTransaction { dm.Connection(), SqlTransactionMode::ROLLBACK };
     if (dm.Connection().ServerType() == SqlServerType::SQLITE)
         ExecuteSqliteUpgrade(dm.Connection(), formatter, pendingPerTable);
+    else if (dependents)
+        ExecuteUpgradeWithDependents(stmt, formatter, pendingPerTable, *dependents);
     else
         ExecuteGenericUpgrade(stmt, formatter, pendingPerTable);
     transaction.Commit();
