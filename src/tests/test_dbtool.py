@@ -639,6 +639,16 @@ def main():
     else:
         print("--- 12f. skipped: the test connection string has no password ---")
 
+    print("--- 12g. help works even when a discovered dbtool.yml is broken ---")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(os.path.join(tmpdir, "dbtool.yml"), "w", encoding="utf-8") as f:
+            f.write("profiles: [this is: not valid\n")
+        for help_cmd in (["help"], ["--help"], ["show-examples"]):
+            helped = run_command([args.dbtool] + help_cmd, cwd=tmpdir, check=False)
+            if helped.returncode != 0:
+                print(f"dbtool {' '.join(help_cmd)} failed because of an unrelated broken dbtool.yml:\n{helped.stderr}")
+                sys.exit(1)
+
     print("--- 13. status fails fast when no migration plugin is loaded ---")
     with tempfile.TemporaryDirectory() as empty_plugins_dir:
         empty_cmd = [args.dbtool, "--plugins-dir", empty_plugins_dir,

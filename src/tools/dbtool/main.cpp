@@ -14,6 +14,7 @@
 #include <Lightweight/Utils.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <chrono>
 #include <cstdint>
@@ -422,6 +423,19 @@ struct Options
     bool setDefault = false;    ///< --set-default: make the new profile the default
     bool force = false;         ///< --force: replace an existing profile of the same name
 };
+
+/// Commands that never read a connection profile; `ApplyProfileToOptions` is skipped for them.
+inline constexpr auto CommandsWithoutProfile = std::array<std::string_view, 7> {
+    "", "help", "show-examples", "add-profile", "resolve-secret", "list-profiles", "backup-diff",
+};
+
+/// Whether `command` reads a connection profile from dbtool.yml.
+/// @param command The parsed command name.
+/// @return False for the commands in `CommandsWithoutProfile`.
+[[nodiscard]] bool CommandUsesProfile(std::string_view command) noexcept
+{
+    return !std::ranges::contains(CommandsWithoutProfile, command);
+}
 
 /// Tells the user about dbtool.yml files that discovery ignored because another
 /// user owns them (see `Config::IsTrustedConfigFile`).
@@ -2797,8 +2811,10 @@ int main(int argc, char** argv)
         Options options = optionsResult.value();
 
         TraceBreadcrumb("main: applying profile");
-        if (options.command != "add-profile")
-            ApplyProfileToOptions(options); // Resolve a named (or default) profile and fill unset fields.
+        // Resolve a named (or default) profile and fill unset fields — only for commands
+        // that use one, so a broken dbtool.yml found by discovery cannot break `help`.
+        if (CommandUsesProfile(options.command))
+            ApplyProfileToOptions(options);
 
 #if defined(_WIN32)
         TraceBreadcrumb("main: configuring Windows console");
