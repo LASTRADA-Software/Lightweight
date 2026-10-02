@@ -148,6 +148,7 @@ TEST_CASE("ProfileStore — save/load round-trip is lossless", "[ProfileStore]")
         .connectionString = "DRIVER=SQLite3;Database=dev.db",
         .uid = {},
         .secretRef = {},
+        .password = {},
     });
     store.Upsert(Profile {
         .name = "prod",
@@ -157,6 +158,7 @@ TEST_CASE("ProfileStore — save/load round-trip is lossless", "[ProfileStore]")
         .connectionString = {},
         .uid = "deploy",
         .secretRef = "env:ACME_PROD_PWD",
+        .password = {},
     });
     store.SetDefault("prod");
 
@@ -195,6 +197,7 @@ TEST_CASE("Profile::ToConnectInfo — a resolved password is appended with conne
         .connectionString = "DRIVER=SQLite3;Database=dev.db",
         .uid = {},
         .secretRef = {},
+        .password = {},
     };
 
     // A plain secret keeps the spelling every existing profile has seen.
@@ -218,6 +221,7 @@ TEST_CASE("Profile::ToConnectInfo — only a whole PWD/Password attribute counts
         .connectionString = "DRIVER=SQLite3;Database=mypwd=1.db",
         .uid = {},
         .secretRef = {},
+        .password = {},
     };
 
     // `pwd=` inside another attribute's value is not a password, so the resolved secret is appended.
@@ -342,6 +346,7 @@ TEST_CASE("ProfileStore — defaultPluginsDir round-trips through Save", "[Profi
         .connectionString = "DRIVER=SQLite3;Database=:memory:",
         .uid = {},
         .secretRef = {},
+        .password = {},
     });
 
     REQUIRE(store.Save(path).has_value());
@@ -380,6 +385,7 @@ TEST_CASE("ProfileStore — defaultPluginsDir multi-entry round-trip preserves o
         .connectionString = "DRIVER=SQLite3;Database=:memory:",
         .uid = {},
         .secretRef = {},
+        .password = {},
     });
 
     REQUIRE(store.Save(path).has_value());
@@ -407,6 +413,7 @@ TEST_CASE("ProfileStore — Remove clears default when it points at the removed 
         .connectionString = "DRIVER=SQLite3;Database=:memory:",
         .uid = {},
         .secretRef = {},
+        .password = {},
     });
     store.SetDefault("solo");
     REQUIRE(store.Default() != nullptr);
@@ -414,4 +421,64 @@ TEST_CASE("ProfileStore — Remove clears default when it points at the removed 
     REQUIRE(store.Remove("solo"));
     CHECK(store.DefaultProfileName().empty());
     CHECK(store.Default() == nullptr);
+}
+
+TEST_CASE("ProfileStore — password is loaded verbatim", "[ProfileStore]")
+{
+    ScopedTempYaml const yaml(R"(profiles:
+  enc:
+    connectionString: "Driver=x"
+    password: "enc:dev:AAAA"
+  plain:
+    connectionString: "Driver=x"
+    password: hunter2
+)");
+    auto const store = Lightweight::Config::ProfileStore::LoadOrDefault(yaml.Path());
+    REQUIRE(store.has_value());
+    REQUIRE(store->Find("enc") != nullptr);
+    CHECK(store->Find("enc")->password == "enc:dev:AAAA");
+    CHECK(store->Find("plain")->password == "hunter2");
+}
+
+TEST_CASE("ProfileStore — legacy top-level Password is loaded", "[ProfileStore]")
+{
+    ScopedTempYaml const yaml("ConnectionString: \"Driver=x\"\nPassword: hunter2\n");
+    auto const store = Lightweight::Config::ProfileStore::LoadOrDefault(yaml.Path());
+    REQUIRE(store.has_value());
+    REQUIRE(store->Default() != nullptr);
+    CHECK(store->Default()->password == "hunter2");
+}
+
+TEST_CASE("ProfileStore — password and secretRef are mutually exclusive", "[ProfileStore]")
+{
+    ScopedTempYaml const yaml(R"(profiles:
+  both:
+    connectionString: "Driver=x"
+    password: hunter2
+    secretRef: env:X
+)");
+    auto const store = Lightweight::Config::ProfileStore::LoadOrDefault(yaml.Path());
+    REQUIRE_FALSE(store.has_value());
+    CHECK(store.error().contains("both 'password' and 'secretRef'"));
+}
+
+TEST_CASE("ProfileStore — password round-trips through Save", "[ProfileStore]")
+{
+    ScopedTempYaml const yaml("");
+    Lightweight::Config::ProfileStore store;
+    store.Upsert(Lightweight::Config::Profile {
+        .name = "p",
+        .pluginsDir = {},
+        .schema = {},
+        .dsn = {},
+        .connectionString = "Driver=x",
+        .uid = {},
+        .secretRef = {},
+        .password = "enc:dev:AAAA",
+    });
+    REQUIRE(store.Save(yaml.Path()).has_value());
+    auto const loaded = Lightweight::Config::ProfileStore::LoadOrDefault(yaml.Path());
+    REQUIRE(loaded.has_value());
+    REQUIRE(loaded->Find("p") != nullptr);
+    CHECK(loaded->Find("p")->password == "enc:dev:AAAA");
 }

@@ -119,7 +119,23 @@ namespace
         if (auto n = node["secretRef"])
             p.secretRef = n.as<std::string>();
 
+        if (auto n = node["password"])
+            p.password = n.as<std::string>();
+        else if (auto nLegacy = node["Password"])
+            p.password = nLegacy.as<std::string>();
+
         return p;
+    }
+
+    /// Rejects field combinations that make a profile ambiguous.
+    std::expected<void, std::string> ValidateProfile(Profile const& p)
+    {
+        if (!p.dsn.empty() && !p.connectionString.empty())
+            return std::unexpected(std::format("profile '{}' sets both 'dsn' and 'connectionString'; pick one", p.name));
+        if (!p.password.empty() && !p.secretRef.empty())
+            return std::unexpected(
+                std::format("profile '{}' sets both 'password' and 'secretRef'; pick one", p.name));
+        return {};
     }
 
     /// True when the YAML document looks like the old single-profile schema
@@ -158,6 +174,8 @@ std::expected<ProfileStore, std::string> ProfileStore::LoadOrDefault(std::filesy
     {
         // Translate to a single "default" profile preserving behaviour.
         Profile p = ProfileFromYaml("default", root);
+        if (auto valid = ValidateProfile(p); !valid)
+            return std::unexpected(std::move(valid.error()));
         store.Upsert(std::move(p));
         store.SetDefault("default");
         return store;
@@ -201,9 +219,8 @@ std::expected<ProfileStore, std::string> ProfileStore::LoadOrDefault(std::filesy
 
         Profile p = ProfileFromYaml(name, kv.second);
 
-        // Sanity: dsn and connectionString are mutually exclusive.
-        if (!p.dsn.empty() && !p.connectionString.empty())
-            return std::unexpected(std::format("profile '{}' sets both 'dsn' and 'connectionString'; pick one", name));
+        if (auto valid = ValidateProfile(p); !valid)
+            return std::unexpected(std::move(valid.error()));
 
         store.Upsert(std::move(p));
     }
@@ -259,6 +276,8 @@ std::expected<void, std::string> ProfileStore::Save(std::filesystem::path path) 
             out << YAML::Key << "uid" << YAML::Value << p.uid;
         if (!p.secretRef.empty())
             out << YAML::Key << "secretRef" << YAML::Value << p.secretRef;
+        if (!p.password.empty())
+            out << YAML::Key << "password" << YAML::Value << YAML::DoubleQuoted << p.password;
         out << YAML::EndMap;
     }
     out << YAML::EndMap;
