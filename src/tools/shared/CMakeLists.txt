@@ -58,6 +58,21 @@ if(UNIX)
     target_link_libraries(tools_shared PRIVATE ${CMAKE_DL_LIBS})
 endif()
 
+# Profile-password encryption uses only the OS's own cryptography (see
+# Secrets/Crypto/CryptoPrimitives.hpp): exactly one backend per platform.
+target_sources(tools_shared PRIVATE Secrets/Crypto/CryptoPrimitives.hpp)
+if(WIN32)
+    target_sources(tools_shared PRIVATE Secrets/Crypto/CryptoPrimitives_win.cpp)
+    target_link_libraries(tools_shared PRIVATE bcrypt)
+elseif(APPLE)
+    target_sources(tools_shared PRIVATE Secrets/Crypto/CryptoPrimitives_apple.cpp)
+    target_link_libraries(tools_shared PRIVATE "-framework Security")
+else()
+    find_package(OpenSSL REQUIRED COMPONENTS Crypto)
+    target_sources(tools_shared PRIVATE Secrets/Crypto/CryptoPrimitives_openssl.cpp)
+    target_link_libraries(tools_shared PRIVATE OpenSSL::Crypto)
+endif()
+
 if(NOT WIN32)
     set_target_properties(tools_shared PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
