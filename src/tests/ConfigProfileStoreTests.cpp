@@ -482,3 +482,39 @@ TEST_CASE("ProfileStore — password round-trips through Save", "[ProfileStore]"
     REQUIRE(loaded->Find("p") != nullptr);
     CHECK(loaded->Find("p")->password == "enc:dev:AAAA");
 }
+
+TEST_CASE("ProfileStore — a blank password or secretRef means none, not the text 'null'", "[ProfileStore]")
+{
+    ScopedTempYaml const yaml(R"(profiles:
+  blank:
+    connectionString: "Driver=x"
+    password:
+  tilde:
+    connectionString: "Driver=x"
+    password: ~
+    secretRef: env:X
+  ref:
+    connectionString: "Driver=x"
+    secretRef:
+    password: real
+)");
+    auto const store = Lightweight::Config::ProfileStore::LoadOrDefault(yaml.Path());
+    REQUIRE(store.has_value());
+    CHECK(store->Find("blank")->password.empty());
+    CHECK(store->Find("tilde")->password.empty());
+    CHECK(store->Find("tilde")->secretRef == "env:X");
+    CHECK(store->Find("ref")->secretRef.empty());
+    CHECK(store->Find("ref")->password == "real");
+}
+
+TEST_CASE("ProfileStore — a password field next to an inline PWD is ambiguous", "[ProfileStore]")
+{
+    ScopedTempYaml const yaml(R"(profiles:
+  both:
+    connectionString: "Driver=x;PWD=inline"
+    password: field
+)");
+    auto const store = Lightweight::Config::ProfileStore::LoadOrDefault(yaml.Path());
+    REQUIRE_FALSE(store.has_value());
+    CHECK(store.error().contains("PWD"));
+}

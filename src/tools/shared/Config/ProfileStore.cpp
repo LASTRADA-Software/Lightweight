@@ -116,13 +116,18 @@ namespace
         if (auto n = node["uid"])
             p.uid = n.as<std::string>();
 
+        // A blank `secretRef:` / `password:` (YAML null) means "none" — `as<std::string>()`
+        // would turn it into the text "null".
+        auto const scalarOrEmpty = [](YAML::Node const& n) {
+            return n.IsScalar() ? n.as<std::string>() : std::string {};
+        };
         if (auto n = node["secretRef"])
-            p.secretRef = n.as<std::string>();
+            p.secretRef = scalarOrEmpty(n);
 
         if (auto n = node["password"])
-            p.password = n.as<std::string>();
+            p.password = scalarOrEmpty(n);
         else if (auto nLegacy = node["Password"])
-            p.password = nLegacy.as<std::string>();
+            p.password = scalarOrEmpty(nLegacy);
 
         return p;
     }
@@ -176,6 +181,15 @@ namespace
             return std::unexpected(std::format("profile '{}' sets both 'dsn' and 'connectionString'; pick one", p.name));
         if (!p.password.empty() && !p.secretRef.empty())
             return std::unexpected(std::format("profile '{}' sets both 'password' and 'secretRef'; pick one", p.name));
+        // An inline PWD would win over `password` at connect time, so the field would
+        // be silently ignored — and then encrypted as if it had been verified.
+        if (!p.password.empty() && !p.connectionString.empty())
+        {
+            auto const attributes = ParseConnectionString(SqlConnectionString { p.connectionString });
+            if (attributes.contains("PWD") || attributes.contains("PASSWORD"))
+                return std::unexpected(
+                    std::format("profile '{}' sets 'password' and a PWD in 'connectionString'; keep only one", p.name));
+        }
         return {};
     }
 
