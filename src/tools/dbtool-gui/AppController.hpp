@@ -20,6 +20,7 @@
 #include "Models/ReleaseListModel.hpp"
 #include "SqlQueryRunner.hpp"
 
+#include <Config/ConfigDiscovery.hpp>
 #include <Config/ProfileStore.hpp>
 #include <QtCore/QList>
 #include <QtCore/QObject>
@@ -457,6 +458,9 @@ class AppController: public QObject
     /// Encrypts the plaintext password of `profile` in the loaded dbtool.yml after a
     /// successful connection, logging the outcome; never fails the connect.
     void EncryptPlaintextPassword(Lightweight::Config::Profile const& profile);
+
+    /// Logs a warning for each dbtool.yml that discovery skipped because another user owns it.
+    void ReportSkippedProfileStores(Lightweight::Config::DiscoveredConfig const& discovered);
 
     /// Computes the effective plugin search directories for the current
     /// connection mode: the user override wins in `dsn` / `custom` modes,

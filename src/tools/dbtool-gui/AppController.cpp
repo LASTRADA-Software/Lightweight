@@ -328,9 +328,7 @@ AppController::AppController(QObject* parent):
     // default). Both paths run through `loadProfiles` so the file watcher and
     // profile model are wired identically.
     auto const discoveredStore = DiscoverProfileStore();
-    for (auto const& skipped: discoveredStore.skipped)
-        LogWarn(QStringLiteral("Ignoring %1: it is owned by another user. Choose it in Settings to use it anyway.")
-                    .arg(QString::fromStdString(skipped.string())));
+    ReportSkippedProfileStores(discoveredStore);
     auto const initialStorePath =
         !_profileStorePath.isEmpty() ? std::filesystem::path(_profileStorePath.toStdString()) : discoveredStore.path;
     if (std::filesystem::exists(initialStorePath))
@@ -506,6 +504,13 @@ void AppController::setPluginsDir(QString const& pluginsDir)
     // Users expect dropping a new plugins-dir path to populate the migration
     // list immediately — no explicit reconnect button press.
     ReloadPlugins();
+}
+
+void AppController::ReportSkippedProfileStores(Lightweight::Config::DiscoveredConfig const& discovered)
+{
+    for (auto const& skipped: discovered.skipped)
+        LogWarn(QStringLiteral("Ignoring %1: it is owned by another user. Choose it in Settings to use it anyway.")
+                    .arg(QString::fromStdString(skipped.string())));
 }
 
 void AppController::EncryptPlaintextPassword(Lightweight::Config::Profile const& profile)
