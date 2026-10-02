@@ -103,7 +103,7 @@ struct ArchiveStatus
 /// an error message when the password cannot be decrypted or resolved — managed
 /// backups run headless, so they must abort rather than connect without one.
 /// @param profile Profile to resolve.
-/// @param resolver Secret resolver chain (see MakeDefaultResolver()).
+/// @param resolver Secret resolver chain (see MakeNonInteractiveResolver()).
 /// @return Connection string, or a user-displayable error message.
 [[nodiscard]] std::expected<std::string, std::string> ResolveConnectionString(
     Lightweight::Config::Profile const& profile, Lightweight::Secrets::SecretResolver const& resolver);

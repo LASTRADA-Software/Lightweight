@@ -263,7 +263,7 @@ class ManagedBackupController: public QObject
     /// otherwise `rawConnectionString` + `schema` are used as given (the
     /// custom-connection-string path). The missing-archive check also stays
     /// synchronous. Once dispatched to the pool thread, a looked-up target
-    /// profile has its secret resolved there (`MakeDefaultResolver()` +
+    /// profile has its secret resolved there (`MakeNonInteractiveResolver()` +
     /// `ManagedBackup::ResolveConnectionString`) — never on the calling
     /// (typically GUI) thread — before `SqlBackup::Restore` runs; a resolve
     /// failure emits a queued `logLine(Error)` and `finished(false, ...)` and

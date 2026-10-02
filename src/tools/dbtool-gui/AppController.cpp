@@ -148,7 +148,7 @@ namespace
     [[nodiscard]] std::expected<ProfileConnection, std::string> ProfileConnectionString(
         Lightweight::Config::Profile const& profile)
     {
-        auto const resolver = Lightweight::Secrets::MakeDefaultResolver();
+        auto const resolver = Lightweight::Secrets::MakeNonInteractiveResolver();
         return Lightweight::Config::ResolveProfilePassword(profile, Lightweight::Secrets::ProfileCipher::Builtin(), resolver)
             .transform([&](Lightweight::Config::ResolvedPassword const& password) {
                 return ProfileConnection {

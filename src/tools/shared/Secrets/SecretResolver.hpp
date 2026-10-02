@@ -103,4 +103,10 @@ class SecretResolver
 /// Qt-free.
 [[nodiscard]] SecretResolver MakeDefaultResolver();
 
+/// Like `MakeDefaultResolver` but without the interactive `stdin:` backend, for
+/// processes that must never block on a terminal prompt: GUI threads and
+/// headless workers. A `stdin:` reference then fails instead of waiting.
+/// @return A resolver with the `env:` and `file:` backends.
+[[nodiscard]] SecretResolver MakeNonInteractiveResolver();
+
 } // namespace Lightweight::Secrets

@@ -173,4 +173,12 @@ SecretResolver MakeDefaultResolver()
     return resolver;
 }
 
+SecretResolver MakeNonInteractiveResolver()
+{
+    SecretResolver resolver;
+    resolver.RegisterBackend(std::make_shared<EnvBackend>());
+    resolver.RegisterBackend(std::make_shared<FileBackend>(DefaultCredentialsPath()));
+    return resolver;
+}
+
 } // namespace Lightweight::Secrets
