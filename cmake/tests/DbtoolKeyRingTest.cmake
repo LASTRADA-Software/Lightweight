@@ -61,6 +61,8 @@ expect_result("long id" "" "abcdefghijklmnopq=${KEY_A}" "" "" "at most 16")
 expect_result("dev id reserved" "" "dev=${KEY_A}" "" "" "reserved")
 expect_result("duplicate id" "" "v1=${KEY_A},v1=${KEY_B}" "" "" "duplicate")
 
+file(REMOVE_RECURSE "${_scratch}")
+
 if(_failures GREATER 0)
     message(FATAL_ERROR "${_failures} DbtoolKeyRing test(s) failed")
 endif()
