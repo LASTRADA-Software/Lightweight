@@ -268,6 +268,11 @@ EXEC sp_executesql @sql;)",
         return "GETDATE()";
     }
 
+    [[nodiscard]] std::string_view ReadUncommittedTableHint() const noexcept override
+    {
+        return " WITH (READUNCOMMITTED)";
+    }
+
     [[nodiscard]] std::string SelectFirst(bool distinct,
                                           // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                                           std::string_view fields,

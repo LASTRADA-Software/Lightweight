@@ -4,6 +4,14 @@
 
 std::string Lightweight::detail::ComposedQuery::ToSql() const
 {
+    // The FROM table's hint belongs right after the table and its alias, which is exactly where the
+    // joins begin. Rendering it in front of the joins keeps the formatter's Select* signatures unchanged.
+    auto const hintedJoins = searchCondition.tableHint.empty()
+                                 ? std::string {}
+                                 : std::format("{}{}", searchCondition.tableHint, searchCondition.tableJoins);
+    std::string_view const tableJoins = searchCondition.tableHint.empty() ? std::string_view { searchCondition.tableJoins }
+                                                                          : std::string_view { hintedJoins };
+
     switch (selectType)
     {
         case SelectType::All:
@@ -11,7 +19,7 @@ std::string Lightweight::detail::ComposedQuery::ToSql() const
                                         fields,
                                         searchCondition.tableName,
                                         searchCondition.tableAlias,
-                                        searchCondition.tableJoins,
+                                        tableJoins,
                                         searchCondition.condition,
                                         orderBy,
                                         groupBy);
@@ -20,7 +28,7 @@ std::string Lightweight::detail::ComposedQuery::ToSql() const
                                           fields,
                                           searchCondition.tableName,
                                           searchCondition.tableAlias,
-                                          searchCondition.tableJoins,
+                                          tableJoins,
                                           searchCondition.condition,
                                           orderBy,
                                           groupBy,
@@ -30,7 +38,7 @@ std::string Lightweight::detail::ComposedQuery::ToSql() const
                                           fields,
                                           searchCondition.tableName,
                                           searchCondition.tableAlias,
-                                          searchCondition.tableJoins,
+                                          tableJoins,
                                           searchCondition.condition,
                                           orderBy,
                                           groupBy,
@@ -40,7 +48,7 @@ std::string Lightweight::detail::ComposedQuery::ToSql() const
             return formatter->SelectCount(distinct,
                                           searchCondition.tableName,
                                           searchCondition.tableAlias,
-                                          searchCondition.tableJoins,
+                                          tableJoins,
                                           searchCondition.condition,
                                           groupBy);
         case SelectType::Undefined:

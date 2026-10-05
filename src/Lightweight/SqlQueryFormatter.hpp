@@ -199,6 +199,22 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
         return false;
     }
 
+    /// @brief The per-table hint that asks for a dirty read (READ UNCOMMITTED) of one table in a SELECT.
+    ///
+    /// Rendered right after a table reference (and its alias) in the FROM clause and in each JOIN of a
+    /// query built with @ref SqlSelectQueryBuilder::ReadUncommitted. Only that statement is affected;
+    /// the connection's transaction isolation level is left alone.
+    ///
+    /// Defaults to an empty string, meaning the dialect has no per-table hint and renders the
+    /// statement unchanged. SQL Server returns `" WITH (READUNCOMMITTED)"`.
+    ///
+    /// @return The hint text including its leading space, or an empty string. The text must stay
+    ///         valid for as long as the formatter does.
+    [[nodiscard]] virtual std::string_view ReadUncommittedTableHint() const noexcept
+    {
+        return {};
+    }
+
     /// @brief Whether the dialect provides a batched, whole-database schema-introspection
     /// fast path that `SqlSchema::ReadAllTables` can use instead of the per-table ODBC
     /// catalog loop.

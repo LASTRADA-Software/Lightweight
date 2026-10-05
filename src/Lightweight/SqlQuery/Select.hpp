@@ -217,6 +217,19 @@ class [[nodiscard]] SqlSelectQueryBuilder: public SqlBasicSelectQueryBuilder<Sql
     template <typename Callable>
     SqlSelectQueryBuilder& Build(Callable const& callable);
 
+    /// Asks for a dirty read of every table the statement reads, where the dialect has a per-table hint
+    /// for it (SQL Server: `WITH (READUNCOMMITTED)`); other dialects render the statement unchanged.
+    ///
+    /// The hint follows the FROM table (and its alias) and each joined table (and its alias), in every
+    /// finalizer (All(), First(), Range(), Count()). Only this statement is affected: the connection's
+    /// transaction isolation level is left alone, so it also works inside an open transaction.
+    ///
+    /// @note Call it before any join. A join renders its table reference as it is attached, so a join
+    ///       added earlier is read without the hint.
+    /// @note A sub-select is a builder of its own and opts in separately.
+    /// @return This builder, for chaining.
+    LIGHTWEIGHT_API SqlSelectQueryBuilder& ReadUncommitted() noexcept;
+
     /// Finalizes building the query as SELECT COUNT(*) ... query.
     ///
     /// A preceding @c GroupBy is honored: the query then counts the rows of each group and
@@ -465,6 +478,15 @@ class [[nodiscard]] SqlSelectQueryStarter final: public SqlSelectQueryBuilder
     LIGHTWEIGHT_FORCE_INLINE auto&& Distinct(this Self&& self) noexcept
     {
         self.SqlSelectQueryBuilder::Distinct();
+        return std::forward<Self>(self);
+    }
+
+    /// State-preserving override of @ref SqlSelectQueryBuilder::ReadUncommitted: returns @c Self&&
+    /// so `Select().ReadUncommitted().All()` stays rejected like `Select().All()`.
+    template <typename Self>
+    LIGHTWEIGHT_FORCE_INLINE auto&& ReadUncommitted(this Self&& self) noexcept
+    {
+        self.SqlSelectQueryBuilder::ReadUncommitted();
         return std::forward<Self>(self);
     }
 };
