@@ -27,6 +27,7 @@ var classLightweight_1_1SqlQueryFormatter =
     [ "DropTable", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a9b5cc394c01daeccdafb032bd2da9003", null ],
     [ "QueryServerVersion", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a8513eaca58ba6015cecfd88973c18d4b", null ],
     [ "RequiresTableRebuildForSchemaChange", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#ab39585d3fa5fcd921a0e46afb27ff8d7", null ],
+    [ "ReadUncommittedTableHint", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a7e2eab0350f006fae60e0eca80c23527", null ],
     [ "SupportsBatchedSchemaIntrospection", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a09abb2638365ecc1319c35aa8238eb72", null ],
     [ "DistinguishesNarrowAndWideText", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1057a9e70219626b8eae258557d51b1f", null ],
     [ "MaxInPredicateValues", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a03c4198af1564e763f548e6f466a840c", null ],
