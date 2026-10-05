@@ -207,6 +207,8 @@ template&lt;typename Callable &gt; </td></tr>
 <tr class="memitem:a44c828392a97cfb143e6c229555f444f"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html">SqlSelectQueryBuilder</a> &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><b>Build</b> (Callable const &amp;callable)</td></tr>
 <tr class="memdesc:a44c828392a97cfb143e6c229555f444f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Builds the query using a callable. <br /></td></tr>
 <tr class="separator:a44c828392a97cfb143e6c229555f444f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac39aa0f150f42dec783b4a02282feb8d" id="r_ac39aa0f150f42dec783b4a02282feb8d"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html">SqlSelectQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ac39aa0f150f42dec783b4a02282feb8d">ReadUncommitted</a> () noexcept</td></tr>
+<tr class="separator:ac39aa0f150f42dec783b4a02282feb8d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab999c7e4572e60e907a06615d040bb2e" id="r_ab999c7e4572e60e907a06615d040bb2e"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API ComposedQuery&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ab999c7e4572e60e907a06615d040bb2e">Count</a> ()</td></tr>
 <tr class="separator:ab999c7e4572e60e907a06615d040bb2e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae2373ce3c7dccf02a0a956aa0217a9b1" id="r_ae2373ce3c7dccf02a0a956aa0217a9b1"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API ComposedQuery&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ae2373ce3c7dccf02a0a956aa0217a9b1">Count</a> () const</td></tr>
@@ -367,7 +369,7 @@ template&lt;typename... MoreFields&gt; </div>
 
 <p>Adds a sequence of columns to the SELECT clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00288">288</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00301">301</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -580,6 +582,37 @@ template&lt;typename... MoreFields&gt; </div>
 
 </div>
 </div>
+<a id="ac39aa0f150f42dec783b4a02282feb8d" name="ac39aa0f150f42dec783b4a02282feb8d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac39aa0f150f42dec783b4a02282feb8d">&#9670;&#160;</a></span>ReadUncommitted()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html">SqlSelectQueryBuilder</a> &amp; Lightweight::SqlSelectQueryBuilder::ReadUncommitted </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Asks for a dirty read of every table the statement reads, where the dialect has a per-table hint for it (SQL Server: <code>WITH (READUNCOMMITTED)</code>); other dialects render the statement unchanged.</p>
+<p>The hint follows the FROM table (and its alias) and each joined table (and its alias), in every finalizer (<a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6b49922eb4ac9d74b7f67cb41d6fd111" title="Finalizes building the query as SELECT field names FROM ... query.">All()</a>, <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a51a14d7bdefcf68ab7dd44885607ca32" title="Finalizes building the query as SELECT TOP n field names FROM ... query.">First()</a>, <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#af0bb9fac51166cdbd7346d78b668be09" title="Finalizes building the query as SELECT field names FROM ... query with a range.">Range()</a>, <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ab999c7e4572e60e907a06615d040bb2e">Count()</a>). Only this statement is affected: the connection's transaction isolation level is left alone, so it also works inside an open transaction.</p>
+<dl class="section note"><dt>Note</dt><dd>Call it before any join. A join renders its table reference as it is attached, so a join added earlier is read without the hint. </dd>
+<dd>
+A sub-select is a builder of its own and opts in separately. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>This builder, for chaining. </dd></dl>
+
+</div>
+</div>
 <a id="ab999c7e4572e60e907a06615d040bb2e" name="ab999c7e4572e60e907a06615d040bb2e"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ab999c7e4572e60e907a06615d040bb2e">&#9670;&#160;</a></span>Count() <span class="overload">[1/2]</span></h2>
 
@@ -717,7 +750,7 @@ template&lt;typename... MoreFields&gt; </div>
 
 <p>Returns the search condition for the query. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00253">253</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00266">266</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -746,7 +779,7 @@ template&lt;typename... MoreFields&gt; </div>
 
 <p>Returns the SQL query formatter. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00259">259</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00272">272</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -778,7 +811,7 @@ template&lt;typename Callable &gt; </div>
 
 <p>Builds the query using a callable. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00311">311</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00324">324</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -809,7 +842,7 @@ template&lt;typename FirstRecord , typename... MoreRecords&gt; </div>
 
 <p>Adds fields from one or more record types to the SELECT clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00319">319</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00332">332</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00327">Lightweight::SqlQualifiedTableColumnName::tableName</a>.</p>
 

@@ -70,7 +70,6 @@ var group__DataMapper =
       [ "operator==", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#afdbe7152a76b6ab03d96af8e6329d8e2", null ]
     ] ],
     [ "Lightweight::DataMapper", "de/d61/classLightweight_1_1DataMapper.html", [
-      [ "TimestampClock", "de/d61/classLightweight_1_1DataMapper.html#a853d3d491f444041f1d0ed7d9d8526ae", null ],
       [ "ModifiedState", "de/d61/classLightweight_1_1DataMapper.html#ac8cfda8ec587a1c2007646116c426441", [
         [ "Modified", "de/d61/classLightweight_1_1DataMapper.html#ac8cfda8ec587a1c2007646116c426441a35e0c8c0b180c95d4e122e55ed62cc64", null ],
         [ "NotModified", "de/d61/classLightweight_1_1DataMapper.html#ac8cfda8ec587a1c2007646116c426441ac169e6d9a1b9442001384de8dcf49ab9", null ]
@@ -82,8 +81,6 @@ var group__DataMapper =
       [ "operator=", "de/d61/classLightweight_1_1DataMapper.html#a2eb801d4d427d114bbc0c3b01068f307", null ],
       [ "Connection", "de/d61/classLightweight_1_1DataMapper.html#a121ee55502ae3461f8773593a5342f5f", null ],
       [ "Connection", "de/d61/classLightweight_1_1DataMapper.html#a91d6ba541ec66c8c25d9f277b3655efa", null ],
-      [ "SetTimestampClock", "de/d61/classLightweight_1_1DataMapper.html#a8aa7d61c145cc3d703f4029099c00c79", null ],
-      [ "CurrentTimestamp", "de/d61/classLightweight_1_1DataMapper.html#aaae2a30a670cfe13b5ba0f2c3e58c476", null ],
       [ "CreateTableString", "de/d61/classLightweight_1_1DataMapper.html#a275a2f5e36efeb2bd98f6c73b8f73c4b", null ],
       [ "CreateTablesString", "de/d61/classLightweight_1_1DataMapper.html#aa7b800a3b69075d96b38b2710df0229d", null ],
       [ "CreateTable", "de/d61/classLightweight_1_1DataMapper.html#a81e4a5713d5efa40b8eb2588d969e90f", null ],
@@ -264,11 +261,6 @@ var group__DataMapper =
       [ "Lightweight::RelationError::NotFound", "d7/d2f/group__DataMapper.html#ggaccfed183e72fab87179bacefc80b23e1a38c300f4fc9ce8a77aad4a30de05cad8", null ],
       [ "Lightweight::RelationError::Outdated", "d7/d2f/group__DataMapper.html#ggaccfed183e72fab87179bacefc80b23e1a6f64ae857ab55cba2c3941fbc59285d5", null ],
       [ "Lightweight::RelationError::QueryFailed", "d7/d2f/group__DataMapper.html#ggaccfed183e72fab87179bacefc80b23e1ad14f393e86cbe5976f0457ae2a0fcc49", null ]
-    ] ],
-    [ "Lightweight::FieldTimestamp", "d7/d2f/group__DataMapper.html#gaab9634bfde68b86ecc061bd89f591c46", [
-      [ "Lightweight::FieldTimestamp::None", "d7/d2f/group__DataMapper.html#ggaab9634bfde68b86ecc061bd89f591c46a6adf97f83acf6453d4a6a4b1070f3754", null ],
-      [ "Lightweight::FieldTimestamp::CreatedAt", "d7/d2f/group__DataMapper.html#ggaab9634bfde68b86ecc061bd89f591c46a46d295c8a97befd247d2d634ac8cc4b3", null ],
-      [ "Lightweight::FieldTimestamp::UpdatedAt", "d7/d2f/group__DataMapper.html#ggaab9634bfde68b86ecc061bd89f591c46a0b2a8a8fed13280ecd74f7545bc2b962", null ]
     ] ],
     [ "Lightweight::GetPrimaryKeyFields", "d7/d2f/group__DataMapper.html#ga26e1044be43f92bbb88188317ffba9b5", null ],
     [ "Lightweight::GetPrimaryKeyField", "d7/d2f/group__DataMapper.html#ga0690ab017d7ae25c81a0889a6385ba33", null ],

@@ -21,7 +21,7 @@ var searchData=
   ['nextfailure_18',['NextFailure',['../d4/d1a/classLightweight_1_1SqlFaultSource.html#a183b84e14ad19111747cda413e51115d',1,'Lightweight::SqlFaultSource']]],
   ['no_19',['No',['../d6/de4/group__ConnectionPool.html#gga52b249d4b537b9627a2b2bdd483dd274abafd7322c6e97d25b6299b5d6fe8920b',1,'Lightweight']]],
   ['no_20key_20storage_20',['The relation holds no key storage',['../d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#the-relation-holds-no-key-storage',1,'']]],
-  ['none_21',['none',['../d7/d2f/group__DataMapper.html#ggaab9634bfde68b86ecc061bd89f591c46a6adf97f83acf6453d4a6a4b1070f3754',1,'NoneLightweight'],['../d1/d7b/group__Retry.html#gga736570debff7c5c20bb31ef7b87a75e2a6adf97f83acf6453d4a6a4b1070f3754',1,'NoneLightweight']]],
+  ['none_21',['None',['../d1/d7b/group__Retry.html#gga736570debff7c5c20bb31ef7b87a75e2a6adf97f83acf6453d4a6a4b1070f3754',1,'Lightweight']]],
   ['nonunique_22',['NonUnique',['../d6/daa/group__QueryBuilder.html#gga17470447b60d4554d19d30e877645d07a40fd8860f93339c96fc54abffc1f7594',1,'Lightweight']]],
   ['not_23',['Not',['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a70eca9201efb0d7311b20cef6ef4db34',1,'Lightweight::SqlWhereClauseBuilder']]],
   ['not_20fit_24',['When a column does not fit',['../de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#when-a-column-does-not-fit',1,'']]],
