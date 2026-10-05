@@ -34,6 +34,9 @@ var NAVTREE =
       [ "Configure default connection information to the database", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#configure-default-connection-information-to-the-database", null ],
       [ "Connection encryption", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#connection-encryption", null ],
       [ "SQLite busy timeout and journal mode", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sqlite-busy-timeout-and-journal-mode", null ],
+      [ "Retrying a connect that failed transiently", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#retrying-a-connect-that-failed-transiently", [
+        [ "SQL Server: <tt>ConnectRetryCount</tt> and <tt>ConnectRetryInterval</tt>", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sql-server-connectretrycount-and-connectretryinterval", null ]
+      ] ],
       [ "Raw SQL Queries", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#raw-sql-queries", null ],
       [ "Transparent block-prefetch (fewer network round-trips)", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#transparent-block-prefetch-fewer-network-round-trips", null ],
       [ "Prepared Statements", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#prepared-statements", null ],
@@ -397,11 +400,11 @@ var NAVTREEINDEX =
 "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#what-you-get-back",
 "d6/dfa/structLightweight_1_1SqlDateTime.html#a4073ddbeadc581f1528fc44fa7e9fb70",
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#createindex",
-"d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8aa8156810bfee2bd2b44765b9e91db3bd",
-"da/df2/classLightweight_1_1SqlRequireLoadedError.html#a48cd904e3bec196925b2d3ba4453ffcf",
-"dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#a1357ddddc9888c3e784c6d96646b0c6a",
-"de/dae/classLightweight_1_1SqlFixedString.html#a9adaaa71363ba9a552cce9753bcddbe9",
-"functions_func_w.html"
+"d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a5a7dacb6e9b5ba37e22f825429355174",
+"da/def/structLightweight_1_1SqlRetryState.html",
+"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#afd21e23e3c24884cba9ef3b76d174e82",
+"de/dae/classLightweight_1_1SqlFixedString.html#a7d338b350d06d625b14100a027d58fb3",
+"functions_func_s.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
