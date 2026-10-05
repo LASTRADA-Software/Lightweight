@@ -47,6 +47,41 @@ enum class PrimaryKey : uint8_t
     Manual,
 };
 
+/// @brief Tells the data mapper that this field is a timestamp it maintains automatically, or not.
+///
+/// Pass it in one of a Field's two option slots, alone or together with a column-name override:
+///
+/// @code
+/// struct Article
+/// {
+///     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id;
+///     Field<SqlDateTime, FieldTimestamp::CreatedAt> createdAt;
+///     Field<SqlDateTime, FieldTimestamp::UpdatedAt, SqlRealName { "updated_at" }> updatedAt;
+/// };
+/// @endcode
+///
+/// The value is read from the DataMapper's timestamp clock (see DataMapper::SetTimestampClock()), once
+/// per operation, so every timestamp written by one operation carries the same value. A value the
+/// caller set explicitly is never overwritten, which allows importing historical rows.
+///
+/// Only `SqlDateTime` and `std::optional<SqlDateTime>` fields may carry a timestamp marker.
+enum class FieldTimestamp : uint8_t
+{
+    /// The field is not maintained by the data mapper.
+    None,
+
+    /// @brief The field holds the time the record was created.
+    ///
+    /// Set when the record is inserted, unless the caller gave it a value. Never changed by an update.
+    CreatedAt,
+
+    /// @brief The field holds the time the record was last written.
+    ///
+    /// Set when the record is inserted, unless the caller gave it a value, and again whenever an update
+    /// writes any other column of the record, unless the caller modified this field in that change.
+    UpdatedAt,
+};
+
 namespace detail
 {
 
@@ -76,6 +111,27 @@ concept FieldElementType = SqlInputParameterBinder<T> && SqlOutputColumnBinder<T
         else
             return defaultValue;
     }
+
+    /// Whether @p T is a value type a @ref FieldTimestamp marker may be attached to.
+    template <typename T>
+    inline constexpr bool IsAutoTimestampValueType = OneOf<T, SqlDateTime, std::optional<SqlDateTime>>;
+
+    /// @brief Whether an auto-maintained timestamp value is unset, i.e. was never given a value.
+    ///
+    /// An optional timestamp is unset when it holds no value; a plain `SqlDateTime` is unset when it
+    /// has no date, as a default-constructed one has (no valid date has a zero month).
+    ///
+    /// @param value The timestamp value to test.
+    /// @return True if the data mapper may fill in the value.
+    template <typename T>
+        requires IsAutoTimestampValueType<T>
+    [[nodiscard]] constexpr bool IsUnsetTimestamp(T const& value) noexcept
+    {
+        if constexpr (IsStdOptional<T>)
+            return !value.has_value();
+        else
+            return value.sqlValue.month == 0;
+    }
 } // namespace detail
 
 /// @brief Represents a single column in a table.
@@ -97,6 +153,21 @@ struct Field
     static constexpr auto IsPrimaryKeyValue = detail::Choose<PrimaryKey>(PrimaryKey::No, P1, P2);
     /// If not empty, overrides the default column name in the database.
     static constexpr auto ColumnNameOverride = detail::Choose<std::string_view>({}, P1, P2);
+    /// Which timestamp, if any, the data mapper maintains in this field.
+    static constexpr auto TimestampKind = detail::Choose<FieldTimestamp>(FieldTimestamp::None, P1, P2);
+
+    /// Indicates if the data mapper sets this field to the creation time of the record.
+    static constexpr auto IsCreatedAtTimestamp = TimestampKind == FieldTimestamp::CreatedAt;
+
+    /// Indicates if the data mapper sets this field to the time the record was last written.
+    static constexpr auto IsUpdatedAtTimestamp = TimestampKind == FieldTimestamp::UpdatedAt;
+
+    /// Indicates if the data mapper maintains this field as a timestamp of either kind.
+    static constexpr auto IsAutoTimestamp = TimestampKind != FieldTimestamp::None;
+
+    static_assert(!IsAutoTimestamp || detail::IsAutoTimestampValueType<T>,
+                  "A FieldTimestamp marker (CreatedAt / UpdatedAt) requires the field's value type to be SqlDateTime "
+                  "or std::optional<SqlDateTime>.");
 
     // clang-format off
     constexpr Field() noexcept = default;
@@ -237,6 +308,18 @@ constexpr bool IsAutoIncrementPrimaryKey = detail::IsAutoIncrementPrimaryKeyFiel
 
 template <typename T>
 constexpr bool IsField = detail::IsFieldType<std::remove_cvref_t<T>>::value;
+
+/// The @ref FieldTimestamp kind of @p T: the field's marker if T is a Field<>, otherwise None.
+template <typename T>
+inline constexpr FieldTimestamp FieldTimestampOf = FieldTimestamp::None;
+
+/// The @ref FieldTimestamp kind of a Field<>.
+template <typename T, auto P1, auto P2>
+inline constexpr FieldTimestamp FieldTimestampOf<Field<T, P1, P2>> = Field<T, P1, P2>::TimestampKind;
+
+/// Tests if T is a Field<> whose value the data mapper maintains as a timestamp (CreatedAt or UpdatedAt).
+template <typename T>
+inline constexpr bool IsAutoTimestampField = FieldTimestampOf<std::remove_cvref_t<T>> != FieldTimestamp::None;
 
 /// Constructs a new field with the given value.
 template <detail::FieldElementType T, auto P1, auto P2>

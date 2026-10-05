@@ -459,6 +459,59 @@ void BulkInsert(DataMapper& dm, std::vector<Person> const& people)
 > records (treat them as write-only inputs), and `UpdateAll` writes a uniform set of columns for every
 > row rather than only the per-record modified ones. The range must be contiguous.
 
+### Automatic `created_at` / `updated_at` timestamps
+
+Mark a `SqlDateTime` (or `std::optional<SqlDateTime>`) field with `FieldTimestamp::CreatedAt` or
+`FieldTimestamp::UpdatedAt` and the `DataMapper` maintains it for you. The marker goes in either of
+`Field`'s two option slots, so it combines with a column-name override:
+
+```cpp
+struct Article
+{
+    Field<SqlGuid, PrimaryKey::AutoAssign> id;
+    Field<SqlAnsiString<80>> title;
+    Field<SqlDateTime, FieldTimestamp::CreatedAt, SqlRealName { "created_at" }> createdAt;
+    Field<SqlDateTime, FieldTimestamp::UpdatedAt, SqlRealName { "updated_at" }> updatedAt;
+};
+
+void Publish(DataMapper& dm)
+{
+    auto article = Article {};
+    article.title = "Hello";
+    dm.Create(article);   // createdAt == updatedAt == now, written back into `article`
+
+    article.title = "Hello, world";
+    dm.Update(article);   // updatedAt = now; createdAt untouched
+
+    dm.Update(article);   // nothing modified: still a no-op, updatedAt does not move
+}
+```
+
+The rules:
+
+| Operation | `CreatedAt` | `UpdatedAt` |
+|-----------|-------------|-------------|
+| `Create` / `CreateAsync` | set to now if unset; written back | set to now if unset; written back |
+| `CreateExplicit` / `CreateAll` | now is inserted if unset; the record is not changed | same |
+| `CreateCopyOf` | now (the copy is a new row) | now |
+| `Update` / `UpdateAsync` | never touched | set to now when any other column is written, unless you assigned it in this change; written back |
+| `UpdateAll` | written as stored in the record | now, for every row; the records are not changed |
+
+A timestamp is *unset* when an optional one holds no value, or when a plain `SqlDateTime` is
+default-constructed (it has no date). A value you set yourself is never overwritten, which lets you
+import historical rows with their original timestamps.
+
+"Now" comes from the client, not the database server, and is read once per operation, so `createdAt` and
+`updatedAt` are identical after `Create`, and every row of one `CreateAll` gets the same value. By default
+it is the system clock in UTC. Inject another clock, e.g. a fixed one in tests, with
+`dm.SetTimestampClock([] { return SqlDateTime { … }; })`; an empty function restores the default.
+Mappers created by a `Pool` start with the default clock; a clock you set on a borrowed mapper stays with
+it when it goes back to the pool.
+
+> Note: `CreateAll`/`UpdateAll` on a record type with timestamp fields copy the batch to carry the
+> generated values, so such a record type must be copy-constructible. The copy still goes through the
+> native batch path.
+
 ### Eager loading of relations (`With<>()`)
 
 Accessing a relation on a query result loads it on demand — one query per record. Over a result set of

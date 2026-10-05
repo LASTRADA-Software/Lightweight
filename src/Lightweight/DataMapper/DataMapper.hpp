@@ -22,6 +22,7 @@
 #include <reflection-cpp/reflection.hpp>
 
 #include <cassert>
+#include <chrono>
 #include <concepts>
 #include <exception>
 #include <expected>
@@ -30,6 +31,7 @@
 #include <memory>
 #include <optional>
 #include <ranges>
+#include <span>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -133,7 +135,8 @@ class DataMapper
     DataMapper(DataMapper&& other) noexcept:
         _connection(std::move(other._connection)),
         _stmt(_connection),
-        _relationLoadSource(std::move(other._relationLoadSource))
+        _relationLoadSource(std::move(other._relationLoadSource)),
+        _timestampClock(std::move(other._timestampClock))
     {
         other._stmt = SqlStatement(std::nullopt);
     }
@@ -148,6 +151,7 @@ class DataMapper
         _stmt = SqlStatement(_connection);
         other._stmt = SqlStatement(std::nullopt);
         _relationLoadSource = std::move(other._relationLoadSource);
+        _timestampClock = std::move(other._timestampClock);
 
         return *this;
     }
@@ -164,6 +168,32 @@ class DataMapper
     [[nodiscard]] SqlConnection& Connection() noexcept
     {
         return _connection;
+    }
+
+    /// A source of the current time, used to fill fields marked with a @ref FieldTimestamp.
+    using TimestampClock = std::function<SqlDateTime()>;
+
+    /// @brief Sets the clock that fills the auto-maintained timestamp fields (see @ref FieldTimestamp).
+    ///
+    /// The clock is the client's: the time is taken here, not by the database server. It is read once
+    /// per write operation, so every timestamp written by one Create(), Update(), CreateAll(), ... carries
+    /// the same value. Asynchronous methods read it on the worker thread that runs the operation.
+    ///
+    /// @param clock The clock to use. An empty function restores the default, the system clock in UTC.
+    void SetTimestampClock(TimestampClock clock) noexcept
+    {
+        _timestampClock = std::move(clock);
+    }
+
+    /// @brief Reads the clock that fills the auto-maintained timestamp fields.
+    ///
+    /// @return The time from the clock set by SetTimestampClock(), or the current UTC system time if none is set.
+    [[nodiscard]] SqlDateTime CurrentTimestamp() const
+    {
+        if (_timestampClock)
+            return _timestampClock();
+        // std::chrono::system_clock is Unix time, i.e. UTC (see SqlDateTime::NowUTC()).
+        return SqlDateTime { std::chrono::system_clock::now() };
     }
 
 #if defined(BUILD_TESTS)
@@ -199,6 +229,10 @@ class DataMapper
     ///
     /// The record is inserted into the database and the primary key is set on this record.
     ///
+    /// Every auto-maintained timestamp field (see @ref FieldTimestamp) that holds no value is set to the
+    /// current time of the timestamp clock (see SetTimestampClock()) on this record and inserted with it; a
+    /// timestamp the caller set is inserted as given.
+    ///
     /// @tparam QueryOptions A specialization of DataMapperOptions that controls query behavior.
     /// @tparam Record       The record type to insert.
     /// @param record        The record to insert. The primary key field is updated in-place after the insert.
@@ -209,6 +243,9 @@ class DataMapper
     /// @brief Creates a new record in the database.
     ///
     /// @note This is a variation of the Create() method and does not update the record's primary key.
+    ///
+    /// Auto-maintained timestamp fields (see @ref FieldTimestamp) that hold no value are inserted with the
+    /// current time of the timestamp clock, as Create() does, but the record itself is left untouched.
     ///
     /// @tparam Record The record type to insert.
     /// @param record  The record to insert. Unlike Create(), the primary key field is NOT updated in-place.
@@ -229,6 +266,10 @@ class DataMapper
     /// onto the records; callers should treat the inserted records as write-only inputs. Auto-increment
     /// primary keys are not retrieved.
     ///
+    /// Auto-maintained timestamp fields (see @ref FieldTimestamp) that hold no value are inserted with the
+    /// current time of the timestamp clock, read once for the whole batch. For such a record type the batch
+    /// is copied to carry the timestamps, so the record type must then be copy-constructible.
+    ///
     /// Accepts any contiguous, sized range of records (e.g. std::vector, std::array, std::span, or a C
     /// array), so `dm.CreateAll(records)` works without an explicit std::span wrapper. Non-contiguous
     /// ranges are rejected at compile time via static_assert (no implicit copy is made).
@@ -243,6 +284,8 @@ class DataMapper
     /// This method is useful for duplicating a database record while assigning a new primary key.
     /// All fields except primary key(s) are copied from the original record.
     /// The primary key is automatically generated (auto-incremented or auto-assigned).
+    /// Auto-maintained timestamp fields (see @ref FieldTimestamp) are not copied either: the copy is a new
+    /// row, so they are inserted with the current time of the timestamp clock.
     ///
     /// @param originalRecord The record to copy.
     /// @return The primary key of the newly created record.
@@ -457,6 +500,10 @@ class DataMapper
     /// Fields that were not changed are excluded from the UPDATE statement. If no field is
     /// modified, the call is a no-op and no statement is executed.
     ///
+    /// When at least one field other than an UpdatedAt timestamp (see @ref FieldTimestamp) is written, every
+    /// UpdatedAt field is set to the current time of the timestamp clock on this record and written with it,
+    /// unless the caller assigned it a value in this change. CreatedAt fields are never touched.
+    ///
     /// The record type must have a primary key: the WHERE clause is built exclusively from the
     /// primary-key fields, so a record without one would produce an UPDATE with no WHERE clause
     /// and rewrite every row of the table. Use the query builder's Update() with an explicit
@@ -479,6 +526,11 @@ class DataMapper
     /// @note Unlike Update(), which writes only the modified fields of a single record, this writes a
     /// uniform set of columns for every row, because a single prepared statement must bind the same
     /// columns for the whole batch. Per-row modified-state is therefore not consulted, and is not reset.
+    ///
+    /// Every UpdatedAt timestamp field (see @ref FieldTimestamp) is written with the current time of the
+    /// timestamp clock, read once for the whole batch; the records themselves are left untouched. For such a
+    /// record type the batch is copied to carry the timestamps, so the record type must then be
+    /// copy-constructible.
     ///
     /// Accepts any contiguous, sized range of records (see CreateAll), so `dm.UpdateAll(records)` works
     /// without an explicit std::span wrapper. Non-contiguous ranges are rejected at compile time.
@@ -864,10 +916,47 @@ class DataMapper
         Override,
     };
 
+    /// Which auto-maintained timestamp fields (see @ref FieldTimestamp) a write sets to the current time.
+    enum class TimestampFill : std::uint8_t
+    {
+        /// No field: the record's own values are written (e.g. Create() already stamped the record).
+        None,
+        /// Every timestamp field that holds no value (inserts).
+        Unset,
+        /// Every timestamp field, whatever it holds (CreateCopyOf(): the copy is a new row).
+        All,
+        /// Every UpdatedAt field, whatever it holds (UpdateAll()).
+        UpdatedAt,
+    };
+
+    /// Whether a write that fills timestamps as @p Fill says writes the current time into @p field.
+    template <TimestampFill Fill, typename FieldType>
+    [[nodiscard]] static constexpr bool FillsTimestamp(FieldType const& field) noexcept;
+
+    /// Sets the timestamp fields of @p record that @p Fill selects to @p now.
+    template <TimestampFill Fill, typename Record>
+    static void StampTimestamps(Record& record, SqlDateTime const& now);
+
+    /// Sets the UpdatedAt fields of @p record to the current time, for an update, if the update writes anything else.
+    template <typename Record>
+    void StampTimestampsForUpdate(Record& record) const;
+
+    /// Returns a copy of @p records whose timestamp fields selected by @p Fill hold the current time.
+    template <TimestampFill Fill, typename Record>
+    [[nodiscard]] std::vector<Record> CopyWithTimestamps(std::span<Record const> records) const;
+
+    /// Batch-inserts @p records as given (the body of CreateAll()).
+    template <typename Record>
+    void InsertBatch(std::span<Record const> records);
+
+    /// Batch-updates @p records as given (the body of UpdateAll()).
+    template <typename Record>
+    void UpdateBatch(std::span<Record const> records);
+
     template <typename Record>
     std::optional<RecordPrimaryKeyType<Record>> GenerateAutoAssignPrimaryKey(Record const& record);
 
-    template <PrimaryKeySource UsePkOverride, typename Record>
+    template <PrimaryKeySource UsePkOverride, TimestampFill Fill, typename Record>
     RecordPrimaryKeyType<Record> CreateInternal(
         Record const& record,
         std::optional<std::conditional_t<std::is_void_v<RecordPrimaryKeyType<Record>>, int, RecordPrimaryKeyType<Record>>>
@@ -876,6 +965,7 @@ class DataMapper
     SqlConnection _connection;
     SqlStatement _stmt;
     std::shared_ptr<detail::RelationLoadSource> _relationLoadSource;
+    TimestampClock _timestampClock;
 };
 
 inline void detail::AdoptRelationLoadSource(DataMapper& dataMapper, std::shared_ptr<RelationLoadSource> source) noexcept
@@ -1965,6 +2055,92 @@ void DataMapper::CreateTables()
     (CreateTable<MoreRecords>(), ...);
 }
 
+namespace detail
+{
+    /// Whether @p Record has at least one auto-maintained timestamp field (see @ref FieldTimestamp).
+    template <typename Record>
+    inline constexpr bool HasAutoTimestampFields =
+        CheckFieldProperty<[]<typename FieldType>() { return IsAutoTimestampField<FieldType>; }, Record>;
+
+    /// Whether @p Record has at least one UpdatedAt timestamp field (see @ref FieldTimestamp).
+    template <typename Record>
+    inline constexpr bool HasUpdatedAtTimestampFields =
+        CheckFieldProperty<[]<typename FieldType>() { return FieldTimestampOf<FieldType> == FieldTimestamp::UpdatedAt; },
+                           Record>;
+} // namespace detail
+
+template <DataMapper::TimestampFill Fill, typename FieldType>
+constexpr bool DataMapper::FillsTimestamp(FieldType const& field) noexcept
+{
+    if constexpr (!IsAutoTimestampField<FieldType>)
+        return false;
+    else if constexpr (Fill == TimestampFill::Unset)
+        return detail::IsUnsetTimestamp(field.Value());
+    else if constexpr (Fill == TimestampFill::All)
+        return true;
+    else if constexpr (Fill == TimestampFill::UpdatedAt)
+        return FieldTimestampOf<FieldType> == FieldTimestamp::UpdatedAt;
+    else
+        return false;
+}
+
+template <DataMapper::TimestampFill Fill, typename Record>
+void DataMapper::StampTimestamps(Record& record, SqlDateTime const& now)
+{
+    EnumerateRecordMembers(record, [&now]<size_t I>(auto& field) {
+        using MemberType = RecordMemberTypeOf<I, Record>;
+        if constexpr (IsAutoTimestampField<MemberType>)
+        {
+            if (FillsTimestamp<Fill>(field))
+                field = now;
+        }
+    });
+}
+
+template <typename Record>
+void DataMapper::StampTimestampsForUpdate(Record& record) const
+{
+    if constexpr (detail::HasUpdatedAtTimestampFields<Record>)
+    {
+        // An UpdatedAt field records a change to the row, so it only moves when something else is written.
+        bool writesOtherColumn = false;
+        EnumerateRecordMembers(record, [&writesOtherColumn]<size_t I>(auto const& field) {
+            using MemberType = RecordMemberTypeOf<I, Record>;
+            if constexpr (FieldWithStorage<MemberType> && FieldTimestampOf<MemberType> != FieldTimestamp::UpdatedAt)
+                writesOtherColumn = writesOtherColumn || field.IsModified();
+        });
+
+        auto const now = writesOtherColumn ? std::optional { CurrentTimestamp() } : std::nullopt;
+        EnumerateRecordMembers(record, [&now]<size_t I>(auto& field) {
+            using MemberType = RecordMemberTypeOf<I, Record>;
+            if constexpr (FieldTimestampOf<MemberType> == FieldTimestamp::UpdatedAt)
+            {
+                // A value the caller assigned in this change is theirs to keep.
+                if (field.IsModified() && !detail::IsUnsetTimestamp(field.Value()))
+                    return;
+                if (now.has_value())
+                    field = *now;
+                else
+                    field.SetModified(false); // Never write an unset timestamp, and keep a no-op update a no-op.
+            }
+        });
+    }
+}
+
+template <DataMapper::TimestampFill Fill, typename Record>
+std::vector<Record> DataMapper::CopyWithTimestamps(std::span<Record const> records) const
+{
+    static_assert(std::copy_constructible<Record>,
+                  "Batch writes of a record with FieldTimestamp fields copy the batch to carry the generated "
+                  "timestamps, so the record type must be copy-constructible.");
+
+    auto copies = std::vector<Record>(records.begin(), records.end());
+    auto const now = CurrentTimestamp();
+    for (auto& copy: copies)
+        StampTimestamps<Fill>(copy, now);
+    return copies;
+}
+
 template <typename Record>
 std::optional<RecordPrimaryKeyType<Record>> DataMapper::GenerateAutoAssignPrimaryKey(Record const& record)
 {
@@ -2007,7 +2183,7 @@ std::optional<RecordPrimaryKeyType<Record>> DataMapper::GenerateAutoAssignPrimar
     return result;
 }
 
-template <DataMapper::PrimaryKeySource UsePkOverride, typename Record>
+template <DataMapper::PrimaryKeySource UsePkOverride, DataMapper::TimestampFill Fill, typename Record>
 RecordPrimaryKeyType<Record> DataMapper::CreateInternal(
     Record const& record,
     std::optional<std::conditional_t<std::is_void_v<RecordPrimaryKeyType<Record>>, int, RecordPrimaryKeyType<Record>>>
@@ -2034,6 +2210,11 @@ RecordPrimaryKeyType<Record> DataMapper::CreateInternal(
 
     _stmt.Prepare(query);
 
+    // The time generated timestamps are inserted with: read once, and alive until the statement has run,
+    // as the driver reads the bound parameter on execution.
+    auto const now =
+        Fill != TimestampFill::None && detail::HasAutoTimestampFields<Record> ? CurrentTimestamp() : SqlDateTime {};
+
 #if defined(LIGHTWEIGHT_CXX26_REFLECTION)
     int i = 1;
     template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
@@ -2045,13 +2226,15 @@ RecordPrimaryKeyType<Record> DataMapper::CreateInternal(
             if constexpr (detail::IsAutoAssignPrimaryKeyField<FieldType>::value
                           && UsePkOverride == PrimaryKeySource::Override)
                 _stmt.BindInputParameter(i++, *pkOverride, std::meta::identifier_of(el));
+            else if (FillsTimestamp<Fill>(record.[:el:]))
+                _stmt.BindInputParameter(i++, now, std::meta::identifier_of(el));
             else
                 _stmt.BindInputParameter(i++, record.[:el:], std::meta::identifier_of(el));
         }
     }
 #else
     Reflection::CallOnMembers(record,
-                              [this, &pkOverride, i = SQLSMALLINT { 1 }]<typename Name, typename FieldType>(
+                              [this, &pkOverride, &now, i = SQLSMALLINT { 1 }]<typename Name, typename FieldType>(
                                   Name const& name, FieldType const& field) mutable {
                                   if constexpr (SqlInputParameterBinder<FieldType> && !IsAutoIncrementPrimaryKey<FieldType>)
                                   {
@@ -2059,6 +2242,8 @@ RecordPrimaryKeyType<Record> DataMapper::CreateInternal(
                                       if constexpr (detail::IsAutoAssignPrimaryKeyField<FieldType>::value
                                                     && UsePkOverride == PrimaryKeySource::Override)
                                           _stmt.BindInputParameter(i++, *pkOverride, name);
+                                      else if (FillsTimestamp<Fill>(field))
+                                          _stmt.BindInputParameter(i++, now, name);
                                       else
                                           _stmt.BindInputParameter(i++, field, name);
                                   }
@@ -2088,7 +2273,7 @@ template <typename Record>
 RecordPrimaryKeyType<Record> DataMapper::CreateExplicit(Record const& record)
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
-    return CreateInternal<PrimaryKeySource::Record>(record);
+    return CreateInternal<PrimaryKeySource::Record, TimestampFill::Unset>(record);
 }
 
 namespace detail
@@ -2170,6 +2355,16 @@ void DataMapper::CreateAll(Records const& records)
     if (std::ranges::empty(records))
         return;
 
+    auto const rows = std::span<Record const> { std::ranges::data(records), std::ranges::size(records) };
+    if constexpr (detail::HasAutoTimestampFields<Record>)
+        InsertBatch(std::span<Record const> { CopyWithTimestamps<TimestampFill::Unset>(rows) });
+    else
+        InsertBatch(rows);
+}
+
+template <typename Record>
+void DataMapper::InsertBatch(std::span<Record const> records)
+{
     // Build the INSERT once, with the same column set and order as CreateInternal().
     auto query = _connection.Query(RecordTableName<Record>).Insert(nullptr);
     EnumerateRecordMembers<Record>([&query]<auto I, typename FieldType>() {
@@ -2200,12 +2395,12 @@ RecordPrimaryKeyType<Record> DataMapper::CreateCopyOf(Record const& originalReco
 
     auto generatedKey = GenerateAutoAssignPrimaryKey(originalRecord);
     if (generatedKey)
-        return CreateInternal<PrimaryKeySource::Override>(originalRecord, generatedKey);
+        return CreateInternal<PrimaryKeySource::Override, TimestampFill::All>(originalRecord, generatedKey);
 
     if constexpr (HasAutoIncrementPrimaryKey<Record>)
-        return CreateInternal<PrimaryKeySource::Record>(originalRecord);
+        return CreateInternal<PrimaryKeySource::Record, TimestampFill::All>(originalRecord);
 
-    return CreateInternal<PrimaryKeySource::Override>(originalRecord, RecordPrimaryKeyType<Record> {});
+    return CreateInternal<PrimaryKeySource::Override, TimestampFill::All>(originalRecord, RecordPrimaryKeyType<Record> {});
 }
 
 template <DataMapperOptions QueryOptions, typename Record>
@@ -2221,7 +2416,11 @@ RecordPrimaryKeyType<Record> DataMapper::Create(Record& record)
     if (generatedKey)
         SetId(record, *generatedKey);
 
-    auto pk = CreateInternal<PrimaryKeySource::Record>(record);
+    // Stamp the record itself, so the caller sees the timestamps that were inserted.
+    if constexpr (detail::HasAutoTimestampFields<Record>)
+        StampTimestamps<TimestampFill::Unset>(record, CurrentTimestamp());
+
+    auto pk = CreateInternal<PrimaryKeySource::Record, TimestampFill::None>(record);
 
     if constexpr (HasAutoIncrementPrimaryKey<Record>)
         SetId(record, pk);
@@ -2271,6 +2470,9 @@ void DataMapper::Update(Record& record)
 
     ZoneScopedN("DataMapper::Update");
     ZoneTextObject(RecordTableName<Record>);
+
+    // Mark the UpdatedAt fields modified with the current time, so the SET clause below writes them.
+    StampTimestampsForUpdate(record);
 
     auto query = _connection.Query(RecordTableName<Record>).Update();
 
@@ -2386,6 +2588,16 @@ void DataMapper::UpdateAll(Records const& records)
     if (std::ranges::empty(records))
         return;
 
+    auto const rows = std::span<Record const> { std::ranges::data(records), std::ranges::size(records) };
+    if constexpr (detail::HasUpdatedAtTimestampFields<Record>)
+        UpdateBatch(std::span<Record const> { CopyWithTimestamps<TimestampFill::UpdatedAt>(rows) });
+    else
+        UpdateBatch(rows);
+}
+
+template <typename Record>
+void DataMapper::UpdateBatch(std::span<Record const> records)
+{
     // Build one UPDATE that writes all storable non-primary-key columns, matched on the primary key(s).
     auto query = _connection.Query(RecordTableName<Record>).Update();
     EnumerateRecordMembers<Record>([&query]<auto I, typename FieldType>() {
