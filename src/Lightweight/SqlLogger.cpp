@@ -5,12 +5,16 @@
 #include "SqlConnection.hpp"
 #include "SqlLogger.hpp"
 
+#include <array>
 #include <chrono>
+#include <cstddef>
 #include <cstdlib>
 #include <format>
+#include <memory>
 #include <mutex>
 #include <print>
 #include <ranges>
+#include <utility>
 #include <version>
 
 #if __has_include(<stacktrace>)
@@ -323,36 +327,47 @@ void SqlLogger::SetLoggingSink(MessageWriter writer)
     _messageWriter = std::move(writer);
 }
 
+// The built-in loggers are deliberately never destroyed. SQL statements and connections report to the
+// current logger from their destructors, and some of them are owned by other statics -- the migration
+// manager's DataMapper, for one -- that are torn down during static destruction, in an order relative
+// to these loggers that no translation unit controls. A destroyed logger there aborts the process
+// with "pure virtual method called" after main() returned (#649).
+namespace
+{
+    /// Constructs a @p T in static storage on first use and never destroys it.
+    /// @param args The constructor arguments, used by the first call only.
+    /// @return The one instance.
+    template <typename T, typename... Args>
+    T& ImmortalInstance(Args&&... args)
+    {
+        alignas(T) static std::array<std::byte, sizeof(T)> storage {};
+        static T& instance = *std::construct_at(reinterpret_cast<T*>(storage.data()), std::forward<Args>(args)...);
+        return instance;
+    }
+} // namespace
+
 SqlLogger::Null& SqlLogger::NullLogger() noexcept
 {
-    static SqlLogger::Null theNullLogger {};
-    return theNullLogger;
+    return ImmortalInstance<SqlLogger::Null>();
 }
-
-static std::unique_ptr<SqlStandardLogger> theStdLogger {};
 
 SqlLogger& SqlLogger::StandardLogger()
 {
-    if (!theStdLogger)
-        theStdLogger = std::make_unique<SqlStandardLogger>();
-
-    return *theStdLogger;
+    return ImmortalInstance<SqlStandardLogger>();
 }
 
-static std::unique_ptr<SqlTraceLogger> theTraceLogger {};
 SqlLogger& SqlLogger::TraceLogger()
 {
-    if (!theTraceLogger)
-        theTraceLogger = std::make_unique<SqlTraceLogger>(SupportBindLogging::Yes);
-
-    return *theTraceLogger;
+    return ImmortalInstance<SqlTraceLogger>(SupportBindLogging::Yes);
 }
 
-static SqlLogger* theDefaultLogger = &SqlLogger::NullLogger();
+// Constant-initialized, so it is valid even while other translation units' statics are still being
+// initialized; nullptr selects the null logger.
+static constinit SqlLogger* theDefaultLogger = nullptr;
 
 SqlLogger& SqlLogger::GetLogger()
 {
-    return *theDefaultLogger;
+    return theDefaultLogger ? *theDefaultLogger : NullLogger();
 }
 
 void SqlLogger::SetLogger(SqlLogger& logger)
