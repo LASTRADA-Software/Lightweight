@@ -83,6 +83,12 @@ class ManagedBackupController: public QObject
                                                 std::string const& schema,
                                                 Lightweight::SqlBackup::ProgressManager& progress)>;
 
+    /// Called on the GUI thread with a profile whose plaintext password a backup or restore has just
+    /// connected with, so that the caller can store it encrypted. Same rule as the interactive connect:
+    /// a plaintext password is encrypted once it has proven to work.
+    /// @param profile The profile as the run used it.
+    using PlaintextPasswordVerifiedHandler = std::function<void(Lightweight::Config::Profile const& profile)>;
+
     Q_PROPERTY(QString backupFolder READ backupFolder WRITE setBackupFolder NOTIFY backupFolderChanged)
     Q_PROPERTY(QString effectiveBackupFolder READ effectiveBackupFolder NOTIFY backupFolderChanged)
     Q_PROPERTY(QString defaultBackupFolder READ defaultBackupFolder CONSTANT)
@@ -150,6 +156,11 @@ class ManagedBackupController: public QObject
     /// @param operation New operation; an empty callable restores the default
     ///        (`Lightweight::SqlBackup::Restore`).
     void setRestoreOperation(RestoreOperation operation);
+
+    /// Injects the handler told about plaintext passwords that a successful run has verified. Must not be
+    /// called while a run is in flight; the current value is copied into the worker task when a run starts.
+    /// @param handler New handler; an empty callable disables the notification (the default).
+    void setPlaintextPasswordVerifiedHandler(PlaintextPasswordVerifiedHandler handler);
 
     /// Re-scans <folder>/<profile>.zip for every profile and updates the
     /// model's archive columns plus folderProblem.
@@ -282,6 +293,7 @@ class ManagedBackupController: public QObject
 
     BackupOperation _backupOperation;
     RestoreOperation _restoreOperation;
+    PlaintextPasswordVerifiedHandler _onPlaintextPasswordVerified;
     std::atomic<Phase> _phase { Phase::Idle };
     BackupStatusListModel _status;
     std::vector<Lightweight::Config::Profile> _profiles;

@@ -17,7 +17,9 @@
 
 #include <filesystem>
 #include <fstream>
+#include <stdexcept>
 #include <string>
+#include <vector>
 
 #include <Config/ProfileStore.hpp>
 #include <QtCore/QEventLoop>
@@ -26,6 +28,7 @@
 #include <QtCore/QTemporaryDir>
 #include <QtCore/QTimer>
 #include <QtTest/QSignalSpy>
+#include <Secrets/ProfileCipher.hpp>
 
 using DbtoolGui::ManagedBackupController;
 
@@ -815,6 +818,121 @@ TEST_CASE("a clean injected run still commits and reports success", "[dbtool-gui
     REQUIRE(WaitFor(realRun));
     CHECK(realRun.first().at(0).toBool());
     CHECK(ReadAll(dir.path() + "/backups/alpha.zip") != "complete archive");
+
+    controller.setBackupFolder(QString {});
+}
+
+namespace
+{
+
+/// A backup operation that writes a complete archive without touching any database.
+void WriteArchiveOperation(std::filesystem::path const& file,
+                           std::string const& /*connectionString*/,
+                           std::string const& /*schema*/,
+                           Lightweight::SqlBackup::ProgressManager& /*progress*/)
+{
+    std::ofstream(file) << "complete archive";
+}
+
+/// A restore operation that succeeds without touching any database.
+void NoOpRestoreOperation(std::filesystem::path const& /*archiveFile*/,
+                          std::string const& /*connectionString*/,
+                          std::string const& /*schema*/,
+                          Lightweight::SqlBackup::ProgressManager& /*progress*/)
+{
+}
+
+} // namespace
+
+TEST_CASE("a successful backup hands a plaintext password over for encryption",
+          "[dbtool-gui][managed-backup-controller][password]")
+{
+    QTemporaryDir dir;
+    ManagedBackupController controller;
+    controller.setBackupFolder(dir.path() + "/backups");
+    auto plaintext = SqliteProfile(dir, "plaintext");
+    plaintext.password = "hunter2";
+    auto encrypted = SqliteProfile(dir, "encrypted");
+    auto const cipherText = Lightweight::Secrets::ProfileCipher::Builtin().Encrypt("hunter2");
+    REQUIRE(cipherText.has_value());
+    encrypted.password = cipherText.value_or(std::string {});
+    auto const passwordless = SqliteProfile(dir, "passwordless");
+    controller.setProfiles({ plaintext, encrypted, passwordless });
+    controller.setBackupOperation(&WriteArchiveOperation);
+
+    auto verified = std::vector<Lightweight::Config::Profile> {};
+    controller.setPlaintextPasswordVerifiedHandler(
+        [&](Lightweight::Config::Profile const& profile) { verified.push_back(profile); });
+
+    QSignalSpy done(&controller, &ManagedBackupController::finished);
+    controller.backupAll();
+    REQUIRE(WaitFor(done));
+    REQUIRE(done.first().at(0).toBool());
+
+    // Only the plaintext profile is reported, with the password it was verified with; the handler ran
+    // (queued on this thread) before `finished`.
+    REQUIRE(verified.size() == 1);
+    CHECK(verified.front().name == "plaintext");
+    CHECK(verified.front().password == "hunter2");
+
+    controller.setBackupFolder(QString {});
+}
+
+TEST_CASE("a failed backup does not report its plaintext password as verified",
+          "[dbtool-gui][managed-backup-controller][password]")
+{
+    QTemporaryDir dir;
+    ManagedBackupController controller;
+    controller.setBackupFolder(dir.path() + "/backups");
+    auto plaintext = SqliteProfile(dir, "plaintext");
+    plaintext.password = "wrong";
+    controller.setProfiles({ plaintext });
+    controller.setBackupOperation(
+        [](std::filesystem::path const& /*file*/,
+           std::string const& /*connectionString*/,
+           std::string const& /*schema*/,
+           Lightweight::SqlBackup::ProgressManager& /*progress*/) { throw std::runtime_error("login failed"); });
+
+    auto verifiedCount = 0;
+    controller.setPlaintextPasswordVerifiedHandler([&](Lightweight::Config::Profile const&) { ++verifiedCount; });
+
+    QSignalSpy done(&controller, &ManagedBackupController::finished);
+    controller.backupAll();
+    REQUIRE(WaitFor(done));
+    CHECK_FALSE(done.first().at(0).toBool());
+    CHECK(verifiedCount == 0);
+
+    controller.setBackupFolder(QString {});
+}
+
+TEST_CASE("a successful restore into a profile hands its plaintext password over for encryption",
+          "[dbtool-gui][managed-backup-controller][password]")
+{
+    QTemporaryDir dir;
+    ManagedBackupController controller;
+    controller.setBackupFolder(dir.path() + "/backups");
+    auto const source = SqliteProfile(dir, "source");
+    auto target = SqliteProfile(dir, "target");
+    target.password = "hunter2";
+    controller.setProfiles({ source, target });
+    controller.setBackupOperation(&WriteArchiveOperation);
+    controller.setRestoreOperation(&NoOpRestoreOperation);
+
+    QSignalSpy backupDone(&controller, &ManagedBackupController::finished);
+    controller.backupProfile("source");
+    REQUIRE(WaitFor(backupDone));
+    REQUIRE(backupDone.first().at(0).toBool());
+
+    auto verified = std::vector<std::string> {};
+    controller.setPlaintextPasswordVerifiedHandler(
+        [&](Lightweight::Config::Profile const& profile) { verified.push_back(profile.name); });
+
+    QSignalSpy restoreDone(&controller, &ManagedBackupController::finished);
+    controller.restoreArchive("source", "target");
+    REQUIRE(WaitFor(restoreDone));
+    REQUIRE(restoreDone.first().at(0).toBool());
+
+    CHECK(verified == std::vector<std::string> { "target" });
 
     controller.setBackupFolder(QString {});
 }

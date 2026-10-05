@@ -163,8 +163,9 @@ std::expected<std::string, std::string> ResolveConnectionString(Lightweight::Con
         return std::unexpected(std::format("Profile '{}' has no connection information.", profile.name));
 
     // Decrypts an `enc:` password, uses a plaintext one as-is, or resolves
-    // `secretRef`. Plaintext passwords are not rewritten here: backups run on
-    // worker threads, and the interactive connect path does the upgrade.
+    // `secretRef`. Plaintext passwords are not rewritten here, on the worker
+    // thread: once a run succeeds, ManagedBackupController hands the profile
+    // back to the GUI thread, which encrypts it.
     auto const password =
         Lightweight::Config::ResolveProfilePassword(profile, Lightweight::Secrets::ProfileCipher::Builtin(), resolver);
     if (!password)
