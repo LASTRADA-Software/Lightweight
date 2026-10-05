@@ -69,6 +69,7 @@ set(SOURCE_FILES
     DataMapper/InstantiationCoverageTests.cpp
     DataMapper/StateTests.cpp
     DataMapper/ThroughMarkerTests.cpp
+    DataMapper/TimestampTests.cpp
     FieldTests.cpp
     Int128Tests.cpp
     LargeTestDatabase/DataGenerator.cpp
