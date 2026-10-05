@@ -31,6 +31,8 @@ static std::atomic<uint64_t> gNextConnectionId { 1 };
 static std::function<void(SqlConnection&)> gPostConnectedHook {};
 static std::atomic<SqlStringTruncationMode> gDefaultStringTruncationMode { SqlStringTruncationMode::Truncate };
 static std::mutex gConnectionMutex {};
+static std::mutex gDefaultSqliteSettingsMutex {};
+static SqliteConnectionSettings gDefaultSqliteSettings {};
 
 namespace
 {
@@ -101,6 +103,7 @@ struct SqlConnection::Data
     SqlPreparedStatementCache preparedStatementCache {
         PreparedStatementCacheCapacityDefault
     }; // Pool of already-prepared statement handles (inactive while its capacity is zero).
+    SqliteConnectionSettings sqliteSettings; // Applied on every Connect() to a SQLite database.
 };
 
 SqlConnection::SqlConnection():
@@ -109,9 +112,15 @@ SqlConnection::SqlConnection():
 }
 
 SqlConnection::SqlConnection(std::optional<SqlConnectionString> connectInfo):
+    SqlConnection(std::move(connectInfo), DefaultSqliteSettings())
+{
+}
+
+SqlConnection::SqlConnection(std::optional<SqlConnectionString> connectInfo, SqliteConnectionSettings sqliteSettings):
     m_connectionId { gNextConnectionId++ },
     m_data { new Data() }
 {
+    m_data->sqliteSettings = sqliteSettings;
     SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &m_hEnv);
     SQLSetEnvAttr(m_hEnv, SQL_ATTR_ODBC_VERSION, (SQLPOINTER) SQL_OV_ODBC3, 0);
     SQLAllocHandle(SQL_HANDLE_DBC, m_hEnv, &m_hDbc);
@@ -368,6 +377,55 @@ void SqlConnection::ApplyStringTruncationMode()
                                                                                                  : "SET ANSI_WARNINGS ON");
 }
 
+SqliteConnectionSettings SqlConnection::DefaultSqliteSettings()
+{
+    auto const lock = std::scoped_lock { gDefaultSqliteSettingsMutex };
+    return gDefaultSqliteSettings;
+}
+
+void SqlConnection::SetDefaultSqliteSettings(SqliteConnectionSettings const& settings)
+{
+    auto const lock = std::scoped_lock { gDefaultSqliteSettingsMutex };
+    gDefaultSqliteSettings = settings;
+}
+
+SqliteConnectionSettings const& SqlConnection::SqliteSettings() const noexcept
+{
+    return m_data->sqliteSettings;
+}
+
+std::expected<void, SqlErrorInfo> SqlConnection::SetSqliteSettings(SqliteConnectionSettings const& settings)
+{
+    m_data->sqliteSettings = settings;
+    if (!m_hDbc || !m_queryFormatter)
+        return {};
+    return ApplySqliteSettings();
+}
+
+std::expected<void, SqlErrorInfo> SqlConnection::ApplySqliteSettings()
+{
+    // The formatter decides which statements, if any, realise the settings on this backend; only the
+    // SQLite dialect emits any, so this is inert everywhere else. MySQL has no formatter at all.
+    if (!m_queryFormatter)
+        return {};
+
+    auto const statements = m_queryFormatter->SqliteSettingsStatements(m_data->sqliteSettings);
+    if (statements.empty())
+        return {};
+
+    try
+    {
+        auto stmt = SqlStatement { *this };
+        for (auto const& sql: statements)
+            std::ignore = stmt.ExecuteDirect(sql);
+    }
+    catch (SqlException const& ex)
+    {
+        return std::unexpected(ex.info());
+    }
+    return {};
+}
+
 bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
 {
     ZoneScopedN("SqlConnection::Connect(DataSource)");
@@ -466,7 +524,8 @@ bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
         return false;
     }
 
-    PostConnect();
+    if (!PostConnect())
+        return false;
 
     SqlLogger::GetLogger().OnConnectionOpened(*this);
     // Not covered by the suite: this is the success tail of the DSN overload, and reaching it needs a
@@ -535,7 +594,8 @@ bool SqlConnection::Connect(SqlConnectionString sqlConnectionString) noexcept
     if (!SQL_SUCCEEDED(sqlResult))
         return false;
 
-    PostConnect();
+    if (!PostConnect())
+        return false;
     SqlLogger::GetLogger().OnConnectionOpened(*this);
     LIGHTWEIGHT_STATS_CONNECTION_OPENED();
 
@@ -545,7 +605,7 @@ bool SqlConnection::Connect(SqlConnectionString sqlConnectionString) noexcept
     return true;
 }
 
-void SqlConnection::PostConnect()
+bool SqlConnection::PostConnect()
 {
     auto const mappings = std::array {
         std::pair { "Microsoft SQL Server"sv, SqlServerType::MICROSOFT_SQL },
@@ -578,17 +638,15 @@ void SqlConnection::PostConnect()
     m_stringTruncationMode = DefaultStringTruncationMode();
     ApplyStringTruncationMode();
 
-    if (m_serverType == SqlServerType::SQLITE)
+    // SQLite's busy timeout and journal mode (see SqliteConnectionSettings). A requested journal mode
+    // that cannot be applied fails the connect rather than leaving the connection in a mode the
+    // application did not ask for.
+    if (auto const applied = ApplySqliteSettings(); !applied)
     {
-        // Set a busy timeout to prevent "database is locked" errors during concurrent access.
-        // 60 seconds should be sufficient for most operations.
-        SqlStatement stmt(*this);
-        [[maybe_unused]] auto cursor = stmt.ExecuteDirect("PRAGMA busy_timeout = 60000");
-
-        // We could also enable WAL mode here, but that changes the database file structure.
-        // However, for high-concurrency restoration, it is highly recommended.
-        // Let's stick to busy_timeout for now as it's purely a runtime behavior change.
+        SqlLogger::GetLogger().OnError(applied.error());
+        return false;
     }
+    return true;
 }
 
 void SqlConnection::EnsureHandlesAllocated()

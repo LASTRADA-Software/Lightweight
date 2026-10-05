@@ -7,7 +7,13 @@
 
 #include <reflection-cpp/reflection.hpp>
 
+#include <algorithm>
+#include <array>
+#include <chrono>
+#include <cstddef>
 #include <format>
+#include <limits>
+#include <string_view>
 
 namespace Lightweight
 {
@@ -663,6 +669,34 @@ ALTER TABLE {2} DROP COLUMN "{1}";)",
     [[nodiscard]] std::string QueryServerVersion() const override
     {
         return "SELECT sqlite_version()";
+    }
+
+    /// Emits @c PRAGMA @c busy_timeout, followed by @c PRAGMA @c journal_mode unless the journal mode
+    /// is to stay unchanged. The busy timeout goes first so that the journal-mode switch, which needs an
+    /// exclusive lock on the database file, already waits on a contended file instead of failing.
+    [[nodiscard]] StringList SqliteSettingsStatements(SqliteConnectionSettings const& settings) const override
+    {
+        // PRAGMA busy_timeout takes a C int; clamp so an out-of-range duration cannot wrap around.
+        auto const busyTimeoutMs =
+            std::clamp<std::chrono::milliseconds::rep>(settings.busyTimeout.count(), 0, std::numeric_limits<int>::max());
+
+        auto statements = StringList { std::format("PRAGMA busy_timeout = {}", busyTimeoutMs) };
+        if (auto const mode = JournalModeKeyword(settings.journalMode); !mode.empty())
+            statements.emplace_back(std::format("PRAGMA journal_mode = {}", mode));
+        return statements;
+    }
+
+    /// Maps a journal mode onto its @c PRAGMA @c journal_mode keyword.
+    /// @param mode The journal mode.
+    /// @return The keyword, or an empty view for @c SqliteJournalMode::Unchanged.
+    [[nodiscard]] static constexpr std::string_view JournalModeKeyword(SqliteJournalMode mode) noexcept
+    {
+        // Indexed by the enumerator value, in declaration order.
+        constexpr auto keywords = std::array<std::string_view, 7> {
+            "", "DELETE", "TRUNCATE", "PERSIST", "MEMORY", "WAL", "OFF",
+        };
+        auto const index = static_cast<std::size_t>(mode);
+        return index < keywords.size() ? keywords[index] : std::string_view {};
     }
 
     /// SQLite has no native advisory-lock primitive, so the handler maintains
