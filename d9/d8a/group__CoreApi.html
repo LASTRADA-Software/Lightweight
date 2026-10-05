@@ -107,6 +107,9 @@ Classes</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html">Lightweight::SqlConnectionDataSource</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d23/structLightweight_1_1SqliteConnectionSettings.html">Lightweight::SqliteConnectionSettings</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Connection-level settings applied when a connection to a SQLite database is established.  <a href="../../d9/d23/structLightweight_1_1SqliteConnectionSettings.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html">Lightweight::SqlConnection</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a connection to a SQL database.  <a href="../../da/da8/classLightweight_1_1SqlConnection.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -159,6 +162,19 @@ Enumerations</h2></td></tr>
  }</td></tr>
 <tr class="memdesc:ga99e5e92107ae68dfd09cca5fc6ef1106"><td class="mdescLeft">&#160;</td><td class="mdescRight">How a connection treats a string or binary value written into a column too small to hold it.  <a href="../../d9/d8a/group__CoreApi.html#ga99e5e92107ae68dfd09cca5fc6ef1106">More...</a><br /></td></tr>
 <tr class="separator:ga99e5e92107ae68dfd09cca5fc6ef1106"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga4e69e872eba3ff2b5e59b999b747add8" id="r_ga4e69e872eba3ff2b5e59b999b747add8"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d8a/group__CoreApi.html#ga4e69e872eba3ff2b5e59b999b747add8">Lightweight::SqliteJournalMode</a> : uint8_t { <br />
+&#160;&#160;<a class="el" href="../../d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a5ff3c6978f87d96febfdc8ed3899a97e">SqliteJournalMode::Unchanged</a>
+, <a class="el" href="../../d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8af2a6c498fb90ee345d997f888fce3b18">SqliteJournalMode::Delete</a>
+, <a class="el" href="../../d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8aa8156810bfee2bd2b44765b9e91db3bd">SqliteJournalMode::Truncate</a>
+, <a class="el" href="../../d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a5a7dacb6e9b5ba37e22f825429355174">SqliteJournalMode::Persist</a>
+, <br />
+&#160;&#160;<a class="el" href="../../d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a4789f23283b3a61f858b641a1bef19a3">SqliteJournalMode::Memory</a>
+, <a class="el" href="../../d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a42c2820d1794f02d673fc37f0d620244">SqliteJournalMode::Wal</a>
+, <a class="el" href="../../d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8ad15305d7a4e34e02489c74a5ef542f36">SqliteJournalMode::Off</a>
+<br />
+ }</td></tr>
+<tr class="memdesc:ga4e69e872eba3ff2b5e59b999b747add8"><td class="mdescLeft">&#160;</td><td class="mdescRight">The SQLite journal mode a connection requests when it is established.  <a href="../../d9/d8a/group__CoreApi.html#ga4e69e872eba3ff2b5e59b999b747add8">More...</a><br /></td></tr>
+<tr class="separator:ga4e69e872eba3ff2b5e59b999b747add8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga826d0a33e14c546691afe196b566b77d" id="r_ga826d0a33e14c546691afe196b566b77d"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d8a/group__CoreApi.html#ga826d0a33e14c546691afe196b566b77d">Lightweight::SqlPreparedStatementCaching</a> : uint8_t { <a class="el" href="../../d9/d8a/group__CoreApi.html#gga826d0a33e14c546691afe196b566b77da00d23a76e43b46dae9ec7aa9dcbebb32">SqlPreparedStatementCaching::Enabled</a>
 , <a class="el" href="../../d9/d8a/group__CoreApi.html#gga826d0a33e14c546691afe196b566b77dab9f5c797ebbf55adccdd8539a65a0241">SqlPreparedStatementCaching::Disabled</a>
  }</td></tr>
@@ -253,6 +269,50 @@ Functions</h2></td></tr>
 </table>
 
 <p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00051">51</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+
+</div>
+</div>
+<a id="ga4e69e872eba3ff2b5e59b999b747add8" name="ga4e69e872eba3ff2b5e59b999b747add8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga4e69e872eba3ff2b5e59b999b747add8">&#9670;&#160;</a></span>SqliteJournalMode</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum class <a class="el" href="../../d9/d8a/group__CoreApi.html#ga4e69e872eba3ff2b5e59b999b747add8">Lightweight::SqliteJournalMode</a> : uint8_t</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">strong</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>The SQLite journal mode a connection requests when it is established. </p>
+<p>Each enumerator other than <a class="el" href="../../d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a5ff3c6978f87d96febfdc8ed3899a97e">Unchanged</a> maps onto the matching <code>PRAGMA</code> <code>journal_mode</code> value. See <a href="https://sqlite.org/pragma.html#pragma_journal_mode">https://sqlite.org/pragma.html#pragma_journal_mode</a> for the semantics of each mode.</p>
+<dl class="section note"><dt>Note</dt><dd>SQLite may decline a requested mode without reporting an error, e.g. an in-memory database can only use <code>MEMORY</code> or <code>OFF</code>, so asking it for <a class="el" href="../../d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a42c2820d1794f02d673fc37f0d620244">Wal</a> leaves it in <code>MEMORY</code>. </dd></dl>
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="gga4e69e872eba3ff2b5e59b999b747add8a5ff3c6978f87d96febfdc8ed3899a97e" name="gga4e69e872eba3ff2b5e59b999b747add8a5ff3c6978f87d96febfdc8ed3899a97e"></a>Unchanged&#160;</td><td class="fielddoc"><p>Leave the journal mode alone: whatever the database file (or the driver) already uses stays in effect. This is the default, so a connection that does not opt in behaves exactly as before. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="gga4e69e872eba3ff2b5e59b999b747add8af2a6c498fb90ee345d997f888fce3b18" name="gga4e69e872eba3ff2b5e59b999b747add8af2a6c498fb90ee345d997f888fce3b18"></a>Delete&#160;</td><td class="fielddoc"><p><code>PRAGMA</code> <code>journal_mode=DELETE</code> — the rollback journal, deleted at the end of each transaction (SQLite's own default). </p>
+</td></tr>
+<tr><td class="fieldname"><a id="gga4e69e872eba3ff2b5e59b999b747add8aa8156810bfee2bd2b44765b9e91db3bd" name="gga4e69e872eba3ff2b5e59b999b747add8aa8156810bfee2bd2b44765b9e91db3bd"></a>Truncate&#160;</td><td class="fielddoc"><p><code>PRAGMA</code> <code>journal_mode=TRUNCATE</code> — the rollback journal, truncated rather than deleted. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="gga4e69e872eba3ff2b5e59b999b747add8a5a7dacb6e9b5ba37e22f825429355174" name="gga4e69e872eba3ff2b5e59b999b747add8a5a7dacb6e9b5ba37e22f825429355174"></a>Persist&#160;</td><td class="fielddoc"><p><code>PRAGMA</code> <code>journal_mode=PERSIST</code> — the rollback journal, kept and its header zeroed. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="gga4e69e872eba3ff2b5e59b999b747add8a4789f23283b3a61f858b641a1bef19a3" name="gga4e69e872eba3ff2b5e59b999b747add8a4789f23283b3a61f858b641a1bef19a3"></a>Memory&#160;</td><td class="fielddoc"><p><code>PRAGMA</code> <code>journal_mode=MEMORY</code> — the rollback journal, kept in memory. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="gga4e69e872eba3ff2b5e59b999b747add8a42c2820d1794f02d673fc37f0d620244" name="gga4e69e872eba3ff2b5e59b999b747add8a42c2820d1794f02d673fc37f0d620244"></a>Wal&#160;</td><td class="fielddoc"><p><code>PRAGMA</code> <code>journal_mode=WAL</code> — write-ahead logging, in which readers and writers do not block each other. The mode is persistent: it is recorded in the database file and stays in effect for every later connection to it. Requires a file database. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="gga4e69e872eba3ff2b5e59b999b747add8ad15305d7a4e34e02489c74a5ef542f36" name="gga4e69e872eba3ff2b5e59b999b747add8ad15305d7a4e34e02489c74a5ef542f36"></a>Off&#160;</td><td class="fielddoc"><p><code>PRAGMA</code> <code>journal_mode=OFF</code> — no rollback journal; a crash or ROLLBACK can corrupt the database. </p>
+</td></tr>
+</table>
+
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00077">77</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>

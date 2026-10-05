@@ -204,9 +204,6 @@ virtual <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.h
 <tr class="memitem:ab39585d3fa5fcd921a0e46afb27ff8d7" id="r_ab39585d3fa5fcd921a0e46afb27ff8d7"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ab39585d3fa5fcd921a0e46afb27ff8d7">RequiresTableRebuildForSchemaChange</a> () const noexcept</td></tr>
 <tr class="memdesc:ab39585d3fa5fcd921a0e46afb27ff8d7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether the dialect must rebuild a table to apply an <code>ALTER TABLE</code> schema change that it cannot express in place — adding/dropping a foreign-key constraint, or altering a column's type/nullability (<code>ALTER TABLE … ADD/DROP CONSTRAINT</code> / <code>… ALTER COLUMN</code>).  <br /></td></tr>
 <tr class="separator:ab39585d3fa5fcd921a0e46afb27ff8d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7e2eab0350f006fae60e0eca80c23527" id="r_a7e2eab0350f006fae60e0eca80c23527"><td class="memItemLeft" align="right" valign="top">virtual std::string_view&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a7e2eab0350f006fae60e0eca80c23527">ReadUncommittedTableHint</a> () const noexcept</td></tr>
-<tr class="memdesc:a7e2eab0350f006fae60e0eca80c23527"><td class="mdescLeft">&#160;</td><td class="mdescRight">The per-table hint that asks for a dirty read (READ UNCOMMITTED) of one table in a SELECT.  <br /></td></tr>
-<tr class="separator:a7e2eab0350f006fae60e0eca80c23527"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a09abb2638365ecc1319c35aa8238eb72" id="r_a09abb2638365ecc1319c35aa8238eb72"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a09abb2638365ecc1319c35aa8238eb72">SupportsBatchedSchemaIntrospection</a> () const noexcept</td></tr>
 <tr class="memdesc:a09abb2638365ecc1319c35aa8238eb72"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether the dialect provides a batched, whole-database schema-introspection fast path that <code>SqlSchema::ReadAllTables</code> can use instead of the per-table ODBC catalog loop.  <br /></td></tr>
 <tr class="separator:a09abb2638365ecc1319c35aa8238eb72"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -219,6 +216,9 @@ virtual <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.h
 <tr class="memitem:a1aade87023f69d63e86f4aca06a97595" id="r_a1aade87023f69d63e86f4aca06a97595"><td class="memItemLeft" align="right" valign="top">virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1aade87023f69d63e86f4aca06a97595">SetDefaultSchemaStatement</a> (std::string_view schema) const</td></tr>
 <tr class="memdesc:a1aade87023f69d63e86f4aca06a97595"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the SQL statement to execute after connect to make <code>schema</code> the connection-level default for unqualified DDL/DML.  <br /></td></tr>
 <tr class="separator:a1aade87023f69d63e86f4aca06a97595"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8aad2dcdc6cd722dd563c42799acba49" id="r_a8aad2dcdc6cd722dd563c42799acba49"><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#abf21ac12103c4b8224cc68fb0cc114c0">StringList</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a8aad2dcdc6cd722dd563c42799acba49">SqliteSettingsStatements</a> (<a class="el" href="../../d9/d23/structLightweight_1_1SqliteConnectionSettings.html">SqliteConnectionSettings</a> const &amp;settings) const</td></tr>
+<tr class="memdesc:a8aad2dcdc6cd722dd563c42799acba49"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the statements a connection executes after connecting to realise <code>settings</code>.  <br /></td></tr>
+<tr class="separator:a8aad2dcdc6cd722dd563c42799acba49"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2f3e6e88b1fb6af51bf4d0d65c5a52e6" id="r_a2f3e6e88b1fb6af51bf4d0d65c5a52e6"><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="../../d4/d61/classLightweight_1_1SqlAdvisoryLockHandler.html">SqlAdvisoryLockHandler</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2f3e6e88b1fb6af51bf4d0d65c5a52e6">AdvisoryLockOps</a> () const =0</td></tr>
 <tr class="memdesc:a2f3e6e88b1fb6af51bf4d0d65c5a52e6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the dialect-specific handler used by <code><a class="el" href="../../d3/de6/classLightweight_1_1SqlScopedLock.html">SqlScopedLock</a></code> to acquire and release named cross-process advisory locks.  <br /></td></tr>
 <tr class="separator:a2f3e6e88b1fb6af51bf4d0d65c5a52e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -703,38 +703,6 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 
 </div>
 </div>
-<a id="a7e2eab0350f006fae60e0eca80c23527" name="a7e2eab0350f006fae60e0eca80c23527"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7e2eab0350f006fae60e0eca80c23527">&#9670;&#160;</a></span>ReadUncommittedTableHint()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">virtual std::string_view Lightweight::SqlQueryFormatter::ReadUncommittedTableHint </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>The per-table hint that asks for a dirty read (READ UNCOMMITTED) of one table in a SELECT. </p>
-<p>Rendered right after a table reference (and its alias) in the FROM clause and in each JOIN of a query built with <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ac39aa0f150f42dec783b4a02282feb8d">SqlSelectQueryBuilder::ReadUncommitted</a>. Only that statement is affected; the connection's transaction isolation level is left alone.</p>
-<p>Defaults to an empty string, meaning the dialect has no per-table hint and renders the statement unchanged. SQL Server returns <code>" WITH (READUNCOMMITTED)"</code>.</p>
-<dl class="section return"><dt>Returns</dt><dd>The hint text including its leading space, or an empty string. The text must stay valid for as long as the formatter does. </dd></dl>
-
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00213">213</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
-
-</div>
-</div>
 <a id="a09abb2638365ecc1319c35aa8238eb72" name="a09abb2638365ecc1319c35aa8238eb72"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a09abb2638365ecc1319c35aa8238eb72">&#9670;&#160;</a></span>SupportsBatchedSchemaIntrospection()</h2>
 
@@ -762,7 +730,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 <p>Defaults to <code>false</code>, meaning the generic per-table catalog reader is used. SQL Server returns <code>true</code>: it can answer the entire schema with a handful of <code>sys.*</code> queries, collapsing thousands of per-table round-trips into a few. The batched path must produce byte-identical schema metadata to the legacy path.</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if the dialect supports the batched fast path, <code>false</code> otherwise. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00228">228</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00212">212</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -793,7 +761,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 <p>Defaults to <code>false</code> (PostgreSQL and SQLite store both the same way). SQL Server returns <code>true</code>.</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if narrow and wide text are distinct types in this dialect. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00242">242</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00226">226</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -824,7 +792,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 <p>The batched relation loading behind <code>Query&lt;Record&gt;().With&lt;&amp;Record::relation&gt;()</code> resolves a whole result set through <code>IN</code> predicates over the collected keys. Those keys are rendered as literals, so a large batch would otherwise produce one enormous expression — SQL Server raises "an expression services limit has been reached", and SQLite has its own parser limits. Splitting the batch into chunks of this size keeps every generated statement inside what the dialect accepts; the cost is one extra round-trip per chunk, still a constant number of queries per relation instead of one per record.</p>
 <dl class="section return"><dt>Returns</dt><dd>The maximum number of values per <code>IN</code> predicate. Defaults to 1000 for every dialect. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00259">259</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00243">243</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -868,7 +836,7 @@ template&lt;typename Range &gt; </div>
 <p>Produces <code>FK_&lt;table&gt;_&lt;col1&gt;[_&lt;col2&gt;…]</code>. A single-column FK collapses to <code>FK_&lt;table&gt;_&lt;col&gt;</code>; a composite FK includes every column so that a composite FK whose first column matches an existing single-column FK doesn't collide on the constraint name (which MSSQL enforces as globally unique per DB).</p>
 <p>Consumers include the SQL Server, PostgreSQL and SQLite formatters — centralising the convention here keeps CREATE/ALTER emission in sync with DROP CONSTRAINT lookup (e.g. <code>SQLiteRebuildDropForeignKey</code>). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00275">275</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00259">259</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -900,7 +868,45 @@ template&lt;typename Range &gt; </div>
 <p>Returns an empty string when the DBMS has no session-level concept of a default schema (SQL Server, SQLite). Callers must skip emission for empty results. PostgreSQL implements this via <code>SET search_path TO ...</code>.</p>
 <p>The <code>schema</code> value is interpolated into the statement; callers must validate it (e.g. whitelist <code>[A-Za-z0-9_]</code>) before invoking. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00296">296</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00280">280</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a8aad2dcdc6cd722dd563c42799acba49" name="a8aad2dcdc6cd722dd563c42799acba49"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8aad2dcdc6cd722dd563c42799acba49">&#9670;&#160;</a></span>SqliteSettingsStatements()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#abf21ac12103c4b8224cc68fb0cc114c0">StringList</a> Lightweight::SqlQueryFormatter::SqliteSettingsStatements </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="../../d9/d23/structLightweight_1_1SqliteConnectionSettings.html">SqliteConnectionSettings</a> const &amp;&#160;</td>
+          <td class="paramname"><em>settings</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the statements a connection executes after connecting to realise <code>settings</code>. </p>
+<p>Only the SQLite dialect has these settings, and emits one <code>PRAGMA</code> per setting; every other dialect returns an empty list, which leaves the settings inert there.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">settings</td><td>The connection's SQLite settings. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The statements to execute, in order; empty when there is nothing to apply. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00293">293</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>

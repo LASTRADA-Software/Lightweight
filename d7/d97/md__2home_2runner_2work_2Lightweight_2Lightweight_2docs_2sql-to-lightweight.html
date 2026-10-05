@@ -356,8 +356,8 @@ Multi-condition / aliased joins</h2>
 <div class="line">                                    .On(<span class="stringliteral">&quot;that_foo&quot;</span>, { .tableName = <span class="stringliteral">&quot;Table_A&quot;</span>, .columnName = <span class="stringliteral">&quot;foo&quot;</span> });</div>
 <div class="line">                            })</div>
 <div class="line">                 .All();</div>
-<div class="ttc" id="aclassLightweight_1_1SqlJoinConditionBuilder_html"><div class="ttname"><a href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">Lightweight::SqlJoinConditionBuilder</a></div><div class="ttdoc">Query builder for building JOIN conditions.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00190">Core.hpp:191</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1SqlJoinConditionBuilder_html_a07b8c6e89aa7cbfd31eed3997d5dbf4f"><div class="ttname"><a href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#a07b8c6e89aa7cbfd31eed3997d5dbf4f">Lightweight::SqlJoinConditionBuilder::On</a></div><div class="ttdeci">SqlJoinConditionBuilder &amp; On(std::string_view joinColumnName, SqlQualifiedTableColumnName onOtherColumn)</div><div class="ttdoc">Adds an AND join condition.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00209">Core.hpp:209</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlJoinConditionBuilder_html"><div class="ttname"><a href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">Lightweight::SqlJoinConditionBuilder</a></div><div class="ttdoc">Query builder for building JOIN conditions.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00183">Core.hpp:184</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlJoinConditionBuilder_html_a07b8c6e89aa7cbfd31eed3997d5dbf4f"><div class="ttname"><a href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#a07b8c6e89aa7cbfd31eed3997d5dbf4f">Lightweight::SqlJoinConditionBuilder::On</a></div><div class="ttdeci">SqlJoinConditionBuilder &amp; On(std::string_view joinColumnName, SqlQualifiedTableColumnName onOtherColumn)</div><div class="ttdoc">Adds an AND join condition.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00202">Core.hpp:202</a></div></div>
 </div><!-- fragment --><p>Use <code>AliasedTableName { .tableName = "Departments", .alias = "D" }</code> as the join target (and <code>FromTableAs("Employees", "E")</code>) for self-joins or when the same table appears more than once.</p>
 <hr  />
 <h1><a class="anchor" id="insert"></a>
@@ -425,10 +425,11 @@ DELETE</h1>
 </div><!-- fragment --><div class="fragment"><div class="line"><span class="comment">// DataMapper — bulk delete by predicate</span></div>
 <div class="line">dm.Query&lt;Employee, <a class="code hl_struct" href="../../d3/db2/structLightweight_1_1DataMapperOptions.html">DataMapperOptions</a> { .<a class="code hl_variable" href="../../d3/db2/structLightweight_1_1DataMapperOptions.html#ae7030386be6995fdafef8903818bfe2a">loadRelations</a> = <span class="keyword">false</span> }&gt;()</div>
 <div class="line">    .WhereIn(FieldNameOf&lt;&amp;Employee::department&gt;, std::vector { 1, 2, 3 })</div>
-<div class="line">    .Delete();</div>
+<div class="line">    .<a class="code hl_enumvalue" href="../../d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8af2a6c498fb90ee345d997f888fce3b18">Delete</a>();</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Delete a single loaded record by its primary key</span></div>
 <div class="line">dm.Delete(employee);</div>
+<div class="ttc" id="agroup__CoreApi_html_gga4e69e872eba3ff2b5e59b999b747add8af2a6c498fb90ee345d997f888fce3b18"><div class="ttname"><a href="../../d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8af2a6c498fb90ee345d997f888fce3b18">Lightweight::SqliteJournalMode::Delete</a></div><div class="ttdeci">@ Delete</div></div>
 </div><!-- fragment --><div class="fragment"><div class="line"><span class="comment">// Query builder</span></div>
 <div class="line"><span class="keyword">auto</span> query = dm.FromTable(<span class="stringliteral">&quot;Employees&quot;</span>).Delete().WhereIn(<span class="stringliteral">&quot;department_id&quot;</span>, std::vector { 1, 2, 3 });</div>
 </div><!-- fragment --><div class="fragment"><div class="line"><span class="comment">// Query builder — same, with the WHERE values bound rather than written into the text</span></div>

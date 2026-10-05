@@ -106,6 +106,7 @@ var annotated_dup =
       [ "SqlGuid", "df/d7c/structLightweight_1_1SqlGuid.html", "df/d7c/structLightweight_1_1SqlGuid" ],
       [ "SqlInsertDataPlan", "dd/d76/structLightweight_1_1SqlInsertDataPlan.html", "dd/d76/structLightweight_1_1SqlInsertDataPlan" ],
       [ "SqlInsertQueryBuilder", "de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html", "de/dd9/classLightweight_1_1SqlInsertQueryBuilder" ],
+      [ "SqliteConnectionSettings", "d9/d23/structLightweight_1_1SqliteConnectionSettings.html", "d9/d23/structLightweight_1_1SqliteConnectionSettings" ],
       [ "SqlJoinConditionBuilder", "dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html", "dd/d97/classLightweight_1_1SqlJoinConditionBuilder" ],
       [ "SqlLatencyHistogram", "df/d78/structLightweight_1_1SqlLatencyHistogram.html", "df/d78/structLightweight_1_1SqlLatencyHistogram" ],
       [ "SqlLockError", "d6/d3b/structLightweight_1_1SqlLockError.html", "d6/d3b/structLightweight_1_1SqlLockError" ],
