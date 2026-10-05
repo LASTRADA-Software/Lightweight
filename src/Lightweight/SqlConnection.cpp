@@ -463,6 +463,7 @@ bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
 
 std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionDataSource const& info) noexcept
 {
+    ZoneScopedN("SqlConnection::ConnectOnce(DataSource)");
     m_data->defaultPrefetchDepth = info.defaultPrefetchDepth;
     m_data->requestedPreparedStatementCacheCapacity = info.preparedStatementCacheCapacity;
 
@@ -589,6 +590,8 @@ bool SqlConnection::Connect(SqlConnectionString sqlConnectionString) noexcept
 
 std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce() noexcept
 {
+    // One zone per attempt, so retries show up individually in a capture.
+    ZoneScopedN("SqlConnection::ConnectOnce(ConnectionString)");
     // Handles prepared against the previous session die with the disconnect below.
     m_data->preparedStatementCache.Clear();
 
