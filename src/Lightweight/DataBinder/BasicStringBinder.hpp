@@ -89,15 +89,17 @@ namespace detail
         }
 
         size_t writeIndex = 0;
+        // Chars offered to the previous SQLGetData call; a truncated transfer filled all but the terminator.
+        size_t lastTransferChars = result->size();
         while (sqlResult == SQL_SUCCESS_WITH_INFO && *indicator == SQL_NO_TOTAL)
         {
             // We have a truncation and the server does not know how much data is left.
-            writeIndex += result->size() - TrailingNulTerminators;
+            writeIndex += lastTransferChars - TrailingNulTerminators;
             result->resize(result->size() * 2);
             auto* const bufferStart = result->data() + writeIndex;
-            size_t const bufferCharsAvailable = result->size() - writeIndex;
+            lastTransferChars = result->size() - writeIndex;
             sqlResult = SQLGetData(
-                stmt, column, CType, bufferStart, static_cast<SQLLEN>(bufferCharsAvailable * sizeof(CharType)), indicator);
+                stmt, column, CType, bufferStart, static_cast<SQLLEN>(lastTransferChars * sizeof(CharType)), indicator);
         }
         // The unknown-total loop exits with the final transfer's char count in the indicator; trim
         // the over-allocated buffer to the bytes actually written.

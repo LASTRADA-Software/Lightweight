@@ -1826,10 +1826,10 @@ TEST_CASE_METHOD(SqlTestFixture,
 // pair occupies two char16_t units.
 //
 // Branch (a) is what the drivers in our test matrix (psqlODBC, ODBC Driver 18
-// for SQL Server) actually take for streaming columns, so these tests pin the
-// arithmetic for that branch. Branch (b) is rare in practice but its byte/char
-// math was previously off by sizeof(CharType); the tests below also serve as
-// forward-looking coverage if a future driver routes here.
+// for SQL Server) take for wide streaming columns, so the test case below pins the
+// arithmetic for that branch. Branch (b) is what ODBC Driver 18 takes when it has
+// to widen a narrow LOB (VARCHAR(MAX), TEXT) to SQL_C_WCHAR; the test case after it
+// covers that one.
 //
 // The streaming column type — NVARCHAR(MAX) on SQL Server, TEXT on Postgres /
 // SQLite — plus payloads that overflow the 255-char initial buffer in
@@ -1920,6 +1920,44 @@ TEST_CASE_METHOD(SqlTestFixture, "GetRawColumnArrayData: long Unicode round-trip
         auto reader = stmt.Execute();
         REQUIRE(reader.FetchRow());
         CHECK(reader.GetColumn<std::u16string>(1) == expected);
+    }
+}
+
+// Branch (b) of detail::GetRawColumnArrayData: ODBC Driver 18 cannot predict the widened length of
+// a narrow LOB, answers SQL_NO_TOTAL and is read chunk by chunk. Every continuation must start right
+// after the chars the previous transfer wrote; advancing by the whole buffer instead left gaps and
+// doubled the reported length per chunk, so a few KiB came back as tens of millions of chars.
+TEST_CASE_METHOD(SqlTestFixture, "GetRawColumnArrayData: narrow long text read as UTF-16", "[SqlDataBinder][Unicode]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("LongNarrowText").Column("value", SqlColumnTypeDefinitions::Text {});
+    });
+
+    // Long enough for many chunks past the 255-char initial buffer.
+    auto const stored = MakeLargeText(5000);
+    stmt.Prepare(stmt.Query("LongNarrowText").Insert().Set("value", SqlWildcard));
+    std::ignore = stmt.Execute(stored);
+    auto const expected = std::u16string(stored.begin(), stored.end());
+
+    SECTION("std::u16string")
+    {
+        stmt.Prepare(stmt.Query("LongNarrowText").Select().Field("value").All());
+        auto reader = stmt.Execute();
+        REQUIRE(reader.FetchRow());
+        auto const actual = reader.GetColumn<std::u16string>(1);
+        CHECK(actual.size() == expected.size());
+        CHECK(actual == expected);
+    }
+
+    SECTION("std::wstring")
+    {
+        stmt.Prepare(stmt.Query("LongNarrowText").Select().Field("value").All());
+        auto reader = stmt.Execute();
+        REQUIRE(reader.FetchRow());
+        auto const actual = reader.GetColumn<std::wstring>(1);
+        CHECK(actual.size() == expected.size());
+        CHECK(actual == std::wstring(stored.begin(), stored.end()));
     }
 }
 
