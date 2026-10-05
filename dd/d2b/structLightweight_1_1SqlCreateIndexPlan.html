@@ -122,6 +122,8 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a64587008f80036f6eae8301e96b6656b" id="r_a64587008f80036f6eae8301e96b6656b"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#a64587008f80036f6eae8301e96b6656b">ifNotExists</a> { false }</td></tr>
 <tr class="memdesc:a64587008f80036f6eae8301e96b6656b"><td class="mdescLeft">&#160;</td><td class="mdescRight">If true, generates CREATE INDEX IF NOT EXISTS.  <br /></td></tr>
 <tr class="separator:a64587008f80036f6eae8301e96b6656b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a25784a4370399b260e35a48fc710b10c" id="r_a25784a4370399b260e35a48fc710b10c"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#a25784a4370399b260e35a48fc710b10c">whereExpression</a> {}</td></tr>
+<tr class="separator:a25784a4370399b260e35a48fc710b10c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Represents a SQL CREATE INDEX plan for migrations. </p>
@@ -234,6 +236,23 @@ Public Attributes</h2></td></tr>
 <p>If true, generates CREATE INDEX IF NOT EXISTS. </p>
 
 <p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00531">531</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a25784a4370399b260e35a48fc710b10c" name="a25784a4370399b260e35a48fc710b10c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a25784a4370399b260e35a48fc710b10c">&#9670;&#160;</a></span>whereExpression</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::string Lightweight::SqlCreateIndexPlan::whereExpression {}</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Pre-rendered predicate body of a partial (PostgreSQL / SQLite) or filtered (SQL Server) index, without the leading <code>WHERE</code>. Empty means the index covers every row. Emitted verbatim after the column list as <code>WHERE &lt;expression&gt;</code>; the caller is responsible for dialect-safe quoting. Mirrors <code><a class="el" href="../../d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#a4ba3ee45a117b2883222f58f6606bbbb" title="Pre-rendered WHERE-clause body (the text after WHERE), used when the condition cannot be expressed wi...">SqlUpdateDataPlan::whereExpression</a></code>. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00538">538</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>

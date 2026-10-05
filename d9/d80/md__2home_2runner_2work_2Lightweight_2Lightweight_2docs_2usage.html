@@ -133,35 +133,7 @@ Connection encryption</h1>
 <div class="fragment"><div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> connectionString = SqlConnectionString {</div>
 <div class="line">    .value = <span class="stringliteral">&quot;Driver={ODBC Driver 18 for SQL Server};SERVER=db;UID=user;PWD=password;Encrypt=yes&quot;</span></div>
 <div class="line">};</div>
-</div><!-- fragment --><h1><a class="anchor" id="sqlite-busy-timeout-and-journal-mode"></a>
-SQLite busy timeout and journal mode</h1>
-<p>When a connection to a SQLite database is established, Lightweight sets SQLite's busy timeout — how long a statement waits on a database file locked by another connection before it fails with <code>database is locked</code> — and, if asked, the journal mode. Both come from <code>SqliteConnectionSettings</code>:</p>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">Field   </th><th class="markdownTableHeadNone">Default   </th><th class="markdownTableHeadNone">Applied as    </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>busyTimeout</code>   </td><td class="markdownTableBodyNone"><code>SqliteBusyTimeoutDefault</code> (60 s)   </td><td class="markdownTableBodyNone"><code>PRAGMA busy_timeout = &lt;ms&gt;</code>    </td></tr>
-<tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>journalMode</code>   </td><td class="markdownTableBodyNone"><code>SqliteJournalMode::Unchanged</code>   </td><td class="markdownTableBodyNone"><code>PRAGMA journal_mode = &lt;mode&gt;</code>, unless <code>Unchanged</code>   </td></tr>
-</table>
-<p><code>SqliteJournalMode</code> offers <code>Unchanged</code>, <code>Delete</code>, <code>Truncate</code>, <code>Persist</code>, <code>Memory</code>, <code>Wal</code> and <code>Off</code>. The busy timeout is not the <code>Timeout=</code> of the ODBC connection string, which is the login timeout.</p>
-<p>Set the process-wide default once at start-up. Every connection constructed afterwards takes a copy, including those Lightweight creates on your behalf (a default-constructed <code>DataMapper</code>, the connection pool, the migration manager):</p>
-<div class="fragment"><div class="line">SqlConnection::SetDefaultSqliteSettings(SqliteConnectionSettings {</div>
-<div class="line">    .busyTimeout = std::chrono::seconds { 5 },</div>
-<div class="line">    .journalMode = SqliteJournalMode::Wal,</div>
-<div class="line">});</div>
-</div><!-- fragment --><p>A single connection can be given its own settings at construction, or changed while open — in which case they are applied immediately:</p>
-<div class="fragment"><div class="line"><span class="keyword">auto</span> connection = SqlConnection { connectionString, SqliteConnectionSettings { .busyTimeout = 500ms } };</div>
-<div class="line"> </div>
-<div class="line"><span class="keywordflow">if</span> (<span class="keyword">auto</span> <span class="keyword">const</span> applied = connection.SetSqliteSettings({ .busyTimeout = 0ms }); !applied)</div>
-<div class="line">    std::println(<span class="stringliteral">&quot;could not apply: {}&quot;</span>, applied.error());</div>
-</div><!-- fragment --><p>A connection keeps its settings across a reconnect. If a setting cannot be applied while connecting, the connect fails. Keep in mind:</p>
-<ul>
-<li><b>WAL is a property of the database file.</b> Once a connection switches a file to WAL, every later connection to it uses WAL too, until one switches it back. WAL lets readers and writers proceed without blocking each other, but needs a file database on a local file system.</li>
-<li><b>SQLite may decline a journal mode without an error.</b> An in-memory database can only use <code>MEMORY</code> or <code>OFF</code>; asking it for <code>Wal</code> leaves it in <code>MEMORY</code>. Read <code>PRAGMA journal_mode</code> back if you depend on the result.</li>
-<li><b>The settings are inert on other databases.</b> No statement is issued for them on SQL Server or PostgreSQL, so the same start-up code runs against every backend.</li>
-</ul>
-<h1><a class="anchor" id="raw-sql-queries"></a>
+</div><!-- fragment --><h1><a class="anchor" id="raw-sql-queries"></a>
 Raw SQL Queries</h1>
 <p>To directly make a call to the database use <code>ExecuteDirect</code> function, for example </p><div class="fragment"><div class="line"><span class="keyword">auto</span> stmt = SqlStatement {};</div>
 <div class="line">stmt.ExecuteDirect(R<span class="stringliteral">&quot;(&quot;SELECT &quot;a&quot;, &quot;b&quot;, &quot;c&quot; FROM &quot;That&quot; ORDER BY &quot;That&quot;.&quot;b&quot; DESC)&quot;));</span></div>

@@ -16,22 +16,14 @@ var group__CoreApi =
       [ "encryption", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a3e8f610544a01c1fde5de73f85573377", null ],
       [ "preparedStatementCacheCapacity", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a64c66e360673f2ea824486894447835e", null ]
     ] ],
-    [ "Lightweight::SqliteConnectionSettings", "d9/d23/structLightweight_1_1SqliteConnectionSettings.html", [
-      [ "operator==", "d9/d23/structLightweight_1_1SqliteConnectionSettings.html#afb377ef3a762d57088685fe7338fed76", null ],
-      [ "busyTimeout", "d9/d23/structLightweight_1_1SqliteConnectionSettings.html#a667752138a5c4017c8cfb614f545cd3e", null ],
-      [ "journalMode", "d9/d23/structLightweight_1_1SqliteConnectionSettings.html#afe812d7ad6443cea24dc3f0a35dbcf0a", null ]
-    ] ],
     [ "Lightweight::SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html", [
       [ "SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html#ab5a9e94571f9e9296b2ce65036f75184", null ],
       [ "SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html#a4e097e87864820524a545cee7aedc437", null ],
-      [ "SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html#a9c3f957b7fd2eaf7eefa167072af7d11", null ],
       [ "SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html#ab9e2b5679f7ca67ead13107a020e7c65", null ],
       [ "~SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html#a62a9dd35027a98c52b3fcb66fcf2e731", null ],
       [ "operator=", "da/da8/classLightweight_1_1SqlConnection.html#a6632efa15e669b5892bcb1fe0e0dc683", null ],
       [ "StringTruncationMode", "da/da8/classLightweight_1_1SqlConnection.html#a65a42e46a8954b2a4f88e0403c85ccff", null ],
       [ "SetStringTruncationMode", "da/da8/classLightweight_1_1SqlConnection.html#ad564a1c5ac5491bfdefad0bd38d83bbe", null ],
-      [ "SqliteSettings", "da/da8/classLightweight_1_1SqlConnection.html#aec2394736e758433d81c29cb5c04d047", null ],
-      [ "SetSqliteSettings", "da/da8/classLightweight_1_1SqlConnection.html#a103fcb72a3f8885d1bb2426d3486b2e3", null ],
       [ "ConnectionId", "da/da8/classLightweight_1_1SqlConnection.html#a63ba202ba517a1dbe5d36afe4654a85b", null ],
       [ "Close", "da/da8/classLightweight_1_1SqlConnection.html#a85b56ddb608b6c84fe33b7bff71a7f24", null ],
       [ "Connect", "da/da8/classLightweight_1_1SqlConnection.html#aff53cd88345bf8822f5fd34e676c48d0", null ],
@@ -306,15 +298,6 @@ var group__CoreApi =
     [ "Lightweight::SqlStringTruncationMode", "d9/d8a/group__CoreApi.html#ga99e5e92107ae68dfd09cca5fc6ef1106", [
       [ "Lightweight::SqlStringTruncationMode::Truncate", "d9/d8a/group__CoreApi.html#gga99e5e92107ae68dfd09cca5fc6ef1106aa8156810bfee2bd2b44765b9e91db3bd", null ],
       [ "Lightweight::SqlStringTruncationMode::Error", "d9/d8a/group__CoreApi.html#gga99e5e92107ae68dfd09cca5fc6ef1106a902b0d55fddef6f8d651fe1035b7d4bd", null ]
-    ] ],
-    [ "Lightweight::SqliteJournalMode", "d9/d8a/group__CoreApi.html#ga4e69e872eba3ff2b5e59b999b747add8", [
-      [ "Lightweight::SqliteJournalMode::Unchanged", "d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a5ff3c6978f87d96febfdc8ed3899a97e", null ],
-      [ "Lightweight::SqliteJournalMode::Delete", "d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8af2a6c498fb90ee345d997f888fce3b18", null ],
-      [ "Lightweight::SqliteJournalMode::Truncate", "d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8aa8156810bfee2bd2b44765b9e91db3bd", null ],
-      [ "Lightweight::SqliteJournalMode::Persist", "d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a5a7dacb6e9b5ba37e22f825429355174", null ],
-      [ "Lightweight::SqliteJournalMode::Memory", "d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a4789f23283b3a61f858b641a1bef19a3", null ],
-      [ "Lightweight::SqliteJournalMode::Wal", "d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a42c2820d1794f02d673fc37f0d620244", null ],
-      [ "Lightweight::SqliteJournalMode::Off", "d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8ad15305d7a4e34e02489c74a5ef542f36", null ]
     ] ],
     [ "Lightweight::SqlPreparedStatementCaching", "d9/d8a/group__CoreApi.html#ga826d0a33e14c546691afe196b566b77d", [
       [ "Lightweight::SqlPreparedStatementCaching::Enabled", "d9/d8a/group__CoreApi.html#gga826d0a33e14c546691afe196b566b77da00d23a76e43b46dae9ec7aa9dcbebb32", null ],
