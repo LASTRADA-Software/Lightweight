@@ -481,7 +481,7 @@ class [[nodiscard]] SqlSelectQueryStarter final: public SqlSelectQueryBuilder
         return std::forward<Self>(self);
     }
 
-    /// State-preserving override of @ref SqlSelectQueryBuilder::ReadUncommitted: returns @c Self&&
+    /// State-preserving override of @ref SqlSelectQueryBuilder::ReadUncommitted(); returns @c Self&&
     /// so `Select().ReadUncommitted().All()` stays rejected like `Select().All()`.
     template <typename Self>
     LIGHTWEIGHT_FORCE_INLINE auto&& ReadUncommitted(this Self&& self) noexcept
