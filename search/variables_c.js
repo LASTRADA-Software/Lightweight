@@ -1,22 +1,13 @@
 var searchData=
 [
-  ['matches_0',['matches',['../da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html#ae3b7009e838fb2ab37c9cd65740c20e7',1,'Lightweight::SqlMigration::ChecksumVerificationResult']]],
-  ['maxcharcolumnbytes_1',['MaxCharColumnBytes',['../da/d6c/classLightweight_1_1RowArrayCursor.html#af2367273a2b52c51108ef36697bd84b8',1,'Lightweight::RowArrayCursor']]],
-  ['maxdelay_2',['maxDelay',['../d9/d7e/structLightweight_1_1SqlRetrySettings.html#a509583cce773d9b887e14ec485b07dde',1,'Lightweight::SqlRetrySettings']]],
-  ['maxidletimems_3',['maxIdleTimeMs',['../df/d1a/structLightweight_1_1PoolConfig.html#ad9943a108490072e4ac98266abc784a2',1,'Lightweight::PoolConfig']]],
-  ['maxlifetimems_4',['maxLifetimeMs',['../df/d1a/structLightweight_1_1PoolConfig.html#acad5623b52d85dc1ab20820cd58d8a2f',1,'Lightweight::PoolConfig']]],
-  ['maxmicroseconds_5',['maxMicroseconds',['../df/d78/structLightweight_1_1SqlLatencyHistogram.html#a76212aeff63c3be7ec3e708f78d45148',1,'Lightweight::SqlLatencyHistogram']]],
-  ['maxretries_6',['maxretries',['../d9/d7e/structLightweight_1_1SqlRetrySettings.html#a8aa448f5c51023ccb5a68fad53f78e9d',1,'Lightweight::SqlRetrySettings::maxRetries'],['../d6/d00/structLightweight_1_1SqlRetryAttempt.html#ab28f5ce595ae93f6ca77940793642376',1,'Lightweight::SqlRetryAttempt::maxRetries']]],
-  ['maxrowspercommit_7',['maxRowsPerCommit',['../da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#aeb580bb715d992f63c551846b3965ff5',1,'Lightweight::SqlBackup::RestoreSettings']]],
-  ['maxsize_8',['maxSize',['../df/d1a/structLightweight_1_1PoolConfig.html#a6a3e753156f65b2aa0ad1fdd0090a72c',1,'Lightweight::PoolConfig']]],
-  ['membername_9',['memberName',['../d6/dfb/structLightweight_1_1Tools_1_1CxxModelPrinter_1_1PlannedRelation.html#a3f2ca33a60bdd9b48ba26c024fcdc21a',1,'Lightweight::Tools::CxxModelPrinter::PlannedRelation']]],
-  ['memorybudgetbytes_10',['MemoryBudgetBytes',['../da/d6c/classLightweight_1_1RowArrayCursor.html#a5dbde2d53578a52538daaf01ccb99a9d',1,'Lightweight::RowArrayCursor']]],
-  ['memorylimitbytes_11',['memoryLimitBytes',['../da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#a066abf8c9d7c35374587d6fe850d8d2d',1,'Lightweight::SqlBackup::RestoreSettings']]],
-  ['message_12',['message',['../d6/d3b/structLightweight_1_1SqlLockError.html#a6b5d09c20dff00eeaeb0635d762aa65c',1,'Lightweight::SqlLockError::message'],['../d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#a7fe5b59bee8beac8f5df6665b8b76ac8',1,'Lightweight::SqlBackup::Progress::message'],['../d8/d5b/structLightweight_1_1SqlErrorInfo.html#a6f37a42c40ff6b1c873e2f9be2cce148',1,'Lightweight::SqlErrorInfo::message'],['../da/dd4/structLightweight_1_1Zip_1_1ZipError.html#a36fb2dfc5fee2d41462a563316f12754',1,'Lightweight::Zip::ZipError::message']]],
-  ['metadata_13',['metadata',['../da/d7e/structLightweight_1_1SqlRawColumn.html#a46be282ffe105f3df50dd090c0419d68',1,'Lightweight::SqlRawColumn']]],
-  ['method_14',['method',['../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#a24b981baad3240eee5b41c2654c2ccd3',1,'Lightweight::SqlBackup::BackupSettings']]],
-  ['minarraydepth_15',['MinArrayDepth',['../da/d6c/classLightweight_1_1RowArrayCursor.html#a947bd46f16c4c567f0ffb2463388c50f',1,'Lightweight::RowArrayCursor']]],
-  ['minmicroseconds_16',['minMicroseconds',['../df/d78/structLightweight_1_1SqlLatencyHistogram.html#a327c4c2f63f374dc7b71c414989ef972',1,'Lightweight::SqlLatencyHistogram']]],
-  ['mismatchcount_17',['mismatchCount',['../d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html#a05dd8547017c74830846316c54a1a415',1,'Lightweight::SqlMigration::MigrationStatus']]],
-  ['misses_18',['misses',['../d7/dd3/structLightweight_1_1SqlPreparedStatementCache_1_1Statistics.html#a45107dcfd1759e9ad1010b89007972dd',1,'Lightweight::SqlPreparedStatementCache::Statistics']]]
+  ['latency_0',['latency',['../d4/d7d/structLightweight_1_1SqlOperationStatistics.html#acaa3ff8b0a602e89b1dc5003ca4edf5a',1,'Lightweight::SqlOperationStatistics']]],
+  ['length_1',['length',['../d7/d13/structLightweight_1_1SqlRealName.html#afc6f9827f0234476fe8998a3a43259d0',1,'Lightweight::SqlRealName']]],
+  ['level_2',['level',['../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#a433db0c5f6bf8d24dc11eec160e262b5',1,'Lightweight::SqlBackup::BackupSettings']]],
+  ['libziperror_3',['libzipError',['../da/dd4/structLightweight_1_1Zip_1_1ZipError.html#aae4162b3c01ffe80286bdf62a5561472',1,'Lightweight::Zip::ZipError']]],
+  ['livetype_4',['liveType',['../d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a396642e22f36188c7ea4dce037c2204e',1,'Lightweight::SqlMigration::MigrationManager::ColumnUpgradeEntry']]],
+  ['loadreference_5',['loadreference',['../dd/d4c/structLightweight_1_1BelongsTo_1_1Loader.html#af2c25ae2649b898e5c65ce63c811ad1d',1,'Lightweight::BelongsTo::Loader::loadReference'],['../d0/dd2/structLightweight_1_1CompositeForeignKey_1_1Loader.html#ad8d03298ba1dcce4ca6900a12959b458',1,'Lightweight::CompositeForeignKey::Loader::loadReference'],['../d0/d52/structLightweight_1_1HasOneThrough_1_1Loader.html#ad65df696cad90aee8fb46aff1515a587',1,'Lightweight::HasOneThrough::Loader::loadReference']]],
+  ['loadrelations_6',['loadRelations',['../d3/db2/structLightweight_1_1DataMapperOptions.html#ae7030386be6995fdafef8903818bfe2a',1,'Lightweight::DataMapperOptions']]],
+  ['lockname_7',['lockName',['../d6/d3b/structLightweight_1_1SqlLockError.html#ac84025dddd1fc79469d13504b5c733cf',1,'Lightweight::SqlLockError']]],
+  ['lookupattempted_8',['lookupAttempted',['../d4/d23/structLightweight_1_1MigrationRenderContext.html#a7d5c90cf0a765b640b1de1ed07a24f28',1,'Lightweight::MigrationRenderContext']]],
+  ['luptruncate_9',['lupTruncate',['../d4/d23/structLightweight_1_1MigrationRenderContext.html#a2951b6980a9d504a748699de0167c8de',1,'Lightweight::MigrationRenderContext']]]
 ];

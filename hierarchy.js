@@ -125,6 +125,7 @@ var hierarchy =
     [ "Lightweight::SqlGuid", "df/d7c/structLightweight_1_1SqlGuid.html", null ],
     [ "Lightweight::SqlInsertDataPlan", "dd/d76/structLightweight_1_1SqlInsertDataPlan.html", null ],
     [ "Lightweight::SqlInsertQueryBuilder", "de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html", null ],
+    [ "Lightweight::SqliteConnectionSettings", "d9/d23/structLightweight_1_1SqliteConnectionSettings.html", null ],
     [ "Lightweight::SqlJoinConditionBuilder", "dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html", null ],
     [ "Lightweight::SqlLatencyHistogram", "df/d78/structLightweight_1_1SqlLatencyHistogram.html", null ],
     [ "Lightweight::SqlLockError", "d6/d3b/structLightweight_1_1SqlLockError.html", null ],

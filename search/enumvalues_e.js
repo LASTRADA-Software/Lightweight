@@ -1,5 +1,7 @@
 var searchData=
 [
-  ['unboundedgrow_0',['UnboundedGrow',['../d6/de4/group__ConnectionPool.html#ggadf7777be559a52bca78d24e4a99a4f0cab1c6941b5c866676983d4a5195e6f1d7',1,'Lightweight']]],
-  ['unique_1',['Unique',['../d6/daa/group__QueryBuilder.html#gga17470447b60d4554d19d30e877645d07ad019979a29c88c8d69bab3a63388da97',1,'Lightweight']]]
+  ['timeout_0',['Timeout',['../d6/de4/group__ConnectionPool.html#ggadf41c4387dc86267bded533482280862ac85a251cc457840f1e032f1b733e9398',1,'Lightweight']]],
+  ['timestamp_1',['Timestamp',['../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2aa3d5de3eac8bb00ae86fd1a1005f1500',1,'Lightweight::RowArrayCursor']]],
+  ['transient_2',['Transient',['../d1/d7b/group__Retry.html#gga39565d3b352970a3546ce9cbaaca35f5ab1f023eff9a6b5308d6024e4c6b3d475',1,'Lightweight']]],
+  ['truncate_3',['truncate',['../d9/d8a/group__CoreApi.html#gga99e5e92107ae68dfd09cca5fc6ef1106aa8156810bfee2bd2b44765b9e91db3bd',1,'TruncateLightweight'],['../d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8aa8156810bfee2bd2b44765b9e91db3bd',1,'TruncateLightweight']]]
 ];

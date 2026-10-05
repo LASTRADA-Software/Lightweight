@@ -219,6 +219,9 @@ virtual <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.h
 <tr class="memitem:a1aade87023f69d63e86f4aca06a97595" id="r_a1aade87023f69d63e86f4aca06a97595"><td class="memItemLeft" align="right" valign="top">virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1aade87023f69d63e86f4aca06a97595">SetDefaultSchemaStatement</a> (std::string_view schema) const</td></tr>
 <tr class="memdesc:a1aade87023f69d63e86f4aca06a97595"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the SQL statement to execute after connect to make <code>schema</code> the connection-level default for unqualified DDL/DML.  <br /></td></tr>
 <tr class="separator:a1aade87023f69d63e86f4aca06a97595"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8aad2dcdc6cd722dd563c42799acba49" id="r_a8aad2dcdc6cd722dd563c42799acba49"><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#abf21ac12103c4b8224cc68fb0cc114c0">StringList</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a8aad2dcdc6cd722dd563c42799acba49">SqliteSettingsStatements</a> (<a class="el" href="../../d9/d23/structLightweight_1_1SqliteConnectionSettings.html">SqliteConnectionSettings</a> const &amp;settings) const</td></tr>
+<tr class="memdesc:a8aad2dcdc6cd722dd563c42799acba49"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the statements a connection executes after connecting to realise <code>settings</code>.  <br /></td></tr>
+<tr class="separator:a8aad2dcdc6cd722dd563c42799acba49"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2f3e6e88b1fb6af51bf4d0d65c5a52e6" id="r_a2f3e6e88b1fb6af51bf4d0d65c5a52e6"><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="../../d4/d61/classLightweight_1_1SqlAdvisoryLockHandler.html">SqlAdvisoryLockHandler</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2f3e6e88b1fb6af51bf4d0d65c5a52e6">AdvisoryLockOps</a> () const =0</td></tr>
 <tr class="memdesc:a2f3e6e88b1fb6af51bf4d0d65c5a52e6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the dialect-specific handler used by <code><a class="el" href="../../d3/de6/classLightweight_1_1SqlScopedLock.html">SqlScopedLock</a></code> to acquire and release named cross-process advisory locks.  <br /></td></tr>
 <tr class="separator:a2f3e6e88b1fb6af51bf4d0d65c5a52e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -901,6 +904,44 @@ template&lt;typename Range &gt; </div>
 <p>The <code>schema</code> value is interpolated into the statement; callers must validate it (e.g. whitelist <code>[A-Za-z0-9_]</code>) before invoking. </p>
 
 <p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00296">296</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a8aad2dcdc6cd722dd563c42799acba49" name="a8aad2dcdc6cd722dd563c42799acba49"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8aad2dcdc6cd722dd563c42799acba49">&#9670;&#160;</a></span>SqliteSettingsStatements()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#abf21ac12103c4b8224cc68fb0cc114c0">StringList</a> Lightweight::SqlQueryFormatter::SqliteSettingsStatements </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="../../d9/d23/structLightweight_1_1SqliteConnectionSettings.html">SqliteConnectionSettings</a> const &amp;&#160;</td>
+          <td class="paramname"><em>settings</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the statements a connection executes after connecting to realise <code>settings</code>. </p>
+<p>Only the SQLite dialect has these settings, and emits one <code>PRAGMA</code> per setting; every other dialect returns an empty list, which leaves the settings inert there.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">settings</td><td>The connection's SQLite settings. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The statements to execute, in order; empty when there is nothing to apply. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00309">309</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>

@@ -425,10 +425,11 @@ DELETE</h1>
 </div><!-- fragment --><div class="fragment"><div class="line"><span class="comment">// DataMapper — bulk delete by predicate</span></div>
 <div class="line">dm.Query&lt;Employee, <a class="code hl_struct" href="../../d3/db2/structLightweight_1_1DataMapperOptions.html">DataMapperOptions</a> { .<a class="code hl_variable" href="../../d3/db2/structLightweight_1_1DataMapperOptions.html#ae7030386be6995fdafef8903818bfe2a">loadRelations</a> = <span class="keyword">false</span> }&gt;()</div>
 <div class="line">    .WhereIn(FieldNameOf&lt;&amp;Employee::department&gt;, std::vector { 1, 2, 3 })</div>
-<div class="line">    .Delete();</div>
+<div class="line">    .<a class="code hl_enumvalue" href="../../d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8af2a6c498fb90ee345d997f888fce3b18">Delete</a>();</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Delete a single loaded record by its primary key</span></div>
 <div class="line">dm.Delete(employee);</div>
+<div class="ttc" id="agroup__CoreApi_html_gga4e69e872eba3ff2b5e59b999b747add8af2a6c498fb90ee345d997f888fce3b18"><div class="ttname"><a href="../../d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8af2a6c498fb90ee345d997f888fce3b18">Lightweight::SqliteJournalMode::Delete</a></div><div class="ttdeci">@ Delete</div></div>
 </div><!-- fragment --><div class="fragment"><div class="line"><span class="comment">// Query builder</span></div>
 <div class="line"><span class="keyword">auto</span> query = dm.FromTable(<span class="stringliteral">&quot;Employees&quot;</span>).Delete().WhereIn(<span class="stringliteral">&quot;department_id&quot;</span>, std::vector { 1, 2, 3 });</div>
 </div><!-- fragment --><div class="fragment"><div class="line"><span class="comment">// Query builder — same, with the WHERE values bound rather than written into the text</span></div>

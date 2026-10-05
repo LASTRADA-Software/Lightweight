@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['kind_0',['kind',['../d6/dfb/structLightweight_1_1Tools_1_1CxxModelPrinter_1_1PlannedRelation.html#a15fd23005c8faef345ccd0d6a8738c75',1,'Lightweight::Tools::CxxModelPrinter::PlannedRelation']]]
+  ['journalmode_0',['journalMode',['../d9/d23/structLightweight_1_1SqliteConnectionSettings.html#afe812d7ad6443cea24dc3f0a35dbcf0a',1,'Lightweight::SqliteConnectionSettings']]]
 ];
