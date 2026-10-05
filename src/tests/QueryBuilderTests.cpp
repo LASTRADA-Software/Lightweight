@@ -2146,6 +2146,58 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateUniqueIndex", "[SqlQueryBuilder][Migrati
         QueryExpectations::All(R"sql(CREATE UNIQUE INDEX "idx_user_username" ON "Users" ("username"))sql"));
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "CreateIndex with options and no predicate", "[SqlQueryBuilder][Migration]")
+{
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            auto migration = q.Migration();
+            migration.CreateIndex("idx_user_username", "Users", { "username" }, { .type = IndexType::Unique });
+            return migration.GetPlan();
+        },
+        QueryExpectations::All(R"sql(CREATE UNIQUE INDEX "idx_user_username" ON "Users" ("username"))sql"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "CreateIndex partial unique", "[SqlQueryBuilder][Migration]")
+{
+    // SQLite and PostgreSQL call it a partial index, SQL Server a filtered index; all three
+    // take the predicate after the column list.
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            auto migration = q.Migration();
+            migration.CreateIndex("idx_queue_key",
+                                  "queue",
+                                  { "dedup_key" },
+                                  { .type = IndexType::Unique, .whereExpression = R"("dedup_key" <> '')" });
+            return migration.GetPlan();
+        },
+        QueryExpectations {
+            .sqlite = R"sql(CREATE UNIQUE INDEX "idx_queue_key" ON "queue" ("dedup_key") WHERE "dedup_key" <> '')sql",
+            .postgres = R"sql(CREATE UNIQUE INDEX "idx_queue_key" ON "queue" ("dedup_key") WHERE "dedup_key" <> '')sql",
+            .sqlServer = R"sql(CREATE UNIQUE INDEX "idx_queue_key" ON "queue" ("dedup_key") WHERE "dedup_key" <> '')sql",
+        });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "CreateIndex partial non-unique multiple columns", "[SqlQueryBuilder][Migration]")
+{
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            auto migration = q.Migration();
+            migration.CreateIndex("idx_open_orders",
+                                  "orders",
+                                  { "customer_id", "created_at" },
+                                  { .whereExpression = R"("closed_at" IS NULL)" });
+            return migration.GetPlan();
+        },
+        QueryExpectations {
+            .sqlite =
+                R"sql(CREATE INDEX "idx_open_orders" ON "orders" ("customer_id", "created_at") WHERE "closed_at" IS NULL)sql",
+            .postgres =
+                R"sql(CREATE INDEX "idx_open_orders" ON "orders" ("customer_id", "created_at") WHERE "closed_at" IS NULL)sql",
+            .sqlServer =
+                R"sql(CREATE INDEX "idx_open_orders" ON "orders" ("customer_id", "created_at") WHERE "closed_at" IS NULL)sql",
+        });
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddForeignKeyColumn", "[SqlQueryBuilder][Migration]")
 {
     using namespace SqlColumnTypeDefinitions;

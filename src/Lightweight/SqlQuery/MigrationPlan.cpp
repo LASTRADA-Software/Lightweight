@@ -159,7 +159,11 @@ namespace
         std::string indexName = step.schemaName.empty() ? std::format(R"("{}")", step.indexName)
                                                         : std::format(R"("{}"."{}")", step.schemaName, step.indexName);
 
-        return { std::format("CREATE {}INDEX {}{} ON {} ({})", uniqueStr, ifNotExistsStr, indexName, tableName, columns) };
+        auto const whereClause =
+            step.whereExpression.empty() ? std::string {} : std::format(" WHERE {}", step.whereExpression);
+
+        return { std::format(
+            "CREATE {}INDEX {}{} ON {} ({}){}", uniqueStr, ifNotExistsStr, indexName, tableName, columns, whereClause) };
     }
 
     /// @brief Extracts the declared character width from a char/varchar-family type

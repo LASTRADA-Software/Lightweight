@@ -148,6 +148,7 @@ using Lightweight::SqlConnectionDataSource;
 using Lightweight::SqlConnectionString;
 using Lightweight::SqlConnectionStringMap;
 using Lightweight::SqlCoreDataMapperQueryBuilder;
+using Lightweight::SqlCreateIndexOptions;
 using Lightweight::SqlCreateIndexPlan;
 using Lightweight::SqlCreateTablePlan;
 using Lightweight::SqlCreateTableQueryBuilder;

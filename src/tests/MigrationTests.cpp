@@ -4096,3 +4096,58 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
           == "PK");
     (void) stmt.ExecuteDirect("DROP VIEW uu_bound_view");
 }
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "CreateIndex with a predicate enforces uniqueness only on matching rows",
+                 "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    auto& conn = manager.GetDataMapper().Connection();
+
+    // SQL Server creates a filtered index, and writes to its table, only with ANSI_WARNINGS ON, which
+    // is what the Error mode selects; the default Truncate mode turns it off. Inert elsewhere.
+    auto const previousMode = conn.StringTruncationMode();
+    conn.SetStringTruncationMode(SqlStringTruncationMode::Error);
+    auto const restoreMode = detail::Finally([&] { conn.SetStringTruncationMode(previousMode); });
+
+    // Deduplication on an optional key: rows without a key ('') may repeat, rows with one may not.
+    auto const migration = SqlMigration::Migration<202610050001>(
+        "create queue with partial unique index",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("partial_queue").PrimaryKey("id", Integer()).RequiredColumn("dedup_key", Varchar(64));
+            plan.CreateIndex("idx_partial_queue_key",
+                             "partial_queue",
+                             { "dedup_key" },
+                             { .type = IndexType::Unique, .whereExpression = R"("dedup_key" <> '')" });
+        },
+        [](SqlMigrationQueryBuilder& plan) { plan.DropTable("partial_queue"); });
+
+    // Folding the registered migrations keeps the predicate on the surviving index.
+    auto const fold = manager.FoldRegisteredMigrations(conn.QueryFormatter());
+    REQUIRE(fold.indexes.size() == 1);
+    CHECK(fold.indexes.front().unique);
+    CHECK(fold.indexes.front().whereExpression == R"("dedup_key" <> '')");
+
+    manager.CreateMigrationHistory();
+    REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+    auto stmt = SqlStatement { conn };
+    auto const insert = [&](int id, std::string_view key) {
+        (void) stmt.ExecuteDirect(
+            std::format(R"(INSERT INTO "partial_queue" ("id", "dedup_key") VALUES ({}, '{}'))", id, key));
+    };
+
+    // Rows outside the predicate are not indexed, so an empty key may repeat...
+    CHECK_NOTHROW(insert(1, ""));
+    CHECK_NOTHROW(insert(2, ""));
+    // ...while a non-empty key is unique.
+    CHECK_NOTHROW(insert(3, "job-42"));
+    CHECK_THROWS(insert(4, "job-42"));
+    CHECK_NOTHROW(insert(5, "job-43"));
+
+    auto cursor = stmt.ExecuteDirect(R"(SELECT COUNT(*) FROM "partial_queue")");
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetColumn<int64_t>(1) == 4);
+}
