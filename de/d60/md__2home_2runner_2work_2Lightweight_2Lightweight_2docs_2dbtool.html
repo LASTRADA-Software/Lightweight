@@ -159,7 +159,6 @@ Where dbtool finds &lt;tt&gt;dbtool.yml&lt;/tt&gt;</h2>
 <li><code>dbtool.yml</code> in the directory of the <code>dbtool</code> executable or any parent directory — handy for portable installs that ship a config next to the binary;</li>
 <li>the per-user file: <code>~/.config/dbtool/dbtool.yml</code> (Linux/macOS, honouring <code>$XDG_CONFIG_HOME</code>) or <code>APPDATA%\dbtool\dbtool.yml</code> (Windows).</li>
 </ol>
-<p>Files found by the upward searches (steps 2 and 3) are only used when they are owned by you or by the system (root; on Windows SYSTEM, Administrators or TrustedInstaller). A <code>dbtool.yml</code> that another user placed in a shared parent directory such as <code>/tmp</code> could otherwise redirect dbtool to their plugin libraries; such files are skipped with a warning — pass them with <code>--config</code> if you really mean to use them.</p>
 <p><code>dbtool list-profiles</code> shows which file was used and why; <code>--verbose</code> prints it for every other command. <code>dbtool-gui</code> uses the same lookup unless a profile-store path is set in its Settings.</p>
 <h2><a class="anchor" id="configuration-file-format"></a>
 Configuration File Format</h2>
@@ -196,7 +195,7 @@ Profile passwords</h2>
 </div><!-- fragment --><p>You never need to produce the <code>enc:</code> value by hand:</p>
 <ul>
 <li>**<code>dbtool add-profile</code>** prompts for the password and writes the profile with it encrypted (see <a class="el" href="../../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#add-profile">add-profile</a>).</li>
-<li><b>Plaintext is upgraded automatically.</b> If you write <code>password: hunter2</code>, dbtool uses it as is and — once a connection with it has succeeded — rewrites that one value in place as <code>enc:...</code>. The rest of the file (comments, ordering, formatting) is left untouched. A password that fails to connect is left alone. If the file is read-only, dbtool warns and carries on. If the file lives in a git repository, dbtool warns that the old plaintext may remain in its history — change the database password in that case.</li>
+<li><b>Plaintext is upgraded automatically.</b> If you write <code>password: hunter2</code>, dbtool uses it as is and — once a connection with it has succeeded — rewrites that one value in place as <code>enc:...</code>. The rest of the file (comments, ordering, formatting) is left untouched. A password that fails to connect is left alone. If the file is read-only, dbtool warns and carries on. If the file lives in a git repository, dbtool warns that the old plaintext may remain in its history — change the database password in that case. dbtool-gui follows the same rule: it encrypts the value after its interactive connect, or after a managed backup or restore of that profile has succeeded.</li>
 </ul>
 <p><code>password</code> and <code>secretRef</code> are mutually exclusive. <code>secretRef</code> (<code>env:</code>, <code>file:</code>, <code>stdin:</code>) remains the choice for secrets that must not be in the file at all. <code>list-profiles</code> shows each profile's <code>AUTH</code> as <code>encrypted</code>, <code>plaintext</code>, <code>secretRef</code> or <code>-</code>.</p>
 <h3><a class="anchor" id="security-model"></a>
