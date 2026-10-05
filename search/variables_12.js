@@ -14,5 +14,5 @@ var searchData=
   ['totalmicroseconds_11',['totalMicroseconds',['../df/d78/structLightweight_1_1SqlLatencyHistogram.html#a0646c8652730deb24b56fe988467297d',1,'Lightweight::SqlLatencyHistogram']]],
   ['totalregistered_12',['totalRegistered',['../d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html#a5ae7285c2d9fe56478bbd53631e5fb27',1,'Lightweight::SqlMigration::MigrationStatus']]],
   ['totalrows_13',['totalRows',['../d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#a8df65a3b3070a699900888e0f69730e3',1,'Lightweight::SqlBackup::Progress']]],
-  ['type_14',['type',['../d3/d9d/structLightweight_1_1SqlCreateIndexOptions.html#a5703e774da3ea74df42056501a54517d',1,'Lightweight::SqlCreateIndexOptions::type'],['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a4368430137de8b3dbb77d7b31b0112b1',1,'Lightweight::SqlColumnDeclaration::type'],['../d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a515083c477fa7b7c42fe61e3132f9da6',1,'Lightweight::SqlSchema::Column::type']]]
+  ['type_14',['type',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a4368430137de8b3dbb77d7b31b0112b1',1,'Lightweight::SqlColumnDeclaration::type'],['../d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a515083c477fa7b7c42fe61e3132f9da6',1,'Lightweight::SqlSchema::Column::type']]]
 ];

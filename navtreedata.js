@@ -259,9 +259,7 @@ var NAVTREE =
         [ "Insert", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#insert-1", null ],
         [ "Update", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#update-1", null ],
         [ "Delete", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#delete-1", null ],
-        [ "CreateIndex", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#createindex", [
-          [ "Partial (filtered) indexes", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#partial-filtered-indexes", null ]
-        ] ]
+        [ "CreateIndex", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#createindex", null ]
       ] ],
       [ "Raw SQL", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#raw-sql", null ],
       [ "SQL Column Types", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#sql-column-types", null ],
@@ -392,14 +390,14 @@ var NAVTREEINDEX =
 [
 "annotated.html",
 "d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a095d9eb7ed4abef29c07a9a563c0da72",
-"d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#what-you-get-back",
-"d6/dfa/structLightweight_1_1SqlDateTime.html#a4073ddbeadc581f1528fc44fa7e9fb70",
-"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#data-manipulation",
-"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a209f52c2128670486fa0df251261bf80",
-"da/df4/classLightweight_1_1HasMany.html#ae6f5268d6ea5c279215c47d73fc1c598",
-"dd/de6/classLightweight_1_1SqlStatistics.html#a558c837e0d49e0119c23ab362ed75699",
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#sqldynamicnumeric-exact-decimals-in-a-sqlvariant",
-"functions_vars_f.html"
+"d4/d6d/structLightweight_1_1MigrationRenderContext_1_1TableKey.html#aa58a804d5d9e7a2a98da93c4ae2c8e0b",
+"d6/dfa/structLightweight_1_1SqlDateTime.html#a580b08490f5eff7dec0a3e4534d191d5",
+"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#insert-1",
+"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#abd90cf0b647d60af5bb130b7fe162bd2",
+"db/d29/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4_1_1Literal.html",
+"dd/de6/classLightweight_1_1SqlStatistics.html#abc6374fecaaf3d3ab27a913186ea8704",
+"de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#ab3f4130283fddc423a1911a3962e739c",
+"functions_vars_m.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

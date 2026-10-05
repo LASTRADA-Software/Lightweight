@@ -5,6 +5,5 @@ var structLightweight_1_1SqlCreateIndexPlan =
     [ "tableName", "dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#abadbfd2baaa60d82d16ad71935c0ebfa", null ],
     [ "columns", "dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#a1ba5415c2f11dad96724e8b20963a239", null ],
     [ "unique", "dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#ae9a36b06c089d48e25e896e2e25d0676", null ],
-    [ "ifNotExists", "dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#a64587008f80036f6eae8301e96b6656b", null ],
-    [ "whereExpression", "dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#a25784a4370399b260e35a48fc710b10c", null ]
+    [ "ifNotExists", "dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#a64587008f80036f6eae8301e96b6656b", null ]
 ];

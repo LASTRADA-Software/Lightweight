@@ -85,7 +85,6 @@ var annotated_dup =
       [ "SqlConnectionDataSource", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html", "d6/d8d/structLightweight_1_1SqlConnectionDataSource" ],
       [ "SqlConnectionString", "de/d6a/structLightweight_1_1SqlConnectionString.html", "de/d6a/structLightweight_1_1SqlConnectionString" ],
       [ "SqlCoreDataMapperQueryBuilder", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder" ],
-      [ "SqlCreateIndexOptions", "d3/d9d/structLightweight_1_1SqlCreateIndexOptions.html", "d3/d9d/structLightweight_1_1SqlCreateIndexOptions" ],
       [ "SqlCreateIndexPlan", "dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html", "dd/d2b/structLightweight_1_1SqlCreateIndexPlan" ],
       [ "SqlCreateTableQueryBuilder", "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html", "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder" ],
       [ "SqlDataBinder< char >", "d8/dca/structLightweight_1_1SqlDataBinder_3_01char_01_4.html", null ],
