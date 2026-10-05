@@ -1,7 +1,5 @@
 var NAVTREEINDEX6 =
 {
-"da/df4/classLightweight_1_1HasMany.html#afefaf546a1594762fd0836f988374963":[19,3,12,9],
-"db/d1c/SqlSchema_8hpp_source.html":[22,0,1,30],
 "db/d29/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4_1_1Literal.html":[21,0,0,37,0],
 "db/d29/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4_1_1Literal.html#acef0301710c28fd926dcbbc4a1c6dccf":[21,0,0,37,0,0],
 "db/d29/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4_1_1Literal.html#af44ba046460755e00e71cab1a75e3ee4":[21,0,0,37,0,2],
@@ -249,5 +247,7 @@ var NAVTREEINDEX6 =
 "dd/de6/classLightweight_1_1SqlStatistics.html#a558c837e0d49e0119c23ab362ed75699":[19,6,15,3],
 "dd/de6/classLightweight_1_1SqlStatistics.html#a66f3b95e0db5046adc1859eeb2d8a116":[19,6,15,0],
 "dd/de6/classLightweight_1_1SqlStatistics.html#a78564a9f5b57faf634d2fb1499a26a8e":[19,6,15,4],
-"dd/de6/classLightweight_1_1SqlStatistics.html#a81ccd6a7cccbb3ebd73206f17a854edf":[19,6,15,8]
+"dd/de6/classLightweight_1_1SqlStatistics.html#a81ccd6a7cccbb3ebd73206f17a854edf":[19,6,15,8],
+"dd/de6/classLightweight_1_1SqlStatistics.html#ab2ef9fa0cef77a2c2d0681e74ec991a0":[19,6,15,10],
+"dd/de6/classLightweight_1_1SqlStatistics.html#ab8546c7d0a149b9637d3b9d5b35cd7fe":[19,6,15,7]
 };

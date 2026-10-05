@@ -132,10 +132,6 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:aaa7992a48a7fcdd4e8215643a02768e7"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE auto &amp;&amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#aaa7992a48a7fcdd4e8215643a02768e7">Distinct</a> (this Self &amp;&amp;self) noexcept</td></tr>
 <tr class="memdesc:aaa7992a48a7fcdd4e8215643a02768e7"><td class="mdescLeft">&#160;</td><td class="mdescRight">State-preserving override: returns <code>Self&amp;&amp;</code>, so the starter identity survives the call and the <code>All</code> / <code>First</code> / <code>Range</code> guards above keep their gate against <code>Select().Distinct().<a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6b49922eb4ac9d74b7f67cb41d6fd111" title="Finalizes building the query as SELECT field names FROM ... query.">All()</a></code>.  <br /></td></tr>
 <tr class="separator:aaa7992a48a7fcdd4e8215643a02768e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5d323e22a529cc695547f4cb6586d3ea" id="r_a5d323e22a529cc695547f4cb6586d3ea"><td class="memTemplParams" colspan="2">template&lt;typename Self &gt; </td></tr>
-<tr class="memitem:a5d323e22a529cc695547f4cb6586d3ea"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE auto &amp;&amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#a5d323e22a529cc695547f4cb6586d3ea">ReadUncommitted</a> (this Self &amp;&amp;self) noexcept</td></tr>
-<tr class="memdesc:a5d323e22a529cc695547f4cb6586d3ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">State-preserving override of <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ac39aa0f150f42dec783b4a02282feb8d">SqlSelectQueryBuilder::ReadUncommitted()</a>; returns <code>Self&amp;&amp;</code> so <code>Select().<a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ac39aa0f150f42dec783b4a02282feb8d">ReadUncommitted()</a>.<a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6b49922eb4ac9d74b7f67cb41d6fd111" title="Finalizes building the query as SELECT field names FROM ... query.">All()</a></code> stays rejected like <code>Select().<a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6b49922eb4ac9d74b7f67cb41d6fd111" title="Finalizes building the query as SELECT field names FROM ... query.">All()</a></code>.  <br /></td></tr>
-<tr class="separator:a5d323e22a529cc695547f4cb6586d3ea"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_methods_classLightweight_1_1SqlSelectQueryBuilder"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classLightweight_1_1SqlSelectQueryBuilder')"><img src="../../closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html">Lightweight::SqlSelectQueryBuilder</a></td></tr>
 <tr class="memitem:ab515cc8acf45c6c5a2b5775eca95deed inherit pub_methods_classLightweight_1_1SqlSelectQueryBuilder" id="r_ab515cc8acf45c6c5a2b5775eca95deed"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ab515cc8acf45c6c5a2b5775eca95deed">SqlSelectQueryBuilder</a> (<a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const &amp;formatter, std::string table, std::string tableAlias, std::vector&lt; <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html">SqlVariant</a> &gt; *inputBindings=nullptr) noexcept</td></tr>
 <tr class="separator:ab515cc8acf45c6c5a2b5775eca95deed inherit pub_methods_classLightweight_1_1SqlSelectQueryBuilder"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -224,8 +220,6 @@ template&lt;typename Callable &gt; </td></tr>
 <tr class="memitem:a44c828392a97cfb143e6c229555f444f inherit pub_methods_classLightweight_1_1SqlSelectQueryBuilder"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html">SqlSelectQueryBuilder</a> &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><b>Build</b> (Callable const &amp;callable)</td></tr>
 <tr class="memdesc:a44c828392a97cfb143e6c229555f444f inherit pub_methods_classLightweight_1_1SqlSelectQueryBuilder"><td class="mdescLeft">&#160;</td><td class="mdescRight">Builds the query using a callable. <br /></td></tr>
 <tr class="separator:a44c828392a97cfb143e6c229555f444f inherit pub_methods_classLightweight_1_1SqlSelectQueryBuilder"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac39aa0f150f42dec783b4a02282feb8d inherit pub_methods_classLightweight_1_1SqlSelectQueryBuilder" id="r_ac39aa0f150f42dec783b4a02282feb8d"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html">SqlSelectQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ac39aa0f150f42dec783b4a02282feb8d">ReadUncommitted</a> () noexcept</td></tr>
-<tr class="separator:ac39aa0f150f42dec783b4a02282feb8d inherit pub_methods_classLightweight_1_1SqlSelectQueryBuilder"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab999c7e4572e60e907a06615d040bb2e inherit pub_methods_classLightweight_1_1SqlSelectQueryBuilder" id="r_ab999c7e4572e60e907a06615d040bb2e"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API ComposedQuery&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ab999c7e4572e60e907a06615d040bb2e">Count</a> ()</td></tr>
 <tr class="separator:ab999c7e4572e60e907a06615d040bb2e inherit pub_methods_classLightweight_1_1SqlSelectQueryBuilder"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae2373ce3c7dccf02a0a956aa0217a9b1 inherit pub_methods_classLightweight_1_1SqlSelectQueryBuilder" id="r_ae2373ce3c7dccf02a0a956aa0217a9b1"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API ComposedQuery&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ae2373ce3c7dccf02a0a956aa0217a9b1">Count</a> () const</td></tr>
@@ -290,7 +284,7 @@ Additional Inherited Members</h2></td></tr>
 <div class="line">    query.Field(columns[i].name);</div>
 <div class="line"><span class="keywordflow">return</span> query.All();</div>
 </div><!-- fragment --> 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00415">415</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00402">402</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a9b7346feef2c5cad0499feefe1a4260f" name="a9b7346feef2c5cad0499feefe1a4260f"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a9b7346feef2c5cad0499feefe1a4260f">&#9670;&#160;</a></span>SqlSelectQueryStarter()</h2>
@@ -352,7 +346,7 @@ Additional Inherited Members</h2></td></tr>
 </dl>
 <dl class="section note"><dt>Note</dt><dd>An explicit SqlWildcard emits its marker without recording a value here, and a <a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a2ddbde7303bed8c785b749667e49e028" title="Constructs or extends an WHERE/OR clause to test for a value, satisfying std::ranges::input_range.">WhereIn()</a> set larger than SqlMaxBoundSetSize falls back to inline literals; either makes the marker count differ from the vector size. A finalizer (<a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6b49922eb4ac9d74b7f67cb41d6fd111" title="Finalizes building the query as SELECT field names FROM ... query.">All()</a>, <a class="el" href="../../d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#af7d085eb90fabbec24d1493d0a4d725a" title="Empty-projection guard for the First finalizer — see All.">First()</a>, <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ab999c7e4572e60e907a06615d040bb2e">Count()</a>, <a class="el" href="../../d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#aecde81ddfa2e95f916a035eb5afe1e1f" title="Empty-projection guard for the Range finalizer — see All.">Range()</a>) moves the query out of the builder, so keep building only until the first one: a Where() issued afterwards still appends here while its marker is gone.   </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00424">424</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00411">411</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -387,7 +381,7 @@ template&lt;typename Self &gt; </div>
 <p>Empty-projection guard for the <code>All</code> finalizer. </p>
 <p>Instantiating this template emits a <code>static_assert</code> telling the caller to add a projection first. Calling <code><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6b49922eb4ac9d74b7f67cb41d6fd111" title="Finalizes building the query as SELECT field names FROM ... query.">All()</a></code> on a <code><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html" title="Query builder for building SELECT ... queries.">SqlSelectQueryBuilder</a>&amp;</code> returned by <code>Field(...)</code> / <code>Fields(...)</code> bypasses the shadow and reaches the real <code><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6b49922eb4ac9d74b7f67cb41d6fd111" title="Finalizes building the query as SELECT field names FROM ... query.">SqlSelectQueryBuilder::All()</a></code>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00439">439</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00426">426</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -430,7 +424,7 @@ template&lt;typename Self &gt; </div>
 
 <p>Empty-projection guard for the <code>First</code> finalizer — see <a class="el" href="../../d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#a854831226a9aefce1afeb1ad06f871f2">All</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00451">451</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00438">438</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -479,7 +473,7 @@ template&lt;typename Self &gt; </div>
 
 <p>Empty-projection guard for the <code>Range</code> finalizer — see <a class="el" href="../../d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#a854831226a9aefce1afeb1ad06f871f2">All</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00463">463</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00450">450</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -511,39 +505,7 @@ template&lt;typename Self &gt; </div>
 
 <p>State-preserving override: returns <code>Self&amp;&amp;</code>, so the starter identity survives the call and the <code>All</code> / <code>First</code> / <code>Range</code> guards above keep their gate against <code>Select().Distinct().<a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6b49922eb4ac9d74b7f67cb41d6fd111" title="Finalizes building the query as SELECT field names FROM ... query.">All()</a></code>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00478">478</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
-
-</div>
-</div>
-<a id="a5d323e22a529cc695547f4cb6586d3ea" name="a5d323e22a529cc695547f4cb6586d3ea"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5d323e22a529cc695547f4cb6586d3ea">&#9670;&#160;</a></span>ReadUncommitted()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;typename Self &gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE auto &amp;&amp; Lightweight::SqlSelectQueryStarter::ReadUncommitted </td>
-          <td>(</td>
-          <td class="paramtype">this Self &amp;&amp;&#160;</td>
-          <td class="paramname"><em>self</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>State-preserving override of <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ac39aa0f150f42dec783b4a02282feb8d">SqlSelectQueryBuilder::ReadUncommitted()</a>; returns <code>Self&amp;&amp;</code> so <code>Select().<a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ac39aa0f150f42dec783b4a02282feb8d">ReadUncommitted()</a>.<a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6b49922eb4ac9d74b7f67cb41d6fd111" title="Finalizes building the query as SELECT field names FROM ... query.">All()</a></code> stays rejected like <code>Select().<a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6b49922eb4ac9d74b7f67cb41d6fd111" title="Finalizes building the query as SELECT field names FROM ... query.">All()</a></code>. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00487">487</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00465">465</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
