@@ -254,7 +254,7 @@ AppController::AppController(QObject* parent):
         return _runner.phase() != MigrationRunner::Phase::Idle || _backupRunner.phase() != BackupRunner::Phase::Idle;
     });
     // A managed backup or restore that connected with a plaintext password has proven it, exactly like
-    // the interactive connect: store it encrypted. Only the password the run used is encrypted, so an
+    // the interactive connect: store it encrypted right away. Only the password the run used is encrypted, so an
     // edit made to the file while the run was in flight is never overwritten with the older value.
     _managedBackups.setPlaintextPasswordVerifiedHandler([this](Lightweight::Config::Profile const& verified) {
         auto const* current = _store.Find(verified.name);

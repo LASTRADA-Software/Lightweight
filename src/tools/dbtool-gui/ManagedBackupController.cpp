@@ -5,6 +5,7 @@
 
 #include <Lightweight/SqlBackup.hpp>
 #include <Lightweight/SqlConnectInfo.hpp>
+#include <Lightweight/SqlConnection.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -273,17 +274,31 @@ namespace
                                        ManagedBackupSettings());
     }
 
-    /// After a run connected successfully with `profile`, hands a plaintext password over to `handler` on
-    /// the GUI thread (queued), so that it can be stored encrypted. Encrypted and `secretRef` passwords
-    /// need nothing.
+    /// Default `ConnectionProbe`: opens and closes a real connection.
+    bool ProbeConnection(std::string const& connectionString)
+    {
+        auto probe = Lightweight::SqlConnection { std::nullopt };
+        return probe.Connect(Lightweight::SqlConnectionString { connectionString });
+    }
+
+    /// Hands a plaintext password over to `handler` (queued onto the GUI thread) as soon as a connection
+    /// with it succeeds, so that it can be stored encrypted before the run does anything else. A failed
+    /// connection proves nothing and is left to the run itself to report. Encrypted and `secretRef`
+    /// passwords need nothing, and no connection is probed for them.
     /// @param target Object whose thread runs the handler.
     /// @param handler The injected handler; empty means nobody wants to know.
-    /// @param profile The profile the run connected with.
-    void NotifyIfPlaintextPasswordVerified(QObject* target,
-                                           ManagedBackupController::PlaintextPasswordVerifiedHandler const& handler,
-                                           Lightweight::Config::Profile const& profile)
+    /// @param probe Opens a connection to tell whether the password works.
+    /// @param profile The profile about to be used.
+    /// @param connectionString The profile's resolved connection string, carrying the password.
+    void EncryptPlaintextPasswordOnceConnectable(QObject* target,
+                                                 ManagedBackupController::PlaintextPasswordVerifiedHandler const& handler,
+                                                 ManagedBackupController::ConnectionProbe const& probe,
+                                                 Lightweight::Config::Profile const& profile,
+                                                 std::string const& connectionString)
     {
         if (!handler || profile.password.empty() || Lightweight::Secrets::ProfileCipher::IsEncrypted(profile.password))
+            return;
+        if (!probe(connectionString))
             return;
         QMetaObject::invokeMethod(target, [handler, profile] { handler(profile); }, Qt::QueuedConnection);
     }
@@ -303,6 +318,7 @@ ManagedBackupController::ManagedBackupController(QObject* parent):
     QObject(parent),
     _backupOperation(&RunSqlBackup),
     _restoreOperation(&RunSqlRestore),
+    _connectionProbe(&ProbeConnection),
     _backupFolder(QSettings().value(QString::fromLatin1(kKeyBackupFolder)).toString())
 {
     // One worker: profiles are backed up strictly sequentially; per-table
@@ -365,6 +381,11 @@ void ManagedBackupController::setRestoreOperation(RestoreOperation operation)
 void ManagedBackupController::setPlaintextPasswordVerifiedHandler(PlaintextPasswordVerifiedHandler handler)
 {
     _onPlaintextPasswordVerified = std::move(handler);
+}
+
+void ManagedBackupController::setConnectionProbe(ConnectionProbe probe)
+{
+    _connectionProbe = probe ? std::move(probe) : ConnectionProbe { &ProbeConnection };
 }
 
 void ManagedBackupController::SetFolderProblem(QString problem)
@@ -515,6 +536,7 @@ void ManagedBackupController::RunBackups(std::vector<Lightweight::Config::Profil
     // worker never reads the member while another thread could replace it.
     auto backupOperation = _backupOperation;
     auto onPlaintextPasswordVerified = _onPlaintextPasswordVerified;
+    auto connectionProbe = _connectionProbe;
     // QThreadPool::start() takes ownership of the raw pointer (it deletes
     // the task after run() returns, since setAutoDelete(true) is set in the
     // constructor); release() makes that ownership transfer explicit.
@@ -523,7 +545,8 @@ void ManagedBackupController::RunBackups(std::vector<Lightweight::Config::Profil
                                                 plan = std::move(plan),
                                                 folder,
                                                 backupOperation = std::move(backupOperation),
-                                                onPlaintextPasswordVerified = std::move(onPlaintextPasswordVerified)] {
+                                                onPlaintextPasswordVerified = std::move(onPlaintextPasswordVerified),
+                                                connectionProbe = std::move(connectionProbe)] {
         auto resolver = Lightweight::Secrets::MakeNonInteractiveResolver();
         int okCount = 0;
         int failCount = 0;
@@ -550,6 +573,7 @@ void ManagedBackupController::RunBackups(std::vector<Lightweight::Config::Profil
                 setState(QStringLiteral("failed"), QString::fromStdString(cs.error()));
                 continue;
             }
+            EncryptPlaintextPasswordOnceConnectable(self, onPlaintextPasswordVerified, connectionProbe, profile, *cs);
             setState(QStringLiteral("running"));
             // Fresh run for this profile: drop any table rows from a previous
             // run before new progress arrives (queued onto the GUI thread).
@@ -580,7 +604,6 @@ void ManagedBackupController::RunBackups(std::vector<Lightweight::Config::Profil
                     throw std::runtime_error(committed.error());
                 ++okCount;
                 setState(QStringLiteral("ok"));
-                NotifyIfPlaintextPasswordVerified(self, onPlaintextPasswordVerified, profile);
             }
             catch (std::exception const& e)
             {
@@ -681,6 +704,7 @@ void ManagedBackupController::RunRestore(QString const& archiveProfile,
     // Copied on the GUI thread — see the note in RunBackups().
     auto restoreOperation = _restoreOperation;
     auto onPlaintextPasswordVerified = _onPlaintextPasswordVerified;
+    auto connectionProbe = _connectionProbe;
     // See the ownership-transfer note in RunBackups(): QThreadPool::start()
     // deletes the task after run() (setAutoDelete(true)); release() makes
     // that explicit.
@@ -691,7 +715,8 @@ void ManagedBackupController::RunRestore(QString const& archiveProfile,
                                                 schemaStd,
                                                 archiveName,
                                                 restoreOperation = std::move(restoreOperation),
-                                                onPlaintextPasswordVerified = std::move(onPlaintextPasswordVerified)] {
+                                                onPlaintextPasswordVerified = std::move(onPlaintextPasswordVerified),
+                                                connectionProbe = std::move(connectionProbe)] {
         auto cs = rawCs;
         if (targetProfile)
         {
@@ -712,6 +737,7 @@ void ManagedBackupController::RunRestore(QString const& archiveProfile,
                 return;
             }
             cs = *resolved;
+            EncryptPlaintextPasswordOnceConnectable(self, onPlaintextPasswordVerified, connectionProbe, *targetProfile, cs);
         }
         QString summary;
         bool ok = true;
@@ -732,8 +758,6 @@ void ManagedBackupController::RunRestore(QString const& archiveProfile,
             }
             else
                 summary = QStringLiteral("Restore read %1").arg(FromPath(archivePath));
-            if (ok && targetProfile)
-                NotifyIfPlaintextPasswordVerified(self, onPlaintextPasswordVerified, *targetProfile);
         }
         catch (std::exception const& e)
         {

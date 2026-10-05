@@ -844,7 +844,7 @@ void NoOpRestoreOperation(std::filesystem::path const& /*archiveFile*/,
 
 } // namespace
 
-TEST_CASE("a successful backup hands a plaintext password over for encryption",
+TEST_CASE("a plaintext password is handed over for encryption as soon as a backup connects with it",
           "[dbtool-gui][managed-backup-controller][password]")
 {
     QTemporaryDir dir;
@@ -860,6 +860,12 @@ TEST_CASE("a successful backup hands a plaintext password over for encryption",
     controller.setProfiles({ plaintext, encrypted, passwordless });
     controller.setBackupOperation(&WriteArchiveOperation);
 
+    // Only a plaintext password needs proving, so only its connection is probed.
+    auto probed = std::vector<std::string> {};
+    controller.setConnectionProbe([&](std::string const& connectionString) {
+        probed.push_back(connectionString);
+        return true;
+    });
     auto verified = std::vector<Lightweight::Config::Profile> {};
     controller.setPlaintextPasswordVerifiedHandler(
         [&](Lightweight::Config::Profile const& profile) { verified.push_back(profile); });
@@ -869,8 +875,9 @@ TEST_CASE("a successful backup hands a plaintext password over for encryption",
     REQUIRE(WaitFor(done));
     REQUIRE(done.first().at(0).toBool());
 
-    // Only the plaintext profile is reported, with the password it was verified with; the handler ran
-    // (queued on this thread) before `finished`.
+    // The handler ran (queued on this thread) before `finished`, with the password it was verified with.
+    REQUIRE(probed.size() == 1);
+    CHECK(probed.front().find("hunter2") != std::string::npos);
     REQUIRE(verified.size() == 1);
     CHECK(verified.front().name == "plaintext");
     CHECK(verified.front().password == "hunter2");
@@ -878,7 +885,35 @@ TEST_CASE("a successful backup hands a plaintext password over for encryption",
     controller.setBackupFolder(QString {});
 }
 
-TEST_CASE("a failed backup does not report its plaintext password as verified",
+TEST_CASE("a plaintext password is encrypted once it connects, even if the backup then fails",
+          "[dbtool-gui][managed-backup-controller][password]")
+{
+    QTemporaryDir dir;
+    ManagedBackupController controller;
+    controller.setBackupFolder(dir.path() + "/backups");
+    auto plaintext = SqliteProfile(dir, "plaintext");
+    plaintext.password = "hunter2";
+    controller.setProfiles({ plaintext });
+    controller.setConnectionProbe([](std::string const& /*connectionString*/) { return true; });
+    controller.setBackupOperation(
+        [](std::filesystem::path const& /*file*/,
+           std::string const& /*connectionString*/,
+           std::string const& /*schema*/,
+           Lightweight::SqlBackup::ProgressManager& /*progress*/) { throw std::runtime_error("disk full"); });
+
+    auto verifiedCount = 0;
+    controller.setPlaintextPasswordVerifiedHandler([&](Lightweight::Config::Profile const&) { ++verifiedCount; });
+
+    QSignalSpy done(&controller, &ManagedBackupController::finished);
+    controller.backupAll();
+    REQUIRE(WaitFor(done));
+    CHECK_FALSE(done.first().at(0).toBool());
+    CHECK(verifiedCount == 1);
+
+    controller.setBackupFolder(QString {});
+}
+
+TEST_CASE("a plaintext password whose connection fails is not handed over",
           "[dbtool-gui][managed-backup-controller][password]")
 {
     QTemporaryDir dir;
@@ -887,6 +922,7 @@ TEST_CASE("a failed backup does not report its plaintext password as verified",
     auto plaintext = SqliteProfile(dir, "plaintext");
     plaintext.password = "wrong";
     controller.setProfiles({ plaintext });
+    controller.setConnectionProbe([](std::string const& /*connectionString*/) { return false; });
     controller.setBackupOperation(
         [](std::filesystem::path const& /*file*/,
            std::string const& /*connectionString*/,
@@ -905,7 +941,7 @@ TEST_CASE("a failed backup does not report its plaintext password as verified",
     controller.setBackupFolder(QString {});
 }
 
-TEST_CASE("a successful restore into a profile hands its plaintext password over for encryption",
+TEST_CASE("a plaintext password is handed over as soon as a restore connects to its target profile",
           "[dbtool-gui][managed-backup-controller][password]")
 {
     QTemporaryDir dir;
@@ -917,6 +953,7 @@ TEST_CASE("a successful restore into a profile hands its plaintext password over
     controller.setProfiles({ source, target });
     controller.setBackupOperation(&WriteArchiveOperation);
     controller.setRestoreOperation(&NoOpRestoreOperation);
+    controller.setConnectionProbe([](std::string const& /*connectionString*/) { return true; });
 
     QSignalSpy backupDone(&controller, &ManagedBackupController::finished);
     controller.backupProfile("source");

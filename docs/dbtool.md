@@ -162,8 +162,8 @@ You never need to produce the `enc:` value by hand:
   connect is left alone. If the file is read-only, dbtool warns and carries on. If the file lives
   in a git repository, dbtool warns that the old plaintext may remain in its history — change the
   database password in that case.
-  dbtool-gui follows the same rule: it encrypts the value after its interactive connect, or after
-  a managed backup or restore of that profile has succeeded.
+  dbtool-gui follows the same rule: it encrypts the value as soon as a connection with it succeeds,
+  whether that is its interactive connect or the start of a managed backup or restore.
 
 `password` and `secretRef` are mutually exclusive. `secretRef` (`env:`, `file:`, `stdin:`) remains
 the choice for secrets that must not be in the file at all. `list-profiles` shows each profile's
