@@ -65,6 +65,8 @@ enum class PrimaryKey : uint8_t
 /// caller set explicitly is never overwritten, which allows importing historical rows.
 ///
 /// Only `SqlDateTime` and `std::optional<SqlDateTime>` fields may carry a timestamp marker.
+///
+/// @ingroup DataMapper
 enum class FieldTimestamp : uint8_t
 {
     /// The field is not maintained by the data mapper.
