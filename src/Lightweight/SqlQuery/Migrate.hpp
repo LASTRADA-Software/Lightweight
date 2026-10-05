@@ -22,6 +22,29 @@ enum class IndexType : std::uint8_t
     Unique     ///< Unique index
 };
 
+/// @brief Optional settings for `SqlMigrationQueryBuilder::CreateIndex`.
+///
+/// Designed for designated initialisers, so a call only spells out what it needs:
+///
+/// @code
+/// migration.CreateIndex("idx_queue_key", "queue", { "dedup_key" },
+///                       { .type = IndexType::Unique, .whereExpression = R"("dedup_key" <> '')" });
+/// @endcode
+///
+/// @ingroup QueryBuilder
+struct SqlCreateIndexOptions
+{
+    /// Whether the index enforces uniqueness.
+    IndexType type = IndexType::NonUnique;
+
+    /// Predicate body of a partial (PostgreSQL / SQLite) or filtered (SQL Server) index,
+    /// without the leading `WHERE`. Empty creates a regular index over every row.
+    /// The text is emitted verbatim; the caller is responsible for dialect-safe quoting
+    /// and for staying within what every target DBMS accepts (SQL Server only takes
+    /// simple comparisons, `IS [NOT] NULL` and `IN` lists joined by `AND`).
+    std::string whereExpression {};
+};
+
 /// @brief Query builder for building CREATE TABLE queries.
 ///
 /// @see SqlQueryBuilder
@@ -562,6 +585,32 @@ class [[nodiscard]] SqlMigrationQueryBuilder final
                                                           std::string tableName,
                                                           std::vector<std::string> columns,
                                                           bool unique = false);
+
+    /// Creates an index on a table, optionally unique and/or partial.
+    ///
+    /// A non-empty `options.whereExpression` renders a partial / filtered index,
+    /// `CREATE [UNIQUE] INDEX ... ON t (cols) WHERE <expression>`, which SQLite,
+    /// PostgreSQL and SQL Server all support.
+    ///
+    /// @note SQL Server creates a filtered index, and accepts writes to its table, only with
+    ///       `ANSI_WARNINGS ON`, i.e. on connections using @ref SqlStringTruncationMode::Error;
+    ///       the default @ref SqlStringTruncationMode::Truncate fails them with error 1934.
+    ///
+    /// @param indexName The name of the index to create.
+    /// @param tableName The name of the table to create the index on.
+    /// @param columns The columns to include in the index.
+    /// @param options Uniqueness and the optional index predicate.
+    ///
+    /// @code
+    /// SqlQueryBuilder q;
+    /// q.Migration().CreateIndex("idx_queue_key", "queue", {"dedup_key"},
+    ///                           {.type = IndexType::Unique, .whereExpression = R"("dedup_key" <> '')"});
+    /// // Will execute CREATE UNIQUE INDEX "idx_queue_key" ON "queue" ("dedup_key") WHERE "dedup_key" <> ''
+    /// @endcode
+    LIGHTWEIGHT_API SqlMigrationQueryBuilder& CreateIndex(std::string indexName,
+                                                          std::string tableName,
+                                                          std::vector<std::string> columns,
+                                                          SqlCreateIndexOptions options);
 
     /// Creates a unique index on a table.
     ///

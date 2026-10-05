@@ -388,13 +388,25 @@ SqlMigrationQueryBuilder& SqlMigrationQueryBuilder::CreateIndex(std::string inde
                                                                 std::vector<std::string> columns,
                                                                 bool unique)
 {
+    return CreateIndex(std::move(indexName),
+                       std::move(tableName),
+                       std::move(columns),
+                       SqlCreateIndexOptions { .type = unique ? IndexType::Unique : IndexType::NonUnique });
+}
+
+SqlMigrationQueryBuilder& SqlMigrationQueryBuilder::CreateIndex(std::string indexName,
+                                                                std::string tableName,
+                                                                std::vector<std::string> columns,
+                                                                SqlCreateIndexOptions options)
+{
     _migrationPlan.steps.emplace_back(SqlCreateIndexPlan {
         .schemaName = _schemaName,
         .indexName = std::move(indexName),
         .tableName = std::move(tableName),
         .columns = std::move(columns),
-        .unique = unique,
+        .unique = options.type == IndexType::Unique,
         .ifNotExists = false,
+        .whereExpression = std::move(options.whereExpression),
     });
     return *this;
 }

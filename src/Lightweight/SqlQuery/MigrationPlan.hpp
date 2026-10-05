@@ -529,6 +529,13 @@ struct SqlCreateIndexPlan
 
     /// If true, generates CREATE INDEX IF NOT EXISTS.
     bool ifNotExists { false };
+
+    /// Pre-rendered predicate body of a partial (PostgreSQL / SQLite) or filtered
+    /// (SQL Server) index, without the leading `WHERE`. Empty means the index covers
+    /// every row. Emitted verbatim after the column list as `WHERE <expression>`; the
+    /// caller is responsible for dialect-safe quoting. Mirrors
+    /// `SqlUpdateDataPlan::whereExpression`.
+    std::string whereExpression {};
 };
 
 // clang-format off

@@ -243,6 +243,41 @@ Composite indexes:
 plan.CreateIndex("idx_posts_user_date", "posts", {"user_id", "created_at"});
 ```
 
+#### Partial (filtered) indexes
+
+Pass a `SqlCreateIndexOptions` to index only the rows that match a predicate. SQLite and
+PostgreSQL call this a *partial* index, SQL Server a *filtered* index; all three accept the
+same `WHERE` clause after the column list.
+
+A typical use is deduplicating on an optional key: rows that have a key must be unique, rows
+without one may repeat. An unconditional unique index would reject the second row with an
+empty key.
+
+```cpp
+plan.CreateIndex("idx_queue_key", "queue", {"dedup_key"},
+                 {.type = IndexType::Unique, .whereExpression = R"("dedup_key" <> '')"});
+// CREATE UNIQUE INDEX "idx_queue_key" ON "queue" ("dedup_key") WHERE "dedup_key" <> ''
+```
+
+`whereExpression` is the predicate body without the leading `WHERE`. It is emitted verbatim,
+so quote identifiers and literals yourself. To stay portable, keep to what SQL Server accepts
+in a filter: comparisons of a column with a constant, `IS [NOT] NULL` and `IN (...)` lists,
+joined with `AND` (no `OR`, functions or computed expressions).
+
+> **SQL Server:** a filtered index requires `ANSI_WARNINGS ON` both to be created and for every
+> `INSERT`, `UPDATE` and `DELETE` on its table; otherwise SQL Server fails the statement with
+> error 1934. Lightweight's default string-truncation mode (`SqlStringTruncationMode::Truncate`)
+> turns `ANSI_WARNINGS` off, so connections that apply or write through a filtered index must
+> use `SqlStringTruncationMode::Error`, set per connection with
+> `SqlConnection::SetStringTruncationMode` or for new connections with
+> `SqlConnection::SetDefaultStringTruncationMode`. SQLite and PostgreSQL have no such requirement.
+
+> **Limitation:** the backup tool (`dbtool backup` / `SqlBackup`) reads indexes from the live
+> schema and does not capture index predicates yet. It backs a partial index up as an index
+> over all rows, and a single-column partial *unique* index can also mark its column unique.
+> Restoring data that relies on the predicate (such as two rows with an empty `dedup_key`)
+> therefore fails for such tables.
+
 ## Raw SQL
 
 For database-specific features or complex operations:
