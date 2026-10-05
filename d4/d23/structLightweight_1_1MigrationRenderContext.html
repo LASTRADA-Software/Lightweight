@@ -150,7 +150,7 @@ Public Attributes</h2></td></tr>
 <p>The context is mutable across successive <code>ToSql</code> calls within the same migration run: it accumulates a column-width cache populated from <code>CreateTable</code> / <code>AlterTable</code> steps as they are rendered, so later <code>Insert</code> / <code>Update</code> steps can truncate oversize values without a server round-trip.</p>
 <p>Default-constructed instances are strict (no truncation, no logging); this is the shape used by code paths that don't care about compat, so existing callers keep their behaviour. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00580">580</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00587">587</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 </div><h2 class="groupheader">Member Enumeration Documentation</h2>
 <a id="a1b18204eec6e670fe48c98ce38f9819b" name="a1b18204eec6e670fe48c98ce38f9819b"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a1b18204eec6e670fe48c98ce38f9819b">&#9670;&#160;</a></span>WidthUnit</h2>
@@ -174,7 +174,7 @@ Public Attributes</h2></td></tr>
 
 <p>How a column's declared width is counted. The truncation layer must match the server's interpretation: a VARCHAR(100) on MSSQL holds 100 <em>bytes</em>, but an NVARCHAR(100) holds 100 <em>characters</em>. Truncating to 100 characters when the server budget is 100 bytes still overflows on multi-byte source data. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00611">611</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00618">618</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -192,7 +192,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>When true, string values in <code>Insert</code> / <code>Update</code> steps are truncated to the destination column's declared character width and the truncation is logged via <code><a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#adbb17b889781323b66f79f99e1108776" title="Invoked on a warning.">SqlLogger::OnWarning</a></code>. Mirrors LUpd's client-side clipping behaviour; see <code>Lightweight::Config::CompatFlagLupTruncate</code>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00586">586</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00593">593</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -209,7 +209,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>When true (and the formatter distinguishes narrow and wide text), a foreign-key column declared by a <code>CreateTable</code> / <code>AlterTable</code> step is rendered with the narrow/wide variant of the referenced column's actual type when the two differ only in that respect. See <code>CompatFlagFkMatchReferencedTextName</code>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00592">592</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00599">599</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -227,7 +227,7 @@ Public Attributes</h2></td></tr>
 
 <p>Cache of declared character widths, populated lazily as plan elements render. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00624">624</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00631">631</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -244,7 +244,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Per-column text types (<code>Char</code> / <code>NChar</code> / <code>Varchar</code> / <code>NVarchar</code> only), from steps rendered so far and from <code>widthLookup</code>. Consulted by <code>fkMatchReferencedText</code>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00628">628</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00635">635</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -263,7 +263,7 @@ Public Attributes</h2></td></tr>
 <p>Optional fallback that fetches column widths for a <code>(schema, table)</code> from the live database when the cache has no entry for it. </p>
 <p>The renderer calls this once per <code>(schema, table)</code> it can't satisfy from <code>columnWidths</code>. Implementations should issue a single <code>INFORMATION_SCHEMA.COLUMNS</code> (or equivalent) query and write every char/varchar column's declared width back into <code>columnWidths</code>. They may also write a sentinel (e.g. an empty entry) when the table doesn't exist, so the renderer doesn't keep retrying. Default-empty means "no fallback" — i.e. only widths declared by the same migration plan are considered. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00640">640</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00647">647</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -281,7 +281,7 @@ Public Attributes</h2></td></tr>
 
 <p>Tables for which <code>widthLookup</code> has already been called; prevents repeat queries. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00652">652</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00659">659</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -299,7 +299,7 @@ Public Attributes</h2></td></tr>
 
 <p>Identity of the migration currently being rendered. Set by <code>MigrationManager::ApplySingleMigration</code> before <code>ToSql</code> is called for each step so warnings (e.g. <code>lup-truncate</code>) can attribute themselves to the offending migration. Empty / zero when rendering happens outside a migration run (e.g. unit tests calling <code>ToSql</code> directly). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00659">659</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00666">666</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -317,7 +317,7 @@ Public Attributes</h2></td></tr>
 
 <p>Timestamp of the migration currently being rendered (0 outside a migration run). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00661">661</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00668">668</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>

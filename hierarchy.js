@@ -102,6 +102,7 @@ var hierarchy =
     [ "Lightweight::SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html", null ],
     [ "Lightweight::SqlConnectionDataSource", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html", null ],
     [ "Lightweight::SqlConnectionString", "de/d6a/structLightweight_1_1SqlConnectionString.html", null ],
+    [ "Lightweight::SqlCreateIndexOptions", "d3/d9d/structLightweight_1_1SqlCreateIndexOptions.html", null ],
     [ "Lightweight::SqlCreateIndexPlan", "dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html", null ],
     [ "Lightweight::SqlCreateTableQueryBuilder", "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html", null ],
     [ "Lightweight::SqlDataBinder< char >", "d8/dca/structLightweight_1_1SqlDataBinder_3_01char_01_4.html", null ],

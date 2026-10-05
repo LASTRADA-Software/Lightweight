@@ -261,7 +261,9 @@ var NAVTREE =
         [ "Insert", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#insert-1", null ],
         [ "Update", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#update-1", null ],
         [ "Delete", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#delete-1", null ],
-        [ "CreateIndex", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#createindex", null ]
+        [ "CreateIndex", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#createindex", [
+          [ "Partial (filtered) indexes", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#partial-filtered-indexes", null ]
+        ] ]
       ] ],
       [ "Raw SQL", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#raw-sql", null ],
       [ "SQL Column Types", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#sql-column-types", null ],
@@ -392,14 +394,14 @@ var NAVTREEINDEX =
 [
 "annotated.html",
 "d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a095d9eb7ed4abef29c07a9a563c0da72",
-"d4/d6d/structLightweight_1_1MigrationRenderContext_1_1TableKey.html#aa58a804d5d9e7a2a98da93c4ae2c8e0b",
-"d6/dfa/structLightweight_1_1SqlDateTime.html#a580b08490f5eff7dec0a3e4534d191d5",
-"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#custom-default-schema",
-"d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a124a7ebb0b5e71644c43ffd4f35ac3c2",
-"da/df4/classLightweight_1_1HasMany.html#a1a0637644ce211f1ee334ceb286b5e92",
-"dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#aaf27033f8050b36e4b9a518e79591dc5",
-"de/dae/classLightweight_1_1SqlFixedString.html#aabcd1b4f08aa03c12051de4cb9791c45",
-"functions_i.html"
+"d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#what-you-get-back",
+"d6/dfa/structLightweight_1_1SqlDateTime.html#a4073ddbeadc581f1528fc44fa7e9fb70",
+"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#createindex",
+"d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8aa8156810bfee2bd2b44765b9e91db3bd",
+"da/df2/classLightweight_1_1SqlRequireLoadedError.html#a48cd904e3bec196925b2d3ba4453ffcf",
+"dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#a1357ddddc9888c3e784c6d96646b0c6a",
+"de/dae/classLightweight_1_1SqlFixedString.html#a9adaaa71363ba9a552cce9753bcddbe9",
+"functions_func_w.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

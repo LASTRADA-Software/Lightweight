@@ -143,7 +143,7 @@ Using the Migration Class</h2>
 <div class="line">        plan.DropTable(<span class="stringliteral">&quot;users&quot;</span>);</div>
 <div class="line">    }</div>
 <div class="line">);</div>
-<div class="ttc" id="aclassLightweight_1_1SqlMigrationQueryBuilder_html"><div class="ttname"><a href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html">Lightweight::SqlMigrationQueryBuilder</a></div><div class="ttdoc">Query builder for building SQL migration queries.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6b/Migrate_8hpp_source.html#l00484">Migrate.hpp:485</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlMigrationQueryBuilder_html"><div class="ttname"><a href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html">Lightweight::SqlMigrationQueryBuilder</a></div><div class="ttdoc">Query builder for building SQL migration queries.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6b/Migrate_8hpp_source.html#l00507">Migrate.hpp:508</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlMigration_1_1MigrationTimestamp_html"><div class="ttname"><a href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">Lightweight::SqlMigration::MigrationTimestamp</a></div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00049">SqlMigration.hpp:50</a></div></div>
 </div><!-- fragment --><h2><a class="anchor" id="timestamp-format"></a>
 Timestamp Format</h2>
@@ -273,7 +273,21 @@ CreateIndex</h2>
 <div class="line">plan.CreateUniqueIndex(<span class="stringliteral">&quot;idx_users_phone&quot;</span>, <span class="stringliteral">&quot;users&quot;</span>, {<span class="stringliteral">&quot;phone&quot;</span>});</div>
 </div><!-- fragment --><p>Composite indexes:</p>
 <div class="fragment"><div class="line">plan.CreateIndex(<span class="stringliteral">&quot;idx_posts_user_date&quot;</span>, <span class="stringliteral">&quot;posts&quot;</span>, {<span class="stringliteral">&quot;user_id&quot;</span>, <span class="stringliteral">&quot;created_at&quot;</span>});</div>
-</div><!-- fragment --><h1><a class="anchor" id="raw-sql"></a>
+</div><!-- fragment --><h3><a class="anchor" id="partial-filtered-indexes"></a>
+Partial (filtered) indexes</h3>
+<p>Pass a <code>SqlCreateIndexOptions</code> to index only the rows that match a predicate. SQLite and PostgreSQL call this a <em>partial</em> index, SQL Server a <em>filtered</em> index; all three accept the same <code>WHERE</code> clause after the column list.</p>
+<p>A typical use is deduplicating on an optional key: rows that have a key must be unique, rows without one may repeat. An unconditional unique index would reject the second row with an empty key.</p>
+<div class="fragment"><div class="line">plan.CreateIndex(<span class="stringliteral">&quot;idx_queue_key&quot;</span>, <span class="stringliteral">&quot;queue&quot;</span>, {<span class="stringliteral">&quot;dedup_key&quot;</span>},</div>
+<div class="line">                 {.type = IndexType::Unique, .whereExpression = R<span class="stringliteral">&quot;(&quot;dedup_key&quot; &lt;&gt; &#39;&#39;)&quot;});</span></div>
+<div class="line"><span class="stringliteral"></span><span class="comment">// CREATE UNIQUE INDEX &quot;idx_queue_key&quot; ON &quot;queue&quot; (&quot;dedup_key&quot;) WHERE &quot;dedup_key&quot; &lt;&gt; &#39;&#39;</span></div>
+</div><!-- fragment --><p><code>whereExpression</code> is the predicate body without the leading <code>WHERE</code>. It is emitted verbatim, so quote identifiers and literals yourself. To stay portable, keep to what SQL Server accepts in a filter: comparisons of a column with a constant, <code>IS [NOT] NULL</code> and <code>IN (...)</code> lists, joined with <code>AND</code> (no <code>OR</code>, functions or computed expressions).</p>
+<blockquote class="doxtable">
+<p>&zwj;<b>SQL Server:</b> a filtered index requires <code>ANSI_WARNINGS ON</code> both to be created and for every <code>INSERT</code>, <code>UPDATE</code> and <code>DELETE</code> on its table; otherwise SQL Server fails the statement with error 1934. Lightweight's default string-truncation mode (<code>SqlStringTruncationMode::Truncate</code>) turns <code>ANSI_WARNINGS</code> off, so connections that apply or write through a filtered index must use <code>SqlStringTruncationMode::Error</code>, set per connection with <code>SqlConnection::SetStringTruncationMode</code> or for new connections with <code>SqlConnection::SetDefaultStringTruncationMode</code>. SQLite and PostgreSQL have no such requirement. </p>
+</blockquote>
+<blockquote class="doxtable">
+<p>&zwj;<b>Limitation:</b> the backup tool (<code>dbtool backup</code> / <code>SqlBackup</code>) reads indexes from the live schema and does not capture index predicates yet. It backs a partial index up as an index over all rows, and a single-column partial <em>unique</em> index can also mark its column unique. Restoring data that relies on the predicate (such as two rows with an empty <code>dedup_key</code>) therefore fails for such tables. </p>
+</blockquote>
+<h1><a class="anchor" id="raw-sql"></a>
 Raw SQL</h1>
 <p>For database-specific features or complex operations:</p>
 <div class="fragment"><div class="line">plan.RawSql(<span class="stringliteral">&quot;CREATE EXTENSION IF NOT EXISTS pgcrypto&quot;</span>);</div>
