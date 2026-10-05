@@ -70,6 +70,7 @@ var group__DataMapper =
       [ "operator==", "dc/dc9/classLightweight_1_1CompositeForeignKey.html#afdbe7152a76b6ab03d96af8e6329d8e2", null ]
     ] ],
     [ "Lightweight::DataMapper", "de/d61/classLightweight_1_1DataMapper.html", [
+      [ "TimestampClock", "de/d61/classLightweight_1_1DataMapper.html#a853d3d491f444041f1d0ed7d9d8526ae", null ],
       [ "ModifiedState", "de/d61/classLightweight_1_1DataMapper.html#ac8cfda8ec587a1c2007646116c426441", [
         [ "Modified", "de/d61/classLightweight_1_1DataMapper.html#ac8cfda8ec587a1c2007646116c426441a35e0c8c0b180c95d4e122e55ed62cc64", null ],
         [ "NotModified", "de/d61/classLightweight_1_1DataMapper.html#ac8cfda8ec587a1c2007646116c426441ac169e6d9a1b9442001384de8dcf49ab9", null ]
@@ -81,6 +82,8 @@ var group__DataMapper =
       [ "operator=", "de/d61/classLightweight_1_1DataMapper.html#a2eb801d4d427d114bbc0c3b01068f307", null ],
       [ "Connection", "de/d61/classLightweight_1_1DataMapper.html#a121ee55502ae3461f8773593a5342f5f", null ],
       [ "Connection", "de/d61/classLightweight_1_1DataMapper.html#a91d6ba541ec66c8c25d9f277b3655efa", null ],
+      [ "SetTimestampClock", "de/d61/classLightweight_1_1DataMapper.html#a8aa7d61c145cc3d703f4029099c00c79", null ],
+      [ "CurrentTimestamp", "de/d61/classLightweight_1_1DataMapper.html#aaae2a30a670cfe13b5ba0f2c3e58c476", null ],
       [ "CreateTableString", "de/d61/classLightweight_1_1DataMapper.html#a275a2f5e36efeb2bd98f6c73b8f73c4b", null ],
       [ "CreateTablesString", "de/d61/classLightweight_1_1DataMapper.html#aa7b800a3b69075d96b38b2710df0229d", null ],
       [ "CreateTable", "de/d61/classLightweight_1_1DataMapper.html#a81e4a5713d5efa40b8eb2588d969e90f", null ],

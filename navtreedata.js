@@ -45,6 +45,7 @@ var NAVTREE =
       [ "SQL Query Builder", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sql-query-builder", null ],
       [ "High level Data Mapping", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#high-level-data-mapping", [
         [ "Batched insert and update", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#batched-insert-and-update", null ],
+        [ "Automatic <tt>created_at</tt> / <tt>updated_at</tt> timestamps", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#automatic-created_at--updated_at-timestamps", null ],
         [ "Eager loading of relations (<tt>With<>()</tt>)", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#eager-loading-of-relations-with", [
           [ "Nested relations", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#nested-relations", null ],
           [ "Loading everything reachable", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#loading-everything-reachable", null ],
@@ -393,11 +394,11 @@ var NAVTREEINDEX =
 "d4/d6d/structLightweight_1_1MigrationRenderContext_1_1TableKey.html#aa58a804d5d9e7a2a98da93c4ae2c8e0b",
 "d6/dfa/structLightweight_1_1SqlDateTime.html#a580b08490f5eff7dec0a3e4534d191d5",
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#insert-1",
-"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#abd90cf0b647d60af5bb130b7fe162bd2",
-"db/d29/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4_1_1Literal.html",
-"dd/de6/classLightweight_1_1SqlStatistics.html#abc6374fecaaf3d3ab27a913186ea8704",
-"de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#ab3f4130283fddc423a1911a3962e739c",
-"functions_vars_m.html"
+"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ab562de4a035a48baccb4dcd4a54dab30",
+"db/d1c/SqlSchema_8hpp_source.html",
+"dd/de6/classLightweight_1_1SqlStatistics.html#ab8546c7d0a149b9637d3b9d5b35cd7fe",
+"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#what-each-accessor-delivers",
+"functions_vars_h.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
