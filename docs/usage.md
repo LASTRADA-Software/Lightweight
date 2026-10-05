@@ -69,6 +69,53 @@ auto const connectionString = SqlConnectionString {
 };
 ```
 
+## SQLite busy timeout and journal mode
+
+When a connection to a SQLite database is established, Lightweight sets SQLite's busy timeout — how
+long a statement waits on a database file locked by another connection before it fails with
+`database is locked` — and, if asked, the journal mode. Both come from `SqliteConnectionSettings`:
+
+| Field | Default | Applied as |
+|-------|---------|------------|
+| `busyTimeout` | `SqliteBusyTimeoutDefault` (60 s) | `PRAGMA busy_timeout = <ms>` |
+| `journalMode` | `SqliteJournalMode::Unchanged` | `PRAGMA journal_mode = <mode>`, unless `Unchanged` |
+
+`SqliteJournalMode` offers `Unchanged`, `Delete`, `Truncate`, `Persist`, `Memory`, `Wal` and `Off`.
+The busy timeout is not the `Timeout=` of the ODBC connection string, which is the login timeout.
+
+Set the process-wide default once at start-up. Every connection constructed afterwards takes a copy,
+including those Lightweight creates on your behalf (a default-constructed `DataMapper`, the connection
+pool, the migration manager):
+
+```cpp
+SqlConnection::SetDefaultSqliteSettings(SqliteConnectionSettings {
+    .busyTimeout = std::chrono::seconds { 5 },
+    .journalMode = SqliteJournalMode::Wal,
+});
+```
+
+A single connection can be given its own settings at construction, or changed while open — in which
+case they are applied immediately:
+
+```cpp
+auto connection = SqlConnection { connectionString, SqliteConnectionSettings { .busyTimeout = 500ms } };
+
+if (auto const applied = connection.SetSqliteSettings({ .busyTimeout = 0ms }); !applied)
+    std::println("could not apply: {}", applied.error());
+```
+
+A connection keeps its settings across a reconnect. If a setting cannot be applied while connecting,
+the connect fails. Keep in mind:
+
+- **WAL is a property of the database file.** Once a connection switches a file to WAL, every later
+  connection to it uses WAL too, until one switches it back. WAL lets readers and writers proceed
+  without blocking each other, but needs a file database on a local file system.
+- **SQLite may decline a journal mode without an error.** An in-memory database can only use `MEMORY`
+  or `OFF`; asking it for `Wal` leaves it in `MEMORY`. Read `PRAGMA journal_mode` back if you depend
+  on the result.
+- **The settings are inert on other databases.** No statement is issued for them on SQL Server or
+  PostgreSQL, so the same start-up code runs against every backend.
+
 ## Raw SQL Queries
 
 To directly make a call to the database use `ExecuteDirect` function, for example

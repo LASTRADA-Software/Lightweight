@@ -726,6 +726,12 @@ DROP INDEX "{0}_{1}_{2}_index" ON "{0}"."{1}";)",
         return "SELECT @@VERSION";
     }
 
+    /// SQL Server has no SQLite settings: undoes the PRAGMAs inherited from the SQLite formatter.
+    [[nodiscard]] StringList SqliteSettingsStatements(SqliteConnectionSettings const& /*settings*/) const override
+    {
+        return {};
+    }
+
     /// Microsoft SQL Server uses `sp_getapplock` / `sp_releaseapplock`. Inline
     /// delegation keeps the vtable weak — see `SQLiteQueryFormatter::AdvisoryLockOps()`
     /// for the rationale.

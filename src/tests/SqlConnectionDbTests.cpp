@@ -8,10 +8,13 @@
 
 #include <array>
 #include <chrono>
+#include <filesystem>
 #include <format>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <system_error>
+#include <utility>
 
 using namespace Lightweight;
 
@@ -399,4 +402,226 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlConnection string truncation mode governs a
     CHECK(stored.value_or(std::string {}) == "ABCDE");
 
     std::ignore = stmt.ExecuteDirect("DROP TABLE #StringTruncationProbe");
+}
+
+// ================================================================================================
+// SQLite connection settings: busy_timeout and journal_mode (#648)
+// ================================================================================================
+
+namespace
+{
+
+/// Reads a SQLite connection's effective busy timeout back from the engine.
+int QueryBusyTimeout(SqlConnection& connection)
+{
+    auto stmt = SqlStatement { connection };
+    return stmt.ExecuteDirectScalar<int>("PRAGMA busy_timeout").value_or(-1);
+}
+
+/// Reads a SQLite connection's effective journal mode back from the engine, lower-cased as SQLite
+/// reports it.
+std::string QueryJournalMode(SqlConnection& connection)
+{
+    auto stmt = SqlStatement { connection };
+    return stmt.ExecuteDirectScalar<std::string>("PRAGMA journal_mode").value_or(std::string {});
+}
+
+/// The test connection string with its database file replaced by @p path, so that a test which switches
+/// the journal mode (a persistent property of the file) leaves the shared test database untouched.
+SqlConnectionString WithSqliteDatabaseFile(std::filesystem::path const& path)
+{
+    auto map = ParseConnectionString(SqlConnection::DefaultConnectionString());
+    map["DATABASE"] = path.string();
+    return BuildConnectionString(map);
+}
+
+/// A scratch SQLite database file path, unique per test.
+std::filesystem::path ScratchSqliteDatabasePath(std::string_view name)
+{
+    return std::filesystem::temp_directory_path() / std::format("lightweight-{}.db", name);
+}
+
+/// Removes a SQLite database file together with its journal and WAL side files.
+void RemoveSqliteDatabaseFiles(std::filesystem::path const& path)
+{
+    auto ec = std::error_code {};
+    for (auto const* suffix: { "", "-wal", "-shm", "-journal" })
+        std::filesystem::remove(std::filesystem::path { path.string() + suffix }, ec);
+}
+
+} // namespace
+
+TEST_CASE("SQLiteQueryFormatter: SQLite settings render as PRAGMA statements", "[SqlConnection][SQLite]")
+{
+    auto const& sqlite = SqlQueryFormatter::Sqlite();
+
+    // The defaults keep the historical 60 s busy timeout and do not touch the journal mode.
+    CHECK(sqlite.SqliteSettingsStatements(SqliteConnectionSettings {})
+          == SqlQueryFormatter::StringList { "PRAGMA busy_timeout = 60000" });
+
+    CHECK(sqlite.SqliteSettingsStatements(SqliteConnectionSettings {
+              .busyTimeout = std::chrono::milliseconds { 1500 },
+              .journalMode = SqliteJournalMode::Wal,
+          })
+          == SqlQueryFormatter::StringList { "PRAGMA busy_timeout = 1500", "PRAGMA journal_mode = WAL" });
+
+    // Every journal mode other than Unchanged maps onto its PRAGMA keyword.
+    auto const expectations = std::array {
+        std::pair { SqliteJournalMode::Delete, std::string_view { "DELETE" } },
+        std::pair { SqliteJournalMode::Truncate, std::string_view { "TRUNCATE" } },
+        std::pair { SqliteJournalMode::Persist, std::string_view { "PERSIST" } },
+        std::pair { SqliteJournalMode::Memory, std::string_view { "MEMORY" } },
+        std::pair { SqliteJournalMode::Wal, std::string_view { "WAL" } },
+        std::pair { SqliteJournalMode::Off, std::string_view { "OFF" } },
+    };
+    for (auto const& [mode, keyword]: expectations)
+    {
+        auto const statements = sqlite.SqliteSettingsStatements({ .journalMode = mode });
+        REQUIRE(statements.size() == 2);
+        CHECK(statements.back() == std::format("PRAGMA journal_mode = {}", keyword));
+    }
+
+    // A negative timeout is clamped to zero, an oversized one to the largest value SQLite accepts.
+    CHECK(sqlite.SqliteSettingsStatements({ .busyTimeout = std::chrono::milliseconds { -5 } }).front()
+          == "PRAGMA busy_timeout = 0");
+    CHECK(sqlite.SqliteSettingsStatements({ .busyTimeout = std::chrono::hours { 24 * 365 } }).front()
+          == "PRAGMA busy_timeout = 2147483647");
+
+    // Every other dialect has no such settings, so nothing is issued there.
+    auto const custom = SqliteConnectionSettings {
+        .busyTimeout = std::chrono::milliseconds { 1 },
+        .journalMode = SqliteJournalMode::Wal,
+    };
+    CHECK(SqlQueryFormatter::SqlServer().SqliteSettingsStatements(custom).empty());
+    CHECK(SqlQueryFormatter::PostgrSQL().SqliteSettingsStatements(custom).empty());
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: SQLite settings default to a 60 s busy timeout", "[SqlConnection][SQLite]")
+{
+    CHECK(SqlConnection::DefaultSqliteSettings() == SqliteConnectionSettings {});
+
+    auto connection = SqlConnection {};
+    CHECK(connection.SqliteSettings() == SqliteConnectionSettings {});
+
+    // The engine-side check only exists on SQLite; the inert case is covered by its own test below.
+    if (connection.ServerType() == SqlServerType::SQLITE)
+        CHECK(QueryBusyTimeout(connection) == 60'000);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlConnection: SQLite busy timeout and journal mode are applied on connect",
+                 "[SqlConnection][SQLite]")
+{
+    if (SqlConnection {}.ServerType() != SqlServerType::SQLITE)
+        SKIP("SQLite-only: busy_timeout and journal_mode are SQLite pragmas");
+
+    // WAL is a property of the database file, so use a scratch file rather than the shared test database.
+    auto const path = ScratchSqliteDatabasePath("sqlite-settings");
+    RemoveSqliteDatabaseFiles(path);
+    auto const cleanup = detail::Finally([&] { RemoveSqliteDatabaseFiles(path); });
+    REQUIRE(EnsureSqliteDatabaseFileExists(WithSqliteDatabaseFile(path)));
+
+    {
+        // An untouched file starts out in SQLite's default rollback-journal mode, and the default
+        // settings leave it there.
+        auto connection = SqlConnection { WithSqliteDatabaseFile(path) };
+        CHECK(QueryJournalMode(connection) == "delete");
+    }
+
+    auto const custom = SqliteConnectionSettings {
+        .busyTimeout = std::chrono::milliseconds { 1234 },
+        .journalMode = SqliteJournalMode::Wal,
+    };
+    auto connection = SqlConnection { WithSqliteDatabaseFile(path), custom };
+    CHECK(connection.SqliteSettings() == custom);
+    CHECK(QueryBusyTimeout(connection) == 1234);
+    CHECK(QueryJournalMode(connection) == "wal");
+
+    // Changing the settings of an open connection applies them at once.
+    auto const changed = SqliteConnectionSettings {
+        .busyTimeout = std::chrono::milliseconds { 250 },
+        .journalMode = SqliteJournalMode::Delete,
+    };
+    REQUIRE(connection.SetSqliteSettings(changed).has_value());
+    CHECK(connection.SqliteSettings() == changed);
+    CHECK(QueryBusyTimeout(connection) == 250);
+    CHECK(QueryJournalMode(connection) == "delete");
+
+    // A reconnect re-applies the connection's own settings, not the process-wide default.
+    REQUIRE(connection.Connect(WithSqliteDatabaseFile(path)));
+    CHECK(QueryBusyTimeout(connection) == 250);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlConnection: the default SQLite settings reach connections made on the caller's behalf",
+                 "[SqlConnection][SQLite]")
+{
+    auto const restore = detail::Finally([] { SqlConnection::SetDefaultSqliteSettings(SqliteConnectionSettings {}); });
+    auto const custom = SqliteConnectionSettings { .busyTimeout = std::chrono::milliseconds { 4321 } };
+    SqlConnection::SetDefaultSqliteSettings(custom);
+    CHECK(SqlConnection::DefaultSqliteSettings() == custom);
+
+    // A default-constructed DataMapper is how the connection pool creates its connections.
+    auto mapper = DataMapper {};
+    CHECK(mapper.Connection().SqliteSettings() == custom);
+    if (mapper.Connection().ServerType() == SqlServerType::SQLITE)
+        CHECK(QueryBusyTimeout(mapper.Connection()) == 4321);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlConnection: a SQLite setting that cannot be applied is reported",
+                 "[SqlConnection][SQLite]")
+{
+    if (SqlConnection {}.ServerType() != SqlServerType::SQLITE)
+        SKIP("SQLite-only: the failure is SQLite refusing a journal-mode switch on a locked database");
+
+    auto const path = ScratchSqliteDatabasePath("sqlite-settings-failure");
+    RemoveSqliteDatabaseFiles(path);
+    auto const cleanup = detail::Finally([&] { RemoveSqliteDatabaseFiles(path); });
+    REQUIRE(EnsureSqliteDatabaseFileExists(WithSqliteDatabaseFile(path)));
+
+    // A writer holds the database file locked by an open write transaction.
+    auto writer = SqlConnection { WithSqliteDatabaseFile(path) };
+    auto writerStmt = SqlStatement { writer };
+    std::ignore = writerStmt.ExecuteDirect("CREATE TABLE probe (id INTEGER)");
+    auto transaction = SqlTransaction { writer };
+    std::ignore = writerStmt.ExecuteDirect("INSERT INTO probe (id) VALUES (1)");
+
+    // Switching to WAL needs an exclusive lock, which a zero busy timeout gives up on at once.
+    auto const impatientWal = SqliteConnectionSettings {
+        .busyTimeout = std::chrono::milliseconds { 0 },
+        .journalMode = SqliteJournalMode::Wal,
+    };
+    auto const _ = ScopedSqlNullLogger {};
+
+    // While connecting, the failure fails the connect rather than leaving the journal mode unapplied.
+    auto connection = SqlConnection { std::nullopt, impatientWal };
+    CHECK_FALSE(connection.Connect(WithSqliteDatabaseFile(path)));
+
+    // On an open connection, the setter reports it.
+    auto open = SqlConnection { WithSqliteDatabaseFile(path), SqliteConnectionSettings { .busyTimeout = {} } };
+    auto const applied = open.SetSqliteSettings(impatientWal);
+    CHECK_FALSE(applied.has_value());
+    CHECK(open.SqliteSettings() == impatientWal);
+
+    transaction.Rollback();
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: SQLite settings are inert on other backends", "[SqlConnection]")
+{
+    if (SqlConnection {}.ServerType() == SqlServerType::SQLITE)
+        SKIP("Covers non-SQLite backends; on SQLite the settings take effect, see the tests above");
+
+    // Settings that would visibly change a SQLite connection: connecting with them and changing them must
+    // succeed without issuing anything, and the connection must stay fully usable.
+    auto const custom = SqliteConnectionSettings {
+        .busyTimeout = std::chrono::milliseconds { 1 },
+        .journalMode = SqliteJournalMode::Wal,
+    };
+    auto connection = SqlConnection { SqlConnection::DefaultConnectionString(), custom };
+    CHECK(connection.SqliteSettings() == custom);
+    CHECK(connection.SetSqliteSettings({ .journalMode = SqliteJournalMode::Off }).has_value());
+
+    auto stmt = SqlStatement { connection };
+    CHECK(stmt.ExecuteDirectScalar<int>("SELECT 1").value_or(0) == 1);
 }

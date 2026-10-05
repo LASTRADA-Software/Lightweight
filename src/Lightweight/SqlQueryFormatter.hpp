@@ -299,6 +299,19 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
         return {};
     }
 
+    /// @brief Returns the statements a connection executes after connecting to realise @p settings.
+    ///
+    /// Only the SQLite dialect has these settings, and emits one @c PRAGMA per setting; every other
+    /// dialect returns an empty list, which leaves the settings inert there.
+    ///
+    /// @param settings The connection's SQLite settings.
+    /// @return The statements to execute, in order; empty when there is nothing to apply.
+    [[nodiscard]] virtual StringList SqliteSettingsStatements(SqliteConnectionSettings const& settings) const
+    {
+        (void) settings;
+        return {};
+    }
+
     /// @brief Returns the dialect-specific handler used by `SqlScopedLock` to
     /// acquire and release named cross-process advisory locks.
     ///

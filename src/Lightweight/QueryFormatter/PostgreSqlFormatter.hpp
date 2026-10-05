@@ -329,6 +329,12 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
         return "SELECT version()";
     }
 
+    /// PostgreSQL has no SQLite settings: undoes the PRAGMAs inherited from the SQLite formatter.
+    [[nodiscard]] StringList SqliteSettingsStatements(SqliteConnectionSettings const& /*settings*/) const override
+    {
+        return {};
+    }
+
     /// PostgreSQL uses `pg_advisory_lock` / `pg_advisory_unlock`. Inline delegation
     /// keeps the vtable weak — see `SQLiteQueryFormatter::AdvisoryLockOps()` for
     /// the rationale.

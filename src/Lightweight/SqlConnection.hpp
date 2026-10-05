@@ -67,6 +67,70 @@ enum class SqlStringTruncationMode : uint8_t
 };
 
 /// @ingroup CoreApi
+/// @brief The SQLite journal mode a connection requests when it is established.
+///
+/// Each enumerator other than @ref Unchanged maps onto the matching @c PRAGMA @c journal_mode value.
+/// See https://sqlite.org/pragma.html#pragma_journal_mode for the semantics of each mode.
+///
+/// @note SQLite may decline a requested mode without reporting an error, e.g. an in-memory database
+///       can only use @c MEMORY or @c OFF, so asking it for @ref Wal leaves it in @c MEMORY.
+enum class SqliteJournalMode : uint8_t
+{
+    /// Leave the journal mode alone: whatever the database file (or the driver) already uses stays in
+    /// effect. This is the default, so a connection that does not opt in behaves exactly as before.
+    Unchanged,
+
+    /// @c PRAGMA @c journal_mode=DELETE — the rollback journal, deleted at the end of each transaction
+    /// (SQLite's own default).
+    Delete,
+
+    /// @c PRAGMA @c journal_mode=TRUNCATE — the rollback journal, truncated rather than deleted.
+    Truncate,
+
+    /// @c PRAGMA @c journal_mode=PERSIST — the rollback journal, kept and its header zeroed.
+    Persist,
+
+    /// @c PRAGMA @c journal_mode=MEMORY — the rollback journal, kept in memory.
+    Memory,
+
+    /// @c PRAGMA @c journal_mode=WAL — write-ahead logging, in which readers and writers do not block
+    /// each other. The mode is persistent: it is recorded in the database file and stays in effect for
+    /// every later connection to it. Requires a file database.
+    Wal,
+
+    /// @c PRAGMA @c journal_mode=OFF — no rollback journal; a crash or ROLLBACK can corrupt the
+    /// database.
+    Off,
+};
+
+/// @brief Default SQLite busy timeout: how long a statement waits on a database file locked by another
+/// connection before failing with "database is locked".
+inline constexpr std::chrono::milliseconds SqliteBusyTimeoutDefault { 60'000 };
+
+/// @ingroup CoreApi
+/// @brief Connection-level settings applied when a connection to a SQLite database is established.
+///
+/// Inert on every other backend: no statement is issued for them there. The defaults reproduce the
+/// behaviour Lightweight has always had, a 60 second busy timeout and an untouched journal mode.
+///
+/// @see SqlConnection::SetDefaultSqliteSettings, SqlConnection::SetSqliteSettings
+struct SqliteConnectionSettings
+{
+    /// @brief How long a statement waits on a locked database file before failing, applied via
+    /// @c PRAGMA @c busy_timeout.
+    ///
+    /// Zero disables the wait, so a contended statement fails at once; a negative value is treated as
+    /// zero. Not to be confused with the ODBC login timeout of the connection string.
+    std::chrono::milliseconds busyTimeout = SqliteBusyTimeoutDefault;
+
+    /// The journal mode to switch the database to, see @ref SqliteJournalMode.
+    SqliteJournalMode journalMode = SqliteJournalMode::Unchanged;
+
+    /// Equality comparison operator.
+    bool operator==(SqliteConnectionSettings const&) const noexcept = default;
+};
+
+/// @ingroup CoreApi
 /// @brief Represents a connection to a SQL database.
 class SqlConnection final
 {
@@ -87,6 +151,17 @@ class SqlConnection final
     ///                    `SqlException` is thrown carrying the ODBC diagnostic
     ///                    read from the DBC handle.
     LIGHTWEIGHT_API explicit SqlConnection(std::optional<SqlConnectionString> connectInfo);
+
+    /// @brief Constructs a new SQL connection with explicit SQLite connection settings.
+    ///
+    /// Behaves like the single-argument constructor, except that the connection uses
+    /// @p sqliteSettings instead of a snapshot of @ref DefaultSqliteSettings. The settings are applied
+    /// as part of establishing the connection, so the first statement already runs under them.
+    ///
+    /// @param connectInfo The connection information to use, or `std::nullopt` to stay unconnected.
+    /// @param sqliteSettings The SQLite settings applied on this and every later Connect(); inert on
+    ///                       other backends.
+    LIGHTWEIGHT_API SqlConnection(std::optional<SqlConnectionString> connectInfo, SqliteConnectionSettings sqliteSettings);
 
     /// Move constructor.
     LIGHTWEIGHT_API SqlConnection(SqlConnection&& /*other*/) noexcept;
@@ -159,6 +234,43 @@ class SqlConnection final
     /// Sets this connection's string-truncation mode, applying it immediately when the connection is
     /// open (a no-op on backends other than Microsoft SQL Server).
     LIGHTWEIGHT_API void SetStringTruncationMode(SqlStringTruncationMode mode);
+
+    /// @brief The SQLite settings a newly constructed connection adopts.
+    ///
+    /// Thread-safe. Defaults to a default-constructed @ref SqliteConnectionSettings (60 second busy
+    /// timeout, journal mode unchanged).
+    ///
+    /// @return A copy of the current process-wide default.
+    [[nodiscard]] LIGHTWEIGHT_API static SqliteConnectionSettings DefaultSqliteSettings();
+
+    /// @brief Sets the SQLite settings newly constructed connections adopt.
+    ///
+    /// Thread-safe. This is the way to configure connections that Lightweight constructs on the
+    /// application's behalf, such as those of a @c Pool or a default-constructed @c DataMapper.
+    /// Connections that already exist keep their settings; use @ref SetSqliteSettings on those.
+    ///
+    /// @param settings The new process-wide default.
+    LIGHTWEIGHT_API static void SetDefaultSqliteSettings(SqliteConnectionSettings const& settings);
+
+    /// @brief This connection's SQLite settings.
+    ///
+    /// Captured from @ref DefaultSqliteSettings when the connection object is constructed (or given to
+    /// the constructor), and re-applied on every Connect().
+    ///
+    /// @return The settings this connection applies when connected to SQLite.
+    [[nodiscard]] LIGHTWEIGHT_API SqliteConnectionSettings const& SqliteSettings() const noexcept;
+
+    /// @brief Changes this connection's SQLite settings, applying them immediately when the connection
+    /// is open to a SQLite database.
+    ///
+    /// On other backends, or while unconnected, the settings are only stored, to be applied by the next
+    /// Connect() to a SQLite database.
+    ///
+    /// @param settings The settings to store and apply.
+    /// @return Nothing on success, or the diagnostic of the @c PRAGMA statement that failed. The
+    ///         settings are stored either way.
+    [[nodiscard]] LIGHTWEIGHT_API std::expected<void, SqlErrorInfo> SetSqliteSettings(
+        SqliteConnectionSettings const& settings);
 
     /// @brief Retrieves the connection ID.
     ///
@@ -455,7 +567,14 @@ class SqlConnection final
     /// If handles were freed by Close(), this method reallocates them.
     void EnsureHandlesAllocated();
 
-    void PostConnect();
+    /// Detects the server type and applies the connect-time session settings.
+    /// @return `false` if a requested session setting could not be applied (the error is logged).
+    [[nodiscard]] bool PostConnect();
+
+    /// Issues the statements the query formatter derives from this connection's SQLite settings; none
+    /// unless connected to SQLite.
+    /// @return Nothing on success, or the diagnostic of the statement that failed.
+    [[nodiscard]] std::expected<void, SqlErrorInfo> ApplySqliteSettings();
 
     /// Re-evaluates the backend capability gate on the requested prepared-statement cache capacity.
     void ApplyPreparedStatementCacheCapacity() noexcept;
