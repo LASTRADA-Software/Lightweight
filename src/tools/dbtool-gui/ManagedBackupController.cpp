@@ -5,6 +5,7 @@
 
 #include <Lightweight/SqlBackup.hpp>
 #include <Lightweight/SqlConnectInfo.hpp>
+#include <Lightweight/SqlConnection.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -24,6 +25,7 @@
 #include <QtCore/QRunnable>
 #include <QtCore/QSettings>
 #include <QtCore/QStandardPaths>
+#include <Secrets/ProfileCipher.hpp>
 #include <Secrets/SecretResolver.hpp>
 
 namespace DbtoolGui
@@ -272,6 +274,35 @@ namespace
                                        ManagedBackupSettings());
     }
 
+    /// Default `ConnectionProbe`: opens and closes a real connection.
+    bool ProbeConnection(std::string const& connectionString)
+    {
+        auto probe = Lightweight::SqlConnection { std::nullopt };
+        return probe.Connect(Lightweight::SqlConnectionString { connectionString });
+    }
+
+    /// Hands a plaintext password over to `handler` (queued onto the GUI thread) as soon as a connection
+    /// with it succeeds, so that it can be stored encrypted before the run does anything else. A failed
+    /// connection proves nothing and is left to the run itself to report. Encrypted and `secretRef`
+    /// passwords need nothing, and no connection is probed for them.
+    /// @param target Object whose thread runs the handler.
+    /// @param handler The injected handler; empty means nobody wants to know.
+    /// @param probe Opens a connection to tell whether the password works.
+    /// @param profile The profile about to be used.
+    /// @param connectionString The profile's resolved connection string, carrying the password.
+    void EncryptPlaintextPasswordOnceConnectable(QObject* target,
+                                                 ManagedBackupController::PlaintextPasswordVerifiedHandler const& handler,
+                                                 ManagedBackupController::ConnectionProbe const& probe,
+                                                 Lightweight::Config::Profile const& profile,
+                                                 std::string const& connectionString)
+    {
+        if (!handler || profile.password.empty() || Lightweight::Secrets::ProfileCipher::IsEncrypted(profile.password))
+            return;
+        if (!probe(connectionString))
+            return;
+        QMetaObject::invokeMethod(target, [handler, profile] { handler(profile); }, Qt::QueuedConnection);
+    }
+
     /// Default `RestoreOperation`: the real `SqlBackup::Restore` call.
     void RunSqlRestore(std::filesystem::path const& archiveFile,
                        std::string const& connectionString,
@@ -287,6 +318,7 @@ ManagedBackupController::ManagedBackupController(QObject* parent):
     QObject(parent),
     _backupOperation(&RunSqlBackup),
     _restoreOperation(&RunSqlRestore),
+    _connectionProbe(&ProbeConnection),
     _backupFolder(QSettings().value(QString::fromLatin1(kKeyBackupFolder)).toString())
 {
     // One worker: profiles are backed up strictly sequentially; per-table
@@ -344,6 +376,16 @@ void ManagedBackupController::setBackupOperation(BackupOperation operation)
 void ManagedBackupController::setRestoreOperation(RestoreOperation operation)
 {
     _restoreOperation = operation ? std::move(operation) : RestoreOperation { &RunSqlRestore };
+}
+
+void ManagedBackupController::setPlaintextPasswordVerifiedHandler(PlaintextPasswordVerifiedHandler handler)
+{
+    _onPlaintextPasswordVerified = std::move(handler);
+}
+
+void ManagedBackupController::setConnectionProbe(ConnectionProbe probe)
+{
+    _connectionProbe = probe ? std::move(probe) : ConnectionProbe { &ProbeConnection };
 }
 
 void ManagedBackupController::SetFolderProblem(QString problem)
@@ -493,6 +535,8 @@ void ManagedBackupController::RunBackups(std::vector<Lightweight::Config::Profil
     // The operation is copied into the task now, on the GUI thread, so the
     // worker never reads the member while another thread could replace it.
     auto backupOperation = _backupOperation;
+    auto onPlaintextPasswordVerified = _onPlaintextPasswordVerified;
+    auto connectionProbe = _connectionProbe;
     // QThreadPool::start() takes ownership of the raw pointer (it deletes
     // the task after run() returns, since setAutoDelete(true) is set in the
     // constructor); release() makes that ownership transfer explicit.
@@ -500,7 +544,9 @@ void ManagedBackupController::RunBackups(std::vector<Lightweight::Config::Profil
                                                 profiles = std::move(profiles),
                                                 plan = std::move(plan),
                                                 folder,
-                                                backupOperation = std::move(backupOperation)] {
+                                                backupOperation = std::move(backupOperation),
+                                                onPlaintextPasswordVerified = std::move(onPlaintextPasswordVerified),
+                                                connectionProbe = std::move(connectionProbe)] {
         auto resolver = Lightweight::Secrets::MakeNonInteractiveResolver();
         int okCount = 0;
         int failCount = 0;
@@ -527,6 +573,7 @@ void ManagedBackupController::RunBackups(std::vector<Lightweight::Config::Profil
                 setState(QStringLiteral("failed"), QString::fromStdString(cs.error()));
                 continue;
             }
+            EncryptPlaintextPasswordOnceConnectable(self, onPlaintextPasswordVerified, connectionProbe, profile, *cs);
             setState(QStringLiteral("running"));
             // Fresh run for this profile: drop any table rows from a previous
             // run before new progress arrives (queued onto the GUI thread).
@@ -656,73 +703,83 @@ void ManagedBackupController::RunRestore(QString const& archiveProfile,
     auto const schemaStd = effectiveSchema.toStdString();
     // Copied on the GUI thread — see the note in RunBackups().
     auto restoreOperation = _restoreOperation;
+    auto onPlaintextPasswordVerified = _onPlaintextPasswordVerified;
+    auto connectionProbe = _connectionProbe;
     // See the ownership-transfer note in RunBackups(): QThreadPool::start()
     // deletes the task after run() (setAutoDelete(true)); release() makes
     // that explicit.
-    auto task = std::make_unique<FunctionTask>(
-        [self, archivePath, targetProfile, rawCs, schemaStd, archiveName, restoreOperation = std::move(restoreOperation)] {
-            auto cs = rawCs;
-            if (targetProfile)
+    auto task = std::make_unique<FunctionTask>([self,
+                                                archivePath,
+                                                targetProfile,
+                                                rawCs,
+                                                schemaStd,
+                                                archiveName,
+                                                restoreOperation = std::move(restoreOperation),
+                                                onPlaintextPasswordVerified = std::move(onPlaintextPasswordVerified),
+                                                connectionProbe = std::move(connectionProbe)] {
+        auto cs = rawCs;
+        if (targetProfile)
+        {
+            auto resolver = Lightweight::Secrets::MakeNonInteractiveResolver();
+            auto const resolved = ManagedBackup::ResolveConnectionString(*targetProfile, resolver);
+            if (!resolved)
             {
-                auto resolver = Lightweight::Secrets::MakeNonInteractiveResolver();
-                auto const resolved = ManagedBackup::ResolveConnectionString(*targetProfile, resolver);
-                if (!resolved)
-                {
-                    auto const message = QString::fromStdString(resolved.error());
-                    QMetaObject::invokeMethod(
-                        self,
-                        [self, message] {
-                            self->_phase.store(Phase::Idle, std::memory_order_release);
-                            emit self->phaseChanged();
-                            emit self->logLine(message, LogLevel::Error);
-                            emit self->finished(false, message);
-                        },
-                        Qt::QueuedConnection);
-                    return;
-                }
-                cs = *resolved;
+                auto const message = QString::fromStdString(resolved.error());
+                QMetaObject::invokeMethod(
+                    self,
+                    [self, message] {
+                        self->_phase.store(Phase::Idle, std::memory_order_release);
+                        emit self->phaseChanged();
+                        emit self->logLine(message, LogLevel::Error);
+                        emit self->finished(false, message);
+                    },
+                    Qt::QueuedConnection);
+                return;
             }
-            QString summary;
-            bool ok = true;
-            try
-            {
-                EmittingProgressManager pm(self, archiveName);
-                restoreOperation(archivePath, cs, schemaStd, pm);
-                // Like Backup(), Restore() reports a table it could not
-                // recreate as a `Progress::State::Error` and carries on — see
-                // `CreateTablesInOrder`, which drops the archived table first
-                // and only then tries to create it. Without this check a
-                // restore that dropped tables it never recreated would be
-                // reported as a success.
-                if (auto const errorCount = pm.ErrorCount(); errorCount > 0)
-                {
-                    ok = false;
-                    summary = PartialRestoreMessage(errorCount);
-                }
-                else
-                    summary = QStringLiteral("Restore read %1").arg(FromPath(archivePath));
-            }
-            catch (std::exception const& e)
+            cs = *resolved;
+            EncryptPlaintextPasswordOnceConnectable(self, onPlaintextPasswordVerified, connectionProbe, *targetProfile, cs);
+        }
+        QString summary;
+        bool ok = true;
+        try
+        {
+            EmittingProgressManager pm(self, archiveName);
+            restoreOperation(archivePath, cs, schemaStd, pm);
+            // Like Backup(), Restore() reports a table it could not
+            // recreate as a `Progress::State::Error` and carries on — see
+            // `CreateTablesInOrder`, which drops the archived table first
+            // and only then tries to create it. Without this check a
+            // restore that dropped tables it never recreated would be
+            // reported as a success.
+            if (auto const errorCount = pm.ErrorCount(); errorCount > 0)
             {
                 ok = false;
-                // A restore that threw part-way through is just as
-                // non-transactional as one that reported table errors: whatever
-                // it had already dropped stays dropped.
-                summary = QStringLiteral("%1 The target database may be left INCOMPLETE — do not use it before a "
-                                         "successful re-run.")
-                              .arg(QString::fromUtf8(e.what()));
+                summary = PartialRestoreMessage(errorCount);
             }
-            QMetaObject::invokeMethod(
-                self,
-                [self, ok, summary] {
-                    self->_phase.store(Phase::Idle, std::memory_order_release);
-                    emit self->phaseChanged();
-                    if (!ok)
-                        emit self->logLine(summary, LogLevel::Error);
-                    emit self->finished(ok, summary);
-                },
-                Qt::QueuedConnection);
-        });
+            else
+                summary = QStringLiteral("Restore read %1").arg(FromPath(archivePath));
+        }
+        catch (std::exception const& e)
+        {
+            ok = false;
+            // A restore that threw part-way through is just as
+            // non-transactional as one that reported table errors: whatever
+            // it had already dropped stays dropped.
+            summary = QStringLiteral("%1 The target database may be left INCOMPLETE — do not use it before a "
+                                     "successful re-run.")
+                          .arg(QString::fromUtf8(e.what()));
+        }
+        QMetaObject::invokeMethod(
+            self,
+            [self, ok, summary] {
+                self->_phase.store(Phase::Idle, std::memory_order_release);
+                emit self->phaseChanged();
+                if (!ok)
+                    emit self->logLine(summary, LogLevel::Error);
+                emit self->finished(ok, summary);
+            },
+            Qt::QueuedConnection);
+    });
     _pool.start(task.release());
 }
 

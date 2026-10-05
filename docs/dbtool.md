@@ -85,12 +85,6 @@ The first match wins:
 4. the per-user file: `~/.config/dbtool/dbtool.yml` (Linux/macOS, honouring `$XDG_CONFIG_HOME`)
    or `%APPDATA%\dbtool\dbtool.yml` (Windows).
 
-Files found by the upward searches (steps 2 and 3) are only used when they are owned by you or by
-the system (root; on Windows SYSTEM, Administrators or TrustedInstaller). A `dbtool.yml` that
-another user placed in a shared parent directory such as `/tmp` could otherwise redirect dbtool to
-their plugin libraries; such files are skipped with a warning — pass them with `--config` if you
-really mean to use them.
-
 `dbtool list-profiles` shows which file was used and why; `--verbose` prints it for every other
 command. `dbtool-gui` uses the same lookup unless a profile-store path is set in its Settings.
 
@@ -168,6 +162,8 @@ You never need to produce the `enc:` value by hand:
   connect is left alone. If the file is read-only, dbtool warns and carries on. If the file lives
   in a git repository, dbtool warns that the old plaintext may remain in its history — change the
   database password in that case.
+  dbtool-gui follows the same rule: it encrypts the value as soon as a connection with it succeeds,
+  whether that is its interactive connect or the start of a managed backup or restore.
 
 `password` and `secretRef` are mutually exclusive. `secretRef` (`env:`, `file:`, `stdin:`) remains
 the choice for secrets that must not be in the file at all. `list-profiles` shows each profile's

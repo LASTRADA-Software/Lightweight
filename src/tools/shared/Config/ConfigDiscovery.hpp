@@ -6,8 +6,6 @@
 //   1. an explicit path (`--config`, or the GUI's saved setting);
 //   2. dbtool.yml in the working directory or any of its ancestors;
 //   3. dbtool.yml in the executable's directory or any of its ancestors;
-//      (files found by these walks are used only if the current user or the
-//      system owns them — see `IsTrustedConfigFile`)
 //   4. the per-user default (`ProfileStore::DefaultPath()`).
 //
 // A project-local file therefore takes precedence over the user's own config.
@@ -17,10 +15,8 @@
 #include <cstdint>
 #include <expected>
 #include <filesystem>
-#include <functional>
 #include <string>
 #include <string_view>
-#include <vector>
 
 namespace Lightweight::Config
 {
@@ -56,9 +52,6 @@ struct DiscoveredConfig
 
     /// The rule that selected `path`.
     ConfigSource source = ConfigSource::None;
-
-    /// Candidates found by the upward walks but ignored because another user owns them.
-    std::vector<std::filesystem::path> skipped {};
 };
 
 /// Everything discovery depends on, injected so tests control the file system layout.
@@ -75,10 +68,6 @@ struct DiscoveryInputs
 
     /// Per-user fallback location.
     std::filesystem::path userDefault;
-
-    /// Decides whether a file found by an upward walk may be used. Empty means
-    /// `IsTrustedConfigFile`. Injected so tests can simulate another owner.
-    std::function<bool(std::filesystem::path const&)> isTrusted {};
 };
 
 /// Finds the configuration file according to the lookup order above.
@@ -91,14 +80,6 @@ struct DiscoveryInputs
 /// @param explicitPath Explicit path, or empty.
 /// @return Inputs ready for `FindConfigFile`.
 [[nodiscard]] DiscoveryInputs DefaultDiscoveryInputs(std::filesystem::path explicitPath = {});
-
-/// Whether a dbtool.yml found by an upward walk may be trusted: it must be owned by
-/// the current user or by the system (root; on Windows SYSTEM, Administrators or
-/// TrustedInstaller). A file planted by another user in a shared parent directory
-/// (e.g. /tmp) could otherwise point dbtool at attacker-controlled plugin libraries.
-/// @param path File to check.
-/// @return True when the owner is trusted; false when it is not or cannot be determined.
-[[nodiscard]] bool IsTrustedConfigFile(std::filesystem::path const& path);
 
 /// Directory containing the running executable.
 /// @return The directory, or an empty path if the OS cannot report it.

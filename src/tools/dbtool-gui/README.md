@@ -145,7 +145,8 @@ used, and the Settings page shows it as the placeholder path.
 Profile passwords follow the dbtool rules in
 [docs/dbtool.md](../../../docs/dbtool.md#profile-passwords): `enc:` values are
 decrypted, and a plaintext `password` is encrypted in place after the first
-successful connect. Managed backups decrypt but never rewrite the file.
+successful connect — whether that connect is the interactive one or the start
+of a managed backup or restore of that profile.
 
 ## Running
 

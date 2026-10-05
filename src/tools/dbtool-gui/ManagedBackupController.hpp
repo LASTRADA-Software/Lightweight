@@ -83,6 +83,18 @@ class ManagedBackupController: public QObject
                                                 std::string const& schema,
                                                 Lightweight::SqlBackup::ProgressManager& progress)>;
 
+    /// Called on the GUI thread with a profile whose plaintext password a backup or restore has just
+    /// connected with, so that the caller can store it encrypted. Same rule as the interactive connect:
+    /// a plaintext password is encrypted as soon as a connection with it succeeds.
+    /// @param profile The profile as the run used it.
+    using PlaintextPasswordVerifiedHandler = std::function<void(Lightweight::Config::Profile const& profile)>;
+
+    /// Opens a connection to tell whether a plaintext password works, before a backup or restore uses
+    /// it. Injected so tests need no database that checks passwords; production wiring connects for real.
+    /// @param connectionString Resolved ODBC connection string, carrying the password.
+    /// @return True when the connection succeeded.
+    using ConnectionProbe = std::function<bool(std::string const& connectionString)>;
+
     Q_PROPERTY(QString backupFolder READ backupFolder WRITE setBackupFolder NOTIFY backupFolderChanged)
     Q_PROPERTY(QString effectiveBackupFolder READ effectiveBackupFolder NOTIFY backupFolderChanged)
     Q_PROPERTY(QString defaultBackupFolder READ defaultBackupFolder CONSTANT)
@@ -150,6 +162,16 @@ class ManagedBackupController: public QObject
     /// @param operation New operation; an empty callable restores the default
     ///        (`Lightweight::SqlBackup::Restore`).
     void setRestoreOperation(RestoreOperation operation);
+
+    /// Injects the handler told about plaintext passwords that a run has connected with. Must not be
+    /// called while a run is in flight; the current value is copied into the worker task when a run starts.
+    /// @param handler New handler; an empty callable disables the notification (the default).
+    void setPlaintextPasswordVerifiedHandler(PlaintextPasswordVerifiedHandler handler);
+
+    /// Replaces the probe that checks a plaintext password before a run uses it. Same contract as
+    /// `setBackupOperation`.
+    /// @param probe New probe; an empty callable restores the default (a real connection).
+    void setConnectionProbe(ConnectionProbe probe);
 
     /// Re-scans <folder>/<profile>.zip for every profile and updates the
     /// model's archive columns plus folderProblem.
@@ -282,6 +304,8 @@ class ManagedBackupController: public QObject
 
     BackupOperation _backupOperation;
     RestoreOperation _restoreOperation;
+    PlaintextPasswordVerifiedHandler _onPlaintextPasswordVerified;
+    ConnectionProbe _connectionProbe;
     std::atomic<Phase> _phase { Phase::Idle };
     BackupStatusListModel _status;
     std::vector<Lightweight::Config::Profile> _profiles;

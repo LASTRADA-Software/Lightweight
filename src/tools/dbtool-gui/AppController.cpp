@@ -253,6 +253,14 @@ AppController::AppController(QObject* parent):
     _managedBackups.setBusyProbe([this] {
         return _runner.phase() != MigrationRunner::Phase::Idle || _backupRunner.phase() != BackupRunner::Phase::Idle;
     });
+    // A managed backup or restore that connected with a plaintext password has proven it, exactly like
+    // the interactive connect: store it encrypted right away. Only the password the run used is encrypted, so an
+    // edit made to the file while the run was in flight is never overwritten with the older value.
+    _managedBackups.setPlaintextPasswordVerifiedHandler([this](Lightweight::Config::Profile const& verified) {
+        auto const* current = _store.Find(verified.name);
+        if (current && current->password == verified.password)
+            EncryptPlaintextPassword(verified);
+    });
     _runner.setBusyProbe([this] {
         return _managedBackups.phase() != ManagedBackupController::Phase::Idle
                || _backupRunner.phase() != BackupRunner::Phase::Idle;
@@ -328,7 +336,6 @@ AppController::AppController(QObject* parent):
     // default). Both paths run through `loadProfiles` so the file watcher and
     // profile model are wired identically.
     auto const discoveredStore = DiscoverProfileStore();
-    ReportSkippedProfileStores(discoveredStore);
     auto const initialStorePath =
         !_profileStorePath.isEmpty() ? std::filesystem::path(_profileStorePath.toStdString()) : discoveredStore.path;
     if (std::filesystem::exists(initialStorePath))
@@ -508,13 +515,6 @@ void AppController::setPluginsDir(QString const& pluginsDir)
     // Users expect dropping a new plugins-dir path to populate the migration
     // list immediately — no explicit reconnect button press.
     ReloadPlugins();
-}
-
-void AppController::ReportSkippedProfileStores(Lightweight::Config::DiscoveredConfig const& discovered)
-{
-    for (auto const& skipped: discovered.skipped)
-        LogWarn(QStringLiteral("Ignoring %1: it is owned by another user. Choose it in Settings to use it anyway.")
-                    .arg(QString::fromStdString(skipped.string())));
 }
 
 void AppController::EncryptPlaintextPassword(Lightweight::Config::Profile const& profile)
