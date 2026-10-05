@@ -189,6 +189,8 @@ if(WIN32)
 else()
     set(SQLITE_DRIVER_NAME "SQLite3")
 endif()
+add_subdirectory(migration_exit)
+
 add_test(NAME DbToolIntegrationTest
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_dbtool.py
         --dbtool $<TARGET_FILE:dbtool>

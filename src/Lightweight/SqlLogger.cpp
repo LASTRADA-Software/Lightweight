@@ -323,36 +323,38 @@ void SqlLogger::SetLoggingSink(MessageWriter writer)
     _messageWriter = std::move(writer);
 }
 
+// The built-in loggers are deliberately never destroyed. SQL statements and connections report to the
+// current logger from their destructors, and some of them are owned by other statics -- the migration
+// manager's DataMapper, for one -- that are torn down during static destruction, in an order relative
+// to these loggers that no translation unit controls. A destroyed logger there aborts the process
+// with "pure virtual method called" after main() returned (#649). Leaking them is free: the storage
+// stays reachable until the process ends.
+
 SqlLogger::Null& SqlLogger::NullLogger() noexcept
 {
-    static SqlLogger::Null theNullLogger {};
+    static auto& theNullLogger = *new SqlLogger::Null {};
     return theNullLogger;
 }
 
-static std::unique_ptr<SqlStandardLogger> theStdLogger {};
-
 SqlLogger& SqlLogger::StandardLogger()
 {
-    if (!theStdLogger)
-        theStdLogger = std::make_unique<SqlStandardLogger>();
-
-    return *theStdLogger;
+    static auto& theStdLogger = *new SqlStandardLogger {};
+    return theStdLogger;
 }
 
-static std::unique_ptr<SqlTraceLogger> theTraceLogger {};
 SqlLogger& SqlLogger::TraceLogger()
 {
-    if (!theTraceLogger)
-        theTraceLogger = std::make_unique<SqlTraceLogger>(SupportBindLogging::Yes);
-
-    return *theTraceLogger;
+    static auto& theTraceLogger = *new SqlTraceLogger { SupportBindLogging::Yes };
+    return theTraceLogger;
 }
 
-static SqlLogger* theDefaultLogger = &SqlLogger::NullLogger();
+// Constant-initialized, so it is valid even while other translation units' statics are still being
+// initialized; nullptr selects the null logger.
+static constinit SqlLogger* theDefaultLogger = nullptr;
 
 SqlLogger& SqlLogger::GetLogger()
 {
-    return *theDefaultLogger;
+    return theDefaultLogger ? *theDefaultLogger : NullLogger();
 }
 
 void SqlLogger::SetLogger(SqlLogger& logger)

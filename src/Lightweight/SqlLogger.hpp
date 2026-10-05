@@ -141,7 +141,11 @@ class SqlLogger
 
     /// Sets the current logger.
     ///
-    /// The ownership of the logger is not transferred and remains with the caller.
+    /// The ownership of the logger is not transferred and remains with the caller. Statements and
+    /// connections report to the current logger when they are destroyed, which for those owned by
+    /// statics (such as the migration manager's) happens during static destruction. A logger installed
+    /// here must therefore outlive them, or be replaced (e.g. by @ref NullLogger) before it is destroyed.
+    /// The built-in loggers are never destroyed.
     LIGHTWEIGHT_API static void SetLogger(SqlLogger& logger);
 
   protected:
