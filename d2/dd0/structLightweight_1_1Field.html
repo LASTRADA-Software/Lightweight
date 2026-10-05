@@ -206,16 +206,16 @@ Static Public Attributes</h2></td></tr>
 <tr class="memitem:ae689909cb7494bcf9ce9809077d3e821" id="r_ae689909cb7494bcf9ce9809077d3e821"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html#ae689909cb7494bcf9ce9809077d3e821">ColumnNameOverride</a> = detail::Choose&lt;std::string_view&gt;({}, P1, P2)</td></tr>
 <tr class="memdesc:ae689909cb7494bcf9ce9809077d3e821"><td class="mdescLeft">&#160;</td><td class="mdescRight">If not empty, overrides the default column name in the database.  <br /></td></tr>
 <tr class="separator:ae689909cb7494bcf9ce9809077d3e821"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a484d0fab8fd8bae202972682e12a37fb" id="r_a484d0fab8fd8bae202972682e12a37fb"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html#a484d0fab8fd8bae202972682e12a37fb">TimestampKind</a> = detail::Choose&lt;FieldTimestamp&gt;(FieldTimestamp::None, P1, P2)</td></tr>
+<tr class="memitem:a484d0fab8fd8bae202972682e12a37fb" id="r_a484d0fab8fd8bae202972682e12a37fb"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html#a484d0fab8fd8bae202972682e12a37fb">TimestampKind</a> = detail::Choose&lt;<a class="el" href="../../d7/d2f/group__DataMapper.html#gaab9634bfde68b86ecc061bd89f591c46">FieldTimestamp</a>&gt;(<a class="el" href="../../d7/d2f/group__DataMapper.html#ggaab9634bfde68b86ecc061bd89f591c46a6adf97f83acf6453d4a6a4b1070f3754">FieldTimestamp::None</a>, P1, P2)</td></tr>
 <tr class="memdesc:a484d0fab8fd8bae202972682e12a37fb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Which timestamp, if any, the data mapper maintains in this field.  <br /></td></tr>
 <tr class="separator:a484d0fab8fd8bae202972682e12a37fb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a735127081efffd7c224516c806ab6e55" id="r_a735127081efffd7c224516c806ab6e55"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html#a735127081efffd7c224516c806ab6e55">IsCreatedAtTimestamp</a> = <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html#a484d0fab8fd8bae202972682e12a37fb">TimestampKind</a> == FieldTimestamp::CreatedAt</td></tr>
+<tr class="memitem:a735127081efffd7c224516c806ab6e55" id="r_a735127081efffd7c224516c806ab6e55"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html#a735127081efffd7c224516c806ab6e55">IsCreatedAtTimestamp</a> = <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html#a484d0fab8fd8bae202972682e12a37fb">TimestampKind</a> == <a class="el" href="../../d7/d2f/group__DataMapper.html#ggaab9634bfde68b86ecc061bd89f591c46a46d295c8a97befd247d2d634ac8cc4b3">FieldTimestamp::CreatedAt</a></td></tr>
 <tr class="memdesc:a735127081efffd7c224516c806ab6e55"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indicates if the data mapper sets this field to the creation time of the record.  <br /></td></tr>
 <tr class="separator:a735127081efffd7c224516c806ab6e55"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6ecde94f928dba36141802de12692c39" id="r_a6ecde94f928dba36141802de12692c39"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html#a6ecde94f928dba36141802de12692c39">IsUpdatedAtTimestamp</a> = <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html#a484d0fab8fd8bae202972682e12a37fb">TimestampKind</a> == FieldTimestamp::UpdatedAt</td></tr>
+<tr class="memitem:a6ecde94f928dba36141802de12692c39" id="r_a6ecde94f928dba36141802de12692c39"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html#a6ecde94f928dba36141802de12692c39">IsUpdatedAtTimestamp</a> = <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html#a484d0fab8fd8bae202972682e12a37fb">TimestampKind</a> == <a class="el" href="../../d7/d2f/group__DataMapper.html#ggaab9634bfde68b86ecc061bd89f591c46a0b2a8a8fed13280ecd74f7545bc2b962">FieldTimestamp::UpdatedAt</a></td></tr>
 <tr class="memdesc:a6ecde94f928dba36141802de12692c39"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indicates if the data mapper sets this field to the time the record was last written.  <br /></td></tr>
 <tr class="separator:a6ecde94f928dba36141802de12692c39"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5879489c1983bf05218af3db6fa360cc" id="r_a5879489c1983bf05218af3db6fa360cc"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html#a5879489c1983bf05218af3db6fa360cc">IsAutoTimestamp</a> = <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html#a484d0fab8fd8bae202972682e12a37fb">TimestampKind</a> != FieldTimestamp::None</td></tr>
+<tr class="memitem:a5879489c1983bf05218af3db6fa360cc" id="r_a5879489c1983bf05218af3db6fa360cc"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html#a5879489c1983bf05218af3db6fa360cc">IsAutoTimestamp</a> = <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html#a484d0fab8fd8bae202972682e12a37fb">TimestampKind</a> != <a class="el" href="../../d7/d2f/group__DataMapper.html#ggaab9634bfde68b86ecc061bd89f591c46a6adf97f83acf6453d4a6a4b1070f3754">FieldTimestamp::None</a></td></tr>
 <tr class="memdesc:a5879489c1983bf05218af3db6fa360cc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indicates if the data mapper maintains this field as a timestamp of either kind.  <br /></td></tr>
 <tr class="separator:a5879489c1983bf05218af3db6fa360cc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aca64dd154091663b93852e0589c95630" id="r_aca64dd154091663b93852e0589c95630"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html#aca64dd154091663b93852e0589c95630">IsOptional</a> = detail::IsStdOptional&lt;T&gt;</td></tr>
@@ -241,7 +241,7 @@ struct Lightweight::Field&lt; T, P1, P2 &gt;</div><p>Represents a single column 
 <p>The column name, index, nullability, and type are known at compile time.</p>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a> , </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00147">147</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00149">149</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 </div><h2 class="groupheader">Member Typedef Documentation</h2>
 <a id="a0fd8a939fbdd169391d529caf940ad40" name="a0fd8a939fbdd169391d529caf940ad40"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a0fd8a939fbdd169391d529caf940ad40">&#9670;&#160;</a></span>ValueType</h2>
@@ -259,7 +259,7 @@ template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::n
 
 <p>The underlying value type of this field. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00150">150</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00152">152</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -295,7 +295,7 @@ requires std::constructible_from&lt;T, S...&gt;</div>
 
 <p>Constructs a new field with the given value. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00328">328</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00330">330</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -327,7 +327,7 @@ template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::n
 </div><div class="memdoc">
 <p>Three-way comparison operator. The strength of the ordering comes from the underlying type <code>T</code> — e.g. <code><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a>&lt;int&gt;</code> is <code>std::strong_ordering</code>, <code><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a>&lt;double&gt;</code> is <code>std::partial_ordering</code> (because of NaN), <code><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a>&lt;std::string&gt;</code> is <code>std::strong_ordering</code>. Defined inline so the deduced return type is available at every call site, and so <code><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a>&lt;T&gt;</code> instantiation does not require <code>T</code> to have <code>operator&lt;=&gt;</code>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00216">216</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00218">218</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -359,7 +359,7 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 
 <p>Compares the field value with the given value for equality. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00345">345</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00347">347</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -391,7 +391,7 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 
 <p>Compares the field value with the given value for inequality. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00351">351</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00353">353</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -422,7 +422,7 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 
 <p>Returns a string representation of the value, suitable for use in debugging and logging. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00375">375</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00377">377</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -454,7 +454,7 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 
 <p>Sets the modified state of the field. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00411">411</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00413">413</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -485,7 +485,7 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 
 <p>Checks if the field has been modified. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00417">417</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00419">419</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -516,7 +516,7 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 
 <p>Returns the value of the field. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00423">423</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00425">425</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -548,7 +548,7 @@ template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::n
 
 <p>When the field type is optional, returns the value or the given default value. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00251">251</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00253">253</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -579,7 +579,7 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 <p>Returns a mutable reference to the value of the field.</p>
 <dl class="section note"><dt>Note</dt><dd>If the field value is changed through this method, it will not be automatically marked as modified. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00429">429</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00431">431</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -614,7 +614,7 @@ requires std::constructible_from&lt;T, S&gt; &amp;&amp; (!std::same_as&lt;std::r
 
 <p>Assigns a new value to the field.   </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00337">337</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00339">339</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -649,7 +649,7 @@ requires std::convertible_to&lt;S, T&gt;</div>
 
 <p>Equality comparison operator with a convertible value. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00360">360</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00362">362</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -684,7 +684,7 @@ requires std::convertible_to&lt;S, T&gt;</div>
 
 <p>Inequality comparison operator with a convertible value. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00369">369</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00371">371</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -713,7 +713,7 @@ template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::n
 
 <p>The primary key mode for this field. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00153">153</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00155">155</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -741,7 +741,7 @@ template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::n
 
 <p>If not empty, overrides the default column name in the database. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00155">155</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00157">157</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -757,7 +757,7 @@ template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::n
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr auto <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a>&lt; T, P1, P2 &gt;::TimestampKind = detail::Choose&lt;FieldTimestamp&gt;(FieldTimestamp::None, P1, P2)</td>
+          <td class="memname">constexpr auto <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a>&lt; T, P1, P2 &gt;::TimestampKind = detail::Choose&lt;<a class="el" href="../../d7/d2f/group__DataMapper.html#gaab9634bfde68b86ecc061bd89f591c46">FieldTimestamp</a>&gt;(<a class="el" href="../../d7/d2f/group__DataMapper.html#ggaab9634bfde68b86ecc061bd89f591c46a6adf97f83acf6453d4a6a4b1070f3754">FieldTimestamp::None</a>, P1, P2)</td>
         </tr>
       </table>
   </td>
@@ -769,7 +769,7 @@ template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::n
 
 <p>Which timestamp, if any, the data mapper maintains in this field. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00157">157</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00159">159</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -785,7 +785,7 @@ template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::n
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr auto <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a>&lt; T, P1, P2 &gt;::IsCreatedAtTimestamp = <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html#a484d0fab8fd8bae202972682e12a37fb">TimestampKind</a> == FieldTimestamp::CreatedAt</td>
+          <td class="memname">constexpr auto <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a>&lt; T, P1, P2 &gt;::IsCreatedAtTimestamp = <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html#a484d0fab8fd8bae202972682e12a37fb">TimestampKind</a> == <a class="el" href="../../d7/d2f/group__DataMapper.html#ggaab9634bfde68b86ecc061bd89f591c46a46d295c8a97befd247d2d634ac8cc4b3">FieldTimestamp::CreatedAt</a></td>
         </tr>
       </table>
   </td>
@@ -797,7 +797,7 @@ template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::n
 
 <p>Indicates if the data mapper sets this field to the creation time of the record. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00160">160</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00162">162</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -813,7 +813,7 @@ template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::n
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr auto <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a>&lt; T, P1, P2 &gt;::IsUpdatedAtTimestamp = <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html#a484d0fab8fd8bae202972682e12a37fb">TimestampKind</a> == FieldTimestamp::UpdatedAt</td>
+          <td class="memname">constexpr auto <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a>&lt; T, P1, P2 &gt;::IsUpdatedAtTimestamp = <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html#a484d0fab8fd8bae202972682e12a37fb">TimestampKind</a> == <a class="el" href="../../d7/d2f/group__DataMapper.html#ggaab9634bfde68b86ecc061bd89f591c46a0b2a8a8fed13280ecd74f7545bc2b962">FieldTimestamp::UpdatedAt</a></td>
         </tr>
       </table>
   </td>
@@ -825,7 +825,7 @@ template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::n
 
 <p>Indicates if the data mapper sets this field to the time the record was last written. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00163">163</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00165">165</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -841,7 +841,7 @@ template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::n
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr auto <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a>&lt; T, P1, P2 &gt;::IsAutoTimestamp = <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html#a484d0fab8fd8bae202972682e12a37fb">TimestampKind</a> != FieldTimestamp::None</td>
+          <td class="memname">constexpr auto <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a>&lt; T, P1, P2 &gt;::IsAutoTimestamp = <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html#a484d0fab8fd8bae202972682e12a37fb">TimestampKind</a> != <a class="el" href="../../d7/d2f/group__DataMapper.html#ggaab9634bfde68b86ecc061bd89f591c46a6adf97f83acf6453d4a6a4b1070f3754">FieldTimestamp::None</a></td>
         </tr>
       </table>
   </td>
@@ -853,7 +853,7 @@ template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::n
 
 <p>Indicates if the data mapper maintains this field as a timestamp of either kind. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00166">166</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00168">168</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -881,7 +881,7 @@ template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::n
 
 <p>Indicates if the field is optional, i.e., it can be NULL. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00197">197</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00199">199</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -909,7 +909,7 @@ template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::n
 
 <p>Indicates if the field is mandatory, i.e., it cannot be NULL. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00200">200</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00202">202</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -937,7 +937,7 @@ template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::n
 
 <p>Indicates if the field is a primary key. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00203">203</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00205">205</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -965,7 +965,7 @@ template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::n
 
 <p>Indicates if this is a primary key, it also is auto-assigned by the client. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00206">206</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00208">208</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -993,7 +993,7 @@ template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::n
 
 <p>Indicates if this is a primary key, it also is auto-incremented by the database. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00209">209</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00211">211</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>

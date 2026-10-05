@@ -1,5 +1,9 @@
 var NAVTREEINDEX4 =
 {
+"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#custom-default-schema":[10,6,0],
+"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#data-manipulation":[10,3],
+"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#delete-1":[10,3,2],
+"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#droptable":[10,2,2],
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#insert-1":[10,3,0],
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#introduction-1":[10,0],
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#mark-as-applied":[10,6,6],
@@ -245,9 +249,5 @@ var NAVTREEINDEX4 =
 "d9/d8a/group__CoreApi.html#gga99e5e92107ae68dfd09cca5fc6ef1106aa8156810bfee2bd2b44765b9e91db3bd":[19,6,20,0],
 "d9/da6/SqlTransaction_8hpp_source.html":[22,0,1,37],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html":[21,0,0,38],
-"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a151e499b5da3afcaea3326bfb35d3c36":[21,0,0,38,11],
-"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a209f52c2128670486fa0df251261bf80":[21,0,0,38,5],
-"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a7d7b102126f4b2455df46e31906cb189":[21,0,0,38,7],
-"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a842aa25ccb3ab6f600c3775f68e64871":[21,0,0,38,1],
-"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#aa4a1025e0d27d3e8f0c97081e2419875":[21,0,0,38,10]
+"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a151e499b5da3afcaea3326bfb35d3c36":[21,0,0,38,11]
 };

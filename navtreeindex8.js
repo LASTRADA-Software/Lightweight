@@ -1,5 +1,9 @@
 var NAVTREEINDEX8 =
 {
+"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inspect":[6,4],
+"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#outputcolumn":[6,2],
+"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#sqldynamicnumeric-exact-decimals-in-a-sqlvariant":[6,7],
+"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#sqlnumericprecision-scale-precision-limits":[6,5],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#what-each-accessor-delivers":[6,5,0],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#when-a-column-does-not-fit":[6,7,0],
 "de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html":[19,4,2],
@@ -245,9 +249,5 @@ var NAVTREEINDEX8 =
 "functions_vars.html":[21,2,2],
 "functions_vars_a.html":[21,2,2,1],
 "functions_vars_b.html":[21,2,2,2],
-"functions_vars_c.html":[21,2,2,3],
-"functions_vars_d.html":[21,2,2,4],
-"functions_vars_e.html":[21,2,2,5],
-"functions_vars_f.html":[21,2,2,6],
-"functions_vars_g.html":[21,2,2,7]
+"functions_vars_c.html":[21,2,2,3]
 };

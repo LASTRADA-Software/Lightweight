@@ -1,5 +1,9 @@
 var NAVTREEINDEX7 =
 {
+"dd/de6/classLightweight_1_1SqlStatistics.html#a66f3b95e0db5046adc1859eeb2d8a116":[19,6,15,0],
+"dd/de6/classLightweight_1_1SqlStatistics.html#a78564a9f5b57faf634d2fb1499a26a8e":[19,6,15,4],
+"dd/de6/classLightweight_1_1SqlStatistics.html#a81ccd6a7cccbb3ebd73206f17a854edf":[19,6,15,8],
+"dd/de6/classLightweight_1_1SqlStatistics.html#ab2ef9fa0cef77a2c2d0681e74ec991a0":[19,6,15,10],
 "dd/de6/classLightweight_1_1SqlStatistics.html#ab8546c7d0a149b9637d3b9d5b35cd7fe":[19,6,15,7],
 "dd/de6/classLightweight_1_1SqlStatistics.html#abc6374fecaaf3d3ab27a913186ea8704":[19,6,15,5],
 "dd/de6/classLightweight_1_1SqlStatistics.html#ac427f053e220d3e3eadbd6bceb5a8c48":[19,6,15,9],
@@ -245,9 +249,5 @@ var NAVTREEINDEX7 =
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#getcolumn":[6,3],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-many-of-those-digits-survive-a-round-trip":[6,5,1],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-sqlvariant-decides-which-alternative-to-fill":[6,6],
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inputparameter":[6,1],
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inspect":[6,4],
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#outputcolumn":[6,2],
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#sqldynamicnumeric-exact-decimals-in-a-sqlvariant":[6,7],
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#sqlnumericprecision-scale-precision-limits":[6,5]
+"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inputparameter":[6,1]
 };

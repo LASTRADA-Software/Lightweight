@@ -112,7 +112,7 @@ Public Types</h2></td></tr>
 <tr class="memdesc:ac8cfda8ec587a1c2007646116c426441"><td class="mdescLeft">&#160;</td><td class="mdescRight">Enum to set the modified state of a record.  <a href="../../de/d61/classLightweight_1_1DataMapper.html#ac8cfda8ec587a1c2007646116c426441">More...</a><br /></td></tr>
 <tr class="separator:ac8cfda8ec587a1c2007646116c426441"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a853d3d491f444041f1d0ed7d9d8526ae" id="r_a853d3d491f444041f1d0ed7d9d8526ae"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html#a853d3d491f444041f1d0ed7d9d8526ae">TimestampClock</a> = std::function&lt; <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html">SqlDateTime</a>()&gt;</td></tr>
-<tr class="memdesc:a853d3d491f444041f1d0ed7d9d8526ae"><td class="mdescLeft">&#160;</td><td class="mdescRight">A source of the current time, used to fill fields marked with a FieldTimestamp.  <br /></td></tr>
+<tr class="memdesc:a853d3d491f444041f1d0ed7d9d8526ae"><td class="mdescLeft">&#160;</td><td class="mdescRight">A source of the current time, used to fill fields marked with a <a class="el" href="../../d7/d2f/group__DataMapper.html#gaab9634bfde68b86ecc061bd89f591c46">FieldTimestamp</a>.  <br /></td></tr>
 <tr class="separator:a853d3d491f444041f1d0ed7d9d8526ae"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
@@ -145,7 +145,7 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:a91d6ba541ec66c8c25d9f277b3655efa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the mutable connection reference used by this data mapper.  <br /></td></tr>
 <tr class="separator:a91d6ba541ec66c8c25d9f277b3655efa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8aa7d61c145cc3d703f4029099c00c79" id="r_a8aa7d61c145cc3d703f4029099c00c79"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html#a8aa7d61c145cc3d703f4029099c00c79">SetTimestampClock</a> (<a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html#a853d3d491f444041f1d0ed7d9d8526ae">TimestampClock</a> clock) noexcept</td></tr>
-<tr class="memdesc:a8aa7d61c145cc3d703f4029099c00c79"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets the clock that fills the auto-maintained timestamp fields (see FieldTimestamp).  <br /></td></tr>
+<tr class="memdesc:a8aa7d61c145cc3d703f4029099c00c79"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets the clock that fills the auto-maintained timestamp fields (see <a class="el" href="../../d7/d2f/group__DataMapper.html#gaab9634bfde68b86ecc061bd89f591c46">FieldTimestamp</a>).  <br /></td></tr>
 <tr class="separator:a8aa7d61c145cc3d703f4029099c00c79"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aaae2a30a670cfe13b5ba0f2c3e58c476" id="r_aaae2a30a670cfe13b5ba0f2c3e58c476"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html">SqlDateTime</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html#aaae2a30a670cfe13b5ba0f2c3e58c476">CurrentTimestamp</a> () const</td></tr>
 <tr class="memdesc:aaae2a30a670cfe13b5ba0f2c3e58c476"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reads the clock that fills the auto-maintained timestamp fields.  <br /></td></tr>
@@ -310,7 +310,7 @@ Static Public Member Functions</h2></td></tr>
 <div class="line">dm.Delete(person);</div>
 <div class="ttc" id="aclassLightweight_1_1DataMapper_html"><div class="ttname"><a href="../../de/d61/classLightweight_1_1DataMapper.html">Lightweight::DataMapper</a></div><div class="ttdoc">Main API for mapping records to and from the database using high level C++ syntax.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d4f/DataMapper_8hpp_source.html#l00107">DataMapper.hpp:108</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1DataMapper_html_aa02b5ba40120afc04bbb238bc06d8b8d"><div class="ttname"><a href="../../de/d61/classLightweight_1_1DataMapper.html#aa02b5ba40120afc04bbb238bc06d8b8d">Lightweight::DataMapper::Inspect</a></div><div class="ttdeci">static std::string Inspect(Record const &amp;record)</div><div class="ttdoc">Constructs a human readable string representation of the given record.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d4f/DataMapper_8hpp_source.html#l01974">DataMapper.hpp:1974</a></div></div>
-<div class="ttc" id="astructLightweight_1_1Field_html"><div class="ttname"><a href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a></div><div class="ttdoc">Represents a single column in a table.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00147">Field.hpp:148</a></div></div>
+<div class="ttc" id="astructLightweight_1_1Field_html"><div class="ttname"><a href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a></div><div class="ttdoc">Represents a single column in a table.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00149">Field.hpp:150</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlGuid_html_aa6932e1f8842dd7878eaaa4e8c4496b3"><div class="ttname"><a href="../../df/d7c/structLightweight_1_1SqlGuid.html#aa6932e1f8842dd7878eaaa4e8c4496b3">Lightweight::SqlGuid::Create</a></div><div class="ttdeci">static SqlGuid Create() noexcept</div><div class="ttdoc">Creates a new non-empty GUID.</div></div>
 </div><!-- fragment --> 
 <p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00107">107</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
@@ -327,7 +327,7 @@ Static Public Member Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>A source of the current time, used to fill fields marked with a FieldTimestamp. </p>
+<p>A source of the current time, used to fill fields marked with a <a class="el" href="../../d7/d2f/group__DataMapper.html#gaab9634bfde68b86ecc061bd89f591c46">FieldTimestamp</a>. </p>
 
 <p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00174">174</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
@@ -593,7 +593,7 @@ Static Public Member Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Sets the clock that fills the auto-maintained timestamp fields (see FieldTimestamp). </p>
+<p>Sets the clock that fills the auto-maintained timestamp fields (see <a class="el" href="../../d7/d2f/group__DataMapper.html#gaab9634bfde68b86ecc061bd89f591c46">FieldTimestamp</a>). </p>
 <p>The clock is the client's: the time is taken here, not by the database server. It is read once per write operation, so every timestamp written by one <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html#ada167653166b773b0421fe2ad31a2c57" title="Creates a new record in the database.">Create()</a>, <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html#ac05404e9ac572f44c6a312db5a75e814">Update()</a>, <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html#a605a385e4e02f73e89fe1f1bfd0b549b" title="Batch-inserts a span of records with a single prepared statement.">CreateAll()</a>, ... carries the same value. Asynchronous methods read it on the worker thread that runs the operation.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -788,7 +788,7 @@ template&lt;<a class="el" href="../../d3/db2/structLightweight_1_1DataMapperOpti
 
 <p>Creates a new record in the database. </p>
 <p>The record is inserted into the database and the primary key is set on this record.</p>
-<p>Every auto-maintained timestamp field (see FieldTimestamp) that holds no value is set to the current time of the timestamp clock (see <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html#a8aa7d61c145cc3d703f4029099c00c79" title="Sets the clock that fills the auto-maintained timestamp fields (see FieldTimestamp).">SetTimestampClock()</a>) on this record and inserted with it; a timestamp the caller set is inserted as given.</p>
+<p>Every auto-maintained timestamp field (see <a class="el" href="../../d7/d2f/group__DataMapper.html#gaab9634bfde68b86ecc061bd89f591c46">FieldTimestamp</a>) that holds no value is set to the current time of the timestamp clock (see <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html#a8aa7d61c145cc3d703f4029099c00c79" title="Sets the clock that fills the auto-maintained timestamp fields (see FieldTimestamp).">SetTimestampClock()</a>) on this record and inserted with it; a timestamp the caller set is inserted as given.</p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
     <tr><td class="paramname">QueryOptions</td><td>A specialization of <a class="el" href="../../d3/db2/structLightweight_1_1DataMapperOptions.html">DataMapperOptions</a> that controls query behavior. </td></tr>
@@ -830,7 +830,7 @@ template&lt;typename Record &gt; </div>
 
 <p>Creates a new record in the database. </p>
 <dl class="section note"><dt>Note</dt><dd>This is a variation of the <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html#ada167653166b773b0421fe2ad31a2c57" title="Creates a new record in the database.">Create()</a> method and does not update the record's primary key.</dd></dl>
-<p>Auto-maintained timestamp fields (see FieldTimestamp) that hold no value are inserted with the current time of the timestamp clock, as <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html#ada167653166b773b0421fe2ad31a2c57" title="Creates a new record in the database.">Create()</a> does, but the record itself is left untouched.</p>
+<p>Auto-maintained timestamp fields (see <a class="el" href="../../d7/d2f/group__DataMapper.html#gaab9634bfde68b86ecc061bd89f591c46">FieldTimestamp</a>) that hold no value are inserted with the current time of the timestamp clock, as <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html#ada167653166b773b0421fe2ad31a2c57" title="Creates a new record in the database.">Create()</a> does, but the record itself is left untouched.</p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
     <tr><td class="paramname">Record</td><td>The record type to insert. </td></tr>
@@ -870,7 +870,7 @@ template&lt;std::ranges::range Records&gt; </div>
 <p>Batch-inserts a span of records with a single prepared statement. </p>
 <p>The INSERT is prepared once and the whole batch is submitted via SqlStatement::ExecuteBatch(rows, accessors...), which uses native zero-copy row-wise array binding when every inserted column is row-bindable (primitives, date/time/datetime, numeric, or std::optional of a fixed non-numeric type) and the driver supports parameter arrays, otherwise a prepare-once + per-row execute. This is dramatically faster than calling <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html#aa17c743b55af25f5de7ccdc7a5264661" title="Creates a new record in the database.">CreateExplicit()</a> in a loop (which re-prepares per row).</p>
 <dl class="section note"><dt>Note</dt><dd>Like <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html#aa17c743b55af25f5de7ccdc7a5264661" title="Creates a new record in the database.">CreateExplicit()</a>, this does not write back primary keys, relations, or modified-state onto the records; callers should treat the inserted records as write-only inputs. Auto-increment primary keys are not retrieved.</dd></dl>
-<p>Auto-maintained timestamp fields (see FieldTimestamp) that hold no value are inserted with the current time of the timestamp clock, read once for the whole batch. For such a record type the batch is copied to carry the timestamps, so the record type must then be copy-constructible.</p>
+<p>Auto-maintained timestamp fields (see <a class="el" href="../../d7/d2f/group__DataMapper.html#gaab9634bfde68b86ecc061bd89f591c46">FieldTimestamp</a>) that hold no value are inserted with the current time of the timestamp clock, read once for the whole batch. For such a record type the batch is copied to carry the timestamps, so the record type must then be copy-constructible.</p>
 <p>Accepts any contiguous, sized range of records (e.g. std::vector, std::array, std::span, or a C array), so <code>dm.CreateAll(records)</code> works without an explicit std::span wrapper. Non-contiguous ranges are rejected at compile time via static_assert (no implicit copy is made).</p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
@@ -908,7 +908,7 @@ template&lt;<a class="el" href="../../d3/db2/structLightweight_1_1DataMapperOpti
 </div><div class="memdoc">
 
 <p>Creates a copy of an existing record in the database. </p>
-<p>This method is useful for duplicating a database record while assigning a new primary key. All fields except primary key(s) are copied from the original record. The primary key is automatically generated (auto-incremented or auto-assigned). Auto-maintained timestamp fields (see FieldTimestamp) are not copied either: the copy is a new row, so they are inserted with the current time of the timestamp clock.</p>
+<p>This method is useful for duplicating a database record while assigning a new primary key. All fields except primary key(s) are copied from the original record. The primary key is automatically generated (auto-incremented or auto-assigned). Auto-maintained timestamp fields (see <a class="el" href="../../d7/d2f/group__DataMapper.html#gaab9634bfde68b86ecc061bd89f591c46">FieldTimestamp</a>) are not copied either: the copy is a new row, so they are inserted with the current time of the timestamp clock.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">originalRecord</td><td>The record to copy. </td></tr>
@@ -1360,7 +1360,7 @@ requires <a class="el" href="../../d7/d2f/group__DataMapper.html#gae0874e29a7374
 </div><div class="memdoc">
 <p>Updates the record in the database.</p>
 <p>Only fields that have been modified since the record was last loaded or saved are written. Fields that were not changed are excluded from the UPDATE statement. If no field is modified, the call is a no-op and no statement is executed.</p>
-<p>When at least one field other than an UpdatedAt timestamp (see FieldTimestamp) is written, every UpdatedAt field is set to the current time of the timestamp clock on this record and written with it, unless the caller assigned it a value in this change. CreatedAt fields are never touched.</p>
+<p>When at least one field other than an UpdatedAt timestamp (see <a class="el" href="../../d7/d2f/group__DataMapper.html#gaab9634bfde68b86ecc061bd89f591c46">FieldTimestamp</a>) is written, every UpdatedAt field is set to the current time of the timestamp clock on this record and written with it, unless the caller assigned it a value in this change. CreatedAt fields are never touched.</p>
 <p>The record type must have a primary key: the WHERE clause is built exclusively from the primary-key fields, so a record without one would produce an UPDATE with no WHERE clause and rewrite every row of the table. Use the query builder's <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html#ac05404e9ac572f44c6a312db5a75e814">Update()</a> with an explicit WHERE clause when you need to update a table that has no primary key. <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html#a489a4e560de6cc475eec66252d6412bd" title="Batch-updates a span of records with a single prepared statement.">UpdateAll()</a> carries the same requirement.</p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
@@ -1402,7 +1402,7 @@ template&lt;std::ranges::range Records&gt; </div>
 <p>Batch-updates a span of records with a single prepared statement. </p>
 <p>One UPDATE is prepared that writes <b>all</b> storable non-primary-key columns of the record, matched on the primary key(s) (<code>UPDATE … SET &lt;all non-PK columns&gt; WHERE &lt;pk&gt; = ?</code>), and the whole batch is submitted via SqlStatement::ExecuteBatch(rows, accessors...) — natively row-wise when possible, otherwise prepare-once + per-row execute.</p>
 <dl class="section note"><dt>Note</dt><dd>Unlike <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html#ac05404e9ac572f44c6a312db5a75e814">Update()</a>, which writes only the modified fields of a single record, this writes a uniform set of columns for every row, because a single prepared statement must bind the same columns for the whole batch. Per-row modified-state is therefore not consulted, and is not reset.</dd></dl>
-<p>Every UpdatedAt timestamp field (see FieldTimestamp) is written with the current time of the timestamp clock, read once for the whole batch; the records themselves are left untouched. For such a record type the batch is copied to carry the timestamps, so the record type must then be copy-constructible.</p>
+<p>Every UpdatedAt timestamp field (see <a class="el" href="../../d7/d2f/group__DataMapper.html#gaab9634bfde68b86ecc061bd89f591c46">FieldTimestamp</a>) is written with the current time of the timestamp clock, read once for the whole batch; the records themselves are left untouched. For such a record type the batch is copied to carry the timestamps, so the record type must then be copy-constructible.</p>
 <p>Accepts any contiguous, sized range of records (see CreateAll), so <code>dm.UpdateAll(records)</code> works without an explicit std::span wrapper. Non-contiguous ranges are rejected at compile time.</p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">

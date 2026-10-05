@@ -265,6 +265,11 @@ var group__DataMapper =
       [ "Lightweight::RelationError::Outdated", "d7/d2f/group__DataMapper.html#ggaccfed183e72fab87179bacefc80b23e1a6f64ae857ab55cba2c3941fbc59285d5", null ],
       [ "Lightweight::RelationError::QueryFailed", "d7/d2f/group__DataMapper.html#ggaccfed183e72fab87179bacefc80b23e1ad14f393e86cbe5976f0457ae2a0fcc49", null ]
     ] ],
+    [ "Lightweight::FieldTimestamp", "d7/d2f/group__DataMapper.html#gaab9634bfde68b86ecc061bd89f591c46", [
+      [ "Lightweight::FieldTimestamp::None", "d7/d2f/group__DataMapper.html#ggaab9634bfde68b86ecc061bd89f591c46a6adf97f83acf6453d4a6a4b1070f3754", null ],
+      [ "Lightweight::FieldTimestamp::CreatedAt", "d7/d2f/group__DataMapper.html#ggaab9634bfde68b86ecc061bd89f591c46a46d295c8a97befd247d2d634ac8cc4b3", null ],
+      [ "Lightweight::FieldTimestamp::UpdatedAt", "d7/d2f/group__DataMapper.html#ggaab9634bfde68b86ecc061bd89f591c46a0b2a8a8fed13280ecd74f7545bc2b962", null ]
+    ] ],
     [ "Lightweight::GetPrimaryKeyFields", "d7/d2f/group__DataMapper.html#ga26e1044be43f92bbb88188317ffba9b5", null ],
     [ "Lightweight::GetPrimaryKeyField", "d7/d2f/group__DataMapper.html#ga0690ab017d7ae25c81a0889a6385ba33", null ],
     [ "Lightweight::GetRecordMemberAt", "d7/d2f/group__DataMapper.html#ga3803a99a6793b7b2dcd55824b002fc69", null ],
