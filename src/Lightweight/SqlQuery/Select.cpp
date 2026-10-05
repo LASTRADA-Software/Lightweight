@@ -201,6 +201,12 @@ SqlSelectQueryBuilder& SqlSelectQueryBuilder::Fields(std::span<SqlQualifiedTable
     return *this;
 }
 
+SqlSelectQueryBuilder& SqlSelectQueryBuilder::ReadUncommitted() noexcept
+{
+    _query.searchCondition.tableHint = _formatter.ReadUncommittedTableHint();
+    return *this;
+}
+
 SqlSelectQueryBuilder::ComposedQuery SqlSelectQueryBuilder::Count()
 {
     // The Count finalizer discards the projection in favour of COUNT(*), so any recorded names

@@ -134,6 +134,11 @@ interface. Here we present a compressed list of functions that can be used to cr
       ```
   -  `Inner`|`LeftOuter`|`RightOuter`|`FullOuter` + `Join`
     - See documentation for `SqlJoinConditionBuilder` for details 
+- (optional) Dirty read
+  - `ReadUncommitted()`
+    - Reads every table the statement names uncommitted, without touching the connection's isolation level, so it also works inside an open transaction. On SQL Server the hint `WITH (READUNCOMMITTED)` is rendered after the FROM table and after each joined table (each after its alias); SQLite and PostgreSQL have no per-table hint and render the statement unchanged.
+    - **Call it before any join**: a join renders its table reference as it is attached, so a join added earlier is read without the hint. A sub-select is its own builder and opts in separately.
+    - Example: `q.FromTable("Names").Select().ReadUncommitted().Field("NAME_NR").OrderBy("NAME_NR", SqlResultOrdering::DESCENDING).First()` renders on SQL Server as `SELECT TOP 1 "NAME_NR" FROM "Names" WITH (READUNCOMMITTED) ORDER BY "NAME_NR" DESC`.
 - End (finalizers — only reachable after at least one projection has been added)
   - `Count()`
     - Emits `SELECT COUNT(*) FROM ...`. Exposed on the starter directly — `SELECT COUNT(*)` is well-formed without an explicit column list.
@@ -173,8 +178,8 @@ interface. Here we present a compressed list of functions that can be used to cr
 > the wildcard. `Fields("*")` and `Fields({"*"})` quote the literal and produce
 > `SELECT "*" FROM ...`, which is not what you want.
 >
-> `Distinct()` is exposed on the starter as a state-preserving override (it
-> returns `SqlSelectQueryStarter&`), so chains like
+> `Distinct()` and `ReadUncommitted()` are exposed on the starter as state-preserving overrides (they
+> return `SqlSelectQueryStarter&`), so chains like
 > `Select().Distinct().Fields(...).All()` keep working while
 > `Select().Distinct().All()` is still a compile error. `Where`, `OrderBy`,
 > `GroupBy`, and the join family (`InnerJoin`, `LeftOuterJoin`, etc.) are

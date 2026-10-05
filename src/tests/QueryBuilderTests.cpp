@@ -1199,6 +1199,209 @@ TEST_CASE_METHOD(SqlTestFixture, "Join with table aliasing", "[SqlQueryBuilder]"
     }
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.ReadUncommitted", "[SqlQueryBuilder]")
+{
+    SECTION("FROM only")
+    {
+        CheckSqlQueryBuilder(
+            [](SqlQueryBuilder& q) {
+                return q.FromTable("That").Select().ReadUncommitted().Field("NAME_NR").OrderBy("NAME_NR").All();
+            },
+            QueryExpectations {
+                .sqlite = R"(SELECT "NAME_NR" FROM "That"
+                             ORDER BY "NAME_NR" ASC)",
+                .postgres = R"(SELECT "NAME_NR" FROM "That"
+                               ORDER BY "NAME_NR" ASC)",
+                .sqlServer = R"(SELECT "NAME_NR" FROM "That" WITH (READUNCOMMITTED)
+                                ORDER BY "NAME_NR" ASC)",
+            });
+    }
+
+    SECTION("aliased FROM table")
+    {
+        CheckSqlQueryBuilder(
+            [](SqlQueryBuilder& q) { return q.FromTableAs("That", "T").Select().ReadUncommitted().Field("a").All(); },
+            QueryExpectations {
+                .sqlite = R"(SELECT "a" FROM "That" AS "T")",
+                .postgres = R"(SELECT "a" FROM "That" AS "T")",
+                .sqlServer = R"(SELECT "a" FROM "That" AS "T" WITH (READUNCOMMITTED))",
+            });
+    }
+
+    SECTION("inner join")
+    {
+        CheckSqlQueryBuilder(
+            [](SqlQueryBuilder& q) {
+                return q.FromTable("That")
+                    .Select()
+                    .ReadUncommitted()
+                    .Fields("foo", "bar")
+                    .InnerJoin("Other", "id", "that_id")
+                    .Where("foo", 42)
+                    .All();
+            },
+            QueryExpectations {
+                .sqlite = R"(SELECT "foo", "bar" FROM "That"
+                             INNER JOIN "Other" ON "Other"."id" = "That"."that_id"
+                             WHERE "foo" = 42)",
+                .postgres = R"(SELECT "foo", "bar" FROM "That"
+                               INNER JOIN "Other" ON "Other"."id" = "That"."that_id"
+                               WHERE "foo" = 42)",
+                .sqlServer = R"(SELECT "foo", "bar" FROM "That" WITH (READUNCOMMITTED)
+                                INNER JOIN "Other" WITH (READUNCOMMITTED) ON "Other"."id" = "That"."that_id"
+                                WHERE "foo" = 42)",
+            });
+    }
+
+    SECTION("left outer join with an ON clause builder")
+    {
+        CheckSqlQueryBuilder(
+            [](SqlQueryBuilder& q) {
+                return q.FromTable("That")
+                    .Select()
+                    .ReadUncommitted()
+                    .Fields("foo", "bar")
+                    .LeftOuterJoin("Other",
+                                   [](SqlJoinConditionBuilder join) {
+                                       return join.On("id", { .tableName = "That", .columnName = "that_id" });
+                                   })
+                    .All();
+            },
+            QueryExpectations {
+                .sqlite = R"(SELECT "foo", "bar" FROM "That"
+                             LEFT OUTER JOIN "Other" ON "Other"."id" = "That"."that_id")",
+                .postgres = R"(SELECT "foo", "bar" FROM "That"
+                               LEFT OUTER JOIN "Other" ON "Other"."id" = "That"."that_id")",
+                .sqlServer = R"(SELECT "foo", "bar" FROM "That" WITH (READUNCOMMITTED)
+                                LEFT OUTER JOIN "Other" WITH (READUNCOMMITTED) ON "Other"."id" = "That"."that_id")",
+            });
+    }
+
+    SECTION("aliased join")
+    {
+        CheckSqlQueryBuilder(
+            [](SqlQueryBuilder& q) {
+                return q.FromTableAs("That", "A")
+                    .Select()
+                    .ReadUncommitted()
+                    .Field(SqlQualifiedTableColumnName { .tableName = "B", .columnName = "foo" })
+                    .LeftOuterJoin(AliasedTableName { .tableName = "That", .alias = "B" },
+                                   "foo",
+                                   SqlQualifiedTableColumnName { .tableName = "A", .columnName = "bar" })
+                    .All();
+            },
+            QueryExpectations {
+                .sqlite = R"(SELECT "B"."foo" FROM "That" AS "A"
+                             LEFT OUTER JOIN "That" AS "B" ON "B"."foo" = "A"."bar")",
+                .postgres = R"(SELECT "B"."foo" FROM "That" AS "A"
+                               LEFT OUTER JOIN "That" AS "B" ON "B"."foo" = "A"."bar")",
+                .sqlServer = R"(SELECT "B"."foo" FROM "That" AS "A" WITH (READUNCOMMITTED)
+                                LEFT OUTER JOIN "That" AS "B" WITH (READUNCOMMITTED) ON "B"."foo" = "A"."bar")",
+            });
+    }
+
+    SECTION("First(n) / TOP")
+    {
+        CheckSqlQueryBuilder(
+            [](SqlQueryBuilder& q) {
+                return q.FromTable("That")
+                    .Select()
+                    .ReadUncommitted()
+                    .Field("NAME_NR")
+                    .OrderBy("NAME_NR", SqlResultOrdering::DESCENDING)
+                    .First(1);
+            },
+            QueryExpectations {
+                .sqlite = R"(SELECT "NAME_NR" FROM "That"
+                             ORDER BY "NAME_NR" DESC LIMIT 1)",
+                .postgres = R"(SELECT "NAME_NR" FROM "That"
+                               ORDER BY "NAME_NR" DESC LIMIT 1)",
+                .sqlServer = R"(SELECT TOP 1 "NAME_NR" FROM "That" WITH (READUNCOMMITTED)
+                                ORDER BY "NAME_NR" DESC)",
+            });
+    }
+
+    SECTION("Range")
+    {
+        CheckSqlQueryBuilder(
+            [](SqlQueryBuilder& q) {
+                return q.FromTable("That").Select().ReadUncommitted().Field("foo").OrderBy("id").Range(20, 10);
+            },
+            QueryExpectations {
+                .sqlite = R"(SELECT "foo" FROM "That"
+                             ORDER BY "id" ASC LIMIT 10 OFFSET 20)",
+                .postgres = R"(SELECT "foo" FROM "That"
+                               ORDER BY "id" ASC LIMIT 10 OFFSET 20)",
+                .sqlServer = R"(SELECT "foo" FROM "That" WITH (READUNCOMMITTED)
+                                ORDER BY "id" ASC OFFSET 20 ROWS FETCH NEXT 10 ROWS ONLY)",
+            });
+    }
+
+    SECTION("Count()")
+    {
+        CheckSqlQueryBuilder(
+            [](SqlQueryBuilder& q) {
+                return q.FromTable("That").Select().ReadUncommitted().InnerJoin("Other", "id", "that_id").Count();
+            },
+            QueryExpectations {
+                .sqlite = R"(SELECT COUNT(*) FROM "That"
+                             INNER JOIN "Other" ON "Other"."id" = "That"."that_id")",
+                .postgres = R"(SELECT COUNT(*) FROM "That"
+                               INNER JOIN "Other" ON "Other"."id" = "That"."that_id")",
+                .sqlServer = R"(SELECT COUNT(*) FROM "That" WITH (READUNCOMMITTED)
+                                INNER JOIN "Other" WITH (READUNCOMMITTED) ON "Other"."id" = "That"."that_id")",
+            });
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.ReadUncommitted executes", "[SqlQueryBuilder]")
+{
+    auto stmt = SqlStatement {};
+
+    CreateEmployeesTable(stmt);
+    FillEmployeesTable(stmt);
+
+    auto const firstName = SqlQualifiedTableColumnName { .tableName = "Employees", .columnName = "FirstName" };
+    auto const peerSalary = SqlQualifiedTableColumnName { .tableName = "Peer", .columnName = "Salary" };
+
+    // A self-join exercises the hint on both the FROM table and an aliased joined table.
+    auto const joinedQuery =
+        stmt.Query("Employees")
+            .Select()
+            .ReadUncommitted()
+            .Field(firstName)
+            .Field(peerSalary)
+            .InnerJoin(AliasedTableName { .tableName = "Employees", .alias = "Peer" }, "EmployeeID", "EmployeeID")
+            .OrderBy(firstName)
+            .All();
+    {
+        auto cursor = stmt.ExecuteDirect(joinedQuery);
+        REQUIRE(cursor.FetchRow());
+        // Read the columns in order, one statement each: SQL Server rejects out-of-order SQLGetData.
+        auto const name = cursor.GetColumn<std::string>(1);
+        auto const salary = cursor.GetColumn<int>(2);
+        CHECK(name == "Alice");
+        CHECK(salary == 50'000);
+    }
+
+    auto const topQuery = stmt.Query("Employees")
+                              .Select()
+                              .ReadUncommitted()
+                              .Field("Salary")
+                              .OrderBy("Salary", SqlResultOrdering::DESCENDING)
+                              .First(1);
+    {
+        auto cursor = stmt.ExecuteDirect(topQuery);
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<int>(1) == 70'000);
+    }
+
+    auto const countQuery = stmt.Query("Employees").Select().ReadUncommitted().Count();
+    auto cursor = stmt.ExecuteDirect(countQuery);
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetColumn<int>(1) == 3);
+}
+
 struct JoinTestA
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};

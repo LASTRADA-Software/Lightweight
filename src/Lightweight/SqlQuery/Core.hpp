@@ -170,6 +170,13 @@ struct [[nodiscard]] SqlSearchCondition
     /// inserted ahead of the WHERE values rather than appended. Tracking the count is what keeps
     /// the vector in statement order however the caller interleaves joins and WHERE terms.
     std::size_t joinBindingCount = 0;
+
+    /// The table hint rendered after the FROM table (and its alias) and after each joined table (and
+    /// its alias), such as SQL Server's `" WITH (READUNCOMMITTED)"`; empty for none.
+    ///
+    /// Refers to text owned by the query's formatter (see SqlQueryFormatter::ReadUncommittedTableHint()).
+    /// A join renders its table reference when it is attached, so the hint must be set before any join.
+    std::string_view tableHint;
 };
 
 /// @brief Query builder for building JOIN conditions.
@@ -1497,23 +1504,25 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Join(Jo
     if constexpr (std::is_same_v<std::remove_cvref_t<decltype(joinTable)>, AliasedTableName>)
     {
         DerivedSearchCondition().tableJoins += std::format("\n"
-                                                           R"( {0} JOIN "{1}" AS "{2}" ON "{2}"."{3}" = "{4}"."{5}")",
+                                                           R"( {0} JOIN "{1}" AS "{2}"{6} ON "{2}"."{3}" = "{4}"."{5}")",
                                                            JoinTypeStrings[static_cast<std::size_t>(joinType)],
                                                            joinTable.tableName,
                                                            joinTable.alias,
                                                            joinColumnName,
                                                            onOtherColumn.tableName,
-                                                           onOtherColumn.columnName);
+                                                           onOtherColumn.columnName,
+                                                           DerivedSearchCondition().tableHint);
     }
     else
     {
         DerivedSearchCondition().tableJoins += std::format("\n"
-                                                           R"( {0} JOIN "{1}" ON "{1}"."{2}" = "{3}"."{4}")",
+                                                           R"( {0} JOIN "{1}"{5} ON "{1}"."{2}" = "{3}"."{4}")",
                                                            JoinTypeStrings[static_cast<std::size_t>(joinType)],
                                                            joinTable,
                                                            joinColumnName,
                                                            onOtherColumn.tableName,
-                                                           onOtherColumn.columnName);
+                                                           onOtherColumn.columnName,
+                                                           DerivedSearchCondition().tableHint);
     }
     return static_cast<Derived&>(*this);
 }
@@ -1546,8 +1555,10 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Join(Jo
     };
 
     size_t const originalSize = DerivedSearchCondition().tableJoins.size();
-    DerivedSearchCondition().tableJoins +=
-        std::format("\n {0} JOIN \"{1}\" ON ", JoinTypeStrings[static_cast<std::size_t>(joinType)], joinTable);
+    DerivedSearchCondition().tableJoins += std::format("\n {0} JOIN \"{1}\"{2} ON ",
+                                                       JoinTypeStrings[static_cast<std::size_t>(joinType)],
+                                                       joinTable,
+                                                       DerivedSearchCondition().tableHint);
     size_t const sizeBefore = DerivedSearchCondition().tableJoins.size();
     onClauseBuilder(SqlJoinConditionBuilder { joinTable, &DerivedSearchCondition(), &DerivedFormatter() });
     size_t const sizeAfter = DerivedSearchCondition().tableJoins.size();
