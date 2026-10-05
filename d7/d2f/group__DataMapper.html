@@ -204,6 +204,12 @@ Enumerations</h2></td></tr>
  }</td></tr>
 <tr class="memdesc:gaccfed183e72fab87179bacefc80b23e1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Why a relation could not provide its record(s).  <a href="../../d7/d2f/group__DataMapper.html#gaccfed183e72fab87179bacefc80b23e1">More...</a><br /></td></tr>
 <tr class="separator:gaccfed183e72fab87179bacefc80b23e1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaab9634bfde68b86ecc061bd89f591c46" id="r_gaab9634bfde68b86ecc061bd89f591c46"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#gaab9634bfde68b86ecc061bd89f591c46">Lightweight::FieldTimestamp</a> : uint8_t { <a class="el" href="../../d7/d2f/group__DataMapper.html#ggaab9634bfde68b86ecc061bd89f591c46a6adf97f83acf6453d4a6a4b1070f3754">FieldTimestamp::None</a>
+, <a class="el" href="../../d7/d2f/group__DataMapper.html#ggaab9634bfde68b86ecc061bd89f591c46a46d295c8a97befd247d2d634ac8cc4b3">FieldTimestamp::CreatedAt</a>
+, <a class="el" href="../../d7/d2f/group__DataMapper.html#ggaab9634bfde68b86ecc061bd89f591c46a0b2a8a8fed13280ecd74f7545bc2b962">FieldTimestamp::UpdatedAt</a>
+ }</td></tr>
+<tr class="memdesc:gaab9634bfde68b86ecc061bd89f591c46"><td class="mdescLeft">&#160;</td><td class="mdescRight">Tells the data mapper that this field is a timestamp it maintains automatically, or not.  <a href="../../d7/d2f/group__DataMapper.html#gaab9634bfde68b86ecc061bd89f591c46">More...</a><br /></td></tr>
+<tr class="separator:gaab9634bfde68b86ecc061bd89f591c46"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
@@ -341,9 +347,9 @@ template&lt;auto Field&gt; </div>
 <div class="line"> </div>
 <div class="line"><span class="keyword">using </span>MyFieldType = ReferencedFieldTypeOf&lt;&amp;MyRecord::value&gt;; <span class="comment">// Retrieves `int`</span></div>
 <div class="line"><span class="keyword">using </span>MyOptionalFieldType = ReferencedFieldTypeOf&lt;&amp;MyRecord::optionalValue&gt;; <span class="comment">// Retrieves `std::optional&lt;char&gt;`</span></div>
-<div class="ttc" id="astructLightweight_1_1Field_html"><div class="ttname"><a href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a></div><div class="ttdoc">Represents a single column in a table.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00091">Field.hpp:92</a></div></div>
+<div class="ttc" id="astructLightweight_1_1Field_html"><div class="ttname"><a href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a></div><div class="ttdoc">Represents a single column in a table.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00149">Field.hpp:150</a></div></div>
 </div><!-- fragment --> 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00402">402</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00487">487</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -475,6 +481,54 @@ template&lt;std::size_t I, typename Record &gt; </div>
 
 </div>
 </div>
+<a id="gaab9634bfde68b86ecc061bd89f591c46" name="gaab9634bfde68b86ecc061bd89f591c46"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaab9634bfde68b86ecc061bd89f591c46">&#9670;&#160;</a></span>FieldTimestamp</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum class <a class="el" href="../../d7/d2f/group__DataMapper.html#gaab9634bfde68b86ecc061bd89f591c46">Lightweight::FieldTimestamp</a> : uint8_t</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">strong</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Tells the data mapper that this field is a timestamp it maintains automatically, or not. </p>
+<p>Pass it in one of a <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a>'s two option slots, alone or together with a column-name override:</p>
+<div class="fragment"><div class="line"><span class="keyword">struct </span>Article</div>
+<div class="line">{</div>
+<div class="line">    <a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field&lt;uint64_t, PrimaryKey::ServerSideAutoIncrement&gt;</a> id;</div>
+<div class="line">    <a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field&lt;SqlDateTime, FieldTimestamp::CreatedAt&gt;</a> createdAt;</div>
+<div class="line">    <a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field</a>&lt;<a class="code hl_struct" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html">SqlDateTime</a>, FieldTimestamp::UpdatedAt, <a class="code hl_struct" href="../../d7/d13/structLightweight_1_1SqlRealName.html">SqlRealName</a> { <span class="stringliteral">&quot;updated_at&quot;</span> }&gt; updatedAt;</div>
+<div class="line">};</div>
+<div class="ttc" id="astructLightweight_1_1SqlDateTime_html"><div class="ttname"><a href="../../d6/dfa/structLightweight_1_1SqlDateTime.html">Lightweight::SqlDateTime</a></div><div class="ttdef"><b>Definition</b> <a href="../../d4/d52/SqlDateTime_8hpp_source.html#l00024">SqlDateTime.hpp:25</a></div></div>
+<div class="ttc" id="astructLightweight_1_1SqlRealName_html"><div class="ttname"><a href="../../d7/d13/structLightweight_1_1SqlRealName.html">Lightweight::SqlRealName</a></div><div class="ttdoc">Helper class, used to represent a real SQL column names as template arguments.</div><div class="ttdef"><b>Definition</b> <a href="../../d0/dd1/SqlRealName_8hpp_source.html#l00014">SqlRealName.hpp:15</a></div></div>
+</div><!-- fragment --><p>The value is read from the <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a>'s timestamp clock (see <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html#a8aa7d61c145cc3d703f4029099c00c79" title="Sets the clock that fills the auto-maintained timestamp fields (see FieldTimestamp).">DataMapper::SetTimestampClock()</a>), once per operation, so every timestamp written by one operation carries the same value. A value the caller set explicitly is never overwritten, which allows importing historical rows.</p>
+<p>Only <code><a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html">SqlDateTime</a></code> and <code>std::optional&lt;<a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html">SqlDateTime</a>&gt;</code> fields may carry a timestamp marker. </p>
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="ggaab9634bfde68b86ecc061bd89f591c46a6adf97f83acf6453d4a6a4b1070f3754" name="ggaab9634bfde68b86ecc061bd89f591c46a6adf97f83acf6453d4a6a4b1070f3754"></a>None&#160;</td><td class="fielddoc"><p>The field is not maintained by the data mapper. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ggaab9634bfde68b86ecc061bd89f591c46a46d295c8a97befd247d2d634ac8cc4b3" name="ggaab9634bfde68b86ecc061bd89f591c46a46d295c8a97befd247d2d634ac8cc4b3"></a>CreatedAt&#160;</td><td class="fielddoc"><p>The field holds the time the record was created. </p>
+<pre class="fragment">Set when the record is inserted, unless the caller gave it a value. Never changed by an update. 
+</pre> </td></tr>
+<tr><td class="fieldname"><a id="ggaab9634bfde68b86ecc061bd89f591c46a0b2a8a8fed13280ecd74f7545bc2b962" name="ggaab9634bfde68b86ecc061bd89f591c46a0b2a8a8fed13280ecd74f7545bc2b962"></a>UpdatedAt&#160;</td><td class="fielddoc"><p>The field holds the time the record was last written. </p>
+<pre class="fragment">Set when the record is inserted, unless the caller gave it a value, and again whenever an update
+writes any other column of the record, unless the caller modified this field in that change. 
+</pre> </td></tr>
+</table>
+
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00070">70</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+
+</div>
+</div>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="ga26e1044be43f92bbb88188317ffba9b5" name="ga26e1044be43f92bbb88188317ffba9b5"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga26e1044be43f92bbb88188317ffba9b5">&#9670;&#160;</a></span>GetPrimaryKeyFields()</h2>
@@ -540,7 +594,7 @@ template&lt;typename Record &gt; </div>
 
 <p class="reference">References <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00188">Lightweight::EnumerateRecordMembers()</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l03629">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02212">Lightweight::DataMapper::Create()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l03841">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02407">Lightweight::DataMapper::Create()</a>.</p>
 
 </div>
 </div>
@@ -617,7 +671,7 @@ template&lt;typename Record , typename Callable &gt; </div>
 
 <p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00188">188</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l03629">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02410">Lightweight::DataMapper::Delete()</a>, <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00615">Lightweight::GetPrimaryKeyField()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l03412">Lightweight::DataMapper::LoadRelations()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l03475">Lightweight::DataMapper::SetId()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02750">Lightweight::DataMapper::SetModifiedState()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02268">Lightweight::DataMapper::Update()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l03841">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02622">Lightweight::DataMapper::Delete()</a>, <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00615">Lightweight::GetPrimaryKeyField()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l03624">Lightweight::DataMapper::LoadRelations()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l03687">Lightweight::DataMapper::SetId()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02962">Lightweight::DataMapper::SetModifiedState()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02467">Lightweight::DataMapper::Update()</a>.</p>
 
 </div>
 </div>

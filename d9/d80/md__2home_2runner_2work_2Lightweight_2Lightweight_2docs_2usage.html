@@ -406,6 +406,48 @@ Batched insert and update</h2>
 </div><!-- fragment --><blockquote class="doxtable">
 <p>&zwj;Note: <code>CreateAll</code>/<code>UpdateAll</code> do not write primary keys, relations, or modified-state back onto the records (treat them as write-only inputs), and <code>UpdateAll</code> writes a uniform set of columns for every row rather than only the per-record modified ones. The range must be contiguous. </p>
 </blockquote>
+<h2><a class="anchor" id="automatic-created_at--updated_at-timestamps"></a>
+Automatic &lt;tt&gt;created_at&lt;/tt&gt; / &lt;tt&gt;updated_at&lt;/tt&gt; timestamps</h2>
+<p>Mark a <code>SqlDateTime</code> (or <code>std::optional&lt;SqlDateTime&gt;</code>) field with <code>FieldTimestamp::CreatedAt</code> or <code>FieldTimestamp::UpdatedAt</code> and the <code>DataMapper</code> maintains it for you. The marker goes in either of <code>Field</code>'s two option slots, so it combines with a column-name override:</p>
+<div class="fragment"><div class="line"><span class="keyword">struct </span>Article</div>
+<div class="line">{</div>
+<div class="line">    Field&lt;SqlGuid, PrimaryKey::AutoAssign&gt; id;</div>
+<div class="line">    Field&lt;SqlAnsiString&lt;80&gt;&gt; title;</div>
+<div class="line">    Field&lt;SqlDateTime, FieldTimestamp::CreatedAt, SqlRealName { <span class="stringliteral">&quot;created_at&quot;</span> }&gt; createdAt;</div>
+<div class="line">    Field&lt;SqlDateTime, FieldTimestamp::UpdatedAt, SqlRealName { <span class="stringliteral">&quot;updated_at&quot;</span> }&gt; updatedAt;</div>
+<div class="line">};</div>
+<div class="line"> </div>
+<div class="line"><span class="keywordtype">void</span> Publish(DataMapper&amp; dm)</div>
+<div class="line">{</div>
+<div class="line">    <span class="keyword">auto</span> article = Article {};</div>
+<div class="line">    article.title = <span class="stringliteral">&quot;Hello&quot;</span>;</div>
+<div class="line">    dm.Create(article);   <span class="comment">// createdAt == updatedAt == now, written back into `article`</span></div>
+<div class="line"> </div>
+<div class="line">    article.title = <span class="stringliteral">&quot;Hello, world&quot;</span>;</div>
+<div class="line">    dm.Update(article);   <span class="comment">// updatedAt = now; createdAt untouched</span></div>
+<div class="line"> </div>
+<div class="line">    dm.Update(article);   <span class="comment">// nothing modified: still a no-op, updatedAt does not move</span></div>
+<div class="line">}</div>
+</div><!-- fragment --><p>The rules:</p>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">Operation   </th><th class="markdownTableHeadNone"><code>CreatedAt</code>   </th><th class="markdownTableHeadNone"><code>UpdatedAt</code>    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>Create</code> / <code>CreateAsync</code>   </td><td class="markdownTableBodyNone">set to now if unset; written back   </td><td class="markdownTableBodyNone">set to now if unset; written back    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>CreateExplicit</code> / <code>CreateAll</code>   </td><td class="markdownTableBodyNone">now is inserted if unset; the record is not changed   </td><td class="markdownTableBodyNone">same    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>CreateCopyOf</code>   </td><td class="markdownTableBodyNone">now (the copy is a new row)   </td><td class="markdownTableBodyNone">now    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>Update</code> / <code>UpdateAsync</code>   </td><td class="markdownTableBodyNone">never touched   </td><td class="markdownTableBodyNone">set to now when any other column is written, unless you assigned it in this change; written back    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>UpdateAll</code>   </td><td class="markdownTableBodyNone">written as stored in the record   </td><td class="markdownTableBodyNone">now, for every row; the records are not changed   </td></tr>
+</table>
+<p>A timestamp is <em>unset</em> when an optional one holds no value, or when a plain <code>SqlDateTime</code> is default-constructed (it has no date). A value you set yourself is never overwritten, which lets you import historical rows with their original timestamps.</p>
+<p>"Now" comes from the client, not the database server, and is read once per operation, so <code>createdAt</code> and <code>updatedAt</code> are identical after <code>Create</code>, and every row of one <code>CreateAll</code> gets the same value. By default it is the system clock in UTC. Inject another clock, e.g. a fixed one in tests, with <code>dm.SetTimestampClock([] { return SqlDateTime { … }; })</code>; an empty function restores the default. Mappers created by a <code>Pool</code> start with the default clock; a clock you set on a borrowed mapper stays with it when it goes back to the pool.</p>
+<blockquote class="doxtable">
+<p>&zwj;Note: <code>CreateAll</code>/<code>UpdateAll</code> on a record type with timestamp fields copy the batch to carry the generated values, so such a record type must be copy-constructible. The copy still goes through the native batch path. </p>
+</blockquote>
 <h2><a class="anchor" id="eager-loading-of-relations-with"></a>
 Eager loading of relations (&lt;tt&gt;With&lt;&gt;()&lt;/tt&gt;)</h2>
 <p>Accessing a relation on a query result loads it on demand — one query per record. Over a result set of N records that is the N+1 problem: reading <code>album.tracks</code> for 1000 albums issues 1001 queries. <code>With&lt;&amp;Record::relation&gt;()</code> instead resolves the relation for the whole result set once it has been materialized, using <code>WHERE &lt;key&gt; IN (...)</code>:</p>

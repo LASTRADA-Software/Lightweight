@@ -46,6 +46,7 @@ var NAVTREE =
       [ "SQL Query Builder", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sql-query-builder", null ],
       [ "High level Data Mapping", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#high-level-data-mapping", [
         [ "Batched insert and update", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#batched-insert-and-update", null ],
+        [ "Automatic <tt>created_at</tt> / <tt>updated_at</tt> timestamps", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#automatic-created_at--updated_at-timestamps", null ],
         [ "Eager loading of relations (<tt>With<>()</tt>)", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#eager-loading-of-relations-with", [
           [ "Nested relations", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#nested-relations", null ],
           [ "Loading everything reachable", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#loading-everything-reachable", null ],
@@ -393,12 +394,12 @@ var NAVTREEINDEX =
 "d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a095d9eb7ed4abef29c07a9a563c0da72",
 "d4/d6d/structLightweight_1_1MigrationRenderContext_1_1TableKey.html#aa58a804d5d9e7a2a98da93c4ae2c8e0b",
 "d6/dfa/structLightweight_1_1SqlDateTime.html#a580b08490f5eff7dec0a3e4534d191d5",
-"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#insert-1",
-"d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102ae93f994f01c537c4e2f7d8528c3eb5e9",
-"da/df4/classLightweight_1_1HasMany.html#a4dc6838deb95d12a735c7028f56a6ef7",
-"dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#ae90e99aad161896fdfbe8659a3985bcb",
-"de/dae/classLightweight_1_1SqlFixedString.html#ae4c67c20f26da7a5cc4c8a676f8733bb",
-"functions_q.html"
+"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#custom-default-schema",
+"d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a124a7ebb0b5e71644c43ffd4f35ac3c2",
+"da/df4/classLightweight_1_1HasMany.html#a1a0637644ce211f1ee334ceb286b5e92",
+"dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#aaf27033f8050b36e4b9a518e79591dc5",
+"de/dae/classLightweight_1_1SqlFixedString.html#aabcd1b4f08aa03c12051de4cb9791c45",
+"functions_i.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
