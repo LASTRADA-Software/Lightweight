@@ -104,9 +104,11 @@ Multi-profile shape:
 defaultProfile: prod
 defaultPluginsDir: ./plugins        # store-wide fallback for any profile
                                     # that omits its own `pluginsDir`
+defaultBackupDir: D:/backups        # store-wide fallback backup folder
 profiles:
   prod:
     schema: dbo
+    backupDir: D:/backups/prod      # per-profile override of defaultBackupDir
     connectionString: "DRIVER={ODBC Driver 18 for SQL Server};Server=...;Database=prod"
   dev:
     pluginsDir: ./dev-plugins       # per-profile override
@@ -140,6 +142,24 @@ plugin 'pricing.dll' from ./plugins/pricing.dll shadowed by /opt/lightweight/plu
 The effective plugin directory for a given run resolves as: `--plugins-dir`
 CLI option → profile's own `pluginsDir` → top-level `defaultPluginsDir`
 (possibly a list) → current working directory.
+
+#### Backup folder (`defaultBackupDir` / `backupDir`)
+
+`defaultBackupDir` names a folder backups are written to, and a profile can override it with its
+own `backupDir`. This lets a deployment (an installer, say) pre-configure where backups go, so
+`dbtool` and `dbtool-gui` use the same folder without every user setting it up. The effective
+folder resolves like `pluginsDir`: the profile's own `backupDir` → top-level `defaultBackupDir` →
+none (the behaviour described below for `--output`).
+
+- [`dbtool backup`](#backup) uses it for a bare file name in `--output`, or for a generated name
+  when `--output` is omitted. A path with a directory part is used exactly as given. The folder is
+  created when it is missing.
+- `dbtool-gui` uses `defaultBackupDir` as its default backup folder, unless a folder was chosen in
+  its Settings. It keeps every profile's archive in one folder, so a per-profile `backupDir` is
+  not used there.
+- As with the other profile defaults, a run that gives `--connection-string` without `--profile`
+  applies no profile and therefore no backup folder.
+- Relative paths are used as written, i.e. relative to the working directory.
 
 ### Profile passwords
 
@@ -221,10 +241,12 @@ any platform. Values of `PWD=` / `Password=` inside a profile's raw
 $ dbtool list-profiles
 Profiles (from /home/me/project/dbtool.yml, found via current directory):
 
-NAME  DEFAULT  CONNECTION                            AUTH       SCHEMA  PLUGINSDIR
-prod  *        DRIVER={ODBC Driver 18 for SQL Se...  encrypted  dbo     ./migrations
-dev            DRIVER=SQLite3;Database=dev.db        -                  ./dev-plugins
+NAME  DEFAULT  CONNECTION                            AUTH       SCHEMA  PLUGINSDIR      BACKUPDIR
+prod  *        DRIVER={ODBC Driver 18 for SQL Se...  encrypted  dbo     ./migrations    D:/backups/prod
+dev            DRIVER=SQLite3;Database=dev.db        -                  ./dev-plugins   D:/backups
 ```
+
+`BACKUPDIR` is the profile's effective backup folder: its own `backupDir`, else `defaultBackupDir`.
 
 Use `--config <FILE>` to inspect a non-default configuration file. When no
 config file is found, `list-profiles` prints where it looked and exits successfully.
@@ -497,7 +519,7 @@ printf '%s\n' "$DB_PASSWORD" | dbtool add-profile --name ci \
 | `--name <NAME>` | Profile name (required) |
 | `--connection-string <STR>` / `--dsn <DSN>` | Exactly one is required. A `PWD=` inside the connection string is moved into the encrypted `password` field |
 | `--uid <UID>` | User name for a DSN profile |
-| `--schema <S>`, `--plugins-dir <DIR>` | Stored on the profile |
+| `--schema <S>`, `--plugins-dir <DIR>`, `--backup-dir <DIR>` | Stored on the profile (`--backup-dir` becomes its `backupDir`) |
 | `--no-password` | Store the profile without a password |
 | `--set-default` | Make it the `defaultProfile` |
 | `--force` | Replace an existing profile of the same name |
@@ -527,6 +549,23 @@ Create a compressed backup of the database:
 ```bash
 dbtool backup --output backup.zip --compression zstd --jobs 4
 ```
+
+**Where the file goes.** When `dbtool.yml` names a backup folder for the selected profile
+([`backupDir` / `defaultBackupDir`](#backup-folder-defaultbackupdir--backupdir)):
+
+```bash
+# a bare file name is written into that folder
+dbtool backup --profile prod --output nightly.zip
+
+# no --output: writes <profile>-<YYYYMMDD-HHMMSS>.zip (local time) into that folder
+dbtool backup --profile prod
+
+# a path with a directory part is used exactly as given
+dbtool backup --profile prod --output D:/exports/once.zip
+```
+
+The folder is created if it is missing, and the file that was written is printed. Without a
+configured folder `--output` is required and is used as given.
 
 **Compression methods:** `none`, `deflate`, `bzip2`, `lzma`, `zstd`, `xz`
 
@@ -602,7 +641,7 @@ common table is identical and both archives hold the same set of tables, or `1` 
 | `--schema <NAME>` | Database schema to use | |
 | `--config <FILE>` | Path to configuration file | nearest `dbtool.yml` upward, then the per-user file (see [Configuration](#configuration)) |
 | `--plugins-dir <DIR>` | Directory to scan for migration plugins | `.` (current directory) |
-| `--output <FILE>` | Output file for backup | |
+| `--output <FILE>` | Output file for backup. A bare file name, or no `--output`, goes into the profile's `backupDir` / `defaultBackupDir` when one is configured | |
 | `--input <FILE>` | Input file for restore | |
 | `--left <FILE>` | First (baseline) backup archive for `backup-diff` | |
 | `--right <FILE>` | Second (candidate) backup archive for `backup-diff` | |

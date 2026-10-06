@@ -46,6 +46,9 @@ struct NewProfile
 
     /// Password exactly as it should be stored — callers pass the encrypted `enc:` value.
     std::string password;
+
+    /// Folder this profile's backups are written to.
+    std::string backupDir {};
 };
 
 /// Whether `AddProfileText` may replace a profile that already exists.

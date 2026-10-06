@@ -35,6 +35,7 @@
 #include <variant>
 #include <vector>
 
+#include <Config/BackupOutput.hpp>
 #include <Config/ConfigDiscovery.hpp>
 #include <Config/ProfileFileEditor.hpp>
 #include <Config/ProfilePassword.hpp>
@@ -204,7 +205,7 @@ void PrintUsage()
     std::println("  {}exec{} {}<QUERY>{}             Executes the given SQL query and prints any result set.",
                  c.command, c.reset, c.param, c.reset);
     std::println("                            Pass `-` (or omit the argument) to read the query from stdin.");
-    std::println("  {}backup{} --output FILE     Backs up the database to a file", c.command, c.reset);
+    std::println("  {}backup{} [--output FILE]   Backs up the database to a file (see --output)", c.command, c.reset);
     std::println("  {}restore{} --input FILE     Restores the database from a file", c.command, c.reset);
     std::println("  {}backup-diff{} --left A --right B  Compares the row data of two backup archives",
                  c.command, c.reset);
@@ -216,8 +217,9 @@ void PrintUsage()
     std::println("  {}add-profile{}              Adds a profile to dbtool.yml with its password encrypted:",
                  c.command, c.reset);
     std::println("                            --name <NAME> (--connection-string <STR> | --dsn <DSN> [--uid <UID>])");
-    std::println("                            [--schema <S>] [--plugins-dir <DIR>] [--no-password] [--set-default]");
-    std::println("                            [--force]. The password is prompted for (or read from stdin).");
+    std::println("                            [--schema <S>] [--plugins-dir <DIR>] [--backup-dir <DIR>]");
+    std::println("                            [--no-password] [--set-default] [--force]. The password is");
+    std::println("                            prompted for (or read from stdin).");
     std::println("");
 
     // Descriptions start at column 29 (longest option is 27 chars + 2 space minimum gap)
@@ -238,8 +240,11 @@ void PrintUsage()
     std::println("                            or executable directory, then the per-user config)");
     std::println("  {}--profile{} {}<NAME>{}          Named profile from the config file (default: the file's defaultProfile)",
                  c.option, c.reset, c.param, c.reset);
-    std::println("  {}--output{} {}<FILE>{}           Output file for backup",
+    std::println("  {}--output{} {}<FILE>{}           Output file for backup. A bare file name, or no --output at all",
                  c.option, c.reset, c.param, c.reset);
+    std::println("                            (generates <profile>-<timestamp>.zip), goes into the profile's");
+    std::println("                            `backupDir` / the file's `defaultBackupDir` when one is set; a");
+    std::println("                            path with a directory part is used as given");
     std::println("  {}--input{} {}<FILE>{}            Input file for restore",
                  c.option, c.reset, c.param, c.reset);
     std::println("  {}--left{} {}<FILE>{}             First backup archive for backup-diff (baseline)",
@@ -321,6 +326,11 @@ void PrintExamples()
     std::println("  {}dbtool backup --output backup.zip --jobs 4{}", c.code, c.reset);
     std::println("");
 
+    std::println("  {}# Backup into the folder dbtool.yml names (defaultBackupDir / the profile's backupDir):{}",
+                 c.example, c.reset);
+    std::println("  {}dbtool backup --profile prod{}", c.code, c.reset);
+    std::println("");
+
     std::println("  {}# Backup specific tables by name:{}", c.example, c.reset);
     std::println("  {}dbtool backup --output backup.zip --filter-tables=Users,Products{}", c.code, c.reset);
     std::println("");
@@ -390,6 +400,7 @@ struct Options
     std::filesystem::path resolvedConfigPath; ///< Config file the profile was loaded from
     std::optional<Lightweight::Config::Profile> selectedProfile; ///< Profile applied to this run, if any
     std::filesystem::path outputFile;
+    std::filesystem::path backupDir; ///< Configured backup folder (the profile's `backupDir`, else `defaultBackupDir`)
     std::filesystem::path inputFile;
     std::filesystem::path leftFile;     ///< First archive for `backup-diff` (--left)
     std::filesystem::path rightFile;    ///< Second archive for `backup-diff` (--right)
@@ -419,6 +430,7 @@ struct Options
     std::string newProfileName; ///< --name
     std::string dsn;            ///< --dsn
     std::string uid;            ///< --uid
+    std::string newBackupDir;   ///< --backup-dir (`add-profile`)
     bool noPassword = false;    ///< --no-password: store the profile without a password
     bool setDefault = false;    ///< --set-default: make the new profile the default
     bool force = false;         ///< --force: replace an existing profile of the same name
@@ -505,6 +517,8 @@ void ApplyProfileToOptions(Options& options)
         if (auto effective = store.EffectivePluginsDir(*profile); !effective.empty())
             options.pluginsDir = std::move(effective);
     }
+
+    options.backupDir = store.EffectiveBackupDir(*profile);
 
     if (!profile->schema.empty() && options.schema.empty())
         options.schema = profile->schema;
@@ -803,6 +817,12 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
                 return std::unexpected { "Error: --dsn requires an argument" };
             options.dsn = argv[++i];
         }
+        else if (arg == "--backup-dir")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --backup-dir requires an argument" };
+            options.newBackupDir = argv[++i];
+        }
         else if (arg == "--uid")
         {
             if (i + 1 >= argc)
@@ -1035,6 +1055,7 @@ int ListProfiles(Options const& options)
         std::string auth;
         std::string schema;
         std::string pluginsDir;
+        std::string backupDir;
     };
 
     std::vector<Row> rows;
@@ -1047,6 +1068,7 @@ int ListProfiles(Options const& options)
             .auth = std::string { BuildProfileAuthColumn(profile) },
             .schema = profile.schema,
             .pluginsDir = BuildProfilePluginsDirColumn(store, profile),
+            .backupDir = store.EffectiveBackupDir(profile).string(),
         });
 
     auto const widthOf = [&](std::string Row::* member, std::string_view header) {
@@ -1061,12 +1083,13 @@ int ListProfiles(Options const& options)
     auto const connectionWidth = widthOf(&Row::connection, "CONNECTION");
     auto const authWidth = widthOf(&Row::auth, "AUTH");
     auto const schemaWidth = widthOf(&Row::schema, "SCHEMA");
+    auto const pluginsDirWidth = widthOf(&Row::pluginsDir, "PLUGINSDIR");
 
     auto const c = IsStdoutTerminal() ? HelpColors::Colored() : HelpColors::Plain();
 
     std::println("Profiles (from {}, found via {}):", configPath.string(), Cfg::ToString(loadedConfig->discovered.source));
     std::println("");
-    std::println("{}{:<{}}  {:<{}}  {:<{}}  {:<{}}  {:<{}}  {}{}",
+    std::println("{}{:<{}}  {:<{}}  {:<{}}  {:<{}}  {:<{}}  {:<{}}  {}{}",
                  c.heading,
                  "NAME",
                  nameWidth,
@@ -1079,10 +1102,12 @@ int ListProfiles(Options const& options)
                  "SCHEMA",
                  schemaWidth,
                  "PLUGINSDIR",
+                 pluginsDirWidth,
+                 "BACKUPDIR",
                  c.reset);
 
     for (auto const& row: rows)
-        std::println("{:<{}}  {:<{}}  {:<{}}  {:<{}}  {:<{}}  {}",
+        std::println("{:<{}}  {:<{}}  {:<{}}  {:<{}}  {:<{}}  {:<{}}  {}",
                      row.name,
                      nameWidth,
                      row.defaultMarker,
@@ -1093,7 +1118,9 @@ int ListProfiles(Options const& options)
                      authWidth,
                      row.schema,
                      schemaWidth,
-                     row.pluginsDir);
+                     row.pluginsDir,
+                     pluginsDirWidth,
+                     row.backupDir);
 
     return EXIT_SUCCESS;
 }
@@ -1168,6 +1195,7 @@ int AddProfileCommand(Options const& options)
         .schema = options.schema,
         .pluginsDir = options.pluginsDirSet ? options.pluginsDir.front().string() : std::string {},
         .password = {},
+        .backupDir = options.newBackupDir,
     };
     if (!password.empty())
     {
@@ -2153,10 +2181,33 @@ std::string FormatConnectionError(std::string_view errorMessage)
 
 int Backup(Options const& options)
 {
-    if (options.outputFile.empty())
+    namespace Cfg = Lightweight::Config;
+
+    // `--output` as given, else (or for a bare file name) the folder dbtool.yml names.
+    auto const output = Cfg::ResolveBackupOutput(
+        { .requested = options.outputFile,
+          .folder = options.backupDir,
+          .profileName = options.selectedProfile ? std::string_view { options.selectedProfile->name } : std::string_view {},
+          .now = std::chrono::system_clock::now() });
+    if (!output)
     {
-        std::println(std::cerr, "Error: --output file required for backup.");
+        std::println(std::cerr,
+                     "Error: --output file required for backup (or set `defaultBackupDir` / the profile's `backupDir` "
+                     "in dbtool.yml).");
         return EXIT_FAILURE;
+    }
+    auto const& outputFile = output->path;
+    if (output->inConfiguredFolder)
+    {
+        std::error_code ec;
+        std::filesystem::create_directories(outputFile.parent_path(), ec);
+        if (ec)
+        {
+            std::println(
+                std::cerr, "Error: cannot create backup folder {}: {}", outputFile.parent_path().string(), ec.message());
+            return EXIT_FAILURE;
+        }
+        std::println("Backup file: {}", outputFile.string());
     }
 
     // Parse and validate backup settings (compression + chunk size)
@@ -2216,10 +2267,9 @@ int Backup(Options const& options)
 
         std::println("");
         if (options.schemaOnly)
-            std::println(
-                "Dry run: Would backup schema only for {} tables to {}", tables.size(), options.outputFile.string());
+            std::println("Dry run: Would backup schema only for {} tables to {}", tables.size(), outputFile.string());
         else
-            std::println("Dry run: Would backup {} tables to {}", tables.size(), options.outputFile.string());
+            std::println("Dry run: Would backup {} tables to {}", tables.size(), outputFile.string());
         std::println("");
 
         size_t totalRows = 0;
@@ -2241,7 +2291,7 @@ int Backup(Options const& options)
 
     try
     {
-        Lightweight::SqlBackup::Backup(options.outputFile,
+        Lightweight::SqlBackup::Backup(outputFile,
                                        options.connectionString,
                                        options.jobs,
                                        *pm,

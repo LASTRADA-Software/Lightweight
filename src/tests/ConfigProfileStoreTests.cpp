@@ -518,3 +518,94 @@ TEST_CASE("ProfileStore — a password field next to an inline PWD is ambiguous"
     REQUIRE_FALSE(store.has_value());
     CHECK(store.error().contains("PWD"));
 }
+
+TEST_CASE("ProfileStore — a profile's backupDir wins over defaultBackupDir", "[ProfileStore][backup-dir]")
+{
+    ScopedTempYaml const yaml(R"(
+defaultBackupDir: /srv/backups
+profiles:
+  prod:
+    dsn: PROD
+    backupDir: /srv/backups/prod
+  dev:
+    dsn: DEV
+)");
+
+    auto const result = Lightweight::Config::ProfileStore::LoadOrDefault(yaml.Path());
+
+    REQUIRE(result.has_value());
+    auto const& store = *result;
+    CHECK(store.DefaultBackupDir().generic_string() == "/srv/backups");
+    REQUIRE(store.Find("prod") != nullptr);
+    CHECK(store.Find("prod")->backupDir.generic_string() == "/srv/backups/prod");
+    CHECK(store.EffectiveBackupDir(*store.Find("prod")).generic_string() == "/srv/backups/prod");
+    // A profile without its own backupDir falls back to the store-wide default.
+    CHECK(store.Find("dev")->backupDir.empty());
+    CHECK(store.EffectiveBackupDir(*store.Find("dev")).generic_string() == "/srv/backups");
+}
+
+TEST_CASE("ProfileStore — no backup keys means no backup folder", "[ProfileStore][backup-dir]")
+{
+    ScopedTempYaml const yaml(R"(
+profiles:
+  prod:
+    dsn: PROD
+)");
+
+    auto const result = Lightweight::Config::ProfileStore::LoadOrDefault(yaml.Path());
+
+    REQUIRE(result.has_value());
+    CHECK(result->DefaultBackupDir().empty());
+    CHECK(result->EffectiveBackupDir(*result->Find("prod")).empty());
+}
+
+TEST_CASE("ProfileStore — a blank backup key means none, not the text \"null\"", "[ProfileStore][backup-dir]")
+{
+    ScopedTempYaml const yaml(R"(
+defaultBackupDir:
+profiles:
+  prod:
+    dsn: PROD
+    backupDir:
+)");
+
+    auto const result = Lightweight::Config::ProfileStore::LoadOrDefault(yaml.Path());
+
+    REQUIRE(result.has_value());
+    CHECK(result->DefaultBackupDir().empty());
+    CHECK(result->Find("prod")->backupDir.empty());
+}
+
+TEST_CASE("ProfileStore — a file with only defaultBackupDir still carries it", "[ProfileStore][backup-dir]")
+{
+    ScopedTempYaml const yaml("defaultBackupDir: /srv/backups\n");
+
+    auto const result = Lightweight::Config::ProfileStore::LoadOrDefault(yaml.Path());
+
+    REQUIRE(result.has_value());
+    CHECK(result->Empty());
+    CHECK(result->DefaultBackupDir().generic_string() == "/srv/backups");
+}
+
+TEST_CASE("ProfileStore — backup folders round-trip through Save", "[ProfileStore][backup-dir]")
+{
+    Lightweight::Config::ProfileStore store;
+    store.SetDefaultBackupDir(std::filesystem::path { "/srv/backups" });
+    store.Upsert(Lightweight::Config::Profile { .name = "prod",
+                                                .pluginsDir = {},
+                                                .schema = {},
+                                                .dsn = "PROD",
+                                                .connectionString = {},
+                                                .uid = {},
+                                                .secretRef = {},
+                                                .password = {},
+                                                .backupDir = std::filesystem::path { "/srv/backups/prod" } });
+    ScopedTempYaml const yaml("");
+
+    REQUIRE(store.Save(yaml.Path()).has_value());
+    auto const reloaded = Lightweight::Config::ProfileStore::LoadOrDefault(yaml.Path());
+
+    REQUIRE(reloaded.has_value());
+    CHECK(reloaded->DefaultBackupDir().generic_string() == "/srv/backups");
+    CHECK(reloaded->Find("prod")->backupDir.generic_string() == "/srv/backups/prod");
+}
