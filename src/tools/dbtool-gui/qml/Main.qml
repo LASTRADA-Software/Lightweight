@@ -64,7 +64,8 @@ ApplicationWindow {
     minimumHeight: (expert ? expertView.minimumViewHeight : simpleView.minimumViewHeight) + chromeHeight
     visible: true
     title: qsTr("Lightweight dbtool — ")
-         + (AppController.currentProfile || qsTr("(no profile)"))
+         + (AppController.connected ? AppController.connectedTarget
+                                    : (AppController.currentProfile || qsTr("(no profile)")))
          + (AppController.connected ? qsTr("  ● connected") : "")
 
     color: Theme.clrBase
@@ -140,11 +141,8 @@ ApplicationWindow {
             root.minimumWidth  = minimumWidthFor(incomingView, collapsed)
             root.minimumHeight = incomingView.minimumViewHeight + chromeHeight
             Qt.callLater(function() { _geometryReady = true })
-
-            // Settings is an Expert-only destination; leaving Expert while
-            // on it returns to the migrations page.
-            if (!goingExpert && root.currentPage === "settings")
-                root.currentPage = "migrations"
+            // Settings is reachable from both views, so switching mode while
+            // on it keeps the user where they are.
         }
     }
 
@@ -180,9 +178,11 @@ ApplicationWindow {
     ]
     readonly property var railPinnedItems: [
         // Settings host the profile-file path, plugins directory and backup
-        // folder. Simple-view users should not be tweaking those knobs, so
-        // the destination only exists in Expert view.
-        { page: "settings", label: qsTr("Settings"), glyph: "sliders", visible: root.expert },
+        // folder. They are reachable from Simple view too: deployments that
+        // pre-configure dbtool.yml run in Simple by default, and when a value
+        // goes stale (say a plugins directory after an update) the people
+        // using that view must be able to fix it without switching modes.
+        { page: "settings", label: qsTr("Settings"), glyph: "sliders" },
     ]
 
     RowLayout {
@@ -225,7 +225,8 @@ ApplicationWindow {
 
                     PageHeader {
                         Layout.fillWidth: true
-                        crumbs: [ AppController.currentProfile || qsTr("No profile"), qsTr("Migrations") ]
+                        crumbs: [ (AppController.connected ? AppController.connectedTarget : AppController.currentProfile)
+                                  || qsTr("No profile"), qsTr("Migrations") ]
                         title: root.expert ? qsTr("Migrations") : qsTr("Update database")
                         contextItems: [
                             ConnectionChip { visible: root.expert }

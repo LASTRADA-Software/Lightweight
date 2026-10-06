@@ -56,6 +56,7 @@ set(MIGRATIONS_GUI_CXX_SOURCES
     SqlQueryRunner.cpp
     SqlSyntaxHighlighter.hpp
     SqlSyntaxHighlighter.cpp
+    TableState.hpp
 
     Models/BackupActiveTablesModel.hpp
     Models/BackupActiveTablesModel.cpp
@@ -118,6 +119,12 @@ set(MIGRATIONS_GUI_QML_FILES
     qml/TimestampAutocomplete.qml
     qml/PluginsDirField.qml
     qml/SettingsPage.qml
+    qml/KitField.qml
+    qml/SaveProfileDialog.qml
+    qml/RunProgress.qml
+    qml/RunOutcome.qml
+    qml/ConnectDialog.qml
+    qml/RunFormat.js
 )
 
 # A reusable QML module so the migrations view can be embedded by other Qt

@@ -31,7 +31,8 @@ The UI follows the **Lastrada UI** design system (the "Lastrada UI" Claude
 Design project, pages under `dbtool/`):
 
 - **Shell** — a dark navigation rail (`NavRail.qml`) with *Migrations* and
-  *Backups*, *Settings* pinned at the bottom (Expert view only). Every page
+  *Backups*, *Settings* pinned at the bottom (in both Simple and Expert view, so a
+  stale plugins directory or backup folder can be fixed without switching mode). Every page
   opens with a 52 px kit header (`PageHeader.qml`: breadcrumb, title, status
   chips, actions) and the window ends in a 26 px status bar (`StatusBar.qml`).
   The rail starts collapsed in the Simple view and expanded in the Expert view;
@@ -93,6 +94,59 @@ inside a single folder, instead of a one-off file picker:
 
 This replaces the earlier experimental single-file backup/restore dialog and
 the `--enable-backup-restore` gate, which have been removed.
+
+### Backup & restore
+
+The *Backup & restore* panel at the bottom of the Backups page backs up or
+restores the **currently connected** database to any `.zip` path
+(`AppController.backupRunner`):
+
+- **Connection** — the panel carries the same connection chip as the rest of
+  the tool, with a *Connect…* button that opens the Profile | DSN | Custom form
+  (`ConnectDialog.qml`) in a dialog, so no other page has to be visited first.
+  Back up and Restore… stay disabled until connected (the tooltip says why) and
+  while any other run is in flight.
+- **One progress, one outcome** — Back up and Restore are the same kind of run,
+  so they share `RunProgress.qml` (pill, "Table x of y", elapsed time, rows,
+  determinate bar) and `RunOutcome.qml` (tables, rows, duration, "Show in
+  folder"). Only the verbs differ.
+- **Partial runs are failures** — `SqlBackup::Backup`/`Restore` do not throw for
+  a failing table. `BackupRunner` counts those errors and reports such a run
+  as failed with the failing tables and their reasons listed
+  (`BackupRunner.lastResult`), never as a success.
+- **Typed confirmation** — *Restore…* requires typing the name of the database
+  being overwritten, like the per-profile restore.
+- **Result in the detail panel** — the detail region beside the profile table
+  follows a Backup & restore run: while it runs, and until its outcome is
+  dismissed, it lists that run's tables and failures (`BackupRunner.tables`, the
+  same per-table model the managed runs use). Pinning a profile row, or a managed
+  run starting, takes the region back.
+- **Which database it names** — every "connected to …" label reads
+  `AppController.connectedTarget` (the profile, DSN or database actually open),
+  never the *selected* profile, which a DSN or connection-string connection
+  leaves untouched. Each run also records its target in `lastResult`, so an
+  outcome keeps naming the database it ran against after you connect elsewhere.
+
+### Adding profiles
+
+A database without a profile has no row in the profile table, so it cannot be
+backed up or restored from there. Profiles can be added without leaving the GUI:
+
+- **Save as profile…** — shown next to the connection (the connection panel, and
+  the Backup & restore panel) once a DSN or connection-string connection is open.
+  It keeps exactly that connection; the user only names it and chooses whether
+  its password is stored. The password never reaches QML.
+- **Add profile…** — in the profile table's header, for a data source or
+  connection string that has not been connected yet.
+
+Both go through `AppController.addProfile`, which uses the same
+`Config::AddProfileToFile` as `dbtool add-profile`: the password (a `PWD=` inside
+a connection string included) is encrypted before it touches the file, the rest
+of `dbtool.yml` — comments, ordering — is left as it was, and the write is
+atomic. The profile goes into the file the GUI loaded, else the one chosen in
+Settings, else the default location. Adding a profile never changes the open
+connection or the selected profile, and is refused while a migration, backup or
+restore is running (the reload would reset the status those runs report into).
 
 ### Known limitations
 
