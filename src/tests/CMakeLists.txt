@@ -47,6 +47,7 @@ set(SOURCE_FILES
     Ddl2CppColumnTypeTests.cpp
     PluginDiscoveryTests.cpp
     PluginIngestionTests.cpp
+    ProfileAddTests.cpp
     ProfileFileEditorTests.cpp
     ProfilePasswordTests.cpp
     ProfileCipherTests.cpp
