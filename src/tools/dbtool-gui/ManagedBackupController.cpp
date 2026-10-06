@@ -349,7 +349,18 @@ QString ManagedBackupController::effectiveBackupFolder() const
 
 QString ManagedBackupController::defaultBackupFolder() const
 {
+    if (!_configuredBackupFolder.isEmpty())
+        return _configuredBackupFolder;
     return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + QStringLiteral("/backups");
+}
+
+void ManagedBackupController::setConfiguredBackupFolder(QString const& folder)
+{
+    if (_configuredBackupFolder == folder)
+        return;
+    _configuredBackupFolder = folder;
+    emit backupFolderChanged();
+    refreshStatus();
 }
 
 void ManagedBackupController::setProfiles(std::vector<Lightweight::Config::Profile> profiles)
