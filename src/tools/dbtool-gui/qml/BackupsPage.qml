@@ -39,7 +39,6 @@ import QtQuick.Controls
 import QtQuick.Dialogs
 import QtQuick.Layouts
 import Lightweight.Migrations
-import "RunFormat.js" as RunFormat
 
 Rectangle {
     id: root

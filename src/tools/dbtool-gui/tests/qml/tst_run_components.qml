@@ -8,7 +8,6 @@
 import QtQuick
 import QtTest
 import Lightweight.Migrations
-import "../../qml/RunFormat.js" as RunFormat
 
 TestCase {
     id: root

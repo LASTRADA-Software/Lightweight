@@ -124,7 +124,7 @@ set(MIGRATIONS_GUI_QML_FILES
     qml/RunProgress.qml
     qml/RunOutcome.qml
     qml/ConnectDialog.qml
-    qml/RunFormat.js
+    qml/RunFormat.qml
 )
 
 # A reusable QML module so the migrations view can be embedded by other Qt
@@ -133,7 +133,7 @@ set(MIGRATIONS_GUI_QML_FILES
 # generated qmldir so `Theme` resolves without an explicit instantiation.
 # The property MUST be set before `qt_add_qml_module` — the module generator
 # reads it when it builds the qmldir, and post-hoc changes are ignored.
-set_source_files_properties(qml/Theme.qml PROPERTIES
+set_source_files_properties(qml/Theme.qml qml/RunFormat.qml PROPERTIES
     QT_QML_SINGLETON_TYPE TRUE
 )
 

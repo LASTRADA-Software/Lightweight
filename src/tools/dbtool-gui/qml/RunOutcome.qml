@@ -19,7 +19,6 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Lightweight.Migrations
-import "RunFormat.js" as RunFormat
 
 ColumnLayout {
     id: root
