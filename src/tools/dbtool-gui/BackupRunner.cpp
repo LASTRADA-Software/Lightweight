@@ -53,6 +53,17 @@ namespace
     /// Longest failed-table list kept in a result; further failures are only counted.
     constexpr std::size_t kMaxListedFailures = 50;
 
+    /// Whether a progress event's table name names a table. SqlBackup reports failures that
+    /// belong to the run rather than to one table (archive creation, a crashed worker) with no
+    /// name, or under the placeholder name "Unknown"; neither is a table, and counting them as
+    /// one made such a run read "1 of 1 tables failed" with an "Unknown" row.
+    /// @param tableName The name carried by the event.
+    /// @return True for a real table name.
+    [[nodiscard]] bool NamesATable(std::string const& tableName) noexcept
+    {
+        return !tableName.empty() && tableName != "Unknown";
+    }
+
     /// What one finished run amounts to, computed on the worker thread.
     struct RunSummary
     {
@@ -112,17 +123,18 @@ namespace
                 // announced is table progress. Errors are different: every one
                 // is a failure whatever it names or when it arrives, so none is
                 // dropped by that filter.
-                auto const isTableEvent = !p.tableName.empty() && _announcedTotal > 0;
+                auto const named = NamesATable(p.tableName);
+                auto const isTableEvent = named && _announcedTotal > 0;
                 if (isTableEvent)
                     progressTable = table;
                 // Errors always show: one that names no table lands on a "(general)" row so
                 // it is visible beside the tables rather than only in the outcome banner.
                 if (isTableEvent || p.state == State::Error)
-                    modelTable = p.tableName.empty() ? std::string { "(general)" } : p.tableName;
+                    modelTable = named ? p.tableName : std::string { "(general)" };
                 if (p.state == State::Error)
                 {
-                    NoteFailureLocked(p.tableName, table, message);
-                    if (!p.tableName.empty())
+                    NoteFailureLocked(named ? p.tableName : std::string {}, named ? table : QString {}, message);
+                    if (named)
                         _terminal.insert(p.tableName);
                 }
                 else if (p.state == State::Finished && isTableEvent)

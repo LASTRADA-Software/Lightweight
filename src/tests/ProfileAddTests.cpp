@@ -107,8 +107,8 @@ TEST_CASE("AddProfileToFile creates the file and stores a DSN profile with an en
     INFO(ErrorOf(added));
     REQUIRE(added.has_value());
     auto const text = dir.Read();
-    CHECK(text.find("s3cret!") == std::string::npos); // never in the clear
-    CHECK(text.find("enc:") != std::string::npos);
+    CHECK_FALSE(text.contains("s3cret!")); // never in the clear
+    CHECK(text.contains("enc:"));
 
     auto const store = dir.Load();
     auto const* profile = store.Find("warehouse");
@@ -138,12 +138,12 @@ TEST_CASE("AddProfileToFile moves a password out of the connection string and st
     REQUIRE(
         Cfg::AddProfileToFile(dir.File(), request, Cfg::ReplaceExisting::No, Cfg::MakeDefault::No, DevCipher()).has_value());
 
-    CHECK(dir.Read().find("hunter2") == std::string::npos);
+    CHECK_FALSE(dir.Read().contains("hunter2"));
     auto const store = dir.Load();
     auto const* profile = store.Find("dev");
     REQUIRE(profile != nullptr);
-    CHECK(profile->connectionString.find("PWD") == std::string::npos);
-    CHECK(profile->connectionString.find("SERVER=db1") != std::string::npos);
+    CHECK_FALSE(profile->connectionString.contains("PWD"));
+    CHECK(profile->connectionString.contains("SERVER=db1"));
     auto const resolved = Cfg::ResolveProfilePassword(*profile, DevCipher(), Secrets::SecretResolver {});
     REQUIRE(resolved.has_value());
     CHECK(resolved->value == "hunter2");
@@ -178,7 +178,7 @@ TEST_CASE("AddProfileToFile writes no password for a profile without one", "[pro
     REQUIRE(
         Cfg::AddProfileToFile(dir.File(), request, Cfg::ReplaceExisting::No, Cfg::MakeDefault::No, DevCipher()).has_value());
 
-    CHECK(dir.Read().find("enc:") == std::string::npos);
+    CHECK_FALSE(dir.Read().contains("enc:"));
     CHECK(dir.Load().Find("warehouse")->password.empty());
 }
 
@@ -191,8 +191,8 @@ TEST_CASE("AddProfileToFile keeps the rest of an existing file, comments include
                 .has_value());
 
     auto const text = dir.Read();
-    CHECK(text.find("# team profiles") != std::string::npos);
-    CHECK(text.find("# the main one") != std::string::npos);
+    CHECK(text.contains("# team profiles"));
+    CHECK(text.contains("# the main one"));
     auto const store = dir.Load();
     CHECK(store.Find("prod") != nullptr);
     CHECK(store.Find("warehouse") != nullptr);
@@ -259,8 +259,8 @@ TEST_CASE("SplitInlinePassword leaves a connection string without a password alo
 
     auto const braced = Cfg::SplitInlinePassword("DRIVER=x;PWD={p;w};UID=u");
     CHECK(braced.password == "p;w");
-    CHECK(braced.connectionString.find("PWD") == std::string::npos);
-    CHECK(braced.connectionString.find("UID=u") != std::string::npos);
+    CHECK_FALSE(braced.connectionString.contains("PWD"));
+    CHECK(braced.connectionString.contains("UID=u"));
 }
 
 TEST_CASE("AddProfileToFile stores awkward but plausible profile names faithfully", "[profile-add]")

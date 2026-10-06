@@ -191,6 +191,7 @@ ApplicationWindow {
 
         NavRail {
             id: rail
+            objectName: "navRail"
             Layout.fillHeight: true
             Layout.preferredWidth: implicitWidth
             items: root.railItems

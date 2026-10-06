@@ -389,6 +389,42 @@ TEST_CASE("BackupRunner fills the per-table model the detail panel shows", "[dbt
     CHECK(sawGeneralRow);
 }
 
+// SqlBackup reports a failure of the run itself (archive creation, a crashed worker) under the
+// placeholder table name "Unknown". That is not a table: it must not become a table row or count as
+// a failed table, but it must still fail the run.
+TEST_CASE("BackupRunner treats the library's \"Unknown\" table name as a run-level error", "[dbtool-gui][backup-runner]")
+{
+    BackupRunner runner;
+    runner.setBackupOperation([](std::filesystem::path const&, std::string const&, ProgressManager& progress) {
+        progress.SetTotalTables(2);
+        Copied(progress, "orders", 1);
+        Copied(progress, "invoices", 1);
+        Failed(progress, "Unknown", "Backup failed: Unknown error");
+    });
+    QSignalSpy done(&runner, &BackupRunner::finished);
+
+    runner.runBackup(QStringLiteral("a.zip"));
+    REQUIRE(WaitFor(done));
+
+    CHECK_FALSE(done.first().at(0).toBool());
+    auto const& result = runner.lastResult();
+    CHECK(result.value("failedCount").toInt() == 0);
+    CHECK(result.value("otherErrors").toInt() == 1);
+    CHECK(result.value("tables").toInt() == 2); // not 3: "Unknown" is not a table
+    auto const failures = result.value("failedTables").toList();
+    REQUIRE(failures.size() == 1);
+    CHECK(failures.first().toMap().value("table").toString().isEmpty());
+    CHECK(failures.first().toMap().value("reason").toString().contains("Unknown error"));
+    CHECK(Text(result, "summary").contains("Backup finished with 1 error"));
+
+    auto* tables = runner.tables();
+    bool sawUnknownRow = false;
+    for (int row = 0; row < tables->rowCount(); ++row)
+        sawUnknownRow = sawUnknownRow
+                        || tables->data(tables->index(row, 0), BackupTableListModel::TableNameRole).toString() == "Unknown";
+    CHECK_FALSE(sawUnknownRow);
+}
+
 TEST_CASE("BackupRunner starts every run with an empty per-table model", "[dbtool-gui][backup-runner]")
 {
     BackupRunner runner;
