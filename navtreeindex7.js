@@ -85,6 +85,7 @@ var NAVTREEINDEX7 =
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup--restore":[9,4],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup-before-migration":[9,7,1],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup-diff":[9,4,2],
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup-folder-defaultbackupdir--backupdir":[9,2,2,0],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#building-from-source":[9,1,1],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#checksum-mismatches":[9,8,1],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#command-line-options-reference":[9,5],
@@ -248,6 +249,5 @@ var NAVTREEINDEX7 =
 "de/dae/classLightweight_1_1SqlFixedString.html#a7858ea6af047117649390bab07b7a451":[19,1,6,41],
 "de/dae/classLightweight_1_1SqlFixedString.html#a7d338b350d06d625b14100a027d58fb3":[19,1,6,5],
 "de/dae/classLightweight_1_1SqlFixedString.html#a81ce36e1f50e73ca69cab4145bd86fb3":[19,1,6,7],
-"de/dae/classLightweight_1_1SqlFixedString.html#a8b36cef2fb27cb9a12e93c2dbce19ffe":[19,1,6,32],
-"de/dae/classLightweight_1_1SqlFixedString.html#a9a0a5a2905dd9edbb54f9ef32a84a00a":[19,1,6,37]
+"de/dae/classLightweight_1_1SqlFixedString.html#a8b36cef2fb27cb9a12e93c2dbce19ffe":[19,1,6,32]
 };

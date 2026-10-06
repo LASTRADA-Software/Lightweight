@@ -189,7 +189,9 @@ var NAVTREE =
       [ "Configuration", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#configuration", [
         [ "Connection String", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#connection-string", null ],
         [ "Where dbtool finds <tt>dbtool.yml</tt>", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#where-dbtool-finds-dbtoolyml", null ],
-        [ "Configuration File Format", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#configuration-file-format", null ],
+        [ "Configuration File Format", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#configuration-file-format", [
+          [ "Backup folder (<tt>defaultBackupDir</tt> / <tt>backupDir</tt>)", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup-folder-defaultbackupdir--backupdir", null ]
+        ] ],
         [ "Profile passwords", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#profile-passwords", [
           [ "Security model", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#security-model", null ],
           [ "Providing the master key at build time", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#providing-the-master-key-at-build-time", null ]
@@ -400,8 +402,8 @@ var NAVTREEINDEX =
 "d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8aa8156810bfee2bd2b44765b9e91db3bd",
 "da/df2/classLightweight_1_1SqlRequireLoadedError.html#a48cd904e3bec196925b2d3ba4453ffcf",
 "dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#a1357ddddc9888c3e784c6d96646b0c6a",
-"de/dae/classLightweight_1_1SqlFixedString.html#a9adaaa71363ba9a552cce9753bcddbe9",
-"functions_func_w.html"
+"de/dae/classLightweight_1_1SqlFixedString.html#a9a0a5a2905dd9edbb54f9ef32a84a00a",
+"functions_func_v.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

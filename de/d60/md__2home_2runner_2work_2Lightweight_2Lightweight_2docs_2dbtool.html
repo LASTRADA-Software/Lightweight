@@ -170,9 +170,11 @@ Configuration File Format</h2>
 <div class="fragment"><div class="line">defaultProfile: prod</div>
 <div class="line">defaultPluginsDir: ./plugins        # store-wide fallback for any profile</div>
 <div class="line">                                    # that omits its own `pluginsDir`</div>
+<div class="line">defaultBackupDir: D:/backups        # store-wide fallback backup folder</div>
 <div class="line">profiles:</div>
 <div class="line">  prod:</div>
 <div class="line">    schema: dbo</div>
+<div class="line">    backupDir: D:/backups/prod      # per-profile override of defaultBackupDir</div>
 <div class="line">    connectionString: &quot;DRIVER={ODBC Driver 18 for SQL Server};Server=...;Database=prod&quot;</div>
 <div class="line">  dev:</div>
 <div class="line">    pluginsDir: ./dev-plugins       # per-profile override</div>
@@ -185,6 +187,15 @@ Configuration File Format</h2>
 <p>Pass <code>--verbose</code> (<code>-v</code>) to see one stderr line per discarded duplicate, e.g.:</p>
 <div class="fragment"><div class="line">plugin &#39;pricing.dll&#39; from ./plugins/pricing.dll shadowed by /opt/lightweight/plugins/pricing.dll (newer mtime)</div>
 </div><!-- fragment --><p>The effective plugin directory for a given run resolves as: <code>--plugins-dir</code> CLI option → profile's own <code>pluginsDir</code> → top-level <code>defaultPluginsDir</code> (possibly a list) → current working directory.</p>
+<h3><a class="anchor" id="backup-folder-defaultbackupdir--backupdir"></a>
+Backup folder (&lt;tt&gt;defaultBackupDir&lt;/tt&gt; / &lt;tt&gt;backupDir&lt;/tt&gt;)</h3>
+<p><code>defaultBackupDir</code> names a folder backups are written to, and a profile can override it with its own <code>backupDir</code>. This lets a deployment (an installer, say) pre-configure where backups go, so <code>dbtool</code> and <code>dbtool-gui</code> use the same folder without every user setting it up. The effective folder resolves like <code>pluginsDir</code>: the profile's own <code>backupDir</code> → top-level <code>defaultBackupDir</code> → none (the behaviour described below for <code>--output</code>).</p>
+<ul>
+<li><a class="el" href="../../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup">`dbtool backup`</a> uses it for a bare file name in <code>--output</code>, or for a generated name when <code>--output</code> is omitted. A path with a directory part is used exactly as given. The folder is created when it is missing.</li>
+<li><code>dbtool-gui</code> uses <code>defaultBackupDir</code> as its default backup folder, unless a folder was chosen in its Settings. It keeps every profile's archive in one folder, so a per-profile <code>backupDir</code> is not used there.</li>
+<li>As with the other profile defaults, a run that gives <code>--connection-string</code> without <code>--profile</code> applies no profile and therefore no backup folder.</li>
+<li>Relative paths are used as written, i.e. relative to the working directory.</li>
+</ul>
 <h2><a class="anchor" id="profile-passwords"></a>
 Profile passwords</h2>
 <p>A profile can carry its password in <code>dbtool.yml</code>. dbtool stores it <b>encrypted</b>:</p>
@@ -233,10 +244,11 @@ Inspecting configured profiles</h2>
 <div class="fragment"><div class="line">$ dbtool list-profiles</div>
 <div class="line">Profiles (from /home/me/project/dbtool.yml, found via current directory):</div>
 <div class="line"> </div>
-<div class="line">NAME  DEFAULT  CONNECTION                            AUTH       SCHEMA  PLUGINSDIR</div>
-<div class="line">prod  *        DRIVER={ODBC Driver 18 for SQL Se...  encrypted  dbo     ./migrations</div>
-<div class="line">dev            DRIVER=SQLite3;Database=dev.db        -                  ./dev-plugins</div>
-</div><!-- fragment --><p>Use <code>--config &lt;FILE&gt;</code> to inspect a non-default configuration file. When no config file is found, <code>list-profiles</code> prints where it looked and exits successfully.</p>
+<div class="line">NAME  DEFAULT  CONNECTION                            AUTH       SCHEMA  PLUGINSDIR      BACKUPDIR</div>
+<div class="line">prod  *        DRIVER={ODBC Driver 18 for SQL Se...  encrypted  dbo     ./migrations    D:/backups/prod</div>
+<div class="line">dev            DRIVER=SQLite3;Database=dev.db        -                  ./dev-plugins   D:/backups</div>
+</div><!-- fragment --><p><code>BACKUPDIR</code> is the profile's effective backup folder: its own <code>backupDir</code>, else <code>defaultBackupDir</code>.</p>
+<p>Use <code>--config &lt;FILE&gt;</code> to inspect a non-default configuration file. When no config file is found, <code>list-profiles</code> prints where it looked and exits successfully.</p>
 <h2><a class="anchor" id="database-specific-connection-strings"></a>
 Database-Specific Connection Strings</h2>
 <p><b>SQLite:</b> </p><div class="fragment"><div class="line">DRIVER=SQLite3;Database=/path/to/database.db</div>
@@ -372,7 +384,7 @@ add-profile</h2>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--uid &lt;UID&gt;</code>   </td><td class="markdownTableBodyNone">User name for a DSN profile    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>--schema &lt;S&gt;</code>, <code>--plugins-dir &lt;DIR&gt;</code>   </td><td class="markdownTableBodyNone">Stored on the profile    </td></tr>
+<td class="markdownTableBodyNone"><code>--schema &lt;S&gt;</code>, <code>--plugins-dir &lt;DIR&gt;</code>, <code>--backup-dir &lt;DIR&gt;</code>   </td><td class="markdownTableBodyNone">Stored on the profile (<code>--backup-dir</code> becomes its <code>backupDir</code>)    </td></tr>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--no-password</code>   </td><td class="markdownTableBodyNone">Store the profile without a password    </td></tr>
 <tr class="markdownTableRowEven">
@@ -394,7 +406,17 @@ Backup &amp; Restore</h1>
 backup</h2>
 <p>Create a compressed backup of the database:</p>
 <div class="fragment"><div class="line">dbtool backup --output backup.zip --compression zstd --jobs 4</div>
-</div><!-- fragment --><p><b>Compression methods:</b> <code>none</code>, <code>deflate</code>, <code>bzip2</code>, <code>lzma</code>, <code>zstd</code>, <code>xz</code></p>
+</div><!-- fragment --><p><b>Where the file goes.</b> When <code>dbtool.yml</code> names a backup folder for the selected profile (<a class="el" href="../../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup-folder-defaultbackupdir--backupdir">`backupDir` / `defaultBackupDir`</a>):</p>
+<div class="fragment"><div class="line"># a bare file name is written into that folder</div>
+<div class="line">dbtool backup --profile prod --output nightly.zip</div>
+<div class="line"> </div>
+<div class="line"># no --output: writes &lt;profile&gt;-&lt;YYYYMMDD-HHMMSS&gt;.zip (local time) into that folder</div>
+<div class="line">dbtool backup --profile prod</div>
+<div class="line"> </div>
+<div class="line"># a path with a directory part is used exactly as given</div>
+<div class="line">dbtool backup --profile prod --output D:/exports/once.zip</div>
+</div><!-- fragment --><p>The folder is created if it is missing, and the file that was written is printed. Without a configured folder <code>--output</code> is required and is used as given.</p>
+<p><b>Compression methods:</b> <code>none</code>, <code>deflate</code>, <code>bzip2</code>, <code>lzma</code>, <code>zstd</code>, <code>xz</code></p>
 <p><b>Filter tables with wildcards:</b></p>
 <div class="fragment"><div class="line"># Backup specific tables</div>
 <div class="line">dbtool backup --output backup.zip --filter-tables=Users,Products</div>
@@ -438,7 +460,7 @@ Command-Line Options Reference</h1>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>--plugins-dir &lt;DIR&gt;</code>   </td><td class="markdownTableBodyNone">Directory to scan for migration plugins   </td><td class="markdownTableBodyNone"><code>.</code> (current directory)    </td></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>--output &lt;FILE&gt;</code>   </td><td class="markdownTableBodyNone">Output file for backup   </td><td class="markdownTableBodyNone"></td></tr>
+<td class="markdownTableBodyNone"><code>--output &lt;FILE&gt;</code>   </td><td class="markdownTableBodyNone">Output file for backup. A bare file name, or no <code>--output</code>, goes into the profile's <code>backupDir</code> / <code>defaultBackupDir</code> when one is configured   </td><td class="markdownTableBodyNone"></td></tr>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>--input &lt;FILE&gt;</code>   </td><td class="markdownTableBodyNone">Input file for restore   </td><td class="markdownTableBodyNone"></td></tr>
 <tr class="markdownTableRowOdd">
