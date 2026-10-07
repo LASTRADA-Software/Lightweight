@@ -2,6 +2,7 @@
 
 #include "ManagedBackupController.hpp"
 #include "ManagedBackupCore.hpp"
+#include "TableState.hpp"
 
 #include <Lightweight/SqlBackup.hpp>
 #include <Lightweight/SqlConnectInfo.hpp>
@@ -118,24 +119,6 @@ namespace
             default:
                 return LogLevel::Info;
         }
-    }
-
-    /// Maps a Progress state onto the per-table model's state string.
-    [[nodiscard]] QString TableStateString(Lightweight::SqlBackup::Progress::State state)
-    {
-        switch (state)
-        {
-            case Lightweight::SqlBackup::Progress::State::Started:
-            case Lightweight::SqlBackup::Progress::State::InProgress:
-                return QStringLiteral("running");
-            case Lightweight::SqlBackup::Progress::State::Finished:
-                return QStringLiteral("done");
-            case Lightweight::SqlBackup::Progress::State::Error:
-                return QStringLiteral("error");
-            case Lightweight::SqlBackup::Progress::State::Warning:
-                return QStringLiteral("warning");
-        }
-        return QStringLiteral("running");
     }
 
     /// ProgressManager that forwards SqlBackup progress onto a target

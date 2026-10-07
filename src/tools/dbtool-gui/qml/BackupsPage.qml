@@ -17,8 +17,12 @@
 //        owns the column's flexible height and scrolls internally (hundreds of
 //        profiles). Clicking a row pins the detail region to it; clicking it
 //        again unpins (auto-follow the running profile).
-//     3. Custom archive — back up / restore the *currently connected* database
-//        to an arbitrary archive path via `AppController.backupRunner`.
+//     3. Backup & restore — back up / restore the *currently connected* database
+//        to an arbitrary archive path via `AppController.backupRunner`. It
+//        carries the same connection chip as the rest of the tool, with a
+//        Connect… dialog so no other page is needed first; shows a run's
+//        progress (RunProgress) and outcome (RunOutcome) — Back up and Restore
+//        look the same; and is disabled while any other run is in flight.
 //
 //   DETAIL REGION
 //     BackupDetailPanel — the live per-table view for the selected profile.
@@ -65,6 +69,59 @@ Rectangle {
     readonly property bool _canRunCustom: AppController.backupRunner.phase === BackupRunner.Idle
                                           && _managed.phase === ManagedBackupController.Idle
                                           && AppController.runner.phase === MigrationRunner.Idle
+
+    // Backup & restore panel state. The actions need a connection (the runner uses the
+    // one `AppController` opened) and an otherwise idle tool.
+    readonly property bool _customRunning: AppController.backupRunner.phase !== BackupRunner.Idle
+    readonly property bool _customReady: AppController.connected && _canRunCustom
+    // Another runner (migration / managed backup) holds the databases, so the
+    // panel waits rather than offering actions that would be refused.
+    readonly property bool _customBlocked: !_canRunCustom && !_customRunning
+    // Why the actions are disabled, for the hover tooltip; empty when they are not.
+    readonly property string _customDisabledReason:
+        _customReady || _customRunning ? ""
+        : (_customBlocked ? qsTr("Another run is in progress. This is available again when it finishes.")
+                          : qsTr("Connect to a database first — Back up writes this connection's data to the file."))
+    // The outcome banner stays until dismissed or the next run starts.
+    property bool _outcomeDismissed: false
+    // The detail region on the right follows a Backup & restore run too: while it runs,
+    // and after it ends until its outcome is dismissed, it shows that run's tables and
+    // failures. Pinning a profile row, or a managed run starting, takes the region back.
+    readonly property bool _customShown:
+        _pinnedProfile === "" && !_managedRunning
+        && (_customRunning
+            || (!_outcomeDismissed && AppController.backupRunner.lastResult.operation !== undefined))
+    readonly property string _customDetailTitle: {
+        const last = AppController.backupRunner.lastResult
+        const isBackup = _customRunning ? AppController.backupRunner.operation === BackupRunner.Backup
+                                        : last.operation === "backup"
+        const target = _customRunning ? AppController.connectedTarget : (last.target || "")
+        const verb = isBackup ? qsTr("Backup") : qsTr("Restore")
+        return target !== "" ? qsTr("%1 — %2").arg(verb).arg(target) : verb
+    }
+    readonly property string _customDetailState:
+        _customRunning ? "running" : (AppController.backupRunner.lastResult.ok === true ? "ok" : "failed")
+    // Elapsed time of the run in flight, refreshed by `elapsedTimer`.
+    property real _elapsedMs: 0
+
+    Connections {
+        target: AppController.backupRunner
+        function onPhaseChanged() {
+            if (AppController.backupRunner.phase !== BackupRunner.Idle)
+                root._outcomeDismissed = false
+        }
+    }
+    Timer {
+        id: elapsedTimer
+        interval: 500
+        repeat: true
+        running: root._customRunning
+        triggeredOnStart: true
+        onTriggered: {
+            const started = AppController.backupRunner.startedAt
+            root._elapsedMs = started ? Date.now() - started.getTime() : 0
+        }
+    }
 
     // Case-insensitive name filter over the profile table, driven by the
     // search field in the panel header. Filtering happens in C++ (see
@@ -280,49 +337,6 @@ Rectangle {
         }
     }
 
-    // Kit text field (`k-ctl`): 32 px, hairline field border, brand border and
-    // tint on focus, the read-only palette when `readOnly`, error border when
-    // `invalid`. An optional leading glyph sits inside the field.
-    component KitField: TextField {
-        id: field
-        property bool mono: false
-        property bool invalid: false
-        property string leadingGlyph: ""
-
-        implicitHeight: Theme.ctlMd
-        font: mono ? Theme.monoFont(12) : Qt.font({ family: Theme.fontFamily, pixelSize: Theme.sizeBody })
-        leftPadding: leadingGlyph !== "" ? 30 : 10
-        rightPadding: 10
-        topPadding: 0
-        bottomPadding: 0
-        verticalAlignment: TextInput.AlignVCenter
-        color: readOnly ? Theme.clrFieldRoText : Theme.clrOnSurface
-        placeholderTextColor: Theme.clrOnSurfaceFaint
-        selectionColor: Theme.clrPrimarySoftBorder
-        selectedTextColor: Theme.clrOnSurface
-        selectByMouse: true
-
-        background: Rectangle {
-            radius: Theme.r1
-            color: field.readOnly ? Theme.clrFieldRoBg
-                 : (field.activeFocus ? Theme.clrFieldFocusBg : Theme.clrCard)
-            border.color: field.invalid ? Theme.clrError
-                        : field.activeFocus ? Theme.clrPrimary
-                        : (field.readOnly ? Theme.clrFieldRoBorder : Theme.clrFieldBorder)
-
-            Glyph {
-                visible: field.leadingGlyph !== ""
-                anchors.left: parent.left
-                anchors.leftMargin: 10
-                anchors.verticalCenter: parent.verticalCenter
-                name: field.leadingGlyph
-                size: 14
-                color: Theme.clrOnSurfaceSubtle
-                knockout: parent.color
-            }
-        }
-    }
-
     // Kit table header cell label (10 px bold uppercase).
     component ThLabel: Label {
         color: Theme.clrOnSurfaceSubtle
@@ -521,7 +535,7 @@ Rectangle {
                 columnSpacing: 14
                 rowSpacing: 14
 
-                // ---------- Main column: folder, profile table, custom archive ----------
+                // ---------- Main column: folder, profile table, backup & restore ----------
                 ColumnLayout {
                     id: leftRail
                     Layout.fillWidth: true
@@ -655,6 +669,17 @@ Rectangle {
                                         elide: Text.ElideRight
                                     }
 
+                                    // Without a profile a database has no row here, so
+                                    // adding one lives next to the table.
+                                    LsButton {
+                                        objectName: "addProfileButton"
+                                        variant: "ghost"
+                                        size: "sm"
+                                        glyph: "plus"
+                                        text: qsTr("Add profile…")
+                                        onClicked: saveProfileDialog.openBlank()
+                                    }
+
                                     // Name filter (case-insensitive substring),
                                     // so the wanted profile is found without
                                     // scrolling a long table.
@@ -771,8 +796,8 @@ Rectangle {
                                     name: model.name
                                     connectionString: root.redact(root._profileConnectionStrings[model.name] || "")
                                     current: AppController.connected
-                                             && AppController.connectionMode === "profile"
-                                             && AppController.currentProfile === model.name
+                                             && AppController.connectedMode === "profile"
+                                             && AppController.connectedTarget === model.name
                                     pillStatus: root.pillStatus(rowRunState, rowArchiveExists)
                                     pillLabel: root.pillLabel(rowRunState, rowArchiveExists)
                                     meta: root.rowMeta(rowRunState, rowArchiveExists, model.archiveMtime,
@@ -782,7 +807,7 @@ Rectangle {
                                     metaIsError: rowRunState === "failed"
                                     metaMuted: rowRunState === "queued" || (!rowArchiveExists && rowRunState !== "ok")
                                     sizeText: rowArchiveExists ? root.formatSize(model.archiveSize) : ""
-                                    selected: root._detailProfile === model.name
+                                    selected: !root._customShown && root._detailProfile === model.name
                                     running: rowRunState === "running"
                                     progress: rowTablesTotal > 0 ? rowTablesDone / rowTablesTotal : 0
                                     progressIndeterminate: rowTablesTotal <= 0
@@ -816,7 +841,7 @@ Rectangle {
                                     wrapMode: Text.WordWrap
                                     text: profileSearch.text.length > 0
                                           ? qsTr("No profiles match “%1”.").arg(profileSearch.text)
-                                          : qsTr("No profiles loaded. Set the dbtool.yml location in Settings.")
+                                          : qsTr("No profiles yet. Use Add profile… above, or set the dbtool.yml location in Settings.")
                                     color: Theme.clrOnSurfaceSubtle
                                     font.pixelSize: Theme.sizeBodySm
                                 }
@@ -880,12 +905,41 @@ Rectangle {
                         }
                     }
 
-                    // --- 3. Custom archive ---
+                    // --- 3. Backup & restore ---
                     Card {
+                        id: customCard
+                        objectName: "customArchiveCard"
                         Layout.fillWidth: true
-                        title: qsTr("Custom archive")
+                        title: qsTr("Backup & restore")
                         glyph: "upload"
-                        meta: qsTr("uses the current connection")
+                        meta: qsTr("any .zip")
+                        headerActions: [
+                            StatusPill {
+                                visible: root._customRunning
+                                status: "running"
+                                label: AppController.backupRunner.operation === BackupRunner.Backup
+                                       ? qsTr("Backing up") : qsTr("Restoring")
+                                tooltipText: " "
+                            },
+                            ConnectionChip {},
+                            LsButton {
+                                objectName: "customSaveProfileButton"
+                                variant: "ghost"
+                                glyph: "plus"
+                                text: qsTr("Save as profile…")
+                                visible: AppController.connected && AppController.connectedMode !== "profile"
+                                enabled: !root._customRunning
+                                onClicked: saveProfileDialog.openForConnection()
+                            },
+                            LsButton {
+                                objectName: "customConnectButton"
+                                variant: AppController.connected ? "ghost" : "secondary"
+                                glyph: AppController.connected ? "" : "database"
+                                text: AppController.connected ? qsTr("Change…") : qsTr("Connect…")
+                                enabled: !root._customRunning
+                                onClicked: connectDialog.open()
+                            }
+                        ]
 
                         RowLayout {
                             width: parent.width
@@ -893,45 +947,90 @@ Rectangle {
 
                             KitField {
                                 id: customPathField
+                                objectName: "customPathField"
                                 Layout.fillWidth: true
                                 Layout.minimumWidth: 120
                                 mono: true
                                 leadingGlyph: "folder-outline"
                                 placeholderText: qsTr("/path/to/backup.zip")
+                                enabled: !root._customRunning
                             }
                             LsButton {
                                 variant: "secondary"
                                 size: "md"
                                 text: qsTr("Browse…")
+                                enabled: !root._customRunning
                                 onClicked: customArchiveDialog.open()
                             }
-                            LsButton {
-                                variant: "secondary"
-                                size: "md"
-                                text: qsTr("Back up")
-                                // Gated on the managed controller too: an ad-hoc
-                                // backup started during a managed backup-all run
-                                // competes for the same database.
-                                enabled: customPathField.text.length > 0 && root._canRunCustom
-                                ToolTip.visible: hovered
-                                ToolTip.delay: 500
+                            // One hover target over both actions: a disabled
+                            // button does not report hover itself, and the
+                            // tooltip is exactly what a disabled button needs
+                            // to say — why.
+                            RowLayout {
+                                id: customActions
+                                spacing: 6
+                                HoverHandler { id: customActionsHover }
+                                ToolTip.visible: customActionsHover.hovered && root._customDisabledReason !== ""
+                                ToolTip.delay: 300
                                 ToolTip.timeout: 10000
-                                ToolTip.text: qsTr("Write a schema + data snapshot to the .zip above.")
-                                onClicked: AppController.backupRunner.runBackup(customPathField.text)
+                                ToolTip.text: root._customDisabledReason
+
+                                LsButton {
+                                    objectName: "customBackupButton"
+                                    variant: "secondary"
+                                    size: "md"
+                                    text: qsTr("Back up")
+                                    // Gated on the connection and on every other
+                                    // runner: an ad-hoc backup started during a
+                                    // managed backup-all run competes for the
+                                    // same database.
+                                    enabled: customPathField.text.length > 0 && root._customReady
+                                    onClicked: AppController.backupRunner.runBackup(customPathField.text)
+                                }
+                                LsButton {
+                                    // Named so the QML test can assert the click
+                                    // is routed through the confirmation dialog.
+                                    objectName: "customRestoreButton"
+                                    variant: "danger"
+                                    size: "md"
+                                    text: qsTr("Restore…")
+                                    enabled: customPathField.text.length > 0 && root._customReady
+                                    // The ellipsis is a promise: this must never
+                                    // fire on one click — same rule as the
+                                    // per-profile restore.
+                                    onClicked: customRestoreDialog.openFor(customPathField.text)
+                                }
                             }
-                            LsButton {
-                                // Named so the QML test can assert the click
-                                // is routed through the confirmation dialog.
-                                objectName: "customRestoreButton"
-                                variant: "danger"
-                                size: "md"
-                                text: qsTr("Restore…")
-                                enabled: customPathField.text.length > 0 && root._canRunCustom
-                                // The ellipsis is a promise: this must never
-                                // fire on one click — same rule as the
-                                // per-profile restore.
-                                onClicked: customRestoreDialog.openFor(customPathField.text)
-                            }
+                        }
+
+                        // Back up and Restore are the same kind of run, so they
+                        // share this progress block; only the pill's verb differs.
+                        RunProgress {
+                            objectName: "customProgress"
+                            width: parent.width
+                            visible: root._customRunning
+                            title: AppController.backupRunner.tablesTotal > 0
+                                   ? qsTr("Table %1 of %2 · %3")
+                                         .arg(Math.min(AppController.backupRunner.tablesDone + 1,
+                                                       AppController.backupRunner.tablesTotal))
+                                         .arg(AppController.backupRunner.tablesTotal)
+                                         .arg(AppController.backupRunner.currentTable)
+                                   : qsTr("Preparing…")
+                            detail: RunFormat.clock(root._elapsedMs) + " · "
+                                    + qsTr("%1 rows").arg(RunFormat.formatCount(AppController.backupRunner.rowsDone))
+                            value: AppController.backupRunner.tablesDone
+                            to: AppController.backupRunner.tablesTotal
+                        }
+
+                        RunOutcome {
+                            objectName: "customOutcome"
+                            width: parent.width
+                            visible: !root._customRunning && !root._outcomeDismissed
+                                     && AppController.backupRunner.lastResult.operation !== undefined
+                            result: AppController.backupRunner.lastResult
+                            target: AppController.connectedTarget
+                            onShowInFolder: AppController.revealInFolder(AppController.backupRunner.lastResult.archive)
+                            onDismissed: root._outcomeDismissed = true
                         }
 
                         // States the consequence before the click rather than
@@ -939,9 +1038,14 @@ Rectangle {
                         // and recreates every table of the connected database.
                         Label {
                             width: parent.width
-                            text: AppController.connected
-                                  ? qsTr("Restore… replaces every table of <b>%1</b>.").arg(AppController.currentProfile)
-                                  : qsTr("Restore… replaces every table of the connected database.")
+                            visible: !root._customRunning
+                            text: root._customBlocked
+                                  ? qsTr("Available again when the run above finishes.")
+                                  : (!AppController.connected
+                                     ? qsTr("Connect to a database to back up or restore an archive. The profile table above needs no connection.")
+                                     : (AppController.connectedTarget !== ""
+                                        ? qsTr("Restore… replaces every table of <b>%1</b>.").arg(AppController.connectedTarget)
+                                        : qsTr("Restore… replaces every table of the connected database.")))
                             color: Theme.clrOnSurfaceSubtle
                             font.pixelSize: Theme.sizeLabel
                             wrapMode: Text.WordWrap
@@ -959,9 +1063,9 @@ Rectangle {
                     Layout.preferredWidth: bodyArea.twoColumns ? 360 : -1
                     Layout.preferredHeight: bodyArea.twoColumns ? -1 : 280
                     Layout.minimumHeight: bodyArea.twoColumns ? 0 : 220
-                    profileName: root._detailProfile
-                    tablesModel: root._detailTablesModel
-                    overallState: root._detailRunState
+                    profileName: root._customShown ? root._customDetailTitle : root._detailProfile
+                    tablesModel: root._customShown ? AppController.backupRunner.tables : root._detailTablesModel
+                    overallState: root._customShown ? root._customDetailState : root._detailRunState
                     workerCount: root._workerCount
                 }
             }
@@ -1001,7 +1105,22 @@ Rectangle {
         }
     }
 
-    // Picks the custom archive path. A save dialog, because "Back up" needs a
+    // Adds a profile: from the open connection ("Save as profile…") or from scratch
+    // ("Add profile…").
+    SaveProfileDialog {
+        id: saveProfileDialog
+        objectName: "saveProfileDialog"
+    }
+
+    // Connection form for the Backup & restore panel (same one the Migrations
+    // page uses, so the chip updates everywhere).
+    ConnectDialog {
+        id: connectDialog
+        objectName: "connectDialog"
+        purpose: qsTr("Back up and Restore… on this page use this connection. It is the same one the Migrations page uses.")
+    }
+
+    // Picks the archive path for the Backup & restore panel. A save dialog, because "Back up" needs a
     // file that may not exist yet; overwrite confirmation is off because the
     // same path also feeds "Restore…", where the file is expected to exist.
     FileDialog {
@@ -1241,7 +1360,7 @@ Rectangle {
 
     // --- Destructive custom-archive restore confirmation ---
     //
-    // The "Restore…" button next to the custom archive path used to call
+    // The "Restore…" button next to the archive path used to call
     // `BackupRunner.runRestore` directly: one click, no confirmation, on a
     // surface that drops and recreates every table of the *connected*
     // database. Its ellipsis promises a dialog, so it gets one — the same kit
@@ -1252,14 +1371,30 @@ Rectangle {
 
         property string archivePath: ""
 
-        heading: qsTr("Restore into the connected database?")
-        subject: AppController.connected ? AppController.currentProfile : ""
-        confirmText: qsTr("Restore")
+        // The name the user must type: the connected profile, or a fixed word
+        // when the connection has no profile name (DSN / custom string).
+        // Empty while not connected, which keeps Restore disabled.
+        readonly property string confirmName:
+            !AppController.connected ? ""
+            : (AppController.connectedTarget !== "" ? AppController.connectedTarget : qsTr("restore"))
+        /// The typed-confirmation field, exposed for tests.
+        readonly property alias confirmField: customRestoreConfirmField
 
-        /// Populates and opens the dialog for a custom archive path.
+        heading: AppController.connected && AppController.connectedTarget !== ""
+                 ? qsTr("Restore %1 from this archive?").arg(AppController.connectedTarget)
+                 : qsTr("Restore into the connected database?")
+        subject: AppController.connected ? AppController.connectedTarget : ""
+        // Long names are shortened on the button only — the heading wraps and
+        // carries the full name.
+        confirmText: confirmName !== "" ? qsTr("Restore %1").arg(root.shorten(confirmName, 24))
+                                        : qsTr("Restore")
+        confirmEnabled: confirmName !== "" && customRestoreConfirmField.text === confirmName
+
+        /// Populates and opens the dialog for an archive path typed in the Backup & restore panel.
         /// @param path Archive file the user typed into the path field.
         function openFor(path) {
             archivePath = path
+            customRestoreConfirmField.text = ""
             open()
         }
 
@@ -1301,12 +1436,34 @@ Rectangle {
                 Label {
                     Layout.fillWidth: true
                     text: AppController.connected
-                          ? qsTr("the currently connected database (%1)").arg(AppController.currentProfile)
+                          ? qsTr("the currently connected database (%1)").arg(AppController.connectedTarget)
                           : qsTr("the currently connected database")
                     color: Theme.clrOnSurface
                     font.pixelSize: Theme.sizeBodySm
                     wrapMode: Text.WordWrap
                 }
+            }
+        }
+
+        // Typed confirmation: the red button stays disabled until the name of
+        // the database being overwritten is typed exactly — the same gate as
+        // the per-profile restore, so neither is one mis-aimed click away.
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 5
+
+            FieldLabel {
+                Layout.fillWidth: true
+                text: qsTr("Type <span style=\"font-family:'%1'; color:%2\">%3</span> to confirm")
+                      .arg(Theme.monoFamilies[0]).arg(Theme.clrOnSurface).arg(customRestoreDialog.confirmName)
+            }
+            KitField {
+                id: customRestoreConfirmField
+                objectName: "customRestoreConfirmField"
+                Layout.fillWidth: true
+                placeholderText: customRestoreDialog.confirmName
+                inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText
+                onAccepted: if (customRestoreDialog.confirmEnabled) customRestoreDialog.confirmButton.clicked()
             }
         }
     }

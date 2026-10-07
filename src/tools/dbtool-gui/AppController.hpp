@@ -26,6 +26,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QPair>
 #include <QtCore/QString>
+#include <QtCore/QVariantMap>
 #include <QtQml/QQmlEngine>
 
 // `_plugins` below is a pimpl pointer (defined in AppController.cpp) so
@@ -75,6 +76,16 @@ class AppController: public QObject
     /// user can run them to bootstrap the history table.
     Q_PROPERTY(QString lastWarning READ lastWarning NOTIFY lastWarningChanged)
     Q_PROPERTY(bool connected READ connected NOTIFY connectedChanged)
+
+    /// What the open connection is: the profile name, the DSN name, or — for a custom
+    /// connection string — the database it reached. Empty while not connected. Unlike
+    /// `currentProfile` (the *selected* profile, which a DSN or custom connection leaves
+    /// untouched) this always names the connection that is actually open, so labels that
+    /// say "connected to …" cannot name a stale profile.
+    Q_PROPERTY(QString connectedTarget READ connectedTarget NOTIFY connectedChanged)
+
+    /// How the open connection was made: "profile" | "dsn" | "custom"; empty while not connected.
+    Q_PROPERTY(QString connectedMode READ connectedMode NOTIFY connectedChanged)
 
     // Connection mode ("profile" | "dsn" | "custom") drives which input is
     // read by `connectToProfile`. A single source-of-truth for the UI so
@@ -239,6 +250,14 @@ class AppController: public QObject
     {
         return _lastWarning;
     }
+    [[nodiscard]] QString const& connectedTarget() const noexcept
+    {
+        return _connectedTarget;
+    }
+    [[nodiscard]] QString const& connectedMode() const noexcept
+    {
+        return _connectedMode;
+    }
     [[nodiscard]] bool connected() const noexcept
     {
         return _connected;
@@ -398,6 +417,36 @@ class AppController: public QObject
     /// nothing if no profile file has been loaded yet.
     Q_INVOKABLE void openProfileFileExternally();
 
+    /// Describes the open connection so it can be saved as a profile ("Save as profile…").
+    /// Keys: `available` (true only for a DSN or custom-string connection that is open — a
+    /// profile connection is already saved), `kind` ("dsn" | "connectionString"), `dsn`,
+    /// `connectionString` (with any inline password removed), `user`, `schema`, `hasPassword`
+    /// (whether the connection used one — the password itself never reaches QML),
+    /// `suggestedName` (one not used in the store yet) and `targetFile` (the dbtool.yml it
+    /// would be written to).
+    Q_INVOKABLE QVariantMap connectionDraft() const;
+
+    /// Why `name` cannot be used for a new profile.
+    /// @param name The name as typed.
+    /// @return A user-displayable reason, or an empty string when the name is fine.
+    Q_INVOKABLE QString profileNameProblem(QString const& name) const;
+
+    /// Adds a profile to the profile file (the one in use, else the default location) with its
+    /// password encrypted, then reloads the profile list. Neither the open connection nor the
+    /// selected profile changes. Refused while a migration, backup or restore is running, since
+    /// the reload would reset the status those runs report into.
+    /// @param fields `name`, `kind` ("dsn" | "connectionString"), `dsn`, `connectionString`,
+    ///        `user`, `schema`, `password` (plaintext; may be empty), `useOpenConnectionPassword`
+    ///        (take the open connection's password when `password` is empty), `makeDefault`.
+    /// @return An empty string on success, otherwise a user-displayable error.
+    Q_INVOKABLE QString addProfile(QVariantMap const& fields);
+
+    /// Opens the folder that contains `path` in the system file browser.
+    /// Used by the "Show in folder" action of a finished backup or restore;
+    /// does nothing for an empty path.
+    /// @param path A file (typically the archive) whose folder is opened.
+    Q_INVOKABLE void revealInFolder(QString const& path);
+
     /// Called from `LogPanel.qml`'s `Component.onCompleted` to flush any
     /// startup/plugin/connection log messages produced *before* the QML
     /// engine wired up its `Connections { target: AppController }` block.
@@ -443,6 +492,16 @@ class AppController: public QObject
 
   private:
     void ReportError(QString const& message);
+
+    /// True while a migration, backup or restore is in flight.
+    [[nodiscard]] bool AnyRunInFlight() const;
+
+    /// The dbtool.yml a new profile is written to: the loaded file, else the one chosen in
+    /// Settings, else the discovered or per-user default.
+    [[nodiscard]] QString ProfileTargetPath() const;
+
+    /// Plaintext password of the open DSN or custom connection; empty when it has none.
+    [[nodiscard]] std::string OpenConnectionPassword() const;
     void ClearError();
 
     /// Routes `line` at severity `level` into the unified `logLine` signal.
@@ -525,6 +584,8 @@ class AppController: public QObject
     QString _lastError;
     QString _lastWarning;
     bool _connected = false;
+    QString _connectedTarget;
+    QString _connectedMode;
     bool _logVisible = true;
     /// Set by `SetVerbose()` from `main.cpp` when the user passes
     /// `--verbose`/`-v`. Currently only gates the shadowed-plugin notices

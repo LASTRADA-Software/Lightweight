@@ -91,4 +91,84 @@ TestCase {
         verify(!button.enabled, "re-opened dialog must be disarmed again")
         dialog.close()
     }
+
+    // --- Backup & restore panel: connection, gating, confirmation --------------------
+
+    // The panel works on the connection AppController holds, so without one
+    // the actions must be off even when a path has been typed.
+    function test_custom_archive_actions_need_a_connection() {
+        verify(!AppController.connected)
+        const page = createTemporaryObject(pageComponent, root)
+        verify(page !== null)
+
+        findChild(page, "customPathField").text = "D:/exports/staging.zip"
+        const backup = findChild(page, "customBackupButton")
+        const restore = findChild(page, "customRestoreButton")
+        verify(backup !== null && restore !== null)
+        verify(!backup.enabled, "Back up needs a connection")
+        verify(!restore.enabled, "Restore… needs a connection")
+        verify(page._customDisabledReason.indexOf("Connect to a database first") >= 0,
+               "the tooltip says why the actions are off")
+        verify(findChild(page, "customConnectButton").enabled, "Connect… is always available while idle")
+    }
+
+    function test_connect_button_opens_the_connection_dialog() {
+        const page = createTemporaryObject(pageComponent, root)
+        const dialog = findChild(page, "connectDialog")
+        verify(dialog !== null)
+        verify(!dialog.visible)
+
+        findChild(page, "customConnectButton").clicked()
+
+        tryVerify(function() { return dialog.visible })
+        findChild(dialog, "connectDialogClose").clicked()
+        tryVerify(function() { return !dialog.visible })
+    }
+
+    // The custom restore asks for the same typed name as the per-profile one.
+    // Not connected there is no database name to type, so it stays disarmed.
+    function test_custom_restore_stays_disarmed_without_a_connection() {
+        const page = createTemporaryObject(pageComponent, root)
+        const dialog = findChild(page, "customRestoreDialog")
+        dialog.openFor("D:/exports/staging.zip")
+        tryVerify(function() { return dialog.visible })
+
+        compare(dialog.confirmField.text, "")
+        compare(dialog.confirmName, "")
+        verify(!dialog.confirmButton.enabled)
+        dialog.confirmField.text = "anything"
+        verify(!dialog.confirmButton.enabled, "typing cannot arm a restore that has no target")
+        dialog.close()
+    }
+
+    function test_outcome_and_progress_are_hidden_before_any_run() {
+        const page = createTemporaryObject(pageComponent, root)
+        verify(!findChild(page, "customProgress").visible)
+        verify(!findChild(page, "customOutcome").visible)
+    }
+
+    // Without a profile a database has no row on this page, so adding one must be possible from it.
+    function test_profiles_panel_offers_add_profile() {
+        const page = createTemporaryObject(pageComponent, root)
+        const button = findChild(page, "addProfileButton")
+        verify(button !== null)
+        verify(button.enabled)
+        const dialog = findChild(page, "saveProfileDialog")
+        verify(dialog !== null)
+        verify(!dialog.visible)
+
+        button.clicked()
+
+        tryVerify(function() { return dialog.visible })
+        verify(!dialog.fromConnection, "a blank form, not one prefilled from a connection")
+        findChild(dialog, "profileCancel").clicked()
+        tryVerify(function() { return !dialog.visible })
+    }
+
+    // Saving the open connection only makes sense for a DSN / connection-string connection.
+    function test_save_as_profile_is_offered_only_for_an_open_unsaved_connection() {
+        verify(!AppController.connected)
+        const page = createTemporaryObject(pageComponent, root)
+        verify(!findChild(page, "customSaveProfileButton").visible)
+    }
 }

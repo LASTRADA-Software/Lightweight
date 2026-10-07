@@ -36,6 +36,7 @@
 #include <vector>
 
 #include <Config/ConfigDiscovery.hpp>
+#include <Config/ProfileAdd.hpp>
 #include <Config/ProfileFileEditor.hpp>
 #include <Config/ProfilePassword.hpp>
 #include <Config/ProfileStore.hpp>
@@ -1098,24 +1099,6 @@ int ListProfiles(Options const& options)
     return EXIT_SUCCESS;
 }
 
-/// Splits an inline `PWD=`/`Password=` attribute out of a connection string so the
-/// password can be stored encrypted instead of in clear inside the connection string.
-/// @param connectionString Connection string as typed by the user.
-/// @return The connection string without the password, and the password (empty if none).
-[[nodiscard]] std::pair<std::string, std::string> SplitInlinePassword(std::string const& connectionString)
-{
-    auto attributes = ParseConnectionString(SqlConnectionString { connectionString });
-    auto password = std::string {};
-    for (auto const* key: { "PWD", "PASSWORD" })
-    {
-        if (auto const node = attributes.extract(key); !node.empty())
-            password = node.mapped();
-    }
-    if (password.empty())
-        return { connectionString, {} };
-    return { BuildConnectionString(attributes).value, std::move(password) };
-}
-
 /// Implements `add-profile`: writes a new profile into dbtool.yml with its password
 /// encrypted, keeping the rest of the file (comments included) untouched. The
 /// password is read from a no-echo prompt, or one line of stdin when piped — never argv.
@@ -1145,9 +1128,16 @@ int AddProfileCommand(Options const& options)
         return EXIT_FAILURE;
     }
 
-    auto [connectionString, password] = options.connectionStringSet ? SplitInlinePassword(options.connectionString.value)
-                                                                    : std::pair<std::string, std::string> {};
-    if (!password.empty())
+    auto request = Cfg::ProfileRequest {
+        .name = options.newProfileName,
+        .connectionString = options.connectionStringSet ? options.connectionString.value : std::string {},
+        .dsn = options.dsn,
+        .uid = options.uid,
+        .schema = options.schema,
+        .pluginsDir = options.pluginsDirSet ? options.pluginsDir.front().string() : std::string {},
+        .password = {},
+    };
+    if (options.connectionStringSet && !Cfg::SplitInlinePassword(request.connectionString).password.empty())
         std::println(std::cerr, "Note: the password in --connection-string will be stored encrypted instead.");
     else if (!options.noPassword)
     {
@@ -1157,43 +1147,21 @@ int AddProfileCommand(Options const& options)
             std::println(std::cerr, "Error: no password was entered (use --no-password for a profile without one).");
             return EXIT_FAILURE;
         }
-        password = std::move(*entered);
+        request.password = std::move(*entered);
     }
 
-    auto newProfile = Cfg::NewProfile {
-        .name = options.newProfileName,
-        .connectionString = std::move(connectionString),
-        .dsn = options.dsn,
-        .uid = options.uid,
-        .schema = options.schema,
-        .pluginsDir = options.pluginsDirSet ? options.pluginsDir.front().string() : std::string {},
-        .password = {},
-    };
-    if (!password.empty())
-    {
-        auto encrypted = Lightweight::Secrets::ProfileCipher::Builtin().Encrypt(password);
-        if (!encrypted)
-        {
-            std::println(std::cerr, "Error: {}", encrypted.error());
-            return EXIT_FAILURE;
-        }
-        newProfile.password = std::move(*encrypted);
-    }
-
-    auto const replace = options.force ? Cfg::ReplaceExisting::Yes : Cfg::ReplaceExisting::No;
-    auto const written = Cfg::EditConfigFile(*target, [&](std::string_view text) {
-        return Cfg::AddProfileText(text, newProfile, replace).and_then([&](std::string edited) {
-            return options.setDefault ? Cfg::SetDefaultProfileText(edited, newProfile.name)
-                                      : std::expected<std::string, std::string> { std::move(edited) };
-        });
-    });
+    auto const written = Cfg::AddProfileToFile(*target,
+                                               request,
+                                               options.force ? Cfg::ReplaceExisting::Yes : Cfg::ReplaceExisting::No,
+                                               options.setDefault ? Cfg::MakeDefault::Yes : Cfg::MakeDefault::No,
+                                               Lightweight::Secrets::ProfileCipher::Builtin());
     if (!written)
     {
         std::println(std::cerr, "Error: {}", written.error());
         return EXIT_FAILURE;
     }
 
-    std::println("Added profile '{}' to {}.", newProfile.name, target->string());
+    std::println("Added profile '{}' to {}.", request.name, target->string());
     return EXIT_SUCCESS;
 }
 

@@ -42,8 +42,8 @@ Rectangle {
         }
         Label {
             anchors.verticalCenter: parent.verticalCenter
-            visible: AppController.connected && AppController.currentProfile !== ""
-            text: AppController.currentProfile
+            visible: AppController.connected && AppController.connectedTarget !== ""
+            text: AppController.connectedTarget
             color: Theme.clrOnSurfaceMed
             font.pixelSize: Theme.sizeBodySm
         }

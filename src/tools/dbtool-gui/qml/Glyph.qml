@@ -84,6 +84,7 @@ Item {
     readonly property var _svgPaths: ({
         "layers":         { d: "M12 3 21 8 12 13 3 8 12 3zM3 13l9 5 9-5M3 17l9 5 9-5" },
         "sliders":        { d: "M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1M13 6a2 2 0 1 0 4 0a2 2 0 1 0-4 0M7 12a2 2 0 1 0 4 0a2 2 0 1 0-4 0M15 18a2 2 0 1 0 4 0a2 2 0 1 0-4 0" },
+        "plus":           { d: "M12 5v14M5 12h14" },
         "refresh":        { d: "M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5" },
         "play":           { d: "M8 5.5v13l10.5-6.5z", fill: true },
         "server":         { d: "M5 4h14a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM5 13h14a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2zM7 7.5h.01M7 16.5h.01" },

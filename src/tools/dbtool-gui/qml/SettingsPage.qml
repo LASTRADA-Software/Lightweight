@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Settings page — a destination of Main.qml's navigation rail (Expert view
-// only), no longer an overlay with a Done button. Changes save immediately,
+// Settings page — a destination of Main.qml's navigation rail (reachable from
+// both the Simple and the Expert view), no longer an overlay with a Done button. Changes save immediately,
 // which the header says ("Saved automatically") in place of that button.
 //
 // A centred kit column (max ~760 px) of three panels, every field in the

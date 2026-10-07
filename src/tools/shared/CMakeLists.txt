@@ -9,6 +9,8 @@
 add_library(tools_shared STATIC
     Config/ConfigDiscovery.cpp
     Config/ConfigDiscovery.hpp
+    Config/ProfileAdd.cpp
+    Config/ProfileAdd.hpp
     Config/ProfileFileEditor.cpp
     Config/ProfileFileEditor.hpp
     Config/ProfilePassword.cpp
