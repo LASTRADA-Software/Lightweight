@@ -45,6 +45,7 @@ std::expected<void, std::string> AddProfileToFile(std::filesystem::path const& p
         .schema = request.schema,
         .pluginsDir = request.pluginsDir,
         .password = {},
+        .backupDir = request.backupDir,
     };
     if (!password.empty())
     {

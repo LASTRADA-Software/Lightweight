@@ -973,3 +973,32 @@ TEST_CASE("a plaintext password is handed over as soon as a restore connects to 
 
     controller.setBackupFolder(QString {});
 }
+
+TEST_CASE("the folder dbtool.yml configures is the default backup folder, and Settings still wins",
+          "[dbtool-gui][managed-backup-controller][backup-dir]")
+{
+    QTemporaryDir dir;
+    ManagedBackupController controller;
+    controller.setBackupFolder(QString {}); // do not inherit a persisted value from a previous run
+    controller.setConfiguredBackupFolder(QString {});
+    auto const platformDefault = controller.defaultBackupFolder();
+
+    QSignalSpy changed(&controller, &ManagedBackupController::backupFolderChanged);
+    auto const configured = dir.path() + "/from-yml";
+    controller.setConfiguredBackupFolder(configured);
+
+    CHECK(changed.count() >= 1);
+    CHECK(controller.defaultBackupFolder() == configured);
+    CHECK(controller.effectiveBackupFolder() == configured);
+
+    // A folder chosen in Settings wins; the configured one stays the default.
+    auto const chosen = dir.path() + "/chosen";
+    controller.setBackupFolder(chosen);
+    CHECK(controller.effectiveBackupFolder() == chosen);
+    CHECK(controller.defaultBackupFolder() == configured);
+
+    // Clearing both goes back to the platform default.
+    controller.setBackupFolder(QString {});
+    controller.setConfiguredBackupFolder(QString {});
+    CHECK(controller.effectiveBackupFolder() == platformDefault);
+}

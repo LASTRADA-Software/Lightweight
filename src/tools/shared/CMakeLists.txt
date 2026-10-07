@@ -7,6 +7,8 @@
 # also a tools-private STATIC library shared between dbtool and dbtool-gui.
 
 add_library(tools_shared STATIC
+    Config/BackupOutput.cpp
+    Config/BackupOutput.hpp
     Config/ConfigDiscovery.cpp
     Config/ConfigDiscovery.hpp
     Config/ProfileAdd.cpp

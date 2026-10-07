@@ -56,8 +56,11 @@ The Backups page manages one `<profile>.zip` archive per configured profile
 inside a single folder, instead of a one-off file picker:
 
 - **Folder** — configured on the Settings page (persisted as `backup/folder`
-  in `QSettings`); defaults to `<AppDataLocation>/backups` when unset. The
-  folder is validated as writable (created if missing) before any run starts,
+  in `QSettings`). When none is chosen there, the default is the `defaultBackupDir`
+  of the loaded `dbtool.yml` if it names one (so an installer can pre-configure it,
+  shared with `dbtool backup`), else `<AppDataLocation>/backups`. A per-profile
+  `backupDir` is a CLI feature: this page keeps every profile's archive in one folder.
+  The folder is validated as writable (created if missing) before any run starts,
   and the current problem, if any, is surfaced inline.
 - **Backup all** — backs up every configured profile sequentially into
   `<folder>/<sanitized-profile-name>.zip`, continuing past per-profile

@@ -185,21 +185,30 @@ namespace
     }
 
     /// Renders a profile block: a key line at `keyIndent` and fields at `fieldIndent`.
+    /// The fields written for a new profile, in file order. A single table, so the text that is
+    /// rendered and the document the edit is verified against cannot disagree about which fields exist.
+    /// @param profile The profile to describe.
+    /// @return Each field's key and a pointer to its value.
+    std::array<std::pair<std::string_view, std::string const*>, 7> ProfileFields(NewProfile const& profile)
+    {
+        return { {
+            { "connectionString", &profile.connectionString },
+            { "dsn", &profile.dsn },
+            { "uid", &profile.uid },
+            { "schema", &profile.schema },
+            { "pluginsDir", &profile.pluginsDir },
+            { "backupDir", &profile.backupDir },
+            { "password", &profile.password },
+        } };
+    }
+
     std::string RenderProfile(NewProfile const& profile,
                               std::size_t keyIndent,
                               std::size_t fieldIndent,
                               std::string_view eol)
     {
         auto out = std::format("{}{}:{}", std::string(keyIndent, ' '), QuoteYamlScalar(profile.name), eol);
-        auto const fields = std::array<std::pair<std::string_view, std::string const*>, 6> { {
-            { "connectionString", &profile.connectionString },
-            { "dsn", &profile.dsn },
-            { "uid", &profile.uid },
-            { "schema", &profile.schema },
-            { "pluginsDir", &profile.pluginsDir },
-            { "password", &profile.password },
-        } };
-        for (auto const& [key, value]: fields)
+        for (auto const& [key, value]: ProfileFields(profile))
             if (!value->empty())
                 out += std::format("{}{}: {}{}", std::string(fieldIndent, ' '), key, QuoteYamlScalar(*value), eol);
         return out;
@@ -482,17 +491,9 @@ std::expected<std::string, std::string> AddProfileText(std::string_view yaml,
         [&](std::string_view body) { return AddProfileTextImpl(body, profile, replace); },
         [&](YAML::Node& document) {
             auto node = YAML::Node { YAML::NodeType::Map };
-            auto const fields = std::array<std::pair<char const*, std::string const*>, 6> { {
-                { "connectionString", &profile.connectionString },
-                { "dsn", &profile.dsn },
-                { "uid", &profile.uid },
-                { "schema", &profile.schema },
-                { "pluginsDir", &profile.pluginsDir },
-                { "password", &profile.password },
-            } };
-            for (auto const& [key, value]: fields)
+            for (auto const& [key, value]: ProfileFields(profile))
                 if (!value->empty())
-                    node[key] = *value;
+                    node[std::string { key }] = *value;
             document["profiles"][profile.name] = node;
         });
 }

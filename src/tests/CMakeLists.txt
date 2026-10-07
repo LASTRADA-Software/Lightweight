@@ -34,6 +34,7 @@ endif()
 
 set(SOURCE_FILES
     ConfigDiscoveryTests.cpp
+    ConfigBackupOutputTests.cpp
     ConfigProfileStoreTests.cpp
     ColumnTypeRoundTripTests.cpp
     CoreTests.cpp

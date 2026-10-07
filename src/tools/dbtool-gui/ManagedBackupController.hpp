@@ -97,7 +97,7 @@ class ManagedBackupController: public QObject
 
     Q_PROPERTY(QString backupFolder READ backupFolder WRITE setBackupFolder NOTIFY backupFolderChanged)
     Q_PROPERTY(QString effectiveBackupFolder READ effectiveBackupFolder NOTIFY backupFolderChanged)
-    Q_PROPERTY(QString defaultBackupFolder READ defaultBackupFolder CONSTANT)
+    Q_PROPERTY(QString defaultBackupFolder READ defaultBackupFolder NOTIFY backupFolderChanged)
     Q_PROPERTY(Phase phase READ phase NOTIFY phaseChanged)
     Q_PROPERTY(DbtoolGui::BackupStatusListModel* status READ status CONSTANT)
     Q_PROPERTY(QString folderProblem READ folderProblem NOTIFY folderProblemChanged)
@@ -118,8 +118,17 @@ class ManagedBackupController: public QObject
     /// The folder actually used: backupFolder() when set, else the default.
     [[nodiscard]] QString effectiveBackupFolder() const;
 
-    /// Platform default: <AppDataLocation>/backups.
+    /// The folder used when none was chosen in Settings: the `defaultBackupDir` of the loaded
+    /// dbtool.yml when it names one (so a deployment can pre-configure it, see
+    /// `setConfiguredBackupFolder`), else the platform default <AppDataLocation>/backups.
     [[nodiscard]] QString defaultBackupFolder() const;
+
+    /// Sets the folder dbtool.yml configures (`defaultBackupDir`); empty when it names none.
+    /// Becomes the default folder, so a choice made in Settings still wins. Per-profile
+    /// `backupDir` values do not apply here: the page keeps every profile's archive in one folder.
+    /// Re-scans archive status when the effective folder changes.
+    /// @param folder The configured folder, or empty.
+    void setConfiguredBackupFolder(QString const& folder);
 
     /// Current run phase (idle vs. running a backup/restore).
     [[nodiscard]] Phase phase() const noexcept
@@ -311,6 +320,7 @@ class ManagedBackupController: public QObject
     std::vector<Lightweight::Config::Profile> _profiles;
     std::function<bool()> _busyProbe;
     QString _backupFolder;
+    QString _configuredBackupFolder;
     QString _folderProblem;
 
     // `_pool` MUST be declared LAST so it is destroyed FIRST: non-static

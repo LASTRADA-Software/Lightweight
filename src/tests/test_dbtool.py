@@ -2,6 +2,7 @@
 import argparse
 import subprocess
 import sys
+import json
 import os
 import tempfile
 import zipfile
@@ -594,6 +595,70 @@ def main():
         on_argv = run_command(add_cmd + ["--force", "--password", "hunter2"], input="", check=False)
         if on_argv.returncode == 0 or "never accepted on the command line" not in on_argv.stderr:
             print(f"add-profile accepted a password on the command line:\n{on_argv.stderr}")
+            sys.exit(1)
+
+    print("--- 12h. backupDir / defaultBackupDir decide where backup writes ---")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        folder = os.path.join(tmpdir, "bk", "prod")  # does not exist yet: backup must create it
+        cfg_path = os.path.join(tmpdir, "dbtool.yml")
+        add_cmd = [args.dbtool, "--config", cfg_path, "add-profile", "--name", "e2e",
+                   "--connection-string", profile_cs, "--plugins-dir", args.plugins_dir,
+                   "--backup-dir", folder]
+        run_command(add_cmd, input=secret + "\n")
+        with open(cfg_path, encoding="utf-8") as f:
+            if "backupDir" not in f.read():
+                print("add-profile --backup-dir did not write backupDir")
+                sys.exit(1)
+        listed = run_command([args.dbtool, "--config", cfg_path, "list-profiles"]).stdout
+        if "BACKUPDIR" not in listed or os.path.basename(folder) not in listed:
+            print(f"list-profiles does not show the backup folder:\n{listed}")
+            sys.exit(1)
+
+        backup = [args.dbtool, "--config", cfg_path, "--profile", "e2e", "backup", "--schema-only"]
+        # A bare file name goes into the profile's backupDir, which is created on demand.
+        run_command(backup + ["--output", "named.zip"])
+        if not os.path.isfile(os.path.join(folder, "named.zip")):
+            print(f"backup --output named.zip did not write into backupDir ({os.listdir(tmpdir)})")
+            sys.exit(1)
+        # No --output at all: a generated <profile>-<timestamp>.zip in the folder.
+        run_command(backup)
+        generated = [n for n in os.listdir(folder) if n.startswith("e2e-") and n.endswith(".zip")]
+        if len(generated) != 1:
+            print(f"backup without --output did not generate one archive in backupDir: {os.listdir(folder)}")
+            sys.exit(1)
+        # A path with a directory part is used exactly as given.
+        explicit = os.path.join(tmpdir, "explicit.zip")
+        run_command(backup + ["--output", explicit])
+        if not os.path.isfile(explicit):
+            print("backup with an explicit path did not write it as given")
+            sys.exit(1)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        shared = os.path.join(tmpdir, "shared")
+        cfg_path = os.path.join(tmpdir, "dbtool.yml")
+        run_command([args.dbtool, "--config", cfg_path, "add-profile", "--name", "e2e",
+                     "--connection-string", profile_cs, "--plugins-dir", args.plugins_dir],
+                    input=secret + "\n")
+        with open(cfg_path, encoding="utf-8") as f:
+            text = f.read()
+        with open(cfg_path, "w", encoding="utf-8") as f:
+            f.write("defaultBackupDir: " + json.dumps(shared) + "\n" + text)
+        run_command([args.dbtool, "--config", cfg_path, "--profile", "e2e", "backup", "--schema-only",
+                     "--output", "fallback.zip"])
+        if not os.path.isfile(os.path.join(shared, "fallback.zip")):
+            print("backup did not fall back to defaultBackupDir")
+            sys.exit(1)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cfg_path = os.path.join(tmpdir, "dbtool.yml")
+        run_command([args.dbtool, "--config", cfg_path, "add-profile", "--name", "e2e",
+                     "--connection-string", profile_cs, "--plugins-dir", args.plugins_dir],
+                    input=secret + "\n")
+        # Nothing configured and no --output: still an error, as before.
+        missing = run_command([args.dbtool, "--config", cfg_path, "--profile", "e2e", "backup", "--schema-only"],
+                              check=False)
+        if missing.returncode == 0 or "--output" not in missing.stderr:
+            print(f"backup without --output and without a backup folder should fail:\n{missing.stderr}")
             sys.exit(1)
 
     print("--- 12e. a working plaintext password is encrypted in place ---")

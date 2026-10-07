@@ -387,3 +387,25 @@ TEST_CASE("ProfileFileEditor — edits that would not round-trip exactly are ref
     INFO(forced.error());
     CHECK(forced.error().contains("left unchanged"));
 }
+
+TEST_CASE("AddProfileText writes backupDir and leaves the rest of the file alone", "[ProfileFileEditor][backup-dir]")
+{
+    auto const profile = Cfg::NewProfile { .name = "prod",
+                                           .connectionString = {},
+                                           .dsn = "PROD",
+                                           .uid = {},
+                                           .schema = {},
+                                           .pluginsDir = {},
+                                           .password = {},
+                                           .backupDir = "D:\\backups\\prod" };
+    auto const existing =
+        std::string { "# team file\ndefaultBackupDir: \"D:/backups\"\nprofiles:\n  dev:\n    dsn: \"DEV\"\n" };
+
+    auto const edited = Cfg::AddProfileText(existing, profile, Cfg::ReplaceExisting::No);
+
+    REQUIRE(edited.has_value());
+    CHECK(edited->contains("# team file"));
+    CHECK(edited->contains("defaultBackupDir: \"D:/backups\""));
+    CHECK(edited->contains("backupDir: \"D:\\\\backups\\\\prod\""));
+    CHECK(edited->contains("dev:"));
+}

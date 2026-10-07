@@ -100,6 +100,9 @@ namespace
         else if (auto nLegacy = node["PluginsDir"]) // legacy casing
             p.pluginsDir = nLegacy.as<std::string>();
 
+        if (auto n = node["backupDir"]; n && n.IsScalar())
+            p.backupDir = n.as<std::string>();
+
         if (auto n = node["schema"])
             p.schema = n.as<std::string>();
         else if (auto nLegacy = node["Schema"])
@@ -164,6 +167,7 @@ namespace
                 out << YAML::Key << key << YAML::Value << value;
         };
         emit("pluginsDir", p.pluginsDir.string());
+        emit("backupDir", p.backupDir.string());
         emit("schema", p.schema);
         emit("dsn", p.dsn);
         emit("connectionString", p.connectionString);
@@ -247,6 +251,10 @@ std::expected<ProfileStore, std::string> ProfileStore::LoadOrDefault(std::filesy
         store._defaultPluginsDir = std::move(*dirs);
     }
 
+    // A blank `defaultBackupDir:` (YAML null) means "none".
+    if (auto n = root["defaultBackupDir"]; n && n.IsScalar())
+        store._defaultBackupDir = n.as<std::string>();
+
     auto profiles = root["profiles"];
     if (!profiles || !profiles.IsMap())
         return store;
@@ -299,6 +307,9 @@ std::expected<void, std::string> ProfileStore::Save(std::filesystem::path path) 
             out << YAML::EndSeq;
         }
     }
+
+    if (!_defaultBackupDir.empty())
+        out << YAML::Key << "defaultBackupDir" << YAML::Value << _defaultBackupDir.string();
 
     out << YAML::Key << "profiles" << YAML::Value << YAML::BeginMap;
     for (auto const& p: _profiles)

@@ -630,6 +630,9 @@ bool AppController::loadProfiles(QString const& path)
     }
     _store = std::move(*result);
     _profiles.ReplaceFrom(_store);
+    // The folder dbtool.yml names (if any) becomes the default backup folder, so an installer can
+    // pre-configure it; a folder chosen in Settings still wins.
+    _managedBackups.setConfiguredBackupFolder(QString::fromStdString(_store.DefaultBackupDir().string()));
     _managedBackups.setProfiles(_store.Profiles());
     if (_currentProfile.isEmpty())
         setCurrentProfile(QString::fromStdString(_store.DefaultProfileName()));

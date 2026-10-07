@@ -11,15 +11,20 @@
 //
 //   defaultProfile: acme-prod
 //   defaultPluginsDir: ./migrations
+//   defaultBackupDir: /var/backups/lightweight
 //   profiles:
 //     acme-prod:
 //       schema: dbo
 //       dsn: ACME_PROD
 //       uid: deploy
 //       secretRef: lightweight/acme-prod
+//       backupDir: /var/backups/lightweight/prod     # overrides defaultBackupDir
 //     acme-dev:
 //       pluginsDir: ./dev-migrations   # overrides defaultPluginsDir
 //       connectionString: "Driver=SQLite3;Database=dev.db"
+//
+// `defaultBackupDir` / `backupDir` name the folder backups are written to. They resolve like
+// `pluginsDir`: a profile's own `backupDir`, else the top-level `defaultBackupDir`, else nothing.
 //
 // `defaultPluginsDir` is a top-level fallback used by any profile that does
 // not set its own `pluginsDir`. It accepts either a single string or a
@@ -89,6 +94,10 @@ struct Profile
     /// `Secrets::ProfileCipher`) or plaintext, which dbtool encrypts in place
     /// after the first successful connection. Mutually exclusive with `secretRef`.
     std::string password;
+
+    /// Folder this profile's backups are written to; overrides the store's `defaultBackupDir`.
+    /// Empty means "use the store-wide default". Relative paths are used as written.
+    std::filesystem::path backupDir {};
 
     /// True when the profile carries enough info to attempt a connection.
     [[nodiscard]] bool HasConnection() const noexcept
@@ -173,6 +182,25 @@ class ProfileStore
         return _defaultPluginsDir;
     }
 
+    /// Store-wide fallback backup folder (`defaultBackupDir`). Empty when unset.
+    [[nodiscard]] std::filesystem::path const& DefaultBackupDir() const noexcept
+    {
+        return _defaultBackupDir;
+    }
+
+    /// Sets the store-wide fallback backup folder. Pass an empty path to clear.
+    void SetDefaultBackupDir(std::filesystem::path dir)
+    {
+        _defaultBackupDir = std::move(dir);
+    }
+
+    /// Backup folder for `profile`: its own `backupDir` when set, otherwise the store-wide
+    /// `defaultBackupDir`. Empty when neither is set.
+    [[nodiscard]] std::filesystem::path EffectiveBackupDir(Profile const& profile) const
+    {
+        return profile.backupDir.empty() ? _defaultBackupDir : profile.backupDir;
+    }
+
     /// Inserts or replaces a profile with the given name.
     void Upsert(Profile profile);
 
@@ -201,6 +229,7 @@ class ProfileStore
     std::vector<Profile> _profiles;
     std::string _defaultProfile;
     std::vector<std::filesystem::path> _defaultPluginsDir;
+    std::filesystem::path _defaultBackupDir;
 };
 
 } // namespace Lightweight::Config

@@ -44,6 +44,9 @@ struct ProfileRequest
 
     /// Plaintext password, or empty for none. Wins over a password found inside `connectionString`.
     std::string password;
+
+    /// Backup folder for this profile (`backupDir`); empty for none.
+    std::string backupDir;
 };
 
 /// Whether the added profile also becomes `defaultProfile`.

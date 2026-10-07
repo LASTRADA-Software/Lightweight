@@ -465,3 +465,26 @@ TEST_CASE("connectedTarget names the open connection, not the selected profile",
     CHECK_FALSE(controller.connectedTarget().isEmpty());
     CHECK(controller.backupRunner()->lastResult().isEmpty());
 }
+
+TEST_CASE("loading a dbtool.yml with defaultBackupDir sets the default backup folder",
+          "[dbtool-gui][AppController][backup-dir]")
+{
+    QTemporaryDir dir;
+    auto const root = std::filesystem::path { dir.path().toStdString() };
+    auto const configPath = root / "dbtool.yml";
+    auto const backups = (root / "installer-backups").generic_string();
+    std::ofstream(configPath, std::ios::binary)
+        << "defaultBackupDir: \"" << backups << "\"\nprofiles:\n  p:\n    dsn: \"X\"\n";
+
+    DbtoolGui::AppController controller;
+    controller.managedBackups()->setBackupFolder(QString {}); // nothing chosen in Settings
+    REQUIRE(controller.loadProfiles(QString::fromStdString(configPath.string())));
+
+    CHECK(controller.managedBackups()->defaultBackupFolder() == QString::fromStdString(backups));
+    CHECK(controller.managedBackups()->effectiveBackupFolder() == QString::fromStdString(backups));
+
+    // A file without the key goes back to the platform default.
+    std::ofstream(configPath, std::ios::binary | std::ios::trunc) << "profiles:\n  p:\n    dsn: \"X\"\n";
+    REQUIRE(controller.loadProfiles(QString::fromStdString(configPath.string())));
+    CHECK(controller.managedBackups()->defaultBackupFolder() != QString::fromStdString(backups));
+}
