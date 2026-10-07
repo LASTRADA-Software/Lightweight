@@ -393,7 +393,6 @@ inline std::optional<std::filesystem::path> FindTestEnvFile()
     return std::nullopt;
 }
 
-// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 /// Records what it was asked to wait for instead of actually waiting, so a full retry loop
 /// finishes in microseconds and the backoff schedule is directly assertable.
 class RecordingSleeper final: public Lightweight::SqlRetrySleeper
@@ -407,6 +406,7 @@ class RecordingSleeper final: public Lightweight::SqlRetrySleeper
     std::vector<std::chrono::milliseconds> slept;
 };
 
+// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class SqlTestFixture
 {
   public:
