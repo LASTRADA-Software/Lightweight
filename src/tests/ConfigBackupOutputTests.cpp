@@ -31,9 +31,13 @@ TEST_CASE("ResolveBackupOutput puts a bare file name into the configured folder"
 {
     auto const output = Cfg::ResolveBackupOutput(Request("nightly.zip", "/srv/backups"));
 
-    REQUIRE(output.has_value());
-    CHECK(output.value().path == fs::path { "/srv/backups" } / "nightly.zip");
-    CHECK(output.value().inConfiguredFolder);
+    if (!output)
+    {
+        FAIL("no backup output");
+        return;
+    }
+    CHECK(output->path == fs::path { "/srv/backups" } / "nightly.zip");
+    CHECK(output->inConfiguredFolder);
 }
 
 TEST_CASE("ResolveBackupOutput keeps a path that has a directory part", "[backup-dir]")
@@ -44,9 +48,13 @@ TEST_CASE("ResolveBackupOutput keeps a path that has a directory part", "[backup
         INFO(given);
         auto const output = Cfg::ResolveBackupOutput(Request(given, "/srv/backups"));
 
-        REQUIRE(output.has_value());
-        CHECK(output.value().path == fs::path { given });
-        CHECK_FALSE(output.value().inConfiguredFolder);
+        if (!output)
+        {
+            FAIL_CHECK("no backup output");
+            continue;
+        }
+        CHECK(output->path == fs::path { given });
+        CHECK_FALSE(output->inConfiguredFolder);
     }
 }
 
@@ -54,19 +62,27 @@ TEST_CASE("ResolveBackupOutput generates a name when --output is omitted", "[bac
 {
     auto const output = Cfg::ResolveBackupOutput(Request("", "/srv/backups", "prod"));
 
-    REQUIRE(output.has_value());
-    CHECK(output.value().inConfiguredFolder);
-    CHECK(output.value().path.parent_path() == fs::path { "/srv/backups" });
-    auto const name = output.value().path.filename().string();
+    if (!output)
+    {
+        FAIL("no backup output");
+        return;
+    }
+    CHECK(output->inConfiguredFolder);
+    CHECK(output->path.parent_path() == fs::path { "/srv/backups" });
+    auto const name = output->path.filename().string();
     CHECK(std::regex_match(name, std::regex { R"(prod-\d{8}-\d{6}\.zip)" }));
 }
 
 TEST_CASE("ResolveBackupOutput without a configured folder changes nothing", "[backup-dir]")
 {
     auto const named = Cfg::ResolveBackupOutput(Request("nightly.zip", ""));
-    REQUIRE(named.has_value());
-    CHECK(named.value().path == fs::path { "nightly.zip" });
-    CHECK_FALSE(named.value().inConfiguredFolder);
+    if (!named)
+    {
+        FAIL("no backup output");
+        return;
+    }
+    CHECK(named->path == fs::path { "nightly.zip" });
+    CHECK_FALSE(named->inConfiguredFolder);
 
     // Nothing requested and nowhere configured: there is no file to write.
     CHECK_FALSE(Cfg::ResolveBackupOutput(Request("", "")).has_value());

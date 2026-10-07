@@ -92,7 +92,8 @@ Cfg::ProfileRequest DsnRequest(std::string name = "warehouse")
                                  .uid = "deploy",
                                  .schema = "dbo",
                                  .pluginsDir = {},
-                                 .password = "s3cret!" };
+                                 .password = "s3cret!",
+                                 .backupDir = {} };
 }
 
 } // namespace
@@ -133,7 +134,8 @@ TEST_CASE("AddProfileToFile moves a password out of the connection string and st
                                          .uid = {},
                                          .schema = {},
                                          .pluginsDir = {},
-                                         .password = {} };
+                                         .password = {},
+                                         .backupDir = {} };
 
     REQUIRE(
         Cfg::AddProfileToFile(dir.File(), request, Cfg::ReplaceExisting::No, Cfg::MakeDefault::No, DevCipher()).has_value());
@@ -158,7 +160,8 @@ TEST_CASE("AddProfileToFile prefers an explicit password over one inside the con
                                          .uid = {},
                                          .schema = {},
                                          .pluginsDir = {},
-                                         .password = "new" };
+                                         .password = "new",
+                                         .backupDir = {} };
 
     REQUIRE(
         Cfg::AddProfileToFile(dir.File(), request, Cfg::ReplaceExisting::No, Cfg::MakeDefault::No, DevCipher()).has_value());
