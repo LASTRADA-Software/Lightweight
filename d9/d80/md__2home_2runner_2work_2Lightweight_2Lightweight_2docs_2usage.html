@@ -161,6 +161,37 @@ SQLite busy timeout and journal mode</h1>
 <li><b>SQLite may decline a journal mode without an error.</b> An in-memory database can only use <code>MEMORY</code> or <code>OFF</code>; asking it for <code>Wal</code> leaves it in <code>MEMORY</code>. Read <code>PRAGMA journal_mode</code> back if you depend on the result.</li>
 <li><b>The settings are inert on other databases.</b> No statement is issued for them on SQL Server or PostgreSQL, so the same start-up code runs against every backend.</li>
 </ul>
+<h1><a class="anchor" id="retrying-a-connect-that-failed-transiently"></a>
+Retrying a connect that failed transiently</h1>
+<p>A database that is restarting, failing over or briefly unreachable makes <code>SqlConnection::Connect()</code> fail. Lightweight can retry such a connect with exponential backoff, using the same <code>SqlRetrySettings</code> as <code>SqlRetryPolicy</code>. It is off by default (<code>maxRetries</code> is zero), so a failed connect fails at once unless you opt in.</p>
+<p>Only failures that look transient are retried: SQLSTATE class <code>08</code> (the connection could not be established, or was dropped) and the <code>HYT00</code> / <code>HYT01</code> timeouts. The server type is not known before a connection exists, so the dialect-agnostic classifier decides. Anything else — rejected credentials, an unknown driver or data source — fails on the first attempt. Each retry is reported through <code>SqlLogger::OnWarning</code>.</p>
+<p>Set the process-wide default once at start-up. Every connection constructed afterwards takes a copy, including those Lightweight creates on your behalf (a default-constructed <code>DataMapper</code>, the connection pool, the migration manager, backups):</p>
+<div class="fragment"><div class="line">SqlConnection::SetDefaultConnectRetrySettings(SqlRetrySettings {</div>
+<div class="line">    .maxRetries = 5,</div>
+<div class="line">    .initialDelay = std::chrono::milliseconds { 500 },</div>
+<div class="line">    .backoffMultiplier = 2.0,</div>
+<div class="line">    .maxDelay = std::chrono::seconds { 10 },</div>
+<div class="line">    .totalDelayBudget = std::chrono::seconds { 30 },</div>
+<div class="line">});</div>
+</div><!-- fragment --><p>A single connection can be configured with <code>SetConnectRetrySettings()</code>, which applies to its next <code>Connect()</code>. Its optional second argument injects the <code>SqlRetrySleeper</code>, so a test can run the retry loop without waiting out the delays.</p>
+<h2><a class="anchor" id="sql-server-connectretrycount-and-connectretryinterval"></a>
+SQL Server: &lt;tt&gt;ConnectRetryCount&lt;/tt&gt; and &lt;tt&gt;ConnectRetryInterval&lt;/tt&gt;</h2>
+<p>Microsoft's ODBC Driver 17 and 18 have their own connection resiliency, configured in the connection string. It transparently re-establishes an <em>idle</em> connection that was broken, which Lightweight's connect retry does not do:</p>
+<div class="fragment"><div class="line">Driver={ODBC Driver 18 for SQL Server};Server=db;Database=app;ConnectRetryCount=3;ConnectRetryInterval=10</div>
+</div><!-- fragment --><table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">Keyword   </th><th class="markdownTableHeadNone">Accepted values   </th><th class="markdownTableHeadNone">Meaning    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>ConnectRetryCount</code>   </td><td class="markdownTableBodyNone">0–255   </td><td class="markdownTableBodyNone">How many times the driver tries to reconnect a broken idle connection; 0 disables it    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>ConnectRetryInterval</code>   </td><td class="markdownTableBodyNone">1–60   </td><td class="markdownTableBodyNone">Seconds between those attempts   </td></tr>
+</table>
+<p>Lightweight passes the connection string to the driver unchanged, so nothing else is needed. Keep in mind:</p>
+<ul>
+<li><b>An out-of-range value fails the connect with SQLSTATE <code>08001</code></b>, which is a transient SQLSTATE. With connect retry enabled, Lightweight would retry that configuration error until its budget is spent.</li>
+<li><b>The two mechanisms multiply.</b> With both enabled, a database that stays down costs up to the driver's attempts for each of Lightweight's. Size them together, or rely on one.</li>
+<li><b>PostgreSQL and SQLite drivers have no such keywords.</b> There, Lightweight's connect retry and the connection pool's <code>ValidateOnBorrow</code> (which replaces a dead pooled connection) are what is available.</li>
+</ul>
 <h1><a class="anchor" id="raw-sql-queries"></a>
 Raw SQL Queries</h1>
 <p>To directly make a call to the database use <code>ExecuteDirect</code> function, for example </p><div class="fragment"><div class="line"><span class="keyword">auto</span> stmt = SqlStatement {};</div>

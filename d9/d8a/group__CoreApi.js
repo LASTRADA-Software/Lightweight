@@ -32,6 +32,8 @@ var group__CoreApi =
       [ "SetStringTruncationMode", "da/da8/classLightweight_1_1SqlConnection.html#ad564a1c5ac5491bfdefad0bd38d83bbe", null ],
       [ "SqliteSettings", "da/da8/classLightweight_1_1SqlConnection.html#aec2394736e758433d81c29cb5c04d047", null ],
       [ "SetSqliteSettings", "da/da8/classLightweight_1_1SqlConnection.html#a103fcb72a3f8885d1bb2426d3486b2e3", null ],
+      [ "ConnectRetrySettings", "da/da8/classLightweight_1_1SqlConnection.html#a497ec7e2803b3896318cc08fa44eeed3", null ],
+      [ "SetConnectRetrySettings", "da/da8/classLightweight_1_1SqlConnection.html#a43c2372f4e30e045e7e42e2523c06722", null ],
       [ "ConnectionId", "da/da8/classLightweight_1_1SqlConnection.html#a63ba202ba517a1dbe5d36afe4654a85b", null ],
       [ "Close", "da/da8/classLightweight_1_1SqlConnection.html#a85b56ddb608b6c84fe33b7bff71a7f24", null ],
       [ "Connect", "da/da8/classLightweight_1_1SqlConnection.html#aff53cd88345bf8822f5fd34e676c48d0", null ],
