@@ -104,11 +104,11 @@ Multi-profile shape:
 defaultProfile: prod
 defaultPluginsDir: ./plugins        # store-wide fallback for any profile
                                     # that omits its own `pluginsDir`
-defaultBackupDir: D:/backups        # store-wide fallback backup folder
+defaultBackupDir: /var/backups/lightweight  # store-wide fallback backup folder
 profiles:
   prod:
     schema: dbo
-    backupDir: D:/backups/prod      # per-profile override of defaultBackupDir
+    backupDir: /var/backups/lightweight/prod  # per-profile override of defaultBackupDir
     connectionString: "DRIVER={ODBC Driver 18 for SQL Server};Server=...;Database=prod"
   dev:
     pluginsDir: ./dev-plugins       # per-profile override
@@ -242,8 +242,8 @@ $ dbtool list-profiles
 Profiles (from /home/me/project/dbtool.yml, found via current directory):
 
 NAME  DEFAULT  CONNECTION                            AUTH       SCHEMA  PLUGINSDIR      BACKUPDIR
-prod  *        DRIVER={ODBC Driver 18 for SQL Se...  encrypted  dbo     ./migrations    D:/backups/prod
-dev            DRIVER=SQLite3;Database=dev.db        -                  ./dev-plugins   D:/backups
+prod  *        DRIVER={ODBC Driver 18 for SQL Se...  encrypted  dbo     ./migrations    /var/backups/lightweight/prod
+dev            DRIVER=SQLite3;Database=dev.db        -                  ./dev-plugins   /var/backups/lightweight
 ```
 
 `BACKUPDIR` is the profile's effective backup folder: its own `backupDir`, else `defaultBackupDir`.
@@ -561,7 +561,7 @@ dbtool backup --profile prod --output nightly.zip
 dbtool backup --profile prod
 
 # a path with a directory part is used exactly as given
-dbtool backup --profile prod --output D:/exports/once.zip
+dbtool backup --profile prod --output /srv/exports/once.zip
 ```
 
 The folder is created if it is missing, and the file that was written is printed. Without a

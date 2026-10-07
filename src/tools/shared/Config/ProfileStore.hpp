@@ -11,14 +11,14 @@
 //
 //   defaultProfile: acme-prod
 //   defaultPluginsDir: ./migrations
-//   defaultBackupDir: D:/backups
+//   defaultBackupDir: /var/backups/lightweight
 //   profiles:
 //     acme-prod:
 //       schema: dbo
 //       dsn: ACME_PROD
 //       uid: deploy
 //       secretRef: lightweight/acme-prod
-//       backupDir: D:/backups/prod     # overrides defaultBackupDir
+//       backupDir: /var/backups/lightweight/prod     # overrides defaultBackupDir
 //     acme-dev:
 //       pluginsDir: ./dev-migrations   # overrides defaultPluginsDir
 //       connectionString: "Driver=SQLite3;Database=dev.db"
