@@ -33,6 +33,8 @@ static std::atomic<SqlStringTruncationMode> gDefaultStringTruncationMode { SqlSt
 static std::mutex gConnectionMutex {};
 static std::mutex gDefaultSqliteSettingsMutex {};
 static SqliteConnectionSettings gDefaultSqliteSettings {};
+static std::mutex gDefaultConnectRetrySettingsMutex {};
+static SqlRetrySettings gDefaultConnectRetrySettings { .maxRetries = 0 };
 
 namespace
 {
@@ -103,7 +105,9 @@ struct SqlConnection::Data
     SqlPreparedStatementCache preparedStatementCache {
         PreparedStatementCacheCapacityDefault
     }; // Pool of already-prepared statement handles (inactive while its capacity is zero).
-    SqliteConnectionSettings sqliteSettings; // Applied on every Connect() to a SQLite database.
+    SqliteConnectionSettings sqliteSettings;        // Applied on every Connect() to a SQLite database.
+    SqlRetrySettings connectRetrySettings;          // How Connect() retries a transient failure.
+    SqlRetrySleeper* connectRetrySleeper = nullptr; // Waits between connect attempts; null = ThreadSleeper().
 };
 
 SqlConnection::SqlConnection():
@@ -121,6 +125,7 @@ SqlConnection::SqlConnection(std::optional<SqlConnectionString> connectInfo, Sql
     m_data { new Data() }
 {
     m_data->sqliteSettings = sqliteSettings;
+    m_data->connectRetrySettings = DefaultConnectRetrySettings();
     SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &m_hEnv);
     SQLSetEnvAttr(m_hEnv, SQL_ATTR_ODBC_VERSION, (SQLPOINTER) SQL_OV_ODBC3, 0);
     SQLAllocHandle(SQL_HANDLE_DBC, m_hEnv, &m_hDbc);
@@ -389,6 +394,29 @@ void SqlConnection::SetDefaultSqliteSettings(SqliteConnectionSettings const& set
     gDefaultSqliteSettings = settings;
 }
 
+SqlRetrySettings SqlConnection::DefaultConnectRetrySettings()
+{
+    auto const lock = std::scoped_lock { gDefaultConnectRetrySettingsMutex };
+    return gDefaultConnectRetrySettings;
+}
+
+void SqlConnection::SetDefaultConnectRetrySettings(SqlRetrySettings const& settings)
+{
+    auto const lock = std::scoped_lock { gDefaultConnectRetrySettingsMutex };
+    gDefaultConnectRetrySettings = settings;
+}
+
+SqlRetrySettings const& SqlConnection::ConnectRetrySettings() const noexcept
+{
+    return m_data->connectRetrySettings;
+}
+
+void SqlConnection::SetConnectRetrySettings(SqlRetrySettings const& settings, SqlRetrySleeper* sleeper) noexcept
+{
+    m_data->connectRetrySettings = settings;
+    m_data->connectRetrySleeper = sleeper;
+}
+
 SqliteConnectionSettings const& SqlConnection::SqliteSettings() const noexcept
 {
     return m_data->sqliteSettings;
@@ -430,7 +458,12 @@ bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
 {
     ZoneScopedN("SqlConnection::Connect(DataSource)");
     EnsureHandlesAllocated();
+    return ConnectWithRetry([this, &info] { return ConnectOnce(info); });
+}
 
+std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionDataSource const& info) noexcept
+{
+    ZoneScopedN("SqlConnection::ConnectOnce(DataSource)");
     m_data->defaultPrefetchDepth = info.defaultPrefetchDepth;
     m_data->requestedPreparedStatementCacheCapacity = info.preparedStatementCacheCapacity;
 
@@ -457,7 +490,7 @@ bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
     }
     catch (...)
     {
-        return false;
+        return std::unexpected(SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "HY001", .message = "out of memory" });
     }
 
     SQLRETURN sqlReturn {};
@@ -470,8 +503,9 @@ bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
         sqlReturn = SQLSetConnectAttrW(m_hDbc, SQL_LOGIN_TIMEOUT, (SQLPOINTER) info.timeout.count(), 0);
         if (!SQL_SUCCEEDED(sqlReturn))
         {
-            SqlLogger::GetLogger().OnError(LastError());
-            return false;
+            auto error = LastError();
+            SqlLogger::GetLogger().OnError(error);
+            return std::unexpected(std::move(error));
         }
 
         // SQL_COPT_SS_ENCRYPT is a pre-connect attribute, so it has to be set here rather than in
@@ -498,8 +532,9 @@ bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
                 // through the seam above, rather than a bare SQL_SUCCEEDED(sqlReturn), lets a test
                 // install a SqlFaultSource that forces this branch anyway (see #585). The reported
                 // diagnostic comes from the outcome rather than the handle; see EffectiveError().
-                SqlLogger::GetLogger().OnError(encryptOutcome.EffectiveError([this] { return LastError(); }));
-                return false;
+                auto error = encryptOutcome.EffectiveError([this] { return LastError(); });
+                SqlLogger::GetLogger().OnError(error);
+                return std::unexpected(std::move(error));
             }
         }
 
@@ -511,21 +546,25 @@ bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
                                 wPassword.data(),
                                 wPassword.length());
     }
-    if (!SQL_SUCCEEDED(sqlReturn))
+    // Through the fault seam rather than a bare SQL_SUCCEEDED, so a test can make an attempt fail
+    // transiently and drive the retry loop in Connect() without a server that drops connections.
+    if (auto const outcome = detail::CheckOdbcConnectionCall(sqlReturn, m_hDbc); !outcome)
     {
-        SqlLogger::GetLogger().OnError(LastError());
-        return false;
+        auto error = outcome.EffectiveError([this] { return LastError(); });
+        SqlLogger::GetLogger().OnError(error);
+        return std::unexpected(std::move(error));
     }
 
     sqlReturn = SQLSetConnectAttrW(m_hDbc, SQL_ATTR_AUTOCOMMIT, (SQLPOINTER) SQL_AUTOCOMMIT_ON, SQL_IS_UINTEGER);
     if (!SQL_SUCCEEDED(sqlReturn))
     {
-        SqlLogger::GetLogger().OnError(LastError());
-        return false;
+        auto error = LastError();
+        SqlLogger::GetLogger().OnError(error);
+        return std::unexpected(std::move(error));
     }
 
     if (!PostConnect())
-        return false;
+        return std::unexpected(LastError());
 
     SqlLogger::GetLogger().OnConnectionOpened(*this);
     // Not covered by the suite: this is the success tail of the DSN overload, and reaching it needs a
@@ -537,7 +576,7 @@ bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
     if (gPostConnectedHook)
         gPostConnectedHook(*this);
 
-    return true;
+    return {};
 }
 
 // Connects to the given database with the given connection string.
@@ -545,14 +584,19 @@ bool SqlConnection::Connect(SqlConnectionString sqlConnectionString) noexcept
 {
     ZoneScopedN("SqlConnection::Connect(ConnectionString)");
     EnsureHandlesAllocated();
+    m_data->connectionString = std::move(sqlConnectionString);
+    return ConnectWithRetry([this] { return ConnectOnce(); });
+}
 
+std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce() noexcept
+{
+    // One zone per attempt, so retries show up individually in a capture.
+    ZoneScopedN("SqlConnection::ConnectOnce(ConnectionString)");
     // Handles prepared against the previous session die with the disconnect below.
     m_data->preparedStatementCache.Clear();
 
     if (m_hDbc)
         SQLDisconnect(m_hDbc);
-
-    m_data->connectionString = std::move(sqlConnectionString);
 
     // Convert the connection string from UTF-8 to UTF-16 *before* the scoped lock so
     // the W-variant `SQLDriverConnectW` call below puts this DBC handle into Unicode-app
@@ -570,7 +614,7 @@ bool SqlConnection::Connect(SqlConnectionString sqlConnectionString) noexcept
     }
     catch (...)
     {
-        return false;
+        return std::unexpected(SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "HY001", .message = "out of memory" });
     }
 
     SQLRETURN sqlResult {};
@@ -587,22 +631,60 @@ bool SqlConnection::Connect(SqlConnectionString sqlConnectionString) noexcept
                                       nullptr,
                                       SQL_DRIVER_NOPROMPT);
     }
-    if (!SQL_SUCCEEDED(sqlResult))
-        return false;
+    // Through the fault seam rather than a bare SQL_SUCCEEDED, so a test can make an attempt fail
+    // transiently and drive the retry loop in Connect() without a server that drops connections.
+    if (auto const outcome = detail::CheckOdbcConnectionCall(sqlResult, m_hDbc); !outcome)
+        return std::unexpected(outcome.EffectiveError([this] { return LastError(); }));
 
     sqlResult = SQLSetConnectAttrW(m_hDbc, SQL_ATTR_AUTOCOMMIT, (SQLPOINTER) SQL_AUTOCOMMIT_ON, SQL_IS_UINTEGER);
     if (!SQL_SUCCEEDED(sqlResult))
-        return false;
+        return std::unexpected(LastError());
 
     if (!PostConnect())
-        return false;
+        return std::unexpected(LastError());
     SqlLogger::GetLogger().OnConnectionOpened(*this);
     LIGHTWEIGHT_STATS_CONNECTION_OPENED();
 
     if (gPostConnectedHook)
         gPostConnectedHook(*this);
 
-    return true;
+    return {};
+}
+
+template <typename Attempt>
+bool SqlConnection::ConnectWithRetry(Attempt const& attempt) noexcept
+{
+    try
+    {
+        // The server type is only known once connected, so the dialect-agnostic classifier decides
+        // which failures are transient: an unreachable or dropped server (class 08), a timeout.
+        auto const policy = SqlRetryPolicy { m_data->connectRetrySettings, nullptr, m_data->connectRetrySleeper };
+        auto state = SqlRetryState {};
+        while (true)
+        {
+            auto const outcome = attempt();
+            if (outcome)
+                return true;
+
+            auto const decision = policy.Decide(outcome.error(), state);
+            if (!decision)
+                return false;
+
+            state.retriesSoFar += 1;
+            state.delaySoFar += decision.delay;
+            SqlLogger::GetLogger().OnWarning(std::format("Connecting failed ({}); retrying in {} ms ({}/{}).",
+                                                         outcome.error(),
+                                                         decision.delay.count(),
+                                                         state.retriesSoFar,
+                                                         policy.Settings().maxRetries));
+            (m_data->connectRetrySleeper ? *m_data->connectRetrySleeper : ThreadSleeper()).Sleep(decision.delay);
+        }
+    }
+    catch (...)
+    {
+        // Logging or sleeping threw (e.g. std::bad_alloc); Connect() is noexcept, so report failure.
+        return false;
+    }
 }
 
 bool SqlConnection::PostConnect()

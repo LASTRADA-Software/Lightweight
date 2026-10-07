@@ -15,13 +15,16 @@
 #include "Utils.hpp"
 
 #include <Lightweight/SqlBackup/Common.hpp>
+#include <Lightweight/SqlConnection.hpp>
 #include <Lightweight/SqlError.hpp>
+#include <Lightweight/SqlRetryPolicy.hpp>
 #include <Lightweight/SqlStatement.hpp>
 #include <Lightweight/Utils.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <chrono>
 #include <optional>
 #include <source_location>
 #include <string>
@@ -500,4 +503,102 @@ TEST_CASE_METHOD(SqlTestFixture,
     ScopedFaultSource const installed { &source };
 
     CHECK(detail::CheckOdbcConnectionCall(SQL_SUCCESS, hDbc));
+}
+
+// ================================================================================================
+// SqlConnection::Connect() retries a transient connect failure (#13). A real server cannot be made
+// to refuse exactly N connects on demand, so the fault seam fails the connect call itself.
+// ================================================================================================
+
+namespace
+{
+
+/// Backoff used by the connect-retry tests: short, doubling delays a RecordingSleeper captures.
+[[nodiscard]] SqlRetrySettings ConnectRetry(unsigned maxRetries)
+{
+    return SqlRetrySettings {
+        .maxRetries = maxRetries,
+        .initialDelay = std::chrono::milliseconds { 10 },
+        .backoffMultiplier = 2.0,
+        .maxDelay = std::chrono::milliseconds { 1'000 },
+        .totalDelayBudget = std::chrono::milliseconds { 0 },
+    };
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "Connect retries a transient connect failure until it succeeds", "[SqlFaultSeam]")
+{
+    // Two refused connects (08001: unable to establish the connection), then the server is back.
+    ScriptedFaultSource source { MakeError("08001", "server is restarting"), 2, "ConnectOnce" };
+    ScopedFaultSource const installed { &source };
+    CapturingWarningLogger const diagnostics;
+    RecordingSleeper sleeper;
+
+    auto connection = SqlConnection { std::nullopt };
+    connection.SetConnectRetrySettings(ConnectRetry(3), &sleeper);
+
+    REQUIRE(connection.Connect(SqlConnection::DefaultConnectionString()));
+    CHECK(source.ConsultCount() == 3);
+    CHECK(sleeper.slept == std::vector { std::chrono::milliseconds { 10 }, std::chrono::milliseconds { 20 } });
+    CHECK(diagnostics.AnyWarningContains("retrying in 10 ms (1/3)"));
+    CHECK(diagnostics.AnyWarningContains("retrying in 20 ms (2/3)"));
+
+    // The connection that finally came up is a working one.
+    auto stmt = SqlStatement { connection };
+    CHECK(stmt.ExecuteDirectScalar<int>("SELECT 42").value_or(0) == 42);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Connect gives up once the connect retries are spent", "[SqlFaultSeam]")
+{
+    ScriptedFaultSource source { MakeError("08001", "server is down"), 100, "ConnectOnce" };
+    ScopedFaultSource const installed { &source };
+    CapturingWarningLogger const diagnostics;
+    RecordingSleeper sleeper;
+
+    auto connection = SqlConnection { std::nullopt };
+    connection.SetConnectRetrySettings(ConnectRetry(2), &sleeper);
+
+    CHECK_FALSE(connection.Connect(SqlConnection::DefaultConnectionString()));
+    CHECK(source.ConsultCount() == 3); // the first attempt and two retries
+    CHECK(sleeper.slept.size() == 2);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Connect does not retry a permanent connect failure", "[SqlFaultSeam]")
+{
+    // Rejected credentials (28000) fail identically on every attempt, so retrying only delays the error.
+    ScriptedFaultSource source { MakeError("28000", "login failed"), 100, "ConnectOnce" };
+    ScopedFaultSource const installed { &source };
+    RecordingSleeper sleeper;
+
+    auto connection = SqlConnection { std::nullopt };
+    connection.SetConnectRetrySettings(ConnectRetry(3), &sleeper);
+
+    CHECK_FALSE(connection.Connect(SqlConnection::DefaultConnectionString()));
+    CHECK(source.ConsultCount() == 1);
+    CHECK(sleeper.slept.empty());
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Connect does not retry unless asked to", "[SqlFaultSeam]")
+{
+    REQUIRE(SqlConnection::DefaultConnectRetrySettings().maxRetries == 0);
+
+    ScriptedFaultSource source { MakeError("08001", "server is restarting"), 1, "ConnectOnce" };
+    ScopedFaultSource const installed { &source };
+
+    auto connection = SqlConnection { std::nullopt };
+    CHECK(connection.ConnectRetrySettings().maxRetries == 0);
+    CHECK_FALSE(connection.Connect(SqlConnection::DefaultConnectionString()));
+    CHECK(source.ConsultCount() == 1);
+}
+
+TEST_CASE("The process-wide connect-retry default reaches newly constructed connections", "[SqlFaultSeam]")
+{
+    auto const previous = SqlConnection::DefaultConnectRetrySettings();
+    auto const restore = detail::Finally([&] { SqlConnection::SetDefaultConnectRetrySettings(previous); });
+
+    SqlConnection::SetDefaultConnectRetrySettings(ConnectRetry(5));
+    auto const connection = SqlConnection { std::nullopt };
+    CHECK(connection.ConnectRetrySettings().maxRetries == 5);
+    CHECK(connection.ConnectRetrySettings().initialDelay == std::chrono::milliseconds { 10 });
 }

@@ -116,6 +116,62 @@ the connect fails. Keep in mind:
 - **The settings are inert on other databases.** No statement is issued for them on SQL Server or
   PostgreSQL, so the same start-up code runs against every backend.
 
+## Retrying a connect that failed transiently
+
+A database that is restarting, failing over or briefly unreachable makes `SqlConnection::Connect()`
+fail. Lightweight can retry such a connect with exponential backoff, using the same `SqlRetrySettings`
+as `SqlRetryPolicy`. It is off by default (`maxRetries` is zero), so a failed connect fails at once
+unless you opt in.
+
+Only failures that look transient are retried: SQLSTATE class `08` (the connection could not be
+established, or was dropped) and the `HYT00` / `HYT01` timeouts. The server type is not known before a
+connection exists, so the dialect-agnostic classifier decides. Anything else — rejected credentials, an
+unknown driver or data source — fails on the first attempt. Each retry is reported through
+`SqlLogger::OnWarning`.
+
+Set the process-wide default once at start-up. Every connection constructed afterwards takes a copy,
+including those Lightweight creates on your behalf (a default-constructed `DataMapper`, the connection
+pool, the migration manager, backups):
+
+```cpp
+SqlConnection::SetDefaultConnectRetrySettings(SqlRetrySettings {
+    .maxRetries = 5,
+    .initialDelay = std::chrono::milliseconds { 500 },
+    .backoffMultiplier = 2.0,
+    .maxDelay = std::chrono::seconds { 10 },
+    .totalDelayBudget = std::chrono::seconds { 30 },
+});
+```
+
+A single connection can be configured with `SetConnectRetrySettings()`, which applies to its next
+`Connect()`. Its optional second argument injects the `SqlRetrySleeper`, so a test can run the retry
+loop without waiting out the delays.
+
+### SQL Server: `ConnectRetryCount` and `ConnectRetryInterval`
+
+Microsoft's ODBC Driver 17 and 18 have their own connection resiliency, configured in the connection
+string. It transparently re-establishes an *idle* connection that was broken, which Lightweight's
+connect retry does not do:
+
+```
+Driver={ODBC Driver 18 for SQL Server};Server=db;Database=app;ConnectRetryCount=3;ConnectRetryInterval=10
+```
+
+| Keyword | Accepted values | Meaning |
+|---------|-----------------|---------|
+| `ConnectRetryCount` | 0–255 | How many times the driver tries to reconnect a broken idle connection; 0 disables it |
+| `ConnectRetryInterval` | 1–60 | Seconds between those attempts |
+
+Lightweight passes the connection string to the driver unchanged, so nothing else is needed. Keep in
+mind:
+
+- **An out-of-range value fails the connect with SQLSTATE `08001`**, which is a transient SQLSTATE. With
+  connect retry enabled, Lightweight would retry that configuration error until its budget is spent.
+- **The two mechanisms multiply.** With both enabled, a database that stays down costs up to the
+  driver's attempts for each of Lightweight's. Size them together, or rely on one.
+- **PostgreSQL and SQLite drivers have no such keywords.** There, Lightweight's connect retry and the
+  connection pool's `ValidateOnBorrow` (which replaces a dead pooled connection) are what is available.
+
 ## Raw SQL Queries
 
 To directly make a call to the database use `ExecuteDirect` function, for example

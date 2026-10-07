@@ -9,6 +9,7 @@
 #include "SqlError.hpp"
 #include "SqlLogger.hpp"
 #include "SqlOdbcPrelude.hpp"
+#include "SqlRetryPolicy.hpp"
 #include "SqlServerType.hpp"
 
 #include <atomic>
@@ -272,6 +273,45 @@ class SqlConnection final
     [[nodiscard]] LIGHTWEIGHT_API std::expected<void, SqlErrorInfo> SetSqliteSettings(
         SqliteConnectionSettings const& settings);
 
+    /// @brief The connect-retry settings a newly constructed connection adopts.
+    ///
+    /// Thread-safe. Defaults to no retries (@c maxRetries of zero), so a failed connect fails at once
+    /// unless the application opts in.
+    ///
+    /// @return A copy of the current process-wide default.
+    [[nodiscard]] LIGHTWEIGHT_API static SqlRetrySettings DefaultConnectRetrySettings();
+
+    /// @brief Sets the connect-retry settings newly constructed connections adopt.
+    ///
+    /// Thread-safe. This is the way to make the connections that Lightweight opens on the application's
+    /// behalf (a @c Pool, a default-constructed @c DataMapper, migrations, backups) ride out a database
+    /// that is briefly unreachable. Connections that already exist keep their settings; use
+    /// @ref SetConnectRetrySettings on those.
+    ///
+    /// @param settings The new process-wide default.
+    LIGHTWEIGHT_API static void SetDefaultConnectRetrySettings(SqlRetrySettings const& settings);
+
+    /// @brief This connection's connect-retry settings.
+    ///
+    /// Captured from @ref DefaultConnectRetrySettings when the connection object is constructed, and
+    /// applied by every Connect().
+    ///
+    /// @return The backoff configuration Connect() retries with.
+    [[nodiscard]] LIGHTWEIGHT_API SqlRetrySettings const& ConnectRetrySettings() const noexcept;
+
+    /// @brief Changes how this connection's Connect() retries a connect that failed transiently.
+    ///
+    /// Connect() retries only failures that the dialect-agnostic classifier (@ref GenericRetryOps)
+    /// deems transient — a connection that could not be established or was dropped (SQLSTATE class
+    /// @c 08), a timeout (@c HYT00 / @c HYT01) — and fails at once on anything else, such as rejected
+    /// credentials. Each retry is reported through @ref SqlLogger::OnWarning.
+    ///
+    /// @param settings The backoff configuration; a @c maxRetries of zero disables retrying.
+    /// @param sleeper How to wait between attempts; @c nullptr selects @ref ThreadSleeper(). It must
+    ///                outlive the connection. Injected so tests need not wait out real delays.
+    LIGHTWEIGHT_API void SetConnectRetrySettings(SqlRetrySettings const& settings,
+                                                 SqlRetrySleeper* sleeper = nullptr) noexcept;
+
     /// @brief Retrieves the connection ID.
     ///
     /// This is a unique identifier for the connection, which is useful for debugging purposes.
@@ -292,6 +332,7 @@ class SqlConnection final
     ///
     /// This method can be called on a connection that has been closed via Close().
     /// If the ODBC handles have been freed, they will be automatically reallocated.
+    /// A transient failure is retried as @ref SetConnectRetrySettings configures.
     ///
     /// @retval true if the connection was successful.
     /// @retval false if the connection failed. Use LastError() to retrieve the error information.
@@ -301,6 +342,7 @@ class SqlConnection final
     ///
     /// This method can be called on a connection that has been closed via Close().
     /// If the ODBC handles have been freed, they will be automatically reallocated.
+    /// A transient failure is retried as @ref SetConnectRetrySettings configures.
     ///
     /// @retval true if the connection was successful.
     /// @retval false if the connection failed. Use LastError() to retrieve the error information.
@@ -570,6 +612,17 @@ class SqlConnection final
     /// Detects the server type and applies the connect-time session settings.
     /// @return `false` if a requested session setting could not be applied (the error is logged).
     [[nodiscard]] bool PostConnect();
+
+    /// One attempt of Connect(SqlConnectionDataSource const&).
+    [[nodiscard]] std::expected<void, SqlErrorInfo> ConnectOnce(SqlConnectionDataSource const& info) noexcept;
+
+    /// One attempt of Connect(SqlConnectionString).
+    [[nodiscard]] std::expected<void, SqlErrorInfo> ConnectOnce() noexcept;
+
+    /// Runs @p attempt, retrying a transient failure as the connect-retry settings say.
+    /// @return True once an attempt succeeded; false when the policy gave up.
+    template <typename Attempt>
+    [[nodiscard]] bool ConnectWithRetry(Attempt const& attempt) noexcept;
 
     /// Issues the statements the query formatter derives from this connection's SQLite settings; none
     /// unless connected to SQLite.
