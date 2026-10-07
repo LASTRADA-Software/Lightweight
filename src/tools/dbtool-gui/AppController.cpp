@@ -10,6 +10,7 @@
 #include <Lightweight/SqlServerType.hpp>
 
 #include <Config/ConfigDiscovery.hpp>
+#include <Config/ProfileAdd.hpp>
 #include <Config/ProfilePassword.hpp>
 #include <PluginIngestion.hpp>
 #include <PluginLoader.hpp>
@@ -39,12 +40,14 @@ struct AppController::PluginsBundle
 #include <QtCore/QDateTime>
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
+#include <QtCore/QFileInfo>
 #include <QtCore/QFileSystemWatcher>
 #include <QtCore/QModelIndex>
 #include <QtCore/QSettings>
 #include <QtCore/QSysInfo>
 #include <QtCore/QTimer>
 #include <QtCore/QUrl>
+#include <QtCore/QVariantMap>
 #include <QtGui/QDesktopServices>
 
 namespace DbtoolGui
@@ -781,11 +784,13 @@ bool AppController::connectToProfile()
     // user knows *which* DB they just opened. Pulling these from
     // `SqlConnection` (post-handshake) means we report what the driver
     // actually negotiated, not what was in the typed-in connection string.
+    QString reachedDatabase;
     try
     {
         auto const& connection = manager.GetDataMapper().Connection();
         auto const serverDisplay = ServerTypeDisplayName(connection.ServerType());
         auto const databaseName = QString::fromStdString(connection.DatabaseName());
+        reachedDatabase = databaseName;
         auto const serverVersion = QString::fromStdString(connection.ServerVersion());
         LogInfo(QStringLiteral("Connected: %1 · %2 · %3").arg(serverDisplay, databaseName, serverVersion));
         if (!effectiveSchema.empty())
@@ -860,6 +865,12 @@ bool AppController::connectToProfile()
     _backupRunner.setConnectionString(QString::fromStdString(connectionString));
 
     _connected = true;
+    _connectedMode = _connectionMode;
+    _connectedTarget = _connectionMode == QStringLiteral("profile") ? _currentProfile
+                       : _connectionMode == QStringLiteral("dsn")
+                           ? _selectedDsn
+                           : (!reachedDatabase.isEmpty() ? reachedDatabase : QStringLiteral("custom connection"));
+    _backupRunner.setTargetLabel(_connectedTarget);
     emit connectedChanged();
     LogInfo(QStringLiteral("Applied migrations: %1 / %2").arg(appliedCount()).arg(_migrations.rowCount()));
     // Release labels and counter bindings depend on the applied-set we
@@ -1206,6 +1217,142 @@ void AppController::openProfileFileExternally()
     QDesktopServices::openUrl(QUrl::fromLocalFile(_profilePath));
 }
 
+bool AppController::AnyRunInFlight() const
+{
+    return _runner.phase() != MigrationRunner::Phase::Idle || _backupRunner.phase() != BackupRunner::Phase::Idle
+           || _managedBackups.phase() != ManagedBackupController::Phase::Idle;
+}
+
+QString AppController::ProfileTargetPath() const
+{
+    if (!_profilePath.isEmpty())
+        return _profilePath;
+    if (!_profileStorePath.isEmpty())
+        return _profileStorePath;
+    return QString::fromStdString(DiscoverProfileStore().path.string());
+}
+
+std::string AppController::OpenConnectionPassword() const
+{
+    if (_connectedMode == QStringLiteral("dsn"))
+        return _dsnPassword.toStdString();
+    if (_connectedMode == QStringLiteral("custom"))
+        return Lightweight::Config::SplitInlinePassword(_connectionStringOverride.toStdString()).password;
+    return {};
+}
+
+QVariantMap AppController::connectionDraft() const
+{
+    auto draft = QVariantMap {
+        { QStringLiteral("available"), false },
+        { QStringLiteral("kind"), QStringLiteral("dsn") },
+        { QStringLiteral("dsn"), QString {} },
+        { QStringLiteral("connectionString"), QString {} },
+        { QStringLiteral("user"), QString {} },
+        { QStringLiteral("schema"), QString {} },
+        { QStringLiteral("hasPassword"), false },
+        { QStringLiteral("suggestedName"), QString {} },
+        { QStringLiteral("targetFile"), ProfileTargetPath() },
+    };
+    // A profile connection is already saved; nothing is open otherwise.
+    if (!_connected || _connectedMode == QStringLiteral("profile"))
+        return draft;
+
+    draft[QStringLiteral("available")] = true;
+    auto base = _connectedTarget;
+    if (_connectedMode == QStringLiteral("dsn"))
+    {
+        draft[QStringLiteral("dsn")] = _selectedDsn;
+        draft[QStringLiteral("user")] = _dsnUser;
+        draft[QStringLiteral("schema")] = _dsnSchema;
+        draft[QStringLiteral("hasPassword")] = !_dsnPassword.isEmpty();
+        base = _selectedDsn;
+    }
+    else
+    {
+        auto const split = Lightweight::Config::SplitInlinePassword(_connectionStringOverride.toStdString());
+        draft[QStringLiteral("kind")] = QStringLiteral("connectionString");
+        draft[QStringLiteral("connectionString")] = QString::fromStdString(split.connectionString);
+        draft[QStringLiteral("schema")] = _customSchema;
+        draft[QStringLiteral("hasPassword")] = !split.password.empty();
+    }
+
+    // Suggest a name nobody uses yet: "<base>", then "<base> 2", "<base> 3", …
+    auto suggested = base;
+    for (auto n = 2; _store.Find(suggested.toStdString()) != nullptr; ++n)
+        suggested = QStringLiteral("%1 %2").arg(base).arg(n);
+    draft[QStringLiteral("suggestedName")] = suggested;
+    return draft;
+}
+
+QString AppController::profileNameProblem(QString const& name) const
+{
+    auto const trimmed = name.trimmed();
+    if (trimmed.isEmpty())
+        return QStringLiteral("Enter a name for the profile.");
+    if (_store.Find(trimmed.toStdString()) != nullptr)
+        return QStringLiteral("A profile named ‘%1’ already exists.").arg(trimmed);
+    return {};
+}
+
+QString AppController::addProfile(QVariantMap const& fields)
+{
+    namespace Cfg = Lightweight::Config;
+    auto const text = [&fields](char const* key) {
+        return fields.value(QString::fromLatin1(key)).toString().trimmed();
+    };
+
+    if (AnyRunInFlight())
+        return QStringLiteral("Wait for the current migration, backup or restore to finish before adding a profile.");
+
+    auto const name = text("name");
+    if (auto const problem = profileNameProblem(name); !problem.isEmpty())
+        return problem;
+
+    auto const isDsn = text("kind") == QStringLiteral("dsn");
+    if (isDsn && text("dsn").isEmpty())
+        return QStringLiteral("Choose an ODBC data source.");
+    if (!isDsn && text("connectionString").isEmpty())
+        return QStringLiteral("Enter a connection string.");
+
+    auto request = Cfg::ProfileRequest {
+        .name = name.toStdString(),
+        .connectionString = isDsn ? std::string {} : text("connectionString").toStdString(),
+        .dsn = isDsn ? text("dsn").toStdString() : std::string {},
+        .uid = text("user").toStdString(),
+        .schema = text("schema").toStdString(),
+        .pluginsDir = {},
+        // Not trimmed: a password may legitimately start or end with a space.
+        .password = fields.value(QStringLiteral("password")).toString().toStdString(),
+    };
+    if (request.password.empty() && fields.value(QStringLiteral("useOpenConnectionPassword")).toBool())
+        request.password = OpenConnectionPassword();
+
+    auto const path = ProfileTargetPath();
+    auto const added = Cfg::AddProfileToFile(std::filesystem::path { path.toStdString() },
+                                             request,
+                                             Cfg::ReplaceExisting::No,
+                                             fields.value(QStringLiteral("makeDefault")).toBool() ? Cfg::MakeDefault::Yes
+                                                                                                  : Cfg::MakeDefault::No,
+                                             Lightweight::Secrets::ProfileCipher::Builtin());
+    if (!added)
+        return QString::fromStdString(added.error());
+
+    LogInfo(QStringLiteral("Added profile ‘%1’ to %2").arg(name, path));
+    // Reload so the profile list and the managed-backup rows pick it up now rather than when the
+    // file watcher notices. The selected profile and the open connection are left alone.
+    if (!loadProfiles(path))
+        return QStringLiteral("The profile was saved to %1, but the profile list could not be reloaded.").arg(path);
+    return {};
+}
+
+void AppController::revealInFolder(QString const& path)
+{
+    if (path.isEmpty())
+        return;
+    QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(path).absolutePath()));
+}
+
 void AppController::OnProfileFileChanged(QString const& path)
 {
     // Don't swap the profile list out from under a running migration — that
@@ -1255,6 +1402,8 @@ void AppController::InvalidateConnectionTarget()
     if (!_connected)
         return;
     _connected = false;
+    _connectedMode.clear();
+    _connectedTarget.clear();
     emit connectedChanged();
     LogInfo(QStringLiteral("Disconnected."));
 }

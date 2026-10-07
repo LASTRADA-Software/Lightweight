@@ -45,19 +45,6 @@ SqlErrorInfo MakeError(std::string sqlState, SQLINTEGER nativeCode = 0)
     };
 }
 
-/// Records what it was asked to wait for instead of actually waiting, so a full retry loop
-/// finishes in microseconds and the backoff schedule is directly assertable.
-class RecordingSleeper final: public SqlRetrySleeper
-{
-  public:
-    void Sleep(std::chrono::milliseconds duration) override
-    {
-        slept.emplace_back(duration);
-    }
-
-    std::vector<std::chrono::milliseconds> slept;
-};
-
 /// Fails with the given error for the first `failures` calls, then succeeds.
 class FlakyOperation
 {

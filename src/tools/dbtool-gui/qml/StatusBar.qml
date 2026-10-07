@@ -49,8 +49,11 @@ Rectangle {
             }
         }
         Label {
-            visible: AppController.currentProfile !== ""
-            text: AppController.currentProfile
+            // The open connection when there is one, else the selected profile.
+            readonly property string target: AppController.connected ? AppController.connectedTarget
+                                                                     : AppController.currentProfile
+            visible: target !== ""
+            text: target
             color: Theme.clrOnSurfaceSubtle
             font.pixelSize: Theme.sizeLabel
         }

@@ -455,7 +455,7 @@ Rectangle {
                     stepState: AppController.connected ? "done" : "active"
                     collapsed: AppController.connected && !root.connectionExpanded
                     meta: AppController.connected
-                          ? (AppController.currentProfile || qsTr("custom connection")) + qsTr(" · connected")
+                          ? (AppController.connectedTarget || qsTr("custom connection")) + qsTr(" · connected")
                           : ""
                     headerActions: [
                         LsButton {

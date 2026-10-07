@@ -312,6 +312,160 @@ TEST_CASE("backup and restore use the connection string with the decrypted passw
     CHECK(controller.backupRunner()->connectionString().contains(QStringLiteral("PWD=s3cr3t")));
 }
 
+TEST_CASE("connectedTarget and connectedMode are empty while nothing is connected", "[dbtool-gui][AppController]")
+{
+    DbtoolGui::AppController controller;
+
+    // Labels that say "connected to …" read these, not the selected profile, so they must
+    // not name anything until a connection is actually open.
+    CHECK_FALSE(controller.connected());
+    CHECK(controller.connectedTarget().isEmpty());
+    CHECK(controller.connectedMode().isEmpty());
+}
+
+TEST_CASE("addProfile writes an encrypted profile and reloads the list", "[dbtool-gui][AppController][add-profile]")
+{
+    QTemporaryDir dir;
+    auto const root = std::filesystem::path { dir.path().toStdString() };
+    auto const configPath = root / "dbtool.yml";
+    std::ofstream(configPath, std::ios::binary) << "# team file\nprofiles:\n  existing:\n    dsn: \"OLD\"\n";
+
+    DbtoolGui::AppController controller;
+    REQUIRE(controller.loadProfiles(QString::fromStdString(configPath.string())));
+    REQUIRE(controller.profiles()->rowCount() == 1);
+
+    auto const error = controller.addProfile({ { "name", "  warehouse  " },
+                                               { "kind", "dsn" },
+                                               { "dsn", "WAREHOUSE" },
+                                               { "user", "deploy" },
+                                               { "schema", "dbo" },
+                                               { "password", "s3cret!" } });
+
+    INFO(error.toStdString());
+    CHECK(error.isEmpty());
+    CHECK(controller.profiles()->rowCount() == 2);
+    auto const text = ReadFile(configPath);
+    CHECK(text.starts_with("# team file\n"));
+    CHECK_FALSE(text.contains("s3cret!"));
+    CHECK(text.contains("enc:"));
+    CHECK(text.contains("warehouse"));
+    CHECK(controller.profileNameProblem(QStringLiteral("warehouse")).contains(QStringLiteral("already exists")));
+}
+
+TEST_CASE("addProfile refuses what cannot become a profile and leaves the file alone",
+          "[dbtool-gui][AppController][add-profile]")
+{
+    QTemporaryDir dir;
+    auto const root = std::filesystem::path { dir.path().toStdString() };
+    auto const configPath = root / "dbtool.yml";
+    std::ofstream(configPath, std::ios::binary) << "profiles:\n  existing:\n    dsn: \"OLD\"\n";
+    auto const before = ReadFile(configPath);
+
+    DbtoolGui::AppController controller;
+    REQUIRE(controller.loadProfiles(QString::fromStdString(configPath.string())));
+
+    CHECK_FALSE(controller.addProfile({ { "name", "" }, { "kind", "dsn" }, { "dsn", "X" } }).isEmpty());
+    CHECK_FALSE(controller.addProfile({ { "name", "existing" }, { "kind", "dsn" }, { "dsn", "X" } }).isEmpty());
+    CHECK_FALSE(controller.addProfile({ { "name", "n" }, { "kind", "dsn" }, { "dsn", "" } }).isEmpty());
+    CHECK_FALSE(
+        controller.addProfile({ { "name", "n" }, { "kind", "connectionString" }, { "connectionString", " " } }).isEmpty());
+
+    CHECK(ReadFile(configPath) == before);
+    CHECK(controller.profiles()->rowCount() == 1);
+}
+
+TEST_CASE("connectionDraft offers a custom connection for saving, without its password",
+          "[dbtool-gui][AppController][add-profile]")
+{
+    QTemporaryDir dir;
+    auto const root = std::filesystem::path { dir.path().toStdString() };
+    auto const configPath = root / "dbtool.yml";
+    std::ofstream(configPath, std::ios::binary) << "profiles:\n  scratch:\n    dsn: \"OLD\"\n";
+
+    DbtoolGui::AppController controller;
+    REQUIRE(controller.loadProfiles(QString::fromStdString(configPath.string())));
+
+    // Nothing open: nothing to save.
+    CHECK_FALSE(controller.connectionDraft().value(QStringLiteral("available")).toBool());
+
+    auto const database = (root / "gui-draft.db").generic_string();
+    controller.setConnectionMode(QStringLiteral("custom"));
+    controller.setConnectionStringOverride(
+        QString::fromStdString("Driver={" + std::string { SqliteDriver } + "};Database=" + database + ";PWD=hunter2"));
+    REQUIRE(controller.connectToProfile());
+
+    auto const draft = controller.connectionDraft();
+    CHECK(draft.value(QStringLiteral("available")).toBool());
+    CHECK(draft.value(QStringLiteral("kind")).toString() == QStringLiteral("connectionString"));
+    CHECK(draft.value(QStringLiteral("hasPassword")).toBool());
+    auto const connectionString = draft.value(QStringLiteral("connectionString")).toString();
+    CHECK_FALSE(connectionString.contains(QStringLiteral("hunter2")));
+    CHECK_FALSE(connectionString.contains(QStringLiteral("PWD")));
+    CHECK(connectionString.contains(QStringLiteral("gui-draft.db")));
+    CHECK_FALSE(draft.value(QStringLiteral("suggestedName")).toString().isEmpty());
+    CHECK(draft.value(QStringLiteral("targetFile")).toString() == QString::fromStdString(configPath.string()));
+
+    // Saving it takes the password from the open connection, encrypted, and never changes the connection.
+    auto const error = controller.addProfile({ { "name", draft.value(QStringLiteral("suggestedName")) },
+                                               { "kind", draft.value(QStringLiteral("kind")) },
+                                               { "connectionString", connectionString },
+                                               { "useOpenConnectionPassword", true } });
+    INFO(error.toStdString());
+    CHECK(error.isEmpty());
+    CHECK(controller.connected());
+    CHECK(controller.connectedMode() == QStringLiteral("custom"));
+    auto const text = ReadFile(configPath);
+    CHECK_FALSE(text.contains("hunter2"));
+    CHECK(text.contains("enc:"));
+    CHECK(controller.profiles()->rowCount() == 2);
+    // The new profile is in the store now, so the suggestion moves on.
+    CHECK(controller.connectionDraft().value(QStringLiteral("suggestedName")).toString()
+          != draft.value(QStringLiteral("suggestedName")).toString());
+}
+
+TEST_CASE("a profile connection is already saved, so there is no draft to offer", "[dbtool-gui][AppController][add-profile]")
+{
+    QTemporaryDir dir;
+    auto const root = std::filesystem::path { dir.path().toStdString() };
+    auto const configPath = root / "dbtool.yml";
+    std::ofstream(configPath, std::ios::binary) << "profiles:\n  p:\n    connectionString: \"Driver={" << SqliteDriver
+                                                << "};Database=" << (root / "gui-saved.db").generic_string() << "\"\n";
+
+    DbtoolGui::AppController controller;
+    REQUIRE(controller.loadProfiles(QString::fromStdString(configPath.string())));
+    controller.setConnectionMode(QStringLiteral("profile"));
+    controller.setCurrentProfile(QStringLiteral("p"));
+    REQUIRE(controller.connectToProfile());
+
+    CHECK(controller.connectedMode() == QStringLiteral("profile"));
+    CHECK(controller.connectedTarget() == QStringLiteral("p"));
+    CHECK_FALSE(controller.connectionDraft().value(QStringLiteral("available")).toBool());
+}
+
+TEST_CASE("connectedTarget names the open connection, not the selected profile", "[dbtool-gui][AppController][add-profile]")
+{
+    QTemporaryDir dir;
+    auto const root = std::filesystem::path { dir.path().toStdString() };
+    auto const configPath = root / "dbtool.yml";
+    std::ofstream(configPath, std::ios::binary) << "profiles:\n  p:\n    connectionString: \"Driver={" << SqliteDriver
+                                                << "};Database=" << (root / "gui-profile.db").generic_string() << "\"\n";
+
+    DbtoolGui::AppController controller;
+    REQUIRE(controller.loadProfiles(QString::fromStdString(configPath.string())));
+    controller.setCurrentProfile(QStringLiteral("p"));
+    controller.setConnectionMode(QStringLiteral("custom"));
+    controller.setConnectionStringOverride(QString::fromStdString("Driver={" + std::string { SqliteDriver }
+                                                                  + "};Database=" + (root / "other.db").generic_string()));
+    REQUIRE(controller.connectToProfile());
+
+    // The selected profile is still "p", but the open connection is the custom one.
+    CHECK(controller.currentProfile() == QStringLiteral("p"));
+    CHECK(controller.connectedMode() == QStringLiteral("custom"));
+    CHECK(controller.connectedTarget() != QStringLiteral("p"));
+    CHECK_FALSE(controller.connectedTarget().isEmpty());
+    CHECK(controller.backupRunner()->lastResult().isEmpty());
+}
+
 TEST_CASE("loading a dbtool.yml with defaultBackupDir sets the default backup folder",
           "[dbtool-gui][AppController][backup-dir]")
 {
