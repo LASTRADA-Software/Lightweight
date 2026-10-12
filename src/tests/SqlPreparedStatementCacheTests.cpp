@@ -71,7 +71,7 @@ int SelectValue(SqlStatement& stmt, int id)
 // A minimal record whose Create() re-prepares one and the same INSERT statement.
 struct CachedThing
 {
-    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id;
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
     Field<SqlAnsiString<30>> name;
 };
 
@@ -318,8 +318,7 @@ TEST_CASE_METHOD(SqlTestFixture,
 
     for (auto const i: std::views::iota(0, 5))
     {
-        auto thing = CachedThing {};
-        thing.name = std::format("Thing {}", i);
+        auto thing = CachedThing { .name = std::format("Thing {}", i) };
         dm.Create(thing);
     }
 
@@ -395,8 +394,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     auto pool = Pool<CachingPoolConfig> {};
 
     auto const CreateOne = [](DataMapper& dm, int index) {
-        auto thing = CachedThing {};
-        thing.name = std::format("Thing {}", index);
+        auto thing = CachedThing { .name = std::format("Thing {}", index) };
         dm.Create(thing);
     };
 

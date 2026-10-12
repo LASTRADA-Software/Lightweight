@@ -325,18 +325,19 @@ void PopulateDatabase(Light::DataMapper& dm,
         auto const bioText = rng.GenerateText(config.userBioSize);
         auto const avatarData = rng.GenerateBinaryData(config.userAvatarSize);
 
-        LargeDb_User user;
-        user.guid = SqlGuid::Create();
-        user.email = rng.GenerateEmail(userId);
-        user.first_name = firstNameStr;
-        user.last_name = lastNameStr;
-        user.password_hash = std::format("hash_{}", userId);
-        user.bio = SqlText { bioText };
-        // Store avatar as base64-like text data
-        user.avatar = SqlText { rng.GenerateText(config.userAvatarSize) };
-        user.is_active = rng.NextBool(0.95);
-        user.is_verified = rng.NextBool(0.7);
-        user.created_at = now;
+        auto user = LargeDb_User {
+            .guid = SqlGuid::Create(),
+            .email = rng.GenerateEmail(userId),
+            .first_name = firstNameStr,
+            .last_name = lastNameStr,
+            .password_hash = std::format("hash_{}", userId),
+            .bio = SqlText { bioText },
+            // Store avatar as base64-like text data
+            .avatar = SqlText { rng.GenerateText(config.userAvatarSize) },
+            .is_active = rng.NextBool(0.95),
+            .is_verified = rng.NextBool(0.7),
+            .created_at = now,
+        };
         if (rng.NextBool(0.8))
             user.last_login_at = now;
 
@@ -347,13 +348,14 @@ void PopulateDatabase(Light::DataMapper& dm,
     // 2. Create Categories (with hierarchy)
     for (size_t i = 0; i < config.categoryCount; ++i)
     {
-        LargeDb_Category category;
-        category.name = std::format("{} {}", CategoryNames[i % CategoryNames.size()], i);
-        category.description = SqlText { rng.GenerateText(config.categoryDescriptionSize) };
-        category.slug = std::format("category-{}", i);
-        category.is_active = rng.NextBool(0.9);
-        category.sort_order = static_cast<int>(i);
-        // parent is left null (root categories)
+        auto category = LargeDb_Category {
+            .name = std::format("{} {}", CategoryNames[i % CategoryNames.size()], i),
+            .description = SqlText { rng.GenerateText(config.categoryDescriptionSize) },
+            .slug = std::format("category-{}", i),
+            .is_active = rng.NextBool(0.9),
+            .sort_order = static_cast<int>(i),
+            // parent is left null (root categories)
+        };
 
         dm.Create(category);
     }
@@ -362,10 +364,11 @@ void PopulateDatabase(Light::DataMapper& dm,
     // 3. Create Tags
     for (size_t i = 0; i < config.tagCount; ++i)
     {
-        LargeDb_Tag tag;
-        tag.name = std::format("{}{}", TagNames[i % TagNames.size()], i);
-        tag.description = std::format("Description for tag {}", i);
-        tag.slug = std::format("tag-{}", i);
+        auto tag = LargeDb_Tag {
+            .name = std::format("{}{}", TagNames[i % TagNames.size()], i),
+            .description = std::format("Description for tag {}", i),
+            .slug = std::format("tag-{}", i),
+        };
 
         dm.Create(tag);
     }
@@ -381,24 +384,25 @@ void PopulateDatabase(Light::DataMapper& dm,
         auto const categoryId = static_cast<uint64_t>(i % config.categoryCount) + 1;
         auto const productName = rng.GenerateProductName(static_cast<int64_t>(i));
 
-        // Create a minimal category record just to satisfy BelongsTo
-        LargeDb_Category catRef;
-        catRef.id = categoryId;
+        // The random values are drawn up front, in column order, so that the discount can depend on the price.
+        auto longDescription = SqlText { rng.GenerateText(config.productLongDescriptionSize) };
+        auto specificationsJson = SqlText { rng.GenerateJson(config.productSpecsSize) };
+        auto const price = rng.NextDouble(9.99, 999.99);
 
-        LargeDb_Product product;
-        product.sku = SqlGuid::Create();
-        product.name = productName;
-        product.short_description = std::format("Short description for product {}", i);
-        product.long_description = SqlText { rng.GenerateText(config.productLongDescriptionSize) };
-        product.specifications_json = SqlText { rng.GenerateJson(config.productSpecsSize) };
-        product.price = rng.NextDouble(9.99, 999.99);
-        if (rng.NextBool(0.3))
-            product.discount_price = product.price.Value() * 0.8;
-        product.stock_quantity = static_cast<int>(rng.NextInt(0, 1000));
-        product.is_active = rng.NextBool(0.9);
-        product.is_featured = rng.NextBool(0.1);
-        product.created_at = now;
-        product.category = catRef;
+        auto product = LargeDb_Product {
+            .sku = SqlGuid::Create(),
+            .name = productName,
+            .short_description = std::format("Short description for product {}", i),
+            .long_description = std::move(longDescription),
+            .specifications_json = std::move(specificationsJson),
+            .price = price,
+            .discount_price = rng.NextBool(0.3) ? std::optional { price * 0.8 } : std::nullopt,
+            .stock_quantity = static_cast<int>(rng.NextInt(0, 1000)),
+            .is_active = rng.NextBool(0.9),
+            .is_featured = rng.NextBool(0.1),
+            .created_at = now,
+            .category = categoryId,
+        };
 
         dm.Create(product);
         productIds.push_back(product.id.Value());
@@ -410,20 +414,17 @@ void PopulateDatabase(Light::DataMapper& dm,
     {
         auto const productId = productIds[i % productIds.size()];
 
-        // Create a minimal product record just to satisfy BelongsTo
-        LargeDb_Product prodRef;
-        prodRef.id = productId;
-
-        LargeDb_ProductImage image;
-        image.filename = std::format("product_image_{}.jpg", i);
-        image.content_type = std::string_view("image/jpeg");
-        // Store image data as text for compatibility
-        image.image_data = SqlText { rng.GenerateText(config.productImageSize) };
-        image.thumbnail_data = SqlText { rng.GenerateText(config.productThumbnailSize) };
-        image.sort_order = static_cast<int>(i % 4);
-        image.is_primary = (i % 4) == 0;
-        image.created_at = now;
-        image.product = prodRef;
+        auto image = LargeDb_ProductImage {
+            .filename = std::format("product_image_{}.jpg", i),
+            .content_type = std::string_view("image/jpeg"),
+            // Store image data as text for compatibility
+            .image_data = SqlText { rng.GenerateText(config.productImageSize) },
+            .thumbnail_data = SqlText { rng.GenerateText(config.productThumbnailSize) },
+            .sort_order = static_cast<int>(i % 4),
+            .is_primary = (i % 4) == 0,
+            .created_at = now,
+            .product = productId,
+        };
 
         dm.Create(image);
     }
@@ -435,15 +436,10 @@ void PopulateDatabase(Light::DataMapper& dm,
         auto const productId = productIds[i % productIds.size()];
         auto const tagId = static_cast<uint64_t>(i % config.tagCount) + 1;
 
-        LargeDb_Product prodRef;
-        prodRef.id = productId;
-
-        LargeDb_Tag tagRef;
-        tagRef.id = tagId;
-
-        LargeDb_ProductTag productTag;
-        productTag.product = prodRef;
-        productTag.tag = tagRef;
+        auto productTag = LargeDb_ProductTag {
+            .product = productId,
+            .tag = tagId,
+        };
 
         dm.Create(productTag);
     }
@@ -457,9 +453,6 @@ void PopulateDatabase(Light::DataMapper& dm,
     {
         auto const userId = static_cast<uint64_t>(i % config.userCount) + 1;
 
-        LargeDb_User userRef;
-        userRef.id = userId;
-
         static constexpr std::array OrderStatuses = { "pending", "processing", "shipped", "delivered", "cancelled" };
         auto const statusIdx = i % OrderStatuses.size();
         std::string_view status = OrderStatuses[statusIdx];
@@ -468,19 +461,20 @@ void PopulateDatabase(Light::DataMapper& dm,
         auto taxVal = subtotalVal * 0.08;
         auto shippingVal = rng.NextDouble(5.0, 25.0);
 
-        LargeDb_Order order;
-        order.order_number = SqlGuid::Create();
-        order.status = status;
-        order.subtotal = subtotalVal;
-        order.tax_amount = taxVal;
-        order.shipping_amount = shippingVal;
-        order.total_amount = subtotalVal + taxVal + shippingVal;
-        order.shipping_address_json = SqlText { rng.GenerateAddressJson() };
-        order.billing_address_json = SqlText { rng.GenerateAddressJson() };
+        auto order = LargeDb_Order {
+            .order_number = SqlGuid::Create(),
+            .status = status,
+            .subtotal = subtotalVal,
+            .tax_amount = taxVal,
+            .shipping_amount = shippingVal,
+            .total_amount = subtotalVal + taxVal + shippingVal,
+            .shipping_address_json = SqlText { rng.GenerateAddressJson() },
+            .billing_address_json = SqlText { rng.GenerateAddressJson() },
+            .created_at = now,
+            .user = userId,
+        };
         if (rng.NextBool(0.2))
             order.notes = rng.GenerateText(100);
-        order.created_at = now;
-        order.user = userRef;
 
         dm.Create(order);
         orderIds.push_back(order.id.Value());
@@ -493,24 +487,19 @@ void PopulateDatabase(Light::DataMapper& dm,
         auto const orderId = orderIds[i % orderIds.size()];
         auto const productId = productIds[i % productIds.size()];
 
-        LargeDb_Order orderRef;
-        orderRef.id = orderId;
-
-        LargeDb_Product prodRef;
-        prodRef.id = productId;
-
         auto qty = static_cast<int>(rng.NextInt(1, 5));
         auto unitPriceVal = rng.NextDouble(9.99, 199.99);
         auto totalPriceVal = unitPriceVal * qty;
 
-        LargeDb_OrderItem orderItem;
-        orderItem.quantity = qty;
-        orderItem.unit_price = unitPriceVal;
-        orderItem.total_price = totalPriceVal;
+        auto orderItem = LargeDb_OrderItem {
+            .quantity = qty,
+            .unit_price = unitPriceVal,
+            .total_price = totalPriceVal,
+            .order = orderId,
+            .product = productId,
+        };
         if (rng.NextBool(0.1))
             orderItem.discount_amount = totalPriceVal * 0.1;
-        orderItem.order = orderRef;
-        orderItem.product = prodRef;
 
         dm.Create(orderItem);
     }
@@ -522,25 +511,19 @@ void PopulateDatabase(Light::DataMapper& dm,
         auto const userId = static_cast<uint64_t>(i % config.userCount) + 1;
         auto const productId = productIds[i % productIds.size()];
 
-        LargeDb_User userRef;
-        userRef.id = userId;
-
-        LargeDb_Product prodRef;
-        prodRef.id = productId;
-
-        LargeDb_Review review;
-        review.rating = static_cast<int>(rng.NextInt(1, 5));
-        review.title = std::format("Review Title {}", i);
-        review.content = SqlText { rng.GenerateText(config.reviewContentSize) };
-        if (rng.NextBool(0.5))
-            review.pros = SqlText { rng.GenerateText(200) };
-        if (rng.NextBool(0.5))
-            review.cons = SqlText { rng.GenerateText(200) };
-        review.is_verified_purchase = rng.NextBool(0.7);
-        review.helpful_votes = static_cast<int>(rng.NextInt(0, 100));
-        review.created_at = now;
-        review.user = userRef;
-        review.product = prodRef;
+        // Braced initialization evaluates left to right, so the random draws keep their column order.
+        auto review = LargeDb_Review {
+            .rating = static_cast<int>(rng.NextInt(1, 5)),
+            .title = std::format("Review Title {}", i),
+            .content = SqlText { rng.GenerateText(config.reviewContentSize) },
+            .pros = rng.NextBool(0.5) ? std::optional { SqlText { rng.GenerateText(200) } } : std::nullopt,
+            .cons = rng.NextBool(0.5) ? std::optional { SqlText { rng.GenerateText(200) } } : std::nullopt,
+            .is_verified_purchase = rng.NextBool(0.7),
+            .helpful_votes = static_cast<int>(rng.NextInt(0, 100)),
+            .created_at = now,
+            .user = userId,
+            .product = productId,
+        };
 
         dm.Create(review);
     }
@@ -551,25 +534,24 @@ void PopulateDatabase(Light::DataMapper& dm,
     {
         auto const productId = productIds[i % productIds.size()];
 
-        LargeDb_ActivityLog log;
-        log.action_type = ActionTypes[i % ActionTypes.size()];
-        log.entity_type = std::string_view("Product");
-        log.entity_id = productId;
-        if (rng.NextBool(0.5))
-            log.old_values_json = SqlText { rng.GenerateJson(config.activityLogJsonSize) };
-        if (rng.NextBool(0.5))
-            log.new_values_json = SqlText { rng.GenerateJson(config.activityLogJsonSize) };
-        log.ip_address = std::format("192.168.{}.{}", rng.NextInt(0, 255), rng.NextInt(0, 255));
-        log.user_agent = std::string_view("Mozilla/5.0 (compatible; TestAgent/1.0)");
-        log.created_at = now;
+        auto log = LargeDb_ActivityLog {
+            .action_type = ActionTypes[i % ActionTypes.size()],
+            .entity_type = std::string_view("Product"),
+            .entity_id = productId,
+            .old_values_json = rng.NextBool(0.5) ? std::optional { SqlText { rng.GenerateJson(config.activityLogJsonSize) } }
+                                                 : std::nullopt,
+            .new_values_json = rng.NextBool(0.5) ? std::optional { SqlText { rng.GenerateJson(config.activityLogJsonSize) } }
+                                                 : std::nullopt,
+            .ip_address = std::format("192.168.{}.{}", rng.NextInt(0, 255), rng.NextInt(0, 255)),
+            .user_agent = std::string_view("Mozilla/5.0 (compatible; TestAgent/1.0)"),
+            .created_at = now,
+        };
 
         // Assign to a user (with some anonymous activities)
         if (rng.NextBool(0.9))
         {
             auto const userId = static_cast<uint64_t>(i % config.userCount) + 1;
-            LargeDb_User userRef;
-            userRef.id = userId;
-            log.user = userRef;
+            log.user = userId;
         }
 
         dm.Create(log);
@@ -579,16 +561,17 @@ void PopulateDatabase(Light::DataMapper& dm,
     // 11. Create SystemAuditLogs
     for (size_t i = 0; i < config.systemAuditLogCount; ++i)
     {
-        LargeDb_SystemAuditLog log;
-        log.severity = SeverityLevels[i % SeverityLevels.size()];
-        log.source = EventSources[i % EventSources.size()];
-        log.event_type = std::format("event_type_{}", i % 50);
-        log.message = SqlText { std::format("System audit message {}: {}", i, rng.GenerateText(100)) };
-        log.context_json = SqlText { rng.GenerateJson(config.systemAuditContextSize) };
+        auto log = LargeDb_SystemAuditLog {
+            .severity = SeverityLevels[i % SeverityLevels.size()],
+            .source = EventSources[i % EventSources.size()],
+            .event_type = std::format("event_type_{}", i % 50),
+            .message = SqlText { std::format("System audit message {}: {}", i, rng.GenerateText(100)) },
+            .context_json = SqlText { rng.GenerateJson(config.systemAuditContextSize) },
+            .correlation_id = std::format("corr-{}", i),
+            .created_at = now,
+        };
         if (rng.NextBool(0.3))
             log.stack_trace = SqlText { rng.GenerateText(config.systemAuditStackTraceSize) };
-        log.correlation_id = std::format("corr-{}", i);
-        log.created_at = now;
 
         dm.Create(log);
     }
@@ -599,27 +582,26 @@ void PopulateDatabase(Light::DataMapper& dm,
     {
         auto const userId = static_cast<uint64_t>(i % config.userCount) + 1;
 
-        LargeDb_User userRef;
-        userRef.id = userId;
-
         static constexpr std::array ArticleStatuses = { "draft", "published", "archived" };
         auto const statusIdx = i % ArticleStatuses.size();
         std::string_view status = ArticleStatuses[statusIdx];
 
-        LargeDb_Article article;
-        article.title = std::format("Article Title {} - {}", i, rng.GenerateText(50)).substr(0, 200);
-        article.slug = std::format("article-{}", i);
-        article.excerpt = rng.GenerateText(300);
-        article.content = SqlText { rng.GenerateText(config.articleContentSize) };
-        if (rng.NextBool(0.7))
-            article.featured_image = SqlText { rng.GenerateText(config.articleFeaturedImageSize) };
-        article.status = status;
-        article.view_count = static_cast<int>(rng.NextInt(0, 10000));
-        article.allow_comments = rng.NextBool(0.8);
-        article.created_at = now;
+        auto article = LargeDb_Article {
+            .title = std::format("Article Title {} - {}", i, rng.GenerateText(50)).substr(0, 200),
+            .slug = std::format("article-{}", i),
+            .excerpt = rng.GenerateText(300),
+            .content = SqlText { rng.GenerateText(config.articleContentSize) },
+            .featured_image = rng.NextBool(0.7)
+                                  ? std::optional { SqlText { rng.GenerateText(config.articleFeaturedImageSize) } }
+                                  : std::nullopt,
+            .status = status,
+            .view_count = static_cast<int>(rng.NextInt(0, 10000)),
+            .allow_comments = rng.NextBool(0.8),
+            .created_at = now,
+            .author = userId,
+        };
         if (statusIdx == 1)
             article.published_at = now;
-        article.author = userRef;
 
         dm.Create(article);
     }

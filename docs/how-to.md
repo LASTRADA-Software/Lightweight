@@ -9,7 +9,7 @@ you have to provide it as a template argument to the `Field` template. For examp
 ```cpp
 struct MyTable
 {
-    Light::Field<int, SqlRealName { "bar" }> foo {};
+    Light::Field<int, SqlRealName { "bar" }> foo;
 };
 ```
 

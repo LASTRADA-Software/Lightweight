@@ -18,6 +18,7 @@
 #include <array>
 #include <cerrno>
 #include <charconv>
+#include <concepts>
 #include <cstdlib>
 #include <optional>
 #include <ranges>
@@ -25,9 +26,11 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <tuple>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 // libc++ exposes the locale-aware strtod_l / newlocale family via <xlocale.h>; glibc declares them in
 // <stdlib.h>/<locale.h>. We only need them on the fallback path below (no float std::from_chars).
@@ -147,6 +150,92 @@ namespace detail
     struct is_specialization_of<T, T<Us...>>: std::true_type
     {
     };
+
+    /// Selects the constructor that builds a value the library is about to overwrite, e.g. a record
+    /// field that is then filled from a result row.
+    ///
+    /// A type that deliberately has no default constructor (a required record field) accepts this tag
+    /// instead, so that reading can still materialize it while user code cannot omit it.
+    ///
+    /// Only @ref MakeUninitialized creates the tag, which keeps it out of ordinary initializers. Both
+    /// are internal to the library: creating a record this way to skip a required field is misuse.
+    class UninitializedTag
+    {
+        explicit UninitializedTag() = default;
+
+        template <typename T>
+        friend constexpr T MakeUninitialized();
+    };
+
+    /// Creates a value of type @p T that is about to be overwritten.
+    ///
+    /// This is `T {}` wherever that is well-formed. Otherwise @p T is built from @ref UninitializedTag,
+    /// or - for a tuple or an aggregate, such as a record with required fields - member by member.
+    ///
+    /// @return The newly created value.
+    template <typename T>
+    [[nodiscard]] constexpr T MakeUninitialized()
+    {
+        if constexpr (std::default_initializable<T>)
+            return T {};
+        else if constexpr (std::constructible_from<T, UninitializedTag>)
+            return T { UninitializedTag {} };
+        else if constexpr (is_specialization_of<std::tuple, T>::value)
+            return []<std::size_t... I>(std::index_sequence<I...> /*indices*/) {
+                return T { MakeUninitialized<std::tuple_element_t<I, T>>()... };
+            }(std::make_index_sequence<std::tuple_size_v<T>> {});
+        else
+        {
+            static_assert(std::is_aggregate_v<T>,
+                          "T must be default-constructible, constructible from UninitializedTag, a tuple or an aggregate.");
+            // Deliberately the aggregate's own layout rather than RecordMemberTypeOf: brace-initialization
+            // needs every member in declaration order, which a Description<> need not mirror.
+            return []<std::size_t... I>(std::index_sequence<I...> /*indices*/) {
+                return T { MakeUninitialized<Reflection::MemberTypeOf<I, T>>()... };
+            }(std::make_index_sequence<Reflection::CountMembers<T>> {});
+        }
+    }
+
+    /// Appends a value that is about to be overwritten to @p values.
+    ///
+    /// @param values The vector to grow by one element.
+    /// @return The appended element.
+    template <typename T>
+    constexpr T& EmplaceBackUninitialized(std::vector<T>& values)
+    {
+        if constexpr (std::default_initializable<T>)
+            return values.emplace_back();
+        else
+            return values.emplace_back(MakeUninitialized<T>());
+    }
+
+    /// Engages @p value with a value that is about to be overwritten.
+    ///
+    /// @param value The optional to engage.
+    /// @return The contained value.
+    template <typename T>
+    constexpr T& EmplaceUninitialized(std::optional<T>& value)
+    {
+        if constexpr (std::default_initializable<T>)
+            return value.emplace();
+        else
+            return value.emplace(MakeUninitialized<T>());
+    }
+
+    /// Resizes @p values, filling any new elements with values that are about to be overwritten.
+    ///
+    /// @param values The vector to resize.
+    /// @param size The new number of elements.
+    template <typename T>
+    constexpr void ResizeUninitialized(std::vector<T>& values, std::size_t size)
+    {
+        if constexpr (std::default_initializable<T>)
+            values.resize(size);
+        else if (size <= values.size())
+            values.erase(values.begin() + static_cast<std::ptrdiff_t>(size), values.end());
+        else
+            values.resize(size, MakeUninitialized<T>());
+    }
 
     template <typename T>
     struct MemberClassTypeHelper;

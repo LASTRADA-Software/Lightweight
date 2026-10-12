@@ -26,22 +26,22 @@ struct NxAccountHistory;
 struct NxSupplier
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<30>> name {};
+    Field<SqlAnsiString<30>> name;
     HasOneThrough<NxAccountHistory, Through<NxAccount>> accountHistory {};
 };
 
 struct NxAccount
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<30>> iban {};
-    BelongsTo<Member(NxSupplier::id)> supplier {};
+    Field<SqlAnsiString<30>> iban;
+    BelongsTo<Member(NxSupplier::id)> supplier;
 };
 
 struct NxAccountHistory
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<int> creditRating {};
-    BelongsTo<Member(NxAccount::id)> account {};
+    Field<int> creditRating;
+    BelongsTo<Member(NxAccount::id)> account;
 };
 
 // Compile-time half: none of these may promise not to throw.
@@ -121,7 +121,7 @@ TEST_CASE_METHOD(SqlTestFixture,
 {
     auto dm = DataMapper {};
     dm.CreateTables<Physician, Patient, Appointment>();
-    auto physician = Physician { .id = SqlGuid::Create(), .name = "Dr. X", .appointments = {}, .patients = {} };
+    auto physician = Physician { .id = SqlGuid::Create(), .name = "Dr. X" };
     dm.Create(physician);
 
     auto loaded = dm.QuerySingle<Physician>(physician.id.Value());
@@ -148,7 +148,7 @@ TEST_CASE_METHOD(SqlTestFixture, "noexcept contract: HasOneThrough accessors rep
 {
     auto dm = DataMapper {};
     dm.CreateTables<NxSupplier, NxAccount, NxAccountHistory>();
-    auto supplier = NxSupplier { .id = {}, .name = "Supplier", .accountHistory = {} };
+    auto supplier = NxSupplier { .name = "Supplier" };
     dm.Create(supplier);
 
     auto loaded = dm.QuerySingle<NxSupplier>(supplier.id.Value());

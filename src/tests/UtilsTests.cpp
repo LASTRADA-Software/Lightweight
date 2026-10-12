@@ -19,8 +19,10 @@
 #include <limits>
 #include <optional>
 #include <string_view>
+#include <tuple>
 #include <type_traits>
 #include <variant>
+#include <vector>
 
 using namespace std::string_view_literals;
 using namespace Lightweight;
@@ -820,4 +822,91 @@ TEST_CASE("detail::ParseFloat is locale-independent", "[Utils][ParseFloat]")
     }
     else
         SUCCEED("comma-decimal locale not installed on this host; skipping");
+}
+
+namespace
+{
+
+// Stands in for a required record field: it cannot be default-constructed, only built from a value
+// or from the tag the read paths use.
+struct TagOnlyMember
+{
+    constexpr explicit TagOnlyMember(detail::UninitializedTag /*tag*/) noexcept {}
+    constexpr TagOnlyMember(int initialValue) noexcept:
+        value { initialValue }
+    {
+    }
+
+    int value { -1 };
+};
+
+struct AggregateWithTagOnlyMember
+{
+    int id { 7 };
+    TagOnlyMember required;
+    std::optional<int> nullable;
+};
+
+struct NestedAggregateWithTagOnlyMember
+{
+    AggregateWithTagOnlyMember inner;
+    TagOnlyMember required;
+};
+
+} // namespace
+
+TEST_CASE("detail::MakeUninitialized", "[Utils][MakeUninitialized]")
+{
+    static_assert(!std::default_initializable<TagOnlyMember>);
+    static_assert(!std::default_initializable<AggregateWithTagOnlyMember>);
+    static_assert(!std::default_initializable<NestedAggregateWithTagOnlyMember>);
+
+    SECTION("default-constructible types are value-initialized")
+    {
+        CHECK(detail::MakeUninitialized<int>() == 0);
+        CHECK(detail::MakeUninitialized<SimpleRecord>().value.Value() == 0);
+    }
+
+    SECTION("tag-constructible type")
+    {
+        CHECK(detail::MakeUninitialized<TagOnlyMember>().value == -1);
+    }
+
+    SECTION("aggregate is built member by member")
+    {
+        auto const aggregate = detail::MakeUninitialized<AggregateWithTagOnlyMember>();
+        CHECK(aggregate.id == 0);
+        CHECK(aggregate.required.value == -1);
+        CHECK(!aggregate.nullable.has_value());
+    }
+
+    SECTION("nested aggregate")
+    {
+        auto const nested = detail::MakeUninitialized<NestedAggregateWithTagOnlyMember>();
+        CHECK(nested.inner.required.value == -1);
+        CHECK(nested.required.value == -1);
+    }
+
+    SECTION("tuple is built element by element")
+    {
+        auto const [first, second] = detail::MakeUninitialized<std::tuple<AggregateWithTagOnlyMember, int>>();
+        CHECK(first.required.value == -1);
+        CHECK(second == 0);
+    }
+
+    SECTION("vector helpers")
+    {
+        auto values = std::vector<AggregateWithTagOnlyMember> {};
+        detail::EmplaceBackUninitialized(values).required.value = 42;
+        detail::ResizeUninitialized(values, 3);
+        REQUIRE(values.size() == 3);
+        CHECK(values[0].required.value == 42);
+        CHECK(values[2].required.value == -1);
+        detail::ResizeUninitialized(values, 1);
+        REQUIRE(values.size() == 1);
+        CHECK(values[0].required.value == 42);
+
+        auto engaged = std::optional<AggregateWithTagOnlyMember> {};
+        CHECK(detail::EmplaceUninitialized(engaged).required.value == -1);
+    }
 }

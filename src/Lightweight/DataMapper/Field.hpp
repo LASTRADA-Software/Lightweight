@@ -171,8 +171,25 @@ struct Field
                   "A FieldTimestamp marker (CreatedAt / UpdatedAt) requires the field's value type to be SqlDateTime "
                   "or std::optional<SqlDateTime>.");
 
+    /// Indicates if the field is optional, i.e., it can be NULL.
+    static constexpr auto IsOptional = detail::IsStdOptional<T>;
+
+    /// Indicates if the field is mandatory, i.e., it cannot be NULL.
+    static constexpr auto IsMandatory = !IsOptional;
+
+    /// Indicates if the field is a primary key.
+    static constexpr auto IsPrimaryKey = IsPrimaryKeyValue != PrimaryKey::No;
+
+    /// Indicates if the field must be given a value when its record is created by the caller: it is
+    /// NOT NULL and its value is not assigned by the data mapper or the database.
+    ///
+    /// A required field has no default constructor, so a record cannot be created without it, unless
+    /// the record declares a default member initializer for it.
+    static constexpr bool IsRequired = IsMandatory && !IsPrimaryKey;
+
     // clang-format off
-    constexpr Field() noexcept = default;
+    /// Default constructor. Not available for a required field, see @ref IsRequired.
+    constexpr Field() noexcept requires(!IsRequired) = default;
     /// Default copy constructor.
     constexpr Field(Field const&) noexcept = default;
     /// Default copy assignment operator.
@@ -184,9 +201,12 @@ struct Field
     constexpr ~Field() noexcept = default;
     // clang-format on
 
+    /// Constructs a field whose value is about to be overwritten, e.g. by reading a result row.
+    constexpr explicit Field(detail::UninitializedTag /*tag*/) noexcept {}
+
     /// Constructs a new field with the given value.
     template <typename... S>
-        requires std::constructible_from<T, S...>
+        requires(sizeof...(S) != 0) && std::constructible_from<T, S...>
     constexpr Field(S&&... value) noexcept;
 
     /// Assigns a new value to the field.
@@ -194,15 +214,6 @@ struct Field
         requires std::constructible_from<T, S> && (!std::same_as<std::remove_cvref_t<S>, Field<T, P1, P2>>)
     // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
     constexpr Field& operator=(S&& value) noexcept;
-
-    /// Indicates if the field is optional, i.e., it can be NULL.
-    static constexpr auto IsOptional = detail::IsStdOptional<T>;
-
-    /// Indicates if the field is mandatory, i.e., it cannot be NULL.
-    static constexpr auto IsMandatory = !IsOptional;
-
-    /// Indicates if the field is a primary key.
-    static constexpr auto IsPrimaryKey = IsPrimaryKeyValue != PrimaryKey::No;
 
     /// Indicates if this is a primary key, it also is auto-assigned by the client.
     static constexpr auto IsAutoAssignPrimaryKey = IsPrimaryKeyValue == PrimaryKey::AutoAssign;
@@ -326,7 +337,7 @@ inline constexpr bool IsAutoTimestampField = FieldTimestampOf<std::remove_cvref_
 /// Constructs a new field with the given value.
 template <detail::FieldElementType T, auto P1, auto P2>
 template <typename... S>
-    requires std::constructible_from<T, S...>
+    requires(sizeof...(S) != 0) && std::constructible_from<T, S...>
 constexpr LIGHTWEIGHT_FORCE_INLINE Field<T, P1, P2>::Field(S&&... value) noexcept:
     _value(std::forward<S>(value)...)
 {

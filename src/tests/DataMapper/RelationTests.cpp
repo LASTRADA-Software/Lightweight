@@ -64,7 +64,7 @@ struct MisalignedDepartment
     static constexpr std::string_view TableName = "MisalignedDepartments";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {}; // 0
-    Field<SqlAnsiString<40>> name {};                           // 1
+    Field<SqlAnsiString<40>> name;                              // 1
     HasMany<MisalignedEmployee> employees {};                   // 2
 };
 
@@ -73,9 +73,9 @@ struct MisalignedEmployee
     static constexpr std::string_view TableName = "MisalignedEmployees";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};                                                    // 0
-    Field<SqlAnsiString<30>> firstName {};                                                                         // 1
-    Field<SqlAnsiString<30>> lastName {};                                                                          // 2
-    Field<int> salary {};                                                                                          // 3
+    Field<SqlAnsiString<30>> firstName;                                                                            // 1
+    Field<SqlAnsiString<30>> lastName;                                                                             // 2
+    Field<int> salary;                                                                                             // 3
     Field<std::optional<int>> age {};                                                                              // 4
     BelongsTo<Member(MisalignedDepartment::id), SqlRealName { "department_id" }, SqlNullable::Null> department {}; // 5
 };
@@ -101,7 +101,7 @@ struct Human
     static constexpr std::string_view TableName = "Humans";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<30>> name {};
+    Field<SqlAnsiString<30>> name;
     HasMany<Meeting, SqlRealName { "organizer_id" }> organizedMeetings {};
     HasMany<Meeting, SqlRealName { "attendee_id" }> attendedMeetings {};
 };
@@ -111,9 +111,9 @@ struct Meeting
     static constexpr std::string_view TableName = "Meetings";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<40>> topic {};
-    BelongsTo<Member(Human::id), SqlRealName { "organizer_id" }> organizer {};
-    BelongsTo<Member(Human::id), SqlRealName { "attendee_id" }> attendee {};
+    Field<SqlAnsiString<40>> topic;
+    BelongsTo<Member(Human::id), SqlRealName { "organizer_id" }> organizer;
+    BelongsTo<Member(Human::id), SqlRealName { "attendee_id" }> attendee;
 };
 
 std::ostream& operator<<(std::ostream& os, Meeting const& record)
@@ -135,7 +135,7 @@ struct Buddy
     static constexpr std::string_view TableName = "Buddies";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<30>> name {};
+    Field<SqlAnsiString<30>> name;
     HasManyThrough<Buddy, Through<Buddyship>, SqlRealName { "a_id" }, SqlRealName { "b_id" }> buddies {};
 };
 
@@ -144,8 +144,8 @@ struct Buddyship
     static constexpr std::string_view TableName = "Buddyships";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    BelongsTo<Member(Buddy::id), SqlRealName { "a_id" }> a {};
-    BelongsTo<Member(Buddy::id), SqlRealName { "b_id" }> b {};
+    BelongsTo<Member(Buddy::id), SqlRealName { "a_id" }> a;
+    BelongsTo<Member(Buddy::id), SqlRealName { "b_id" }> b;
 };
 
 std::ostream& operator<<(std::ostream& os, Buddy const& record)
@@ -164,7 +164,7 @@ struct Shop
     static constexpr std::string_view TableName = "Shops";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "shop_key" }> shopKey {}; // 0
-    Field<SqlAnsiString<20>> name {};                                                            // 1
+    Field<SqlAnsiString<20>> name;                                                               // 1
     HasOneThrough<ShopOrderLine, Through<ShopOrder>> firstOrderLine {};                          // 2
 };
 
@@ -172,9 +172,9 @@ struct ShopOrder
 {
     static constexpr std::string_view TableName = "ShopOrders";
 
-    Field<SqlAnsiString<20>> reference {};                                // 0
-    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> order_key {};    // 1 - PK is NOT at index 0
-    BelongsTo<Member(Shop::shopKey), SqlRealName { "shop_key" }> shop {}; // 2
+    Field<SqlAnsiString<20>> reference;                                // 0
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> order_key {}; // 1 - PK is NOT at index 0
+    BelongsTo<Member(Shop::shopKey), SqlRealName { "shop_key" }> shop; // 2
 };
 
 struct ShopOrderLine
@@ -182,8 +182,8 @@ struct ShopOrderLine
     static constexpr std::string_view TableName = "ShopOrderLines";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "line_key" }> lineKey {}; // 0
-    Field<SqlAnsiString<20>> article {};                                                         // 1
-    BelongsTo<Member(ShopOrder::order_key), SqlRealName { "order_key" }> order {};               // 2
+    Field<SqlAnsiString<20>> article;                                                            // 1
+    BelongsTo<Member(ShopOrder::order_key), SqlRealName { "order_key" }> order;                  // 2
 };
 
 // The three primary keys sit at different indices and carry different names; a positional lookup
@@ -253,8 +253,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     dm.Create(original);
     dm.Create(target);
 
-    auto email = Email { .address = "someone@example.com" };
-    email.user = original;
+    auto email = Email { .address = "someone@example.com", .user = original };
     dm.Create(email);
     REQUIRE_FALSE(email.user.IsModified());
 
@@ -280,8 +279,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     dm.Create(userA);
     dm.Create(userB);
 
-    auto email = Email { .address = "a@example.com" };
-    email.user = userA;
+    auto email = Email { .address = "a@example.com", .user = userA };
     dm.Create(email);
 
     // Re-point the foreign key by bare value, then persist.
@@ -788,7 +786,7 @@ struct AccountHistory;
 struct Suppliers
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<30>> name {};
+    Field<SqlAnsiString<30>> name;
 
     // TODO: HasOne<Account> account;
     HasOneThrough<AccountHistory, Through<Account>> accountHistory {};
@@ -802,8 +800,8 @@ std::ostream& operator<<(std::ostream& os, Suppliers const& record)
 struct Account
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<30>> iban {};
-    BelongsTo<Member(Suppliers::id)> supplier {};
+    Field<SqlAnsiString<30>> iban;
+    BelongsTo<Member(Suppliers::id)> supplier;
 
     constexpr std::weak_ordering operator<=>(Account const& other) const = default;
 };
@@ -816,8 +814,8 @@ std::ostream& operator<<(std::ostream& os, Account const& record)
 struct AccountHistory
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<int> credit_rating {};
-    BelongsTo<Member(Account::id)> account {};
+    Field<int> credit_rating;
+    BelongsTo<Member(Account::id)> account;
 
     constexpr std::weak_ordering operator<=>(AccountHistory const& other) const = default;
 };
@@ -1050,43 +1048,40 @@ TEST_CASE_METHOD(SqlTestFixture, "HasManyThrough", "[DataMapper][relations]")
 
     dm.CreateTables<Physician, Patient, Appointment>();
 
-    Physician physician1;
-    physician1.name = "Dr. House";
+    auto physician1 = Physician { .name = "Dr. House" };
     dm.Create(physician1);
 
-    Physician physician2;
-    physician2.name = "Granny";
+    auto physician2 = Physician { .name = "Granny" };
     dm.Create(physician2);
 
-    Patient patient1;
-    patient1.name = "Blooper";
-    patient1.comment = "Prefers morning times";
+    auto patient1 = Patient { .name = "Blooper", .comment = "Prefers morning times" };
     dm.Create(patient1);
 
-    Patient patient2;
-    patient2.name = "Valentine";
-    patient2.comment = "always friendly";
+    auto patient2 = Patient { .name = "Valentine", .comment = "always friendly" };
     dm.Create(patient2);
 
-    Appointment patient1Apointment1;
-    patient1Apointment1.date = SqlDateTime::Now();
-    patient1Apointment1.patient = patient1;
-    patient1Apointment1.physician = physician2;
-    patient1Apointment1.comment = "Patient is a bit nervous";
+    auto patient1Apointment1 = Appointment {
+        .date = SqlDateTime::Now(),
+        .comment = "Patient is a bit nervous",
+        .physician = physician2,
+        .patient = patient1,
+    };
     dm.Create(patient1Apointment1);
 
-    Appointment patient1Apointment2;
-    patient1Apointment2.date = SqlDateTime::Now();
-    patient1Apointment2.patient = patient1;
-    patient1Apointment2.physician = physician1;
-    patient1Apointment2.comment = "Patient is a bit nervous, again";
+    auto patient1Apointment2 = Appointment {
+        .date = SqlDateTime::Now(),
+        .comment = "Patient is a bit nervous, again",
+        .physician = physician1,
+        .patient = patient1,
+    };
     dm.Create(patient1Apointment2);
 
-    Appointment patient2Apointment1;
-    patient2Apointment1.date = SqlDateTime::Now();
-    patient2Apointment1.patient = patient2;
-    patient2Apointment1.physician = physician1;
-    patient2Apointment1.comment = "Patient is funny";
+    auto patient2Apointment1 = Appointment {
+        .date = SqlDateTime::Now(),
+        .comment = "Patient is funny",
+        .physician = physician1,
+        .patient = patient2,
+    };
     dm.Create(patient2Apointment1);
 
     {
@@ -1177,27 +1172,23 @@ TEST_CASE_METHOD(SqlTestFixture, "HasManyThrough: element access and iteration",
     auto dm = DataMapper();
     dm.CreateTables<Physician, Patient, Appointment>();
 
-    Physician physician;
-    physician.name = "Dr. House";
+    auto physician = Physician { .name = "Dr. House" };
     dm.Create(physician);
 
-    Patient patient1;
-    patient1.name = "Blooper";
-    patient1.comment = "Prefers morning times";
+    auto patient1 = Patient { .name = "Blooper", .comment = "Prefers morning times" };
     dm.Create(patient1);
 
-    Patient patient2;
-    patient2.name = "Valentine";
-    patient2.comment = "always friendly";
+    auto patient2 = Patient { .name = "Valentine", .comment = "always friendly" };
     dm.Create(patient2);
 
     for (auto* patient: { &patient1, &patient2 })
     {
-        Appointment appointment;
-        appointment.date = SqlDateTime::Now();
-        appointment.patient = *patient;
-        appointment.physician = physician;
-        appointment.comment = "Checkup";
+        auto appointment = Appointment {
+            .date = SqlDateTime::Now(),
+            .comment = "Checkup",
+            .physician = physician,
+            .patient = *patient,
+        };
         dm.Create(appointment);
     }
 
@@ -1212,8 +1203,7 @@ TEST_CASE_METHOD(SqlTestFixture, "HasManyThrough: element access and iteration",
         CHECK(physician.patients.IsEmpty().value() == false);
 
         // A physician with no appointments at all resolves to an empty relationship.
-        Physician lonely;
-        lonely.name = "Dr. Nobody";
+        auto lonely = Physician { .name = "Dr. Nobody" };
         dm.Create(lonely);
         dm.ConfigureRelationAutoLoading(lonely);
         CHECK(lonely.patients.IsEmpty().value() == true);
@@ -1256,16 +1246,15 @@ TEST_CASE_METHOD(SqlTestFixture, "HasManyThrough: element access and iteration",
     {
         REQUIRE(physician.patients.Count().value() == 2);
 
-        Patient patient3;
-        patient3.name = "Newcomer";
-        patient3.comment = "walk-in";
+        auto patient3 = Patient { .name = "Newcomer", .comment = "walk-in" };
         dm.Create(patient3);
 
-        Appointment extra;
-        extra.date = SqlDateTime::Now();
-        extra.patient = patient3;
-        extra.physician = physician;
-        extra.comment = "Walk-in checkup";
+        auto extra = Appointment {
+            .date = SqlDateTime::Now(),
+            .comment = "Walk-in checkup",
+            .physician = physician,
+            .patient = patient3,
+        };
         dm.Create(extra);
 
         // The cached count and record list still describe the pre-insert state.
@@ -1277,7 +1266,7 @@ TEST_CASE_METHOD(SqlTestFixture, "HasManyThrough: element access and iteration",
 
     SECTION("Emplace() replaces the loaded records without touching the database")
     {
-        Physician detached;
+        auto detached = Physician { .name = "Detached" };
         auto replacement = decltype(detached.patients)::ReferencedRecordList {};
         replacement.emplace_back(std::make_shared<Patient>(patient1));
 
@@ -1295,7 +1284,7 @@ TEST_CASE_METHOD(SqlTestFixture, "HasManyThrough: element access and iteration",
         // std::function. Calling it would be std::bad_function_call - and because these accessors used
         // to be noexcept, that would have been std::terminate rather than an error the caller could
         // handle. The accessors returning RelationResult report it; the shortcuts throw it.
-        Physician detached;
+        auto detached = Physician { .name = "Detached" };
         Physician const& constDetached = detached;
 
         CHECK(detached.appointments.All().error() == RelationError::NotConfigured);
@@ -1402,7 +1391,7 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsTo Optinal records", "[DataMapper]")
     auto nullableFKUserNotSet = NullableForeignKeyUser {};
     dm.Create<Light::DataMapperOptions { .loadRelations = false }>(nullableFKUserNotSet);
     REQUIRE(!nullableFKUserNotSet.user.Value().has_value());
-    REQUIRE(!nullableFKUserNotSet.user.Record().transform(Light::Unwrap).value_or(User {}).id.Value());
+    REQUIRE(!nullableFKUserNotSet.user.Record().transform(Light::Unwrap).value_or(User { .name = "" }).id.Value());
 }
 
 bool CheckFieldInEntityConstCorrectness(auto const& nullableFKUser)
@@ -1445,7 +1434,7 @@ TEST_CASE("HasOneThrough: default-constructed reports not-loaded", "[HasOneThrou
 TEST_CASE("HasOneThrough: EmplaceRecord makes IsLoaded true and Unload reverts it", "[HasOneThrough]")
 {
     HasOneThrough<AccountHistory, Through<Account>> rel {};
-    rel.EmplaceRecord(std::make_shared<AccountHistory>(AccountHistory { .credit_rating = 750 }));
+    rel.EmplaceRecord(std::make_shared<AccountHistory>(AccountHistory { .credit_rating = 750, .account = uint64_t { 0 } }));
     REQUIRE(rel.IsLoaded());
     CHECK(rel.Record().value().get().credit_rating.Value() == 750);
 
@@ -1456,7 +1445,7 @@ TEST_CASE("HasOneThrough: EmplaceRecord makes IsLoaded true and Unload reverts i
 TEST_CASE("HasOneThrough: operator-> forwards to the loaded record", "[HasOneThrough]")
 {
     HasOneThrough<AccountHistory, Through<Account>> rel {};
-    rel.EmplaceRecord(std::make_shared<AccountHistory>(AccountHistory { .credit_rating = 600 }));
+    rel.EmplaceRecord(std::make_shared<AccountHistory>(AccountHistory { .credit_rating = 600, .account = uint64_t { 0 } }));
     REQUIRE(rel.IsLoaded());
     CHECK(rel->credit_rating.Value() == 600);
 
@@ -1471,7 +1460,7 @@ TEST_CASE("HasOneThrough: operator-> forwards to the loaded record", "[HasOneThr
 TEST_CASE("HasOneThrough: operator* returns the loaded record by reference", "[HasOneThrough]")
 {
     HasOneThrough<AccountHistory, Through<Account>> rel {};
-    rel.EmplaceRecord(std::make_shared<AccountHistory>(AccountHistory { .credit_rating = 42 }));
+    rel.EmplaceRecord(std::make_shared<AccountHistory>(AccountHistory { .credit_rating = 42, .account = uint64_t { 0 } }));
     AccountHistory& deref = *rel;
     CHECK(deref.credit_rating.Value() == 42);
 }
@@ -1536,7 +1525,7 @@ struct Issue517Parent
     static constexpr std::string_view TableName = "Issue517Parent";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "id" }> id {};
-    Field<SqlAnsiString<32>, SqlRealName { "name" }> name {};
+    Field<SqlAnsiString<32>, SqlRealName { "name" }> name;
     HasMany<Issue517Child> children {};
 };
 
@@ -1545,8 +1534,8 @@ struct Issue517Child
     static constexpr std::string_view TableName = "Issue517Child";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "id" }> id {};
-    Field<int, SqlRealName { "n" }> n {};
-    BelongsTo<Member(Issue517Parent::id), SqlRealName { "parent_id" }> parent {};
+    Field<int, SqlRealName { "n" }> n;
+    BelongsTo<Member(Issue517Parent::id), SqlRealName { "parent_id" }> parent;
 };
 
 static_assert(RecordStorageFieldCount<Issue517Parent> == 2);
@@ -1634,8 +1623,8 @@ struct Issue517MidParent
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
     HasMany<Issue517MidChild> children {};
-    Field<std::string> name {};
-    Field<int> counter {};
+    Field<std::string> name;
+    Field<int> counter;
 };
 
 struct Issue517MidChild
@@ -1643,7 +1632,7 @@ struct Issue517MidChild
     static constexpr std::string_view TableName = "Issue517MidChild";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    BelongsTo<Member(Issue517MidParent::id)> parent {};
+    BelongsTo<Member(Issue517MidParent::id)> parent;
 };
 
 TEST_CASE_METHOD(SqlTestFixture,
@@ -1706,7 +1695,7 @@ struct Issue517JoinParent
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
     HasMany<Issue517JoinChild> children {};
-    Field<SqlAnsiString<32>> name {};
+    Field<SqlAnsiString<32>> name;
 };
 
 struct Issue517JoinChild
@@ -1714,8 +1703,8 @@ struct Issue517JoinChild
     static constexpr std::string_view TableName = "Issue517JoinChild";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    BelongsTo<Member(Issue517JoinParent::id)> parent {};
-    Field<SqlAnsiString<32>> title {};
+    BelongsTo<Member(Issue517JoinParent::id)> parent;
+    Field<SqlAnsiString<32>> title;
 };
 
 // The projection is 2 (parent) + 3 (child) = 5 columns wide, not 3 + 3.

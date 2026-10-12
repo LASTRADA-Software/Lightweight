@@ -30,8 +30,7 @@ TEST_CASE_METHOD(SqlTestFixture, "DataMapper::IsModified flips when a Field is a
     auto dm = DataMapper();
     dm.CreateTable<Person>();
 
-    auto person = Person {};
-    person.name = "John Doe";
+    auto person = Person { .name = "John Doe" };
     dm.Create(person);
 
     // After Create the record is in NotModified state.
@@ -77,7 +76,7 @@ TEST_CASE_METHOD(SqlTestFixture, "DataMapper::Update with no modified fields is 
     auto dm = DataMapper();
     dm.CreateTable<Person>();
 
-    auto person = Person { .id = {}, .name = "John Doe", .is_active = true, .age = 30 };
+    auto person = Person { .name = "John Doe", .is_active = true, .age = 30 };
     dm.Create(person);
     REQUIRE_FALSE(dm.IsModified(person));
 
@@ -98,7 +97,7 @@ TEST_CASE_METHOD(SqlTestFixture, "DataMapper::Update after a fetch with no chang
     auto dm = DataMapper();
     dm.CreateTable<Person>();
 
-    auto seed = Person { .id = {}, .name = "Alice", .is_active = true, .age = 30 };
+    auto seed = Person { .name = "Alice", .is_active = true, .age = 30 };
     dm.Create(seed);
 
     auto fetched = dm.QuerySingle<Person>(seed.id);
@@ -117,7 +116,7 @@ TEST_CASE_METHOD(SqlTestFixture, "DataMapper::IsModified is false for a freshly-
     auto dm = DataMapper();
     dm.CreateTable<Person>();
 
-    auto seed = Person { .id = {}, .name = "Alice", .is_active = true, .age = 30 };
+    auto seed = Person { .name = "Alice", .is_active = true, .age = 30 };
     dm.Create(seed);
 
     auto fetchedOpt = dm.QuerySingle<Person>(seed.id);
@@ -137,7 +136,7 @@ TEST_CASE_METHOD(SqlTestFixture, "DataMapper::CreateCopyOf inserts a new row wit
     auto dm = DataMapper();
     dm.CreateTable<Person>();
 
-    auto original = Person { .id = {}, .name = "Pat", .is_active = true, .age = 40 };
+    auto original = Person { .name = "Pat", .is_active = true, .age = 40 };
     dm.Create(original);
     REQUIRE(original.id.Value());
 
@@ -163,7 +162,7 @@ TEST_CASE_METHOD(SqlTestFixture, "DataMapper queries a partial record (subset of
     auto dm = DataMapper();
     dm.CreateTable<Person>();
 
-    auto p = Person { .id = {}, .name = "OnlyName", .is_active = false, .age = 18 };
+    auto p = Person { .name = "OnlyName", .is_active = false, .age = 18 };
     dm.Create(p);
 
     auto partialOpt = dm.QuerySingle<StateTestsPartialPersonName>(p.id.Value());
@@ -184,7 +183,7 @@ TEST_CASE_METHOD(SqlTestFixture, "DataMapper::Inspect stringifies a populated re
     auto dm = DataMapper();
     dm.CreateTable<Person>();
 
-    auto p = Person { .id = {}, .name = "Inspector", .is_active = true, .age = 99 };
+    auto p = Person { .name = "Inspector", .is_active = true, .age = 99 };
     dm.Create(p);
 
     auto const inspected = DataMapper::Inspect(p);
@@ -202,7 +201,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     auto dm = DataMapper();
     dm.CreateTable<Person>();
 
-    auto p = Person { .id = {}, .name = "NoAge", .is_active = false, .age = std::nullopt };
+    auto p = Person { .name = "NoAge", .is_active = false };
     dm.Create(p);
 
     auto const inspected = DataMapper::Inspect(p);

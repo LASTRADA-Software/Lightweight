@@ -27,21 +27,21 @@ struct RrRating;
 struct RrSupplier
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<30>> name {};
+    Field<SqlAnsiString<30>> name;
     HasOneThrough<RrRating, Through<RrAccount>> rating {};
 };
 
 struct RrAccount
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    BelongsTo<Member(RrSupplier::id)> supplier {};
+    BelongsTo<Member(RrSupplier::id)> supplier;
 };
 
 struct RrRating
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<int> score {};
-    BelongsTo<Member(RrAccount::id)> account {};
+    Field<int> score;
+    BelongsTo<Member(RrAccount::id)> account;
 };
 
 TEST_CASE("RelationResult: a hand-built record reports NotConfigured", "[DataMapper][RelationResult]")
@@ -58,8 +58,8 @@ TEST_CASE("RelationResult: a hand-built record reports NotConfigured", "[DataMap
 
 TEST_CASE("RelationResult: a hand-built through relation reports NotConfigured", "[DataMapper][RelationResult]")
 {
-    auto physician = Physician { .id = SqlGuid::Create(), .name = "Dr. X", .appointments = {}, .patients = {} };
-    auto supplier = RrSupplier { .id = {}, .name = "Supplier", .rating = {} };
+    auto physician = Physician { .id = SqlGuid::Create(), .name = "Dr. X" };
+    auto supplier = RrSupplier { .name = "Supplier" };
 
     CHECK(physician.patients.All().error() == RelationError::NotConfigured);
     CHECK(std::as_const(physician).patients.All().error() == RelationError::NotConfigured);
@@ -76,9 +76,9 @@ TEST_CASE_METHOD(SqlTestFixture,
     dm.CreateTables<User, Email, Physician, Patient, Appointment, RrSupplier, RrAccount, RrRating>();
     auto user = User { .id = SqlGuid::Create(), .name = "Alice", .emails = {} };
     dm.Create(user);
-    auto physician = Physician { .id = SqlGuid::Create(), .name = "Dr. X", .appointments = {}, .patients = {} };
+    auto physician = Physician { .id = SqlGuid::Create(), .name = "Dr. X" };
     dm.Create(physician);
-    auto supplier = RrSupplier { .id = {}, .name = "Supplier", .rating = {} };
+    auto supplier = RrSupplier { .name = "Supplier" };
     dm.Create(supplier);
 
     auto loadedUser = dm.QuerySingle<User>(user.id.Value());
@@ -141,15 +141,13 @@ TEST_CASE_METHOD(SqlTestFixture,
     dm.CreateTables<User, Email, Physician, Patient, Appointment>();
     auto user = User { .id = SqlGuid::Create(), .name = "Alice", .emails = {} };
     dm.Create(user);
-    auto physician = Physician { .id = SqlGuid::Create(), .name = "Dr. X", .appointments = {}, .patients = {} };
+    auto physician = Physician { .id = SqlGuid::Create(), .name = "Dr. X" };
     dm.Create(physician);
     for (auto const name: { std::string_view { "a" }, std::string_view { "b" } })
     {
         auto email = Email { .id = SqlGuid::Create(), .address = SqlAnsiString<30> { name }, .user = user };
         dm.Create(email);
-        auto patient = Patient {
-            .id = SqlGuid::Create(), .name = SqlAnsiString<30> { name }, .comment = "", .appointments = {}, .physicians = {}
-        };
+        auto patient = Patient { .id = SqlGuid::Create(), .name = SqlAnsiString<30> { name }, .comment = "" };
         dm.Create(patient);
         auto appointment = Appointment {
             .id = SqlGuid::Create(), .date = SqlDateTime::Now(), .comment = "", .physician = physician, .patient = patient
@@ -187,7 +185,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     dm.Create(user);
     auto email = Email { .id = SqlGuid::Create(), .address = "alice@example.com", .user = user };
     dm.Create(email);
-    auto supplier = RrSupplier { .id = {}, .name = "Supplier", .rating = {} }; // no account, so no rating
+    auto supplier = RrSupplier { .name = "Supplier" }; // no account, so no rating
     dm.Create(supplier);
 
     SECTION("BelongsTo whose referenced row was deleted after the read")

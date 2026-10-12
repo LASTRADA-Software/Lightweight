@@ -107,8 +107,8 @@ struct CkChildRecord
     static constexpr std::string_view TableName = "CkChild";
 
     Field<int32_t, PrimaryKey::AutoAssign, SqlRealName { "id" }> id {};
-    Field<int32_t, SqlRealName { "ref_a" }> refA {};
-    Field<int32_t, SqlRealName { "ref_b" }> refB {};
+    Field<int32_t, SqlRealName { "ref_a" }> refA;
+    Field<int32_t, SqlRealName { "ref_b" }> refB;
 };
 
 } // namespace CompositeKeyGap

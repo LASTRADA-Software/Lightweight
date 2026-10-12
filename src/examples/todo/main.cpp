@@ -81,7 +81,7 @@ struct Todo final
 {
     static constexpr std::string_view TableName = "todos";
 
-    Light::Field<uint64_t, Light::PrimaryKey::ServerSideAutoIncrement, Light::SqlRealName { "id" }> id;
+    Light::Field<uint64_t, Light::PrimaryKey::ServerSideAutoIncrement, Light::SqlRealName { "id" }> id {};
     Light::Field<Light::SqlAnsiString<256>, Light::SqlRealName { "title" }> title;
     Light::Field<bool, Light::SqlRealName { "done" }> done { false };
 };
@@ -139,8 +139,7 @@ int main()
             std::println("kept #{} (unchecked): {}", existing->id.Value(), title);
             return;
         }
-        auto todo = Todo {};
-        todo.title = Light::SqlAnsiString<256> { title };
+        auto todo = Todo { .title = Light::SqlAnsiString<256> { title } };
         // AsSender's value channel carries the new primary key, returned as a single-element tuple.
         auto const [newId] = UnwrapSyncWait(stdexec::sync_wait(Async::AsSender(dm.CreateAsync(todo))));
         std::println("added #{}: {}", newId, title);

@@ -1742,9 +1742,9 @@ TEST_CASE_METHOD(SqlTestFixture, "Unicode round-trip across binders", "[SqlDataB
 struct UnicodeAcrossDynamicStringTypes
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlDynamicUtf16String<256>> stringUtf16 {};
-    Field<SqlDynamicUtf32String<256>> stringUtf32 {};
-    Field<SqlDynamicWideString<256>> stringWide {};
+    Field<SqlDynamicUtf16String<256>> stringUtf16;
+    Field<SqlDynamicUtf32String<256>> stringUtf32;
+    Field<SqlDynamicWideString<256>> stringWide;
 };
 
 TEST_CASE_METHOD(SqlTestFixture, "Unicode round-trip across DataMapper dynamic string types", "[DataMapper][Unicode]")
@@ -1752,10 +1752,11 @@ TEST_CASE_METHOD(SqlTestFixture, "Unicode round-trip across DataMapper dynamic s
     auto dm = DataMapper {};
     dm.CreateTable<UnicodeAcrossDynamicStringTypes>();
 
-    UnicodeAcrossDynamicStringTypes record {};
-    record.stringUtf16 = std::u16string { u"Hello \U0001F601 World" };
-    record.stringUtf32 = std::u32string { U"Hello \U0001F601 World" };
-    record.stringWide = std::wstring { L"Hello \U0001F601 World" };
+    auto record = UnicodeAcrossDynamicStringTypes {
+        .stringUtf16 = std::u16string { u"Hello \U0001F601 World" },
+        .stringUtf32 = std::u32string { U"Hello \U0001F601 World" },
+        .stringWide = std::wstring { L"Hello \U0001F601 World" },
+    };
     dm.Create(record);
 
     auto const result = dm.QuerySingle<UnicodeAcrossDynamicStringTypes>(record.id);
@@ -1768,8 +1769,8 @@ TEST_CASE_METHOD(SqlTestFixture, "Unicode round-trip across DataMapper dynamic s
 struct UnicodeTrimmedFixedRow
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlTrimmedFixedString<32>> stringNarrow {};
-    Field<SqlTrimmedWideFixedString<32>> stringWide {};
+    Field<SqlTrimmedFixedString<32>> stringNarrow;
+    Field<SqlTrimmedWideFixedString<32>> stringWide;
 };
 
 TEST_CASE_METHOD(SqlTestFixture, "Trimmed fixed strings strip trailing padding through DataMapper", "[DataMapper][Unicode]")
@@ -1777,9 +1778,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Trimmed fixed strings strip trailing padding t
     auto dm = DataMapper {};
     dm.CreateTable<UnicodeTrimmedFixedRow>();
 
-    UnicodeTrimmedFixedRow row {};
-    row.stringNarrow = "Hello";
-    row.stringWide = L"Hellö";
+    auto row = UnicodeTrimmedFixedRow { .stringNarrow = "Hello", .stringWide = L"Hellö" };
     dm.Create(row);
 
     auto const result = dm.QuerySingle<UnicodeTrimmedFixedRow>(row.id);
@@ -1796,7 +1795,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Trimmed fixed strings strip trailing padding t
 struct FullCapacityFixedRow
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlTrimmedFixedString<3>> code {};
+    Field<SqlTrimmedFixedString<3>> code;
 };
 
 TEST_CASE_METHOD(SqlTestFixture,
@@ -1806,8 +1805,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     auto dm = DataMapper {};
     dm.CreateTable<FullCapacityFixedRow>();
 
-    FullCapacityFixedRow row {};
-    row.code = "EUR";
+    auto row = FullCapacityFixedRow { .code = "EUR" };
     dm.Create(row);
 
     auto const result = dm.QuerySingle<FullCapacityFixedRow>(row.id);

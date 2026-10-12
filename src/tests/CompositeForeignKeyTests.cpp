@@ -56,8 +56,8 @@ struct Child
     static constexpr std::string_view TableName = "CfkChild";
 
     Field<int32_t, PrimaryKey::AutoAssign, SqlRealName { "id" }> id {};
-    Field<int32_t, SqlRealName { "ref_a" }> refA {};
-    Field<int32_t, SqlRealName { "ref_b" }> refB {};
+    Field<int32_t, SqlRealName { "ref_a" }> refA;
+    Field<int32_t, SqlRealName { "ref_b" }> refB;
 
     CompositeForeignKey<Connection<Member(Child::refA), Member(Parent::partA)>,
                         Connection<Member(Child::refB), Member(Parent::partB)>>
@@ -71,8 +71,8 @@ struct ChildDeclaredBackwards
     static constexpr std::string_view TableName = "CfkChild";
 
     Field<int32_t, PrimaryKey::AutoAssign, SqlRealName { "id" }> id {};
-    Field<int32_t, SqlRealName { "ref_a" }> refA {};
-    Field<int32_t, SqlRealName { "ref_b" }> refB {};
+    Field<int32_t, SqlRealName { "ref_a" }> refA;
+    Field<int32_t, SqlRealName { "ref_b" }> refB;
 
     CompositeForeignKey<Connection<Member(ChildDeclaredBackwards::refB), Member(Parent::partB)>,
                         Connection<Member(ChildDeclaredBackwards::refA), Member(Parent::partA)>>
@@ -97,9 +97,9 @@ struct WideChild
     static constexpr std::string_view TableName = "CfkWideChild";
 
     Field<int32_t, PrimaryKey::AutoAssign, SqlRealName { "id" }> id {};
-    Field<int32_t, SqlRealName { "a" }> a {};
-    Field<int32_t, SqlRealName { "b" }> b {};
-    Field<int32_t, SqlRealName { "c" }> c {};
+    Field<int32_t, SqlRealName { "a" }> a;
+    Field<int32_t, SqlRealName { "b" }> b;
+    Field<int32_t, SqlRealName { "c" }> c;
 
     CompositeForeignKey<Connection<Member(WideChild::c), Member(WideParent::k3)>,
                         Connection<Member(WideChild::a), Member(WideParent::k1)>,
@@ -175,9 +175,7 @@ TEST_CASE("ValuesOf reads the foreign key from the record's own fields", "[Compo
 {
     // The values live in the Field members - one copy each - and are read through the connections'
     // `From` pointers. The relation stores nothing, so nothing can fall out of sync.
-    auto child = Child {};
-    child.refA = 7;
-    child.refB = 9;
+    auto child = Child { .refA = 7, .refB = 9 };
 
     auto const values = ChildRelation::ValuesOf(child);
     CHECK(std::get<0>(values) == 7);
@@ -187,9 +185,7 @@ TEST_CASE("ValuesOf reads the foreign key from the record's own fields", "[Compo
 TEST_CASE("OrderedValuesOf permutes into the referenced record's member order", "[CompositeForeignKey]")
 {
     // Declared in parent order already: the permutation is the identity.
-    auto child = Child {};
-    child.refA = 1;
-    child.refB = 2;
+    auto child = Child { .refA = 1, .refB = 2 };
     auto const ordered = decltype(Child::parent)::OrderedValuesOf(child);
     CHECK(std::get<0>(ordered) == 1); // partA
     CHECK(std::get<1>(ordered) == 2); // partB
@@ -197,9 +193,7 @@ TEST_CASE("OrderedValuesOf permutes into the referenced record's member order", 
     // Declared backwards: refB->partB is written first, but partB is the parent's *second* member, so
     // the value must still land in slot 1. This is the case that would silently fetch a wrong row if
     // the relation bound values in declaration order.
-    auto backwards = ChildDeclaredBackwards {};
-    backwards.refA = 1;
-    backwards.refB = 2;
+    auto backwards = ChildDeclaredBackwards { .refA = 1, .refB = 2 };
     auto const orderedBackwards = decltype(ChildDeclaredBackwards::parent)::OrderedValuesOf(backwards);
     CHECK(std::get<0>(orderedBackwards) == 1); // partA, despite being declared second
     CHECK(std::get<1>(orderedBackwards) == 2); // partB, despite being declared first
@@ -209,10 +203,7 @@ TEST_CASE("OrderedValuesOf handles a scrambled three-column key", "[CompositeFor
 {
     // Connections written (c->k3, a->k1, b->k2). The parent declares k1, k2, k3, so the values must
     // come out as (a, b, c) regardless.
-    auto child = WideChild {};
-    child.a = 10;
-    child.b = 20;
-    child.c = 30;
+    auto child = WideChild { .a = 10, .b = 20, .c = 30 };
 
     auto const ordered = decltype(WideChild::parent)::OrderedValuesOf(child);
     CHECK(std::get<0>(ordered) == 10); // k1 <- a
@@ -226,7 +217,7 @@ TEST_CASE("OrderedValuesOf handles a scrambled three-column key", "[CompositeFor
 
 TEST_CASE("CompositeForeignKey navigation reports load state", "[CompositeForeignKey]")
 {
-    auto child = Child {};
+    auto child = Child { .refA = 0, .refB = 0 };
     CHECK_FALSE(child.parent.IsLoaded());
 
     // Emplacing a record marks it loaded and makes it reachable.
@@ -247,7 +238,7 @@ TEST_CASE("CompositeForeignKey navigation reports load state", "[CompositeForeig
 
 TEST_CASE("CompositeForeignKey of a hand-built record reports NotConfigured", "[CompositeForeignKey]")
 {
-    auto const child = Child {};
+    auto const child = Child { .refA = 0, .refB = 0 };
     CHECK(child.parent.Record().error() == RelationError::NotConfigured);
     CHECK_THROWS_AS(std::ignore = child.parent->caption, SqlRequireLoadedError);
 }
@@ -288,13 +279,9 @@ TEST_CASE("CompositeForeignKey participates in CollectDifferences", "[CompositeF
     // Reflection::CollectDifferences - which falls back to recursing into non-comparable members as
     // aggregates - fails to compile for any record holding one. Compiling at all is most of what this
     // test checks.
-    auto a = Child {};
-    a.refA = 1;
-    a.refB = 2;
+    auto a = Child { .refA = 1, .refB = 2 };
 
-    auto b = Child {};
-    b.refA = 1;
-    b.refB = 9;
+    auto b = Child { .refA = 1, .refB = 9 };
 
     auto const differences = Lightweight::CollectDifferences(a, b);
     CHECK(differences.indexes.size() == 1); // only refB differs; both `parent` relations compare equal (unloaded)
@@ -468,7 +455,7 @@ TEST_CASE("GetPrimaryKeyFields reads every key value in member order", "[Composi
     CHECK(std::get<2>(wideKeys) == 30);
 
     // The tuple order matches what QuerySingle binds, so it can be applied directly.
-    [[maybe_unused]] auto const single = GetPrimaryKeyFields(Child {});
+    [[maybe_unused]] auto const single = GetPrimaryKeyFields(Child { .refA = 0, .refB = 0 });
     STATIC_CHECK(std::tuple_size_v<decltype(single)> == 1);
 }
 

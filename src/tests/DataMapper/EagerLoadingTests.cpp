@@ -29,7 +29,7 @@ struct EagerCategory
     static constexpr std::string_view TableName = "EagerCategory";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<32>> title {};
+    Field<SqlAnsiString<32>> title;
 };
 
 struct EagerRegion
@@ -37,7 +37,7 @@ struct EagerRegion
     static constexpr std::string_view TableName = "EagerRegion";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<32>> label {};
+    Field<SqlAnsiString<32>> label;
 };
 
 struct EagerOwner
@@ -45,8 +45,8 @@ struct EagerOwner
     static constexpr std::string_view TableName = "EagerOwner";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<32>> name {};
-    BelongsTo<Member(EagerRegion::id), SqlRealName { "region_id" }> region {};
+    Field<SqlAnsiString<32>> name;
+    BelongsTo<Member(EagerRegion::id), SqlRealName { "region_id" }> region;
     HasMany<EagerChild> children {};
 };
 
@@ -55,8 +55,8 @@ struct EagerChild
     static constexpr std::string_view TableName = "EagerChild";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<32>> label {};
-    BelongsTo<Member(EagerOwner::id), SqlRealName { "owner_id" }> owner {};
+    Field<SqlAnsiString<32>> label;
+    BelongsTo<Member(EagerOwner::id), SqlRealName { "owner_id" }> owner;
     BelongsTo<Member(EagerCategory::id), SqlRealName { "category_id" }, SqlNullable::Null> category {};
 };
 
@@ -153,14 +153,13 @@ void MakeOwnersWithChildren(DataMapper& dm, size_t ownerCount, size_t childrenPe
 
     for (size_t ownerIndex = 0; ownerIndex < ownerCount; ++ownerIndex)
     {
-        auto owner = EagerOwner { .name = SqlAnsiString<32> { std::format("owner-{}", ownerIndex) } };
-        owner.region = region;
+        auto owner = EagerOwner { .name = SqlAnsiString<32> { std::format("owner-{}", ownerIndex) }, .region = region };
         dm.Create(owner);
 
         for (size_t childIndex = 0; childIndex < childrenPerOwner; ++childIndex)
         {
-            auto child = EagerChild { .label = SqlAnsiString<32> { std::format("child-{}-{}", ownerIndex, childIndex) } };
-            child.owner = owner;
+            auto child = EagerChild { .label = SqlAnsiString<32> { std::format("child-{}-{}", ownerIndex, childIndex) },
+                                      .owner = owner };
             // Every other child leaves the optional relation NULL, so the batched loader has to cope
             // with a foreign key that references nothing.
             if (childIndex % 2 == 0)
@@ -272,8 +271,7 @@ TEST_CASE_METHOD(SqlTestFixture, "With<HasMany> marks childless owners loaded-em
     auto const region = dm.Query<EagerRegion>().First();
     if (!region.has_value())
         throw std::runtime_error("The fixture must have created a region.");
-    auto lonely = EagerOwner { .name = "lonely" };
-    lonely.region = *region;
+    auto lonely = EagerOwner { .name = "lonely", .region = *region };
     dm.Create(lonely);
 
     auto counter = ScopedStatementCounter {};
@@ -504,14 +502,12 @@ TEST_CASE_METHOD(SqlTestFixture,
     auto region = EagerRegion { .label = "north" };
     dm.Create(region);
 
-    auto owner = EagerOwner { .name = "solo" };
-    owner.region = region;
+    auto owner = EagerOwner { .name = "solo", .region = region };
     dm.Create(owner);
 
     for (auto const index: { 0, 1 })
     {
-        auto child = EagerChild { .label = SqlAnsiString<32> { std::format("orphan-{}", index) } };
-        child.owner = owner;
+        auto child = EagerChild { .label = SqlAnsiString<32> { std::format("orphan-{}", index) }, .owner = owner };
         dm.Create(child);
     }
 
@@ -538,8 +534,7 @@ TEST_CASE_METHOD(SqlTestFixture, "eagerLoadDepth descends into a level that load
     dm.Create(region);
     for (auto const index: { 0, 1 })
     {
-        auto owner = EagerOwner { .name = SqlAnsiString<32> { std::format("childless-{}", index) } };
-        owner.region = region;
+        auto owner = EagerOwner { .name = SqlAnsiString<32> { std::format("childless-{}", index) }, .region = region };
         dm.Create(owner);
     }
 
@@ -565,8 +560,7 @@ TEST_CASE_METHOD(SqlTestFixture, "A named path stops when its first level loaded
     dm.Create(region);
     for (auto const index: { 0, 1 })
     {
-        auto owner = EagerOwner { .name = SqlAnsiString<32> { std::format("childless-path-{}", index) } };
-        owner.region = region;
+        auto owner = EagerOwner { .name = SqlAnsiString<32> { std::format("childless-path-{}", index) }, .region = region };
         dm.Create(owner);
     }
 

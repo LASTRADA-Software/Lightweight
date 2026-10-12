@@ -159,10 +159,10 @@ struct Order;
 
 struct Person
 {
-    Field<int64_t, PrimaryKey::AutoAssign> id;
+    Field<int64_t, PrimaryKey::AutoAssign> id {};
     Field<SqlString<50>> name;
     Field<SqlString<100>> email;
-    Field<std::optional<SqlString<100>>> password;
+    Field<std::optional<SqlString<100>>> password {};
     Field<SqlDateTime> created_at = SqlDateTime::Now();
     Field<SqlDateTime> updated_at = SqlDateTime::Now();
     // HasMany<Order> orders;
@@ -172,7 +172,7 @@ struct Person
 
 struct Order
 {
-    Field<int64_t, PrimaryKey::AutoAssign> id;
+    Field<int64_t, PrimaryKey::AutoAssign> id {};
     BelongsTo<Member(Person::id), SqlRealName { "person_id" }> person;
     Field<SqlDateTime> created_at = SqlDateTime::Now();
     Field<SqlDateTime> updated_at = SqlDateTime::Now();
@@ -214,13 +214,10 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Migration with foreign key", "[SqlMig
     migrationManager.CreateMigrationHistory();
     migrationManager.ApplyPendingMigrations();
 
-    auto person = FKTests::Person {};
-    person.name = "John Doe";
-    person.email = "john@doe.com";
+    auto person = FKTests::Person { .name = "John Doe", .email = "john@doe.com" };
     dm.Create(person);
 
-    auto order = FKTests::Order {};
-    order.person = person;
+    auto order = FKTests::Order { .person = person };
     dm.Create(order);
 }
 

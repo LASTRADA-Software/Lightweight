@@ -38,7 +38,7 @@ struct Owner
 {
     static constexpr std::string_view TableName = "BenchOwner";
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<40>> name {};
+    Field<SqlAnsiString<40>> name;
     HasMany<Child> children {};
 };
 
@@ -46,8 +46,8 @@ struct Child
 {
     static constexpr std::string_view TableName = "BenchChild";
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<40>> label {};
-    BelongsTo<Member(Owner::id), SqlRealName { "owner_id" }> owner {};
+    Field<SqlAnsiString<40>> label;
+    BelongsTo<Member(Owner::id), SqlRealName { "owner_id" }> owner;
 };
 
 // Counts prepares/executes so the query count per strategy is reported, not guessed.
@@ -130,8 +130,7 @@ int main(int argc, char** argv)
             dm.Create(owner);
             for (size_t j = 0; j < childrenPerOwner; ++j)
             {
-                auto child = Child { .label = SqlAnsiString<40> { std::format("child-{}-{}", i, j) } };
-                child.owner = owner;
+                auto child = Child { .label = SqlAnsiString<40> { std::format("child-{}-{}", i, j) }, .owner = owner };
                 dm.Create(child);
             }
         }
