@@ -595,7 +595,9 @@ struct [[nodiscard]] MigrationRenderContext
     /// When true (and the formatter distinguishes narrow and wide text), a foreign-key
     /// column declared by a `CreateTable` / `AlterTable` step is rendered with the
     /// narrow/wide variant of the referenced column's actual type when the two differ
-    /// only in that respect. See `CompatFlagFkMatchReferencedTextName`.
+    /// only in that respect. A foreign key added to a column that already exists is
+    /// preceded by an `ALTER COLUMN` to that variant, keeping the column's nullability.
+    /// See `CompatFlagFkMatchReferencedTextName`.
     bool fkMatchReferencedText = false;
 
     /// Per-(schema, table, column) cache of declared character widths. Populated lazily
@@ -633,6 +635,10 @@ struct [[nodiscard]] MigrationRenderContext
     /// Per-column text types (`Char` / `NChar` / `Varchar` / `NVarchar` only), from steps
     /// rendered so far and from `widthLookup`. Consulted by `fkMatchReferencedText`.
     std::map<ColumnKey, SqlColumnTypeDefinition> textColumnTypes;
+
+    /// Nullability of the columns in `textColumnTypes`, as reported by `widthLookup`.
+    /// Lets `fkMatchReferencedText` re-declare an existing column without changing it.
+    std::map<ColumnKey, SqlNullable> textColumnNullability;
 
     /// @brief Optional fallback that fetches column widths for a `(schema, table)` from
     /// the live database when the cache has no entry for it.

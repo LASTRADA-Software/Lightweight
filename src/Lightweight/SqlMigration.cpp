@@ -1787,8 +1787,9 @@ namespace
 
     /// @brief Builds a lazy `widthLookup` callback that resolves missing widths via
     /// `INFORMATION_SCHEMA.COLUMNS` against the supplied connection. The callback is
-    /// safe to invoke many times — every (schema, table) is queried at most once per
-    /// run thanks to `MigrationRenderContext::lookupAttempted`.
+    /// safe to invoke many times — `MigrationRenderContext::lookupAttempted` limits the
+    /// width lookups to one per (schema, table), and `fk-match-referenced-text` re-runs it
+    /// to see the columns as the steps applied so far left them.
     ///
     /// Errors (e.g. INFORMATION_SCHEMA missing on SQLite, table not yet created) are
     /// swallowed: the render path already treats a missing width as "don't truncate",
@@ -1798,10 +1799,10 @@ namespace
         return [&connection](MigrationRenderContext& ctx, std::string_view schema, std::string_view table) {
             auto const sql =
                 schema.empty()
-                    ? std::format("SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH "
+                    ? std::format("SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE "
                                   "FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{}'",
                                   table)
-                    : std::format("SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH "
+                    : std::format("SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE "
                                   "FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{}' AND TABLE_NAME = '{}'",
                                   schema,
                                   table);
@@ -1824,7 +1825,11 @@ namespace
                                                                          .table = std::string(table),
                                                                          .column = columnName };
                     if (auto textType = TextTypeFromDataType(dataType, length))
+                    {
                         ctx.textColumnTypes[key] = *textType;
+                        ctx.textColumnNullability[key] =
+                            cursor.GetColumn<std::string>(4) == "NO" ? SqlNullable::NotNull : SqlNullable::Null;
+                    }
                     auto const width = CharacterWidthFromDataType(dataType, length);
                     if (width.value == 0)
                         continue;

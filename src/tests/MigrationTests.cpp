@@ -3949,7 +3949,121 @@ std::string LiveDataType(SqlStatement& stmt, std::string_view table, std::string
                                      column));
 }
 
+/// INFORMATION_SCHEMA nullability ("YES" / "NO") of `table.column`.
+std::string LiveIsNullable(SqlStatement& stmt, std::string_view table, std::string_view column)
+{
+    return CatalogScalar(stmt,
+                         std::format("SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{}' AND "
+                                     "COLUMN_NAME = '{}'",
+                                     table,
+                                     column));
+}
+
+/// `FkTextContext` plus an existing `fk_orders.USER_NAME` of `existingType` / `nullable`.
+MigrationRenderContext FkTextContextWithExistingColumn(SqlColumnTypeDefinition referencedType,
+                                                       SqlColumnTypeDefinition existingType,
+                                                       SqlNullable nullable)
+{
+    auto context = FkTextContext(std::move(referencedType));
+    auto const key = MigrationRenderContext::ColumnKey { .schema = "", .table = "fk_orders", .column = "USER_NAME" };
+    context.textColumnTypes[key] = std::move(existingType);
+    context.textColumnNullability[key] = nullable;
+    context.lookupAttempted.insert(MigrationRenderContext::TableKey { .schema = "", .table = "fk_orders" });
+    return context;
+}
+
+/// A foreign key added on its own to the existing column `fk_orders.USER_NAME`.
+void AddUserNameForeignKey(SqlMigrationQueryBuilder& plan)
+{
+    plan.AlterTable("fk_orders").AddForeignKey("USER_NAME", { .tableName = "fk_users", .columnName = "NAME" });
+}
+
 } // namespace
+
+TEST_CASE("fk-match-referenced-text: a foreign key on an existing column is preceded by ALTER COLUMN",
+          "[SqlMigration][compat][fk-text]")
+{
+    using namespace SqlColumnTypeDefinitions;
+    {
+        auto context = FkTextContextWithExistingColumn(Char { 30 }, NChar { 30 }, SqlNullable::NotNull);
+        auto const sql = RenderWithContext(SqlQueryFormatter::SqlServer(), context, AddUserNameForeignKey);
+        CAPTURE(sql);
+        auto const alter = sql.find(R"(ALTER COLUMN "USER_NAME" CHAR(30) NOT NULL)");
+        REQUIRE(alter != std::string::npos);
+        CHECK(alter < sql.find("FOREIGN KEY"));
+    }
+    {
+        auto context = FkTextContextWithExistingColumn(NVarchar { 40 }, Varchar { 40 }, SqlNullable::Null);
+        auto const sql = RenderWithContext(SqlQueryFormatter::SqlServer(), context, AddUserNameForeignKey);
+        CAPTURE(sql);
+        CHECK(sql.contains(R"(ALTER COLUMN "USER_NAME" NVARCHAR(40) NULL)"));
+    }
+}
+
+TEST_CASE("fk-match-referenced-text: an existing column is left alone unless only narrow vs. wide differs",
+          "[SqlMigration][compat][fk-text]")
+{
+    using namespace SqlColumnTypeDefinitions;
+    auto strict = MigrationRenderContext {};
+    auto const declared = RenderWithContext(SqlQueryFormatter::SqlServer(), strict, AddUserNameForeignKey);
+    REQUIRE_FALSE(declared.contains("ALTER COLUMN"));
+
+    auto alreadyMatching = FkTextContextWithExistingColumn(Char { 30 }, Char { 30 }, SqlNullable::NotNull);
+    CHECK(RenderWithContext(SqlQueryFormatter::SqlServer(), alreadyMatching, AddUserNameForeignKey) == declared);
+
+    auto lengthMismatch = FkTextContextWithExistingColumn(Char { 20 }, NChar { 30 }, SqlNullable::NotNull);
+    CHECK(RenderWithContext(SqlQueryFormatter::SqlServer(), lengthMismatch, AddUserNameForeignKey) == declared);
+
+    auto flagOff = FkTextContextWithExistingColumn(Char { 30 }, NChar { 30 }, SqlNullable::NotNull);
+    flagOff.fkMatchReferencedText = false;
+    CHECK(RenderWithContext(SqlQueryFormatter::SqlServer(), flagOff, AddUserNameForeignKey) == declared);
+
+    auto unknownNullability = FkTextContextWithExistingColumn(Char { 30 }, NChar { 30 }, SqlNullable::NotNull);
+    unknownNullability.textColumnNullability.clear();
+    CHECK(RenderWithContext(SqlQueryFormatter::SqlServer(), unknownNullability, AddUserNameForeignKey) == declared);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "fk-match-referenced-text: foreign keys added later to existing wide columns apply against a narrow "
+                 "legacy column",
+                 "[SqlMigration][compat][fk-text]")
+{
+    using namespace SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("only SQL Server distinguishes narrow and wide text in foreign keys");
+    mgr.CreateMigrationHistory();
+    // Created outside the migration set, as legacy tooling did.
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "fk_users" ("NAME" CHAR(30) NOT NULL PRIMARY KEY))");
+
+    mgr.SetCompatPolicy([](SqlMigration::MigrationBase const&) {
+        return std::set<std::string> { std::string(CompatFlagFkMatchReferencedTextName) };
+    });
+    // A column created by an earlier migration and constrained only later.
+    auto createOrders = SqlMigration::Migration<202610140001>("create orders", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("fk_orders").PrimaryKey("NR", Integer()).RequiredColumn("USER_NAME", NChar(30));
+    });
+    // A column added by one step and constrained by the next step of the same migration.
+    auto addBuyer = SqlMigration::Migration<202610140002>("add buyer", [](SqlMigrationQueryBuilder& plan) {
+        AddUserNameForeignKey(plan);
+        plan.AlterTable("fk_orders").AddNotRequiredColumnIfNotExists("BUYER_NAME", NChar(30));
+        plan.AlterTable("fk_orders").AddForeignKey("BUYER_NAME", { .tableName = "fk_users", .columnName = "NAME" });
+    });
+    REQUIRE(mgr.ApplyPendingMigrations() == 2);
+    mgr.SetCompatPolicy({});
+
+    CHECK(LiveDataType(stmt, "fk_orders", "USER_NAME") == "char");
+    CHECK(LiveDataType(stmt, "fk_orders", "BUYER_NAME") == "char");
+    CHECK(LiveIsNullable(stmt, "fk_orders", "USER_NAME") == "NO");
+    CHECK(LiveIsNullable(stmt, "fk_orders", "BUYER_NAME") == "YES");
+
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "fk_users" ("NAME") VALUES ('alice'))");
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "fk_orders" ("NR", "USER_NAME", "BUYER_NAME") VALUES (1, 'alice', 'alice'))");
+    CHECK_THROWS(stmt.ExecuteDirect(R"(INSERT INTO "fk_orders" ("NR", "USER_NAME") VALUES (2, 'bob'))"));
+    // Checksums hash the plan as declared, so the inserted ALTER COLUMN must not show up as drift.
+    CHECK(mgr.VerifyChecksums().empty());
+}
 
 TEST_CASE_METHOD(SqlMigrationTestFixture,
                  "UnicodeUpgradeTables: SQL Server rebuilds keys, constraints and indexes on upgraded columns",
