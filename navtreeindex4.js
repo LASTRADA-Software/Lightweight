@@ -1,5 +1,6 @@
 var NAVTREEINDEX4 =
 {
+"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#concurrency-control":[10,7,1],
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#createindex":[10,3,3],
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#createtable":[10,2,0],
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#creating-migrations":[10,1],
@@ -248,6 +249,5 @@ var NAVTREEINDEX4 =
 "d9/d8a/group__CoreApi.html#ga8637d070f06ecc36b5699c5b7ea1b102":[19,6,24],
 "d9/d8a/group__CoreApi.html#ga8be4e3766b268b1d751ef7df237af144":[19,6,20],
 "d9/d8a/group__CoreApi.html#ga99e5e92107ae68dfd09cca5fc6ef1106":[19,6,21],
-"d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a42c2820d1794f02d673fc37f0d620244":[19,6,22,5],
-"d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a4789f23283b3a61f858b641a1bef19a3":[19,6,22,4]
+"d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a42c2820d1794f02d673fc37f0d620244":[19,6,22,5]
 };

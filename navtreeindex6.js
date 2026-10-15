@@ -1,5 +1,6 @@
 var NAVTREEINDEX6 =
 {
+"da/dd4/structLightweight_1_1Zip_1_1ZipError.html#aae4162b3c01ffe80286bdf62a5561472":[21,0,0,5,3,1],
 "da/def/structLightweight_1_1SqlRetryState.html":[19,9,2],
 "da/def/structLightweight_1_1SqlRetryState.html#a0fc445febcec32eacd5275d181bca773":[19,9,2,0],
 "da/def/structLightweight_1_1SqlRetryState.html#ace917b8786d0a572f06ab81b0cfa05c0":[19,9,2,1],
@@ -248,6 +249,5 @@ var NAVTREEINDEX6 =
 "dd/d75/structLightweight_1_1SqlAlterTablePlan.html#a4d5476b81f6e3efc5057c49d797a9f07":[19,8,16,1],
 "dd/d75/structLightweight_1_1SqlAlterTablePlan.html#ace007f34324de43ff2ab887fbe321970":[19,8,16,2],
 "dd/d76/structLightweight_1_1SqlInsertDataPlan.html":[19,8,19],
-"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a0428d0b2e06f4760a9bc3c31cff19327":[19,8,19,2],
-"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a71fa23f7cd74e66242eb2042fb019dec":[19,8,19,0]
+"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a0428d0b2e06f4760a9bc3c31cff19327":[19,8,19,2]
 };

@@ -399,14 +399,14 @@ var NAVTREEINDEX =
 [
 "annotated.html",
 "d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a095d9eb7ed4abef29c07a9a563c0da72",
-"d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#what-you-get-back",
-"d6/dfa/structLightweight_1_1SqlDateTime.html#a4073ddbeadc581f1528fc44fa7e9fb70",
-"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#createindex",
-"d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a5a7dacb6e9b5ba37e22f825429355174",
-"da/def/structLightweight_1_1SqlRetryState.html",
-"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#afd21e23e3c24884cba9ef3b76d174e82",
-"de/dae/classLightweight_1_1SqlFixedString.html#a7858ea6af047117649390bab07b7a451",
-"functions_func_r.html"
+"d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#turning-a-description-back-into-ddl",
+"d6/dfa/structLightweight_1_1SqlDateTime.html#a337174b1308732c72008e8397ad2299f",
+"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#concurrency-control",
+"d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a4789f23283b3a61f858b641a1bef19a3",
+"da/dd4/structLightweight_1_1Zip_1_1ZipError.html#aae4162b3c01ffe80286bdf62a5561472",
+"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a71fa23f7cd74e66242eb2042fb019dec",
+"de/dae/classLightweight_1_1SqlFixedString.html#a74b3bf9c61395a963fd63aad8648f4b6",
+"functions_func_q.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
