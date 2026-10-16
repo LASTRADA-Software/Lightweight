@@ -150,6 +150,15 @@ void RunPluginPostInitHooks(std::span<LoadedPlugin const> plugins,
                             Lightweight::SqlMigration::MigrationManager& central,
                             std::function<void(std::string_view)> const& logError);
 
+/// Symbol of the optional post-init hook (`LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT`).
+inline constexpr std::string_view PostInitHookSymbol = "LightweightMigrationPluginPostInit";
+
+/// Lists the plugins that export a post-init hook. `RunPluginPostInitHooks` would run each of
+/// them against the database, and a hook may write (e.g. seed reference data).
+/// @param plugins Plugin set returned by `IngestPlugins`.
+/// @return The paths of the plugins with a hook, in the order given.
+[[nodiscard]] std::vector<std::filesystem::path> PluginsWithPostInitHook(std::span<LoadedPlugin const> plugins);
+
 /// Name of the advisory lock `dbtool` and `dbtool-gui` hold while they change the
 /// migration state. Post-migrate hooks run while it is still held.
 inline constexpr std::string_view MigrationLockName = "lightweight_migration";

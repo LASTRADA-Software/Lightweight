@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Fixture plugin for the post-migrate hook. It registers no migrations; its
-// hook appends one line per call to the file named by
-// LIGHTWEIGHT_TEST_POST_MIGRATE_LOG, so test_dbtool.py can count the calls
-// per dbtool command. Without that variable the hook does nothing, which keeps
-// the plugin inert for every other test sharing the plugins directory.
+// Fixture plugin for the post-migrate and post-init hooks. It registers no
+// migrations; each hook appends one line per call to the file named by
+// LIGHTWEIGHT_TEST_POST_MIGRATE_LOG / LIGHTWEIGHT_TEST_POST_INIT_LOG, so
+// test_dbtool.py can count the calls per dbtool command. Without those
+// variables the hooks do nothing, which keeps the plugin inert for every other
+// test sharing the plugins directory.
 
 #include <Lightweight/SqlAdvisoryLock.hpp>
 #include <Lightweight/SqlConnection.hpp>
@@ -53,6 +54,16 @@ std::string MigrationLockState(SqlConnection const& connection)
 } // namespace
 
 LIGHTWEIGHT_MIGRATION_PLUGIN()
+
+LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connection, manager)
+{
+    static_cast<void>(connection);
+    auto const logPath = Environment("LIGHTWEIGHT_TEST_POST_INIT_LOG");
+    if (logPath.empty())
+        return;
+    auto log = std::ofstream { std::string { logPath }, std::ios::app };
+    log << std::format("post-init migrations={}\n", manager.GetAllMigrations().size());
+}
 
 LIGHTWEIGHT_MIGRATION_PLUGIN_POSTMIGRATE(connection, manager)
 {

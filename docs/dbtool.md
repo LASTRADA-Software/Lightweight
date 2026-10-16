@@ -67,11 +67,59 @@ The resulting artefacts land in `out/package/<preset>/`.
 
 ### Connection String
 
-dbtool requires a database connection string, which can be provided in three ways (in order of precedence):
+dbtool requires a database connection string. The first of these that supplies one wins:
 
-1. **Command-line option**: `--connection-string "..."`
-2. **Environment variable**: `SQL_CONNECTION_STRING` or `ODBC_CONNECTION_STRING`
-3. **Configuration file**: `dbtool.yml`, located as described below
+1. **Command-line option**: `--connection-string "..."`.
+2. **A named profile**: `--profile <NAME>`, from `--config <FILE>` or from the `dbtool.yml` that
+   discovery finds (see below).
+3. **An explicit config file**: `--config <FILE>` without `--profile` uses that file's `defaultProfile`.
+4. **Environment variable**: `SQL_CONNECTION_STRING`, then `ODBC_CONNECTION_STRING`.
+5. **A discovered config file**: the `defaultProfile` of the `dbtool.yml` that discovery finds.
+
+The settings of a profile (`schema`, `pluginsDir`, `backupDir`) and the file-wide defaults that
+stand in for them (`defaultPluginsDir`, `defaultBackupDir`) apply only when that profile is
+selected: named by `--profile`, the default of `--config`, or the discovered default that supplies
+the connection. `--connection-string` without `--profile` applies no profile. When the environment
+variable overrides a discovered `defaultProfile`, neither that profile's settings nor the file's
+`defaultPluginsDir` / `defaultBackupDir` apply, so plugins come from `--plugins-dir` or the current
+directory. A discovered profile without a connection of its own (for example a legacy file with
+only `PluginsDir`) still applies. A file that sets no `defaultProfile` uses its first profile as
+the default.
+
+**Commands that write never use a discovered `defaultProfile`.** Only rule 5 is implicit: a
+`dbtool.yml` in a parent directory, next to the executable or in the per-user location can
+point at a database you did not mean. So a command that can change the database refuses a
+target that only rule 5 supplies, names the target and the file, and exits non-zero; pass
+`--profile`, `--config` or `--connection-string`, or set `SQL_CONNECTION_STRING`. These commands
+are `migrate`, `migrate-to-release`, `apply`, `rollback`, `rollback-to`, `rollback-to-release`,
+`mark-applied`, `rewrite-checksums`, `hard-reset`, `unicode-upgrade-tables`, `restore` and `exec`.
+With `--dry-run`, `migrate`, `migrate-to-release`, `rewrite-checksums`, `hard-reset`,
+`unicode-upgrade-tables` and `restore` only read, and `status`, `list-pending`, `list-applied`,
+`releases` and `backup` always do.
+
+**A plugin post-init hook counts as writing.** Every command that loads migration plugins
+(`status`, `list-pending`, `list-applied`, `releases` and every migration command, `--dry-run`
+included) runs each plugin's `LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT` hook against the database
+first, and a hook may write (for example, one that seeds reference data). So a read-only
+command uses a discovered `defaultProfile` only when no loaded plugin exports a post-init hook;
+otherwise it refuses, names the plugins, and exits non-zero. The hooks are never skipped
+instead, because a bridging hook changes what `status` reports. Choose a target explicitly, or use
+a `--plugins-dir` without those plugins. `backup` and `restore` load no plugins.
+
+Against a discovered target dbtool itself creates no missing SQLite database file or folder (the
+SQLite ODBC driver may still create an empty file when it connects, as it always did), and it
+does not encrypt a plaintext password in that `dbtool.yml` (see
+[Profile passwords](#profile-passwords)).
+
+Before it starts, a command that writes prints its target to stderr: server, port, database or
+DSN, and where the target came from (never a password):
+
+```
+Target: server 127.0.0.1,1444, database inventory (from profile 'inventory' from D:\cfg\dbtool.yml (--config))
+Target: database D:\data\b.db (from environment variable SQL_CONNECTION_STRING)
+```
+
+`--profile` that no config file defines is an error, also when no `dbtool.yml` is found at all.
 
 ### Where dbtool finds `dbtool.yml`
 
@@ -141,7 +189,10 @@ plugin 'pricing.dll' from ./plugins/pricing.dll shadowed by /opt/lightweight/plu
 
 The effective plugin directory for a given run resolves as: `--plugins-dir`
 CLI option → profile's own `pluginsDir` → top-level `defaultPluginsDir`
-(possibly a list) → current working directory.
+(possibly a list) → current working directory. The profile and file steps apply only when the
+file's profile is selected (see [Connection String](#connection-string)): not with
+`--connection-string` alone, and not when `SQL_CONNECTION_STRING` overrides a discovered
+`defaultProfile`.
 
 #### Backup folder (`defaultBackupDir` / `backupDir`)
 
@@ -179,9 +230,11 @@ You never need to produce the `enc:` value by hand:
 - **Plaintext is upgraded automatically.** If you write `password: hunter2`, dbtool uses it as is
   and — once a connection with it has succeeded — rewrites that one value in place as `enc:...`.
   The rest of the file (comments, ordering, formatting) is left untouched. A password that fails to
-  connect is left alone. If the file is read-only, dbtool warns and carries on. If the file lives
-  in a git repository, dbtool warns that the old plaintext may remain in its history — change the
-  database password in that case.
+  connect is left alone. A `dbtool.yml` that was only discovered, and whose default profile is
+  therefore no target for writing commands, is not rewritten either; name it with `--config` or
+  the profile with `--profile` to upgrade it. If the file is read-only, dbtool warns and carries
+  on. If the file lives in a git repository, dbtool warns that the old plaintext may remain in its
+  history — change the database password in that case.
   dbtool-gui follows the same rule: it encrypts the value as soon as a connection with it succeeds,
   whether that is its interactive connect or the start of a managed backup or restore.
 

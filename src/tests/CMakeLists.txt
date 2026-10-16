@@ -35,6 +35,7 @@ endif()
 set(SOURCE_FILES
     ConfigDiscoveryTests.cpp
     ConfigBackupOutputTests.cpp
+    ConfigConnectionTargetTests.cpp
     ConfigProfileStoreTests.cpp
     ColumnTypeRoundTripTests.cpp
     CoreTests.cpp
@@ -133,6 +134,7 @@ set(SOURCE_FILES
     SqlBackup/ProductionReadinessTests.cpp
     dbtool/StandardProgressManagerTests.cpp
     dbtool/BackupDiffTests.cpp
+    dbtool/CommandAccessTests.cpp
     UnicodeConverterTests.cpp
     Utils.cpp
     UtilsTests.cpp

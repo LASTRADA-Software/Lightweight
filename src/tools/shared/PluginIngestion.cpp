@@ -156,7 +156,7 @@ void RunPluginPostInitHooks(std::span<LoadedPlugin const> plugins,
 
     for (auto const& plugin: plugins)
     {
-        auto* const postInit = plugin.TryGetFunction<HookSignature>("LightweightMigrationPluginPostInit");
+        auto* const postInit = plugin.TryGetFunction<HookSignature>(std::string { PostInitHookSymbol });
         if (postInit == nullptr)
             continue; // Optional symbol — plugins without legacy glue skip the hook.
 
@@ -170,6 +170,16 @@ void RunPluginPostInitHooks(std::span<LoadedPlugin const> plugins,
                 logError(std::format("Plugin post-init failed ({}): {}", plugin.path.string(), exception.what()));
         }
     }
+}
+
+std::vector<std::filesystem::path> PluginsWithPostInitHook(std::span<LoadedPlugin const> plugins)
+{
+    using HookSignature = void(Lightweight::SqlConnection&, Lightweight::SqlMigration::MigrationManager&);
+    auto withHook = std::vector<std::filesystem::path> {};
+    for (auto const& plugin: plugins)
+        if (plugin.TryGetFunction<HookSignature>(std::string { PostInitHookSymbol }) != nullptr)
+            withHook.push_back(plugin.path);
+    return withHook;
 }
 
 bool RunPluginPostMigrateHooks(std::span<LoadedPlugin const> plugins,

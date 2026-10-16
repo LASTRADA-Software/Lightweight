@@ -1,6 +1,8 @@
 add_library(dbtool_lib STATIC
     BackupDiff.cpp
     BackupDiff.hpp
+    CommandAccess.cpp
+    CommandAccess.hpp
     StandardProgressManager.cpp
     StandardProgressManager.hpp
 )

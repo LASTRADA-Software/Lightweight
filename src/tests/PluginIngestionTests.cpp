@@ -24,6 +24,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -548,4 +549,23 @@ TEST_CASE("RunPluginPostMigrateHooks and RunPluginPostInitHooks resolve only the
     Lightweight::Tools::RunPluginPostInitHooks(plugins, connection, central, {});
     CHECK(RecordedHookCalls().postInit == 1);
     CHECK(RecordedHookCalls().postMigrate == 1);
+}
+
+TEST_CASE("PluginsWithPostInitHook lists exactly the plugins that export a post-init hook", "[PluginIngestion]")
+{
+    auto const plugins = std::vector {
+        MakeHookPlugin("seeding", { { "LightweightMigrationPluginPostInit", AsSymbol(&RecordingPostInit) } }),
+        MakeHookPlugin("post-migrate-only",
+                       { { "LightweightMigrationPluginPostMigrate", AsSymbol(&RecordingPostMigrate) } }),
+        MakeHookPlugin("without-hook", {}),
+        MakeHookPlugin("bridging", { { "LightweightMigrationPluginPostInit", AsSymbol(&RecordingPostInit) } }),
+    };
+
+    CHECK(Lightweight::Tools::PluginsWithPostInitHook(plugins)
+          == std::vector<std::filesystem::path> { "seeding", "bridging" });
+    CHECK(Lightweight::Tools::PluginsWithPostInitHook(std::span<Lightweight::Tools::LoadedPlugin const> {}).empty());
+
+    auto unresolvable = Lightweight::Tools::LoadedPlugin {};
+    unresolvable.path = "no-symbol-lookup";
+    CHECK(Lightweight::Tools::PluginsWithPostInitHook(std::vector { unresolvable }).empty());
 }

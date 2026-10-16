@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "BackupDiff.hpp"
+#include "CommandAccess.hpp"
 #include "Lightweight/SqlConnectInfo.hpp"
 #include "StandardProgressManager.hpp"
 
@@ -29,6 +30,7 @@
 #include <print>
 #include <ranges>
 #include <set>
+#include <span>
 #include <string>
 #include <type_traits>
 #include <unordered_set>
@@ -37,6 +39,7 @@
 
 #include <Config/BackupOutput.hpp>
 #include <Config/ConfigDiscovery.hpp>
+#include <Config/ConnectionTarget.hpp>
 #include <Config/ProfileAdd.hpp>
 #include <Config/ProfileFileEditor.hpp>
 #include <Config/ProfilePassword.hpp>
@@ -228,8 +231,13 @@ void PrintUsage()
     std::println("  {}--plugins-dir{} {}<DIR>{}       Directory to scan for migration plugins",
                  c.option, c.reset, c.param, c.reset);
     std::println("                            (default: current directory)");
-    std::println("  {}--connection-string{} {}<STR>{} Connection string",
+    std::println("  {}--connection-string{} {}<STR>{} Connection string. The target is, first match wins:",
                  c.option, c.reset, c.param, c.reset);
+    std::println("                            --connection-string; --profile; the defaultProfile of --config;");
+    std::println("                            SQL_CONNECTION_STRING / ODBC_CONNECTION_STRING; the defaultProfile");
+    std::println("                            of a discovered dbtool.yml. Commands that write refuse the last one");
+    std::println("                            and print their target before they start. Any command refuses it");
+    std::println("                            too when a loaded plugin exports a post-init hook, which may write.");
     std::println("  {}--schema{} {}<NAME>{}           Database schema to use. For migrate/apply/rollback this becomes",
                  c.option, c.reset, c.param, c.reset);
     std::println("                            the connection's default schema (PostgreSQL via SET search_path;");
@@ -239,8 +247,9 @@ void PrintUsage()
     std::println("  {}--config{} {}<FILE>{}           Config file (default: nearest dbtool.yml above the current",
                  c.option, c.reset, c.param, c.reset);
     std::println("                            or executable directory, then the per-user config)");
-    std::println("  {}--profile{} {}<NAME>{}          Named profile from the config file (default: the file's defaultProfile)",
+    std::println("  {}--profile{} {}<NAME>{}          Named profile from the config file (default: the file's",
                  c.option, c.reset, c.param, c.reset);
+    std::println("                            defaultProfile, see --connection-string for when it applies)");
     std::println("  {}--output{} {}<FILE>{}           Output file for backup. A bare file name, or no --output at all",
                  c.option, c.reset, c.param, c.reset);
     std::println("                            (generates <profile>-<timestamp>.zip), goes into the profile's");
@@ -399,7 +408,12 @@ struct Options
     std::string configFile;
     std::string profileName;                  ///< Named profile selected via --profile (empty = ProfileStore default)
     std::filesystem::path resolvedConfigPath; ///< Config file the profile was loaded from
-    std::optional<Lightweight::Config::Profile> selectedProfile; ///< Profile applied to this run, if any
+    Lightweight::Config::ConfigSource configSource = Lightweight::Config::ConfigSource::None; ///< How it was found
+    std::optional<Lightweight::Config::Profile> selectedProfile; ///< Profile that supplies the connection, if any
+    /// Where `connectionString` came from; decided by `ResolveConnectionTargetOptions`.
+    Lightweight::Config::ConnectionTargetSource targetSource = Lightweight::Config::ConnectionTargetSource::None;
+    std::string_view targetEnvironmentVariable; ///< The variable that supplied the connection, if any
+    std::string declaredDefaultProfile;         ///< The config file's `defaultProfile` as written, may be empty
     std::filesystem::path outputFile;
     std::filesystem::path backupDir; ///< Configured backup folder (the profile's `backupDir`, else `defaultBackupDir`)
     std::filesystem::path inputFile;
@@ -418,11 +432,12 @@ struct Options
     std::string batchSize;                     ///< Batch size for restore (rows per batch)
     bool pluginsDirSet = false;
     bool connectionStringSet = false;
-    bool dryRun = false;     ///< If true, show what would be done without actually doing it
-    bool noLock = false;     ///< If true, skip migration locking for write operations
-    bool schemaOnly = false; ///< If true, backup/restore schema only (no data)
-    bool yes = false;        ///< If true, confirm destructive actions (e.g. rewrite-checksums)
-    bool verbose = false;    ///< If true, emit extra informational output (e.g. shadowed plugins)
+    bool dryRun = false;                 ///< If true, show what would be done without actually doing it
+    bool noLock = false;                 ///< If true, skip migration locking for write operations
+    bool schemaOnly = false;             ///< If true, backup/restore schema only (no data)
+    bool yes = false;                    ///< If true, confirm destructive actions (e.g. rewrite-checksums)
+    bool verbose = false;                ///< If true, emit extra informational output (e.g. shadowed plugins)
+    bool profileIsFirstFallback = false; ///< The file's defaultProfile is unset or unknown; its first profile was used
 
     /// @brief `--up-to <X>` for migration commands. Empty = no bound.
     std::string upTo;
@@ -437,7 +452,7 @@ struct Options
     bool force = false;         ///< --force: replace an existing profile of the same name
 };
 
-/// Commands that never read a connection profile; `ApplyProfileToOptions` is skipped for them.
+/// Commands that never read a connection profile; `ResolveConnectionTargetOptions` is skipped for them.
 inline constexpr auto CommandsWithoutProfile = std::array<std::string_view, 7> {
     "", "help", "show-examples", "add-profile", "resolve-secret", "list-profiles", "backup-diff",
 };
@@ -450,89 +465,250 @@ inline constexpr auto CommandsWithoutProfile = std::array<std::string_view, 7> {
     return !std::ranges::contains(CommandsWithoutProfile, command);
 }
 
-/// Loads a profile from a `ProfileStore` and fills `options` fields that were not
-/// already set on the CLI. Supports both the legacy single-profile YAML shape
-/// (top-level `PluginsDir` / `ConnectionString` / `Schema`) and the multi-profile
-/// shape (`profiles: {name: {...}}`) via `ProfileStore::LoadOrDefault`.
-///
-/// The file is located by `Config::FindConfigFile`: `--config`, then the nearest
-/// dbtool.yml above the working directory, then above the executable, then the
-/// per-user default. A missing `--config` file is a hard error; finding no file at
-/// all is not — callers may rely entirely on CLI flags / environment variables.
-///
-/// The profile's password is deliberately *not* resolved here (see
-/// `ApplyProfilePassword`): commands that never connect must not prompt for it.
-void ApplyProfileToOptions(Options& options)
+/// Environment variables that supply a connection string, in the order they are consulted.
+inline constexpr auto ConnectionStringVariables = std::array<std::string_view, 2> {
+    "SQL_CONNECTION_STRING",
+    "ODBC_CONNECTION_STRING",
+};
+
+/// A connection string taken from the environment, and the variable it came from.
+struct EnvironmentConnectionString
+{
+    std::string_view variable;
+    std::string value;
+};
+
+/// Returns the first non-empty variable of `ConnectionStringVariables`, if any.
+[[nodiscard]] std::optional<EnvironmentConnectionString> FindEnvironmentConnectionString()
+{
+    for (auto const variable: ConnectionStringVariables)
+        if (auto const* value = std::getenv(std::string { variable }.c_str()); value != nullptr && *value != '\0')
+            return EnvironmentConnectionString { .variable = variable, .value = value };
+    return std::nullopt;
+}
+
+/// A loaded dbtool.yml and how it was found.
+struct LoadedConfig
+{
+    Lightweight::Config::ProfileStore store;
+    Lightweight::Config::DiscoveredConfig discovered;
+};
+
+/// Locates and loads the run's dbtool.yml (see `Config::FindConfigFile`). Exits on a missing
+/// `--config` file or one that does not parse.
+/// @param options Parsed options.
+/// @return The file, or `std::nullopt` when none exists.
+[[nodiscard]] std::optional<LoadedConfig> LoadConfig(Options const& options)
 {
     namespace Cfg = Lightweight::Config;
-
-    // An explicit `--connection-string` without `--profile` is the user's way of saying
-    // "don't auto-apply any profile defaults" — the connection string they typed pins
-    // them to a specific backend, and silently merging another profile's `schema` /
-    // `pluginsDir` / etc. is at best surprising and at worst wrong (e.g. picking up
-    // `schema: dbo` from a SQL Server profile while pointing at SQLite, which then
-    // injects `"dbo"."<table>"` into every introspection query).
-    if (options.connectionStringSet && options.profileName.empty())
-        return;
-
-    auto const discovered = Cfg::FindConfigFile(Cfg::DefaultDiscoveryInputs(options.configFile));
+    auto discovered = Cfg::FindConfigFile(Cfg::DefaultDiscoveryInputs(options.configFile));
     if (!discovered)
     {
         std::println(std::cerr, "Error: {}", discovered.error());
         std::exit(EXIT_FAILURE);
     }
     if (discovered->source == Cfg::ConfigSource::None)
-        return; // No config at all — pure CLI / env mode.
-    auto const& configPath = discovered->path;
+        return std::nullopt;
     if (options.verbose)
-        std::println(std::cerr, "Using config: {} (found via {})", configPath.string(), Cfg::ToString(discovered->source));
+        std::println(
+            std::cerr, "Using config: {} (found via {})", discovered->path.string(), Cfg::ToString(discovered->source));
 
-    auto storeResult = Cfg::ProfileStore::LoadOrDefault(configPath);
-    if (!storeResult)
+    auto store = Cfg::ProfileStore::LoadOrDefault(discovered->path);
+    if (!store)
     {
-        std::println(std::cerr, "Error loading config file: {}", storeResult.error());
+        std::println(std::cerr, "Error loading config file: {}", store.error());
         std::exit(EXIT_FAILURE);
     }
-    auto const& store = *storeResult;
+    return LoadedConfig { .store = std::move(*store), .discovered = std::move(*discovered) };
+}
 
-    Cfg::Profile const* profile = nullptr;
-    if (!options.profileName.empty())
-    {
-        profile = store.Find(options.profileName);
-        if (!profile)
-        {
-            std::println(std::cerr, "Error: profile '{}' not found in {}.", options.profileName, configPath.string());
-            std::exit(EXIT_FAILURE);
-        }
-    }
-    else
-    {
-        profile = store.Default(); // legacy files synthesise a "default" profile
-    }
+/// Selects the profile named by `--profile`, else the file's default. Exits when `--profile`
+/// names a profile that no file defines.
+/// @param config  The loaded config, if any.
+/// @param options Parsed options.
+/// @return The profile, or null when there is none.
+[[nodiscard]] Lightweight::Config::Profile const* SelectProfile(std::optional<LoadedConfig> const& config,
+                                                                Options const& options)
+{
+    if (options.profileName.empty())
+        return config ? config->store.Default() : nullptr; // legacy files synthesise a "default" profile
 
+    auto const* profile = config ? config->store.Find(options.profileName) : nullptr;
     if (!profile)
-        return; // empty store, nothing to apply
+    {
+        std::println(std::cerr,
+                     "Error: profile '{}' not found in {}.",
+                     options.profileName,
+                     config ? config->discovered.path.string() : std::string { "any dbtool.yml" });
+        std::exit(EXIT_FAILURE);
+    }
+    return profile;
+}
 
+/// Fills the options the CLI left unset from the selected profile: plugins and backup folders, schema.
+void ApplyProfileSettings(Lightweight::Config::ProfileStore const& store,
+                          Lightweight::Config::Profile const& profile,
+                          Options& options)
+{
     if (!options.pluginsDirSet)
     {
-        if (auto effective = store.EffectivePluginsDir(*profile); !effective.empty())
+        if (auto effective = store.EffectivePluginsDir(profile); !effective.empty())
             options.pluginsDir = std::move(effective);
     }
+    options.backupDir = store.EffectiveBackupDir(profile);
+    if (!profile.schema.empty() && options.schema.empty())
+        options.schema = profile.schema;
+}
 
-    options.backupDir = store.EffectiveBackupDir(*profile);
+/// Decides the run's connection target (see `Config::ResolveConnectionTarget` for the precedence)
+/// and fills `options` from it: the connection string, and the selected profile's settings that
+/// were not already set on the CLI. Supports both the legacy single-profile YAML shape (top-level
+/// `PluginsDir` / `ConnectionString` / `Schema`) and the multi-profile shape via
+/// `ProfileStore::LoadOrDefault`.
+///
+/// The profile's password is deliberately *not* resolved here (see
+/// `ApplyProfilePassword`): commands that never connect must not prompt for it.
+void ResolveConnectionTargetOptions(Options& options)
+{
+    namespace Cfg = Lightweight::Config;
 
-    if (!profile->schema.empty() && options.schema.empty())
-        options.schema = profile->schema;
-
-    if (!options.connectionStringSet && profile->HasConnection())
+    // `--connection-string` without `--profile` applies no profile at all: merging another
+    // profile's `schema` / `pluginsDir` into a target the user typed is at best surprising
+    // (`schema: dbo` from a SQL Server profile breaks every query against SQLite).
+    auto const config = options.connectionStringSet && options.profileName.empty() ? std::nullopt : LoadConfig(options);
+    auto const* profile = SelectProfile(config, options);
+    auto const environment = FindEnvironmentConnectionString();
+    if (config)
     {
-        // Profiles keyed by DSN are flattened into an ODBC connection string so the
-        // rest of dbtool (which speaks `SqlConnectionString` everywhere) sees a
-        // uniform shape. The password is added later by `ApplyProfilePassword`.
+        options.resolvedConfigPath = config->discovered.path;
+        options.configSource = config->discovered.source;
+    }
+
+    auto const target = Cfg::ResolveConnectionTarget({
+        .commandLineConnectionString = options.connectionStringSet,
+        .explicitProfile = !options.profileName.empty(),
+        .configSource = options.configSource,
+        .profileHasConnection = profile != nullptr && profile->HasConnection(),
+        .environmentConnectionString = environment.has_value(),
+    });
+    options.targetSource = target.source;
+    options.profileIsFirstFallback = config && profile != nullptr && options.profileName.empty()
+                                     && config->store.Find(config->store.DefaultProfileName()) == nullptr;
+    if (config)
+        options.declaredDefaultProfile = config->store.DefaultProfileName();
+
+    if (config && profile != nullptr && target.appliesProfileSettings)
+        ApplyProfileSettings(config->store, *profile, options);
+
+    if (target.source == Cfg::ConnectionTargetSource::Environment && environment)
+    {
+        options.connectionString = SqlConnectionString { environment->value };
+        options.targetEnvironmentVariable = environment->variable;
+    }
+    else if (Cfg::IsProfileSource(target.source) && profile != nullptr)
+    {
+        // Profiles keyed by DSN are flattened into an ODBC connection string; the password is
+        // added later by `ApplyProfilePassword`.
         options.connectionString = SqlConnectionString { std::format("{}", profile->ToConnectInfo()) };
         options.selectedProfile = *profile;
-        options.resolvedConfigPath = configPath;
     }
+}
+
+/// Names where the connection target came from, e.g. "profile 'prod' from D:/x/dbtool.yml (--config)".
+/// @param options Options after `ResolveConnectionTargetOptions`.
+/// @return The description, without any part of the connection string.
+[[nodiscard]] std::string DescribeTargetOrigin(Options const& options)
+{
+    namespace Cfg = Lightweight::Config;
+    switch (options.targetSource)
+    {
+        case Cfg::ConnectionTargetSource::CommandLine:
+            return "--connection-string";
+        case Cfg::ConnectionTargetSource::Environment:
+            return std::format("environment variable {}", options.targetEnvironmentVariable);
+        case Cfg::ConnectionTargetSource::ExplicitProfile:
+        case Cfg::ConnectionTargetSource::ExplicitConfig:
+        case Cfg::ConnectionTargetSource::DiscoveredConfig:
+            return std::format("profile '{}' from {} ({})",
+                               options.selectedProfile ? options.selectedProfile->name : std::string {},
+                               options.resolvedConfigPath.string(),
+                               options.configSource == Cfg::ConfigSource::Explicit
+                                   ? std::string { "--config" }
+                                   : std::format("discovered via {}", Cfg::ToString(options.configSource)));
+        case Cfg::ConnectionTargetSource::None:
+            break;
+    }
+    return "nowhere";
+}
+
+/// Reports why a run refuses a target that only a discovered dbtool.yml's default profile supplies.
+/// @param options Options after `ResolveConnectionTargetOptions`.
+/// @param reason  What would write, e.g. "it writes to the database".
+/// @param remedy  An extra way out appended to the advice, or empty.
+void ReportDiscoveredTargetRefusal(Options const& options, std::string_view reason, std::string_view remedy)
+{
+    namespace Cfg = Lightweight::Config;
+    std::println(std::cerr,
+                 "Error: refusing to run '{}' against {}: {}.\n"
+                 "That target is only the default profile '{}'{} of {}, which was found automatically (via {}).\n"
+                 "Choose a target with --profile <NAME>, --config <FILE> or --connection-string <STR>, or set "
+                 "SQL_CONNECTION_STRING{}.",
+                 options.command,
+                 Cfg::DescribeConnectionTarget(options.connectionString),
+                 reason,
+                 options.selectedProfile ? options.selectedProfile->name : std::string {},
+                 options.profileIsFirstFallback ? Cfg::FirstProfileFallbackNote(options.declaredDefaultProfile) : "",
+                 options.resolvedConfigPath.string(),
+                 Cfg::ToString(options.configSource),
+                 remedy);
+}
+
+/// For a command that writes: refuses a target that only a discovered dbtool.yml's
+/// default profile supplies, and otherwise prints the target before anything is written.
+/// @param options Options after `ResolveConnectionTargetOptions`.
+/// @return False when the command must not run.
+[[nodiscard]] bool CheckWriteTarget(Options const& options)
+{
+    namespace Cfg = Lightweight::Config;
+    if (!Tools::CommandWritesToDatabase(options.command, options.dryRun)
+        || options.targetSource == Cfg::ConnectionTargetSource::None)
+        return true;
+
+    if (!Cfg::AllowsWrites(options.targetSource))
+    {
+        ReportDiscoveredTargetRefusal(options, "it writes to the database", "");
+        return false;
+    }
+
+    std::println(std::cerr,
+                 "Target: {} (from {})",
+                 Cfg::DescribeConnectionTarget(options.connectionString),
+                 DescribeTargetOrigin(options));
+    return true;
+}
+
+/// Refuses, for any command, to run plugin post-init hooks against a target that only a
+/// discovered dbtool.yml's default profile supplies: a hook may write (e.g. seed reference
+/// data). The hooks are not skipped instead, as that could change what `status` reports.
+/// @param options Options after `ResolveConnectionTargetOptions`.
+/// @param plugins The loaded plugins.
+/// @return False when the command must not run.
+[[nodiscard]] bool CheckPostInitHookTarget(Options const& options, std::span<Tools::LoadedPlugin const> plugins)
+{
+    if (options.targetSource != Lightweight::Config::ConnectionTargetSource::DiscoveredConfig)
+        return true;
+    auto const withHook = Tools::PluginsWithPostInitHook(plugins);
+    if (withHook.empty())
+        return true;
+
+    auto names = std::string {};
+    for (auto const& path: withHook)
+        names += std::format("{}{}", names.empty() ? "" : ", ", path.filename().string());
+    ReportDiscoveredTargetRefusal(
+        options,
+        std::format("{} {} a post-init hook that can write to it", names, withHook.size() == 1 ? "runs" : "run"),
+        ", or use a --plugins-dir without those plugins");
+    return false;
 }
 
 /// Resolves the selected profile's password (decrypting `enc:` values, or via
@@ -907,31 +1083,31 @@ std::expected<MigrationBase const*, std::string> GetMigration(MigrationManager& 
     return migration;
 }
 
-bool SetupConnectionString(SqlConnectionString const& connectionString)
+/// What `SetupConnectionString` does when the target is a SQLite file that does not exist yet.
+enum class MissingSqliteFile : std::uint8_t
+{
+    Create, ///< Create it, so a first `migrate` can start from an empty database.
+    Leave,  ///< Leave the file system alone (a target dbtool must not write to).
+};
+
+/// Installs the resolved connection string as the process default.
+/// @param connectionString The string `ResolveConnectionTargetOptions` chose, from the CLI,
+///        a profile or the environment.
+/// @param missingSqliteFile Whether a missing SQLite database file is created.
+/// @return False, after reporting it, when there is none.
+bool SetupConnectionString(SqlConnectionString const& connectionString, MissingSqliteFile missingSqliteFile)
 {
     TraceBreadcrumb("SetupConnectionString: entered");
-    if (!connectionString.value.empty())
-    {
-        TraceBreadcrumb("SetupConnectionString: setting from CLI value");
-        SqlConnection::SetDefaultConnectionString(connectionString);
-    }
-    else if (auto const* env = std::getenv("SQL_CONNECTION_STRING"))
-    {
-        TraceBreadcrumb("SetupConnectionString: setting from SQL_CONNECTION_STRING env");
-        SqlConnection::SetDefaultConnectionString(SqlConnectionString { env });
-    }
-    else if (auto const* env = std::getenv("ODBC_CONNECTION_STRING"))
-    {
-        TraceBreadcrumb("SetupConnectionString: setting from ODBC_CONNECTION_STRING env");
-        SqlConnection::SetDefaultConnectionString(SqlConnectionString { env });
-    }
-    else
+    if (connectionString.value.empty())
     {
         std::println(std::cerr,
                      "Error: No connection string provided. Use --connection-string, set SQL_CONNECTION_STRING "
                      "environment variable, or configure a profile in dbtool.yml (see `dbtool list-profiles`).\n");
         return false;
     }
+    SqlConnection::SetDefaultConnectionString(connectionString);
+    if (missingSqliteFile == MissingSqliteFile::Leave)
+        return true;
     TraceBreadcrumb("SetupConnectionString: looking up default connection string");
     auto const& defaultString = SqlConnection::DefaultConnectionString();
     TraceBreadcrumb("SetupConnectionString: ensuring sqlite database file exists");
@@ -2618,6 +2794,34 @@ std::vector<Tools::LoadedPlugin>& LoadedPlugins()
     return plugins;
 }
 
+/// Loads the migration plugins into the central manager once, and exits when their post-init
+/// hooks would run against a target dbtool must not write to (see `CheckPostInitHookTarget`).
+/// Connects nowhere, so `main` calls it before the password is resolved.
+/// @param options Options after `ResolveConnectionTargetOptions`.
+void IngestCheckedPlugins(Options const& options)
+{
+    static bool ingested = false;
+    if (ingested)
+        return;
+    ingested = true;
+
+    TraceBreadcrumb("IngestCheckedPlugins: ingesting plugins");
+    try
+    {
+        LoadedPlugins() = Tools::IngestPlugins(options.pluginsDir,
+                                               Tools::DefaultPluginLoader(),
+                                               MigrationManager::GetInstance(),
+                                               MakeIngestOptions(options.verbose));
+    }
+    catch (std::exception const& e)
+    {
+        std::println(std::cerr, "Failed to load plugins: {}", e.what());
+        std::exit(EXIT_FAILURE);
+    }
+    if (!CheckPostInitHookTarget(options, LoadedPlugins()))
+        std::exit(EXIT_FAILURE);
+}
+
 MigrationManager& GetMigrationManager(Options const& options)
 {
     auto& plugins = LoadedPlugins();
@@ -2626,17 +2830,7 @@ MigrationManager& GetMigrationManager(Options const& options)
     auto& manager = MigrationManager::GetInstance();
     if (!initialized)
     {
-        TraceBreadcrumb("GetMigrationManager: ingesting plugins");
-        try
-        {
-            plugins = Tools::IngestPlugins(
-                options.pluginsDir, Tools::DefaultPluginLoader(), manager, MakeIngestOptions(options.verbose));
-        }
-        catch (std::exception const& e)
-        {
-            std::println(std::cerr, "Failed to load plugins: {}", e.what());
-            std::exit(EXIT_FAILURE);
-        }
+        IngestCheckedPlugins(options);
         // Apply --schema before opening the connection so the post-connect
         // hook is installed prior to the first connect performed by the
         // plugin post-init hooks below.
@@ -2818,6 +3012,32 @@ int ResolveSecretCommand(Options const& options)
     return EXIT_SUCCESS;
 }
 
+/// Resolves the profile password and installs the connection string. Against a target dbtool
+/// must not write to, it creates no missing SQLite file and leaves a discovered dbtool.yml's
+/// plaintext password unencrypted.
+/// @param options Options after `ResolveConnectionTargetOptions`; updated in place.
+/// @return False, after reporting it, when the command cannot connect.
+[[nodiscard]] bool PrepareConnection(Options& options)
+{
+    TraceBreadcrumb("main: resolving profile password");
+    auto const passwordOrigin = ApplyProfilePassword(options);
+    if (!passwordOrigin)
+    {
+        std::println(std::cerr, "Error: {}", passwordOrigin.error());
+        return false;
+    }
+
+    TraceBreadcrumb("main: setting up connection string");
+    auto const writableTarget = Lightweight::Config::AllowsWrites(options.targetSource);
+    if (!SetupConnectionString(options.connectionString,
+                               writableTarget ? MissingSqliteFile::Create : MissingSqliteFile::Leave))
+        return false;
+
+    if (*passwordOrigin == Lightweight::Config::PasswordOrigin::Plaintext && writableTarget)
+        EncryptPlaintextPasswordIfConnectable(options);
+    return true;
+}
+
 #if defined(_WIN32)
 /// Enables VT sequence processing and UTF-8 output on the Windows console.
 void ConfigureWindowsConsole()
@@ -2863,11 +3083,11 @@ int main(int argc, char** argv)
         }
         Options options = optionsResult.value();
 
-        TraceBreadcrumb("main: applying profile");
-        // Resolve a named (or default) profile and fill unset fields — only for commands
-        // that use one, so a broken dbtool.yml found by discovery cannot break `help`.
+        TraceBreadcrumb("main: resolving the connection target");
+        // Only for commands that use a profile, so a broken dbtool.yml found by discovery
+        // cannot break `help`.
         if (CommandUsesProfile(options.command))
-            ApplyProfileToOptions(options);
+            ResolveConnectionTargetOptions(options);
 
 #if defined(_WIN32)
         TraceBreadcrumb("main: configuring Windows console");
@@ -2904,20 +3124,18 @@ int main(int argc, char** argv)
         if (options.command == "backup-diff")
             return BackupDiffCommand(options);
 
-        TraceBreadcrumb("main: resolving profile password");
-        auto const passwordOrigin = ApplyProfilePassword(options);
-        if (!passwordOrigin)
-        {
-            std::println(std::cerr, "Error: {}", passwordOrigin.error());
-            return EXIT_FAILURE;
-        }
-
-        TraceBreadcrumb("main: setting up connection string");
-        if (!SetupConnectionString(options.connectionString))
+        // Before anything connects: even a probe connection creates a missing SQLite file.
+        if (!CheckWriteTarget(options))
             return EXIT_FAILURE;
 
-        if (*passwordOrigin == Lightweight::Config::PasswordOrigin::Plaintext)
-            EncryptPlaintextPasswordIfConnectable(options);
+        // Before a `secretRef: stdin:` password prompt: plugins whose post-init hook would run
+        // against a target only a discovered default profile supplies refuse the run.
+        if (Tools::CommandLoadsPlugins(options.command)
+            && options.targetSource == Lightweight::Config::ConnectionTargetSource::DiscoveredConfig)
+            IngestCheckedPlugins(options);
+
+        if (!PrepareConnection(options))
+            return EXIT_FAILURE;
 
         TraceBreadcrumb("main: dispatching command");
         auto const rc = DispatchDbCommand(options);
