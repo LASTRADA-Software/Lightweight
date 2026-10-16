@@ -605,6 +605,9 @@ namespace SqlMigration
             SqlColumnTypeDefinition intendedType;
             /// Whether the column is nullable (preserved across the type rewrite).
             bool nullable = true;
+            /// Empty for a column the migrations declare wide. Otherwise the column is upgraded only
+            /// because a foreign key joins it to an upgraded column, named here as `table.column`.
+            std::string joinedByForeignKeyTo {};
         };
 
         /// @brief Result of an `UnicodeUpgradeTables` call.
@@ -633,6 +636,15 @@ namespace SqlMigration
         /// `Varchar`/`Char` with the same `size`. Foreign keys that touch any upgrade column
         /// are dropped before the alter and re-added afterwards. Cross-backend; SQLite
         /// uses the in-tree `RebuildSqliteTable` recipe under the hood.
+        ///
+        /// Declared names match live ones without regard to case where the dialect's identifiers
+        /// are case-insensitive (`SqlQueryFormatter::IdentifiersAreCaseInsensitive`).
+        ///
+        /// Where a foreign key needs both sides to share one text type (SQL Server), every column
+        /// a foreign key joins to an upgraded column is upgraded too, declared or not, and reported
+        /// with `ColumnUpgradeEntry::joinedByForeignKeyTo` set. Such a column must have the same narrow
+        /// type and size and must not be declared with another type; otherwise the call throws
+        /// `std::runtime_error` naming it, in a dry run too, before anything has changed.
         ///
         /// @param dryRun When true, returns the would-be diff without writing anything.
         [[nodiscard]] LIGHTWEIGHT_API UnicodeUpgradeResult UnicodeUpgradeTables(bool dryRun = false);

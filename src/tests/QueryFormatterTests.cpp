@@ -72,6 +72,17 @@ TEST_CASE("SqlQueryFormatter::DateFunction emits the per-DBMS current-date keywo
 }
 
 // ================================================================================================
+// IdentifiersAreCaseInsensitive — whether a declared name matches a live one of another case
+// ================================================================================================
+
+TEST_CASE("SqlQueryFormatter::IdentifiersAreCaseInsensitive except on PostgreSQL", "[SqlQueryFormatter]")
+{
+    CHECK(SqlQueryFormatter::Sqlite().IdentifiersAreCaseInsensitive());
+    CHECK(SqlQueryFormatter::SqlServer().IdentifiersAreCaseInsensitive());
+    CHECK_FALSE(SqlQueryFormatter::PostgrSQL().IdentifiersAreCaseInsensitive());
+}
+
+// ================================================================================================
 // StringLiteral (string_view) — quote single quotes by doubling them
 // ================================================================================================
 

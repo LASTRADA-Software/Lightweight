@@ -21,6 +21,11 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
         return false;
     }
 
+    [[nodiscard]] bool IdentifiersAreCaseInsensitive() const noexcept override
+    {
+        return false;
+    }
+
     [[nodiscard]] StringList DropTable(std::string_view schemaName,
                                        std::string_view const& tableName,
                                        bool ifExists = false,

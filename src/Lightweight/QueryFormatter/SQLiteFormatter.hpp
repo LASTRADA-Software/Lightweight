@@ -42,6 +42,11 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         return true;
     }
 
+    [[nodiscard]] bool IdentifiersAreCaseInsensitive() const noexcept override
+    {
+        return true;
+    }
+
     /// Builds the SQL query used to check whether a column exists on a SQLite table.
     ///
     /// The migration executor uses this to resolve the `-- LIGHTWEIGHT_SQLITE_GUARD:`

@@ -41,6 +41,11 @@ class SqlServerQueryFormatter final: public SQLiteQueryFormatter
         return true;
     }
 
+    [[nodiscard]] bool IdentifiersAreCaseInsensitive() const noexcept override
+    {
+        return true;
+    }
+
     [[nodiscard]] StringList DropTable(std::string_view schemaName,
                                        std::string_view const& tableName,
                                        bool ifExists = false,

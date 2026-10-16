@@ -4098,6 +4098,357 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
 }
 
 TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server widens undeclared columns that reference an upgraded key",
+                 "[SqlMigration][UnicodeUpgrade]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("only SQL Server rejects a foreign key between narrow and wide text");
+    mgr.CreateMigrationHistory();
+
+    // A legacy shape the migrations no longer describe: uu_fk_child.REF was renamed since, and
+    // uu_fk_log is not declared at all. Both reference the key the migrations widen.
+    for (auto const* sql: {
+             "CREATE TABLE uu_fk_parent (NAME CHAR(30) NOT NULL CONSTRAINT PK_uu_fk_parent PRIMARY KEY)",
+             "CREATE TABLE uu_fk_child (ID INT NOT NULL CONSTRAINT PK_uu_fk_child PRIMARY KEY, "
+             "REF CHAR(30) NOT NULL CONSTRAINT FK_uu_fk_child_ref REFERENCES uu_fk_parent (NAME))",
+             "CREATE UNIQUE INDEX IX_uu_fk_child_ref ON uu_fk_child (REF, ID)",
+             "CREATE TABLE uu_fk_log (ID INT NOT NULL PRIMARY KEY, "
+             "PARENT_NAME CHAR(30) NULL CONSTRAINT FK_uu_fk_log_parent REFERENCES uu_fk_parent (NAME))",
+             "INSERT INTO uu_fk_parent (NAME) VALUES ('alice')",
+             "INSERT INTO uu_fk_child (ID, REF) VALUES (1, 'alice')",
+             "INSERT INTO uu_fk_log (ID, PARENT_NAME) VALUES (1, 'alice')",
+         })
+        (void) stmt.ExecuteDirect(sql);
+
+    fold_test::FoldStub<20'26'10'16'00'01> decl {
+        "declare wide",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("uu_fk_parent").PrimaryKey("NAME", NChar(30));
+            plan.CreateTable("uu_fk_child").PrimaryKey("ID", Integer()).RequiredColumn("PARENT_NAME", NChar(30));
+        }
+    };
+
+    auto const upgraded = [](SqlMigration::MigrationManager::UnicodeUpgradeResult const& result) {
+        auto names = std::vector<std::string> {};
+        for (auto const& c: result.columns)
+            names.push_back(std::format("{}.{} {}", c.table.table, c.column, c.joinedByForeignKeyTo));
+        std::ranges::sort(names);
+        return names;
+    };
+    auto const expected = std::vector<std::string> {
+        "uu_fk_child.REF uu_fk_parent.NAME",
+        "uu_fk_log.PARENT_NAME uu_fk_parent.NAME",
+        "uu_fk_parent.NAME ",
+    };
+
+    // The dry run lists the referencing columns next to the declared one, and changes nothing.
+    auto const preview = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    CHECK(upgraded(preview) == expected);
+    CHECK(std::ranges::contains(preview.rebuiltObjects, std::string { "INDEX IX_uu_fk_child_ref on dbo.uu_fk_child" }));
+    CHECK(std::ranges::contains(preview.rebuiltObjects, std::string { "FOREIGN KEY FK_uu_fk_log_parent on dbo.uu_fk_log" }));
+    CHECK(LiveDataType(stmt, "uu_fk_child", "REF") == "char");
+
+    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    CHECK(upgraded(result) == expected);
+    CHECK(LiveDataType(stmt, "uu_fk_parent", "NAME") == "nchar");
+    CHECK(LiveDataType(stmt, "uu_fk_child", "REF") == "nchar");
+    CHECK(LiveDataType(stmt, "uu_fk_log", "PARENT_NAME") == "nchar");
+
+    // The foreign keys and the index are back under their original names, on the same columns.
+    CHECK(CatalogScalar(stmt,
+                        "SELECT OBJECT_NAME(referenced_object_id) FROM sys.foreign_keys WHERE name = "
+                        "'FK_uu_fk_child_ref'")
+          == "uu_fk_parent");
+    CHECK(CatalogScalar(stmt,
+                        "SELECT OBJECT_NAME(referenced_object_id) FROM sys.foreign_keys WHERE name = "
+                        "'FK_uu_fk_log_parent'")
+          == "uu_fk_parent");
+    CHECK(CatalogScalar(stmt,
+                        "SELECT CAST(i.is_unique AS VARCHAR(1)) + STRING_AGG(COL_NAME(ic.object_id, ic.column_id), ',') "
+                        "WITHIN GROUP (ORDER BY ic.key_ordinal) FROM sys.indexes i JOIN sys.index_columns ic ON "
+                        "ic.object_id = i.object_id AND ic.index_id = i.index_id WHERE i.name = 'IX_uu_fk_child_ref' "
+                        "GROUP BY i.is_unique")
+          == "1REF,ID");
+
+    // The data survives and the keys still bite.
+    CHECK(stmt.ExecuteDirectScalar<long long>("SELECT COUNT(*) FROM uu_fk_child WHERE REF = N'alice'").value_or(0) == 1);
+    CHECK_THROWS(stmt.ExecuteDirect("INSERT INTO uu_fk_log (ID, PARENT_NAME) VALUES (2, N'nobody')"));
+
+    CHECK(mgr.UnicodeUpgradeTables(/*dryRun=*/true).columns.empty());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server widens the primary key of an undeclared table that references an "
+                 "upgraded key, and what references that key in turn",
+                 "[SqlMigration][UnicodeUpgrade]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("only SQL Server rejects a foreign key between narrow and wide text");
+    mgr.CreateMigrationHistory();
+
+    // uu_fk_xref is declared by no migration, and its referencing column is also its primary key, which
+    // uu_fk_xref_note references in turn: a second hop.
+    for (auto const* sql: {
+             "CREATE TABLE uu_fk_product (PRODUCT CHAR(30) NOT NULL CONSTRAINT PK_uu_fk_product PRIMARY KEY)",
+             "CREATE TABLE uu_fk_xref (PRODUCT_CODE CHAR(30) NOT NULL CONSTRAINT PK_uu_fk_xref PRIMARY KEY, "
+             "CONSTRAINT FK_uu_fk_xref_product_code FOREIGN KEY (PRODUCT_CODE) REFERENCES uu_fk_product (PRODUCT))",
+             "CREATE TABLE uu_fk_xref_note (ID INT NOT NULL PRIMARY KEY, PRODUCT_CODE CHAR(30) NOT NULL "
+             "CONSTRAINT FK_uu_fk_xref_note REFERENCES uu_fk_xref (PRODUCT_CODE))",
+             "INSERT INTO uu_fk_product (PRODUCT) VALUES ('sand')",
+             "INSERT INTO uu_fk_xref (PRODUCT_CODE) VALUES ('sand')",
+             "INSERT INTO uu_fk_xref_note (ID, PRODUCT_CODE) VALUES (1, 'sand')",
+         })
+        (void) stmt.ExecuteDirect(sql);
+
+    fold_test::FoldStub<20'26'10'16'00'05> decl { "declare wide", [](SqlMigrationQueryBuilder& plan) {
+                                                     plan.CreateTable("uu_fk_product").PrimaryKey("PRODUCT", NChar(30));
+                                                 } };
+
+    auto const preview = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    CHECK(std::ranges::contains(preview.rebuiltObjects, std::string { "PRIMARY KEY PK_uu_fk_xref on dbo.uu_fk_xref" }));
+
+    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    auto const upgraded = [&] {
+        auto names = std::vector<std::string> {};
+        for (auto const& c: result.columns)
+            names.push_back(std::format("{}.{} {}", c.table.table, c.column, c.joinedByForeignKeyTo));
+        std::ranges::sort(names);
+        return names;
+    }();
+    CHECK(upgraded
+          == std::vector<std::string> {
+              "uu_fk_product.PRODUCT ",
+              "uu_fk_xref.PRODUCT_CODE uu_fk_product.PRODUCT",
+              "uu_fk_xref_note.PRODUCT_CODE uu_fk_xref.PRODUCT_CODE",
+          });
+    // The second-hop foreign key is reported among the rebuilt ones too.
+    CHECK(std::ranges::any_of(result.rebuiltForeignKeys,
+                              [](auto const& fk) { return fk.referencedTableName == "uu_fk_xref"; }));
+    CHECK(LiveDataType(stmt, "uu_fk_product", "PRODUCT") == "nchar");
+    CHECK(LiveDataType(stmt, "uu_fk_xref", "PRODUCT_CODE") == "nchar");
+    CHECK(LiveDataType(stmt, "uu_fk_xref_note", "PRODUCT_CODE") == "nchar");
+    CHECK(CatalogScalar(stmt,
+                        "SELECT OBJECT_NAME(referenced_object_id) FROM sys.foreign_keys WHERE name = "
+                        "'FK_uu_fk_xref_note'")
+          == "uu_fk_xref");
+    CHECK(CatalogScalar(stmt, "SELECT type FROM sys.key_constraints WHERE name = 'PK_uu_fk_xref'") == "PK");
+    CHECK(CatalogScalar(stmt,
+                        "SELECT OBJECT_NAME(referenced_object_id) FROM sys.foreign_keys WHERE name = "
+                        "'FK_uu_fk_xref_product_code'")
+          == "uu_fk_product");
+    CHECK(stmt.ExecuteDirectScalar<long long>("SELECT COUNT(*) FROM uu_fk_xref").value_or(0) == 1);
+    CHECK(stmt.ExecuteDirectScalar<long long>("SELECT COUNT(*) FROM uu_fk_xref_note").value_or(0) == 1);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server pairs the columns of a composite foreign key by position",
+                 "[SqlMigration][UnicodeUpgrade]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("only SQL Server rejects a foreign key between narrow and wide text");
+    mgr.CreateMigrationHistory();
+
+    // The child lists the key columns in another order than its own column order.
+    for (auto const* sql: {
+             "CREATE TABLE uu_fk_pair (ID INT NOT NULL, CODE CHAR(10) NOT NULL, NOTE CHAR(10) NULL, "
+             "CONSTRAINT PK_uu_fk_pair PRIMARY KEY (ID, CODE))",
+             "CREATE TABLE uu_fk_pair_ref (CODE CHAR(10) NOT NULL, LABEL CHAR(10) NULL, ID INT NOT NULL, "
+             "CONSTRAINT FK_uu_fk_pair_ref FOREIGN KEY (ID, CODE) REFERENCES uu_fk_pair (ID, CODE))",
+             "INSERT INTO uu_fk_pair (ID, CODE) VALUES (1, 'a')",
+             "INSERT INTO uu_fk_pair_ref (CODE, ID) VALUES ('a', 1)",
+         })
+        (void) stmt.ExecuteDirect(sql);
+
+    fold_test::FoldStub<20'26'10'16'00'06> decl { "declare wide", [](SqlMigrationQueryBuilder& plan) {
+                                                     plan.CreateTable("uu_fk_pair")
+                                                         .RequiredColumn("ID", Integer())
+                                                         .RequiredColumn("CODE", NChar(10))
+                                                         .Column("NOTE", Char(10));
+                                                 } };
+
+    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    REQUIRE(result.columns.size() == 2);
+    CHECK(result.columns.back().table.table == "uu_fk_pair_ref");
+    CHECK(result.columns.back().column == "CODE");
+    CHECK(result.columns.back().joinedByForeignKeyTo == "uu_fk_pair.CODE");
+    CHECK(LiveDataType(stmt, "uu_fk_pair_ref", "CODE") == "nchar");
+    CHECK(LiveDataType(stmt, "uu_fk_pair_ref", "ID") == "int");
+    CHECK(LiveDataType(stmt, "uu_fk_pair_ref", "LABEL") == "char");
+    CHECK(CatalogScalar(stmt,
+                        "SELECT STRING_AGG(COL_NAME(parent_object_id, parent_column_id) + '>' + "
+                        "COL_NAME(referenced_object_id, referenced_column_id), ',') WITHIN GROUP "
+                        "(ORDER BY constraint_column_id) FROM sys.foreign_key_columns WHERE constraint_object_id = "
+                        "OBJECT_ID('FK_uu_fk_pair_ref')")
+          == "ID>ID,CODE>CODE");
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server leaves a same-named table in another schema alone",
+                 "[SqlMigration][UnicodeUpgrade]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("only SQL Server rejects a foreign key between narrow and wide text");
+    mgr.CreateMigrationHistory();
+
+    // Another schema, sorting before dbo, holds a table named like the undeclared referencing one.
+    (void) stmt.ExecuteDirect("DROP TABLE IF EXISTS aa_uu_other.uu_fk_twin");
+    (void) stmt.ExecuteDirect("DROP SCHEMA IF EXISTS aa_uu_other");
+    (void) stmt.ExecuteDirect("CREATE SCHEMA aa_uu_other");
+    for (auto const* sql: {
+             "CREATE TABLE aa_uu_other.uu_fk_twin (REF CHAR(30) NOT NULL)",
+             "CREATE TABLE uu_fk_origin (NAME CHAR(30) NOT NULL PRIMARY KEY)",
+             "CREATE TABLE uu_fk_twin (REF CHAR(30) NOT NULL CONSTRAINT FK_uu_fk_twin REFERENCES uu_fk_origin (NAME))",
+         })
+        (void) stmt.ExecuteDirect(sql);
+
+    fold_test::FoldStub<20'26'10'16'00'07> decl { "declare wide", [](SqlMigrationQueryBuilder& plan) {
+                                                     plan.CreateTable("uu_fk_origin").PrimaryKey("NAME", NChar(30));
+                                                 } };
+
+    auto const twinType = [&](std::string_view schema) {
+        return CatalogScalar(stmt,
+                             std::format("SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{}' "
+                                         "AND TABLE_NAME = 'uu_fk_twin' AND COLUMN_NAME = 'REF'",
+                                         schema));
+    };
+    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    CHECK(result.columns.size() == 2);
+    CHECK(twinType("dbo") == "nchar");
+    CHECK(twinType("aa_uu_other") == "char");
+
+    (void) stmt.ExecuteDirect("DROP TABLE aa_uu_other.uu_fk_twin");
+    (void) stmt.ExecuteDirect("DROP SCHEMA aa_uu_other");
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server widens an undeclared key that an upgraded column references",
+                 "[SqlMigration][UnicodeUpgrade]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("only SQL Server rejects a foreign key between narrow and wide text");
+    mgr.CreateMigrationHistory();
+
+    for (auto const* sql: {
+             "CREATE TABLE uu_fk_codes (CODE VARCHAR(10) NOT NULL CONSTRAINT PK_uu_fk_codes PRIMARY KEY)",
+             "CREATE TABLE uu_fk_items (ID INT NOT NULL PRIMARY KEY, "
+             "CODE VARCHAR(10) NOT NULL CONSTRAINT FK_uu_fk_items_code REFERENCES uu_fk_codes (CODE))",
+             "INSERT INTO uu_fk_codes (CODE) VALUES ('a')",
+             "INSERT INTO uu_fk_items (ID, CODE) VALUES (1, 'a')",
+         })
+        (void) stmt.ExecuteDirect(sql);
+
+    fold_test::FoldStub<20'26'10'16'00'02> decl {
+        "declare wide",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("uu_fk_items").PrimaryKey("ID", Integer()).RequiredColumn("CODE", NVarchar(10));
+        }
+    };
+
+    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    REQUIRE(result.columns.size() == 2);
+    CHECK(result.columns.back().table.table == "uu_fk_codes");
+    CHECK(result.columns.back().joinedByForeignKeyTo == "uu_fk_items.CODE");
+    CHECK(LiveDataType(stmt, "uu_fk_items", "CODE") == "nvarchar");
+    CHECK(LiveDataType(stmt, "uu_fk_codes", "CODE") == "nvarchar");
+    CHECK(CatalogScalar(stmt, "SELECT name FROM sys.foreign_keys WHERE name = 'FK_uu_fk_items_code'")
+          == "FK_uu_fk_items_code");
+    CHECK(CatalogScalar(stmt, "SELECT type FROM sys.key_constraints WHERE name = 'PK_uu_fk_codes'") == "PK");
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server refuses a referencing column declared with another type",
+                 "[SqlMigration][UnicodeUpgrade]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("only SQL Server rejects a foreign key between narrow and wide text");
+    mgr.CreateMigrationHistory();
+
+    for (auto const* sql: {
+             "CREATE TABLE uu_fk_owner (NAME CHAR(30) NOT NULL PRIMARY KEY)",
+             "CREATE TABLE uu_fk_pinned (ID INT NOT NULL PRIMARY KEY, "
+             "OWNER CHAR(30) NOT NULL REFERENCES uu_fk_owner (NAME))",
+         })
+        (void) stmt.ExecuteDirect(sql);
+
+    // The migrations widen the key but keep the referencing column narrow: no upgrade can satisfy both.
+    fold_test::FoldStub<20'26'10'16'00'03> decl {
+        "declare a contradiction",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("uu_fk_owner").PrimaryKey("NAME", NChar(30));
+            plan.CreateTable("uu_fk_pinned").PrimaryKey("ID", Integer()).RequiredColumn("OWNER", Char(30));
+        }
+    };
+
+    for (auto const dryRun: { true, false })
+    {
+        CAPTURE(dryRun);
+        try
+        {
+            std::ignore = mgr.UnicodeUpgradeTables(dryRun);
+            FAIL("expected the narrow declaration to block the upgrade");
+        }
+        catch (std::runtime_error const& e)
+        {
+            CHECK(std::string_view { e.what() }.contains("uu_fk_pinned.OWNER"));
+            CHECK(std::string_view { e.what() }.contains("uu_fk_owner.NAME"));
+        }
+    }
+    CHECK(LiveDataType(stmt, "uu_fk_owner", "NAME") == "char");
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: matches declared names to the live schema without regard to case",
+                 "[SqlMigration][UnicodeUpgrade]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    mgr.CreateMigrationHistory();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "uu_Case_Stamp" ("Item_Name" CHAR(254) NOT NULL))");
+
+    fold_test::FoldStub<20'26'10'16'00'04> decl {
+        "declare upper case",
+        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("UU_CASE_STAMP").RequiredColumn("ITEM_NAME", NChar(254)); }
+    };
+
+    auto const dry = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+    {
+        // PostgreSQL: quoted identifiers are case-sensitive, so the declared table is another one.
+        // SQLite: the Unicode ODBC driver reports CHAR as wide, so there is no drift to see.
+        if (stmt.Connection().ServerType() == SqlServerType::POSTGRESQL)
+            CHECK(dry.columns.empty());
+        return;
+    }
+
+    REQUIRE(dry.columns.size() == 1);
+    CHECK(dry.columns.front().table.table == "uu_Case_Stamp");
+    CHECK(dry.columns.front().column == "Item_Name");
+
+    std::ignore = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    CHECK(LiveDataType(stmt, "uu_Case_Stamp", "Item_Name") == "nchar");
+    CHECK(mgr.UnicodeUpgradeTables(/*dryRun=*/true).columns.empty());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
                  "CreateIndex with a predicate enforces uniqueness only on matching rows",
                  "[SqlMigration]")
 {

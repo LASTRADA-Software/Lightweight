@@ -18,11 +18,13 @@
 #include <array>
 #include <chrono>
 #include <format>
+#include <functional>
 #include <limits>
 #include <ranges>
 #include <set>
 #include <span>
 #include <stdexcept>
+#include <tuple>
 #include <unordered_map>
 #include <unordered_set>
 #include <version>
@@ -2864,37 +2866,142 @@ namespace
         std::vector<SqlSchema::ForeignKeyConstraint> affectedFks;
     };
 
+    /// @brief The live tables and the declared (folded) tables, looked up by name: the one place
+    /// where declared names meet live ones. A lookup tries the exact name first and, where the
+    /// dialect's identifiers are case-insensitive, falls back to ignoring ASCII letter case.
+    class UpgradeSchemaIndex
+    {
+      public:
+        UpgradeSchemaIndex(std::vector<SqlSchema::Table> const& liveTables,
+                           MigrationManager::PlanFoldingResult const& fold,
+                           bool caseInsensitiveIdentifiers):
+            _fold { fold },
+            _caseInsensitive { caseInsensitiveIdentifiers }
+        {
+            for (auto const& table: liveTables)
+            {
+                _liveTables.emplace(table.name, &table);
+                _liveTablesByKey.emplace(Key(table.name), &table);
+                _liveTablesBySchema.emplace(std::pair { table.schema, table.name }, &table);
+            }
+            for (auto const& declared: fold.creationOrder)
+            {
+                _declaredTables.emplace(declared.table, &declared);
+                _declaredTablesByKey.emplace(Key(declared.table), &declared);
+            }
+        }
+
+        /// @brief The live table a declared, unqualified @p name refers to, or `nullptr`.
+        [[nodiscard]] SqlSchema::Table const* LiveTable(std::string_view name) const
+        {
+            return Find(_liveTables, _liveTablesByKey, name);
+        }
+
+        /// @brief The live table @p schema.@p name, both as the catalog spells them, or `nullptr`.
+        /// An empty @p schema falls back to the unqualified lookup.
+        [[nodiscard]] SqlSchema::Table const* LiveTable(std::string const& schema, std::string const& name) const
+        {
+            if (schema.empty())
+                return LiveTable(name);
+            auto const it = _liveTablesBySchema.find(std::pair { schema, name });
+            return it == _liveTablesBySchema.end() ? nullptr : it->second;
+        }
+
+        /// @brief The column named @p name of the live @p table, or `nullptr`.
+        [[nodiscard]] SqlSchema::Column const* LiveColumn(SqlSchema::Table const& table, std::string_view name) const
+        {
+            return FindColumn(table.columns, name);
+        }
+
+        /// @brief The declared table named @p name, or `nullptr` when no migration declares it.
+        [[nodiscard]] SqlSchema::FullyQualifiedTableName const* DeclaredTable(std::string_view name) const
+        {
+            return Find(_declaredTables, _declaredTablesByKey, name);
+        }
+
+        /// @brief The declared type of @p table.@p column, or `nullopt` when no migration declares it.
+        [[nodiscard]] std::optional<SqlColumnTypeDefinition> DeclaredType(std::string_view table,
+                                                                          std::string_view column) const
+        {
+            auto const* declared = DeclaredTable(table);
+            if (!declared)
+                return std::nullopt;
+            auto const* declaredColumn = FindColumn(_fold.tables.at(*declared).columns, column);
+            return declaredColumn ? std::optional { declaredColumn->type } : std::nullopt;
+        }
+
+      private:
+        /// The name under which @p name is matched when no name matches exactly.
+        [[nodiscard]] std::string Key(std::string_view name) const
+        {
+            auto key = std::string { name };
+            if (_caseInsensitive)
+                std::ranges::transform(key, key.begin(), AsciiFold);
+            return key;
+        }
+
+        template <typename T>
+        [[nodiscard]] T const* Find(std::map<std::string, T const*, std::less<>> const& exact,
+                                    std::map<std::string, T const*> const& byKey,
+                                    std::string_view name) const
+        {
+            if (auto const it = exact.find(name); it != exact.end())
+                return it->second;
+            if (!_caseInsensitive)
+                return nullptr;
+            auto const it = byKey.find(Key(name));
+            return it == byKey.end() ? nullptr : it->second;
+        }
+
+        template <typename Column>
+        [[nodiscard]] Column const* FindColumn(std::vector<Column> const& columns, std::string_view name) const
+        {
+            if (auto const it = std::ranges::find(columns, name, &Column::name); it != columns.end())
+                return &*it;
+            if (!_caseInsensitive)
+                return nullptr;
+            auto const key = Key(name);
+            auto const it = std::ranges::find_if(columns, [&](Column const& column) { return Key(column.name) == key; });
+            return it == columns.end() ? nullptr : &*it;
+        }
+
+        MigrationManager::PlanFoldingResult const& _fold;
+        bool _caseInsensitive;
+        std::map<std::string, SqlSchema::Table const*, std::less<>> _liveTables;
+        std::map<std::string, SqlSchema::Table const*> _liveTablesByKey;
+        std::map<std::pair<std::string, std::string>, SqlSchema::Table const*> _liveTablesBySchema;
+        std::map<std::string, SqlSchema::FullyQualifiedTableName const*, std::less<>> _declaredTables;
+        std::map<std::string, SqlSchema::FullyQualifiedTableName const*> _declaredTablesByKey;
+    };
+
     /// @brief Walks one folded table's columns against the live schema and returns
-    /// a `UnicodeUpgradePending` if any column qualifies. Returns `nullopt` when the
-    /// table is unknown to the live DB or no columns drift.
+    /// a `UnicodeUpgradePending` if any column qualifies. Returns `nullopt` when no
+    /// columns drift. The entries carry the live table and column names.
     std::optional<UnicodeUpgradePending> ComputeUpgradeForTable(
         SqlSchema::FullyQualifiedTableName const& folded,
         MigrationManager::PlanFoldingResult::TableState const& foldedState,
-        SqlSchema::Table const& live)
+        SqlSchema::Table const& live,
+        UpgradeSchemaIndex const& schema)
     {
-        std::map<std::string, SqlSchema::Column const*> liveColumns;
-        for (auto const& c: live.columns)
-            liveColumns.emplace(c.name, &c);
-
         UnicodeUpgradePending p;
-        p.key = folded;
+        p.key =
+            SqlSchema::FullyQualifiedTableName { .catalog = folded.catalog, .schema = folded.schema, .table = live.name };
 
         std::set<std::string> upgradeColumnNames;
         for (auto const& intendedCol: foldedState.columns)
         {
-            auto const liveIt = liveColumns.find(intendedCol.name);
-            if (liveIt == liveColumns.end())
-                continue;
-            if (!IsUnicodeUpgradeCandidate(liveIt->second->type, intendedCol.type))
+            auto const* liveColumn = schema.LiveColumn(live, intendedCol.name);
+            if (!liveColumn || !IsUnicodeUpgradeCandidate(liveColumn->type, intendedCol.type))
                 continue;
             p.columns.push_back(MigrationManager::ColumnUpgradeEntry {
-                .table = folded,
-                .column = intendedCol.name,
-                .liveType = liveIt->second->type,
+                .table = p.key,
+                .column = liveColumn->name,
+                .liveType = liveColumn->type,
                 .intendedType = intendedCol.type,
-                .nullable = liveIt->second->isNullable,
+                .nullable = liveColumn->isNullable,
+                .joinedByForeignKeyTo = {},
             });
-            upgradeColumnNames.insert(intendedCol.name);
+            upgradeColumnNames.insert(liveColumn->name);
         }
 
         if (p.columns.empty())
@@ -2912,6 +3019,158 @@ namespace
 
         return p;
     }
+
+    /// @brief One column being upgraded, as `ForeignKeyJoinWalker` sees it, under its live names.
+    struct UpgradedColumn
+    {
+        std::string schema;
+        std::string table;
+        std::string column;
+        SqlColumnTypeDefinition liveType;
+        SqlColumnTypeDefinition intendedType;
+    };
+
+    /// @brief Follows the foreign keys of every column being upgraded, on either side of the key
+    /// and transitively, and adds each joined column to the pending upgrades, declared or not —
+    /// for dialects whose foreign keys need both sides to share one text type. A joined column
+    /// qualifies when it has the upgraded column's narrow type and size and no migration declares
+    /// it with another type; the others are collected as refusals. Foreign-key endpoints are
+    /// catalog names, so they are resolved exactly, schema included.
+    class ForeignKeyJoinWalker
+    {
+      public:
+        ForeignKeyJoinWalker(std::vector<UnicodeUpgradePending>& pending,
+                             UpgradeSchemaIndex const& schema,
+                             SqlQueryFormatter const& formatter):
+            _pending { pending },
+            _schema { schema },
+            _formatter { formatter }
+        {
+            for (auto const index: std::views::iota(std::size_t { 0 }, pending.size()))
+            {
+                auto const& p = pending[index];
+                auto const* live = schema.LiveTable(p.key.table);
+                if (!live)
+                    continue;
+                _pendingByTable.emplace(std::pair { live->schema, live->name }, index);
+                _followedFks.insert(p.affectedFks.begin(), p.affectedFks.end());
+                for (auto const& c: p.columns)
+                {
+                    _visited.emplace(live->schema, live->name, c.column);
+                    _worklist.push_back(UpgradedColumn { .schema = live->schema,
+                                                         .table = live->name,
+                                                         .column = c.column,
+                                                         .liveType = c.liveType,
+                                                         .intendedType = c.intendedType });
+                }
+            }
+        }
+
+        /// @brief Walks until every joined column has been seen.
+        /// @throws std::runtime_error naming every joined column that does not qualify.
+        void Run()
+        {
+            while (!_worklist.empty())
+            {
+                auto const from = std::move(_worklist.back());
+                _worklist.pop_back();
+                if (auto const* live = _schema.LiveTable(from.schema, from.table))
+                {
+                    Walk(from, live->externalForeignKeys, /*fromIsReferenced=*/true);
+                    Walk(from, live->foreignKeys, /*fromIsReferenced=*/false);
+                }
+            }
+            if (!_refused.empty())
+                throw std::runtime_error(std::format(
+                    "cannot change the column types: these columns are joined by a foreign key to a column being "
+                    "upgraded but differ from it in type or declaration, so they cannot be upgraded with it; "
+                    "align them first: {}",
+                    _refused));
+        }
+
+      private:
+        /// Follows each of @p keys from the side being upgraded to the other side, column by column.
+        void Walk(UpgradedColumn const& from,
+                  std::vector<SqlSchema::ForeignKeyConstraint> const& keys,
+                  bool fromIsReferenced)
+        {
+            for (auto const& fk: keys)
+            {
+                auto const& fromSide = fromIsReferenced ? fk.primaryKey : fk.foreignKey;
+                auto const& otherSide = fromIsReferenced ? fk.foreignKey : fk.primaryKey;
+                for (auto const index:
+                     std::views::iota(std::size_t { 0 }, std::min(fromSide.columns.size(), otherSide.columns.size())))
+                    if (fromSide.columns[index] == from.column)
+                        Join(from, fk, otherSide.table, otherSide.columns[index]);
+            }
+        }
+
+        /// Upgrades @p tableName.@p columnName along with @p from, or records why it cannot be.
+        void Join(UpgradedColumn const& from,
+                  SqlSchema::ForeignKeyConstraint const& fk,
+                  SqlSchema::FullyQualifiedTableName const& tableName,
+                  std::string const& columnName)
+        {
+            auto const* table = _schema.LiveTable(tableName.schema, tableName.table);
+            auto const* column = table ? _schema.LiveColumn(*table, columnName) : nullptr;
+            if (!column || !_visited.emplace(table->schema, table->name, column->name).second)
+                return;
+            auto const fromName = std::format("{}.{}", from.table, from.column);
+            auto const declaredType = _schema.DeclaredType(table->name, column->name);
+            if (column->type != from.liveType || (declaredType && *declaredType != from.intendedType))
+            {
+                _refused += std::format("{}{}.{} ({}{}) joined to {} ({} to {})",
+                                        _refused.empty() ? "" : ", ",
+                                        table->name,
+                                        column->name,
+                                        _formatter.ColumnType(column->type),
+                                        declaredType ? std::format(", declared {}", _formatter.ColumnType(*declaredType))
+                                                     : std::string {},
+                                        fromName,
+                                        _formatter.ColumnType(from.liveType),
+                                        _formatter.ColumnType(from.intendedType));
+                return;
+            }
+            auto& target = PendingFor(*table);
+            target.columns.push_back(MigrationManager::ColumnUpgradeEntry {
+                .table = target.key,
+                .column = column->name,
+                .liveType = column->type,
+                .intendedType = from.intendedType,
+                .nullable = column->isNullable,
+                .joinedByForeignKeyTo = fromName,
+            });
+            if (_followedFks.insert(fk).second)
+                target.affectedFks.push_back(fk);
+            _worklist.push_back(UpgradedColumn { .schema = table->schema,
+                                                 .table = table->name,
+                                                 .column = column->name,
+                                                 .liveType = column->type,
+                                                 .intendedType = from.intendedType });
+        }
+
+        /// The pending upgrade of the live @p table, added when the table has none yet.
+        UnicodeUpgradePending& PendingFor(SqlSchema::Table const& table)
+        {
+            auto const [entry, added] = _pendingByTable.try_emplace(std::pair { table.schema, table.name }, _pending.size());
+            if (added)
+                _pending.push_back(UnicodeUpgradePending {
+                    .key = { .catalog = {}, .schema = table.schema, .table = table.name },
+                    .columns = {},
+                    .affectedFks = {},
+                });
+            return _pending[entry->second];
+        }
+
+        std::vector<UnicodeUpgradePending>& _pending;
+        UpgradeSchemaIndex const& _schema;
+        SqlQueryFormatter const& _formatter;
+        std::map<std::pair<std::string, std::string>, std::size_t> _pendingByTable;
+        std::set<std::tuple<std::string, std::string, std::string>> _visited;
+        std::set<SqlSchema::ForeignKeyConstraint> _followedFks;
+        std::vector<UpgradedColumn> _worklist;
+        std::string _refused;
+    };
 
     /// @brief Rewrites every flagged column's type token inside one SQLite-stored
     /// `CREATE TABLE` body. Single-pass: types we cannot locate are left at their old
@@ -3119,28 +3378,31 @@ MigrationManager::UnicodeUpgradeResult MigrationManager::UnicodeUpgradeTables(bo
     auto stmt = SqlStatement { dm.Connection() };
     auto const liveTables = SqlSchema::ReadAllTables(stmt, std::string {}, std::string {});
 
-    std::map<std::string, SqlSchema::Table const*> liveByName;
-    for (auto const& t: liveTables)
-        liveByName.emplace(t.name, &t);
+    auto const schema = UpgradeSchemaIndex { liveTables, fold, formatter.IdentifiersAreCaseInsensitive() };
 
     std::vector<UnicodeUpgradePending> pendingPerTable;
     for (auto const& folded: fold.creationOrder)
     {
-        auto const it = liveByName.find(folded.table);
-        if (it == liveByName.end())
+        auto const* live = schema.LiveTable(folded.table);
+        if (!live)
             continue;
-        auto upgrade = ComputeUpgradeForTable(folded, fold.tables.at(folded), *it->second);
-        if (!upgrade)
-            continue;
-        for (auto const& c: upgrade->columns)
+        if (auto upgrade = ComputeUpgradeForTable(folded, fold.tables.at(folded), *live, schema))
+            pendingPerTable.push_back(std::move(*upgrade));
+    }
+
+    if (formatter.DistinguishesNarrowAndWideText())
+        ForeignKeyJoinWalker { pendingPerTable, schema, formatter }.Run();
+
+    for (auto const& upgrade: pendingPerTable)
+    {
+        for (auto const& c: upgrade.columns)
             result.columns.push_back(c);
-        for (auto const& fk: upgrade->affectedFks)
+        for (auto const& fk: upgrade.affectedFks)
             result.rebuiltForeignKeys.push_back(SqlCompositeForeignKeyConstraint {
                 .columns = fk.foreignKey.columns,
                 .referencedTableName = fk.primaryKey.table.table,
                 .referencedColumns = fk.primaryKey.columns,
             });
-        pendingPerTable.push_back(std::move(*upgrade));
     }
 
     // Where narrow and wide text are distinct types (SQL Server), the column change is

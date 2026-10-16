@@ -479,6 +479,17 @@ dry run lists those objects. Objects it cannot recreate safely — schema-bound 
 computed columns, columnstore, XML, spatial and full-text indexes — stop the command before
 anything changes; drop them, run it, and recreate them yourself.
 
+A foreign key on SQL Server needs both of its columns to have the same type. So when the command
+widens a column, it also widens every column a foreign key joins to it, on either side and
+transitively, even when no migration declares that column — a column left over from an older
+schema, say. The dry run lists such a column as `(not declared; joined by a foreign key to
+<table>.<column>)`. A joined column must have the same narrow type and size and must not be
+declared with another type; otherwise the command names it and stops before anything changes.
+
+Declared table and column names match the live ones without regard to case on SQLite and on SQL
+Server under a case-insensitive database collation (the default; the collation is not checked),
+when no live name matches exactly; on PostgreSQL they must match exactly.
+
 ### exec \<QUERY\>
 
 Executes an SQL query and prints any result set:

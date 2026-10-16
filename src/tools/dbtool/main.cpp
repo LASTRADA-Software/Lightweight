@@ -1536,7 +1536,15 @@ int UnicodeUpgradeTables(MigrationManager& manager, bool dryRun, bool yes)
         [](auto const& r) {
             std::println("Columns to upgrade ({}):", r.columns.size());
             for (auto const& c: r.columns)
-                std::println("  {}.{}", c.table.table, c.column);
+            {
+                if (c.joinedByForeignKeyTo.empty())
+                    std::println("  {}.{}", c.table.table, c.column);
+                else
+                    std::println("  {}.{} (not declared; joined by a foreign key to {})",
+                                 c.table.table,
+                                 c.column,
+                                 c.joinedByForeignKeyTo);
+            }
             if (!r.rebuiltObjects.empty())
             {
                 // SQL Server: every key, constraint, index and statistic on the columns.
