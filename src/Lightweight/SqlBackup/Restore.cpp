@@ -109,22 +109,18 @@ std::expected<RestoreChunkInfo, FetchChunkError> FetchNextRestoreChunk(RestoreCo
     }
 
     // Parse path FIRST to get tableName for chunk-based completion tracking.
-    // Path format: data/TABLE_NAME/chunk_ID.msgpack
+    // Path format: data/<folder>/chunk_ID.msgpack, where <folder> is the table's ChunkDirectory.
     std::string const path = entryInfo.name;
-    auto const firstSlash = path.find('/');
-    if (firstSlash == std::string::npos)
+    auto const directory = ChunkDirectoryOf(path);
+    if (!directory)
         return std::unexpected(
-            FetchChunkError { .tableName = "", .message = std::format("Malformed chunk path (no slash): {}", path) });
+            FetchChunkError { .tableName = "", .message = std::format("Malformed chunk path: {}", path) });
 
-    auto const secondSlash = path.find('/', firstSlash + 1);
-    if (secondSlash == std::string::npos)
+    auto const table = ctx.chunkTables.find(std::string { *directory });
+    if (table == ctx.chunkTables.end() || !ctx.tableMap.contains(table->second))
         return std::unexpected(
-            FetchChunkError { .tableName = "", .message = std::format("Malformed chunk path (no second slash): {}", path) });
-
-    std::string const tableName = path.substr(firstSlash + 1, secondSlash - firstSlash - 1);
-    if (!ctx.tableMap.contains(tableName))
-        return std::unexpected(
-            FetchChunkError { .tableName = tableName, .message = std::format("Unknown table in backup: {}", tableName) });
+            FetchChunkError { .tableName = "", .message = std::format("Unknown table in backup: {}", *directory) });
+    std::string const& tableName = table->second;
 
     // Verify checksum if available
     if (ctx.checksums)
@@ -169,6 +165,8 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
     std::string const& tableName = chunk.tableName;
     std::string const& path = chunk.chunkPath;
     std::string const& fields = tableInfo.fields;
+    std::string const& targetSchema = TargetSchema(tableInfo, ctx.schema);
+    std::string const& targetTableName = TargetTableName(tableName, tableInfo);
 
     size_t const currentTotal1 = ctx.tableProgress.at(tableName)->load();
     ctx.progress.Update({ .state = Progress::State::InProgress,
@@ -194,7 +192,7 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
             if (isMsSql && std::ranges::any_of(tableInfo.columns, [](auto const& col) {
                     return col.primaryKey == SqlPrimaryKeyType::AUTO_INCREMENT;
                 }))
-                identityInsert.emplace(workerConn, FormatTableName(ctx.schema, tableName));
+                identityInsert.emplace(workerConn, FormatTableName(targetSchema, targetTableName));
 
             {
                 auto const& formatter = workerConn.QueryFormatter();
@@ -205,7 +203,7 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
                     });
                 {
                     ZoneScopedN("Restore::Prepare");
-                    stmt.Prepare(formatter.Insert(ctx.schema, tableName, fields, placeholders));
+                    stmt.Prepare(formatter.Insert(targetSchema, targetTableName, fields, placeholders));
                 }
 
                 ::Lightweight::detail::BatchManager batchManager(
@@ -479,8 +477,10 @@ void RestoreIndexes(SqlConnectionString const& connectionString,
 
                 // Build the CREATE INDEX statement
                 std::string const uniqueKeyword = idx.isUnique ? "UNIQUE " : "";
-                std::string const formattedTableName =
-                    isSQLite ? std::format(R"("{}")", tableName) : FormatTableName(schema, tableName);
+                auto const& targetTableName = TargetTableName(tableName, info);
+                std::string const formattedTableName = isSQLite
+                                                           ? std::format(R"("{}")", targetTableName)
+                                                           : FormatTableName(TargetSchema(info, schema), targetTableName);
                 std::string const sql = std::format(
                     R"(CREATE {}INDEX "{}" ON {} ({}))", uniqueKeyword, idx.name, formattedTableName, columnList);
 
@@ -550,14 +550,15 @@ void ApplyDatabaseConstraints(SqlConnectionString const& connectionString,
             commands.emplace_back(
                 SqlAlterTableCommands::AddCompositeForeignKey { .columns = fk.foreignKey.columns,
                                                                 .referencedTableName = fk.primaryKey.table.table,
-                                                                .referencedColumns = fk.primaryKey.columns });
+                                                                .referencedColumns = fk.primaryKey.columns,
+                                                                .referencedSchemaName = fk.primaryKey.table.schema });
         }
         if (commands.empty())
             continue;
 
         try
         {
-            auto sqls = formatter.AlterTable(schema, tableName, commands);
+            auto sqls = formatter.AlterTable(TargetSchema(info, schema), TargetTableName(tableName, info), commands);
             for (auto const& sql: sqls)
                 (void) SqlStatement { conn }.ExecuteDirect(sql);
         }
@@ -676,9 +677,10 @@ std::set<std::string> CreateTablesInOrder(SqlConnection& conn,
             for (auto const& fk: info.foreignKeys)
             {
                 // Construct FK constraint name (matching the format used in AddForeignKey)
+                auto const& targetTableName = TargetTableName(tableName, info);
                 std::string const fkName =
-                    std::format("FK_{}_{}", tableName, fk.foreignKey.columns.empty() ? "" : fk.foreignKey.columns[0]);
-                std::string const formattedTableName = FormatTableName(schema, tableName);
+                    std::format("FK_{}_{}", targetTableName, fk.foreignKey.columns.empty() ? "" : fk.foreignKey.columns[0]);
+                std::string const formattedTableName = FormatTableName(TargetSchema(info, schema), targetTableName);
                 try
                 {
                     (void) SqlStatement { conn }.ExecuteDirect(
@@ -696,8 +698,10 @@ std::set<std::string> CreateTablesInOrder(SqlConnection& conn,
     for (auto const& tableName: tableOrder)
     {
         auto const& info = tableMap.at(tableName);
+        auto const& targetSchema = TargetSchema(info, schema);
+        auto const& targetTableName = TargetTableName(tableName, info);
 
-        if (!DropTableIfExists(conn, schema, tableName, progress))
+        if (!DropTableIfExists(conn, targetSchema, targetTableName, progress))
             continue;
 
         bool tableCreated = true;
@@ -717,7 +721,7 @@ std::set<std::string> CreateTablesInOrder(SqlConnection& conn,
             std::vector<SqlCompositeForeignKeyConstraint> const& fksToCreate =
                 isSQLite ? foreignKeys : std::vector<SqlCompositeForeignKeyConstraint> {};
 
-            auto const createSqls = formatter.CreateTable(schema, tableName, info.columns, fksToCreate);
+            auto const createSqls = formatter.CreateTable(targetSchema, targetTableName, info.columns, fksToCreate);
             for (auto const& sql: createSqls)
             {
                 try
@@ -752,6 +756,38 @@ std::set<std::string> CreateTablesInOrder(SqlConnection& conn,
     return createdTables;
 }
 
+/// Creates each schema that a multi-schema archive records for @p tableMap, unless it exists.
+///
+/// @param conn The database connection.
+/// @param tableMap Map of table names to their metadata.
+/// @param progress Progress manager for reporting errors.
+void CreateRecordedSchemas(SqlConnection& conn, std::map<std::string, TableInfo> const& tableMap, ProgressManager& progress)
+{
+    std::set<std::string> schemas;
+    for (auto const& [tableName, info]: tableMap)
+        if (!info.schema.empty())
+            schemas.insert(info.schema);
+
+    for (auto const& schemaName: schemas)
+    {
+        auto const sql = conn.QueryFormatter().CreateSchemaIfNotExists(schemaName);
+        if (sql.empty())
+            continue;
+        try
+        {
+            (void) SqlStatement { conn }.ExecuteDirect(sql);
+        }
+        catch (std::exception const& e)
+        {
+            progress.Update({ .state = Progress::State::Error,
+                              .tableName = "",
+                              .currentRows = 0,
+                              .totalRows = 0,
+                              .message = std::format("CreateSchema {} failed: {} SQL: {}", schemaName, e.what(), sql) });
+        }
+    }
+}
+
 std::set<std::string> RecreateDatabaseSchema(SqlConnectionString const& connectionString,
                                              std::string const& schema,
                                              std::map<std::string, TableInfo> const& tableMap,
@@ -778,6 +814,8 @@ std::set<std::string> RecreateDatabaseSchema(SqlConnectionString const& connecti
         (void) stmt.ExecuteDirect("PRAGMA journal_mode = WAL");
         (void) stmt.ExecuteDirect("PRAGMA foreign_keys = OFF"); // Disable FKs during restore
     }
+
+    CreateRecordedSchemas(conn, tableMap, progress);
 
     auto const tableOrder = ComputeTableCreationOrder(tableMap, isSQLite);
     return CreateTablesInOrder(conn, schema, tableMap, tableOrder, isSQLite, progress);

@@ -571,6 +571,178 @@ def test_exit_code_after_compat_policy_plugin(dbtool, plugins_dir, connection_st
                 sys.exit(1)
 
 
+def test_multi_schema_backup(dbtool, plugins_dir, connection_string, is_sqlite):
+    """backup --schema a,b / --all-schemas write a multi-schema archive that restore recreates schema by schema."""
+    base_cmd = [dbtool, "--plugins-dir", plugins_dir, "--connection-string", connection_string]
+
+    print("--- 13a. multi-schema backup: option checks ---")
+    both = run_command(base_cmd + ["backup", "--all-schemas", "--schema", "x", "--output", "unused.zip"], check=False)
+    if both.returncode == 0 or "exclude each other" not in both.stderr:
+        print(f"backup accepted --all-schemas together with --schema:\n{both.stderr}")
+        sys.exit(1)
+    listed = run_command(base_cmd + ["restore", "--input", "unused.zip", "--schema", "a,b"], check=False)
+    if listed.returncode == 0 or "single --schema" not in listed.stderr:
+        print(f"restore accepted a list of schemas:\n{listed.stderr}")
+        sys.exit(1)
+
+    ignored = run_command(base_cmd + ["status", "--all-schemas"], check=False)
+    if "--all-schemas applies to backup only" not in ignored.stderr:
+        print(f"status did not warn that it ignores --all-schemas:\n{ignored.stderr}")
+        sys.exit(1)
+
+    if is_sqlite:
+        print("--- 13b. --all-schemas on SQLite writes a single-schema archive ---")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            archive = os.path.join(tmpdir, "all.zip")
+            run_command(base_cmd + ["backup", "--all-schemas", "--output", archive])
+            with zipfile.ZipFile(archive) as zf:
+                metadata = json.loads(zf.read("metadata.json"))
+            if metadata["format_version"] != "1.0" or "schema_names" in metadata:
+                print(f"--all-schemas on SQLite did not write a single-schema archive: {metadata['format_version']}")
+                sys.exit(1)
+        return
+
+    schemas = ("l7cli_core", "l7cli_extra")
+    parent = f'"{schemas[0]}"."parent"'
+    child = f'"{schemas[1]}"."child"'
+
+    def drop_fixture():
+        for table in (child, parent):
+            run_command(base_cmd + ["exec", f"DROP TABLE IF EXISTS {table}"])
+        for schema in reversed(schemas):
+            run_command(base_cmd + ["exec", f'DROP SCHEMA IF EXISTS "{schema}"'])
+
+    def row_count(table):
+        """Returns the row count of table; a missing table fails the test."""
+        return int(run_command(base_cmd + ["exec", f"SELECT COUNT(*) FROM {table}"]).stdout.strip())
+
+    def orphan_rejected(expected_child_rows):
+        """Checks that child exists with expected_child_rows rows, then that its foreign key rejects an orphan."""
+        rows = row_count(child)
+        if rows != expected_child_rows:
+            print(f"{child} has {rows} rows, expected {expected_child_rows}")
+            sys.exit(1)
+        orphan = run_command(base_cmd + ["exec", f'INSERT INTO {child} ("id", "parent_id") VALUES (99, 42)'],
+                             check=False)
+        return orphan.returncode != 0
+
+    def write_profile(cfg_path, profile_schema):
+        """Writes a dbtool.yml whose profile 'multi' targets the test database with profile_schema."""
+        profile_cs, profile_pwd = split_password(connection_string)
+        with open(cfg_path, "w", encoding="utf-8") as f:
+            f.write("profiles:\n"
+                    "  multi:\n"
+                    f"    connectionString: {yaml_quote(profile_cs)}\n"
+                    f"    pluginsDir: {yaml_quote(plugins_dir)}\n"
+                    f"    schema: {yaml_quote(profile_schema)}\n"
+                    + ("    secretRef: \"env:LW_MULTI_SCHEMA_TEST_PASSWORD\"\n" if profile_pwd else ""))
+        return dict(os.environ, LW_MULTI_SCHEMA_TEST_PASSWORD=profile_pwd)
+
+    print("--- 13c. backup --schema core,extra writes a multi-schema archive ---")
+    drop_fixture()
+    for schema in schemas:
+        run_command(base_cmd + ["exec", f'CREATE SCHEMA "{schema}"'])
+    run_command(base_cmd + ["exec", f'CREATE TABLE {parent} ("id" INTEGER NOT NULL PRIMARY KEY, "name" VARCHAR(20))'])
+    run_command(base_cmd + ["exec", f'CREATE TABLE {child} ("id" INTEGER NOT NULL PRIMARY KEY, "parent_id" INTEGER, '
+                                    f'CONSTRAINT "fk_l7cli" FOREIGN KEY ("parent_id") REFERENCES {parent} ("id"))'])
+    run_command(base_cmd + ["exec", f"INSERT INTO {parent} (\"id\", \"name\") VALUES (1, 'one'), (2, 'two')"])
+    run_command(base_cmd + ["exec", f'INSERT INTO {child} ("id", "parent_id") VALUES (10, 1), (11, 2)'])
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        archive = os.path.join(tmpdir, "multi.zip")
+        run_command(base_cmd + ["backup", "--schema", ",".join(schemas), "--output", archive])
+        with zipfile.ZipFile(archive) as zf:
+            metadata = json.loads(zf.read("metadata.json"))
+            names = zf.namelist()
+        if metadata["format_version"] != "2.0" or metadata.get("schema_names") != list(schemas):
+            print(f"backup --schema a,b did not write a multi-schema archive: {metadata.get('schema_names')}")
+            sys.exit(1)
+        if not any(name.startswith(f"data/{schemas[1]}/child/") for name in names):
+            print(f"multi-schema archive lacks the schema folder of its chunks: {names}")
+            sys.exit(1)
+
+        print("--- 13d. backup --all-schemas covers both schemas ---")
+        all_archive = os.path.join(tmpdir, "all.zip")
+        run_command(base_cmd + ["backup", "--all-schemas", "--schema-only", "--output", all_archive])
+        with zipfile.ZipFile(all_archive) as zf:
+            all_schemas = json.loads(zf.read("metadata.json")).get("schema_names", [])
+        if not set(schemas) <= set(all_schemas):
+            print(f"backup --all-schemas missed a schema: {all_schemas}")
+            sys.exit(1)
+
+        print("--- 13e. restore of a multi-schema archive refuses --schema ---")
+        drop_fixture()
+        refused = run_command(base_cmd + ["restore", "--input", archive, "--schema", "elsewhere"], check=False)
+        if refused.returncode == 0 or "--schema cannot be used" not in refused.stderr:
+            print(f"restore of a multi-schema archive accepted --schema:\n{refused.stderr}")
+            sys.exit(1)
+
+        print("--- 13f. restore recreates both schemas, the data and the cross-schema foreign key ---")
+        run_command(base_cmd + ["restore", "--input", archive])
+        after = os.path.join(tmpdir, "after.zip")
+        run_command(base_cmd + ["backup", "--schema", ",".join(schemas), "--output", after])
+        run_command(base_cmd + ["backup-diff", "--left", archive, "--right", after])
+        if not orphan_rejected(2):
+            print("the restored cross-schema foreign key does not reject an orphan row")
+            sys.exit(1)
+
+        print("--- 13f1. backup-diff --ignore-table takes a bare name in a multi-schema archive ---")
+        run_command(base_cmd + ["exec", f'INSERT INTO {child} ("id", "parent_id") VALUES (12, 1)'])
+        drifted = os.path.join(tmpdir, "drifted.zip")
+        run_command(base_cmd + ["backup", "--schema", ",".join(schemas), "--output", drifted])
+        differing = run_command(base_cmd + ["backup-diff", "--left", archive, "--right", drifted], check=False)
+        if differing.returncode == 0:
+            print("backup-diff did not report the drifted child table")
+            sys.exit(1)
+        run_command(base_cmd + ["backup-diff", "--left", archive, "--right", drifted, "--ignore-table", "child"])
+        run_command(base_cmd + ["backup-diff", "--left", archive, "--right", drifted,
+                                "--ignore-table", f"{schemas[1]}/child"])
+        run_command(base_cmd + ["exec", f'DELETE FROM {child} WHERE "id" = 12'])
+
+        print("--- 13g. a schema-only restore of a multi-schema archive recreates the foreign key ---")
+        drop_fixture()
+        run_command(base_cmd + ["restore", "--input", archive, "--schema-only"])
+        if row_count(parent) != 0 or not orphan_rejected(0):
+            print("schema-only restore did not recreate empty tables with the foreign key")
+            sys.exit(1)
+
+        print("--- 13h. a profile's schema that the archive holds is not applied ---")
+        drop_fixture()
+        cfg_path = os.path.join(tmpdir, "dbtool.yml")
+        # SQL Server matches schema names case-insensitively, PostgreSQL exactly.
+        is_postgres = "postgres" in connection_string.lower()
+        env = write_profile(cfg_path, schemas[0] if is_postgres else schemas[0].upper())
+        run_command([dbtool, "--config", cfg_path, "--profile", "multi", "restore", "--input", archive], env=env)
+        if row_count(parent) != 2 or not orphan_rejected(2):
+            print("restore through a profile with the archive's schema did not recreate the cross-schema foreign key")
+            sys.exit(1)
+
+        print("--- 13i. a profile's schema that the archive does not hold is refused ---")
+        run_command(base_cmd + ["exec", f"INSERT INTO {parent} (\"id\", \"name\") VALUES (3, 'live')"])
+        env = dict(write_profile(cfg_path, "restore_check"), DBTOOL_TRACE="1")
+        refused = run_command([dbtool, "--config", cfg_path, "--profile", "multi", "restore", "--input", archive],
+                              env=env, check=False)
+        # Positive control for 13j: with a profile schema the probe runs and leaves its breadcrumb.
+        if "probing the target's identifier case" not in refused.stderr:
+            print(f"restore with a profile schema did not probe its target:\n{refused.stderr}")
+            sys.exit(1)
+        if refused.returncode == 0 or "the profile's schema 'restore_check' cannot be used" not in refused.stderr:
+            print(f"restore accepted a profile schema the archive does not hold:\n{refused.stderr}")
+            sys.exit(1)
+        if row_count(parent) != 3:
+            print("a refused restore changed the live tables")
+            sys.exit(1)
+
+        print("--- 13j. without a profile schema, a dry-run restore does not probe the target ---")
+        traced = run_command(base_cmd + ["restore", "--dry-run", "--input", archive],
+                             env=dict(os.environ, DBTOOL_TRACE="1"))
+        if "probing the target's identifier case" in traced.stderr:
+            print(f"restore --dry-run probed its target:\n{traced.stderr}")
+            sys.exit(1)
+
+    drop_fixture()
+
+
 def main():
     parser = argparse.ArgumentParser(description="Test dbtool integration")
     parser.add_argument("--dbtool", required=True, help="Path to dbtool executable")
@@ -1080,6 +1252,8 @@ def main():
         if "No migrations registered" not in no_plugin_result.stderr:
             print(f"status error message did not mention 'No migrations registered':\n{no_plugin_result.stderr}")
             sys.exit(1)
+
+    test_multi_schema_backup(args.dbtool, args.plugins_dir, connection_string, is_sqlite)
 
     test_post_migrate_hook(base_cmd, args.dbtool, args.plugins_dir, connection_string)
 

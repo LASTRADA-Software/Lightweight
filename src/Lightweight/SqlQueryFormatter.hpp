@@ -337,7 +337,8 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
     /// a case-insensitive database collation (the default); it is not probed per database.
     /// PostgreSQL keeps quoted identifiers case-sensitive and returns `false`.
     ///
-    /// Declared last so the vtable slots of the hooks above stay where they were.
+    /// New hooks are appended at the end of the class: that keeps the slots of the earlier ones for
+    /// callers, but a subclass outside this library must still be rebuilt.
     ///
     /// @return `true` if identifiers differing only in ASCII letter case name the same object.
     [[nodiscard]] virtual bool IdentifiersAreCaseInsensitive() const noexcept
@@ -345,9 +346,37 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
         return false;
     }
 
+    /// @brief Whether the dialect has schemas that tables can be created in.
+    ///
+    /// Defaults to `true`. SQLite returns `false`: it has no schemas, only attached databases.
+    ///
+    /// @return `true` if a table can be created in a named schema.
+    [[nodiscard]] virtual bool SupportsSchemas() const noexcept
+    {
+        return true;
+    }
+
+    /// @brief Returns the statement that creates @p schema unless it already exists.
+    ///
+    /// Returns an empty string when the dialect has no schemas (see @ref SupportsSchemas()).
+    ///
+    /// @param schema The schema to create.
+    /// @return The statement to execute, or an empty string when there is nothing to execute.
+    [[nodiscard]] virtual std::string CreateSchemaIfNotExists(std::string_view schema) const
+    {
+        (void) schema;
+        return {};
+    }
+
   protected:
     /// Formats a table name with optional schema prefix.
     static std::string FormatTableName(std::string_view schema, std::string_view table);
+
+    /// Doubles every @p quote in @p text, so @p text can be embedded between two such quotes.
+    /// @param text The text to embed.
+    /// @param quote The quote character that delimits the embedded text.
+    /// @return @p text with each @p quote doubled.
+    static std::string DoubleQuoteCharacter(std::string_view text, char quote);
 };
 
 } // namespace Lightweight

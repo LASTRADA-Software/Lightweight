@@ -122,6 +122,7 @@ set(SOURCE_FILES
     SqlBackup/BatchManagerTests.cpp
     SqlBackup/MsgPackChunkFormatsTests.cpp
     SqlBackup/MultiPkTests.cpp
+    SqlBackup/MultiSchemaTests.cpp
     SqlBackup/Benchmarks.cpp
     SqlBackup/MetadataRedactionTests.cpp
     SqlBackup/ParseSchemaTests.cpp

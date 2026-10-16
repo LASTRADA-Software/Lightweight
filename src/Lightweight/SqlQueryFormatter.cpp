@@ -18,8 +18,21 @@ namespace Lightweight
 std::string SqlQueryFormatter::FormatTableName(std::string_view schema, std::string_view table)
 {
     if (schema.empty())
-        return std::format(R"("{}")", table);
-    return std::format(R"("{}"."{}")", schema, table);
+        return std::format(R"("{}")", DoubleQuoteCharacter(table, '"'));
+    return std::format(R"("{}"."{}")", DoubleQuoteCharacter(schema, '"'), DoubleQuoteCharacter(table, '"'));
+}
+
+std::string SqlQueryFormatter::DoubleQuoteCharacter(std::string_view text, char quote)
+{
+    std::string result;
+    result.reserve(text.size());
+    for (char const character: text)
+    {
+        result.push_back(character);
+        if (character == quote)
+            result.push_back(quote);
+    }
+    return result;
 }
 
 SqlQueryFormatter const& SqlQueryFormatter::Sqlite()

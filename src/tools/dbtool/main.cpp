@@ -7,6 +7,7 @@
 
 #include <Lightweight/DataMapper/DataMapper.hpp>
 #include <Lightweight/SqlBackup.hpp>
+#include <Lightweight/SqlBackup/Common.hpp>
 #include <Lightweight/SqlError.hpp>
 #include <Lightweight/SqlLogger.hpp>
 #include <Lightweight/SqlMigration.hpp>
@@ -245,9 +246,16 @@ void PrintUsage()
     std::println("                            on SQL Server the login's server-side DEFAULT_SCHEMA is what");
     std::println("                            applies — Lightweight does not switch it per-session). For");
     std::println("                            backup/restore the value also qualifies table names in the archive.");
+    std::println("                            `backup` takes a comma-separated list (`--schema dbo,sales`) and");
+    std::println("                            then writes a multi-schema archive; `restore` of such an archive");
+    std::println("                            restores each table into its own schema and refuses `--schema`.");
+    std::println("  {}--all-schemas{}             Backup every schema that holds user tables (excludes sys,",
+                 c.option, c.reset);
+    std::println("                            INFORMATION_SCHEMA, guest, db_* and pg_*)");
     std::println("  {}--config{} {}<FILE>{}           Config file (default: nearest dbtool.yml above the current",
                  c.option, c.reset, c.param, c.reset);
-    std::println("                            or executable directory, then the per-user config)");
+    std::println("                            or executable directory, then the per-user config, whose");
+    std::println("                            folder LIGHTWEIGHT_DBTOOL_USER_CONFIG_DIR overrides)");
     std::println("  {}--profile{} {}<NAME>{}          Named profile from the config file (default: the file's",
                  c.option, c.reset, c.param, c.reset);
     std::println("                            defaultProfile, see --connection-string for when it applies)");
@@ -264,7 +272,9 @@ void PrintUsage()
                  c.option, c.reset, c.param, c.reset);
     std::println("  {}--ignore-table{} {}<NAME>{}     backup-diff: report but don't fail on this table (repeatable;",
                  c.option, c.reset, c.param, c.reset);
-    std::println("                            for high-write tables that drift on a live DB)");
+    std::println("                            for high-write tables that drift on a live DB). In a");
+    std::println("                            multi-schema archive a table is <schema>/<table> (or");
+    std::println("                            <schema>.<table>); a bare name must be unique across schemas");
     std::println("  {}--filter-tables{} {}<PATTERN>{} Tables to backup/restore (default: {} for all)",
                  c.option, c.reset, c.param, c.reset, "*");
     std::println("                            Comma-separated, supports wildcards ({} and {})", "*", "?");
@@ -354,6 +364,10 @@ void PrintExamples()
     std::println("  {}dbtool backup --output backup.zip --filter-tables=dbo.Users,sales.*{}", c.code, c.reset);
     std::println("");
 
+    std::println("  {}# Backup two schemas, with foreign keys between them, into one archive:{}", c.example, c.reset);
+    std::println("  {}dbtool backup --output backup.zip --schema dbo,sales{}", c.code, c.reset);
+    std::println("");
+
     std::println("  {}# Restore database from backup:{}", c.example, c.reset);
     std::println("  {}dbtool restore --input backup.zip --jobs 4{}", c.code, c.reset);
     std::println("");
@@ -422,6 +436,8 @@ struct Options
     std::filesystem::path rightFile;    ///< Second archive for `backup-diff` (--right)
     std::set<std::string> ignoreTables; ///< `backup-diff` tables to report-but-not-fail (--ignore-table)
     ProgressType progressType = ProgressType::Unicode;
+    bool schemaSet = false;  ///< `--schema` was given on the command line (not taken from a profile)
+    bool allSchemas = false; ///< `--all-schemas`: back up every schema that holds user tables
     unsigned jobs = 1;
     unsigned maxRetries = 3; ///< Maximum retry attempts for transient errors
     std::string schema;
@@ -823,6 +839,7 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
             if (i + 1 >= argc)
                 return std::unexpected { "Error: --schema requires an argument" };
             options.schema = argv[++i];
+            options.schemaSet = !options.schema.empty();
         }
         else if (arg == "--profile")
         {
@@ -978,6 +995,10 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
         else if (arg == "--schema-only")
         {
             options.schemaOnly = true;
+        }
+        else if (arg == "--all-schemas")
+        {
+            options.allSchemas = true;
         }
         else if (arg == "--yes" || arg == "-y")
         {
@@ -2320,6 +2341,140 @@ std::string FormatConnectionError(std::string_view errorMessage)
     return std::format("{}{}", errorMessage, suggestions);
 }
 
+/// Splits a comma-separated list, dropping empty items and surrounding spaces.
+std::vector<std::string> SplitCommaList(std::string_view list)
+{
+    std::vector<std::string> items;
+    for (auto const item: std::views::split(list, ','))
+    {
+        auto text = std::string_view { item.begin(), item.end() };
+        auto const first = text.find_first_not_of(' ');
+        if (first == std::string_view::npos)
+            continue;
+        text = text.substr(first, text.find_last_not_of(' ') - first + 1);
+        items.emplace_back(text);
+    }
+    return items;
+}
+
+/// Resolves the schemas `backup` covers: every user schema for `--all-schemas`, else `--schema`.
+///
+/// @return The schemas (one possibly empty name for a single-schema backup), or an error message.
+std::expected<std::vector<std::string>, std::string> ResolveBackupSchemas(Options const& options)
+{
+    if (!options.allSchemas)
+    {
+        auto schemas = SplitCommaList(options.schema);
+        if (schemas.empty())
+            schemas.emplace_back();
+        return schemas;
+    }
+
+    if (options.schemaSet)
+        return std::unexpected { "--all-schemas and --schema exclude each other" };
+
+    SqlConnection conn { std::nullopt };
+    if (!conn.Connect(options.connectionString))
+        return std::unexpected { FormatConnectionError(
+            std::format("Failed to connect to database: {}", conn.LastError().message)) };
+    auto stmt = SqlStatement { conn };
+    auto schemas = SqlSchema::AllUserSchemas(stmt, conn.DatabaseName());
+    if (schemas.empty())
+        return std::unexpected { "--all-schemas: the database has no schema that holds a user table" };
+    return schemas;
+}
+
+/// Shows what `backup` would write, without writing it.
+///
+/// @param options The CLI options.
+/// @param requestedSchemas The schemas to back up (see `ResolveBackupSchemas`); duplicates count once.
+/// @param outputFile The archive that would be written.
+/// @return The process exit code.
+int BackupDryRun(Options const& options,
+                 std::vector<std::string> const& requestedSchemas,
+                 std::filesystem::path const& outputFile)
+{
+    SqlConnection conn { std::nullopt };
+    if (!conn.Connect(options.connectionString))
+    {
+        std::println(std::cerr,
+                     "Error: {}",
+                     FormatConnectionError(std::format("Failed to connect to database: {}", conn.LastError().message)));
+        return EXIT_FAILURE;
+    }
+    auto const schemas = Lightweight::SqlBackup::detail::NormalizeSchemaNames(
+        requestedSchemas, conn.QueryFormatter().IdentifiersAreCaseInsensitive());
+    bool const multiSchema = schemas.size() > 1;
+
+    auto pm = CreateProgressManager(options);
+
+    // Parse filter early to use as predicate during schema scanning
+    auto const filter = Lightweight::SqlBackup::TableFilter::Parse(options.filterTables);
+
+    SqlStatement stmt { conn };
+    SqlSchema::ReadAllTablesCallback schemaCallback =
+        [&pm](std::string_view tableName, size_t const current, size_t const total) {
+            pm->Update({ .state = SqlBackup::Progress::State::InProgress,
+                         .tableName = "Scanning schema",
+                         .currentRows = current,
+                         .totalRows = total,
+                         .message = std::format("Scanning table {}", tableName) });
+        };
+    SqlSchema::TableList tables;
+    for (auto const& schema: schemas)
+    {
+        // Skips reading the schema of tables the filter rejects.
+        SqlSchema::TableFilterPredicate tableFilterPredicate;
+        if (!filter.MatchesAll())
+        {
+            tableFilterPredicate = [&filter, &schema](std::string_view /*schemaName*/, std::string_view tableName) {
+                return filter.Matches(schema, tableName);
+            };
+        }
+        std::ranges::move(
+            SqlSchema::ReadAllTables(stmt, conn.DatabaseName(), schema, schemaCallback, {}, tableFilterPredicate),
+            std::back_inserter(tables));
+    }
+
+    pm->Update({ .state = SqlBackup::Progress::State::Finished,
+                 .tableName = "Scanning schema",
+                 .currentRows = tables.size(),
+                 .totalRows = tables.size(),
+                 .message = "" });
+
+    pm->AllDone();
+
+    std::println("");
+    if (options.schemaOnly)
+        std::println("Dry run: Would backup schema only for {} tables to {}", tables.size(), outputFile.string());
+    else
+        std::println("Dry run: Would backup {} tables to {}", tables.size(), outputFile.string());
+    std::println("");
+
+    size_t totalRows = 0;
+    for (auto const& table: tables)
+    {
+        auto const tableName =
+            Lightweight::SqlBackup::detail::FormatTableName(multiSchema ? table.schema : std::string {}, table.name);
+        auto rowCount = stmt.ExecuteDirectScalar<int64_t>(std::format("SELECT COUNT(*) FROM {}", tableName)).value_or(0);
+        totalRows += static_cast<size_t>(rowCount);
+        std::println("  {} ({} rows, {} columns)",
+                     multiSchema ? std::format("{}.{}", table.schema, table.name) : table.name,
+                     rowCount,
+                     table.columns.size());
+    }
+    std::println("");
+    std::println("Total: {} tables, {} rows", tables.size(), totalRows);
+
+    if (auto const collisions = Lightweight::SqlBackup::detail::DescribeTableNameCollisions(tables, multiSchema);
+        !collisions.empty())
+    {
+        std::println(std::cerr, "Error: the backup would fail: {}", collisions);
+        return EXIT_FAILURE;
+    }
+    return EXIT_SUCCESS;
+}
+
 int Backup(Options const& options)
 {
     namespace Cfg = Lightweight::Config;
@@ -2360,86 +2515,30 @@ int Backup(Options const& options)
     }
     auto const& backupSettings = backupSettingsResult.value();
 
-    if (options.dryRun)
+    auto const schemasResult = ResolveBackupSchemas(options);
+    if (!schemasResult)
     {
-        // Dry run: show what would be backed up
-        SqlConnection conn { std::nullopt };
-        if (!conn.Connect(options.connectionString))
-        {
-            std::println(std::cerr,
-                         "Error: {}",
-                         FormatConnectionError(std::format("Failed to connect to database: {}", conn.LastError().message)));
-            return EXIT_FAILURE;
-        }
-
-        auto pm = CreateProgressManager(options);
-
-        // Parse filter early to use as predicate during schema scanning
-        auto const filter = Lightweight::SqlBackup::TableFilter::Parse(options.filterTables);
-
-        // Create table filter predicate to skip reading schema for non-matching tables
-        SqlSchema::TableFilterPredicate tableFilterPredicate;
-        if (!filter.MatchesAll())
-        {
-            tableFilterPredicate = [&filter, &options](std::string_view /*schemaName*/, std::string_view tableName) {
-                return filter.Matches(options.schema, tableName);
-            };
-        }
-
-        SqlStatement stmt { conn };
-        SqlSchema::ReadAllTablesCallback schemaCallback =
-            [&pm](std::string_view tableName, size_t const current, size_t const total) {
-                pm->Update({ .state = SqlBackup::Progress::State::InProgress,
-                             .tableName = "Scanning schema",
-                             .currentRows = current,
-                             .totalRows = total,
-                             .message = std::format("Scanning table {}", tableName) });
-            };
-        auto tables =
-            SqlSchema::ReadAllTables(stmt, conn.DatabaseName(), options.schema, schemaCallback, {}, tableFilterPredicate);
-
-        pm->Update({ .state = SqlBackup::Progress::State::Finished,
-                     .tableName = "Scanning schema",
-                     .currentRows = tables.size(),
-                     .totalRows = tables.size(),
-                     .message = "" });
-
-        pm->AllDone();
-
-        std::println("");
-        if (options.schemaOnly)
-            std::println("Dry run: Would backup schema only for {} tables to {}", tables.size(), outputFile.string());
-        else
-            std::println("Dry run: Would backup {} tables to {}", tables.size(), outputFile.string());
-        std::println("");
-
-        size_t totalRows = 0;
-        for (auto const& table: tables)
-        {
-            auto rowCount =
-                stmt.ExecuteDirectScalar<int64_t>(std::format("SELECT COUNT(*) FROM \"{}\"", table.name)).value_or(0);
-            totalRows += static_cast<size_t>(rowCount);
-            std::println("  {} ({} rows, {} columns)", table.name, rowCount, table.columns.size());
-        }
-        std::println("");
-        std::println("Total: {} tables, {} rows", tables.size(), totalRows);
-
-        return EXIT_SUCCESS;
+        std::println(std::cerr, "Error: {}", schemasResult.error());
+        return EXIT_FAILURE;
     }
+    auto const& schemas = *schemasResult;
+
+    if (options.dryRun)
+        return BackupDryRun(options, schemas, outputFile);
 
     auto pm = CreateProgressManager(options);
     Lightweight::SqlBackup::RetrySettings retrySettings { .maxRetries = options.maxRetries };
 
     try
     {
-        Lightweight::SqlBackup::Backup(outputFile,
-                                       options.connectionString,
-                                       options.jobs,
-                                       *pm,
-                                       options.schema,
-                                       options.filterTables,
-                                       retrySettings,
-                                       backupSettings);
+        Lightweight::SqlBackup::BackupSchemas(outputFile,
+                                              options.connectionString,
+                                              options.jobs,
+                                              *pm,
+                                              schemas,
+                                              options.filterTables,
+                                              retrySettings,
+                                              backupSettings);
     }
     catch (SqlException const& e)
     {
@@ -2493,6 +2592,117 @@ std::expected<Lightweight::SqlBackup::RestoreSettings, std::string> ParseRestore
     return settings;
 }
 
+/// Decides the schema `restore` targets.
+///
+/// A multi-schema archive restores each table into its own schema. It refuses an explicit
+/// `--schema`, and a profile's schema unless that names one of the archive's schemas.
+///
+/// @return The target schema (empty for the archive's own), or an error message.
+std::expected<std::string, std::string> ResolveRestoreSchema(Options const& options)
+{
+    if (options.allSchemas)
+        return std::unexpected { "--all-schemas applies to backup only" };
+    if (options.schemaSet && options.schema.contains(','))
+        return std::unexpected { "restore takes a single --schema" };
+
+    auto const archiveSchemas = Lightweight::SqlBackup::ReadArchiveSchemas(options.inputFile);
+    if (!archiveSchemas || archiveSchemas->size() <= 1)
+        return options.schema; // a single-schema archive, or one the restore itself reports on
+
+    auto const targetIsCaseInsensitive = [&options] {
+        TraceBreadcrumb("ResolveRestoreSchema: probing the target's identifier case");
+        SqlConnection probe { std::nullopt };
+        return probe.Connect(options.connectionString) && probe.QueryFormatter().IdentifiersAreCaseInsensitive();
+    };
+    auto const schema =
+        options.schemaSet || options.schema.empty()
+            ? options.schema
+            : Lightweight::SqlBackup::DefaultRestoreSchema(options.inputFile, options.schema, targetIsCaseInsensitive());
+    if (schema.empty())
+        return std::string {};
+    return std::unexpected { std::format(
+        "{} cannot be used with this archive: it holds several schemas ({}), and each table is restored into the "
+        "schema it comes from",
+        options.schemaSet ? std::string { "--schema" } : std::format("the profile's schema '{}'", schema),
+        Lightweight::SqlBackup::detail::JoinNames(*archiveSchemas)) };
+}
+
+/// Shows what `restore` would recreate, without touching the database.
+///
+/// @param options The CLI options.
+/// @param schema The schema the restore targets (see `ResolveRestoreSchema`).
+/// @return The process exit code.
+int RestoreDryRun(Options const& options, std::string const& schema)
+{
+    if (!std::filesystem::exists(options.inputFile))
+    {
+        std::println(std::cerr, "Error: Input file does not exist: {}", options.inputFile.string());
+        return EXIT_FAILURE;
+    }
+
+    // Read metadata from the backup file
+    int err = 0;
+    zip_t* zip = zip_open(options.inputFile.string().c_str(), ZIP_RDONLY, &err);
+    if (!zip)
+    {
+        std::println(std::cerr, "Error: Failed to open backup file.");
+        return EXIT_FAILURE;
+    }
+
+    zip_int64_t const metadataIndex = zip_name_locate(zip, "metadata.json", 0);
+    if (metadataIndex < 0)
+    {
+        std::println(std::cerr, "Error: metadata.json not found in backup.");
+        zip_close(zip);
+        return EXIT_FAILURE;
+    }
+
+    auto const metadataIndexU = static_cast<zip_uint64_t>(metadataIndex);
+    zip_stat_t metaStat;
+    zip_stat_index(zip, metadataIndexU, 0, &metaStat);
+
+    zip_file_t* file = zip_fopen_index(zip, metadataIndexU, 0);
+    if (!file)
+    {
+        std::println(std::cerr, "Error: Failed to open metadata.json in backup.");
+        zip_close(zip);
+        return EXIT_FAILURE;
+    }
+    std::string metadataStr(metaStat.size, '\0');
+    zip_fread(file, metadataStr.data(), metaStat.size);
+    zip_fclose(file);
+
+    Lightweight::SqlBackup::NullProgressManager nullPm;
+    auto tableMap = Lightweight::SqlBackup::ParseSchema(metadataStr, &nullPm);
+
+    // Apply filter
+    auto const filter = Lightweight::SqlBackup::TableFilter::Parse(options.filterTables);
+    if (!filter.MatchesAll())
+        std::erase_if(tableMap, [&](auto const& pair) {
+            auto const& [key, info] = pair;
+            return !filter.Matches(info.schema.empty() ? schema : info.schema, info.name);
+        });
+
+    if (options.schemaOnly)
+        std::println(
+            "Dry run: Would restore schema only for {} tables from {}", tableMap.size(), options.inputFile.string());
+    else
+        std::println("Dry run: Would restore {} tables from {}", tableMap.size(), options.inputFile.string());
+    std::println("");
+
+    size_t totalRows = 0;
+    for (auto const& [tableName, tableInfo]: tableMap)
+    {
+        totalRows += tableInfo.rowCount;
+        std::println("  {} ({} rows, {} columns)", tableName, tableInfo.rowCount, tableInfo.columns.size());
+    }
+    std::println("");
+    std::println("Total: {} tables, {} rows", tableMap.size(), totalRows);
+
+    zip_close(zip);
+    return EXIT_SUCCESS;
+}
+
 int Restore(Options const& options)
 {
     if (options.inputFile.empty())
@@ -2501,74 +2711,16 @@ int Restore(Options const& options)
         return EXIT_FAILURE;
     }
 
-    if (options.dryRun)
+    auto const schemaResult = ResolveRestoreSchema(options);
+    if (!schemaResult)
     {
-        // Dry run: show what would be restored
-        if (!std::filesystem::exists(options.inputFile))
-        {
-            std::println(std::cerr, "Error: Input file does not exist: {}", options.inputFile.string());
-            return EXIT_FAILURE;
-        }
-
-        // Read metadata from the backup file
-        int err = 0;
-        zip_t* zip = zip_open(options.inputFile.string().c_str(), ZIP_RDONLY, &err);
-        if (!zip)
-        {
-            std::println(std::cerr, "Error: Failed to open backup file.");
-            return EXIT_FAILURE;
-        }
-
-        zip_int64_t const metadataIndex = zip_name_locate(zip, "metadata.json", 0);
-        if (metadataIndex < 0)
-        {
-            std::println(std::cerr, "Error: metadata.json not found in backup.");
-            zip_close(zip);
-            return EXIT_FAILURE;
-        }
-
-        auto const metadataIndexU = static_cast<zip_uint64_t>(metadataIndex);
-        zip_stat_t metaStat;
-        zip_stat_index(zip, metadataIndexU, 0, &metaStat);
-
-        zip_file_t* file = zip_fopen_index(zip, metadataIndexU, 0);
-        if (!file)
-        {
-            std::println(std::cerr, "Error: Failed to open metadata.json in backup.");
-            zip_close(zip);
-            return EXIT_FAILURE;
-        }
-        std::string metadataStr(metaStat.size, '\0');
-        zip_fread(file, metadataStr.data(), metaStat.size);
-        zip_fclose(file);
-
-        Lightweight::SqlBackup::NullProgressManager nullPm;
-        auto tableMap = Lightweight::SqlBackup::ParseSchema(metadataStr, &nullPm);
-
-        // Apply filter
-        auto const filter = Lightweight::SqlBackup::TableFilter::Parse(options.filterTables);
-        if (!filter.MatchesAll())
-            std::erase_if(tableMap, [&](auto const& pair) { return !filter.Matches(options.schema, pair.first); });
-
-        if (options.schemaOnly)
-            std::println(
-                "Dry run: Would restore schema only for {} tables from {}", tableMap.size(), options.inputFile.string());
-        else
-            std::println("Dry run: Would restore {} tables from {}", tableMap.size(), options.inputFile.string());
-        std::println("");
-
-        size_t totalRows = 0;
-        for (auto const& [tableName, tableInfo]: tableMap)
-        {
-            totalRows += tableInfo.rowCount;
-            std::println("  {} ({} rows, {} columns)", tableName, tableInfo.rowCount, tableInfo.columns.size());
-        }
-        std::println("");
-        std::println("Total: {} tables, {} rows", tableMap.size(), totalRows);
-
-        zip_close(zip);
-        return EXIT_SUCCESS;
+        std::println(std::cerr, "Error: {}", schemaResult.error());
+        return EXIT_FAILURE;
     }
+    auto const& schema = *schemaResult;
+
+    if (options.dryRun)
+        return RestoreDryRun(options, schema);
 
     auto pm = CreateProgressManager(options);
     Lightweight::SqlBackup::RetrySettings retrySettings { .maxRetries = options.maxRetries };
@@ -2587,7 +2739,7 @@ int Restore(Options const& options)
                                         options.connectionString,
                                         options.jobs,
                                         *pm,
-                                        options.schema,
+                                        schema,
                                         options.filterTables,
                                         retrySettings,
                                         restoreSettingsResult.value());
@@ -2689,6 +2841,13 @@ int BackupDiffCommand(Options const& options)
             std::println(std::cerr, "Error: Failed to open backup archive: {}", options.rightFile.string());
         return EXIT_FAILURE;
     }
+    if (!result.ignoreTableError.empty())
+    {
+        std::println(std::cerr, "Error: {}", result.ignoreTableError);
+        return EXIT_FAILURE;
+    }
+    for (auto const& name: result.unmatchedIgnoreTables)
+        std::println(std::cerr, "Warning: --ignore-table {} matches no table of either archive.", name);
 
     std::println("");
     std::println("{} tables compared, {} identical, {} differing ({} ignored)",
@@ -2919,6 +3078,13 @@ int RunPostMigrateHooks(MigrationManager& manager, int exitCode, bool dryRun)
     return EXIT_FAILURE;
 }
 
+/// Warns that a command other than `backup` and `restore` ignores `--all-schemas`.
+void WarnIfAllSchemasIgnored(Options const& options)
+{
+    if (options.allSchemas && options.command != "backup" && options.command != "restore")
+        std::println(std::cerr, "Warning: --all-schemas applies to backup only; {} ignores it.", options.command);
+}
+
 /// Dispatches a DB-connected command to its handler. Assumes the caller has
 /// already established the ODBC connection via `SetupConnectionString`.
 int DispatchDbCommand(Options const& options)
@@ -3119,6 +3285,7 @@ int main(int argc, char** argv)
             PrintUsage();
             return EXIT_FAILURE;
         }
+        WarnIfAllSchemasIgnored(options);
 
         if (options.command == "help")
         {

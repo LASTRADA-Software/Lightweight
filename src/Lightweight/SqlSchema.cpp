@@ -1627,6 +1627,32 @@ namespace detail
 
 } // namespace detail
 
+namespace
+{
+    /// Schemas that hold system objects rather than user tables, matched case-insensitively.
+    constexpr auto SystemSchemaNames = std::array { "sys"sv, "information_schema"sv, "guest"sv };
+
+    /// Prefixes of schemas that hold system objects (SQL Server roles, PostgreSQL catalogs).
+    constexpr auto SystemSchemaPrefixes = std::array { "db_"sv, "pg_"sv };
+
+    bool IsSystemSchema(std::string_view schema)
+    {
+        auto const lowerCaseSchema = detail::ToLowerCaseIdentifier(schema);
+        return std::ranges::contains(SystemSchemaNames, std::string_view { lowerCaseSchema })
+               || std::ranges::any_of(SystemSchemaPrefixes,
+                                      [&](std::string_view prefix) { return lowerCaseSchema.starts_with(prefix); });
+    }
+} // namespace
+
+std::vector<std::string> AllUserSchemas(SqlStatement& stmt, std::string_view database)
+{
+    auto schemas = std::set<std::string> {};
+    for (auto& table: AllTables(stmt, database, {}))
+        if (!IsSystemSchema(table.schema))
+            schemas.insert(std::move(table.schema));
+    return { schemas.begin(), schemas.end() };
+}
+
 void ReadAllTables(SqlStatement& stmt, std::string_view database, std::string_view schema, EventHandler& eventHandler)
 {
     ZoneScopedN("SqlSchema::ReadAllTables(EventHandler)");

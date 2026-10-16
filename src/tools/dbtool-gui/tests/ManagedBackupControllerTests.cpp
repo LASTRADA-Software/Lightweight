@@ -14,6 +14,7 @@
 #include <Lightweight/SqlBackup.hpp>
 #include <Lightweight/SqlConnection.hpp>
 #include <Lightweight/SqlStatement.hpp>
+#include <Lightweight/Zip/ZipArchive.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -1049,4 +1050,57 @@ TEST_CASE("the folder dbtool.yml configures is the default backup folder, and Se
     controller.setBackupFolder(QString {});
     controller.setConfiguredBackupFolder(QString {});
     CHECK(controller.effectiveBackupFolder() == platformDefault);
+}
+
+TEST_CASE("a multi-schema archive drops only a profile schema it holds; a typed schema goes to the restore",
+          "[dbtool-gui][managed-backup-controller][restore]")
+{
+    QTemporaryDir dir;
+    ManagedBackupController controller;
+    controller.setBackupFolder(dir.path() + "/backups");
+    auto const source = SqliteProfile(dir, "source");
+    auto inArchive = SqliteProfile(dir, "in-archive");
+    inArchive.schema = "SALES";
+    auto notInArchive = SqliteProfile(dir, "not-in-archive");
+    notInArchive.schema = "restore_check";
+    controller.setProfiles({ source, inArchive, notInArchive });
+    controller.setBackupOperation([](std::filesystem::path const& file,
+                                     std::string const& /*connectionString*/,
+                                     std::string const& /*schema*/,
+                                     Lightweight::SqlBackup::ProgressManager& /*progress*/) {
+        // Runs on the pool thread, so a failure throws (and fails the backup) instead of asserting.
+        auto archive = Lightweight::Zip::ZipArchive::CreateOrTruncate(file);
+        if (!archive
+            || !archive->AddString("metadata.json",
+                                   R"({"format_version":"2.0","schema_name":"","schema_names":["dbo","sales"],"schema":[]})")
+            || !archive->Close())
+            throw std::runtime_error("cannot write the multi-schema test archive");
+    });
+    auto restoredSchemas = std::vector<std::string> {};
+    controller.setRestoreOperation(
+        [&restoredSchemas](std::filesystem::path const& /*archiveFile*/,
+                           std::string const& /*connectionString*/,
+                           std::string const& schema,
+                           Lightweight::SqlBackup::ProgressManager& /*progress*/) { restoredSchemas.push_back(schema); });
+
+    QSignalSpy backupDone(&controller, &ManagedBackupController::finished);
+    controller.backupProfile("source");
+    REQUIRE(WaitFor(backupDone));
+    REQUIRE(backupDone.first().at(0).toBool());
+
+    auto const restore = [&](auto const& start) {
+        QSignalSpy restoreDone(&controller, &ManagedBackupController::finished);
+        start();
+        REQUIRE(WaitFor(restoreDone));
+    };
+    restore([&] { controller.restoreArchive("source", "in-archive"); });
+    restore([&] { controller.restoreArchive("source", "not-in-archive"); });
+    restore([&] {
+        controller.restoreArchiveToConnectionString(
+            "source", QString::fromStdString(notInArchive.connectionString), QStringLiteral("sales"));
+    });
+
+    CHECK(restoredSchemas == std::vector<std::string> { "", "restore_check", "sales" });
+
+    controller.setBackupFolder(QString {});
 }

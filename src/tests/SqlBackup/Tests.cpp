@@ -168,7 +168,8 @@ TEST_CASE("DeleteStaleSubChunks removes stale window entries and checksums", "[S
                                            .checksums = &checksums,
                                            .checksumMutex = &checksumMutex,
                                            .retrySettings = retry,
-                                           .backupSettings = settings };
+                                           .backupSettings = settings,
+                                           .multiSchema = false };
 
     // Final attempt wrote 1 sub-chunk; an earlier attempt had written 3 -> delete ids 1 and 2.
     SqlBackup::detail::DeleteStaleSubChunks(archive, ctx, "t", /*windowIndex=*/0, /*firstStale=*/1, /*end=*/3);

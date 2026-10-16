@@ -515,6 +515,10 @@ class [[nodiscard]] SqlMigrationQueryBuilder final
     }
 
     /// Sets the schema name for the migration.
+    ///
+    /// On SQL Server and PostgreSQL, `CreateTable` then creates the table in that schema, which must
+    /// exist. On PostgreSQL this differs from earlier releases, which created it in the `search_path`
+    /// schema, so the checksums of such migrations changed (see `dbtool rewrite-checksums`).
     LIGHTWEIGHT_API SqlMigrationQueryBuilder& WithSchema(std::string schemaName);
 
     /// Creates a new database.

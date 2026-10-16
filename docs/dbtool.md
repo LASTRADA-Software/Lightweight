@@ -347,6 +347,13 @@ reports that the database is already up to date instead of `"Applied 0 migration
 
 #### Custom default schema (`--schema`)
 
+> **PostgreSQL and `WithSchema(...)`:** a `CreateTable` in a migration built with `WithSchema("s")`
+> now creates `"s"."T"` and its indexes in that schema, where earlier releases created `"T"` in the
+> `search_path` schema. Two consequences on PostgreSQL:
+> - A database migrated by an earlier release reports checksum mismatches for those migrations.
+>   Once it is verified, run `dbtool rewrite-checksums`.
+> - A fresh `migrate` needs the schema to exist before the migration runs.
+
 The `--schema <NAME>` flag pins the connection's default schema for the
 migration runner — useful when the target database expects unqualified DDL/DML
 to land in a non-default schema (e.g. `lasa` instead of `dbo` / `public`):
@@ -652,6 +659,34 @@ dbtool backup --output backup.zip --filter-tables="*_log,audit*"
 dbtool backup --output backup.zip --filter-tables=dbo.Users,sales.*
 ```
 
+**Several schemas in one archive.** A database whose tables span several schemas, with foreign
+keys between them, needs all of them in one archive, or the restore cannot recreate the foreign
+keys that cross into a schema the archive lacks:
+
+```bash
+# the schemas named
+dbtool backup --output backup.zip --schema dbo,sales
+
+# every schema that holds a user table
+dbtool backup --output backup.zip --all-schemas
+```
+
+`--all-schemas` leaves out the system schemas `sys`, `INFORMATION_SCHEMA` and `guest`, and those
+starting with `db_` (SQL Server roles) or `pg_` (PostgreSQL catalogs). It cannot be combined with
+`--schema`, and it overrides a profile's `schema`. On SQLite, which has no schemas, it writes the
+ordinary single-schema archive.
+
+Two or more schemas write a multi-schema archive (format version `2.0`, see
+[sql-backup-format.md](sql-backup-format.md)), which records each table's schema and each foreign
+key's referenced schema. A single `--schema X`, and no `--schema` at all, write the archive layout
+they always wrote (format version `1.0`). One exception: a backup refuses tables whose archive
+name or folder would collide (see below), where it used to overwrite one with the other.
+
+> **SQL Server and PostgreSQL without `--schema`:** the backup reads the tables of every schema but
+> records none of them, and a restore puts every table into one schema. Tables of the same name in
+> different schemas are refused: the backup stops and names them. For a database whose tables span
+> several schemas, use `--all-schemas` or `--schema a,b`.
+
 ### restore
 
 Restore a database from backup:
@@ -671,6 +706,26 @@ dbtool restore --input backup.zip --schema new_schema
 ```bash
 dbtool restore --input backup.zip --filter-tables=Users,Products
 ```
+
+**Multi-schema archives.** An archive written with several schemas restores every table into the
+schema it comes from:
+
+- Schemas that do not exist yet are created first. Then come the tables, the data, and finally all
+  foreign keys, including those that cross schemas.
+- `--schema` is refused: remapping several schemas onto others is not supported. A profile's
+  `schema` is ignored when it names one of the archive's schemas (compared case-insensitively), so a
+  profile with `schema: dbo` restores a `dbo,sales` archive; any other profile schema is refused like
+  `--schema`, before anything is touched. dbtool-gui applies the same rule to a profile's schema, and
+  passes a schema typed for a custom target on, where it is refused.
+- `--schema-only` and `--filter-tables` work as for any archive. A filter pattern can name the
+  schema (`--filter-tables=sales.*`).
+- On SQLite, which has no schemas, the archive restores only if every table name is unique across
+  its schemas, compared case-insensitively as SQLite does; the tables then lose their schema.
+  Otherwise the restore is refused and names the tables that occur in more than one schema.
+
+**Restoring into PostgreSQL.** Tables are created in the schema the restore targets: the archive's
+`schema_name`, or `--schema`. A single-schema archive from SQL Server records `dbo`, which a
+PostgreSQL database usually lacks, so restore it with `--schema public` (or another existing schema).
 
 **Values that do not fit their column fail the table.** A GUID column takes any well-formed
 `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` value, whatever its version digit, and restores the same
@@ -708,7 +763,8 @@ interleaving), so chunk-level checksums would diverge even when the data is iden
 `backup-diff` compares the *multiset of rows* per table:
 
 - Tables present in only one archive are reported as a difference.
-- For each common table, every row is decoded from its `data/<table>/NNNN.msgpack` chunks,
+- For each common table, every row is decoded from its `data/<table>/NNNN.msgpack` chunks
+  (`data/<schema>/<table>/...` in a multi-schema archive),
   serialized to a canonical, length-prefixed, type-tagged byte encoding (with an explicit NULL
   marker so e.g. string `"12"` followed by int `3` can never collide with string `"123"`),
   hashed with SHA-256, and counted into a `digest -> count` map. The two maps are then compared.
@@ -726,7 +782,8 @@ common table is identical and both archives hold the same set of tables, or `1` 
 | Option | Description | Default |
 |--------|-------------|---------|
 | `--connection-string <STR>` | ODBC connection string | |
-| `--schema <NAME>` | Database schema to use | |
+| `--schema <NAME>` | Database schema to use. `backup` takes a comma-separated list and then writes a multi-schema archive | |
+| `--all-schemas` | For backup: every schema that holds a user table | |
 | `--config <FILE>` | Path to configuration file | nearest `dbtool.yml` upward, then the per-user file (see [Configuration](#configuration)) |
 | `--plugins-dir <DIR>` | Directory to scan for migration plugins | `.` (current directory) |
 | `--output <FILE>` | Output file for backup. A bare file name, or no `--output`, goes into the profile's `backupDir` / `defaultBackupDir` when one is configured | |
@@ -745,7 +802,7 @@ common table is identical and both archives hold the same set of tables, or `1` 
 | `--schema-only` | For backup/restore: skip data, transferring schema only | |
 | `--memory-limit <SIZE>` | Memory limit for restore (accepts the size suffixes below) | |
 | `--batch-size <N>` | Rows per batch for restore | |
-| `--ignore-table <NAME>` | For `backup-diff`: report differences in this table but do not fail. Repeatable. | |
+| `--ignore-table <NAME>` | For `backup-diff`: report differences in this table but do not fail. Repeatable. In a multi-schema archive a table is `<schema>/<table>` or `<schema>.<table>` (dots in names written as `_`); a bare table name also matches when only one schema holds it, and is refused as ambiguous otherwise. A name that matches no table is reported as a warning | |
 | `--profile <NAME>` | Named profile from the configuration file | store default |
 | `--up-to <TIMESTAMP>` | Upper bound for migration commands | no bound |
 | `--max-retries <N>` | Maximum retry attempts for transient errors | `3` |

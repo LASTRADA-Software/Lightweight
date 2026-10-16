@@ -357,6 +357,13 @@ specific "make this the session default" statement for every new connection:
   `WithSchema(...)` builder.
 - **SQLite** — no schema concept; the hook is a no-op.
 
+On PostgreSQL a `CreateTable` built with `WithSchema(...)` names the schema for the table and its
+indexes (earlier releases created them in the `search_path` schema). So the schema must exist, and
+a database migrated by an earlier release reports checksum mismatches for those migrations until
+`dbtool rewrite-checksums` rewrites them. The table's inline foreign keys still name the referenced
+table without a schema; they resolve through the `search_path`, so the referenced table must lie
+in a schema on the `search_path`.
+
 Schema names are validated against `[A-Za-z0-9_]` and rejected via
 `std::invalid_argument` otherwise. Passing `""` clears any previously
 installed hook.

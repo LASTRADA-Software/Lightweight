@@ -251,6 +251,7 @@ SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddCompositeForeignKey(std
         .columns = std::move(columns),
         .referencedTableName = std::move(referencedTableName),
         .referencedColumns = std::move(referencedColumns),
+        .referencedSchemaName = {},
     });
     return *this;
 }

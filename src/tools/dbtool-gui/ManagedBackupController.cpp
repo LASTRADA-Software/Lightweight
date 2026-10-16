@@ -8,6 +8,7 @@
 #include <Lightweight/SqlBackup.hpp>
 #include <Lightweight/SqlConnectInfo.hpp>
 #include <Lightweight/SqlConnection.hpp>
+#include <Lightweight/SqlQueryFormatter.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -285,6 +286,22 @@ namespace
         if (!probe(connectionString))
             return;
         QMetaObject::invokeMethod(target, [handler, profile] { handler(profile); }, Qt::QueuedConnection);
+    }
+
+    /// Returns the schema a restore of @p archiveFile passes on. A target profile's schema is a default:
+    /// one that names a schema of a multi-schema archive is dropped. A schema typed for a custom target
+    /// goes through as given, so the restore refuses it there.
+    std::string RestoreSchemaFor(std::filesystem::path const& archiveFile,
+                                 std::string const& connectionString,
+                                 std::string const& schema,
+                                 bool fromProfile)
+    {
+        if (!fromProfile || schema.empty())
+            return schema;
+        auto probe = Lightweight::SqlConnection { std::nullopt };
+        bool const caseInsensitive = probe.Connect(Lightweight::SqlConnectionString { connectionString })
+                                     && probe.QueryFormatter().IdentifiersAreCaseInsensitive();
+        return Lightweight::SqlBackup::DefaultRestoreSchema(archiveFile, schema, caseInsensitive);
     }
 
     /// Default `RestoreOperation`: the real `SqlBackup::Restore` call.
@@ -741,7 +758,7 @@ void ManagedBackupController::RunRestore(QString const& archiveProfile,
         try
         {
             EmittingProgressManager pm(self, archiveName);
-            restoreOperation(archivePath, cs, schemaStd, pm);
+            restoreOperation(archivePath, cs, RestoreSchemaFor(archivePath, cs, schemaStd, targetProfile.has_value()), pm);
             // Like Backup(), Restore() reports a table it could not
             // recreate as a `Progress::State::Error` and carries on — see
             // `CreateTablesInOrder`, which drops the archived table first

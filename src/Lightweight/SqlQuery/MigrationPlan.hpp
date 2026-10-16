@@ -327,6 +327,8 @@ namespace SqlAlterTableCommands
         std::vector<std::string> columns;
         std::string referencedTableName;
         std::vector<std::string> referencedColumns;
+        /// The schema of the referenced table; empty means the schema of the altered table.
+        std::string referencedSchemaName {};
     };
 
     struct DropForeignKey

@@ -84,12 +84,30 @@ enum class ChunkRestoreOutcome : std::uint8_t
     WorkerFailed,
 };
 
+/// Returns the schema a table is restored into: the one the archive records for it, else @p defaultSchema.
+/// @param info The table.
+/// @param defaultSchema The schema the restore targets.
+[[nodiscard]] inline std::string const& TargetSchema(TableInfo const& info, std::string const& defaultSchema)
+{
+    return info.schema.empty() ? defaultSchema : info.schema;
+}
+
+/// Returns a table's name in the database: the name the archive records, else its key in the table map.
+/// @param key The table's key in the table map.
+/// @param info The table.
+[[nodiscard]] inline std::string const& TargetTableName(std::string const& key, TableInfo const& info)
+{
+    return info.name.empty() ? key : info.name;
+}
+
 /// Context for restore operations, shared between restore workers.
 struct RestoreContext
 {
     SqlConnectionString connectionString;
     std::string schema;
     std::map<std::string, TableInfo> const& tableMap;
+    /// The archive folder of each table's chunks (see @ref ChunkDirectory) -> the table's key in @ref tableMap.
+    std::map<std::string, std::string> const& chunkTables;
     std::deque<ZipEntryInfo>& dataQueue;
     zip_t* zip;
     std::mutex& queueMutex;
@@ -179,7 +197,8 @@ LIGHTWEIGHT_API void ApplyDatabaseConstraints(SqlConnectionString const& connect
 /// Recreates the database schema by dropping and creating tables from the backup metadata.
 ///
 /// This function creates tables in dependency order for SQLite (to satisfy FK constraints on CREATE),
-/// or alphabetically for other databases (where FKs are added via ALTER TABLE later).
+/// or alphabetically for other databases (where FKs are added via ALTER TABLE later). The schemas
+/// that a multi-schema archive records are created first unless they exist.
 ///
 /// @param connectionString The connection string for the target database.
 /// @param schema The database schema name to create tables in.

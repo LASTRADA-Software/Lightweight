@@ -3,9 +3,16 @@
 #include "../SqlStatement.hpp"
 #include "Common.hpp"
 
+#include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <format>
+#include <map>
+#include <optional>
+#include <set>
+#include <string>
 #include <thread>
+#include <vector>
 
 #if defined(_WIN32)
     #ifndef NOMINMAX
@@ -82,9 +89,112 @@ std::string CurrentDateTime()
 
 std::string FormatTableName(std::string_view schema, std::string_view table)
 {
+    auto const quoted = [](std::string_view name) {
+        auto result = std::string { '"' };
+        for (char const character: name)
+        {
+            result += character;
+            if (character == '"')
+                result += '"';
+        }
+        result += '"';
+        return result;
+    };
     if (schema.empty())
-        return std::format(R"("{}")", table);
-    return std::format(R"("{}"."{}")", schema, table);
+        return quoted(table);
+    return std::format("{}.{}", quoted(schema), quoted(table));
+}
+
+std::string ChunkDirectory(std::string_view schema, std::string_view table)
+{
+    auto const sanitize = [](std::string_view name) {
+        auto sanitized = std::string { name };
+        std::ranges::replace(sanitized, '.', '_');
+        return sanitized;
+    };
+    if (schema.empty())
+        return sanitize(table);
+    return std::format("{}/{}", sanitize(schema), sanitize(table));
+}
+
+std::optional<std::string_view> ChunkDirectoryOf(std::string_view entryName)
+{
+    constexpr auto DataPrefix = std::string_view { "data/" };
+    if (!entryName.starts_with(DataPrefix) || !entryName.ends_with(".msgpack"))
+        return std::nullopt;
+    auto const lastSlash = entryName.rfind('/');
+    if (lastSlash <= DataPrefix.size())
+        return std::nullopt;
+    return entryName.substr(DataPrefix.size(), lastSlash - DataPrefix.size());
+}
+
+std::string JoinNames(std::vector<std::string> const& names)
+{
+    std::string joined;
+    for (auto const& name: names)
+    {
+        if (!joined.empty())
+            joined += ", ";
+        joined += name;
+    }
+    return joined;
+}
+
+std::string ToLowerAscii(std::string_view text)
+{
+    auto lowered = std::string { text };
+    std::ranges::transform(lowered, lowered.begin(), [](char character) {
+        return static_cast<char>(std::tolower(static_cast<unsigned char>(character)));
+    });
+    return lowered;
+}
+
+std::vector<std::string> NormalizeSchemaNames(std::vector<std::string> schemas, bool caseInsensitive)
+{
+    if (schemas.empty())
+        schemas.emplace_back();
+    std::set<std::string> seen;
+    std::erase_if(schemas,
+                  [&](std::string const& name) { return !seen.insert(caseInsensitive ? ToLowerAscii(name) : name).second; });
+    std::ranges::sort(schemas);
+    return schemas;
+}
+
+std::string DescribeTableNameCollisions(SqlSchema::TableList const& tables, bool multiSchema)
+{
+    auto const displayName = [](SqlSchema::Table const& table) {
+        return table.schema.empty() ? table.name : std::format("{}.{}", table.schema, table.name);
+    };
+
+    std::map<std::string, SqlSchema::Table const*> tablesByKey;
+    std::map<std::string, SqlSchema::Table const*> tablesByFolder;
+    std::set<std::string> colliding;
+    bool acrossSchemas = false;
+    for (auto const& table: tables)
+    {
+        auto const& archiveSchema = multiSchema ? table.schema : std::string {};
+        auto const key = archiveSchema.empty() ? table.name : std::format("{}.{}", archiveSchema, table.name);
+        auto const [keyEntry, newKey] = tablesByKey.emplace(key, &table);
+        auto const [folderEntry, newFolder] = tablesByFolder.emplace(ChunkDirectory(archiveSchema, table.name), &table);
+        if (newKey && newFolder)
+            continue;
+        auto const& other = newKey ? *folderEntry->second : *keyEntry->second;
+        acrossSchemas = acrossSchemas || (!multiSchema && other.schema != table.schema);
+        colliding.insert(displayName(other));
+        colliding.insert(displayName(table));
+    }
+    if (colliding.empty())
+        return {};
+
+    auto const names = JoinNames({ colliding.begin(), colliding.end() });
+    if (acrossSchemas)
+        return std::format("tables of the same name exist in several schemas ({}); back these schemas up as a "
+                           "multi-schema archive, which keeps each table's schema (dbtool: --all-schemas or "
+                           "--schema a,b)",
+                           names);
+    return std::format("these tables would share an archive folder, because a dot in a name is written as an "
+                       "underscore: {}",
+                       names);
 }
 
 bool DropTableIfExists(SqlConnection& conn,
