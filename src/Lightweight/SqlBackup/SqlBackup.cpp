@@ -1203,6 +1203,7 @@ void Restore(std::filesystem::path const& inputFile,
                                                   ? restoreSettings
                                                   : CalculateRestoreSettings(GetAvailableSystemMemory(), concurrency);
 
+    detail::FailedTables failedDataTables;
     detail::RestoreContext ctx {
         .connectionString = connectionString,
         .schema = effectiveSchema,
@@ -1218,6 +1219,7 @@ void Restore(std::filesystem::path const& inputFile,
         .checksums = checksums.empty() ? nullptr : &checksums,
         .retrySettings = retrySettings,
         .restoreSettings = effectiveSettings,
+        .failedTables = failedDataTables,
     };
 
     // All databases restore multi-threaded. (Historically MS SQL Server was clamped to a single
@@ -1249,6 +1251,17 @@ void Restore(std::filesystem::path const& inputFile,
 
     for (auto& t: threads)
         t.join();
+
+    // A worker stops on a database error; once all have stopped, chunks may be left unrestored.
+    for (auto const& [tableName, processed]: chunksProcessed)
+    {
+        if (processed->load() < totalChunksPerTable[tableName])
+            progress.Update({ .state = Progress::State::Error,
+                              .tableName = tableName,
+                              .currentRows = tableProgress.at(tableName)->load(),
+                              .totalRows = std::nullopt,
+                              .message = "Not fully restored: the restore stopped after an earlier error" });
+    }
 
     detail::ApplyDatabaseConstraints(connectionString, effectiveSchema, filteredTableMap, progress);
     detail::RestoreIndexes(connectionString, effectiveSchema, filteredTableMap, progress);

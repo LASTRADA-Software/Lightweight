@@ -7,6 +7,7 @@
 #include "SqlBackup.hpp"
 
 #include <atomic>
+#include <cstdint>
 #include <deque>
 #include <expected>
 #include <map>
@@ -47,6 +48,42 @@ struct FetchChunkError
     std::string message;
 };
 
+/// The tables a chunk of which failed to restore, shared by all restore workers.
+struct FailedTables
+{
+    /// Records @p tableName as failed.
+    /// @param tableName The table.
+    void Add(std::string const& tableName)
+    {
+        auto const lock = std::scoped_lock(_mutex);
+        _names.insert(tableName);
+    }
+
+    /// Tests whether @p tableName has failed.
+    /// @param tableName The table.
+    /// @return `true` once a chunk of the table failed.
+    [[nodiscard]] bool Contains(std::string const& tableName) const
+    {
+        auto const lock = std::scoped_lock(_mutex);
+        return _names.contains(tableName);
+    }
+
+  private:
+    mutable std::mutex _mutex;
+    std::set<std::string> _names;
+};
+
+/// The result of restoring one chunk.
+enum class ChunkRestoreOutcome : std::uint8_t
+{
+    /// The chunk was restored.
+    Restored,
+    /// A value of the chunk does not convert to its column's type: the table fails, the worker goes on.
+    TableFailed,
+    /// The chunk failed in a way that stops the worker (a database error, a lost connection).
+    WorkerFailed,
+};
+
 /// Context for restore operations, shared between restore workers.
 struct RestoreContext
 {
@@ -64,6 +101,8 @@ struct RestoreContext
     std::map<std::string, std::string> const* checksums; // entryName -> expected SHA-256 hash (optional)
     RetrySettings const& retrySettings;
     RestoreSettings restoreSettings;
+    /// Tables whose remaining chunks are skipped because one of their chunks failed.
+    FailedTables& failedTables;
 };
 
 /// Increments the chunk counter and reports completion status.
@@ -91,13 +130,18 @@ std::expected<RestoreChunkInfo, FetchChunkError> FetchNextRestoreChunk(RestoreCo
 /// @param workerConn The database connection.
 /// @param chunk The chunk data to restore.
 /// @param batchCapacity The batch size for bulk inserts.
-/// @return true if chunk was restored successfully, false if errors occurred.
-bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChunkInfo const& chunk, size_t batchCapacity);
+/// @return Whether the chunk was restored, failed only its table, or failed the worker.
+ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
+                                     SqlConnection& workerConn,
+                                     RestoreChunkInfo const& chunk,
+                                     size_t batchCapacity);
 
 /// Worker function that processes chunks from the restore queue.
 ///
 /// This function processes restore chunks from the shared queue, using the helper functions
 /// FetchNextRestoreChunk() for I/O operations and RestoreChunkData() for database operations.
+/// Once a chunk of a table fails, the remaining chunks of that table are skipped. A value that does
+/// not convert fails only its table; any other chunk failure also stops this worker.
 ///
 /// @param ctx The restore context containing queue, progress tracking, and settings.
 /// @param workerConn The database connection for this worker.

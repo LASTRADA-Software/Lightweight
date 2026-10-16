@@ -1693,53 +1693,13 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Restore rejects unsupported format 
     std::filesystem::path const modifiedBackup = "modified_backup.zip";
     ScopedFileRemoved const modifiedBackupCleaner { modifiedBackup };
 
-    // NOLINTBEGIN(clang-analyzer-nullability.*)
-    {
-        // Read the original backup
-        int err = 0;
-        zip_t* srcZip = zip_open(BackupFile.string().c_str(), ZIP_RDONLY, &err);
-        REQUIRE(srcZip != nullptr);
-
-        // Create a new backup with modified version
-        zip_t* dstZip = zip_open(modifiedBackup.string().c_str(), ZIP_CREATE | ZIP_TRUNCATE, &err);
-        REQUIRE(dstZip != nullptr);
-
-        // Create modified metadata with wrong version - must outlive zip_close
-        std::string const modifiedMetadata = R"({
+    RewriteArchiveMetadata(BackupFile, modifiedBackup, [](std::string const&) {
+        return std::string { R"({
             "format_version": "99.0",
             "schema_name": "",
             "schema": []
-        })";
-
-        // Copy all entries except metadata.json
-        zip_int64_t numEntries = zip_get_num_entries(srcZip, 0);
-        for (zip_int64_t i = 0; i < numEntries; ++i)
-        {
-            char const* name = zip_get_name(srcZip, static_cast<zip_uint64_t>(i), 0);
-            if (name == nullptr)
-                continue;
-            if (std::string_view(name) == "metadata.json")
-            {
-                zip_source_t* src = zip_source_buffer(dstZip, modifiedMetadata.c_str(), modifiedMetadata.size(), 0);
-                (void) zip_file_add(dstZip, "metadata.json", src, ZIP_FL_OVERWRITE);
-            }
-            else
-            {
-                // Copy other entries as-is
-#if LIBZIP_VERSION_MAJOR > 1 || (LIBZIP_VERSION_MAJOR == 1 && LIBZIP_VERSION_MINOR >= 8)
-                zip_source_t* src = zip_source_zip_file(dstZip, srcZip, static_cast<zip_uint64_t>(i), 0, 0, -1, nullptr);
-#else
-                // NOLINTNEXTLINE(clang-diagnostic-deprecated-declarations)
-                zip_source_t* src = zip_source_zip(dstZip, srcZip, static_cast<zip_uint64_t>(i), 0, 0, -1);
-#endif
-                (void) zip_file_add(dstZip, name, src, ZIP_FL_OVERWRITE);
-            }
-        }
-
-        zip_close(dstZip);
-        zip_close(srcZip);
-    }
-    // NOLINTEND(clang-analyzer-nullability.*)
+        })" };
+    });
 
     // Try to restore - should fail with error about unsupported version
     bool errorReceived = false;

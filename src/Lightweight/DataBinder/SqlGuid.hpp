@@ -6,10 +6,12 @@
 #include "Core.hpp"
 
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <charconv>
 #include <format>
 #include <optional>
+#include <ranges>
 #include <span>
 #include <string>
 
@@ -27,10 +29,20 @@ struct LIGHTWEIGHT_API SqlGuid
     /// Creates a new non-empty GUID.
     static SqlGuid Create() noexcept;
 
-    /// Parses a GUID from a string.
+    /// Parses a GUID from its 36-character `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` text form.
+    ///
+    /// Any hex value is accepted, whatever its version and variant nibbles, as SQL Server's
+    /// `uniqueidentifier` does. `data[i]` receives the i-th hex pair of the text, left to right.
+    ///
+    /// @param text The GUID text, upper or lower case.
+    /// @return The parsed GUID, or `std::nullopt` if @p text is not a well-formed GUID.
     static std::optional<SqlGuid> TryParse(std::string_view const& text) noexcept;
 
     /// Parses a GUID from a string. Use with caution and always prefer TryParse at all cost.
+    ///
+    /// Accepts the same texts as TryParse(); for any other text it returns an unspecified sentinel.
+    /// @param text The GUID text.
+    /// @return The parsed GUID.
     static SqlGuid constexpr UnsafeParse(std::string_view const& text) noexcept;
 
     /// Three-way comparison operator.
@@ -61,44 +73,64 @@ struct LIGHTWEIGHT_API SqlGuid
     }
 };
 
+namespace detail
+{
+    /// Tests whether @p character is a hexadecimal digit.
+    /// @param character The character to test.
+    /// @return `true` for `0-9`, `a-f` and `A-F`.
+    constexpr bool IsHexDigit(char character) noexcept
+    {
+        return (character >= '0' && character <= '9') || (character >= 'a' && character <= 'f')
+               || (character >= 'A' && character <= 'F');
+    }
+
+    /// Tests whether @p text has the 8-4-4-4-12 hex-digit form of a GUID.
+    /// @param text The text to test.
+    /// @return `true` if @p text is 36 characters, dashes at 8, 13, 18 and 23, hex digits elsewhere.
+    constexpr bool IsWellFormedGuidText(std::string_view text) noexcept
+    {
+        constexpr auto IsDashPosition = [](size_t position) {
+            return position == 8 || position == 13 || position == 18 || position == 23;
+        };
+        if (text.size() != 36)
+            return false;
+        return std::ranges::all_of(std::views::iota(size_t { 0 }, text.size()), [&](size_t position) {
+            return IsDashPosition(position) ? text[position] == '-' : IsHexDigit(text[position]);
+        });
+    }
+
+    /// Returns the value of the hex digit @p character, which must satisfy IsHexDigit().
+    /// @param character The hex digit.
+    /// @return Its value, 0 to 15.
+    constexpr uint8_t HexDigitValue(char character) noexcept
+    {
+        if (character >= '0' && character <= '9')
+            return static_cast<uint8_t>(character - '0');
+        if (character >= 'a' && character <= 'f')
+            return static_cast<uint8_t>(character - 'a' + 10);
+        return static_cast<uint8_t>(character - 'A' + 10);
+    }
+} // namespace detail
+
 constexpr SqlGuid SqlGuid::UnsafeParse(std::string_view const& text) noexcept
 {
-    SqlGuid guid {};
-
-    // UUID format: xxxxxxxx-xxxx-Mxxx-Nxxx-xxxxxxxxxxxx
-    // M is the version and N is the variant
-
-    // Check for length
-    if (text.size() != 36)
+    // Format: xxxxxxxx-xxxx-Mxxx-Nxxx-xxxxxxxxxxxx. The version (M) and variant (N) nibbles are
+    // not checked: SQL Server stores any value, and older Lightweight builds wrote GUIDs with
+    // byte-swapped Data1, Data2 and Data3, which leaves an arbitrary digit where the version sits.
+    if (!detail::IsWellFormedGuidText(text))
         return { "\x01" };
 
-    // Check for dashes
-    if (text[8] != '-' || text[13] != '-' || text[18] != '-' || text[23] != '-')
-        return { "\x02" };
-
-    // Version must be 1, 2, 3, 4, or 5
-    auto const version = text[14];
-    if (!('1' <= version && version <= '5'))
-        return { "\x03" };
-
-    // Variant nibble at position 19 must be a valid hex digit
-    // We accept all variants (RFC 4122: 8-B, Microsoft: C-D, etc.)
-    auto const variant = text[19];
-    auto const isHexDigit =
-        (variant >= '0' && variant <= '9') || (variant >= 'A' && variant <= 'F') || (variant >= 'a' && variant <= 'f');
-    if (!isHexDigit)
-        return { "\x04" };
-
+    SqlGuid guid {};
     // clang-format off
     size_t i = 0;
-    for (auto const index: { 0, 2, 4, 6,
-                             9, 11,
-                             14, 16,
-                             19, 21,
-                             24, 26, 28, 30, 32, 34 })
+    for (size_t const index: std::array<size_t, 16> { 0, 2, 4, 6,
+                                                      9, 11,
+                                                      14, 16,
+                                                      19, 21,
+                                                      24, 26, 28, 30, 32, 34 })
     {
-        if (std::from_chars(text.data() + index, text.data() + index + 2, guid.data[i], 16).ec != std::errc())
-            return { "\x05" };
+        guid.data[i] = static_cast<uint8_t>((detail::HexDigitValue(text[index]) << 4)
+                                            | detail::HexDigitValue(text[index + 1]));
         i++;
     }
     // clang-format on

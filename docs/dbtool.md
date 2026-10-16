@@ -616,6 +616,24 @@ dbtool restore --input backup.zip --schema new_schema
 dbtool restore --input backup.zip --filter-tables=Users,Products
 ```
 
+**Values that do not fit their column fail the table.** A GUID column takes any well-formed
+`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` value, whatever its version digit, and restores the same
+bytes. A value that does not convert to its column's type (a malformed GUID, number, date or time,
+a number outside the column's range, or a binary value in a text column) is never replaced by NULL
+or zero. Instead, the table fails with an error that names the table, the column, the row within
+the chunk and the value, for example:
+
+```
+table 'ORDERS', column 'TOKEN', row 1: 'not-a-guid' is not a valid GUID (chunk data/ORDERS/0001_00.msgpack)
+```
+
+The table's remaining chunks are skipped, the other tables are restored, and `dbtool restore`
+exits non-zero. The failed table may be left partly restored: each chunk is its own transaction,
+so chunks of the table that were restored before the failing one (or, with `--jobs` above 1, at
+the same time by other workers) stay, and on SQLite so do the rows committed within the failing
+chunk, which commits every 5,000 to 10,000 rows. A database error on insert still stops the worker
+that hit it; every table left not fully restored is reported as an error.
+
 ### backup-diff
 
 Compare the **data content** of two backup archives to detect silent data corruption — for

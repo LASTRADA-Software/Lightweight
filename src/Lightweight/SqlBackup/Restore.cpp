@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <atomic>
 #include <format>
+#include <optional>
 #include <ranges>
 #include <set>
 #include <thread>
@@ -22,8 +23,48 @@ using namespace std::string_literals;
 namespace Lightweight::SqlBackup::detail
 {
 
+namespace
+{
+    /// Switches SQL Server's IDENTITY_INSERT on for a table, and off again when it goes out of scope.
+    class IdentityInsertScope
+    {
+      public:
+        /// Switches IDENTITY_INSERT on for @p formattedTableName.
+        /// @param connection The connection the inserts run on.
+        /// @param formattedTableName The quoted, schema-qualified table name.
+        IdentityInsertScope(SqlConnection& connection, std::string formattedTableName):
+            _connection { connection },
+            _table { std::move(formattedTableName) }
+        {
+            (void) SqlStatement { _connection }.ExecuteDirect(std::format("SET IDENTITY_INSERT {} ON", _table));
+        }
+
+        IdentityInsertScope(IdentityInsertScope const&) = delete;
+        IdentityInsertScope(IdentityInsertScope&&) = delete;
+        IdentityInsertScope& operator=(IdentityInsertScope const&) = delete;
+        IdentityInsertScope& operator=(IdentityInsertScope&&) = delete;
+
+        ~IdentityInsertScope()
+        {
+            try
+            {
+                (void) SqlStatement { _connection }.ExecuteDirect(std::format("SET IDENTITY_INSERT {} OFF", _table));
+            }
+            catch (...) // NOLINT(bugprone-empty-catch): a destructor must not throw
+            {
+                // A lingering IDENTITY_INSERT fails the next table's ON, which reports it.
+            }
+        }
+
+      private:
+        SqlConnection& _connection;
+        std::string _table;
+    };
+} // namespace
+
 void IncrementChunkCounter(RestoreContext& ctx, std::string const& tableName, bool success)
 {
+    success = success && !ctx.failedTables.Contains(tableName);
     auto& chunkCounter = *ctx.chunksProcessed.at(tableName);
     size_t const processedChunks = chunkCounter.fetch_add(1) + 1;
     size_t const totalChunksForTable = ctx.totalChunks.at(tableName);
@@ -116,7 +157,10 @@ std::expected<RestoreChunkInfo, FetchChunkError> FetchNextRestoreChunk(RestoreCo
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChunkInfo const& chunk, size_t batchCapacity)
+ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
+                                     SqlConnection& workerConn,
+                                     RestoreChunkInfo const& chunk,
+                                     size_t batchCapacity)
 {
     ZoneScopedN("SqlBackup::RestoreChunkData");
     ZoneTextObject(chunk.tableName);
@@ -144,27 +188,13 @@ bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChu
 
             bool const isMsSql = workerConn.ServerType() == SqlServerType::MICROSOFT_SQL;
             bool const isSQLite = workerConn.ServerType() == SqlServerType::SQLITE;
-            bool hasIdentity = false;
-            std::string identityTable;
-
-            if (isMsSql)
-            {
-                for (auto const& col: tableInfo.columns)
-                {
-                    if (col.primaryKey == SqlPrimaryKeyType::AUTO_INCREMENT)
-                    {
-                        hasIdentity = true;
-                        break;
-                    }
-                }
-
-                if (hasIdentity)
-                {
-                    identityTable = FormatTableName(ctx.schema, tableName);
-                    (void) SqlStatement { workerConn }.ExecuteDirect(
-                        std::format("SET IDENTITY_INSERT {} ON", identityTable));
-                }
-            }
+            // Switched off again on every exit, so that a worker going on after a failed table can
+            // switch it on for the next one (SQL Server allows it for one table at a time).
+            std::optional<IdentityInsertScope> identityInsert;
+            if (isMsSql && std::ranges::any_of(tableInfo.columns, [](auto const& col) {
+                    return col.primaryKey == SqlPrimaryKeyType::AUTO_INCREMENT;
+                }))
+                identityInsert.emplace(workerConn, FormatTableName(ctx.schema, tableName));
 
             {
                 auto const& formatter = workerConn.QueryFormatter();
@@ -186,7 +216,8 @@ bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChu
                     },
                     tableInfo.columns,
                     batchCapacity,
-                    workerConn.ServerType());
+                    workerConn.ServerType(),
+                    tableName);
 
                 // Use a transaction for the entire chunk to improve performance significantly.
                 // We default to ROLLBACK on destruction to ensure atomic application of the chunk.
@@ -254,21 +285,8 @@ bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChu
                 // Cursor cleanup is handled by RAII
             }
 
-            if (hasIdentity)
-            {
-                try
-                {
-                    (void) SqlStatement { workerConn }.ExecuteDirect(
-                        std::format("SET IDENTITY_INSERT {} OFF", identityTable));
-                }
-                catch (...) // NOLINT(bugprone-empty-catch)
-                {
-                    // Best-effort cleanup - failure doesn't affect restore correctness
-                }
-            }
-
             // Success - exit retry loop
-            return true;
+            return ChunkRestoreOutcome::Restored;
         }
         catch (SqlException const& e)
         {
@@ -279,7 +297,7 @@ bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChu
                                       .currentRows = 0,
                                       .totalRows = 0,
                                       .message = "Insert failed: "s + e.what() });
-                return false; // Non-transient or max retries exceeded
+                return ChunkRestoreOutcome::WorkerFailed; // Non-transient or max retries exceeded
             }
 
             ++retryCount;
@@ -302,7 +320,7 @@ bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChu
                                       .currentRows = 0,
                                       .totalRows = 0,
                                       .message = "Failed to reconnect after transient error" });
-                return false;
+                return ChunkRestoreOutcome::WorkerFailed;
             }
 
             // Re-apply SQLite optimizations after reconnect
@@ -320,6 +338,15 @@ bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChu
 
             // Loop will re-process the same chunk
         }
+        catch (::Lightweight::detail::BackupValueConversionError const& e)
+        {
+            ctx.progress.Update({ .state = Progress::State::Error,
+                                  .tableName = tableName,
+                                  .currentRows = 0,
+                                  .totalRows = 0,
+                                  .message = std::format("{} (chunk {})", e.what(), path) });
+            return ChunkRestoreOutcome::TableFailed;
+        }
         catch (std::exception const& e)
         {
             ctx.progress.Update({ .state = Progress::State::Error,
@@ -327,10 +354,10 @@ bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChu
                                   .currentRows = 0,
                                   .totalRows = 0,
                                   .message = "Insert failed: "s + e.what() });
-            return false;
+            return ChunkRestoreOutcome::WorkerFailed;
         }
     }
-    return false;
+    return ChunkRestoreOutcome::WorkerFailed;
 }
 
 void RestoreWorker(RestoreContext ctx, SqlConnection& workerConn)
@@ -380,11 +407,19 @@ void RestoreWorker(RestoreContext ctx, SqlConnection& workerConn)
             if (chunk.isEndOfStream)
                 return; // Queue empty, worker done
 
-            bool const success = RestoreChunkData(ctx, workerConn, chunk, batchCapacity);
-            IncrementChunkCounter(ctx, chunk.tableName, success);
+            if (ctx.failedTables.Contains(chunk.tableName))
+            {
+                IncrementChunkCounter(ctx, chunk.tableName, false); // the table already failed
+                continue;
+            }
 
-            if (!success)
-                return; // Abort worker on restore error to ensure consistent restoration
+            auto const outcome = RestoreChunkData(ctx, workerConn, chunk, batchCapacity);
+            if (outcome != ChunkRestoreOutcome::Restored)
+                ctx.failedTables.Add(chunk.tableName);
+            IncrementChunkCounter(ctx, chunk.tableName, outcome == ChunkRestoreOutcome::Restored);
+
+            if (outcome == ChunkRestoreOutcome::WorkerFailed)
+                return; // Abort worker on a database error to ensure consistent restoration
         }
     }
     catch (std::exception const& e)

@@ -14,8 +14,11 @@
 #include <format>
 #include <fstream>
 #include <iterator>
+#include <limits>
+#include <ranges>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
 using namespace Lightweight;
@@ -258,20 +261,20 @@ TEST_CASE("BatchManager: Smallint column", "[SqlBackup]")
     REQUIRE(capturedIndicators[2] == SQL_NULL_DATA);
 }
 
-TEST_CASE("BatchManager: Tinyint column", "[SqlBackup]")
+TEST_CASE("BatchManager: Tinyint column on SQL Server binds unsigned 0..255", "[SqlBackup]")
 {
     std::vector<SqlColumnDeclaration> cols = { { .name = "val", .type = SqlColumnTypeDefinitions::Tinyint {} } };
 
-    std::vector<int8_t> capturedValues;
+    std::vector<uint8_t> capturedValues;
     std::vector<SQLLEN> capturedIndicators;
 
     BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         REQUIRE(rawCols.size() == 1);
         auto const& col = rawCols[0];
-        REQUIRE(col.metadata.cType == SQL_C_TINYINT);
+        REQUIRE(col.metadata.cType == SQL_C_UTINYINT);
         REQUIRE(col.metadata.sqlType == SQL_TINYINT);
 
-        auto const* data = reinterpret_cast<int8_t const*>(col.data.data());
+        auto const* data = reinterpret_cast<uint8_t const*>(col.data.data());
         for (size_t i = 0; i < count; ++i)
         {
             capturedValues.push_back(data[i]);
@@ -279,12 +282,43 @@ TEST_CASE("BatchManager: Tinyint column", "[SqlBackup]")
         }
     };
 
-    RunBatchManagerTest(executor, cols, { { int64_t { 50 } }, { int64_t { 127 } }, { std::monostate {} } }, 10);
+    RunBatchManagerTest(executor,
+                        cols,
+                        { { int64_t { 50 } }, { int64_t { 127 } }, { std::monostate {} }, { int64_t { 255 } } },
+                        10,
+                        SqlServerType::MICROSOFT_SQL);
 
-    REQUIRE(capturedValues.size() == 3);
+    REQUIRE(capturedValues.size() == 4);
     REQUIRE(capturedValues[0] == 50);
     REQUIRE(capturedValues[1] == 127);
     REQUIRE(capturedIndicators[2] == SQL_NULL_DATA);
+    REQUIRE(capturedValues[3] == 255);
+}
+
+TEST_CASE("BatchManager: Tinyint column elsewhere binds a short holding -128..255", "[SqlBackup]")
+{
+    std::vector<SqlColumnDeclaration> cols = { { .name = "val", .type = SqlColumnTypeDefinitions::Tinyint {} } };
+
+    for (auto const serverType:
+         { SqlServerType::SQLITE, SqlServerType::POSTGRESQL, SqlServerType::MYSQL, SqlServerType::UNKNOWN })
+    {
+        INFO(std::format("server type {}", static_cast<int>(serverType)));
+        std::vector<int16_t> capturedValues;
+        BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+            REQUIRE(rawCols[0].metadata.cType == SQL_C_SSHORT);
+            REQUIRE(rawCols[0].metadata.sqlType == SQL_TINYINT);
+            auto const* data = reinterpret_cast<int16_t const*>(rawCols[0].data.data());
+            capturedValues.insert(capturedValues.end(), data, data + count);
+        };
+
+        // What an int8_t field (-128..127) or a uint8_t field (0..255) wrote.
+        RunBatchManagerTest(executor,
+                            cols,
+                            { { int64_t { -128 } }, { int64_t { -5 } }, { std::string("-1") }, { int64_t { 255 } } },
+                            10,
+                            serverType);
+        CHECK(capturedValues == std::vector<int16_t> { -128, -5, -1, 255 });
+    }
 }
 
 TEST_CASE("BatchManager: Real/Double column", "[SqlBackup]")
@@ -586,13 +620,12 @@ TEST_CASE("BatchManager: TimeBatchColumn (for MySQL/UNKNOWN)", "[SqlBackup]")
                           { std::string("23:59:59.123456") }, // Fractional seconds should be ignored
                           { std::monostate {} },              // NULL
                           { std::string("") },                // Empty -> NULL
-                          { std::string("NULL") },            // "NULL" -> NULL
-                          { int64_t { 12345 } } },            // Non-string -> NULL
+                          { std::string("NULL") } },          // "NULL" -> NULL
                         10,
                         SqlServerType::MYSQL);
 
-    REQUIRE(capturedTimes.size() == 6);
-    REQUIRE(capturedIndicators.size() == 6);
+    REQUIRE(capturedTimes.size() == 5);
+    REQUIRE(capturedIndicators.size() == 5);
 
     // First value: 14:30:45
     REQUIRE(capturedIndicators[0] == sizeof(SQL_TIME_STRUCT));
@@ -606,11 +639,10 @@ TEST_CASE("BatchManager: TimeBatchColumn (for MySQL/UNKNOWN)", "[SqlBackup]")
     REQUIRE(capturedTimes[1].minute == 59);
     REQUIRE(capturedTimes[1].second == 59);
 
-    // Third to sixth: all NULLs
+    // Third to fifth: all NULLs
     REQUIRE(capturedIndicators[2] == SQL_NULL_DATA);
     REQUIRE(capturedIndicators[3] == SQL_NULL_DATA);
     REQUIRE(capturedIndicators[4] == SQL_NULL_DATA);
-    REQUIRE(capturedIndicators[5] == SQL_NULL_DATA);
 }
 
 TEST_CASE("BatchManager: TimeBatchColumn PushFromBatch", "[SqlBackup]")
@@ -682,13 +714,12 @@ TEST_CASE("BatchManager: TimeBatchColumn ParseTime edge cases", "[SqlBackup]")
     // Edge cases for ParseTime
     RunBatchManagerTest(executor,
                         cols,
-                        { { std::string("00:00:00") }, // Midnight
-                          { std::string("01:02:03") }, // Single digit components
-                          { std::string("short") } },  // Too short string (< 8 chars) -> zeros
+                        { { std::string("00:00:00") },   // Midnight
+                          { std::string("01:02:03") } }, // Single digit components
                         10,
                         SqlServerType::MYSQL);
 
-    REQUIRE(capturedTimes.size() == 3);
+    REQUIRE(capturedTimes.size() == 2);
 
     // Midnight
     REQUIRE(capturedIndicators[0] != SQL_NULL_DATA);
@@ -701,12 +732,6 @@ TEST_CASE("BatchManager: TimeBatchColumn ParseTime edge cases", "[SqlBackup]")
     REQUIRE(capturedTimes[1].hour == 1);
     REQUIRE(capturedTimes[1].minute == 2);
     REQUIRE(capturedTimes[1].second == 3);
-
-    // Too short -> zeros (but not NULL, just zero-initialized)
-    REQUIRE(capturedIndicators[2] != SQL_NULL_DATA);
-    REQUIRE(capturedTimes[2].hour == 0);
-    REQUIRE(capturedTimes[2].minute == 0);
-    REQUIRE(capturedTimes[2].second == 0);
 }
 
 TEST_CASE("BatchManager: TimeBatchColumn with monostate batch data", "[SqlBackup]")
@@ -761,18 +786,16 @@ TEST_CASE("BatchManager: GUID column", "[SqlBackup]")
     RunBatchManagerTest(executor,
                         cols,
                         { { std::string("12345678-1234-1234-1234-123456789ABC") },
-                          { std::string("INVALID-GUID") }, // Invalid -> NULL
                           { std::monostate {} },
                           { std::string("") },
                           { std::string("NULL") } },
                         10);
 
-    REQUIRE(capturedIndicators.size() == 5);
+    REQUIRE(capturedIndicators.size() == 4);
     REQUIRE(capturedIndicators[0] == sizeof(SqlGuid));
-    REQUIRE(capturedIndicators[1] == SQL_NULL_DATA); // Invalid GUID
+    REQUIRE(capturedIndicators[1] == SQL_NULL_DATA);
     REQUIRE(capturedIndicators[2] == SQL_NULL_DATA);
     REQUIRE(capturedIndicators[3] == SQL_NULL_DATA);
-    REQUIRE(capturedIndicators[4] == SQL_NULL_DATA);
 
     // The batch is bound as a raw SQL_C_GUID array, which carries Data1/Data2/Data3 in native wire
     // byte order — not the canonical order SqlGuid::TryParse() produced from the archived string.
@@ -798,22 +821,20 @@ TEST_CASE("BatchManager: GUID PushFromBatch", "[SqlBackup]")
     };
 
     ColumnBatch batch;
-    batch.rowCount = 4;
+    batch.rowCount = 3;
     batch.columns.resize(1);
     batch.nullIndicators.resize(1);
-    batch.nullIndicators[0] = { false, true, false, false };
+    batch.nullIndicators[0] = { false, true, false };
     batch.columns[0] = std::vector<std::string> { "AAAAAAAA-BBBB-4CCC-DDDD-EEEEEEEEEEEE", // Valid UUID (version 4)
                                                   "",
-                                                  "NULL",
-                                                  "INVALID" };
+                                                  "NULL" };
 
     RunBatchManagerBatchTest(executor, cols, { batch }, 10);
 
-    REQUIRE(capturedIndicators.size() == 4);
+    REQUIRE(capturedIndicators.size() == 3);
     REQUIRE(capturedIndicators[0] == sizeof(SqlGuid));
     REQUIRE(capturedIndicators[1] == SQL_NULL_DATA);
     REQUIRE(capturedIndicators[2] == SQL_NULL_DATA);
-    REQUIRE(capturedIndicators[3] == SQL_NULL_DATA); // Invalid GUID
 
     // Same wire byte-order contract as the single-value push above, reached through the
     // column-batch code path.
@@ -1394,4 +1415,333 @@ TEST_CASE("BatchManager: MAX Binary column", "[SqlBackup]")
     };
 
     RunBatchManagerTest(executor, cols, { { std::vector<uint8_t> { 0x01 } } }, 10);
+}
+
+// =============================================================================
+// Values that do not convert to their column's type
+// =============================================================================
+
+namespace
+{
+
+/// The table name the conversion-failure tests hand to BatchManager.
+constexpr auto ConversionTestTable = "ORDERS";
+
+/// Pushes the rows of @p rows (one value each) into a one-column BatchManager and returns the
+/// message of the error the last push throws. Fails the test if no push throws, if any row was
+/// flushed, or if rows remain pending after the error.
+std::string PushRowsError(SqlColumnDeclaration const& column,
+                          std::vector<BackupValue> const& rows,
+                          SqlServerType serverType = SqlServerType::UNKNOWN)
+{
+    size_t flushedRows = 0;
+    BatchManager manager([&](std::vector<SqlRawColumn> const&, size_t count) { flushedRows += count; },
+                         { column },
+                         10,
+                         serverType,
+                         ConversionTestTable);
+    std::string message;
+    try
+    {
+        for (auto const& value: rows)
+            manager.PushRow({ value });
+    }
+    catch (std::runtime_error const& error)
+    {
+        message = error.what();
+    }
+    CHECK(manager.rowCount == 0);
+    manager.Flush();
+    CHECK(flushedRows == 0);
+    return message;
+}
+
+/// Pushes @p data as one column batch (no NULLs) into a one-column BatchManager and returns the
+/// message of the error PushBatch throws; fails the test like PushRowsError().
+std::string PushBatchError(SqlColumnDeclaration const& column,
+                           ColumnBatch::ColumnData data,
+                           size_t rowCount,
+                           SqlServerType serverType = SqlServerType::UNKNOWN)
+{
+    size_t flushedRows = 0;
+    BatchManager manager([&](std::vector<SqlRawColumn> const&, size_t count) { flushedRows += count; },
+                         { column },
+                         10,
+                         serverType,
+                         ConversionTestTable);
+    ColumnBatch batch;
+    batch.rowCount = rowCount;
+    batch.columns.push_back(std::move(data));
+    batch.nullIndicators.emplace_back(rowCount, false);
+    std::string message;
+    try
+    {
+        manager.PushBatch(batch);
+    }
+    catch (std::runtime_error const& error)
+    {
+        message = error.what();
+    }
+    CHECK(manager.rowCount == 0);
+    manager.Flush();
+    CHECK(flushedRows == 0);
+    return message;
+}
+
+SqlColumnDeclaration const GuidColumn { .name = "TOKEN", .type = SqlColumnTypeDefinitions::Guid {} };
+
+} // namespace
+
+TEST_CASE("BatchManager: GUID column accepts a GUID whose version nibble is outside 1..5", "[SqlBackup]")
+{
+    // Written by Lightweight builds that stored GUIDs with a byte-swapped Data3; SQL Server accepts it.
+    constexpr std::string_view text { "FCC64492-FF82-E040-9C3A-12AB34CD56EF" };
+
+    std::vector<SQLLEN> capturedIndicators;
+    std::vector<std::vector<uint8_t>> capturedGuids;
+    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+        auto const* bytes = reinterpret_cast<uint8_t const*>(rawCols[0].data.data());
+        for (auto const row: std::views::iota(size_t { 0 }, count))
+        {
+            capturedIndicators.push_back(rawCols[0].indicators[row]);
+            capturedGuids.emplace_back(bytes + (row * sizeof(SqlGuid)), bytes + ((row + 1) * sizeof(SqlGuid)));
+        }
+    };
+
+    RunBatchManagerTest(executor, { GuidColumn }, { { std::string(text) } }, 10);
+
+    ColumnBatch batch;
+    batch.rowCount = 1;
+    batch.columns.emplace_back(std::vector<std::string> { std::string(text) });
+    batch.nullIndicators.emplace_back(1, false);
+    RunBatchManagerBatchTest(executor, { GuidColumn }, { batch }, 10);
+
+    // The text's bytes, unchanged, in the SQL_C_GUID wire order the raw array bind expects.
+    auto expected = SqlGuid::UnsafeParse(text);
+    SwapGuidWireByteOrder(expected.data);
+    REQUIRE(capturedIndicators == std::vector<SQLLEN> { sizeof(SqlGuid), sizeof(SqlGuid) });
+    CHECK(std::ranges::equal(capturedGuids[0], expected.data));
+    CHECK(std::ranges::equal(capturedGuids[1], expected.data));
+}
+
+TEST_CASE("BatchManager: a GUID that does not parse fails, naming table, column and value", "[SqlBackup]")
+{
+    // Rows pushed before the bad one are discarded with it, not flushed; the row number counts them.
+    CHECK(PushRowsError(
+              GuidColumn,
+              { std::string("12345678-1234-1234-1234-123456789ABC"), std::monostate {}, std::string("INVALID-GUID") })
+          == "table 'ORDERS', column 'TOKEN', row 3: 'INVALID-GUID' is not a valid GUID");
+    CHECK(PushBatchError(GuidColumn, std::vector<std::string> { "12345678-1234-1234-1234-123456789ABC", "INVALID-GUID" }, 2)
+          == "table 'ORDERS', column 'TOKEN', row 2: 'INVALID-GUID' is not a valid GUID");
+
+    // A value of another kind is no GUID either.
+    CHECK(PushRowsError(GuidColumn, { int64_t { 42 } }) == "table 'ORDERS', column 'TOKEN', row 1: 42 is not a valid GUID");
+    CHECK(PushBatchError(GuidColumn, std::vector<std::vector<uint8_t>> { { 0x01, 0x02, 0x03 } }, 1)
+          == "table 'ORDERS', column 'TOKEN', row 1: a 3-byte binary value is not a valid GUID");
+
+    // Without a table name, the message names the column alone.
+    BatchManager anonymous([](std::vector<SqlRawColumn> const&, size_t) {}, { GuidColumn }, 10);
+    try
+    {
+        anonymous.PushRow({ std::string("INVALID-GUID") });
+        FAIL("PushRow accepted an invalid GUID");
+    }
+    catch (std::runtime_error const& error)
+    {
+        CHECK(std::string_view(error.what()) == "column 'TOKEN', row 1: 'INVALID-GUID' is not a valid GUID");
+    }
+}
+
+TEST_CASE("BatchManager: a long unconvertible value is shortened in the error", "[SqlBackup]")
+{
+    auto const longValue = std::string(100, 'x');
+    CHECK(PushRowsError(GuidColumn, { longValue })
+          == std::format("table 'ORDERS', column 'TOKEN', row 1: '{}...' (100 bytes) is not a valid GUID",
+                         std::string(64, 'x')));
+}
+
+TEST_CASE("BatchManager: numeric text that does not parse fails instead of becoming 0", "[SqlBackup]")
+{
+    using namespace SqlColumnTypeDefinitions;
+    SqlColumnDeclaration const integer { .name = "AMOUNT", .type = Integer {} };
+
+    CHECK(PushRowsError(integer, { std::string("abc") })
+          == "table 'ORDERS', column 'AMOUNT', row 1: 'abc' is not a valid integer");
+    CHECK(PushRowsError(integer, { std::string("12abc") })
+          == "table 'ORDERS', column 'AMOUNT', row 1: '12abc' is not a valid integer");
+    CHECK(PushBatchError(integer, std::vector<std::string> { "12", "abc" }, 2)
+          == "table 'ORDERS', column 'AMOUNT', row 2: 'abc' is not a valid integer");
+    CHECK(PushRowsError(integer, { std::vector<uint8_t> { 0x01 } })
+          == "table 'ORDERS', column 'AMOUNT', row 1: a 1-byte binary value is not a valid integer");
+    CHECK(PushBatchError(integer, std::vector<std::vector<uint8_t>> { { 0x01 } }, 1)
+          == "table 'ORDERS', column 'AMOUNT', row 1: a 1-byte binary value is not a valid integer");
+
+    CHECK(PushRowsError({ .name = "TINY", .type = Tinyint {} }, { std::string("300") })
+          == "table 'ORDERS', column 'TINY', row 1: '300' is not a valid tinyint");
+    CHECK(PushRowsError({ .name = "BIG", .type = Bigint {} }, { std::string("1.5") })
+          == "table 'ORDERS', column 'BIG', row 1: '1.5' is not a valid bigint");
+    CHECK(PushBatchError({ .name = "SMALL", .type = Smallint {} }, std::vector<std::string> { "x" }, 1)
+          == "table 'ORDERS', column 'SMALL', row 1: 'x' is not a valid smallint");
+    CHECK(PushRowsError({ .name = "RATIO", .type = Real {} }, { std::string("1.5x") })
+          == "table 'ORDERS', column 'RATIO', row 1: '1.5x' is not a valid real");
+    CHECK(PushRowsError({ .name = "FLAG", .type = Bool {} }, { std::string("yes") })
+          == "table 'ORDERS', column 'FLAG', row 1: 'yes' is not a valid bool");
+}
+
+TEST_CASE("BatchManager: Bool column reads the true/false text a mixed-type column is archived as", "[SqlBackup]")
+{
+    std::vector<int8_t> capturedValues;
+    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+        auto const* data = reinterpret_cast<int8_t const*>(rawCols[0].data.data());
+        capturedValues.insert(capturedValues.end(), data, data + count);
+    };
+
+    ColumnBatch batch;
+    batch.rowCount = 4;
+    batch.columns.emplace_back(std::vector<std::string> { "true", "false", "1", "0" });
+    batch.nullIndicators.emplace_back(4, false);
+    RunBatchManagerBatchTest(executor, { { .name = "FLAG", .type = SqlColumnTypeDefinitions::Bool {} } }, { batch }, 10);
+
+    CHECK(capturedValues == std::vector<int8_t> { 1, 0, 1, 0 });
+}
+
+TEST_CASE("BatchManager: Push treats an empty numeric text as NULL, as PushBatch does", "[SqlBackup]")
+{
+    std::vector<SQLLEN> capturedIndicators;
+    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+        std::ranges::copy(rawCols[0].indicators.first(count), std::back_inserter(capturedIndicators));
+    };
+
+    RunBatchManagerTest(
+        executor, { { .name = "AMOUNT", .type = SqlColumnTypeDefinitions::Integer {} } }, { { std::string("") } }, 10);
+
+    CHECK(capturedIndicators == std::vector<SQLLEN> { SQL_NULL_DATA });
+}
+
+TEST_CASE("BatchManager: a malformed date or time fails instead of becoming zero", "[SqlBackup]")
+{
+    using namespace SqlColumnTypeDefinitions;
+    SqlColumnDeclaration const dateTime { .name = "CREATED", .type = DateTime {} };
+    SqlColumnDeclaration const date { .name = "DAY", .type = Date {} };
+    SqlColumnDeclaration const time { .name = "AT", .type = Time {} };
+
+    CHECK(PushRowsError(dateTime, { std::string("garbage") })
+          == "table 'ORDERS', column 'CREATED', row 1: 'garbage' is not a valid datetime");
+    CHECK(PushRowsError(dateTime, { std::string("2024-0x-02T03:04:05.000") })
+          == "table 'ORDERS', column 'CREATED', row 1: '2024-0x-02T03:04:05.000' is not a valid datetime");
+    CHECK(PushBatchError(dateTime, std::vector<std::string> { "2024-01-02T03:04:05.0x0" }, 1)
+          == "table 'ORDERS', column 'CREATED', row 1: '2024-01-02T03:04:05.0x0' is not a valid datetime");
+    CHECK(PushRowsError(dateTime, { int64_t { 20240102 } })
+          == "table 'ORDERS', column 'CREATED', row 1: 20240102 is not a valid datetime");
+
+    CHECK(PushRowsError(date, { std::string("2024-1-2") })
+          == "table 'ORDERS', column 'DAY', row 1: '2024-1-2' is not a valid date");
+    CHECK(PushBatchError(date, std::vector<std::string> { "20AB-01-02" }, 1)
+          == "table 'ORDERS', column 'DAY', row 1: '20AB-01-02' is not a valid date");
+    CHECK(PushBatchError(date, std::vector<double> { 1.5 }, 1)
+          == "table 'ORDERS', column 'DAY', row 1: 1.5 is not a valid date");
+
+    // SQL_TIME_STRUCT binding (MySQL / unknown servers).
+    CHECK(PushRowsError(time, { std::string("short") }, SqlServerType::MYSQL)
+          == "table 'ORDERS', column 'AT', row 1: 'short' is not a valid time");
+    CHECK(PushBatchError(time, std::vector<std::string> { "1a:02:03" }, 1, SqlServerType::MYSQL)
+          == "table 'ORDERS', column 'AT', row 1: '1a:02:03' is not a valid time");
+    CHECK(PushRowsError(time, { int64_t { 12345 } }, SqlServerType::MYSQL)
+          == "table 'ORDERS', column 'AT', row 1: 12345 is not a valid time");
+    // Text binding (MSSQL / PostgreSQL / SQLite): the server parses the text, but a number is no time.
+    CHECK(PushRowsError(time, { int64_t { 7 } }, SqlServerType::MICROSOFT_SQL)
+          == "table 'ORDERS', column 'AT', row 1: 7 is not a valid time");
+    CHECK(PushBatchError(time, std::vector<bool> { true }, 1, SqlServerType::MICROSOFT_SQL)
+          == "table 'ORDERS', column 'AT', row 1: true is not a valid time");
+}
+
+TEST_CASE("BatchManager: a value of the wrong kind for a text or binary column fails", "[SqlBackup]")
+{
+    using namespace SqlColumnTypeDefinitions;
+    SqlColumnDeclaration const narrow { .name = "NAME", .type = Varchar { .size = 50 } };
+    SqlColumnDeclaration const wide { .name = "WNAME", .type = NVarchar { .size = 50 } };
+    SqlColumnDeclaration const binary { .name = "BLOB", .type = VarBinary { .size = 50 } };
+
+    CHECK(PushRowsError(narrow, { std::vector<uint8_t> { 0x01, 0x02 } })
+          == "table 'ORDERS', column 'NAME', row 1: a 2-byte binary value is not a valid text");
+    CHECK(PushBatchError(narrow, std::vector<std::vector<uint8_t>> { { 0x01 } }, 1)
+          == "table 'ORDERS', column 'NAME', row 1: a 1-byte binary value is not a valid text");
+    CHECK(PushRowsError(wide, { std::vector<uint8_t> { 0x01 } })
+          == "table 'ORDERS', column 'WNAME', row 1: a 1-byte binary value is not a valid text");
+    CHECK(PushBatchError(wide, std::vector<std::vector<uint8_t>> { { 0x01 } }, 1)
+          == "table 'ORDERS', column 'WNAME', row 1: a 1-byte binary value is not a valid text");
+
+    CHECK(PushRowsError(binary, { int64_t { 5 } }) == "table 'ORDERS', column 'BLOB', row 1: 5 is not a valid binary");
+    CHECK(PushBatchError(binary, std::vector<int64_t> { 5 }, 1)
+          == "table 'ORDERS', column 'BLOB', row 1: 5 is not a valid binary");
+    CHECK(PushBatchError(binary, std::vector<std::string> { "ABZZ" }, 1)
+          == "table 'ORDERS', column 'BLOB', row 1: 'ABZZ' is not a valid binary");
+    CHECK(PushBatchError(binary, std::vector<std::string> { "ABC" }, 1)
+          == "table 'ORDERS', column 'BLOB', row 1: 'ABC' is not a valid binary");
+}
+
+TEST_CASE("BatchManager: a native number outside the column type's range fails instead of wrapping", "[SqlBackup]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    // TINYINT: 0..255 on SQL Server, -128..255 elsewhere; 300 fits nowhere.
+    for (auto const serverType: { SqlServerType::MICROSOFT_SQL,
+                                  SqlServerType::SQLITE,
+                                  SqlServerType::POSTGRESQL,
+                                  SqlServerType::MYSQL,
+                                  SqlServerType::UNKNOWN })
+    {
+        INFO(std::format("server type {}", static_cast<int>(serverType)));
+        CHECK(PushRowsError({ .name = "TINY", .type = Tinyint {} }, { int64_t { 300 } }, serverType)
+              == "table 'ORDERS', column 'TINY', row 1: 300 is not a valid tinyint");
+        CHECK(PushRowsError({ .name = "TINY", .type = Tinyint {} }, { std::string("300") }, serverType)
+              == "table 'ORDERS', column 'TINY', row 1: '300' is not a valid tinyint");
+        CHECK(PushRowsError({ .name = "TINY", .type = Tinyint {} }, { int64_t { 256 } }, serverType)
+              == "table 'ORDERS', column 'TINY', row 1: 256 is not a valid tinyint");
+    }
+    CHECK(PushBatchError(
+              { .name = "TINY", .type = Tinyint {} }, std::vector<int64_t> { 1, -1 }, 2, SqlServerType::MICROSOFT_SQL)
+          == "table 'ORDERS', column 'TINY', row 2: -1 is not a valid tinyint");
+    CHECK(PushBatchError({ .name = "TINY", .type = Tinyint {} }, std::vector<int64_t> { 1, -129 }, 2, SqlServerType::SQLITE)
+          == "table 'ORDERS', column 'TINY', row 2: -129 is not a valid tinyint");
+    CHECK(PushRowsError({ .name = "SMALL", .type = Smallint {} }, { int64_t { 40000 } })
+          == "table 'ORDERS', column 'SMALL', row 1: 40000 is not a valid smallint");
+    CHECK(PushRowsError({ .name = "AMOUNT", .type = Integer {} }, { 1e20 })
+          == "table 'ORDERS', column 'AMOUNT', row 1: 1e+20 is not a valid integer");
+    CHECK(PushBatchError({ .name = "BIG", .type = Bigint {} }, std::vector<double> { 9223372036854775808.0 }, 1)
+          == "table 'ORDERS', column 'BIG', row 1: 9223372036854775808 is not a valid bigint");
+}
+
+TEST_CASE("BatchManager: a double that is exactly the integer type's minimum converts", "[SqlBackup]")
+{
+    std::vector<int64_t> capturedValues;
+    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+        auto const* data = reinterpret_cast<int64_t const*>(rawCols[0].data.data());
+        capturedValues.insert(capturedValues.end(), data, data + count);
+    };
+    RunBatchManagerTest(
+        executor, { { .name = "BIG", .type = SqlColumnTypeDefinitions::Bigint {} } }, { { -9223372036854775808.0 } }, 10);
+    CHECK(capturedValues == std::vector<int64_t> { std::numeric_limits<int64_t>::min() });
+}
+
+TEST_CASE("BatchManager: a date or time field with a sign fails", "[SqlBackup]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    CHECK(PushRowsError({ .name = "DAY", .type = Date {} }, { std::string("2024--1-02") })
+          == "table 'ORDERS', column 'DAY', row 1: '2024--1-02' is not a valid date");
+    CHECK(PushRowsError({ .name = "CREATED", .type = DateTime {} }, { std::string("+024-01-02T03:04:05.000") })
+          == "table 'ORDERS', column 'CREATED', row 1: '+024-01-02T03:04:05.000' is not a valid datetime");
+}
+
+TEST_CASE("BatchManager: the error escapes control characters and never cuts a UTF-8 sequence", "[SqlBackup]")
+{
+    CHECK(PushRowsError(GuidColumn, { std::string("bad\n\tguid") })
+          == "table 'ORDERS', column 'TOKEN', row 1: 'bad\\x0A\\x09guid' is not a valid GUID");
+
+    // 63 ASCII bytes, then a two-byte sequence across the 64-byte limit: the sequence is left out whole.
+    auto const value = std::string(63, 'x') + "\xC3\xA9" + std::string(10, 'y');
+    CHECK(PushRowsError(GuidColumn, { value })
+          == std::format("table 'ORDERS', column 'TOKEN', row 1: '{}...' (75 bytes) is not a valid GUID",
+                         std::string(63, 'x')));
 }

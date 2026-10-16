@@ -107,6 +107,7 @@ set(SOURCE_FILES
     SqlVariantDbTests.cpp
     SqlBackup/AllColumnTypesTests.cpp
     SqlBackup/EncodingRoundTripTests.cpp
+    SqlBackup/RestoreConversionTests.cpp
     SqlBackup/BatchManagerIntegrationTests.cpp
     SqlBackup/ChunkPlannerTests.cpp
     SqlBackup/CommonHelpersTests.cpp
