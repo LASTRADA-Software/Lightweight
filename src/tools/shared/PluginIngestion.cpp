@@ -5,6 +5,7 @@
 
 #include <format>
 #include <stdexcept>
+#include <string>
 #include <unordered_set>
 #include <utility>
 
@@ -169,6 +170,38 @@ void RunPluginPostInitHooks(std::span<LoadedPlugin const> plugins,
                 logError(std::format("Plugin post-init failed ({}): {}", plugin.path.string(), exception.what()));
         }
     }
+}
+
+bool RunPluginPostMigrateHooks(std::span<LoadedPlugin const> plugins,
+                               Lightweight::SqlConnection& connection,
+                               Lightweight::SqlMigration::MigrationManager& central,
+                               std::function<void(std::string_view)> const& logError)
+{
+    using HookSignature = bool(Lightweight::SqlConnection&,
+                               Lightweight::SqlMigration::MigrationManager&,
+                               Lightweight::SqlMigration::PostMigrateErrorSink,
+                               void*) noexcept;
+    auto const collectMessage = [](void* context, char const* message) noexcept {
+        *static_cast<std::string*>(context) = message != nullptr ? message : "";
+    };
+
+    auto allSucceeded = true;
+    for (auto const& plugin: plugins)
+    {
+        auto* const postMigrate = plugin.TryGetFunction<HookSignature>("LightweightMigrationPluginPostMigrate");
+        if (postMigrate == nullptr)
+            continue;
+
+        auto message = std::string {};
+        if (postMigrate(connection, central, collectMessage, &message))
+            continue;
+
+        allSucceeded = false;
+        if (logError)
+            logError(std::format(
+                "Plugin post-migrate failed ({}): {}", plugin.path.string(), message.empty() ? "(no message)" : message));
+    }
+    return allSucceeded;
 }
 
 } // namespace Lightweight::Tools

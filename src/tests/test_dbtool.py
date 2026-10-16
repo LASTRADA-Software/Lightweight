@@ -4,6 +4,7 @@ import subprocess
 import sys
 import json
 import os
+import shutil
 import tempfile
 import zipfile
 from pathlib import Path
@@ -149,7 +150,7 @@ def _capture_diagnostics_on_hang(cmd, partial_stdout, partial_stderr):
             print(f"(sqlcmd diag failed: {e})", file=sys.stderr, flush=True)
 
 
-def run_command(cmd, check=True, input=None, cwd=None):
+def run_command(cmd, check=True, input=None, cwd=None, env=None):
     print(f"Running: {' '.join(cmd)}", flush=True)
     # dbtool emits UTF-8 (table names, progress glyphs, etc.) regardless of platform.
     # Without an explicit encoding, Python on Windows defaults to the console code
@@ -169,6 +170,7 @@ def run_command(cmd, check=True, input=None, cwd=None):
             stdin=None if input is not None else subprocess.DEVNULL,
             input=input,
             cwd=cwd,
+            env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
@@ -214,6 +216,126 @@ def split_password(connection_string):
 def yaml_quote(value):
     """Double-quoted YAML scalar."""
     return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def test_post_migrate_hook(base_cmd, dbtool, plugins_dir, connection_string):
+    """The PostMigrateRecorderPlugin fixture appends one line per post-migrate hook call
+    to LIGHTWEIGHT_TEST_POST_MIGRATE_LOG. The hook must run exactly once after every
+    successful migrate / migrate-to-release / apply (also when nothing was pending),
+    while the migration lock is held, and never for dry runs, read-only or failed commands."""
+    print("--- 14. post-migrate hook runs only after successful migrating commands ---")
+    run_command(base_cmd + ["hard-reset", "--yes"])
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        log_path = os.path.join(tmpdir, "post-migrate.log")
+
+        def run_recorded(command, check=True, fail_hook=False, cmd_prefix=base_cmd):
+            if os.path.exists(log_path):
+                os.remove(log_path)
+            env = dict(os.environ, LIGHTWEIGHT_TEST_POST_MIGRATE_LOG=log_path)
+            if fail_hook:
+                env["LIGHTWEIGHT_TEST_POST_MIGRATE_FAIL"] = "1"
+            result = run_command(cmd_prefix + command, check=check, env=env)
+            calls = []
+            if os.path.exists(log_path):
+                with open(log_path, encoding="utf-8") as f:
+                    calls = [line.strip() for line in f if line.strip()]
+            return result, calls
+
+        def expect_pending(name):
+            output = run_command(base_cmd + ["list-pending"]).stdout
+            if name not in output:
+                print(f"expected '{name}' to be pending:\n{output}")
+                sys.exit(1)
+
+        # (command, expected hook calls, expected success, check afterwards). An expected
+        # call is the exact line the fixture writes: pending count after the run, lock state.
+        cases = [
+            (["status"], [], True, None),
+            (["list-pending"], [], True, None),
+            (["list-applied"], [], True, None),
+            (["releases"], [], True, None),
+            (["migrate", "--dry-run"], [], True, None),
+            (["migrate-to-release", "1.0.0", "--dry-run"], [], True, None),
+            (["migrate-to-release", "does-not-exist"], [], False, None),
+            (["migrate-to-release", "1.0.0"], ["post-migrate pending=1 lock=held"], True, None),
+            (["migrate"], ["post-migrate pending=0 lock=held"], True, None),
+            (["migrate"], ["post-migrate pending=0 lock=held"], True, None),
+            # Negative control for the lock probe: without the lock the hook sees it free.
+            (["migrate", "--no-lock"], ["post-migrate pending=0 lock=free"], True, None),
+            (["migrate-to-release", "1.0.0"], ["post-migrate pending=0 lock=held"], True, None),
+            (["rollback", "20230201000000"], [], True, None),
+            # `apply` has no dry run: it must refuse instead of applying.
+            (["apply", "20230201000000", "--dry-run"], [], False,
+             lambda: expect_pending("Second Plugin Migration")),
+            (["apply", "20230201000000"], ["post-migrate pending=0 lock=held"], True, None),
+            (["apply", "99990101000000"], [], False, None),
+            (["rollback-to-release", "1.0.0"], [], True, None),
+        ]
+        for command, expected_calls, expected_success, check_after in cases:
+            result, calls = run_recorded(command, check=expected_success)
+            if (result.returncode == 0) != expected_success:
+                print(f"dbtool {' '.join(command)}: unexpected exit code {result.returncode}")
+                sys.exit(1)
+            if calls != expected_calls:
+                print(f"dbtool {' '.join(command)}: post-migrate hook calls {calls}, expected {expected_calls}")
+                sys.exit(1)
+            if check_after:
+                check_after()
+
+        # A failing hook fails the command, after the migrations themselves were applied.
+        result, calls = run_recorded(["migrate"], check=False, fail_hook=True)
+        if result.returncode == 0:
+            print("migrate with a failing post-migrate hook unexpectedly succeeded")
+            sys.exit(1)
+        if calls != ["post-migrate pending=0 lock=held"]:
+            print(f"failing post-migrate hook calls {calls}, expected exactly one after the migration")
+            sys.exit(1)
+        # The hook's own message must arrive through the plugin's error sink, not as an escaped exception.
+        reported = [line for line in result.stderr.splitlines()
+                    if line.startswith("Plugin post-migrate failed (")
+                    and "post-migrate failure requested by LIGHTWEIGHT_TEST_POST_MIGRATE_FAIL" in line]
+        if not reported:
+            print(f"failing post-migrate hook message was not reported through the sink:\n{result.stderr}")
+            sys.exit(1)
+        output = run_command(base_cmd + ["list-applied"]).stdout
+        if "Second Plugin Migration" not in output:
+            print(f"migration applied before the failing hook was not kept:\n{output}")
+            sys.exit(1)
+
+        run_command(base_cmd + ["rollback", "20230201000000"])
+        result, calls = run_recorded(["mark-applied", "20230201000000"])
+        if calls:
+            print(f"mark-applied unexpectedly ran the post-migrate hook: {calls}")
+            sys.exit(1)
+
+        # A migration that fails while running never reaches the hook. The failing fixture
+        # lacks the `Plugin` suffix, so it joins a scratch plugins directory under a new name.
+        plugin_extensions = (".dll", ".so", ".dylib")
+        fixture = next((name for name in os.listdir(plugins_dir)
+                        if name.startswith("FailingMigrationFixture.") and name.endswith(plugin_extensions)), None)
+        if fixture is None:
+            print(f"FailingMigrationFixture not found under {plugins_dir}")
+            sys.exit(1)
+        failing_dir = os.path.join(tmpdir, "failing-plugins")
+        os.makedirs(failing_dir)
+        for name in os.listdir(plugins_dir):
+            stem, extension = os.path.splitext(name)
+            if extension in plugin_extensions and stem.lower().endswith("plugin"):
+                shutil.copy2(os.path.join(plugins_dir, name), os.path.join(failing_dir, name))
+        shutil.copy2(os.path.join(plugins_dir, fixture),
+                     os.path.join(failing_dir, "FailingMigrationPlugin" + os.path.splitext(fixture)[1]))
+        failing_cmd = [dbtool, "--plugins-dir", failing_dir, "--connection-string", connection_string]
+        result, calls = run_recorded(["migrate"], check=False, cmd_prefix=failing_cmd)
+        if result.returncode == 0:
+            print("migrate with a failing migration unexpectedly succeeded")
+            sys.exit(1)
+        if "fixture migration failed on purpose" not in result.stderr + result.stdout:
+            print(f"migrate did not fail on the fixture migration:\n{result.stdout}\n{result.stderr}")
+            sys.exit(1)
+        if calls:
+            print(f"a failed migration unexpectedly ran the post-migrate hook: {calls}")
+            sys.exit(1)
 
 
 def main():
@@ -725,6 +847,8 @@ def main():
         if "No migrations registered" not in no_plugin_result.stderr:
             print(f"status error message did not mention 'No migrations registered':\n{no_plugin_result.stderr}")
             sys.exit(1)
+
+    test_post_migrate_hook(base_cmd, args.dbtool, args.plugins_dir, connection_string)
 
     print("SUCCESS")
 

@@ -371,6 +371,9 @@ Apply a specific migration by timestamp:
 dbtool apply 20260126120000
 ```
 
+`apply` has no dry run: it rejects `--dry-run` with an error instead of applying.
+Use `dbtool migrate --dry-run` to preview pending migrations.
+
 ### rollback \<TIMESTAMP\>
 
 Revert a specific migration:
@@ -652,7 +655,7 @@ common table is identical and both archives hold the same set of tables, or `1` 
 | `--chunk-size <SIZE>` | Chunk size for backup data | `10M` |
 | `--progress <TYPE>` | Progress output: `unicode`, `ascii`, `logline` | `unicode` |
 | `--quiet`, `-q` | Suppress progress output | |
-| `--dry-run`, `-n` | Preview without executing | |
+| `--dry-run`, `-n` | Preview without executing; `apply` rejects it | |
 | `--no-lock` | Skip migration locking | |
 | `--schema-only` | For backup/restore: skip data, transferring schema only | |
 | `--memory-limit <SIZE>` | Memory limit for restore (accepts the size suffixes below) | |
@@ -729,6 +732,43 @@ LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connection, manager)
 
 The hook is **optional** — plugins that don't export the symbol behave exactly as
 before. Per-plugin exceptions are logged to stderr but do not abort `dbtool`.
+
+Post-init runs before every command, read-only ones included, and before the
+migration lock is taken and any migration runs. It is therefore the wrong place
+for work that needs the migrated schema; use the post-migrate hook for that.
+
+### Optional Post-Migrate Hook
+
+A plugin may export an optional `LightweightMigrationPluginPostMigrate` symbol for
+work that needs the migrated schema, such as seeding reference data. `dbtool` calls
+it once per plugin after a **successful** `migrate`, `migrate-to-release` or `apply`
+— also when nothing was pending — on the migration connection, while the migration
+lock is still held (with `--no-lock` no lock is taken, so the hook runs unlocked too).
+It never runs for `--dry-run`, read-only commands (`status`, `list-*`, `releases`,
+...), rollbacks, `mark-applied`, or a migration that failed. `apply` has no dry run
+and rejects `--dry-run` instead of applying. `dbtool-gui` calls it under the same
+conditions after an apply run, and releases the lock before it reports the run.
+
+```cpp
+#include <Lightweight/SqlMigration.hpp>
+
+LIGHTWEIGHT_MIGRATION_PLUGIN()
+
+LIGHTWEIGHT_MIGRATION_PLUGIN_POSTMIGRATE(connection, manager)
+{
+    // Runs after the migrations committed. Make it idempotent: it runs after every
+    // successful migrate, including runs where nothing was pending.
+    MyPlugin::SeedReferenceData(connection);
+}
+```
+
+The hook is **optional** — plugins that don't export the symbol behave exactly as
+before. Unlike post-init, a failure is fatal for the command: when the body throws,
+the error is reported on stderr (`Plugin post-migrate failed (<plugin>): <message>`)
+and `dbtool` exits non-zero. The migrations that ran before the hook stay applied;
+the remaining plugins' hooks still run. The macro exports a non-throwing entry point
+that catches the exception inside the plugin, so it never crosses the shared-library
+boundary.
 
 ## Workflow Examples
 

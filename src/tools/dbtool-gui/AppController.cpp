@@ -186,6 +186,11 @@ AppController::AppController(QObject* parent):
     _plugins(std::make_unique<PluginsBundle>())
 {
     _runner.SetManager(&Lightweight::SqlMigration::MigrationManager::GetInstance());
+    _runner.setPostMigrateHook(
+        [this](Lightweight::SqlMigration::MigrationManager& manager, std::function<void(std::string_view)> const& logError) {
+            return Lightweight::Tools::RunPluginPostMigrateHooks(
+                _plugins->entries, manager.GetDataMapper().Connection(), manager, logError);
+        });
 
     QObject::connect(&_migrations, &MigrationListModel::selectionChanged, this, &AppController::selectionChanged);
 

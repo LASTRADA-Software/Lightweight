@@ -278,7 +278,7 @@ void PrintUsage()
                  c.option, c.reset, c.param, c.reset);
     std::println("  {}--progress{} {}<TYPE>{}         Progress output type: unicode (default), ascii, logline",
                  c.option, c.reset, c.param, c.reset);
-    std::println("  {}--dry-run{}, {}-n{}             Show what would be done without doing it",
+    std::println("  {}--dry-run{}, {}-n{}             Show what would be done without doing it (`apply` rejects it)",
                  c.option, c.reset, c.option, c.reset);
     std::println("  {}--no-lock{}                 Skip migration locking for write operations",
                  c.option, c.reset);
@@ -1864,11 +1864,6 @@ int RollbackToRelease(MigrationManager& manager, std::string_view argument)
     return EXIT_SUCCESS;
 }
 
-/// Stable name for the migration-system advisory lock. Defined here so all
-/// dbtool callers acquire the same token; users of the public `SqlScopedLock`
-/// API choose their own names for their own resources.
-constexpr std::string_view kMigrationLockName = "lightweight_migration";
-
 /// RAII wrapper for optional advisory locking around migration commands.
 ///
 /// Acquires the migration-system advisory lock if locking is enabled,
@@ -1880,7 +1875,7 @@ class OptionalScopedLock
   public:
     OptionalScopedLock(MigrationManager& manager, bool noLock):
         _lock(noLock ? std::nullopt
-                     : std::make_optional<SqlScopedLock>(manager.GetDataMapper().Connection(), kMigrationLockName))
+                     : std::make_optional<SqlScopedLock>(manager.GetDataMapper().Connection(), Tools::MigrationLockName))
     {
         if (_lock && !_lock->IsLocked())
         {
@@ -2606,12 +2601,18 @@ int ExecQuery(Options const& options)
     }
 }
 
+/// Plugins loaded by `GetMigrationManager`, kept loaded for the lifetime of the program:
+/// the MigrationManager holds references to migration code from these plugins, so they
+/// must not be unloaded (via dlclose) while migrations may still be accessed.
+std::vector<Tools::LoadedPlugin>& LoadedPlugins()
+{
+    static std::vector<Tools::LoadedPlugin> plugins;
+    return plugins;
+}
+
 MigrationManager& GetMigrationManager(Options const& options)
 {
-    // Keep plugins loaded for the lifetime of the program.
-    // The MigrationManager holds references to migration code from these plugins,
-    // so they must not be unloaded (via dlclose) while migrations may still be accessed.
-    static std::vector<Tools::LoadedPlugin> plugins;
+    auto& plugins = LoadedPlugins();
     static bool initialized = false;
 
     auto& manager = MigrationManager::GetInstance();
@@ -2675,6 +2676,30 @@ MigrationManager& GetMigrationManager(Options const& options)
     return manager;
 }
 
+/// Runs the plugins' post-migrate hooks once a migrating command has succeeded for real.
+/// Callers invoke it while they still hold the migration lock.
+///
+/// @param manager  The merged migration manager the command ran against.
+/// @param exitCode The exit code of the migrating command.
+/// @param dryRun   Whether the command only previewed its SQL.
+/// @return @p exitCode, or EXIT_FAILURE when a hook failed.
+int RunPostMigrateHooks(MigrationManager& manager, int exitCode, bool dryRun)
+{
+    if (exitCode != EXIT_SUCCESS || dryRun)
+        return exitCode;
+
+    TraceBreadcrumb("RunPostMigrateHooks: running plugin post-migrate hooks");
+    auto const succeeded = Tools::RunPluginPostMigrateHooks(
+        LoadedPlugins(), manager.GetDataMapper().Connection(), manager, [](std::string_view message) {
+            std::println(std::cerr, "{}", message);
+        });
+    if (succeeded)
+        return EXIT_SUCCESS;
+
+    std::println(std::cerr, "Error: a plugin post-migrate hook failed; the migrations themselves were applied.");
+    return EXIT_FAILURE;
+}
+
 /// Dispatches a DB-connected command to its handler. Assumes the caller has
 /// already established the ODBC connection via `SetupConnectionString`.
 int DispatchDbCommand(Options const& options)
@@ -2692,13 +2717,18 @@ int DispatchDbCommand(Options const& options)
     {
         auto& manager = GetMigrationManager(options);
         OptionalScopedLock const lock(manager, options.noLock || options.dryRun);
-        return Migrate(manager, options.dryRun);
+        return RunPostMigrateHooks(manager, Migrate(manager, options.dryRun), options.dryRun);
     }
     if (options.command == "apply")
     {
+        if (options.dryRun)
+        {
+            std::println(std::cerr, "Error: apply has no dry run; use `migrate --dry-run` to preview pending migrations.");
+            return EXIT_FAILURE;
+        }
         auto& manager = GetMigrationManager(options);
         OptionalScopedLock const lock(manager, options.noLock);
-        return ApplyMigration(manager, options.argument);
+        return RunPostMigrateHooks(manager, ApplyMigration(manager, options.argument), /*dryRun=*/false);
     }
     if (options.command == "rollback")
     {
@@ -2722,7 +2752,7 @@ int DispatchDbCommand(Options const& options)
     {
         auto& manager = GetMigrationManager(options);
         OptionalScopedLock const lock(manager, options.noLock || options.dryRun);
-        return MigrateToRelease(manager, options.argument, options.dryRun);
+        return RunPostMigrateHooks(manager, MigrateToRelease(manager, options.argument, options.dryRun), options.dryRun);
     }
     if (options.command == "mark-applied")
     {

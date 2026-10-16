@@ -17,6 +17,7 @@
 
 #include <atomic>
 #include <functional>
+#include <string_view>
 
 #include <QtCore/QObject>
 #include <QtCore/QStringList>
@@ -51,6 +52,12 @@ class MigrationRunner: public QObject
 
     Q_PROPERTY(Phase phase READ phase NOTIFY phaseChanged)
 
+    /// Runs the plugins' post-migrate hooks against the manager it is given. Returns
+    /// false when a hook failed, after reporting each failure through the log callback.
+    /// An exception it throws is logged and fails the run like a `false` result.
+    using PostMigrateHook = std::function<bool(Lightweight::SqlMigration::MigrationManager& manager,
+                                               std::function<void(std::string_view)> const& logError)>;
+
     explicit MigrationRunner(QObject* parent = nullptr);
 
     void SetManager(Lightweight::SqlMigration::MigrationManager* manager) noexcept;
@@ -62,6 +69,12 @@ class MigrationRunner: public QObject
     /// "never busy". Dry-runs are read-only and are not gated.
     /// @param probe Callable returning true to veto a new run.
     void setBusyProbe(std::function<bool()> probe);
+
+    /// Injects the hook run on the worker thread after every successful apply run
+    /// (also when nothing was pending), while the migration lock is still held. A
+    /// failing hook fails the run. Defaults to none. Dry-runs never invoke it.
+    /// @param hook Callable running the plugins' post-migrate hooks.
+    void setPostMigrateHook(PostMigrateHook hook);
 
     /// Dry-run / apply up to an inclusive target timestamp. An empty or
     /// "0" target applies every pending migration — same semantics as
@@ -129,6 +142,7 @@ class MigrationRunner: public QObject
 
     Lightweight::SqlMigration::MigrationManager* _manager = nullptr;
     std::function<bool()> _busyProbe;
+    PostMigrateHook _postMigrateHook;
     QThreadPool _pool;
     std::atomic<Phase> _phase { Phase::Idle };
     std::atomic<bool> _cancelRequested { false };

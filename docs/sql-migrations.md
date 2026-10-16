@@ -94,6 +94,14 @@ LIGHTWEIGHT_SQL_MIGRATION(20260126120000, "Create users table")
 The `LIGHTWEIGHT_MIGRATION_PLUGIN()` macro exports the `AcquireMigrationManager()` function
 that dbtool uses to load migrations from the plugin.
 
+A plugin can also export two optional hooks, described in
+[dbtool.md](dbtool.md#optional-post-init-hook):
+
+| Macro | Runs |
+|-------|------|
+| `LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connection, manager)` | before every dbtool command, read-only ones included; failures are logged only |
+| `LIGHTWEIGHT_MIGRATION_PLUGIN_POSTMIGRATE(connection, manager)` | after a successful `migrate` / `migrate-to-release` / `apply`, under the migration lock; a failure fails the command |
+
 ## Table Operations
 
 ### CreateTable

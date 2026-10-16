@@ -150,4 +150,27 @@ void RunPluginPostInitHooks(std::span<LoadedPlugin const> plugins,
                             Lightweight::SqlMigration::MigrationManager& central,
                             std::function<void(std::string_view)> const& logError);
 
+/// Name of the advisory lock `dbtool` and `dbtool-gui` hold while they change the
+/// migration state. Post-migrate hooks run while it is still held.
+inline constexpr std::string_view MigrationLockName = "lightweight_migration";
+
+/// Invoke every plugin's optional `LightweightMigrationPluginPostMigrate` hook
+/// (declared with `LIGHTWEIGHT_MIGRATION_PLUGIN_POSTMIGRATE`). Callers run this
+/// after a successful `migrate`, `migrate-to-release` or `apply`, under the
+/// migration lock, and never for dry runs or after a failed migration.
+///
+/// Unlike post-init, a failing hook fails the run: every failure is reported
+/// through `logError`, the remaining plugins still run, and the result is
+/// `false`. Plugins that do not export the symbol are silently bypassed.
+///
+/// @param plugins    Plugin set returned by `IngestPlugins`.
+/// @param connection The migration connection, passed to each hook.
+/// @param central    Host-side merged migration manager passed to each hook.
+/// @param logError   Sink for per-plugin failure messages. May be empty.
+/// @return `true` when every hook that ran succeeded.
+[[nodiscard]] bool RunPluginPostMigrateHooks(std::span<LoadedPlugin const> plugins,
+                                             Lightweight::SqlConnection& connection,
+                                             Lightweight::SqlMigration::MigrationManager& central,
+                                             std::function<void(std::string_view)> const& logError);
+
 } // namespace Lightweight::Tools

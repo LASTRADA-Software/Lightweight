@@ -407,6 +407,7 @@ namespace SqlMigration
     using Lightweight::SqlMigration::MigrationManager;
     using Lightweight::SqlMigration::MigrationStatus;
     using Lightweight::SqlMigration::MigrationTimestamp;
+    using Lightweight::SqlMigration::PostMigrateErrorSink;
     using Lightweight::SqlMigration::RevertResult;
 } // namespace SqlMigration
 

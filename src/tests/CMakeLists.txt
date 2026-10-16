@@ -176,6 +176,7 @@ install(FILES test_dbtool.py DESTINATION ${CMAKE_INSTALL_DATADIR}/Lightweight/te
 
 add_subdirectory(dummy_migration_plugin)
 add_subdirectory(dummy_migration_plugin_2)
+add_subdirectory(post_migrate_plugin)
 
 # Register dbtool integration test
 find_package(Python3 REQUIRED COMPONENTS Interpreter)

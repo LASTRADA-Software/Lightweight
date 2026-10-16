@@ -12,6 +12,7 @@
 // here we verify only that `IngestPlugins` correctly consumes its output
 // and orchestrates the load + merge + logging contract.
 
+#include <Lightweight/SqlConnection.hpp>
 #include <Lightweight/SqlMigration.hpp>
 
 #include <catch2/catch_test_macros.hpp>
@@ -22,8 +23,11 @@
 #include <fstream>
 #include <map>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 #include <PluginIngestion.hpp>
@@ -419,4 +423,129 @@ TEST_CASE("IngestPlugins — LoadedPlugin::TryGetFunction wraps tryGetSymbol", "
     // Empty tryGetSymbol returns nullptr without crashing.
     Lightweight::Tools::LoadedPlugin empty;
     CHECK(empty.TryGetFunction<int()>("anything") == nullptr);
+}
+
+namespace
+{
+
+/// Per-symbol call counters for the hook stubs below. Hooks are plain
+/// function pointers, so the counters cannot be captured state.
+struct HookCalls
+{
+    int postInit = 0;
+    int postMigrate = 0;
+};
+
+HookCalls& RecordedHookCalls()
+{
+    static HookCalls calls;
+    return calls;
+}
+
+void RecordingPostInit(Lightweight::SqlConnection& /*connection*/, Lightweight::SqlMigration::MigrationManager& /*manager*/)
+{
+    ++RecordedHookCalls().postInit;
+}
+
+bool RecordingPostMigrate(Lightweight::SqlConnection& /*connection*/,
+                          Lightweight::SqlMigration::MigrationManager& /*manager*/,
+                          Lightweight::SqlMigration::PostMigrateErrorSink /*reportError*/,
+                          void* /*errorContext*/) noexcept
+{
+    ++RecordedHookCalls().postMigrate;
+    return true;
+}
+
+/// Stands in for a hook body that threw: the exported entry point reports and returns false.
+bool FailingPostMigrate(Lightweight::SqlConnection& /*connection*/,
+                        Lightweight::SqlMigration::MigrationManager& /*manager*/,
+                        Lightweight::SqlMigration::PostMigrateErrorSink reportError,
+                        void* errorContext) noexcept
+{
+    ++RecordedHookCalls().postMigrate;
+    reportError(errorContext, "seed failed");
+    return false;
+}
+
+/// Builds a plugin whose symbol lookup resolves exactly the given symbols.
+Lightweight::Tools::LoadedPlugin MakeHookPlugin(
+    std::string const& path, std::map<std::string, Lightweight::Tools::PluginLoader::GenericFunctionPointer> symbols)
+{
+    Lightweight::Tools::LoadedPlugin plugin;
+    plugin.path = path;
+    plugin.tryGetSymbol =
+        [symbols = std::move(symbols)](std::string const& name) -> Lightweight::Tools::PluginLoader::GenericFunctionPointer {
+        auto const found = symbols.find(name);
+        return found != symbols.end() ? found->second : nullptr;
+    };
+    return plugin;
+}
+
+template <typename Function>
+Lightweight::Tools::PluginLoader::GenericFunctionPointer AsSymbol(Function* function)
+{
+    return reinterpret_cast<Lightweight::Tools::PluginLoader::GenericFunctionPointer>(function);
+}
+
+} // namespace
+
+TEST_CASE("RunPluginPostMigrateHooks — runs every exporting plugin and skips the others", "[PluginIngestion]")
+{
+    RecordedHookCalls() = {};
+    auto const plugins = std::vector {
+        MakeHookPlugin("a", { { "LightweightMigrationPluginPostMigrate", AsSymbol(&RecordingPostMigrate) } }),
+        MakeHookPlugin("without-hook", {}),
+        MakeHookPlugin("b", { { "LightweightMigrationPluginPostMigrate", AsSymbol(&RecordingPostMigrate) } }),
+    };
+    Lightweight::SqlConnection connection { std::nullopt };
+    Lightweight::SqlMigration::MigrationManager central;
+    std::vector<std::string> errors;
+
+    auto const succeeded = Lightweight::Tools::RunPluginPostMigrateHooks(
+        plugins, connection, central, [&errors](std::string_view message) { errors.emplace_back(message); });
+
+    CHECK(succeeded);
+    CHECK(RecordedHookCalls().postMigrate == 2);
+    CHECK(errors.empty());
+}
+
+TEST_CASE("RunPluginPostMigrateHooks — a failing hook fails the run but the others still run", "[PluginIngestion]")
+{
+    RecordedHookCalls() = {};
+    auto const plugins = std::vector {
+        MakeHookPlugin("failing", { { "LightweightMigrationPluginPostMigrate", AsSymbol(&FailingPostMigrate) } }),
+        MakeHookPlugin("healthy", { { "LightweightMigrationPluginPostMigrate", AsSymbol(&RecordingPostMigrate) } }),
+    };
+    Lightweight::SqlConnection connection { std::nullopt };
+    Lightweight::SqlMigration::MigrationManager central;
+    std::vector<std::string> errors;
+
+    auto const succeeded = Lightweight::Tools::RunPluginPostMigrateHooks(
+        plugins, connection, central, [&errors](std::string_view message) { errors.emplace_back(message); });
+
+    CHECK_FALSE(succeeded);
+    CHECK(RecordedHookCalls().postMigrate == 2);
+    REQUIRE(errors.size() == 1);
+    CHECK(errors.front().contains("failing"));
+    CHECK(errors.front().contains("seed failed"));
+}
+
+TEST_CASE("RunPluginPostMigrateHooks and RunPluginPostInitHooks resolve only their own symbol", "[PluginIngestion]")
+{
+    RecordedHookCalls() = {};
+    auto const plugins = std::vector {
+        MakeHookPlugin("both",
+                       { { "LightweightMigrationPluginPostInit", AsSymbol(&RecordingPostInit) },
+                         { "LightweightMigrationPluginPostMigrate", AsSymbol(&RecordingPostMigrate) } }),
+    };
+    Lightweight::SqlConnection connection { std::nullopt };
+    Lightweight::SqlMigration::MigrationManager central;
+
+    CHECK(Lightweight::Tools::RunPluginPostMigrateHooks(plugins, connection, central, {}));
+    CHECK(RecordedHookCalls().postInit == 0);
+    CHECK(RecordedHookCalls().postMigrate == 1);
+
+    Lightweight::Tools::RunPluginPostInitHooks(plugins, connection, central, {});
+    CHECK(RecordedHookCalls().postInit == 1);
+    CHECK(RecordedHookCalls().postMigrate == 1);
 }
