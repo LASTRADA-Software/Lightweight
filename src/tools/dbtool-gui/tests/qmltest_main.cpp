@@ -6,6 +6,10 @@
 // under test live wherever the `-input <dir>` argument points, supplied by
 // CMake's `add_test` line so the build tree stays out of the executable.
 
+#include "../StderrMessageHandler.hpp"
+#include "TestIsolation.hpp"
+
+#include <NoErrorDialogs.hpp>
 #include <QtQuickControls2/QQuickStyle>
 #include <QtQuickTest/quicktest.h>
 
@@ -21,6 +25,8 @@
 
 int main(int argc, char** argv)
 {
+    Lightweight::Tools::DisableErrorDialogs();
+    qInstallMessageHandler(DbtoolGui::WriteQtMessageToStderr);
     QTEST_SET_MAIN_SOURCE_PATH
     // Match the application: `main.cpp` runs every control under Fusion, and
     // the kit components (LsButton, …) replace `background` / `contentItem`,
@@ -29,7 +35,11 @@ int main(int argc, char** argv)
     // Source dir is supplied at runtime via `-input <dir>`; pass `nullptr`
     // here so qmltestrunner doesn't fall back to a build-time path that
     // wouldn't exist on the CI runner.
-    auto const result = quick_test_main(argc, argv, "dbtool_gui_qmltest", nullptr);
+    auto result = 0;
+    {
+        DbtoolGui::Tests::ScopedTestIsolation const isolation;
+        result = quick_test_main(argc, argv, "dbtool_gui_qmltest", nullptr);
+    } // leaves and removes the isolation directory, which TerminateProcess below would skip
 #ifdef _WIN32
     // See `tests/main.cpp` for the rationale: Qt 6 debug builds on
     // Windows segfault during DLL_PROCESS_DETACH after a QML test session,

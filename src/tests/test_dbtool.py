@@ -15,6 +15,12 @@ try:
 except ImportError:
     HAS_YAML = False
 
+if os.name == "nt":
+    # SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX, inherited by every
+    # dbtool started below: a DLL that fails to load before main must not open a dialog either.
+    import ctypes
+    ctypes.windll.kernel32.SetErrorMode(0x0001 | 0x0002 | 0x8000)
+
 
 def find_test_env_file():
     """
@@ -512,6 +518,57 @@ def test_target_precedence(dbtool, plugins_dir, connection_string):
         if file_fingerprint(database_a) != before:
             print("a refused command changed database A")
             sys.exit(1)
+
+
+def test_exit_code_after_compat_policy_plugin(dbtool, plugins_dir, connection_string):
+    """A plugin that installs a compat policy at load time, as an application's migration
+    plugin may, must not crash dbtool on exit: the process returns the command's own exit code,
+    also when a later plugin fails to load."""
+    print("--- 16. dbtool exits with the command's exit code after loading a compat-policy plugin ---")
+    plugin_extensions = (".dll", ".so", ".dylib")
+    fixture = next((name for name in os.listdir(plugins_dir)
+                    if name.startswith("CompatPolicyFixture.") and name.endswith(plugin_extensions)), None)
+    if fixture is None:
+        print(f"CompatPolicyFixture not found under {plugins_dir}")
+        sys.exit(1)
+    extension = os.path.splitext(fixture)[1]
+
+    def make_plugins_dir(parent, name, broken):
+        directory = os.path.join(parent, name)
+        os.makedirs(directory)
+        shutil.copy2(os.path.join(plugins_dir, fixture), os.path.join(directory, "CompatPolicyPlugin" + extension))
+        # An application may ship its own Lightweight.dll next to its plugins; mirror that layout.
+        lightweight_dll = os.path.join(os.path.dirname(dbtool), "Lightweight.dll")
+        if os.path.exists(lightweight_dll):
+            shutil.copy2(lightweight_dll, directory)
+        if broken:
+            # Sorts after the policy plugin, so it fails to load once that one is loaded.
+            with open(os.path.join(directory, "ZzzBrokenPlugin" + extension), "wb") as f:
+                f.write(b"not a shared library")
+        return [dbtool, "--plugins-dir", directory, "--connection-string", connection_string]
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        policy_cmd = make_plugins_dir(tmpdir, "policy", broken=False)
+        broken_cmd = make_plugins_dir(tmpdir, "broken", broken=True)
+
+        # (command, expected exit code, text expected in stdout + stderr)
+        cases = [
+            (policy_cmd + ["list-pending"], 0, "Compat Fixture Create Table"),
+            (policy_cmd + ["status"], 0, "Registered migrations"),
+            (policy_cmd + ["apply", "99990101000000"], 1, "Migration not found"),
+            (policy_cmd + ["rollback", "99990101000000"], 1, "Migration not found"),
+            (policy_cmd + ["mark-applied", "99990101000000"], 1, "Migration not found"),
+            (broken_cmd + ["status"], 1, "Failed to load plugins"),
+        ]
+        for command, expected_exit_code, expected_text in cases:
+            result = run_command(command, check=False)
+            output = result.stdout + result.stderr
+            if result.returncode != expected_exit_code:
+                print(f"{' '.join(command)} exited {result.returncode}, expected {expected_exit_code}")
+                sys.exit(1)
+            if expected_text not in output or "Unexpected error" in output:
+                print(f"{' '.join(command)}: expected '{expected_text}' and no 'Unexpected error':\n{output}")
+                sys.exit(1)
 
 
 def main():
@@ -1028,6 +1085,8 @@ def main():
 
     if is_sqlite:
         test_target_precedence(args.dbtool, args.plugins_dir, connection_string)
+
+    test_exit_code_after_compat_policy_plugin(args.dbtool, args.plugins_dir, connection_string)
 
     print("SUCCESS")
 

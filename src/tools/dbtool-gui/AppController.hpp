@@ -550,6 +550,14 @@ class AppController: public QObject
     /// warning. Always emits `migrationsChanged()`.
     void RefreshMigrationModelsAfterRun();
 
+    /// Opaque bundle of `Lightweight::Tools::LoadedPlugin` keeping every
+    /// loaded shared library alive. Defined in `AppController.cpp` so the
+    /// header doesn't pull in `<PluginIngestion.hpp>` (see the comment at
+    /// the top of this file for the moc-parser reason). Declared before
+    /// `_runner`, so the runner's pool has finished before the plugins unload.
+    struct PluginsBundle;
+    std::unique_ptr<PluginsBundle> _plugins;
+
     ProfileListModel _profiles;
     OdbcDataSourceListModel _odbcDataSources;
     MigrationListModel _migrations;
@@ -622,16 +630,6 @@ class AppController: public QObject
     /// held by raw pointer to keep `<QtCore/QFileSystemWatcher>` out of this
     /// header. The instance is parented to `this` so Qt reclaims it.
     class QFileSystemWatcher* _fileWatcher = nullptr;
-
-    // Plugins must outlive every MigrationBase pointer the MigrationManager
-    // holds — unloading a plugin invalidates its migrations. Keep them for
-    // the lifetime of the controller.
-    /// Opaque bundle of `Lightweight::Tools::LoadedPlugin` keeping every
-    /// loaded shared library alive. Defined in `AppController.cpp` so the
-    /// header doesn't pull in `<PluginIngestion.hpp>` (see the comment at
-    /// the top of this file for the moc-parser reason).
-    struct PluginsBundle;
-    std::unique_ptr<PluginsBundle> _plugins;
 };
 
 } // namespace DbtoolGui

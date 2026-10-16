@@ -9,6 +9,7 @@
 #include <format>
 #include <fstream>
 #include <sstream>
+#include <string>
 
 #include <yaml-cpp/yaml.h>
 
@@ -63,8 +64,32 @@ SqlConnectInfo Profile::ToConnectInfo(std::string_view password) const
     return SqlConnectionString { std::move(extended) };
 }
 
+namespace
+{
+    /// Value of the environment variable `name`; empty when it is unset.
+    std::string EnvironmentValue(char const* name)
+    {
+#ifdef _WIN32
+        auto size = std::size_t {};
+        if (getenv_s(&size, nullptr, 0, name) != 0 || size == 0)
+            return {};
+        auto value = std::string(size, '\0');
+        if (getenv_s(&size, value.data(), value.size(), name) != 0)
+            return {};
+        value.resize(size - 1); // size counts the terminating null
+        return value;
+#else
+        auto const* const value = std::getenv(name);
+        return value != nullptr ? std::string { value } : std::string {};
+#endif
+    }
+} // namespace
+
 std::filesystem::path ProfileStore::DefaultPath()
 {
+    if (auto const directory = EnvironmentValue(UserConfigDirectoryVariable); !directory.empty())
+        return std::filesystem::path(directory) / "dbtool.yml";
+
 #ifdef _WIN32
     char path[MAX_PATH];
     if (SUCCEEDED(SHGetFolderPathA(nullptr, CSIDL_APPDATA, nullptr, 0, path)))

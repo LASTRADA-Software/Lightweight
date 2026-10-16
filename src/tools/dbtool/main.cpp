@@ -44,6 +44,7 @@
 #include <Config/ProfileFileEditor.hpp>
 #include <Config/ProfilePassword.hpp>
 #include <Config/ProfileStore.hpp>
+#include <NoErrorDialogs.hpp>
 #include <PluginDiscovery.hpp>
 #include <PluginIngestion.hpp>
 #include <PluginLoader.hpp>
@@ -1432,34 +1433,32 @@ int Migrate(MigrationManager& manager, bool dryRun)
     return Status(manager);
 }
 
+/// Returns the exit code a command produced, or reports its error and returns EXIT_FAILURE.
+/// @param result The command's exit code, or the message describing why it failed.
+int ExitCodeOf(std::expected<int, std::string> const& result)
+{
+    if (result)
+        return *result;
+    std::println(std::cerr, "Error: {}", result.error());
+    return EXIT_FAILURE;
+}
+
 int ApplyMigration(MigrationManager& manager, std::string_view argument)
 {
-    return GetMigration(manager, argument)
-        .and_then([&manager](MigrationBase const* migration) {
-            manager.ApplySingleMigration(*migration);
-            std::println("Applied migration {}.", migration->GetTimestamp().value);
-            return std::expected<int, std::string> { EXIT_SUCCESS };
-        })
-        .transform_error([](std::string const& error) {
-            std::println(std::cerr, "Error: {}", error);
-            return EXIT_FAILURE;
-        })
-        .value();
+    return ExitCodeOf(GetMigration(manager, argument).and_then([&manager](MigrationBase const* migration) {
+        manager.ApplySingleMigration(*migration);
+        std::println("Applied migration {}.", migration->GetTimestamp().value);
+        return std::expected<int, std::string> { EXIT_SUCCESS };
+    }));
 }
 
 int RollbackMigration(MigrationManager& manager, std::string_view argument)
 {
-    return GetMigration(manager, argument)
-        .and_then([&manager](MigrationBase const* migration) {
-            manager.RevertSingleMigration(*migration);
-            std::println("Rolled back migration {}.", migration->GetTimestamp().value);
-            return std::expected<int, std::string> { EXIT_SUCCESS };
-        })
-        .transform_error([](std::string const& error) {
-            std::println(std::cerr, "Error: {}", error);
-            return EXIT_FAILURE;
-        })
-        .value();
+    return ExitCodeOf(GetMigration(manager, argument).and_then([&manager](MigrationBase const* migration) {
+        manager.RevertSingleMigration(*migration);
+        std::println("Rolled back migration {}.", migration->GetTimestamp().value);
+        return std::expected<int, std::string> { EXIT_SUCCESS };
+    }));
 }
 
 /// Displays a summary of migration status including applied, pending, and checksum mismatches.
@@ -1757,24 +1756,19 @@ int UnicodeUpgradeTables(MigrationManager& manager, bool dryRun, bool yes)
 /// @return EXIT_SUCCESS on success, EXIT_FAILURE on error.
 int MarkApplied(MigrationManager& manager, std::string_view argument)
 {
-    return GetMigration(manager, argument)
-        .and_then([&manager](MigrationBase const* migration) -> std::expected<int, std::string> {
-            try
-            {
-                manager.MarkMigrationAsApplied(*migration);
-                std::println("Marked migration {} - {} as applied.", migration->GetTimestamp().value, migration->GetTitle());
-                return EXIT_SUCCESS;
-            }
-            catch (std::exception const& e)
-            {
-                return std::unexpected(e.what());
-            }
-        })
-        .transform_error([](std::string const& error) {
-            std::println(std::cerr, "Error: {}", error);
-            return EXIT_FAILURE;
-        })
-        .value();
+    auto const markApplied = [&manager](MigrationBase const* migration) -> std::expected<int, std::string> {
+        try
+        {
+            manager.MarkMigrationAsApplied(*migration);
+            std::println("Marked migration {} - {} as applied.", migration->GetTimestamp().value, migration->GetTitle());
+            return EXIT_SUCCESS;
+        }
+        catch (std::exception const& e)
+        {
+            return std::unexpected(e.what());
+        }
+    };
+    return ExitCodeOf(GetMigration(manager, argument).and_then(markApplied));
 }
 
 /// Rolls back all migrations applied after the specified timestamp.
@@ -2785,13 +2779,36 @@ int ExecQuery(Options const& options)
     }
 }
 
-/// Plugins loaded by `GetMigrationManager`, kept loaded for the lifetime of the program:
-/// the MigrationManager holds references to migration code from these plugins, so they
-/// must not be unloaded (via dlclose) while migrations may still be accessed.
+/// Owner of the plugins loaded by `GetMigrationManager`, alive until the program exits. The
+/// MigrationManager refers to their migrations and compat policy, so the destructor unloads
+/// them only after the manager has let go of both.
+struct LoadedPluginSet
+{
+    /// Constructs the manager first, so it is destroyed after this set.
+    LoadedPluginSet()
+    {
+        static_cast<void>(MigrationManager::GetInstance());
+    }
+
+    LoadedPluginSet(LoadedPluginSet const&) = delete;
+    LoadedPluginSet(LoadedPluginSet&&) = delete;
+    LoadedPluginSet& operator=(LoadedPluginSet const&) = delete;
+    LoadedPluginSet& operator=(LoadedPluginSet&&) = delete;
+
+    ~LoadedPluginSet()
+    {
+        Tools::UnloadPlugins(plugins, MigrationManager::GetInstance());
+    }
+
+    /// The loaded plugins, in discovery order.
+    std::vector<Tools::LoadedPlugin> plugins;
+};
+
+/// Plugins loaded by `GetMigrationManager`, kept loaded for the lifetime of the program.
 std::vector<Tools::LoadedPlugin>& LoadedPlugins()
 {
-    static std::vector<Tools::LoadedPlugin> plugins;
-    return plugins;
+    static LoadedPluginSet loaded;
+    return loaded.plugins;
 }
 
 /// Loads the migration plugins into the central manager once, and exits when their post-init
@@ -3056,6 +3073,9 @@ void ConfigureWindowsConsole()
 
 int main(int argc, char** argv)
 {
+    // A command-line tool must never wait for a click, so CRT asserts, aborts and crashes go to stderr.
+    Tools::DisableErrorDialogs();
+
     // Disable stdout buffering for the entire process. With the default fully-buffered
     // mode (or Windows-_IOLBF, which the MSVC runtime silently treats as fully-buffered),
     // std::println output can be silently lost when a loaded DLL — notably psqlODBC's

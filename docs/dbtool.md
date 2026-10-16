@@ -131,7 +131,10 @@ The first match wins:
 3. `dbtool.yml` in the directory of the `dbtool` executable or any parent directory — handy for
    portable installs that ship a config next to the binary;
 4. the per-user file: `~/.config/dbtool/dbtool.yml` (Linux/macOS, honouring `$XDG_CONFIG_HOME`)
-   or `%APPDATA%\dbtool\dbtool.yml` (Windows).
+   or `%APPDATA%\dbtool\dbtool.yml` (Windows). When `LIGHTWEIGHT_DBTOOL_USER_CONFIG_DIR` is set
+   to an absolute directory, the per-user file is `dbtool.yml` in that directory instead, which
+   keeps tests and scripted runs off the user's own file (a relative path resolves against the
+   working directory).
 
 `dbtool list-profiles` shows which file was used and why; `--verbose` prints it for every other
 command. `dbtool-gui` uses the same lookup unless a profile-store path is set in its Settings.
@@ -852,6 +855,20 @@ the remaining plugins' hooks still run. The macro exports a non-throwing entry p
 that catches the exception inside the plugin, so it never crosses the shared-library
 boundary.
 
+### Plugin Lifetime
+
+`dbtool` keeps its plugins loaded until it exits; `dbtool-gui` also unloads them when it
+reloads the plugin list (another profile or plugins directory). Before either unloads a
+plugin, and also when a later plugin fails to load, the migration manager drops what the
+plugins gave it: the compat policy (`SetCompatPolicy`, usually installed from a plugin's
+static initializer), the migrations and the releases. The process then exits with the
+command's own exit code.
+
+Anything else a plugin installs process-wide — a callback on the migration manager or the
+connection, a logger — is code from the plugin's library, and the plugin must remove it
+itself in a static destructor. Otherwise the process calls into an unloaded library when
+it destroys that callback, and crashes on exit.
+
 ## Workflow Examples
 
 ### Full Migration Workflow
@@ -932,6 +949,21 @@ do **not** run `rewrite-checksums`, which would erase the evidence.
 If migration locking fails:
 - Another migration may be running
 - Use `--no-lock` to skip locking (only if you're certain no other migrations are running)
+
+### Crashes and Assertions (Windows)
+
+A failed CRT assertion, an invalid CRT parameter or `abort()` is reported on stderr and ends the
+process with exit code 3; a crash ends it with its exception code (e.g. `0xC0000005`). Neither opens
+a dialog, so scripts and CI never hang waiting for a click. A DLL that fails to load before `main`
+starts is outside the process's control; run `dbtool` from a parent that sets the error mode (ctest
+does) to suppress that dialog too.
+
+`dbtool` always behaves this way, and so do the test executables. `dbtool-gui` keeps the standard
+Windows dialogs for interactive use; set `LIGHTWEIGHT_NO_ERROR_DIALOGS=1` for a scripted run. A
+scripted run can also set `LIGHTWEIGHT_DBTOOL_GUI_SETTINGS_DIR` to keep `dbtool-gui`'s settings in
+an INI file under that directory instead of the user's settings. Its default backup folder (used
+when none is chosen in Settings and the loaded `dbtool.yml` sets no `defaultBackupDir`) is then the
+`backups` folder in that directory instead of the per-user one.
 
 ## See Also
 

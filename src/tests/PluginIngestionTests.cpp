@@ -24,6 +24,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <set>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -568,4 +569,108 @@ TEST_CASE("PluginsWithPostInitHook lists exactly the plugins that export a post-
     auto unresolvable = Lightweight::Tools::LoadedPlugin {};
     unresolvable.path = "no-symbol-lookup";
     CHECK(Lightweight::Tools::PluginsWithPostInitHook(std::vector { unresolvable }).empty());
+}
+
+TEST_CASE("UnloadPlugins — central lets go of plugin state before the plugin is unloaded", "[PluginIngestion]")
+{
+    Lightweight::SqlMigration::MigrationManager central;
+    FakeMigration migration { Lightweight::SqlMigration::MigrationTimestamp { 20260301000000ULL }, "plugin" };
+    central.AddMigration(&migration);
+    central.RegisterRelease("1.0.0", Lightweight::SqlMigration::MigrationTimestamp { 20260301000000ULL });
+    central.SetCompatPolicy([](Lightweight::SqlMigration::MigrationBase const&) { return std::set<std::string> {}; });
+
+    // What central still held when the plugin's handle was released, i.e. its library unloaded.
+    struct StateAtUnload
+    {
+        bool unloaded = false;
+        bool hadCompatPolicy = false;
+        std::size_t migrations = 0;
+        std::size_t releases = 0;
+    } stateAtUnload;
+
+    auto const recordStateAtUnload = [&](void*) {
+        stateAtUnload = { .unloaded = true,
+                          .hadCompatPolicy = static_cast<bool>(central.GetCompatPolicy()),
+                          .migrations = central.GetAllMigrations().size(),
+                          .releases = central.GetAllReleases().size() };
+    };
+    auto plugins = std::vector<Lightweight::Tools::LoadedPlugin> {};
+    plugins.push_back(Lightweight::Tools::LoadedPlugin {
+        .path = "CompatPolicyPlugin.dll",
+        .handle = std::shared_ptr<void>(nullptr, recordStateAtUnload),
+    });
+
+    Lightweight::Tools::UnloadPlugins(plugins, central);
+
+    CHECK(plugins.empty());
+    REQUIRE(stateAtUnload.unloaded);
+    CHECK_FALSE(stateAtUnload.hadCompatPolicy);
+    CHECK(stateAtUnload.migrations == 0);
+    CHECK(stateAtUnload.releases == 0);
+}
+
+TEST_CASE("IngestPlugins — a failed load unloads the plugins loaded before it only after central lets go of them",
+          "[PluginIngestion]")
+{
+    ScopedTempTree const tree;
+    auto const dir = tree.Dir("plugins");
+    TouchPluginFile(dir / "AaaPolicyPlugin.dll", Baseline());
+    TouchPluginFile(dir / "ZzzBrokenPlugin.dll", Baseline());
+
+    Lightweight::SqlMigration::MigrationManager central;
+    auto unloaded = false;
+    auto hadCompatPolicyAtUnload = false;
+
+    // The first plugin installs a compat policy as its static initializer would; the second fails to load.
+    auto loader = [&](std::filesystem::path const& path) -> std::optional<Lightweight::Tools::LoadedPlugin> {
+        if (path.filename() == "ZzzBrokenPlugin.dll")
+            throw std::runtime_error("not a valid shared library");
+        central.SetCompatPolicy([](Lightweight::SqlMigration::MigrationBase const&) { return std::set<std::string> {}; });
+        auto const recordUnload = [&](void*) {
+            unloaded = true;
+            hadCompatPolicyAtUnload = static_cast<bool>(central.GetCompatPolicy());
+        };
+        return Lightweight::Tools::LoadedPlugin {
+            .path = path,
+            .handle = std::shared_ptr<void>(nullptr, recordUnload),
+        };
+    };
+
+    std::vector<std::filesystem::path> dirs { dir };
+    REQUIRE_THROWS_AS(Lightweight::Tools::IngestPlugins(dirs, loader, central), std::runtime_error);
+    REQUIRE(unloaded);
+    CHECK_FALSE(hadCompatPolicyAtUnload);
+}
+
+TEST_CASE("IngestPlugins — a failed merge unloads the plugin only after central lets go of it", "[PluginIngestion]")
+{
+    ScopedTempTree const tree;
+    auto const dir = tree.Dir("plugins");
+    TouchPluginFile(dir / "DuplicateReleasePlugin.dll", Baseline());
+
+    Lightweight::SqlMigration::MigrationManager central;
+    central.RegisterRelease("1.0.0", Lightweight::SqlMigration::MigrationTimestamp { 20260401000000ULL });
+    auto unloaded = false;
+    auto hadCompatPolicyAtUnload = false;
+
+    // The plugin installs a compat policy as its static initializer would, then declares a release central already has.
+    auto pluginManager = std::make_unique<Lightweight::SqlMigration::MigrationManager>();
+    pluginManager->RegisterRelease("1.0.0", Lightweight::SqlMigration::MigrationTimestamp { 20260402000000ULL });
+    auto loader = [&](std::filesystem::path const& path) -> std::optional<Lightweight::Tools::LoadedPlugin> {
+        central.SetCompatPolicy([](Lightweight::SqlMigration::MigrationBase const&) { return std::set<std::string> {}; });
+        auto const recordUnload = [&](void*) {
+            unloaded = true;
+            hadCompatPolicyAtUnload = static_cast<bool>(central.GetCompatPolicy());
+        };
+        auto plugin = Lightweight::Tools::LoadedPlugin {};
+        plugin.path = path;
+        plugin.handle = std::shared_ptr<void>(nullptr, recordUnload);
+        plugin.pluginManager = pluginManager.get();
+        return plugin;
+    };
+
+    std::vector<std::filesystem::path> dirs { dir };
+    REQUIRE_THROWS_AS(Lightweight::Tools::IngestPlugins(dirs, loader, central), std::runtime_error);
+    REQUIRE(unloaded);
+    CHECK_FALSE(hadCompatPolicyAtUnload);
 }

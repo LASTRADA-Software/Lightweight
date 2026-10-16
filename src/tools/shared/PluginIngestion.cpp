@@ -99,25 +99,41 @@ std::vector<LoadedPlugin> IngestPlugins(std::span<std::filesystem::path const> d
     loaded.reserve(resolved.size());
 
     std::unordered_set<void const*> seenHandles;
-    for (auto const& entry: resolved)
+    try
     {
-        auto maybe = InvokeLoader(loader, entry.path, options);
-        if (!maybe)
-            continue; // either nullopt-from-loader, or threw and we're not fail-fast
+        for (auto const& entry: resolved)
+        {
+            auto maybe = InvokeLoader(loader, entry.path, options);
+            if (!maybe)
+                continue; // either nullopt-from-loader, or threw and we're not fail-fast
 
-        if (RejectDuplicateHandle(seenHandles, *maybe, options))
-            continue;
+            if (RejectDuplicateHandle(seenHandles, *maybe, options))
+                continue;
 
-        if (options.logLoading)
-            options.logLoading(std::format("Loading plugin: {}", maybe->path.string()));
+            if (options.logLoading)
+                options.logLoading(std::format("Loading plugin: {}", maybe->path.string()));
 
-        if (maybe->pluginManager != nullptr)
-            MergeIntoCentral(*maybe->pluginManager, central);
-
-        loaded.push_back(std::move(*maybe));
+            // Owned by `loaded` before merging, so a failed merge still unloads it through `UnloadPlugins`.
+            auto const& plugin = loaded.emplace_back(std::move(*maybe));
+            if (plugin.pluginManager != nullptr)
+                MergeIntoCentral(*plugin.pluginManager, central);
+        }
+    }
+    catch (...)
+    {
+        UnloadPlugins(loaded, central);
+        throw;
     }
 
     return loaded;
+}
+
+void UnloadPlugins(std::vector<LoadedPlugin>& plugins, Lightweight::SqlMigration::MigrationManager& central)
+{
+    central.SetCompatPolicy({});
+    central.RemoveAllMigrations();
+    central.RemoveAllReleases();
+    plugins.clear();
 }
 
 PluginLoaderFn DefaultPluginLoader()

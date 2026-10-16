@@ -120,7 +120,9 @@ class ManagedBackupController: public QObject
 
     /// The folder used when none was chosen in Settings: the `defaultBackupDir` of the loaded
     /// dbtool.yml when it names one (so a deployment can pre-configure it, see
-    /// `setConfiguredBackupFolder`), else the platform default <AppDataLocation>/backups.
+    /// `setConfiguredBackupFolder`), else `<LIGHTWEIGHT_DBTOOL_GUI_SETTINGS_DIR>/backups` when that
+    /// variable is set (a scripted run, see SettingsLocation.hpp), else the platform default
+    /// <AppDataLocation>/backups.
     [[nodiscard]] QString defaultBackupFolder() const;
 
     /// Sets the folder dbtool.yml configures (`defaultBackupDir`); empty when it names none.

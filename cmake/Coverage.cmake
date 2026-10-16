@@ -144,7 +144,8 @@ function(_add_coverage_env_target TEST_TARGET TEST_ENV)
                 --plugins-dir $<TARGET_FILE_DIR:dummy_migration_plugin>
                 --test-env ${TEST_ENV}
         )
-        set(DBTOOL_COVERAGE_DEPENDS dbtool dummy_migration_plugin dummy_migration_plugin_2)
+        set(DBTOOL_COVERAGE_DEPENDS dbtool dummy_migration_plugin dummy_migration_plugin_2
+            post_migrate_plugin failing_migration_fixture compat_policy_fixture)
     endif()
 
     add_custom_target(coverage-${TEST_ENV}

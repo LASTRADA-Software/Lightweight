@@ -22,6 +22,8 @@ add_library(tools_shared STATIC
     Config/ProfileStore.cpp
     Config/ProfileStore.hpp
 
+    NoErrorDialogs.hpp
+
     PluginDiscovery.cpp
     PluginDiscovery.hpp
 

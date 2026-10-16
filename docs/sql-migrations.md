@@ -426,6 +426,13 @@ manager.SetCompatPolicy([](SqlMigration::MigrationBase const& migration) {
 Flags only change the SQL sent to the database. Checksums are computed from the migration as
 declared, so the same migration has the same checksum on every database.
 
+A policy installed by a plugin is code from that plugin's library. `dbtool` and `dbtool-gui`
+clear the policy, the migrations and the releases before they unload plugins
+(`Lightweight::Tools::UnloadPlugins`): at exit, after a failed plugin load, and in `dbtool-gui`
+whenever it reloads the plugin list, where the reloaded plugins' static initializers install
+their policy again. A host that loads plugins itself must do the same, or the manager calls into
+an unloaded library: at the next migration it applies, or in its destructor when the process exits.
+
 ### Preview (Dry-Run)
 
 Generate SQL without executing:

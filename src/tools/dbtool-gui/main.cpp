@@ -7,10 +7,13 @@
 // the original design notes.
 
 #include "AppController.hpp"
+#include "SettingsLocation.hpp"
+#include "StderrMessageHandler.hpp"
 
 #include <cstdio>
 #include <cstdlib>
 
+#include <NoErrorDialogs.hpp>
 #include <QtCore/QCommandLineOption>
 #include <QtCore/QCommandLineParser>
 #include <QtCore/QDebug>
@@ -25,39 +28,6 @@
 
 namespace
 {
-
-/// Routes Qt's log messages to stderr so launching the binary from a console
-/// shows QML load failures and QObject warnings. Without this the WIN32
-/// subsystem build drops everything on the floor, making every startup
-/// problem look like "the app exited silently".
-void LwQtMessageHandler(QtMsgType type, QMessageLogContext const& ctx, QString const& msg)
-{
-    char const* prefix = nullptr;
-    switch (type)
-    {
-        case QtDebugMsg:
-            prefix = "DEBUG";
-            break;
-        case QtInfoMsg:
-            prefix = "INFO";
-            break;
-        case QtWarningMsg:
-            prefix = "WARN";
-            break;
-        case QtCriticalMsg:
-            prefix = "ERROR";
-            break;
-        case QtFatalMsg:
-            prefix = "FATAL";
-            break;
-    }
-    auto const file = ctx.file ? ctx.file : "";
-    auto const line = ctx.line;
-    std::fprintf(stderr, "[%s] %s (%s:%d)\n", prefix, msg.toLocal8Bit().constData(), file, line);
-    std::fflush(stderr);
-    if (type == QtFatalMsg)
-        std::abort();
-}
 
 /// One palette role and the Lastrada token colour it takes. Mirrors the
 /// values in `qml/Theme.qml`; the Fusion style draws its stock controls
@@ -112,12 +82,17 @@ QPalette LastradaPalette()
 
 int main(int argc, char* argv[])
 {
-    qInstallMessageHandler(LwQtMessageHandler);
+    // Opt-in for scripted runs (tests, CI); an interactive user may still want the debugger prompt.
+    if (qEnvironmentVariable("LIGHTWEIGHT_NO_ERROR_DIALOGS") == QStringLiteral("1"))
+        Lightweight::Tools::DisableErrorDialogs();
+    qInstallMessageHandler(DbtoolGui::WriteQtMessageToStderr);
 
     QGuiApplication app(argc, argv);
     QGuiApplication::setApplicationName(QStringLiteral("Lightweight Migrations"));
     QGuiApplication::setOrganizationName(QStringLiteral("JP-Software"));
     QGuiApplication::setOrganizationDomain(QStringLiteral("lastrada.software"));
+
+    DbtoolGui::UseSettingsDirectoryFromEnvironment();
 
     // The "dbtool-gui starting (Qt …)" / "Theme: …" / "Event loop starting"
     // lines now appear in the GUI's log pane (emitted by `AppController`'s

@@ -106,7 +106,8 @@ struct PluginIngestOptions
 /// `loader` (the DI seam), guards against duplicate native handles, and
 /// copies every loaded plugin's releases, migrations, and compat policy
 /// into `central`. Returns the surviving load handles in the order they
-/// were resolved by `DiscoverPlugins`.
+/// were resolved by `DiscoverPlugins`. When it throws, the plugins it had
+/// loaded are already unloaded through `UnloadPlugins`.
 ///
 /// @param dirs     Directories handed to `DiscoverPlugins`.
 /// @param loader   Per-path callback. In production this is the lambda
@@ -120,6 +121,15 @@ struct PluginIngestOptions
                                                       PluginLoaderFn const& loader,
                                                       Lightweight::SqlMigration::MigrationManager& central,
                                                       PluginIngestOptions const& options = {});
+
+/// Unloads `plugins` once `central` no longer refers to them. `central` first drops its
+/// compat policy, migrations and releases: the policy is a `std::function` that a plugin's
+/// static initializer typically installs, and destroying it after its library is unloaded
+/// calls into unmapped code.
+///
+/// @param plugins Plugin set returned by `IngestPlugins`; empty afterwards.
+/// @param central Host-side manager the plugins were merged into.
+void UnloadPlugins(std::vector<LoadedPlugin>& plugins, Lightweight::SqlMigration::MigrationManager& central);
 
 /// Production loader: opens `path` with `Lightweight::Tools::PluginLoader`,
 /// looks up the plugin's `AcquireMigrationManager` symbol, and returns the

@@ -64,9 +64,10 @@ TestCase {
         verify(button !== null && field !== null)
         compare(field.text, "", "the confirmation must start empty on every open")
 
-        // The test harness loads no dbtool.yml, so the only restore target is
-        // the custom connection string — fill it so the typed name is the
-        // only remaining gate.
+        // The test main isolates the harness with a dbtool.yml that has no
+        // profiles (TestIsolation.hpp), so the only restore target is the
+        // custom connection string — fill it so the typed name is the only
+        // remaining gate.
         if (dialog._isCustom)
             dialog.customConnectionField.text = "DRIVER=SQLite3;Database=restore-target.db"
         compare(dialog.confirmName, "prod")

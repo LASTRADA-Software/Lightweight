@@ -8,6 +8,8 @@
 #include "../ManagedBackupController.hpp"
 #include "../Models/BackupStatusListModel.hpp"
 #include "../Models/BackupTableListModel.hpp"
+#include "../SettingsLocation.hpp"
+#include "SqliteDriver.hpp"
 
 #include <Lightweight/SqlBackup.hpp>
 #include <Lightweight/SqlConnection.hpp>
@@ -27,10 +29,12 @@
 #include <QtCore/QFileInfo>
 #include <QtCore/QTemporaryDir>
 #include <QtCore/QTimer>
+#include <QtCore/QtEnvironmentVariables>
 #include <QtTest/QSignalSpy>
 #include <Secrets/ProfileCipher.hpp>
 
 using DbtoolGui::ManagedBackupController;
+using DbtoolGui::Tests::SqliteConnectionString;
 
 namespace
 {
@@ -41,9 +45,38 @@ namespace
     Lightweight::Config::Profile profile;
     profile.name = name;
     profile.connectionString =
-        "DRIVER=SQLite3;Database=" + (dir.path() + "/" + QString::fromStdString(name)).toStdString() + ".db";
+        SqliteConnectionString((dir.path() + "/" + QString::fromStdString(name)).toStdString() + ".db");
     return profile;
 }
+
+/// Sets an environment variable for its lifetime and restores the previous value, also when a test fails.
+class ScopedEnvironmentVariable
+{
+  public:
+    ScopedEnvironmentVariable(char const* name, QByteArray const& value):
+        _name { name },
+        _previous { qgetenv(name) },
+        _wasSet { qEnvironmentVariableIsSet(name) }
+    {
+        qputenv(name, value);
+    }
+    ScopedEnvironmentVariable(ScopedEnvironmentVariable const&) = delete;
+    ScopedEnvironmentVariable(ScopedEnvironmentVariable&&) = delete;
+    ScopedEnvironmentVariable& operator=(ScopedEnvironmentVariable const&) = delete;
+    ScopedEnvironmentVariable& operator=(ScopedEnvironmentVariable&&) = delete;
+    ~ScopedEnvironmentVariable()
+    {
+        if (_wasSet)
+            qputenv(_name, _previous);
+        else
+            qunsetenv(_name);
+    }
+
+  private:
+    char const* _name;
+    QByteArray _previous;
+    bool _wasSet;
+};
 
 /// Spins the event loop until `spy` has at least one emission or `ms` ran out.
 [[nodiscard]] bool WaitFor(QSignalSpy& spy, int ms = 30000)
@@ -63,6 +96,21 @@ TEST_CASE("ManagedBackupController defaults: idle, default folder, empty model",
     CHECK(controller.effectiveBackupFolder() == controller.defaultBackupFolder());
     CHECK_FALSE(controller.defaultBackupFolder().isEmpty());
     CHECK(controller.status()->rowCount() == 0);
+}
+
+TEST_CASE("the default backup folder lies in LIGHTWEIGHT_DBTOOL_GUI_SETTINGS_DIR when it is set",
+          "[dbtool-gui][managed-backup-controller]")
+{
+    QTemporaryDir dir;
+    auto const defaultFolder = [&] {
+        auto const settingsDirectory =
+            ScopedEnvironmentVariable { DbtoolGui::SettingsDirectoryVariable, QFile::encodeName(dir.path()) };
+        ManagedBackupController controller;
+        controller.setBackupFolder(QString {});
+        return controller.defaultBackupFolder();
+    }();
+
+    CHECK(defaultFolder == dir.path() + QStringLiteral("/backups"));
 }
 
 TEST_CASE("setBackupFolder persists, notifies, and feeds effectiveBackupFolder", "[dbtool-gui][managed-backup-controller]")
@@ -422,7 +470,7 @@ TEST_CASE("restoreArchiveToConnectionString restores into a raw target", "[dbtoo
     controller.backupProfile("alpha");
     REQUIRE(WaitFor(backupDone));
 
-    auto const targetCs = QString("DRIVER=SQLite3;Database=%1/raw-target.db").arg(dir.path());
+    auto const targetCs = QString::fromStdString(SqliteConnectionString((dir.path() + "/raw-target.db").toStdString()));
     QSignalSpy restoreDone(&controller, &ManagedBackupController::finished);
     controller.restoreArchiveToConnectionString("alpha", targetCs, QString {});
     REQUIRE(WaitFor(restoreDone));

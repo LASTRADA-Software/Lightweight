@@ -2,6 +2,7 @@
 
 #include "ManagedBackupController.hpp"
 #include "ManagedBackupCore.hpp"
+#include "SettingsLocation.hpp"
 #include "TableState.hpp"
 
 #include <Lightweight/SqlBackup.hpp>
@@ -334,6 +335,8 @@ QString ManagedBackupController::defaultBackupFolder() const
 {
     if (!_configuredBackupFolder.isEmpty())
         return _configuredBackupFolder;
+    if (auto const settingsDirectory = qEnvironmentVariable(SettingsDirectoryVariable); !settingsDirectory.isEmpty())
+        return settingsDirectory + QStringLiteral("/backups");
     return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + QStringLiteral("/backups");
 }
 

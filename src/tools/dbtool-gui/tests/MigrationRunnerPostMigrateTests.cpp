@@ -8,6 +8,7 @@
 // against a scratch SQLite database.
 
 #include "../MigrationRunner.hpp"
+#include "SqliteDriver.hpp"
 
 #include <Lightweight/SqlAdvisoryLock.hpp>
 #include <Lightweight/SqlConnectInfo.hpp>
@@ -33,20 +34,13 @@
 #include <QtTest/QSignalSpy>
 
 using DbtoolGui::MigrationRunner;
+using DbtoolGui::Tests::SqliteDriver;
 using Lightweight::SqlConnection;
 using Lightweight::SqlConnectionString;
 using Lightweight::SqlMigration::MigrationManager;
 
 namespace
 {
-
-/// SQLite ODBC driver name as registered on this platform.
-constexpr char const* SqliteDriver =
-#ifdef _WIN32
-    "SQLite3 ODBC Driver";
-#else
-    "SQLite3";
-#endif
 
 /// Points the default connection at a scratch SQLite database for one test and restores the previous default.
 class ScratchDatabase

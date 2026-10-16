@@ -425,6 +425,8 @@ namespace SqlMigration
         ///
         /// Typically called once from a plugin's static initializer. Replaces any policy
         /// previously installed — composition is the caller's responsibility for now.
+        /// A policy from a plugin is code in that plugin's library: a host must clear it
+        /// before it unloads the plugin, as dbtool's `Tools::UnloadPlugins` does.
         LIGHTWEIGHT_API void SetCompatPolicy(CompatPolicy policy);
 
         /// @brief Returns a view of the installed policy so it can be propagated across

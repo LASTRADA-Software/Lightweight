@@ -15,8 +15,10 @@
 #include "../LogLevel.hpp"
 #include "../ManagedBackupController.hpp"
 #include "../MigrationRunner.hpp"
+#include "SqliteDriver.hpp"
 
 #include <Lightweight/SqlBackup.hpp>
+#include <Lightweight/SqlMigration.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -24,13 +26,17 @@
 #include <fstream>
 #include <iterator>
 #include <string>
+#include <utility>
 
 #include <QtCore/QSettings>
 #include <QtCore/QString>
 #include <QtCore/QStringList>
 #include <QtCore/QTemporaryDir>
+#include <QtCore/QVariant>
 #include <QtTest/QSignalSpy>
 #include <Secrets/ProfileCipher.hpp>
+
+using DbtoolGui::Tests::SqliteDriver;
 
 namespace
 {
@@ -54,6 +60,35 @@ namespace
         lines << args.value(0).toString();
     return lines.join(QLatin1Char('\n'));
 }
+
+/// Puts one QSettings key of the test application back to its value at construction, also
+/// when the test fails or throws.
+class ScopedSettingRestore
+{
+  public:
+    explicit ScopedSettingRestore(QString key):
+        _key(std::move(key)),
+        _previous(QSettings().value(_key))
+    {
+    }
+
+    ScopedSettingRestore(ScopedSettingRestore const&) = delete;
+    ScopedSettingRestore(ScopedSettingRestore&&) = delete;
+    ScopedSettingRestore& operator=(ScopedSettingRestore const&) = delete;
+    ScopedSettingRestore& operator=(ScopedSettingRestore&&) = delete;
+
+    ~ScopedSettingRestore()
+    {
+        if (_previous.isValid())
+            QSettings().setValue(_key, _previous);
+        else
+            QSettings().remove(_key);
+    }
+
+  private:
+    QString _key;
+    QVariant _previous;
+};
 
 } // namespace
 
@@ -228,14 +263,6 @@ TEST_CASE("the busy guard between the three runners is mutual", "[dbtool-gui][Ap
 
 namespace
 {
-
-/// SQLite ODBC driver name as registered on this platform.
-constexpr char const* SqliteDriver =
-#ifdef _WIN32
-    "SQLite3 ODBC Driver";
-#else
-    "SQLite3";
-#endif
 
 /// Reads a whole file as text.
 std::string ReadFile(std::filesystem::path const& path)
@@ -487,4 +514,36 @@ TEST_CASE("loading a dbtool.yml with defaultBackupDir sets the default backup fo
     std::ofstream(configPath, std::ios::binary | std::ios::trunc) << "profiles:\n  p:\n    dsn: \"X\"\n";
     REQUIRE(controller.loadProfiles(QString::fromStdString(configPath.string())));
     CHECK(controller.managedBackups()->defaultBackupFolder() != QString::fromStdString(backups));
+}
+
+TEST_CASE("switching to an empty plugins dir drops the unloaded plugins' compat policy, migrations and releases",
+          "[dbtool-gui][AppController][plugins]")
+{
+    // setPluginsDir persists under the test application's QSettings, never the real app's.
+    ScopedSettingRestore const restorePluginsDir { QStringLiteral("config/pluginsDir") };
+
+    QTemporaryDir dir;
+    auto const root = std::filesystem::path { dir.path().toStdString() };
+    auto const fixture = std::filesystem::path { DBTOOL_GUI_TESTS_COMPAT_POLICY_FIXTURE };
+    std::filesystem::create_directories(root / "plugins");
+    std::filesystem::create_directories(root / "empty");
+    std::filesystem::copy_file(fixture, root / "plugins" / ("CompatPolicyPlugin" + fixture.extension().string()));
+    // A profile file without plugin directories, so only the Settings-page plugins dir applies.
+    std::ofstream(root / "dbtool.yml", std::ios::binary) << "profiles:\n  p:\n    dsn: \"X\"\n";
+
+    auto const& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
+    {
+        DbtoolGui::AppController controller;
+        REQUIRE(controller.loadProfiles(QString::fromStdString((root / "dbtool.yml").string())));
+
+        controller.setPluginsDir(QString::fromStdString((root / "plugins").string()));
+        REQUIRE(static_cast<bool>(manager.GetCompatPolicy()));
+        REQUIRE(manager.GetAllMigrations().size() == 3);
+        REQUIRE(manager.GetAllReleases().size() == 1);
+
+        controller.setPluginsDir(QString::fromStdString((root / "empty").string()));
+        CHECK_FALSE(static_cast<bool>(manager.GetCompatPolicy()));
+        CHECK(manager.GetAllMigrations().empty());
+        CHECK(manager.GetAllReleases().empty());
+    }
 }

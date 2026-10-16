@@ -20,6 +20,8 @@
 #include <span>
 #include <string_view>
 
+#include <NoErrorDialogs.hpp>
+
 using namespace Lightweight;
 
 LIGHTWEIGHT_SQL_MIGRATION(20260101000000, "Create migration_exit_table")
@@ -29,6 +31,8 @@ LIGHTWEIGHT_SQL_MIGRATION(20260101000000, "Create migration_exit_table")
 
 int main(int argc, char const* argv[])
 {
+    Lightweight::Tools::DisableErrorDialogs();
+
     auto const args = std::span(argv, static_cast<std::size_t>(argc));
     if (args.size() != 2)
     {
