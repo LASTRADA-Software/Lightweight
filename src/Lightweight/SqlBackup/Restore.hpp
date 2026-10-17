@@ -87,7 +87,7 @@ enum class ChunkRestoreOutcome : std::uint8_t
 /// Returns the schema a table is restored into: the one the archive records for it, else @p defaultSchema.
 /// @param info The table.
 /// @param defaultSchema The schema the restore targets.
-[[nodiscard]] inline std::string const& TargetSchema(TableInfo const& info, std::string const& defaultSchema)
+[[nodiscard]] inline std::string TargetSchema(TableInfo const& info, std::string const& defaultSchema)
 {
     return info.schema.empty() ? defaultSchema : info.schema;
 }
@@ -95,7 +95,7 @@ enum class ChunkRestoreOutcome : std::uint8_t
 /// Returns a table's name in the database: the name the archive records, else its key in the table map.
 /// @param key The table's key in the table map.
 /// @param info The table.
-[[nodiscard]] inline std::string const& TargetTableName(std::string const& key, TableInfo const& info)
+[[nodiscard]] inline std::string TargetTableName(std::string const& key, TableInfo const& info)
 {
     return info.name.empty() ? key : info.name;
 }

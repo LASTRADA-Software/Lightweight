@@ -75,9 +75,9 @@ std::string ReadArchiveEntry(std::filesystem::path const& archive, std::string c
 {
     auto const zip = Zip::ZipArchive::Open(archive);
     REQUIRE(zip.has_value());
-    auto const index = zip->LocateEntry(entryName);
-    REQUIRE(index.has_value());
-    auto content = zip->ReadEntryAsString(*index);
+    auto const index = zip->LocateEntry(entryName).value_or(-1);
+    REQUIRE(index >= 0);
+    auto content = zip->ReadEntryAsString(index);
     REQUIRE(content.has_value());
     return std::move(*content);
 }

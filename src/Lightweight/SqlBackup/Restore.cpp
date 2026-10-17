@@ -165,8 +165,8 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
     std::string const& tableName = chunk.tableName;
     std::string const& path = chunk.chunkPath;
     std::string const& fields = tableInfo.fields;
-    std::string const& targetSchema = TargetSchema(tableInfo, ctx.schema);
-    std::string const& targetTableName = TargetTableName(tableName, tableInfo);
+    std::string const targetSchema = TargetSchema(tableInfo, ctx.schema);
+    std::string const targetTableName = TargetTableName(tableName, tableInfo);
 
     size_t const currentTotal1 = ctx.tableProgress.at(tableName)->load();
     ctx.progress.Update({ .state = Progress::State::InProgress,
@@ -477,7 +477,7 @@ void RestoreIndexes(SqlConnectionString const& connectionString,
 
                 // Build the CREATE INDEX statement
                 std::string const uniqueKeyword = idx.isUnique ? "UNIQUE " : "";
-                auto const& targetTableName = TargetTableName(tableName, info);
+                auto const targetTableName = TargetTableName(tableName, info);
                 std::string const formattedTableName = isSQLite
                                                            ? std::format(R"("{}")", targetTableName)
                                                            : FormatTableName(TargetSchema(info, schema), targetTableName);
@@ -677,7 +677,7 @@ std::set<std::string> CreateTablesInOrder(SqlConnection& conn,
             for (auto const& fk: info.foreignKeys)
             {
                 // Construct FK constraint name (matching the format used in AddForeignKey)
-                auto const& targetTableName = TargetTableName(tableName, info);
+                auto const targetTableName = TargetTableName(tableName, info);
                 std::string const fkName =
                     std::format("FK_{}_{}", targetTableName, fk.foreignKey.columns.empty() ? "" : fk.foreignKey.columns[0]);
                 std::string const formattedTableName = FormatTableName(TargetSchema(info, schema), targetTableName);
@@ -698,8 +698,8 @@ std::set<std::string> CreateTablesInOrder(SqlConnection& conn,
     for (auto const& tableName: tableOrder)
     {
         auto const& info = tableMap.at(tableName);
-        auto const& targetSchema = TargetSchema(info, schema);
-        auto const& targetTableName = TargetTableName(tableName, info);
+        auto const targetSchema = TargetSchema(info, schema);
+        auto const targetTableName = TargetTableName(tableName, info);
 
         if (!DropTableIfExists(conn, targetSchema, targetTableName, progress))
             continue;

@@ -6,7 +6,10 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <format>
+#include <optional>
 #include <stdexcept>
+#include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -695,4 +698,24 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlStatement::ConsumePendingResults", "[SqlSta
                             .ConsumePendingResults(),
                         SqlException);
     }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Query text carries non-ASCII literals to the database intact", "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    auto const literal = stmt.Connection().QueryFormatter().StringLiteral("Grüße");
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "LiteralText" ("Id" INTEGER, "Value" VARCHAR(30)))");
+    (void) stmt.ExecuteDirect(std::format(R"(INSERT INTO "LiteralText" ("Id", "Value") VALUES (1, {}))", literal));
+
+    // Fetched as UTF-16, so the driver decodes the column itself.
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "Value" FROM "LiteralText" WHERE "Id" = 1)");
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetNullableColumn<std::u16string>(1) == std::optional<std::u16string> { u"Grüße" });
+    cursor.ConsumePendingResults();
+
+    // A prepared query's text takes the same way to the driver.
+    stmt.Prepare(std::format(R"(SELECT COUNT(*) FROM "LiteralText" WHERE "Value" = {} AND "Id" = ?)", literal));
+    auto counted = stmt.Execute(1);
+    REQUIRE(counted.FetchRow());
+    CHECK(counted.GetColumn<int>(1) == 1);
 }

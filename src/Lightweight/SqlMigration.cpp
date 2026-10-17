@@ -2024,7 +2024,7 @@ void MigrationManager::ApplySingleMigration(MigrationBase const& migration, Migr
         {
             try
             {
-                if (ExecuteMigrationScript(stmt, dm.Connection(), sqlScript, bound) == std::size_t { 0 })
+                if (ExecuteMigrationScript(stmt, dm.Connection(), sqlScript, bound) == std::size_t { 0 } && bound)
                     skippedRows.push_back(
                         DescribeSkippedRow(std::get<SqlInsertDataPlan>(step), *bound, migration.GetTimestamp()));
             }
@@ -2098,7 +2098,7 @@ void MigrationManager::RevertSingleMigration(MigrationBase const& migration)
         {
             try
             {
-                if (ExecuteMigrationScript(stmt, dm.Connection(), sqlScript, bound) == std::size_t { 0 })
+                if (ExecuteMigrationScript(stmt, dm.Connection(), sqlScript, bound) == std::size_t { 0 } && bound)
                     skippedRows.push_back(
                         DescribeSkippedRow(std::get<SqlInsertDataPlan>(step), *bound, migration.GetTimestamp()));
             }

@@ -456,13 +456,13 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
         SQLULEN processedCount,
         SQLULEN expectedCount,
         std::source_location sourceLocation = std::source_location::current()) const;
-    /// @brief Re-issues @c SQLPrepareW after a reused prepared statement went stale, for one retry.
+    /// @brief Re-issues @c SQLPrepare after a reused prepared statement went stale, for one retry.
     ///
-    /// @c Prepare() skips @c SQLPrepareW when the statement handle already holds exactly this query
+    /// @c Prepare() skips @c SQLPrepare when the statement handle already holds exactly this query
     /// text. A prepared statement can nevertheless stop being executable - most visibly on PostgreSQL,
     /// where a DDL change between two executions makes the server reject the cached plan with
     /// @c 0A000 - so an execute that fails with one of those SQLSTATEs re-prepares once and runs again.
-    /// Parameter bindings live on the handle and survive @c SQLPrepareW, so the caller's already-bound
+    /// Parameter bindings live on the handle and survive @c SQLPrepare, so the caller's already-bound
     /// arguments stay valid for the retry.
     ///
     /// @note Retrying re-executes the whole statement. That is safe for the conditions listed above
@@ -566,6 +566,12 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// @param queryText The SQL text to prepare.
     /// @throws SqlException The driver rejected the prepare, or could not report the parameter count.
     void PrepareOnHandle(std::string queryText);
+
+    /// @brief Executes @p query directly on the handle, through the entry point the driver takes query
+    /// text on (see SqlConnection::AcceptsWideQueryText()).
+    /// @param query The SQL text to execute, UTF-8.
+    /// @return The SQLExecDirect return code.
+    [[nodiscard]] SQLRETURN ExecDirectOnHandle(std::string_view query);
 
     /// @brief Describes every parameter of the prepared query.
     ///
