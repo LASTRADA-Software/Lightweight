@@ -5420,3 +5420,308 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Insert IfNotExists names the migratio
     CHECK(message.starts_with("Migration 202610170015 'bad key': "));
     CHECK(message.contains(R"(key column "Code")"));
 }
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server names the schema of a joined column when the plan spans several",
+                 "[SqlMigration][UnicodeUpgrade][MultiSchema]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("only SQL Server widens columns that a foreign key joins");
+    mgr.CreateMigrationHistory();
+
+    DropSqlServerMultiSchemaFixture(stmt);
+    auto const cleanup = detail::Finally([&] { DropSqlServerMultiSchemaFixture(stmt); });
+    for (auto const* sql: {
+             "CREATE SCHEMA sales",
+             "CREATE TABLE sales.uu_ms_customers (CODE CHAR(10) NOT NULL CONSTRAINT PK_uu_ms_customers PRIMARY KEY)",
+             "CREATE TABLE dbo.uu_ms_orders (ID INT NOT NULL PRIMARY KEY, CUSTOMER_CODE CHAR(10) NOT NULL "
+             "CONSTRAINT FK_uu_ms_orders_customer FOREIGN KEY REFERENCES sales.uu_ms_customers (CODE))",
+         })
+        (void) stmt.ExecuteDirect(sql);
+    // Only the key is declared; the referencing column is widened because the foreign key joins it.
+    fold_test::FoldStub<20'26'10'17'00'04> decl { "declare wide", [](SqlMigrationQueryBuilder& plan) {
+                                                     plan.CreateTable("uu_ms_customers").PrimaryKey("CODE", NChar(10));
+                                                 } };
+
+    auto const preview = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    REQUIRE(preview.columns.size() == 2);
+    CHECK(preview.columns[1].table.schema == "dbo");
+    CHECK(preview.columns[1].column == "CUSTOMER_CODE");
+    CHECK(preview.columns[1].joinedByForeignKeyTo == "sales.uu_ms_customers.CODE");
+}
+
+// ================================================================================================
+// unicode-upgrade-tables commits unit by unit
+// ================================================================================================
+
+namespace
+{
+
+/// The tables of @p unit as `schema.table` (or `table`), in order.
+std::vector<std::string> UnitTables(std::vector<SqlSchema::FullyQualifiedTableName> const& unit)
+{
+    auto tables = std::vector<std::string> {};
+    for (auto const& table: unit)
+        tables.push_back(table.schema.empty() ? table.table : std::format("{}.{}", table.schema, table.table));
+    return tables;
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server commits each unit on its own and a rerun continues",
+                 "[SqlMigration][UnicodeUpgrade][Units]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("a database DDL trigger injects the failure, which is SQL Server's");
+    mgr.CreateMigrationHistory();
+
+    auto const dropFixture = [&] {
+        for (auto const* sql: {
+                 "IF EXISTS (SELECT 1 FROM sys.triggers WHERE name = N'uu_unit_block' AND parent_class = 0) "
+                 "DROP TRIGGER uu_unit_block ON DATABASE",
+                 "IF OBJECT_ID(N'dbo.uu_unit_c') IS NOT NULL DROP TABLE dbo.uu_unit_c",
+                 "IF OBJECT_ID(N'dbo.uu_unit_a') IS NOT NULL DROP TABLE dbo.uu_unit_a",
+                 "IF OBJECT_ID(N'dbo.uu_unit_b') IS NOT NULL DROP TABLE dbo.uu_unit_b",
+             })
+            (void) stmt.ExecuteDirect(sql);
+    };
+    dropFixture();
+    auto const cleanup = detail::Finally(dropFixture);
+    // uu_unit_c joins uu_unit_a by a foreign key, so they form one unit; uu_unit_b is a unit of its own.
+    for (auto const* sql: {
+             "CREATE TABLE dbo.uu_unit_a (CODE CHAR(10) NOT NULL CONSTRAINT PK_uu_unit_a PRIMARY KEY, "
+             "NOTE VARCHAR(20) NULL CONSTRAINT UQ_uu_unit_a_note UNIQUE)",
+             "CREATE TABLE dbo.uu_unit_c (ID INT NOT NULL CONSTRAINT PK_uu_unit_c PRIMARY KEY, "
+             "A_CODE CHAR(10) NOT NULL CONSTRAINT FK_uu_unit_c_a FOREIGN KEY REFERENCES dbo.uu_unit_a (CODE))",
+             "CREATE TABLE dbo.uu_unit_b (CODE CHAR(10) NOT NULL CONSTRAINT PK_uu_unit_b PRIMARY KEY)",
+             "INSERT INTO dbo.uu_unit_a (CODE, NOTE) VALUES ('a1', 'first')",
+             "INSERT INTO dbo.uu_unit_c (ID, A_CODE) VALUES (1, 'a1')",
+             "INSERT INTO dbo.uu_unit_b (CODE) VALUES ('b1')",
+         })
+        (void) stmt.ExecuteDirect(sql);
+    fold_test::FoldStub<20'26'10'17'00'02> decl {
+        "declare wide",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("uu_unit_a").PrimaryKey("CODE", NChar(10)).Column("NOTE", NVarchar(20));
+            plan.CreateTable("uu_unit_b").PrimaryKey("CODE", NChar(10));
+        }
+    };
+
+    auto const preview = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    REQUIRE(preview.units.size() == 2);
+    CHECK(UnitTables(preview.units[0]) == std::vector<std::string> { "dbo.uu_unit_a", "dbo.uu_unit_c" });
+    CHECK(UnitTables(preview.units[1]) == std::vector<std::string> { "dbo.uu_unit_b" });
+    // One schema: the joined column names the column it follows without a schema.
+    auto const joined = std::ranges::find(
+        preview.columns, std::string { "A_CODE" }, &SqlMigration::MigrationManager::ColumnUpgradeEntry::column);
+    REQUIRE(joined != preview.columns.end());
+    CHECK(joined->joinedByForeignKeyTo == "uu_unit_a.CODE");
+
+    // Every ALTER TABLE on uu_unit_b fails, so the second unit does (XML methods need ANSI_WARNINGS).
+    (void) stmt.ExecuteDirect("CREATE TRIGGER uu_unit_block ON DATABASE FOR ALTER_TABLE AS SET ANSI_WARNINGS ON; "
+                              "IF EVENTDATA().value('(/EVENT_INSTANCE/ObjectName)[1]', 'nvarchar(128)') = N'uu_unit_b' "
+                              "BEGIN RAISERROR (N'blocked by the test', 16, 1); ROLLBACK; END");
+    auto committedUnits = std::vector<std::string> {};
+    mgr.SetLogSink([&](std::string_view message) {
+        if (message.starts_with("committed unit "))
+            committedUnits.emplace_back(message);
+    });
+    auto const resetSink = detail::Finally([&] { mgr.SetLogSink({}); });
+    auto error = std::string {};
+    try
+    {
+        std::ignore = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    }
+    catch (SqlMigration::UnicodeUpgradeUnitError const& failure)
+    {
+        // A SqlException that keeps the cause's diagnostics.
+        error = failure.info().message;
+        CHECK(failure.UnitNumber() == 2);
+        CHECK(failure.UnitCount() == 2);
+        CHECK(failure.info().nativeErrorCode != 0);
+        CHECK(failure.info().sqlState != "     ");
+    }
+    INFO(error);
+    CHECK(error.contains("unit 2 of 2 (dbo.uu_unit_b) failed and was rolled back"));
+    CHECK(error.contains("the 1 unit(s) before it are committed"));
+    CHECK(error.contains("blocked by the test"));
+    CHECK(committedUnits == std::vector<std::string> { "committed unit 1 of 2: dbo.uu_unit_a, dbo.uu_unit_c" });
+
+    // The first unit stays committed with all its objects; the second is untouched.
+    CHECK(LiveDataTypeIn(stmt, "dbo", "uu_unit_a", "CODE") == "nchar");
+    CHECK(LiveDataTypeIn(stmt, "dbo", "uu_unit_a", "NOTE") == "nvarchar");
+    CHECK(LiveDataTypeIn(stmt, "dbo", "uu_unit_c", "A_CODE") == "nchar");
+    CHECK(CatalogScalar(stmt, "SELECT type FROM sys.key_constraints WHERE name = 'PK_uu_unit_a'") == "PK");
+    CHECK(CatalogScalar(stmt, "SELECT type FROM sys.key_constraints WHERE name = 'UQ_uu_unit_a_note'") == "UQ");
+    CHECK(CatalogScalar(stmt, "SELECT name FROM sys.foreign_keys WHERE name = 'FK_uu_unit_c_a'") == "FK_uu_unit_c_a");
+    CHECK(LiveDataTypeIn(stmt, "dbo", "uu_unit_b", "CODE") == "char");
+    CHECK(CatalogScalar(stmt, "SELECT type FROM sys.key_constraints WHERE name = 'PK_uu_unit_b'") == "PK");
+    CHECK(stmt.ExecuteDirectScalar<long long>("SELECT COUNT(*) FROM dbo.uu_unit_b").value_or(0) == 1);
+
+    // A rerun plans only what is left and completes.
+    (void) stmt.ExecuteDirect("DROP TRIGGER uu_unit_block ON DATABASE");
+    auto const rerun = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    REQUIRE(rerun.columns.size() == 1);
+    CHECK(rerun.columns.front().table.table == "uu_unit_b");
+    CHECK(rerun.units.size() == 1);
+    CHECK(LiveDataTypeIn(stmt, "dbo", "uu_unit_b", "CODE") == "nchar");
+    CHECK(CatalogScalar(stmt, "SELECT type FROM sys.key_constraints WHERE name = 'PK_uu_unit_b'") == "PK");
+    CHECK(mgr.UnicodeUpgradeTables(/*dryRun=*/true).columns.empty());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: tables joined by a foreign key share a unit on every backend",
+                 "[SqlMigration][UnicodeUpgrade][Units]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    mgr.CreateMigrationHistory();
+
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& m) {
+        m.CreateTable("uu_unit_a").PrimaryKey("CODE", Varchar(10)).Column("NOTE", Varchar(20));
+        m.CreateTable("uu_unit_b").PrimaryKey("CODE", Varchar(10));
+        m.CreateTable("uu_unit_c")
+            .PrimaryKey("ID", Integer())
+            .ForeignKey(
+                "A_CODE", Varchar(10), SqlForeignKeyReferenceDefinition { .tableName = "uu_unit_a", .columnName = "CODE" });
+    });
+    fold_test::FoldStub<20'26'10'17'00'03> decl {
+        "declare wide",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("uu_unit_a").PrimaryKey("CODE", NVarchar(10)).Column("NOTE", NVarchar(20));
+            plan.CreateTable("uu_unit_b").PrimaryKey("CODE", NVarchar(10));
+            plan.CreateTable("uu_unit_c").PrimaryKey("ID", Integer()).Column("A_CODE", NVarchar(10));
+        }
+    };
+
+    auto const preview = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    if (preview.columns.empty())
+    {
+        // PostgreSQL's Unicode driver (and some SQLite builds) report the narrow columns as wide.
+        CHECK(preview.units.empty());
+        return;
+    }
+    REQUIRE(preview.units.size() == 2);
+    auto const tablesOf = [](std::vector<SqlSchema::FullyQualifiedTableName> const& unit) {
+        auto names = std::vector<std::string> {};
+        for (auto const& table: unit)
+            names.push_back(table.table);
+        return names;
+    };
+    CHECK(tablesOf(preview.units[0]) == std::vector<std::string> { "uu_unit_a", "uu_unit_c" });
+    CHECK(tablesOf(preview.units[1]) == std::vector<std::string> { "uu_unit_b" });
+
+    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    CHECK(result.units.size() == 2);
+    auto const liveTables = SqlSchema::ReadAllTables(stmt, std::string {}, std::string {});
+    CHECK(std::ranges::count_if(liveTables, [](SqlSchema::Table const& table) { return table.name.starts_with("uu_unit_"); })
+          == 3);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server fails a unit on an error a later result of its batch reports",
+                 "[SqlMigration][UnicodeUpgrade][Units]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("a database DDL trigger injects the failure, which is SQL Server's");
+    mgr.CreateMigrationHistory();
+
+    auto const dropFixture = [&] {
+        for (auto const* sql: {
+                 "IF EXISTS (SELECT 1 FROM sys.triggers WHERE name = N'uu_unit_late' AND parent_class = 0) "
+                 "DROP TRIGGER uu_unit_late ON DATABASE",
+                 "IF OBJECT_ID(N'dbo.uu_unit_b') IS NOT NULL DROP TABLE dbo.uu_unit_b",
+                 "IF OBJECT_ID(N'dbo.uu_unit_log') IS NOT NULL DROP TABLE dbo.uu_unit_log",
+             })
+            (void) stmt.ExecuteDirect(sql);
+    };
+    dropFixture();
+    auto const cleanup = detail::Finally(dropFixture);
+    for (auto const* sql: {
+             "CREATE TABLE dbo.uu_unit_b (CODE CHAR(10) NOT NULL CONSTRAINT PK_uu_unit_b PRIMARY KEY)",
+             "CREATE TABLE dbo.uu_unit_log (N INT NOT NULL)",
+             "INSERT INTO dbo.uu_unit_log (N) VALUES (0)",
+         })
+        (void) stmt.ExecuteDirect(sql);
+    fold_test::FoldStub<20'26'10'17'00'05> decl { "declare wide", [](SqlMigrationQueryBuilder& plan) {
+                                                     plan.CreateTable("uu_unit_b").PrimaryKey("CODE", NChar(10));
+                                                 } };
+
+    // The row count of the UPDATE is the batch's first result, so the error only arrives with
+    // a later one; the ALTER TABLE itself succeeds.
+    (void) stmt.ExecuteDirect("CREATE TRIGGER uu_unit_late ON DATABASE FOR ALTER_TABLE AS SET NOCOUNT OFF; "
+                              "UPDATE dbo.uu_unit_log SET N = N + 1; RAISERROR (N'late failure', 16, 1)");
+    auto const error = UpgradeError(mgr, /*dryRun=*/false);
+    INFO(error);
+    CHECK(error.contains("unit 1 of 1 (dbo.uu_unit_b) failed and was rolled back; no unit was committed"));
+    CHECK(error.contains("late failure"));
+    CHECK(LiveDataTypeIn(stmt, "dbo", "uu_unit_b", "CODE") == "char");
+    CHECK(CatalogScalar(stmt, "SELECT type FROM sys.key_constraints WHERE name = 'PK_uu_unit_b'") == "PK");
+    CHECK(stmt.ExecuteDirectScalar<long long>("SELECT N FROM dbo.uu_unit_log").value_or(-1) == 0);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server keeps tables in one unit whatever order the walk records keys in",
+                 "[SqlMigration][UnicodeUpgrade][Units]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("only SQL Server widens columns that a foreign key joins");
+    mgr.CreateMigrationHistory();
+
+    auto const dropFixture = [&] {
+        for (auto const* sql: {
+                 "IF OBJECT_ID(N'dbo.uu_join_y') IS NOT NULL DROP TABLE dbo.uu_join_y",
+                 "IF OBJECT_ID(N'dbo.uu_join_x') IS NOT NULL DROP TABLE dbo.uu_join_x",
+                 "IF OBJECT_ID(N'dbo.uu_join_r1') IS NOT NULL DROP TABLE dbo.uu_join_r1",
+                 "IF OBJECT_ID(N'dbo.uu_join_r2') IS NOT NULL DROP TABLE dbo.uu_join_r2",
+             })
+            (void) stmt.ExecuteDirect(sql);
+    };
+    dropFixture();
+    auto const cleanup = detail::Finally(dropFixture);
+    // Two declared keys, each reached by an undeclared column; those two columns are joined by a
+    // foreign key of their own, which a walk that visits both before either may never record.
+    for (auto const* sql: {
+             "CREATE TABLE dbo.uu_join_r1 (CODE CHAR(10) NOT NULL CONSTRAINT PK_uu_join_r1 PRIMARY KEY)",
+             "CREATE TABLE dbo.uu_join_r2 (CODE CHAR(10) NOT NULL CONSTRAINT PK_uu_join_r2 PRIMARY KEY)",
+             "CREATE TABLE dbo.uu_join_x (K CHAR(10) NOT NULL CONSTRAINT PK_uu_join_x PRIMARY KEY "
+             "CONSTRAINT FK_uu_join_x_r1 FOREIGN KEY REFERENCES dbo.uu_join_r1 (CODE))",
+             "CREATE TABLE dbo.uu_join_y (ID INT NOT NULL PRIMARY KEY, K CHAR(10) NOT NULL, "
+             "CONSTRAINT FK_uu_join_y_r2 FOREIGN KEY (K) REFERENCES dbo.uu_join_r2 (CODE), "
+             "CONSTRAINT FK_uu_join_y_x FOREIGN KEY (K) REFERENCES dbo.uu_join_x (K))",
+         })
+        (void) stmt.ExecuteDirect(sql);
+    fold_test::FoldStub<20'26'10'17'00'06> decl { "declare wide", [](SqlMigrationQueryBuilder& plan) {
+                                                     plan.CreateTable("uu_join_r1").PrimaryKey("CODE", NChar(10));
+                                                     plan.CreateTable("uu_join_r2").PrimaryKey("CODE", NChar(10));
+                                                 } };
+
+    auto const preview = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    REQUIRE(preview.units.size() == 1);
+    auto tables = UnitTables(preview.units.front());
+    std::ranges::sort(tables);
+    CHECK(tables == std::vector<std::string> { "dbo.uu_join_r1", "dbo.uu_join_r2", "dbo.uu_join_x", "dbo.uu_join_y" });
+
+    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    CHECK(result.columns.size() == 4);
+    for (auto const* table: { "uu_join_r1", "uu_join_r2" })
+        CHECK(LiveDataTypeIn(stmt, "dbo", table, "CODE") == "nchar");
+    CHECK(LiveDataTypeIn(stmt, "dbo", "uu_join_x", "K") == "nchar");
+    CHECK(LiveDataTypeIn(stmt, "dbo", "uu_join_y", "K") == "nchar");
+    for (auto const* name: { "FK_uu_join_x_r1", "FK_uu_join_y_r2", "FK_uu_join_y_x" })
+        CHECK(CatalogScalar(stmt, std::format("SELECT name FROM sys.foreign_keys WHERE name = '{}'", name)) == name);
+}

@@ -204,6 +204,42 @@ namespace SqlMigration
         MigrationTimestamp highestTimestamp;
     };
 
+    /// The failure of one unit of `MigrationManager::UnicodeUpgradeTables`, which was rolled back.
+    ///
+    /// `info()` keeps the SQLSTATE and native error code of the cause; its message names the unit,
+    /// its tables and what the units before it committed, followed by the cause's message.
+    ///
+    /// @ingroup SqlMigration
+    class UnicodeUpgradeUnitError final: public SqlException
+    {
+      public:
+        /// @param info       The cause's error info, its message already prefixed with the unit's.
+        /// @param unitNumber The failed unit, counted from 1.
+        /// @param unitCount  The number of units of the upgrade.
+        UnicodeUpgradeUnitError(SqlErrorInfo info, std::size_t unitNumber, std::size_t unitCount):
+            SqlException(std::move(info)),
+            _unitNumber { unitNumber },
+            _unitCount { unitCount }
+        {
+        }
+
+        /// The failed unit, counted from 1; the units before it are committed.
+        [[nodiscard]] std::size_t UnitNumber() const noexcept
+        {
+            return _unitNumber;
+        }
+
+        /// The number of units of the upgrade.
+        [[nodiscard]] std::size_t UnitCount() const noexcept
+        {
+            return _unitCount;
+        }
+
+      private:
+        std::size_t _unitNumber;
+        std::size_t _unitCount;
+    };
+
     /// Main API to use for managing SQL migrations
     ///
     /// This class is a singleton and can be accessed using the GetInstance() method.
@@ -617,7 +653,8 @@ namespace SqlMigration
             /// Whether the column is nullable (preserved across the type rewrite).
             bool nullable = true;
             /// Empty for a column the migrations declare wide. Otherwise the column is upgraded only
-            /// because a foreign key joins it to an upgraded column, named here as `table.column`.
+            /// because a foreign key joins it to an upgraded column, named here as `table.column`,
+            /// or as `schema.table.column` when the upgrade spans several schemas.
             std::string joinedByForeignKeyTo {};
         };
 
@@ -637,6 +674,10 @@ namespace SqlMigration
             /// foreign-key, default and check constraints, indexes, statistics — and is
             /// dropped and recreated under its original name around the type change.
             std::vector<std::string> rebuiltObjects;
+            /// The tables in the order they are upgraded, grouped into units: the tables a
+            /// foreign key joins through an upgraded column share one unit, and each unit is
+            /// upgraded and committed in a transaction of its own.
+            std::vector<std::vector<SqlSchema::FullyQualifiedTableName>> units;
         };
 
         /// @brief Rewrites legacy `VARCHAR/CHAR` columns to `NVARCHAR/NCHAR` where the
@@ -664,6 +705,14 @@ namespace SqlMigration
         /// with `ColumnUpgradeEntry::joinedByForeignKeyTo` set. Such a column must have the same narrow
         /// type and size and must not be declared with another type; otherwise the call throws
         /// `std::runtime_error` naming it, in a dry run too, before anything has changed.
+        ///
+        /// Each unit (see `UnicodeUpgradeResult::units`) runs in a transaction of its own and is
+        /// committed before the next one starts; the log sink reports each committed unit. Under
+        /// the simple recovery model, or while log backups run, the transaction log then only has
+        /// to hold one unit, so the largest unit sets its peak. A failing unit is rolled back and
+        /// stops the call with `UnicodeUpgradeUnitError`, which names it and says how many units
+        /// were committed before it. A later call continues where this one stopped, as the plan is
+        /// computed from the live schema.
         ///
         /// @param dryRun When true, returns the would-be diff without writing anything.
         [[nodiscard]] LIGHTWEIGHT_API UnicodeUpgradeResult UnicodeUpgradeTables(bool dryRun = false);

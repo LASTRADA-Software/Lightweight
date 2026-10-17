@@ -4,6 +4,7 @@
 #include "CommandAccess.hpp"
 #include "Lightweight/SqlConnectInfo.hpp"
 #include "StandardProgressManager.hpp"
+#include "UnicodeUpgradeReport.hpp"
 
 #include <Lightweight/DataMapper/DataMapper.hpp>
 #include <Lightweight/SqlBackup.hpp>
@@ -1745,50 +1746,13 @@ int UnicodeUpgradeTables(MigrationManager& manager, bool dryRun, bool yes)
         yes,
         [&](bool dr) { return manager.UnicodeUpgradeTables(dr); },
         [](auto const& r) { return r.columns.empty(); },
-        [](auto const& r) {
-            std::println("Columns to upgrade ({}):", r.columns.size());
-            // Like the backup listing, names the schema only when the columns span several.
-            auto const spansSchemas = std::ranges::any_of(
-                r.columns, [&](auto const& c) { return c.table.schema != r.columns.front().table.schema; });
-            auto const tableName = [spansSchemas](auto const& c) {
-                return spansSchemas ? std::format("{}.{}", c.table.schema, c.table.table) : c.table.table;
-            };
-            for (auto const& c: r.columns)
-            {
-                if (c.joinedByForeignKeyTo.empty())
-                    std::println("  {}.{}", tableName(c), c.column);
-                else
-                    std::println("  {}.{} (not declared; joined by a foreign key to {})",
-                                 tableName(c),
-                                 c.column,
-                                 c.joinedByForeignKeyTo);
-            }
-            if (!r.rebuiltObjects.empty())
-            {
-                // SQL Server: every key, constraint, index and statistic on the columns.
-                std::println("");
-                std::println("Objects to drop and recreate under their original names ({}):", r.rebuiltObjects.size());
-                for (auto const& object: r.rebuiltObjects)
-                    std::println("  {}", object);
-            }
-            else if (!r.rebuiltForeignKeys.empty())
-            {
-                std::println("");
-                std::println("Foreign keys to drop and re-add ({}):", r.rebuiltForeignKeys.size());
-                for (auto const& fk: r.rebuiltForeignKeys)
-                {
-                    std::print("  ");
-                    for (auto const& c: fk.columns)
-                        std::print("{} ", c);
-                    std::println("→ {}", fk.referencedTableName);
-                }
-            }
-        },
+        [](auto const& r) { Tools::PrintUnicodeUpgradePlan(std::cout, r); },
         [](auto const& r) {
             std::set<std::string> tables;
             for (auto const& c: r.columns)
                 tables.insert(c.table.table);
             std::println("Upgraded {} column(s) across {} table(s).", r.columns.size(), tables.size());
+            std::println("Committed {} transaction(s), one per unit.", r.units.size());
         });
 }
 

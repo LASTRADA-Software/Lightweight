@@ -137,6 +137,7 @@ set(SOURCE_FILES
     dbtool/StandardProgressManagerTests.cpp
     dbtool/BackupDiffTests.cpp
     dbtool/CommandAccessTests.cpp
+    dbtool/UnicodeUpgradeReportTests.cpp
     UnicodeConverterTests.cpp
     Utils.cpp
     UtilsTests.cpp

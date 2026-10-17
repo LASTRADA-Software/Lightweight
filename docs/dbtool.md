@@ -570,10 +570,26 @@ On SQL Server a column cannot change between narrow and wide text while anything
 The command therefore reads every dependent object from the catalog — primary-key, unique,
 foreign-key (on either side, composite included), default and check constraints, indexes (with
 their included columns and filters) and statistics — drops them, alters the columns and recreates
-each object under its original name with its original definition, all in one transaction. The
-dry run lists those objects. Objects it cannot recreate safely — schema-bound views or functions,
-computed columns, columnstore, XML, spatial and full-text indexes — stop the command before
-anything changes; drop them, run it, and recreate them yourself.
+each object under its original name with its original definition. The dry run lists those
+objects. Objects it cannot recreate safely — schema-bound views or functions, computed columns,
+columnstore, XML, spatial and full-text indexes — stop the command before anything changes; drop
+them, run it, and recreate them yourself.
+
+The command works unit by unit, and each unit is one transaction, committed before the next one
+starts. A unit is a table, together with every table a foreign key joins to it through a column
+that changes, and the objects dropped and recreated for them. So no unit leaves an object dropped
+behind it. The dry run prints the number of transactions and lists the units of several tables,
+and the run prints a line for each committed unit.
+
+Under the simple recovery model, or while log backups run during the upgrade, the transaction log
+then only has to hold one unit, and the largest unit sets its peak: tables that many foreign keys
+join can form one large unit. Under the full or bulk-logged recovery model without log backups, the
+log keeps everything until the next log backup, as one transaction over the whole database would.
+
+When a unit fails, it is rolled back, and the command stops with an error that names it and says
+how many units were committed before it. Those stay committed. Run the command again after fixing
+the cause: it reads the live schema anew, so the columns already widened are no longer in the plan
+and it continues with the failed unit.
 
 A foreign key on SQL Server needs both of its columns to have the same type. So when the command
 widens a column, it also widens every column a foreign key joins to it, on either side and
@@ -582,9 +598,13 @@ schema, say. The dry run lists such a column as `(not declared; joined by a fore
 <table>.<column>)`. A joined column must have the same narrow type and size and must not be
 declared with another type; otherwise the command names it and stops before anything changes.
 
+The dry run lists each column as `<table>.<column>`. When the columns to upgrade span several
+schemas, every table in the list, in the foreign-key notes and in the refusal is written as
+`<schema>.<table>` instead.
+
 Declared table and column names match the live ones without regard to case on SQLite and on SQL
 Server under a case-insensitive database collation (the default; the collation is not checked),
-when no live name matches exactly; on PostgreSQL they must match exactly.
+when no live name matches exactly (within a schema); on PostgreSQL they must match exactly.
 
 In a database whose tables span several schemas, each declared table stands for one live table,
 which the command finds like this:

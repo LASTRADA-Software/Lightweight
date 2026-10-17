@@ -5,6 +5,8 @@ add_library(dbtool_lib STATIC
     CommandAccess.hpp
     StandardProgressManager.cpp
     StandardProgressManager.hpp
+    UnicodeUpgradeReport.cpp
+    UnicodeUpgradeReport.hpp
 )
 
 # BackupDiff reads zip archives directly, so dbtool_lib needs libzip. Kept PUBLIC so both the
