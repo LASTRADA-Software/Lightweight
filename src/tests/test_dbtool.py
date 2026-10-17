@@ -743,6 +743,84 @@ def test_multi_schema_backup(dbtool, plugins_dir, connection_string, is_sqlite):
     drop_fixture()
 
 
+def test_skipped_seed_rows(base_cmd, dbtool, plugins_dir, connection_string):
+    """An `Insert(...).IfNotExists(...)` seed row the database already holds is skipped, not an
+    error: migrate and apply report one `Skipped existing row:` line per row plus the count in
+    their summary line, exit 0, and leave the existing row as it was. Rows that are inserted,
+    the first statement of the migration included, are never reported (dbtool holds its
+    migration lock while it migrates)."""
+    print("--- 17. IfNotExists inserts skip and report existing rows ---")
+    run_command(base_cmd + ["hard-reset", "--yes"])
+
+    plugin_extensions = (".dll", ".so", ".dylib")
+    fixture = next((name for name in os.listdir(plugins_dir)
+                    if name.startswith("SeedRowFixture.") and name.endswith(plugin_extensions)), None)
+    if fixture is None:
+        print(f"SeedRowFixture not found under {plugins_dir}")
+        sys.exit(1)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        shutil.copy2(os.path.join(plugins_dir, fixture),
+                     os.path.join(tmpdir, "SeedRowPlugin" + os.path.splitext(fixture)[1]))
+        seed_cmd = [dbtool, "--plugins-dir", tmpdir, "--connection-string", connection_string]
+        seed_migration = "20240301000001"
+        skipped_line = f"Skipped existing row: {seed_migration} Categories (Id=200)"
+
+        def expect(output, text, what):
+            if text not in output:
+                print(f"{what}: expected '{text}' in:\n{output}")
+                sys.exit(1)
+
+        def expect_skips(output, count, what):
+            if output.count("Skipped existing row:") != count:
+                print(f"{what}: expected {count} skipped row(s) in:\n{output}")
+                sys.exit(1)
+
+        def stored_name(category_id):
+            return run_command(seed_cmd + ["exec",
+                                           f'SELECT "Name" FROM "Categories" WHERE "Id" = {category_id}']).stdout
+
+        def pre_seed():
+            # A row with the seed's key but different values is already there when the seed runs.
+            run_command(seed_cmd + ["exec", """INSERT INTO "Categories" ("Id", "Name") VALUES (200, 'pre-existing')"""])
+
+        try:
+            # A fresh database: every row is inserted, none is reported.
+            migrated = run_command(seed_cmd + ["migrate"]).stdout
+            expect_skips(migrated, 0, "fresh migrate")
+            expect(migrated, "Successfully applied 2 migration(s).", "fresh migrate")
+            expect(stored_name(100), "Books", "the first seed row")
+            expect(stored_name(201), "Toys", "the last seed row")
+
+            # The first statement still inserts; only the pre-seeded row is skipped.
+            run_command(seed_cmd + ["rollback", seed_migration])
+            pre_seed()
+            migrated = run_command(seed_cmd + ["migrate"]).stdout
+            expect(migrated, skipped_line, "migrate")
+            expect_skips(migrated, 1, "migrate")
+            expect(migrated, "Successfully applied 1 migration(s), skipped 1 existing row(s).", "migrate")
+            expect(stored_name(100), "Books", "the first seed row")
+            expect(stored_name(200), "pre-existing", "the existing row")
+            expect(stored_name(201), "Toys", "the last seed row")
+
+            # apply reports the same way.
+            rolled_back = run_command(seed_cmd + ["rollback", seed_migration]).stdout
+            expect(rolled_back, f"Rolled back migration {seed_migration}.", "rollback")
+            pre_seed()
+            applied = run_command(seed_cmd + ["apply", seed_migration]).stdout
+            expect(applied, skipped_line, "apply")
+            expect_skips(applied, 1, "apply")
+            expect(applied, f"Applied migration {seed_migration}, skipped 1 existing row(s).", "apply")
+
+            # A dry run shows the conditional statement and reports nothing as skipped.
+            run_command(seed_cmd + ["rollback", seed_migration])
+            dry_run = run_command(seed_cmd + ["migrate", "--dry-run"]).stdout
+            expect(dry_run, "WHERE NOT EXISTS (SELECT 1 FROM", "migrate --dry-run")
+            expect_skips(dry_run, 0, "migrate --dry-run")
+        finally:
+            run_command(seed_cmd + ["hard-reset", "--yes"], check=False)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Test dbtool integration")
     parser.add_argument("--dbtool", required=True, help="Path to dbtool executable")
@@ -1261,6 +1339,8 @@ def main():
         test_target_precedence(args.dbtool, args.plugins_dir, connection_string)
 
     test_exit_code_after_compat_policy_plugin(args.dbtool, args.plugins_dir, connection_string)
+
+    test_skipped_seed_rows(base_cmd, args.dbtool, args.plugins_dir, connection_string)
 
     print("SUCCESS")
 

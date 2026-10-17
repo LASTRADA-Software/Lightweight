@@ -1420,6 +1420,18 @@ int ListAppliedMigrations(MigrationManager& manager)
 
 int Status(MigrationManager& manager);
 
+/// Describes the rows `IfNotExists` inserts skipped since @p skippedBefore, for a summary line.
+/// @param manager       The migration manager that ran the command.
+/// @param skippedBefore The manager's skipped-row count before the command ran.
+/// @return `, skipped N existing row(s)` when rows were skipped, otherwise empty.
+std::string SkippedRowsSuffix(MigrationManager const& manager, std::size_t skippedBefore)
+{
+    auto const skipped = manager.SkippedExistingRowCount() - skippedBefore;
+    if (skipped == 0)
+        return {};
+    return std::format(", skipped {} existing row(s)", skipped);
+}
+
 int Migrate(MigrationManager& manager, bool dryRun)
 {
     if (dryRun)
@@ -1443,13 +1455,14 @@ int Migrate(MigrationManager& manager, bool dryRun)
     }
 
     std::println("Applying pending migrations...");
+    auto const skippedBefore = manager.SkippedExistingRowCount();
     size_t count = manager.ApplyPendingMigrations([](MigrationBase const& m, size_t i, size_t n) {
         std::println("[{}/{}] Applying {} {}", i + 1, n, m.GetTimestamp().value, m.GetTitle());
     });
     if (count == 0)
         std::println("Database is already up to date. No migrations to apply.");
     else
-        std::println("Successfully applied {} migration(s).", count);
+        std::println("Successfully applied {} migration(s){}.", count, SkippedRowsSuffix(manager, skippedBefore));
     std::println("");
     return Status(manager);
 }
@@ -1467,8 +1480,9 @@ int ExitCodeOf(std::expected<int, std::string> const& result)
 int ApplyMigration(MigrationManager& manager, std::string_view argument)
 {
     return ExitCodeOf(GetMigration(manager, argument).and_then([&manager](MigrationBase const* migration) {
+        auto const skippedBefore = manager.SkippedExistingRowCount();
         manager.ApplySingleMigration(*migration);
-        std::println("Applied migration {}.", migration->GetTimestamp().value);
+        std::println("Applied migration {}{}.", migration->GetTimestamp().value, SkippedRowsSuffix(manager, skippedBefore));
         return std::expected<int, std::string> { EXIT_SUCCESS };
     }));
 }
@@ -1476,8 +1490,10 @@ int ApplyMigration(MigrationManager& manager, std::string_view argument)
 int RollbackMigration(MigrationManager& manager, std::string_view argument)
 {
     return ExitCodeOf(GetMigration(manager, argument).and_then([&manager](MigrationBase const* migration) {
+        auto const skippedBefore = manager.SkippedExistingRowCount();
         manager.RevertSingleMigration(*migration);
-        std::println("Rolled back migration {}.", migration->GetTimestamp().value);
+        std::println(
+            "Rolled back migration {}{}.", migration->GetTimestamp().value, SkippedRowsSuffix(manager, skippedBefore));
         return std::expected<int, std::string> { EXIT_SUCCESS };
     }));
 }
@@ -1831,6 +1847,7 @@ int RollbackTo(MigrationManager& manager, std::string_view argument)
     std::println("Rolling back migrations after timestamp {}...", targetTs);
     std::println("");
 
+    auto const skippedBefore = manager.SkippedExistingRowCount();
     auto const result = manager.RevertToMigration(targetTimestamp, [](MigrationBase const& m, size_t i, size_t n) {
         std::println("[{}/{}] Rolling back {} - {}", i + 1, n, m.GetTimestamp().value, m.GetTitle());
     });
@@ -1867,7 +1884,9 @@ int RollbackTo(MigrationManager& manager, std::string_view argument)
     }
 
     std::println("");
-    std::println("Successfully rolled back {} migration(s).", result.revertedTimestamps.size());
+    std::println("Successfully rolled back {} migration(s){}.",
+                 result.revertedTimestamps.size(),
+                 SkippedRowsSuffix(manager, skippedBefore));
     return EXIT_SUCCESS;
 }
 
@@ -1993,11 +2012,13 @@ int MigrateToRelease(MigrationManager& manager, std::string_view argument, bool 
     std::println("Applying pending migrations up to release '{}' (timestamp {})...",
                  release->version,
                  release->highestTimestamp.value);
+    auto const skippedBefore = manager.SkippedExistingRowCount();
     size_t const count =
         manager.ApplyPendingMigrationsUpTo(release->highestTimestamp, [](MigrationBase const& m, size_t i, size_t n) {
             std::println("[{}/{}] Applying {} {}", i + 1, n, m.GetTimestamp().value, m.GetTitle());
         });
-    std::println("Applied {} migration(s) up to release '{}'.", count, argument);
+    std::println(
+        "Applied {} migration(s) up to release '{}'{}.", count, argument, SkippedRowsSuffix(manager, skippedBefore));
     return EXIT_SUCCESS;
 }
 
@@ -2029,6 +2050,7 @@ int RollbackToRelease(MigrationManager& manager, std::string_view argument)
         "Rolling back migrations after release '{}' (timestamp {})...", release->version, release->highestTimestamp.value);
     std::println("");
 
+    auto const skippedBefore = manager.SkippedExistingRowCount();
     auto const result = manager.RevertToMigration(release->highestTimestamp, [](MigrationBase const& m, size_t i, size_t n) {
         std::println("[{}/{}] Rolling back {} - {}", i + 1, n, m.GetTimestamp().value, m.GetTitle());
     });
@@ -2065,7 +2087,10 @@ int RollbackToRelease(MigrationManager& manager, std::string_view argument)
     }
 
     std::println("");
-    std::println("Successfully rolled back {} migration(s) to release '{}'.", result.revertedTimestamps.size(), argument);
+    std::println("Successfully rolled back {} migration(s) to release '{}'{}.",
+                 result.revertedTimestamps.size(),
+                 argument,
+                 SkippedRowsSuffix(manager, skippedBefore));
     return EXIT_SUCCESS;
 }
 

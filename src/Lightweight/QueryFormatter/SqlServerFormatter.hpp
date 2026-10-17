@@ -292,6 +292,11 @@ EXEC sp_executesql @sql;)",
         return " WITH (READUNCOMMITTED)";
     }
 
+    [[nodiscard]] std::string_view ReportRowCountsStatement() const noexcept override
+    {
+        return "SET NOCOUNT OFF";
+    }
+
     [[nodiscard]] std::string SelectFirst(bool distinct,
                                           // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                                           std::string_view fields,

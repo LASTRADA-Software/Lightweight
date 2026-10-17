@@ -354,6 +354,65 @@ void MigrationManager::Log(std::string_view message) const
         _logSink(message);
 }
 
+std::size_t MigrationManager::SkippedExistingRowCount() const noexcept
+{
+    return _skippedExistingRowCount;
+}
+
+namespace
+{
+    /// @brief Renders a key value of a skipped-row line: numbers bare, anything else single-quoted.
+    std::string FormatSkippedKeyValue(SqlVariant const& value)
+    {
+        auto const isNumber =
+            std::visit([]<typename T>(T const&) { return std::is_arithmetic_v<T> || std::is_same_v<T, SqlDynamicNumeric>; },
+                       value.value);
+        if (isNumber)
+            return value.ToString();
+
+        auto quoted = std::string { "'" };
+        for (auto const character: value.ToString())
+        {
+            quoted += character;
+            if (character == '\'')
+                quoted += '\'';
+        }
+        quoted += '\'';
+        return quoted;
+    }
+
+    /// @brief Describes the row an `IfNotExists` insert skipped, as one `Skipped existing row:` line.
+    ///
+    /// The key values are the ones @p bound compared, so a key clipped by truncation is logged as
+    /// it was looked up.
+    std::string DescribeSkippedRow(SqlInsertDataPlan const& insert,
+                                   SqlBoundStatement const& bound,
+                                   MigrationTimestamp migration)
+    {
+        // The key values are the trailing parameters, in key order.
+        auto const firstKeyValue = bound.parameters.size() - insert.keyColumns.size();
+        auto keyValues = std::string {};
+        for (auto const index: std::views::iota(std::size_t { 0 }, insert.keyColumns.size()))
+        {
+            if (!keyValues.empty())
+                keyValues += ", ";
+            keyValues += std::format(
+                "{}={}", insert.keyColumns[index], FormatSkippedKeyValue(bound.parameters[firstKeyValue + index]));
+        }
+
+        auto const table =
+            insert.schemaName.empty() ? insert.tableName : std::format("{}.{}", insert.schemaName, insert.tableName);
+        return std::format("Skipped existing row: {} {} ({})", migration.value, table, keyValues);
+    }
+} // namespace
+
+void MigrationManager::ReportSkippedRows(std::vector<std::string> const& skippedRows)
+{
+    _skippedExistingRowCount += skippedRows.size();
+    for (auto const& line: skippedRows)
+        Log(line);
+}
+
 void MigrationManager::PersistVirtualAppliedMigrations()
 {
     // We are crossing into write territory — materialise the history table
@@ -1744,6 +1803,54 @@ namespace
                 return;
         }
     }
+
+    /// @brief Executes one rendered script of a step: as @p bound with its parameters bound when
+    /// the step has a bound form, otherwise @p script as it is.
+    /// @return The number of rows the bound statement affected, or nothing for a literal script.
+    std::optional<std::size_t> ExecuteMigrationScript(SqlStatement& stmt,
+                                                      SqlConnection& connection,
+                                                      std::string_view script,
+                                                      std::optional<SqlBoundStatement> const& bound)
+    {
+        if (!bound)
+        {
+            ExecuteScriptRespectingSqliteGuards(stmt, connection, script);
+            return std::nullopt;
+        }
+        stmt.Prepare(bound->sql);
+        auto cursor = stmt.ExecuteWithVariants(bound->parameters);
+        auto const insertedRows = cursor.NumRowsAffected();
+        cursor.ConsumePendingResults();
+        return insertedRows;
+    }
+
+    /// @brief Makes the session report affected-row counts when @p plan has an `IfNotExists`
+    /// insert, whose skip is read from that count.
+    void ReportRowCountsFor(SqlStatement& stmt, SqlMigrationPlan const& plan)
+    {
+        auto const statement = stmt.Connection().QueryFormatter().ReportRowCountsStatement();
+        auto const hasConditionalInsert = std::ranges::any_of(plan.steps, [](SqlMigrationPlanElement const& step) {
+            auto const* insert = std::get_if<SqlInsertDataPlan>(&step);
+            return insert && !insert->keyColumns.empty();
+        });
+        if (!statement.empty() && hasConditionalInsert)
+            (void) stmt.ExecuteDirect(statement);
+    }
+
+    /// @brief Runs @p render, naming @p migration in a plan validation error it throws.
+    template <typename Render>
+    decltype(auto) RenderForMigration(MigrationBase const& migration, Render&& render)
+    {
+        try
+        {
+            return std::forward<Render>(render)();
+        }
+        catch (std::invalid_argument const& error)
+        {
+            throw std::invalid_argument(
+                std::format("Migration {} '{}': {}", migration.GetTimestamp().value, migration.GetTitle(), error.what()));
+        }
+    }
 } // namespace
 
 namespace
@@ -1905,14 +2012,21 @@ void MigrationManager::ApplySingleMigration(MigrationBase const& migration, Migr
 
     auto const startTime = std::chrono::steady_clock::now();
 
+    ReportRowCountsFor(stmt, plan);
+    auto skippedRows = std::vector<std::string> {};
+
     for (SqlMigrationPlanElement const& step: plan.steps)
     {
-        auto const sqlScripts = ToSql(dm.Connection().QueryFormatter(), step, context);
+        auto const sqlScripts =
+            RenderForMigration(migration, [&] { return ToSql(dm.Connection().QueryFormatter(), step, context); });
+        auto const bound = RenderForMigration(migration, [&] { return ToBoundSql(step, context); });
         for (auto const& sqlScript: sqlScripts)
         {
             try
             {
-                ExecuteScriptRespectingSqliteGuards(stmt, dm.Connection(), sqlScript);
+                if (ExecuteMigrationScript(stmt, dm.Connection(), sqlScript, bound) == std::size_t { 0 })
+                    skippedRows.push_back(
+                        DescribeSkippedRow(std::get<SqlInsertDataPlan>(step), *bound, migration.GetTimestamp()));
             }
             catch (SqlException const& ex)
             {
@@ -1938,6 +2052,8 @@ void MigrationManager::ApplySingleMigration(MigrationBase const& migration, Migr
                                         .description = MakeOptionalSqlString1024(migration.GetDescription()),
                                         .execution_duration_ms = elapsedMs });
     transaction.Commit();
+    // Reported only now: a migration that rolls back skipped nothing.
+    ReportSkippedRows(skippedRows);
 }
 
 void MigrationManager::RevertSingleMigration(MigrationBase const& migration)
@@ -1971,14 +2087,20 @@ void MigrationManager::RevertSingleMigration(MigrationBase const& migration)
     auto stmt = SqlStatement { dm.Connection() };
     size_t stepIndex = 0;
 
+    ReportRowCountsFor(stmt, plan);
+    auto skippedRows = std::vector<std::string> {};
+
     for (SqlMigrationPlanElement const& step: plan.steps)
     {
-        auto const sqlScripts = ToSql(dm.Connection().QueryFormatter(), step);
+        auto const sqlScripts = RenderForMigration(migration, [&] { return ToSql(dm.Connection().QueryFormatter(), step); });
+        auto const bound = RenderForMigration(migration, [&] { return ToBoundSql(step); });
         for (auto const& sqlScript: sqlScripts)
         {
             try
             {
-                ExecuteScriptRespectingSqliteGuards(stmt, dm.Connection(), sqlScript);
+                if (ExecuteMigrationScript(stmt, dm.Connection(), sqlScript, bound) == std::size_t { 0 })
+                    skippedRows.push_back(
+                        DescribeSkippedRow(std::get<SqlInsertDataPlan>(step), *bound, migration.GetTimestamp()));
             }
             catch (SqlException const& ex)
             {
@@ -1995,6 +2117,7 @@ void MigrationManager::RevertSingleMigration(MigrationBase const& migration)
 
     dm.Query<SchemaMigration>().Where("version", "=", migration.GetTimestamp().value).Delete();
     transaction.Commit();
+    ReportSkippedRows(skippedRows);
 }
 
 namespace
@@ -2129,7 +2252,7 @@ std::vector<std::string> MigrationManager::PreviewMigrationWithContext(Migration
     std::vector<std::string> out;
     for (auto const& step: plan.steps)
     {
-        auto sql = ToSql(plan.formatter, step, context);
+        auto sql = RenderForMigration(migration, [&] { return ToSql(plan.formatter, step, context); });
         out.insert(out.end(), sql.begin(), sql.end());
     }
     return out;
@@ -2198,7 +2321,7 @@ std::string MigrationBase::ComputeChecksum(SqlQueryFormatter const& formatter) c
     this->Up(builder);
 
     auto const plan = std::move(builder).GetPlan();
-    auto const statements = plan.ToSql();
+    auto const statements = RenderForMigration(*this, [&] { return plan.ToSql(); });
 
     std::string combined;
     for (auto const& sql: statements)

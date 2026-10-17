@@ -390,6 +390,15 @@ namespace SqlMigration
         /// @param message The message to deliver.
         LIGHTWEIGHT_API void Log(std::string_view message) const;
 
+        /// @brief Number of rows `Insert(...).IfNotExists(...)` steps skipped because a row
+        /// with the same key values already existed, counted over the manager's lifetime.
+        ///
+        /// Each skip is also reported through @ref Log as one line of the form
+        /// `Skipped existing row: <timestamp> <table> (<key>=<value>, ...)`. Both happen once the
+        /// migration has committed, so a migration that fails and rolls back reports no skips.
+        /// Callers that need the count of one run take the difference before and after it.
+        [[nodiscard]] LIGHTWEIGHT_API std::size_t SkippedExistingRowCount() const noexcept;
+
         /// Get the data mapper used for migrations.
         ///
         /// Owned by the manager and connected with the default connection string on first use. When
@@ -809,6 +818,10 @@ namespace SqlMigration
         /// it.
         void PersistVirtualAppliedMigrations();
 
+        /// @brief Counts the rows a committed migration's `IfNotExists` inserts skipped and logs
+        /// each of @p skippedRows via @ref Log.
+        void ReportSkippedRows(std::vector<std::string> const& skippedRows);
+
         MigrationList _migrations;
         std::vector<MigrationRelease> _releases;
         std::unique_ptr<DataMapper> _dataMapper;
@@ -826,6 +839,8 @@ namespace SqlMigration
         std::vector<MigrationTimestamp> _virtualAppliedIds;
 
         LogSink _logSink; ///< Optional status-message sink. Empty by default.
+
+        std::size_t _skippedExistingRowCount {}; ///< Rows skipped by `IfNotExists` inserts so far.
     };
 
 /// Requires the user to call LIGHTWEIGHT_MIGRATION_PLUGIN() in exactly one CPP file of the migration plugin.

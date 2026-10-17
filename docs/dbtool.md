@@ -345,6 +345,39 @@ latest release, checksum verdict) so you can confirm the database's current
 state in a single command. If there are no pending migrations, it explicitly
 reports that the database is already up to date instead of `"Applied 0 migrations."`.
 
+#### Skipped rows
+
+An insert declared with `Insert(...).IfNotExists({keys})` (see
+[SQL Migrations](sql-migrations.md#rows-that-may-already-exist-ifnotexists)) skips its row when
+the database already holds a row with the same key values. The migration still succeeds, and
+dbtool prints one line per skipped row on stdout, at the default log level:
+
+```text
+Skipped existing row: <timestamp> <table> (<key>=<value>[, <key>=<value>...])
+```
+
+- `<timestamp>` is the migration's timestamp, `<table>` the table name, prefixed with
+  `<schema>.` when the migration sets a schema.
+- Keys appear in the order the migration lists them. Numbers are printed bare; any other value is
+  single-quoted, with an embedded `'` doubled.
+- The existing row is left unchanged, even when its non-key columns differ from the migration's values.
+- A key value clipped by truncation (see [Compatibility Flags](sql-migrations.md#compatibility-flags)) is
+  printed as it was looked up.
+- The lines are printed once the migration has committed. A migration that fails rolls back, and
+  its skipped rows are neither printed nor counted.
+
+The command's summary line then adds the count, for example
+`Successfully applied 3 migration(s), skipped 2 existing row(s).` The suffix
+`, skipped N existing row(s)` is printed only when N > 0, and the same applies to `apply`,
+`rollback`, `rollback-to`, `migrate-to-release` and `rollback-to-release`. `--dry-run` executes
+nothing, so it shows the conditional `INSERT ... WHERE NOT EXISTS (...)` statement but reports no skips.
+
+```text
+[2/3] Applying 20240301000001 Seed categories
+Skipped existing row: 20240301000001 Categories (Id=200)
+Successfully applied 3 migration(s), skipped 1 existing row(s).
+```
+
 #### Custom default schema (`--schema`)
 
 > **PostgreSQL and `WithSchema(...)`:** a `CreateTable` in a migration built with `WithSchema("s")`

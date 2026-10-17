@@ -368,6 +368,18 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
         return {};
     }
 
+    /// @brief Returns the statement that makes the session report affected-row counts again.
+    ///
+    /// Defaults to an empty string, meaning the dialect always reports them. SQL Server returns
+    /// `SET NOCOUNT OFF`: under `NOCOUNT ON` the driver may report 0 rows for a statement that
+    /// changed rows. The setting stays in effect for the session after the statement ran.
+    ///
+    /// @return The statement to execute, or an empty string when there is nothing to execute.
+    [[nodiscard]] virtual std::string_view ReportRowCountsStatement() const noexcept
+    {
+        return {};
+    }
+
   protected:
     /// Formats a table name with optional schema prefix.
     static std::string FormatTableName(std::string_view schema, std::string_view table);

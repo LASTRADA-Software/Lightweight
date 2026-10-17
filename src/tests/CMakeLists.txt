@@ -183,6 +183,7 @@ add_subdirectory(dummy_migration_plugin)
 add_subdirectory(dummy_migration_plugin_2)
 add_subdirectory(post_migrate_plugin)
 add_subdirectory(compat_policy_plugin)
+add_subdirectory(seed_row_fixture)
 
 # Register dbtool integration test
 find_package(Python3 REQUIRED COMPONENTS Interpreter)

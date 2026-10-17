@@ -176,11 +176,15 @@ namespace
             // tokens that would otherwise surface as additional result sets
             // on top of the SELECT @result we actually consume. Combined with
             // SqlStatement::CloseCursor draining via SQLMoreResults, this
-            // guarantees no pending token survives the lock acquire.
-            auto const sql = std::format("SET NOCOUNT ON; "
+            // guarantees no pending token survives the lock acquire. The
+            // session's own NOCOUNT setting is restored before the batch ends,
+            // since a SET in an ad-hoc batch would otherwise outlive it.
+            auto const sql = std::format("DECLARE @nocount INT = @@OPTIONS & 512; "
+                                         "SET NOCOUNT ON; "
                                          "DECLARE @result INT; "
                                          "EXEC @result = sp_getapplock @Resource = N'{}', @LockMode = N'Exclusive', "
                                          "@LockTimeout = {}, @LockOwner = N'Session'; "
+                                         "IF @nocount = 0 SET NOCOUNT OFF; "
                                          "SELECT @result;",
                                          lockName,
                                          timeout.count());
@@ -261,12 +265,15 @@ namespace
             try
             {
                 auto stmt = SqlStatement { connection };
-                // SET NOCOUNT ON — see TryAcquire above. sp_releaseapplock's
-                // return-status result set is never fetched here; relying on
-                // CloseCursor's SQLMoreResults drain to keep the connection
-                // clean.
-                [[maybe_unused]] auto releaseCursor = stmt.ExecuteDirect(std::format(
-                    "SET NOCOUNT ON; EXEC sp_releaseapplock @Resource = N'{}', @LockOwner = N'Session';", lockName));
+                // SET NOCOUNT ON, restored afterwards — see TryAcquire above.
+                // sp_releaseapplock's return-status result set is never fetched
+                // here; relying on CloseCursor's SQLMoreResults drain to keep
+                // the connection clean.
+                [[maybe_unused]] auto releaseCursor =
+                    stmt.ExecuteDirect(std::format("DECLARE @nocount INT = @@OPTIONS & 512; SET NOCOUNT ON; "
+                                                   "EXEC sp_releaseapplock @Resource = N'{}', @LockOwner = N'Session'; "
+                                                   "IF @nocount = 0 SET NOCOUNT OFF;",
+                                                   lockName));
                 return {};
             }
             catch (SqlException const& ex)

@@ -2164,6 +2164,7 @@ TEST_CASE("ToSql: lup-truncate off leaves oversize INSERT values intact", "[SqlM
         .schemaName = "",
         .tableName = "T",
         .columns = { { "n", Lightweight::SqlVariant(std::string("hellooo")) } }, // 7 > 5
+        .keyColumns = {},
     };
 
     CapturingWarningLogger capture;
@@ -2203,6 +2204,7 @@ TEST_CASE("ToSql: lup-truncate on clips oversize INSERT values and warns", "[Sql
         .schemaName = "",
         .tableName = "T",
         .columns = { { "n", Lightweight::SqlVariant(std::string("hellooo")) } },
+        .keyColumns = {},
     };
 
     CapturingWarningLogger capture;
@@ -2253,6 +2255,7 @@ TEST_CASE("ToSql: lup-truncate handles UTF-8 multi-byte by character count", "[S
         .schemaName = "",
         .tableName = "T",
         .columns = { { "n", Lightweight::SqlVariant(std::string("Körnung")) } },
+        .keyColumns = {},
     };
 
     CapturingWarningLogger capture;
@@ -2292,6 +2295,7 @@ TEST_CASE("ToSql: lup-truncate truncates string_view values from char-array lite
         .schemaName = "",
         .tableName = "T",
         .columns = { { "n", Lightweight::SqlVariant("hellooo") } },
+        .keyColumns = {},
     };
 
     auto const sql = Lightweight::ToSql(formatter, SqlMigrationPlanElement { insert }, context);
@@ -2335,6 +2339,7 @@ TEST_CASE("ToSql: DROP TABLE evicts column widths from the cache", "[SqlMigratio
         .schemaName = "",
         .tableName = "T",
         .columns = { { "n", Lightweight::SqlVariant(std::string("hellooo")) } },
+        .keyColumns = {},
     };
     CapturingWarningLogger capture;
     auto const sql = Lightweight::ToSql(formatter, SqlMigrationPlanElement { insert }, context);
@@ -3591,6 +3596,7 @@ TEST_CASE("ToSql: lup-truncate clips wide-string and SqlText variants, also on U
             .schemaName = "",
             .tableName = "T",
             .columns = { { "n", std::move(value) } },
+            .keyColumns = {},
         };
         auto const sql = Lightweight::ToSql(formatter, SqlMigrationPlanElement { insert }, context);
         REQUIRE(sql.size() == 1);
@@ -4932,4 +4938,485 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
             CHECK(error.empty());
     }
     CHECK(LiveDataTypeIn(stmt, "uu_ms_other", "uu_ms_customers", "CODE") == "character");
+}
+
+TEST_CASE("Checksum of a plain Insert is unchanged by IfNotExists support", "[SqlMigration]")
+{
+    // SHA-256 of `INSERT INTO "users" ("name", "age") VALUES ('John', 30)` plus its newline,
+    // the text a plain insert has always rendered to on SQLite.
+    auto const migration = SqlMigration::Migration<202610170001>(
+        "plain insert", [](SqlMigrationQueryBuilder& plan) { plan.Insert("users").Set("name", "John").Set("age", 30); });
+    CHECK(migration.ComputeChecksum(SqlQueryFormatter::Sqlite())
+          == "15702bf904b0d121320cfa4af0ef18a9d66de7b2ffdc0af0e0f81c58488d5b9e");
+
+    auto const conditional = SqlMigration::Migration<202610170002>("conditional insert", [](SqlMigrationQueryBuilder& plan) {
+        plan.Insert("users").Set("name", "John").Set("age", 30).IfNotExists({ "name" });
+    });
+    CHECK(conditional.ComputeChecksum(SqlQueryFormatter::Sqlite())
+          != migration.ComputeChecksum(SqlQueryFormatter::Sqlite()));
+}
+
+TEST_CASE("ToBoundSql binds the values of an IfNotExists insert", "[SqlMigration]")
+{
+    auto builder = SqlQueryBuilder(SqlQueryFormatter::Sqlite()).Migration();
+    builder.WithSchema("sales");
+    builder.Insert("Categories").Set("Id", 7).Set("Name", "Grüße").Set("Note", SqlNullValue).IfNotExists({ "Id" });
+    builder.Insert("Categories").Set("Id", 8);
+    auto const plan = std::move(builder).GetPlan();
+
+    auto const bound = ToBoundSql(plan.steps.at(0)).value_or(SqlBoundStatement {});
+    CHECK(bound.sql
+          == R"(INSERT INTO "sales"."Categories" ("Id", "Name", "Note") SELECT ?, ?, ? )"
+             R"(WHERE NOT EXISTS (SELECT 1 FROM "sales"."Categories" WHERE "Id" = ?))");
+    REQUIRE(bound.parameters.size() == 4);
+    CHECK(bound.parameters[0] == SqlVariant { 7 });
+    // UTF-8 text is bound as UTF-16, so the driver never reads it in the client code page.
+    REQUIRE(std::holds_alternative<std::u16string>(bound.parameters[1].value));
+    CHECK(std::get<std::u16string>(bound.parameters[1].value) == u"Grüße");
+    CHECK(bound.parameters[2].IsNull());
+    CHECK(bound.parameters[3] == SqlVariant { 7 });
+
+    // A plain insert has no bound form; it keeps running as its literal rendering.
+    CHECK_FALSE(ToBoundSql(plan.steps.at(1)).has_value());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Insert IfNotExists skips an existing row", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto const createTable = SqlMigration::Migration<202610170003>("create categories", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("Categories").PrimaryKey("Id", Integer()).RequiredColumn("Name", NVarchar(50));
+    });
+    // Down inserts the same key with a different name, so a revert exercises the skip as well.
+    auto const seedRow = SqlMigration::Migration<202610170004>(
+        "seed category",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.Insert("Categories").Set("Id", 200).Set("Name", "Grüße").IfNotExists({ "Id" });
+        },
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.Insert("Categories").Set("Id", 200).Set("Name", "different").IfNotExists({ "Id" });
+        });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    auto logged = std::vector<std::string> {};
+    manager.SetLogSink([&logged](std::string_view message) { logged.emplace_back(message); });
+    auto const restoreSink = ::Lightweight::detail::Finally([&manager] { manager.SetLogSink({}); });
+
+    auto const rowCount = [] {
+        auto stmt = SqlStatement {};
+        return stmt.ExecuteDirectScalar<long long>(R"(SELECT COUNT(*) FROM "Categories")").value_or(-1);
+    };
+    auto const storedName = [] {
+        auto stmt = SqlStatement {};
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "Name" FROM "Categories" WHERE "Id" = 200)");
+        REQUIRE(cursor.FetchRow());
+        auto value = SqlVariant {};
+        REQUIRE(cursor.GetColumn(1, &value));
+        return value.ToString();
+    };
+
+    manager.CreateMigrationHistory();
+    auto const skippedAtStart = manager.SkippedExistingRowCount();
+
+    // First run inserts the row, with its non-ASCII value intact.
+    REQUIRE(manager.ApplyPendingMigrations() == 2);
+    CHECK(manager.SkippedExistingRowCount() == skippedAtStart);
+    CHECK(logged.empty());
+    CHECK(rowCount() == 1);
+    CHECK(storedName() == "Grüße");
+
+    // Reverting runs Down's insert of the same key: skipped, and the existing values stay.
+    manager.RevertSingleMigration(seedRow);
+    CHECK(manager.SkippedExistingRowCount() == skippedAtStart + 1);
+    REQUIRE(logged.size() == 1);
+    CHECK(logged[0] == "Skipped existing row: 202610170004 Categories (Id=200)");
+    CHECK(rowCount() == 1);
+    CHECK(storedName() == "Grüße");
+
+    // Applying again finds the row in place: no error, no second row, reported again.
+    CHECK_NOTHROW(manager.ApplySingleMigration(seedRow));
+    CHECK(manager.SkippedExistingRowCount() == skippedAtStart + 2);
+    REQUIRE(logged.size() == 2);
+    CHECK(logged[1] == "Skipped existing row: 202610170004 Categories (Id=200)");
+    CHECK(rowCount() == 1);
+    CHECK(storedName() == "Grüße");
+    CHECK(manager.GetPending().empty());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Insert IfNotExists stores bound values like literal ones", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    // Row 1 goes through the plain insert's literal path, row 2 through the bound one.
+    auto const migration = SqlMigration::Migration<202610170006>("bound values", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("Categories")
+            .PrimaryKey("Id", Integer())
+            .Column("Name", NVarchar(50))
+            .Column("Label", Varchar(50))
+            .Column("Note", Varchar(50));
+        plan.Insert("Categories").Set("Id", 1).Set("Name", "Grüße").Set("Label", "Café crème").Set("Note", SqlNullValue);
+        plan.Insert("Categories")
+            .Set("Id", 2)
+            .Set("Name", "Grüße")
+            .Set("Label", "Café crème")
+            .Set("Note", SqlNullValue)
+            .IfNotExists({ "Id" });
+    });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+    REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+    auto const readRow = [](int id) {
+        auto stmt = SqlStatement {};
+        auto cursor =
+            stmt.ExecuteDirect(std::format(R"(SELECT "Name", "Label", "Note" FROM "Categories" WHERE "Id" = {})", id));
+        REQUIRE(cursor.FetchRow());
+        // Fetched as UTF-16, so the driver decodes a narrow column from its code page.
+        auto values = std::vector<std::optional<std::u16string>> {};
+        for (auto const column: std::views::iota(SQLUSMALLINT { 1 }, SQLUSMALLINT { 4 }))
+            values.push_back(cursor.GetNullableColumn<std::u16string>(column));
+        return values;
+    };
+
+    auto const literal = readRow(1);
+    auto const bound = readRow(2);
+    CHECK(literal[0] == u"Grüße");
+    CHECK(literal[1] == u"Café crème");
+    CHECK_FALSE(literal[2].has_value());
+    CHECK(bound == literal);
+
+    // The server itself finds both rows' text equal, the narrow column included.
+    auto stmt = SqlStatement {};
+    CHECK(stmt.ExecuteDirectScalar<long long>(
+                  R"(SELECT COUNT(*) FROM "Categories" a, "Categories" b WHERE a."Id" = 1 AND b."Id" = 2 )"
+                  R"(AND a."Label" = b."Label" AND a."Name" = b."Name")")
+              .value_or(-1)
+          == 1);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Insert IfNotExists reports a composite string key quoted", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto const migration = SqlMigration::Migration<202610170005>("composite seed", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("Codes").RequiredColumn("Kind", Varchar(20)).RequiredColumn("Id", Integer());
+        plan.Insert("Codes").Set("Kind", "O'Brien").Set("Id", 7);
+        plan.Insert("Codes").Set("Kind", "O'Brien").Set("Id", 7).IfNotExists({ "Kind", "Id" });
+        plan.Insert("Codes").Set("Kind", "O'Brien").Set("Id", 8).IfNotExists({ "Kind", "Id" });
+    });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    auto logged = std::vector<std::string> {};
+    manager.SetLogSink([&logged](std::string_view message) { logged.emplace_back(message); });
+    auto const restoreSink = ::Lightweight::detail::Finally([&manager] { manager.SetLogSink({}); });
+
+    manager.CreateMigrationHistory();
+    REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+    REQUIRE(logged.size() == 1);
+    CHECK(logged[0] == "Skipped existing row: 202610170005 Codes (Kind='O''Brien', Id=7)");
+    auto stmt = SqlStatement {};
+    CHECK(stmt.ExecuteDirectScalar<long long>(R"(SELECT COUNT(*) FROM "Codes")").value_or(-1) == 2);
+}
+
+namespace
+{
+/// Captures the migration manager's log lines for the lifetime of the object.
+class CapturedMigrationLog
+{
+  public:
+    CapturedMigrationLog()
+    {
+        SqlMigration::MigrationManager::GetInstance().SetLogSink(
+            [this](std::string_view message) { _lines.emplace_back(message); });
+    }
+    ~CapturedMigrationLog()
+    {
+        SqlMigration::MigrationManager::GetInstance().SetLogSink({});
+    }
+    CapturedMigrationLog(CapturedMigrationLog const&) = delete;
+    CapturedMigrationLog(CapturedMigrationLog&&) = delete;
+    CapturedMigrationLog& operator=(CapturedMigrationLog const&) = delete;
+    CapturedMigrationLog& operator=(CapturedMigrationLog&&) = delete;
+
+    [[nodiscard]] std::vector<std::string> const& Lines() const noexcept
+    {
+        return _lines;
+    }
+
+  private:
+    std::vector<std::string> _lines;
+};
+} // namespace
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "Insert IfNotExists counts inserted rows under the migration lock",
+                 "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto const createTable = SqlMigration::Migration<202610170007>("create categories", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("Categories").PrimaryKey("Id", Integer()).RequiredColumn("Name", NVarchar(50));
+        plan.Insert("Categories").Set("Id", 300).Set("Name", "existing");
+    });
+    // The first IfNotExists statement inserts a new row; the second finds its row in place.
+    auto const seedRows = SqlMigration::Migration<202610170008>("seed categories", [](SqlMigrationQueryBuilder& plan) {
+        plan.Insert("Categories").Set("Id", 100).Set("Name", "Books").IfNotExists({ "Id" });
+        plan.Insert("Categories").Set("Id", 300).Set("Name", "other").IfNotExists({ "Id" });
+    });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    auto const log = CapturedMigrationLog {};
+    auto& connection = manager.GetDataMapper().Connection();
+    manager.CreateMigrationHistory();
+    auto const skippedAtStart = manager.SkippedExistingRowCount();
+
+    {
+        // dbtool holds this lock while it migrates; it must not leave the session without row counts.
+        auto const lock = SqlScopedLock { connection, "lightweight_if_not_exists_lock" };
+        REQUIRE(manager.ApplyPendingMigrations() == 2);
+    }
+
+    REQUIRE(log.Lines().size() == 1);
+    CHECK(log.Lines()[0] == "Skipped existing row: 202610170008 Categories (Id=300)");
+    CHECK(manager.SkippedExistingRowCount() == skippedAtStart + 1);
+    auto stmt = SqlStatement { connection };
+    CHECK(stmt.ExecuteDirectScalar<long long>(R"(SELECT COUNT(*) FROM "Categories")").value_or(-1) == 2);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "SQL Server: the migration lock restores the session's NOCOUNT", "[SqlScopedLock]")
+{
+    auto& connection = SqlMigration::MigrationManager::GetInstance().GetDataMapper().Connection();
+    if (connection.ServerType() != SqlServerType::MICROSOFT_SQL)
+        return; // NOCOUNT is a SQL Server session option.
+
+    auto const noCountIsOn = [&] {
+        auto stmt = SqlStatement { connection };
+        return stmt.ExecuteDirectScalar<int>("SELECT @@OPTIONS & 512").value_or(-1) != 0;
+    };
+
+    REQUIRE_FALSE(noCountIsOn());
+    {
+        auto const lock = SqlScopedLock { connection, "lightweight_nocount_lock" };
+        CHECK_FALSE(noCountIsOn());
+    }
+    CHECK_FALSE(noCountIsOn());
+
+    // A session that had NOCOUNT on keeps it.
+    (void) SqlStatement { connection }.ExecuteDirect("SET NOCOUNT ON");
+    {
+        auto const lock = SqlScopedLock { connection, "lightweight_nocount_lock" };
+        CHECK(noCountIsOn());
+    }
+    CHECK(noCountIsOn());
+    (void) SqlStatement { connection }.ExecuteDirect("SET NOCOUNT OFF");
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "SQL Server: Insert IfNotExists counts inserted rows under NOCOUNT ON",
+                 "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    auto& connection = manager.GetDataMapper().Connection();
+    if (connection.ServerType() != SqlServerType::MICROSOFT_SQL)
+        return; // NOCOUNT is a SQL Server session option.
+
+    auto const createTable = SqlMigration::Migration<202610170009>("create categories", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("Categories").PrimaryKey("Id", Integer()).RequiredColumn("Name", NVarchar(50));
+    });
+    auto const seedRow = SqlMigration::Migration<202610170016>("seed under nocount", [](SqlMigrationQueryBuilder& plan) {
+        plan.Insert("Categories").Set("Id", 100).Set("Name", "Books").IfNotExists({ "Id" });
+    });
+
+    auto const log = CapturedMigrationLog {};
+    manager.CreateMigrationHistory();
+    auto const skippedAtStart = manager.SkippedExistingRowCount();
+
+    // Whatever left the session without row counts, the skip must not be inferred from it.
+    manager.ApplySingleMigration(createTable);
+    (void) SqlStatement { connection }.ExecuteDirect("SET NOCOUNT ON");
+    manager.ApplySingleMigration(seedRow);
+
+    CHECK(log.Lines().empty());
+    CHECK(manager.SkippedExistingRowCount() == skippedAtStart);
+    auto stmt = SqlStatement { connection };
+    CHECK(stmt.ExecuteDirectScalar<long long>(R"(SELECT COUNT(*) FROM "Categories")").value_or(-1) == 1);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "Insert IfNotExists reports no skips of a migration that rolls back",
+                 "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto const createTable = SqlMigration::Migration<202610170010>("create categories", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("Categories").PrimaryKey("Id", Integer()).RequiredColumn("Name", NVarchar(50));
+        plan.Insert("Categories").Set("Id", 300).Set("Name", "existing");
+    });
+    auto const failing = SqlMigration::Migration<202610170011>("skip then fail", [](SqlMigrationQueryBuilder& plan) {
+        plan.Insert("Categories").Set("Id", 300).Set("Name", "other").IfNotExists({ "Id" });
+        plan.RawSql("THIS_IS_INVALID_SQL_TO_FORCE_FAILURE");
+    });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    auto const log = CapturedMigrationLog {};
+    manager.CreateMigrationHistory();
+    auto const skippedAtStart = manager.SkippedExistingRowCount();
+
+    {
+        auto const _ = ScopedSqlNullLogger {}; // the failure is expected
+        CHECK_THROWS(manager.ApplyPendingMigrations());
+    }
+
+    CHECK(log.Lines().empty());
+    CHECK(manager.SkippedExistingRowCount() == skippedAtStart);
+    CHECK(manager.GetAppliedMigrationIds().size() == 1);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Insert IfNotExists names the schema in a skip line", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    // A schema every backend already has.
+    static auto const schema = [&]() -> std::string {
+        switch (manager.GetDataMapper().Connection().ServerType())
+        {
+            case SqlServerType::MICROSOFT_SQL:
+                return "dbo";
+            case SqlServerType::POSTGRESQL:
+                return "public";
+            default:
+                return "main";
+        }
+    }();
+
+    auto const migration = SqlMigration::Migration<202610170012>("schema seed", [](SqlMigrationQueryBuilder& plan) {
+        plan.WithSchema(schema);
+        plan.CreateTable("Codes").PrimaryKey("Id", Integer());
+        plan.Insert("Codes").Set("Id", 7);
+        plan.Insert("Codes").Set("Id", 7).IfNotExists({ "Id" });
+    });
+
+    auto const log = CapturedMigrationLog {};
+    manager.CreateMigrationHistory();
+    REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+    REQUIRE(log.Lines().size() == 1);
+    CHECK(log.Lines()[0] == std::format("Skipped existing row: 202610170012 {}.Codes (Id=7)", schema));
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Insert IfNotExists stores bound doubles like literal ones", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    // Rows 1-3 go through the plain insert's literal path, rows 11-13 through the bound one.
+    auto const migration = SqlMigration::Migration<202610170013>("bound doubles", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("Measures")
+            .PrimaryKey("Id", Integer())
+            .Column("Wide", Real { .precision = 53 })
+            .Column("Narrow", Real {})
+            .Column("Fixed", Decimal { .precision = 10, .scale = 4 });
+        for (auto const& [id, value]: std::array { std::pair { 1, 40.3399 }, std::pair { 2, 0.5 }, std::pair { 3, -12.25 } })
+        {
+            plan.Insert("Measures").Set("Id", id).Set("Wide", value).Set("Narrow", value).Set("Fixed", value);
+            plan.Insert("Measures")
+                .Set("Id", id + 10)
+                .Set("Wide", value)
+                .Set("Narrow", value)
+                .Set("Fixed", value)
+                .IfNotExists({ "Id" });
+        }
+    });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+    REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+    // Compared by the server, value for value.
+    auto stmt = SqlStatement {};
+    CHECK(stmt.ExecuteDirectScalar<long long>(
+                  R"(SELECT COUNT(*) FROM "Measures" a, "Measures" b WHERE b."Id" = a."Id" + 10 )"
+                  R"(AND a."Wide" = b."Wide" AND a."Narrow" = b."Narrow" AND a."Fixed" = b."Fixed")")
+              .value_or(-1)
+          == 3);
+    CHECK(stmt.ExecuteDirectScalar<double>(R"(SELECT "Wide" FROM "Measures" WHERE "Id" = 11)").value_or(0.0) == 40.3399);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Insert IfNotExists binds NULL into any column type", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto const migration = SqlMigration::Migration<202610170014>("bound nulls", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("Nullables")
+            .PrimaryKey("Id", Integer())
+            .Column("Number", Integer())
+            .Column("BigNumber", Bigint())
+            .Column("Narrow", Real {})
+            .Column("Wide", Real { .precision = 53 })
+            .Column("Fixed", Decimal { .precision = 10, .scale = 4 })
+            .Column("Flag", Bool())
+            .Column("Bytes", VarBinary { .size = 16 });
+        // NULL in the first parameter slot, then NULLs after the key.
+        plan.Insert("Nullables")
+            .Set("Number", SqlNullValue)
+            .Set("BigNumber", SqlNullValue)
+            .Set("Narrow", SqlNullValue)
+            .Set("Wide", SqlNullValue)
+            .Set("Fixed", SqlNullValue)
+            .Set("Flag", SqlNullValue)
+            .Set("Bytes", SqlNullValue)
+            .Set("Id", 1)
+            .IfNotExists({ "Id" });
+        plan.Insert("Nullables")
+            .Set("Id", 2)
+            .Set("Bytes", SqlNullValue)
+            .Set("Flag", SqlNullValue)
+            .Set("Fixed", SqlNullValue)
+            .Set("Wide", SqlNullValue)
+            .Set("Narrow", SqlNullValue)
+            .Set("BigNumber", SqlNullValue)
+            .Set("Number", SqlNullValue)
+            .IfNotExists({ "Id" });
+    });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+    REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+    auto stmt = SqlStatement {};
+    CHECK(stmt.ExecuteDirectScalar<long long>(
+                  R"(SELECT COUNT(*) FROM "Nullables" WHERE "Number" IS NULL AND "BigNumber" IS NULL )"
+                  R"(AND "Narrow" IS NULL AND "Wide" IS NULL AND "Fixed" IS NULL AND "Flag" IS NULL AND "Bytes" IS NULL)")
+              .value_or(-1)
+          == 2);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Insert IfNotExists names the migration in a validation error", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto const migration = SqlMigration::Migration<202610170015>("bad key", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("Codes").PrimaryKey("Id", Integer());
+        plan.Insert("Codes").Set("Id", 7).IfNotExists({ "Code" });
+    });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+    auto const message = [&] {
+        try
+        {
+            (void) manager.ApplyPendingMigrations();
+        }
+        catch (std::invalid_argument const& error)
+        {
+            return std::string { error.what() };
+        }
+        return std::string {};
+    }();
+    CHECK(message.starts_with("Migration 202610170015 'bad key': "));
+    CHECK(message.contains(R"(key column "Code")"));
 }
