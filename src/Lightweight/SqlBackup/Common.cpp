@@ -211,7 +211,7 @@ bool DropTableIfExists(SqlConnection& conn,
         // PostgreSQL which uses CASCADE syntax, and SQLite which ignores cascade.
         auto dropSqls = formatter.DropTable(schema, tableName, /*ifExists=*/true, /*cascade=*/true);
         for (auto const& sql: dropSqls)
-            (void) SqlStatement { conn }.ExecuteDirect(sql);
+            SqlStatement { conn }.ExecuteDirect(sql).ConsumePendingResults();
         return true;
     }
     catch (std::exception const& e)

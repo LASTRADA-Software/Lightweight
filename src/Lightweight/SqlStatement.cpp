@@ -1264,6 +1264,17 @@ std::expected<bool, SqlErrorInfo> SqlStatement::TryFetchRow(std::source_location
     }
 }
 
+void SqlStatement::ConsumePendingResults(std::source_location location)
+{
+    while (true)
+    {
+        auto const rc = SQLMoreResults(m_hStmt);
+        if (rc == SQL_NO_DATA)
+            return;
+        RequireSuccess(rc, location);
+    }
+}
+
 void SqlStatement::RequireSuccess(SQLRETURN error, std::source_location sourceLocation) const
 {
     Lightweight::RequireSuccess(m_hStmt, error, sourceLocation);

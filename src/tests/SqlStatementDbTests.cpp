@@ -673,3 +673,26 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlResultCursor named access rejects an empty 
     REQUIRE(cursor.FetchRow());
     CHECK_THROWS_AS(cursor.GetColumn<int>(""), std::invalid_argument);
 }
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlStatement::ConsumePendingResults", "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("PendingProbe").PrimaryKey("Id", SqlColumnTypeDefinitions::Integer());
+    });
+
+    // Nothing pending, also after a statement that matched no rows.
+    CHECK_NOTHROW(stmt.ExecuteDirect(R"(INSERT INTO "PendingProbe" ("Id") VALUES (1))").ConsumePendingResults());
+    CHECK_NOTHROW(stmt.ExecuteDirect(R"(DELETE FROM "PendingProbe" WHERE "Id" = 2)").ConsumePendingResults());
+    CHECK(stmt.ExecuteDirectScalar<long long>(R"(SELECT COUNT(*) FROM "PendingProbe")").value_or(-1) == 1);
+
+    if (stmt.Connection().ServerType() == SqlServerType::MICROSOFT_SQL)
+    {
+        // The error of a later statement in a batch surfaces only here.
+        (void) stmt.ExecuteDirect("SET NOCOUNT OFF");
+        auto const _ = ScopedSqlNullLogger {};
+        CHECK_THROWS_AS(stmt.ExecuteDirect(R"(DELETE FROM "PendingProbe" WHERE "Id" = 1; THROW 50000, N'refused', 1;)")
+                            .ConsumePendingResults(),
+                        SqlException);
+    }
+}

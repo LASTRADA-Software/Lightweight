@@ -1698,7 +1698,8 @@ namespace
     ///
     /// If the script carries a guard, perform the presence check first and skip the DDL
     /// body when the guard condition is already satisfied (or unsatisfied for DROP).
-    /// Otherwise execute the script directly.
+    /// Otherwise execute the script directly. Every result of the script is checked, so an error
+    /// that a later statement of a batch reports fails the migration.
     void ExecuteScriptRespectingSqliteGuards(SqlStatement& stmt, SqlConnection& connection, std::string_view script)
     {
         // A migration changes the schema the pooled query plans were derived from, so drop them — on
@@ -1711,7 +1712,7 @@ namespace
         auto const parsed = TryParseSqliteGuard(script);
         if (!parsed || !connection.RequiresTableRebuildForSchemaChange())
         {
-            (void) stmt.ExecuteDirect(script);
+            stmt.ExecuteDirect(script).ConsumePendingResults();
             return;
         }
 
@@ -1723,11 +1724,11 @@ namespace
         {
             case SqliteGuard::Kind::AddColumnIfNotExists:
                 if (!SqliteColumnExists(connection, guard.tableName, guard.columnName))
-                    (void) stmt.ExecuteDirect(body);
+                    stmt.ExecuteDirect(body).ConsumePendingResults();
                 return;
             case SqliteGuard::Kind::DropColumnIfExists:
                 if (SqliteColumnExists(connection, guard.tableName, guard.columnName))
-                    (void) stmt.ExecuteDirect(body);
+                    stmt.ExecuteDirect(body).ConsumePendingResults();
                 return;
             case SqliteGuard::Kind::AddForeignKey:
                 SqliteRebuildAddForeignKey(connection, guard);
@@ -2803,7 +2804,7 @@ MigrationManager::HardResetResult MigrationManager::HardReset(bool dryRun)
     auto dropOne = [&](SqlSchema::FullyQualifiedTableName const& key) {
         auto const sqls = formatter.DropTable(key.schema, key.table, /*ifExists=*/true, /*cascade=*/true);
         for (auto const& sql: sqls)
-            (void) stmt.ExecuteDirect(sql);
+            stmt.ExecuteDirect(sql).ConsumePendingResults();
     };
 
     auto runBatch = [&](auto&& batch) {
@@ -2830,7 +2831,7 @@ MigrationManager::HardResetResult MigrationManager::HardReset(bool dryRun)
         auto transaction = SqlTransaction { dm.Connection(), SqlTransactionMode::ROLLBACK };
         auto const sqls = formatter.DropTable(std::string_view {}, std::string_view { "schema_migrations" }, true, true);
         for (auto const& sql: sqls)
-            (void) stmt.ExecuteDirect(sql);
+            stmt.ExecuteDirect(sql).ConsumePendingResults();
         result.schemaMigrationsDropped = true;
         transaction.Commit();
     }
@@ -2848,7 +2849,7 @@ MigrationManager::HardResetResult MigrationManager::HardReset(bool dryRun)
         auto transaction = SqlTransaction { dm.Connection(), SqlTransactionMode::ROLLBACK };
         auto const sqls = formatter.DropTable(std::string_view {}, tableName, /*ifExists=*/true, /*cascade=*/true);
         for (auto const& sql: sqls)
-            (void) stmt.ExecuteDirect(sql);
+            stmt.ExecuteDirect(sql).ConsumePendingResults();
         transaction.Commit();
     }
 

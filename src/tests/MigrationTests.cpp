@@ -4,10 +4,13 @@
 
 #include <Lightweight/Lightweight.hpp>
 #include <Lightweight/QueryFormatter/SqlServerFormatter.hpp>
+#include <Lightweight/SqlBackup/Common.hpp>
+#include <Lightweight/SqlBackup/SqlBackup.hpp>
 #include <Lightweight/SqlScopedLock.hpp>
 
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <filesystem>
@@ -300,6 +303,58 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Transaction Rollback", "[SqlMigration
         // Should throw because table should have been rolled back
         CHECK_THROWS_AS((void) stmt.ExecuteDirect("SELECT count(*) FROM should_not_exist"), SqlException);
     }
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "SQL Server: an error late in a migration batch fails and rolls back the migration",
+                 "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    auto& connection = manager.GetDataMapper().Connection();
+    if (connection.ServerType() != SqlServerType::MICROSOFT_SQL)
+        return; // Only SQL Server reports each row count of a batch as a result of its own.
+
+    auto const createTable = SqlMigration::Migration<202610170101>("create probe", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("BatchProbe").PrimaryKey("Id", Integer()).RequiredColumn("Value", Integer());
+        plan.Insert("BatchProbe").Set("Id", 1).Set("Value", 10);
+    });
+    manager.CreateMigrationHistory();
+    manager.ApplySingleMigration(createTable);
+
+    auto const storedValue = [&] {
+        auto stmt = SqlStatement { connection };
+        return stmt.ExecuteDirectScalar<int>(R"(SELECT "Value" FROM "BatchProbe" WHERE "Id" = 1)").value_or(-1);
+    };
+
+    // A guard that counts, changes a row and then refuses; and a batch whose second statement fails.
+    auto const batch =
+        GENERATE(as<std::string> {},
+                 R"(DECLARE @n INT; SELECT @n = COUNT(*) FROM sys.columns; )"
+                 R"(UPDATE "BatchProbe" SET "Value" = 43 WHERE "Id" = 1; THROW 50000, N'refused', 1;)",
+                 R"(UPDATE "BatchProbe" SET "Value" = 40 WHERE "Id" = 1; INSERT INTO "NoSuchTable" VALUES (1);)");
+    // Without the migration lock, at the server default NOCOUNT OFF, and under the lock dbtool takes.
+    auto const underLock = GENERATE(false, true);
+    CAPTURE(batch, underLock);
+
+    auto const refused = SqlMigration::Migration<202610170102>(
+        "refused batch", [&batch](SqlMigrationQueryBuilder& plan) { plan.RawSql(batch); });
+
+    (void) SqlStatement { connection }.ExecuteDirect("SET NOCOUNT OFF");
+    auto lock = std::optional<SqlScopedLock> {};
+    if (underLock)
+        lock.emplace(connection, "lightweight_batch_error_lock");
+
+    {
+        auto const _ = ScopedSqlNullLogger {}; // the failure is expected
+        CHECK_THROWS_AS(manager.ApplySingleMigration(refused), SqlMigration::MigrationException);
+    }
+    lock.reset();
+
+    CHECK(storedValue() == 10);
+    auto const applied = manager.GetAppliedMigrationIds();
+    CHECK(std::ranges::find(applied, SqlMigration::MigrationTimestamp { 202610170102 }) == applied.end());
 }
 
 TEST_CASE_METHOD(SqlMigrationTestFixture, "MigrationException carries structured context", "[SqlMigration]")
@@ -2663,6 +2718,112 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "HardReset: dry-run is observationally
     auto const after = mgr.GetAppliedMigrationIds().size();
     CHECK(before == after);
     CHECK_FALSE(result.schemaMigrationsDropped);
+}
+
+namespace
+{
+/// Installs a SQL Server database DDL trigger that refuses every ALTER TABLE for its lifetime, so the
+/// foreign-key drops a cascading DropTable batch runs after its row-counting SELECT fail.
+class RefuseAlterTableTrigger
+{
+  public:
+    explicit RefuseAlterTableTrigger(SqlConnection& connection):
+        _connection { connection }
+    {
+        (void) SqlStatement { _connection }.ExecuteDirect(
+            "CREATE TRIGGER lightweight_refuse_alter ON DATABASE FOR ALTER_TABLE AS THROW 50000, N'alter refused', 1;");
+    }
+    ~RefuseAlterTableTrigger()
+    {
+        try
+        {
+            (void) SqlStatement { _connection }.ExecuteDirect("DROP TRIGGER lightweight_refuse_alter ON DATABASE");
+        }
+        catch (...) // NOLINT(bugprone-empty-catch) - a destructor must not throw
+        {
+        }
+    }
+    RefuseAlterTableTrigger(RefuseAlterTableTrigger const&) = delete;
+    RefuseAlterTableTrigger(RefuseAlterTableTrigger&&) = delete;
+    RefuseAlterTableTrigger& operator=(RefuseAlterTableTrigger const&) = delete;
+    RefuseAlterTableTrigger& operator=(RefuseAlterTableTrigger&&) = delete;
+
+  private:
+    SqlConnection& _connection;
+};
+
+/// Records the messages of the progress updates a restore helper reports.
+class RecordingProgressManager: public SqlBackup::ErrorTrackingProgressManager
+{
+  public:
+    void Update(SqlBackup::Progress const& progress) override
+    {
+        ErrorTrackingProgressManager::Update(progress);
+        messages.push_back(progress.message);
+    }
+    void AllDone() override {}
+
+    std::vector<std::string> messages;
+};
+} // namespace
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "SQL Server: HardReset reports the error of a refused foreign-key drop",
+                 "[SqlMigration][HardReset]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto& connection = mgr.GetDataMapper().Connection();
+    if (connection.ServerType() != SqlServerType::MICROSOFT_SQL)
+        return; // DDL triggers and multi-result batches are SQL Server specific here.
+
+    fold_test::FoldStub<20'10'17'00'00'01> m1 { "create parent", [](SqlMigrationQueryBuilder& plan) {
+                                                   plan.CreateTable("reset_parent").PrimaryKey("id", Integer());
+                                               } };
+    mgr.CreateMigrationHistory();
+    REQUIRE(mgr.ApplyPendingMigrations() == 1);
+    // A user table that HardReset keeps, so dropping the parent must drop its foreign key first.
+    (void) SqlStatement { connection }.ExecuteDirect(
+        R"(CREATE TABLE "reset_user" ("id" INT PRIMARY KEY, "parent_id" INT REFERENCES "reset_parent" ("id")))");
+
+    auto const message = [&] {
+        auto const trigger = RefuseAlterTableTrigger { connection };
+        auto const _ = ScopedSqlNullLogger {}; // the failure is expected
+        try
+        {
+            (void) mgr.HardReset(/*dryRun=*/false);
+        }
+        catch (SqlException const& error)
+        {
+            return std::string { error.what() };
+        }
+        return std::string {};
+    }();
+    // The refusal itself, not the later DROP TABLE that fails because the foreign key survived.
+    CHECK(message.contains("alter refused"));
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "SQL Server: a restore's table drop reports the error of a refused foreign-key drop",
+                 "[SqlBackup]")
+{
+    auto& connection = SqlMigration::MigrationManager::GetInstance().GetDataMapper().Connection();
+    if (connection.ServerType() != SqlServerType::MICROSOFT_SQL)
+        return; // DDL triggers and multi-result batches are SQL Server specific here.
+
+    auto stmt = SqlStatement { connection };
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "restore_parent" ("id" INT PRIMARY KEY))");
+    (void) stmt.ExecuteDirect(
+        R"(CREATE TABLE "restore_child" ("id" INT PRIMARY KEY, "parent_id" INT REFERENCES "restore_parent" ("id")))");
+
+    auto progress = RecordingProgressManager {};
+    {
+        auto const trigger = RefuseAlterTableTrigger { connection };
+        auto const _ = ScopedSqlNullLogger {};
+        CHECK_FALSE(SqlBackup::detail::DropTableIfExists(connection, std::string {}, "restore_parent", progress));
+    }
+    REQUIRE(progress.messages.size() == 1);
+    CHECK(progress.messages[0].contains("alter refused"));
 }
 
 // ============================================================================

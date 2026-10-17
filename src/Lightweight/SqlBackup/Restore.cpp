@@ -484,7 +484,7 @@ void RestoreIndexes(SqlConnectionString const& connectionString,
                 std::string const sql = std::format(
                     R"(CREATE {}INDEX "{}" ON {} ({}))", uniqueKeyword, idx.name, formattedTableName, columnList);
 
-                (void) SqlStatement { conn }.ExecuteDirect(sql);
+                SqlStatement { conn }.ExecuteDirect(sql).ConsumePendingResults();
 
                 progress.Update({ .state = Progress::State::InProgress,
                                   .tableName = tableName,
@@ -560,7 +560,7 @@ void ApplyDatabaseConstraints(SqlConnectionString const& connectionString,
         {
             auto sqls = formatter.AlterTable(TargetSchema(info, schema), TargetTableName(tableName, info), commands);
             for (auto const& sql: sqls)
-                (void) SqlStatement { conn }.ExecuteDirect(sql);
+                SqlStatement { conn }.ExecuteDirect(sql).ConsumePendingResults();
         }
         catch (std::exception const& e)
         {
@@ -726,7 +726,7 @@ std::set<std::string> CreateTablesInOrder(SqlConnection& conn,
             {
                 try
                 {
-                    (void) SqlStatement { conn }.ExecuteDirect(sql);
+                    SqlStatement { conn }.ExecuteDirect(sql).ConsumePendingResults();
                 }
                 catch (std::exception const& e)
                 {
@@ -775,7 +775,7 @@ void CreateRecordedSchemas(SqlConnection& conn, std::map<std::string, TableInfo>
             continue;
         try
         {
-            (void) SqlStatement { conn }.ExecuteDirect(sql);
+            SqlStatement { conn }.ExecuteDirect(sql).ConsumePendingResults();
         }
         catch (std::exception const& e)
         {
