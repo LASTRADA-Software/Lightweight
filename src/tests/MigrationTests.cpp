@@ -13,6 +13,8 @@
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <algorithm>
+#include <cctype>
 #include <filesystem>
 #include <fstream>
 #include <streambuf>
@@ -3905,20 +3907,26 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     auto const dry = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
     CHECK(dry.wasDryRun);
 
-    if (stmt.Connection().ServerType() == SqlServerType::POSTGRESQL)
+    auto const serverType = stmt.Connection().ServerType();
+    auto const textIsOneType = serverType == SqlServerType::POSTGRESQL || serverType == SqlServerType::SQLITE;
+    // psqlODBC's ANSI driver: psqlodbca.so off Windows, PSQLODBC30A.DLL on Windows.
+    auto const driverName = [&] {
+        auto name = stmt.Connection().DriverName();
+        std::ranges::transform(name, name.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        return name;
+    }();
+    auto const isAnsiPostgreSqlDriver =
+        serverType == SqlServerType::POSTGRESQL && (driverName.contains("psqlodbca") || driverName.contains("psqlodbc30a"));
+    if (serverType == SqlServerType::POSTGRESQL && !isAnsiPostgreSqlDriver)
     {
-        // psqlODBC (Unicode driver) reports VARCHAR columns as wide types and
-        // PostgreSQL stores all strings as UTF-8, so there is no narrow/wide
-        // drift to repair — the correct result is "nothing to do".
+        // psqlODBC's Unicode driver reports VARCHAR columns as wide types and PostgreSQL stores
+        // all strings as UTF-8, so there is no narrow/wide drift to repair.
         CHECK(dry.columns.empty());
     }
-    else if (stmt.Connection().ServerType() == SqlServerType::SQLITE && dry.columns.empty())
+    else if (serverType == SqlServerType::SQLITE && dry.columns.empty())
     {
-        // The SQLite ODBC driver's Unicode build (the stock Windows DLL) reports
-        // every text column as a wide type, so — as with psqlODBC — no narrow/wide
-        // drift is observable and "nothing to do" is the correct result. The ANSI
-        // build (typical on Linux) reports the declared narrow type and takes the
-        // upgrade path below.
+        // The SQLite ODBC driver's Unicode build (the stock Windows DLL) reports every text column
+        // as a wide type, so no drift is observable; its ANSI build takes the upgrade path below.
         SUCCEED();
     }
     else
@@ -3929,10 +3937,9 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
         CHECK_FALSE(result.wasDryRun);
         REQUIRE_FALSE(result.columns.empty());
 
-        // After the real run the drift is gone — except on SQLite, whose ODBC
-        // driver cannot distinguish VARCHAR from NVARCHAR in live metadata (see
-        // the roundtrip test above), so the reader keeps reporting the narrow type.
-        if (stmt.Connection().ServerType() != SqlServerType::SQLITE)
+        // After the real run the drift is gone — except where narrow and wide text are one type
+        // (PostgreSQL, SQLite): there the ANSI driver keeps reporting the narrow type.
+        if (!textIsOneType)
             CHECK(mgr.UnicodeUpgradeTables(/*dryRun=*/true).columns.empty());
     }
 
