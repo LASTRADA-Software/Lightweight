@@ -637,9 +637,10 @@ jobs:
               --preset gcc-release
       - name: "build"
         run: cmake --build --preset gcc-release -- -j3
-      # NB: Don't run the tests here, as we want to run them later for each individual database
-      # - name: "tests"
-      #   run: ctest --preset gcc-release
+      # LightweightTest and DbToolIntegrationTest run later against each individual database; ctest
+      # runs the remaining tests here, e.g. MigrationExitTest's process-exit check on SQLite.
+      - name: "tests"
+        run: ctest --preset gcc-release -E "^(LightweightTest|DbToolIntegrationTest)$"
       # NB: Don't run valgrind test here, as we want to run them later for each individual database
       # - name: "Run tests through valgrind (without model tests)"
       #   run: |
