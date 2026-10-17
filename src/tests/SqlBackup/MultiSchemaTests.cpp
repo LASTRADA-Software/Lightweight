@@ -574,7 +574,9 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK_FALSE(metadata["schema"][0].contains("schema"));
     auto const entries = ArchiveEntryNames(backupFile);
     CHECK(std::ranges::any_of(entries, [](std::string const& name) { return name.starts_with("data/l7_single/"); }));
-    CHECK(SqlBackup::ReadArchiveSchemas(backupFile) == std::vector<std::string> { "" });
+    auto const archiveSchemas = SqlBackup::ReadArchiveSchemas(backupFile);
+    REQUIRE(archiveSchemas.has_value());
+    CHECK(*archiveSchemas == std::vector<std::string> { "" });
 }
 
 TEST_CASE_METHOD(SqlTestFixture,
@@ -714,8 +716,9 @@ TEST_CASE_METHOD(SqlTestFixture,
     for (auto const* folder:
          { "data/lw_l7_core/parent/", "data/lw_l7_extra/child/", "data/lw_l7_core/shared/", "data/lw_l7_extra/shared/" })
         CHECK(std::ranges::any_of(entries, [folder](std::string const& name) { return name.starts_with(folder); }));
-    CHECK(SqlBackup::ReadArchiveSchemas(backupFile)
-          == std::vector<std::string> { std::string { CoreSchema }, std::string { ExtraSchema } });
+    auto const archiveSchemas = SqlBackup::ReadArchiveSchemas(backupFile);
+    REQUIRE(archiveSchemas.has_value());
+    CHECK(*archiveSchemas == std::vector<std::string> { std::string { CoreSchema }, std::string { ExtraSchema } });
 
     SECTION("restore recreates the schemas, the data and the foreign key")
     {

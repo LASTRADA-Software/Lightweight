@@ -614,16 +614,17 @@ TEST_CASE("IngestPlugins — a failed load unloads the plugins loaded before it 
 {
     ScopedTempTree const tree;
     auto const dir = tree.Dir("plugins");
-    TouchPluginFile(dir / "AaaPolicyPlugin.dll", Baseline());
-    TouchPluginFile(dir / "ZzzBrokenPlugin.dll", Baseline());
+    TouchPluginFile(dir / "PolicyPlugin.dll", Baseline());
+    TouchPluginFile(dir / "BrokenPlugin.dll", Baseline());
 
     Lightweight::SqlMigration::MigrationManager central;
+    auto loaderCalls = 0;
     auto unloaded = false;
     auto hadCompatPolicyAtUnload = false;
 
-    // The first plugin installs a compat policy as its static initializer would; the second fails to load.
+    // The first plugin loaded installs a compat policy as its static initializer would; the second, either one, fails.
     auto loader = [&](std::filesystem::path const& path) -> std::optional<Lightweight::Tools::LoadedPlugin> {
-        if (path.filename() == "ZzzBrokenPlugin.dll")
+        if (++loaderCalls == 2)
             throw std::runtime_error("not a valid shared library");
         central.SetCompatPolicy([](Lightweight::SqlMigration::MigrationBase const&) { return std::set<std::string> {}; });
         auto const recordUnload = [&](void*) {
@@ -638,6 +639,7 @@ TEST_CASE("IngestPlugins — a failed load unloads the plugins loaded before it 
 
     std::vector<std::filesystem::path> dirs { dir };
     REQUIRE_THROWS_AS(Lightweight::Tools::IngestPlugins(dirs, loader, central), std::runtime_error);
+    REQUIRE(loaderCalls == 2);
     REQUIRE(unloaded);
     CHECK_FALSE(hadCompatPolicyAtUnload);
 }
