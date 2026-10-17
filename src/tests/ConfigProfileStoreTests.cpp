@@ -14,8 +14,10 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <variant>
@@ -608,4 +610,85 @@ TEST_CASE("ProfileStore — backup folders round-trip through Save", "[ProfileSt
     REQUIRE(reloaded.has_value());
     CHECK(reloaded->DefaultBackupDir().generic_string() == "/srv/backups");
     CHECK(reloaded->Find("prod")->backupDir.generic_string() == "/srv/backups/prod");
+}
+
+namespace
+{
+
+/// Sets an environment variable for the lifetime of the object and then restores its previous
+/// value, or unsets it when it had none.
+class ScopedEnvironmentVariable
+{
+  public:
+    ScopedEnvironmentVariable(char const* name, std::string const& value):
+        _name { name },
+        _previousValue { Read(name) }
+    {
+        Write(name, value);
+    }
+
+    ScopedEnvironmentVariable(ScopedEnvironmentVariable const&) = delete;
+    ScopedEnvironmentVariable(ScopedEnvironmentVariable&&) = delete;
+    ScopedEnvironmentVariable& operator=(ScopedEnvironmentVariable const&) = delete;
+    ScopedEnvironmentVariable& operator=(ScopedEnvironmentVariable&&) = delete;
+
+    ~ScopedEnvironmentVariable()
+    {
+        Write(_name, _previousValue.value_or(std::string {}));
+    }
+
+  private:
+    static std::optional<std::string> Read(char const* name)
+    {
+#ifdef _WIN32
+        auto size = std::size_t {};
+        if (getenv_s(&size, nullptr, 0, name) != 0 || size == 0)
+            return std::nullopt;
+        auto value = std::string(size, '\0');
+        if (getenv_s(&size, value.data(), value.size(), name) != 0)
+            return std::nullopt;
+        value.resize(size - 1); // size counts the terminating null
+        return value;
+#else
+        if (auto const* const value = std::getenv(name); value != nullptr)
+            return std::string { value };
+        return std::nullopt;
+#endif
+    }
+
+    /// Sets `name` to `value`; an empty value unsets it.
+    static void Write(char const* name, std::string const& value)
+    {
+#ifdef _WIN32
+        _putenv_s(name, value.c_str());
+#else
+        if (value.empty())
+            unsetenv(name);
+        else
+            setenv(name, value.c_str(), 1);
+#endif
+    }
+
+    char const* _name;
+    std::optional<std::string> _previousValue;
+};
+
+} // namespace
+
+TEST_CASE("ProfileStore::DefaultPath honours LIGHTWEIGHT_DBTOOL_USER_CONFIG_DIR", "[ProfileStore]")
+{
+    auto const directory = std::filesystem::temp_directory_path() / "lightweight-user-config-override";
+    auto overridden = std::filesystem::path {};
+    {
+        ScopedEnvironmentVariable const unset { Lightweight::Config::ProfileStore::UserConfigDirectoryVariable, "" };
+        auto const platformDefault = Lightweight::Config::ProfileStore::DefaultPath();
+        {
+            ScopedEnvironmentVariable const set { Lightweight::Config::ProfileStore::UserConfigDirectoryVariable,
+                                                  directory.string() };
+            overridden = Lightweight::Config::ProfileStore::DefaultPath();
+        }
+        CHECK(Lightweight::Config::ProfileStore::DefaultPath() == platformDefault);
+        CHECK(platformDefault != overridden);
+    }
+    CHECK(overridden == directory / "dbtool.yml");
 }

@@ -94,6 +94,14 @@ LIGHTWEIGHT_SQL_MIGRATION(20260126120000, "Create users table")
 The `LIGHTWEIGHT_MIGRATION_PLUGIN()` macro exports the `AcquireMigrationManager()` function
 that dbtool uses to load migrations from the plugin.
 
+A plugin can also export two optional hooks, described in
+[dbtool.md](dbtool.md#optional-post-init-hook):
+
+| Macro | Runs |
+|-------|------|
+| `LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connection, manager)` | before every dbtool command, read-only ones included; failures are logged only |
+| `LIGHTWEIGHT_MIGRATION_PLUGIN_POSTMIGRATE(connection, manager)` | after a successful `migrate` / `migrate-to-release` / `apply`, under the migration lock; a failure fails the command |
+
 ## Table Operations
 
 ### CreateTable
@@ -208,6 +216,62 @@ plan.Insert("settings")
     .Set("key", "app_version")
     .Set("value", "1.0.0");
 ```
+
+#### Rows that may already exist (`IfNotExists`)
+
+A database may already contain a reference row that a later migration inserts, for example one
+applied earlier by a hotfix. A plain `Insert` then fails with a duplicate key and stops the whole
+migration. `IfNotExists` names the key columns that identify the row and makes the insert skip it
+when a row with the same key values exists:
+
+```cpp
+plan.Insert("Categories")
+    .Set("Id", 200)
+    .Set("Name", "Books")
+    .IfNotExists({ "Id" });
+```
+
+It runs as one statement on every backend, with the table schema-qualified the same way as a plain
+insert. Run through `MigrationManager` (and so through `dbtool`), every value is bound as a
+parameter:
+
+```sql
+INSERT INTO "Categories" ("Id", "Name") SELECT ?, ?
+WHERE NOT EXISTS (SELECT 1 FROM "Categories" WHERE "Id" = ?)
+```
+
+- Checksums and previews (`--dry-run`, `ToSql`) show the same statement with the values as
+  literals, rendered exactly as a plain `Insert` renders them, so a checksum does not depend on how
+  the values reach the database. Adding `IfNotExists` changes a migration's checksum; a plain
+  `Insert` renders, checksums and runs exactly as before. `ToBoundSql` returns the bound form.
+- `SqlStatement::MigrateDirect` and other callers that execute `ToSql()` output run the literal
+  form instead; it skips existing rows the same way.
+- UTF-8 text is bound as UTF-16, so it is stored exactly as its literal would store it, in wide and
+  narrow columns alike. Integers and NULL (into any column type) store identically, too.
+- On SQL Server, a migration with an `IfNotExists` insert first runs `SET NOCOUNT OFF`, since the
+  skip is read from the affected-row count; the setting stays in effect for the session afterwards.
+- Bound and literal storage is verified for text, integers, NULL and doubles only. On SQLite a
+  natively bound GUID, date or time is stored as text in a format the driver chooses, so such a key
+  may not match a row a plain `Insert` stored. Use integer or text columns as `IfNotExists` keys.
+- A `double` is bound as its binary value. In FLOAT/REAL columns and in DECIMAL columns of low scale
+  (e.g. `40.3399`, `0.5`, `-12.25` into DECIMAL(10,4)) it stores exactly as the literal of a plain
+  `Insert`. Known divergences, where the literal is parsed as a decimal instead:
+  - a DECIMAL column with more fractional digits than the double holds exactly: `123456.789012`
+    into DECIMAL(28,12) stores `123456.789011999994` bound and `123456.789012000000` as a literal;
+  - SQLite parses some literals 1-2 ULP away from the correctly rounded double (e.g.
+    `0.30000000000000004`, `1e-7`), which the bound value carries;
+  - a double into a text column: SQLite stores `3.0` bound as `"3.0"`, as a literal as `"3"`.
+
+  Use `SqlNumeric` / `SqlDynamicNumeric` for exact decimal values.
+- An existing row is left as it is, **even when its non-key columns differ** from the values in
+  the migration. `IfNotExists` only prevents the duplicate; it never updates.
+- Several key columns are combined with `AND`: `.IfNotExists({ "Kind", "Id" })`.
+- Rendering the plan throws `std::invalid_argument` when a key column is not one of the `Set`
+  columns, or when its value is NULL (`=` never matches NULL, so the row would be inserted again on
+  every run). `IfNotExists({})` throws right away.
+- Each skipped row is counted (`MigrationManager::SkippedExistingRowCount()`) and reported through
+  the manager's log sink as `Skipped existing row: <timestamp> <table> (<key>=<value>, ...)`. See
+  [dbtool](dbtool.md#skipped-rows) for how `dbtool` prints it.
 
 ### Update
 
@@ -349,6 +413,13 @@ specific "make this the session default" statement for every new connection:
   `WithSchema(...)` builder.
 - **SQLite** — no schema concept; the hook is a no-op.
 
+On PostgreSQL a `CreateTable` built with `WithSchema(...)` names the schema for the table and its
+indexes (earlier releases created them in the `search_path` schema). So the schema must exist, and
+a database migrated by an earlier release reports checksum mismatches for those migrations until
+`dbtool rewrite-checksums` rewrites them. The table's inline foreign keys still name the referenced
+table without a schema; they resolve through the `search_path`, so the referenced table must lie
+in a schema on the `search_path`.
+
 Schema names are validated against `[A-Za-z0-9_]` and rejected via
 `std::invalid_argument` otherwise. Passing `""` clears any previously
 installed hook.
@@ -417,6 +488,13 @@ manager.SetCompatPolicy([](SqlMigration::MigrationBase const& migration) {
 
 Flags only change the SQL sent to the database. Checksums are computed from the migration as
 declared, so the same migration has the same checksum on every database.
+
+A policy installed by a plugin is code from that plugin's library. `dbtool` and `dbtool-gui`
+clear the policy, the migrations and the releases before they unload plugins
+(`Lightweight::Tools::UnloadPlugins`): at exit, after a failed plugin load, and in `dbtool-gui`
+whenever it reloads the plugin list, where the reloaded plugins' static initializers install
+their policy again. A host that loads plugins itself must do the same, or the manager calls into
+an unloaded library: at the next migration it applies, or in its destructor when the process exits.
 
 ### Preview (Dry-Run)
 

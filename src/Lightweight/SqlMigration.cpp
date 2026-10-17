@@ -18,11 +18,13 @@
 #include <array>
 #include <chrono>
 #include <format>
+#include <functional>
 #include <limits>
 #include <ranges>
 #include <set>
 #include <span>
 #include <stdexcept>
+#include <tuple>
 #include <unordered_map>
 #include <unordered_set>
 #include <version>
@@ -350,6 +352,65 @@ void MigrationManager::Log(std::string_view message) const
 {
     if (_logSink)
         _logSink(message);
+}
+
+std::size_t MigrationManager::SkippedExistingRowCount() const noexcept
+{
+    return _skippedExistingRowCount;
+}
+
+namespace
+{
+    /// @brief Renders a key value of a skipped-row line: numbers bare, anything else single-quoted.
+    std::string FormatSkippedKeyValue(SqlVariant const& value)
+    {
+        auto const isNumber =
+            std::visit([]<typename T>(T const&) { return std::is_arithmetic_v<T> || std::is_same_v<T, SqlDynamicNumeric>; },
+                       value.value);
+        if (isNumber)
+            return value.ToString();
+
+        auto quoted = std::string { "'" };
+        for (auto const character: value.ToString())
+        {
+            quoted += character;
+            if (character == '\'')
+                quoted += '\'';
+        }
+        quoted += '\'';
+        return quoted;
+    }
+
+    /// @brief Describes the row an `IfNotExists` insert skipped, as one `Skipped existing row:` line.
+    ///
+    /// The key values are the ones @p bound compared, so a key clipped by truncation is logged as
+    /// it was looked up.
+    std::string DescribeSkippedRow(SqlInsertDataPlan const& insert,
+                                   SqlBoundStatement const& bound,
+                                   MigrationTimestamp migration)
+    {
+        // The key values are the trailing parameters, in key order.
+        auto const firstKeyValue = bound.parameters.size() - insert.keyColumns.size();
+        auto keyValues = std::string {};
+        for (auto const index: std::views::iota(std::size_t { 0 }, insert.keyColumns.size()))
+        {
+            if (!keyValues.empty())
+                keyValues += ", ";
+            keyValues += std::format(
+                "{}={}", insert.keyColumns[index], FormatSkippedKeyValue(bound.parameters[firstKeyValue + index]));
+        }
+
+        auto const table =
+            insert.schemaName.empty() ? insert.tableName : std::format("{}.{}", insert.schemaName, insert.tableName);
+        return std::format("Skipped existing row: {} {} ({})", migration.value, table, keyValues);
+    }
+} // namespace
+
+void MigrationManager::ReportSkippedRows(std::vector<std::string> const& skippedRows)
+{
+    _skippedExistingRowCount += skippedRows.size();
+    for (auto const& line: skippedRows)
+        Log(line);
 }
 
 void MigrationManager::PersistVirtualAppliedMigrations()
@@ -1696,7 +1757,8 @@ namespace
     ///
     /// If the script carries a guard, perform the presence check first and skip the DDL
     /// body when the guard condition is already satisfied (or unsatisfied for DROP).
-    /// Otherwise execute the script directly.
+    /// Otherwise execute the script directly. Every result of the script is checked, so an error
+    /// that a later statement of a batch reports fails the migration.
     void ExecuteScriptRespectingSqliteGuards(SqlStatement& stmt, SqlConnection& connection, std::string_view script)
     {
         // A migration changes the schema the pooled query plans were derived from, so drop them — on
@@ -1709,7 +1771,7 @@ namespace
         auto const parsed = TryParseSqliteGuard(script);
         if (!parsed || !connection.RequiresTableRebuildForSchemaChange())
         {
-            (void) stmt.ExecuteDirect(script);
+            stmt.ExecuteDirect(script).ConsumePendingResults();
             return;
         }
 
@@ -1721,11 +1783,11 @@ namespace
         {
             case SqliteGuard::Kind::AddColumnIfNotExists:
                 if (!SqliteColumnExists(connection, guard.tableName, guard.columnName))
-                    (void) stmt.ExecuteDirect(body);
+                    stmt.ExecuteDirect(body).ConsumePendingResults();
                 return;
             case SqliteGuard::Kind::DropColumnIfExists:
                 if (SqliteColumnExists(connection, guard.tableName, guard.columnName))
-                    (void) stmt.ExecuteDirect(body);
+                    stmt.ExecuteDirect(body).ConsumePendingResults();
                 return;
             case SqliteGuard::Kind::AddForeignKey:
                 SqliteRebuildAddForeignKey(connection, guard);
@@ -1739,6 +1801,54 @@ namespace
             case SqliteGuard::Kind::AlterColumn:
                 SqliteRebuildAlterColumn(connection, guard);
                 return;
+        }
+    }
+
+    /// @brief Executes one rendered script of a step: as @p bound with its parameters bound when
+    /// the step has a bound form, otherwise @p script as it is.
+    /// @return The number of rows the bound statement affected, or nothing for a literal script.
+    std::optional<std::size_t> ExecuteMigrationScript(SqlStatement& stmt,
+                                                      SqlConnection& connection,
+                                                      std::string_view script,
+                                                      std::optional<SqlBoundStatement> const& bound)
+    {
+        if (!bound)
+        {
+            ExecuteScriptRespectingSqliteGuards(stmt, connection, script);
+            return std::nullopt;
+        }
+        stmt.Prepare(bound->sql);
+        auto cursor = stmt.ExecuteWithVariants(bound->parameters);
+        auto const insertedRows = cursor.NumRowsAffected();
+        cursor.ConsumePendingResults();
+        return insertedRows;
+    }
+
+    /// @brief Makes the session report affected-row counts when @p plan has an `IfNotExists`
+    /// insert, whose skip is read from that count.
+    void ReportRowCountsFor(SqlStatement& stmt, SqlMigrationPlan const& plan)
+    {
+        auto const statement = stmt.Connection().QueryFormatter().ReportRowCountsStatement();
+        auto const hasConditionalInsert = std::ranges::any_of(plan.steps, [](SqlMigrationPlanElement const& step) {
+            auto const* insert = std::get_if<SqlInsertDataPlan>(&step);
+            return insert && !insert->keyColumns.empty();
+        });
+        if (!statement.empty() && hasConditionalInsert)
+            (void) stmt.ExecuteDirect(statement);
+    }
+
+    /// @brief Runs @p render, naming @p migration in a plan validation error it throws.
+    template <typename Render>
+    decltype(auto) RenderForMigration(MigrationBase const& migration, Render&& render)
+    {
+        try
+        {
+            return std::forward<Render>(render)();
+        }
+        catch (std::invalid_argument const& error)
+        {
+            throw std::invalid_argument(
+                std::format("Migration {} '{}': {}", migration.GetTimestamp().value, migration.GetTitle(), error.what()));
         }
     }
 } // namespace
@@ -1902,14 +2012,21 @@ void MigrationManager::ApplySingleMigration(MigrationBase const& migration, Migr
 
     auto const startTime = std::chrono::steady_clock::now();
 
+    ReportRowCountsFor(stmt, plan);
+    auto skippedRows = std::vector<std::string> {};
+
     for (SqlMigrationPlanElement const& step: plan.steps)
     {
-        auto const sqlScripts = ToSql(dm.Connection().QueryFormatter(), step, context);
+        auto const sqlScripts =
+            RenderForMigration(migration, [&] { return ToSql(dm.Connection().QueryFormatter(), step, context); });
+        auto const bound = RenderForMigration(migration, [&] { return ToBoundSql(step, context); });
         for (auto const& sqlScript: sqlScripts)
         {
             try
             {
-                ExecuteScriptRespectingSqliteGuards(stmt, dm.Connection(), sqlScript);
+                if (ExecuteMigrationScript(stmt, dm.Connection(), sqlScript, bound) == std::size_t { 0 } && bound)
+                    skippedRows.push_back(
+                        DescribeSkippedRow(std::get<SqlInsertDataPlan>(step), *bound, migration.GetTimestamp()));
             }
             catch (SqlException const& ex)
             {
@@ -1935,6 +2052,8 @@ void MigrationManager::ApplySingleMigration(MigrationBase const& migration, Migr
                                         .description = MakeOptionalSqlString1024(migration.GetDescription()),
                                         .execution_duration_ms = elapsedMs });
     transaction.Commit();
+    // Reported only now: a migration that rolls back skipped nothing.
+    ReportSkippedRows(skippedRows);
 }
 
 void MigrationManager::RevertSingleMigration(MigrationBase const& migration)
@@ -1968,14 +2087,20 @@ void MigrationManager::RevertSingleMigration(MigrationBase const& migration)
     auto stmt = SqlStatement { dm.Connection() };
     size_t stepIndex = 0;
 
+    ReportRowCountsFor(stmt, plan);
+    auto skippedRows = std::vector<std::string> {};
+
     for (SqlMigrationPlanElement const& step: plan.steps)
     {
-        auto const sqlScripts = ToSql(dm.Connection().QueryFormatter(), step);
+        auto const sqlScripts = RenderForMigration(migration, [&] { return ToSql(dm.Connection().QueryFormatter(), step); });
+        auto const bound = RenderForMigration(migration, [&] { return ToBoundSql(step); });
         for (auto const& sqlScript: sqlScripts)
         {
             try
             {
-                ExecuteScriptRespectingSqliteGuards(stmt, dm.Connection(), sqlScript);
+                if (ExecuteMigrationScript(stmt, dm.Connection(), sqlScript, bound) == std::size_t { 0 } && bound)
+                    skippedRows.push_back(
+                        DescribeSkippedRow(std::get<SqlInsertDataPlan>(step), *bound, migration.GetTimestamp()));
             }
             catch (SqlException const& ex)
             {
@@ -1992,6 +2117,7 @@ void MigrationManager::RevertSingleMigration(MigrationBase const& migration)
 
     dm.Query<SchemaMigration>().Where("version", "=", migration.GetTimestamp().value).Delete();
     transaction.Commit();
+    ReportSkippedRows(skippedRows);
 }
 
 namespace
@@ -2126,7 +2252,7 @@ std::vector<std::string> MigrationManager::PreviewMigrationWithContext(Migration
     std::vector<std::string> out;
     for (auto const& step: plan.steps)
     {
-        auto sql = ToSql(plan.formatter, step, context);
+        auto sql = RenderForMigration(migration, [&] { return ToSql(plan.formatter, step, context); });
         out.insert(out.end(), sql.begin(), sql.end());
     }
     return out;
@@ -2195,7 +2321,7 @@ std::string MigrationBase::ComputeChecksum(SqlQueryFormatter const& formatter) c
     this->Up(builder);
 
     auto const plan = std::move(builder).GetPlan();
-    auto const statements = plan.ToSql();
+    auto const statements = RenderForMigration(*this, [&] { return plan.ToSql(); });
 
     std::string combined;
     for (auto const& sql: statements)
@@ -2801,7 +2927,7 @@ MigrationManager::HardResetResult MigrationManager::HardReset(bool dryRun)
     auto dropOne = [&](SqlSchema::FullyQualifiedTableName const& key) {
         auto const sqls = formatter.DropTable(key.schema, key.table, /*ifExists=*/true, /*cascade=*/true);
         for (auto const& sql: sqls)
-            (void) stmt.ExecuteDirect(sql);
+            stmt.ExecuteDirect(sql).ConsumePendingResults();
     };
 
     auto runBatch = [&](auto&& batch) {
@@ -2828,7 +2954,7 @@ MigrationManager::HardResetResult MigrationManager::HardReset(bool dryRun)
         auto transaction = SqlTransaction { dm.Connection(), SqlTransactionMode::ROLLBACK };
         auto const sqls = formatter.DropTable(std::string_view {}, std::string_view { "schema_migrations" }, true, true);
         for (auto const& sql: sqls)
-            (void) stmt.ExecuteDirect(sql);
+            stmt.ExecuteDirect(sql).ConsumePendingResults();
         result.schemaMigrationsDropped = true;
         transaction.Commit();
     }
@@ -2846,7 +2972,7 @@ MigrationManager::HardResetResult MigrationManager::HardReset(bool dryRun)
         auto transaction = SqlTransaction { dm.Connection(), SqlTransactionMode::ROLLBACK };
         auto const sqls = formatter.DropTable(std::string_view {}, tableName, /*ifExists=*/true, /*cascade=*/true);
         for (auto const& sql: sqls)
-            (void) stmt.ExecuteDirect(sql);
+            stmt.ExecuteDirect(sql).ConsumePendingResults();
         transaction.Commit();
     }
 
@@ -2864,37 +2990,212 @@ namespace
         std::vector<SqlSchema::ForeignKeyConstraint> affectedFks;
     };
 
+    /// @brief The live tables and the declared (folded) tables, looked up by name: the one place
+    /// where declared names meet live ones. Where the dialect's identifiers are case-insensitive,
+    /// names match ignoring ASCII letter case, and an exact spelling wins among such matches.
+    ///
+    /// The live tables may span several schemas. A declared table resolves to one live table: in
+    /// the schema its migration names; else, among the schemas holding the name, in the first one
+    /// the connection resolves unqualified names through; else in the only schema holding it.
+    class UpgradeSchemaIndex
+    {
+      public:
+        /// @brief Where a declared name leads: one live table, or the holders when no rule picks one.
+        struct Resolution
+        {
+            /// The live table, or `nullptr` when there is none or when the name is ambiguous.
+            SqlSchema::Table const* table = nullptr;
+            /// The tables of the same name in several schemas, none of them a resolution schema.
+            std::vector<SqlSchema::Table const*> ambiguous;
+        };
+
+        /// @param liveTables The tables of every schema of the database.
+        /// @param fold The declared tables.
+        /// @param caseInsensitiveIdentifiers Whether names that differ only in case are one.
+        /// @param resolutionSchemas The schemas an unqualified name resolves through, in order.
+        UpgradeSchemaIndex(std::vector<SqlSchema::Table> const& liveTables,
+                           MigrationManager::PlanFoldingResult const& fold,
+                           bool caseInsensitiveIdentifiers,
+                           std::vector<std::string> resolutionSchemas):
+            _fold { fold },
+            _caseInsensitive { caseInsensitiveIdentifiers }
+        {
+            for (auto& schema: resolutionSchemas)
+                if (std::ranges::none_of(_resolutionSchemas, [&](auto const& seen) { return Key(seen) == Key(schema); }))
+                    _resolutionSchemas.push_back(std::move(schema));
+            for (auto const& table: liveTables)
+            {
+                _liveTablesByName[Key(table.name)].push_back(&table);
+                _liveTablesBySchema.emplace(std::pair { table.schema, table.name }, &table);
+                _liveTablesBySchemaKey.emplace(std::pair { Key(table.schema), Key(table.name) }, &table);
+            }
+            for (auto const& declared: fold.creationOrder)
+            {
+                _declaredTables.emplace(declared.table, &declared);
+                _declaredTablesByKey.emplace(Key(declared.table), &declared);
+            }
+        }
+
+        /// @brief Resolves @p schema.@p name; an empty @p schema resolves the bare name.
+        [[nodiscard]] Resolution Resolve(std::string const& schema, std::string_view name) const
+        {
+            if (!schema.empty())
+            {
+                if (auto const it = _liveTablesBySchema.find(std::pair { schema, std::string { name } });
+                    it != _liveTablesBySchema.end())
+                    return { .table = it->second, .ambiguous = {} };
+                auto const it = _liveTablesBySchemaKey.find(std::pair { Key(schema), Key(name) });
+                return { .table = it == _liveTablesBySchemaKey.end() ? nullptr : it->second, .ambiguous = {} };
+            }
+            auto const it = _liveTablesByName.find(Key(name));
+            if (it == _liveTablesByName.end())
+                return {};
+            auto const& candidates = it->second;
+            for (auto const& resolutionSchema: _resolutionSchemas)
+                if (auto const* table = BestIn(candidates, Key(resolutionSchema), name))
+                    return { .table = table, .ambiguous = {} };
+            if (std::ranges::all_of(
+                    candidates, [&](auto const* table) { return Key(table->schema) == Key(candidates.front()->schema); }))
+                return { .table = BestIn(candidates, Key(candidates.front()->schema), name), .ambiguous = {} };
+            return { .table = nullptr, .ambiguous = candidates };
+        }
+
+        /// @brief The live table @p schema.@p name resolves to, or `nullptr` (also when ambiguous).
+        [[nodiscard]] SqlSchema::Table const* LiveTable(std::string const& schema, std::string const& name) const
+        {
+            return Resolve(schema, name).table;
+        }
+
+        /// @brief Explains why the declared @p name cannot be resolved among @p holders.
+        [[nodiscard]] std::string AmbiguityMessage(std::string_view name,
+                                                   std::vector<SqlSchema::Table const*> const& holders) const
+        {
+            auto schemas = std::string {};
+            for (auto const* table: holders)
+                schemas += std::format("{}{}", schemas.empty() ? "" : ", ", table->schema);
+            auto path = std::string {};
+            for (auto const& schema: _resolutionSchemas)
+                path += std::format("{}{}", path.empty() ? "" : ", ", schema);
+            return std::format("cannot tell which table '{}' the migrations declare: the schemas {} each hold one, and "
+                               "unqualified names resolve through {} only; connect as a user whose default schema (on "
+                               "PostgreSQL: whose search path, e.g. --schema) holds the intended table, or declare its "
+                               "schema with WithSchema",
+                               name,
+                               schemas,
+                               path.empty() ? std::string { "no schema" } : path);
+        }
+
+        /// @brief The column named @p name of the live @p table, or `nullptr`.
+        [[nodiscard]] SqlSchema::Column const* LiveColumn(SqlSchema::Table const& table, std::string_view name) const
+        {
+            return FindColumn(table.columns, name);
+        }
+
+        /// @brief The declared type of the live @p table's @p column, or `nullopt` when no migration
+        /// declares it. A declaration counts only for the live table its name resolves to.
+        [[nodiscard]] std::optional<SqlColumnTypeDefinition> DeclaredType(SqlSchema::Table const& table,
+                                                                          std::string_view column) const
+        {
+            auto const* declared = DeclaredTable(table.name);
+            if (!declared)
+                return std::nullopt;
+            auto const resolution = Resolve(declared->schema, declared->table);
+            if (resolution.table != &table && !std::ranges::contains(resolution.ambiguous, &table))
+                return std::nullopt;
+            auto const* declaredColumn = FindColumn(_fold.tables.at(*declared).columns, column);
+            return declaredColumn ? std::optional { declaredColumn->type } : std::nullopt;
+        }
+
+      private:
+        /// The name under which @p name is matched: itself, or ASCII-folded where case does not count.
+        [[nodiscard]] std::string Key(std::string_view name) const
+        {
+            auto key = std::string { name };
+            if (_caseInsensitive)
+                std::ranges::transform(key, key.begin(), AsciiFold);
+            return key;
+        }
+
+        /// The candidate in the schema keyed @p schemaKey, preferring the exact spelling @p name.
+        [[nodiscard]] SqlSchema::Table const* BestIn(std::vector<SqlSchema::Table const*> const& candidates,
+                                                     std::string const& schemaKey,
+                                                     std::string_view name) const
+        {
+            SqlSchema::Table const* found = nullptr;
+            for (auto const* table: candidates)
+            {
+                if (Key(table->schema) != schemaKey)
+                    continue;
+                if (table->name == name)
+                    return table;
+                if (!found)
+                    found = table;
+            }
+            return found;
+        }
+
+        /// @brief The declared table named @p name, or `nullptr` when no migration declares it.
+        [[nodiscard]] SqlSchema::FullyQualifiedTableName const* DeclaredTable(std::string_view name) const
+        {
+            if (auto const it = _declaredTables.find(name); it != _declaredTables.end())
+                return it->second;
+            if (!_caseInsensitive)
+                return nullptr;
+            auto const it = _declaredTablesByKey.find(Key(name));
+            return it == _declaredTablesByKey.end() ? nullptr : it->second;
+        }
+
+        template <typename Column>
+        [[nodiscard]] Column const* FindColumn(std::vector<Column> const& columns, std::string_view name) const
+        {
+            if (auto const it = std::ranges::find(columns, name, &Column::name); it != columns.end())
+                return &*it;
+            if (!_caseInsensitive)
+                return nullptr;
+            auto const key = Key(name);
+            auto const it = std::ranges::find_if(columns, [&](Column const& column) { return Key(column.name) == key; });
+            return it == columns.end() ? nullptr : &*it;
+        }
+
+        MigrationManager::PlanFoldingResult const& _fold;
+        bool _caseInsensitive;
+        std::vector<std::string> _resolutionSchemas;
+        std::map<std::string, std::vector<SqlSchema::Table const*>> _liveTablesByName;
+        std::map<std::pair<std::string, std::string>, SqlSchema::Table const*> _liveTablesBySchema;
+        std::map<std::pair<std::string, std::string>, SqlSchema::Table const*> _liveTablesBySchemaKey;
+        std::map<std::string, SqlSchema::FullyQualifiedTableName const*, std::less<>> _declaredTables;
+        std::map<std::string, SqlSchema::FullyQualifiedTableName const*> _declaredTablesByKey;
+    };
+
     /// @brief Walks one folded table's columns against the live schema and returns
-    /// a `UnicodeUpgradePending` if any column qualifies. Returns `nullopt` when the
-    /// table is unknown to the live DB or no columns drift.
+    /// a `UnicodeUpgradePending` if any column qualifies. Returns `nullopt` when no
+    /// columns drift. The entries carry the live table and column names.
     std::optional<UnicodeUpgradePending> ComputeUpgradeForTable(
         SqlSchema::FullyQualifiedTableName const& folded,
         MigrationManager::PlanFoldingResult::TableState const& foldedState,
-        SqlSchema::Table const& live)
+        SqlSchema::Table const& live,
+        UpgradeSchemaIndex const& schema)
     {
-        std::map<std::string, SqlSchema::Column const*> liveColumns;
-        for (auto const& c: live.columns)
-            liveColumns.emplace(c.name, &c);
-
         UnicodeUpgradePending p;
-        p.key = folded;
+        p.key = SqlSchema::FullyQualifiedTableName { .catalog = folded.catalog,
+                                                     .schema = live.schema.empty() ? folded.schema : live.schema,
+                                                     .table = live.name };
 
         std::set<std::string> upgradeColumnNames;
         for (auto const& intendedCol: foldedState.columns)
         {
-            auto const liveIt = liveColumns.find(intendedCol.name);
-            if (liveIt == liveColumns.end())
-                continue;
-            if (!IsUnicodeUpgradeCandidate(liveIt->second->type, intendedCol.type))
+            auto const* liveColumn = schema.LiveColumn(live, intendedCol.name);
+            if (!liveColumn || !IsUnicodeUpgradeCandidate(liveColumn->type, intendedCol.type))
                 continue;
             p.columns.push_back(MigrationManager::ColumnUpgradeEntry {
-                .table = folded,
-                .column = intendedCol.name,
-                .liveType = liveIt->second->type,
+                .table = p.key,
+                .column = liveColumn->name,
+                .liveType = liveColumn->type,
                 .intendedType = intendedCol.type,
-                .nullable = liveIt->second->isNullable,
+                .nullable = liveColumn->isNullable,
+                .joinedByForeignKeyTo = {},
             });
-            upgradeColumnNames.insert(intendedCol.name);
+            upgradeColumnNames.insert(liveColumn->name);
         }
 
         if (p.columns.empty())
@@ -2912,6 +3213,222 @@ namespace
 
         return p;
     }
+
+    /// @brief One column being upgraded, as `ForeignKeyJoinWalker` sees it, under its live names.
+    struct UpgradedColumn
+    {
+        std::string schema;
+        std::string table;
+        std::string column;
+        SqlColumnTypeDefinition liveType;
+        SqlColumnTypeDefinition intendedType;
+    };
+
+    /// @brief Follows the foreign keys of every column being upgraded, on either side of the key
+    /// and transitively, and adds each joined column to the pending upgrades, declared or not —
+    /// for dialects whose foreign keys need both sides to share one text type. A joined column
+    /// qualifies when it has the upgraded column's narrow type and size and no migration declares
+    /// it with another type; the others are collected as refusals. Foreign-key endpoints are
+    /// catalog names and carry their schema, so each resolves to its own live table.
+    class ForeignKeyJoinWalker
+    {
+      public:
+        ForeignKeyJoinWalker(std::vector<UnicodeUpgradePending>& pending,
+                             UpgradeSchemaIndex const& schema,
+                             SqlQueryFormatter const& formatter):
+            _pending { pending },
+            _schema { schema },
+            _formatter { formatter }
+        {
+            for (auto const index: std::views::iota(std::size_t { 0 }, pending.size()))
+            {
+                auto const& p = pending[index];
+                auto const* live = schema.LiveTable(p.key.schema, p.key.table);
+                if (!live)
+                    continue;
+                _pendingByTable.emplace(std::pair { live->schema, live->name }, index);
+                _followedFks.insert(p.affectedFks.begin(), p.affectedFks.end());
+                for (auto const& c: p.columns)
+                {
+                    _visited.emplace(live->schema, live->name, c.column);
+                    _worklist.push_back(UpgradedColumn { .schema = live->schema,
+                                                         .table = live->name,
+                                                         .column = c.column,
+                                                         .liveType = c.liveType,
+                                                         .intendedType = c.intendedType });
+                }
+            }
+        }
+
+        /// @brief Walks until every joined column has been seen.
+        /// @throws std::runtime_error naming every joined column that does not qualify.
+        void Run()
+        {
+            while (!_worklist.empty())
+            {
+                auto const from = std::move(_worklist.back());
+                _worklist.pop_back();
+                if (auto const* live = _schema.LiveTable(from.schema, from.table))
+                {
+                    Walk(from, live->externalForeignKeys, /*fromIsReferenced=*/true);
+                    Walk(from, live->foreignKeys, /*fromIsReferenced=*/false);
+                }
+            }
+            NameJoinedColumns();
+        }
+
+      private:
+        /// Follows each of @p keys from the side being upgraded to the other side, column by column.
+        void Walk(UpgradedColumn const& from,
+                  std::vector<SqlSchema::ForeignKeyConstraint> const& keys,
+                  bool fromIsReferenced)
+        {
+            for (auto const& fk: keys)
+            {
+                auto const& fromSide = fromIsReferenced ? fk.primaryKey : fk.foreignKey;
+                auto const& otherSide = fromIsReferenced ? fk.foreignKey : fk.primaryKey;
+                for (auto const index:
+                     std::views::iota(std::size_t { 0 }, std::min(fromSide.columns.size(), otherSide.columns.size())))
+                    if (fromSide.columns[index] == from.column)
+                        Join(from, fk, otherSide.table, otherSide.columns[index]);
+            }
+        }
+
+        /// Upgrades @p tableName.@p columnName along with @p from, or records why it cannot be.
+        void Join(UpgradedColumn const& from,
+                  SqlSchema::ForeignKeyConstraint const& fk,
+                  SqlSchema::FullyQualifiedTableName const& tableName,
+                  std::string const& columnName)
+        {
+            auto const* table = _schema.LiveTable(tableName.schema, tableName.table);
+            auto const* column = table ? _schema.LiveColumn(*table, columnName) : nullptr;
+            if (!column || !_visited.emplace(table->schema, table->name, column->name).second)
+                return;
+            auto const declaredType = _schema.DeclaredType(*table, column->name);
+            if (column->type != from.liveType || (declaredType && *declaredType != from.intendedType))
+            {
+                _refusals.push_back(Refusal {
+                    .column = { .schema = table->schema, .table = table->name, .column = column->name },
+                    .types = std::format("{}{}",
+                                         _formatter.ColumnType(column->type),
+                                         declaredType ? std::format(", declared {}", _formatter.ColumnType(*declaredType))
+                                                      : std::string {}),
+                    .from = { .schema = from.schema, .table = from.table, .column = from.column },
+                    .fromTypes = std::format(
+                        "{} to {}", _formatter.ColumnType(from.liveType), _formatter.ColumnType(from.intendedType)),
+                });
+                return;
+            }
+            auto& target = PendingFor(*table);
+            _joins.push_back(Joined {
+                .pendingIndex = _pendingByTable.at(std::pair { table->schema, table->name }),
+                .columnIndex = target.columns.size(),
+                .from = { .schema = from.schema, .table = from.table, .column = from.column },
+            });
+            target.columns.push_back(MigrationManager::ColumnUpgradeEntry {
+                .table = target.key,
+                .column = column->name,
+                .liveType = column->type,
+                .intendedType = from.intendedType,
+                .nullable = column->isNullable,
+                .joinedByForeignKeyTo = {},
+            });
+            if (_followedFks.insert(fk).second)
+                target.affectedFks.push_back(fk);
+            _worklist.push_back(UpgradedColumn { .schema = table->schema,
+                                                 .table = table->name,
+                                                 .column = column->name,
+                                                 .liveType = column->type,
+                                                 .intendedType = from.intendedType });
+        }
+
+        /// A column by its live names.
+        struct ColumnName
+        {
+            std::string schema;
+            std::string table;
+            std::string column;
+        };
+
+        /// A joined column that cannot be upgraded, and the upgraded column it is joined to.
+        struct Refusal
+        {
+            ColumnName column;
+            std::string types;
+            ColumnName from;
+            std::string fromTypes;
+        };
+
+        /// A joined column added to `_pending`, and the upgraded column it is joined to.
+        struct Joined
+        {
+            std::size_t pendingIndex;
+            std::size_t columnIndex;
+            ColumnName from;
+        };
+
+        /// Names the joined and refused columns, `schema.table.column` when the plan spans
+        /// several schemas, and throws if any joined column was refused.
+        void NameJoinedColumns()
+        {
+            auto schemas = std::set<std::string> {};
+            for (auto const& p: _pending)
+                schemas.insert(p.key.schema);
+            for (auto const& refusal: _refusals)
+            {
+                schemas.insert(refusal.column.schema);
+                schemas.insert(refusal.from.schema);
+            }
+            auto const spansSchemas = schemas.size() > 1;
+            auto const name = [spansSchemas](ColumnName const& column) {
+                return spansSchemas && !column.schema.empty()
+                           ? std::format("{}.{}.{}", column.schema, column.table, column.column)
+                           : std::format("{}.{}", column.table, column.column);
+            };
+
+            for (auto const& joined: _joins)
+                _pending[joined.pendingIndex].columns[joined.columnIndex].joinedByForeignKeyTo = name(joined.from);
+
+            if (_refusals.empty())
+                return;
+            auto refused = std::string {};
+            for (auto const& refusal: _refusals)
+                refused += std::format("{}{} ({}) joined to {} ({})",
+                                       refused.empty() ? "" : ", ",
+                                       name(refusal.column),
+                                       refusal.types,
+                                       name(refusal.from),
+                                       refusal.fromTypes);
+            throw std::runtime_error(
+                std::format("cannot change the column types: these columns are joined by a foreign key to a column being "
+                            "upgraded but differ from it in type or declaration, so they cannot be upgraded with it; "
+                            "align them first: {}",
+                            refused));
+        }
+
+        /// The pending upgrade of the live @p table, added when the table has none yet.
+        UnicodeUpgradePending& PendingFor(SqlSchema::Table const& table)
+        {
+            auto const [entry, added] = _pendingByTable.try_emplace(std::pair { table.schema, table.name }, _pending.size());
+            if (added)
+                _pending.push_back(UnicodeUpgradePending {
+                    .key = { .catalog = {}, .schema = table.schema, .table = table.name },
+                    .columns = {},
+                    .affectedFks = {},
+                });
+            return _pending[entry->second];
+        }
+
+        std::vector<UnicodeUpgradePending>& _pending;
+        UpgradeSchemaIndex const& _schema;
+        SqlQueryFormatter const& _formatter;
+        std::map<std::pair<std::string, std::string>, std::size_t> _pendingByTable;
+        std::set<std::tuple<std::string, std::string, std::string>> _visited;
+        std::set<SqlSchema::ForeignKeyConstraint> _followedFks;
+        std::vector<UpgradedColumn> _worklist;
+        std::vector<Refusal> _refusals;
+        std::vector<Joined> _joins;
+    };
 
     /// @brief Rewrites every flagged column's type token inside one SQLite-stored
     /// `CREATE TABLE` body. Single-pass: types we cannot locate are left at their old
@@ -2968,16 +3485,16 @@ namespace
         }
     }
 
-    /// @brief Build the FK-drop commands for one affected table.
-    [[nodiscard]] std::vector<SqlAlterTableCommand> BuildDropFkCommands(UnicodeUpgradePending const& p)
+    /// @brief The single-column foreign keys of @p unit that touch an upgraded column, each once
+    /// (both of its tables may record it).
+    [[nodiscard]] std::set<SqlSchema::ForeignKeyConstraint> UnitForeignKeys(std::vector<UnicodeUpgradePending> const& unit)
     {
-        std::vector<SqlAlterTableCommand> dropCommands;
-        dropCommands.reserve(p.affectedFks.size());
-        for (auto const& fk: p.affectedFks)
-            if (fk.foreignKey.columns.size() == 1)
-                dropCommands.emplace_back(
-                    SqlAlterTableCommands::DropForeignKey { .columnName = fk.foreignKey.columns.front() });
-        return dropCommands;
+        auto foreignKeys = std::set<SqlSchema::ForeignKeyConstraint> {};
+        for (auto const& p: unit)
+            for (auto const& fk: p.affectedFks)
+                if (fk.foreignKey.columns.size() == 1)
+                    foreignKeys.insert(fk);
+        return foreignKeys;
     }
 
     /// @brief Build the ALTER-column commands for one affected table.
@@ -2994,30 +3511,22 @@ namespace
         return alterCommands;
     }
 
-    /// @brief Build the FK-re-add commands for one affected table.
-    [[nodiscard]] std::vector<SqlAlterTableCommand> BuildAddFkCommands(UnicodeUpgradePending const& p)
+    /// @brief The command that re-adds the single-column foreign key @p fk on its referencing table.
+    [[nodiscard]] SqlAlterTableCommand AddForeignKeyCommand(SqlSchema::ForeignKeyConstraint const& fk)
     {
-        std::vector<SqlAlterTableCommand> addCommands;
-        addCommands.reserve(p.affectedFks.size());
-        for (auto const& fk: p.affectedFks)
-        {
-            if (fk.foreignKey.columns.size() != 1)
-                continue;
-            addCommands.emplace_back(SqlAlterTableCommands::AddForeignKey {
-                .columnName = fk.foreignKey.columns.front(),
-                .referencedColumn =
-                    SqlForeignKeyReferenceDefinition {
-                        .tableName = fk.primaryKey.table.table,
-                        .columnName = fk.primaryKey.columns.empty() ? std::string {} : fk.primaryKey.columns.front(),
-                    },
-            });
-        }
-        return addCommands;
+        return SqlAlterTableCommands::AddForeignKey {
+            .columnName = fk.foreignKey.columns.front(),
+            .referencedColumn =
+                SqlForeignKeyReferenceDefinition {
+                    .tableName = fk.primaryKey.table.table,
+                    .columnName = fk.primaryKey.columns.empty() ? std::string {} : fk.primaryKey.columns.front(),
+                },
+        };
     }
 
     /// @brief Apply the cross-backend upgrade path (everything that isn't SQLite).
-    /// Per-table sequence: drop affected FKs → alter columns → re-add FKs. Each
-    /// step renders via the formatter so the in-tree `AlterTable` codegen is the
+    /// Per-unit sequence: drop the unit's affected FKs → alter its columns → re-add the FKs.
+    /// Each step renders via the formatter so the in-tree `AlterTable` codegen is the
     /// single source of truth for the dialect's ALTER syntax.
     void ExecuteGenericUpgrade(SqlStatement& stmt,
                                SqlQueryFormatter const& formatter,
@@ -3029,15 +3538,135 @@ namespace
                     return;
                 auto const sqls = formatter.AlterTable(schema, table, commands);
                 for (auto const& sql: sqls)
-                    (void) stmt.ExecuteDirect(sql);
+                    stmt.ExecuteDirect(sql).ConsumePendingResults();
             };
 
+        // A foreign key lives on its referencing table, also when it references the upgraded one.
+        auto const foreignKeys = UnitForeignKeys(pending);
+        for (auto const& fk: foreignKeys)
+            execAlter(fk.foreignKey.table.schema,
+                      fk.foreignKey.table.table,
+                      { SqlAlterTableCommands::DropForeignKey { .columnName = fk.foreignKey.columns.front() } });
+        for (auto const& p: pending)
+            execAlter(p.key.schema, p.key.table, BuildAlterColumnCommands(p));
+        for (auto const& fk: foreignKeys)
+            execAlter(fk.foreignKey.table.schema, fk.foreignKey.table.table, { AddForeignKeyCommand(fk) });
+    }
+
+    /// @brief The schemas the server resolves an unqualified table name through, in order: on SQL
+    /// Server the user's default schema, then `dbo`; on PostgreSQL every existing schema of the
+    /// search path. Empty for a dialect without schemas.
+    [[nodiscard]] std::vector<std::string> NameResolutionSchemas(SqlStatement& stmt)
+    {
+        switch (stmt.Connection().ServerType())
+        {
+            case SqlServerType::MICROSOFT_SQL:
+                return { stmt.ExecuteDirectScalar<std::string>("SELECT SCHEMA_NAME()").value_or(std::string {}), "dbo" };
+            case SqlServerType::POSTGRESQL: {
+                auto schemas = std::vector<std::string> {};
+                auto cursor = stmt.ExecuteDirect("SELECT CAST(path.name AS TEXT) FROM "
+                                                 "unnest(current_schemas(false)) WITH ORDINALITY AS path (name, position) "
+                                                 "ORDER BY path.position");
+                while (cursor.FetchRow())
+                    schemas.push_back(cursor.GetNullableColumn<std::string>(1).value_or(std::string {}));
+                return schemas;
+            }
+            default:
+                return {};
+        }
+    }
+
+    /// @brief Union-find over the indexes `0 .. size - 1`.
+    class DisjointSets
+    {
+      public:
+        explicit DisjointSets(std::size_t size):
+            _parent(size)
+        {
+            for (auto const index: std::views::iota(std::size_t { 0 }, size))
+                _parent[index] = index;
+        }
+
+        /// The representative of the set holding @p index.
+        [[nodiscard]] std::size_t Root(std::size_t index)
+        {
+            while (_parent[index] != index)
+                index = _parent[index] = _parent[_parent[index]];
+            return index;
+        }
+
+        /// Merges the sets holding @p first and @p second.
+        void Join(std::size_t first, std::size_t second)
+        {
+            _parent[Root(first)] = Root(second);
+        }
+
+      private:
+        std::vector<std::size_t> _parent;
+    };
+
+    /// @brief Groups @p pending into units that must change together: two pending tables share one
+    /// when a live foreign key between them has an upgraded column on either side. The grouping
+    /// reads the live keys, so it does not depend on which keys the foreign-key walk recorded.
+    /// The units keep the order of their first table, and each unit keeps the order of @p pending.
+    [[nodiscard]] std::vector<std::vector<UnicodeUpgradePending>> GroupIntoUnits(
+        std::vector<UnicodeUpgradePending> const& pending, UpgradeSchemaIndex const& schema)
+    {
+        auto const tableOf = [](SqlSchema::FullyQualifiedTableName const& name) {
+            return std::pair { name.schema, name.table };
+        };
+        auto indexByTable = std::map<std::pair<std::string, std::string>, std::size_t> {};
+        auto upgradedColumns = std::set<std::tuple<std::string, std::string, std::string>> {};
+        for (auto const index: std::views::iota(std::size_t { 0 }, pending.size()))
+        {
+            indexByTable.emplace(tableOf(pending[index].key), index);
+            for (auto const& column: pending[index].columns)
+                upgradedColumns.emplace(pending[index].key.schema, pending[index].key.table, column.column);
+        }
+        auto const upgraded = [&](SqlSchema::FullyQualifiedTableName const& table, std::vector<std::string> const& columns) {
+            return std::ranges::any_of(columns, [&](auto const& column) {
+                return upgradedColumns.contains({ table.schema, table.table, column });
+            });
+        };
+
+        auto sets = DisjointSets { pending.size() };
+        auto const join = [&](SqlSchema::ForeignKeyConstraint const& fk) {
+            auto const from = indexByTable.find(tableOf(fk.foreignKey.table));
+            auto const to = indexByTable.find(tableOf(fk.primaryKey.table));
+            if (from == indexByTable.end() || to == indexByTable.end())
+                return;
+            if (upgraded(fk.foreignKey.table, fk.foreignKey.columns) || upgraded(fk.primaryKey.table, fk.primaryKey.columns))
+                sets.Join(from->second, to->second);
+        };
         for (auto const& p: pending)
         {
-            execAlter(p.key.schema, p.key.table, BuildDropFkCommands(p));
-            execAlter(p.key.schema, p.key.table, BuildAlterColumnCommands(p));
-            execAlter(p.key.schema, p.key.table, BuildAddFkCommands(p));
+            for (auto const& fk: p.affectedFks)
+                join(fk);
+            if (auto const* live = schema.LiveTable(p.key.schema, p.key.table))
+            {
+                for (auto const& fk: live->foreignKeys)
+                    join(fk);
+                for (auto const& fk: live->externalForeignKeys)
+                    join(fk);
+            }
         }
+
+        auto units = std::vector<std::vector<UnicodeUpgradePending>> {};
+        auto unitByRoot = std::map<std::size_t, std::size_t> {};
+        for (auto const index: std::views::iota(std::size_t { 0 }, pending.size()))
+        {
+            auto const [entry, added] = unitByRoot.try_emplace(sets.Root(index), units.size());
+            if (added)
+                units.emplace_back();
+            units[entry->second].push_back(pending[index]);
+        }
+        return units;
+    }
+
+    /// @brief `schema.table` (or `table` without a schema), for messages.
+    [[nodiscard]] std::string DisplayName(SqlSchema::FullyQualifiedTableName const& name)
+    {
+        return name.schema.empty() ? name.table : std::format("{}.{}", name.schema, name.table);
     }
 
     /// @brief Flattens the pending upgrades into the column list the dependency scripter takes.
@@ -3090,20 +3719,117 @@ namespace
 
     /// @brief SQL Server upgrade path: drop every dependent object (scripted beforehand from
     /// the catalog), alter the columns, recreate the objects exactly. Runs inside the
-    /// caller's transaction, so any failure rolls the whole upgrade back.
+    /// caller's transaction for one unit, so any failure rolls that unit back.
     void ExecuteUpgradeWithDependents(SqlStatement& stmt,
                                       SqlQueryFormatter const& formatter,
                                       std::vector<UnicodeUpgradePending> const& pending,
                                       ::Lightweight::detail::DependentObjectScript const& dependents)
     {
         for (auto const& sql: dependents.drop)
-            (void) stmt.ExecuteDirect(sql);
+            stmt.ExecuteDirect(sql).ConsumePendingResults();
         for (auto const& p: pending)
             for (auto const& sql: formatter.AlterTable(p.key.schema, p.key.table, BuildAlterColumnCommands(p)))
-                (void) stmt.ExecuteDirect(sql);
+                stmt.ExecuteDirect(sql).ConsumePendingResults();
         auto const ansiWarnings = ScopedAnsiWarnings { stmt, dependents.needsAnsiWarnings };
         for (auto const& sql: dependents.recreate)
-            (void) stmt.ExecuteDirect(sql);
+            stmt.ExecuteDirect(sql).ConsumePendingResults();
+    }
+} // namespace
+
+namespace
+{
+    /// @brief The declared tables that have columns to widen, resolved to their live tables.
+    /// @throws std::runtime_error when an ambiguous declared name has a holder with a column to widen.
+    [[nodiscard]] std::vector<UnicodeUpgradePending> PlanUnicodeUpgrades(MigrationManager::PlanFoldingResult const& fold,
+                                                                         UpgradeSchemaIndex const& schema)
+    {
+        auto pending = std::vector<UnicodeUpgradePending> {};
+        for (auto const& folded: fold.creationOrder)
+        {
+            auto const resolution = schema.Resolve(folded.schema, folded.table);
+            // An ambiguous name stops the upgrade only when one of its tables has something to widen.
+            for (auto const* holder: resolution.ambiguous)
+                if (ComputeUpgradeForTable(folded, fold.tables.at(folded), *holder, schema))
+                    throw std::runtime_error(schema.AmbiguityMessage(folded.table, resolution.ambiguous));
+            if (!resolution.table)
+                continue;
+            if (auto upgrade = ComputeUpgradeForTable(folded, fold.tables.at(folded), *resolution.table, schema))
+                pending.push_back(std::move(*upgrade));
+        }
+        return pending;
+    }
+
+    /// @brief Fills the columns, foreign keys and units of @p result from the plan.
+    void RecordUnicodeUpgradePlan(MigrationManager::UnicodeUpgradeResult& result,
+                                  std::vector<UnicodeUpgradePending> const& pending,
+                                  std::vector<std::vector<UnicodeUpgradePending>> const& units)
+    {
+        for (auto const& upgrade: pending)
+        {
+            for (auto const& c: upgrade.columns)
+                result.columns.push_back(c);
+            for (auto const& fk: upgrade.affectedFks)
+                result.rebuiltForeignKeys.push_back(SqlCompositeForeignKeyConstraint {
+                    .columns = fk.foreignKey.columns,
+                    .referencedTableName = fk.primaryKey.table.table,
+                    .referencedColumns = fk.primaryKey.columns,
+                });
+        }
+        for (auto const& unit: units)
+        {
+            auto& tables = result.units.emplace_back();
+            for (auto const& p: unit)
+                tables.push_back(p.key);
+        }
+    }
+
+    /// @brief Upgrades one unit in a transaction of its own and commits it.
+    void UpgradeUnit(SqlStatement& stmt,
+                     SqlQueryFormatter const& formatter,
+                     std::vector<UnicodeUpgradePending> const& unit,
+                     bool scriptsDependents)
+    {
+        auto& connection = stmt.Connection();
+        auto transaction = SqlTransaction { connection, SqlTransactionMode::ROLLBACK };
+        if (connection.ServerType() == SqlServerType::SQLITE)
+            ExecuteSqliteUpgrade(connection, formatter, unit);
+        else if (scriptsDependents)
+            ExecuteUpgradeWithDependents(
+                stmt, formatter, unit, ::Lightweight::detail::ScriptSqlServerDependentObjects(stmt, ColumnsToRetype(unit)));
+        else
+            ExecuteGenericUpgrade(stmt, formatter, unit);
+        transaction.Commit();
+    }
+
+    /// @brief The tables of @p unit, comma-separated, for messages.
+    [[nodiscard]] std::string UnitTables(std::vector<UnicodeUpgradePending> const& unit)
+    {
+        auto tables = std::string {};
+        for (auto const& p: unit)
+            tables += std::format("{}{}", tables.empty() ? "" : ", ", DisplayName(p.key));
+        return tables;
+    }
+
+    /// @brief The error for unit @p index of @p units, failed with @p error: it keeps the cause's
+    /// SQLSTATE and native error code and says what the units before it committed.
+    [[nodiscard]] SqlMigration::UnicodeUpgradeUnitError UnitFailure(
+        std::vector<std::vector<UnicodeUpgradePending>> const& units, std::size_t index, std::exception const& error)
+    {
+        auto info = SqlErrorInfo {};
+        if (auto const* sqlError = dynamic_cast<SqlException const*>(&error))
+            info = sqlError->info();
+        else
+            info.message = error.what();
+        auto const committed = index == 0 ? std::string { "no unit was committed" }
+                                          : std::format("the {} unit(s) before it are committed", index);
+        info.message = std::format("unit {} of {} ({}) failed and was rolled back; {}, and a rerun continues with this "
+                                   "one: {}",
+                                   index + 1,
+                                   units.size(),
+                                   UnitTables(units[index]),
+                                   committed,
+                                   info.message);
+        return { std::move(info), index + 1, units.size() };
     }
 } // namespace
 
@@ -3119,51 +3845,41 @@ MigrationManager::UnicodeUpgradeResult MigrationManager::UnicodeUpgradeTables(bo
     auto stmt = SqlStatement { dm.Connection() };
     auto const liveTables = SqlSchema::ReadAllTables(stmt, std::string {}, std::string {});
 
-    std::map<std::string, SqlSchema::Table const*> liveByName;
-    for (auto const& t: liveTables)
-        liveByName.emplace(t.name, &t);
+    auto const schema =
+        UpgradeSchemaIndex { liveTables, fold, formatter.IdentifiersAreCaseInsensitive(), NameResolutionSchemas(stmt) };
 
-    std::vector<UnicodeUpgradePending> pendingPerTable;
-    for (auto const& folded: fold.creationOrder)
-    {
-        auto const it = liveByName.find(folded.table);
-        if (it == liveByName.end())
-            continue;
-        auto upgrade = ComputeUpgradeForTable(folded, fold.tables.at(folded), *it->second);
-        if (!upgrade)
-            continue;
-        for (auto const& c: upgrade->columns)
-            result.columns.push_back(c);
-        for (auto const& fk: upgrade->affectedFks)
-            result.rebuiltForeignKeys.push_back(SqlCompositeForeignKeyConstraint {
-                .columns = fk.foreignKey.columns,
-                .referencedTableName = fk.primaryKey.table.table,
-                .referencedColumns = fk.primaryKey.columns,
-            });
-        pendingPerTable.push_back(std::move(*upgrade));
-    }
+    auto pendingPerTable = PlanUnicodeUpgrades(fold, schema);
+    if (formatter.DistinguishesNarrowAndWideText())
+        ForeignKeyJoinWalker { pendingPerTable, schema, formatter }.Run();
+
+    auto const units = GroupIntoUnits(pendingPerTable, schema);
+    RecordUnicodeUpgradePlan(result, pendingPerTable, units);
 
     // Where narrow and wide text are distinct types (SQL Server), the column change is
     // blocked by every key, constraint, index and statistic on the column: script them
-    // from the catalog now, so a dry run can report them and a real run can recreate them.
-    auto dependents = std::optional<::Lightweight::detail::DependentObjectScript> {};
-    if (formatter.DistinguishesNarrowAndWideText() && !pendingPerTable.empty())
-    {
-        dependents = ::Lightweight::detail::ScriptSqlServerDependentObjects(stmt, ColumnsToRetype(pendingPerTable));
-        result.rebuiltObjects = dependents->descriptions;
-    }
+    // from the whole catalog now, so a dry run can report them and a real run stops on an
+    // object it cannot recreate before it changes anything.
+    auto const scriptsDependents = formatter.DistinguishesNarrowAndWideText();
+    if (scriptsDependents && !pendingPerTable.empty())
+        result.rebuiltObjects =
+            ::Lightweight::detail::ScriptSqlServerDependentObjects(stmt, ColumnsToRetype(pendingPerTable)).descriptions;
 
-    if (dryRun || pendingPerTable.empty())
+    if (dryRun)
         return result;
 
-    auto transaction = SqlTransaction { dm.Connection(), SqlTransactionMode::ROLLBACK };
-    if (dm.Connection().ServerType() == SqlServerType::SQLITE)
-        ExecuteSqliteUpgrade(dm.Connection(), formatter, pendingPerTable);
-    else if (dependents)
-        ExecuteUpgradeWithDependents(stmt, formatter, pendingPerTable, *dependents);
-    else
-        ExecuteGenericUpgrade(stmt, formatter, pendingPerTable);
-    transaction.Commit();
+    // One transaction per unit keeps the transaction log to one unit's worth of changes.
+    for (auto const index: std::views::iota(std::size_t { 0 }, units.size()))
+    {
+        try
+        {
+            UpgradeUnit(stmt, formatter, units[index], scriptsDependents);
+        }
+        catch (std::exception const& error)
+        {
+            throw UnitFailure(units, index, error);
+        }
+        Log(std::format("committed unit {} of {}: {}", index + 1, units.size(), UnitTables(units[index])));
+    }
     return result;
 }
 

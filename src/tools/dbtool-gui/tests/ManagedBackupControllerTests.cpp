@@ -8,10 +8,13 @@
 #include "../ManagedBackupController.hpp"
 #include "../Models/BackupStatusListModel.hpp"
 #include "../Models/BackupTableListModel.hpp"
+#include "../SettingsLocation.hpp"
+#include "SqliteDriver.hpp"
 
 #include <Lightweight/SqlBackup.hpp>
 #include <Lightweight/SqlConnection.hpp>
 #include <Lightweight/SqlStatement.hpp>
+#include <Lightweight/Zip/ZipArchive.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -27,10 +30,12 @@
 #include <QtCore/QFileInfo>
 #include <QtCore/QTemporaryDir>
 #include <QtCore/QTimer>
+#include <QtCore/QtEnvironmentVariables>
 #include <QtTest/QSignalSpy>
 #include <Secrets/ProfileCipher.hpp>
 
 using DbtoolGui::ManagedBackupController;
+using DbtoolGui::Tests::SqliteConnectionString;
 
 namespace
 {
@@ -41,9 +46,38 @@ namespace
     Lightweight::Config::Profile profile;
     profile.name = name;
     profile.connectionString =
-        "DRIVER=SQLite3;Database=" + (dir.path() + "/" + QString::fromStdString(name)).toStdString() + ".db";
+        SqliteConnectionString((dir.path() + "/" + QString::fromStdString(name)).toStdString() + ".db");
     return profile;
 }
+
+/// Sets an environment variable for its lifetime and restores the previous value, also when a test fails.
+class ScopedEnvironmentVariable
+{
+  public:
+    ScopedEnvironmentVariable(char const* name, QByteArray const& value):
+        _name { name },
+        _previous { qgetenv(name) },
+        _wasSet { qEnvironmentVariableIsSet(name) }
+    {
+        qputenv(name, value);
+    }
+    ScopedEnvironmentVariable(ScopedEnvironmentVariable const&) = delete;
+    ScopedEnvironmentVariable(ScopedEnvironmentVariable&&) = delete;
+    ScopedEnvironmentVariable& operator=(ScopedEnvironmentVariable const&) = delete;
+    ScopedEnvironmentVariable& operator=(ScopedEnvironmentVariable&&) = delete;
+    ~ScopedEnvironmentVariable()
+    {
+        if (_wasSet)
+            qputenv(_name, _previous);
+        else
+            qunsetenv(_name);
+    }
+
+  private:
+    char const* _name;
+    QByteArray _previous;
+    bool _wasSet;
+};
 
 /// Spins the event loop until `spy` has at least one emission or `ms` ran out.
 [[nodiscard]] bool WaitFor(QSignalSpy& spy, int ms = 30000)
@@ -63,6 +97,21 @@ TEST_CASE("ManagedBackupController defaults: idle, default folder, empty model",
     CHECK(controller.effectiveBackupFolder() == controller.defaultBackupFolder());
     CHECK_FALSE(controller.defaultBackupFolder().isEmpty());
     CHECK(controller.status()->rowCount() == 0);
+}
+
+TEST_CASE("the default backup folder lies in LIGHTWEIGHT_DBTOOL_GUI_SETTINGS_DIR when it is set",
+          "[dbtool-gui][managed-backup-controller]")
+{
+    QTemporaryDir dir;
+    auto const defaultFolder = [&] {
+        auto const settingsDirectory =
+            ScopedEnvironmentVariable { DbtoolGui::SettingsDirectoryVariable, QFile::encodeName(dir.path()) };
+        ManagedBackupController controller;
+        controller.setBackupFolder(QString {});
+        return controller.defaultBackupFolder();
+    }();
+
+    CHECK(defaultFolder == dir.path() + QStringLiteral("/backups"));
 }
 
 TEST_CASE("setBackupFolder persists, notifies, and feeds effectiveBackupFolder", "[dbtool-gui][managed-backup-controller]")
@@ -422,7 +471,7 @@ TEST_CASE("restoreArchiveToConnectionString restores into a raw target", "[dbtoo
     controller.backupProfile("alpha");
     REQUIRE(WaitFor(backupDone));
 
-    auto const targetCs = QString("DRIVER=SQLite3;Database=%1/raw-target.db").arg(dir.path());
+    auto const targetCs = QString::fromStdString(SqliteConnectionString((dir.path() + "/raw-target.db").toStdString()));
     QSignalSpy restoreDone(&controller, &ManagedBackupController::finished);
     controller.restoreArchiveToConnectionString("alpha", targetCs, QString {});
     REQUIRE(WaitFor(restoreDone));
@@ -1001,4 +1050,57 @@ TEST_CASE("the folder dbtool.yml configures is the default backup folder, and Se
     controller.setBackupFolder(QString {});
     controller.setConfiguredBackupFolder(QString {});
     CHECK(controller.effectiveBackupFolder() == platformDefault);
+}
+
+TEST_CASE("a multi-schema archive drops only a profile schema it holds; a typed schema goes to the restore",
+          "[dbtool-gui][managed-backup-controller][restore]")
+{
+    QTemporaryDir dir;
+    ManagedBackupController controller;
+    controller.setBackupFolder(dir.path() + "/backups");
+    auto const source = SqliteProfile(dir, "source");
+    auto inArchive = SqliteProfile(dir, "in-archive");
+    inArchive.schema = "SALES";
+    auto notInArchive = SqliteProfile(dir, "not-in-archive");
+    notInArchive.schema = "restore_check";
+    controller.setProfiles({ source, inArchive, notInArchive });
+    controller.setBackupOperation([](std::filesystem::path const& file,
+                                     std::string const& /*connectionString*/,
+                                     std::string const& /*schema*/,
+                                     Lightweight::SqlBackup::ProgressManager& /*progress*/) {
+        // Runs on the pool thread, so a failure throws (and fails the backup) instead of asserting.
+        auto archive = Lightweight::Zip::ZipArchive::CreateOrTruncate(file);
+        if (!archive
+            || !archive->AddString("metadata.json",
+                                   R"({"format_version":"2.0","schema_name":"","schema_names":["dbo","sales"],"schema":[]})")
+            || !archive->Close())
+            throw std::runtime_error("cannot write the multi-schema test archive");
+    });
+    auto restoredSchemas = std::vector<std::string> {};
+    controller.setRestoreOperation(
+        [&restoredSchemas](std::filesystem::path const& /*archiveFile*/,
+                           std::string const& /*connectionString*/,
+                           std::string const& schema,
+                           Lightweight::SqlBackup::ProgressManager& /*progress*/) { restoredSchemas.push_back(schema); });
+
+    QSignalSpy backupDone(&controller, &ManagedBackupController::finished);
+    controller.backupProfile("source");
+    REQUIRE(WaitFor(backupDone));
+    REQUIRE(backupDone.first().at(0).toBool());
+
+    auto const restore = [&](auto const& start) {
+        QSignalSpy restoreDone(&controller, &ManagedBackupController::finished);
+        start();
+        REQUIRE(WaitFor(restoreDone));
+    };
+    restore([&] { controller.restoreArchive("source", "in-archive"); });
+    restore([&] { controller.restoreArchive("source", "not-in-archive"); });
+    restore([&] {
+        controller.restoreArchiveToConnectionString(
+            "source", QString::fromStdString(notInArchive.connectionString), QStringLiteral("sales"));
+    });
+
+    CHECK(restoredSchemas == std::vector<std::string> { "", "restore_check", "sales" });
+
+    controller.setBackupFolder(QString {});
 }

@@ -8,10 +8,14 @@
 
 #define CATCH_CONFIG_RUNNER
 
+#include "../StderrMessageHandler.hpp"
+#include "TestIsolation.hpp"
+
 #include <catch2/catch_session.hpp>
 
 #include <cstdlib>
 
+#include <NoErrorDialogs.hpp>
 #include <QtCore/QCoreApplication>
 #include <QtCore/QThreadPool>
 #include <QtGui/QGuiApplication>
@@ -28,23 +32,31 @@
 
 int main(int argc, char* argv[])
 {
-    // Heap-allocated and intentionally never deleted. Each test case
-    // constructs an `AppController` that owns a `QThreadPool`-driven
-    // `MigrationRunner` and a `QFileSystemWatcher`; both can have queued
-    // events in flight when the test cleans up its local controller.
-    // Letting the OS reap the QGuiApplication on process exit sidesteps
-    // the access violations a stack-allocated app raises during static
-    // tear-down on Windows + Qt 6.11 debug builds.
-    auto* app = new QGuiApplication(argc, argv);
-    QGuiApplication::setApplicationName(QStringLiteral("dbtool-gui-tests"));
-    QGuiApplication::setOrganizationName(QStringLiteral("JP-Software"));
-    QGuiApplication::setOrganizationDomain(QStringLiteral("lastrada.software"));
+    Lightweight::Tools::DisableErrorDialogs();
+    qInstallMessageHandler(DbtoolGui::WriteQtMessageToStderr);
 
-    Catch::Session session;
-    auto const result = session.run(argc, argv);
-    QThreadPool::globalInstance()->waitForDone();
-    QCoreApplication::processEvents();
-    (void) app;
+    auto result = 0;
+    {
+        DbtoolGui::Tests::ScopedTestIsolation const isolation;
+
+        // Heap-allocated and intentionally never deleted. Each test case
+        // constructs an `AppController` that owns a `QThreadPool`-driven
+        // `MigrationRunner` and a `QFileSystemWatcher`; both can have queued
+        // events in flight when the test cleans up its local controller.
+        // Letting the OS reap the QGuiApplication on process exit sidesteps
+        // the access violations a stack-allocated app raises during static
+        // tear-down on Windows + Qt 6.11 debug builds.
+        auto* app = new QGuiApplication(argc, argv);
+        QGuiApplication::setApplicationName(QStringLiteral("dbtool-gui-tests"));
+        QGuiApplication::setOrganizationName(QStringLiteral("JP-Software"));
+        QGuiApplication::setOrganizationDomain(QStringLiteral("lastrada.software"));
+
+        Catch::Session session;
+        result = session.run(argc, argv);
+        QThreadPool::globalInstance()->waitForDone();
+        QCoreApplication::processEvents();
+        (void) app;
+    } // leaves and removes the isolation directory, which TerminateProcess below would skip
 
     // Bypass C++ static destructors. Qt 6.11 debug builds + Catch2's own
     // static fixtures + the Lightweight library's static caches don't tear

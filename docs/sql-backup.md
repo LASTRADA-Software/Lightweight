@@ -15,6 +15,11 @@ A backup is a single zip archive containing:
 - `data/<table>/NNNN_SS.msgpack` — the table data, split into self-contained msgpack
   chunks (`NNNN` = window index, `SS` = sub-chunk within the window).
 
+`SqlBackup::BackupSchemas` backs up several schemas into one archive. It then stores the
+data under `data/<schema>/<table>/` and records each table's schema and each foreign
+key's referenced schema, so that a restore recreates every table in its own schema
+(see [sql-backup-format.md](sql-backup-format.md#6-multi-schema-archives)).
+
 Backup and restore work against SQLite3, Microsoft SQL Server, and PostgreSQL through
 ODBC; all per-DBMS SQL differences are handled internally.
 

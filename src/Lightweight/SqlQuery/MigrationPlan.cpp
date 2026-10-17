@@ -7,8 +7,10 @@
 
 #include <algorithm>
 #include <format>
+#include <functional>
 #include <optional>
 #include <ranges>
+#include <stdexcept>
 #include <string_view>
 
 namespace Lightweight
@@ -79,32 +81,95 @@ namespace
         return {};
     }
 
+    /// @brief Returns the value of each key column of an `IfNotExists` insert, in key order.
+    /// @throws std::invalid_argument A key column is not one of the insert's columns or holds NULL.
+    std::vector<std::pair<std::string_view, SqlVariant const*>> KeyValues(SqlInsertDataPlan const& step)
+    {
+        auto result = std::vector<std::pair<std::string_view, SqlVariant const*>> {};
+        for (auto const& keyColumn: step.keyColumns)
+        {
+            auto const column = std::ranges::find(step.columns, keyColumn, &std::pair<std::string, SqlVariant>::first);
+            if (column == step.columns.end())
+                throw std::invalid_argument(
+                    std::format(R"(IfNotExists key column "{}" of INSERT INTO {} is not one of its Set columns)",
+                                keyColumn,
+                                FormatTableName(step.schemaName, step.tableName)));
+            // `=` never matches NULL, so a NULL key would insert a duplicate on every run.
+            if (column->second.IsNull())
+                throw std::invalid_argument(std::format(R"(IfNotExists key column "{}" of INSERT INTO {} has a NULL value)",
+                                                        keyColumn,
+                                                        FormatTableName(step.schemaName, step.tableName)));
+            result.emplace_back(keyColumn, &column->second);
+        }
+        return result;
+    }
+
+    /// @brief Renders an INSERT, given how each value is rendered: `VALUES (...)` for a plain
+    /// insert, `SELECT ... WHERE NOT EXISTS (...)` for an `IfNotExists` insert.
+    std::string FormatInsert(SqlInsertDataPlan const& step, std::function<std::string(SqlVariant const&)> const& formatValue)
+    {
+        auto columns = std::string {};
+        auto values = std::string {};
+        for (auto const& [columnName, columnValue]: step.columns)
+        {
+            if (!columns.empty())
+            {
+                columns += ", ";
+                values += ", ";
+            }
+            columns += std::format(R"("{}")", columnName);
+            values += formatValue(columnValue);
+        }
+
+        auto const tableName = FormatTableName(step.schemaName, step.tableName);
+        if (step.keyColumns.empty())
+            return std::format("INSERT INTO {} ({}) VALUES ({})", tableName, columns, values);
+
+        auto keyCondition = std::string {};
+        for (auto const& [keyColumn, keyValue]: KeyValues(step))
+        {
+            if (!keyCondition.empty())
+                keyCondition += " AND ";
+            keyCondition += std::format(R"("{}" = {})", keyColumn, formatValue(*keyValue));
+        }
+        return std::format("INSERT INTO {} ({}) SELECT {} WHERE NOT EXISTS (SELECT 1 FROM {} WHERE {})",
+                           tableName,
+                           columns,
+                           values,
+                           tableName,
+                           keyCondition);
+    }
+
     std::vector<std::string> ToSqlInsert(SqlQueryFormatter const& formatter, SqlInsertDataPlan const& step)
     {
-        auto const columns = [&] {
-            std::string result;
-            for (auto const& [columnName, columnValue]: step.columns)
-            {
-                if (!result.empty())
-                    result += ", ";
-                result += std::format(R"("{}")", columnName);
-            }
-            return result;
-        }();
+        return { FormatInsert(step, [&](SqlVariant const& value) { return FormatSqlLiteral(formatter, value); }) };
+    }
 
-        auto const values = [&] {
-            std::string result;
-            for (auto const& [columnName, columnValue]: step.columns)
-            {
-                if (!result.empty())
-                    result += ", ";
-                result += FormatSqlLiteral(formatter, columnValue);
-            }
-            return result;
-        }();
+    /// @brief Returns @p value as it is bound: UTF-8 text as UTF-16, so the driver converts it to the
+    /// column's encoding exactly as the server converts the literal `ToSqlInsert` renders.
+    SqlVariant BoundValue(SqlVariant const& value)
+    {
+        auto const asUtf16 = [](std::string_view text) {
+            return SqlVariant { ToUtf16(std::u8string_view { reinterpret_cast<char8_t const*>(text.data()), text.size() }) };
+        };
+        // clang-format off
+        return std::visit(detail::overloaded {
+            [&](std::string_view v) { return asUtf16(v); },
+            [&](std::string const& v) { return asUtf16(v); },
+            [&](SqlText const& v) { return asUtf16(v.value); },
+            [&](auto const&) { return value; },
+        }, value.value);
+        // clang-format on
+    }
 
-        auto tableName = FormatTableName(step.schemaName, step.tableName);
-        return { std::format("INSERT INTO {} ({}) VALUES ({})", tableName, columns, values) };
+    SqlBoundStatement ToBoundSqlInsert(SqlInsertDataPlan const& step)
+    {
+        auto statement = SqlBoundStatement {};
+        statement.sql = FormatInsert(step, [&](SqlVariant const& value) {
+            statement.parameters.push_back(BoundValue(value));
+            return std::string { "?" };
+        });
+        return statement;
     }
 
     std::vector<std::string> ToSqlUpdate(SqlQueryFormatter const& formatter, SqlUpdateDataPlan const& step)
@@ -756,6 +821,28 @@ namespace
         return RenderStep(formatter, element);
     }
 } // namespace
+
+std::optional<SqlBoundStatement> ToBoundSql(SqlMigrationPlanElement const& element)
+{
+    auto const* insert = std::get_if<SqlInsertDataPlan>(&element);
+    if (!insert || insert->keyColumns.empty())
+        return std::nullopt;
+    return ToBoundSqlInsert(*insert);
+}
+
+std::optional<SqlBoundStatement> ToBoundSql(SqlMigrationPlanElement const& element, MigrationRenderContext& context)
+{
+    auto const* insert = std::get_if<SqlInsertDataPlan>(&element);
+    if (!insert || insert->keyColumns.empty())
+        return std::nullopt;
+    if (!context.lupTruncate || insert->columns.empty())
+        return ToBoundSqlInsert(*insert);
+
+    // The events were already reported when `ToSql` rendered this step with the same context.
+    auto truncated = *insert;
+    (void) ApplyLupTruncate(context, truncated.schemaName, truncated.tableName, truncated.columns);
+    return ToBoundSqlInsert(truncated);
+}
 
 std::vector<std::string> ToSql(std::vector<SqlMigrationPlan> const& plans)
 {

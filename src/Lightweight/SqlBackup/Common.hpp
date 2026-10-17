@@ -10,10 +10,12 @@
 #include <chrono>
 #include <cstdint>
 #include <format>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <thread>
 #include <utility>
+#include <vector>
 
 #if defined(__clang__)
     #pragma clang diagnostic push
@@ -179,6 +181,57 @@ Container ReadZipEntry(zip_t* zip, zip_int64_t index, zip_uint64_t size)
 /// @param table The table name.
 /// @return Quoted table name, optionally prefixed with quoted schema.
 LIGHTWEIGHT_API std::string FormatTableName(std::string_view schema, std::string_view table);
+
+/// Returns the archive folder below `data/` that holds a table's chunks.
+///
+/// A single-schema archive uses `<table>`, a multi-schema archive `<schema>/<table>`. Dots in
+/// either name become underscores, so the folder never adds a path segment of its own.
+///
+/// @param schema The table's schema in a multi-schema archive; empty in a single-schema archive.
+/// @param table The table name.
+/// @return The folder, relative to `data/`.
+LIGHTWEIGHT_API std::string ChunkDirectory(std::string_view schema, std::string_view table);
+
+/// Extracts the folder below `data/` from a chunk entry name `data/<folder>/<chunk>.msgpack`.
+///
+/// @param entryName The ZIP entry name.
+/// @return The folder (see @ref ChunkDirectory), or `std::nullopt` if @p entryName is no chunk entry.
+LIGHTWEIGHT_API std::optional<std::string_view> ChunkDirectoryOf(std::string_view entryName);
+
+/// Joins @p names with ", ", for messages.
+///
+/// A plain loop: libc++ lacks views::join_with, and Clang cannot compile its `| ranges::to` pipe
+/// against libstdc++ 14.
+///
+/// @param names The names to join.
+/// @return The joined names.
+LIGHTWEIGHT_API std::string JoinNames(std::vector<std::string> const& names);
+
+/// Lower-cases ASCII letters, for comparing identifiers of a case-insensitive dialect.
+///
+/// @param text The identifier.
+/// @return @p text with A-Z lower-cased.
+LIGHTWEIGHT_API std::string ToLowerAscii(std::string_view text);
+
+/// Drops duplicates from @p schemas, keeping the first spelling, and sorts them; an empty list
+/// becomes the one unnamed schema.
+///
+/// @param schemas The schemas to back up.
+/// @param caseInsensitive Whether names that differ only in case are one schema.
+/// @return The schemas a backup covers.
+LIGHTWEIGHT_API std::vector<std::string> NormalizeSchemaNames(std::vector<std::string> schemas, bool caseInsensitive);
+
+/// Describes why @p tables cannot go into one archive, because two of them would share an archive
+/// key or chunk folder.
+///
+/// Two causes exist: same-named tables of different schemas in an archive that records no schema
+/// (the message points to a multi-schema archive), and names that differ only in a dot and an
+/// underscore, which the chunk folder writes alike.
+///
+/// @param tables The tables to back up.
+/// @param multiSchema Whether the archive records each table's schema.
+/// @return The description, or an empty string if no two tables collide.
+LIGHTWEIGHT_API std::string DescribeTableNameCollisions(SqlSchema::TableList const& tables, bool multiSchema);
 
 /// Drops a table if it exists, handling FK constraints via cascade.
 ///

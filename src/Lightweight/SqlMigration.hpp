@@ -12,6 +12,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <exception>
 #include <functional>
 #include <list>
 #include <map>
@@ -203,6 +204,42 @@ namespace SqlMigration
         MigrationTimestamp highestTimestamp;
     };
 
+    /// The failure of one unit of `MigrationManager::UnicodeUpgradeTables`, which was rolled back.
+    ///
+    /// `info()` keeps the SQLSTATE and native error code of the cause; its message names the unit,
+    /// its tables and what the units before it committed, followed by the cause's message.
+    ///
+    /// @ingroup SqlMigration
+    class UnicodeUpgradeUnitError final: public SqlException
+    {
+      public:
+        /// @param info       The cause's error info, its message already prefixed with the unit's.
+        /// @param unitNumber The failed unit, counted from 1.
+        /// @param unitCount  The number of units of the upgrade.
+        UnicodeUpgradeUnitError(SqlErrorInfo info, std::size_t unitNumber, std::size_t unitCount):
+            SqlException(std::move(info)),
+            _unitNumber { unitNumber },
+            _unitCount { unitCount }
+        {
+        }
+
+        /// The failed unit, counted from 1; the units before it are committed.
+        [[nodiscard]] std::size_t UnitNumber() const noexcept
+        {
+            return _unitNumber;
+        }
+
+        /// The number of units of the upgrade.
+        [[nodiscard]] std::size_t UnitCount() const noexcept
+        {
+            return _unitCount;
+        }
+
+      private:
+        std::size_t _unitNumber;
+        std::size_t _unitCount;
+    };
+
     /// Main API to use for managing SQL migrations
     ///
     /// This class is a singleton and can be accessed using the GetInstance() method.
@@ -389,6 +426,15 @@ namespace SqlMigration
         /// @param message The message to deliver.
         LIGHTWEIGHT_API void Log(std::string_view message) const;
 
+        /// @brief Number of rows `Insert(...).IfNotExists(...)` steps skipped because a row
+        /// with the same key values already existed, counted over the manager's lifetime.
+        ///
+        /// Each skip is also reported through @ref Log as one line of the form
+        /// `Skipped existing row: <timestamp> <table> (<key>=<value>, ...)`. Both happen once the
+        /// migration has committed, so a migration that fails and rolls back reports no skips.
+        /// Callers that need the count of one run take the difference before and after it.
+        [[nodiscard]] LIGHTWEIGHT_API std::size_t SkippedExistingRowCount() const noexcept;
+
         /// Get the data mapper used for migrations.
         ///
         /// Owned by the manager and connected with the default connection string on first use. When
@@ -424,6 +470,8 @@ namespace SqlMigration
         ///
         /// Typically called once from a plugin's static initializer. Replaces any policy
         /// previously installed — composition is the caller's responsibility for now.
+        /// A policy from a plugin is code in that plugin's library: a host must clear it
+        /// before it unloads the plugin, as dbtool's `Tools::UnloadPlugins` does.
         LIGHTWEIGHT_API void SetCompatPolicy(CompatPolicy policy);
 
         /// @brief Returns a view of the installed policy so it can be propagated across
@@ -604,6 +652,10 @@ namespace SqlMigration
             SqlColumnTypeDefinition intendedType;
             /// Whether the column is nullable (preserved across the type rewrite).
             bool nullable = true;
+            /// Empty for a column the migrations declare wide. Otherwise the column is upgraded only
+            /// because a foreign key joins it to an upgraded column, named here as `table.column`,
+            /// or as `schema.table.column` when the upgrade spans several schemas.
+            std::string joinedByForeignKeyTo {};
         };
 
         /// @brief Result of an `UnicodeUpgradeTables` call.
@@ -622,6 +674,10 @@ namespace SqlMigration
             /// foreign-key, default and check constraints, indexes, statistics — and is
             /// dropped and recreated under its original name around the type change.
             std::vector<std::string> rebuiltObjects;
+            /// The tables in the order they are upgraded, grouped into units: the tables a
+            /// foreign key joins through an upgraded column share one unit, and each unit is
+            /// upgraded and committed in a transaction of its own.
+            std::vector<std::vector<SqlSchema::FullyQualifiedTableName>> units;
         };
 
         /// @brief Rewrites legacy `VARCHAR/CHAR` columns to `NVARCHAR/NCHAR` where the
@@ -632,6 +688,31 @@ namespace SqlMigration
         /// `Varchar`/`Char` with the same `size`. Foreign keys that touch any upgrade column
         /// are dropped before the alter and re-added afterwards. Cross-backend; SQLite
         /// uses the in-tree `RebuildSqliteTable` recipe under the hood.
+        ///
+        /// Declared names match live ones without regard to case where the dialect's identifiers
+        /// are case-insensitive (`SqlQueryFormatter::IdentifiersAreCaseInsensitive`).
+        ///
+        /// The live tables of every schema are read. A declared table resolves to the schema its
+        /// migration names; else to the first schema holding that name in the connection's name
+        /// resolution order (SQL Server: the user's default schema, then `dbo`; PostgreSQL: the
+        /// search path); else to the only schema holding it. Each column is altered, and its
+        /// dependents found, in the schema it was resolved to. When several schemas hold a declared
+        /// name, none of them is in that order and one has a column to widen, the call throws
+        /// `std::runtime_error` naming them.
+        ///
+        /// Where a foreign key needs both sides to share one text type (SQL Server), every column
+        /// a foreign key joins to an upgraded column is upgraded too, declared or not, and reported
+        /// with `ColumnUpgradeEntry::joinedByForeignKeyTo` set. Such a column must have the same narrow
+        /// type and size and must not be declared with another type; otherwise the call throws
+        /// `std::runtime_error` naming it, in a dry run too, before anything has changed.
+        ///
+        /// Each unit (see `UnicodeUpgradeResult::units`) runs in a transaction of its own and is
+        /// committed before the next one starts; the log sink reports each committed unit. Under
+        /// the simple recovery model, or while log backups run, the transaction log then only has
+        /// to hold one unit, so the largest unit sets its peak. A failing unit is rolled back and
+        /// stops the call with `UnicodeUpgradeUnitError`, which names it and says how many units
+        /// were committed before it. A later call continues where this one stopped, as the plan is
+        /// computed from the live schema.
         ///
         /// @param dryRun When true, returns the would-be diff without writing anything.
         [[nodiscard]] LIGHTWEIGHT_API UnicodeUpgradeResult UnicodeUpgradeTables(bool dryRun = false);
@@ -786,6 +867,10 @@ namespace SqlMigration
         /// it.
         void PersistVirtualAppliedMigrations();
 
+        /// @brief Counts the rows a committed migration's `IfNotExists` inserts skipped and logs
+        /// each of @p skippedRows via @ref Log.
+        void ReportSkippedRows(std::vector<std::string> const& skippedRows);
+
         MigrationList _migrations;
         std::vector<MigrationRelease> _releases;
         std::unique_ptr<DataMapper> _dataMapper;
@@ -803,6 +888,8 @@ namespace SqlMigration
         std::vector<MigrationTimestamp> _virtualAppliedIds;
 
         LogSink _logSink; ///< Optional status-message sink. Empty by default.
+
+        std::size_t _skippedExistingRowCount {}; ///< Rows skipped by `IfNotExists` inserts so far.
     };
 
 /// Requires the user to call LIGHTWEIGHT_MIGRATION_PLUGIN() in exactly one CPP file of the migration plugin.
@@ -834,6 +921,63 @@ namespace SqlMigration
 #define LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connArg, mgrArg)             \
     extern "C" LIGHTWEIGHT_EXPORT void LightweightMigrationPluginPostInit( \
         Lightweight::SqlConnection&(connArg), Lightweight::SqlMigration::MigrationManager&(mgrArg))
+
+/// Optional hook executed once per plugin by dbtool and dbtool-gui after a successful
+/// `migrate`, `migrate-to-release` or `apply`, including runs where nothing was pending.
+/// It runs on the migration connection while the migration lock is still held (unless the
+/// caller opted out of locking, as with `dbtool --no-lock`), and never for dry runs,
+/// read-only commands or a failed migration. Plugins use it for work that
+/// needs the migrated schema, such as seeding reference data.
+///
+/// A hook body that throws makes the command fail; the migrations it ran after stay applied.
+/// The macro exports a non-throwing C entry point that catches the exception and hands its
+/// message to the host, so no exception crosses the shared-library boundary.
+///
+/// Use as:
+///
+/// @code
+/// LIGHTWEIGHT_MIGRATION_PLUGIN_POSTMIGRATE(connection, manager)
+/// {
+///     MyPlugin::SeedReferenceData(connection);
+/// }
+/// @endcode
+///
+/// @ingroup SqlMigration
+#define LIGHTWEIGHT_MIGRATION_PLUGIN_POSTMIGRATE(connArg, mgrArg)                                        \
+    static void LightweightMigrationPluginPostMigrateBody(Lightweight::SqlConnection&,                   \
+                                                          Lightweight::SqlMigration::MigrationManager&); \
+    extern "C" LIGHTWEIGHT_EXPORT bool LightweightMigrationPluginPostMigrate(                            \
+        Lightweight::SqlConnection& connection,                                                          \
+        Lightweight::SqlMigration::MigrationManager& manager,                                            \
+        Lightweight::SqlMigration::PostMigrateErrorSink reportError,                                     \
+        void* errorContext) noexcept                                                                     \
+    {                                                                                                    \
+        try                                                                                              \
+        {                                                                                                \
+            LightweightMigrationPluginPostMigrateBody(connection, manager);                              \
+            return true;                                                                                 \
+        }                                                                                                \
+        catch (std::exception const& exception)                                                          \
+        {                                                                                                \
+            if (reportError != nullptr)                                                                  \
+                reportError(errorContext, exception.what());                                             \
+        }                                                                                                \
+        catch (...)                                                                                      \
+        {                                                                                                \
+            if (reportError != nullptr)                                                                  \
+                reportError(errorContext, "unknown exception");                                          \
+        }                                                                                                \
+        return false;                                                                                    \
+    }                                                                                                    \
+    static void LightweightMigrationPluginPostMigrateBody(Lightweight::SqlConnection&(connArg),          \
+                                                          Lightweight::SqlMigration::MigrationManager&(mgrArg))
+
+    /// Host-supplied sink that a plugin's post-migrate entry point reports a failure message to.
+    /// The entry point skips the report when the host passes a null sink.
+    /// @param context The opaque context the host passed alongside the sink.
+    /// @param message The failure message, only valid for the duration of the call. May be null
+    ///                (an exception whose `what()` returns null), so the sink must handle that.
+    using PostMigrateErrorSink = void (*)(void* context, char const* message) noexcept;
 
     /// Represents a single unique SQL migration.
     ///

@@ -2520,6 +2520,81 @@ TEST_CASE_METHOD(SqlTestFixture, "Migration Insert", "[SqlQueryBuilder][Migratio
         });
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "Migration Insert IfNotExists", "[SqlQueryBuilder][Migration]")
+{
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            auto migration = q.Migration();
+            migration.Insert("Categories").Set("Id", 200).Set("Name", "Books").IfNotExists({ "Id" });
+            return migration.GetPlan();
+        },
+        QueryExpectations {
+            .sqlite =
+                R"sql(INSERT INTO "Categories" ("Id", "Name") SELECT 200, 'Books' WHERE NOT EXISTS (SELECT 1 FROM "Categories" WHERE "Id" = 200))sql",
+            .postgres =
+                R"sql(INSERT INTO "Categories" ("Id", "Name") SELECT 200, 'Books' WHERE NOT EXISTS (SELECT 1 FROM "Categories" WHERE "Id" = 200))sql",
+            .sqlServer =
+                R"sql(INSERT INTO "Categories" ("Id", "Name") SELECT 200, N'Books' WHERE NOT EXISTS (SELECT 1 FROM "Categories" WHERE "Id" = 200))sql",
+        });
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Migration Insert IfNotExists with composite key and schema",
+                 "[SqlQueryBuilder][Migration]")
+{
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            auto migration = q.Migration();
+            migration.WithSchema("sales");
+            migration.Insert("Codes").Set("Kind", "O'Brien").Set("Id", 7).Set("Value", 1.5).IfNotExists({ "Kind", "Id" });
+            return migration.GetPlan();
+        },
+        QueryExpectations {
+            .sqlite =
+                R"sql(INSERT INTO "sales"."Codes" ("Kind", "Id", "Value") SELECT 'O''Brien', 7, 1.5 WHERE NOT EXISTS (SELECT 1 FROM "sales"."Codes" WHERE "Kind" = 'O''Brien' AND "Id" = 7))sql",
+            .postgres =
+                R"sql(INSERT INTO "sales"."Codes" ("Kind", "Id", "Value") SELECT 'O''Brien', 7, 1.5 WHERE NOT EXISTS (SELECT 1 FROM "sales"."Codes" WHERE "Kind" = 'O''Brien' AND "Id" = 7))sql",
+            .sqlServer =
+                R"sql(INSERT INTO "sales"."Codes" ("Kind", "Id", "Value") SELECT N'O''Brien', 7, 1.5 WHERE NOT EXISTS (SELECT 1 FROM "sales"."Codes" WHERE "Kind" = N'O''Brien' AND "Id" = 7))sql",
+        });
+}
+
+TEST_CASE("Migration Insert IfNotExists rejects an invalid key", "[SqlQueryBuilder][Migration]")
+{
+    auto const render = [](auto const& build) {
+        auto migration = SqlQueryBuilder(SqlQueryFormatter::Sqlite()).Migration();
+        build(migration);
+        return migration.GetPlan().ToSql();
+    };
+
+    SECTION("empty key list")
+    {
+        auto migration = SqlQueryBuilder(SqlQueryFormatter::Sqlite()).Migration();
+        CHECK_THROWS_AS(migration.Insert("T").Set("Id", 1).IfNotExists({}), std::invalid_argument);
+    }
+
+    SECTION("key column that is not a Set column")
+    {
+        CHECK_THROWS_AS(render([](SqlMigrationQueryBuilder& m) { m.Insert("T").Set("Id", 1).IfNotExists({ "Code" }); }),
+                        std::invalid_argument);
+    }
+
+    SECTION("NULL key value")
+    {
+        CHECK_THROWS_AS(render([](SqlMigrationQueryBuilder& m) {
+                            m.Insert("T").Set("Id", SqlNullValue).Set("Name", "x").IfNotExists({ "Id" });
+                        }),
+                        std::invalid_argument);
+    }
+
+    SECTION("key given before its Set column")
+    {
+        auto const sql = render([](SqlMigrationQueryBuilder& m) { m.Insert("T").IfNotExists({ "Id" }).Set("Id", 1); });
+        REQUIRE(sql.size() == 1);
+        CHECK(sql[0] == R"(INSERT INTO "T" ("Id") SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM "T" WHERE "Id" = 1))");
+    }
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "Migration Update", "[SqlQueryBuilder][Migration]")
 {
     CheckSqlQueryBuilder(

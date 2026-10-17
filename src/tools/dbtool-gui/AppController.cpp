@@ -26,6 +26,18 @@ namespace DbtoolGui
 /// need to see `<PluginIngestion.hpp>`.
 struct AppController::PluginsBundle
 {
+    PluginsBundle() = default;
+    PluginsBundle(PluginsBundle const&) = delete;
+    PluginsBundle(PluginsBundle&&) = delete;
+    PluginsBundle& operator=(PluginsBundle const&) = delete;
+    PluginsBundle& operator=(PluginsBundle&&) = delete;
+
+    /// Unloads the plugins only after the process-wide manager has let go of their code.
+    ~PluginsBundle()
+    {
+        Lightweight::Tools::UnloadPlugins(entries, Lightweight::SqlMigration::MigrationManager::GetInstance());
+    }
+
     std::vector<Lightweight::Tools::LoadedPlugin> entries;
 };
 
@@ -182,10 +194,15 @@ void AppController::SeedVerbose(bool enabled) noexcept
 
 AppController::AppController(QObject* parent):
     QObject(parent),
-    _verbose(s_initialVerbose),
-    _plugins(std::make_unique<PluginsBundle>())
+    _plugins(std::make_unique<PluginsBundle>()),
+    _verbose(s_initialVerbose)
 {
     _runner.SetManager(&Lightweight::SqlMigration::MigrationManager::GetInstance());
+    _runner.setPostMigrateHook(
+        [this](Lightweight::SqlMigration::MigrationManager& manager, std::function<void(std::string_view)> const& logError) {
+            return Lightweight::Tools::RunPluginPostMigrateHooks(
+                _plugins->entries, manager.GetDataMapper().Connection(), manager, logError);
+        });
 
     QObject::connect(&_migrations, &MigrationListModel::selectionChanged, this, &AppController::selectionChanged);
 
@@ -1444,9 +1461,7 @@ void AppController::ReloadPlugins()
     auto& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
     // Wipe first, so switching to a profile with no plugins-dir clears
     // the stale list instead of leaving the previous one showing.
-    manager.RemoveAllMigrations();
-    manager.RemoveAllReleases();
-    _plugins->entries.clear();
+    Lightweight::Tools::UnloadPlugins(_plugins->entries, manager);
 
     if (pluginsDirs.empty())
     {

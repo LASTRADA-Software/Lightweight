@@ -304,6 +304,17 @@ namespace SqlSchema
                                             TableReadyCallback tableReadyCallback = {},
                                             TableFilterPredicate tableFilter = {});
 
+    /// Lists the schemas that hold at least one user table, sorted by name.
+    ///
+    /// System schemas are left out: `sys`, `INFORMATION_SCHEMA`, `guest`, and those starting with
+    /// `db_` (SQL Server roles) or `pg_` (PostgreSQL catalogs). A dialect without schemas (SQLite)
+    /// yields one empty name when the database holds a table.
+    ///
+    /// @param stmt The SQL statement to use for reading.
+    /// @param database The database name.
+    /// @return The schema names.
+    [[nodiscard]] LIGHTWEIGHT_API std::vector<std::string> AllUserSchemas(SqlStatement& stmt, std::string_view database);
+
     /// Reads the schema of a single table.
     ///
     /// Use this instead of @ref ReadAllTables when only one table is of interest: it *describes* only

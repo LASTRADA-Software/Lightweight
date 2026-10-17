@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <mutex>
 #include <optional>
+#include <ranges>
 #include <stdexcept>
 
 #include <sql.h>
@@ -52,6 +53,29 @@ namespace
         auto const charCount = std::min(static_cast<size_t>(byteLen) / sizeof(SQLWCHAR), buffer.size() - 1);
         auto const utf8 = ToUtf8(std::u16string_view { reinterpret_cast<char16_t const*>(buffer.data()), charCount });
         return std::string { reinterpret_cast<char const*>(utf8.data()), utf8.size() };
+    }
+
+    /// Tells whether the driver behind @p hDbc receives wide query text unchanged.
+    ///
+    /// The driver echoes, through SQLNativeSqlW and without a server round trip, a statement holding a
+    /// CJK character: a driver manager narrowing wide text for an ANSI-only driver cannot carry it.
+    bool DriverAcceptsWideQueryText(SQLHDBC hDbc) noexcept
+    {
+        constexpr auto probeCharacter = SQLWCHAR { 0x4E2D };
+        auto probe = std::array<SQLWCHAR, 10> { 'S', 'E', 'L', 'E', 'C', 'T', ' ', '\'', probeCharacter, '\'' };
+        auto echoed = std::array<SQLWCHAR, 32> {};
+        SQLINTEGER echoedLength {};
+        auto const sqlResult = SQLNativeSqlW(hDbc,
+                                             probe.data(),
+                                             static_cast<SQLINTEGER>(probe.size()),
+                                             echoed.data(),
+                                             static_cast<SQLINTEGER>(echoed.size()),
+                                             &echoedLength);
+        // A driver that cannot echo the text keeps the wide entry points, as before the probe existed.
+        if (!SQL_SUCCEEDED(sqlResult) || echoedLength <= 0)
+            return true;
+        auto const echoedCount = std::min(static_cast<std::size_t>(echoedLength), echoed.size());
+        return std::ranges::contains(echoed | std::views::take(echoedCount), probeCharacter);
     }
 
     // SQL_COPT_SS_ENCRYPT and its SQL_EN_* values are declared in the Microsoft-specific `msodbcsql.h`
@@ -156,6 +180,7 @@ SqlConnection::SqlConnection(SqlConnection&& other) noexcept:
     m_serverType { other.m_serverType },
     m_queryFormatter { other.m_queryFormatter },
     m_driverName { std::move(other.m_driverName) },
+    m_acceptsWideQueryText { other.m_acceptsWideQueryText },
     m_stringTruncationMode { other.m_stringTruncationMode },
     m_data { other.m_data }
 {
@@ -178,6 +203,7 @@ SqlConnection& SqlConnection::operator=(SqlConnection&& other) noexcept
     m_serverType = other.m_serverType;
     m_queryFormatter = other.m_queryFormatter;
     m_driverName = std::move(other.m_driverName);
+    m_acceptsWideQueryText = other.m_acceptsWideQueryText;
     m_stringTruncationMode = other.m_stringTruncationMode;
     m_data = other.m_data;
 
@@ -710,6 +736,9 @@ bool SqlConnection::PostConnect()
 
     // Get the driver name from the connection handle.
     m_driverName = GetInfoStringW(m_hDbc, SQL_DRIVER_NAME);
+
+    // Decided before the first statement below is issued, so every statement takes the right entry point.
+    m_acceptsWideQueryText = DriverAcceptsWideQueryText(m_hDbc);
 
     // The server type is only known now, so this is the earliest point at which the backend capability
     // gate on the prepared-statement cache can be evaluated.

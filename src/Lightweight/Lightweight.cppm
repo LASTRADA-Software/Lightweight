@@ -141,6 +141,7 @@ using Lightweight::SqlBasicSelectQueryBuilder;
 using Lightweight::SqlBasicStringBinderConcept;
 using Lightweight::SqlBasicStringOperations;
 using Lightweight::SqlBinary;
+using Lightweight::SqlBoundStatement;
 using Lightweight::SqlColumnDeclaration;
 using Lightweight::SqlColumnTypeDefinition;
 using Lightweight::SqlColumnTypeDefinitionOf;
@@ -286,6 +287,7 @@ using Lightweight::ThreadSafeQueue;
 using Lightweight::ThreadSleeper;
 using Lightweight::Through;
 using Lightweight::ThroughRecordOf;
+using Lightweight::ToBoundSql;
 using Lightweight::ToSql;
 using Lightweight::ToStdWideString;
 using Lightweight::ToStringView;
@@ -348,6 +350,7 @@ namespace SqlAlterTableColumn
 namespace SqlBackup
 {
     using Lightweight::SqlBackup::Backup;
+    using Lightweight::SqlBackup::BackupSchemas;
     using Lightweight::SqlBackup::BackupSettings;
     using Lightweight::SqlBackup::BackupValue;
     using Lightweight::SqlBackup::CalculateRestoreSettings;
@@ -360,6 +363,7 @@ namespace SqlBackup
     using Lightweight::SqlBackup::CreateMsgPackChunkReader;
     using Lightweight::SqlBackup::CreateMsgPackChunkReaderFromBuffer;
     using Lightweight::SqlBackup::CreateMsgPackChunkWriter;
+    using Lightweight::SqlBackup::DefaultRestoreSchema;
     using Lightweight::SqlBackup::ErrorTrackingProgressManager;
     using Lightweight::SqlBackup::GetAvailableSystemMemory;
     using Lightweight::SqlBackup::GetSupportedCompressionMethods;
@@ -368,6 +372,7 @@ namespace SqlBackup
     using Lightweight::SqlBackup::ParseSchema;
     using Lightweight::SqlBackup::Progress;
     using Lightweight::SqlBackup::ProgressManager;
+    using Lightweight::SqlBackup::ReadArchiveSchemas;
     using Lightweight::SqlBackup::Restore;
     using Lightweight::SqlBackup::RestoreSettings;
     using Lightweight::SqlBackup::RetrySettings;
@@ -407,12 +412,14 @@ namespace SqlMigration
     using Lightweight::SqlMigration::MigrationManager;
     using Lightweight::SqlMigration::MigrationStatus;
     using Lightweight::SqlMigration::MigrationTimestamp;
+    using Lightweight::SqlMigration::PostMigrateErrorSink;
     using Lightweight::SqlMigration::RevertResult;
 } // namespace SqlMigration
 
 namespace SqlSchema
 {
     using Lightweight::SqlSchema::AllForeignKeysTo;
+    using Lightweight::SqlSchema::AllUserSchemas;
     using Lightweight::SqlSchema::Column;
     using Lightweight::SqlSchema::ColumnIdentifier;
     using Lightweight::SqlSchema::ColumnIdentifierSequence;

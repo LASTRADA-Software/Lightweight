@@ -5,6 +5,7 @@
 
 #include <format>
 #include <stdexcept>
+#include <string>
 #include <unordered_set>
 #include <utility>
 
@@ -98,25 +99,41 @@ std::vector<LoadedPlugin> IngestPlugins(std::span<std::filesystem::path const> d
     loaded.reserve(resolved.size());
 
     std::unordered_set<void const*> seenHandles;
-    for (auto const& entry: resolved)
+    try
     {
-        auto maybe = InvokeLoader(loader, entry.path, options);
-        if (!maybe)
-            continue; // either nullopt-from-loader, or threw and we're not fail-fast
+        for (auto const& entry: resolved)
+        {
+            auto maybe = InvokeLoader(loader, entry.path, options);
+            if (!maybe)
+                continue; // either nullopt-from-loader, or threw and we're not fail-fast
 
-        if (RejectDuplicateHandle(seenHandles, *maybe, options))
-            continue;
+            if (RejectDuplicateHandle(seenHandles, *maybe, options))
+                continue;
 
-        if (options.logLoading)
-            options.logLoading(std::format("Loading plugin: {}", maybe->path.string()));
+            if (options.logLoading)
+                options.logLoading(std::format("Loading plugin: {}", maybe->path.string()));
 
-        if (maybe->pluginManager != nullptr)
-            MergeIntoCentral(*maybe->pluginManager, central);
-
-        loaded.push_back(std::move(*maybe));
+            // Owned by `loaded` before merging, so a failed merge still unloads it through `UnloadPlugins`.
+            auto const& plugin = loaded.emplace_back(std::move(*maybe));
+            if (plugin.pluginManager != nullptr)
+                MergeIntoCentral(*plugin.pluginManager, central);
+        }
+    }
+    catch (...)
+    {
+        UnloadPlugins(loaded, central);
+        throw;
     }
 
     return loaded;
+}
+
+void UnloadPlugins(std::vector<LoadedPlugin>& plugins, Lightweight::SqlMigration::MigrationManager& central)
+{
+    central.SetCompatPolicy({});
+    central.RemoveAllMigrations();
+    central.RemoveAllReleases();
+    plugins.clear();
 }
 
 PluginLoaderFn DefaultPluginLoader()
@@ -155,7 +172,7 @@ void RunPluginPostInitHooks(std::span<LoadedPlugin const> plugins,
 
     for (auto const& plugin: plugins)
     {
-        auto* const postInit = plugin.TryGetFunction<HookSignature>("LightweightMigrationPluginPostInit");
+        auto* const postInit = plugin.TryGetFunction<HookSignature>(std::string { PostInitHookSymbol });
         if (postInit == nullptr)
             continue; // Optional symbol — plugins without legacy glue skip the hook.
 
@@ -169,6 +186,48 @@ void RunPluginPostInitHooks(std::span<LoadedPlugin const> plugins,
                 logError(std::format("Plugin post-init failed ({}): {}", plugin.path.string(), exception.what()));
         }
     }
+}
+
+std::vector<std::filesystem::path> PluginsWithPostInitHook(std::span<LoadedPlugin const> plugins)
+{
+    using HookSignature = void(Lightweight::SqlConnection&, Lightweight::SqlMigration::MigrationManager&);
+    auto withHook = std::vector<std::filesystem::path> {};
+    for (auto const& plugin: plugins)
+        if (plugin.TryGetFunction<HookSignature>(std::string { PostInitHookSymbol }) != nullptr)
+            withHook.push_back(plugin.path);
+    return withHook;
+}
+
+bool RunPluginPostMigrateHooks(std::span<LoadedPlugin const> plugins,
+                               Lightweight::SqlConnection& connection,
+                               Lightweight::SqlMigration::MigrationManager& central,
+                               std::function<void(std::string_view)> const& logError)
+{
+    using HookSignature = bool(Lightweight::SqlConnection&,
+                               Lightweight::SqlMigration::MigrationManager&,
+                               Lightweight::SqlMigration::PostMigrateErrorSink,
+                               void*) noexcept;
+    auto const collectMessage = [](void* context, char const* message) noexcept {
+        *static_cast<std::string*>(context) = message != nullptr ? message : "";
+    };
+
+    auto allSucceeded = true;
+    for (auto const& plugin: plugins)
+    {
+        auto* const postMigrate = plugin.TryGetFunction<HookSignature>("LightweightMigrationPluginPostMigrate");
+        if (postMigrate == nullptr)
+            continue;
+
+        auto message = std::string {};
+        if (postMigrate(connection, central, collectMessage, &message))
+            continue;
+
+        allSucceeded = false;
+        if (logError)
+            logError(std::format(
+                "Plugin post-migrate failed ({}): {}", plugin.path.string(), message.empty() ? "(no message)" : message));
+    }
+    return allSucceeded;
 }
 
 } // namespace Lightweight::Tools

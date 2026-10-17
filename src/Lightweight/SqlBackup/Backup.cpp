@@ -263,27 +263,24 @@ std::string BuildSelectQueryWithOffset(SqlQueryFormatter const& formatter,
         return query.All().ToSql();
 }
 
-/// Builds the zip entry name of a window sub-chunk: data/<table>/<window+1>_<subChunk>.msgpack.
-/// Dots in the table name are replaced with underscores so the name keeps exactly three path
-/// segments. Shared by the writing path (flushChunk) and the stale-entry cleanup so the two can
-/// never disagree on naming.
-static std::string BackupChunkEntryName(std::string_view tableName, uint32_t windowIndex, size_t subChunkId)
+/// Builds the zip entry name of a window sub-chunk: data/<folder>/<window+1>_<subChunk>.msgpack,
+/// where <folder> comes from ChunkDirectory. Shared by the writing path (flushChunk) and the
+/// stale-entry cleanup so the two can never disagree on naming.
+static std::string BackupChunkEntryName(std::string_view chunkDirectory, uint32_t windowIndex, size_t subChunkId)
 {
-    std::string sName { tableName };
-    std::ranges::replace(sName, '.', '_');
-    return std::format("data/{}/{:04}_{:02}.msgpack", sName, windowIndex + 1, subChunkId);
+    return std::format("data/{}/{:04}_{:02}.msgpack", chunkDirectory, windowIndex + 1, subChunkId);
 }
 
 void DeleteStaleSubChunks(WorkerChunkArchive& archive,
                           BackupContext& ctx,
-                          std::string const& tableName,
+                          std::string_view chunkDirectory,
                           uint32_t windowIndex,
                           size_t firstStale,
                           size_t end)
 {
     for (auto const subId: std::views::iota(firstStale, end))
     {
-        auto const entryName = BackupChunkEntryName(tableName, windowIndex, subId);
+        auto const entryName = BackupChunkEntryName(chunkDirectory, windowIndex, subId);
         archive.Remove(entryName);
         if (ctx.checksums && ctx.checksumMutex)
         {
@@ -485,6 +482,8 @@ void ProcessChunkBackup(BackupContext& ctx, SqlConnection& conn, detail::Chunk c
     ZoneScopedN("SqlBackup::ProcessChunkBackup");
     ZoneTextObject(table.name);
     std::string const& tableName = table.name;
+    auto const chunkDirectory =
+        ChunkDirectory(ctx.multiSchema ? std::string_view { table.schema } : std::string_view {}, tableName);
     auto& state = *chunk.state;
 
     if (table.columns.empty())
@@ -556,7 +555,7 @@ void ProcessChunkBackup(BackupContext& ctx, SqlConnection& conn, detail::Chunk c
         // Throughput plots (emitted only at flush boundaries, negligible cost).
         TracyPlot("Backup.ChunkBytes", static_cast<int64_t>(data.size()));
 
-        std::string const entryName = BackupChunkEntryName(table.name, chunk.windowIndex, subChunkId);
+        std::string const entryName = BackupChunkEntryName(chunkDirectory, chunk.windowIndex, subChunkId);
 
         // Checksum semantics unchanged: SHA-256 of the UNCOMPRESSED chunk bytes (restore verifies
         // after libzip's transparent decompression).
@@ -905,7 +904,7 @@ void ProcessChunkBackup(BackupContext& ctx, SqlConnection& conn, detail::Chunk c
         // A retried PK-range window may have produced fewer sub-chunks than an earlier attempt
         // flushed; remove the leftovers so restore never reads stale rows.
         if (usePkRange && maxSubChunksFlushed > subChunkId)
-            DeleteStaleSubChunks(archive, ctx, tableName, chunk.windowIndex, subChunkId, maxSubChunksFlushed);
+            DeleteStaleSubChunks(archive, ctx, chunkDirectory, chunk.windowIndex, subChunkId, maxSubChunksFlushed);
     }
     catch (std::exception const& e)
     {

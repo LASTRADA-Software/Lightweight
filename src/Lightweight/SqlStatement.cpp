@@ -92,6 +92,29 @@ namespace
         std::memcpy(static_cast<void*>(&ptr), &value, sizeof(value));
         return ptr;
     }
+
+    /// Hands @p query to the ODBC W entry point @p wideCall, or, for a driver that does not accept wide
+    /// query text, to the ANSI entry point @p ansiCall with the UTF-8 bytes unchanged.
+    ///
+    /// @param connection Decides the entry point, see SqlConnection::AcceptsWideQueryText().
+    /// @param query The query text, UTF-8.
+    /// @param wideCall Called as `wideCall(SQLWCHAR* text, SQLINTEGER length)`.
+    /// @param ansiCall Called as `ansiCall(SQLCHAR* text, SQLINTEGER length)`.
+    /// @return What the called entry point returned.
+    template <typename WideCall, typename AnsiCall>
+    SQLRETURN CallWithQueryText(SqlConnection const& connection,
+                                std::string_view query,
+                                WideCall const& wideCall,
+                                AnsiCall const& ansiCall)
+    {
+        if (connection.AcceptsWideQueryText())
+        {
+            auto wQuery = detail::OdbcWideArg { query };
+            return wideCall(wQuery.data(), static_cast<SQLINTEGER>(wQuery.buffer.size()));
+        }
+        auto narrowQuery = std::string { query };
+        return ansiCall(reinterpret_cast<SQLCHAR*>(narrowQuery.data()), static_cast<SQLINTEGER>(narrowQuery.size()));
+    }
 } // namespace
 
 void SqlStatement::RequireIndicators()
@@ -503,7 +526,7 @@ void SqlStatement::Prepare(std::string_view query) &
 
     // m_preparedQuery names what the handle holds, so a new text is committed to it only once the handle
     // holds it: straight away for a pooled handle prepared for it, otherwise by PrepareOnHandle() once
-    // SQLPrepareW succeeded. Copied up front because `query` may view m_preparedQuery itself (e.g.
+    // SQLPrepare succeeded. Copied up front because `query` may view m_preparedQuery itself (e.g.
     // stmt.Prepare(stmt.PreparedQuery())), which AcquirePreparedHandle() clears when it parks the handle.
     // Reusing needs neither: m_preparedQuery already holds exactly this text, and that is the hot path
     // a repeated Prepare() of one query takes.
@@ -624,8 +647,11 @@ void SqlStatement::PrepareOnHandle(std::string queryText)
 {
     try
     {
-        auto wQuery = detail::OdbcWideArg { std::string_view { queryText } };
-        RequireSuccess(SQLPrepareW(m_hStmt, wQuery.data(), static_cast<SQLINTEGER>(wQuery.buffer.size())));
+        RequireSuccess(CallWithQueryText(
+            *m_connection,
+            queryText,
+            [this](SQLWCHAR* text, SQLINTEGER length) { return SQLPrepareW(m_hStmt, text, length); },
+            [this](SQLCHAR* text, SQLINTEGER length) { return SQLPrepare(m_hStmt, text, length); }));
         RequireSuccess(SQLNumParams(m_hStmt, &m_expectedParameterCount));
         m_preparedParameterCount = m_expectedParameterCount;
         m_preparedQuery = std::move(queryText);
@@ -634,7 +660,7 @@ void SqlStatement::PrepareOnHandle(std::string queryText)
     {
         // After a failed prepare (SQLite prepares eagerly and fails right here) the handle holds no
         // known statement, so no text may stay recorded for it: the next Prepare() of that text would
-        // take the reuse fast path, skip SQLPrepareW, and execute whatever the handle last held with a
+        // take the reuse fast path, skip SQLPrepare, and execute whatever the handle last held with a
         // stale parameter count - and the handle must not be parked in the prepared-statement cache
         // under it either.
         m_preparedQuery.clear();
@@ -718,9 +744,7 @@ SqlResultCursor SqlStatement::ExecuteDirect(std::string_view const& query, std::
     SqlLogger::GetLogger().OnExecuteDirect(query);
     LIGHTWEIGHT_STATS_SCOPE(::Lightweight::SqlStatisticsOperation::ExecuteDirect);
 
-    // Execute via the W entry point — see the rationale above SQLPrepareW.
-    auto wQuery = detail::OdbcWideArg { query };
-    auto const rc = SQLExecDirectW(m_hStmt, wQuery.data(), static_cast<SQLINTEGER>(wQuery.buffer.size()));
+    auto const rc = ExecDirectOnHandle(query);
     // SQL_NO_DATA from SQLExecDirect signals "searched UPDATE/DELETE affected no rows"
     // (per ODBC spec) — and the SQLite ODBC driver also returns it for INSERT … SELECT
     // that copies zero rows. That is not a failure: the statement executed, it simply
@@ -728,6 +752,15 @@ SqlResultCursor SqlStatement::ExecuteDirect(std::string_view const& query, std::
     if (rc != SQL_NO_DATA)
         RequireSuccess(rc, location);
     return SqlResultCursor { *this };
+}
+
+SQLRETURN SqlStatement::ExecDirectOnHandle(std::string_view query)
+{
+    return CallWithQueryText(
+        *m_connection,
+        query,
+        [this](SQLWCHAR* text, SQLINTEGER length) { return SQLExecDirectW(m_hStmt, text, length); },
+        [this](SQLCHAR* text, SQLINTEGER length) { return SQLExecDirect(m_hStmt, text, length); });
 }
 
 SqlResultCursor SqlStatement::ExecuteWithVariants(std::vector<SqlVariant> const& args)
@@ -828,9 +861,7 @@ RowArrayCursor SqlStatement::ExecuteBatchFetch(std::string_view query, std::size
     SqlLogger::GetLogger().OnExecuteDirect(query);
     LIGHTWEIGHT_STATS_SCOPE(::Lightweight::SqlStatisticsOperation::ExecuteDirect);
 
-    // Execute via the W entry point — see the rationale above SQLPrepareW in Prepare().
-    auto wQuery = detail::OdbcWideArg { query };
-    auto const rc = SQLExecDirectW(m_hStmt, wQuery.data(), static_cast<SQLINTEGER>(wQuery.buffer.size()));
+    auto const rc = ExecDirectOnHandle(query);
     if (rc != SQL_NO_DATA)
         RequireSuccess(rc);
 
@@ -1261,6 +1292,17 @@ std::expected<bool, SqlErrorInfo> SqlStatement::TryFetchRow(std::source_location
             SqlLogger::GetLogger().OnFetchRow();
             LIGHTWEIGHT_STATS_ROWS(1, false);
             return true;
+    }
+}
+
+void SqlStatement::ConsumePendingResults(std::source_location location)
+{
+    while (true)
+    {
+        auto const rc = SQLMoreResults(m_hStmt);
+        if (rc == SQL_NO_DATA)
+            return;
+        RequireSuccess(rc, location);
     }
 }
 

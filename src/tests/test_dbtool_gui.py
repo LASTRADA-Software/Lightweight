@@ -31,9 +31,16 @@ import os
 import queue
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from pathlib import Path
+
+if os.name == "nt":
+    # SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX, inherited by
+    # dbtool-gui: a DLL that fails to load before main must not open a dialog either.
+    import ctypes
+    ctypes.windll.kernel32.SetErrorMode(0x0001 | 0x0002 | 0x8000)
 
 # Lines that indicate an unrecoverable failure during startup. The qInstall-
 # MessageHandler in main.cpp routes Qt log output to stderr with a `[LEVEL]`
@@ -77,6 +84,22 @@ def _parse_args() -> argparse.Namespace:
         help="Additional argv entries forwarded to dbtool-gui (repeatable).",
     )
     return parser.parse_args()
+
+
+# Windows exit codes of a process that never reached main, because a DLL was missing or broken.
+LOADER_FAILURE_CODES = {
+    0xC0000135: "STATUS_DLL_NOT_FOUND",
+    0xC0000139: "STATUS_ENTRYPOINT_NOT_FOUND",
+    0xC0000142: "STATUS_DLL_INIT_FAILED",
+    0xC000007B: "STATUS_INVALID_IMAGE_FORMAT",
+}
+
+
+def _describe_exit_code(returncode: int) -> str:
+    """The exit code, plus the loader failure it stands for when it is one."""
+    unsigned = returncode & 0xFFFFFFFF
+    name = LOADER_FAILURE_CODES.get(unsigned)
+    return f"{returncode}, 0x{unsigned:08X} {name}: a DLL failed to load" if name else str(returncode)
 
 
 def _ensure_executable(path: Path) -> None:
@@ -134,8 +157,37 @@ def main() -> int:
     args = _parse_args()
     _ensure_executable(args.dbtool_gui)
 
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as sandbox:
+        return _run_smoke(args, Path(sandbox))
+
+
+def _run_smoke(args: argparse.Namespace, sandbox: Path) -> int:
+    """Runs dbtool-gui isolated from the user's state: its working directory holds a throwaway
+    dbtool.yml (found before any dbtool.yml further up or in the user's profile) whose backup
+    folder is in the sandbox, and its QSettings and per-user dbtool.yml live under the sandbox
+    instead of the user's registry, settings file and profile."""
+    sqlite_driver = "{SQLite3 ODBC Driver}" if os.name == "nt" else "SQLite3"
+    database = (sandbox / "smoke.db").as_posix()
+    backups = (sandbox / "backups").as_posix()
+    (sandbox / "dbtool.yml").write_text(
+        f'defaultBackupDir: "{backups}"\n'
+        "defaultProfile: smoke\n"
+        "profiles:\n"
+        "  smoke:\n"
+        f'    connectionString: "DRIVER={sqlite_driver};Database={database}"\n',
+        encoding="utf-8",
+    )
+    settings_dir = sandbox / "settings"
+    settings_dir.mkdir()
+    user_config_dir = sandbox / "user-config"
+    user_config_dir.mkdir()
+
     env = os.environ.copy()
     env["QT_QPA_PLATFORM"] = "offscreen"
+    # A failing smoke run must report on stderr, never wait on an error dialog.
+    env["LIGHTWEIGHT_NO_ERROR_DIALOGS"] = "1"
+    env["LIGHTWEIGHT_DBTOOL_GUI_SETTINGS_DIR"] = str(settings_dir)
+    env["LIGHTWEIGHT_DBTOOL_USER_CONFIG_DIR"] = str(user_config_dir)
 
     cmd = [
         str(args.dbtool_gui),
@@ -146,6 +198,7 @@ def main() -> int:
 
     proc = subprocess.Popen(
         cmd,
+        cwd=sandbox,
         env=env,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -155,6 +208,8 @@ def main() -> int:
     try:
         deadline = time.monotonic() + args.liveness_seconds
         fatal, lines, died = _drain_stderr_until(proc, deadline, FATAL_MARKERS)
+        # Exited on its own right at the deadline, before we could terminate it.
+        died = died or proc.poll() is not None
     finally:
         if proc.poll() is None:
             proc.terminate()
@@ -184,7 +239,8 @@ def main() -> int:
 
     if died:
         print(
-            f"FAIL: dbtool-gui exited (code {proc.returncode}) before liveness probe finished.",
+            f"FAIL: dbtool-gui exited (code {_describe_exit_code(proc.returncode)}) "
+            "before liveness probe finished.",
             file=sys.stderr,
         )
         return 1

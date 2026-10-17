@@ -12,6 +12,7 @@
 // here we verify only that `IngestPlugins` correctly consumes its output
 // and orchestrates the load + merge + logging contract.
 
+#include <Lightweight/SqlConnection.hpp>
 #include <Lightweight/SqlMigration.hpp>
 
 #include <catch2/catch_test_macros.hpp>
@@ -22,8 +23,13 @@
 #include <fstream>
 #include <map>
 #include <memory>
+#include <optional>
+#include <set>
+#include <span>
 #include <stdexcept>
 #include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 #include <PluginIngestion.hpp>
@@ -419,4 +425,254 @@ TEST_CASE("IngestPlugins — LoadedPlugin::TryGetFunction wraps tryGetSymbol", "
     // Empty tryGetSymbol returns nullptr without crashing.
     Lightweight::Tools::LoadedPlugin empty;
     CHECK(empty.TryGetFunction<int()>("anything") == nullptr);
+}
+
+namespace
+{
+
+/// Per-symbol call counters for the hook stubs below. Hooks are plain
+/// function pointers, so the counters cannot be captured state.
+struct HookCalls
+{
+    int postInit = 0;
+    int postMigrate = 0;
+};
+
+HookCalls& RecordedHookCalls()
+{
+    static HookCalls calls;
+    return calls;
+}
+
+void RecordingPostInit(Lightweight::SqlConnection& /*connection*/, Lightweight::SqlMigration::MigrationManager& /*manager*/)
+{
+    ++RecordedHookCalls().postInit;
+}
+
+bool RecordingPostMigrate(Lightweight::SqlConnection& /*connection*/,
+                          Lightweight::SqlMigration::MigrationManager& /*manager*/,
+                          Lightweight::SqlMigration::PostMigrateErrorSink /*reportError*/,
+                          void* /*errorContext*/) noexcept
+{
+    ++RecordedHookCalls().postMigrate;
+    return true;
+}
+
+/// Stands in for a hook body that threw: the exported entry point reports and returns false.
+bool FailingPostMigrate(Lightweight::SqlConnection& /*connection*/,
+                        Lightweight::SqlMigration::MigrationManager& /*manager*/,
+                        Lightweight::SqlMigration::PostMigrateErrorSink reportError,
+                        void* errorContext) noexcept
+{
+    ++RecordedHookCalls().postMigrate;
+    reportError(errorContext, "seed failed");
+    return false;
+}
+
+/// Builds a plugin whose symbol lookup resolves exactly the given symbols.
+Lightweight::Tools::LoadedPlugin MakeHookPlugin(
+    std::string const& path, std::map<std::string, Lightweight::Tools::PluginLoader::GenericFunctionPointer> symbols)
+{
+    Lightweight::Tools::LoadedPlugin plugin;
+    plugin.path = path;
+    plugin.tryGetSymbol =
+        [symbols = std::move(symbols)](std::string const& name) -> Lightweight::Tools::PluginLoader::GenericFunctionPointer {
+        auto const found = symbols.find(name);
+        return found != symbols.end() ? found->second : nullptr;
+    };
+    return plugin;
+}
+
+template <typename Function>
+Lightweight::Tools::PluginLoader::GenericFunctionPointer AsSymbol(Function* function)
+{
+    return reinterpret_cast<Lightweight::Tools::PluginLoader::GenericFunctionPointer>(function);
+}
+
+} // namespace
+
+TEST_CASE("RunPluginPostMigrateHooks — runs every exporting plugin and skips the others", "[PluginIngestion]")
+{
+    RecordedHookCalls() = {};
+    auto const plugins = std::vector {
+        MakeHookPlugin("a", { { "LightweightMigrationPluginPostMigrate", AsSymbol(&RecordingPostMigrate) } }),
+        MakeHookPlugin("without-hook", {}),
+        MakeHookPlugin("b", { { "LightweightMigrationPluginPostMigrate", AsSymbol(&RecordingPostMigrate) } }),
+    };
+    Lightweight::SqlConnection connection { std::nullopt };
+    Lightweight::SqlMigration::MigrationManager central;
+    std::vector<std::string> errors;
+
+    auto const succeeded = Lightweight::Tools::RunPluginPostMigrateHooks(
+        plugins, connection, central, [&errors](std::string_view message) { errors.emplace_back(message); });
+
+    CHECK(succeeded);
+    CHECK(RecordedHookCalls().postMigrate == 2);
+    CHECK(errors.empty());
+}
+
+TEST_CASE("RunPluginPostMigrateHooks — a failing hook fails the run but the others still run", "[PluginIngestion]")
+{
+    RecordedHookCalls() = {};
+    auto const plugins = std::vector {
+        MakeHookPlugin("failing", { { "LightweightMigrationPluginPostMigrate", AsSymbol(&FailingPostMigrate) } }),
+        MakeHookPlugin("healthy", { { "LightweightMigrationPluginPostMigrate", AsSymbol(&RecordingPostMigrate) } }),
+    };
+    Lightweight::SqlConnection connection { std::nullopt };
+    Lightweight::SqlMigration::MigrationManager central;
+    std::vector<std::string> errors;
+
+    auto const succeeded = Lightweight::Tools::RunPluginPostMigrateHooks(
+        plugins, connection, central, [&errors](std::string_view message) { errors.emplace_back(message); });
+
+    CHECK_FALSE(succeeded);
+    CHECK(RecordedHookCalls().postMigrate == 2);
+    REQUIRE(errors.size() == 1);
+    CHECK(errors.front().contains("failing"));
+    CHECK(errors.front().contains("seed failed"));
+}
+
+TEST_CASE("RunPluginPostMigrateHooks and RunPluginPostInitHooks resolve only their own symbol", "[PluginIngestion]")
+{
+    RecordedHookCalls() = {};
+    auto const plugins = std::vector {
+        MakeHookPlugin("both",
+                       { { "LightweightMigrationPluginPostInit", AsSymbol(&RecordingPostInit) },
+                         { "LightweightMigrationPluginPostMigrate", AsSymbol(&RecordingPostMigrate) } }),
+    };
+    Lightweight::SqlConnection connection { std::nullopt };
+    Lightweight::SqlMigration::MigrationManager central;
+
+    CHECK(Lightweight::Tools::RunPluginPostMigrateHooks(plugins, connection, central, {}));
+    CHECK(RecordedHookCalls().postInit == 0);
+    CHECK(RecordedHookCalls().postMigrate == 1);
+
+    Lightweight::Tools::RunPluginPostInitHooks(plugins, connection, central, {});
+    CHECK(RecordedHookCalls().postInit == 1);
+    CHECK(RecordedHookCalls().postMigrate == 1);
+}
+
+TEST_CASE("PluginsWithPostInitHook lists exactly the plugins that export a post-init hook", "[PluginIngestion]")
+{
+    auto const plugins = std::vector {
+        MakeHookPlugin("seeding", { { "LightweightMigrationPluginPostInit", AsSymbol(&RecordingPostInit) } }),
+        MakeHookPlugin("post-migrate-only",
+                       { { "LightweightMigrationPluginPostMigrate", AsSymbol(&RecordingPostMigrate) } }),
+        MakeHookPlugin("without-hook", {}),
+        MakeHookPlugin("bridging", { { "LightweightMigrationPluginPostInit", AsSymbol(&RecordingPostInit) } }),
+    };
+
+    CHECK(Lightweight::Tools::PluginsWithPostInitHook(plugins)
+          == std::vector<std::filesystem::path> { "seeding", "bridging" });
+    CHECK(Lightweight::Tools::PluginsWithPostInitHook(std::span<Lightweight::Tools::LoadedPlugin const> {}).empty());
+
+    auto unresolvable = Lightweight::Tools::LoadedPlugin {};
+    unresolvable.path = "no-symbol-lookup";
+    CHECK(Lightweight::Tools::PluginsWithPostInitHook(std::vector { unresolvable }).empty());
+}
+
+TEST_CASE("UnloadPlugins — central lets go of plugin state before the plugin is unloaded", "[PluginIngestion]")
+{
+    Lightweight::SqlMigration::MigrationManager central;
+    FakeMigration migration { Lightweight::SqlMigration::MigrationTimestamp { 20260301000000ULL }, "plugin" };
+    central.AddMigration(&migration);
+    central.RegisterRelease("1.0.0", Lightweight::SqlMigration::MigrationTimestamp { 20260301000000ULL });
+    central.SetCompatPolicy([](Lightweight::SqlMigration::MigrationBase const&) { return std::set<std::string> {}; });
+
+    // What central still held when the plugin's handle was released, i.e. its library unloaded.
+    struct StateAtUnload
+    {
+        bool unloaded = false;
+        bool hadCompatPolicy = false;
+        std::size_t migrations = 0;
+        std::size_t releases = 0;
+    } stateAtUnload;
+
+    auto const recordStateAtUnload = [&](void*) {
+        stateAtUnload = { .unloaded = true,
+                          .hadCompatPolicy = static_cast<bool>(central.GetCompatPolicy()),
+                          .migrations = central.GetAllMigrations().size(),
+                          .releases = central.GetAllReleases().size() };
+    };
+    auto plugins = std::vector<Lightweight::Tools::LoadedPlugin> {};
+    plugins.push_back(Lightweight::Tools::LoadedPlugin {
+        .path = "CompatPolicyPlugin.dll",
+        .handle = std::shared_ptr<void>(nullptr, recordStateAtUnload),
+    });
+
+    Lightweight::Tools::UnloadPlugins(plugins, central);
+
+    CHECK(plugins.empty());
+    REQUIRE(stateAtUnload.unloaded);
+    CHECK_FALSE(stateAtUnload.hadCompatPolicy);
+    CHECK(stateAtUnload.migrations == 0);
+    CHECK(stateAtUnload.releases == 0);
+}
+
+TEST_CASE("IngestPlugins — a failed load unloads the plugins loaded before it only after central lets go of them",
+          "[PluginIngestion]")
+{
+    ScopedTempTree const tree;
+    auto const dir = tree.Dir("plugins");
+    TouchPluginFile(dir / "PolicyPlugin.dll", Baseline());
+    TouchPluginFile(dir / "BrokenPlugin.dll", Baseline());
+
+    Lightweight::SqlMigration::MigrationManager central;
+    auto loaderCalls = 0;
+    auto unloaded = false;
+    auto hadCompatPolicyAtUnload = false;
+
+    // The first plugin loaded installs a compat policy as its static initializer would; the second, either one, fails.
+    auto loader = [&](std::filesystem::path const& path) -> std::optional<Lightweight::Tools::LoadedPlugin> {
+        if (++loaderCalls == 2)
+            throw std::runtime_error("not a valid shared library");
+        central.SetCompatPolicy([](Lightweight::SqlMigration::MigrationBase const&) { return std::set<std::string> {}; });
+        auto const recordUnload = [&](void*) {
+            unloaded = true;
+            hadCompatPolicyAtUnload = static_cast<bool>(central.GetCompatPolicy());
+        };
+        return Lightweight::Tools::LoadedPlugin {
+            .path = path,
+            .handle = std::shared_ptr<void>(nullptr, recordUnload),
+        };
+    };
+
+    std::vector<std::filesystem::path> dirs { dir };
+    REQUIRE_THROWS_AS(Lightweight::Tools::IngestPlugins(dirs, loader, central), std::runtime_error);
+    REQUIRE(loaderCalls == 2);
+    REQUIRE(unloaded);
+    CHECK_FALSE(hadCompatPolicyAtUnload);
+}
+
+TEST_CASE("IngestPlugins — a failed merge unloads the plugin only after central lets go of it", "[PluginIngestion]")
+{
+    ScopedTempTree const tree;
+    auto const dir = tree.Dir("plugins");
+    TouchPluginFile(dir / "DuplicateReleasePlugin.dll", Baseline());
+
+    Lightweight::SqlMigration::MigrationManager central;
+    central.RegisterRelease("1.0.0", Lightweight::SqlMigration::MigrationTimestamp { 20260401000000ULL });
+    auto unloaded = false;
+    auto hadCompatPolicyAtUnload = false;
+
+    // The plugin installs a compat policy as its static initializer would, then declares a release central already has.
+    auto pluginManager = std::make_unique<Lightweight::SqlMigration::MigrationManager>();
+    pluginManager->RegisterRelease("1.0.0", Lightweight::SqlMigration::MigrationTimestamp { 20260402000000ULL });
+    auto loader = [&](std::filesystem::path const& path) -> std::optional<Lightweight::Tools::LoadedPlugin> {
+        central.SetCompatPolicy([](Lightweight::SqlMigration::MigrationBase const&) { return std::set<std::string> {}; });
+        auto const recordUnload = [&](void*) {
+            unloaded = true;
+            hadCompatPolicyAtUnload = static_cast<bool>(central.GetCompatPolicy());
+        };
+        auto plugin = Lightweight::Tools::LoadedPlugin {};
+        plugin.path = path;
+        plugin.handle = std::shared_ptr<void>(nullptr, recordUnload);
+        plugin.pluginManager = pluginManager.get();
+        return plugin;
+    };
+
+    std::vector<std::filesystem::path> dirs { dir };
+    REQUIRE_THROWS_AS(Lightweight::Tools::IngestPlugins(dirs, loader, central), std::runtime_error);
+    REQUIRE(unloaded);
+    CHECK_FALSE(hadCompatPolicyAtUnload);
 }

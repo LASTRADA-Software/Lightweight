@@ -106,7 +106,8 @@ struct PluginIngestOptions
 /// `loader` (the DI seam), guards against duplicate native handles, and
 /// copies every loaded plugin's releases, migrations, and compat policy
 /// into `central`. Returns the surviving load handles in the order they
-/// were resolved by `DiscoverPlugins`.
+/// were resolved by `DiscoverPlugins`. When it throws, the plugins it had
+/// loaded are already unloaded through `UnloadPlugins`.
 ///
 /// @param dirs     Directories handed to `DiscoverPlugins`.
 /// @param loader   Per-path callback. In production this is the lambda
@@ -120,6 +121,15 @@ struct PluginIngestOptions
                                                       PluginLoaderFn const& loader,
                                                       Lightweight::SqlMigration::MigrationManager& central,
                                                       PluginIngestOptions const& options = {});
+
+/// Unloads `plugins` once `central` no longer refers to them. `central` first drops its
+/// compat policy, migrations and releases: the policy is a `std::function` that a plugin's
+/// static initializer typically installs, and destroying it after its library is unloaded
+/// calls into unmapped code.
+///
+/// @param plugins Plugin set returned by `IngestPlugins`; empty afterwards.
+/// @param central Host-side manager the plugins were merged into.
+void UnloadPlugins(std::vector<LoadedPlugin>& plugins, Lightweight::SqlMigration::MigrationManager& central);
 
 /// Production loader: opens `path` with `Lightweight::Tools::PluginLoader`,
 /// looks up the plugin's `AcquireMigrationManager` symbol, and returns the
@@ -149,5 +159,37 @@ void RunPluginPostInitHooks(std::span<LoadedPlugin const> plugins,
                             Lightweight::SqlConnection& connection,
                             Lightweight::SqlMigration::MigrationManager& central,
                             std::function<void(std::string_view)> const& logError);
+
+/// Symbol of the optional post-init hook (`LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT`).
+inline constexpr std::string_view PostInitHookSymbol = "LightweightMigrationPluginPostInit";
+
+/// Lists the plugins that export a post-init hook. `RunPluginPostInitHooks` would run each of
+/// them against the database, and a hook may write (e.g. seed reference data).
+/// @param plugins Plugin set returned by `IngestPlugins`.
+/// @return The paths of the plugins with a hook, in the order given.
+[[nodiscard]] std::vector<std::filesystem::path> PluginsWithPostInitHook(std::span<LoadedPlugin const> plugins);
+
+/// Name of the advisory lock `dbtool` and `dbtool-gui` hold while they change the
+/// migration state. Post-migrate hooks run while it is still held.
+inline constexpr std::string_view MigrationLockName = "lightweight_migration";
+
+/// Invoke every plugin's optional `LightweightMigrationPluginPostMigrate` hook
+/// (declared with `LIGHTWEIGHT_MIGRATION_PLUGIN_POSTMIGRATE`). Callers run this
+/// after a successful `migrate`, `migrate-to-release` or `apply`, under the
+/// migration lock, and never for dry runs or after a failed migration.
+///
+/// Unlike post-init, a failing hook fails the run: every failure is reported
+/// through `logError`, the remaining plugins still run, and the result is
+/// `false`. Plugins that do not export the symbol are silently bypassed.
+///
+/// @param plugins    Plugin set returned by `IngestPlugins`.
+/// @param connection The migration connection, passed to each hook.
+/// @param central    Host-side merged migration manager passed to each hook.
+/// @param logError   Sink for per-plugin failure messages. May be empty.
+/// @return `true` when every hook that ran succeeded.
+[[nodiscard]] bool RunPluginPostMigrateHooks(std::span<LoadedPlugin const> plugins,
+                                             Lightweight::SqlConnection& connection,
+                                             Lightweight::SqlMigration::MigrationManager& central,
+                                             std::function<void(std::string_view)> const& logError);
 
 } // namespace Lightweight::Tools

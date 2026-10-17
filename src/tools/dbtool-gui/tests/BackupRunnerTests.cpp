@@ -6,6 +6,7 @@
 // database or ODBC driver is involved.
 
 #include "../BackupRunner.hpp"
+#include "SqliteDriver.hpp"
 
 #include <Lightweight/SqlBackup.hpp>
 #include <Lightweight/SqlConnection.hpp>
@@ -24,6 +25,7 @@
 
 using DbtoolGui::BackupRunner;
 using DbtoolGui::BackupTableListModel;
+using DbtoolGui::Tests::SqliteConnectionString;
 using Lightweight::SqlBackup::Progress;
 using Lightweight::SqlBackup::ProgressManager;
 
@@ -478,8 +480,7 @@ TEST_CASE("BackupRunner backs up and restores a real SQLite database", "[dbtool-
     auto const archive = dir.path() + "/archive.zip";
 
     {
-        auto connection =
-            Lightweight::SqlConnection { Lightweight::SqlConnectionString { "DRIVER=SQLite3;Database=" + source } };
+        auto connection = Lightweight::SqlConnection { Lightweight::SqlConnectionString { SqliteConnectionString(source) } };
         auto stmt = Lightweight::SqlStatement { connection };
         (void) stmt.ExecuteDirect("CREATE TABLE items (id INTEGER PRIMARY KEY, label VARCHAR(32) NOT NULL)");
         (void) stmt.ExecuteDirect("INSERT INTO items (id, label) VALUES (1, 'one'), (2, 'two'), (3, 'three')");
@@ -489,7 +490,7 @@ TEST_CASE("BackupRunner backs up and restores a real SQLite database", "[dbtool-
 
     BackupRunner runner;
 
-    runner.setConnectionString(QString::fromStdString("DRIVER=SQLite3;Database=" + source));
+    runner.setConnectionString(QString::fromStdString(SqliteConnectionString(source)));
     QSignalSpy backupDone(&runner, &BackupRunner::finished);
     runner.runBackup(archive);
     REQUIRE(WaitFor(backupDone, 30000));
@@ -507,7 +508,7 @@ TEST_CASE("BackupRunner backs up and restores a real SQLite database", "[dbtool-
     CHECK(runner.tablesTotal() == tables);
     CHECK(runner.tablesDone() == tables);
 
-    runner.setConnectionString(QString::fromStdString("DRIVER=SQLite3;Database=" + target));
+    runner.setConnectionString(QString::fromStdString(SqliteConnectionString(target)));
     QSignalSpy restoreDone(&runner, &BackupRunner::finished);
     runner.runRestore(archive);
     REQUIRE(WaitFor(restoreDone, 30000));
@@ -524,7 +525,7 @@ TEST_CASE("BackupRunner reports restoring a missing archive as a failed run", "[
     QTemporaryDir dir;
     REQUIRE(dir.isValid());
     BackupRunner runner;
-    runner.setConnectionString(QString::fromStdString("DRIVER=SQLite3;Database=" + (dir.path() + "/t.db").toStdString()));
+    runner.setConnectionString(QString::fromStdString(SqliteConnectionString((dir.path() + "/t.db").toStdString())));
     QSignalSpy done(&runner, &BackupRunner::finished);
 
     runner.runRestore(dir.path() + "/does-not-exist.zip");

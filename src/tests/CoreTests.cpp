@@ -16,6 +16,8 @@
 #include <string>
 #include <vector>
 
+#include <NoErrorDialogs.hpp>
+
 // NOLINTBEGIN(readability-container-size-empty)
 
 #if defined(_MSC_VER)
@@ -28,6 +30,8 @@ using namespace std::string_view_literals;
 
 int main(int argc, char** argv)
 {
+    Lightweight::Tools::DisableErrorDialogs();
+
     auto result = SqlTestFixture::Initialize(argc, argv);
     if (auto const* exitCode = std::get_if<int>(&result))
         return *exitCode;

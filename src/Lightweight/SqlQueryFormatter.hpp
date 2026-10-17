@@ -330,9 +330,65 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
     /// knowledge out of business logic — the same reason @ref AdvisoryLockOps() exists.
     [[nodiscard]] virtual SqlRetryClassifier const& RetryOps() const noexcept = 0;
 
+    /// @brief Whether the dialect resolves table and column names without regard to case, even
+    /// when they are quoted — so a declared `ITEM_NAME` names the live column `Item_Name`.
+    ///
+    /// Defaults to `false`. SQLite returns `true`. SQL Server returns `true` as well, which assumes
+    /// a case-insensitive database collation (the default); it is not probed per database.
+    /// PostgreSQL keeps quoted identifiers case-sensitive and returns `false`.
+    ///
+    /// New hooks are appended at the end of the class: that keeps the slots of the earlier ones for
+    /// callers, but a subclass outside this library must still be rebuilt.
+    ///
+    /// @return `true` if identifiers differing only in ASCII letter case name the same object.
+    [[nodiscard]] virtual bool IdentifiersAreCaseInsensitive() const noexcept
+    {
+        return false;
+    }
+
+    /// @brief Whether the dialect has schemas that tables can be created in.
+    ///
+    /// Defaults to `true`. SQLite returns `false`: it has no schemas, only attached databases.
+    ///
+    /// @return `true` if a table can be created in a named schema.
+    [[nodiscard]] virtual bool SupportsSchemas() const noexcept
+    {
+        return true;
+    }
+
+    /// @brief Returns the statement that creates @p schema unless it already exists.
+    ///
+    /// Returns an empty string when the dialect has no schemas (see @ref SupportsSchemas()).
+    ///
+    /// @param schema The schema to create.
+    /// @return The statement to execute, or an empty string when there is nothing to execute.
+    [[nodiscard]] virtual std::string CreateSchemaIfNotExists(std::string_view schema) const
+    {
+        (void) schema;
+        return {};
+    }
+
+    /// @brief Returns the statement that makes the session report affected-row counts again.
+    ///
+    /// Defaults to an empty string, meaning the dialect always reports them. SQL Server returns
+    /// `SET NOCOUNT OFF`: under `NOCOUNT ON` the driver may report 0 rows for a statement that
+    /// changed rows. The setting stays in effect for the session after the statement ran.
+    ///
+    /// @return The statement to execute, or an empty string when there is nothing to execute.
+    [[nodiscard]] virtual std::string_view ReportRowCountsStatement() const noexcept
+    {
+        return {};
+    }
+
   protected:
     /// Formats a table name with optional schema prefix.
     static std::string FormatTableName(std::string_view schema, std::string_view table);
+
+    /// Doubles every @p quote in @p text, so @p text can be embedded between two such quotes.
+    /// @param text The text to embed.
+    /// @param quote The quote character that delimits the embedded text.
+    /// @return @p text with each @p quote doubled.
+    static std::string DoubleQuoteCharacter(std::string_view text, char quote);
 };
 
 } // namespace Lightweight
