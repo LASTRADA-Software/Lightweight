@@ -81,6 +81,7 @@ var NAVTREEINDEX0 =
 "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html":[19,7,6,1],
 "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a396642e22f36188c7ea4dce037c2204e":[19,7,6,1,2],
 "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a669b503366f25cd1196612aa3354864f":[19,7,6,1,0],
+"d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a68ef8f0286f85e4a60f163bc5b8d9c93":[19,7,6,1,5],
 "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a9702abd84a89cfd34a32375d341e0b7e":[19,7,6,1,3],
 "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#aad8cbeca3421d47c96c54ee1d43860d0":[19,7,6,1,4],
 "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#ab837fe688066523d5178f48a9f459b89":[19,7,6,1,1],
@@ -248,6 +249,5 @@ var NAVTREEINDEX0 =
 "d2/d94/structLightweight_1_1RecordMemberList.html#a755b6c987aa831fc86887b48966467fd":[19,3,18,0],
 "d2/d99/structLightweight_1_1SqlBackup_1_1ChunkReader.html":[19,5,7],
 "d2/d99/structLightweight_1_1SqlBackup_1_1ChunkReader.html#a3ab96599a03fe02a203abdeb39d89a31":[19,5,7,0],
-"d2/da0/TableFilter_8hpp_source.html":[22,0,1,4,10],
-"d2/db8/structLightweight_1_1SqlSchema_1_1Column.html":[19,6,7]
+"d2/da0/TableFilter_8hpp_source.html":[22,0,1,4,10]
 };

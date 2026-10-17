@@ -1,5 +1,6 @@
 var NAVTREEINDEX4 =
 {
+"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#compatibility-flags":[10,6,3],
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#concurrency-control":[10,7,1],
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#createindex":[10,3,3],
 "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#createtable":[10,2,0],
@@ -146,12 +147,14 @@ var NAVTREEINDEX4 =
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1057a9e70219626b8eae258557d51b1f":[21,0,0,73,29],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a150a177da7cc5510ebd3f5461b555b4e":[21,0,0,73,8],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1aade87023f69d63e86f4aca06a97595":[21,0,0,73,31],
+"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1d973789fe4e659b30eb414dea1d6941":[21,0,0,73,37],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1dcb7e54bfcc84b7995643cd35a43c53":[21,0,0,73,3],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a28840705a0b4cc329d082cf327f486f3":[21,0,0,73,18],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a28d630a4ecd3bb5946d20de498d95176":[21,0,0,73,11],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2a8b5bd4208f5b50cb9e4e4e8cbc3922":[21,0,0,73,1],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2ec073a60fd4242445ce990a1840ccfe":[21,0,0,73,4],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2f3e6e88b1fb6af51bf4d0d65c5a52e6":[21,0,0,73,33],
+"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a378d45364a1eca876043be27c31bd3e1":[21,0,0,73,36],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a4c6237040c577506c6f405d15e84eec9":[21,0,0,73,16],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a725b026c92dcdf60b1a0ed60dc5b9a81":[21,0,0,73,19],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a747bb2c6c82c186199ebfc698e4d5c3a":[21,0,0,73,20],
@@ -166,6 +169,7 @@ var NAVTREEINDEX4 =
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#ab39585d3fa5fcd921a0e46afb27ff8d7":[21,0,0,73,26],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#ab9502d79df4bc885858166ea11c493a0":[21,0,0,73,22],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#abf21ac12103c4b8224cc68fb0cc114c0":[21,0,0,73,0],
+"d8/df7/classLightweight_1_1SqlQueryFormatter.html#ac7830e152feff1b173ba8ddf731aaea9":[21,0,0,73,35],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#aca7467c2f31b7913a2971b20b67df5a6":[21,0,0,73,2],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#acae3c697bec8a0d4d6e356b8cb7c2c4b":[21,0,0,73,34],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#ace4e01590c4e021f3e9ec575f3308645":[21,0,0,73,5],
@@ -245,9 +249,5 @@ var NAVTREEINDEX4 =
 "d9/d8a/group__CoreApi.html":[19,6],
 "d9/d8a/group__CoreApi.html#ga225ccc050bd6c53031dd614127a3553c":[19,6,25],
 "d9/d8a/group__CoreApi.html#ga4e69e872eba3ff2b5e59b999b747add8":[19,6,22],
-"d9/d8a/group__CoreApi.html#ga826d0a33e14c546691afe196b566b77d":[19,6,23],
-"d9/d8a/group__CoreApi.html#ga8637d070f06ecc36b5699c5b7ea1b102":[19,6,24],
-"d9/d8a/group__CoreApi.html#ga8be4e3766b268b1d751ef7df237af144":[19,6,20],
-"d9/d8a/group__CoreApi.html#ga99e5e92107ae68dfd09cca5fc6ef1106":[19,6,21],
-"d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a42c2820d1794f02d673fc37f0d620244":[19,6,22,5]
+"d9/d8a/group__CoreApi.html#ga826d0a33e14c546691afe196b566b77d":[19,6,23]
 };

@@ -107,9 +107,7 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:acf94f2759fca0c7925114b0608acfba2" id="r_acf94f2759fca0c7925114b0608acfba2"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#acf94f2759fca0c7925114b0608acfba2">SqlMigrationQueryBuilder</a> (<a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const &amp;formatter)</td></tr>
 <tr class="memdesc:acf94f2759fca0c7925114b0608acfba2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs a migration query builder.  <br /></td></tr>
 <tr class="separator:acf94f2759fca0c7925114b0608acfba2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a711667d1ef5b5b5a168aa21b2150a394" id="r_a711667d1ef5b5b5a168aa21b2150a394"><td class="memItemLeft" align="right" valign="top"><a id="a711667d1ef5b5b5a168aa21b2150a394" name="a711667d1ef5b5b5a168aa21b2150a394"></a>
-LIGHTWEIGHT_API <a class="el" href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html">SqlMigrationQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>WithSchema</b> (std::string schemaName)</td></tr>
-<tr class="memdesc:a711667d1ef5b5b5a168aa21b2150a394"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets the schema name for the migration. <br /></td></tr>
+<tr class="memitem:a711667d1ef5b5b5a168aa21b2150a394" id="r_a711667d1ef5b5b5a168aa21b2150a394"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html">SqlMigrationQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a711667d1ef5b5b5a168aa21b2150a394">WithSchema</a> (std::string schemaName)</td></tr>
 <tr class="separator:a711667d1ef5b5b5a168aa21b2150a394"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:affdfdca7abe4cc98091837f185c55f4c" id="r_affdfdca7abe4cc98091837f185c55f4c"><td class="memItemLeft" align="right" valign="top"><a id="affdfdca7abe4cc98091837f185c55f4c" name="affdfdca7abe4cc98091837f185c55f4c"></a>
 LIGHTWEIGHT_API <a class="el" href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html">SqlMigrationQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>CreateDatabase</b> (std::string_view databaseName)</td></tr>
@@ -226,6 +224,26 @@ LIGHTWEIGHT_API <a class="el" href="../../d3/ded/structLightweight_1_1SqlMigrati
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
+<a id="a711667d1ef5b5b5a168aa21b2150a394" name="a711667d1ef5b5b5a168aa21b2150a394"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a711667d1ef5b5b5a168aa21b2150a394">&#9670;&#160;</a></span>WithSchema()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html">SqlMigrationQueryBuilder</a> &amp; Lightweight::SqlMigrationQueryBuilder::WithSchema </td>
+          <td>(</td>
+          <td class="paramtype">std::string&#160;</td>
+          <td class="paramname"><em>schemaName</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Sets the schema name for the migration.</p>
+<p>On SQL Server and PostgreSQL, <code>CreateTable</code> then creates the table in that schema, which must exist. On PostgreSQL this differs from earlier releases, which created it in the <code>search_path</code> schema, so the checksums of such migrations changed (see <code>dbtool rewrite-checksums</code>). </p>
+
+</div>
+</div>
 <a id="a4290b5a70e3635cd356d83de3983c4b8" name="a4290b5a70e3635cd356d83de3983c4b8"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a4290b5a70e3635cd356d83de3983c4b8">&#9670;&#160;</a></span>CreateTableIfNotExists()</h2>
 
@@ -297,7 +315,7 @@ template&lt;typename Record &gt; </div>
 
 <p>Creates a new table for the given record type. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00552">552</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00556">556</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
 
 </div>
 </div>
@@ -328,7 +346,7 @@ template&lt;typename Record &gt; </div>
 
 <p>Alters an existing table. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00563">563</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00567">567</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
 
 </div>
 </div>

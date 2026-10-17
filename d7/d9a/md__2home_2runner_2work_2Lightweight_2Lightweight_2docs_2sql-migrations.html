@@ -119,7 +119,7 @@ Using the LIGHTWEIGHT_SQL_MIGRATION Macro</h2>
 <div class="line">        .Column(<span class="stringliteral">&quot;phone&quot;</span>, Varchar(20))</div>
 <div class="line">        .Timestamps();</div>
 <div class="line">}</div>
-<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01129">SqlMigration.hpp:1129</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01201">SqlMigration.hpp:1201</a></div></div>
 </div><!-- fragment --><p>The migration is automatically registered with the MigrationManager when the program starts, and unregistered again when it is destroyed. Registration is tied to the object's lifetime, so a migration that does not live for the whole program &ndash; one with automatic storage duration, say &ndash; leaves no dangling pointer behind in the manager it registered with.</p>
 <h2><a class="anchor" id="using-the-migration-class"></a>
 Using the Migration Class</h2>
@@ -144,7 +144,7 @@ Using the Migration Class</h2>
 <div class="line">    }</div>
 <div class="line">);</div>
 <div class="ttc" id="aclassLightweight_1_1SqlMigrationQueryBuilder_html"><div class="ttname"><a href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html">Lightweight::SqlMigrationQueryBuilder</a></div><div class="ttdoc">Query builder for building SQL migration queries.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6b/Migrate_8hpp_source.html#l00507">Migrate.hpp:508</a></div></div>
-<div class="ttc" id="astructLightweight_1_1SqlMigration_1_1MigrationTimestamp_html"><div class="ttname"><a href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">Lightweight::SqlMigration::MigrationTimestamp</a></div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00049">SqlMigration.hpp:50</a></div></div>
+<div class="ttc" id="astructLightweight_1_1SqlMigration_1_1MigrationTimestamp_html"><div class="ttname"><a href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">Lightweight::SqlMigration::MigrationTimestamp</a></div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00050">SqlMigration.hpp:51</a></div></div>
 </div><!-- fragment --><h2><a class="anchor" id="timestamp-format"></a>
 Timestamp Format</h2>
 <p>Migration timestamps use the format <b>YYYYMMDDHHMMSS</b> (14 digits):</p>
@@ -165,8 +165,17 @@ Plugin Macro for Shared Libraries</h2>
 <div class="line">{</div>
 <div class="line">    <span class="comment">// ...</span></div>
 <div class="line">}</div>
-<div class="ttc" id="agroup__SqlMigration_html_gaef227c1f2230d962d19572a234ceaa73"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN()</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00811">SqlMigration.hpp:811</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_gaef227c1f2230d962d19572a234ceaa73"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN()</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00826">SqlMigration.hpp:826</a></div></div>
 </div><!-- fragment --><p>The <code><a class="el" href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN()</a></code> macro exports the <code>AcquireMigrationManager()</code> function that dbtool uses to load migrations from the plugin.</p>
+<p>A plugin can also export two optional hooks, described in <a href="../../dbtool.md#optional-post-init-hook">dbtool.md</a>:</p>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">Macro   </th><th class="markdownTableHeadNone">Runs    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code><a class="el" href="../../db/df6/group__SqlMigration.html#ga8292c8bc098a73ae82344c31693bb4ff">LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connection, manager)</a></code>   </td><td class="markdownTableBodyNone">before every dbtool command, read-only ones included; failures are logged only    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code><a class="el" href="../../db/df6/group__SqlMigration.html#ga1035792e18e9c01e4d09f2ff9a19f7f6">LIGHTWEIGHT_MIGRATION_PLUGIN_POSTMIGRATE(connection, manager)</a></code>   </td><td class="markdownTableBodyNone">after a successful <code>migrate</code> / <code>migrate-to-release</code> / <code>apply</code>, under the migration lock; a failure fails the command   </td></tr>
+</table>
 <h1><a class="anchor" id="table-operations"></a>
 Table Operations</h1>
 <h2><a class="anchor" id="createtable"></a>
@@ -357,6 +366,7 @@ Custom Default Schema</h2>
 <li><b>SQL Server</b> — no portable session-level switch exists; the hook is a no-op. Configure the connecting login's <code>DEFAULT_SCHEMA</code> server-side (<code>ALTER USER … WITH DEFAULT_SCHEMA = lasa</code>). Migrations that need to write to a specific schema regardless of the login default should use the <code>WithSchema(...)</code> builder.</li>
 <li><b>SQLite</b> — no schema concept; the hook is a no-op.</li>
 </ul>
+<p>On PostgreSQL a <code>CreateTable</code> built with <code>WithSchema(...)</code> names the schema for the table and its indexes (earlier releases created them in the <code>search_path</code> schema). So the schema must exist, and a database migrated by an earlier release reports checksum mismatches for those migrations until <code>dbtool rewrite-checksums</code> rewrites them. The table's inline foreign keys still name the referenced table without a schema; they resolve through the <code>search_path</code>, so the referenced table must lie in a schema on the <code>search_path</code>.</p>
 <p>Schema names are validated against <code>[A-Za-z0-9_]</code> and rejected via <code>std::invalid_argument</code> otherwise. Passing <code>""</code> clears any previously installed hook.</p>
 <p><code>dbtool</code> exposes this via the <code>--schema</code> flag and <code>dbtool-gui</code> exposes it as a "Schema" input on both the Profile and the direct-ODBC connection tabs.</p>
 <h2><a class="anchor" id="applying-migrations-programmatically"></a>
@@ -380,10 +390,10 @@ Applying Migrations Programmatically</h2>
 <div class="line">);</div>
 <div class="line"> </div>
 <div class="line">std::println(<span class="stringliteral">&quot;Applied {} migrations&quot;</span>, applied);</div>
-<div class="ttc" id="aclassLightweight_1_1SqlMigration_1_1MigrationBase_html"><div class="ttname"><a href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html">Lightweight::SqlMigration::MigrationBase</a></div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00841">SqlMigration.hpp:842</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1SqlMigration_1_1MigrationBase_html_a0ab6e8c26f230333862500cc5e39a03e"><div class="ttname"><a href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a0ab6e8c26f230333862500cc5e39a03e">Lightweight::SqlMigration::MigrationBase::GetTimestamp</a></div><div class="ttdeci">MigrationTimestamp GetTimestamp() const noexcept</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00928">SqlMigration.hpp:928</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1SqlMigration_1_1MigrationBase_html_a120faae4809045b0fd412b6550b634f0"><div class="ttname"><a href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a120faae4809045b0fd412b6550b634f0">Lightweight::SqlMigration::MigrationBase::GetTitle</a></div><div class="ttdeci">std::string_view GetTitle() const noexcept</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00936">SqlMigration.hpp:936</a></div></div>
-<div class="ttc" id="astructLightweight_1_1SqlMigration_1_1MigrationTimestamp_html_a7ff59005141458f049508004b33e77ee"><div class="ttname"><a href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html#a7ff59005141458f049508004b33e77ee">Lightweight::SqlMigration::MigrationTimestamp::value</a></div><div class="ttdeci">uint64_t value</div><div class="ttdoc">The numeric timestamp value identifying the migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00052">SqlMigration.hpp:52</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlMigration_1_1MigrationBase_html"><div class="ttname"><a href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html">Lightweight::SqlMigration::MigrationBase</a></div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00913">SqlMigration.hpp:914</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlMigration_1_1MigrationBase_html_a0ab6e8c26f230333862500cc5e39a03e"><div class="ttname"><a href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a0ab6e8c26f230333862500cc5e39a03e">Lightweight::SqlMigration::MigrationBase::GetTimestamp</a></div><div class="ttdeci">MigrationTimestamp GetTimestamp() const noexcept</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01000">SqlMigration.hpp:1000</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlMigration_1_1MigrationBase_html_a120faae4809045b0fd412b6550b634f0"><div class="ttname"><a href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a120faae4809045b0fd412b6550b634f0">Lightweight::SqlMigration::MigrationBase::GetTitle</a></div><div class="ttdeci">std::string_view GetTitle() const noexcept</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01008">SqlMigration.hpp:1008</a></div></div>
+<div class="ttc" id="astructLightweight_1_1SqlMigration_1_1MigrationTimestamp_html_a7ff59005141458f049508004b33e77ee"><div class="ttname"><a href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html#a7ff59005141458f049508004b33e77ee">Lightweight::SqlMigration::MigrationTimestamp::value</a></div><div class="ttdeci">uint64_t value</div><div class="ttdoc">The numeric timestamp value identifying the migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00053">SqlMigration.hpp:53</a></div></div>
 </div><!-- fragment --><h2><a class="anchor" id="status--verification"></a>
 Status &amp; Verification</h2>
 <div class="fragment"><div class="line"><span class="comment">// Get migration status summary</span></div>
@@ -413,6 +423,7 @@ Compatibility Flags</h2>
 <td class="markdownTableBodyNone"><code>fk-match-referenced-text</code>   </td><td class="markdownTableBodyNone">A foreign-key column declared by <code>CreateTable</code> / <code>AlterTable</code> (<code>AddForeignKeyColumn</code>) takes the narrow/wide variant of the column it references when the two differ only in that respect (<code>CHAR(n)</code>↔<code>NCHAR(n)</code>, <code>VARCHAR(n)</code>↔<code>NVARCHAR(n)</code>). The referenced column's type is read from the live database (or from an earlier migration of the same run), and each change is logged as a warning. SQL Server only — PostgreSQL and SQLite store both kinds the same way.   </td></tr>
 </table>
 <p>Flags only change the SQL sent to the database. Checksums are computed from the migration as declared, so the same migration has the same checksum on every database.</p>
+<p>A policy installed by a plugin is code from that plugin's library. <code>dbtool</code> and <code>dbtool-gui</code> clear the policy, the migrations and the releases before they unload plugins (<code>Lightweight::Tools::UnloadPlugins</code>): at exit, after a failed plugin load, and in <code>dbtool-gui</code> whenever it reloads the plugin list, where the reloaded plugins' static initializers install their policy again. A host that loads plugins itself must do the same, or the manager calls into an unloaded library: at the next migration it applies, or in its destructor when the process exits.</p>
 <h2><a class="anchor" id="preview-dry-run"></a>
 Preview (Dry-Run)</h2>
 <p>Generate SQL without executing:</p>

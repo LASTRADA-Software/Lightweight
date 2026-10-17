@@ -1,5 +1,12 @@
 var NAVTREEINDEX7 =
 {
+"dd/d71/structLightweight_1_1SqlColumnDeclaration.html#adc6c2316125cc865139f3dae21badfb6":[19,8,14,8],
+"dd/d75/structLightweight_1_1SqlAlterTablePlan.html":[19,8,16],
+"dd/d75/structLightweight_1_1SqlAlterTablePlan.html#a303553e0c2089a553fd561f196cc039e":[19,8,16,0],
+"dd/d75/structLightweight_1_1SqlAlterTablePlan.html#a4d5476b81f6e3efc5057c49d797a9f07":[19,8,16,1],
+"dd/d75/structLightweight_1_1SqlAlterTablePlan.html#ace007f34324de43ff2ab887fbe321970":[19,8,16,2],
+"dd/d76/structLightweight_1_1SqlInsertDataPlan.html":[19,8,19],
+"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a0428d0b2e06f4760a9bc3c31cff19327":[19,8,19,2],
 "dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a71fa23f7cd74e66242eb2042fb019dec":[19,8,19,0],
 "dd/d76/structLightweight_1_1SqlInsertDataPlan.html#afd21e23e3c24884cba9ef3b76d174e82":[19,8,19,1],
 "dd/d94/SqlBinary_8hpp_source.html":[22,0,1,1,4],
@@ -98,6 +105,7 @@ var NAVTREEINDEX7 =
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#configuration-file-format":[9,2,2],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#connection-errors":[9,8,0],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#connection-string":[9,2,0],
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#crashes-and-assertions-windows":[9,8,3],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#creating-a-migration-plugin":[9,6,0],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#custom-default-schema---schema":[9,3,0,0],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#database-specific-connection-strings":[9,2,5],
@@ -116,8 +124,10 @@ var NAVTREEINDEX7 =
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#migrate-to-release-version":[9,3,1],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#migration-commands":[9,3],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#optional-post-init-hook":[9,6,2],
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#optional-post-migrate-hook":[9,6,3],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#overview-1":[9,0],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#parallel-backup-and-restore":[9,7,2],
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#plugin-lifetime":[9,6,4],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#plugin-system":[9,6],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#pre-built-installers":[9,1,0],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#producing-the-installer-locally":[9,1,2],
@@ -239,15 +249,5 @@ var NAVTREEINDEX7 =
 "de/dae/classLightweight_1_1SqlFixedString.html#a2c1d201db4721645d327f01339e7e9c7":[19,1,6,13],
 "de/dae/classLightweight_1_1SqlFixedString.html#a3040d2d8a542ea5c48cc74f785e9abd2":[19,1,6,39],
 "de/dae/classLightweight_1_1SqlFixedString.html#a375eb7bde391d404bc26c416154046d0":[19,1,6,3],
-"de/dae/classLightweight_1_1SqlFixedString.html#a3e156a8794ac28b0b372a45311adbb89":[19,1,6,31],
-"de/dae/classLightweight_1_1SqlFixedString.html#a406155892924b437d84c627ea2b750cd":[19,1,6,26],
-"de/dae/classLightweight_1_1SqlFixedString.html#a42d2f423a904d16433c7ed25add73096":[19,1,6,4],
-"de/dae/classLightweight_1_1SqlFixedString.html#a42d9009b4fa414a66683870d5d5a22b2":[19,1,6,22],
-"de/dae/classLightweight_1_1SqlFixedString.html#a4c3ec565ffd7b94f60bb27a966e7a552":[19,1,6,20],
-"de/dae/classLightweight_1_1SqlFixedString.html#a50438c4dd3511d7dba129606f23950a8":[19,1,6,23],
-"de/dae/classLightweight_1_1SqlFixedString.html#a60be4a7928d045c7d1e907cf4ef0fdd9":[19,1,6,16],
-"de/dae/classLightweight_1_1SqlFixedString.html#a612a6159015bf954929f7e3eb6b3a904":[19,1,6,9],
-"de/dae/classLightweight_1_1SqlFixedString.html#a65508d0b31080ee719e717e4142b0137":[19,1,6,1],
-"de/dae/classLightweight_1_1SqlFixedString.html#a6e5570dd627ec42c4b1f228d6dac6b32":[19,1,6,40],
-"de/dae/classLightweight_1_1SqlFixedString.html#a7162ba8aa4f12144c425f256060e21c8":[19,1,6,17]
+"de/dae/classLightweight_1_1SqlFixedString.html#a3e156a8794ac28b0b372a45311adbb89":[19,1,6,31]
 };

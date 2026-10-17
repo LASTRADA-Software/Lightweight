@@ -33,7 +33,7 @@ var searchData=
   ['hits_30',['hits',['../d7/dd3/structLightweight_1_1SqlPreparedStatementCache_1_1Statistics.html#aa93a81a44df4321414229dcbcbbba6b4',1,'Lightweight::SqlPreparedStatementCache::Statistics']]],
   ['holds_20no_20key_20storage_31',['The relation holds no key storage',['../d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#the-relation-holds-no-key-storage',1,'']]],
   ['honest_32',['Keeping these examples honest',['../d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#keeping-these-examples-honest',1,'']]],
-  ['hook_33',['Optional Post-Init Hook',['../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#optional-post-init-hook',1,'']]],
+  ['hook_33',['hook',['../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#optional-post-init-hook',1,'Optional Post-Init Hook'],['../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#optional-post-migrate-hook',1,'Optional Post-Migrate Hook']]],
   ['hour_34',['hour',['../d6/dfa/structLightweight_1_1SqlDateTime.html#a6cc185c14476e3a2aad0db9a1bf52622',1,'Lightweight::SqlDateTime']]],
   ['how_20it_20works_35',['how it works',['../d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html#how-it-works',1,'How it works'],['../dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html',1,'SQL Backup: How It Works']]],
   ['how_20many_20of_20those_20digits_20survive_20a_20round_20trip_36',['How many of those digits survive a round-trip',['../de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-many-of-those-digits-survive-a-round-trip',1,'']]],

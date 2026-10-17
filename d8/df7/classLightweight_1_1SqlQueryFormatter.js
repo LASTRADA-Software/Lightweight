@@ -34,5 +34,8 @@ var classLightweight_1_1SqlQueryFormatter =
     [ "SetDefaultSchemaStatement", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1aade87023f69d63e86f4aca06a97595", null ],
     [ "SqliteSettingsStatements", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a8aad2dcdc6cd722dd563c42799acba49", null ],
     [ "AdvisoryLockOps", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2f3e6e88b1fb6af51bf4d0d65c5a52e6", null ],
-    [ "RetryOps", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#acae3c697bec8a0d4d6e356b8cb7c2c4b", null ]
+    [ "RetryOps", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#acae3c697bec8a0d4d6e356b8cb7c2c4b", null ],
+    [ "IdentifiersAreCaseInsensitive", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#ac7830e152feff1b173ba8ddf731aaea9", null ],
+    [ "SupportsSchemas", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a378d45364a1eca876043be27c31bd3e1", null ],
+    [ "CreateSchemaIfNotExists", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1d973789fe4e659b30eb414dea1d6941", null ]
 ];

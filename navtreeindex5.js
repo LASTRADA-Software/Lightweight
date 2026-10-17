@@ -1,5 +1,9 @@
 var NAVTREEINDEX5 =
 {
+"d9/d8a/group__CoreApi.html#ga8637d070f06ecc36b5699c5b7ea1b102":[19,6,24],
+"d9/d8a/group__CoreApi.html#ga8be4e3766b268b1d751ef7df237af144":[19,6,20],
+"d9/d8a/group__CoreApi.html#ga99e5e92107ae68dfd09cca5fc6ef1106":[19,6,21],
+"d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a42c2820d1794f02d673fc37f0d620244":[19,6,22,5],
 "d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a4789f23283b3a61f858b641a1bef19a3":[19,6,22,4],
 "d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a5a7dacb6e9b5ba37e22f825429355174":[19,6,22,3],
 "d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a5ff3c6978f87d96febfdc8ed3899a97e":[19,6,22,0],
@@ -81,12 +85,14 @@ var NAVTREEINDEX5 =
 "d9/df2/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ChecksumRewriteEntry.html#aa81e412a6d6b23847fae4ece37f4c27e":[19,7,6,0,2],
 "d9/df2/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ChecksumRewriteEntry.html#ad3ce4bbad3006b22fd134916fe257dfd":[19,7,6,0,3],
 "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html":[21,0,0,2,10],
+"d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a230ea6c0e9d96800c718809e480b11bc":[21,0,0,2,10,6],
 "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a92351f3189fe1adade98ccec8d21a6b2":[21,0,0,2,10,5],
 "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a9de53272af6d3db165c4f8964223d8a1":[21,0,0,2,10,2],
 "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ac5078f37747a5a12b4d3d7e8df8b7595":[21,0,0,2,10,4],
 "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ad0650ea29db5c33bcebf5af75b9be9d8":[21,0,0,2,10,1],
 "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ad1aedd312e0a7ea569f6d9ac712a39e6":[21,0,0,2,10,3],
 "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ae825585f8af8a8d21b07068e9bfc9e98":[21,0,0,2,10,0],
+"d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#afc7d7a51b3ea929d76023dc381257619":[21,0,0,2,10,7],
 "d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html":[19,5,8],
 "d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#ac16512ae4852ecbf22ab84abeda29e7e":[19,5,8,1],
 "d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#adcfe1f8e73b8c0d8dc52f90db2302f97":[19,5,8,2],
@@ -243,11 +249,5 @@ var NAVTREEINDEX5 =
 "da/dc3/SqlServerDependentObjects_8hpp_source.html":[22,0,1,33],
 "da/dcb/structLightweight_1_1MigrationRenderContext_1_1ColumnKey.html":[21,0,0,17,0],
 "da/dcb/structLightweight_1_1MigrationRenderContext_1_1ColumnKey.html#a15de289fbe72a7e9ee13c7d6ede1d84b":[21,0,0,17,0,1],
-"da/dcb/structLightweight_1_1MigrationRenderContext_1_1ColumnKey.html#a3d25a9c6af1bb1f43efb4f526daa4471":[21,0,0,17,0,2],
-"da/dcb/structLightweight_1_1MigrationRenderContext_1_1ColumnKey.html#a6ed0df14237cf17363e0dce25e4d16ec":[21,0,0,17,0,3],
-"da/dcb/structLightweight_1_1MigrationRenderContext_1_1ColumnKey.html#aa76a50dedd516dac82426e22a3e24265":[21,0,0,17,0,0],
-"da/dce/StdOptional_8hpp_source.html":[22,0,1,1,18],
-"da/dd4/structLightweight_1_1Zip_1_1ZipError.html":[21,0,0,5,3],
-"da/dd4/structLightweight_1_1Zip_1_1ZipError.html#a08d327ce9dd2d3434c0d116d84b77dd5":[21,0,0,5,3,0],
-"da/dd4/structLightweight_1_1Zip_1_1ZipError.html#a36fb2dfc5fee2d41462a563316f12754":[21,0,0,5,3,2]
+"da/dcb/structLightweight_1_1MigrationRenderContext_1_1ColumnKey.html#a3d25a9c6af1bb1f43efb4f526daa4471":[21,0,0,17,0,2]
 };

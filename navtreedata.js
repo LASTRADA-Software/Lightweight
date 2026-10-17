@@ -180,7 +180,8 @@ var NAVTREE =
         [ "5.2 Compression Levels", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md52-compression-levels", null ],
         [ "5.3 Runtime Availability", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md53-runtime-availability", null ],
         [ "5.4 Restoration Compatibility", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md54-restoration-compatibility", null ]
-      ] ]
+      ] ],
+      [ "6. Multi-schema Archives", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md6-multi-schema-archives", null ]
     ] ],
     [ "dbtool - Database Management CLI", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html", [
       [ "Overview", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#overview-1", null ],
@@ -235,7 +236,9 @@ var NAVTREE =
       [ "Plugin System", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#plugin-system", [
         [ "Creating a Migration Plugin", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#creating-a-migration-plugin", null ],
         [ "Loading Plugins", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#loading-plugins", null ],
-        [ "Optional Post-Init Hook", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#optional-post-init-hook", null ]
+        [ "Optional Post-Init Hook", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#optional-post-init-hook", null ],
+        [ "Optional Post-Migrate Hook", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#optional-post-migrate-hook", null ],
+        [ "Plugin Lifetime", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#plugin-lifetime", null ]
       ] ],
       [ "Workflow Examples", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#workflow-examples", [
         [ "Full Migration Workflow", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#full-migration-workflow", null ],
@@ -245,7 +248,8 @@ var NAVTREE =
       [ "Troubleshooting", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#troubleshooting", [
         [ "Connection Errors", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#connection-errors", null ],
         [ "Checksum Mismatches", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#checksum-mismatches", null ],
-        [ "Lock Acquisition Failed", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#lock-acquisition-failed", null ]
+        [ "Lock Acquisition Failed", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#lock-acquisition-failed", null ],
+        [ "Crashes and Assertions (Windows)", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#crashes-and-assertions-windows", null ]
       ] ],
       [ "See Also", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#see-also-2", null ]
     ] ],
@@ -398,15 +402,15 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a095d9eb7ed4abef29c07a9a563c0da72",
-"d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#turning-a-description-back-into-ddl",
-"d6/dfa/structLightweight_1_1SqlDateTime.html#a337174b1308732c72008e8397ad2299f",
-"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#concurrency-control",
-"d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a4789f23283b3a61f858b641a1bef19a3",
-"da/dd4/structLightweight_1_1Zip_1_1ZipError.html#aae4162b3c01ffe80286bdf62a5561472",
-"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a71fa23f7cd74e66242eb2042fb019dec",
-"de/dae/classLightweight_1_1SqlFixedString.html#a74b3bf9c61395a963fd63aad8648f4b6",
-"functions_func_q.html"
+"d2/db8/structLightweight_1_1SqlSchema_1_1Column.html",
+"d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#see-also-7",
+"d6/dfa/structLightweight_1_1SqlDateTime.html#a2fe4b8eee3bc27c8097d057b490b1319",
+"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#compatibility-flags",
+"d9/d8a/group__CoreApi.html#ga8637d070f06ecc36b5699c5b7ea1b102",
+"da/dcb/structLightweight_1_1MigrationRenderContext_1_1ColumnKey.html#a6ed0df14237cf17363e0dce25e4d16ec",
+"dd/d71/structLightweight_1_1SqlColumnDeclaration.html#adc6c2316125cc865139f3dae21badfb6",
+"de/dae/classLightweight_1_1SqlFixedString.html#a406155892924b437d84c627ea2b750cd",
+"functions_func_f.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

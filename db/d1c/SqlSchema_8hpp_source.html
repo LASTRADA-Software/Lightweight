@@ -422,113 +422,124 @@ $(document).ready(function(){initNavTree('db/d1c/SqlSchema_8hpp_source.html','..
 <div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span>                                            TableReadyCallback tableReadyCallback = {},</div>
 <div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span>                                            TableFilterPredicate tableFilter = {});</div>
 <div class="line"><a id="l00306" name="l00306"></a><span class="lineno">  306</span><span class="comment"></span> </div>
-<div class="line"><a id="l00307" name="l00307"></a><span class="lineno">  307</span><span class="comment">    /// Reads the schema of a single table.</span></div>
+<div class="line"><a id="l00307" name="l00307"></a><span class="lineno">  307</span><span class="comment">    /// Lists the schemas that hold at least one user table, sorted by name.</span></div>
 <div class="line"><a id="l00308" name="l00308"></a><span class="lineno">  308</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span><span class="comment">    /// Use this instead of @ref ReadAllTables when only one table is of interest: it *describes* only</span></div>
-<div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span><span class="comment">    /// that table, rather than describing every table in the database. The table list is still</span></div>
-<div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span><span class="comment">    /// enumerated on each call — that is how existence is settled, and where the name casing the</span></div>
-<div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span><span class="comment">    /// foreign-key fixup needs comes from — but the per-table column, key and index queries, which</span></div>
-<div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span><span class="comment">    /// dominate the cost, run once instead of once per table.</span></div>
-<div class="line"><a id="l00314" name="l00314"></a><span class="lineno">  314</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00315" name="l00315"></a><span class="lineno">  315</span><span class="comment">    /// A missing table is reported as @c std::nullopt rather than an error, because asking whether a</span></div>
-<div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span><span class="comment">    /// table exists is a normal thing to do. Everything that genuinely went wrong — a broken</span></div>
-<div class="line"><a id="l00317" name="l00317"></a><span class="lineno">  317</span><span class="comment">    /// connection, a catalog call the driver rejected — throws @ref SqlException, as everywhere else</span></div>
-<div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span><span class="comment">    /// in @ref SqlSchema. So an empty result always means &quot;absent&quot;, never &quot;could not tell&quot;.</span></div>
+<div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span><span class="comment">    /// System schemas are left out: `sys`, `INFORMATION_SCHEMA`, `guest`, and those starting with</span></div>
+<div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span><span class="comment">    /// `db_` (SQL Server roles) or `pg_` (PostgreSQL catalogs). A dialect without schemas (SQLite)</span></div>
+<div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span><span class="comment">    /// yields one empty name when the database holds a table.</span></div>
+<div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span><span class="comment">    /// @param stmt The SQL statement to use for reading.</span></div>
+<div class="line"><a id="l00314" name="l00314"></a><span class="lineno">  314</span><span class="comment">    /// @param database The database name.</span></div>
+<div class="line"><a id="l00315" name="l00315"></a><span class="lineno">  315</span><span class="comment">    /// @return The schema names.</span></div>
+<div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span><span class="comment"></span>    [[nodiscard]] LIGHTWEIGHT_API std::vector&lt;std::string&gt; AllUserSchemas(SqlStatement&amp; stmt, std::string_view database);</div>
+<div class="line"><a id="l00317" name="l00317"></a><span class="lineno">  317</span><span class="comment"></span> </div>
+<div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span><span class="comment">    /// Reads the schema of a single table.</span></div>
 <div class="line"><a id="l00319" name="l00319"></a><span class="lineno">  319</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00320" name="l00320"></a><span class="lineno">  320</span><span class="comment">    /// @param stmt The SQL statement to use for reading.</span></div>
-<div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span><span class="comment">    /// @param table The fully qualified name of the table to describe. An empty catalog or schema</span></div>
-<div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span><span class="comment">    ///              means &quot;the connection&#39;s default&quot;, exactly as in @ref ReadAllTables.</span></div>
-<div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span><span class="comment">    /// @retval std::nullopt No table of that name exists in the given catalog and schema.</span></div>
-<div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span><span class="comment">    /// @throws SqlException The catalog could not be read. Absence is not an error and is reported</span></div>
-<div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span><span class="comment">    ///         as @c std::nullopt; anything arriving as an exception is a genuine SQL failure.</span></div>
-<div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span><span class="comment"></span>    [[nodiscard]] LIGHTWEIGHT_API std::optional&lt;Table&gt; ReadTable(SqlStatement&amp; stmt, FullyQualifiedTableName <span class="keyword">const</span>&amp; table);</div>
-<div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span><span class="comment"></span> </div>
-<div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span><span class="comment">    /// Retrieves all tables in the given database and schema that have a foreign key to the given table.</span></div>
-<div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span><span class="comment"></span>    LIGHTWEIGHT_API std::vector&lt;ForeignKeyConstraint&gt; AllForeignKeysTo(SqlStatement&amp; stmt,</div>
-<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span>                                                                       FullyQualifiedTableName <span class="keyword">const</span>&amp; table);</div>
-<div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span><span class="comment"></span> </div>
-<div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span><span class="comment">    /// Retrieves all tables in the given database and schema that have a foreign key from the given table.</span></div>
-<div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span><span class="comment"></span>    LIGHTWEIGHT_API std::vector&lt;ForeignKeyConstraint&gt; AllForeignKeysFrom(SqlStatement&amp; stmt,</div>
-<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span>                                                                         FullyQualifiedTableName <span class="keyword">const</span>&amp; table);</div>
-<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span><span class="comment"></span> </div>
-<div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span><span class="comment">    /// Creats an SQL CREATE TABLE plan for the given table description.</span></div>
-<div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span><span class="comment">    /// @param tableDescription The description of the table to create the plan for.</span></div>
-<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00340" name="l00340"></a><span class="lineno">  340</span><span class="comment">    /// @return An SQL CREATE TABLE plan for the given table description.</span></div>
-<div class="line"><a id="l00341" name="l00341"></a><span class="lineno">  341</span><span class="comment"></span>    LIGHTWEIGHT_API SqlCreateTablePlan MakeCreateTablePlan(Table <span class="keyword">const</span>&amp; tableDescription);</div>
+<div class="line"><a id="l00320" name="l00320"></a><span class="lineno">  320</span><span class="comment">    /// Use this instead of @ref ReadAllTables when only one table is of interest: it *describes* only</span></div>
+<div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span><span class="comment">    /// that table, rather than describing every table in the database. The table list is still</span></div>
+<div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span><span class="comment">    /// enumerated on each call — that is how existence is settled, and where the name casing the</span></div>
+<div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span><span class="comment">    /// foreign-key fixup needs comes from — but the per-table column, key and index queries, which</span></div>
+<div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span><span class="comment">    /// dominate the cost, run once instead of once per table.</span></div>
+<div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span><span class="comment">    /// A missing table is reported as @c std::nullopt rather than an error, because asking whether a</span></div>
+<div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span><span class="comment">    /// table exists is a normal thing to do. Everything that genuinely went wrong — a broken</span></div>
+<div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span><span class="comment">    /// connection, a catalog call the driver rejected — throws @ref SqlException, as everywhere else</span></div>
+<div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span><span class="comment">    /// in @ref SqlSchema. So an empty result always means &quot;absent&quot;, never &quot;could not tell&quot;.</span></div>
+<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span><span class="comment">    /// @param stmt The SQL statement to use for reading.</span></div>
+<div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span><span class="comment">    /// @param table The fully qualified name of the table to describe. An empty catalog or schema</span></div>
+<div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span><span class="comment">    ///              means &quot;the connection&#39;s default&quot;, exactly as in @ref ReadAllTables.</span></div>
+<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span><span class="comment">    /// @retval std::nullopt No table of that name exists in the given catalog and schema.</span></div>
+<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span><span class="comment">    /// @throws SqlException The catalog could not be read. Absence is not an error and is reported</span></div>
+<div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span><span class="comment">    ///         as @c std::nullopt; anything arriving as an exception is a genuine SQL failure.</span></div>
+<div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span><span class="comment"></span>    [[nodiscard]] LIGHTWEIGHT_API std::optional&lt;Table&gt; ReadTable(SqlStatement&amp; stmt, FullyQualifiedTableName <span class="keyword">const</span>&amp; table);</div>
+<div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span><span class="comment"></span> </div>
+<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span><span class="comment">    /// Retrieves all tables in the given database and schema that have a foreign key to the given table.</span></div>
+<div class="line"><a id="l00340" name="l00340"></a><span class="lineno">  340</span><span class="comment"></span>    LIGHTWEIGHT_API std::vector&lt;ForeignKeyConstraint&gt; AllForeignKeysTo(SqlStatement&amp; stmt,</div>
+<div class="line"><a id="l00341" name="l00341"></a><span class="lineno">  341</span>                                                                       FullyQualifiedTableName <span class="keyword">const</span>&amp; table);</div>
 <div class="line"><a id="l00342" name="l00342"></a><span class="lineno">  342</span><span class="comment"></span> </div>
-<div class="line"><a id="l00343" name="l00343"></a><span class="lineno">  343</span><span class="comment">    /// Creates an SQL CREATE TABLE plan for all the given table descriptions.</span></div>
-<div class="line"><a id="l00344" name="l00344"></a><span class="lineno">  344</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00345" name="l00345"></a><span class="lineno">  345</span><span class="comment">    /// @param tableDescriptions The descriptions of the tables to create the plan for.</span></div>
-<div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span><span class="comment">    /// @return An SQL CREATE TABLE plan for all the given table descriptions.</span></div>
-<div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span><span class="comment"></span>    LIGHTWEIGHT_API std::vector&lt;SqlCreateTablePlan&gt; MakeCreateTablePlan(TableList <span class="keyword">const</span>&amp; tableDescriptions);</div>
-<div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span> </div>
-<div class="line"><a id="l00350" name="l00350"></a><span class="lineno">  350</span>} <span class="comment">// namespace SqlSchema</span></div>
-<div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span> </div>
-<div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span>} <span class="comment">// namespace Lightweight</span></div>
-<div class="line"><a id="l00353" name="l00353"></a><span class="lineno">  353</span> </div>
-<div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span><span class="keyword">template</span> &lt;&gt;</div>
-<div class="line"><a id="l00355" name="l00355"></a><span class="lineno">  355</span><span class="keyword">struct </span>std::formatter&lt;Lightweight::SqlSchema::FullyQualifiedTableName&gt;: std::formatter&lt;std::string&gt;</div>
-<div class="line"><a id="l00356" name="l00356"></a><span class="lineno">  356</span>{</div>
-<div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span>    <span class="keyword">auto</span> format(Lightweight::SqlSchema::FullyQualifiedTableName <span class="keyword">const</span>&amp; value, format_context&amp; ctx) <span class="keyword">const</span></div>
-<div class="line"><a id="l00358" name="l00358"></a><span class="lineno">  358</span>        -&gt; format_context::iterator</div>
-<div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span>    {</div>
-<div class="line"><a id="l00360" name="l00360"></a><span class="lineno">  360</span>        <span class="keywordtype">string</span> output = std::string(Lightweight::SqlSchema::detail::rtrim(value.schema));</div>
-<div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span>        <span class="keywordflow">if</span> (!output.empty())</div>
-<div class="line"><a id="l00362" name="l00362"></a><span class="lineno">  362</span>            output += <span class="charliteral">&#39;.&#39;</span>;</div>
-<div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span>        <span class="keyword">auto</span> <span class="keyword">const</span> trimmedSchema = Lightweight::SqlSchema::detail::rtrim(value.catalog);</div>
-<div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span>        output += trimmedSchema;</div>
-<div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span>        <span class="keywordflow">if</span> (!output.empty() &amp;&amp; !trimmedSchema.empty())</div>
-<div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span>            output += <span class="charliteral">&#39;.&#39;</span>;</div>
-<div class="line"><a id="l00367" name="l00367"></a><span class="lineno">  367</span>        output += Lightweight::SqlSchema::detail::rtrim(value.table);</div>
-<div class="line"><a id="l00368" name="l00368"></a><span class="lineno">  368</span>        <span class="keywordflow">return</span> formatter&lt;string&gt;::format(output, ctx);</div>
-<div class="line"><a id="l00369" name="l00369"></a><span class="lineno">  369</span>    }</div>
-<div class="line"><a id="l00370" name="l00370"></a><span class="lineno">  370</span>};</div>
-<div class="line"><a id="l00371" name="l00371"></a><span class="lineno">  371</span> </div>
-<div class="line"><a id="l00372" name="l00372"></a><span class="lineno">  372</span><span class="keyword">template</span> &lt;&gt;</div>
-<div class="line"><a id="l00373" name="l00373"></a><span class="lineno">  373</span><span class="keyword">struct </span>std::formatter&lt;Lightweight::SqlSchema::ColumnIdentifier&gt;: std::formatter&lt;std::string&gt;</div>
-<div class="line"><a id="l00374" name="l00374"></a><span class="lineno">  374</span>{</div>
-<div class="line"><a id="l00375" name="l00375"></a><span class="lineno">  375</span>    <span class="keyword">auto</span> format(<a class="code hl_struct" href="../../da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html">Lightweight::SqlSchema::ColumnIdentifier</a> <span class="keyword">const</span>&amp; value, format_context&amp; ctx) <span class="keyword">const</span> -&gt; format_context::iterator</div>
-<div class="line"><a id="l00376" name="l00376"></a><span class="lineno">  376</span>    {</div>
-<div class="line"><a id="l00377" name="l00377"></a><span class="lineno">  377</span>        <span class="keyword">auto</span> <span class="keyword">const</span> table = std::format(<span class="stringliteral">&quot;{}&quot;</span>, value.table);</div>
-<div class="line"><a id="l00378" name="l00378"></a><span class="lineno">  378</span>        <span class="keywordflow">if</span> (table.empty())</div>
-<div class="line"><a id="l00379" name="l00379"></a><span class="lineno">  379</span>            <span class="keywordflow">return</span> formatter&lt;string&gt;::format(std::format(<span class="stringliteral">&quot;{}&quot;</span>, value.column), ctx);</div>
-<div class="line"><a id="l00380" name="l00380"></a><span class="lineno">  380</span>        <span class="keywordflow">else</span></div>
-<div class="line"><a id="l00381" name="l00381"></a><span class="lineno">  381</span>            <span class="keywordflow">return</span> formatter&lt;string&gt;::format(std::format(<span class="stringliteral">&quot;{}.{}&quot;</span>, value.table, value.column), ctx);</div>
-<div class="line"><a id="l00382" name="l00382"></a><span class="lineno">  382</span>    }</div>
-<div class="line"><a id="l00383" name="l00383"></a><span class="lineno">  383</span>};</div>
-<div class="line"><a id="l00384" name="l00384"></a><span class="lineno">  384</span> </div>
-<div class="line"><a id="l00385" name="l00385"></a><span class="lineno">  385</span><span class="keyword">template</span> &lt;&gt;</div>
-<div class="line"><a id="l00386" name="l00386"></a><span class="lineno">  386</span><span class="keyword">struct </span>std::formatter&lt;Lightweight::SqlSchema::ColumnIdentifierSequence&gt;: std::formatter&lt;std::string&gt;</div>
-<div class="line"><a id="l00387" name="l00387"></a><span class="lineno">  387</span>{</div>
-<div class="line"><a id="l00388" name="l00388"></a><span class="lineno">  388</span>    <span class="keyword">auto</span> format(<a class="code hl_struct" href="../../d0/dd4/structLightweight_1_1SqlSchema_1_1ColumnIdentifierSequence.html">Lightweight::SqlSchema::ColumnIdentifierSequence</a> <span class="keyword">const</span>&amp; value, format_context&amp; ctx) <span class="keyword">const</span></div>
-<div class="line"><a id="l00389" name="l00389"></a><span class="lineno">  389</span>        -&gt; format_context::iterator</div>
-<div class="line"><a id="l00390" name="l00390"></a><span class="lineno">  390</span>    {</div>
-<div class="line"><a id="l00391" name="l00391"></a><span class="lineno">  391</span>        <span class="keyword">auto</span> <span class="keyword">const</span> resolvedTableName = std::format(<span class="stringliteral">&quot;{}&quot;</span>, value.table);</div>
-<div class="line"><a id="l00392" name="l00392"></a><span class="lineno">  392</span>        <span class="keywordtype">string</span> output;</div>
-<div class="line"><a id="l00393" name="l00393"></a><span class="lineno">  393</span>        output += resolvedTableName;</div>
-<div class="line"><a id="l00394" name="l00394"></a><span class="lineno">  394</span>        output += <span class="charliteral">&#39;(&#39;</span>;</div>
+<div class="line"><a id="l00343" name="l00343"></a><span class="lineno">  343</span><span class="comment">    /// Retrieves all tables in the given database and schema that have a foreign key from the given table.</span></div>
+<div class="line"><a id="l00344" name="l00344"></a><span class="lineno">  344</span><span class="comment"></span>    LIGHTWEIGHT_API std::vector&lt;ForeignKeyConstraint&gt; AllForeignKeysFrom(SqlStatement&amp; stmt,</div>
+<div class="line"><a id="l00345" name="l00345"></a><span class="lineno">  345</span>                                                                         FullyQualifiedTableName <span class="keyword">const</span>&amp; table);</div>
+<div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span><span class="comment"></span> </div>
+<div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span><span class="comment">    /// Creats an SQL CREATE TABLE plan for the given table description.</span></div>
+<div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span><span class="comment">    /// @param tableDescription The description of the table to create the plan for.</span></div>
+<div class="line"><a id="l00350" name="l00350"></a><span class="lineno">  350</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span><span class="comment">    /// @return An SQL CREATE TABLE plan for the given table description.</span></div>
+<div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span><span class="comment"></span>    LIGHTWEIGHT_API SqlCreateTablePlan MakeCreateTablePlan(Table <span class="keyword">const</span>&amp; tableDescription);</div>
+<div class="line"><a id="l00353" name="l00353"></a><span class="lineno">  353</span><span class="comment"></span> </div>
+<div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span><span class="comment">    /// Creates an SQL CREATE TABLE plan for all the given table descriptions.</span></div>
+<div class="line"><a id="l00355" name="l00355"></a><span class="lineno">  355</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00356" name="l00356"></a><span class="lineno">  356</span><span class="comment">    /// @param tableDescriptions The descriptions of the tables to create the plan for.</span></div>
+<div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00358" name="l00358"></a><span class="lineno">  358</span><span class="comment">    /// @return An SQL CREATE TABLE plan for all the given table descriptions.</span></div>
+<div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span><span class="comment"></span>    LIGHTWEIGHT_API std::vector&lt;SqlCreateTablePlan&gt; MakeCreateTablePlan(TableList <span class="keyword">const</span>&amp; tableDescriptions);</div>
+<div class="line"><a id="l00360" name="l00360"></a><span class="lineno">  360</span> </div>
+<div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span>} <span class="comment">// namespace SqlSchema</span></div>
+<div class="line"><a id="l00362" name="l00362"></a><span class="lineno">  362</span> </div>
+<div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span> </div>
+<div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span><span class="keyword">template</span> &lt;&gt;</div>
+<div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span><span class="keyword">struct </span>std::formatter&lt;Lightweight::SqlSchema::FullyQualifiedTableName&gt;: std::formatter&lt;std::string&gt;</div>
+<div class="line"><a id="l00367" name="l00367"></a><span class="lineno">  367</span>{</div>
+<div class="line"><a id="l00368" name="l00368"></a><span class="lineno">  368</span>    <span class="keyword">auto</span> format(Lightweight::SqlSchema::FullyQualifiedTableName <span class="keyword">const</span>&amp; value, format_context&amp; ctx) <span class="keyword">const</span></div>
+<div class="line"><a id="l00369" name="l00369"></a><span class="lineno">  369</span>        -&gt; format_context::iterator</div>
+<div class="line"><a id="l00370" name="l00370"></a><span class="lineno">  370</span>    {</div>
+<div class="line"><a id="l00371" name="l00371"></a><span class="lineno">  371</span>        <span class="keywordtype">string</span> output = std::string(Lightweight::SqlSchema::detail::rtrim(value.schema));</div>
+<div class="line"><a id="l00372" name="l00372"></a><span class="lineno">  372</span>        <span class="keywordflow">if</span> (!output.empty())</div>
+<div class="line"><a id="l00373" name="l00373"></a><span class="lineno">  373</span>            output += <span class="charliteral">&#39;.&#39;</span>;</div>
+<div class="line"><a id="l00374" name="l00374"></a><span class="lineno">  374</span>        <span class="keyword">auto</span> <span class="keyword">const</span> trimmedSchema = Lightweight::SqlSchema::detail::rtrim(value.catalog);</div>
+<div class="line"><a id="l00375" name="l00375"></a><span class="lineno">  375</span>        output += trimmedSchema;</div>
+<div class="line"><a id="l00376" name="l00376"></a><span class="lineno">  376</span>        <span class="keywordflow">if</span> (!output.empty() &amp;&amp; !trimmedSchema.empty())</div>
+<div class="line"><a id="l00377" name="l00377"></a><span class="lineno">  377</span>            output += <span class="charliteral">&#39;.&#39;</span>;</div>
+<div class="line"><a id="l00378" name="l00378"></a><span class="lineno">  378</span>        output += Lightweight::SqlSchema::detail::rtrim(value.table);</div>
+<div class="line"><a id="l00379" name="l00379"></a><span class="lineno">  379</span>        <span class="keywordflow">return</span> formatter&lt;string&gt;::format(output, ctx);</div>
+<div class="line"><a id="l00380" name="l00380"></a><span class="lineno">  380</span>    }</div>
+<div class="line"><a id="l00381" name="l00381"></a><span class="lineno">  381</span>};</div>
+<div class="line"><a id="l00382" name="l00382"></a><span class="lineno">  382</span> </div>
+<div class="line"><a id="l00383" name="l00383"></a><span class="lineno">  383</span><span class="keyword">template</span> &lt;&gt;</div>
+<div class="line"><a id="l00384" name="l00384"></a><span class="lineno">  384</span><span class="keyword">struct </span>std::formatter&lt;Lightweight::SqlSchema::ColumnIdentifier&gt;: std::formatter&lt;std::string&gt;</div>
+<div class="line"><a id="l00385" name="l00385"></a><span class="lineno">  385</span>{</div>
+<div class="line"><a id="l00386" name="l00386"></a><span class="lineno">  386</span>    <span class="keyword">auto</span> format(<a class="code hl_struct" href="../../da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html">Lightweight::SqlSchema::ColumnIdentifier</a> <span class="keyword">const</span>&amp; value, format_context&amp; ctx) <span class="keyword">const</span> -&gt; format_context::iterator</div>
+<div class="line"><a id="l00387" name="l00387"></a><span class="lineno">  387</span>    {</div>
+<div class="line"><a id="l00388" name="l00388"></a><span class="lineno">  388</span>        <span class="keyword">auto</span> <span class="keyword">const</span> table = std::format(<span class="stringliteral">&quot;{}&quot;</span>, value.table);</div>
+<div class="line"><a id="l00389" name="l00389"></a><span class="lineno">  389</span>        <span class="keywordflow">if</span> (table.empty())</div>
+<div class="line"><a id="l00390" name="l00390"></a><span class="lineno">  390</span>            <span class="keywordflow">return</span> formatter&lt;string&gt;::format(std::format(<span class="stringliteral">&quot;{}&quot;</span>, value.column), ctx);</div>
+<div class="line"><a id="l00391" name="l00391"></a><span class="lineno">  391</span>        <span class="keywordflow">else</span></div>
+<div class="line"><a id="l00392" name="l00392"></a><span class="lineno">  392</span>            <span class="keywordflow">return</span> formatter&lt;string&gt;::format(std::format(<span class="stringliteral">&quot;{}.{}&quot;</span>, value.table, value.column), ctx);</div>
+<div class="line"><a id="l00393" name="l00393"></a><span class="lineno">  393</span>    }</div>
+<div class="line"><a id="l00394" name="l00394"></a><span class="lineno">  394</span>};</div>
 <div class="line"><a id="l00395" name="l00395"></a><span class="lineno">  395</span> </div>
-<div class="line"><a id="l00396" name="l00396"></a><span class="lineno">  396</span><span class="preprocessor">#if !defined(__cpp_lib_ranges_enumerate)</span></div>
-<div class="line"><a id="l00397" name="l00397"></a><span class="lineno">  397</span>        <span class="keywordtype">int</span> i { -1 };</div>
-<div class="line"><a id="l00398" name="l00398"></a><span class="lineno">  398</span>        <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; column: value.columns)</div>
-<div class="line"><a id="l00399" name="l00399"></a><span class="lineno">  399</span>        {</div>
-<div class="line"><a id="l00400" name="l00400"></a><span class="lineno">  400</span>            ++i;</div>
-<div class="line"><a id="l00401" name="l00401"></a><span class="lineno">  401</span><span class="preprocessor">#else</span></div>
-<div class="line"><a id="l00402" name="l00402"></a><span class="lineno">  402</span>        <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span> [i, column]: value.columns | std::views::enumerate)</div>
-<div class="line"><a id="l00403" name="l00403"></a><span class="lineno">  403</span>        {</div>
-<div class="line"><a id="l00404" name="l00404"></a><span class="lineno">  404</span><span class="preprocessor">#endif</span></div>
-<div class="line"><a id="l00405" name="l00405"></a><span class="lineno">  405</span>            <span class="keywordflow">if</span> (i != 0)</div>
-<div class="line"><a id="l00406" name="l00406"></a><span class="lineno">  406</span>                output += <span class="stringliteral">&quot;, &quot;</span>;</div>
-<div class="line"><a id="l00407" name="l00407"></a><span class="lineno">  407</span>            output += column;</div>
-<div class="line"><a id="l00408" name="l00408"></a><span class="lineno">  408</span>        }</div>
-<div class="line"><a id="l00409" name="l00409"></a><span class="lineno">  409</span>        output += <span class="charliteral">&#39;)&#39;</span>;</div>
-<div class="line"><a id="l00410" name="l00410"></a><span class="lineno">  410</span> </div>
-<div class="line"><a id="l00411" name="l00411"></a><span class="lineno">  411</span>        <span class="keywordflow">return</span> formatter&lt;string&gt;::format(output, ctx);</div>
-<div class="line"><a id="l00412" name="l00412"></a><span class="lineno">  412</span>    }</div>
-<div class="line"><a id="l00413" name="l00413"></a><span class="lineno">  413</span>};</div>
+<div class="line"><a id="l00396" name="l00396"></a><span class="lineno">  396</span><span class="keyword">template</span> &lt;&gt;</div>
+<div class="line"><a id="l00397" name="l00397"></a><span class="lineno">  397</span><span class="keyword">struct </span>std::formatter&lt;Lightweight::SqlSchema::ColumnIdentifierSequence&gt;: std::formatter&lt;std::string&gt;</div>
+<div class="line"><a id="l00398" name="l00398"></a><span class="lineno">  398</span>{</div>
+<div class="line"><a id="l00399" name="l00399"></a><span class="lineno">  399</span>    <span class="keyword">auto</span> format(<a class="code hl_struct" href="../../d0/dd4/structLightweight_1_1SqlSchema_1_1ColumnIdentifierSequence.html">Lightweight::SqlSchema::ColumnIdentifierSequence</a> <span class="keyword">const</span>&amp; value, format_context&amp; ctx) <span class="keyword">const</span></div>
+<div class="line"><a id="l00400" name="l00400"></a><span class="lineno">  400</span>        -&gt; format_context::iterator</div>
+<div class="line"><a id="l00401" name="l00401"></a><span class="lineno">  401</span>    {</div>
+<div class="line"><a id="l00402" name="l00402"></a><span class="lineno">  402</span>        <span class="keyword">auto</span> <span class="keyword">const</span> resolvedTableName = std::format(<span class="stringliteral">&quot;{}&quot;</span>, value.table);</div>
+<div class="line"><a id="l00403" name="l00403"></a><span class="lineno">  403</span>        <span class="keywordtype">string</span> output;</div>
+<div class="line"><a id="l00404" name="l00404"></a><span class="lineno">  404</span>        output += resolvedTableName;</div>
+<div class="line"><a id="l00405" name="l00405"></a><span class="lineno">  405</span>        output += <span class="charliteral">&#39;(&#39;</span>;</div>
+<div class="line"><a id="l00406" name="l00406"></a><span class="lineno">  406</span> </div>
+<div class="line"><a id="l00407" name="l00407"></a><span class="lineno">  407</span><span class="preprocessor">#if !defined(__cpp_lib_ranges_enumerate)</span></div>
+<div class="line"><a id="l00408" name="l00408"></a><span class="lineno">  408</span>        <span class="keywordtype">int</span> i { -1 };</div>
+<div class="line"><a id="l00409" name="l00409"></a><span class="lineno">  409</span>        <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; column: value.columns)</div>
+<div class="line"><a id="l00410" name="l00410"></a><span class="lineno">  410</span>        {</div>
+<div class="line"><a id="l00411" name="l00411"></a><span class="lineno">  411</span>            ++i;</div>
+<div class="line"><a id="l00412" name="l00412"></a><span class="lineno">  412</span><span class="preprocessor">#else</span></div>
+<div class="line"><a id="l00413" name="l00413"></a><span class="lineno">  413</span>        <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span> [i, column]: value.columns | std::views::enumerate)</div>
+<div class="line"><a id="l00414" name="l00414"></a><span class="lineno">  414</span>        {</div>
+<div class="line"><a id="l00415" name="l00415"></a><span class="lineno">  415</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00416" name="l00416"></a><span class="lineno">  416</span>            <span class="keywordflow">if</span> (i != 0)</div>
+<div class="line"><a id="l00417" name="l00417"></a><span class="lineno">  417</span>                output += <span class="stringliteral">&quot;, &quot;</span>;</div>
+<div class="line"><a id="l00418" name="l00418"></a><span class="lineno">  418</span>            output += column;</div>
+<div class="line"><a id="l00419" name="l00419"></a><span class="lineno">  419</span>        }</div>
+<div class="line"><a id="l00420" name="l00420"></a><span class="lineno">  420</span>        output += <span class="charliteral">&#39;)&#39;</span>;</div>
+<div class="line"><a id="l00421" name="l00421"></a><span class="lineno">  421</span> </div>
+<div class="line"><a id="l00422" name="l00422"></a><span class="lineno">  422</span>        <span class="keywordflow">return</span> formatter&lt;string&gt;::format(output, ctx);</div>
+<div class="line"><a id="l00423" name="l00423"></a><span class="lineno">  423</span>    }</div>
+<div class="line"><a id="l00424" name="l00424"></a><span class="lineno">  424</span>};</div>
 <div class="ttc" id="aclassLightweight_1_1SqlSchema_1_1EventHandler_html"><div class="ttname"><a href="../../df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html">Lightweight::SqlSchema::EventHandler</a></div><div class="ttdoc">Callback interface for handling events while reading a database schema.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d1c/SqlSchema_8hpp_source.html#l00191">SqlSchema.hpp:192</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlSchema_1_1EventHandler_html_a11394d602f3ebb20d53a20cf1f853d8a"><div class="ttname"><a href="../../df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html#a11394d602f3ebb20d53a20cf1f853d8a">Lightweight::SqlSchema::EventHandler::OnColumn</a></div><div class="ttdeci">virtual void OnColumn(Column const &amp;column)=0</div><div class="ttdoc">Called for each column in a table.</div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlSchema_1_1EventHandler_html_a229b2e055772d6ec35827a8aefc5c6b4"><div class="ttname"><a href="../../df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html#a229b2e055772d6ec35827a8aefc5c6b4">Lightweight::SqlSchema::EventHandler::EventHandler</a></div><div class="ttdeci">EventHandler(EventHandler &amp;&amp;)=default</div><div class="ttdoc">Default move constructor.</div></div>

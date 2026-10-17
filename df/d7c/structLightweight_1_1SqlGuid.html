@@ -126,12 +126,9 @@ Static Public Member Functions</h2></td></tr>
 static <a class="el" href="../../df/d7c/structLightweight_1_1SqlGuid.html">SqlGuid</a>&#160;</td><td class="memItemRight" valign="bottom"><b>Create</b> () noexcept</td></tr>
 <tr class="memdesc:aa6932e1f8842dd7878eaaa4e8c4496b3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new non-empty GUID. <br /></td></tr>
 <tr class="separator:aa6932e1f8842dd7878eaaa4e8c4496b3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1fb6716c347a526bcc19f2364bf5c6dc" id="r_a1fb6716c347a526bcc19f2364bf5c6dc"><td class="memItemLeft" align="right" valign="top"><a id="a1fb6716c347a526bcc19f2364bf5c6dc" name="a1fb6716c347a526bcc19f2364bf5c6dc"></a>
-static std::optional&lt; <a class="el" href="../../df/d7c/structLightweight_1_1SqlGuid.html">SqlGuid</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>TryParse</b> (std::string_view const &amp;text) noexcept</td></tr>
-<tr class="memdesc:a1fb6716c347a526bcc19f2364bf5c6dc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parses a GUID from a string. <br /></td></tr>
+<tr class="memitem:a1fb6716c347a526bcc19f2364bf5c6dc" id="r_a1fb6716c347a526bcc19f2364bf5c6dc"><td class="memItemLeft" align="right" valign="top">static std::optional&lt; <a class="el" href="../../df/d7c/structLightweight_1_1SqlGuid.html">SqlGuid</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d7c/structLightweight_1_1SqlGuid.html#a1fb6716c347a526bcc19f2364bf5c6dc">TryParse</a> (std::string_view const &amp;text) noexcept</td></tr>
 <tr class="separator:a1fb6716c347a526bcc19f2364bf5c6dc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6a5be97b28e968320006eb755f02fc1c" id="r_a6a5be97b28e968320006eb755f02fc1c"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="../../df/d7c/structLightweight_1_1SqlGuid.html">SqlGuid</a> constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d7c/structLightweight_1_1SqlGuid.html#a6a5be97b28e968320006eb755f02fc1c">UnsafeParse</a> (std::string_view const &amp;text) noexcept</td></tr>
-<tr class="memdesc:a6a5be97b28e968320006eb755f02fc1c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parses a GUID from a string. Use with caution and always prefer TryParse at all cost.  <br /></td></tr>
 <tr class="separator:a6a5be97b28e968320006eb755f02fc1c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
@@ -143,8 +140,43 @@ Public Attributes</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Represents a GUID (Globally Unique Identifier). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00022">22</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00024">24</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
+<a id="a1fb6716c347a526bcc19f2364bf5c6dc" name="a1fb6716c347a526bcc19f2364bf5c6dc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1fb6716c347a526bcc19f2364bf5c6dc">&#9670;&#160;</a></span>TryParse()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static std::optional&lt; <a class="el" href="../../df/d7c/structLightweight_1_1SqlGuid.html">SqlGuid</a> &gt; Lightweight::SqlGuid::TryParse </td>
+          <td>(</td>
+          <td class="paramtype">std::string_view const &amp;&#160;</td>
+          <td class="paramname"><em>text</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Parses a GUID from its 36-character <code>xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</code> text form.</p>
+<p>Any hex value is accepted, whatever its version and variant nibbles, as SQL Server's <code>uniqueidentifier</code> does. <code>data[i]</code> receives the i-th hex pair of the text, left to right.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">text</td><td>The GUID text, upper or lower case. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The parsed GUID, or <code>std::nullopt</code> if <code>text</code> is not a well-formed GUID. </dd></dl>
+
+</div>
+</div>
 <a id="a6a5be97b28e968320006eb755f02fc1c" name="a6a5be97b28e968320006eb755f02fc1c"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a6a5be97b28e968320006eb755f02fc1c">&#9670;&#160;</a></span>UnsafeParse()</h2>
 
@@ -168,10 +200,18 @@ Public Attributes</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>Parses a GUID from a string. Use with caution and always prefer TryParse at all cost.</p>
+<p>Accepts the same texts as <a class="el" href="../../df/d7c/structLightweight_1_1SqlGuid.html#a1fb6716c347a526bcc19f2364bf5c6dc">TryParse()</a>; for any other text it returns an unspecified sentinel. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">text</td><td>The GUID text. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The parsed GUID. </dd></dl>
 
-<p>Parses a GUID from a string. Use with caution and always prefer TryParse at all cost. </p>
+<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00115">115</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00064">64</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
+<p class="reference">References <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00027">data</a>.</p>
 
 </div>
 </div>
@@ -201,7 +241,7 @@ Public Attributes</h2></td></tr>
 
 <p>Equality comparison operator. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00040">40</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00052">52</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
 
 </div>
 </div>
@@ -231,7 +271,7 @@ Public Attributes</h2></td></tr>
 
 <p>Inequality comparison operator. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00046">46</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00058">58</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
 
 </div>
 </div>
@@ -260,7 +300,7 @@ Public Attributes</h2></td></tr>
 
 <p>Tests if the GUID is non-empty. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00052">52</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00064">64</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
 
 </div>
 </div>
@@ -289,7 +329,7 @@ Public Attributes</h2></td></tr>
 
 <p>Tests if the GUID is empty. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00058">58</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00070">70</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
 
 </div>
 </div>
@@ -308,7 +348,9 @@ Public Attributes</h2></td></tr>
 
 <p>The raw GUID data bytes. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00025">25</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00027">27</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00115">UnsafeParse()</a>.</p>
 
 </div>
 </div>

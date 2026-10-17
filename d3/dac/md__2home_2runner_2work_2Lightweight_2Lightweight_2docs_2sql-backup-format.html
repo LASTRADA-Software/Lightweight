@@ -109,7 +109,7 @@ $(document).ready(function(){initNavTree('d3/dac/md__2home_2runner_2work_2Lightw
 <div class="line">        └── ...</div>
 </div><!-- fragment --><ul>
 <li>**<code>metadata.json</code>**: Located at the root. Contains backup metadata and the full database schema.</li>
-<li>**<code>data/&lt;TableName&gt;/</code>**: Contains the actual row data for the table, split into multiple chunks associated with the table.</li>
+<li>**<code>data/&lt;TableName&gt;/</code>**: Contains the actual row data for the table, split into multiple chunks associated with the table. A multi-schema archive (format version <code>2.0</code>, see <a class="el" href="../../d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md6-multi-schema-archives">section 6</a>) uses <code>data/&lt;SchemaName&gt;/&lt;TableName&gt;/</code> instead. Dots in either name are written as underscores.</li>
 <li><b>Chunks</b>: Files are named sequentially (e.g., <code>0001.msgpack</code>, <code>0002.msgpack</code>) and contain a batch of rows in a column-oriented MessagePack format.</li>
 </ul>
 <h1><a class="anchor" id="autotoc_md2-metadata-manifest-metadatajson"></a>
@@ -119,16 +119,18 @@ $(document).ready(function(){initNavTree('d3/dac/md__2home_2runner_2work_2Lightw
 <tr class="markdownTableHead">
 <th class="markdownTableHeadNone">Field   </th><th class="markdownTableHeadNone">Type   </th><th class="markdownTableHeadNone">Description    </th></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>format_version</code>   </td><td class="markdownTableBodyNone">String   </td><td class="markdownTableBodyNone">The backup format version (e.g., <code>1.0</code>).    </td></tr>
+<td class="markdownTableBodyNone"><code>format_version</code>   </td><td class="markdownTableBodyNone">String   </td><td class="markdownTableBodyNone">The backup format version: <code>1.0</code> for an archive of one schema, <code>2.0</code> for a <a class="el" href="../../d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md6-multi-schema-archives">multi-schema archive</a>.    </td></tr>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>creation_time</code>   </td><td class="markdownTableBodyNone">ISO 8601 String   </td><td class="markdownTableBodyNone">Timestamp of when the backup was created (e.g., <code>2024-01-01T12:00:00Z</code>).    </td></tr>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>original_connection_string</code>   </td><td class="markdownTableBodyNone">String   </td><td class="markdownTableBodyNone">The connection string used to create the backup, with <code>PWD</code>/<code>Password</code> attribute values redacted to <code>***</code>. Redaction parses the string attribute-wise and honours ODBC <code>{...}</code> quoting, so a brace-quoted password containing <code>;</code> (<code>PWD={pa;ss}</code>) is masked whole. Diagnostic only — it is not read back at restore time.    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>schema_name</code>   </td><td class="markdownTableBodyNone">String   </td><td class="markdownTableBodyNone">The database schema name (e.g., <code>dbo</code> for SQL Server).    </td></tr>
+<td class="markdownTableBodyNone"><code>schema_name</code>   </td><td class="markdownTableBodyNone">String   </td><td class="markdownTableBodyNone">The database schema name (e.g., <code>dbo</code> for SQL Server). Empty in a multi-schema archive.    </td></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>server</code>   </td><td class="markdownTableBodyNone">Object   </td><td class="markdownTableBodyNone">Server identification information.    </td></tr>
+<td class="markdownTableBodyNone"><code>schema_names</code>   </td><td class="markdownTableBodyNone">Array   </td><td class="markdownTableBodyNone">(Multi-schema archives only) The names of the schemas the archive holds, sorted.    </td></tr>
 <tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>server</code>   </td><td class="markdownTableBodyNone">Object   </td><td class="markdownTableBodyNone">Server identification information.    </td></tr>
+<tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>schema</code>   </td><td class="markdownTableBodyNone">Array   </td><td class="markdownTableBodyNone">A list of table definitions.   </td></tr>
 </table>
 <h2><a class="anchor" id="autotoc_md21-server-identification"></a>
@@ -155,12 +157,14 @@ $(document).ready(function(){initNavTree('d3/dac/md__2home_2runner_2work_2Lightw
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>name</code>   </td><td class="markdownTableBodyNone">String   </td><td class="markdownTableBodyNone">The table name.    </td></tr>
 <tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>schema</code>   </td><td class="markdownTableBodyNone">String   </td><td class="markdownTableBodyNone">(Multi-schema archives only) The schema the table belongs to.    </td></tr>
+<tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>rows</code>   </td><td class="markdownTableBodyNone">Integer   </td><td class="markdownTableBodyNone">Total number of rows in the table at the time of backup.    </td></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>columns</code>   </td><td class="markdownTableBodyNone">Array   </td><td class="markdownTableBodyNone">List of column definitions.    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>foreign_keys</code>   </td><td class="markdownTableBodyNone">Array   </td><td class="markdownTableBodyNone">List of foreign key constraints.    </td></tr>
+<td class="markdownTableBodyNone"><code>columns</code>   </td><td class="markdownTableBodyNone">Array   </td><td class="markdownTableBodyNone">List of column definitions.    </td></tr>
 <tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>foreign_keys</code>   </td><td class="markdownTableBodyNone">Array   </td><td class="markdownTableBodyNone">List of foreign key constraints.    </td></tr>
+<tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>primary_keys</code>   </td><td class="markdownTableBodyNone">Array   </td><td class="markdownTableBodyNone">List of column names that form the primary key.   </td></tr>
 </table>
 <h2><a class="anchor" id="autotoc_md23-column-definition"></a>
@@ -202,6 +206,8 @@ $(document).ready(function(){initNavTree('d3/dac/md__2home_2runner_2work_2Lightw
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>referenced_table</code>   </td><td class="markdownTableBodyNone">String   </td><td class="markdownTableBodyNone">The name of the referenced (parent) table.    </td></tr>
 <tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>referenced_schema</code>   </td><td class="markdownTableBodyNone">String   </td><td class="markdownTableBodyNone">(Multi-schema archives only) The schema of the referenced table, which may differ from the table's own.    </td></tr>
+<tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>referenced_columns</code>   </td><td class="markdownTableBodyNone">Array   </td><td class="markdownTableBodyNone">List of column names in the referenced table.   </td></tr>
 </table>
 <h1><a class="anchor" id="autotoc_md3-data-chunk-format-msgpack"></a>
@@ -303,7 +309,32 @@ $(document).ready(function(){initNavTree('d3/dac/md__2home_2runner_2work_2Lightw
 </ul>
 <h2><a class="anchor" id="autotoc_md54-restoration-compatibility"></a>
 5.4 Restoration Compatibility</h2>
-<p>Backup files can be restored regardless of which compression method was used, as long as the restoring system's libzip supports the compression method used during backup. For maximum portability, use <code>deflate</code> compression. </p>
+<p>Backup files can be restored regardless of which compression method was used, as long as the restoring system's libzip supports the compression method used during backup. For maximum portability, use <code>deflate</code> compression.</p>
+<h1><a class="anchor" id="autotoc_md6-multi-schema-archives"></a>
+6. Multi-schema Archives</h1>
+<p>A backup of two or more schemas (<code>dbtool backup --schema dbo,sales</code> or <code>--all-schemas</code>) writes format version <code>2.0</code>. A backup of one schema, or of none named, keeps writing version <code>1.0</code> byte for byte, and version <code>1.0</code> archives restore as before. One exception: such a backup now refuses tables whose archive name or folder would collide, where it used to overwrite one with the other. Releases that only know version <code>1.0</code> refuse a <code>2.0</code> archive with "Unsupported backup format version" rather than restore it wrongly.</p>
+<p>Version <code>2.0</code> differs from <code>1.0</code> here:</p>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">Where   </th><th class="markdownTableHeadNone">Version <code>2.0</code>    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>schema_name</code>   </td><td class="markdownTableBodyNone">Empty.    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>schema_names</code>   </td><td class="markdownTableBodyNone">Lists the schemas.    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">Table definition   </td><td class="markdownTableBodyNone">Carries <code>schema</code>. Two schemas may hold tables of the same name.    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">Foreign key definition   </td><td class="markdownTableBodyNone">Carries <code>referenced_schema</code>.    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">Data folder   </td><td class="markdownTableBodyNone"><code>data/&lt;SchemaName&gt;/&lt;TableName&gt;/</code>.   </td></tr>
+</table>
+<p>Restoring a version <code>2.0</code> archive:</p>
+<ul>
+<li>Recreates each table in its recorded schema, creating missing schemas first, and then adds every foreign key, also those that reference another schema.</li>
+<li>Refuses a target schema (<code>dbtool restore --schema</code>).</li>
+<li>Into a database without schemas (SQLite), succeeds only if every table name is unique across the schemas (case-insensitively), and then drops the schemas. Otherwise it is refused.</li>
+<li><code>backup-diff</code> keys a table of a version <code>2.0</code> archive as <code>&lt;SchemaName&gt;/&lt;TableName&gt;</code>, the data folder below <code>data/</code>. </li>
+</ul>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
 </div><!-- doc-content -->

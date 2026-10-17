@@ -5,5 +5,7 @@ var structLightweight_1_1SqlBackup_1_1TableInfo =
     [ "columns", "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a9de53272af6d3db165c4f8964223d8a1", null ],
     [ "foreignKeys", "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ad1aedd312e0a7ea569f6d9ac712a39e6", null ],
     [ "indexes", "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ac5078f37747a5a12b4d3d7e8df8b7595", null ],
-    [ "rowCount", "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a92351f3189fe1adade98ccec8d21a6b2", null ]
+    [ "rowCount", "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a92351f3189fe1adade98ccec8d21a6b2", null ],
+    [ "name", "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a230ea6c0e9d96800c718809e480b11bc", null ],
+    [ "schema", "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#afc7d7a51b3ea929d76023dc381257619", null ]
 ];

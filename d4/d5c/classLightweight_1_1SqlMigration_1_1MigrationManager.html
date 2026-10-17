@@ -266,7 +266,7 @@ Static Public Member Functions</h2></td></tr>
 <div class="textblock"><p>Main API to use for managing SQL migrations</p>
 <p>This class is a singleton and can be accessed using the <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ae03991a2dff12fb763353d0327c29bf8">GetInstance()</a> method. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00211">211</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00212">212</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 </div><h2 class="groupheader">Member Typedef Documentation</h2>
 <a id="a259626f016bf24f265c81c1bc4446ae1" name="a259626f016bf24f265c81c1bc4446ae1"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a259626f016bf24f265c81c1bc4446ae1">&#9670;&#160;</a></span>MigrationList</h2>
@@ -282,7 +282,7 @@ Static Public Member Functions</h2></td></tr>
 
 <p>Type alias for a list of migration pointers. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00215">215</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00216">216</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -300,7 +300,7 @@ Static Public Member Functions</h2></td></tr>
 
 <p>Callback type invoked during migration execution to report progress. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00265">265</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00266">266</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -317,7 +317,7 @@ Static Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 <p>Optional sink for informational status messages emitted by plugin hooks (e.g. the "Transitioning from LASTRADA_PROPERTIES …" banner). <code>dbtool</code> installs a sink that prints to <code>stdout</code> to preserve the historical CLI output; <code>dbtool-gui</code> installs a sink that routes through its <code>LogInfo</code> channel so the banner shows up in the activity log instead of going to a hidden stream. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00378">378</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00379">379</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -336,7 +336,7 @@ Static Public Member Functions</h2></td></tr>
 <p>Per-migration compat policy. </p>
 <p>Given a migration about to be applied (or previewed), returns the set of compat flags that should be active while rendering it. Plugins that ship legacy migrations use this to scope compat behaviour to their own timestamp range (e.g. a plugin enables <code>lup-truncate</code> for migrations predating a given release). Unset means "strict for every migration". </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00421">421</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00422">422</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -368,7 +368,7 @@ Static Public Member Functions</h2></td></tr>
 <dd>
 Reference to the migration manager. </dd></dl>
 
-<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00851">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>, and <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00864">Lightweight::SqlMigration::MigrationBase::~MigrationBase()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00923">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>, and <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00936">Lightweight::SqlMigration::MigrationBase::~MigrationBase()</a>.</p>
 
 </div>
 </div>
@@ -395,7 +395,7 @@ Reference to the migration manager. </dd></dl>
   </dd>
 </dl>
 
-<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00851">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00923">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>.</p>
 
 </div>
 </div>
@@ -492,7 +492,7 @@ Reference to the migration manager. </dd></dl>
   </dd>
 </dl>
 
-<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00864">Lightweight::SqlMigration::MigrationBase::~MigrationBase()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00936">Lightweight::SqlMigration::MigrationBase::~MigrationBase()</a>.</p>
 
 </div>
 </div>
@@ -829,7 +829,7 @@ Reference to the migration manager. </dd></dl>
   </dd>
 </dl>
 
-<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00403">GetDataMapper()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00404">GetDataMapper()</a>.</p>
 
 </div>
 </div>
@@ -858,7 +858,7 @@ Reference to the migration manager. </dd></dl>
 
 <p>Get the data mapper used for migrations. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00403">403</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00404">404</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1869bb06cd3794f327182136cccff094">GetDataMapper()</a>.</p>
 
@@ -900,7 +900,7 @@ Reference to the migration manager. </dd></dl>
 </div><div class="memdoc">
 
 <p>Installs a per-migration compat policy. Pass <code>{}</code> to clear. </p>
-<p>Typically called once from a plugin's static initializer. Replaces any policy previously installed — composition is the caller's responsibility for now. </p>
+<p>Typically called once from a plugin's static initializer. Replaces any policy previously installed — composition is the caller's responsibility for now. A policy from a plugin is code in that plugin's library: a host must clear it before it unloads the plugin, as dbtool's <code>Tools::UnloadPlugins</code> does. </p>
 
 </div>
 </div>
@@ -1035,6 +1035,8 @@ Reference to the migration manager. </dd></dl>
 
 <p>Rewrites legacy <code>VARCHAR/CHAR</code> columns to <code>NVARCHAR/NCHAR</code> where the registered migrations now declare wide types. </p>
 <p>Compares the folded plan's intended column types against <code>SqlSchema::ReadAllTables</code> output; an upgrade is triggered iff intended is <code>NVarchar</code>/<code>NChar</code> AND live is <code>Varchar</code>/<code>Char</code> with the same <code>size</code>. Foreign keys that touch any upgrade column are dropped before the alter and re-added afterwards. Cross-backend; SQLite uses the in-tree <code>RebuildSqliteTable</code> recipe under the hood.</p>
+<p>Declared names match live ones without regard to case where the dialect's identifiers are case-insensitive (<code><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ac7830e152feff1b173ba8ddf731aaea9" title="Whether the dialect resolves table and column names without regard to case, even when they are quoted...">SqlQueryFormatter::IdentifiersAreCaseInsensitive</a></code>).</p>
+<p>Where a foreign key needs both sides to share one text type (SQL Server), every column a foreign key joins to an upgraded column is upgraded too, declared or not, and reported with <code><a class="el" href="../../d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a68ef8f0286f85e4a60f163bc5b8d9c93">ColumnUpgradeEntry::joinedByForeignKeyTo</a></code> set. Such a column must have the same narrow type and size and must not be declared with another type; otherwise the call throws <code>std::runtime_error</code> naming it, in a dry run too, before anything has changed.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">dryRun</td><td>When true, returns the would-be diff without writing anything. </td></tr>

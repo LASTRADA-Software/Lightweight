@@ -57,7 +57,8 @@ var group__SqlMigration =
         [ "column", "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#ab837fe688066523d5178f48a9f459b89", null ],
         [ "liveType", "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a396642e22f36188c7ea4dce037c2204e", null ],
         [ "intendedType", "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a9702abd84a89cfd34a32375d341e0b7e", null ],
-        [ "nullable", "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#aad8cbeca3421d47c96c54ee1d43860d0", null ]
+        [ "nullable", "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#aad8cbeca3421d47c96c54ee1d43860d0", null ],
+        [ "joinedByForeignKeyTo", "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a68ef8f0286f85e4a60f163bc5b8d9c93", null ]
       ] ],
       [ "HardResetResult", "d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html", [
         [ "wasDryRun", "d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#af96c4af24cdc9ce53b3a27f507fbfc1e", null ],
@@ -168,6 +169,7 @@ var group__SqlMigration =
     ] ],
     [ "LIGHTWEIGHT_MIGRATION_PLUGIN", "db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73", null ],
     [ "LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT", "db/df6/group__SqlMigration.html#ga8292c8bc098a73ae82344c31693bb4ff", null ],
+    [ "LIGHTWEIGHT_MIGRATION_PLUGIN_POSTMIGRATE", "db/df6/group__SqlMigration.html#ga1035792e18e9c01e4d09f2ff9a19f7f6", null ],
     [ "LIGHTWEIGHT_MIGRATION_INSTANCE", "db/df6/group__SqlMigration.html#ga32d47d81e5b99a703e522a33a54fdc74", null ],
     [ "LIGHTWEIGHT_SQL_MIGRATION", "db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e", null ],
     [ "LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE", "db/df6/group__SqlMigration.html#ga76c71fe0a6e518e2b94b51bcbdf9e164", null ],

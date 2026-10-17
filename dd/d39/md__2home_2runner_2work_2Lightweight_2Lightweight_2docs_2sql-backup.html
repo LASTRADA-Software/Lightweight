@@ -102,6 +102,7 @@ Overview</h1>
 <li><code>checksums.json</code> — SHA-256 per data chunk,</li>
 <li><code>data/&lt;table&gt;/NNNN_SS.msgpack</code> — the table data, split into self-contained msgpack chunks (<code>NNNN</code> = window index, <code>SS</code> = sub-chunk within the window).</li>
 </ul>
+<p><code>SqlBackup::BackupSchemas</code> backs up several schemas into one archive. It then stores the data under <code>data/&lt;schema&gt;/&lt;table&gt;/</code> and records each table's schema and each foreign key's referenced schema, so that a restore recreates every table in its own schema (see <a href="../../sql-backup-format.md#6-multi-schema-archives">sql-backup-format.md</a>).</p>
 <p>Backup and restore work against SQLite3, Microsoft SQL Server, and PostgreSQL through ODBC; all per-DBMS SQL differences are handled internally.</p>
 <h1><a class="anchor" id="pipeline-phases"></a>
 Pipeline phases</h1>

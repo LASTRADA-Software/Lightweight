@@ -227,6 +227,15 @@ virtual <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.h
 <tr class="separator:a2f3e6e88b1fb6af51bf4d0d65c5a52e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acae3c697bec8a0d4d6e356b8cb7c2c4b" id="r_acae3c697bec8a0d4d6e356b8cb7c2c4b"><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="../../db/d4d/classLightweight_1_1SqlRetryClassifier.html">SqlRetryClassifier</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#acae3c697bec8a0d4d6e356b8cb7c2c4b">RetryOps</a> () const noexcept=0</td></tr>
 <tr class="separator:acae3c697bec8a0d4d6e356b8cb7c2c4b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac7830e152feff1b173ba8ddf731aaea9" id="r_ac7830e152feff1b173ba8ddf731aaea9"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ac7830e152feff1b173ba8ddf731aaea9">IdentifiersAreCaseInsensitive</a> () const noexcept</td></tr>
+<tr class="memdesc:ac7830e152feff1b173ba8ddf731aaea9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether the dialect resolves table and column names without regard to case, even when they are quoted — so a declared <code>ITEM_NAME</code> names the live column <code>Item_Name</code>.  <br /></td></tr>
+<tr class="separator:ac7830e152feff1b173ba8ddf731aaea9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a378d45364a1eca876043be27c31bd3e1" id="r_a378d45364a1eca876043be27c31bd3e1"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a378d45364a1eca876043be27c31bd3e1">SupportsSchemas</a> () const noexcept</td></tr>
+<tr class="memdesc:a378d45364a1eca876043be27c31bd3e1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether the dialect has schemas that tables can be created in.  <br /></td></tr>
+<tr class="separator:a378d45364a1eca876043be27c31bd3e1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1d973789fe4e659b30eb414dea1d6941" id="r_a1d973789fe4e659b30eb414dea1d6941"><td class="memItemLeft" align="right" valign="top">virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1d973789fe4e659b30eb414dea1d6941">CreateSchemaIfNotExists</a> (std::string_view schema) const</td></tr>
+<tr class="memdesc:a1d973789fe4e659b30eb414dea1d6941"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the statement that creates <code>schema</code> unless it already exists.  <br /></td></tr>
+<tr class="separator:a1d973789fe4e659b30eb414dea1d6941"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -257,6 +266,8 @@ Static Protected Member Functions</h2></td></tr>
 static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatTableName</b> (std::string_view schema, std::string_view table)</td></tr>
 <tr class="memdesc:ad7ec395951f5c23df2f0aae0e84bb9d6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Formats a table name with optional schema prefix. <br /></td></tr>
 <tr class="separator:ad7ec395951f5c23df2f0aae0e84bb9d6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a871eb989fe210067dd51d6ef4e2ced37" id="r_a871eb989fe210067dd51d6ef4e2ced37"><td class="memItemLeft" align="right" valign="top">static std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a871eb989fe210067dd51d6ef4e2ced37">DoubleQuoteCharacter</a> (std::string_view text, char quote)</td></tr>
+<tr class="separator:a871eb989fe210067dd51d6ef4e2ced37"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>API to format SQL queries for different SQL dialects. </p>
@@ -997,6 +1008,151 @@ template&lt;typename Range &gt; </div>
 </div><div class="memdoc">
 <p>Returns the dialect's transient-error classifier, used by <code><a class="el" href="../../df/d49/classLightweight_1_1SqlRetryPolicy.html" title="A reusable retry/backoff policy for transient database failures.">SqlRetryPolicy</a></code> to decide whether a failed statement is worth another attempt.</p>
 <p>Routing the classification through the formatter is what keeps per-DBMS error-code knowledge out of business logic — the same reason <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2f3e6e88b1fb6af51bf4d0d65c5a52e6">AdvisoryLockOps()</a> exists. </p>
+
+</div>
+</div>
+<a id="ac7830e152feff1b173ba8ddf731aaea9" name="ac7830e152feff1b173ba8ddf731aaea9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac7830e152feff1b173ba8ddf731aaea9">&#9670;&#160;</a></span>IdentifiersAreCaseInsensitive()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual bool Lightweight::SqlQueryFormatter::IdentifiersAreCaseInsensitive </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Whether the dialect resolves table and column names without regard to case, even when they are quoted — so a declared <code>ITEM_NAME</code> names the live column <code>Item_Name</code>. </p>
+<p>Defaults to <code>false</code>. SQLite returns <code>true</code>. SQL Server returns <code>true</code> as well, which assumes a case-insensitive database collation (the default); it is not probed per database. PostgreSQL keeps quoted identifiers case-sensitive and returns <code>false</code>.</p>
+<p>New hooks are appended at the end of the class: that keeps the slots of the earlier ones for callers, but a subclass outside this library must still be rebuilt.</p>
+<dl class="section return"><dt>Returns</dt><dd><code>true</code> if identifiers differing only in ASCII letter case name the same object. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00344">344</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a378d45364a1eca876043be27c31bd3e1" name="a378d45364a1eca876043be27c31bd3e1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a378d45364a1eca876043be27c31bd3e1">&#9670;&#160;</a></span>SupportsSchemas()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual bool Lightweight::SqlQueryFormatter::SupportsSchemas </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Whether the dialect has schemas that tables can be created in. </p>
+<p>Defaults to <code>true</code>. SQLite returns <code>false</code>: it has no schemas, only attached databases.</p>
+<dl class="section return"><dt>Returns</dt><dd><code>true</code> if a table can be created in a named schema. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00354">354</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a1d973789fe4e659b30eb414dea1d6941" name="a1d973789fe4e659b30eb414dea1d6941"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1d973789fe4e659b30eb414dea1d6941">&#9670;&#160;</a></span>CreateSchemaIfNotExists()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual std::string Lightweight::SqlQueryFormatter::CreateSchemaIfNotExists </td>
+          <td>(</td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>schema</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the statement that creates <code>schema</code> unless it already exists. </p>
+<p>Returns an empty string when the dialect has no schemas (see <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a378d45364a1eca876043be27c31bd3e1">SupportsSchemas()</a>).</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">schema</td><td>The schema to create. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The statement to execute, or an empty string when there is nothing to execute. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00365">365</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a871eb989fe210067dd51d6ef4e2ced37" name="a871eb989fe210067dd51d6ef4e2ced37"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a871eb989fe210067dd51d6ef4e2ced37">&#9670;&#160;</a></span>DoubleQuoteCharacter()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static std::string Lightweight::SqlQueryFormatter::DoubleQuoteCharacter </td>
+          <td>(</td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>text</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">char&#160;</td>
+          <td class="paramname"><em>quote</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Doubles every <code>quote</code> in <code>text</code>, so <code>text</code> can be embedded between two such quotes. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">text</td><td>The text to embed. </td></tr>
+    <tr><td class="paramname">quote</td><td>The quote character that delimits the embedded text. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd><code>text</code> with each <code>quote</code> doubled. </dd></dl>
 
 </div>
 </div>
