@@ -717,7 +717,11 @@ struct SqlBoundStatement
 /// `SqlStatement::MigrateDirect`) execute the literal form.
 ///
 /// UTF-8 text is bound as UTF-16, so it is stored exactly as its literal rendering would store it.
-/// Other values are bound natively; a `double` reaches the column as its binary value. That stores
+/// A GUID, date, time or timestamp is bound as the text its literal quotes, so the server parses the
+/// same text either way: a native time or timestamp would keep the fraction the literal drops, and
+/// SQLite would store a timestamp in another text form that a key comparison never matches.
+/// Other values are bound natively. Exact decimals (also at high scale), binary values and `bool`
+/// store exactly as their literals; a `double` reaches the column as its binary value. That stores
 /// the same as the literal for FLOAT/REAL columns and for DECIMAL columns of low scale, but it can
 /// differ where the literal is parsed as a decimal: a DECIMAL column with more fractional digits
 /// than the double holds exactly (e.g. DECIMAL(28,12) receives 123456.789011999994 rather than

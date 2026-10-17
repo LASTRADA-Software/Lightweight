@@ -5725,3 +5725,199 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     for (auto const* name: { "FK_uu_join_x_r1", "FK_uu_join_y_r2", "FK_uu_join_y_x" })
         CHECK(CatalogScalar(stmt, std::format("SELECT name FROM sys.foreign_keys WHERE name = '{}'", name)) == name);
 }
+
+namespace
+{
+/// A column whose values render as quoted text, binary or a keyword rather than as a plain number.
+struct TypedSeedColumn
+{
+    std::string name;
+    SqlColumnTypeDefinition type;
+    SqlVariant value;
+    /// How SQLite stores the literal: `typeof(column) || ':' || quote(column)`.
+    std::string sqliteRepresentation;
+};
+
+std::vector<TypedSeedColumn> TypedSeedColumns()
+{
+    using namespace SqlColumnTypeDefinitions;
+    using namespace std::chrono_literals;
+    using std::chrono::February;
+
+    // Sub-millisecond fractions, which the literal renderings of time and timestamp handle differently.
+    return {
+        { .name = "Ref",
+          .type = Guid {},
+          .value = SqlVariant { SqlGuid::UnsafeParse("0f8fad5b-d9cb-469f-a165-70867728950e") },
+          .sqliteRepresentation = "text:'0F8FAD5B-D9CB-469F-A165-70867728950E'" },
+        { .name = "Day",
+          .type = Date {},
+          .value = SqlVariant { SqlDate { 2024y, February, 29d } },
+          .sqliteRepresentation = "text:'2024-02-29'" },
+        { .name = "Moment",
+          .type = Time {},
+          .value = SqlVariant { SqlTime { 13h, 45min, 30s, 123456us } },
+          .sqliteRepresentation = "text:'13:45:30.123456'" },
+        { .name = "Stamp",
+          .type = DateTime {},
+          .value = SqlVariant { SqlDateTime { 2024y, February, 29d, 13h, 45min, 30s, 123456700ns } },
+          .sqliteRepresentation = "text:'2024-02-29T13:45:30.123'" },
+        { .name = "Price",
+          .type = Decimal { .precision = 10, .scale = 4 },
+          .value = SqlVariant { SqlDynamicNumeric { .unscaledValue = -403399, .precision = 10, .scale = 4 } },
+          .sqliteRepresentation = "real:-40.3399" },
+        { .name = "Amount",
+          .type = Decimal { .precision = 28, .scale = 12 },
+          .value = SqlVariant { SqlDynamicNumeric { .unscaledValue = 123456789012000000, .precision = 28, .scale = 12 } },
+          .sqliteRepresentation = "real:123456.789012" },
+        { .name = "Bytes",
+          .type = VarBinary { .size = 16 },
+          .value = SqlVariant { SqlBinary { 0x00, 0xFF, 0x10, 0x27 } },
+          .sqliteRepresentation = "blob:X'00FF1027'" },
+        { .name = "Flag", .type = Bool {}, .value = SqlVariant { true }, .sqliteRepresentation = "integer:1" },
+    };
+}
+
+/// Creates @p tableName with an integer `Id` and one nullable column per typed seed column.
+void CreateTypedSeedTable(SqlMigrationQueryBuilder& plan, std::string const& tableName)
+{
+    auto table = plan.CreateTable(tableName);
+    table.RequiredColumn("Id", SqlColumnTypeDefinitions::Integer());
+    for (auto const& column: TypedSeedColumns())
+        table.Column(column.name, column.type);
+}
+
+/// Inserts a row of @p id and every typed seed column's value, skipped by @p keyColumns when given.
+void InsertTypedSeedRow(SqlMigrationQueryBuilder& plan,
+                        std::string const& tableName,
+                        int id,
+                        std::vector<std::string> keyColumns = {})
+{
+    auto insert = plan.Insert(tableName);
+    insert.Set("Id", id);
+    for (auto const& column: TypedSeedColumns())
+        insert.Set(column.name, column.value);
+    if (!keyColumns.empty())
+        insert.IfNotExists(std::move(keyColumns));
+}
+} // namespace
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "Insert IfNotExists stores bound values of every type like literal ones",
+                 "[SqlMigration]")
+{
+    // Row 1 goes through the plain insert's literal path, row 2 through the bound one.
+    auto const migration = SqlMigration::Migration<202610170017>("bound typed values", [](SqlMigrationQueryBuilder& plan) {
+        CreateTypedSeedTable(plan, "Typed");
+        InsertTypedSeedRow(plan, "Typed", 1);
+        InsertTypedSeedRow(plan, "Typed", 2, { "Id" });
+    });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+    REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+    auto const isSqlite = manager.GetDataMapper().Connection().ServerType() == SqlServerType::SQLITE;
+    auto const readValue = [](std::string const& expression, int id) {
+        auto stmt = SqlStatement {};
+        auto cursor = stmt.ExecuteDirect(std::format(R"(SELECT {} FROM "Typed" WHERE "Id" = {})", expression, id));
+        REQUIRE(cursor.FetchRow());
+        auto value = SqlVariant {};
+        REQUIRE(cursor.GetColumn(1, &value));
+        return value.ToString();
+    };
+
+    for (auto const& column: TypedSeedColumns())
+    {
+        INFO("column " << column.name);
+        auto const quoted = std::format(R"("{}")", column.name);
+        auto const literal = readValue(quoted, 1);
+        auto const bound = readValue(quoted, 2);
+        UNSCOPED_INFO("literal " << literal << ", bound " << bound);
+        CHECK(bound == literal);
+
+        // The server itself finds both rows' values equal.
+        auto stmt = SqlStatement {};
+        CHECK(stmt
+                  .ExecuteDirectScalar<long long>(std::format(
+                      R"(SELECT COUNT(*) FROM "Typed" a, "Typed" b WHERE a."Id" = 1 AND b."Id" = 2 AND a.{0} = b.{0})",
+                      quoted))
+                  .value_or(-1)
+              == 1);
+
+        // SQLite keeps whatever storage class and text it was given, so compare those, too.
+        if (isSqlite)
+        {
+            auto const representation = std::format("typeof({0}) || ':' || quote({0})", quoted);
+            CHECK(readValue(representation, 1) == column.sqliteRepresentation);
+            CHECK(readValue(representation, 2) == column.sqliteRepresentation);
+        }
+    }
+
+    // The timestamp literal carries milliseconds, so the bound timestamp must not keep more.
+    if (!isSqlite)
+    {
+        auto stmt = SqlStatement {};
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "Stamp" FROM "Typed" WHERE "Id" = 2)");
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<SqlDateTime>(1).sqlValue.fraction == 123'000'000);
+    }
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "Insert IfNotExists finds a literal-stored row by a key of every type",
+                 "[SqlMigration]")
+{
+    auto const seedRow = SqlMigration::Migration<202610170018>("seed typed row", [](SqlMigrationQueryBuilder& plan) {
+        CreateTypedSeedTable(plan, "Seeded");
+        InsertTypedSeedRow(plan, "Seeded", 1);
+    });
+    // Each insert is keyed on one typed column alone and must find the literal-stored row.
+    auto const seedAgain = SqlMigration::Migration<202610170019>("seed typed row again", [](SqlMigrationQueryBuilder& plan) {
+        auto id = 100;
+        for (auto const& column: TypedSeedColumns())
+            InsertTypedSeedRow(plan, "Seeded", id++, { column.name });
+    });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    auto const log = CapturedMigrationLog {};
+    manager.CreateMigrationHistory();
+    auto const skippedAtStart = manager.SkippedExistingRowCount();
+    REQUIRE(manager.ApplyPendingMigrations() == 2);
+
+    auto const columnCount = TypedSeedColumns().size();
+    CHECK(manager.SkippedExistingRowCount() == skippedAtStart + columnCount);
+    REQUIRE(log.Lines().size() == columnCount);
+    for (auto const& line: log.Lines())
+        UNSCOPED_INFO(line);
+    CHECK(log.Lines()[0] == "Skipped existing row: 202610170019 Seeded (Ref='0F8FAD5B-D9CB-469F-A165-70867728950E')");
+    auto stmt = SqlStatement {};
+    CHECK(stmt.ExecuteDirectScalar<long long>(R"(SELECT COUNT(*) FROM "Seeded")").value_or(-1) == 1);
+}
+
+TEST_CASE("ToBoundSql binds a GUID, date, time and timestamp as their literal text", "[SqlMigration]")
+{
+    auto builder = SqlQueryBuilder(SqlQueryFormatter::Sqlite()).Migration();
+    auto insert = builder.Insert("Typed");
+    for (auto const& column: TypedSeedColumns())
+        insert.Set(column.name, column.value);
+    insert.IfNotExists({ "Ref" });
+    auto const plan = std::move(builder).GetPlan();
+
+    auto const bound = ToBoundSql(plan.steps.at(0)).value_or(SqlBoundStatement {});
+    REQUIRE(bound.parameters.size() == TypedSeedColumns().size() + 1);
+    auto const boundText = [&](std::size_t index) {
+        auto const* text = std::get_if<std::u16string>(&bound.parameters[index].value);
+        return text ? *text : std::u16string {};
+    };
+    CHECK(boundText(0) == u"0F8FAD5B-D9CB-469F-A165-70867728950E");
+    CHECK(boundText(1) == u"2024-02-29");
+    CHECK(boundText(2) == u"13:45:30.123456");
+    CHECK(boundText(3) == u"2024-02-29T13:45:30.123");
+    CHECK(boundText(8) == u"0F8FAD5B-D9CB-469F-A165-70867728950E");
+
+    // Exact decimals, binary values and bool keep their native binding.
+    CHECK(std::holds_alternative<SqlDynamicNumeric>(bound.parameters[4].value));
+    CHECK(std::holds_alternative<SqlBinary>(bound.parameters[6].value));
+    CHECK(std::holds_alternative<bool>(bound.parameters[7].value));
+}

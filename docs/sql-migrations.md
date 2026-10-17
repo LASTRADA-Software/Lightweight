@@ -250,9 +250,16 @@ WHERE NOT EXISTS (SELECT 1 FROM "Categories" WHERE "Id" = ?)
   narrow columns alike. Integers and NULL (into any column type) store identically, too.
 - On SQL Server, a migration with an `IfNotExists` insert first runs `SET NOCOUNT OFF`, since the
   skip is read from the affected-row count; the setting stays in effect for the session afterwards.
-- Bound and literal storage is verified for text, integers, NULL and doubles only. On SQLite a
-  natively bound GUID, date or time is stored as text in a format the driver chooses, so such a key
-  may not match a row a plain `Insert` stored. Use integer or text columns as `IfNotExists` keys.
+- A GUID, date, time or timestamp is bound as the text its literal quotes, so the server parses
+  the same text either way. Bound natively, a time or timestamp would keep the fraction the literal
+  drops (a timestamp literal has milliseconds), and SQLite would store a timestamp in a different
+  text form, which a key comparison then never matches.
+  On SQL Server, a date sent as text into a DATETIME or SMALLDATETIME column under a session
+  language with DMY date order (e.g. `SET LANGUAGE British`) is read as `yyyy-dd-mm`; a plain
+  `Insert` literal is read the same way, and a DATE or DATETIME2 column is not affected.
+- `SqlDynamicNumeric` (also at high scale such as DECIMAL(28,12)), binary values and `bool` are
+  bound natively and store exactly as their literals.
+- A key column of any of these types finds a row a plain `Insert` stored.
 - A `double` is bound as its binary value. In FLOAT/REAL columns and in DECIMAL columns of low scale
   (e.g. `40.3399`, `0.5`, `-12.25` into DECIMAL(10,4)) it stores exactly as the literal of a plain
   `Insert`. Known divergences, where the literal is parsed as a decimal instead:
@@ -262,7 +269,9 @@ WHERE NOT EXISTS (SELECT 1 FROM "Categories" WHERE "Id" = ?)
     `0.30000000000000004`, `1e-7`), which the bound value carries;
   - a double into a text column: SQLite stores `3.0` bound as `"3.0"`, as a literal as `"3"`.
 
-  Use `SqlNumeric` / `SqlDynamicNumeric` for exact decimal values.
+  Do not key `IfNotExists` on such a double: in these cases the bound key misses a row a plain
+  `Insert` stored, and the insert then adds a duplicate. Use `SqlNumeric` / `SqlDynamicNumeric`
+  for exact decimal values.
 - An existing row is left as it is, **even when its non-key columns differ** from the values in
   the migration. `IfNotExists` only prevents the duplicate; it never updates.
 - Several key columns are combined with `AND`: `.IfNotExists({ "Kind", "Id" })`.

@@ -146,17 +146,27 @@ namespace
     }
 
     /// @brief Returns @p value as it is bound: UTF-8 text as UTF-16, so the driver converts it to the
-    /// column's encoding exactly as the server converts the literal `ToSqlInsert` renders.
+    /// column's encoding exactly as the server converts the literal `ToSqlInsert` renders. A GUID,
+    /// date, time or timestamp is bound as the text its literal quotes, so the server parses the
+    /// same text either way (a native time or timestamp would carry fractions the literal drops,
+    /// and SQLite would store it in another text form).
     SqlVariant BoundValue(SqlVariant const& value)
     {
         auto const asUtf16 = [](std::string_view text) {
             return SqlVariant { ToUtf16(std::u8string_view { reinterpret_cast<char8_t const*>(text.data()), text.size() }) };
+        };
+        auto const asLiteralText = [&](auto const& v) {
+            return asUtf16(std::format("{}", v));
         };
         // clang-format off
         return std::visit(detail::overloaded {
             [&](std::string_view v) { return asUtf16(v); },
             [&](std::string const& v) { return asUtf16(v); },
             [&](SqlText const& v) { return asUtf16(v.value); },
+            [&](SqlGuid const& v) { return asLiteralText(v); },
+            [&](SqlDate const& v) { return asLiteralText(v); },
+            [&](SqlTime const& v) { return asLiteralText(v); },
+            [&](SqlDateTime const& v) { return asLiteralText(v); },
             [&](auto const&) { return value; },
         }, value.value);
         // clang-format on
