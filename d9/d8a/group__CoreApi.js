@@ -45,6 +45,7 @@ var group__CoreApi =
       [ "ServerVersion", "da/da8/classLightweight_1_1SqlConnection.html#adedd93d863e37dcd325f71024c1d6601", null ],
       [ "ServerType", "da/da8/classLightweight_1_1SqlConnection.html#a2cf1b575719f949078c4a5c31145e501", null ],
       [ "DriverName", "da/da8/classLightweight_1_1SqlConnection.html#ae8e906b9e44522971275823056bc5a5e", null ],
+      [ "AcceptsWideQueryText", "da/da8/classLightweight_1_1SqlConnection.html#aa622d82297643e02d56a9fec0e12c7a1", null ],
       [ "QueryFormatter", "da/da8/classLightweight_1_1SqlConnection.html#a6dabdd78f7aad57d5deb2597d553bc32", null ],
       [ "RequiresTableRebuildForSchemaChange", "da/da8/classLightweight_1_1SqlConnection.html#ad03129b17daf9ea6829425473db12877", null ],
       [ "SupportsNativeRowBatch", "da/da8/classLightweight_1_1SqlConnection.html#ac4ea8b83a43459581e2a52a568c595c5", null ],

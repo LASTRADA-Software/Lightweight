@@ -187,7 +187,7 @@ $(document).ready(function(){initNavTree('dd/d60/Restore_8hpp_source.html','../.
 <div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span><span class="comment">/// Returns the schema a table is restored into: the one the archive records for it, else @p defaultSchema.</span></div>
 <div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span><span class="comment">/// @param info The table.</span></div>
 <div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span><span class="comment">/// @param defaultSchema The schema the restore targets.</span></div>
-<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span><span class="comment"></span>[[nodiscard]] <span class="keyword">inline</span> std::string <span class="keyword">const</span>&amp; TargetSchema(TableInfo <span class="keyword">const</span>&amp; info, std::string <span class="keyword">const</span>&amp; defaultSchema)</div>
+<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span><span class="comment"></span>[[nodiscard]] <span class="keyword">inline</span> std::string TargetSchema(TableInfo <span class="keyword">const</span>&amp; info, std::string <span class="keyword">const</span>&amp; defaultSchema)</div>
 <div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span>{</div>
 <div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>    <span class="keywordflow">return</span> info.schema.empty() ? defaultSchema : info.schema;</div>
 <div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>}</div>
@@ -195,7 +195,7 @@ $(document).ready(function(){initNavTree('dd/d60/Restore_8hpp_source.html','../.
 <div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span><span class="comment">/// Returns a table&#39;s name in the database: the name the archive records, else its key in the table map.</span></div>
 <div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span><span class="comment">/// @param key The table&#39;s key in the table map.</span></div>
 <div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span><span class="comment">/// @param info The table.</span></div>
-<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span><span class="comment"></span>[[nodiscard]] <span class="keyword">inline</span> std::string <span class="keyword">const</span>&amp; TargetTableName(std::string <span class="keyword">const</span>&amp; key, TableInfo <span class="keyword">const</span>&amp; info)</div>
+<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span><span class="comment"></span>[[nodiscard]] <span class="keyword">inline</span> std::string TargetTableName(std::string <span class="keyword">const</span>&amp; key, TableInfo <span class="keyword">const</span>&amp; info)</div>
 <div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span>{</div>
 <div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span>    <span class="keywordflow">return</span> info.name.empty() ? key : info.name;</div>
 <div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span>}</div>

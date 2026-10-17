@@ -1,8 +1,9 @@
 var NAVTREEINDEX6 =
 {
+"da/da8/classLightweight_1_1SqlConnection.html#ae8e906b9e44522971275823056bc5a5e":[19,6,3,22],
 "da/da8/classLightweight_1_1SqlConnection.html#aec2394736e758433d81c29cb5c04d047":[19,6,3,8],
 "da/da8/classLightweight_1_1SqlConnection.html#aeec33c5e9d65fdecd317bdbcff6accd3":[19,6,3,18],
-"da/da8/classLightweight_1_1SqlConnection.html#afd6064e6446d7bc609fd0fea94ad0fd7":[19,6,3,46],
+"da/da8/classLightweight_1_1SqlConnection.html#afd6064e6446d7bc609fd0fea94ad0fd7":[19,6,3,47],
 "da/da8/classLightweight_1_1SqlConnection.html#aff53cd88345bf8822f5fd34e676c48d0":[19,6,3,14],
 "da/daf/HasManyThrough_8hpp_source.html":[22,0,1,2,7],
 "da/dc3/SqlServerDependentObjects_8hpp_source.html":[22,0,1,33],
@@ -248,6 +249,5 @@ var NAVTREEINDEX6 =
 "dd/d47/structLightweight_1_1SqlDropTablePlan.html#a70993d937b9b2479d4fc33bfec3ffd81":[19,8,17,3],
 "dd/d47/structLightweight_1_1SqlDropTablePlan.html#a881594ba67a9c5f1443d92f285b53bbe":[19,8,17,1],
 "dd/d47/structLightweight_1_1SqlDropTablePlan.html#af7adb5af3a0ff6c6a366fee2ce29beff":[19,8,17,2],
-"dd/d4c/structLightweight_1_1BelongsTo_1_1Loader.html":[19,3,6,0],
-"dd/d4c/structLightweight_1_1BelongsTo_1_1Loader.html#af2c25ae2649b898e5c65ce63c811ad1d":[19,3,6,0,0]
+"dd/d4c/structLightweight_1_1BelongsTo_1_1Loader.html":[19,3,6,0]
 };

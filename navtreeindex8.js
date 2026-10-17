@@ -1,5 +1,6 @@
 var NAVTREEINDEX8 =
 {
+"de/da0/classLightweight_1_1SqlQueryBuilder.html#adeb820498dd1bc9a5c575244e1bdf853":[19,8,0,9],
 "de/da0/classLightweight_1_1SqlQueryBuilder.html#af144019a618b92754fdc3879e226632d":[19,8,0,3],
 "de/da0/classLightweight_1_1SqlQueryBuilder.html#af7ef6f1c5540f6aba2f607f81c7938ec":[19,8,0,2],
 "de/da5/Sender_8hpp_source.html":[22,0,1,0,9],
@@ -248,6 +249,5 @@ var NAVTREEINDEX8 =
 "dir_ecfaae8a45938684577693db3462ec86.html":[22,0,1,0],
 "files.html":[22,0],
 "functions.html":[21,2,0,0],
-"functions.html":[21,2,0],
-"functions_a.html":[21,2,0,1]
+"functions.html":[21,2,0]
 };
