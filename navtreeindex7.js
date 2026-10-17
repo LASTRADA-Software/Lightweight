@@ -1,5 +1,7 @@
 var NAVTREEINDEX7 =
 {
+"dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html#tuning":[7,5],
+"dd/d47/structLightweight_1_1SqlDropTablePlan.html":[19,8,17],
 "dd/d47/structLightweight_1_1SqlDropTablePlan.html#a36797cc9ea243cafa5f2627920401c91":[19,8,17,0],
 "dd/d47/structLightweight_1_1SqlDropTablePlan.html#a70993d937b9b2479d4fc33bfec3ffd81":[19,8,17,3],
 "dd/d47/structLightweight_1_1SqlDropTablePlan.html#a881594ba67a9c5f1443d92f285b53bbe":[19,8,17,1],
@@ -247,7 +249,5 @@ var NAVTREEINDEX7 =
 "de/d9f/classLightweight_1_1RowArrayCursorUnsupported.html":[21,0,0,22],
 "de/da0/classLightweight_1_1SqlQueryBuilder.html":[19,8,0],
 "de/da0/classLightweight_1_1SqlQueryBuilder.html#a017af051177b1185b32816e0e49e5ab8":[19,8,0,4],
-"de/da0/classLightweight_1_1SqlQueryBuilder.html#a06617b326815751e2e22a114b3f0300e":[19,8,0,5],
-"de/da0/classLightweight_1_1SqlQueryBuilder.html#a2088cc443c26818bb7e7c6cacf379d11":[19,8,0,1],
-"de/da0/classLightweight_1_1SqlQueryBuilder.html#a4304109a0852dc27b6fe864389a71777":[19,8,0,10]
+"de/da0/classLightweight_1_1SqlQueryBuilder.html#a06617b326815751e2e22a114b3f0300e":[19,8,0,5]
 };

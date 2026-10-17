@@ -1,5 +1,7 @@
 var NAVTREEINDEX5 =
 {
+"d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sql-query-builder":[2,8],
+"d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sql-server-connectretrycount-and-connectretryinterval":[2,3,0],
 "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sqlite-busy-timeout-and-journal-mode":[2,2],
 "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#streaming-a-table-with-sqlrowiterator":[2,11],
 "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#transparent-block-prefetch-fewer-network-round-trips":[2,5],
@@ -38,7 +40,7 @@ var NAVTREEINDEX5 =
 "d9/d8a/group__CoreApi.html#gga8be4e3766b268b1d751ef7df237af144ab9f5c797ebbf55adccdd8539a65a0241":[19,6,20,1],
 "d9/d8a/group__CoreApi.html#gga99e5e92107ae68dfd09cca5fc6ef1106a902b0d55fddef6f8d651fe1035b7d4bd":[19,6,21,1],
 "d9/d8a/group__CoreApi.html#gga99e5e92107ae68dfd09cca5fc6ef1106aa8156810bfee2bd2b44765b9e91db3bd":[19,6,21,0],
-"d9/da6/SqlTransaction_8hpp_source.html":[22,0,1,37],
+"d9/da6/SqlTransaction_8hpp_source.html":[22,0,1,39],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html":[21,0,0,40],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a151e499b5da3afcaea3326bfb35d3c36":[21,0,0,40,11],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a209f52c2128670486fa0df251261bf80":[21,0,0,40,5],
@@ -92,7 +94,7 @@ var NAVTREEINDEX5 =
 "d9/de1/structLightweight_1_1SqlDate.html#ac8926c16c74e11a1467098a40b13e552":[19,1,1,9],
 "d9/de1/structLightweight_1_1SqlDate.html#acbb3cb3b332956f35ba25c25d6dc34b5":[19,1,1,6],
 "d9/de1/structLightweight_1_1SqlDate.html#afe238c510db9a86dc6aac51196e8e3f1":[19,1,1,5],
-"d9/de5/SqlLogger_8hpp_source.html":[22,0,1,20],
+"d9/de5/SqlLogger_8hpp_source.html":[22,0,1,22],
 "d9/df2/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ChecksumRewriteEntry.html":[19,7,7,0],
 "d9/df2/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ChecksumRewriteEntry.html#a64b56a650906d09b12d54ebf6e765559":[19,7,7,0,1],
 "d9/df2/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ChecksumRewriteEntry.html#a95dfbf909cd5d1144d7f3b2eb2172219":[19,7,7,0,0],
@@ -196,7 +198,7 @@ var NAVTREEINDEX5 =
 "da/d7e/structLightweight_1_1SqlRawColumn.html#abafa148d105f4f791595f95b1e68a162":[21,0,0,75,1],
 "da/d96/structLightweight_1_1SqlNullType.html":[19,1,8],
 "da/d96/structLightweight_1_1SqlNullType.html#abf2ca1881d4960c791dbe1d7a437c444":[19,1,8,0],
-"da/da3/SqlOdbcPrelude_8hpp_source.html":[22,0,1,22],
+"da/da3/SqlOdbcPrelude_8hpp_source.html":[22,0,1,24],
 "da/da6/structLightweight_1_1SqlPoolStatistics.html":[19,6,14],
 "da/da6/structLightweight_1_1SqlPoolStatistics.html#a18c2c21391e5400271d03e1676e75a45":[19,6,14,5],
 "da/da6/structLightweight_1_1SqlPoolStatistics.html#a414f91ec0a47a8b1a64a8a4be683afaa":[19,6,14,6],
@@ -247,7 +249,5 @@ var NAVTREEINDEX5 =
 "da/da8/classLightweight_1_1SqlConnection.html#ac29fe83ca60448002d451dbd707be955":[19,6,3,17],
 "da/da8/classLightweight_1_1SqlConnection.html#ac4ea8b83a43459581e2a52a568c595c5":[19,6,3,26],
 "da/da8/classLightweight_1_1SqlConnection.html#acb0f99439f457fbd454e3bda1acaae19":[19,6,3,48],
-"da/da8/classLightweight_1_1SqlConnection.html#accca2c0c11b7132ef9a5996f680a9eda":[19,6,3,28],
-"da/da8/classLightweight_1_1SqlConnection.html#ad02b8090e26e09ac511f37aad3a277df":[19,6,3,44],
-"da/da8/classLightweight_1_1SqlConnection.html#ad03129b17daf9ea6829425473db12877":[19,6,3,25]
+"da/da8/classLightweight_1_1SqlConnection.html#accca2c0c11b7132ef9a5996f680a9eda":[19,6,3,28]
 };

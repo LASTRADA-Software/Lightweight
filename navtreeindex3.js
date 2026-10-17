@@ -1,5 +1,7 @@
 var NAVTREEINDEX3 =
 {
+"d6/de4/group__ConnectionPool.html#gga52b249d4b537b9627a2b2bdd483dd274a93cba07454f06a4a960172bbd6e2a435":[19,4,4,1],
+"d6/de4/group__ConnectionPool.html#gga52b249d4b537b9627a2b2bdd483dd274abafd7322c6e97d25b6299b5d6fe8920b":[19,4,4,0],
 "d6/de4/group__ConnectionPool.html#ggadf41c4387dc86267bded533482280862ac85a251cc457840f1e032f1b733e9398":[19,4,5,0],
 "d6/de4/group__ConnectionPool.html#ggadf7777be559a52bca78d24e4a99a4f0ca0dd97bbc519abce897d0dd2dc4774411":[19,4,3,0],
 "d6/de4/group__ConnectionPool.html#ggadf7777be559a52bca78d24e4a99a4f0caa081da5fdda27ab1a98aa7e5f2d60d01":[19,4,3,1],
@@ -36,7 +38,7 @@ var NAVTREEINDEX3 =
 "d6/dfa/structLightweight_1_1SqlDateTime.html#ac9909a40a0ef444af5bf3e28dee1bd6a":[19,1,2,24],
 "d6/dfa/structLightweight_1_1SqlDateTime.html#ad9d7388657a62e1037680c4d4dab9eea":[19,1,2,23],
 "d6/dfa/structLightweight_1_1SqlDateTime.html#af92f3533cae7302542353e4fa358d581":[19,1,2,12],
-"d7/d09/Utils_8hpp_source.html":[22,0,1,40],
+"d7/d09/Utils_8hpp_source.html":[22,0,1,42],
 "d7/d09/structLightweight_1_1Zip_1_1EntryInfo.html":[21,0,0,5,0],
 "d7/d09/structLightweight_1_1Zip_1_1EntryInfo.html#a0731a4941cd0e4cbdfa4a3dfc159a750":[21,0,0,5,0,0],
 "d7/d09/structLightweight_1_1Zip_1_1EntryInfo.html#a3dd2493f216573af2f9247f7ed0c7b59":[21,0,0,5,0,3],
@@ -113,7 +115,7 @@ var NAVTREEINDEX3 =
 "d7/d13/structLightweight_1_1SqlRealName.html#af2193aa387912e35dc9314874fd15ad4":[21,0,0,78,6],
 "d7/d13/structLightweight_1_1SqlRealName.html#af23090d1ec3bacb89b9aa4510eb9d42d":[21,0,0,78,11],
 "d7/d13/structLightweight_1_1SqlRealName.html#aff5ec7cfaef6423f865d4b88b1918de6":[21,0,0,78,2],
-"d7/d24/SqlConnectInfo_8hpp_source.html":[22,0,1,15],
+"d7/d24/SqlConnectInfo_8hpp_source.html":[22,0,1,17],
 "d7/d2c/structLightweight_1_1SqlDynamicNumeric.html":[19,1,4],
 "d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a0a161e5e98d4a854826bd19343f04d3f":[19,1,4,0],
 "d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a1ce5944fd87bfb86e2b62b903fe9a7d4":[19,1,4,3],
@@ -247,7 +249,5 @@ var NAVTREEINDEX3 =
 "d7/d9a/classLightweight_1_1SqlDynamicString.html#aa67b9eff101d2fdca8a6a563bbe31609":[19,1,5,31],
 "d7/d9a/classLightweight_1_1SqlDynamicString.html#aaa452af46fd8e3a02f29a71971c6d347":[19,1,5,11],
 "d7/d9a/classLightweight_1_1SqlDynamicString.html#ab8d924bb0999605c5cfa794772f383bb":[19,1,5,13],
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#abb5c8e2bfe209f9060884a6ac4c6e15b":[19,1,5,17],
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#ad6790066829c787636b26b471b1b929b":[19,1,5,40],
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#ae4f1fbffafe7637cb2911b66f35d6178":[19,1,5,41]
+"d7/d9a/classLightweight_1_1SqlDynamicString.html#abb5c8e2bfe209f9060884a6ac4c6e15b":[19,1,5,17]
 };

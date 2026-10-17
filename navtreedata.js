@@ -405,15 +405,15 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/d99/structLightweight_1_1SqlBackup_1_1ChunkReader.html#a3ab96599a03fe02a203abdeb39d89a31",
-"d4/d61/classLightweight_1_1SqlAdvisoryLockHandler.html#aa4fe3148598e7494bbe6e880eaaff3e9",
-"d6/de4/group__ConnectionPool.html#ggadf41c4387dc86267bded533482280862ac85a251cc457840f1e032f1b733e9398",
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#ae66f23d51788e986f5c1239c6d5f317c",
-"d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sqlite-busy-timeout-and-journal-mode",
-"da/da8/classLightweight_1_1SqlConnection.html#ad564a1c5ac5491bfdefad0bd38d83bbe",
-"dd/d47/structLightweight_1_1SqlDropTablePlan.html#a36797cc9ea243cafa5f2627920401c91",
-"de/da0/classLightweight_1_1SqlQueryBuilder.html#a67b81a8873be14a5a21f798c0b5a27b5",
-"dir_e931c1a3f0014e624d0645a271726ad2.html"
+"d2/d99/structLightweight_1_1SqlBackup_1_1ChunkReader.html",
+"d4/d61/classLightweight_1_1SqlAdvisoryLockHandler.html#a8a7f34faf5ae16c8ea0c810c6803fbf1",
+"d6/de4/group__ConnectionPool.html#gga52b249d4b537b9627a2b2bdd483dd274a93cba07454f06a4a960172bbd6e2a435",
+"d7/d9a/classLightweight_1_1SqlDynamicString.html#ad6790066829c787636b26b471b1b929b",
+"d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sql-query-builder",
+"da/da8/classLightweight_1_1SqlConnection.html#ad02b8090e26e09ac511f37aad3a277df",
+"dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html#tuning",
+"de/da0/classLightweight_1_1SqlQueryBuilder.html#a2088cc443c26818bb7e7c6cacf379d11",
+"dir_bd1ea25228cf56b99f3317a58dd9f8fb.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

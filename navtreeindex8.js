@@ -1,5 +1,7 @@
 var NAVTREEINDEX8 =
 {
+"de/da0/classLightweight_1_1SqlQueryBuilder.html#a2088cc443c26818bb7e7c6cacf379d11":[19,8,0,1],
+"de/da0/classLightweight_1_1SqlQueryBuilder.html#a4304109a0852dc27b6fe864389a71777":[19,8,0,10],
 "de/da0/classLightweight_1_1SqlQueryBuilder.html#a67b81a8873be14a5a21f798c0b5a27b5":[19,8,0,0],
 "de/da0/classLightweight_1_1SqlQueryBuilder.html#a779ace23d8860b4c47ba61750a068065":[19,8,0,6],
 "de/da0/classLightweight_1_1SqlQueryBuilder.html#a8091e75095d65f0d5b3bab9b92b5b670":[19,8,0,8],
@@ -97,7 +99,7 @@ var NAVTREEINDEX8 =
 "de/dfe/structLightweight_1_1SqlText.html#acb96ee68a3cc936ac16a50cb90d587d5":[19,1,10,0],
 "de/dfe/structLightweight_1_1SqlText.html#af5030d1caea50f2ac9251206e039201a":[19,1,10,1],
 "df/d0f/Pool_8hpp_source.html":[22,0,1,2,9],
-"df/d13/SqlQueryFormatter_8hpp_source.html":[22,0,1,26],
+"df/d13/SqlQueryFormatter_8hpp_source.html":[22,0,1,28],
 "df/d1a/structLightweight_1_1PoolConfig.html":[19,4,0],
 "df/d1a/structLightweight_1_1PoolConfig.html#a090de1dcf0f8f78bb03664ce5f999856":[19,4,0,0],
 "df/d1a/structLightweight_1_1PoolConfig.html#a27ee17aa9854a15e16d385ee1d26b045":[19,4,0,1],
@@ -203,7 +205,7 @@ var NAVTREEINDEX8 =
 "df/d7c/structLightweight_1_1SqlGuid.html#a938d38326b32d8949207090b1fca26d0":[19,1,7,3],
 "df/d7c/structLightweight_1_1SqlGuid.html#abc3fab606715de2437552cc0f585359e":[19,1,7,5],
 "df/d7c/structLightweight_1_1SqlGuid.html#ae7573accb00b48a05d2b8085f14483c5":[19,1,7,0],
-"df/d7d/SqlOdbcWide_8hpp_source.html":[22,0,1,23],
+"df/d7d/SqlOdbcWide_8hpp_source.html":[22,0,1,25],
 "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html":[19,7,7,3],
 "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#a660ae31bbcb90397f6dae0085902cdc1":[19,7,7,3,4],
 "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#a8416dff5cbb6f7b62b61f5a65d076d92":[19,7,7,3,2],
@@ -247,7 +249,5 @@ var NAVTREEINDEX8 =
 "dir_6d5ffb699f5cf69d1f74f24c0411e5f8.html":[22,0,1,4],
 "dir_6f1d6fa2b219487ffef8a5d5282640f4.html":[22,0,1,1],
 "dir_928313e3f834eaf7c2b65386b629cfde.html":[22,0,1,2],
-"dir_9dd9337d2d3be7dbf2796362a1015340.html":[22,0,1,0,0],
-"dir_bd1ea25228cf56b99f3317a58dd9f8fb.html":[22,0,1,5],
-"dir_d70736013bfb52c2769b9815ff9be7e3.html":[22,0,0,0]
+"dir_9dd9337d2d3be7dbf2796362a1015340.html":[22,0,1,0,0]
 };
