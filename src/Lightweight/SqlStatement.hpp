@@ -573,6 +573,10 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// @return The SQLExecDirect return code.
     [[nodiscard]] SQLRETURN ExecDirectOnHandle(std::string_view query);
 
+    /// @brief Records a freshly allocated handle of a connection to an ANSI-only driver, so that its
+    /// diagnostics are read through the ANSI entry points (see detail::RegisterAnsiOnlyHandle()).
+    void RegisterHandleTextEntry() noexcept;
+
     /// @brief Describes every parameter of the prepared query.
     ///
     /// The MS SQL Server driver refuses @c SQLDescribeParam() (07009) once any parameter of the

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "DataBinder/SqlVariant.hpp"
+#include "ImmortalInstance.hpp"
 #include "SqlConnectInfo.hpp"
 #include "SqlConnection.hpp"
 #include "SqlLogger.hpp"
@@ -332,19 +333,7 @@ void SqlLogger::SetLoggingSink(MessageWriter writer)
 // manager's DataMapper, for one -- that are torn down during static destruction, in an order relative
 // to these loggers that no translation unit controls. A destroyed logger there aborts the process
 // with "pure virtual method called" after main() returned (#649).
-namespace
-{
-    /// Constructs a @p T in static storage on first use and never destroys it.
-    /// @param args The constructor arguments, used by the first call only.
-    /// @return The one instance.
-    template <typename T, typename... Args>
-    T& ImmortalInstance(Args&&... args)
-    {
-        alignas(T) static std::array<std::byte, sizeof(T)> storage {};
-        static T& instance = *std::construct_at(reinterpret_cast<T*>(storage.data()), std::forward<Args>(args)...);
-        return instance;
-    }
-} // namespace
+using detail::ImmortalInstance;
 
 SqlLogger::Null& SqlLogger::NullLogger() noexcept
 {

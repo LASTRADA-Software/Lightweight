@@ -2,6 +2,7 @@
 
 #include "Async/ThreadOffloadBackend.hpp"
 #include "DataBinder/UnicodeConverter.hpp"
+#include "ImmortalInstance.hpp"
 #include "SqlConnection.hpp"
 #include "SqlOdbcWide.hpp"
 #include "SqlPreparedStatementCache.hpp"
@@ -15,10 +16,14 @@
 #include <array>
 #include <atomic>
 #include <cstdint>
+#include <initializer_list>
+#include <map>
 #include <mutex>
 #include <optional>
 #include <ranges>
 #include <stdexcept>
+#include <string>
+#include <string_view>
 
 #include <sql.h>
 
@@ -55,12 +60,17 @@ namespace
         return std::string { reinterpret_cast<char const*>(utf8.data()), utf8.size() };
     }
 
-    /// Tells whether the driver behind @p hDbc receives wide query text unchanged.
+    /// Tells whether the driver behind @p hDbc receives wide text unchanged.
     ///
     /// The driver echoes, through SQLNativeSqlW and without a server round trip, a statement holding a
-    /// CJK character: a driver manager narrowing wide text for an ANSI-only driver cannot carry it.
-    bool DriverAcceptsWideQueryText(SQLHDBC hDbc) noexcept
+    /// CJK character: a driver manager narrowing wide text for an ANSI-only driver cannot carry it. The
+    /// Windows driver manager converts wide text for such a driver to the ANSI code page it expects, so
+    /// there the wide entry points are always the right ones.
+    bool DriverAcceptsWideQueryText([[maybe_unused]] SQLHDBC hDbc) noexcept
     {
+#if defined(_WIN32)
+        return true;
+#else
         constexpr auto probeCharacter = SQLWCHAR { 0x4E2D };
         auto probe = std::array<SQLWCHAR, 10> { 'S', 'E', 'L', 'E', 'C', 'T', ' ', '\'', probeCharacter, '\'' };
         auto echoed = std::array<SQLWCHAR, 32> {};
@@ -76,6 +86,124 @@ namespace
             return true;
         auto const echoedCount = std::min(static_cast<std::size_t>(echoedLength), echoed.size());
         return std::ranges::contains(echoed | std::views::take(echoedCount), probeCharacter);
+#endif
+    }
+
+    /// The ODBC entry point family a connect call hands its text to.
+    enum class OdbcTextEntry : std::uint8_t
+    {
+        Wide,
+        Ansi,
+    };
+
+    /// Whether drivers an earlier connection of this process reached accept wide text, by DriverKey().
+    struct KnownDriverTextEntries
+    {
+        std::mutex mutex;
+        std::map<std::string, bool> acceptsWideText;
+    };
+
+    /// Never destroyed, as connections owned by other statics may still connect during static destruction.
+    KnownDriverTextEntries& KnownDrivers() noexcept
+    {
+        return detail::ImmortalInstance<KnownDriverTextEntries>();
+    }
+
+    /// True where the driver manager hands wide text to an ANSI-only driver narrowed one code unit to one
+    /// byte. The Windows one converts it to the ANSI code page the driver expects instead.
+#if defined(_WIN32)
+    constexpr auto DriverManagerNarrowsWideText = false;
+#else
+    constexpr auto DriverManagerNarrowsWideText = true;
+#endif
+
+    /// Names the driver a connect call reaches: its connection string's DRIVER, else its DSN.
+    std::string DriverKey(SqlConnectionString const& connectionString)
+    {
+        auto const attributes = ParseConnectionString(connectionString);
+        if (auto const driver = attributes.find("DRIVER"); driver != attributes.end())
+            return "DRIVER=" + driver->second;
+        if (auto const dataSource = attributes.find("DSN"); dataSource != attributes.end())
+            return "DSN=" + dataSource->second;
+        return {};
+    }
+
+    /// Records what the connection to @p driverKey found, so a later connect decides before connecting.
+    /// Best effort: a record that cannot be stored only costs a later connect its decision up front.
+    void RememberDriverTextEntry(std::string const& driverKey, bool acceptsWideText) noexcept
+    {
+        if (driverKey.empty())
+            return; // Names no driver, so it cannot tell drivers apart either.
+        try
+        {
+            auto& known = KnownDrivers();
+            auto const lock = std::scoped_lock { known.mutex };
+            known.acceptsWideText.insert_or_assign(driverKey, acceptsWideText);
+        }
+        catch (...) // NOLINT(bugprone-empty-catch)
+        {
+        }
+    }
+
+    /// What an earlier connection of this process found about the driver @p driverKey: whether it
+    /// accepts wide text, or nothing when no connection reached it yet.
+    [[nodiscard]] std::optional<bool> KnownDriverTextEntry(std::string const& driverKey)
+    {
+        if (driverKey.empty())
+            return std::nullopt;
+        auto& known = KnownDrivers();
+        auto const lock = std::scoped_lock { known.mutex };
+        if (auto const entry = known.acceptsWideText.find(driverKey); entry != known.acceptsWideText.end())
+            return entry->second;
+        return std::nullopt;
+    }
+
+    /// Tells whether any of @p texts holds a byte outside ASCII.
+    [[nodiscard]] bool HasNonAsciiText(std::initializer_list<std::string_view> texts) noexcept
+    {
+        return std::ranges::any_of(texts, [](std::string_view text) {
+            return std::ranges::any_of(text, [](char c) { return static_cast<unsigned char>(c) >= 0x80; });
+        });
+    }
+
+    /// Tells whether a connect that failed with @p sqlState may have failed on its narrowed text. A
+    /// server that cannot be reached (class 08) or a timeout (HYT00, HYT01) is not fixed by a retry.
+    [[nodiscard]] bool MayHaveFailedOnNarrowedText(std::string_view sqlState) noexcept
+    {
+        return !sqlState.starts_with("08") && sqlState != "HYT00" && sqlState != "HYT01";
+    }
+
+    /// Connects @p hDbc through @p connect, which takes the entry point family to use.
+    ///
+    /// - Text that is all ASCII reaches every driver intact, so it takes the wide entry point.
+    /// - Non-ASCII text takes the entry point an earlier connection found the driver to accept.
+    /// - For a driver no connection reached yet, nothing can be asked before connecting, so non-ASCII
+    ///   text is connected wide first. If that succeeds and the driver turns out ANSI-only, it connects
+    ///   again with the UTF-8 bytes. If it fails where the driver manager narrows wide text, the
+    ///   narrowed text (a password, a database path) may be why, so unless the failure says the server
+    ///   was not reached or timed out, it tries once with the UTF-8 bytes.
+    template <typename Connect>
+    SQLRETURN ConnectThroughDriverTextEntry(SQLHDBC hDbc,
+                                            std::string const& driverKey,
+                                            bool hasNonAsciiText,
+                                            Connect const& connect)
+    {
+        if (!hasNonAsciiText)
+            return connect(OdbcTextEntry::Wide);
+        if (auto const acceptsWideText = KnownDriverTextEntry(driverKey))
+            return connect(*acceptsWideText ? OdbcTextEntry::Wide : OdbcTextEntry::Ansi);
+
+        auto const sqlReturn = connect(OdbcTextEntry::Wide);
+        if (SQL_SUCCEEDED(sqlReturn))
+        {
+            if (DriverAcceptsWideQueryText(hDbc))
+                return sqlReturn;
+            SQLDisconnect(hDbc);
+            return connect(OdbcTextEntry::Ansi);
+        }
+        if (!DriverManagerNarrowsWideText || !MayHaveFailedOnNarrowedText(SqlErrorInfo::FromConnectionHandle(hDbc).sqlState))
+            return sqlReturn;
+        return connect(OdbcTextEntry::Ansi);
     }
 
     // SQL_COPT_SS_ENCRYPT and its SQL_EN_* values are declared in the Microsoft-specific `msodbcsql.h`
@@ -497,22 +625,32 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionDataSo
     m_data->preparedStatementCache.Clear();
 
     if (m_hDbc)
+    {
+        detail::UnregisterAnsiOnlyHandle(m_hDbc);
         SQLDisconnect(m_hDbc);
+    }
 
-    // Convert the three input strings to UTF-16 once, *outside* the scoped lock,
-    // so the W-variant `SQLConnectW` call below sees properly-decoded Unicode and
-    // marks this DBC handle as a Unicode application — which in turn flips the
-    // psqlODBC driver out of its ANSI / cp1252 mode. The try/catch defends the
-    // noexcept contract: OdbcWideArg allocates a std::u16string and can throw
-    // std::bad_alloc, which would otherwise call std::terminate.
+    // Prepare the three input strings once, *outside* the scoped lock: as UTF-16, so the
+    // W-variant `SQLConnectW` call below marks this DBC handle as a Unicode application - which
+    // flips psqlODBC out of its ANSI / cp1252 mode - and as UTF-8 for an ANSI-only driver off
+    // Windows (see ConnectThroughDriverTextEntry). The try/catch defends the noexcept contract
+    // against std::bad_alloc from these allocations.
     detail::OdbcWideArg wDataSource { std::string_view {} };
     detail::OdbcWideArg wUsername { std::string_view {} };
     detail::OdbcWideArg wPassword { std::string_view {} };
+    detail::OdbcNarrowArg narrowDataSource { std::string_view {} };
+    detail::OdbcNarrowArg narrowUsername { std::string_view {} };
+    detail::OdbcNarrowArg narrowPassword { std::string_view {} };
+    auto driverKey = std::string {};
     try
     {
         wDataSource = detail::OdbcWideArg { info.datasource };
         wUsername = detail::OdbcWideArg { info.username };
         wPassword = detail::OdbcWideArg { info.password };
+        narrowDataSource = detail::OdbcNarrowArg { info.datasource };
+        narrowUsername = detail::OdbcNarrowArg { info.username };
+        narrowPassword = detail::OdbcNarrowArg { info.password };
+        driverKey = "DSN=" + info.datasource;
     }
     catch (...)
     {
@@ -564,13 +702,24 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionDataSo
             }
         }
 
-        sqlReturn = SQLConnectW(m_hDbc,
-                                wDataSource.data(),
-                                wDataSource.length(),
-                                wUsername.data(),
-                                wUsername.length(),
-                                wPassword.data(),
-                                wPassword.length());
+        sqlReturn = ConnectThroughDriverTextEntry(
+            m_hDbc, driverKey, HasNonAsciiText({ info.datasource, info.username, info.password }), [&](OdbcTextEntry entry) {
+                if (entry == OdbcTextEntry::Wide)
+                    return SQLConnectW(m_hDbc,
+                                       wDataSource.data(),
+                                       wDataSource.length(),
+                                       wUsername.data(),
+                                       wUsername.length(),
+                                       wPassword.data(),
+                                       wPassword.length());
+                return SQLConnect(m_hDbc,
+                                  narrowDataSource.data(),
+                                  narrowDataSource.length(),
+                                  narrowUsername.data(),
+                                  narrowUsername.length(),
+                                  narrowPassword.data(),
+                                  narrowPassword.length());
+            });
     }
     // Through the fault seam rather than a bare SQL_SUCCEEDED, so a test can make an attempt fail
     // transiently and drive the retry loop in Connect() without a server that drops connections.
@@ -591,6 +740,7 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionDataSo
 
     if (!PostConnect())
         return std::unexpected(LastError());
+    RememberDriverTextEntry(driverKey, m_acceptsWideQueryText);
 
     SqlLogger::GetLogger().OnConnectionOpened(*this);
     // Not covered by the suite: this is the success tail of the DSN overload, and reaching it needs a
@@ -622,21 +772,27 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce() noexcept
     m_data->preparedStatementCache.Clear();
 
     if (m_hDbc)
+    {
+        detail::UnregisterAnsiOnlyHandle(m_hDbc);
         SQLDisconnect(m_hDbc);
+    }
 
-    // Convert the connection string from UTF-8 to UTF-16 *before* the scoped lock so
-    // the W-variant `SQLDriverConnectW` call below puts this DBC handle into Unicode-app
-    // mode for the rest of its lifetime. Without this, psqlODBC on Windows drops into
-    // ANSI mode and runs every SQL_C_CHAR / SQL_C_WCHAR payload through the system
-    // codepage, which mangles UTF-8 bytes ≥ 0x80 and UTF-16 surrogate pairs. The
-    // try/catch defends the noexcept contract against std::bad_alloc from the UTF-16
-    // allocation (and from the allocations in SanitizePwd below).
+    // Prepare both forms of the connection string *before* the scoped lock. The wide one,
+    // through `SQLDriverConnectW`, puts this DBC handle into Unicode-app mode for the rest of
+    // its lifetime; without it psqlODBC on Windows drops into ANSI mode and runs every
+    // SQL_C_CHAR / SQL_C_WCHAR payload through the system codepage. The UTF-8 one serves an
+    // ANSI-only driver off Windows (see ConnectThroughDriverTextEntry). The try/catch defends
+    // the noexcept contract against std::bad_alloc from these allocations and SanitizePwd's.
     detail::OdbcWideArg wConnectionString { std::string_view {} };
+    detail::OdbcNarrowArg narrowConnectionString { std::string_view {} };
+    auto driverKey = std::string {};
     try
     {
         auto const sanitized = SqlConnectionString::SanitizePwd(m_data->connectionString.value);
         ZoneTextObject(sanitized);
         wConnectionString = detail::OdbcWideArg { m_data->connectionString.value };
+        narrowConnectionString = detail::OdbcNarrowArg { m_data->connectionString.value };
+        driverKey = DriverKey(m_data->connectionString);
     }
     catch (...)
     {
@@ -648,14 +804,26 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce() noexcept
         // Serialize ODBC connection establishment to prevent data races in the ODBC driver
         // and OpenSSL during concurrent TLS handshakes (detected by ThreadSanitizer).
         std::scoped_lock const lock(gConnectionMutex);
-        sqlResult = SQLDriverConnectW(m_hDbc,
-                                      (SQLHWND) nullptr,
-                                      wConnectionString.data(),
-                                      wConnectionString.length(),
-                                      nullptr,
-                                      0,
-                                      nullptr,
-                                      SQL_DRIVER_NOPROMPT);
+        sqlResult = ConnectThroughDriverTextEntry(
+            m_hDbc, driverKey, HasNonAsciiText({ m_data->connectionString.value }), [&](OdbcTextEntry entry) {
+                if (entry == OdbcTextEntry::Wide)
+                    return SQLDriverConnectW(m_hDbc,
+                                             (SQLHWND) nullptr,
+                                             wConnectionString.data(),
+                                             wConnectionString.length(),
+                                             nullptr,
+                                             0,
+                                             nullptr,
+                                             SQL_DRIVER_NOPROMPT);
+                return SQLDriverConnect(m_hDbc,
+                                        (SQLHWND) nullptr,
+                                        narrowConnectionString.data(),
+                                        narrowConnectionString.length(),
+                                        nullptr,
+                                        0,
+                                        nullptr,
+                                        SQL_DRIVER_NOPROMPT);
+            });
     }
     // Through the fault seam rather than a bare SQL_SUCCEEDED, so a test can make an attempt fail
     // transiently and drive the retry loop in Connect() without a server that drops connections.
@@ -668,6 +836,7 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce() noexcept
 
     if (!PostConnect())
         return std::unexpected(LastError());
+    RememberDriverTextEntry(driverKey, m_acceptsWideQueryText);
     SqlLogger::GetLogger().OnConnectionOpened(*this);
     LIGHTWEIGHT_STATS_CONNECTION_OPENED();
 
@@ -739,6 +908,10 @@ bool SqlConnection::PostConnect()
 
     // Decided before the first statement below is issued, so every statement takes the right entry point.
     m_acceptsWideQueryText = DriverAcceptsWideQueryText(m_hDbc);
+    if (m_acceptsWideQueryText)
+        detail::UnregisterAnsiOnlyHandle(m_hDbc);
+    else
+        detail::RegisterAnsiOnlyHandle(m_hDbc, m_hDbc);
 
     // The server type is only known now, so this is the earliest point at which the backend capability
     // gate on the prepared-statement cache can be evaluated.
@@ -787,6 +960,7 @@ void SqlConnection::Close() noexcept
     if (m_data)
         m_data->preparedStatementCache.Clear();
 
+    detail::UnregisterAnsiOnlyHandle(m_hDbc);
     SQLDisconnect(m_hDbc);
     SQLFreeHandle(SQL_HANDLE_DBC, m_hDbc);
     SQLFreeHandle(SQL_HANDLE_ENV, m_hEnv);

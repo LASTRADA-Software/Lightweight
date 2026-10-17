@@ -306,7 +306,10 @@ SqlStatement::SqlStatement():
     m_connection { &*m_data->ownedConnection }
 {
     if (m_connection->NativeHandle())
+    {
         RequireSuccess(SQLAllocHandle(SQL_HANDLE_STMT, m_connection->NativeHandle(), &m_hStmt));
+        RegisterHandleTextEntry();
+    }
 }
 
 SqlStatement::SqlStatement(SqlStatement&& other) noexcept:
@@ -359,6 +362,7 @@ SqlStatement::SqlStatement(SqlConnection& relatedConnection):
     m_connection { &relatedConnection }
 {
     RequireSuccess(SQLAllocHandle(SQL_HANDLE_STMT, m_connection->NativeHandle(), &m_hStmt));
+    RegisterHandleTextEntry();
 }
 
 SqlStatement::SqlStatement(std::nullopt_t /*nullopt*/):
@@ -391,7 +395,14 @@ SqlStatement::~SqlStatement() noexcept
     if (ReleasePreparedHandle())
         return;
 
+    detail::UnregisterAnsiOnlyHandle(m_hStmt);
     SQLFreeHandle(SQL_HANDLE_STMT, m_hStmt);
+}
+
+void SqlStatement::RegisterHandleTextEntry() noexcept
+{
+    if (m_hStmt != SQL_NULL_HSTMT && !m_connection->AcceptsWideQueryText())
+        detail::RegisterAnsiOnlyHandle(m_hStmt, m_connection->NativeHandle());
 }
 
 void SqlStatement::SetPreparedStatementCaching(SqlPreparedStatementCaching caching) noexcept
@@ -448,7 +459,10 @@ bool SqlStatement::ReleasePreparedHandle(SqlPreparedStatementCache& cache) noexc
 void SqlStatement::EnsureStatementHandle()
 {
     if (m_hStmt == SQL_NULL_HSTMT && m_connection != nullptr)
+    {
         m_connection->RequireSuccess(SQLAllocHandle(SQL_HANDLE_STMT, m_connection->NativeHandle(), &m_hStmt));
+        RegisterHandleTextEntry();
+    }
 }
 
 void SqlStatement::ReleasePreparedHandleForDirectExecution()
@@ -476,7 +490,10 @@ bool SqlStatement::AcquirePreparedHandle(SqlPreparedStatementCache& cache, std::
 
     // Whatever we still hold was not worth pooling (it carries no prepared query), so it is surplus now.
     if (m_hStmt != SQL_NULL_HSTMT)
+    {
+        detail::UnregisterAnsiOnlyHandle(m_hStmt);
         SQLFreeHandle(SQL_HANDLE_STMT, m_hStmt);
+    }
 
     m_hStmt = pooled->nativeHandle;
     // Both counts: m_expectedParameterCount is what Execute() validates against, m_preparedParameterCount

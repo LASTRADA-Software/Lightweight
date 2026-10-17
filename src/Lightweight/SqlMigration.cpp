@@ -9,6 +9,7 @@
 #include "SqlErrorDetection.hpp"
 #include "SqlLogger.hpp"
 #include "SqlMigration.hpp"
+#include "SqlOdbcWide.hpp"
 #include "SqlSchema.hpp"
 #include "SqlServerDependentObjects.hpp"
 #include "SqlTransaction.hpp"
@@ -986,7 +987,7 @@ namespace
                                                      EscapeSqlStringLiteral(tableName)));
         if (!cursor.FetchRow())
             throw std::runtime_error(std::format("SQLite rebuild: table '{}' not found in sqlite_schema", tableName));
-        return cursor.GetColumn<std::string>(1);
+        return Lightweight::detail::GetTextColumn(cursor, 1);
     }
 
     /// Fetch the insertable column names of a SQLite table in declared order.
@@ -1001,7 +1002,7 @@ namespace
         while (cursor.FetchRow())
             // table_xinfo columns: 1=cid 2=name 3=type 4=notnull 5=dflt_value 6=pk 7=hidden.
             if (cursor.GetColumn<int64_t>(7) == 0) // ordinary (insertable) column
-                columns.push_back(cursor.GetColumn<std::string>(2));
+                columns.push_back(Lightweight::detail::GetTextColumn(cursor, 2));
         return columns;
     }
 
@@ -1020,7 +1021,7 @@ namespace
             EscapeSqlStringLiteral(tableName)));
         std::vector<std::string> dependentObjectsSql;
         while (cursor.FetchRow())
-            dependentObjectsSql.push_back(cursor.GetColumn<std::string>(1));
+            dependentObjectsSql.push_back(Lightweight::detail::GetTextColumn(cursor, 1));
         return dependentObjectsSql;
     }
 
@@ -1922,8 +1923,8 @@ namespace
                 auto cursor = stmt.ExecuteDirect(sql);
                 while (cursor.FetchRow())
                 {
-                    auto const columnName = cursor.GetColumn<std::string>(1);
-                    auto const dataType = cursor.GetColumn<std::string>(2);
+                    auto const columnName = Lightweight::detail::GetTextColumn(cursor, 1);
+                    auto const dataType = Lightweight::detail::GetTextColumn(cursor, 2);
                     // CHARACTER_MAXIMUM_LENGTH is NULL for non-character columns —
                     // those rows are skipped silently.
                     auto const maxLengthOpt = cursor.GetNullableColumn<long long>(3);
@@ -3568,7 +3569,7 @@ namespace
                                                  "unnest(current_schemas(false)) WITH ORDINALITY AS path (name, position) "
                                                  "ORDER BY path.position");
                 while (cursor.FetchRow())
-                    schemas.push_back(cursor.GetNullableColumn<std::string>(1).value_or(std::string {}));
+                    schemas.push_back(Lightweight::detail::GetTextColumn(cursor, 1));
                 return schemas;
             }
             default:

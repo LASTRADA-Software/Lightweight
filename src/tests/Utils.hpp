@@ -908,7 +908,9 @@ class SqlTestFixture
             auto cursor = Lightweight::SqlResultCursor(stmt);
             while (cursor.FetchRow())
             {
-                result.emplace_back(cursor.GetColumn<std::string>(3)); // table name
+                // Read as UTF-16: a narrow read may hand back a non-ASCII name in the client code page.
+                auto const utf8 = Lightweight::ToUtf8(std::u16string_view { cursor.GetColumn<std::u16string>(3) });
+                result.emplace_back(reinterpret_cast<char const*>(utf8.data()), utf8.size());
             }
         }
         return result;

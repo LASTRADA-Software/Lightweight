@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "DataBinder/UnicodeConverter.hpp"
 #include "SqlColumnTypeDefinitions.hpp"
 #include "SqlError.hpp"
 #include "SqlOdbcWide.hpp"
@@ -17,6 +18,7 @@
 #include <map>
 #include <optional>
 #include <set>
+#include <string>
 #include <string_view>
 #include <utility>
 
@@ -31,7 +33,10 @@ namespace Lightweight::SqlSchema
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 
-using ::Lightweight::detail::OdbcWideArg;
+using ::Lightweight::detail::CallWithOdbcText;
+using ::Lightweight::detail::GetNullableTextColumn;
+using ::Lightweight::detail::GetTextColumn;
+using ::Lightweight::detail::OdbcEntryPoint;
 
 namespace
 {
@@ -98,26 +103,30 @@ namespace
 
     std::vector<TableWithSchema> AllTables(SqlStatement& stmt, std::string_view database, std::string_view schema)
     {
-        auto wDatabase = OdbcWideArg { database };
-        auto wSchema = OdbcWideArg { schema };
-        auto sqlResult = SQLTablesW(stmt.NativeHandle(),
-                                    wDatabase.data(),
-                                    wDatabase.length(),
-                                    wSchema.data(),
-                                    wSchema.length(),
-                                    nullptr,
-                                    0,
-                                    nullptr,
-                                    0);
+        auto const sqlResult = CallWithOdbcText(
+            stmt.Connection().AcceptsWideQueryText(),
+            [&]<typename Text>(Text& catalogName, Text& schemaName) {
+                return OdbcEntryPoint<Text>(&SQLTablesW, &SQLTables)(stmt.NativeHandle(),
+                                                                     catalogName.data(),
+                                                                     catalogName.length(),
+                                                                     schemaName.data(),
+                                                                     schemaName.length(),
+                                                                     nullptr,
+                                                                     0,
+                                                                     nullptr,
+                                                                     0);
+            },
+            database,
+            schema);
         SqlErrorInfo::RequireStatementSuccess(sqlResult, stmt.NativeHandle(), "SQLTables");
 
         auto result = std::vector<TableWithSchema>();
         auto cursor = SqlResultCursor(stmt);
         while (cursor.FetchRow())
         {
-            auto schemaOpt = cursor.GetNullableColumn<std::string>(2);
-            auto nameOpt = cursor.GetNullableColumn<std::string>(3);
-            auto typeOpt = cursor.GetNullableColumn<std::string>(4);
+            auto schemaOpt = GetNullableTextColumn(cursor, 2);
+            auto nameOpt = GetNullableTextColumn(cursor, 3);
+            auto typeOpt = GetNullableTextColumn(cursor, 4);
             if (!nameOpt)
                 continue;
 
@@ -165,9 +174,9 @@ namespace
             auto const id = cursor.GetColumn<int>(1);
             auto row = Row {
                 .seq = cursor.GetColumn<int>(2),
-                .fkColumn = cursor.GetColumn<std::string>(4),
-                .pkColumn = cursor.GetColumn<std::string>(5),
-                .targetTable = cursor.GetColumn<std::string>(3),
+                .fkColumn = GetTextColumn(cursor, 4),
+                .pkColumn = GetTextColumn(cursor, 5),
+                .targetTable = GetTextColumn(cursor, 3),
             };
             if (!byId.contains(id))
                 idOrder.push_back(id);
@@ -213,25 +222,30 @@ namespace
             return AllForeignKeysFromSqlite(stmt, foreignKey);
         }
 
-        auto wPkCatalog = OdbcWideArg { primaryKey.catalog };
-        auto wPkSchema = OdbcWideArg { primaryKey.schema };
-        auto wPkTable = OdbcWideArg { primaryKey.table };
-        auto wFkCatalog = OdbcWideArg { foreignKey.catalog };
-        auto wFkSchema = OdbcWideArg { foreignKey.schema };
-        auto wFkTable = OdbcWideArg { foreignKey.table };
-        auto sqlResult = SQLForeignKeysW(stmt.NativeHandle(),
-                                         wPkCatalog.data(),
-                                         wPkCatalog.length(),
-                                         wPkSchema.data(),
-                                         wPkSchema.length(),
-                                         wPkTable.data(),
-                                         wPkTable.length(),
-                                         wFkCatalog.data(),
-                                         wFkCatalog.length(),
-                                         wFkSchema.data(),
-                                         wFkSchema.length(),
-                                         wFkTable.data(),
-                                         wFkTable.length());
+        auto const sqlResult = CallWithOdbcText(
+            stmt.Connection().AcceptsWideQueryText(),
+            [&]<typename Text>(
+                Text& pkCatalog, Text& pkSchema, Text& pkTable, Text& fkCatalog, Text& fkSchema, Text& fkTable) {
+                return OdbcEntryPoint<Text>(&SQLForeignKeysW, &SQLForeignKeys)(stmt.NativeHandle(),
+                                                                               pkCatalog.data(),
+                                                                               pkCatalog.length(),
+                                                                               pkSchema.data(),
+                                                                               pkSchema.length(),
+                                                                               pkTable.data(),
+                                                                               pkTable.length(),
+                                                                               fkCatalog.data(),
+                                                                               fkCatalog.length(),
+                                                                               fkSchema.data(),
+                                                                               fkSchema.length(),
+                                                                               fkTable.data(),
+                                                                               fkTable.length());
+            },
+            primaryKey.catalog,
+            primaryKey.schema,
+            primaryKey.table,
+            foreignKey.catalog,
+            foreignKey.schema,
+            foreignKey.table);
 
         if (!SQL_SUCCEEDED(sqlResult))
             throw std::runtime_error(std::format("SQLForeignKeys failed: {}", stmt.LastError()));
@@ -270,20 +284,20 @@ namespace
         while (cursor.FetchRow())
         {
             auto primaryKeyTable = FullyQualifiedTableName {
-                .catalog = cursor.GetNullableColumn<std::string>(1).value_or(""),
-                .schema = cursor.GetNullableColumn<std::string>(2).value_or(""),
-                .table = cursor.GetNullableColumn<std::string>(3).value_or(""),
+                .catalog = GetNullableTextColumn(cursor, 1).value_or(""),
+                .schema = GetNullableTextColumn(cursor, 2).value_or(""),
+                .table = GetNullableTextColumn(cursor, 3).value_or(""),
             };
-            auto pkColumnName = cursor.GetNullableColumn<std::string>(4).value_or("");
+            auto pkColumnName = GetNullableTextColumn(cursor, 4).value_or("");
             auto foreignKeyTable = FullyQualifiedTableName {
-                .catalog = cursor.GetNullableColumn<std::string>(5).value_or(""),
-                .schema = cursor.GetNullableColumn<std::string>(6).value_or(""),
-                .table = cursor.GetNullableColumn<std::string>(7).value_or(""),
+                .catalog = GetNullableTextColumn(cursor, 5).value_or(""),
+                .schema = GetNullableTextColumn(cursor, 6).value_or(""),
+                .table = GetNullableTextColumn(cursor, 7).value_or(""),
             };
-            auto foreignKeyColumn = cursor.GetNullableColumn<std::string>(8).value_or("");
+            auto foreignKeyColumn = GetNullableTextColumn(cursor, 8).value_or("");
             auto const sequenceNumber = static_cast<size_t>(cursor.GetNullableColumn<int16_t>(9).value_or(1));
             // FK_NAME is column 12 in the ODBC spec; some drivers may not expose it.
-            auto fkName = numColumns >= 12 ? cursor.GetNullableColumn<std::string>(12).value_or("") : std::string {};
+            auto fkName = numColumns >= 12 ? GetNullableTextColumn(cursor, 12).value_or("") : std::string {};
             auto key = ConstraintKey {
                 .fkName = std::move(fkName),
                 .fkTable = std::move(foreignKeyTable),
@@ -337,7 +351,7 @@ namespace
             while (cursor.FetchRow())
             {
                 // cid, name, type, notnull, dflt_value, pk
-                auto name = cursor.GetColumn<std::string>(2);
+                auto name = GetTextColumn(cursor, 2);
                 auto pkInfo = cursor.GetColumn<int>(6);
                 if (pkInfo > 0)
                     pkCols.emplace_back(pkInfo, name);
@@ -351,24 +365,27 @@ namespace
 
             return sortedKeys;
         }
-        auto wCatalog = OdbcWideArg { table.catalog };
-        auto wSchema = OdbcWideArg { table.schema };
-        auto wTable = OdbcWideArg { table.table };
-
-        auto sqlResult = SQLPrimaryKeysW(stmt.NativeHandle(),
-                                         wCatalog.data(),
-                                         wCatalog.length(),
-                                         wSchema.data(),
-                                         wSchema.length(),
-                                         wTable.data(),
-                                         wTable.length());
+        auto const sqlResult = CallWithOdbcText(
+            stmt.Connection().AcceptsWideQueryText(),
+            [&]<typename Text>(Text& catalogName, Text& schemaName, Text& tableName) {
+                return OdbcEntryPoint<Text>(&SQLPrimaryKeysW, &SQLPrimaryKeys)(stmt.NativeHandle(),
+                                                                               catalogName.data(),
+                                                                               catalogName.length(),
+                                                                               schemaName.data(),
+                                                                               schemaName.length(),
+                                                                               tableName.data(),
+                                                                               tableName.length());
+            },
+            table.catalog,
+            table.schema,
+            table.table);
         if (!SQL_SUCCEEDED(sqlResult))
             throw std::runtime_error(std::format("SQLPrimaryKeys failed: {}", stmt.LastError()));
 
         auto cursor = SqlResultCursor(stmt);
         while (cursor.FetchRow())
         {
-            keys.emplace_back(cursor.GetNullableColumn<std::string>(4).value_or(""));
+            keys.emplace_back(GetNullableTextColumn(cursor, 4).value_or(""));
             sequenceNumbers.emplace_back(cursor.GetNullableColumn<int16_t>(5).value_or(0));
         }
 
@@ -388,19 +405,22 @@ namespace
 
     std::vector<std::string> AllUniqueColumns(SqlStatement& stmt, FullyQualifiedTableName const& table)
     {
-        auto wCatalog = OdbcWideArg { table.catalog };
-        auto wSchema = OdbcWideArg { table.schema };
-        auto wTable = OdbcWideArg { table.table };
-
-        auto sqlResult = SQLStatisticsW(stmt.NativeHandle(),
-                                        wCatalog.data(),
-                                        wCatalog.length(),
-                                        wSchema.data(),
-                                        wSchema.length(),
-                                        wTable.data(),
-                                        wTable.length(),
-                                        SQL_INDEX_UNIQUE,
-                                        SQL_ENSURE);
+        auto const sqlResult = CallWithOdbcText(
+            stmt.Connection().AcceptsWideQueryText(),
+            [&]<typename Text>(Text& catalogName, Text& schemaName, Text& tableName) {
+                return OdbcEntryPoint<Text>(&SQLStatisticsW, &SQLStatistics)(stmt.NativeHandle(),
+                                                                             catalogName.data(),
+                                                                             catalogName.length(),
+                                                                             schemaName.data(),
+                                                                             schemaName.length(),
+                                                                             tableName.data(),
+                                                                             tableName.length(),
+                                                                             SQL_INDEX_UNIQUE,
+                                                                             SQL_ENSURE);
+            },
+            table.catalog,
+            table.schema,
+            table.table);
 
         if (!SQL_SUCCEEDED(sqlResult))
             return {}; // Ignore errors or throw? Safest to ignore for now as some drivers might not support it fully.
@@ -420,8 +440,8 @@ namespace
         {
             // Col 6: INDEX_NAME
             // Col 9: COLUMN_NAME
-            auto indexName = cursor.GetNullableColumn<std::string>(6).value_or("");
-            auto columnName = cursor.GetNullableColumn<std::string>(9).value_or("");
+            auto indexName = GetNullableTextColumn(cursor, 6).value_or("");
+            auto columnName = GetNullableTextColumn(cursor, 9).value_or("");
             if (!indexName.empty() && !columnName.empty())
                 uniqueIndices[indexName].push_back(columnName);
         }
@@ -479,9 +499,9 @@ namespace
         auto order = std::vector<std::string> {};
         while (cursor.FetchRow())
         {
-            auto name = cursor.GetColumn<std::string>(1);
+            auto name = GetTextColumn(cursor, 1);
             auto isUnique = cursor.GetColumn<bool>(2);
-            auto column = cursor.GetColumn<std::string>(3);
+            auto column = GetTextColumn(cursor, 3);
             auto ordinal = cursor.GetColumn<int>(4);
             if (!byName.contains(name))
                 order.push_back(name);
@@ -533,20 +553,23 @@ namespace
             // Use a separate statement to avoid issues with pending cursors from previous operations
             auto indexStmt = SqlStatement { stmt.Connection() };
 
-            auto wCatalog = OdbcWideArg { table.catalog };
-            auto wSchema = OdbcWideArg { table.schema };
-            auto wTable = OdbcWideArg { table.table };
-
             // Use SQL_INDEX_ALL to retrieve all index types
-            auto sqlResult = SQLStatisticsW(indexStmt.NativeHandle(),
-                                            wCatalog.data(),
-                                            wCatalog.length(),
-                                            wSchema.data(),
-                                            wSchema.length(),
-                                            wTable.data(),
-                                            wTable.length(),
-                                            SQL_INDEX_ALL,
-                                            SQL_ENSURE);
+            auto const sqlResult = CallWithOdbcText(
+                indexStmt.Connection().AcceptsWideQueryText(),
+                [&]<typename Text>(Text& catalogName, Text& schemaName, Text& tableName) {
+                    return OdbcEntryPoint<Text>(&SQLStatisticsW, &SQLStatistics)(indexStmt.NativeHandle(),
+                                                                                 catalogName.data(),
+                                                                                 catalogName.length(),
+                                                                                 schemaName.data(),
+                                                                                 schemaName.length(),
+                                                                                 tableName.data(),
+                                                                                 tableName.length(),
+                                                                                 SQL_INDEX_ALL,
+                                                                                 SQL_ENSURE);
+                },
+                table.catalog,
+                table.schema,
+                table.table);
 
             if (!SQL_SUCCEEDED(sqlResult))
                 return {};
@@ -582,8 +605,8 @@ namespace
                 if (!typeOpt || *typeOpt == 0)
                     continue;
 
-                auto indexNameOpt = indexCursor.GetNullableColumn<std::string>(6);
-                auto columnNameOpt = indexCursor.GetNullableColumn<std::string>(9);
+                auto indexNameOpt = GetNullableTextColumn(indexCursor, 6);
+                auto columnNameOpt = GetNullableTextColumn(indexCursor, 9);
 
                 if (!indexNameOpt || indexNameOpt->empty() || !columnNameOpt || columnNameOpt->empty())
                     continue;
@@ -672,7 +695,7 @@ namespace
                 std::vector<std::string> identityCols;
                 while (identityCursor.FetchRow())
                 {
-                    identityCols.push_back(identityCursor.GetColumn<std::string>(1));
+                    identityCols.push_back(GetTextColumn(identityCursor, 1));
                 }
                 return identityCols;
             }
@@ -752,8 +775,8 @@ namespace
         while (cursor.FetchRow())
         {
             auto const objectId = static_cast<int64_t>(cursor.GetColumn<int>(1));
-            auto schemaName = cursor.GetNullableColumn<std::string>(2).value_or("");
-            auto tableName = cursor.GetNullableColumn<std::string>(3).value_or("");
+            auto schemaName = GetNullableTextColumn(cursor, 2).value_or("");
+            auto tableName = GetNullableTextColumn(cursor, 3).value_or("");
             data.objectIdByName[{ std::move(schemaName), std::move(tableName) }] = objectId;
         }
     }
@@ -796,14 +819,14 @@ namespace
         {
             auto const objectId = static_cast<int64_t>(cursor.GetColumn<int>(1));
             auto row = MssqlColumnRow {
-                .name = cursor.GetNullableColumn<std::string>(3).value_or(""),
-                .sysTypeName = cursor.GetNullableColumn<std::string>(4).value_or(""),
+                .name = GetNullableTextColumn(cursor, 3).value_or(""),
+                .sysTypeName = GetNullableTextColumn(cursor, 4).value_or(""),
                 .maxLength = cursor.GetNullableColumn<int>(5).value_or(0),
                 .precision = cursor.GetNullableColumn<int>(6).value_or(0),
                 .scale = cursor.GetNullableColumn<int>(7).value_or(0),
                 .isNullable = cursor.GetNullableColumn<int>(8).value_or(1) != 0,
                 .isIdentity = cursor.GetNullableColumn<int>(9).value_or(0) != 0,
-                .defaultValue = cursor.GetNullableColumn<std::string>(10).value_or(""),
+                .defaultValue = GetNullableTextColumn(cursor, 10).value_or(""),
             };
             data.columnsByObject[objectId].push_back(std::move(row));
         }
@@ -828,7 +851,7 @@ namespace
         while (cursor.FetchRow())
         {
             auto const objectId = static_cast<int64_t>(cursor.GetColumn<int>(1));
-            auto name = cursor.GetNullableColumn<std::string>(2).value_or("");
+            auto name = GetNullableTextColumn(cursor, 2).value_or("");
             if (!name.empty())
                 data.primaryKeysByObject[objectId].push_back(std::move(name));
         }
@@ -890,13 +913,13 @@ namespace
             // raised 07009 "Invalid Descriptor Index". Pull all fields into locals first, then group.
             auto const fkObjectId = static_cast<int64_t>(cursor.GetColumn<int>(1));
             auto const parentObjectId = static_cast<int64_t>(cursor.GetNullableColumn<int>(2).value_or(0));
-            auto parentSchema = cursor.GetNullableColumn<std::string>(3).value_or("");
-            auto parentTableName = cursor.GetNullableColumn<std::string>(4).value_or("");
-            auto parentColumn = cursor.GetNullableColumn<std::string>(5).value_or("");
+            auto parentSchema = GetNullableTextColumn(cursor, 3).value_or("");
+            auto parentTableName = GetNullableTextColumn(cursor, 4).value_or("");
+            auto parentColumn = GetNullableTextColumn(cursor, 5).value_or("");
             auto const referencedObjectId = static_cast<int64_t>(cursor.GetNullableColumn<int>(6).value_or(0));
-            auto referencedSchema = cursor.GetNullableColumn<std::string>(7).value_or("");
-            auto referencedTableName = cursor.GetNullableColumn<std::string>(8).value_or("");
-            auto referencedColumn = cursor.GetNullableColumn<std::string>(9).value_or("");
+            auto referencedSchema = GetNullableTextColumn(cursor, 7).value_or("");
+            auto referencedTableName = GetNullableTextColumn(cursor, 8).value_or("");
+            auto referencedColumn = GetNullableTextColumn(cursor, 9).value_or("");
 
             if (!byConstraint.contains(fkObjectId))
             {
@@ -977,9 +1000,9 @@ namespace
         while (cursor.FetchRow())
         {
             auto const objectId = static_cast<int64_t>(cursor.GetColumn<int>(1));
-            auto name = cursor.GetNullableColumn<std::string>(2).value_or("");
+            auto name = GetNullableTextColumn(cursor, 2).value_or("");
             auto const isUnique = cursor.GetNullableColumn<int>(3).value_or(0) != 0;
-            auto column = cursor.GetNullableColumn<std::string>(4).value_or("");
+            auto column = GetNullableTextColumn(cursor, 4).value_or("");
             auto const ordinal = cursor.GetNullableColumn<int>(5).value_or(0);
             auto const key = std::pair<int64_t, std::string> { objectId, name };
             if (!byKey.contains(key))
@@ -1048,7 +1071,7 @@ namespace
         {
             auto const objectId = static_cast<int64_t>(cursor.GetColumn<int>(1));
             auto const indexId = cursor.GetNullableColumn<int>(2).value_or(0);
-            auto column = cursor.GetNullableColumn<std::string>(3).value_or("");
+            auto column = GetNullableTextColumn(cursor, 3).value_or("");
             auto& acc = byIndex[{ objectId, indexId }];
             acc.objectId = objectId;
             if (!column.empty())
@@ -1363,18 +1386,22 @@ namespace detail
         eventHandler.OnIndexes(indexes);
 
         auto columnStmt = SqlStatement { stmt.Connection() };
-        auto wDatabase = OdbcWideArg { database };
-        auto wTableSchema = OdbcWideArg { tableSchema };
-        auto wTableName = OdbcWideArg { tableName };
-        auto const sqlResult = SQLColumnsW(columnStmt.NativeHandle(),
-                                           wDatabase.data(),
-                                           wDatabase.length(),
-                                           wTableSchema.data(),
-                                           wTableSchema.length(),
-                                           wTableName.data(),
-                                           wTableName.length(),
-                                           nullptr /* column name */,
-                                           0 /* column name length */);
+        auto const sqlResult = CallWithOdbcText(
+            columnStmt.Connection().AcceptsWideQueryText(),
+            [&]<typename Text>(Text& catalogName, Text& schemaName, Text& describedTable) {
+                return OdbcEntryPoint<Text>(&SQLColumnsW, &SQLColumns)(columnStmt.NativeHandle(),
+                                                                       catalogName.data(),
+                                                                       catalogName.length(),
+                                                                       schemaName.data(),
+                                                                       schemaName.length(),
+                                                                       describedTable.data(),
+                                                                       describedTable.length(),
+                                                                       nullptr /* column name */,
+                                                                       0 /* column name length */);
+            },
+            database,
+            tableSchema,
+            tableName);
         if (!SQL_SUCCEEDED(sqlResult))
             throw std::runtime_error(std::format("SQLColumns failed: {}", columnStmt.LastError()));
 
@@ -1396,9 +1423,9 @@ namespace detail
             int type = 0;
             try
             {
-                column.name = columnCursor.GetNullableColumn<std::string>(4).value_or("");
+                column.name = GetNullableTextColumn(columnCursor, 4).value_or("");
                 type = columnCursor.GetColumn<int>(5); // DATA_TYPE
-                column.dialectDependantTypeString = columnCursor.GetNullableColumn<std::string>(6).value_or("");
+                column.dialectDependantTypeString = GetNullableTextColumn(columnCursor, 6).value_or("");
                 // COLUMN_SIZE (column 7) can be negative for some drivers (e.g., PostgreSQL returns -4 for BYTEA)
                 // to indicate "unknown" size. Treat negative values as 0.
                 auto const rawSize = columnCursor.GetColumn<int>(7);
@@ -1438,7 +1465,7 @@ namespace detail
             {
                 try
                 {
-                    column.defaultValue = columnCursor.GetNullableColumn<std::string>(13).value_or("");
+                    column.defaultValue = GetNullableTextColumn(columnCursor, 13).value_or("");
                 }
                 catch (std::exception&)
                 {

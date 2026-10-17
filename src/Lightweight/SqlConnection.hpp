@@ -369,12 +369,14 @@ class SqlConnection final
     /// Retrieves the name of the driver used for this connection.
     [[nodiscard]] std::string const& DriverName() const noexcept;
 
-    /// Tells whether query text reaches the driver intact through the ODBC wide (W) entry points.
+    /// Tells whether text reaches the driver intact through the ODBC wide (W) entry points.
     ///
-    /// A driver that implements only the ANSI entry points (such as the SQLite ODBC driver some Linux
-    /// distributions ship) receives wide text from the driver manager narrowed one UTF-16 code unit to
-    /// one byte, which corrupts every non-ASCII character. SqlStatement hands query text to such a
-    /// driver as UTF-8 through the ANSI entry points instead.
+    /// Off Windows, a driver that implements only the ANSI entry points (such as the SQLite ODBC
+    /// driver some Linux distributions ship) receives wide text from the driver manager narrowed one
+    /// UTF-16 code unit to one byte, which corrupts every non-ASCII character. For such a driver the
+    /// library hands over query text, catalog-function arguments and connection text as UTF-8
+    /// through the ANSI entry points, and reads its diagnostics through them. Always true on Windows,
+    /// whose driver manager converts wide text to the code page an ANSI driver expects.
     [[nodiscard]] bool AcceptsWideQueryText() const noexcept;
 
     /// Retrieves a query formatter suitable for the SQL server being connected.

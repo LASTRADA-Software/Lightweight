@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "SqlOdbcWide.hpp"
 #include "SqlServerDependentObjects.hpp"
 #include "SqlStatement.hpp"
 
@@ -83,10 +84,10 @@ namespace
                            Join(rows));
     }
 
-    /// Reads column `index` as a string (empty when NULL).
+    /// Reads column `index` as UTF-8 text (empty when NULL).
     std::string Text(SqlResultCursor& cursor, SQLUSMALLINT index)
     {
-        return cursor.GetNullableColumn<std::string>(index).value_or(std::string {});
+        return detail::GetTextColumn(cursor, index);
     }
 
     /// Reads column `index` as a 0/1 flag.

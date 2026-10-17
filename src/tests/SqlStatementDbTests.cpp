@@ -719,3 +719,20 @@ TEST_CASE_METHOD(SqlTestFixture, "Query text carries non-ASCII literals to the d
     REQUIRE(counted.FetchRow());
     CHECK(counted.GetColumn<int>(1) == 1);
 }
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "A driver diagnostic quoting a non-ASCII identifier reaches the caller intact",
+                 "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    auto message = std::string {};
+    try
+    {
+        (void) stmt.ExecuteDirect(R"(SELECT * FROM "Café_absent")");
+    }
+    catch (SqlException const& failure)
+    {
+        message = failure.info().message;
+    }
+    CHECK(message.contains("Café_absent"));
+}
