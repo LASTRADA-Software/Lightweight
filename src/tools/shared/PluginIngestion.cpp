@@ -133,6 +133,7 @@ void UnloadPlugins(std::vector<LoadedPlugin>& plugins, Lightweight::SqlMigration
     central.SetCompatPolicy({});
     central.RemoveAllMigrations();
     central.RemoveAllReleases();
+    central.CloseDataMapper();
     plugins.clear();
 }
 

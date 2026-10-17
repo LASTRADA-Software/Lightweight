@@ -10,6 +10,8 @@
 #include <ranges>
 #include <string>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace Lightweight::Tools
 {
@@ -194,14 +196,22 @@ namespace
             return;
         }
 
+        // The listing order is the filesystem's (on ext4 a per-filesystem hash of the names), so the
+        // candidates are sorted by file name to load the plugins in the same order on every machine.
+        auto candidates = std::vector<std::filesystem::path> {};
         for (auto const& entry: std::filesystem::directory_iterator(dir, ec))
         {
             if (ec)
                 break;
             if (!entry.is_regular_file(ec) || !IsPluginExtension(entry.path()) || !HasPluginStemSuffix(entry.path()))
                 continue;
-            IngestCandidate(winners, MakeCandidate(entry.path(), dirIndex, encounter++), emit);
+            candidates.push_back(entry.path());
         }
+        std::ranges::sort(candidates, [](std::filesystem::path const& a, std::filesystem::path const& b) {
+            return a.filename().native() < b.filename().native();
+        });
+        for (auto& candidate: candidates)
+            IngestCandidate(winners, MakeCandidate(std::move(candidate), dirIndex, encounter++), emit);
     }
 
 } // namespace

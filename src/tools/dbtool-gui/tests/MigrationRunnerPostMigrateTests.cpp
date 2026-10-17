@@ -4,8 +4,8 @@
 // apply run, also when nothing was pending, while it still holds the migration
 // lock, and it releases the lock before it reports the run as finished. Dry-runs
 // and failed runs never reach the hook, and a failing or throwing hook fails the
-// run. The hook is a stub; the runner drives a local MigrationManager
-// against a scratch SQLite database.
+// run. A run whose task throws is still reported as failed. The hook is a stub;
+// the runner drives a local MigrationManager against a scratch SQLite database.
 
 #include "../MigrationRunner.hpp"
 #include "SqliteDriver.hpp"
@@ -362,4 +362,22 @@ TEST_CASE("MigrationRunner releases the migration lock before it reports the run
     CHECK(done.first().at(0).toBool());
     CHECK(MigrationLockStateNow() == "free");
     CHECK(lockStates == std::vector<std::string> { "held" });
+}
+
+TEST_CASE("MigrationRunner reports a run whose task throws as failed and leaves Running", "[dbtool-gui][busy-guard]")
+{
+    // The scratch database has no schema_migrations table, so listing the pending migrations logs
+    // that read failure, and this sink throws from inside the dry run's task.
+    ScratchDatabase const database;
+    MigrationManager manager;
+    manager.SetLogSink([](std::string_view /*message*/) { throw std::runtime_error("log sink failed"); });
+    MigrationRunner runner;
+    runner.SetManager(&manager);
+
+    QSignalSpy done(&runner, &MigrationRunner::finished);
+    runner.dryRunUpTo(QString {});
+    REQUIRE(WaitFor(done));
+
+    CHECK_FALSE(done.first().at(0).toBool());
+    CHECK(runner.phase() == MigrationRunner::Phase::Idle);
 }

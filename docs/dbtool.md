@@ -184,6 +184,13 @@ case-insensitive on Windows and case-sensitive elsewhere; when two
 same-named files share the same modification time, the directory listed
 earlier in the sequence wins.
 
+Plugins load in a fixed order: directory by directory in the order they are
+listed, and within one directory by file name, compared ordinally (character
+code by character code, so case-sensitively: `Zeta` sorts before `alpha`). A
+plugin that shadows a same-named one from an earlier directory loads in the
+place of the one it shadows. The order in which the filesystem lists a
+directory plays no part, so the load order is the same on every machine.
+
 Pass `--verbose` (`-v`) to see one stderr line per discarded duplicate, e.g.:
 
 ```

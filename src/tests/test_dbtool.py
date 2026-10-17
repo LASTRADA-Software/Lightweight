@@ -828,6 +828,10 @@ def main():
     parser.add_argument("--connection-string", help="Database connection string")
     parser.add_argument("--test-env", help="Use connection string from .test-env.yml (e.g., sqlite3, mssql, postgres)")
     args, _ = parser.parse_known_args()
+    # Several tests run dbtool from another working directory, where a relative path would no
+    # longer find it or its plugins.
+    args.dbtool = os.path.abspath(args.dbtool)
+    args.plugins_dir = os.path.abspath(args.plugins_dir)
 
     # Determine connection string: --test-env takes precedence over --connection-string
     if args.test_env:

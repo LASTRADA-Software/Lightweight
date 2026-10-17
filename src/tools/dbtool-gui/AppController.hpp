@@ -406,6 +406,7 @@ class AppController: public QObject
     /// connection string if no profile is selected). Loads migration plugins
     /// from the profile's `pluginsDir`, creates the `schema_migrations`
     /// table if it is missing, and refreshes the migration / release models.
+    /// Refused with a warning while a migration run is active.
     Q_INVOKABLE bool connectToProfile();
 
     /// Re-enumerates the system ODBC DSNs and refreshes the
@@ -530,7 +531,8 @@ class AppController: public QObject
     /// property that influences the effective directory (plugins override,
     /// current profile, connection mode) changes, so the migration list is
     /// always visible as soon as a directory is known — without waiting for
-    /// a successful DB connect.
+    /// a successful DB connect. While a migration run is active it only marks
+    /// the reload as pending; the run's `finished` handler then performs it.
     void ReloadPlugins();
 
     /// Drops the "connected" flag (emitting `connectedChanged`) without
@@ -588,6 +590,8 @@ class AppController: public QObject
     /// True once `connectToProfile` routed the migration manager's log sink into this
     /// controller; the destructor removes it again so it cannot outlive us.
     bool _installedMigrationLogSink = false;
+    /// True when `ReloadPlugins` was refused during a migration run and must run once it finishes.
+    bool _pluginReloadPending = false;
     QString _profilePath;
     QString _lastError;
     QString _lastWarning;

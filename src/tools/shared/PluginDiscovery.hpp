@@ -38,7 +38,15 @@ struct ResolvedPlugin
 /// Scans every directory in `dirs` for shared libraries (`.so` / `.dll` /
 /// `.dylib`) **whose file stem ends with the literal token `Plugin`** (e.g.
 /// `FooPlugin.dll`, `SqlMigrationsPlugin.so`), deduplicates by filename, and
-/// returns the surviving entries in directory-listing order.
+/// returns the surviving entries in load order.
+///
+/// Load order:
+///   - Directories in the order of `dirs`; within one directory, by file name,
+///     compared ordinally (code unit by code unit of the native path encoding,
+///     so case-sensitively: `Zeta` sorts before `alpha`). The order a filesystem
+///     lists a directory in is unspecified, so it is not used.
+///   - A file that shadows a same-named one from an earlier directory takes the
+///     position of the file it shadows.
 ///
 /// Naming requirement:
 ///   - A file is only considered a plugin candidate when its stem ends in

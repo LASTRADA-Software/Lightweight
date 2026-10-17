@@ -157,10 +157,17 @@ DataMapper& MigrationManager::GetDataMapper()
     // look stale early (one reconnect too many), never current late.
     auto const generation = SqlConnection::DefaultConnectionStringGeneration();
     if (!_dataMapper)
+    {
         _dataMapper = std::make_unique<DataMapper>();
-    else if (generation != _dataMapperGeneration)
+        _dataMapperGeneration = generation;
+    }
+    // Generation 0 means this copy of the library never had a default set, as in a plugin that links
+    // Lightweight statically and reaches the host's manager from a hook: it keeps the host's mapper.
+    else if (generation != _dataMapperGeneration && generation != 0)
+    {
         *_dataMapper = DataMapper {}; // in place: references handed out earlier stay valid
-    _dataMapperGeneration = generation;
+        _dataMapperGeneration = generation;
+    }
     return *_dataMapper;
 }
 

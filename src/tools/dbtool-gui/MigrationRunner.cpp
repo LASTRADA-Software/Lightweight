@@ -31,11 +31,14 @@ namespace
     /// collapsed to whitespace once the text is wrapped in a `<span>` tag.
     void PostMigrationFailureLines(class MigrationRunner* runner, Lightweight::SqlMigration::MigrationException const& ex);
 
+    /// Runs @p fn on a pool thread. An exception that escapes it is handed to @p onFailure, so the
+    /// run still reports "finished" and its phase leaves Running.
     class FunctionTask final: public QRunnable
     {
       public:
-        explicit FunctionTask(std::function<void()> fn):
-            _fn(std::move(fn))
+        FunctionTask(std::function<void()> fn, std::function<void(std::exception const&)> onFailure):
+            _fn(std::move(fn)),
+            _onFailure(std::move(onFailure))
         {
             setAutoDelete(true);
         }
@@ -45,16 +48,15 @@ namespace
             {
                 _fn();
             }
-            catch (std::exception const&)
+            catch (std::exception const& e)
             {
-                // The task is responsible for posting a "finished" signal from its
-                // own catch handler; swallowing here just prevents an uncaught
-                // exception from terminating the worker thread.
+                _onFailure(e);
             }
         }
 
       private:
         std::function<void()> _fn;
+        std::function<void(std::exception const&)> _onFailure;
     };
 
     /// Collects the list of pending migration pointers whose timestamp is
@@ -133,11 +135,6 @@ bool MigrationRunner::CanStartMutatingRun(char const* what)
         return false;
     }
     return true;
-}
-
-void MigrationRunner::Enqueue(std::function<void()> task)
-{
-    _pool.start(new FunctionTask(std::move(task)));
 }
 
 void MigrationRunner::SetPhase(Phase newPhase)
@@ -340,6 +337,14 @@ namespace
     }
 
 } // namespace
+
+void MigrationRunner::Enqueue(std::function<void()> task)
+{
+    _pool.start(new FunctionTask(std::move(task), [this](std::exception const& e) {
+        PostLogLine(this, QStringLiteral("!! %1").arg(QString::fromUtf8(e.what())), LogLevel::Error);
+        PostFinished(this, false, QString::fromUtf8(e.what()));
+    }));
+}
 
 void MigrationRunner::dryRunUpTo(QString const& targetTimestamp)
 {

@@ -5,6 +5,7 @@
 //   - filename-based deduplication when the same plugin name appears in
 //     multiple directories (newest mtime wins),
 //   - mtime ties resolved by directory-listing order,
+//   - the load order: directories in order, file names within each,
 //   - case-sensitivity of the filename match (different rules per platform),
 //   - the shadow-log callback firing once per discarded duplicate.
 //
@@ -234,3 +235,33 @@ TEST_CASE("DiscoverPlugins — filename comparison is case-sensitive on POSIX", 
     REQUIRE(resolved.size() == 2);
 }
 #endif
+
+TEST_CASE("DiscoverPlugins — loads by directory, then by file name, whatever the listing order", "[PluginDiscovery]")
+{
+    ScopedTempTree const tree;
+    auto const dirFirst = tree.Dir("first");
+    auto const dirSecond = tree.Dir("second");
+
+    // Created out of name order, so a listing in creation order does not happen to be sorted.
+    auto const base = BaseTime();
+    Touch(dirFirst / "alphaPlugin.so", base);
+    Touch(dirFirst / "ZetaPlugin.so", base);
+    Touch(dirFirst / "SharedPlugin.so", base);
+    Touch(dirFirst / "BetaPlugin.so", base);
+    Touch(dirSecond / "AaaPlugin.so", base);
+    // Newer, so it shadows the first directory's copy and takes that copy's place.
+    Touch(dirSecond / "SharedPlugin.so", base + std::chrono::seconds(30));
+
+    std::vector<std::filesystem::path> dirs { dirFirst, dirSecond };
+    auto const resolved = Lightweight::Tools::DiscoverPlugins(dirs);
+
+    auto const names = resolved | std::views::transform([](auto const& r) { return r.path.filename().string(); });
+    // Ordinal comparison: upper-case letters sort before lower-case ones.
+    CHECK(std::vector<std::string>(names.begin(), names.end())
+          == std::vector<std::string> {
+              "BetaPlugin.so", "SharedPlugin.so", "ZetaPlugin.so", "alphaPlugin.so", "AaaPlugin.so" });
+    auto const shared = std::ranges::find(
+        resolved, std::filesystem::path("SharedPlugin.so"), [](auto const& r) { return r.path.filename(); });
+    REQUIRE(shared != resolved.end());
+    CHECK(shared->dirIndex == 1);
+}

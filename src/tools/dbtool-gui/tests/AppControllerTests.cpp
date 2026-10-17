@@ -547,3 +547,70 @@ TEST_CASE("switching to an empty plugins dir drops the unloaded plugins' compat 
         CHECK(manager.GetAllReleases().empty());
     }
 }
+
+TEST_CASE("a plugin reload requested during a migration run waits until the run finishes",
+          "[dbtool-gui][AppController][plugins][busy-guard]")
+{
+    ScopedSettingRestore const restorePluginsDir { QStringLiteral("config/pluginsDir") };
+
+    QTemporaryDir dir;
+    auto const root = std::filesystem::path { dir.path().toStdString() };
+    auto const fixture = std::filesystem::path { DBTOOL_GUI_TESTS_COMPAT_POLICY_FIXTURE };
+    std::filesystem::create_directories(root / "plugins");
+    std::filesystem::create_directories(root / "empty");
+    std::filesystem::copy_file(fixture, root / "plugins" / ("CompatPolicyPlugin" + fixture.extension().string()));
+    std::ofstream(root / "dbtool.yml", std::ios::binary)
+        << "profiles:\n  p:\n    connectionString: \"Driver={" << SqliteDriver
+        << "};Database=" << (root / "gui-reload.db").generic_string() << "\"\n";
+
+    auto const& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
+    {
+        DbtoolGui::AppController controller;
+        REQUIRE(controller.loadProfiles(QString::fromStdString((root / "dbtool.yml").string())));
+        controller.setConnectionMode(QStringLiteral("profile"));
+        controller.setCurrentProfile(QStringLiteral("p"));
+        controller.setPluginsDir(QString::fromStdString((root / "plugins").string()));
+        REQUIRE(controller.connectToProfile());
+        REQUIRE(manager.GetAllMigrations().size() == 3);
+
+        QSignalSpy finished(controller.runner(), &DbtoolGui::MigrationRunner::finished);
+        controller.runner()->dryRunUpTo(QString {});
+        // The reset back to Idle is posted to this thread, so the run stays Running until the spy waits.
+        REQUIRE(controller.runner()->phase() == DbtoolGui::MigrationRunner::Phase::Running);
+
+        controller.setPluginsDir(QString::fromStdString((root / "empty").string()));
+        CHECK(manager.GetAllMigrations().size() == 3);
+        CHECK(controller.lastWarning().contains(QStringLiteral("after the current run")));
+
+        REQUIRE((finished.count() > 0 || finished.wait(30000)));
+        CHECK(manager.GetAllMigrations().empty());
+        CHECK(controller.lastWarning().isEmpty());
+    }
+}
+
+TEST_CASE("connectToProfile is refused while a migration run is active", "[dbtool-gui][AppController][busy-guard]")
+{
+    QTemporaryDir dir;
+    auto const root = std::filesystem::path { dir.path().toStdString() };
+    std::ofstream(root / "dbtool.yml", std::ios::binary)
+        << "profiles:\n  p:\n    connectionString: \"Driver={" << SqliteDriver
+        << "};Database=" << (root / "gui-connect.db").generic_string() << "\"\n";
+
+    DbtoolGui::AppController controller;
+    REQUIRE(controller.loadProfiles(QString::fromStdString((root / "dbtool.yml").string())));
+    controller.setConnectionMode(QStringLiteral("profile"));
+    controller.setCurrentProfile(QStringLiteral("p"));
+    REQUIRE(controller.connectToProfile());
+
+    QSignalSpy finished(controller.runner(), &DbtoolGui::MigrationRunner::finished);
+    controller.runner()->dryRunUpTo(QString {});
+    REQUIRE(controller.runner()->phase() == DbtoolGui::MigrationRunner::Phase::Running);
+
+    // Reconnecting would replace the connection the running dry run reads through.
+    CHECK_FALSE(controller.connectToProfile());
+    CHECK(controller.lastWarning().contains(QStringLiteral("before connecting")));
+    CHECK(controller.connected());
+
+    REQUIRE((finished.count() > 0 || finished.wait(30000)));
+    CHECK(controller.connectToProfile());
+}

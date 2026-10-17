@@ -94,6 +94,9 @@ namespace
     constexpr auto kKeyLogVisible = "ui/logVisible";
     constexpr auto kKeyViewMode = "ui/viewMode";
 
+    /// The warning shown while a plugin reload waits for the migration run to finish.
+    constexpr auto PluginReloadDeferredWarning = "Plugins will reload after the current run finishes.";
+
     /// Appends `;{key}={value}` to `cs` when `value` is non-empty. The value is
     /// rendered through `FormatConnectionStringValue`, so a password the
     /// connection-string syntax would misread (metacharacters or edge whitespace)
@@ -301,6 +304,15 @@ AppController::AppController(QObject* parent):
             _lastFailedTitle.clear();
         }
         RefreshMigrationModelsAfterRun();
+        if (_pluginReloadPending)
+        {
+            ReloadPlugins();
+            if (_lastWarning == QLatin1String { PluginReloadDeferredWarning })
+            {
+                _lastWarning.clear();
+                emit lastWarningChanged();
+            }
+        }
     });
     // A managed restore rewrites the target database, so a restore into the
     // connected profile leaves the migration list showing the pre-restore
@@ -681,6 +693,14 @@ bool AppController::loadProfiles(QString const& path)
 bool AppController::connectToProfile()
 {
     ClearError();
+
+    // Connecting replaces the default connection and reconnects the mapper a running migration uses.
+    if (_runner.phase() != MigrationRunner::Phase::Idle)
+    {
+        _lastWarning = QStringLiteral("Wait for the current migration run to finish before connecting.");
+        emit lastWarningChanged();
+        return false;
+    }
 
     // Connection-source dispatch — the `connectionMode` property is the
     // single source of truth. This removes the old ambiguity where whichever
@@ -1456,6 +1476,16 @@ void AppController::RefreshMigrationModelsAfterRun()
 
 void AppController::ReloadPlugins()
 {
+    // Unloading the plugins closes the mapper's connection, which a running migration still uses.
+    if (_runner.phase() != MigrationRunner::Phase::Idle)
+    {
+        _pluginReloadPending = true;
+        _lastWarning = QString::fromLatin1(PluginReloadDeferredWarning);
+        emit lastWarningChanged();
+        return;
+    }
+    _pluginReloadPending = false;
+
     auto const pluginsDirs = EffectivePluginsDir();
 
     auto& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();

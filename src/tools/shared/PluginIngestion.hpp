@@ -123,9 +123,11 @@ struct PluginIngestOptions
                                                       PluginIngestOptions const& options = {});
 
 /// Unloads `plugins` once `central` no longer refers to them. `central` first drops its
-/// compat policy, migrations and releases: the policy is a `std::function` that a plugin's
-/// static initializer typically installs, and destroying it after its library is unloaded
-/// calls into unmapped code.
+/// compat policy, migrations and releases, and closes its data mapper: the policy is a
+/// `std::function` that a plugin's static initializer typically installs, and a plugin that
+/// links Lightweight statically fills the mapper with objects of its own copy of the library
+/// when a hook queries through it. Destroying either after the library is unloaded calls
+/// into unmapped code.
 ///
 /// @param plugins Plugin set returned by `IngestPlugins`; empty afterwards.
 /// @param central Host-side manager the plugins were merged into.

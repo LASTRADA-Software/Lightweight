@@ -440,6 +440,8 @@ namespace SqlMigration
         /// Owned by the manager and connected with the default connection string on first use. When
         /// the application replaces the default (@ref SqlConnection::SetDefaultConnectionString), the
         /// next call reconnects the same instance - the reference stays valid - to the new default.
+        /// A call from a copy of the library that never had a default set (a plugin that links
+        /// Lightweight statically, calling into the host's manager from a hook) keeps the mapper as it is.
         ///
         /// @return The migration data mapper.
         /// @throws SqlException Connecting failed.
