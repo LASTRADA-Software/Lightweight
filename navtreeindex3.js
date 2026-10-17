@@ -1,5 +1,10 @@
 var NAVTREEINDEX3 =
 {
+"d6/de4/group__ConnectionPool.html#ggadf41c4387dc86267bded533482280862ac85a251cc457840f1e032f1b733e9398":[19,4,5,0],
+"d6/de4/group__ConnectionPool.html#ggadf7777be559a52bca78d24e4a99a4f0ca0dd97bbc519abce897d0dd2dc4774411":[19,4,3,0],
+"d6/de4/group__ConnectionPool.html#ggadf7777be559a52bca78d24e4a99a4f0caa081da5fdda27ab1a98aa7e5f2d60d01":[19,4,3,1],
+"d6/de4/group__ConnectionPool.html#ggadf7777be559a52bca78d24e4a99a4f0cab1c6941b5c866676983d4a5195e6f1d7":[19,4,3,2],
+"d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html":[21,0,0,4,4],
 "d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html#a8d75bccd08fdf35b48d793ca62eb0e82":[21,0,0,4,4,0],
 "d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html#ab877b33adddf8288d0b91db1d1cef4a2":[21,0,0,4,4,1],
 "d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html#afc6863e451eb5828a2c241e56743c600":[21,0,0,4,4,2],
@@ -244,10 +249,5 @@ var NAVTREEINDEX3 =
 "d7/d9a/classLightweight_1_1SqlDynamicString.html#ab8d924bb0999605c5cfa794772f383bb":[19,1,5,13],
 "d7/d9a/classLightweight_1_1SqlDynamicString.html#abb5c8e2bfe209f9060884a6ac4c6e15b":[19,1,5,17],
 "d7/d9a/classLightweight_1_1SqlDynamicString.html#ad6790066829c787636b26b471b1b929b":[19,1,5,40],
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#ae4f1fbffafe7637cb2911b66f35d6178":[19,1,5,41],
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#ae66f23d51788e986f5c1239c6d5f317c":[19,1,5,7],
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#af1e42154c6693aebec4911d3089eb584":[19,1,5,27],
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#af20732b460e20ac1671e33b5510fbe7f":[19,1,5,25],
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#af8a3d70ec2eb476b5928b465fa74840b":[19,1,5,43],
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#afabe49e0b301a332521f723358f91417":[19,1,5,30]
+"d7/d9a/classLightweight_1_1SqlDynamicString.html#ae4f1fbffafe7637cb2911b66f35d6178":[19,1,5,41]
 };

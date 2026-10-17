@@ -1,5 +1,6 @@
 var NAVTREEINDEX2 =
 {
+"d4/d61/classLightweight_1_1SqlAdvisoryLockHandler.html#aa4fe3148598e7494bbe6e880eaaff3e9":[21,0,0,23,1],
 "d4/d61/classLightweight_1_1SqlAdvisoryLockHandler.html#ab066140910453f5dc44f5b6dbdcd7f5c":[21,0,0,23,0],
 "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html":[15],
 "d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#event-driven-reading":[15,4],
@@ -96,12 +97,12 @@ var NAVTREEINDEX2 =
 "d5/d3e/SqlServerFormatter_8hpp_source.html":[22,0,1,3,2],
 "d5/d4b/SqlAdvisoryLock_8hpp_source.html":[22,0,1,12],
 "d5/d5a/Album_8hpp_source.html":[22,0,0,0,0,0],
-"d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html":[19,7,6,2],
-"d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#a374c3e5219e1b82c0fb5283d9599a41d":[19,7,6,2,2],
-"d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#a5da7e6fd9a84f00e8aafb68637ac0c62":[19,7,6,2,3],
-"d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#abfd242340ca076711738bf65659e5081":[19,7,6,2,1],
-"d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#af24b850a50a1ddf570bafe458be64f16":[19,7,6,2,4],
-"d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#af96c4af24cdc9ce53b3a27f507fbfc1e":[19,7,6,2,0],
+"d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html":[19,7,7,2],
+"d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#a374c3e5219e1b82c0fb5283d9599a41d":[19,7,7,2,2],
+"d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#a5da7e6fd9a84f00e8aafb68637ac0c62":[19,7,7,2,3],
+"d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#abfd242340ca076711738bf65659e5081":[19,7,7,2,1],
+"d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#af24b850a50a1ddf570bafe458be64f16":[19,7,7,2,4],
+"d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#af96c4af24cdc9ce53b3a27f507fbfc1e":[19,7,7,2,0],
 "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html":[12],
 "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#acquire-timeout":[12,1],
 "d5/d77/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2connection-pool.html#compile-time-defaults":[12,6],
@@ -132,6 +133,10 @@ var NAVTREEINDEX2 =
 "d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#af3e84864298e18e83f13b0ad84ded7fca8428552d86c0d262a542a528af490afa":[19,5,2,0,0],
 "d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#af3e84864298e18e83f13b0ad84ded7fca8f3d10eb21bd36347c258679eba9e92b":[19,5,2,0,2],
 "d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#af3e84864298e18e83f13b0ad84ded7fca902b0d55fddef6f8d651fe1035b7d4bd":[19,5,2,0,3],
+"d5/dd4/classLightweight_1_1SqlMigration_1_1UnicodeUpgradeUnitError.html":[19,7,6],
+"d5/dd4/classLightweight_1_1SqlMigration_1_1UnicodeUpgradeUnitError.html#a3adde5171904453fe80ca64f78fc7539":[19,7,6,1],
+"d5/dd4/classLightweight_1_1SqlMigration_1_1UnicodeUpgradeUnitError.html#a72f4ce3665a317c5697559321278a7c5":[19,7,6,2],
+"d5/dd4/classLightweight_1_1SqlMigration_1_1UnicodeUpgradeUnitError.html#ae02aa9e9433570b62f990fcdcd125921":[19,7,6,0],
 "d5/dd9/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2ddl2cpp-relation-generation.html":[17],
 "d5/dd9/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2ddl2cpp-relation-generation.html#autotoc_md1-hasmany--the-inverse-of-every-single-column-foreign-key":[17,2,0],
 "d5/dd9/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2ddl2cpp-relation-generation.html#autotoc_md2-hasmanythrough--many-to-many-across-a-join-table":[17,2,1],
@@ -244,10 +249,5 @@ var NAVTREEINDEX2 =
 "d6/de4/group__ConnectionPool.html#gadf41c4387dc86267bded533482280862":[19,4,5],
 "d6/de4/group__ConnectionPool.html#gadf7777be559a52bca78d24e4a99a4f0c":[19,4,3],
 "d6/de4/group__ConnectionPool.html#gga52b249d4b537b9627a2b2bdd483dd274a93cba07454f06a4a960172bbd6e2a435":[19,4,4,1],
-"d6/de4/group__ConnectionPool.html#gga52b249d4b537b9627a2b2bdd483dd274abafd7322c6e97d25b6299b5d6fe8920b":[19,4,4,0],
-"d6/de4/group__ConnectionPool.html#ggadf41c4387dc86267bded533482280862ac85a251cc457840f1e032f1b733e9398":[19,4,5,0],
-"d6/de4/group__ConnectionPool.html#ggadf7777be559a52bca78d24e4a99a4f0ca0dd97bbc519abce897d0dd2dc4774411":[19,4,3,0],
-"d6/de4/group__ConnectionPool.html#ggadf7777be559a52bca78d24e4a99a4f0caa081da5fdda27ab1a98aa7e5f2d60d01":[19,4,3,1],
-"d6/de4/group__ConnectionPool.html#ggadf7777be559a52bca78d24e4a99a4f0cab1c6941b5c866676983d4a5195e6f1d7":[19,4,3,2],
-"d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html":[21,0,0,4,4]
+"d6/de4/group__ConnectionPool.html#gga52b249d4b537b9627a2b2bdd483dd274abafd7322c6e97d25b6299b5d6fe8920b":[19,4,4,0]
 };

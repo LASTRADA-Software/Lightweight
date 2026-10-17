@@ -45,6 +45,11 @@ var group__SqlMigration =
       [ "version", "d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html#ab1116d155822475c5e653b49aa5805aa", null ],
       [ "highestTimestamp", "d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html#a48cc0c694f65a3ad2e43b839ab5d5088", null ]
     ] ],
+    [ "Lightweight::SqlMigration::UnicodeUpgradeUnitError", "d5/dd4/classLightweight_1_1SqlMigration_1_1UnicodeUpgradeUnitError.html", [
+      [ "UnicodeUpgradeUnitError", "d5/dd4/classLightweight_1_1SqlMigration_1_1UnicodeUpgradeUnitError.html#ae02aa9e9433570b62f990fcdcd125921", null ],
+      [ "UnitNumber", "d5/dd4/classLightweight_1_1SqlMigration_1_1UnicodeUpgradeUnitError.html#a3adde5171904453fe80ca64f78fc7539", null ],
+      [ "UnitCount", "d5/dd4/classLightweight_1_1SqlMigration_1_1UnicodeUpgradeUnitError.html#a72f4ce3665a317c5697559321278a7c5", null ]
+    ] ],
     [ "Lightweight::SqlMigration::MigrationManager", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html", [
       [ "ChecksumRewriteEntry", "d9/df2/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ChecksumRewriteEntry.html", [
         [ "timestamp", "d9/df2/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ChecksumRewriteEntry.html#a95dfbf909cd5d1144d7f3b2eb2172219", null ],
@@ -94,7 +99,8 @@ var group__SqlMigration =
         [ "wasDryRun", "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#a706afa7f5b94115ad9f9f41b51facf37", null ],
         [ "columns", "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#aa7e5278c2c378b5f0c42885abb3c487d", null ],
         [ "rebuiltForeignKeys", "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#ae1b60503143ebed45d9317789e47a684", null ],
-        [ "rebuiltObjects", "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#ad2f1668e51bb59d1a7feea5cb49d1f64", null ]
+        [ "rebuiltObjects", "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#ad2f1668e51bb59d1a7feea5cb49d1f64", null ],
+        [ "units", "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#aeb98b3bba22e6cf0453ca74fa3b70e7d", null ]
       ] ],
       [ "MigrationList", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a259626f016bf24f265c81c1bc4446ae1", null ],
       [ "ExecuteCallback", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a14e9ebfa20b805d80c18d7c6a378e364", null ],

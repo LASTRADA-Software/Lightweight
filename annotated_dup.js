@@ -41,7 +41,8 @@ var annotated_dup =
         [ "MigrationRelease", "d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html", "d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease" ],
         [ "MigrationStatus", "d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html", "d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus" ],
         [ "MigrationTimestamp", "d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html", "d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp" ],
-        [ "RevertResult", "d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html", "d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult" ]
+        [ "RevertResult", "d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html", "d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult" ],
+        [ "UnicodeUpgradeUnitError", "d5/dd4/classLightweight_1_1SqlMigration_1_1UnicodeUpgradeUnitError.html", "d5/dd4/classLightweight_1_1SqlMigration_1_1UnicodeUpgradeUnitError" ]
       ] ],
       [ "SqlSchema", null, [
         [ "Column", "d2/db8/structLightweight_1_1SqlSchema_1_1Column.html", "d2/db8/structLightweight_1_1SqlSchema_1_1Column" ],

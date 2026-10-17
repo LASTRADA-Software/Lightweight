@@ -112,11 +112,13 @@ Public Attributes</h2></td></tr>
 <tr class="separator:ae1b60503143ebed45d9317789e47a684"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad2f1668e51bb59d1a7feea5cb49d1f64" id="r_ad2f1668e51bb59d1a7feea5cb49d1f64"><td class="memItemLeft" align="right" valign="top">std::vector&lt; std::string &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#ad2f1668e51bb59d1a7feea5cb49d1f64">rebuiltObjects</a></td></tr>
 <tr class="separator:ad2f1668e51bb59d1a7feea5cb49d1f64"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aeb98b3bba22e6cf0453ca74fa3b70e7d" id="r_aeb98b3bba22e6cf0453ca74fa3b70e7d"><td class="memItemLeft" align="right" valign="top">std::vector&lt; std::vector&lt; SqlSchema::FullyQualifiedTableName &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#aeb98b3bba22e6cf0453ca74fa3b70e7d">units</a></td></tr>
+<tr class="separator:aeb98b3bba22e6cf0453ca74fa3b70e7d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Result of an <code>UnicodeUpgradeTables</code> call. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00625">625</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00662">662</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="a706afa7f5b94115ad9f9f41b51facf37" name="a706afa7f5b94115ad9f9f41b51facf37"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a706afa7f5b94115ad9f9f41b51facf37">&#9670;&#160;</a></span>wasDryRun</h2>
@@ -131,7 +133,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>True when the populating call was a dry-run; the result describes the would-be diff and no DDL was issued. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00629">629</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00666">666</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -148,7 +150,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Columns whose live type drifted from the intended type and were upgraded (or would be on a real run). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00632">632</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00669">669</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -165,7 +167,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Foreign keys that had to be dropped + re-added to upgrade their participating columns. Reported so operators see the FK churn. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00635">635</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00672">672</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -182,7 +184,24 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>SQL Server: every object that depends on an upgraded column — keys, unique, foreign-key, default and check constraints, indexes, statistics — and is dropped and recreated under its original name around the type change. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00639">639</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00676">676</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+
+</div>
+</div>
+<a id="aeb98b3bba22e6cf0453ca74fa3b70e7d" name="aeb98b3bba22e6cf0453ca74fa3b70e7d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aeb98b3bba22e6cf0453ca74fa3b70e7d">&#9670;&#160;</a></span>units</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::vector&lt;std::vector&lt;SqlSchema::FullyQualifiedTableName&gt; &gt; Lightweight::SqlMigration::MigrationManager::UnicodeUpgradeResult::units</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>The tables in the order they are upgraded, grouped into units: the tables a foreign key joins through an upgraded column share one unit, and each unit is upgraded and committed in a transaction of its own. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00680">680</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
