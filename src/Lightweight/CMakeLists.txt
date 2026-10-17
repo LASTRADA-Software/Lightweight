@@ -147,6 +147,7 @@ set(SOURCE_FILES
     SqlScopedLock.cpp
     SqlSchema.cpp
     SqlServerDependentObjects.cpp
+    PostgreSqlForeignKeys.cpp
     SqlStatement.cpp
     SqlTransaction.cpp
     Utils.cpp

@@ -2,6 +2,7 @@
 
 #include "DataBinder/SqlVariant.hpp"
 #include "DataMapper/DataMapper.hpp"
+#include "PostgreSqlForeignKeys.hpp"
 #include "QueryFormatter/SQLiteFormatter.hpp"
 #include "SqlAdvisoryLock.hpp"
 #include "SqlBackup/Sha256.hpp"
@@ -3519,20 +3520,48 @@ namespace
         return alterCommands;
     }
 
-    /// @brief The command that re-adds the single-column foreign key @p fk on its referencing table.
+    /// @brief The command that re-adds the foreign key @p fk on its referencing table, naming the
+    /// referenced table with its schema.
     [[nodiscard]] SqlAlterTableCommand AddForeignKeyCommand(SqlSchema::ForeignKeyConstraint const& fk)
     {
-        return SqlAlterTableCommands::AddForeignKey {
-            .columnName = fk.foreignKey.columns.front(),
-            .referencedColumn =
-                SqlForeignKeyReferenceDefinition {
-                    .tableName = fk.primaryKey.table.table,
-                    .columnName = fk.primaryKey.columns.empty() ? std::string {} : fk.primaryKey.columns.front(),
-                },
+        return SqlAlterTableCommands::AddCompositeForeignKey {
+            .columns = fk.foreignKey.columns,
+            .referencedTableName = fk.primaryKey.table.table,
+            .referencedColumns = fk.primaryKey.columns,
+            .referencedSchemaName = fk.primaryKey.table.schema,
         };
     }
 
-    /// @brief Apply the cross-backend upgrade path (everything that isn't SQLite).
+    /// @brief Flattens the pending upgrades into the column list the dependency scripter takes.
+    [[nodiscard]] std::vector<::Lightweight::detail::ColumnToRetype> ColumnsToRetype(
+        std::vector<UnicodeUpgradePending> const& pending)
+    {
+        auto columns = std::vector<::Lightweight::detail::ColumnToRetype> {};
+        for (auto const& p: pending)
+            for (auto const& c: p.columns)
+                columns.push_back(::Lightweight::detail::ColumnToRetype {
+                    .schema = p.key.schema, .table = p.key.table, .column = c.column });
+        return columns;
+    }
+
+    /// @brief PostgreSQL path: drop the unit's foreign keys under their catalog names, alter the
+    /// columns, recreate the keys from their catalog definitions, whoever created them.
+    void ExecutePostgreSqlUpgrade(SqlStatement& stmt,
+                                  SqlQueryFormatter const& formatter,
+                                  std::vector<UnicodeUpgradePending> const& pending)
+    {
+        auto const foreignKeys = ::Lightweight::detail::ScriptPostgreSqlForeignKeys(stmt, ColumnsToRetype(pending));
+        for (auto const& sql: foreignKeys.drop)
+            stmt.ExecuteDirect(sql).ConsumePendingResults();
+        for (auto const& p: pending)
+            for (auto const& sql: formatter.AlterTable(p.key.schema, p.key.table, BuildAlterColumnCommands(p)))
+                stmt.ExecuteDirect(sql).ConsumePendingResults();
+        for (auto const& sql: foreignKeys.recreate)
+            stmt.ExecuteDirect(sql).ConsumePendingResults();
+    }
+
+    /// @brief Apply the cross-backend upgrade path. No supported dialect reaches it today: SQL Server,
+    /// PostgreSQL and SQLite each have their own; it remains for a dialect added later.
     /// Per-unit sequence: drop the unit's affected FKs → alter its columns → re-add the FKs.
     /// Each step renders via the formatter so the in-tree `AlterTable` codegen is the
     /// single source of truth for the dialect's ALTER syntax.
@@ -3677,18 +3706,6 @@ namespace
         return name.schema.empty() ? name.table : std::format("{}.{}", name.schema, name.table);
     }
 
-    /// @brief Flattens the pending upgrades into the column list the dependency scripter takes.
-    [[nodiscard]] std::vector<::Lightweight::detail::ColumnToRetype> ColumnsToRetype(
-        std::vector<UnicodeUpgradePending> const& pending)
-    {
-        auto columns = std::vector<::Lightweight::detail::ColumnToRetype> {};
-        for (auto const& p: pending)
-            for (auto const& c: p.columns)
-                columns.push_back(::Lightweight::detail::ColumnToRetype {
-                    .schema = p.key.schema, .table = p.key.table, .column = c.column });
-        return columns;
-    }
-
     /// @brief Turns `ANSI_WARNINGS` on for its lifetime and restores the connection's
     /// configured setting afterwards (SQL Server only creates filtered indexes with it on).
     class ScopedAnsiWarnings
@@ -3801,6 +3818,8 @@ namespace
         auto transaction = SqlTransaction { connection, SqlTransactionMode::ROLLBACK };
         if (connection.ServerType() == SqlServerType::SQLITE)
             ExecuteSqliteUpgrade(connection, formatter, unit);
+        else if (connection.ServerType() == SqlServerType::POSTGRESQL)
+            ExecutePostgreSqlUpgrade(stmt, formatter, unit);
         else if (scriptsDependents)
             ExecuteUpgradeWithDependents(
                 stmt, formatter, unit, ::Lightweight::detail::ScriptSqlServerDependentObjects(stmt, ColumnsToRetype(unit)));

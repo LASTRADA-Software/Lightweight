@@ -5921,3 +5921,180 @@ TEST_CASE("ToBoundSql binds a GUID, date, time and timestamp as their literal te
     CHECK(std::holds_alternative<SqlBinary>(bound.parameters[6].value));
     CHECK(std::holds_alternative<bool>(bound.parameters[7].value));
 }
+
+// ================================================================================================
+// unicode-upgrade-tables keeps foreign keys it did not create
+// ================================================================================================
+
+namespace
+{
+
+/// Whether the driver reports @p column of the live @p table as narrow `CHAR` or `VARCHAR`
+/// (else nothing qualifies).
+bool ReportsNarrowText(SqlStatement& stmt, std::string_view schema, std::string_view table, std::string_view column)
+{
+    auto const liveTables = SqlSchema::ReadAllTables(stmt, std::string {}, std::string {});
+    for (auto const& live: liveTables)
+        if ((schema.empty() || live.schema == schema) && live.name == table)
+            for (auto const& liveColumn: live.columns)
+                if (liveColumn.name == column)
+                    return std::holds_alternative<SqlColumnTypeDefinitions::Char>(liveColumn.type)
+                           || std::holds_alternative<SqlColumnTypeDefinitions::Varchar>(liveColumn.type);
+    return false;
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: PostgreSQL recreates a foreign key under its own name and against its own table",
+                 "[SqlMigration][UnicodeUpgrade][MultiSchema]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::POSTGRESQL)
+        SKIP("the search path is PostgreSQL's");
+    mgr.CreateMigrationHistory();
+    // A name another tool chose, and the name Lightweight itself would give the key.
+    auto const keyName = std::string { GENERATE("custom_child_parent_link", "FK_uu_fk_child_CODE") };
+
+    auto const dropFixture = [&] {
+        (void) stmt.ExecuteDirect("RESET search_path");
+        (void) stmt.ExecuteDirect(R"(DROP TABLE IF EXISTS "public"."uu_fk_child")");
+        (void) stmt.ExecuteDirect(R"(DROP TABLE IF EXISTS "public"."uu_fk_parent")");
+        (void) stmt.ExecuteDirect(R"(DROP SCHEMA IF EXISTS "uu_fk_first" CASCADE)");
+    };
+    dropFixture();
+    auto const cleanup = detail::Finally(dropFixture);
+    // A foreign key another tool created (its own name, ON DELETE CASCADE), and a table of the
+    // referenced name in a schema earlier on the search path, holding the same key value.
+    for (auto const* sql: {
+             R"(CREATE SCHEMA "uu_fk_first")",
+             R"(CREATE TABLE "uu_fk_first"."uu_fk_parent" ("CODE" CHAR(10) NOT NULL PRIMARY KEY))",
+             R"(INSERT INTO "uu_fk_first"."uu_fk_parent" ("CODE") VALUES ('p1'))",
+             R"(CREATE TABLE "public"."uu_fk_parent" ("CODE" CHAR(10) NOT NULL PRIMARY KEY))",
+             R"(INSERT INTO "public"."uu_fk_parent" ("CODE") VALUES ('p1'))",
+         })
+        (void) stmt.ExecuteDirect(sql);
+    (void) stmt.ExecuteDirect(
+        std::format(R"(CREATE TABLE "public"."uu_fk_child" ("ID" INTEGER NOT NULL PRIMARY KEY, "CODE" CHAR(10) NOT NULL, )"
+                    R"(CONSTRAINT "{}" FOREIGN KEY ("CODE") REFERENCES "public"."uu_fk_parent" ("CODE") ON DELETE CASCADE))",
+                    keyName));
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "public"."uu_fk_child" ("ID", "CODE") VALUES (1, 'p1'))");
+    (void) stmt.ExecuteDirect(R"(SET search_path TO "uu_fk_first", "public")");
+    fold_test::FoldStub<20'26'10'17'00'07> decl {
+        "declare wide",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("uu_fk_child").PrimaryKey("ID", Integer()).RequiredColumn("CODE", NChar(10));
+        }
+    };
+
+    auto const narrowText = ReportsNarrowText(stmt, "public", "uu_fk_child", "CODE");
+    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    if (!narrowText)
+    {
+        // The Unicode ODBC driver reports CHAR as wide text, so nothing qualifies.
+        CHECK(result.columns.empty());
+        return;
+    }
+    REQUIRE(result.columns.size() == 1);
+    CHECK(result.columns.front().table.schema == "public");
+    // The key keeps its name and its action, and still references public.uu_fk_parent.
+    CHECK(CatalogScalar(
+              stmt,
+              std::format("SELECT n.nspname || '.' || r.relname || ':' || CAST(c.confdeltype AS TEXT) FROM pg_constraint c "
+                          "JOIN pg_class r ON r.oid = c.confrelid JOIN pg_namespace n ON n.oid = r.relnamespace "
+                          "WHERE c.conname = '{}'",
+                          keyName))
+          == "public.uu_fk_parent:c");
+    (void) stmt.ExecuteDirect(R"(DELETE FROM "public"."uu_fk_parent")");
+    CHECK(stmt.ExecuteDirectScalar<long long>(R"(SELECT COUNT(*) FROM "public"."uu_fk_child")").value_or(-1) == 0);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQLite keeps a foreign key of its own name through the table rebuild",
+                 "[SqlMigration][UnicodeUpgrade]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::SQLITE)
+        SKIP("the table rebuild is SQLite's");
+    mgr.CreateMigrationHistory();
+
+    for (auto const* sql: {
+             R"(CREATE TABLE "uu_fk_parent" ("CODE" VARCHAR(10) NOT NULL PRIMARY KEY))",
+             R"(CREATE TABLE "uu_fk_child" ("ID" INTEGER NOT NULL PRIMARY KEY, "CODE" VARCHAR(10) NOT NULL, )"
+             R"(CONSTRAINT "custom_child_parent_link" FOREIGN KEY ("CODE") REFERENCES "uu_fk_parent" ("CODE") )"
+             R"(ON DELETE CASCADE))",
+         })
+        (void) stmt.ExecuteDirect(sql);
+    fold_test::FoldStub<20'26'10'17'00'08> decl {
+        "declare wide",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("uu_fk_child").PrimaryKey("ID", Integer()).RequiredColumn("CODE", NVarchar(10));
+        }
+    };
+
+    auto const narrowText = ReportsNarrowText(stmt, {}, "uu_fk_child", "CODE");
+    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    if (!narrowText)
+    {
+        // Some SQLite ODBC builds report VARCHAR as wide text, so nothing qualifies.
+        CHECK(result.columns.empty());
+        return;
+    }
+    REQUIRE(result.columns.size() == 1);
+    auto const createSql = CatalogScalar(stmt, "SELECT sql FROM sqlite_master WHERE name = 'uu_fk_child'");
+    INFO(createSql);
+    CHECK(createSql.contains("custom_child_parent_link"));
+    CHECK(createSql.contains("ON DELETE CASCADE"));
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: PostgreSQL changes a column under the caller's search path",
+                 "[SqlMigration][UnicodeUpgrade]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::POSTGRESQL)
+        SKIP("the search path is PostgreSQL's");
+    mgr.CreateMigrationHistory();
+
+    auto const dropFixture = [&] {
+        (void) stmt.ExecuteDirect("RESET search_path");
+        (void) stmt.ExecuteDirect(R"(DROP TABLE IF EXISTS "public"."uu_fn_t")");
+        (void) stmt.ExecuteDirect(R"(DROP FUNCTION IF EXISTS "public"."uu_fn_norm"(TEXT))");
+        (void) stmt.ExecuteDirect(R"(DROP FUNCTION IF EXISTS "public"."uu_fn_helper"(TEXT))");
+    };
+    dropFixture();
+    auto const cleanup = detail::Finally(dropFixture);
+    // A CHECK constraint calls a function whose body names another one unqualified, so it resolves
+    // it through the search path whenever the constraint is evaluated. (Index expressions cannot
+    // rely on the search path: PostgreSQL evaluates them with a restricted one.)
+    (void) stmt.ExecuteDirect(R"(SET search_path TO "public")");
+    for (auto const* sql: {
+             R"(CREATE FUNCTION "public"."uu_fn_helper"(TEXT) RETURNS TEXT IMMUTABLE LANGUAGE sql AS 'SELECT upper($1)')",
+             R"(CREATE FUNCTION "public"."uu_fn_norm"(TEXT) RETURNS TEXT IMMUTABLE LANGUAGE sql )"
+             R"(AS 'SELECT uu_fn_helper($1)')",
+             R"(CREATE TABLE "public"."uu_fn_t" ("ID" INTEGER NOT NULL PRIMARY KEY, "CODE" VARCHAR(10) NOT NULL )"
+             R"(CHECK ("public"."uu_fn_norm"("CODE") <> '')))",
+             R"(INSERT INTO "public"."uu_fn_t" ("ID", "CODE") VALUES (1, 'a1'))",
+         })
+        (void) stmt.ExecuteDirect(sql);
+    fold_test::FoldStub<20'26'10'17'00'09> decl {
+        "declare wide",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("uu_fn_t").PrimaryKey("ID", Integer()).RequiredColumn("CODE", NVarchar(10));
+        }
+    };
+
+    // With a driver that reports VARCHAR as narrow the column is changed (to the same type, as
+    // PostgreSQL has no separate wide text) and the CHECK constraint is evaluated again.
+    auto const error = UpgradeError(mgr, /*dryRun=*/false);
+    INFO(error);
+    CHECK(error.empty());
+    // The session's own search path is back after the unit.
+    CHECK(CatalogScalar(stmt, "SELECT current_setting('search_path')") == "public");
+}

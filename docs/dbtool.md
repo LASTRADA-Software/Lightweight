@@ -582,6 +582,12 @@ objects. Objects it cannot recreate safely — schema-bound views or functions, 
 columnstore, XML, spatial and full-text indexes — stop the command before anything changes; drop
 them, run it, and recreate them yourself.
 
+On PostgreSQL the command likewise reads the foreign keys on the changing columns from the catalog
+and recreates each under its own name with its own definition: its columns, the referenced table
+with its schema, and its `ON DELETE` / `ON UPDATE` actions. So keys that another tool created
+survive the upgrade unchanged. On SQLite each table is rebuilt from its own `CREATE TABLE`
+statement, which keeps its keys.
+
 The command works unit by unit, and each unit is one transaction, committed before the next one
 starts. A unit is a table, together with every table a foreign key joins to it through a column
 that changes, and the objects dropped and recreated for them. So no unit leaves an object dropped

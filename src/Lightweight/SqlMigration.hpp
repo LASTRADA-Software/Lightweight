@@ -688,7 +688,9 @@ namespace SqlMigration
         /// Compares the folded plan's intended column types against `SqlSchema::ReadAllTables`
         /// output; an upgrade is triggered iff intended is `NVarchar`/`NChar` AND live is
         /// `Varchar`/`Char` with the same `size`. Foreign keys that touch any upgrade column
-        /// are dropped before the alter and re-added afterwards. Cross-backend; SQLite
+        /// are dropped before the alter and re-added afterwards; SQL Server and PostgreSQL read
+        /// them from the catalog and recreate them under their own names with their own
+        /// definitions (referenced schema, actions), whoever created them. Cross-backend; SQLite
         /// uses the in-tree `RebuildSqliteTable` recipe under the hood.
         ///
         /// Declared names match live ones without regard to case where the dialect's identifiers
