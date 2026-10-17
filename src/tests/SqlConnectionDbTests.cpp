@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "UniqueTempPath.hpp"
 #include "Utils.hpp"
 
 #include <Lightweight/Lightweight.hpp>
@@ -450,10 +451,11 @@ SqlConnectionString WithDriverSpelling(SqlConnectionString const& connectionStri
     return BuildConnectionString(map);
 }
 
-/// A scratch SQLite database file path, unique per test.
+/// A scratch SQLite database file path, unique per test and per test run, so that runs sharing the
+/// temporary directory never open one another's files.
 std::filesystem::path ScratchSqliteDatabasePath(std::string_view name)
 {
-    return std::filesystem::temp_directory_path() / std::format("lightweight-{}.db", name);
+    return UniqueTempPath(std::format("lightweight-{}", name), ".db");
 }
 
 /// Removes a SQLite database file together with its journal and WAL side files.

@@ -5,6 +5,8 @@
 // user default). Every test builds its own directory tree under the system temp
 // directory and injects all paths, so the real user config is never consulted.
 
+#include "UniqueTempPath.hpp"
+
 #include <catch2/catch_test_macros.hpp>
 
 #include <filesystem>
@@ -26,7 +28,7 @@ class TempTree
     TempTree()
     {
         static int counter = 0;
-        _root = fs::temp_directory_path() / ("lightweight-discovery-" + std::to_string(++counter));
+        _root = UniqueTempPath("lightweight-discovery-" + std::to_string(++counter));
         fs::remove_all(_root);
         fs::create_directories(_root);
         _root = fs::canonical(_root);

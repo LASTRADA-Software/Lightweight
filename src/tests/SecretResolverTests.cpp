@@ -5,6 +5,8 @@
 // (prompting from inside a test run would hang CI) — we only verify it is
 // registered by `MakeDefaultResolver`.
 
+#include "UniqueTempPath.hpp"
+
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
@@ -45,7 +47,7 @@ class ScopedCredentialsFile
     explicit ScopedCredentialsFile(std::string_view body)
     {
         static int counter = 0;
-        _path = std::filesystem::temp_directory_path() / ("lightweight-secrets-test-" + std::to_string(++counter) + ".pwd");
+        _path = UniqueTempPath("lightweight-secrets-test-" + std::to_string(++counter), ".pwd");
         {
             std::ofstream out(_path, std::ios::binary | std::ios::trunc);
             out << body;
@@ -142,7 +144,7 @@ TEST_CASE("SecretResolver — file: prefix reads from a .pgpass-style file", "[S
 
 TEST_CASE("FileBackend — Write / Erase round-trip", "[SecretResolver][FileBackend]")
 {
-    auto const path = std::filesystem::temp_directory_path() / "lightweight-secrets-roundtrip.pwd";
+    auto const path = UniqueTempPath("lightweight-secrets-roundtrip", ".pwd");
     std::filesystem::remove(path);
 
     FileBackend backend(path);

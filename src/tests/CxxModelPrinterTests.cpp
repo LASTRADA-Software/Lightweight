@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "UniqueTempPath.hpp"
+
 #include <Lightweight/Lightweight.hpp>
 #include <Lightweight/Tools/CxxModelPrinter.hpp>
 
@@ -854,7 +856,7 @@ TEST_CASE("CxxModelPrinter::PrintCumulativeHeaderFile writes valid header", "[Cx
         .columns = { { .name = "id", .type = Integer {}, .isNullable = false } },
     });
 
-    auto const tempDir = std::filesystem::temp_directory_path() / "cxxmodelprinter-cumulative-test";
+    auto const tempDir = UniqueTempPath("cxxmodelprinter-cumulative-test");
     std::filesystem::create_directories(tempDir);
     auto const cumulative = std::filesystem::path { "all.hpp" };
 
@@ -909,7 +911,7 @@ TEST_CASE("CxxModelPrinter::PrintToFiles writes one header per known table", "[C
 {
     using namespace Lightweight::SqlColumnTypeDefinitions;
 
-    auto const tempDir = std::filesystem::temp_directory_path() / "lightweight-cxxprinter-files";
+    auto const tempDir = UniqueTempPath("lightweight-cxxprinter-files");
     std::filesystem::remove_all(tempDir);
     std::filesystem::create_directories(tempDir);
 
@@ -981,7 +983,7 @@ TEST_CASE("CxxModelPrinter::PrintToFiles emits instantiation sources and CMakeLi
 {
     using namespace Lightweight::SqlColumnTypeDefinitions;
 
-    auto const tempDir = std::filesystem::temp_directory_path() / "lightweight-cxxprinter-instantiations";
+    auto const tempDir = UniqueTempPath("lightweight-cxxprinter-instantiations");
     std::filesystem::remove_all(tempDir);
     std::filesystem::create_directories(tempDir);
 

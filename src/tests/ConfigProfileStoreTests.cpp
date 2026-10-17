@@ -10,6 +10,8 @@
 // Every test uses its own temp file under `temp_directory_path()` to stay
 // independent of the real user config at `$HOME/.config/dbtool/dbtool.yml`.
 
+#include "UniqueTempPath.hpp"
+
 #include <Lightweight/SqlConnectInfo.hpp>
 
 #include <catch2/catch_test_macros.hpp>
@@ -36,8 +38,7 @@ class ScopedTempYaml
     explicit ScopedTempYaml(std::string_view contents)
     {
         static int counter = 0;
-        _path =
-            std::filesystem::temp_directory_path() / ("lightweight-profilestore-test-" + std::to_string(++counter) + ".yml");
+        _path = UniqueTempPath("lightweight-profilestore-test-" + std::to_string(++counter), ".yml");
         std::ofstream out(_path, std::ios::binary | std::ios::trunc);
         out << contents;
     }
@@ -64,7 +65,7 @@ class ScopedTempYaml
 
 TEST_CASE("ProfileStore — missing file yields empty store, not an error", "[ProfileStore]")
 {
-    auto const nonexistent = std::filesystem::temp_directory_path() / "lightweight-profilestore-none.yml";
+    auto const nonexistent = UniqueTempPath("lightweight-profilestore-none", ".yml");
     std::filesystem::remove(nonexistent); // just in case.
 
     auto const result = Lightweight::Config::ProfileStore::LoadOrDefault(nonexistent);
@@ -138,7 +139,7 @@ TEST_CASE("ProfileStore — save/load round-trip is lossless", "[ProfileStore]")
 {
     using namespace Lightweight::Config;
 
-    auto const path = std::filesystem::temp_directory_path() / "lightweight-profilestore-roundtrip.yml";
+    auto const path = UniqueTempPath("lightweight-profilestore-roundtrip", ".yml");
     std::filesystem::remove(path);
 
     ProfileStore store;
@@ -335,7 +336,7 @@ TEST_CASE("ProfileStore — defaultPluginsDir round-trips through Save", "[Profi
 {
     using namespace Lightweight::Config;
 
-    auto const path = std::filesystem::temp_directory_path() / "lightweight-profilestore-globaldir.yml";
+    auto const path = UniqueTempPath("lightweight-profilestore-globaldir", ".yml");
     std::filesystem::remove(path);
 
     ProfileStore store;
@@ -371,7 +372,7 @@ TEST_CASE("ProfileStore — defaultPluginsDir multi-entry round-trip preserves o
 {
     using namespace Lightweight::Config;
 
-    auto const path = std::filesystem::temp_directory_path() / "lightweight-profilestore-globaldirs.yml";
+    auto const path = UniqueTempPath("lightweight-profilestore-globaldirs", ".yml");
     std::filesystem::remove(path);
 
     ProfileStore store;
@@ -677,7 +678,7 @@ class ScopedEnvironmentVariable
 
 TEST_CASE("ProfileStore::DefaultPath honours LIGHTWEIGHT_DBTOOL_USER_CONFIG_DIR", "[ProfileStore]")
 {
-    auto const directory = std::filesystem::temp_directory_path() / "lightweight-user-config-override";
+    auto const directory = UniqueTempPath("lightweight-user-config-override");
     auto overridden = std::filesystem::path {};
     {
         ScopedEnvironmentVariable const unset { Lightweight::Config::ProfileStore::UserConfigDirectoryVariable, "" };
