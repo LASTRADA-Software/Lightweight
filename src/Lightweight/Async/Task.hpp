@@ -15,6 +15,64 @@ class Task;
 namespace detail
 {
 
+#if defined(__GNUC__) && !defined(__clang__)
+    /// Per-thread state of the symmetric-transfer trampoline (see @ref SymmetricTransfer).
+    struct SymmetricTransferState
+    {
+        /// The coroutine the trampoline loop on this thread is currently resuming.
+        std::coroutine_handle<> running {};
+        /// The coroutine the running one handed control to, picked up by the loop next.
+        std::coroutine_handle<> next {};
+    };
+
+    /// @return This thread's symmetric-transfer trampoline state.
+    [[nodiscard]] inline SymmetricTransferState& ThreadSymmetricTransferState() noexcept
+    {
+        thread_local SymmetricTransferState state;
+        return state;
+    }
+#endif
+
+    /// Hands control from the suspending coroutine @p from to @p to without growing the stack.
+    ///
+    /// Clang and MSVC resume a handle returned from @c await_suspend without a nested call.
+    /// GCC only does so when sibling-call optimization happens to apply (not at -O0, -Og or -O1,
+    /// nor under -fsanitize=address), so there every transfer runs through a per-thread trampoline
+    /// loop instead: a transfer made by the coroutine the loop is resuming is queued for the loop,
+    /// any other one starts a loop.
+    ///
+    /// The loop resumes coroutines from a noexcept function. Under GCC, a coroutine of another
+    /// library whose promise's @c unhandled_exception rethrows, and that awaits an @c Async::Task,
+    /// therefore ends in @c std::terminate where Clang and MSVC propagate the exception.
+    ///
+    /// @param from The coroutine that is suspending and calls this from its @c await_suspend.
+    /// @param to The coroutine to run next.
+    /// @return The handle for @c await_suspend to return.
+    [[nodiscard]] inline std::coroutine_handle<> SymmetricTransfer([[maybe_unused]] std::coroutine_handle<> from,
+                                                                   std::coroutine_handle<> to) noexcept
+    {
+#if defined(__GNUC__) && !defined(__clang__)
+        auto& state = ThreadSymmetricTransferState();
+        if (state.running == from)
+        {
+            state.next = to;
+            return std::noop_coroutine();
+        }
+
+        auto const enclosingState = state;
+        state.next = to;
+        while (state.next)
+        {
+            state.running = std::exchange(state.next, {});
+            state.running.resume();
+        }
+        state = enclosingState;
+        return std::noop_coroutine();
+#else
+        return to;
+#endif
+    }
+
     /// Awaiter used at a Task's final suspension point.
     ///
     /// On completion it performs a symmetric transfer back to the awaiting coroutine
@@ -30,7 +88,7 @@ namespace detail
         template <typename Promise>
         [[nodiscard]] std::coroutine_handle<> await_suspend(std::coroutine_handle<Promise> coro) const noexcept
         {
-            return coro.promise().Continuation();
+            return SymmetricTransfer(coro, coro.promise().Continuation());
         }
 
         void await_resume() const noexcept {}
@@ -287,7 +345,7 @@ class [[nodiscard]] Task
             [[nodiscard]] std::coroutine_handle<> await_suspend(std::coroutine_handle<> awaiting) noexcept
             {
                 coro.promise().SetContinuation(awaiting);
-                return coro;
+                return detail::SymmetricTransfer(awaiting, coro);
             }
 
             decltype(auto) await_resume()

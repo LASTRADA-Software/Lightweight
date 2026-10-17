@@ -227,7 +227,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Repeated Prepare of the same query keeps execu
 
     auto const* const query = R"(SELECT "FirstName" FROM "Employees" WHERE "Salary" > ? ORDER BY "EmployeeID")";
 
-    for (auto const [threshold, expectedRows]: { std::pair { 45'000, 3 }, { 55'000, 2 }, { 65'000, 1 } })
+    for (auto const& [threshold, expectedRows]: { std::pair { 45'000, 3 }, { 55'000, 2 }, { 65'000, 1 } })
     {
         stmt.Prepare(query);
         auto cursor = stmt.Execute(threshold);
