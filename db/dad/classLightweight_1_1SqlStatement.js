@@ -38,6 +38,7 @@ var classLightweight_1_1SqlStatement =
     [ "ExecuteDirectScalar", "db/dad/classLightweight_1_1SqlStatement.html#a2f51e2e203c890b25312deadcad244b1", null ],
     [ "ExecuteDirectScalar", "db/dad/classLightweight_1_1SqlStatement.html#a1dbd5345afd309378028c7ea6f455666", null ],
     [ "LastInsertId", "db/dad/classLightweight_1_1SqlStatement.html#a34c08cddca600ab42f61f92c3bef7d1a", null ],
+    [ "ConsumePendingResults", "db/dad/classLightweight_1_1SqlStatement.html#a705b446509914d24e38602cf36ab56af", null ],
     [ "BindOutputColumns", "db/dad/classLightweight_1_1SqlStatement.html#ac19f8c92550b34319f2f7b48ec32c149", null ],
     [ "BindOutputColumn", "db/dad/classLightweight_1_1SqlStatement.html#a29cec4857dff71c1d19a1c023fce84ed", null ],
     [ "BindInputParameter", "db/dad/classLightweight_1_1SqlStatement.html#a1c1302b59a4e88fae7cb709df44699ea", null ],

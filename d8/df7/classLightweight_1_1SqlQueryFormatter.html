@@ -236,6 +236,9 @@ virtual <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.h
 <tr class="memitem:a1d973789fe4e659b30eb414dea1d6941" id="r_a1d973789fe4e659b30eb414dea1d6941"><td class="memItemLeft" align="right" valign="top">virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1d973789fe4e659b30eb414dea1d6941">CreateSchemaIfNotExists</a> (std::string_view schema) const</td></tr>
 <tr class="memdesc:a1d973789fe4e659b30eb414dea1d6941"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the statement that creates <code>schema</code> unless it already exists.  <br /></td></tr>
 <tr class="separator:a1d973789fe4e659b30eb414dea1d6941"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a21a962ad99398b3b0e882a11a38a7e9f" id="r_a21a962ad99398b3b0e882a11a38a7e9f"><td class="memItemLeft" align="right" valign="top">virtual std::string_view&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a21a962ad99398b3b0e882a11a38a7e9f">ReportRowCountsStatement</a> () const noexcept</td></tr>
+<tr class="memdesc:a21a962ad99398b3b0e882a11a38a7e9f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the statement that makes the session report affected-row counts again.  <br /></td></tr>
+<tr class="separator:a21a962ad99398b3b0e882a11a38a7e9f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -1109,6 +1112,37 @@ template&lt;typename Range &gt; </div>
 <dl class="section return"><dt>Returns</dt><dd>The statement to execute, or an empty string when there is nothing to execute. </dd></dl>
 
 <p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00365">365</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a21a962ad99398b3b0e882a11a38a7e9f" name="a21a962ad99398b3b0e882a11a38a7e9f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a21a962ad99398b3b0e882a11a38a7e9f">&#9670;&#160;</a></span>ReportRowCountsStatement()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual std::string_view Lightweight::SqlQueryFormatter::ReportRowCountsStatement </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the statement that makes the session report affected-row counts again. </p>
+<p>Defaults to an empty string, meaning the dialect always reports them. SQL Server returns <code>SET NOCOUNT OFF</code>: under <code>NOCOUNT ON</code> the driver may report 0 rows for a statement that changed rows. The setting stays in effect for the session after the statement ran.</p>
+<dl class="section return"><dt>Returns</dt><dd>The statement to execute, or an empty string when there is nothing to execute. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00378">378</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>

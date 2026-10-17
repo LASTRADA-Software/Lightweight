@@ -119,6 +119,7 @@ var group__SqlMigration =
       [ "ClearVirtualAppliedMigrations", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ae8768572d6dc51abb9f09c30dc817d5d", null ],
       [ "SetLogSink", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ab2a6221c1ff25a622629b8a3a79746cb", null ],
       [ "Log", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ad118fa0bc45f292869406719db3f2cdc", null ],
+      [ "SkippedExistingRowCount", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#add671494b092c5adc33d1a55f04af024", null ],
       [ "GetDataMapper", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1869bb06cd3794f327182136cccff094", null ],
       [ "GetDataMapper", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a48ed86737153cbf627f517f3b0d11322", null ],
       [ "CloseDataMapper", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a424f1fa714b26c7b4b0a63a05dccc4b8", null ],

@@ -122,6 +122,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:ab38c77d3ca09d4546ea738da8e859d8c" id="r_ab38c77d3ca09d4546ea738da8e859d8c"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html#ab38c77d3ca09d4546ea738da8e859d8c">NumColumnsAffected</a> () const</td></tr>
 <tr class="memdesc:ab38c77d3ca09d4546ea738da8e859d8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the number of columns affected by the last query.  <br /></td></tr>
 <tr class="separator:ab38c77d3ca09d4546ea738da8e859d8c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae4d45f07239cc082de7b498b3bbad130" id="r_ae4d45f07239cc082de7b498b3bbad130"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html#ae4d45f07239cc082de7b498b3bbad130">ConsumePendingResults</a> (std::source_location location=std::source_location::current())</td></tr>
+<tr class="memdesc:ae4d45f07239cc082de7b498b3bbad130"><td class="mdescLeft">&#160;</td><td class="mdescRight">Steps through every result the last execution still has pending and throws for the first one that failed.    <br /></td></tr>
+<tr class="separator:ae4d45f07239cc082de7b498b3bbad130"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8de60e0c6c3bcd3346c3a6df06cfaa3b" id="r_a8de60e0c6c3bcd3346c3a6df06cfaa3b"><td class="memTemplParams" colspan="2">template&lt;SqlOutputColumnBinder... Args&gt; </td></tr>
 <tr class="memitem:a8de60e0c6c3bcd3346c3a6df06cfaa3b"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html#a8de60e0c6c3bcd3346c3a6df06cfaa3b">BindOutputColumns</a> (Args *... args)</td></tr>
 <tr class="separator:a8de60e0c6c3bcd3346c3a6df06cfaa3b"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -173,7 +176,7 @@ requires (((std::is_class_v&lt;Records&gt; &amp;&amp; std::is_aggregate_v&lt;Rec
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>API for reading an SQL query result set. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00611">611</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00623">623</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a33db70d71e35b772223c734f900af966" name="a33db70d71e35b772223c734f900af966"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a33db70d71e35b772223c734f900af966">&#9670;&#160;</a></span>SqlResultCursor() <span class="overload">[1/2]</span></h2>
@@ -201,7 +204,7 @@ requires (((std::is_class_v&lt;Records&gt; &amp;&amp; std::is_aggregate_v&lt;Rec
 
 <p>Constructs a result cursor for the given SQL statement. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00615">615</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00627">627</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -231,7 +234,7 @@ requires (((std::is_class_v&lt;Records&gt; &amp;&amp; std::is_aggregate_v&lt;Rec
 
 <p>Move constructor. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00625">625</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00637">637</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -258,7 +261,7 @@ requires (((std::is_class_v&lt;Records&gt; &amp;&amp; std::is_aggregate_v&lt;Rec
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00642">642</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00654">654</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -289,7 +292,7 @@ requires (((std::is_class_v&lt;Records&gt; &amp;&amp; std::is_aggregate_v&lt;Rec
 
 <p>Move assignment operator. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00632">632</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00644">644</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -318,7 +321,7 @@ requires (((std::is_class_v&lt;Records&gt; &amp;&amp; std::is_aggregate_v&lt;Rec
 
 <p>Retrieves the number of rows affected by the last query. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00652">652</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00664">664</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02622">Lightweight::DataMapper::Delete()</a>.</p>
 
@@ -349,9 +352,52 @@ requires (((std::is_class_v&lt;Records&gt; &amp;&amp; std::is_aggregate_v&lt;Rec
 
 <p>Retrieves the number of columns affected by the last query. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00658">658</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00670">670</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02774">Lightweight::DataMapper::Query()</a>.</p>
+
+</div>
+</div>
+<a id="ae4d45f07239cc082de7b498b3bbad130" name="ae4d45f07239cc082de7b498b3bbad130"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae4d45f07239cc082de7b498b3bbad130">&#9670;&#160;</a></span>ConsumePendingResults()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE void Lightweight::SqlResultCursor::ConsumePendingResults </td>
+          <td>(</td>
+          <td class="paramtype">std::source_location&#160;</td>
+          <td class="paramname"><em>location</em> = <code>std::source_location::current()</code></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Steps through every result the last execution still has pending and throws for the first one that failed.   </p>
+<p>A batch of several statements can report an error of a later statement only when its result is reached (on SQL Server, every statement that produces a row count is a result of its own). Closing the cursor discards those results without looking, because it must not throw. Call this after executing a batch whose failure must not go unnoticed.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">location</td><td>The caller's source location, reported with the error. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="exception"><dt>Exceptions</dt><dd>
+  <table class="exception">
+    <tr><td class="paramname">SqlException</td><td>A pending result reports an error.   </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00676">676</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -383,7 +429,7 @@ template&lt;SqlOutputColumnBinder... Args&gt; </div>
 <p>Binds the given arguments to the prepared statement to store the fetched data to.</p>
 <p>The statement must be prepared before calling this function. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00667">667</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00685">685</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -425,7 +471,7 @@ template&lt;SqlOutputColumnBinder T&gt; </div>
 
 <p>Binds a single output column at the given index to store fetched data. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00674">674</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00692">692</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -454,7 +500,7 @@ template&lt;SqlOutputColumnBinder T&gt; </div>
 
 <p>Fetches the next row of the result set. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00680">680</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00698">698</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l03841">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02774">Lightweight::DataMapper::Query()</a>.</p>
 
@@ -486,7 +532,7 @@ template&lt;SqlOutputColumnBinder T&gt; </div>
 
 <p>Attempts to fetch the next row, returning an error info on failure instead of throwing. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00686">686</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00704">704</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -519,7 +565,7 @@ requires (((std::is_class_v&lt;Records&gt; &amp;&amp; std::is_aggregate_v&lt;Rec
 
 <p>Binds the given records to the prepared statement to store the fetched data to. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00695">695</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00713">713</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -575,7 +621,7 @@ template&lt;typename Record , typename... ColumnAccessors&gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00707">707</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00725">725</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -617,7 +663,7 @@ template&lt;SqlGetColumnNativeType T&gt; </div>
 <p>Retrieves the value of the column at the given index for the currently selected row.</p>
 <p>Returns true if the value is not NULL, false otherwise. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00718">718</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00736">736</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l03841">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02774">Lightweight::DataMapper::Query()</a>.</p>
 
@@ -651,7 +697,7 @@ template&lt;SqlGetColumnNativeType T&gt; </div>
 
 <p>Retrieves the value of the column at the given index for the currently selected row. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00725">725</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00743">743</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -683,7 +729,7 @@ template&lt;SqlGetColumnNativeType T&gt; </div>
 <p>Retrieves the value of the column at the given index for the currently selected row.</p>
 <p>If the value is NULL, std::nullopt is returned. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00734">734</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00752">752</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -725,7 +771,7 @@ template&lt;SqlGetColumnNativeType T&gt; </div>
 <p>Retrieves the value of the column at the given index for the currently selected row.</p>
 <p>If the value is NULL, the given <code>defaultValue</code> is returned. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00743">743</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00761">761</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -772,7 +818,7 @@ template&lt;SqlGetColumnNativeType T&gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00762">762</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00780">780</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -818,7 +864,7 @@ template&lt;SqlGetColumnNativeType T&gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00776">776</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00794">794</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -875,7 +921,7 @@ template&lt;SqlGetColumnNativeType T&gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00791">791</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00809">809</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>

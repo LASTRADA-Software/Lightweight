@@ -184,6 +184,9 @@ LIGHTWEIGHT_API std::string_view&#160;</td><td class="memItemRight" valign="bott
 <tr class="separator:ab2a6221c1ff25a622629b8a3a79746cb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad118fa0bc45f292869406719db3f2cdc" id="r_ad118fa0bc45f292869406719db3f2cdc"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ad118fa0bc45f292869406719db3f2cdc">Log</a> (std::string_view message) const</td></tr>
 <tr class="separator:ad118fa0bc45f292869406719db3f2cdc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:add671494b092c5adc33d1a55f04af024" id="r_add671494b092c5adc33d1a55f04af024"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#add671494b092c5adc33d1a55f04af024">SkippedExistingRowCount</a> () const noexcept</td></tr>
+<tr class="memdesc:add671494b092c5adc33d1a55f04af024"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of rows <code>Insert(...).IfNotExists(...)</code> steps skipped because a row with the same key values already existed, counted over the manager's lifetime.  <br /></td></tr>
+<tr class="separator:add671494b092c5adc33d1a55f04af024"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1869bb06cd3794f327182136cccff094" id="r_a1869bb06cd3794f327182136cccff094"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html">DataMapper</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1869bb06cd3794f327182136cccff094">GetDataMapper</a> ()</td></tr>
 <tr class="separator:a1869bb06cd3794f327182136cccff094"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a48ed86737153cbf627f517f3b0d11322" id="r_a48ed86737153cbf627f517f3b0d11322"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html">DataMapper</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a48ed86737153cbf627f517f3b0d11322">GetDataMapper</a> () const</td></tr>
@@ -336,7 +339,7 @@ Static Public Member Functions</h2></td></tr>
 <p>Per-migration compat policy. </p>
 <p>Given a migration about to be applied (or previewed), returns the set of compat flags that should be active while rendering it. Plugins that ship legacy migrations use this to scope compat behaviour to their own timestamp range (e.g. a plugin enables <code>lup-truncate</code> for migrations predating a given release). Unset means "strict for every migration". </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00422">422</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00431">431</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -368,7 +371,7 @@ Static Public Member Functions</h2></td></tr>
 <dd>
 Reference to the migration manager. </dd></dl>
 
-<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00931">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>, and <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00944">Lightweight::SqlMigration::MigrationBase::~MigrationBase()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00946">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>, and <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00959">Lightweight::SqlMigration::MigrationBase::~MigrationBase()</a>.</p>
 
 </div>
 </div>
@@ -395,7 +398,7 @@ Reference to the migration manager. </dd></dl>
   </dd>
 </dl>
 
-<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00931">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00946">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>.</p>
 
 </div>
 </div>
@@ -492,7 +495,7 @@ Reference to the migration manager. </dd></dl>
   </dd>
 </dl>
 
-<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00944">Lightweight::SqlMigration::MigrationBase::~MigrationBase()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00959">Lightweight::SqlMigration::MigrationBase::~MigrationBase()</a>.</p>
 
 </div>
 </div>
@@ -805,6 +808,34 @@ Reference to the migration manager. </dd></dl>
 
 </div>
 </div>
+<a id="add671494b092c5adc33d1a55f04af024" name="add671494b092c5adc33d1a55f04af024"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#add671494b092c5adc33d1a55f04af024">&#9670;&#160;</a></span>SkippedExistingRowCount()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API std::size_t Lightweight::SqlMigration::MigrationManager::SkippedExistingRowCount </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Number of rows <code>Insert(...).IfNotExists(...)</code> steps skipped because a row with the same key values already existed, counted over the manager's lifetime. </p>
+<p>Each skip is also reported through <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ad118fa0bc45f292869406719db3f2cdc">Log</a> as one line of the form <code>Skipped existing row: &lt;timestamp&gt; &lt;table&gt; (&lt;key&gt;=&lt;value&gt;, ...)</code>. Both happen once the migration has committed, so a migration that fails and rolls back reports no skips. Callers that need the count of one run take the difference before and after it. </p>
+
+</div>
+</div>
 <a id="a1869bb06cd3794f327182136cccff094" name="a1869bb06cd3794f327182136cccff094"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a1869bb06cd3794f327182136cccff094">&#9670;&#160;</a></span>GetDataMapper() <span class="overload">[1/2]</span></h2>
 
@@ -829,7 +860,7 @@ Reference to the migration manager. </dd></dl>
   </dd>
 </dl>
 
-<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00404">GetDataMapper()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00413">GetDataMapper()</a>.</p>
 
 </div>
 </div>
@@ -858,7 +889,7 @@ Reference to the migration manager. </dd></dl>
 
 <p>Get the data mapper used for migrations. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00404">404</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00413">413</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1869bb06cd3794f327182136cccff094">GetDataMapper()</a>.</p>
 

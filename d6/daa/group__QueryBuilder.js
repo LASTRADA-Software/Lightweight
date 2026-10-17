@@ -144,7 +144,8 @@ var group__QueryBuilder =
     ] ],
     [ "Lightweight::SqlMigrationInsertBuilder", "d0/d05/classLightweight_1_1SqlMigrationInsertBuilder.html", [
       [ "SqlMigrationInsertBuilder", "d0/d05/classLightweight_1_1SqlMigrationInsertBuilder.html#a6a87a91e77ef2b5d715c75226120b815", null ],
-      [ "Set", "d0/d05/classLightweight_1_1SqlMigrationInsertBuilder.html#a6aa7cc2284f3054fac6c4ce00f3d06da", null ]
+      [ "Set", "d0/d05/classLightweight_1_1SqlMigrationInsertBuilder.html#a6aa7cc2284f3054fac6c4ce00f3d06da", null ],
+      [ "IfNotExists", "d0/d05/classLightweight_1_1SqlMigrationInsertBuilder.html#a8ad0fa0076c4de211be6269eec51959e", null ]
     ] ],
     [ "Lightweight::SqlMigrationUpdateBuilder", "db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html", [
       [ "SqlMigrationUpdateBuilder", "db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#aef625c1fdddcae0cdb986548f30f2ff9", null ],
@@ -222,7 +223,8 @@ var group__QueryBuilder =
     [ "Lightweight::SqlInsertDataPlan", "dd/d76/structLightweight_1_1SqlInsertDataPlan.html", [
       [ "schemaName", "dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a71fa23f7cd74e66242eb2042fb019dec", null ],
       [ "tableName", "dd/d76/structLightweight_1_1SqlInsertDataPlan.html#afd21e23e3c24884cba9ef3b76d174e82", null ],
-      [ "columns", "dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a0428d0b2e06f4760a9bc3c31cff19327", null ]
+      [ "columns", "dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a0428d0b2e06f4760a9bc3c31cff19327", null ],
+      [ "keyColumns", "dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a959e4f65383c549b2d25bb2605ccbc4a", null ]
     ] ],
     [ "Lightweight::SqlUpdateDataPlan", "d4/db0/structLightweight_1_1SqlUpdateDataPlan.html", [
       [ "schemaName", "d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#a25b926fb9c37a75042b19820cf17c724", null ],
@@ -251,6 +253,10 @@ var group__QueryBuilder =
       [ "ifNotExists", "dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#a64587008f80036f6eae8301e96b6656b", null ],
       [ "whereExpression", "dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#a25784a4370399b260e35a48fc710b10c", null ]
     ] ],
+    [ "Lightweight::SqlBoundStatement", "d3/d37/structLightweight_1_1SqlBoundStatement.html", [
+      [ "sql", "d3/d37/structLightweight_1_1SqlBoundStatement.html#ae9040c6d0a9133ae599575b92fdb30ff", null ],
+      [ "parameters", "d3/d37/structLightweight_1_1SqlBoundStatement.html#a84df99430e5025a78d543119c5373930", null ]
+    ] ],
     [ "Lightweight::SqlMigrationPlan", "d3/ded/structLightweight_1_1SqlMigrationPlan.html", [
       [ "ToSql", "d3/ded/structLightweight_1_1SqlMigrationPlan.html#af68f6e6d4328db95b59ada75a24f17f3", null ],
       [ "formatter", "d3/ded/structLightweight_1_1SqlMigrationPlan.html#a1125d9bd0e213d69685b1a6deb03398e", null ],
@@ -269,6 +275,7 @@ var group__QueryBuilder =
     ] ],
     [ "Lightweight::SqlPrimaryKeyType", "d6/daa/group__QueryBuilder.html#ga7d3d803ee8e7236cf6257b7bf760b471", null ],
     [ "Lightweight::ToSql", "d6/daa/group__QueryBuilder.html#ga4c68045b2a9228548ad924f9699f036f", null ],
+    [ "Lightweight::ToBoundSql", "d6/daa/group__QueryBuilder.html#ga64b43173582d2792574a35a701acc139", null ],
     [ "Lightweight::ToSql", "d6/daa/group__QueryBuilder.html#gaf9ef87a2dfb32d1e09850a53a5ca73eb", null ],
     [ "Lightweight::SqlMaxBoundSetSize", "d6/daa/group__QueryBuilder.html#gaf5129886f9f25ac627e908d6ce38406b", null ],
     [ "Lightweight::SqlColumnTypeDefinitionOf", "d6/daa/group__QueryBuilder.html#gaeba5ba4ebe64ce27d81a82bdf1ea11d7", null ]

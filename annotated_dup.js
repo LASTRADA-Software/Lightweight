@@ -79,6 +79,7 @@ var annotated_dup =
       [ "SqlAlterTablePlan", "dd/d75/structLightweight_1_1SqlAlterTablePlan.html", "dd/d75/structLightweight_1_1SqlAlterTablePlan" ],
       [ "SqlAlterTableQueryBuilder", "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html", "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder" ],
       [ "SqlBinary", "db/db6/classLightweight_1_1SqlBinary.html", "db/db6/classLightweight_1_1SqlBinary" ],
+      [ "SqlBoundStatement", "d3/d37/structLightweight_1_1SqlBoundStatement.html", "d3/d37/structLightweight_1_1SqlBoundStatement" ],
       [ "SqlColumnDeclaration", "dd/d71/structLightweight_1_1SqlColumnDeclaration.html", "dd/d71/structLightweight_1_1SqlColumnDeclaration" ],
       [ "SqlCompositeForeignKeyConstraint", "d3/d18/structLightweight_1_1SqlCompositeForeignKeyConstraint.html", "d3/d18/structLightweight_1_1SqlCompositeForeignKeyConstraint" ],
       [ "SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html", "da/da8/classLightweight_1_1SqlConnection" ],

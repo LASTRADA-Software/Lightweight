@@ -113,12 +113,15 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a0428d0b2e06f4760a9bc3c31cff19327" id="r_a0428d0b2e06f4760a9bc3c31cff19327"><td class="memItemLeft" align="right" valign="top">std::vector&lt; std::pair&lt; std::string, <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html">SqlVariant</a> &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a0428d0b2e06f4760a9bc3c31cff19327">columns</a></td></tr>
 <tr class="memdesc:a0428d0b2e06f4760a9bc3c31cff19327"><td class="mdescLeft">&#160;</td><td class="mdescRight">The columns and their values to insert.  <br /></td></tr>
 <tr class="separator:a0428d0b2e06f4760a9bc3c31cff19327"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a959e4f65383c549b2d25bb2605ccbc4a" id="r_a959e4f65383c549b2d25bb2605ccbc4a"><td class="memItemLeft" align="right" valign="top">std::vector&lt; std::string &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a959e4f65383c549b2d25bb2605ccbc4a">keyColumns</a></td></tr>
+<tr class="memdesc:a959e4f65383c549b2d25bb2605ccbc4a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Key columns that make the insert conditional, empty for a plain insert.  <br /></td></tr>
+<tr class="separator:a959e4f65383c549b2d25bb2605ccbc4a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Represents a SQL INSERT data plan for migrations. </p>
 <p>This structure represents an INSERT statement for a migration plan. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00431">431</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00432">432</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="a71fa23f7cd74e66242eb2042fb019dec" name="a71fa23f7cd74e66242eb2042fb019dec"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a71fa23f7cd74e66242eb2042fb019dec">&#9670;&#160;</a></span>schemaName</h2>
@@ -134,7 +137,7 @@ Public Attributes</h2></td></tr>
 
 <p>The schema name of the table to insert into. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00434">434</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00435">435</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -152,7 +155,7 @@ Public Attributes</h2></td></tr>
 
 <p>The name of the table to insert into. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00437">437</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00438">438</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -170,7 +173,26 @@ Public Attributes</h2></td></tr>
 
 <p>The columns and their values to insert. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00440">440</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00441">441</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a959e4f65383c549b2d25bb2605ccbc4a" name="a959e4f65383c549b2d25bb2605ccbc4a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a959e4f65383c549b2d25bb2605ccbc4a">&#9670;&#160;</a></span>keyColumns</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::vector&lt;std::string&gt; Lightweight::SqlInsertDataPlan::keyColumns</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Key columns that make the insert conditional, empty for a plain insert. </p>
+<p>When non-empty, the row is inserted only if no row with the same values in these columns exists yet (<code>INSERT ... SELECT ... WHERE NOT EXISTS (...)</code>). Each key column must be one of <a class="el" href="../../dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a0428d0b2e06f4760a9bc3c31cff19327">columns</a> and must not hold NULL; rendering throws otherwise. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00448">448</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>

@@ -173,6 +173,9 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html">Lightweight::SqlCreateIndexPlan</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a SQL CREATE INDEX plan for migrations.  <a href="../../dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/d37/structLightweight_1_1SqlBoundStatement.html">Lightweight::SqlBoundStatement</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">A statement whose values are bound as parameters when it runs.  <a href="../../d3/d37/structLightweight_1_1SqlBoundStatement.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/ded/structLightweight_1_1SqlMigrationPlan.html">Lightweight::SqlMigrationPlan</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a SQL migration plan.  <a href="../../d3/ded/structLightweight_1_1SqlMigrationPlan.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -208,6 +211,9 @@ Enumerations</h2></td></tr>
 Functions</h2></td></tr>
 <tr class="memitem:ga4c68045b2a9228548ad924f9699f036f" id="r_ga4c68045b2a9228548ad924f9699f036f"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::vector&lt; std::string &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/daa/group__QueryBuilder.html#ga4c68045b2a9228548ad924f9699f036f">Lightweight::ToSql</a> (<a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const &amp;formatter, <a class="el" href="../../d6/daa/group__QueryBuilder.html#gace7448ea30e7d08a6417adef1c6edc6e">SqlMigrationPlanElement</a> const &amp;element)</td></tr>
 <tr class="separator:ga4c68045b2a9228548ad924f9699f036f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga64b43173582d2792574a35a701acc139" id="r_ga64b43173582d2792574a35a701acc139"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::optional&lt; <a class="el" href="../../d3/d37/structLightweight_1_1SqlBoundStatement.html">SqlBoundStatement</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/daa/group__QueryBuilder.html#ga64b43173582d2792574a35a701acc139">Lightweight::ToBoundSql</a> (<a class="el" href="../../d6/daa/group__QueryBuilder.html#gace7448ea30e7d08a6417adef1c6edc6e">SqlMigrationPlanElement</a> const &amp;element)</td></tr>
+<tr class="memdesc:ga64b43173582d2792574a35a701acc139"><td class="mdescLeft">&#160;</td><td class="mdescRight">Renders an <code>Insert(...).IfNotExists(...)</code> step for execution with bound parameters.  <br /></td></tr>
+<tr class="separator:ga64b43173582d2792574a35a701acc139"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaf9ef87a2dfb32d1e09850a53a5ca73eb" id="r_gaf9ef87a2dfb32d1e09850a53a5ca73eb"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::vector&lt; std::string &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/daa/group__QueryBuilder.html#gaf9ef87a2dfb32d1e09850a53a5ca73eb">Lightweight::ToSql</a> (<a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const &amp;formatter, std::vector&lt; <a class="el" href="../../d3/ded/structLightweight_1_1SqlMigrationPlan.html">SqlMigrationPlan</a> &gt; const &amp;plans)</td></tr>
 <tr class="memdesc:gaf9ef87a2dfb32d1e09850a53a5ca73eb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Formats the given SQL migration plan as a list of SQL statements.  <br /></td></tr>
 <tr class="separator:gaf9ef87a2dfb32d1e09850a53a5ca73eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -240,7 +246,7 @@ Variables</h2></td></tr>
 
 <p>Represents a single SQL ALTER TABLE command. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00369">369</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00370">370</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -259,7 +265,7 @@ Variables</h2></td></tr>
 <p>Represents a single SQL migration plan element. </p>
 <p>This variant represents a single SQL migration plan element. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00550">550</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00558">558</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -319,7 +325,7 @@ Variables</h2></td></tr>
 <p>Represents a primary key type. </p>
 <p>This enumeration represents the primary key type of a column. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00198">198</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00199">199</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -358,6 +364,41 @@ Variables</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A list of SQL statements. </dd></dl>
+
+</div>
+</div>
+<a id="ga64b43173582d2792574a35a701acc139" name="ga64b43173582d2792574a35a701acc139"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga64b43173582d2792574a35a701acc139">&#9670;&#160;</a></span>ToBoundSql()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API std::optional&lt; <a class="el" href="../../d3/d37/structLightweight_1_1SqlBoundStatement.html">SqlBoundStatement</a> &gt; Lightweight::ToBoundSql </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="../../d6/daa/group__QueryBuilder.html#gace7448ea30e7d08a6417adef1c6edc6e">SqlMigrationPlanElement</a> const &amp;&#160;</td>
+          <td class="paramname"><em>element</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Renders an <code>Insert(...).IfNotExists(...)</code> step for execution with bound parameters. </p>
+<p><code>MigrationManager</code> executes this form, binding the values, while checksums and previews (<code>ToSql</code>) keep showing them as literals, so the checksum of a migration does not depend on how its values reach the database. Callers that run <code>ToSql</code> output themselves (e.g. <code><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a3409545779372b6a14b213c8eab814b1" title="Executes an SQL migration query, as created b the callback.">SqlStatement::MigrateDirect</a></code>) execute the literal form.</p>
+<p>UTF-8 text is bound as UTF-16, so it is stored exactly as its literal rendering would store it. Other values are bound natively; a <code>double</code> reaches the column as its binary value. That stores the same as the literal for FLOAT/REAL columns and for DECIMAL columns of low scale, but it can differ where the literal is parsed as a decimal: a DECIMAL column with more fractional digits than the double holds exactly (e.g. DECIMAL(28,12) receives 123456.789011999994 rather than 123456.789012000000), SQLite parsing some literals 1-2 ULP off the correctly rounded double the bound value carries, and a double into a text column (SQLite stores 3.0 as "3.0" bound, "3" as a literal). Exact decimals belong in <code><a class="el" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html">SqlNumeric</a></code> / <code><a class="el" href="../../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html" title="A fixed-point decimal whose precision and scale are known only at run time.">SqlDynamicNumeric</a></code>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">element</td><td>The step to render. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The bound statement, or nothing when <code>element</code> is not an <code>IfNotExists</code> insert. </dd></dl>
+<dl class="exception"><dt>Exceptions</dt><dd>
+  <table class="exception">
+    <tr><td class="paramname">std::invalid_argument</td><td>A key column is not one of the insert's columns or holds NULL. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
@@ -451,7 +492,7 @@ template&lt;typename T &gt; </div>
 
 <p>Represents a SQL column type definition of T. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00191">191</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00192">192</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00134">Lightweight::SqlAlterTableQueryBuilder::AddColumn()</a>, and <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00150">Lightweight::SqlAlterTableQueryBuilder::AddNotRequiredColumn()</a>.</p>
 

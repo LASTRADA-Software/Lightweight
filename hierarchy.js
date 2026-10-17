@@ -97,6 +97,7 @@ var hierarchy =
     [ "Lightweight::SqlBackup::Sha256", "d2/d43/classLightweight_1_1SqlBackup_1_1Sha256.html", null ],
     [ "Lightweight::SqlBackup::TableFilter", "d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html", null ],
     [ "Lightweight::SqlBackup::TableInfo", "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html", null ],
+    [ "Lightweight::SqlBoundStatement", "d3/d37/structLightweight_1_1SqlBoundStatement.html", null ],
     [ "Lightweight::SqlColumnDeclaration", "dd/d71/structLightweight_1_1SqlColumnDeclaration.html", null ],
     [ "Lightweight::SqlCompositeForeignKeyConstraint", "d3/d18/structLightweight_1_1SqlCompositeForeignKeyConstraint.html", null ],
     [ "Lightweight::SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html", null ],

@@ -205,6 +205,7 @@ var NAVTREE =
       ] ],
       [ "Migration Commands", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#migration-commands", [
         [ "migrate", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#migrate", [
+          [ "Skipped rows", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#skipped-rows", null ],
           [ "Custom default schema (<tt>--schema</tt>)", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#custom-default-schema---schema", null ]
         ] ],
         [ "migrate-to-release <VERSION>", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#migrate-to-release-version", null ],
@@ -267,7 +268,9 @@ var NAVTREE =
         [ "DropTable", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#droptable", null ]
       ] ],
       [ "Data Manipulation", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#data-manipulation", [
-        [ "Insert", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#insert-1", null ],
+        [ "Insert", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#insert-1", [
+          [ "Rows that may already exist (<tt>IfNotExists</tt>)", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#rows-that-may-already-exist-ifnotexists", null ]
+        ] ],
         [ "Update", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#update-1", null ],
         [ "Delete", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#delete-1", null ],
         [ "CreateIndex", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#createindex", [
@@ -402,15 +405,15 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/db8/structLightweight_1_1SqlSchema_1_1Column.html",
-"d4/d61/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2schema-introspection.html#see-also-7",
-"d6/dfa/structLightweight_1_1SqlDateTime.html#a2fe4b8eee3bc27c8097d057b490b1319",
-"d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#compatibility-flags",
-"d9/d8a/group__CoreApi.html#ga8637d070f06ecc36b5699c5b7ea1b102",
-"da/dcb/structLightweight_1_1MigrationRenderContext_1_1ColumnKey.html#a6ed0df14237cf17363e0dce25e4d16ec",
-"dd/d71/structLightweight_1_1SqlColumnDeclaration.html#adc6c2316125cc865139f3dae21badfb6",
-"de/dae/classLightweight_1_1SqlFixedString.html#a406155892924b437d84c627ea2b750cd",
-"functions_func_f.html"
+"d2/da0/TableFilter_8hpp_source.html",
+"d4/d61/classLightweight_1_1SqlAdvisoryLockHandler.html#ab066140910453f5dc44f5b6dbdcd7f5c",
+"d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html#a8d75bccd08fdf35b48d793ca62eb0e82",
+"d7/d9a/classLightweight_1_1SqlDynamicString.html#afb4690101298c60e927ad17f9ef0a741",
+"d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#where-an-on-demand-load-runs",
+"da/da8/classLightweight_1_1SqlConnection.html#aec2394736e758433d81c29cb5c04d047",
+"dd/d60/Restore_8hpp_source.html",
+"de/da0/classLightweight_1_1SqlQueryBuilder.html#af144019a618b92754fdc3879e226632d",
+"functions_b.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

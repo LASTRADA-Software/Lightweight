@@ -111,6 +111,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a6aa7cc2284f3054fac6c4ce00f3d06da"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../d0/d05/classLightweight_1_1SqlMigrationInsertBuilder.html">SqlMigrationInsertBuilder</a> &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d0/d05/classLightweight_1_1SqlMigrationInsertBuilder.html#a6aa7cc2284f3054fac6c4ce00f3d06da">Set</a> (std::string columnName, T const &amp;value)</td></tr>
 <tr class="memdesc:a6aa7cc2284f3054fac6c4ce00f3d06da"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets a column value for the INSERT.  <br /></td></tr>
 <tr class="separator:a6aa7cc2284f3054fac6c4ce00f3d06da"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8ad0fa0076c4de211be6269eec51959e" id="r_a8ad0fa0076c4de211be6269eec51959e"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d0/d05/classLightweight_1_1SqlMigrationInsertBuilder.html">SqlMigrationInsertBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/d05/classLightweight_1_1SqlMigrationInsertBuilder.html#a8ad0fa0076c4de211be6269eec51959e">IfNotExists</a> (std::vector&lt; std::string &gt; keyColumns)</td></tr>
+<tr class="memdesc:a8ad0fa0076c4de211be6269eec51959e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Makes the INSERT skip its row when a row with the same key values already exists.  <br /></td></tr>
+<tr class="separator:a8ad0fa0076c4de211be6269eec51959e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Query builder for building INSERT queries in migrations. </p>
@@ -188,6 +191,40 @@ template&lt;typename T &gt; </div>
 <p>Sets a column value for the INSERT. </p>
 
 <p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00400">400</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a8ad0fa0076c4de211be6269eec51959e" name="a8ad0fa0076c4de211be6269eec51959e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8ad0fa0076c4de211be6269eec51959e">&#9670;&#160;</a></span>IfNotExists()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../d0/d05/classLightweight_1_1SqlMigrationInsertBuilder.html">SqlMigrationInsertBuilder</a> &amp; Lightweight::SqlMigrationInsertBuilder::IfNotExists </td>
+          <td>(</td>
+          <td class="paramtype">std::vector&lt; std::string &gt;&#160;</td>
+          <td class="paramname"><em>keyColumns</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Makes the INSERT skip its row when a row with the same key values already exists. </p>
+<p>Renders <code>INSERT INTO t (...) SELECT ... WHERE NOT EXISTS (SELECT 1 FROM t WHERE key = ...)</code>, so a seed row a database already holds no longer fails the migration. An existing row is left as it is, even when its non-key columns differ from the values given here. Rendering the plan throws <code>std::invalid_argument</code> when a key column is not one of the <code>Set</code> columns or its value is NULL.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">keyColumns</td><td>The columns identifying the row; must not be empty. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>This builder, for chaining. </dd></dl>
+<dl class="exception"><dt>Exceptions</dt><dd>
+  <table class="exception">
+    <tr><td class="paramname">std::invalid_argument</td><td><code>keyColumns</code> is empty. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>

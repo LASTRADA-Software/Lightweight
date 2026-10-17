@@ -129,7 +129,7 @@ Public Attributes</h2></td></tr>
 <div class="textblock"><p>Represents a SQL CREATE INDEX plan for migrations. </p>
 <p>This structure represents a CREATE INDEX statement for a migration plan. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00515">515</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00523">523</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="a601ee8dc6af98175063c3b6b5917aff9" name="a601ee8dc6af98175063c3b6b5917aff9"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a601ee8dc6af98175063c3b6b5917aff9">&#9670;&#160;</a></span>schemaName</h2>
@@ -145,7 +145,7 @@ Public Attributes</h2></td></tr>
 
 <p>The schema name of the table to create the index on. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00518">518</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00526">526</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -163,7 +163,7 @@ Public Attributes</h2></td></tr>
 
 <p>The name of the index to create. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00521">521</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00529">529</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -181,7 +181,7 @@ Public Attributes</h2></td></tr>
 
 <p>The name of the table to create the index on. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00524">524</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00532">532</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -199,7 +199,7 @@ Public Attributes</h2></td></tr>
 
 <p>The columns to include in the index. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00527">527</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00535">535</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -217,7 +217,7 @@ Public Attributes</h2></td></tr>
 
 <p>If true, creates a UNIQUE index. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00530">530</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00538">538</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -235,7 +235,7 @@ Public Attributes</h2></td></tr>
 
 <p>If true, generates CREATE INDEX IF NOT EXISTS. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00533">533</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00541">541</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -252,7 +252,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Pre-rendered predicate body of a partial (PostgreSQL / SQLite) or filtered (SQL Server) index, without the leading <code>WHERE</code>. Empty means the index covers every row. Emitted verbatim after the column list as <code>WHERE &lt;expression&gt;</code>; the caller is responsible for dialect-safe quoting. Mirrors <code><a class="el" href="../../d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#a4ba3ee45a117b2883222f58f6606bbbb" title="Pre-rendered WHERE-clause body (the text after WHERE), used when the condition cannot be expressed wi...">SqlUpdateDataPlan::whereExpression</a></code>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00540">540</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00548">548</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>

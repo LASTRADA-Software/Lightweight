@@ -5,6 +5,7 @@ var classLightweight_1_1SqlResultCursor =
     [ "operator=", "d8/d63/classLightweight_1_1SqlResultCursor.html#a5ea1e9b924db4690cd53663373b6a61b", null ],
     [ "NumRowsAffected", "d8/d63/classLightweight_1_1SqlResultCursor.html#ac429ba6642b47cb29ff6cdab7d5a3586", null ],
     [ "NumColumnsAffected", "d8/d63/classLightweight_1_1SqlResultCursor.html#ab38c77d3ca09d4546ea738da8e859d8c", null ],
+    [ "ConsumePendingResults", "d8/d63/classLightweight_1_1SqlResultCursor.html#ae4d45f07239cc082de7b498b3bbad130", null ],
     [ "BindOutputColumns", "d8/d63/classLightweight_1_1SqlResultCursor.html#a8de60e0c6c3bcd3346c3a6df06cfaa3b", null ],
     [ "BindOutputColumn", "d8/d63/classLightweight_1_1SqlResultCursor.html#ae83cff0d43f8d06bd5adfe34070f838d", null ],
     [ "FetchRow", "d8/d63/classLightweight_1_1SqlResultCursor.html#af1167aa228464a5efaaae283ac9bf50f", null ],
