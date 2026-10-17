@@ -1731,13 +1731,19 @@ int UnicodeUpgradeTables(MigrationManager& manager, bool dryRun, bool yes)
         [](auto const& r) { return r.columns.empty(); },
         [](auto const& r) {
             std::println("Columns to upgrade ({}):", r.columns.size());
+            // Like the backup listing, names the schema only when the columns span several.
+            auto const spansSchemas = std::ranges::any_of(
+                r.columns, [&](auto const& c) { return c.table.schema != r.columns.front().table.schema; });
+            auto const tableName = [spansSchemas](auto const& c) {
+                return spansSchemas ? std::format("{}.{}", c.table.schema, c.table.table) : c.table.table;
+            };
             for (auto const& c: r.columns)
             {
                 if (c.joinedByForeignKeyTo.empty())
-                    std::println("  {}.{}", c.table.table, c.column);
+                    std::println("  {}.{}", tableName(c), c.column);
                 else
                     std::println("  {}.{} (not declared; joined by a foreign key to {})",
-                                 c.table.table,
+                                 tableName(c),
                                  c.column,
                                  c.joinedByForeignKeyTo);
             }

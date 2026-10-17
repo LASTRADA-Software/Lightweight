@@ -642,6 +642,14 @@ namespace SqlMigration
         /// Declared names match live ones without regard to case where the dialect's identifiers
         /// are case-insensitive (`SqlQueryFormatter::IdentifiersAreCaseInsensitive`).
         ///
+        /// The live tables of every schema are read. A declared table resolves to the schema its
+        /// migration names; else to the first schema holding that name in the connection's name
+        /// resolution order (SQL Server: the user's default schema, then `dbo`; PostgreSQL: the
+        /// search path); else to the only schema holding it. Each column is altered, and its
+        /// dependents found, in the schema it was resolved to. When several schemas hold a declared
+        /// name, none of them is in that order and one has a column to widen, the call throws
+        /// `std::runtime_error` naming them.
+        ///
         /// Where a foreign key needs both sides to share one text type (SQL Server), every column
         /// a foreign key joins to an upgraded column is upgraded too, declared or not, and reported
         /// with `ColumnUpgradeEntry::joinedByForeignKeyTo` set. Such a column must have the same narrow

@@ -553,6 +553,26 @@ Declared table and column names match the live ones without regard to case on SQ
 Server under a case-insensitive database collation (the default; the collation is not checked),
 when no live name matches exactly; on PostgreSQL they must match exactly.
 
+In a database whose tables span several schemas, each declared table stands for one live table,
+which the command finds like this:
+- the schema that `WithSchema` names;
+- otherwise the first schema that holds a table of that name, in the order the connection resolves
+  unqualified names: on SQL Server the login's `DEFAULT_SCHEMA` (`dbo` for a sysadmin), then `dbo`;
+  on PostgreSQL the search path, which `--schema` sets (see the table above). On SQL Server
+  `--schema` and the profile's schema do not change this order;
+- otherwise the only schema that holds a table of that name, even one the connection does not
+  resolve unqualified names through.
+
+Run it with the application's login (on PostgreSQL, the application's `--schema`), so that it widens
+the tables the application's unqualified statements reach. Tables of the same name in other schemas
+are left alone, except for columns that a foreign key joins to a widened column, which are widened in
+their own schema. When several schemas hold a declared name, none of them is on the connection's
+resolution order and one of them has a column to widen, the command names the schemas and stops
+before anything changes.
+
+Backup and restore cover every schema. This command differs because the migrations declare each
+table once.
+
 ### exec \<QUERY\>
 
 Executes an SQL query and prints any result set:

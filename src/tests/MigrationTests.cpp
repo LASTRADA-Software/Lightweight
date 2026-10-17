@@ -4502,3 +4502,273 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     REQUIRE(cursor.FetchRow());
     CHECK(cursor.GetColumn<int64_t>(1) == 4);
 }
+
+// ================================================================================================
+// unicode-upgrade-tables in a database whose tables span several schemas
+// ================================================================================================
+
+namespace
+{
+
+/// Data type of @p schema.@p table.@p column, from INFORMATION_SCHEMA.
+std::string LiveDataTypeIn(SqlStatement& stmt, std::string_view schema, std::string_view table, std::string_view column)
+{
+    return CatalogScalar(stmt,
+                         std::format("SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{}' AND "
+                                     "TABLE_NAME = '{}' AND COLUMN_NAME = '{}'",
+                                     schema,
+                                     table,
+                                     column));
+}
+
+/// Drops what the SQL Server multi-schema upgrade tests create, ending any impersonation first.
+void DropSqlServerMultiSchemaFixture(SqlStatement& stmt)
+{
+    for (auto const* sql: {
+             "IF USER_NAME() = N'uu_ms_sales_user' REVERT",
+             "IF OBJECT_ID(N'sales.uu_ms_orders') IS NOT NULL DROP TABLE sales.uu_ms_orders",
+             "IF OBJECT_ID(N'dbo.uu_ms_orders') IS NOT NULL DROP TABLE dbo.uu_ms_orders",
+             "IF OBJECT_ID(N'dbo.uu_ms_customers') IS NOT NULL DROP TABLE dbo.uu_ms_customers",
+             "IF OBJECT_ID(N'sales.uu_ms_customers') IS NOT NULL DROP TABLE sales.uu_ms_customers",
+             "IF OBJECT_ID(N'uu_ms_other.uu_ms_customers') IS NOT NULL DROP TABLE uu_ms_other.uu_ms_customers",
+             "IF OBJECT_ID(N'uu_ms_third.uu_ms_customers') IS NOT NULL DROP TABLE uu_ms_third.uu_ms_customers",
+             "IF SCHEMA_ID(N'uu_ms_other') IS NOT NULL DROP SCHEMA uu_ms_other",
+             "IF SCHEMA_ID(N'uu_ms_third') IS NOT NULL DROP SCHEMA uu_ms_third",
+             "IF USER_ID(N'uu_ms_sales_user') IS NOT NULL DROP USER uu_ms_sales_user",
+         })
+        (void) stmt.ExecuteDirect(sql);
+    // A `sales` schema that still holds other objects stays.
+    constexpr auto dropEmptySchema = "IF SCHEMA_ID(N'sales') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM sys.objects "
+                                     "WHERE schema_id = SCHEMA_ID(N'sales')) DROP SCHEMA sales";
+    (void) stmt.ExecuteDirect(dropEmptySchema);
+}
+
+/// Creates `sales` and a user whose default schema it is, for `EXECUTE AS USER`.
+void CreateSalesUser(SqlStatement& stmt)
+{
+    for (auto const* sql: {
+             "CREATE SCHEMA sales",
+             "CREATE USER uu_ms_sales_user WITHOUT LOGIN WITH DEFAULT_SCHEMA = sales",
+             "ALTER ROLE db_owner ADD MEMBER uu_ms_sales_user",
+         })
+        (void) stmt.ExecuteDirect(sql);
+}
+
+/// Registers (for its lifetime) a migration that declares both test tables, unqualified and wide.
+std::unique_ptr<SqlMigration::MigrationBase> DeclareMultiSchemaUpgradeTables()
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    return std::make_unique<fold_test::FoldStub<20'26'10'17'00'01>>("declare wide", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("uu_ms_customers").PrimaryKey("CODE", NChar(10)).Column("NAME", NVarchar(30));
+        plan.CreateTable("uu_ms_orders").PrimaryKey("ID", Integer()).RequiredColumn("CUSTOMER_CODE", NChar(10));
+    });
+}
+
+/// Runs a real upgrade and returns the message it fails with ("" when it succeeds).
+std::string UpgradeError(SqlMigration::MigrationManager& manager, bool dryRun)
+{
+    try
+    {
+        std::ignore = manager.UnicodeUpgradeTables(dryRun);
+        return {};
+    }
+    catch (std::runtime_error const& error)
+    {
+        return error.what();
+    }
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server widens a key in dbo while the default schema is another one",
+                 "[SqlMigration][UnicodeUpgrade][MultiSchema]")
+{
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("only SQL Server keeps narrow and wide text apart, so only there a key blocks the upgrade");
+    mgr.CreateMigrationHistory();
+
+    DropSqlServerMultiSchemaFixture(stmt);
+    auto const cleanup = detail::Finally([&] { DropSqlServerMultiSchemaFixture(stmt); });
+    // A CHAR key in dbo, referenced from the default schema `sales`: unqualified names resolve
+    // to sales first and then to dbo, as for a login whose default schema is not dbo.
+    CreateSalesUser(stmt);
+    for (auto const* sql: {
+             "CREATE TABLE dbo.uu_ms_customers (CODE CHAR(10) NOT NULL CONSTRAINT PK_uu_ms_customers PRIMARY KEY, "
+             "NAME VARCHAR(30) NULL)",
+             "CREATE TABLE sales.uu_ms_orders (ID INT NOT NULL CONSTRAINT PK_uu_ms_orders PRIMARY KEY, "
+             "CUSTOMER_CODE CHAR(10) NOT NULL CONSTRAINT FK_uu_ms_orders_customer FOREIGN KEY "
+             "REFERENCES dbo.uu_ms_customers (CODE))",
+             "INSERT INTO dbo.uu_ms_customers (CODE, NAME) VALUES ('c1', 'first')",
+             "INSERT INTO sales.uu_ms_orders (ID, CUSTOMER_CODE) VALUES (1, 'c1')",
+         })
+        (void) stmt.ExecuteDirect(sql);
+    auto const declared = DeclareMultiSchemaUpgradeTables();
+    (void) stmt.ExecuteDirect("EXECUTE AS USER = N'uu_ms_sales_user'");
+
+    auto const preview = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    CHECK(std::ranges::contains(preview.rebuiltObjects,
+                                std::string { "PRIMARY KEY PK_uu_ms_customers on dbo.uu_ms_customers" }));
+    CHECK(std::ranges::contains(preview.rebuiltObjects,
+                                std::string { "FOREIGN KEY FK_uu_ms_orders_customer on sales.uu_ms_orders" }));
+
+    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    CHECK(result.columns.size() == 3);
+    (void) stmt.ExecuteDirect("REVERT");
+
+    CHECK(LiveDataTypeIn(stmt, "dbo", "uu_ms_customers", "CODE") == "nchar");
+    CHECK(LiveDataTypeIn(stmt, "dbo", "uu_ms_customers", "NAME") == "nvarchar");
+    CHECK(LiveDataTypeIn(stmt, "sales", "uu_ms_orders", "CUSTOMER_CODE") == "nchar");
+    CHECK(CatalogScalar(stmt, "SELECT type FROM sys.key_constraints WHERE name = 'PK_uu_ms_customers'") == "PK");
+    CHECK(CatalogScalar(stmt, "SELECT name FROM sys.foreign_keys WHERE name = 'FK_uu_ms_orders_customer'")
+          == "FK_uu_ms_orders_customer");
+    CHECK_THROWS(stmt.ExecuteDirect("INSERT INTO sales.uu_ms_orders (ID, CUSTOMER_CODE) VALUES (2, 'none')"));
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server widens a key in a schema other than the default one",
+                 "[SqlMigration][UnicodeUpgrade][MultiSchema]")
+{
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("only SQL Server keeps narrow and wide text apart, so only there a key blocks the upgrade");
+    mgr.CreateMigrationHistory();
+
+    DropSqlServerMultiSchemaFixture(stmt);
+    auto const cleanup = detail::Finally([&] { DropSqlServerMultiSchemaFixture(stmt); });
+    // A CHAR key in `sales`, its only holder, referenced from the default schema dbo.
+    for (auto const* sql: {
+             "CREATE SCHEMA sales",
+             "CREATE TABLE sales.uu_ms_customers (CODE CHAR(10) NOT NULL CONSTRAINT PK_uu_ms_customers PRIMARY KEY, "
+             "NAME VARCHAR(30) NULL)",
+             "CREATE TABLE dbo.uu_ms_orders (ID INT NOT NULL CONSTRAINT PK_uu_ms_orders PRIMARY KEY, "
+             "CUSTOMER_CODE CHAR(10) NOT NULL CONSTRAINT FK_uu_ms_orders_customer FOREIGN KEY "
+             "REFERENCES sales.uu_ms_customers (CODE))",
+             "INSERT INTO sales.uu_ms_customers (CODE, NAME) VALUES ('c1', 'first')",
+         })
+        (void) stmt.ExecuteDirect(sql);
+    auto const declared = DeclareMultiSchemaUpgradeTables();
+
+    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    CHECK(result.columns.size() == 3);
+    CHECK(std::ranges::contains(result.rebuiltObjects,
+                                std::string { "PRIMARY KEY PK_uu_ms_customers on sales.uu_ms_customers" }));
+    CHECK(LiveDataTypeIn(stmt, "sales", "uu_ms_customers", "CODE") == "nchar");
+    CHECK(LiveDataTypeIn(stmt, "dbo", "uu_ms_orders", "CUSTOMER_CODE") == "nchar");
+    CHECK(CatalogScalar(stmt, "SELECT type FROM sys.key_constraints WHERE name = 'PK_uu_ms_customers'") == "PK");
+    CHECK(CatalogScalar(stmt, "SELECT name FROM sys.foreign_keys WHERE name = 'FK_uu_ms_orders_customer'")
+          == "FK_uu_ms_orders_customer");
+    CHECK_THROWS(stmt.ExecuteDirect("INSERT INTO dbo.uu_ms_orders (ID, CUSTOMER_CODE) VALUES (1, 'none')"));
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server refuses a declared name that several off-path schemas hold",
+                 "[SqlMigration][UnicodeUpgrade][MultiSchema]")
+{
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("the resolution order default schema, then dbo, is SQL Server's");
+    mgr.CreateMigrationHistory();
+
+    DropSqlServerMultiSchemaFixture(stmt);
+    auto const cleanup = detail::Finally([&] { DropSqlServerMultiSchemaFixture(stmt); });
+    // The declared name in two schemas, neither the default schema `sales` nor dbo.
+    CreateSalesUser(stmt);
+    for (auto const* sql: {
+             "CREATE SCHEMA uu_ms_other",
+             "CREATE SCHEMA uu_ms_third",
+             "CREATE TABLE uu_ms_other.uu_ms_customers (CODE CHAR(10) NOT NULL PRIMARY KEY)",
+             "CREATE TABLE uu_ms_third.uu_ms_customers (CODE NCHAR(10) NOT NULL PRIMARY KEY)",
+         })
+        (void) stmt.ExecuteDirect(sql);
+    auto const declared = DeclareMultiSchemaUpgradeTables();
+    (void) stmt.ExecuteDirect("EXECUTE AS USER = N'uu_ms_sales_user'");
+
+    for (auto const dryRun: { true, false })
+    {
+        auto const error = UpgradeError(mgr, dryRun);
+        CHECK(error.contains("the schemas uu_ms_other, uu_ms_third each hold one"));
+        CHECK(error.contains("resolve through sales, dbo only"));
+    }
+    (void) stmt.ExecuteDirect("REVERT");
+    CHECK(LiveDataTypeIn(stmt, "uu_ms_other", "uu_ms_customers", "CODE") == "char");
+    CHECK(LiveDataTypeIn(stmt, "uu_ms_third", "uu_ms_customers", "CODE") == "nchar");
+
+    // Once neither holder has a column to widen, the ambiguity no longer matters.
+    (void) stmt.ExecuteDirect("DROP TABLE uu_ms_other.uu_ms_customers");
+    (void) stmt.ExecuteDirect("CREATE TABLE uu_ms_other.uu_ms_customers (CODE NCHAR(10) NOT NULL PRIMARY KEY)");
+    (void) stmt.ExecuteDirect("EXECUTE AS USER = N'uu_ms_sales_user'");
+    CHECK(UpgradeError(mgr, /*dryRun=*/false).empty());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: PostgreSQL resolves a declared name through the whole search path",
+                 "[SqlMigration][UnicodeUpgrade][MultiSchema]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::POSTGRESQL)
+        SKIP("the search path is PostgreSQL's");
+    mgr.CreateMigrationHistory();
+
+    auto const dropFixture = [&] {
+        (void) stmt.ExecuteDirect("RESET search_path");
+        (void) stmt.ExecuteDirect(R"(DROP TABLE IF EXISTS "public"."uu_ms_customers")");
+        for (auto const* schema: { "uu_ms_first", "uu_ms_other", "uu_ms_third" })
+            (void) stmt.ExecuteDirect(std::format(R"(DROP SCHEMA IF EXISTS "{}" CASCADE)", schema));
+    };
+    dropFixture();
+    auto const cleanup = detail::Finally(dropFixture);
+    for (auto const* sql: {
+             R"(CREATE SCHEMA "uu_ms_first")",
+             R"(CREATE SCHEMA "uu_ms_other")",
+             R"(CREATE SCHEMA "uu_ms_third")",
+             R"(CREATE TABLE "public"."uu_ms_customers" ("CODE" CHAR(10) NOT NULL PRIMARY KEY))",
+             R"(CREATE TABLE "uu_ms_other"."uu_ms_customers" ("CODE" CHAR(10) NOT NULL PRIMARY KEY))",
+         })
+        (void) stmt.ExecuteDirect(sql);
+    auto const declared = DeclareMultiSchemaUpgradeTables();
+
+    // The Unicode ODBC driver reports CHAR as wide text, so nothing qualifies and nothing is refused;
+    // the ANSI driver reports it as narrow, so the resolution decides what is widened.
+    auto const liveTables = SqlSchema::ReadAllTables(stmt, std::string {}, std::string {});
+    auto const liveCustomers = std::ranges::find_if(liveTables, [](SqlSchema::Table const& table) {
+        return table.schema == "public" && table.name == "uu_ms_customers";
+    });
+    REQUIRE(liveCustomers != liveTables.end());
+    REQUIRE(liveCustomers->columns.size() == 1);
+    auto const narrowText = std::holds_alternative<Char>(liveCustomers->columns.front().type);
+
+    // public is the second search path entry; the first one holds no such table.
+    (void) stmt.ExecuteDirect(R"(SET search_path TO "uu_ms_first", "public")");
+    auto const preview = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    if (narrowText)
+    {
+        REQUIRE(preview.columns.size() == 1);
+        CHECK(preview.columns.front().table.schema == "public");
+        CHECK(preview.columns.front().table.table == "uu_ms_customers");
+    }
+    else
+        CHECK(preview.columns.empty());
+
+    // Two holders off the search path, and one has a column to widen: refused, nothing changes.
+    (void) stmt.ExecuteDirect(R"(DROP TABLE "public"."uu_ms_customers")");
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "uu_ms_third"."uu_ms_customers" ("CODE" CHAR(10) NOT NULL PRIMARY KEY))");
+    for (auto const dryRun: { true, false })
+    {
+        auto const error = UpgradeError(mgr, dryRun);
+        if (narrowText)
+        {
+            CHECK(error.contains("the schemas uu_ms_other, uu_ms_third each hold one"));
+            CHECK(error.contains("resolve through uu_ms_first, public only"));
+        }
+        else
+            CHECK(error.empty());
+    }
+    CHECK(LiveDataTypeIn(stmt, "uu_ms_other", "uu_ms_customers", "CODE") == "character");
+}

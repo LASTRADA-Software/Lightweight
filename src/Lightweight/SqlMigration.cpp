@@ -2867,22 +2867,41 @@ namespace
     };
 
     /// @brief The live tables and the declared (folded) tables, looked up by name: the one place
-    /// where declared names meet live ones. A lookup tries the exact name first and, where the
-    /// dialect's identifiers are case-insensitive, falls back to ignoring ASCII letter case.
+    /// where declared names meet live ones. Where the dialect's identifiers are case-insensitive,
+    /// names match ignoring ASCII letter case, and an exact spelling wins among such matches.
+    ///
+    /// The live tables may span several schemas. A declared table resolves to one live table: in
+    /// the schema its migration names; else, among the schemas holding the name, in the first one
+    /// the connection resolves unqualified names through; else in the only schema holding it.
     class UpgradeSchemaIndex
     {
       public:
+        /// @brief Where a declared name leads: one live table, or the holders when no rule picks one.
+        struct Resolution
+        {
+            /// The live table, or `nullptr` when there is none or when the name is ambiguous.
+            SqlSchema::Table const* table = nullptr;
+            /// The tables of the same name in several schemas, none of them a resolution schema.
+            std::vector<SqlSchema::Table const*> ambiguous;
+        };
+
+        /// @param liveTables The tables of every schema of the database.
+        /// @param fold The declared tables.
+        /// @param caseInsensitiveIdentifiers Whether names that differ only in case are one.
+        /// @param resolutionSchemas The schemas an unqualified name resolves through, in order.
         UpgradeSchemaIndex(std::vector<SqlSchema::Table> const& liveTables,
                            MigrationManager::PlanFoldingResult const& fold,
-                           bool caseInsensitiveIdentifiers):
+                           bool caseInsensitiveIdentifiers,
+                           std::vector<std::string> resolutionSchemas):
             _fold { fold },
-            _caseInsensitive { caseInsensitiveIdentifiers }
+            _caseInsensitive { caseInsensitiveIdentifiers },
+            _resolutionSchemas { std::move(resolutionSchemas) }
         {
             for (auto const& table: liveTables)
             {
-                _liveTables.emplace(table.name, &table);
-                _liveTablesByKey.emplace(Key(table.name), &table);
+                _liveTablesByName[Key(table.name)].push_back(&table);
                 _liveTablesBySchema.emplace(std::pair { table.schema, table.name }, &table);
+                _liveTablesBySchemaKey.emplace(std::pair { Key(table.schema), Key(table.name) }, &table);
             }
             for (auto const& declared: fold.creationOrder)
             {
@@ -2891,20 +2910,53 @@ namespace
             }
         }
 
-        /// @brief The live table a declared, unqualified @p name refers to, or `nullptr`.
-        [[nodiscard]] SqlSchema::Table const* LiveTable(std::string_view name) const
+        /// @brief Resolves @p schema.@p name; an empty @p schema resolves the bare name.
+        [[nodiscard]] Resolution Resolve(std::string const& schema, std::string_view name) const
         {
-            return Find(_liveTables, _liveTablesByKey, name);
+            if (!schema.empty())
+            {
+                if (auto const it = _liveTablesBySchema.find(std::pair { schema, std::string { name } });
+                    it != _liveTablesBySchema.end())
+                    return { .table = it->second, .ambiguous = {} };
+                auto const it = _liveTablesBySchemaKey.find(std::pair { Key(schema), Key(name) });
+                return { .table = it == _liveTablesBySchemaKey.end() ? nullptr : it->second, .ambiguous = {} };
+            }
+            auto const it = _liveTablesByName.find(Key(name));
+            if (it == _liveTablesByName.end())
+                return {};
+            auto const& candidates = it->second;
+            for (auto const& resolutionSchema: _resolutionSchemas)
+                if (auto const* table = BestIn(candidates, Key(resolutionSchema), name))
+                    return { .table = table, .ambiguous = {} };
+            if (std::ranges::all_of(
+                    candidates, [&](auto const* table) { return Key(table->schema) == Key(candidates.front()->schema); }))
+                return { .table = BestIn(candidates, Key(candidates.front()->schema), name), .ambiguous = {} };
+            return { .table = nullptr, .ambiguous = candidates };
         }
 
-        /// @brief The live table @p schema.@p name, both as the catalog spells them, or `nullptr`.
-        /// An empty @p schema falls back to the unqualified lookup.
+        /// @brief The live table @p schema.@p name resolves to, or `nullptr` (also when ambiguous).
         [[nodiscard]] SqlSchema::Table const* LiveTable(std::string const& schema, std::string const& name) const
         {
-            if (schema.empty())
-                return LiveTable(name);
-            auto const it = _liveTablesBySchema.find(std::pair { schema, name });
-            return it == _liveTablesBySchema.end() ? nullptr : it->second;
+            return Resolve(schema, name).table;
+        }
+
+        /// @brief Explains why the declared @p name cannot be resolved among @p holders.
+        [[nodiscard]] std::string AmbiguityMessage(std::string_view name,
+                                                   std::vector<SqlSchema::Table const*> const& holders) const
+        {
+            auto schemas = std::string {};
+            for (auto const* table: holders)
+                schemas += std::format("{}{}", schemas.empty() ? "" : ", ", table->schema);
+            auto path = std::string {};
+            for (auto const& schema: _resolutionSchemas)
+                path += std::format("{}{}", path.empty() ? "" : ", ", schema);
+            return std::format("cannot tell which table '{}' the migrations declare: the schemas {} each hold one, and "
+                               "unqualified names resolve through {} only; connect as a user whose default schema (on "
+                               "PostgreSQL: whose search path, e.g. --schema) holds the intended table, or declare its "
+                               "schema with WithSchema",
+                               name,
+                               schemas,
+                               path.empty() ? std::string { "no schema" } : path);
         }
 
         /// @brief The column named @p name of the live @p table, or `nullptr`.
@@ -2913,25 +2965,23 @@ namespace
             return FindColumn(table.columns, name);
         }
 
-        /// @brief The declared table named @p name, or `nullptr` when no migration declares it.
-        [[nodiscard]] SqlSchema::FullyQualifiedTableName const* DeclaredTable(std::string_view name) const
-        {
-            return Find(_declaredTables, _declaredTablesByKey, name);
-        }
-
-        /// @brief The declared type of @p table.@p column, or `nullopt` when no migration declares it.
-        [[nodiscard]] std::optional<SqlColumnTypeDefinition> DeclaredType(std::string_view table,
+        /// @brief The declared type of the live @p table's @p column, or `nullopt` when no migration
+        /// declares it. A declaration counts only for the live table its name resolves to.
+        [[nodiscard]] std::optional<SqlColumnTypeDefinition> DeclaredType(SqlSchema::Table const& table,
                                                                           std::string_view column) const
         {
-            auto const* declared = DeclaredTable(table);
+            auto const* declared = DeclaredTable(table.name);
             if (!declared)
+                return std::nullopt;
+            auto const resolution = Resolve(declared->schema, declared->table);
+            if (resolution.table != &table && !std::ranges::contains(resolution.ambiguous, &table))
                 return std::nullopt;
             auto const* declaredColumn = FindColumn(_fold.tables.at(*declared).columns, column);
             return declaredColumn ? std::optional { declaredColumn->type } : std::nullopt;
         }
 
       private:
-        /// The name under which @p name is matched when no name matches exactly.
+        /// The name under which @p name is matched: itself, or ASCII-folded where case does not count.
         [[nodiscard]] std::string Key(std::string_view name) const
         {
             auto key = std::string { name };
@@ -2940,17 +2990,33 @@ namespace
             return key;
         }
 
-        template <typename T>
-        [[nodiscard]] T const* Find(std::map<std::string, T const*, std::less<>> const& exact,
-                                    std::map<std::string, T const*> const& byKey,
-                                    std::string_view name) const
+        /// The candidate in the schema keyed @p schemaKey, preferring the exact spelling @p name.
+        [[nodiscard]] SqlSchema::Table const* BestIn(std::vector<SqlSchema::Table const*> const& candidates,
+                                                     std::string const& schemaKey,
+                                                     std::string_view name) const
         {
-            if (auto const it = exact.find(name); it != exact.end())
+            SqlSchema::Table const* found = nullptr;
+            for (auto const* table: candidates)
+            {
+                if (Key(table->schema) != schemaKey)
+                    continue;
+                if (table->name == name)
+                    return table;
+                if (!found)
+                    found = table;
+            }
+            return found;
+        }
+
+        /// @brief The declared table named @p name, or `nullptr` when no migration declares it.
+        [[nodiscard]] SqlSchema::FullyQualifiedTableName const* DeclaredTable(std::string_view name) const
+        {
+            if (auto const it = _declaredTables.find(name); it != _declaredTables.end())
                 return it->second;
             if (!_caseInsensitive)
                 return nullptr;
-            auto const it = byKey.find(Key(name));
-            return it == byKey.end() ? nullptr : it->second;
+            auto const it = _declaredTablesByKey.find(Key(name));
+            return it == _declaredTablesByKey.end() ? nullptr : it->second;
         }
 
         template <typename Column>
@@ -2967,9 +3033,10 @@ namespace
 
         MigrationManager::PlanFoldingResult const& _fold;
         bool _caseInsensitive;
-        std::map<std::string, SqlSchema::Table const*, std::less<>> _liveTables;
-        std::map<std::string, SqlSchema::Table const*> _liveTablesByKey;
+        std::vector<std::string> _resolutionSchemas;
+        std::map<std::string, std::vector<SqlSchema::Table const*>> _liveTablesByName;
         std::map<std::pair<std::string, std::string>, SqlSchema::Table const*> _liveTablesBySchema;
+        std::map<std::pair<std::string, std::string>, SqlSchema::Table const*> _liveTablesBySchemaKey;
         std::map<std::string, SqlSchema::FullyQualifiedTableName const*, std::less<>> _declaredTables;
         std::map<std::string, SqlSchema::FullyQualifiedTableName const*> _declaredTablesByKey;
     };
@@ -2984,8 +3051,9 @@ namespace
         UpgradeSchemaIndex const& schema)
     {
         UnicodeUpgradePending p;
-        p.key =
-            SqlSchema::FullyQualifiedTableName { .catalog = folded.catalog, .schema = folded.schema, .table = live.name };
+        p.key = SqlSchema::FullyQualifiedTableName { .catalog = folded.catalog,
+                                                     .schema = live.schema.empty() ? folded.schema : live.schema,
+                                                     .table = live.name };
 
         std::set<std::string> upgradeColumnNames;
         for (auto const& intendedCol: foldedState.columns)
@@ -3035,7 +3103,7 @@ namespace
     /// for dialects whose foreign keys need both sides to share one text type. A joined column
     /// qualifies when it has the upgraded column's narrow type and size and no migration declares
     /// it with another type; the others are collected as refusals. Foreign-key endpoints are
-    /// catalog names, so they are resolved exactly, schema included.
+    /// catalog names and carry their schema, so each resolves to its own live table.
     class ForeignKeyJoinWalker
     {
       public:
@@ -3049,7 +3117,7 @@ namespace
             for (auto const index: std::views::iota(std::size_t { 0 }, pending.size()))
             {
                 auto const& p = pending[index];
-                auto const* live = schema.LiveTable(p.key.table);
+                auto const* live = schema.LiveTable(p.key.schema, p.key.table);
                 if (!live)
                     continue;
                 _pendingByTable.emplace(std::pair { live->schema, live->name }, index);
@@ -3116,7 +3184,7 @@ namespace
             if (!column || !_visited.emplace(table->schema, table->name, column->name).second)
                 return;
             auto const fromName = std::format("{}.{}", from.table, from.column);
-            auto const declaredType = _schema.DeclaredType(table->name, column->name);
+            auto const declaredType = _schema.DeclaredType(*table, column->name);
             if (column->type != from.liveType || (declaredType && *declaredType != from.intendedType))
             {
                 _refused += std::format("{}{}.{} ({}{}) joined to {} ({} to {})",
@@ -3299,6 +3367,29 @@ namespace
         }
     }
 
+    /// @brief The schemas the server resolves an unqualified table name through, in order: on SQL
+    /// Server the user's default schema, then `dbo`; on PostgreSQL every existing schema of the
+    /// search path. Empty for a dialect without schemas.
+    [[nodiscard]] std::vector<std::string> NameResolutionSchemas(SqlStatement& stmt)
+    {
+        switch (stmt.Connection().ServerType())
+        {
+            case SqlServerType::MICROSOFT_SQL:
+                return { stmt.ExecuteDirectScalar<std::string>("SELECT SCHEMA_NAME()").value_or(std::string {}), "dbo" };
+            case SqlServerType::POSTGRESQL: {
+                auto schemas = std::vector<std::string> {};
+                auto cursor = stmt.ExecuteDirect("SELECT CAST(path.name AS TEXT) FROM "
+                                                 "unnest(current_schemas(false)) WITH ORDINALITY AS path (name, position) "
+                                                 "ORDER BY path.position");
+                while (cursor.FetchRow())
+                    schemas.push_back(cursor.GetNullableColumn<std::string>(1).value_or(std::string {}));
+                return schemas;
+            }
+            default:
+                return {};
+        }
+    }
+
     /// @brief Flattens the pending upgrades into the column list the dependency scripter takes.
     [[nodiscard]] std::vector<::Lightweight::detail::ColumnToRetype> ColumnsToRetype(
         std::vector<UnicodeUpgradePending> const& pending)
@@ -3378,15 +3469,20 @@ MigrationManager::UnicodeUpgradeResult MigrationManager::UnicodeUpgradeTables(bo
     auto stmt = SqlStatement { dm.Connection() };
     auto const liveTables = SqlSchema::ReadAllTables(stmt, std::string {}, std::string {});
 
-    auto const schema = UpgradeSchemaIndex { liveTables, fold, formatter.IdentifiersAreCaseInsensitive() };
+    auto const schema =
+        UpgradeSchemaIndex { liveTables, fold, formatter.IdentifiersAreCaseInsensitive(), NameResolutionSchemas(stmt) };
 
     std::vector<UnicodeUpgradePending> pendingPerTable;
     for (auto const& folded: fold.creationOrder)
     {
-        auto const* live = schema.LiveTable(folded.table);
-        if (!live)
+        auto const resolution = schema.Resolve(folded.schema, folded.table);
+        // An ambiguous name stops the upgrade only when one of its tables has something to widen.
+        for (auto const* holder: resolution.ambiguous)
+            if (ComputeUpgradeForTable(folded, fold.tables.at(folded), *holder, schema))
+                throw std::runtime_error(schema.AmbiguityMessage(folded.table, resolution.ambiguous));
+        if (!resolution.table)
             continue;
-        if (auto upgrade = ComputeUpgradeForTable(folded, fold.tables.at(folded), *live, schema))
+        if (auto upgrade = ComputeUpgradeForTable(folded, fold.tables.at(folded), *resolution.table, schema))
             pendingPerTable.push_back(std::move(*upgrade));
     }
 
