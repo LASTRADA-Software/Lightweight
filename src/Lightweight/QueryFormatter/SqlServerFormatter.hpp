@@ -297,6 +297,17 @@ EXEC sp_executesql @sql;)",
         return "SET NOCOUNT OFF";
     }
 
+    /// The row count SQL Server keeps for the table's heap or clustered index in `sys.partitions`, read
+    /// without touching the data and visible to anyone who can see the table (no `VIEW DATABASE STATE`).
+    /// @return The query, bound with the schema name and then the table name.
+    [[nodiscard]] std::string_view TableRowCountEstimateQuery() const noexcept override
+    {
+        return "SELECT COALESCE(SUM(p.rows), 0) FROM sys.partitions AS p "
+               "JOIN sys.tables AS t ON t.object_id = p.object_id "
+               "JOIN sys.schemas AS s ON s.schema_id = t.schema_id "
+               "WHERE s.name = ? AND t.name = ? AND p.index_id IN (0, 1)";
+    }
+
     [[nodiscard]] std::string SelectFirst(bool distinct,
                                           // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                                           std::string_view fields,

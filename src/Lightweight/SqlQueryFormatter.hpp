@@ -380,6 +380,16 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
         return {};
     }
 
+    /// @brief A query estimating a table's row count from the catalog's statistics, without reading the
+    /// table. It takes two parameters, the schema name and then the table name, and yields one integer.
+    ///
+    /// @return The query, or empty when the dialect keeps no such statistics; callers then count with
+    ///         `SELECT COUNT(*)`, which reads the whole table.
+    [[nodiscard]] virtual std::string_view TableRowCountEstimateQuery() const noexcept
+    {
+        return {};
+    }
+
   protected:
     /// Formats a table name with optional schema prefix.
     static std::string FormatTableName(std::string_view schema, std::string_view table);

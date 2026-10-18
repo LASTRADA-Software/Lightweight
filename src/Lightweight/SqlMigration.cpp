@@ -14,6 +14,7 @@
 #include "SqlSchema.hpp"
 #include "SqlServerDependentObjects.hpp"
 #include "SqlTransaction.hpp"
+#include "UnicodeUpgradeProgress.hpp"
 #include "Utils.hpp"
 
 #include <algorithm>
@@ -3534,10 +3535,13 @@ namespace
     /// rebuild is the canonical recipe — see `RebuildSqliteTable` for the rationale.
     void ExecuteSqliteUpgrade(SqlConnection& connection,
                               SqlQueryFormatter const& formatter,
-                              std::vector<UnicodeUpgradePending> const& pending)
+                              std::vector<UnicodeUpgradePending> const& pending,
+                              ::Lightweight::detail::UnicodeUpgradeProgress& progress)
     {
-        for (auto const& p: pending)
+        for (auto const index: std::views::iota(std::size_t { 0 }, pending.size()))
         {
+            auto const& p = pending[index];
+            progress.TableAltering(index);
             std::map<std::string, std::string> newTypeByColumn;
             for (auto const& c: p.columns)
                 newTypeByColumn.emplace(c.column, formatter.ColumnType(c.intendedType));
@@ -3545,6 +3549,7 @@ namespace
             RebuildSqliteTable(connection, p.key.table, [&](std::string createSql) {
                 return RewriteSqliteCreateTableTypes(std::move(createSql), newTypeByColumn);
             });
+            progress.TableAltered(index);
         }
     }
 
@@ -3602,14 +3607,24 @@ namespace
     /// columns, recreate the keys from their catalog definitions, whoever created them.
     void ExecutePostgreSqlUpgrade(SqlStatement& stmt,
                                   SqlQueryFormatter const& formatter,
-                                  std::vector<UnicodeUpgradePending> const& pending)
+                                  std::vector<UnicodeUpgradePending> const& pending,
+                                  ::Lightweight::detail::UnicodeUpgradeProgress& progress)
     {
         auto const foreignKeys = ::Lightweight::detail::ScriptPostgreSqlForeignKeys(stmt, ColumnsToRetype(pending));
+        if (!foreignKeys.drop.empty())
+            progress.UnitStep("drop dependent objects");
         for (auto const& sql: foreignKeys.drop)
             stmt.ExecuteDirect(sql).ConsumePendingResults();
-        for (auto const& p: pending)
+        for (auto const index: std::views::iota(std::size_t { 0 }, pending.size()))
+        {
+            auto const& p = pending[index];
+            progress.TableAltering(index);
             for (auto const& sql: formatter.AlterTable(p.key.schema, p.key.table, BuildAlterColumnCommands(p)))
                 stmt.ExecuteDirect(sql).ConsumePendingResults();
+            progress.TableAltered(index);
+        }
+        if (!foreignKeys.recreate.empty())
+            progress.UnitStep("restore objects");
         for (auto const& sql: foreignKeys.recreate)
             stmt.ExecuteDirect(sql).ConsumePendingResults();
     }
@@ -3621,7 +3636,8 @@ namespace
     /// single source of truth for the dialect's ALTER syntax.
     void ExecuteGenericUpgrade(SqlStatement& stmt,
                                SqlQueryFormatter const& formatter,
-                               std::vector<UnicodeUpgradePending> const& pending)
+                               std::vector<UnicodeUpgradePending> const& pending,
+                               ::Lightweight::detail::UnicodeUpgradeProgress& progress)
     {
         auto const execAlter =
             [&](std::string_view schema, std::string_view table, std::vector<SqlAlterTableCommand> const& commands) {
@@ -3634,12 +3650,21 @@ namespace
 
         // A foreign key lives on its referencing table, also when it references the upgraded one.
         auto const foreignKeys = UnitForeignKeys(pending);
+        if (!foreignKeys.empty())
+            progress.UnitStep("drop dependent objects");
         for (auto const& fk: foreignKeys)
             execAlter(fk.foreignKey.table.schema,
                       fk.foreignKey.table.table,
                       { SqlAlterTableCommands::DropForeignKey { .columnName = fk.foreignKey.columns.front() } });
-        for (auto const& p: pending)
+        for (auto const index: std::views::iota(std::size_t { 0 }, pending.size()))
+        {
+            auto const& p = pending[index];
+            progress.TableAltering(index);
             execAlter(p.key.schema, p.key.table, BuildAlterColumnCommands(p));
+            progress.TableAltered(index);
+        }
+        if (!foreignKeys.empty())
+            progress.UnitStep("restore objects");
         for (auto const& fk: foreignKeys)
             execAlter(fk.foreignKey.table.schema, fk.foreignKey.table.table, { AddForeignKeyCommand(fk) });
     }
@@ -3802,13 +3827,23 @@ namespace
     void ExecuteUpgradeWithDependents(SqlStatement& stmt,
                                       SqlQueryFormatter const& formatter,
                                       std::vector<UnicodeUpgradePending> const& pending,
-                                      ::Lightweight::detail::DependentObjectScript const& dependents)
+                                      ::Lightweight::detail::DependentObjectScript const& dependents,
+                                      ::Lightweight::detail::UnicodeUpgradeProgress& progress)
     {
+        if (!dependents.drop.empty())
+            progress.UnitStep("drop dependent objects");
         for (auto const& sql: dependents.drop)
             stmt.ExecuteDirect(sql).ConsumePendingResults();
-        for (auto const& p: pending)
+        for (auto const index: std::views::iota(std::size_t { 0 }, pending.size()))
+        {
+            auto const& p = pending[index];
+            progress.TableAltering(index);
             for (auto const& sql: formatter.AlterTable(p.key.schema, p.key.table, BuildAlterColumnCommands(p)))
                 stmt.ExecuteDirect(sql).ConsumePendingResults();
+            progress.TableAltered(index);
+        }
+        if (!dependents.recreate.empty())
+            progress.UnitStep("restore objects");
         auto const ansiWarnings = ScopedAnsiWarnings { stmt, dependents.needsAnsiWarnings };
         for (auto const& sql: dependents.recreate)
             stmt.ExecuteDirect(sql).ConsumePendingResults();
@@ -3866,19 +3901,22 @@ namespace
     void UpgradeUnit(SqlStatement& stmt,
                      SqlQueryFormatter const& formatter,
                      std::vector<UnicodeUpgradePending> const& unit,
-                     bool scriptsDependents)
+                     ::Lightweight::detail::UnicodeUpgradeProgress& progress)
     {
         auto& connection = stmt.Connection();
         auto transaction = SqlTransaction { connection, SqlTransactionMode::ROLLBACK };
         if (connection.ServerType() == SqlServerType::SQLITE)
-            ExecuteSqliteUpgrade(connection, formatter, unit);
+            ExecuteSqliteUpgrade(connection, formatter, unit, progress);
         else if (connection.ServerType() == SqlServerType::POSTGRESQL)
-            ExecutePostgreSqlUpgrade(stmt, formatter, unit);
-        else if (scriptsDependents)
-            ExecuteUpgradeWithDependents(
-                stmt, formatter, unit, ::Lightweight::detail::ScriptSqlServerDependentObjects(stmt, ColumnsToRetype(unit)));
+            ExecutePostgreSqlUpgrade(stmt, formatter, unit, progress);
+        else if (formatter.DistinguishesNarrowAndWideText())
+            ExecuteUpgradeWithDependents(stmt,
+                                         formatter,
+                                         unit,
+                                         ::Lightweight::detail::ScriptSqlServerDependentObjects(stmt, ColumnsToRetype(unit)),
+                                         progress);
         else
-            ExecuteGenericUpgrade(stmt, formatter, unit);
+            ExecuteGenericUpgrade(stmt, formatter, unit, progress);
         transaction.Commit();
     }
 
@@ -3914,54 +3952,90 @@ namespace
     }
 } // namespace
 
-MigrationManager::UnicodeUpgradeResult MigrationManager::UnicodeUpgradeTables(bool dryRun)
+MigrationManager::UnicodeUpgradeResult MigrationManager::UnicodeUpgradeTables(ExecutionMode mode, ProgressTask* progressTask)
 {
-    UnicodeUpgradeResult result;
-    result.wasDryRun = dryRun;
+    auto nullTask = NullProgressTask {};
+    auto progress = ::Lightweight::detail::UnicodeUpgradeProgress { progressTask != nullptr ? *progressTask : nullTask };
 
-    auto& dm = GetDataMapper();
-    auto const& formatter = dm.Connection().QueryFormatter();
-    auto const fold = FoldRegisteredMigrations(formatter);
-
-    auto stmt = SqlStatement { dm.Connection() };
-    auto const liveTables = SqlSchema::ReadAllTables(stmt, std::string {}, std::string {});
-
-    auto const schema =
-        UpgradeSchemaIndex { liveTables, fold, formatter.IdentifiersAreCaseInsensitive(), NameResolutionSchemas(stmt) };
-
-    auto pendingPerTable = PlanUnicodeUpgrades(fold, schema);
-    if (formatter.DistinguishesNarrowAndWideText())
-        ForeignKeyJoinWalker { pendingPerTable, schema, formatter }.Run();
-
-    auto const units = GroupIntoUnits(pendingPerTable, schema);
-    RecordUnicodeUpgradePlan(result, pendingPerTable, units);
-
-    // Where narrow and wide text are distinct types (SQL Server), the column change is
-    // blocked by every key, constraint, index and statistic on the column: script them
-    // from the whole catalog now, so a dry run can report them and a real run stops on an
-    // object it cannot recreate before it changes anything.
-    auto const scriptsDependents = formatter.DistinguishesNarrowAndWideText();
-    if (scriptsDependents && !pendingPerTable.empty())
-        result.rebuiltObjects =
-            ::Lightweight::detail::ScriptSqlServerDependentObjects(stmt, ColumnsToRetype(pendingPerTable)).descriptions;
-
-    if (dryRun)
-        return result;
-
-    // One transaction per unit keeps the transaction log to one unit's worth of changes.
-    for (auto const index: std::views::iota(std::size_t { 0 }, units.size()))
+    try
     {
-        try
+        UnicodeUpgradeResult result;
+        result.wasDryRun = mode == ExecutionMode::DryRun;
+
+        auto& dm = GetDataMapper();
+        auto const& formatter = dm.Connection().QueryFormatter();
+        auto const fold = FoldRegisteredMigrations(formatter);
+
+        auto stmt = SqlStatement { dm.Connection() };
+        auto const liveTables = SqlSchema::ReadAllTables(stmt, std::string {}, std::string {});
+
+        auto const schema =
+            UpgradeSchemaIndex { liveTables, fold, formatter.IdentifiersAreCaseInsensitive(), NameResolutionSchemas(stmt) };
+
+        auto pendingPerTable = PlanUnicodeUpgrades(fold, schema);
+        if (formatter.DistinguishesNarrowAndWideText())
+            ForeignKeyJoinWalker { pendingPerTable, schema, formatter }.Run();
+
+        auto const units = GroupIntoUnits(pendingPerTable, schema);
+        RecordUnicodeUpgradePlan(result, pendingPerTable, units);
+
+        // Where narrow and wide text are distinct types (SQL Server), the column change is
+        // blocked by every key, constraint, index and statistic on the column: script them
+        // from the whole catalog now, so a dry run can report them and a real run stops on an
+        // object it cannot recreate before it changes anything.
+        auto const scriptsDependents = formatter.DistinguishesNarrowAndWideText();
+        if (scriptsDependents && !pendingPerTable.empty())
+            result.rebuiltObjects =
+                ::Lightweight::detail::ScriptSqlServerDependentObjects(stmt, ColumnsToRetype(pendingPerTable)).descriptions;
+
+        auto unitProgress = std::vector<std::vector<::Lightweight::detail::UnicodeUpgradeTableProgress>> {};
+        for (auto const& unit: units)
         {
-            UpgradeUnit(stmt, formatter, units[index], scriptsDependents);
+            auto& tables = unitProgress.emplace_back();
+            for (auto const& pending: unit)
+                tables.push_back({ .name = DisplayName(pending.key),
+                                   .rows = result.wasDryRun || progressTask == nullptr
+                                               ? std::uint64_t { 0 }
+                                               : ::Lightweight::detail::RowCountForProgress(dm.Connection(), pending.key),
+                                   .columns = pending.columns.size() });
         }
-        catch (std::exception const& error)
+        progress.Planned(std::move(unitProgress), mode);
+
+        if (result.wasDryRun)
+            return result;
+
+        // One transaction per unit keeps the transaction log to one unit's worth of changes.
+        for (auto const index: std::views::iota(std::size_t { 0 }, units.size()))
         {
-            throw UnitFailure(units, index, error);
+            progress.BeginUnit(index);
+            try
+            {
+                UpgradeUnit(stmt, formatter, units[index], progress);
+            }
+            catch (std::exception const& error)
+            {
+                throw UnitFailure(units, index, error);
+            }
+            progress.UnitCommitted();
+            result.committedUnitCount = index + 1;
+            Log(std::format("committed unit {} of {}: {}", index + 1, units.size(), UnitTables(units[index])));
+            if (index + 1 < units.size() && progress.IsCancellationRequested())
+            {
+                result.wasCancelled = true;
+                Log(std::format("cancelled after unit {} of {}; a later call continues with unit {}",
+                                index + 1,
+                                units.size(),
+                                index + 2));
+                break;
+            }
         }
-        Log(std::format("committed unit {} of {}: {}", index + 1, units.size(), UnitTables(units[index])));
+        return result;
     }
-    return result;
+    catch (std::exception const& error)
+    {
+        progress.Failed(error.what());
+        throw;
+    }
 }
 
 MigrationStatus MigrationManager::GetMigrationStatus() const

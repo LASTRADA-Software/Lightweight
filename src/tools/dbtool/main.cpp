@@ -1804,19 +1804,43 @@ int Status(MigrationManager& manager)
     return EXIT_SUCCESS;
 }
 
+/// Whether the user confirmed a destructive admin command up front.
+enum class Confirmation : std::uint8_t
+{
+    Ask,   ///< Not confirmed: the command refuses and says how to confirm.
+    Given, ///< Confirmed with `--yes`.
+};
+
+/// @return `DryRun` when the command only previews, else `Execute`.
+ExecutionMode ExecutionModeOf(Options const& options)
+{
+    return options.dryRun ? ExecutionMode::DryRun : ExecutionMode::Execute;
+}
+
+/// @return `Given` when `--yes` was passed, else `Ask`.
+Confirmation ConfirmationOf(Options const& options)
+{
+    return options.yes ? Confirmation::Given : Confirmation::Ask;
+}
+
 /// @brief Generic "render plan → if empty, exit success → print diff → if dry-run,
 /// exit success → if not `--yes`, refuse → execute → print summary" loop, factored
 /// out so `rewrite-checksums`, `hard-reset`, and `unicode-upgrade-tables` share
 /// the same UX without duplicating it.
 ///
 /// The caller supplies the four template hooks via lambdas — `run` is invoked
-/// twice (once with `dryRun=true`, once with `dryRun=false`) so the manager-level
-/// API doesn't have to memoize results across calls.
+/// twice (once with `ExecutionMode::DryRun`, once with `ExecutionMode::Execute`) so the
+/// manager-level API doesn't have to memoize results across calls.
 template <typename Result>
-int RunAdminCommand(
-    std::string_view name, bool dryRun, bool yes, auto&& runFn, auto&& isEmptyFn, auto&& printDiffFn, auto&& printSummaryFn)
+int RunAdminCommand(std::string_view name,
+                    ExecutionMode mode,
+                    Confirmation confirmation,
+                    auto&& runFn,
+                    auto&& isEmptyFn,
+                    auto&& printDiffFn,
+                    auto&& printSummaryFn)
 {
-    auto const preview = runFn(/*dryRun=*/true);
+    auto const preview = runFn(ExecutionMode::DryRun);
 
     if (isEmptyFn(preview))
     {
@@ -1826,19 +1850,19 @@ int RunAdminCommand(
 
     printDiffFn(preview);
 
-    if (dryRun)
+    if (mode == ExecutionMode::DryRun)
     {
         std::println("Dry run: nothing written. Re-run without --dry-run to apply.");
         return EXIT_SUCCESS;
     }
 
-    if (!yes)
+    if (confirmation == Confirmation::Ask)
     {
         std::println("Refusing to {} without --yes. Pass --yes to confirm.", name);
         return EXIT_FAILURE;
     }
 
-    auto const written = runFn(/*dryRun=*/false);
+    auto const written = runFn(ExecutionMode::Execute);
     printSummaryFn(written);
     return EXIT_SUCCESS;
 }
@@ -1856,9 +1880,9 @@ int RewriteChecksums(MigrationManager& manager, bool dryRun, bool yes)
 {
     return RunAdminCommand<MigrationManager::RewriteChecksumsResult>(
         "rewrite-checksums",
-        dryRun,
-        yes,
-        [&](bool dr) { return manager.RewriteChecksums(dr); },
+        dryRun ? ExecutionMode::DryRun : ExecutionMode::Execute,
+        yes ? Confirmation::Given : Confirmation::Ask,
+        [&](ExecutionMode mode) { return manager.RewriteChecksums(mode == ExecutionMode::DryRun); },
         [](auto const& r) { return r.entries.empty() && r.unregisteredTimestamps.empty(); },
         [](auto const& r) {
             if (!r.entries.empty())
@@ -1889,9 +1913,9 @@ int HardReset(MigrationManager& manager, bool dryRun, bool yes)
 {
     return RunAdminCommand<MigrationManager::HardResetResult>(
         "hard-reset",
-        dryRun,
-        yes,
-        [&](bool dr) { return manager.HardReset(dr); },
+        dryRun ? ExecutionMode::DryRun : ExecutionMode::Execute,
+        yes ? Confirmation::Given : Confirmation::Ask,
+        [&](ExecutionMode mode) { return manager.HardReset(mode == ExecutionMode::DryRun); },
         [](auto const& r) { return r.droppedTables.empty() && r.absentTables.empty() && r.preservedTables.empty(); },
         [](auto const& r) {
             if (!r.droppedTables.empty())
@@ -1923,13 +1947,25 @@ int HardReset(MigrationManager& manager, bool dryRun, bool yes)
 }
 
 /// @brief Upgrades legacy VARCHAR/CHAR columns to NVARCHAR/NCHAR.
-int UnicodeUpgradeTables(MigrationManager& manager, bool dryRun, bool yes)
+int UnicodeUpgradeTables(MigrationManager& manager, Options const& options)
 {
     return RunAdminCommand<MigrationManager::UnicodeUpgradeResult>(
         "unicode-upgrade-tables",
-        dryRun,
-        yes,
-        [&](bool dr) { return manager.UnicodeUpgradeTables(dr); },
+        ExecutionModeOf(options),
+        ConfirmationOf(options),
+        [&](ExecutionMode mode) {
+            if (mode == ExecutionMode::DryRun)
+                return manager.UnicodeUpgradeTables(ExecutionMode::DryRun);
+            auto progress = CommandProgress { options };
+            auto result = [&] {
+                auto const sink = progress.RoutesMessagesThroughTask()
+                                      ? std::make_unique<ScopedProgressLogSink>(manager, progress.Task())
+                                      : nullptr;
+                return manager.UnicodeUpgradeTables(ExecutionMode::Execute, &progress.Task());
+            }();
+            progress.Finish();
+            return result;
+        },
         [](auto const& r) { return r.columns.empty(); },
         [](auto const& r) { Tools::PrintUnicodeUpgradePlan(std::cout, r); },
         [](auto const& r) {
@@ -3275,12 +3311,6 @@ void WarnIfAllSchemasIgnored(Options const& options)
         std::println(std::cerr, "Warning: --all-schemas applies to backup only; {} ignores it.", options.command);
 }
 
-/// @return `DryRun` when the command only previews, else `Execute`.
-ExecutionMode ExecutionModeOf(Options const& options)
-{
-    return options.dryRun ? ExecutionMode::DryRun : ExecutionMode::Execute;
-}
-
 /// Dispatches a DB-connected command to its handler. Assumes the caller has
 /// already established the ODBC connection via `SetupConnectionString`.
 int DispatchDbCommand(Options const& options)
@@ -3366,7 +3396,7 @@ int DispatchDbCommand(Options const& options)
     {
         auto& manager = GetMigrationManager(options);
         OptionalScopedLock const lock(manager, options.noLock || options.dryRun);
-        return UnicodeUpgradeTables(manager, options.dryRun, options.yes);
+        return UnicodeUpgradeTables(manager, options);
     }
     if (options.command == "backup")
         return Backup(options);

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "RecordingProgressTask.hpp"
 #include "Utils.hpp"
 
 #include <Lightweight/Lightweight.hpp>
@@ -17,6 +18,7 @@
 #include <cctype>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <streambuf>
 
 #include <CodeGen/SplitFileWriter.hpp>
@@ -32,6 +34,7 @@ std::ostream& operator<<(std::ostream& os, Lightweight::SqlMigration::MigrationT
 } // namespace std
 
 using namespace Lightweight;
+using Lightweight::SqlMigration::ExecutionMode;
 
 class SqlMigrationTestFixture: public SqlTestFixture
 {
@@ -2854,7 +2857,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "UnicodeUpgradeTables: dry-run reports
     mgr.CreateMigrationHistory();
     REQUIRE(mgr.ApplyPendingMigrations() == 1);
 
-    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::DryRun);
     CHECK(result.wasDryRun);
     // Same intended/live types — no entries.
     CHECK(result.columns.empty());
@@ -2883,7 +2886,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     REQUIRE(mgr.ApplyPendingMigrations() == 1);
 
     // Should run cleanly without exceptions.
-    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
     (void) result;
 
     // After the upgrade the table must still be queryable. SqlSchema::ReadAllTables is
@@ -3904,7 +3907,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
         }
     };
 
-    auto const dry = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    auto const dry = mgr.UnicodeUpgradeTables(ExecutionMode::DryRun);
     CHECK(dry.wasDryRun);
 
     auto const serverType = stmt.Connection().ServerType();
@@ -3933,14 +3936,14 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     {
         REQUIRE_FALSE(dry.columns.empty());
 
-        auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+        auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
         CHECK_FALSE(result.wasDryRun);
         REQUIRE_FALSE(result.columns.empty());
 
         // After the real run the drift is gone — except where narrow and wide text are one type
         // (PostgreSQL, SQLite): there the ANSI driver keeps reporting the narrow type.
         if (!textIsOneType)
-            CHECK(mgr.UnicodeUpgradeTables(/*dryRun=*/true).columns.empty());
+            CHECK(mgr.UnicodeUpgradeTables(ExecutionMode::DryRun).columns.empty());
     }
 
     // The upgraded table must stay usable.
@@ -4180,13 +4183,13 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     };
 
     // A dry run reports what would be dropped and recreated, and changes nothing.
-    auto const preview = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    auto const preview = mgr.UnicodeUpgradeTables(ExecutionMode::DryRun);
     CHECK(std::ranges::contains(preview.rebuiltObjects, std::string { "PRIMARY KEY PK_legacy_users on dbo.uu_users" }));
     CHECK(std::ranges::contains(preview.rebuiltObjects,
                                 std::string { "FOREIGN KEY FK_legacy_line_refs on dbo.uu_line_refs" }));
     CHECK(LiveDataType(stmt, "uu_users", "NAME") == "char");
 
-    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
     REQUIRE(result.columns.size() == 6);
 
     CHECK(LiveDataType(stmt, "uu_users", "NAME") == "nchar");
@@ -4229,7 +4232,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     CHECK(stmt.ExecuteDirectScalar<long long>("SELECT COUNT(*) FROM uu_orders").value_or(-1) == 0);
     (void) stmt.ExecuteDirect("SET ANSI_WARNINGS OFF");
 
-    CHECK(mgr.UnicodeUpgradeTables(/*dryRun=*/true).columns.empty());
+    CHECK(mgr.UnicodeUpgradeTables(ExecutionMode::DryRun).columns.empty());
 }
 
 TEST_CASE_METHOD(SqlMigrationTestFixture,
@@ -4255,7 +4258,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
 
     try
     {
-        std::ignore = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+        std::ignore = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
         FAIL("expected the schema-bound view to block the upgrade");
     }
     catch (std::runtime_error const& e)
@@ -4319,13 +4322,13 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     };
 
     // The dry run lists the referencing columns next to the declared one, and changes nothing.
-    auto const preview = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    auto const preview = mgr.UnicodeUpgradeTables(ExecutionMode::DryRun);
     CHECK(upgraded(preview) == expected);
     CHECK(std::ranges::contains(preview.rebuiltObjects, std::string { "INDEX IX_uu_fk_child_ref on dbo.uu_fk_child" }));
     CHECK(std::ranges::contains(preview.rebuiltObjects, std::string { "FOREIGN KEY FK_uu_fk_log_parent on dbo.uu_fk_log" }));
     CHECK(LiveDataType(stmt, "uu_fk_child", "REF") == "char");
 
-    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
     CHECK(upgraded(result) == expected);
     CHECK(LiveDataType(stmt, "uu_fk_parent", "NAME") == "nchar");
     CHECK(LiveDataType(stmt, "uu_fk_child", "REF") == "nchar");
@@ -4351,7 +4354,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     CHECK(stmt.ExecuteDirectScalar<long long>("SELECT COUNT(*) FROM uu_fk_child WHERE REF = N'alice'").value_or(0) == 1);
     CHECK_THROWS(stmt.ExecuteDirect("INSERT INTO uu_fk_log (ID, PARENT_NAME) VALUES (2, N'nobody')"));
 
-    CHECK(mgr.UnicodeUpgradeTables(/*dryRun=*/true).columns.empty());
+    CHECK(mgr.UnicodeUpgradeTables(ExecutionMode::DryRun).columns.empty());
 }
 
 TEST_CASE_METHOD(SqlMigrationTestFixture,
@@ -4384,10 +4387,10 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
                                                      plan.CreateTable("uu_fk_product").PrimaryKey("PRODUCT", NChar(30));
                                                  } };
 
-    auto const preview = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    auto const preview = mgr.UnicodeUpgradeTables(ExecutionMode::DryRun);
     CHECK(std::ranges::contains(preview.rebuiltObjects, std::string { "PRIMARY KEY PK_uu_fk_xref on dbo.uu_fk_xref" }));
 
-    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
     auto const upgraded = [&] {
         auto names = std::vector<std::string> {};
         for (auto const& c: result.columns)
@@ -4449,7 +4452,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
                                                          .Column("NOTE", Char(10));
                                                  } };
 
-    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
     REQUIRE(result.columns.size() == 2);
     CHECK(result.columns.back().table.table == "uu_fk_pair_ref");
     CHECK(result.columns.back().column == "CODE");
@@ -4497,7 +4500,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
                                          "AND TABLE_NAME = 'uu_fk_twin' AND COLUMN_NAME = 'REF'",
                                          schema));
     };
-    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
     CHECK(result.columns.size() == 2);
     CHECK(twinType("dbo") == "nchar");
     CHECK(twinType("aa_uu_other") == "char");
@@ -4533,7 +4536,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
         }
     };
 
-    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
     REQUIRE(result.columns.size() == 2);
     CHECK(result.columns.back().table.table == "uu_fk_codes");
     CHECK(result.columns.back().joinedByForeignKeyTo == "uu_fk_items.CODE");
@@ -4571,12 +4574,12 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
         }
     };
 
-    for (auto const dryRun: { true, false })
+    for (auto const mode: { ExecutionMode::DryRun, ExecutionMode::Execute })
     {
-        CAPTURE(dryRun);
+        CAPTURE(static_cast<int>(mode));
         try
         {
-            std::ignore = mgr.UnicodeUpgradeTables(dryRun);
+            std::ignore = mgr.UnicodeUpgradeTables(mode);
             FAIL("expected the narrow declaration to block the upgrade");
         }
         catch (std::runtime_error const& e)
@@ -4603,7 +4606,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
         [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("UU_CASE_STAMP").RequiredColumn("ITEM_NAME", NChar(254)); }
     };
 
-    auto const dry = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    auto const dry = mgr.UnicodeUpgradeTables(ExecutionMode::DryRun);
     if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
     {
         // PostgreSQL: quoted identifiers are case-sensitive, so the declared table is another one.
@@ -4617,9 +4620,9 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     CHECK(dry.columns.front().table.table == "uu_Case_Stamp");
     CHECK(dry.columns.front().column == "Item_Name");
 
-    std::ignore = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    std::ignore = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
     CHECK(LiveDataType(stmt, "uu_Case_Stamp", "Item_Name") == "nchar");
-    CHECK(mgr.UnicodeUpgradeTables(/*dryRun=*/true).columns.empty());
+    CHECK(mgr.UnicodeUpgradeTables(ExecutionMode::DryRun).columns.empty());
 }
 
 TEST_CASE_METHOD(SqlMigrationTestFixture,
@@ -4739,11 +4742,11 @@ std::unique_ptr<SqlMigration::MigrationBase> DeclareMultiSchemaUpgradeTables()
 }
 
 /// Runs a real upgrade and returns the message it fails with ("" when it succeeds).
-std::string UpgradeError(SqlMigration::MigrationManager& manager, bool dryRun)
+std::string UpgradeError(SqlMigration::MigrationManager& manager, ExecutionMode mode)
 {
     try
     {
-        std::ignore = manager.UnicodeUpgradeTables(dryRun);
+        std::ignore = manager.UnicodeUpgradeTables(mode);
         return {};
     }
     catch (std::runtime_error const& error)
@@ -4782,13 +4785,13 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     auto const declared = DeclareMultiSchemaUpgradeTables();
     (void) stmt.ExecuteDirect("EXECUTE AS USER = N'uu_ms_sales_user'");
 
-    auto const preview = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    auto const preview = mgr.UnicodeUpgradeTables(ExecutionMode::DryRun);
     CHECK(std::ranges::contains(preview.rebuiltObjects,
                                 std::string { "PRIMARY KEY PK_uu_ms_customers on dbo.uu_ms_customers" }));
     CHECK(std::ranges::contains(preview.rebuiltObjects,
                                 std::string { "FOREIGN KEY FK_uu_ms_orders_customer on sales.uu_ms_orders" }));
 
-    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
     CHECK(result.columns.size() == 3);
     (void) stmt.ExecuteDirect("REVERT");
 
@@ -4826,7 +4829,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
         (void) stmt.ExecuteDirect(sql);
     auto const declared = DeclareMultiSchemaUpgradeTables();
 
-    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
     CHECK(result.columns.size() == 3);
     CHECK(std::ranges::contains(result.rebuiltObjects,
                                 std::string { "PRIMARY KEY PK_uu_ms_customers on sales.uu_ms_customers" }));
@@ -4862,9 +4865,9 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     auto const declared = DeclareMultiSchemaUpgradeTables();
     (void) stmt.ExecuteDirect("EXECUTE AS USER = N'uu_ms_sales_user'");
 
-    for (auto const dryRun: { true, false })
+    for (auto const mode: { ExecutionMode::DryRun, ExecutionMode::Execute })
     {
-        auto const error = UpgradeError(mgr, dryRun);
+        auto const error = UpgradeError(mgr, mode);
         CHECK(error.contains("the schemas uu_ms_other, uu_ms_third each hold one"));
         CHECK(error.contains("resolve through sales, dbo only"));
     }
@@ -4876,7 +4879,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     (void) stmt.ExecuteDirect("DROP TABLE uu_ms_other.uu_ms_customers");
     (void) stmt.ExecuteDirect("CREATE TABLE uu_ms_other.uu_ms_customers (CODE NCHAR(10) NOT NULL PRIMARY KEY)");
     (void) stmt.ExecuteDirect("EXECUTE AS USER = N'uu_ms_sales_user'");
-    CHECK(UpgradeError(mgr, /*dryRun=*/false).empty());
+    CHECK(UpgradeError(mgr, ExecutionMode::Execute).empty());
 }
 
 TEST_CASE_METHOD(SqlMigrationTestFixture,
@@ -4920,7 +4923,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
 
     // public is the second search path entry; the first one holds no such table.
     (void) stmt.ExecuteDirect(R"(SET search_path TO "uu_ms_first", "public")");
-    auto const preview = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    auto const preview = mgr.UnicodeUpgradeTables(ExecutionMode::DryRun);
     if (narrowText)
     {
         REQUIRE(preview.columns.size() == 1);
@@ -4933,9 +4936,9 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     // Two holders off the search path, and one has a column to widen: refused, nothing changes.
     (void) stmt.ExecuteDirect(R"(DROP TABLE "public"."uu_ms_customers")");
     (void) stmt.ExecuteDirect(R"(CREATE TABLE "uu_ms_third"."uu_ms_customers" ("CODE" CHAR(10) NOT NULL PRIMARY KEY))");
-    for (auto const dryRun: { true, false })
+    for (auto const mode: { ExecutionMode::DryRun, ExecutionMode::Execute })
     {
-        auto const error = UpgradeError(mgr, dryRun);
+        auto const error = UpgradeError(mgr, mode);
         if (narrowText)
         {
             CHECK(error.contains("the schemas uu_ms_other, uu_ms_third each hold one"));
@@ -5453,7 +5456,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
                                                      plan.CreateTable("uu_ms_customers").PrimaryKey("CODE", NChar(10));
                                                  } };
 
-    auto const preview = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    auto const preview = mgr.UnicodeUpgradeTables(ExecutionMode::DryRun);
     REQUIRE(preview.columns.size() == 2);
     CHECK(preview.columns[1].table.schema == "dbo");
     CHECK(preview.columns[1].column == "CUSTOMER_CODE");
@@ -5521,7 +5524,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
         }
     };
 
-    auto const preview = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    auto const preview = mgr.UnicodeUpgradeTables(ExecutionMode::DryRun);
     REQUIRE(preview.units.size() == 2);
     CHECK(UnitTables(preview.units[0]) == std::vector<std::string> { "dbo.uu_unit_a", "dbo.uu_unit_c" });
     CHECK(UnitTables(preview.units[1]) == std::vector<std::string> { "dbo.uu_unit_b" });
@@ -5542,9 +5545,11 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     });
     auto const resetSink = detail::Finally([&] { mgr.SetLogSink({}); });
     auto error = std::string {};
+    auto progressJournal = RecordingProgressTask::Journal {};
+    auto progressRoot = RecordingProgressTask { progressJournal };
     try
     {
-        std::ignore = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+        std::ignore = mgr.UnicodeUpgradeTables(ExecutionMode::Execute, &progressRoot);
     }
     catch (SqlMigration::UnicodeUpgradeUnitError const& failure)
     {
@@ -5561,6 +5566,19 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     CHECK(error.contains("blocked by the test"));
     CHECK(committedUnits == std::vector<std::string> { "committed unit 1 of 2: dbo.uu_unit_a, dbo.uu_unit_c" });
 
+    // The failure is reported on the second unit and the overall task, and not on the first.
+    auto failEvents = std::vector<std::string> {};
+    std::ranges::copy_if(progressJournal.events, std::back_inserter(failEvents), [](std::string const& event) {
+        return event.starts_with("fail ");
+    });
+    CHECK(std::ranges::any_of(failEvents, [](std::string const& event) {
+        return event.starts_with("fail Upgrade text columns to Unicode/Unit 2 of 2 ");
+    }));
+    CHECK(std::ranges::any_of(failEvents, [](std::string const& event) {
+        return event.starts_with("fail Upgrade text columns to Unicode ") && !event.contains("/Unit");
+    }));
+    CHECK(std::ranges::none_of(failEvents, [](std::string const& event) { return event.contains("Unit 1 of 2"); }));
+
     // The first unit stays committed with all its objects; the second is untouched.
     CHECK(LiveDataTypeIn(stmt, "dbo", "uu_unit_a", "CODE") == "nchar");
     CHECK(LiveDataTypeIn(stmt, "dbo", "uu_unit_a", "NOTE") == "nvarchar");
@@ -5574,13 +5592,13 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
 
     // A rerun plans only what is left and completes.
     (void) stmt.ExecuteDirect("DROP TRIGGER uu_unit_block ON DATABASE");
-    auto const rerun = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    auto const rerun = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
     REQUIRE(rerun.columns.size() == 1);
     CHECK(rerun.columns.front().table.table == "uu_unit_b");
     CHECK(rerun.units.size() == 1);
     CHECK(LiveDataTypeIn(stmt, "dbo", "uu_unit_b", "CODE") == "nchar");
     CHECK(CatalogScalar(stmt, "SELECT type FROM sys.key_constraints WHERE name = 'PK_uu_unit_b'") == "PK");
-    CHECK(mgr.UnicodeUpgradeTables(/*dryRun=*/true).columns.empty());
+    CHECK(mgr.UnicodeUpgradeTables(ExecutionMode::DryRun).columns.empty());
 }
 
 TEST_CASE_METHOD(SqlMigrationTestFixture,
@@ -5609,7 +5627,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
         }
     };
 
-    auto const preview = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    auto const preview = mgr.UnicodeUpgradeTables(ExecutionMode::DryRun);
     if (preview.columns.empty())
     {
         // PostgreSQL's Unicode driver (and some SQLite builds) report the narrow columns as wide.
@@ -5626,7 +5644,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     CHECK(tablesOf(preview.units[0]) == std::vector<std::string> { "uu_unit_a", "uu_unit_c" });
     CHECK(tablesOf(preview.units[1]) == std::vector<std::string> { "uu_unit_b" });
 
-    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
     CHECK(result.units.size() == 2);
     auto const liveTables = SqlSchema::ReadAllTables(stmt, std::string {}, std::string {});
     CHECK(std::ranges::count_if(liveTables, [](SqlSchema::Table const& table) { return table.name.starts_with("uu_unit_"); })
@@ -5669,7 +5687,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     // a later one; the ALTER TABLE itself succeeds.
     (void) stmt.ExecuteDirect("CREATE TRIGGER uu_unit_late ON DATABASE FOR ALTER_TABLE AS SET NOCOUNT OFF; "
                               "UPDATE dbo.uu_unit_log SET N = N + 1; RAISERROR (N'late failure', 16, 1)");
-    auto const error = UpgradeError(mgr, /*dryRun=*/false);
+    auto const error = UpgradeError(mgr, ExecutionMode::Execute);
     INFO(error);
     CHECK(error.contains("unit 1 of 1 (dbo.uu_unit_b) failed and was rolled back; no unit was committed"));
     CHECK(error.contains("late failure"));
@@ -5717,13 +5735,13 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
                                                      plan.CreateTable("uu_join_r2").PrimaryKey("CODE", NChar(10));
                                                  } };
 
-    auto const preview = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    auto const preview = mgr.UnicodeUpgradeTables(ExecutionMode::DryRun);
     REQUIRE(preview.units.size() == 1);
     auto tables = UnitTables(preview.units.front());
     std::ranges::sort(tables);
     CHECK(tables == std::vector<std::string> { "dbo.uu_join_r1", "dbo.uu_join_r2", "dbo.uu_join_x", "dbo.uu_join_y" });
 
-    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
     CHECK(result.columns.size() == 4);
     for (auto const* table: { "uu_join_r1", "uu_join_r2" })
         CHECK(LiveDataTypeIn(stmt, "dbo", table, "CODE") == "nchar");
@@ -5997,7 +6015,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     };
 
     auto const narrowText = ReportsNarrowText(stmt, "public", "uu_fk_child", "CODE");
-    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
     if (!narrowText)
     {
         // The Unicode ODBC driver reports CHAR as wide text, so nothing qualifies.
@@ -6044,7 +6062,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     };
 
     auto const narrowText = ReportsNarrowText(stmt, {}, "uu_fk_child", "CODE");
-    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
     if (!narrowText)
     {
         // Some SQLite ODBC builds report VARCHAR as wide text, so nothing qualifies.
@@ -6099,7 +6117,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
 
     // With a driver that reports VARCHAR as narrow the column is changed (to the same type, as
     // PostgreSQL has no separate wide text) and the CHECK constraint is evaluated again.
-    auto const error = UpgradeError(mgr, /*dryRun=*/false);
+    auto const error = UpgradeError(mgr, ExecutionMode::Execute);
     INFO(error);
     CHECK(error.empty());
     // The session's own search path is back after the unit.

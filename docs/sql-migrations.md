@@ -445,10 +445,15 @@ Long-running library calls report their work through `Lightweight::ProgressTask`
 host (a CLI, a GUI) implements and passes in; the library only calls it. Tasks nest: a task opens
 sub-tasks with `BeginSubTask`, advances with `Advance`, and destroying a task marks it finished. A
 total of 0 makes a task indeterminate (the host shows that it runs, not how far it got). Long loops
-poll `IsCancellationRequested()` at safe points. `UnicodeUpgradeTables` and `RunPreMigrateSteps`
-take a `ProgressTask&`; `NullProgressTask` reports nothing and is never cancelled, for hosts that
-pass none. `dbtool` draws the task tree with its `--progress` styles. A task that fails calls
-`Fail(reason)` before it ends, so the host shows it as failed (a row that stays visible), not as done.
+poll `IsCancellationRequested()` at safe points. `UnicodeUpgradeTables` takes an `ExecutionMode`
+and a `ProgressTask*` (null reports nothing); `RunPreMigrateSteps` takes a `ProgressTask&`.
+`NullProgressTask` reports nothing and is never cancelled, for hosts that pass none.
+`UnicodeUpgradeTables` reports planning, an overall task weighted by the planned tables' row counts,
+a task per unit and per table. It checks for cancellation after each committed unit except the last and
+then returns with `UnicodeUpgradeResult::wasCancelled` set (`committedUnitCount` says how many units it
+committed); a later call continues with the next unit. `dbtool` draws the task tree with its `--progress`
+styles. A task that fails calls `Fail(reason)` before it ends, so the host shows it as failed (a row that
+stays visible), not as done.
 
 ### Pre-migrate steps
 

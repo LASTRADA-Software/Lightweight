@@ -786,6 +786,12 @@ namespace SqlMigration
             /// foreign key joins through an upgraded column share one unit, and each unit is
             /// upgraded and committed in a transaction of its own.
             std::vector<std::vector<SqlSchema::FullyQualifiedTableName>> units;
+            /// True when the call stopped after a committed unit because its progress task asked to cancel;
+            /// a later call continues with the next unit.
+            bool wasCancelled = false;
+            /// Units this call committed: all of `units` unless it was cancelled, 0 for a dry run. A failing call
+            /// throws and returns no result.
+            std::size_t committedUnitCount = 0;
         };
 
         /// @brief Rewrites legacy `VARCHAR/CHAR` columns to `NVARCHAR/NCHAR` where the
@@ -824,8 +830,17 @@ namespace SqlMigration
         /// were committed before it. A later call continues where this one stopped, as the plan is
         /// computed from the live schema.
         ///
-        /// @param dryRun When true, returns the would-be diff without writing anything.
-        [[nodiscard]] LIGHTWEIGHT_API UnicodeUpgradeResult UnicodeUpgradeTables(bool dryRun = false);
+        /// A unit that fails is reported as failed on its tasks (the failing table's, the unit's and the
+        /// overall one) before the call throws.
+        ///
+        /// @param mode `ExecutionMode::DryRun` returns the would-be diff without writing anything and
+        ///        reports only the plan to @p progress.
+        /// @param progress Receives planning, an overall task weighted by the tables' row counts (SQL
+        ///        Server: `sys.partitions`; PostgreSQL: `pg_class.reltuples`; otherwise
+        ///        `COUNT(*)`), one task per unit and per table; null reports nothing. Cancellation is
+        ///        checked after each committed unit except the last; see `UnicodeUpgradeResult::wasCancelled`.
+        [[nodiscard]] LIGHTWEIGHT_API UnicodeUpgradeResult UnicodeUpgradeTables(ExecutionMode mode = ExecutionMode::Execute,
+                                                                                ProgressTask* progress = nullptr);
 
         /// @brief Re-stamps `schema_migrations.checksum` rows that have drifted.
         ///

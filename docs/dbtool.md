@@ -596,6 +596,13 @@ that changes, and the objects dropped and recreated for them. So no unit leaves 
 behind it. The dry run prints the number of transactions and lists the units of several tables,
 and the run prints a line for each committed unit.
 
+**Progress.** A real run shows a planning spinner, then one overall bar weighted by the rows of
+the planned tables (catalog estimates on SQL Server and PostgreSQL, `COUNT(*)` elsewhere; a table
+whose rows cannot be read counts as indeterminate), a task per unit ("Unit k of n") and a bar per
+table of the running unit with its current step. A large table's `ALTER` reports nothing while it
+runs, so its bar shows elapsed time until it completes. A failing unit is marked failed. The
+display follows `--progress`; a dry run only prints the plan.
+
 Under the simple recovery model, or while log backups run during the upgrade, the transaction log
 then only has to hold one unit, and the largest unit sets its peak: tables that many foreign keys
 join can form one large unit. Under the full or bulk-logged recovery model without log backups, the

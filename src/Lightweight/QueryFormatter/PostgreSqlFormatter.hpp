@@ -378,6 +378,14 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
     {
         return PostgreSqlRetryOps();
     }
+
+    /// The planner's tuple estimate of `pg_class`, which `ANALYZE` and autovacuum keep.
+    [[nodiscard]] std::string_view TableRowCountEstimateQuery() const noexcept override
+    {
+        return "SELECT CAST(GREATEST(c.reltuples, 0) AS BIGINT) FROM pg_catalog.pg_class AS c "
+               "JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace "
+               "WHERE n.nspname = ? AND c.relname = ?";
+    }
 };
 
 } // namespace Lightweight

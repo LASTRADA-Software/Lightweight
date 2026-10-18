@@ -276,3 +276,10 @@ TEST_CASE("SqlQueryFormatter::DropTable on SQL Server with cascade emits a two-s
     CHECK(sqls[0].contains("sys.foreign_keys"));
     CHECK(sqls[1].starts_with("DROP TABLE IF EXISTS"));
 }
+
+TEST_CASE("TableRowCountEstimateQuery reads the catalog on SQL Server and PostgreSQL only", "[SqlQueryFormatter]")
+{
+    CHECK(SqlQueryFormatter::SqlServer().TableRowCountEstimateQuery().contains("sys.partitions"));
+    CHECK(SqlQueryFormatter::PostgrSQL().TableRowCountEstimateQuery().contains("reltuples"));
+    CHECK(SqlQueryFormatter::Sqlite().TableRowCountEstimateQuery().empty());
+}
