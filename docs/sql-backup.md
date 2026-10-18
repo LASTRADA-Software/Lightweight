@@ -83,7 +83,10 @@ automatically when the backup finishes (also on failure).
 - **Re-running a backup** to the same output is always safe — every entry is
   overwritten, never appended.
 - **Integrity:** every chunk is SHA-256-hashed into `checksums.json` and verified on
-  restore.
+  restore. `SqlBackup::VerifyArchive(file)` checks a finished archive the same way without a
+  database: it needs `metadata.json`, every `data/` entry listed in `checksums.json` with a matching
+  SHA-256, and returns the SHA-256 of the whole file. A schema-only archive has no data entries and
+  needs no `checksums.json`. A failure names the entry at fault.
 
 ## Consistency caveats (online backup)
 

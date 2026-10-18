@@ -130,6 +130,7 @@ set(SOURCE_FILES
     SqlBackup/SqlBackup.cpp
     SqlBackup/TableFilter.cpp
     SqlBackup/WorkerChunkArchive.cpp
+    SqlBackupRecord.cpp
 
     SqlConnectInfo.cpp
     SqlConnection.cpp

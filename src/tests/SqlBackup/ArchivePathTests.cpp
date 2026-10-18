@@ -55,5 +55,8 @@ TEST_CASE_METHOD(SqlTestFixture, "Backup writes and reads an archive whose path 
         REQUIRE(std::filesystem::exists(path));
         CHECK(SqlBackup::ReadArchiveSchemas(path).has_value());
         CHECK(Zip::ZipArchive::Open(path).has_value());
+        auto const verification = SqlBackup::VerifyArchive(path);
+        INFO(verification.error_or("ok"));
+        CHECK(verification.has_value());
     }
 }

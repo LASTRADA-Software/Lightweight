@@ -2667,12 +2667,12 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     mgr.CreateMigrationHistory();
     REQUIRE(mgr.ApplyPendingMigrations() == 2);
 
-    auto const dryRun = mgr.HardReset(/*dryRun=*/true);
+    auto const dryRun = mgr.HardReset(ExecutionMode::DryRun);
     CHECK(dryRun.wasDryRun);
     CHECK(dryRun.droppedTables.size() == 2);
     CHECK_FALSE(dryRun.schemaMigrationsDropped);
 
-    auto const live = mgr.HardReset(/*dryRun=*/false);
+    auto const live = mgr.HardReset(ExecutionMode::Execute);
     CHECK_FALSE(live.wasDryRun);
     CHECK(live.droppedTables.size() == 2);
     CHECK(live.schemaMigrationsDropped);
@@ -2698,7 +2698,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "HardReset: preserves user tables", "[
     auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
     (void) stmt.ExecuteDirect("CREATE TABLE user_t (id INTEGER PRIMARY KEY)");
 
-    auto const result = mgr.HardReset(/*dryRun=*/false);
+    auto const result = mgr.HardReset(ExecutionMode::Execute);
     REQUIRE(result.preservedTables.size() == 1);
     CHECK(result.preservedTables[0].table == "user_t");
 
@@ -2724,7 +2724,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "HardReset: dry-run is observationally
     REQUIRE(mgr.ApplyPendingMigrations() == 1);
 
     auto const before = mgr.GetAppliedMigrationIds().size();
-    auto const result = mgr.HardReset(/*dryRun=*/true);
+    auto const result = mgr.HardReset(ExecutionMode::DryRun);
     auto const after = mgr.GetAppliedMigrationIds().size();
     CHECK(before == after);
     CHECK_FALSE(result.schemaMigrationsDropped);
@@ -2801,7 +2801,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
         auto const _ = ScopedSqlNullLogger {}; // the failure is expected
         try
         {
-            (void) mgr.HardReset(/*dryRun=*/false);
+            (void) mgr.HardReset(ExecutionMode::Execute);
         }
         catch (SqlException const& error)
         {
@@ -3028,7 +3028,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     auto& mgr = SqlMigration::MigrationManager::GetInstance();
     mgr.CreateMigrationHistory();
 
-    auto const result = mgr.HardReset(/*dryRun=*/false);
+    auto const result = mgr.HardReset(ExecutionMode::Execute);
 
     auto const bookkeeping = formatter.AdvisoryLockOps().BookkeepingTableNames();
     for (auto const& name: bookkeeping)

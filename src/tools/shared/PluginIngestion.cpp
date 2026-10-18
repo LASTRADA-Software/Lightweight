@@ -30,7 +30,7 @@ namespace
         // throws here, and we'd rather fail before any migrations have
         // been imported than land in a half-merged state.
         for (auto const& release: plugin.GetAllReleases())
-            central.RegisterRelease(release.version, release.highestTimestamp);
+            central.RegisterRelease(release.version, release.highestTimestamp, { .requiresBackup = release.requiresBackup });
 
         for (auto const* migration: plugin.GetAllMigrations())
             central.AddMigration(migration);

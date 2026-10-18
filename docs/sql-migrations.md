@@ -485,7 +485,10 @@ MigrationManager::AddPreMigrateStep(std::string title,
   hooks again (a reconnect) and before unloading a plugin, so a step is never registered twice nor outlives
   its library.
 - **`requiresBackup`:** an optional predicate in `PreMigrateStepOptions`, evaluated on the migration
-  connection before the run, says whether this run of the step demands a backup.
+  connection before the run, says whether this run of the step demands a backup (see
+  [Backup requirement](#backup-requirement)). Hosts evaluate it on every check, not only before a
+  run (dbtool-gui after each connect, run and backup), and on whatever thread they check from, a
+  worker or a GUI's own thread. Keep it reasonably cheap, and free of thread affinity.
 
 ```cpp
 LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connection, manager)
@@ -500,6 +503,57 @@ LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connection, manager)
                                   });
 }
 ```
+
+### Backup requirement
+
+Work that is hard to undo can demand a backup of the database first. Three things can:
+
+- a migration: `MigrationBase::RequiresBackup()`, set through `MigrationMetadata::requiresBackup`;
+- a release, as shorthand for all of its migrations:
+  `LIGHTWEIGHT_SQL_RELEASE("3.0.0", 20260501120000, { .requiresBackup = true });`
+  (or `MigrationManager::RegisterRelease(version, timestamp, { .requiresBackup = true })`);
+- a pre-migrate step whose `requiresBackup` predicate returns true.
+
+`MigrationManager::BackupRequirementFor(toRun)` answers whether the work a command is about to run needs a
+backup and whether one exists. **Only the work the command will run counts:** pass all pending migrations
+for `migrate`, the pending ones up to the release for `migrate-to-release`, the named one for `apply`.
+Step predicates are evaluated by that call, on the migration connection. A predicate that throws makes
+the call throw.
+
+```cpp
+auto const pending = std::vector<MigrationTimestamp> { /* what the command will run */ };
+auto const requirement = manager.BackupRequirementFor(pending);
+if (requirement.required && !requirement.satisfied)
+{
+    // requirement.reasons: `release 3.0.0`, `migration 20260501120000 "Add orders"`, `step "Widen text columns"`
+}
+```
+
+| Member | Meaning |
+|--------|---------|
+| `required` | Something demands a backup. |
+| `reasons` | What demands it, in this order: releases, migrations, steps. A migration whose release already demands one is not named again. |
+| `satisfied` | True when nothing is required; otherwise the newest `backup` or `restore` record covers the database's current state. |
+| `lastBackup` | The newest `backup` or `restore` record; `waived` rows are skipped. |
+
+When nothing demands a backup, neither `schema_backups` nor `schema_migrations` is read or created.
+
+**Freshness rule** (`BackupRecordCovers`): a backup that saw exactly the current migration history covers.
+`ReadMigrationHistoryState` returns a digest: the SHA-256 of the physical `schema_migrations` rows sorted
+by version, one `<version>|<applied_at>` line each (`applied_at` as milliseconds since the Unix epoch,
+empty when null; the virtual-applied overlay does not count). A `backup` or `restore` record covers when
+its stored digest equals the current one, so any migration applied, re-applied, rolled back or re-stamped
+since changes the result. Only values read from the database are compared; `created_at` is informational.
+A `waived` row (or any unknown kind) never covers.
+
+A record is built from a `MigrationHistoryState` (`BackupRecord::observedState`), never from a clock. Read
+the state before the backup reads any data, and for a restore after it finished.
+
+Only backups recorded by Lightweight's tools (`dbtool`, `dbtool-gui`) count, because only they write
+`schema_backups` rows. An archive made by other means satisfies nothing.
+
+> **The migration lock stops other migrations, not the application's own writes made between the backup
+> and the migration. Stop the application during such an upgrade.**
 
 ### Applying Migrations Programmatically
 
@@ -632,6 +686,24 @@ Lightweight automatically creates a `schema_migrations` table to track applied m
 | version | BIGINT | Migration timestamp |
 | checksum | VARCHAR(64) | SHA-256 checksum of migration SQL |
 | applied_at | DATETIME | When the migration was applied |
+
+### schema_backups Table
+
+`dbtool` and `dbtool-gui` append a row to `schema_backups` after a verified backup or a restore, and when
+a run goes ahead without a required backup because the user waived it. The table is created on first use
+and dropped by `HardReset` (its rows describe the migration state being discarded). Read and write it with
+`ReadLatestBackupRecord` / `WriteBackupRecord`; see [Backup requirement](#backup-requirement) for how it is used.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | BIGINT | Assigned by the database; the newest record has the highest |
+| created_at | DATETIME | Informational, UTC: for a backup when it started reading the database, for a restore when it finished |
+| archive_file_name | NVARCHAR(255) | Archive name without its directory; empty for `waived` |
+| archive_sha256 | VARCHAR(64) | SHA-256 of the archive file, lowercase hex; empty for `waived` |
+| last_migration | BIGINT | Highest version in `schema_migrations` at `created_at`; null when there was none |
+| migration_state_digest | VARCHAR(64) | Digest of the `schema_migrations` history the backup saw (read before it started; a restore: after it finished) |
+| tool_version | VARCHAR(128) | The tool that wrote the row, e.g. `dbtool 1.2.3` |
+| kind | VARCHAR(16) | `backup`, `restore` or `waived` |
 
 ### Concurrency Control
 

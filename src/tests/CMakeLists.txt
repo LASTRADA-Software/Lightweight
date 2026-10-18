@@ -33,6 +33,7 @@ if(MSVC)
 endif()
 
 set(SOURCE_FILES
+    BackupRequirementTests.cpp
     ConfigDiscoveryTests.cpp
     ConfigBackupOutputTests.cpp
     ConfigConnectionTargetTests.cpp
@@ -111,6 +112,7 @@ set(SOURCE_FILES
     SqlVariantAccessorTests.cpp
     SqlVariantDbTests.cpp
     SqlBackup/ArchivePathTests.cpp
+    SqlBackup/ArchiveVerificationTests.cpp
     SqlBackup/AllColumnTypesTests.cpp
     SqlBackup/EncodingRoundTripTests.cpp
     SqlBackup/RestoreConversionTests.cpp

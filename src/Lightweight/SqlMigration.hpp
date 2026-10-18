@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <exception>
+#include <expected>
 #include <format>
 #include <functional>
 #include <list>
@@ -191,7 +192,7 @@ namespace SqlMigration
     /// Associates a software release with the highest migration timestamp present at release time.
     ///
     /// Releases are declared in source (typically a migration plugin) via
-    /// `LIGHTWEIGHT_SQL_RELEASE(version, highestTimestamp)`. They let tools answer questions like
+    /// `LIGHTWEIGHT_SQL_RELEASE(version, highestTimestamp[, options])`. They let tools answer questions like
     /// "which migrations belong to release 6.7.0?" or "roll back everything applied after 6.7.0".
     ///
     /// The `highestTimestamp` is an inclusive upper bound: a migration `M` belongs to the release
@@ -205,7 +206,134 @@ namespace SqlMigration
         std::string version;
         /// Highest migration timestamp contained in this release (inclusive).
         MigrationTimestamp highestTimestamp;
+        /// Whether every migration of this release requires a backup of the database taken after its
+        /// last migration (see `MigrationManager::BackupRequirementFor`).
+        bool requiresBackup = false;
     };
+
+    /// Options of a release declared with `LIGHTWEIGHT_SQL_RELEASE`.
+    ///
+    /// @ingroup SqlMigration
+    struct MigrationReleaseOptions
+    {
+        /// Shorthand for "every migration of the release requires a backup".
+        bool requiresBackup = false;
+    };
+
+    /// What a `schema_backups` record documents.
+    ///
+    /// @ingroup SqlMigration
+    enum class BackupRecordKind : std::uint8_t
+    {
+        Backup,  ///< A verified backup archive was written; stored as `backup`.
+        Restore, ///< A backup archive was restored into the database; stored as `restore`.
+        /// A migrating run went ahead without a backup because the user explicitly waived it; stored as
+        /// `waived`. Never satisfies a requirement.
+        Waived,
+    };
+
+    /// Name of the table that holds the backup records.
+    ///
+    /// @ingroup SqlMigration
+    inline constexpr std::string_view BackupRecordTableName = "schema_backups";
+
+    /// The SHA-256 of an empty `schema_migrations` history (the digest of no rows).
+    ///
+    /// @ingroup SqlMigration
+    inline constexpr std::string_view EmptyMigrationHistoryDigest =
+        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+
+    /// The migration history physically recorded in `schema_migrations`, as read from the database.
+    ///
+    /// @ingroup SqlMigration
+    struct MigrationHistoryState
+    {
+        /// Highest applied version; empty when none is recorded. For messages.
+        std::optional<MigrationTimestamp> lastAppliedMigration;
+        /// The latest `applied_at` over all recorded migrations; empty when none carries a time. Informational.
+        std::optional<SqlDateTime> lastAppliedAt;
+        /// SHA-256, lowercase hex, of the whole physical history: one line `<version>|<applied_at>` per row,
+        /// sorted by version, `applied_at` as milliseconds since the Unix epoch (empty when null). Any
+        /// applied, re-applied, rolled back or re-stamped migration changes it.
+        std::string digest = std::string { EmptyMigrationHistoryDigest };
+    };
+
+    /// One row of the `schema_backups` table.
+    ///
+    /// @ingroup SqlMigration
+    struct BackupRecord
+    {
+        /// Assigned by the database; the newest record has the highest.
+        std::uint64_t id = 0;
+        /// UTC, informational: for a backup when it started reading the database, for a restore when it
+        /// finished. It plays no part in `BackupRecordCovers`.
+        SqlDateTime createdAt;
+        /// UTF-8, without its directory.
+        std::string archiveFileName;
+        /// SHA-256 of the archive file, lowercase hex.
+        std::string archiveSha256;
+        /// The history the backup saw, from `ReadMigrationHistoryState`. Read it before the backup reads
+        /// any data (for a restore: after it finished). A record is built only from a state read from the
+        /// database, never from a clock. Stored: `lastAppliedMigration` and `digest`.
+        MigrationHistoryState observedState;
+        /// The tool that wrote the record, e.g. `dbtool 1.2.3`.
+        std::string toolVersion;
+        /// What the record documents.
+        BackupRecordKind kind = BackupRecordKind::Backup;
+    };
+
+    /// Whether the work a command will run needs a backup, and whether a recorded one satisfies it.
+    ///
+    /// @ingroup SqlMigration
+    struct BackupRequirement
+    {
+        /// Whether anything demands a backup.
+        bool required = false;
+        /// What demands it: `release <version>`, `migration <timestamp> "<title>"` and `step "<title>"`, in that order.
+        std::vector<std::string> reasons;
+        /// Whether nothing is required or the newest backup or restore record covers the database's current state.
+        bool satisfied = true;
+        /// The newest `backup` or `restore` record; `waived` records are skipped.
+        std::optional<BackupRecord> lastBackup;
+    };
+
+    /// Reads the migration history from `schema_migrations`.
+    ///
+    /// Physical rows only; the virtual-applied overlay does not count.
+    ///
+    /// @param dataMapper The migration connection's mapper.
+    /// @return The state; empty when the table is missing. Other errors throw.
+    /// @ingroup SqlMigration
+    [[nodiscard]] LIGHTWEIGHT_API MigrationHistoryState ReadMigrationHistoryState(DataMapper& dataMapper);
+
+    /// Reads the newest `backup` or `restore` record, by id; `waived` records are skipped.
+    ///
+    /// @param dataMapper The migration connection's mapper.
+    /// @return The record; empty when there is none or the table is missing. Other errors throw.
+    /// @ingroup SqlMigration
+    [[nodiscard]] LIGHTWEIGHT_API std::optional<BackupRecord> ReadLatestBackupRecord(DataMapper& dataMapper);
+
+    /// Appends a record to `schema_backups`, creating the table when it is missing.
+    ///
+    /// @param dataMapper The migration connection's mapper.
+    /// @param record The record to store; its `id` is ignored.
+    /// @return The record with the id the database assigned, or the database error.
+    /// @ingroup SqlMigration
+    [[nodiscard]] LIGHTWEIGHT_API std::expected<BackupRecord, SqlErrorInfo> WriteBackupRecord(DataMapper& dataMapper,
+                                                                                              BackupRecord record);
+
+    /// Whether @p record covers the database state @p state.
+    ///
+    /// Only a `backup` or `restore` record can cover, and it does when it saw exactly the current migration
+    /// history: its `observedState.digest` equals the state's. Any migration applied, re-applied, rolled
+    /// back or re-stamped since changes the digest. Only values read from the database are compared, so
+    /// `createdAt` and the clocks of the hosts involved play no part. Any other kind covers nothing.
+    ///
+    /// @param record The record to test.
+    /// @param state The current migration state.
+    /// @ingroup SqlMigration
+    [[nodiscard]] LIGHTWEIGHT_API bool BackupRecordCovers(BackupRecord const& record,
+                                                          MigrationHistoryState const& state) noexcept;
 
     /// The failure of one unit of `MigrationManager::UnicodeUpgradeTables`, which was rolled back.
     ///
@@ -730,6 +858,9 @@ namespace SqlMigration
             /// Whether the `schema_migrations` table itself was dropped (always true on a
             /// real run, false on dry-run).
             bool schemaMigrationsDropped = false;
+            /// Whether `schema_backups` exists and was dropped (or, in a dry run, would be), with every
+            /// backup, restore and waived record in it.
+            bool schemaBackupsDropped = false;
         };
 
         /// @brief Drops every table the registered migrations would create (incl.
@@ -744,8 +875,10 @@ namespace SqlMigration
         /// Tables present in the live DB but not in the migration plan are left alone and
         /// reported under `preservedTables` so operators can spot them.
         ///
-        /// @param dryRun When true, returns the would-be plan without writing anything.
-        [[nodiscard]] LIGHTWEIGHT_API HardResetResult HardReset(bool dryRun = false);
+        /// Also drops `schema_backups`: its records describe backups of the migration state being discarded.
+        ///
+        /// @param mode `ExecutionMode::DryRun` returns the would-be plan without writing anything.
+        [[nodiscard]] LIGHTWEIGHT_API HardResetResult HardReset(ExecutionMode mode = ExecutionMode::Execute);
 
         /// @brief One column upgrade entry in `UnicodeUpgradeResult`.
         struct ColumnUpgradeEntry
@@ -937,8 +1070,11 @@ namespace SqlMigration
         ///
         /// @param version Human-readable version, e.g. "6.7.0".
         /// @param highestTimestamp Highest migration timestamp (inclusive) that belongs to this release.
+        /// @param options Release options, e.g. `{ .requiresBackup = true }`.
         /// @throws std::runtime_error on duplicate version or duplicate timestamp.
-        LIGHTWEIGHT_API void RegisterRelease(std::string version, MigrationTimestamp highestTimestamp);
+        LIGHTWEIGHT_API void RegisterRelease(std::string version,
+                                             MigrationTimestamp highestTimestamp,
+                                             MigrationReleaseOptions options = {});
 
         /// Remove all registered releases. Useful for resetting state in tests.
         LIGHTWEIGHT_API void RemoveAllReleases();
@@ -968,6 +1104,21 @@ namespace SqlMigration
         /// @param version The version string to look up.
         /// @return Migrations in the release, ordered by timestamp. Empty if the version is unknown.
         [[nodiscard]] LIGHTWEIGHT_API MigrationList GetMigrationsForRelease(std::string_view version) const;
+
+        /// Whether the work a command will run needs a backup first, and whether one exists.
+        ///
+        /// Only that work counts: a migration of @p toRun demands a backup when it `RequiresBackup()` or
+        /// its release declares `requiresBackup`, and a registered pre-migrate step when its
+        /// `requiresBackup` predicate returns true (evaluated here, on the migration connection). Pass
+        /// all pending migrations for `migrate`, the pending ones up to the release for
+        /// `migrate-to-release`, the named one for `apply`. Only when something demands a backup are
+        /// `schema_backups` and `schema_migrations` read: the newest `backup` or `restore` record must
+        /// cover the database's current state (see `BackupRecordCovers`).
+        ///
+        /// @param toRun The migrations the command will run.
+        /// @return The requirement; `required` is false when nothing demands a backup.
+        /// @throws whatever a step's predicate throws.
+        [[nodiscard]] LIGHTWEIGHT_API BackupRequirement BackupRequirementFor(std::span<MigrationTimestamp const> toRun);
 
       private:
         /// Return the pending list in dependency-respecting order.
@@ -1202,6 +1353,16 @@ namespace SqlMigration
             return {};
         }
 
+        /// Whether running this migration requires a backup of the database taken after its last
+        /// migration (see `MigrationManager::BackupRequirementFor`). A release's `requiresBackup` adds
+        /// the same demand for all of its migrations.
+        ///
+        /// @return False unless overridden.
+        [[nodiscard]] virtual bool RequiresBackup() const noexcept
+        {
+            return false;
+        }
+
         /// Get the timestamp of the migration.
         ///
         /// @return Timestamp of the migration.
@@ -1252,6 +1413,8 @@ namespace SqlMigration
         std::string_view author {};
         /// Long-form description. Recorded in schema_migrations when the migration is applied.
         std::string_view description {};
+        /// Whether running the migration requires a backup; see `MigrationBase::RequiresBackup`.
+        bool requiresBackup = false;
     };
 
     template <uint64_t TsValue>
@@ -1338,6 +1501,12 @@ namespace SqlMigration
             return _metadata.description;
         }
 
+        /// Whether running this migration requires a backup; see `MigrationBase::RequiresBackup`.
+        [[nodiscard]] bool RequiresBackup() const noexcept override
+        {
+            return _metadata.requiresBackup;
+        }
+
       private:
         std::function<void(SqlMigrationQueryBuilder&)> _up;
         std::function<void(SqlMigrationQueryBuilder&)> _down;
@@ -1367,10 +1536,17 @@ namespace SqlMigration
         /// @ingroup SqlMigration
         struct ReleaseRegistrar
         {
-            /// Registers `{version, highestTimestamp}` with the singleton manager.
-            ReleaseRegistrar(std::string version, MigrationTimestamp highestTimestamp)
+            /// Registers `{version, highestTimestamp, options}` with the singleton manager.
+            ReleaseRegistrar(std::string version, MigrationTimestamp highestTimestamp, MigrationReleaseOptions options = {})
             {
-                MigrationManager::GetInstance().RegisterRelease(std::move(version), highestTimestamp);
+                MigrationManager::GetInstance().RegisterRelease(std::move(version), highestTimestamp, options);
+            }
+
+            /// Registers `{version, highestTimestamp, options}` with the singleton manager.
+            ReleaseRegistrar(std::string version, std::uint64_t highestTimestamp, MigrationReleaseOptions options = {})
+            {
+                MigrationManager::GetInstance().RegisterRelease(
+                    std::move(version), MigrationTimestamp { highestTimestamp }, options);
             }
         };
     } // namespace detail
@@ -1487,23 +1663,18 @@ namespace SqlMigration
 /// The macro registers with the migration manager at static-initialization time. Multiple releases
 /// may coexist in the same translation unit.
 ///
-/// @param version A string literal, e.g. `"6.7.0"`.
-/// @param highestTimestamp An unsigned integer literal matching the timestamp format used by migrations.
+/// @param version A string literal, e.g. `"2.0.0"`.
+/// @param ... The highest migration timestamp of the release, optionally followed by its
+///            `MigrationReleaseOptions`, e.g. `{ .requiresBackup = true }`.
 ///
 /// @code
-/// LIGHTWEIGHT_SQL_MIGRATION(20260101120000, "Initial schema") { ... }
-/// LIGHTWEIGHT_SQL_RELEASE("6.6.0", 20260101120000);
-///
-/// LIGHTWEIGHT_SQL_MIGRATION(20260501120000, "Add orders table") { ... }
-/// LIGHTWEIGHT_SQL_RELEASE("6.7.0", 20260501120000);
+/// LIGHTWEIGHT_SQL_RELEASE("1.0.0", 20260101120000);
+/// LIGHTWEIGHT_SQL_RELEASE("2.0.0", 20260501120000, { .requiresBackup = true });
 /// @endcode
 ///
 /// @ingroup SqlMigration
-#define LIGHTWEIGHT_SQL_RELEASE(version, highestTimestamp)                                                                 \
+#define LIGHTWEIGHT_SQL_RELEASE(version, ...)                                                                              \
     static ::Lightweight::SqlMigration::detail::ReleaseRegistrar _LIGHTWEIGHT_CONCATENATE_INNER(_lw_release_, __COUNTER__) \
     {                                                                                                                      \
-        (version), ::Lightweight::SqlMigration::MigrationTimestamp                                                         \
-        {                                                                                                                  \
-            (highestTimestamp)                                                                                             \
-        }                                                                                                                  \
+        (version), __VA_ARGS__                                                                                             \
     }

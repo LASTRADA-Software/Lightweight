@@ -288,7 +288,8 @@ TEST_CASE("IngestPlugins — releases and migrations propagate to central", "[Pl
     auto pluginManager = std::make_unique<Lightweight::SqlMigration::MigrationManager>();
     FakeMigration migration { Lightweight::SqlMigration::MigrationTimestamp { 20260101000000ULL }, "fixture" };
     pluginManager->AddMigration(&migration);
-    pluginManager->RegisterRelease("1.0.0", Lightweight::SqlMigration::MigrationTimestamp { 20260101000000ULL });
+    pluginManager->RegisterRelease(
+        "1.0.0", Lightweight::SqlMigration::MigrationTimestamp { 20260101000000ULL }, { .requiresBackup = true });
 
     auto loader = [&](std::filesystem::path const& path) -> std::optional<Lightweight::Tools::LoadedPlugin> {
         return Lightweight::Tools::LoadedPlugin {
@@ -310,6 +311,7 @@ TEST_CASE("IngestPlugins — releases and migrations propagate to central", "[Pl
     auto const& releases = central.GetAllReleases();
     REQUIRE(releases.size() == 1);
     CHECK(releases.front().version == "1.0.0");
+    CHECK(releases.front().requiresBackup);
 }
 
 TEST_CASE("IngestPlugins — pluginManager == &central is a no-op merge", "[PluginIngestion]")

@@ -7,12 +7,14 @@
 #include "../SqlStatement.hpp"
 #include "../ThreadSafeQueue.hpp"
 #include "../TracyProfiler.hpp"
+#include "../Zip/ZipArchive.hpp"
 #include "../Zip/ZipPath.hpp"
 #include "Backup.hpp"
 #include "ChunkPlanner.hpp"
 #include "Common.hpp"
 #include "ConnectionPool.hpp"
 #include "Restore.hpp"
+#include "Sha256.hpp"
 #include "SqlBackup.hpp"
 #include "SqlBackupFormats.hpp"
 #include "TableFilter.hpp"
@@ -25,6 +27,7 @@
 #include <deque>
 #include <expected>
 #include <format>
+#include <fstream>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -1079,6 +1082,121 @@ std::expected<std::vector<std::string>, std::string> ReadArchiveSchemas(std::fil
     catch (nlohmann::json::exception const& exception)
     {
         return std::unexpected { std::format("Malformed metadata.json: {}", exception.what()) };
+    }
+}
+
+namespace
+{
+    using ChecksumList = std::map<std::string, std::string>;
+
+    /// The entries `checksums.json` lists with their hashes; empty when the archive has none.
+    std::expected<ChecksumList, std::string> ReadListedChecksums(Zip::ZipArchive const& archive)
+    {
+        auto const index = archive.LocateEntry("checksums.json");
+        if (!index)
+            return ChecksumList {};
+        auto const text = archive.ReadEntryAsString(*index);
+        if (!text)
+            return std::unexpected { std::format("Failed to read checksums.json: {}", text.error().message) };
+        try
+        {
+            auto listed = ChecksumList {};
+            // Named: a range-for does not keep the parsed document alive before C++23's lifetime extension.
+            auto const checksums = nlohmann::json::parse(*text);
+            for (auto const& [name, hash]: checksums.at("files").items())
+                listed.emplace(name, hash.get<std::string>());
+            return listed;
+        }
+        catch (nlohmann::json::exception const& exception)
+        {
+            return std::unexpected { std::format("Malformed checksums.json: {}", exception.what()) };
+        }
+    }
+
+    /// Hashes each listed entry; @return how many matched, or a message naming the first that does not.
+    std::expected<std::size_t, std::string> VerifyListedEntries(Zip::ZipArchive const& archive, ChecksumList const& listed)
+    {
+        auto verified = std::size_t { 0 };
+        for (auto const& [name, expectedHash]: listed)
+        {
+            auto const index = archive.LocateEntry(name);
+            if (!index)
+                return std::unexpected { std::format("{} is listed in checksums.json but missing from the archive", name) };
+            auto const content = archive.ReadEntry(*index);
+            if (!content)
+                return std::unexpected { std::format("Failed to read {}: {}", name, content.error().message) };
+            if (Sha256::Hash(content->data(), content->size()) != expectedHash)
+                return std::unexpected { std::format("checksum mismatch in {}", name) };
+            ++verified;
+        }
+        return verified;
+    }
+
+    /// SHA-256 of the whole file in 1 MiB chunks, lowercase hex.
+    std::expected<std::string, std::string> HashFile(std::filesystem::path const& path)
+    {
+        auto file = std::ifstream { path, std::ios::binary };
+        if (!file)
+            return std::unexpected { std::format("Failed to open backup archive {}", Zip::ZipPathUtf8(path)) };
+        constexpr std::size_t chunkSize = 1024 * 1024;
+        auto buffer = std::vector<char>(chunkSize);
+        auto hasher = Sha256 {};
+        while (file.read(buffer.data(), static_cast<std::streamsize>(buffer.size())) || file.gcount() > 0)
+            hasher.Update(buffer.data(), static_cast<std::size_t>(file.gcount()));
+        if (!file.eof())
+            return std::unexpected { std::format("Failed to read backup archive {}", Zip::ZipPathUtf8(path)) };
+        return Sha256::ToHex(hasher.Finalize());
+    }
+} // namespace
+
+namespace
+{
+    std::expected<ArchiveVerification, std::string> VerifyArchiveUnguarded(std::filesystem::path const& archiveFile)
+    {
+        auto const archive = Zip::ZipArchive::Open(archiveFile);
+        if (!archive)
+            return std::unexpected { std::format(
+                "Failed to open backup archive {}: {}", Zip::ZipPathUtf8(archiveFile), archive.error().message) };
+
+        if (!archive->LocateEntry("metadata.json"))
+            return std::unexpected { "metadata.json not found in archive" };
+
+        auto const entries = archive->GetAllEntries();
+        auto dataEntries = std::vector<std::string> {};
+        for (auto const& entry: entries)
+            if (entry.name.starts_with("data/"))
+                dataEntries.push_back(entry.name);
+
+        auto const listed = ReadListedChecksums(*archive);
+        if (!listed)
+            return std::unexpected { listed.error() };
+        if (listed->empty() && !dataEntries.empty() && !archive->LocateEntry("checksums.json"))
+            return std::unexpected { "checksums.json not found in archive" };
+        for (auto const& entryName: dataEntries)
+            if (!listed->contains(entryName))
+                return std::unexpected { std::format("{} is not listed in checksums.json", entryName) };
+
+        auto const verified = VerifyListedEntries(*archive, *listed);
+        if (!verified)
+            return std::unexpected { verified.error() };
+
+        auto const archiveSha256 = HashFile(archiveFile);
+        if (!archiveSha256)
+            return std::unexpected { archiveSha256.error() };
+        return ArchiveVerification { .archiveSha256 = *archiveSha256, .verifiedEntries = *verified };
+    }
+} // namespace
+
+std::expected<ArchiveVerification, std::string> VerifyArchive(std::filesystem::path const& archiveFile)
+{
+    try
+    {
+        return VerifyArchiveUnguarded(archiveFile);
+    }
+    catch (std::exception const& exception)
+    {
+        return std::unexpected { std::format(
+            "Failed to verify backup archive {}: {}", Zip::ZipPathUtf8(archiveFile), exception.what()) };
     }
 }
 

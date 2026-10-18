@@ -8,6 +8,7 @@
 #include "../SqlSchema.hpp"
 
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <expected>
 #include <filesystem>
@@ -348,6 +349,24 @@ LIGHTWEIGHT_API void BackupSchemas(std::filesystem::path const& outputFile,
 /// @return One name (possibly empty) for a single-schema archive, several for a multi-schema
 ///         archive, or an error message if the archive's metadata cannot be read.
 [[nodiscard]] LIGHTWEIGHT_API std::expected<std::vector<std::string>, std::string> ReadArchiveSchemas(
+    std::filesystem::path const& archiveFile);
+
+/// What `VerifyArchive` found.
+struct ArchiveVerification
+{
+    /// SHA-256 of the whole archive file, lowercase hex.
+    std::string archiveSha256;
+    /// Entries whose SHA-256 matched `checksums.json`.
+    std::size_t verifiedEntries = 0;
+};
+
+/// Checks that a backup archive is complete: it holds `metadata.json`, `checksums.json` lists every data
+/// entry (`data/...`), and every listed entry's SHA-256 matches. An archive without data entries (schema
+/// only) needs no `checksums.json`. Also hashes the whole file.
+///
+/// @param archiveFile The archive.
+/// @return The verification, or a message naming what is wrong.
+[[nodiscard]] LIGHTWEIGHT_API std::expected<ArchiveVerification, std::string> VerifyArchive(
     std::filesystem::path const& archiveFile);
 
 /// Decides what a schema that the caller did not ask for, but took from a default (a profile), means

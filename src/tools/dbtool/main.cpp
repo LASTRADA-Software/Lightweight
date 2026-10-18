@@ -1877,13 +1877,13 @@ int RunAdminCommand(std::string_view name,
 ///
 /// In dry-run mode the diff is printed and nothing is written. Without dry-run the
 /// caller must explicitly confirm; otherwise the command exits without writing.
-int RewriteChecksums(MigrationManager& manager, bool dryRun, bool yes)
+int RewriteChecksums(MigrationManager& manager, ExecutionMode mode, Confirmation confirmation)
 {
     return RunAdminCommand<MigrationManager::RewriteChecksumsResult>(
         "rewrite-checksums",
-        dryRun ? ExecutionMode::DryRun : ExecutionMode::Execute,
-        yes ? Confirmation::Given : Confirmation::Ask,
-        [&](ExecutionMode mode) { return manager.RewriteChecksums(mode == ExecutionMode::DryRun); },
+        mode,
+        confirmation,
+        [&](ExecutionMode runMode) { return manager.RewriteChecksums(runMode == ExecutionMode::DryRun); },
         [](auto const& r) { return r.entries.empty() && r.unregisteredTimestamps.empty(); },
         [](auto const& r) {
             if (!r.entries.empty())
@@ -1910,13 +1910,13 @@ int RewriteChecksums(MigrationManager& manager, bool dryRun, bool yes)
 }
 
 /// @brief Drops every migration-owned table, preserves user tables.
-int HardReset(MigrationManager& manager, bool dryRun, bool yes)
+int HardReset(MigrationManager& manager, ExecutionMode mode, Confirmation confirmation)
 {
     return RunAdminCommand<MigrationManager::HardResetResult>(
         "hard-reset",
-        dryRun ? ExecutionMode::DryRun : ExecutionMode::Execute,
-        yes ? Confirmation::Given : Confirmation::Ask,
-        [&](ExecutionMode mode) { return manager.HardReset(mode == ExecutionMode::DryRun); },
+        mode,
+        confirmation,
+        [&](ExecutionMode runMode) { return manager.HardReset(runMode); },
         [](auto const& r) { return r.droppedTables.empty() && r.absentTables.empty() && r.preservedTables.empty(); },
         [](auto const& r) {
             if (!r.droppedTables.empty())
@@ -3385,13 +3385,13 @@ int DispatchDbCommand(Options const& options)
     {
         auto& manager = GetMigrationManager(options);
         OptionalScopedLock const lock(manager, options.noLock || options.dryRun);
-        return RewriteChecksums(manager, options.dryRun, options.yes);
+        return RewriteChecksums(manager, ExecutionModeOf(options), ConfirmationOf(options));
     }
     if (options.command == "hard-reset")
     {
         auto& manager = GetMigrationManager(options);
         OptionalScopedLock const lock(manager, options.noLock || options.dryRun);
-        return HardReset(manager, options.dryRun, options.yes);
+        return HardReset(manager, ExecutionModeOf(options), ConfirmationOf(options));
     }
     if (options.command == "unicode-upgrade-tables")
     {

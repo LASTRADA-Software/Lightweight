@@ -353,6 +353,7 @@ namespace SqlAlterTableColumn
 
 namespace SqlBackup
 {
+    using Lightweight::SqlBackup::ArchiveVerification;
     using Lightweight::SqlBackup::Backup;
     using Lightweight::SqlBackup::BackupSchemas;
     using Lightweight::SqlBackup::BackupSettings;
@@ -383,6 +384,7 @@ namespace SqlBackup
     using Lightweight::SqlBackup::Sha256;
     using Lightweight::SqlBackup::TableFilter;
     using Lightweight::SqlBackup::TableInfo;
+    using Lightweight::SqlBackup::VerifyArchive;
 } // namespace SqlBackup
 
 namespace SqlColumnTypeDefinitions
@@ -410,11 +412,20 @@ namespace SqlColumnTypeDefinitions
 
 namespace SqlMigration
 {
+    using Lightweight::SqlMigration::BackupRecord;
+    using Lightweight::SqlMigration::BackupRecordCovers;
+    using Lightweight::SqlMigration::BackupRecordKind;
+    using Lightweight::SqlMigration::BackupRecordTableName;
+    using Lightweight::SqlMigration::BackupRequirement;
     using Lightweight::SqlMigration::ChecksumVerificationResult;
+    using Lightweight::SqlMigration::EmptyMigrationHistoryDigest;
     using Lightweight::SqlMigration::ExecutionMode;
     using Lightweight::SqlMigration::Migration;
     using Lightweight::SqlMigration::MigrationBase;
+    using Lightweight::SqlMigration::MigrationHistoryState;
     using Lightweight::SqlMigration::MigrationManager;
+    using Lightweight::SqlMigration::MigrationRelease;
+    using Lightweight::SqlMigration::MigrationReleaseOptions;
     using Lightweight::SqlMigration::MigrationStatus;
     using Lightweight::SqlMigration::MigrationTimestamp;
     using Lightweight::SqlMigration::PostMigrateErrorSink;
@@ -423,7 +434,10 @@ namespace SqlMigration
     using Lightweight::SqlMigration::PreMigrateStepInfo;
     using Lightweight::SqlMigration::PreMigrateStepOptions;
     using Lightweight::SqlMigration::PreMigrateStepsOutcome;
+    using Lightweight::SqlMigration::ReadLatestBackupRecord;
+    using Lightweight::SqlMigration::ReadMigrationHistoryState;
     using Lightweight::SqlMigration::RevertResult;
+    using Lightweight::SqlMigration::WriteBackupRecord;
 } // namespace SqlMigration
 
 namespace SqlSchema

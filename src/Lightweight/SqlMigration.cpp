@@ -733,7 +733,9 @@ void MigrationManager::ValidateDependencies() const
     (void) TopoSortPending(std::move(pending), applied);
 }
 
-void MigrationManager::RegisterRelease(std::string version, MigrationTimestamp highestTimestamp)
+void MigrationManager::RegisterRelease(std::string version,
+                                       MigrationTimestamp highestTimestamp,
+                                       MigrationReleaseOptions options)
 {
     // Reject duplicate version strings.
     auto const byVersion = std::ranges::find_if(_releases, [&](MigrationRelease const& r) { return r.version == version; });
@@ -757,7 +759,8 @@ void MigrationManager::RegisterRelease(std::string version, MigrationTimestamp h
                                              byTimestamp->version));
     }
 
-    _releases.emplace_back(MigrationRelease { .version = std::move(version), .highestTimestamp = highestTimestamp });
+    _releases.emplace_back(MigrationRelease {
+        .version = std::move(version), .highestTimestamp = highestTimestamp, .requiresBackup = options.requiresBackup });
     std::ranges::sort(_releases, [](MigrationRelease const& a, MigrationRelease const& b) {
         return a.highestTimestamp < b.highestTimestamp;
     });
@@ -785,6 +788,47 @@ MigrationRelease const* MigrationManager::FindReleaseForTimestamp(MigrationTimes
     // highestTimestamp covers `timestamp`.
     auto const it = std::ranges::lower_bound(_releases, timestamp, {}, &MigrationRelease::highestTimestamp);
     return it != _releases.end() ? &*it : nullptr;
+}
+
+BackupRequirement MigrationManager::BackupRequirementFor(std::span<MigrationTimestamp const> toRun)
+{
+    auto requirement = BackupRequirement {};
+    auto timestamps = std::vector<MigrationTimestamp> { toRun.begin(), toRun.end() };
+    std::ranges::sort(timestamps);
+
+    auto const releaseDemands = [this](MigrationTimestamp timestamp) {
+        auto const* release = FindReleaseForTimestamp(timestamp);
+        return release != nullptr && release->requiresBackup;
+    };
+    for (auto const& release: _releases)
+    {
+        auto const touched = std::ranges::any_of(
+            timestamps, [&](MigrationTimestamp timestamp) { return FindReleaseForTimestamp(timestamp) == &release; });
+        if (release.requiresBackup && touched)
+            requirement.reasons.push_back(std::format("release {}", release.version));
+    }
+    for (auto const timestamp: timestamps)
+    {
+        auto const* migration = GetMigration(timestamp);
+        if (migration != nullptr && migration->RequiresBackup() && !releaseDemands(timestamp))
+            requirement.reasons.push_back(std::format("migration {} \"{}\"", timestamp.value, migration->GetTitle()));
+    }
+    if (!_preMigrateSteps.empty())
+    {
+        auto& connection = GetDataMapper().Connection();
+        for (auto const& step: _preMigrateSteps)
+            if (step.options.requiresBackup && step.options.requiresBackup(connection, *this))
+                requirement.reasons.push_back(std::format("step \"{}\"", step.title));
+    }
+    requirement.required = !requirement.reasons.empty();
+    if (!requirement.required)
+        return requirement;
+
+    auto& dataMapper = GetDataMapper();
+    requirement.lastBackup = ReadLatestBackupRecord(dataMapper);
+    requirement.satisfied = requirement.lastBackup.has_value()
+                            && BackupRecordCovers(*requirement.lastBackup, ReadMigrationHistoryState(dataMapper));
+    return requirement;
 }
 
 MigrationManager::MigrationList MigrationManager::GetMigrationsForRelease(std::string_view version) const
@@ -2923,8 +2967,9 @@ namespace
     }
 } // namespace
 
-MigrationManager::HardResetResult MigrationManager::HardReset(bool dryRun)
+MigrationManager::HardResetResult MigrationManager::HardReset(ExecutionMode mode)
 {
+    auto const dryRun = mode == ExecutionMode::DryRun;
     HardResetResult result;
     result.wasDryRun = dryRun;
 
@@ -2969,13 +3014,15 @@ MigrationManager::HardResetResult MigrationManager::HardReset(bool dryRun)
     // half of this same function, which already uses `liveNames.contains(key.table)`.
     for (auto const& t: liveTables)
     {
-        if (t.name == "schema_migrations")
+        if (t.name == "schema_migrations" || t.name == BackupRecordTableName)
             continue;
         if (bookkeepingNamesSet.contains(t.name))
             continue;
         if (!intendedNames.contains(t.name))
             result.preservedTables.push_back(MakeFqtn(t.schema, t.name));
     }
+
+    result.schemaBackupsDropped = liveNames.contains(std::string { BackupRecordTableName });
 
     if (dryRun)
         return result;
@@ -3013,15 +3060,22 @@ MigrationManager::HardResetResult MigrationManager::HardReset(bool dryRun)
     }
 #endif
 
-    if (liveNames.contains("schema_migrations"))
-    {
+    auto const dropInOwnTransaction = [&](std::string_view tableName) {
         auto transaction = SqlTransaction { dm.Connection(), SqlTransactionMode::ROLLBACK };
-        auto const sqls = formatter.DropTable(std::string_view {}, std::string_view { "schema_migrations" }, true, true);
+        auto const sqls = formatter.DropTable(std::string_view {}, tableName, /*ifExists=*/true, /*cascade=*/true);
         for (auto const& sql: sqls)
             stmt.ExecuteDirect(sql).ConsumePendingResults();
-        result.schemaMigrationsDropped = true;
         transaction.Commit();
+    };
+
+    if (liveNames.contains("schema_migrations"))
+    {
+        dropInOwnTransaction("schema_migrations");
+        result.schemaMigrationsDropped = true;
     }
+
+    if (result.schemaBackupsDropped)
+        dropInOwnTransaction(BackupRecordTableName);
 
     // Drop any advisory-lock bookkeeping tables (`_lightweight_locks` on
     // SQLite). On engines with server-native advisory locks the list is
@@ -3030,15 +3084,8 @@ MigrationManager::HardResetResult MigrationManager::HardReset(bool dryRun)
     // pass doesn't strand the lock table; the same `IF EXISTS` semantics
     // make the operation idempotent when tooling reruns hard-reset.
     for (auto const& tableName: bookkeepingTableNames)
-    {
-        if (!liveNames.contains(std::string { tableName }))
-            continue;
-        auto transaction = SqlTransaction { dm.Connection(), SqlTransactionMode::ROLLBACK };
-        auto const sqls = formatter.DropTable(std::string_view {}, tableName, /*ifExists=*/true, /*cascade=*/true);
-        for (auto const& sql: sqls)
-            stmt.ExecuteDirect(sql).ConsumePendingResults();
-        transaction.Commit();
-    }
+        if (liveNames.contains(std::string { tableName }))
+            dropInOwnTransaction(tableName);
 
     return result;
 }
