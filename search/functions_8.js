@@ -27,5 +27,6 @@ var searchData=
   ['isprepared_24',['IsPrepared',['../db/dad/classLightweight_1_1SqlStatement.html#a8d0e75bc859cfc55a99d41b8907d77bd',1,'Lightweight::SqlStatement']]],
   ['isready_25',['IsReady',['../d8/d0c/classLightweight_1_1Async_1_1Task.html#a6d6d9ae50c57b4026b9cc30357a16c72',1,'Lightweight::Async::Task']]],
   ['istransient_26',['IsTransient',['../db/d4d/classLightweight_1_1SqlRetryClassifier.html#a745d29742b7ff3e63916c8f21be20cc6',1,'Lightweight::SqlRetryClassifier']]],
-  ['isvalid_27',['IsValid',['../d8/d0c/classLightweight_1_1Async_1_1Task.html#adaf1b753e7f02865227154251a38fff1',1,'Lightweight::Async::Task']]]
+  ['isvalid_27',['IsValid',['../d8/d0c/classLightweight_1_1Async_1_1Task.html#adaf1b753e7f02865227154251a38fff1',1,'Lightweight::Async::Task']]],
+  ['isvalidschemaname_28',['IsValidSchemaName',['../db/df6/group__SqlMigration.html#gad46d59bd6064a5ab5af5def81173ac6a',1,'Lightweight::SqlMigration']]]
 ];

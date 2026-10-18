@@ -205,6 +205,7 @@ var NAVTREE =
       ] ],
       [ "Migration Commands", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#migration-commands", [
         [ "migrate", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#migrate", [
+          [ "Backup requirement", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup-requirement", null ],
           [ "Skipped rows", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#skipped-rows", null ],
           [ "Custom default schema (<tt>--schema</tt>)", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#custom-default-schema---schema", null ]
         ] ],
@@ -284,7 +285,7 @@ var NAVTREE =
         [ "Custom Default Schema", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#custom-default-schema", null ],
         [ "Progress reporting", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#progress-reporting", null ],
         [ "Pre-migrate steps", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#pre-migrate-steps", null ],
-        [ "Backup requirement", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#backup-requirement", null ],
+        [ "Backup requirement", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#backup-requirement-1", null ],
         [ "Applying Migrations Programmatically", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#applying-migrations-programmatically", null ],
         [ "Status & Verification", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#status--verification", null ],
         [ "Compatibility Flags", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#compatibility-flags", null ],
@@ -416,9 +417,9 @@ var NAVTREEINDEX =
 "d7/d9a/classLightweight_1_1SqlDynamicString.html#a10dd315378c94f97d7a3c7431ba66a63",
 "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html",
 "da/da6/structLightweight_1_1SqlPoolStatistics.html#ad171570bc9e10521592308c76d33ef24",
-"dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#ab52a61034e07facd43a641d9c40f9b62",
-"de/d61/classLightweight_1_1DataMapper.html#a2eb801d4d427d114bbc0c3b01068f307",
-"df/d49/classLightweight_1_1SqlRetryPolicy.html#afada65643617d53abb16d4352e99f604"
+"dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#aaacc540bd4fd3ab8f556b8cc92f2894b",
+"de/d61/classLightweight_1_1DataMapper.html#a2b2b5b2f4bc610b6a8f518ce88a6e485",
+"df/d49/classLightweight_1_1SqlRetryPolicy.html#af00ac4ab739b78c22ff0af5061e71f31"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

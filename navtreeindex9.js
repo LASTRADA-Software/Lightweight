@@ -1,5 +1,8 @@
 var NAVTREEINDEX9 =
 {
+"df/d49/classLightweight_1_1SqlRetryPolicy.html#af00ac4ab739b78c22ff0af5061e71f31":[19,9,6,0],
+"df/d49/classLightweight_1_1SqlRetryPolicy.html#af205f1a6c81ed8ecea6abd51214d059c":[19,9,6,2],
+"df/d49/classLightweight_1_1SqlRetryPolicy.html#af7d7298bf71cb5196aafc25a9d015a8a":[19,9,6,8],
 "df/d49/classLightweight_1_1SqlRetryPolicy.html#afada65643617d53abb16d4352e99f604":[19,9,6,4],
 "df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html":[19,6,15],
 "df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html#a0ccfea4a72de1785d7c55b598ce18bfa":[19,6,15,3],
@@ -90,8 +93,8 @@ var NAVTREEINDEX9 =
 "dir_e931c1a3f0014e624d0645a271726ad2.html":[22,0,0],
 "dir_ecfaae8a45938684577693db3462ec86.html":[22,0,1,0],
 "files.html":[22,0],
-"functions.html":[21,2,0,0],
 "functions.html":[21,2,0],
+"functions.html":[21,2,0,0],
 "functions_a.html":[21,2,0,1],
 "functions_b.html":[21,2,0,2],
 "functions_c.html":[21,2,0,3],
@@ -171,8 +174,8 @@ var NAVTREEINDEX9 =
 "functions_z.html":[21,2,0,25],
 "functions_~.html":[21,2,0,26],
 "hierarchy.html":[21,1],
-"index.html":[0],
 "index.html":[],
+"index.html":[0],
 "index.html#asynchronous-api":[0,9],
 "index.html#backup-and-restore":[0,8],
 "index.html#building-with-c20-modules":[0,13],

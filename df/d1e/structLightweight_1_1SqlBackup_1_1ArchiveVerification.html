@@ -110,6 +110,8 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a3ed74ad906e351c4c6fc700272bdaefe" id="r_a3ed74ad906e351c4c6fc700272bdaefe"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1e/structLightweight_1_1SqlBackup_1_1ArchiveVerification.html#a3ed74ad906e351c4c6fc700272bdaefe">verifiedEntries</a> = 0</td></tr>
 <tr class="memdesc:a3ed74ad906e351c4c6fc700272bdaefe"><td class="mdescLeft">&#160;</td><td class="mdescRight">Entries whose SHA-256 matched <code>checksums.json</code>.  <br /></td></tr>
 <tr class="separator:a3ed74ad906e351c4c6fc700272bdaefe"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3158fa06435c2dad7f4a84d53a667990" id="r_a3158fa06435c2dad7f4a84d53a667990"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1e/structLightweight_1_1SqlBackup_1_1ArchiveVerification.html#a3158fa06435c2dad7f4a84d53a667990">complete</a> = true</td></tr>
+<tr class="separator:a3158fa06435c2dad7f4a84d53a667990"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>What <code>VerifyArchive</code> found. </p>
@@ -149,6 +151,23 @@ Public Attributes</h2></td></tr>
 <p>Entries whose SHA-256 matched <code>checksums.json</code>. </p>
 
 <p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00360">360</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a3158fa06435c2dad7f4a84d53a667990" name="a3158fa06435c2dad7f4a84d53a667990"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3158fa06435c2dad7f4a84d53a667990">&#9670;&#160;</a></span>complete</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool Lightweight::SqlBackup::ArchiveVerification::complete = true</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Whether the archive holds every table with its data: false for a filtered or schema-only backup and for one in which a table failed (<code>metadata.json</code>'s <code>complete</code>; archives without it count as complete). </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00363">363</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>

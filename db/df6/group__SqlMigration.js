@@ -244,6 +244,7 @@ var group__SqlMigration =
     [ "Lightweight::SqlMigration::ReadLatestBackupRecord", "db/df6/group__SqlMigration.html#ga3d5003cc9b034875ab1e948e0cfd48ad", null ],
     [ "Lightweight::SqlMigration::WriteBackupRecord", "db/df6/group__SqlMigration.html#gab415a47817d1b44a0808abd62e28b32a", null ],
     [ "Lightweight::SqlMigration::BackupRecordCovers", "db/df6/group__SqlMigration.html#ga1d4c155f4f6a3eb903506b2279ab856b", null ],
+    [ "Lightweight::SqlMigration::IsValidSchemaName", "db/df6/group__SqlMigration.html#gad46d59bd6064a5ab5af5def81173ac6a", null ],
     [ "Lightweight::SqlMigration::BackupRecordTableName", "db/df6/group__SqlMigration.html#ga725e7cf4f241c632bd0039f39499a9af", null ],
     [ "Lightweight::SqlMigration::EmptyMigrationHistoryDigest", "db/df6/group__SqlMigration.html#ga97d714f604bd07cad95e3106e7e0aab0", null ]
 ];

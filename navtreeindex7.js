@@ -1,5 +1,6 @@
 var NAVTREEINDEX7 =
 {
+"dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#aaacc540bd4fd3ab8f556b8cc92f2894b":[19,7,16,0],
 "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#ab52a61034e07facd43a641d9c40f9b62":[19,7,16,1],
 "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#aede084084d8c094a9f4e08d86b8f13f8":[19,7,16,2],
 "dc/d47/structLightweight_1_1SqlRawSqlPlan.html":[19,8,18],
@@ -187,6 +188,7 @@ var NAVTREEINDEX7 =
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup-before-migration":[9,7,1],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup-diff":[9,4,2],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup-folder-defaultbackupdir--backupdir":[9,2,2,0],
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup-requirement":[9,3,0,0],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#building-from-source":[9,1,1],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#checksum-mismatches":[9,8,1],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#command-line-options-reference":[9,5],
@@ -196,7 +198,7 @@ var NAVTREEINDEX7 =
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#connection-string":[9,2,0],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#crashes-and-assertions-windows":[9,8,3],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#creating-a-migration-plugin":[9,6,0],
-"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#custom-default-schema---schema":[9,3,0,1],
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#custom-default-schema---schema":[9,3,0,2],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#database-specific-connection-strings":[9,2,5],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#exec-query":[9,3,14],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#full-migration-workflow":[9,7,0],
@@ -233,7 +235,7 @@ var NAVTREEINDEX7 =
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#security-model":[9,2,3,0],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#see-also-2":[9,9],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#size-suffixes":[9,5,0],
-"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#skipped-rows":[9,3,0,0],
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#skipped-rows":[9,3,0,1],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#status":[9,3,4],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#troubleshooting":[9,8],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#unicode-upgrade-tables":[9,3,13],
@@ -247,7 +249,5 @@ var NAVTREEINDEX7 =
 "de/d61/classLightweight_1_1DataMapper.html#a1c49ec5976087ab4899eb8d2b3c534b3":[19,3,9,40],
 "de/d61/classLightweight_1_1DataMapper.html#a2169593bd11e17f7d602a5246b0ce5ea":[19,3,9,2],
 "de/d61/classLightweight_1_1DataMapper.html#a26cf5a8f4f6f3cf5840bb6fe6974e168":[19,3,9,42],
-"de/d61/classLightweight_1_1DataMapper.html#a275a2f5e36efeb2bd98f6c73b8f73c4b":[19,3,9,11],
-"de/d61/classLightweight_1_1DataMapper.html#a2b2b5b2f4bc610b6a8f518ce88a6e485":[19,3,9,26],
-"de/d61/classLightweight_1_1DataMapper.html#a2cd193a868954406545c989fbefec702":[19,3,9,33]
+"de/d61/classLightweight_1_1DataMapper.html#a275a2f5e36efeb2bd98f6c73b8f73c4b":[19,3,9,11]
 };

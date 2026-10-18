@@ -198,16 +198,17 @@ var NAVTREEINDEX6 =
 "db/df6/group__SqlMigration.html#ga3d5003cc9b034875ab1e948e0cfd48ad":[19,7,30],
 "db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e":[19,7,21],
 "db/df6/group__SqlMigration.html#ga5af50b883bf2abc7126d3944fd4a99c5":[19,7,27],
-"db/df6/group__SqlMigration.html#ga725e7cf4f241c632bd0039f39499a9af":[19,7,33],
+"db/df6/group__SqlMigration.html#ga725e7cf4f241c632bd0039f39499a9af":[19,7,34],
 "db/df6/group__SqlMigration.html#ga7413081170fb5038b079d2b68bbb7a6f":[19,7,24],
 "db/df6/group__SqlMigration.html#ga76c71fe0a6e518e2b94b51bcbdf9e164":[19,7,22],
 "db/df6/group__SqlMigration.html#ga8292c8bc098a73ae82344c31693bb4ff":[19,7,18],
 "db/df6/group__SqlMigration.html#ga885073903b9f8e7bd81d9dabc8e33d5c":[19,7,23],
-"db/df6/group__SqlMigration.html#ga97d714f604bd07cad95e3106e7e0aab0":[19,7,34],
+"db/df6/group__SqlMigration.html#ga97d714f604bd07cad95e3106e7e0aab0":[19,7,35],
 "db/df6/group__SqlMigration.html#ga9e1d1a1e5e2a8b3037c3674ee85f1f91":[19,7,28],
 "db/df6/group__SqlMigration.html#gaa69c7762f67912d76fe146c91015dff2":[19,7,25],
 "db/df6/group__SqlMigration.html#gab415a47817d1b44a0808abd62e28b32a":[19,7,31],
 "db/df6/group__SqlMigration.html#gabaf087901def790003ba389480c7a458":[19,7,26],
+"db/df6/group__SqlMigration.html#gad46d59bd6064a5ab5af5def81173ac6a":[19,7,33],
 "db/df6/group__SqlMigration.html#gae2b6bf04a649f9858eb4b9bc2689a2a8":[19,7,29],
 "db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73":[19,7,17],
 "db/df6/group__SqlMigration.html#gga5af50b883bf2abc7126d3944fd4a99c5a40cd014b7b6251e3a22e6a45a73a64e1":[19,7,27,0],
@@ -248,6 +249,5 @@ var NAVTREEINDEX6 =
 "db/dfd/classLightweight_1_1SqlLogger.html#af7d984686564f12829697aaffa839395":[19,6,5,13],
 "db/dfd/classLightweight_1_1SqlLogger.html#af9ba5d916ab908a9a5a5d0ea7966751b":[19,6,5,4],
 "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html":[19,7,16],
-"dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#a65e4336ec9a39cfd5a125fd89863cae6":[19,7,16,3],
-"dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#aaacc540bd4fd3ab8f556b8cc92f2894b":[19,7,16,0]
+"dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#a65e4336ec9a39cfd5a125fd89863cae6":[19,7,16,3]
 };

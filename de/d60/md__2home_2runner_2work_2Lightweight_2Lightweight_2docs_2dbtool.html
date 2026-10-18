@@ -275,6 +275,22 @@ migrate</h2>
 <div class="fragment"><div class="line">dbtool migrate --dry-run --connection-string &quot;...&quot;</div>
 </div><!-- fragment --><p>Plugins may register <a class="el" href="../../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#optional-pre-migrate-steps">pre-migrate steps</a> that run before the first migration.</p>
 <p>On success, <code>migrate</code> prints a status summary (registered, applied, pending, latest release, checksum verdict) so you can confirm the database's current state in a single command. If there are no pending migrations, it explicitly reports that the database is already up to date instead of <code>"Applied 0 migrations."</code>.</p>
+<h3><a class="anchor" id="backup-requirement"></a>
+Backup requirement</h3>
+<p>A release declared with <code>LIGHTWEIGHT_SQL_RELEASE(version, highestTimestamp, { .requiresBackup = true })</code>, a migration whose <code>RequiresBackup()</code> returns true, or a pre-migrate step whose <code>requiresBackup</code> predicate returns true demands a backup of the database taken after its last migration (see <a href="../../sql-migrations.md#backup-requirement">Backup requirement</a>). Only the work the command runs counts: <code>migrate</code> checks every pending migration, <code>migrate-to-release &lt;VERSION&gt;</code> the pending ones up to that release, <code>apply &lt;TIMESTAMP&gt;</code> that one migration, and each of them the steps whose predicate is true.</p>
+<p>The requirement is met when the newest <code>backup</code> or <code>restore</code> record in <code>schema_backups</code> saw exactly the migration history the database has now (<code>dbtool backup</code> and <code>dbtool restore</code> write such records, see <a class="el" href="../../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup">backup</a>). Otherwise the command refuses before any step or migration runs, prints what demands the backup and how to take one, and exits with code <code>3</code>:</p>
+<div class="fragment"><div class="line">Error: release 3.0.0 requires a backup of this database taken after its last migration.</div>
+<div class="line">The newest backup (before-upgrade.zip, 2026-10-18 09:00:00 UTC) does not match the current migration history.</div>
+<div class="line">Run: dbtool backup --output &lt;file&gt;   or   dbtool migrate --backup-to &lt;file&gt;</div>
+<div class="line">Or, to migrate without a backup (recorded as waived): dbtool migrate --without-backup</div>
+</div><!-- fragment --><ul>
+<li><code>--backup-to &lt;file&gt;</code> backs up the database (as <code>backup --output &lt;file&gt;</code> would), verifies the archive, records it and then migrates, all under the one migration lock the command holds. A backup that fails stops the command; an archive that cannot be recorded is named in the refusal, or in a warning when the command goes on. <code>migrate-to-release</code> takes no backup when the database is already at or past the release, and says so.</li>
+<li><code>--without-backup</code> is the only override: the command runs, prints a warning naming what it skips and writes a <code>waived</code> row into <code>schema_backups</code>. A <code>waived</code> row never counts as a backup later. It cannot be combined with <code>--backup-to</code>.</li>
+<li><code>--dry-run</code> never refuses: it prints <code>-- Backup required: ...</code> and says what a real run would do (refuse, back up first with <code>--backup-to</code>, or migrate and record the waiver with <code>--without-backup</code>), and writes nothing.</li>
+</ul>
+<blockquote class="doxtable">
+<p>&zwj;<b>The lock does not stop the application.</b> The migration lock keeps other migrations out between the backup and the migration, not the application's own writes. Stop the application during an upgrade that requires a backup, or the backup misses what it wrote in between. </p>
+</blockquote>
 <h3><a class="anchor" id="skipped-rows"></a>
 Skipped rows</h3>
 <p>An insert declared with <code>Insert(...).IfNotExists({keys})</code> (see <a href="../../sql-migrations.md#rows-that-may-already-exist-ifnotexists">SQL Migrations</a>) skips its row when the database already holds a row with the same key values. The migration still succeeds, and dbtool prints one line per skipped row on stdout, at the default log level:</p>
@@ -320,6 +336,7 @@ migrate-to-release &lt;VERSION&gt;</h2>
 <div class="line">dbtool migrate-to-release 1.0.0 --dry-run</div>
 </div><!-- fragment --><p>The release version must match a <code><a class="el" href="../../db/df6/group__SqlMigration.html#ga7413081170fb5038b079d2b68bbb7a6f" title="Associates a software release (version string) with the highest migration timestamp present at the ti...">LIGHTWEIGHT_SQL_RELEASE(...)</a></code> declaration shipped by one of the loaded plugins. Use <code>dbtool releases</code> to list them.</p>
 <p>If a pending migration whose timestamp is <code>&lt;= release.highestTimestamp</code> declares a dependency on a migration whose timestamp is <code>&gt;</code> the release boundary (and is not already applied), <code>migrate-to-release</code> refuses to run rather than applying a partial state that violates the dependency contract.</p>
+<p>A release, migration or step among the work it runs can require a backup first; see <a class="el" href="../../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup-requirement">Backup requirement</a> (<code>--backup-to</code>, <code>--without-backup</code>, exit code <code>3</code>).</p>
 <h2><a class="anchor" id="list-pending"></a>
 list-pending</h2>
 <p>List migrations waiting to be applied:</p>
@@ -342,6 +359,7 @@ apply &lt;TIMESTAMP&gt;</h2>
 <p>Apply a specific migration by timestamp:</p>
 <div class="fragment"><div class="line">dbtool apply 20260126120000</div>
 </div><!-- fragment --><p><code>apply</code> has no dry run: it rejects <code>--dry-run</code> with an error instead of applying. Use <code>dbtool migrate --dry-run</code> to preview pending migrations.</p>
+<p>When the migration, or its release, or a pre-migrate step requires a backup, <code>apply</code> refuses without one like <code>migrate</code>; see <a class="el" href="../../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup-requirement">Backup requirement</a>.</p>
 <h2><a class="anchor" id="rollback-timestamp"></a>
 rollback &lt;TIMESTAMP&gt;</h2>
 <p>Revert a specific migration:</p>
@@ -483,6 +501,7 @@ backup</h2>
 <div class="line">dbtool backup --output backup.zip --all-schemas</div>
 </div><!-- fragment --><p><code>--all-schemas</code> leaves out the system schemas <code>sys</code>, <code>INFORMATION_SCHEMA</code> and <code>guest</code>, and those starting with <code>db_</code> (SQL Server roles) or <code>pg_</code> (PostgreSQL catalogs). It cannot be combined with <code>--schema</code>, and it overrides a profile's <code>schema</code>. On SQLite, which has no schemas, it writes the ordinary single-schema archive.</p>
 <p>Two or more schemas write a multi-schema archive (format version <code>2.0</code>, see <a class="el" href="../../d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html">sql-backup-format.md</a>), which records each table's schema and each foreign key's referenced schema. A single <code>--schema X</code>, and no <code>--schema</code> at all, write the archive layout they always wrote (format version <code>1.0</code>). One exception: a backup refuses tables whose archive name or folder would collide (see below), where it used to overwrite one with the other.</p>
+<p><b>The backup is recorded.</b> After the archive is written, <code>backup</code> verifies it against its checksums and appends a <code>backup</code> record to <code>schema_backups</code> with the migration history it saw before it read any data (see <a class="el" href="../../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup-requirement">Backup requirement</a>). No record is written for <code>--schema-only</code>, for a <code>--filter-tables</code> other than <code>*</code>, or for a target taken from a discovered <code>dbtool.yml</code>; <code>--verbose</code> says why and, when one is written, prints its id. A <code>schema_backups</code> the user cannot write only warns (the backup still exits <code>0</code>), and such a backup cannot satisfy a requirement. An archive that fails verification fails the command. The record lives in the connection's default schema, or in the schema a single <code>--schema</code> names. The archive leaves out the bookkeeping tables: <code>schema_backups</code> itself and, on SQLite, the migration lock's <code>_lightweight_locks</code>, so a restore never brings back old records or a held lock.</p>
 <blockquote class="doxtable">
 <p>&zwj;<b>SQL Server and PostgreSQL without <code>--schema</code>:</b> the backup reads the tables of every schema but records none of them, and a restore puts every table into one schema. Tables of the same name in different schemas are refused: the backup stops and names them. For a database whose tables span several schemas, use <code>--all-schemas</code> or <code>--schema a,b</code>. </p>
 </blockquote>
@@ -501,6 +520,7 @@ restore</h2>
 <li><code>--schema-only</code> and <code>--filter-tables</code> work as for any archive. A filter pattern can name the schema (<code>--filter-tables=sales.*</code>).</li>
 <li>On SQLite, which has no schemas, the archive restores only if every table name is unique across its schemas, compared case-insensitively as SQLite does; the tables then lose their schema. Otherwise the restore is refused and names the tables that occur in more than one schema.</li>
 </ul>
+<p><b>The restore is recorded.</b> After a successful restore the archive is verified and a <code>restore</code> record with the migration history the restore left is appended to <code>schema_backups</code>, so the database counts as backed up by that archive. The live <code>schema_backups</code> is never replaced: a restore skips the bookkeeping tables, also in archives of older versions that still hold them. No record is written for <code>--schema-only</code>, a <code>--filter-tables</code> other than <code>*</code>, a target taken from a discovered <code>dbtool.yml</code>, or an archive whose <code>metadata.json</code> marks it partial (filtered, schema-only, or a table failed). An archive that fails verification still restores: the restore warns that it is not recorded and cannot satisfy a migration backup requirement, and exits <code>0</code>. A <code>schema_backups</code> that cannot be written only warns, too.</p>
 <p><b>Restoring into PostgreSQL.</b> Tables are created in the schema the restore targets: the archive's <code>schema_name</code>, or <code>--schema</code>. A single-schema archive from SQL Server records <code>dbo</code>, which a PostgreSQL database usually lacks, so restore it with <code>--schema public</code> (or another existing schema).</p>
 <p><b>Values that do not fit their column fail the table.</b> A GUID column takes any well-formed <code>xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</code> value, whatever its version digit, and restores the same bytes. A value that does not convert to its column's type (a malformed GUID, number, date or time, a number outside the column's range, or a binary value in a text column) is never replaced by NULL or zero. Instead, the table fails with an error that names the table, the column, the row within the chunk and the value, for example:</p>
 <div class="fragment"><div class="line">table &#39;ORDERS&#39;, column &#39;TOKEN&#39;, row 1: &#39;not-a-guid&#39; is not a valid GUID (chunk data/ORDERS/0001_00.msgpack)</div>
@@ -517,6 +537,7 @@ backup-diff</h2>
 <li>For differing tables, the command reports the per-side row count, the number of rows present only on each side, and up to three example differing row digests.</li>
 </ul>
 <p>It prints a summary line (<code>N tables compared, M identical, K differing</code>) and exits <code>0</code> when every common table is identical and both archives hold the same set of tables, or <code>1</code> otherwise.</p>
+<p><code>schema_backups</code>, the backup bookkeeping table, is always treated as ignored. Backups leave it out; archives of older versions hold it, and two of them differ in it by the record of the first.</p>
 <h1><a class="anchor" id="command-line-options-reference"></a>
 Command-Line Options Reference</h1>
 <table class="markdownTable">
@@ -558,6 +579,10 @@ Command-Line Options Reference</h1>
 <td class="markdownTableBodyNone"><code>--dry-run</code>, <code>-n</code>   </td><td class="markdownTableBodyNone">Preview without executing; <code>apply</code> rejects it   </td><td class="markdownTableBodyNone"></td></tr>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>--no-lock</code>   </td><td class="markdownTableBodyNone">Skip migration locking   </td><td class="markdownTableBodyNone"></td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>--backup-to &lt;FILE&gt;</code>   </td><td class="markdownTableBodyNone">For <code>migrate</code>, <code>apply</code>, <code>migrate-to-release</code>: back up, verify and record the database first (as <code>backup --output</code>), under the migration lock. Not with <code>--schema-only</code> or <code>--filter-tables</code>   </td><td class="markdownTableBodyNone"></td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>--without-backup</code>   </td><td class="markdownTableBodyNone">For <code>migrate</code>, <code>apply</code>, <code>migrate-to-release</code>: run although a required backup is missing; warns and records a <code>waived</code> row. Not with <code>--backup-to</code>   </td><td class="markdownTableBodyNone"></td></tr>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--schema-only</code>   </td><td class="markdownTableBodyNone">For backup/restore: skip data, transferring schema only   </td><td class="markdownTableBodyNone"></td></tr>
 <tr class="markdownTableRowEven">
@@ -611,8 +636,8 @@ Creating a Migration Plugin</h2>
 <div class="line">        .RequiredColumn(<span class="stringliteral">&quot;email&quot;</span>, Varchar(255))</div>
 <div class="line">        .Timestamps();</div>
 <div class="line">}</div>
-<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01580">SqlMigration.hpp:1580</a></div></div>
-<div class="ttc" id="agroup__SqlMigration_html_gaef227c1f2230d962d19572a234ceaa73"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN()</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01180">SqlMigration.hpp:1180</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01587">SqlMigration.hpp:1587</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_gaef227c1f2230d962d19572a234ceaa73"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN()</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01187">SqlMigration.hpp:1187</a></div></div>
 </div><!-- fragment --><h2><a class="anchor" id="loading-plugins"></a>
 Loading Plugins</h2>
 <div class="fragment"><div class="line">dbtool migrate --plugins-dir ./build/plugins</div>
@@ -630,7 +655,7 @@ Optional Post-Init Hook</h2>
 <div class="line">    <span class="comment">// to do.</span></div>
 <div class="line">    MyPlugin::BridgeLegacyState(manager, connection);</div>
 <div class="line">}</div>
-<div class="ttc" id="agroup__SqlMigration_html_ga8292c8bc098a73ae82344c31693bb4ff"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga8292c8bc098a73ae82344c31693bb4ff">LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connArg, mgrArg)</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01203">SqlMigration.hpp:1203</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_ga8292c8bc098a73ae82344c31693bb4ff"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga8292c8bc098a73ae82344c31693bb4ff">LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connArg, mgrArg)</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01210">SqlMigration.hpp:1210</a></div></div>
 </div><!-- fragment --><p>The hook is <b>optional</b> — plugins that don't export the symbol behave exactly as before. Per-plugin exceptions are logged to stderr but do not abort <code>dbtool</code>.</p>
 <p>Post-init runs before every command, read-only ones included, and before the migration lock is taken and any migration runs. It is therefore the wrong place for work that needs the migrated schema; use the post-migrate hook for that.</p>
 <h2><a class="anchor" id="optional-post-migrate-hook"></a>
@@ -646,7 +671,7 @@ Optional Post-Migrate Hook</h2>
 <div class="line">    <span class="comment">// successful migrate, including runs where nothing was pending.</span></div>
 <div class="line">    MyPlugin::SeedReferenceData(connection);</div>
 <div class="line">}</div>
-<div class="ttc" id="agroup__SqlMigration_html_ga1035792e18e9c01e4d09f2ff9a19f7f6"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga1035792e18e9c01e4d09f2ff9a19f7f6">LIGHTWEIGHT_MIGRATION_PLUGIN_POSTMIGRATE</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN_POSTMIGRATE(connArg, mgrArg)</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01228">SqlMigration.hpp:1228</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_ga1035792e18e9c01e4d09f2ff9a19f7f6"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga1035792e18e9c01e4d09f2ff9a19f7f6">LIGHTWEIGHT_MIGRATION_PLUGIN_POSTMIGRATE</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN_POSTMIGRATE(connArg, mgrArg)</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01235">SqlMigration.hpp:1235</a></div></div>
 </div><!-- fragment --><p>The hook is <b>optional</b> — plugins that don't export the symbol behave exactly as before. Unlike post-init, a failure is fatal for the command: when the body throws, the error is reported on stderr (<code>Plugin post-migrate failed (&lt;plugin&gt;): &lt;message&gt;</code>) and <code>dbtool</code> exits non-zero. The migrations that ran before the hook stay applied; the remaining plugins' hooks still run. The macro exports a non-throwing entry point that catches the exception inside the plugin, so it never crosses the shared-library boundary.</p>
 <h2><a class="anchor" id="optional-pre-migrate-steps"></a>
 Optional Pre-Migrate Steps</h2>
@@ -674,6 +699,9 @@ Full Migration Workflow</h2>
 <div class="line">dbtool status</div>
 </div><!-- fragment --><h2><a class="anchor" id="backup-before-migration"></a>
 Backup Before Migration</h2>
+<p><code>--backup-to</code> backs up, verifies and records the database and then migrates, under one migration lock (see <a class="el" href="../../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup-requirement">Backup requirement</a>):</p>
+<div class="fragment"><div class="line">dbtool migrate --backup-to pre-migration-backup.zip --compression zstd</div>
+</div><!-- fragment --><p>The same in separate steps:</p>
 <div class="fragment"><div class="line"># Create backup</div>
 <div class="line">dbtool backup --output pre-migration-backup.zip --compression zstd</div>
 <div class="line"> </div>
