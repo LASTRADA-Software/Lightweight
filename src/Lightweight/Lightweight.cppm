@@ -420,6 +420,7 @@ namespace SqlMigration
     using Lightweight::SqlMigration::ChecksumVerificationResult;
     using Lightweight::SqlMigration::EmptyMigrationHistoryDigest;
     using Lightweight::SqlMigration::ExecutionMode;
+    using Lightweight::SqlMigration::IsValidSchemaName;
     using Lightweight::SqlMigration::Migration;
     using Lightweight::SqlMigration::MigrationBase;
     using Lightweight::SqlMigration::MigrationHistoryState;

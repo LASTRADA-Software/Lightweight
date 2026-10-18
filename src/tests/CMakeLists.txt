@@ -33,6 +33,7 @@ if(MSVC)
 endif()
 
 set(SOURCE_FILES
+    BackupRecordingTests.cpp
     BackupRequirementTests.cpp
     ConfigDiscoveryTests.cpp
     ConfigBackupOutputTests.cpp
@@ -142,6 +143,7 @@ set(SOURCE_FILES
     SqlBackup/ProductionReadinessTests.cpp
     dbtool/StandardProgressManagerTests.cpp
     dbtool/BackupDiffTests.cpp
+    dbtool/BackupRequirementReportTests.cpp
     dbtool/CommandAccessTests.cpp
     dbtool/TaskProgressRendererTests.cpp
     dbtool/UnicodeUpgradeReportTests.cpp

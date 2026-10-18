@@ -358,6 +358,9 @@ struct ArchiveVerification
     std::string archiveSha256;
     /// Entries whose SHA-256 matched `checksums.json`.
     std::size_t verifiedEntries = 0;
+    /// Whether the archive holds every table with its data: false for a filtered or schema-only backup
+    /// and for one in which a table failed (`metadata.json`'s `complete`; archives without it count as complete).
+    bool complete = true;
 };
 
 /// Checks that a backup archive is complete: it holds `metadata.json`, `checksums.json` lists every data

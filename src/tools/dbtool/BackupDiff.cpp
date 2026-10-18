@@ -6,6 +6,7 @@
 #include <Lightweight/SqlBackup/MsgPackChunkFormats.hpp>
 #include <Lightweight/SqlBackup/Sha256.hpp>
 #include <Lightweight/SqlBackup/SqlBackupFormats.hpp>
+#include <Lightweight/SqlMigration.hpp>
 #include <Lightweight/Zip/ZipPath.hpp>
 
 #include <array>
@@ -415,6 +416,21 @@ namespace
         return event;
     }
 
+    /// @p ignored plus every table of @p allTables that is `schema_backups`, in any schema: the backup
+    /// bookkeeping differs between any two backups, so it never fails a comparison.
+    std::set<std::string> WithBackupRecordsIgnored(std::set<std::string> ignored, std::set<std::string> const& allTables)
+    {
+        for (auto const& name: allTables)
+        {
+            auto const separator = name.rfind('/');
+            auto const table =
+                separator == std::string::npos ? std::string_view { name } : std::string_view { name }.substr(separator + 1);
+            if (table == SqlMigration::BackupRecordTableName)
+                ignored.insert(name);
+        }
+        return ignored;
+    }
+
 } // namespace
 
 BackupDiffResult BackupDiff(std::filesystem::path const& left,
@@ -460,7 +476,7 @@ BackupDiffResult BackupDiff(std::filesystem::path const& left,
         result.differenceFound = true;
         return result;
     }
-    auto const& ignored = resolvedIgnoreTables->keys;
+    auto const ignored = WithBackupRecordsIgnored(resolvedIgnoreTables->keys, allTables);
     result.unmatchedIgnoreTables = resolvedIgnoreTables->unmatched;
 
     // Count a reported difference as either a hard failure or an (ignored) informational drift.

@@ -31,3 +31,20 @@ set_target_properties(failing_migration_fixture PROPERTIES
 )
 
 install(TARGETS failing_migration_fixture DESTINATION ${CMAKE_INSTALL_DATADIR}/Lightweight/tests/plugins)
+
+# One migration in release 3.0.0, which requires a backup. Named without the `Plugin` suffix like
+# FailingMigrationFixture; test_dbtool.py and the dbtool-gui tests opt in by copying.
+add_library(backup_required_release_fixture MODULE
+    BackupRequiredRelease.cpp
+)
+
+target_link_libraries(backup_required_release_fixture PRIVATE Lightweight)
+
+set_target_properties(backup_required_release_fixture PROPERTIES
+    OUTPUT_NAME "BackupRequiredReleaseFixture"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/plugins"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/plugins"
+    PREFIX ""
+)
+
+install(TARGETS backup_required_release_fixture DESTINATION ${CMAKE_INSTALL_DATADIR}/Lightweight/tests/plugins)

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "BackupDiff.hpp"
+#include "BackupRequirementReport.hpp"
 #include "CommandAccess.hpp"
 #include "Lightweight/SqlConnectInfo.hpp"
 #include "ProgressText.hpp"
@@ -43,6 +44,7 @@
 #include <variant>
 #include <vector>
 
+#include <BackupRecording.hpp>
 #include <Config/BackupOutput.hpp>
 #include <Config/ConfigDiscovery.hpp>
 #include <Config/ConnectionTarget.hpp>
@@ -307,6 +309,12 @@ void PrintUsage()
                  c.option, c.reset, c.option, c.reset);
     std::println("  {}--no-lock{}                 Skip migration locking for write operations",
                  c.option, c.reset);
+    std::println("  {}--backup-to{} {}<FILE>{}        migrate/apply/migrate-to-release: back up the database first",
+                 c.option, c.reset, c.param, c.reset);
+    std::println("                            (as backup --output) and record it");
+    std::println("  {}--without-backup{}          migrate/apply/migrate-to-release: run although a required backup",
+                 c.option, c.reset);
+    std::println("                            is missing; recorded as waived");
     std::println("  {}--schema-only{}             Backup/restore schema only, skip data",
                  c.option, c.reset);
     std::println("  {}--quiet{}                   Suppress progress output", c.option, c.reset);
@@ -346,6 +354,11 @@ void PrintExamples()
 
     std::println("  {}# Preview the SQL that would run up to release 1.0.0:{}", c.example, c.reset);
     std::println("  {}dbtool migrate-to-release 1.0.0 --dry-run{}", c.code, c.reset);
+    std::println("");
+
+    std::println("  {}# Back up, verify and record the database, then migrate, under one migration lock:{}",
+                 c.example, c.reset);
+    std::println("  {}dbtool migrate --backup-to before-upgrade.zip{}", c.code, c.reset);
     std::println("");
 
     std::println("  {}# Backup entire database:{}", c.example, c.reset);
@@ -435,6 +448,7 @@ struct Options
     std::string_view targetEnvironmentVariable; ///< The variable that supplied the connection, if any
     std::string declaredDefaultProfile;         ///< The config file's `defaultProfile` as written, may be empty
     std::filesystem::path outputFile;
+    std::filesystem::path backupTo;  ///< --backup-to: back up, verify and record before migrating
     std::filesystem::path backupDir; ///< Configured backup folder (the profile's `backupDir`, else `defaultBackupDir`)
     std::filesystem::path inputFile;
     std::filesystem::path leftFile;     ///< First archive for `backup-diff` (--left)
@@ -472,7 +486,12 @@ struct Options
     bool noPassword = false;    ///< --no-password: store the profile without a password
     bool setDefault = false;    ///< --set-default: make the new profile the default
     bool force = false;         ///< --force: replace an existing profile of the same name
+
+    bool withoutBackup = false; ///< --without-backup: run although a required backup is missing (recorded as waived)
 };
+
+/// The commands that apply migrations, the only ones `--backup-to` and `--without-backup` apply to.
+inline constexpr auto MigratingCommands = std::array<std::string_view, 3> { "migrate", "apply", "migrate-to-release" };
 
 /// Commands that never read a connection profile; `ResolveConnectionTargetOptions` is skipped for them.
 inline constexpr auto CommandsWithoutProfile = std::array<std::string_view, 7> {
@@ -791,6 +810,26 @@ void EncryptPlaintextPasswordIfConnectable(Options const& options)
                      options.resolvedConfigPath.string());
 }
 
+/// Checks `--backup-to` and `--without-backup` against the command and the other options.
+/// @return The error message; empty when the combination is valid.
+[[nodiscard]] std::string_view ValidateBackupOptions(Options const& options)
+{
+    if (options.command == "help" || options.command == "show-examples")
+        return {};
+    auto const migrating = std::ranges::contains(MigratingCommands, options.command);
+    if (options.withoutBackup && !options.backupTo.empty())
+        return "Error: --without-backup and --backup-to exclude each other";
+    if (options.withoutBackup && !migrating)
+        return "Error: --without-backup applies to migrate, apply and migrate-to-release only";
+    if (options.backupTo.empty())
+        return {};
+    if (!migrating)
+        return "Error: --backup-to applies to migrate, apply and migrate-to-release only";
+    if (options.schemaOnly || options.filterTables != "*")
+        return "Error: --backup-to takes a full backup; it cannot be combined with --schema-only or --filter-tables";
+    return {};
+}
+
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 std::expected<Options, std::string> ParseArguments(int argc, char** argv)
 {
@@ -861,6 +900,12 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
             if (i + 1 >= argc)
                 return std::unexpected { "Error: --output requires an argument" };
             options.outputFile = argv[++i];
+        }
+        else if (arg == "--backup-to")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --backup-to requires an argument" };
+            options.backupTo = argv[++i];
         }
         else if (arg == "--input")
         {
@@ -997,6 +1042,10 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
         {
             options.noLock = true;
         }
+        else if (arg == "--without-backup")
+        {
+            options.withoutBackup = true;
+        }
         else if (arg == "--schema-only")
         {
             options.schemaOnly = true;
@@ -1070,6 +1119,8 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
             return std::unexpected { std::format("Unknown argument: {}", arg) };
         }
     }
+    if (auto const invalid = ValidateBackupOptions(options); !invalid.empty())
+        return std::unexpected { std::string { invalid } };
     return options;
 }
 
@@ -1443,6 +1494,12 @@ void InstallStdoutLogSink(MigrationManager& manager)
     manager.SetLogSink([](std::string_view message) { std::println("{}", message); });
 }
 
+/// @return `DryRun` when the command only previews, else `Execute`.
+ExecutionMode ExecutionModeOf(Options const& options)
+{
+    return options.dryRun ? ExecutionMode::DryRun : ExecutionMode::Execute;
+}
+
 /// The task renderer of a migrating command, drawing as `--progress` (or `--quiet`) says.
 ///
 /// Output that is not a terminal gets log lines, since the animated styles write cursor escapes.
@@ -1604,8 +1661,100 @@ class MigrationsPhase
     std::unique_ptr<ProgressTask> _task;
 };
 
-int Migrate(MigrationManager& manager, CommandProgress const& progress, ExecutionMode mode)
+/// `--backup-to`: backs up, verifies and records the database while the command holds the migration lock.
+struct BackupToOutcome
 {
+    int exitCode = EXIT_SUCCESS; ///< Not EXIT_SUCCESS: the backup failed; the command stops.
+    std::string recordProblem;   ///< Why the archive could not be recorded; empty when it was.
+};
+
+/// Backs up the database as `backup --output <--backup-to>` would and records the archive.
+[[nodiscard]] BackupToOutcome BackupBeforeMigrating(Options const& options, MigrationManager& manager);
+
+/// How the command deals with a missing backup: `--backup-to` backs up first, `--without-backup` waives it.
+[[nodiscard]] Tools::BackupOverride BackupOverrideOf(Options const& options) noexcept
+{
+    if (!options.backupTo.empty())
+        return Tools::BackupOverride::BackupFirst;
+    if (options.withoutBackup)
+        return Tools::BackupOverride::Waive;
+    return Tools::BackupOverride::None;
+}
+
+/// Checks a migrating command's backup requirement for the migrations it applies.
+/// @return The exit code to stop with, or std::nullopt to go on.
+[[nodiscard]] std::optional<int> EnforceBackupRequirement(MigrationManager& manager,
+                                                          std::span<MigrationTimestamp const> toRun,
+                                                          Options const& options,
+                                                          std::string_view recordProblem)
+{
+    auto const requirement = manager.BackupRequirementFor(toRun);
+    if (!requirement.required)
+        return std::nullopt;
+    if (options.dryRun)
+    {
+        std::println("{}", Tools::FormatBackupRequirementDryRun(requirement, BackupOverrideOf(options)));
+        return std::nullopt;
+    }
+    if (requirement.satisfied)
+        return std::nullopt;
+    if (options.withoutBackup)
+    {
+        // An explicit waiver: audited, never silent, and never counted as a backup later.
+        auto const waiver = Tools::RecordWaiver(manager.GetDataMapper(), Tools::ToolVersion("dbtool"));
+        std::println(std::cerr,
+                     "Warning: {}",
+                     Tools::FormatBackupWaiver(requirement, waiver ? std::string_view {} : waiver.error().message));
+        return std::nullopt;
+    }
+    auto const invocation =
+        options.argument.empty() ? options.command : std::format("{} {}", options.command, options.argument);
+    std::println(std::cerr, "Error: {}", Tools::FormatBackupRequirementRefusal(requirement, invocation, recordProblem));
+    return Tools::BackupRequiredExitCode;
+}
+
+/// Runs `--backup-to` and then checks the backup requirement of @p toRun, before any pre-migrate step.
+/// @param toRun Exactly the migrations the command will apply.
+/// @return The exit code to stop with, or std::nullopt to go on.
+[[nodiscard]] std::optional<int> PrepareMigrating(MigrationManager& manager,
+                                                  std::span<MigrationTimestamp const> toRun,
+                                                  Options const& options)
+{
+    auto backup = BackupToOutcome {};
+    if (!options.backupTo.empty())
+    {
+        if (options.dryRun)
+            std::println("-- Dry run: would back up to {} first.", Lightweight::Zip::ZipPathUtf8(options.backupTo));
+        else
+            backup = BackupBeforeMigrating(options, manager);
+        if (backup.exitCode != EXIT_SUCCESS)
+            return backup.exitCode;
+    }
+    auto const stop = EnforceBackupRequirement(manager, toRun, options, backup.recordProblem);
+    // A refusal names the problem itself; a run that goes on must not hide it.
+    if (!stop && !backup.recordProblem.empty())
+        std::println(std::cerr, "Warning: {}", backup.recordProblem);
+    return stop;
+}
+
+/// The timestamps of the pending migrations, in the order they are applied.
+/// @param upTo When set, only those at or below it.
+[[nodiscard]] std::vector<MigrationTimestamp> PendingTimestamps(MigrationManager const& manager,
+                                                                std::optional<MigrationTimestamp> upTo)
+{
+    auto timestamps = std::vector<MigrationTimestamp> {};
+    for (auto const* migration: manager.GetPending())
+        if (!upTo || migration->GetTimestamp().value <= upTo->value)
+            timestamps.push_back(migration->GetTimestamp());
+    return timestamps;
+}
+
+int Migrate(MigrationManager& manager, CommandProgress const& progress, Options const& options)
+{
+    if (auto const stop = PrepareMigrating(manager, PendingTimestamps(manager, std::nullopt), options))
+        return *stop;
+
+    auto const mode = ExecutionModeOf(options);
     if (!RunPreMigrateStepsOf(manager, progress, mode))
         return EXIT_FAILURE;
 
@@ -1657,9 +1806,12 @@ int ExitCodeOf(std::expected<int, std::string> const& result)
     return EXIT_FAILURE;
 }
 
-int ApplyMigration(MigrationManager& manager, CommandProgress const& progress, std::string_view argument)
+int ApplyMigration(MigrationManager& manager, CommandProgress const& progress, Options const& options)
 {
-    return ExitCodeOf(GetMigration(manager, argument).and_then([&manager, &progress](MigrationBase const* migration) {
+    return ExitCodeOf(GetMigration(manager, options.argument).and_then([&](MigrationBase const* migration) {
+        auto const toRun = std::array { migration->GetTimestamp() };
+        if (auto const stop = PrepareMigrating(manager, toRun, options))
+            return std::expected<int, std::string> { *stop };
         if (!RunPreMigrateStepsOf(manager, progress, ExecutionMode::Execute))
             return std::expected<int, std::string> { EXIT_FAILURE };
         auto const skippedBefore = manager.SkippedExistingRowCount();
@@ -1812,12 +1964,6 @@ enum class Confirmation : std::uint8_t
     Given, ///< Confirmed with `--yes`.
 };
 
-/// @return `DryRun` when the command only previews, else `Execute`.
-ExecutionMode ExecutionModeOf(Options const& options)
-{
-    return options.dryRun ? ExecutionMode::DryRun : ExecutionMode::Execute;
-}
-
 /// @return `Given` when `--yes` was passed, else `Ask`.
 Confirmation ConfirmationOf(Options const& options)
 {
@@ -1917,7 +2063,9 @@ int HardReset(MigrationManager& manager, ExecutionMode mode, Confirmation confir
         mode,
         confirmation,
         [&](ExecutionMode runMode) { return manager.HardReset(runMode); },
-        [](auto const& r) { return r.droppedTables.empty() && r.absentTables.empty() && r.preservedTables.empty(); },
+        [](auto const& r) {
+            return r.droppedTables.empty() && r.absentTables.empty() && r.preservedTables.empty() && !r.schemaBackupsDropped;
+        },
         [](auto const& r) {
             if (!r.droppedTables.empty())
             {
@@ -1925,6 +2073,9 @@ int HardReset(MigrationManager& manager, ExecutionMode mode, Confirmation confir
                 for (auto const& t: r.droppedTables)
                     std::println("  {}", t.table);
             }
+            if (r.schemaBackupsDropped)
+                std::println("Backup records to drop: {} (backup, restore and waived rows)",
+                             SqlMigration::BackupRecordTableName);
             if (!r.absentTables.empty())
             {
                 std::println("Migration-declared but absent ({}): no-op", r.absentTables.size());
@@ -1941,9 +2092,10 @@ int HardReset(MigrationManager& manager, ExecutionMode mode, Confirmation confir
             }
         },
         [](auto const& r) {
-            std::println("Dropped {} table(s){}.",
+            std::println("Dropped {} table(s){}{}.",
                          r.droppedTables.size(),
-                         r.schemaMigrationsDropped ? " plus schema_migrations" : "");
+                         r.schemaMigrationsDropped ? " plus schema_migrations" : "",
+                         r.schemaBackupsDropped ? " and schema_backups" : "");
         });
 }
 
@@ -2141,14 +2293,14 @@ int Releases(MigrationManager& manager)
 /// target release, this is a no-op. To go *back* to an earlier release, use `rollback-to-release`.
 ///
 /// @param manager The migration manager instance.
-/// @param argument The target release version string.
-/// @param mode With `DryRun`, print the SQL that would be executed without touching the database.
-/// @return EXIT_SUCCESS on success, EXIT_FAILURE on error.
-int MigrateToRelease(MigrationManager& manager,
-                     CommandProgress const& progress,
-                     std::string_view argument,
-                     ExecutionMode mode)
+/// @param progress The task renderer of the command.
+/// @param options The CLI options: the target release version as the argument; with `--dry-run`, print
+///        the SQL that would be executed without touching the database.
+/// @return EXIT_SUCCESS on success, `BackupRequiredExitCode` when a required backup is missing,
+///         EXIT_FAILURE on error.
+int MigrateToRelease(MigrationManager& manager, CommandProgress const& progress, Options const& options)
 {
+    auto const argument = std::string_view { options.argument };
     if (argument.empty())
     {
         std::println(std::cerr, "Error: Target release version is required.");
@@ -2172,9 +2324,15 @@ int MigrateToRelease(MigrationManager& manager,
                      highestApplied->value,
                      release->highestTimestamp.value);
         std::println("Use `dbtool rollback-to-release {}` to go back.", argument);
+        if (!options.backupTo.empty())
+            std::println("No backup was taken: there is nothing to migrate.");
         return EXIT_SUCCESS;
     }
 
+    if (auto const stop = PrepareMigrating(manager, PendingTimestamps(manager, release->highestTimestamp), options))
+        return *stop;
+
+    auto const mode = ExecutionModeOf(options);
     if (!RunPreMigrateStepsOf(manager, progress, mode))
         return EXIT_FAILURE;
 
@@ -2702,13 +2860,18 @@ int BackupDryRun(Options const& options,
     return EXIT_SUCCESS;
 }
 
-int Backup(Options const& options)
+/// Resolves the archive a backup writes: @p requested as given, else (or for a bare file name) in the
+/// folder dbtool.yml names, whose directories it creates.
+///
+/// @param options The CLI options.
+/// @param requested The file the user asked for; may be empty.
+/// @return The archive, or std::nullopt after printing why there is none.
+std::optional<std::filesystem::path> ResolveBackupFile(Options const& options, std::filesystem::path const& requested)
 {
     namespace Cfg = Lightweight::Config;
 
-    // `--output` as given, else (or for a bare file name) the folder dbtool.yml names.
     auto const output = Cfg::ResolveBackupOutput(
-        { .requested = options.outputFile,
+        { .requested = requested,
           .folder = options.backupDir,
           .profileName = options.selectedProfile ? std::string_view { options.selectedProfile->name } : std::string_view {},
           .now = std::chrono::system_clock::now() });
@@ -2717,42 +2880,37 @@ int Backup(Options const& options)
         std::println(std::cerr,
                      "Error: --output file required for backup (or set `defaultBackupDir` / the profile's `backupDir` "
                      "in dbtool.yml).");
-        return EXIT_FAILURE;
+        return std::nullopt;
     }
-    auto const& outputFile = output->path;
     if (output->inConfiguredFolder)
     {
         std::error_code ec;
-        std::filesystem::create_directories(outputFile.parent_path(), ec);
+        std::filesystem::create_directories(output->path.parent_path(), ec);
         if (ec)
         {
-            std::println(
-                std::cerr, "Error: cannot create backup folder {}: {}", outputFile.parent_path().string(), ec.message());
-            return EXIT_FAILURE;
+            std::println(std::cerr,
+                         "Error: cannot create backup folder {}: {}",
+                         Lightweight::Zip::ZipPathUtf8(output->path.parent_path()),
+                         ec.message());
+            return std::nullopt;
         }
-        std::println("Backup file: {}", outputFile.string());
+        std::println("Backup file: {}", Lightweight::Zip::ZipPathUtf8(output->path));
     }
+    return output->path;
+}
 
-    // Parse and validate backup settings (compression + chunk size)
-    auto backupSettingsResult = ParseBackupSettings(options);
-    if (!backupSettingsResult)
-    {
-        std::println(std::cerr, "Error: {}", backupSettingsResult.error());
-        return EXIT_FAILURE;
-    }
-    auto const& backupSettings = backupSettingsResult.value();
-
-    auto const schemasResult = ResolveBackupSchemas(options);
-    if (!schemasResult)
-    {
-        std::println(std::cerr, "Error: {}", schemasResult.error());
-        return EXIT_FAILURE;
-    }
-    auto const& schemas = *schemasResult;
-
-    if (options.dryRun)
-        return BackupDryRun(options, schemas, outputFile);
-
+/// Writes the backup archive, reporting a failure on stderr.
+///
+/// @param options The CLI options.
+/// @param outputFile The archive to write.
+/// @param schemas The schemas to back up (see `ResolveBackupSchemas`).
+/// @param backupSettings The compression and chunking settings.
+/// @return EXIT_SUCCESS when every table was backed up, else EXIT_FAILURE.
+int WriteBackupArchive(Options const& options,
+                       std::filesystem::path const& outputFile,
+                       std::vector<std::string> const& schemas,
+                       Lightweight::SqlBackup::BackupSettings const& backupSettings)
+{
     auto pm = CreateProgressManager(options);
     Lightweight::SqlBackup::RetrySettings retrySettings { .maxRetries = options.maxRetries };
 
@@ -2784,6 +2942,174 @@ int Backup(Options const& options)
     }
 
     return pm->ErrorCount() > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
+}
+
+/// Why `backup` / `restore` writes no `schema_backups` record for this run; empty when it writes one.
+[[nodiscard]] std::string_view UnrecordedReason(Options const& options)
+{
+    if (options.schemaOnly)
+        return "schema-only archives are not recorded";
+    if (options.filterTables != "*")
+        return "filtered archives are not recorded";
+    if (!Lightweight::Config::AllowsWrites(options.targetSource))
+        return "the target comes from a discovered dbtool.yml";
+    return {};
+}
+
+/// The schema `schema_backups` is written to: the one `--schema` names, else the connection's default.
+[[nodiscard]] std::string RecordSchemaOf(Options const& options)
+{
+    return options.allSchemas || options.schema.contains(',') ? std::string {} : options.schema;
+}
+
+/// Reports a backup's record that could not be written; with `--verbose` also one that was. A failed
+/// verification fails the backup; a partial archive or a failed write only warns.
+///
+/// @return The exit code of the command.
+[[nodiscard]] int ReportRecord(std::expected<SqlMigration::BackupRecord, Tools::BackupRecordError> const& recorded,
+                               Options const& options)
+{
+    if (recorded)
+    {
+        if (options.verbose)
+            std::println("Recorded as backup #{} in {}.", recorded->id, SqlMigration::BackupRecordTableName);
+        return EXIT_SUCCESS;
+    }
+    if (recorded.error().kind == Tools::BackupRecordError::Kind::VerificationFailed)
+    {
+        std::println(std::cerr, "Error: {}", Tools::DescribeUnrecordedBackup(recorded.error()));
+        return EXIT_FAILURE;
+    }
+    std::println(std::cerr, "Warning: {}", Tools::DescribeUnrecordedBackup(recorded.error()));
+    return EXIT_SUCCESS;
+}
+
+/// Reports why `backup` / `restore` wrote no record: a problem as a warning, a policy only with `--verbose`.
+/// @param problemMessage The described problem (see `DescribeUnrecordedBackup`); empty when there was none.
+void ReportUnrecorded(Options const& options, std::string_view policyReason, std::string const& problemMessage)
+{
+    if (!problemMessage.empty())
+        std::println(std::cerr, "Warning: {}", problemMessage);
+    else if (options.verbose && !policyReason.empty())
+        std::println("Not recorded in {}: {}.", SqlMigration::BackupRecordTableName, policyReason);
+}
+
+/// A mapper for this run's record, or why there is none.
+struct RecordConnection
+{
+    std::optional<DataMapper> dataMapper; ///< Set when the record can be written.
+    std::string problem;                  ///< Why connecting failed; empty when it did not.
+};
+
+/// Connects the mapper `backup` / `restore` records with; a failure is kept as the problem to report.
+[[nodiscard]] RecordConnection ConnectRecordConnection(Options const& options)
+{
+    auto connection = RecordConnection {};
+    try
+    {
+        connection.dataMapper.emplace(Tools::ConnectRecordDataMapper(options.connectionString, RecordSchemaOf(options)));
+    }
+    catch (std::exception const& e)
+    {
+        connection.dataMapper.reset();
+        connection.problem = e.what();
+    }
+    return connection;
+}
+
+int Backup(Options const& options)
+{
+    auto const outputFile = ResolveBackupFile(options, options.outputFile);
+    if (!outputFile)
+        return EXIT_FAILURE;
+
+    // Parse and validate backup settings (compression + chunk size)
+    auto backupSettingsResult = ParseBackupSettings(options);
+    if (!backupSettingsResult)
+    {
+        std::println(std::cerr, "Error: {}", backupSettingsResult.error());
+        return EXIT_FAILURE;
+    }
+    auto const& backupSettings = backupSettingsResult.value();
+
+    auto const schemasResult = ResolveBackupSchemas(options);
+    if (!schemasResult)
+    {
+        std::println(std::cerr, "Error: {}", schemasResult.error());
+        return EXIT_FAILURE;
+    }
+    auto const& schemas = *schemasResult;
+
+    if (options.dryRun)
+        return BackupDryRun(options, schemas, *outputFile);
+
+    // The record keeps the migration history as it was before the backup read any data.
+    auto const policyReason = UnrecordedReason(options);
+    auto record = RecordConnection {};
+    auto start = Tools::BackupStart {};
+    if (policyReason.empty())
+    {
+        record = ConnectRecordConnection(options);
+        try
+        {
+            if (record.dataMapper)
+                start = Tools::CaptureBackupStart(*record.dataMapper);
+        }
+        catch (std::exception const& e)
+        {
+            record.dataMapper.reset();
+            record.problem = e.what();
+        }
+    }
+
+    if (auto const exitCode = WriteBackupArchive(options, *outputFile, schemas, backupSettings); exitCode != EXIT_SUCCESS)
+        return exitCode;
+
+    if (record.dataMapper)
+        return ReportRecord(Tools::RecordBackup(*record.dataMapper, *outputFile, start, Tools::ToolVersion("dbtool")),
+                            options);
+    ReportUnrecorded(options,
+                     policyReason,
+                     record.problem.empty()
+                         ? std::string {}
+                         : Tools::DescribeUnrecordedBackup(
+                               { .kind = Tools::BackupRecordError::Kind::WriteFailed, .message = record.problem }));
+    return EXIT_SUCCESS;
+}
+
+BackupToOutcome BackupBeforeMigrating(Options const& options, MigrationManager& manager)
+{
+    auto const outputFile = ResolveBackupFile(options, options.backupTo);
+    if (!outputFile)
+        return { .exitCode = EXIT_FAILURE, .recordProblem = {} };
+
+    auto const backupSettings = ParseBackupSettings(options);
+    if (!backupSettings)
+    {
+        std::println(std::cerr, "Error: {}", backupSettings.error());
+        return { .exitCode = EXIT_FAILURE, .recordProblem = {} };
+    }
+    auto const schemas = ResolveBackupSchemas(options);
+    if (!schemas)
+    {
+        std::println(std::cerr, "Error: {}", schemas.error());
+        return { .exitCode = EXIT_FAILURE, .recordProblem = {} };
+    }
+
+    std::println("Backing up the database to {} before migrating...", Lightweight::Zip::ZipPathUtf8(*outputFile));
+    auto const start = Tools::CaptureBackupStart(manager.GetDataMapper());
+    if (auto const exitCode = WriteBackupArchive(options, *outputFile, *schemas, *backupSettings); exitCode != EXIT_SUCCESS)
+        return { .exitCode = exitCode, .recordProblem = {} };
+
+    auto const recorded = Tools::RecordBackup(manager.GetDataMapper(), *outputFile, start, Tools::ToolVersion("dbtool"));
+    if (recorded)
+        return { .exitCode = EXIT_SUCCESS, .recordProblem = {} };
+    if (recorded.error().kind == Tools::BackupRecordError::Kind::VerificationFailed)
+    {
+        std::println(std::cerr, "Error: {}", Tools::DescribeUnrecordedBackup(recorded.error()));
+        return { .exitCode = EXIT_FAILURE, .recordProblem = {} };
+    }
+    return { .exitCode = EXIT_SUCCESS, .recordProblem = Tools::DescribeUnrecordedBackup(recorded.error()) };
 }
 
 /// Parses restore settings from CLI options.
@@ -2987,7 +3313,32 @@ int Restore(Options const& options)
         return EXIT_FAILURE;
     }
 
-    return pm->ErrorCount() > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
+    if (pm->ErrorCount() > 0)
+        return EXIT_FAILURE;
+
+    // The record keeps the migration history the restore left.
+    auto const policyReason = UnrecordedReason(options);
+    if (!policyReason.empty())
+    {
+        ReportUnrecorded(options, policyReason, {});
+        return EXIT_SUCCESS;
+    }
+    auto record = ConnectRecordConnection(options);
+    if (!record.dataMapper)
+    {
+        ReportUnrecorded(options,
+                         policyReason,
+                         Tools::DescribeUnrecordedRestore(
+                             { .kind = Tools::BackupRecordError::Kind::WriteFailed, .message = record.problem }));
+        return EXIT_SUCCESS;
+    }
+    // The data is restored either way, so a record that cannot be written only warns.
+    auto const recorded = Tools::RecordRestore(*record.dataMapper, options.inputFile, Tools::ToolVersion("dbtool"));
+    if (!recorded)
+        std::println(std::cerr, "Warning: {}", Tools::DescribeUnrecordedRestore(recorded.error()));
+    else if (options.verbose)
+        std::println("Recorded as restore #{} in {}.", recorded->id, SqlMigration::BackupRecordTableName);
+    return EXIT_SUCCESS;
 }
 
 namespace
@@ -3305,10 +3656,11 @@ int RunPostMigrateHooks(MigrationManager& manager, int exitCode, bool dryRun)
     return EXIT_FAILURE;
 }
 
-/// Warns that a command other than `backup` and `restore` ignores `--all-schemas`.
+/// Warns that a command other than `backup` and `restore` ignores `--all-schemas`; a migrating
+/// command with `--backup-to` backs up like `backup` and honors it.
 void WarnIfAllSchemasIgnored(Options const& options)
 {
-    if (options.allSchemas && options.command != "backup" && options.command != "restore")
+    if (options.allSchemas && options.command != "backup" && options.command != "restore" && options.backupTo.empty())
         std::println(std::cerr, "Warning: --all-schemas applies to backup only; {} ignores it.", options.command);
 }
 
@@ -3330,7 +3682,7 @@ int DispatchDbCommand(Options const& options)
         auto& manager = GetMigrationManager(options);
         OptionalScopedLock const lock(manager, options.noLock || options.dryRun);
         auto progress = CommandProgress { options };
-        auto const exitCode = Migrate(manager, progress, ExecutionModeOf(options));
+        auto const exitCode = Migrate(manager, progress, options);
         progress.Finish();
         return RunPostMigrateHooks(manager, exitCode, options.dryRun);
     }
@@ -3344,7 +3696,7 @@ int DispatchDbCommand(Options const& options)
         auto& manager = GetMigrationManager(options);
         OptionalScopedLock const lock(manager, options.noLock);
         auto progress = CommandProgress { options };
-        auto const exitCode = ApplyMigration(manager, progress, options.argument);
+        auto const exitCode = ApplyMigration(manager, progress, options);
         progress.Finish();
         return RunPostMigrateHooks(manager, exitCode, /*dryRun=*/false);
     }
@@ -3371,7 +3723,7 @@ int DispatchDbCommand(Options const& options)
         auto& manager = GetMigrationManager(options);
         OptionalScopedLock const lock(manager, options.noLock || options.dryRun);
         auto progress = CommandProgress { options };
-        auto const exitCode = MigrateToRelease(manager, progress, options.argument, ExecutionModeOf(options));
+        auto const exitCode = MigrateToRelease(manager, progress, options);
         progress.Finish();
         return RunPostMigrateHooks(manager, exitCode, options.dryRun);
     }

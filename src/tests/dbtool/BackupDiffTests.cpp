@@ -12,8 +12,11 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <filesystem>
+#include <optional>
 #include <set>
 #include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 using namespace Lightweight;
@@ -193,4 +196,56 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK(result.rightReadable);
     CHECK(result.differenceFound);
     CHECK(observer.events.empty()); // no per-table comparison ran
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "BackupDiff: schema_backups differences in older archives never fail the comparison",
+                 "[dbtool][BackupDiff]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    // Backups leave schema_backups out, so archives that hold it are made by renaming another table.
+    auto const sourceA = std::filesystem::path { "backupdiff_records_source_a.zip" };
+    auto const sourceB = std::filesystem::path { "backupdiff_records_source_b.zip" };
+    auto const fileA = std::filesystem::path { "backupdiff_records_a.zip" };
+    auto const fileB = std::filesystem::path { "backupdiff_records_b.zip" };
+    auto const cleanSourceA = ScopedFileRemoved { sourceA };
+    auto const cleanSourceB = ScopedFileRemoved { sourceB };
+    auto const cleanA = ScopedFileRemoved { fileA };
+    auto const cleanB = ScopedFileRemoved { fileB };
+
+    {
+        SqlStatement stmt {};
+        stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+            migration.DropTableIfExists("records_stand_in");
+            migration.CreateTable("records_stand_in").PrimaryKey("id", Integer {}).Column("kind", Varchar { 16 });
+        });
+        stmt.Prepare(R"(INSERT INTO "records_stand_in" ("id", "kind") VALUES (?, ?))");
+        (void) stmt.Execute(1, std::string { "backup" });
+    }
+    BackupSingleTable(sourceA, "records_stand_in");
+    {
+        SqlStatement stmt {};
+        stmt.Prepare(R"(INSERT INTO "records_stand_in" ("id", "kind") VALUES (?, ?))");
+        (void) stmt.Execute(2, std::string { "backup" });
+    }
+    BackupSingleTable(sourceB, "records_stand_in");
+    auto const renameTable = [](std::string const& name, std::string content) {
+        auto renamed = name;
+        if (auto const position = renamed.find("records_stand_in"); position != std::string::npos)
+            renamed.replace(position, std::string_view { "records_stand_in" }.size(), "schema_backups");
+        return std::optional { std::pair { std::move(renamed), std::move(content) } };
+    };
+    SqlBackup::Tests::RewriteArchive(sourceA, fileA, renameTable);
+    SqlBackup::Tests::RewriteArchive(sourceB, fileB, renameTable);
+
+    CapturingObserver observer;
+    auto const result = BackupDiff(fileA, fileB, /*ignoreTables=*/ {}, &observer);
+
+    CHECK(result.archivesReadable);
+    CHECK_FALSE(result.differenceFound);
+    CHECK(result.ignoredDifferences == 1);
+    REQUIRE(observer.events.size() == 1);
+    CHECK(observer.events.front().table == "schema_backups");
+    CHECK(observer.events.front().ignored);
 }

@@ -335,6 +335,13 @@ namespace SqlMigration
     [[nodiscard]] LIGHTWEIGHT_API bool BackupRecordCovers(BackupRecord const& record,
                                                           MigrationHistoryState const& state) noexcept;
 
+    /// Whether @p schema is a schema name `MigrationManager::SetDefaultSchema` accepts: `[A-Za-z0-9_]+`.
+    ///
+    /// @param schema The name to check.
+    /// @return False for an empty name and for any other character.
+    /// @ingroup SqlMigration
+    [[nodiscard]] LIGHTWEIGHT_API bool IsValidSchemaName(std::string_view schema) noexcept;
+
     /// The failure of one unit of `MigrationManager::UnicodeUpgradeTables`, which was rolled back.
     ///
     /// `info()` keeps the SQLSTATE and native error code of the cause; its message names the unit,

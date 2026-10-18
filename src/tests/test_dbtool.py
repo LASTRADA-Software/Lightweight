@@ -100,6 +100,10 @@ def load_connection_string_from_test_env(env_name):
 # minutes instead of letting it consume the runner-level timeout.
 PER_COMMAND_TIMEOUT_SECONDS = 180
 
+# dbtool's exit code for a migrating command refused for a missing backup (Tools::BackupRequiredExitCode);
+# 3 is taken by the CRT's abort on Windows.
+BACKUP_REQUIRED_EXIT_CODE = 4
+
 
 def _capture_diagnostics_on_hang(cmd, partial_stdout, partial_stderr):
     """Emit best-effort diagnostics when a dbtool invocation hits the per-command
@@ -749,6 +753,11 @@ def test_multi_schema_backup(dbtool, plugins_dir, connection_string, is_sqlite):
     if "--all-schemas applies to backup only" not in ignored.stderr:
         print(f"status did not warn that it ignores --all-schemas:\n{ignored.stderr}")
         sys.exit(1)
+    # --backup-to backs up like `backup`, so a migrating command with it honors --all-schemas.
+    honored = run_command(base_cmd + ["migrate", "--dry-run", "--all-schemas", "--backup-to", "unused.zip"], check=False)
+    if "--all-schemas applies to backup only" in honored.stderr:
+        print(f"migrate --backup-to claimed to ignore --all-schemas:\n{honored.stderr}")
+        sys.exit(1)
 
     if is_sqlite:
         print("--- 13b. --all-schemas on SQLite writes a single-schema archive ---")
@@ -979,6 +988,195 @@ def test_skipped_seed_rows(base_cmd, dbtool, plugins_dir, connection_string):
             expect_skips(dry_run, 0, "migrate --dry-run")
         finally:
             run_command(seed_cmd + ["hard-reset", "--yes"], check=False)
+
+
+def expect_exit(result, returncode, *fragments):
+    """Fails the run unless result exited with returncode and its output holds every fragment."""
+    text = result.stdout + result.stderr
+    missing = [f for f in fragments if f not in text]
+    if result.returncode != returncode or missing:
+        print(f"exit {result.returncode} (expected {returncode}), missing {missing}:\n{text}")
+        sys.exit(1)
+
+
+def test_backup_requirement(dbtool, plugins_dir, connection_string):
+    """A release that requires a backup makes migrate refuse (exit 3) until a backup taken after the
+    last migration exists; backup, restore and migrate --backup-to record one; a dry run reports and
+    does not refuse; only the work the command runs counts; --without-backup waives it and writes a
+    waived row; a step that requires a backup counts too; two backups in a row compare equal; a restore
+    of an archive that fails verification warns and records nothing."""
+    print("--- 16. the backup requirement ---")
+    plugin_extensions = (".dll", ".so", ".dylib")
+    fixture = next((n for n in os.listdir(plugins_dir)
+                    if n.startswith("BackupRequiredReleaseFixture.") and n.endswith(plugin_extensions)), None)
+    if fixture is None:
+        print(f"BackupRequiredReleaseFixture not found under {plugins_dir}")
+        sys.exit(1)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        scratch = os.path.join(tmpdir, "plugins")
+        os.makedirs(scratch)
+        for name in os.listdir(plugins_dir):
+            stem, extension = os.path.splitext(name)
+            if extension in plugin_extensions and stem.lower().endswith("plugin"):
+                shutil.copy2(os.path.join(plugins_dir, name), os.path.join(scratch, name))
+        shutil.copy2(os.path.join(plugins_dir, fixture),
+                     os.path.join(scratch, "BackupRequiredReleasePlugin" + os.path.splitext(fixture)[1]))
+        cmd = [dbtool, "--plugins-dir", scratch, "--connection-string", connection_string]
+
+        def archive(name):
+            return os.path.join(tmpdir, name)
+
+        run_command(cmd + ["hard-reset", "--yes"])
+        expect_exit(run_command(cmd + ["migrate", "--dry-run"], check=False), 0,
+               "-- Backup required: release 3.0.0 requires a backup")
+        refused = run_command(cmd + ["migrate"], check=False)
+        expect_exit(refused, BACKUP_REQUIRED_EXIT_CODE, "release 3.0.0 requires a backup of this database taken after its last migration.",
+               "dbtool migrate --backup-to <file>")
+        if "Initial Migration" not in run_command(cmd + ["list-pending"]).stdout:
+            print("a refused migrate applied migrations")
+            sys.exit(1)
+
+        # Scope: only the work the command runs counts.
+        # apply of a migration whose release requires nothing is not held back while 3.0.0 is pending ...
+        expect_exit(run_command(cmd + ["apply", "20230201000000"], check=False), 0)
+        run_command(cmd + ["rollback", "20230201000000"])
+        # ... nor is migrate-to-release up to a release that requires nothing ...
+        expect_exit(run_command(cmd + ["migrate-to-release", "1.0.0"], check=False), 0)
+        # ... nor a step whose predicate says no (the recorder step without LIGHTWEIGHT_TEST_PRE_MIGRATE_REQUIRES_BACKUP).
+        quiet_log = os.path.join(tmpdir, "quiet-step.log")
+        quiet_env = dict(os.environ, LIGHTWEIGHT_TEST_PRE_MIGRATE_LOG=quiet_log)
+        expect_exit(run_command(cmd + ["migrate-to-release", "2.0.0"], check=False, env=quiet_env), 0)
+        if not os.path.exists(quiet_log):
+            print("the step whose predicate says no did not run")
+            sys.exit(1)
+        run_command(cmd + ["rollback", "20230201000000"])
+
+        # apply and migrate-to-release refuse the same way and name their argument in the suggestions.
+        expect_exit(run_command(cmd + ["apply", "20240201000000"], check=False), BACKUP_REQUIRED_EXIT_CODE,
+               "dbtool apply 20240201000000 --backup-to <file>", "dbtool apply 20240201000000 --without-backup")
+        expect_exit(run_command(cmd + ["migrate-to-release", "3.0.0"], check=False), BACKUP_REQUIRED_EXIT_CODE,
+               "dbtool migrate-to-release 3.0.0 --backup-to <file>")
+        if "Backup Required Fixture Migration" in run_command(cmd + ["list-applied"]).stdout:
+            print("a refused apply or migrate-to-release applied the fixture migration")
+            sys.exit(1)
+
+        # The refusal names --without-backup as the last option; combined with --backup-to it is an error;
+        # a dry run with it writes nothing.
+        expect_exit(run_command(cmd + ["migrate"], check=False), BACKUP_REQUIRED_EXIT_CODE, "dbtool migrate --without-backup")
+        expect_exit(run_command(cmd + ["migrate", "--without-backup", "--backup-to", archive("x.zip")], check=False), 1,
+               "--without-backup")
+        rows_before = run_command(cmd + ["exec", 'SELECT COUNT(*) FROM "schema_backups"'], check=False).stdout
+        expect_exit(run_command(cmd + ["migrate", "--dry-run", "--without-backup"], check=False), 0,
+                    "a real run migrates without one and records the waiver")
+        expect_exit(run_command(cmd + ["migrate", "--dry-run", "--backup-to", archive("y.zip")], check=False), 0,
+                    "a real run backs up first")
+        if run_command(cmd + ["exec", 'SELECT COUNT(*) FROM "schema_backups"'], check=False).stdout != rows_before:
+            print("a dry run with --without-backup wrote a row")
+            sys.exit(1)
+
+        # A backup taken now covers the database; migrate then applies the release.
+        expect_exit(run_command(cmd + ["backup", "--output", archive("a.zip")], check=False), 0)
+        expect_exit(run_command(cmd + ["migrate"], check=False), 0)
+        if "Backup Required Fixture Migration" not in run_command(cmd + ["list-applied"]).stdout:
+            print("migrate did not apply the release after the backup")
+            sys.exit(1)
+        # Already past the release: migrate-to-release has nothing to do and takes no backup.
+        expect_exit(run_command(cmd + ["migrate-to-release", "1.0.0", "--backup-to", archive("z.zip")], check=False), 0,
+                    "No backup was taken")
+        if os.path.exists(archive("z.zip")):
+            print("migrate-to-release past its release still wrote a backup")
+            sys.exit(1)
+
+        # Rolled back, the last migration changed: a.zip no longer counts.
+        run_command(cmd + ["rollback", "20240201000000"])
+        expect_exit(run_command(cmd + ["migrate"], check=False), BACKUP_REQUIRED_EXIT_CODE, "The newest backup (a.zip,",
+               "does not match the current migration history.")
+
+        # --backup-to backs up, records and migrates in one call.
+        expect_exit(run_command(cmd + ["migrate", "--backup-to", archive("b.zip")], check=False), 0)
+        if not os.path.exists(archive("b.zip")):
+            print("migrate --backup-to wrote no archive")
+            sys.exit(1)
+
+        # A restore records the archive it restored: the database equals b.zip again. (Rolling back only
+        # the fixture would already match b.zip's state, so two rollbacks make the newest record stale.)
+        run_command(cmd + ["rollback", "20240201000000"])
+        run_command(cmd + ["rollback", "20230201000000"])
+        expect_exit(run_command(cmd + ["migrate"], check=False), BACKUP_REQUIRED_EXIT_CODE)
+        run_command(cmd + ["restore", "--input", archive("b.zip")])
+        expect_exit(run_command(cmd + ["migrate"], check=False), 0)
+        kinds = run_command(cmd + ["exec", 'SELECT "kind" FROM "schema_backups" ORDER BY "id"']).stdout
+        if "restore" not in kinds:
+            print(f"restore wrote no record:\n{kinds}")
+            sys.exit(1)
+
+        # Two backups in a row compare equal: the record the first wrote is not in the second.
+        run_command(cmd + ["backup", "--output", archive("c.zip")])
+        run_command(cmd + ["backup", "--output", archive("d.zip")])
+        expect_exit(run_command(cmd + ["backup-diff", "--left", archive("c.zip"), "--right", archive("d.zip")], check=False), 0)
+
+        # A step that requires a backup counts like a release: with nothing pending, d.zip covers the
+        # database and migrate runs the step; once the state changed, both reasons are named and the
+        # refused command runs no step.
+        log_path = os.path.join(tmpdir, "steps.log")
+        env = dict(os.environ, LIGHTWEIGHT_TEST_PRE_MIGRATE_LOG=log_path, LIGHTWEIGHT_TEST_PRE_MIGRATE_REQUIRES_BACKUP="1")
+        expect_exit(run_command(cmd + ["migrate"], check=False, env=env), 0)
+        os.remove(log_path)
+        run_command(cmd + ["rollback", "20240201000000"])
+        expect_exit(run_command(cmd + ["migrate"], check=False, env=env), BACKUP_REQUIRED_EXIT_CODE,
+               'release 3.0.0 and step "Recorder step" require a backup')
+        if os.path.exists(log_path):
+            print("a refused migrate ran its pre-migrate step")
+            sys.exit(1)
+
+        # --without-backup migrates, warns and writes a waived row; the waiver satisfies nothing later.
+        waived = run_command(cmd + ["migrate", "--without-backup"], check=False)
+        expect_exit(waived, 0, "Migrating without a backup although release 3.0.0 requires one")
+        kinds = run_command(cmd + ["exec", 'SELECT "kind" FROM "schema_backups" ORDER BY "id"']).stdout
+        if "waived" not in kinds:
+            print(f"--without-backup wrote no waived row:\n{kinds}")
+            sys.exit(1)
+        run_command(cmd + ["rollback", "20240201000000"])
+        expect_exit(run_command(cmd + ["migrate"], check=False), BACKUP_REQUIRED_EXIT_CODE)
+        run_command(cmd + ["migrate", "--backup-to", archive("f.zip")])
+
+        # An archive that fails verification (here: its checksums.json removed) still restores, but the
+        # restore warns, exits 0 and is not recorded.
+        run_command(cmd + ["backup", "--output", archive("g.zip")])
+        with zipfile.ZipFile(archive("g.zip")) as source, zipfile.ZipFile(archive("unverified.zip"), "w") as target:
+            for item in source.infolist():
+                if item.filename != "checksums.json":
+                    target.writestr(item, source.read(item.filename))
+        count_records = ["exec", 'SELECT COUNT(*) FROM "schema_backups"']
+        records_before = run_command(cmd + count_records).stdout
+        expect_exit(run_command(cmd + ["restore", "--input", archive("unverified.zip")], check=False), 0,
+               "Warning: The archive failed verification",
+               "the restore is not recorded and cannot satisfy a migration backup requirement.")
+        if run_command(cmd + count_records).stdout != records_before:
+            print("the restore of an archive that failed verification was recorded")
+            sys.exit(1)
+        run_command(cmd + ["hard-reset", "--yes"])
+
+
+def test_unwritable_backup_records(dbtool, plugins_dir, connection_string):
+    """A schema_backups the user cannot write (SQLite: a view of that name): backup and migrate --backup-to
+    succeed and warn that the backup cannot satisfy a requirement."""
+    print("--- 17. a schema_backups that cannot be written ---")
+    cmd = [dbtool, "--plugins-dir", plugins_dir, "--connection-string", connection_string]
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        run_command(cmd + ["hard-reset", "--yes"])
+        run_command(cmd + ["exec", 'CREATE VIEW "schema_backups" AS SELECT 1 AS "id"'])
+        try:
+            expect_exit(run_command(cmd + ["backup", "--output", os.path.join(tmpdir, "e.zip")], check=False), 0,
+                   "Warning: The backup could not be recorded in schema_backups")
+            # Nothing requires a backup here, so the run goes on, and still says the backup does not count.
+            expect_exit(run_command(cmd + ["migrate", "--backup-to", os.path.join(tmpdir, "h.zip")], check=False), 0,
+                   "Warning: The backup could not be recorded in schema_backups")
+        finally:
+            run_command(cmd + ["exec", 'DROP VIEW "schema_backups"'], check=False)
+        run_command(cmd + ["hard-reset", "--yes"])
 
 
 def main():
@@ -1507,6 +1705,11 @@ def main():
     test_exit_code_after_compat_policy_plugin(args.dbtool, args.plugins_dir, connection_string)
 
     test_skipped_seed_rows(base_cmd, args.dbtool, args.plugins_dir, connection_string)
+
+    test_backup_requirement(args.dbtool, args.plugins_dir, connection_string)
+
+    if is_sqlite:
+        test_unwritable_backup_records(args.dbtool, args.plugins_dir, connection_string)
 
     print("SUCCESS")
 

@@ -354,6 +354,43 @@ latest release, checksum verdict) so you can confirm the database's current
 state in a single command. If there are no pending migrations, it explicitly
 reports that the database is already up to date instead of `"Applied 0 migrations."`.
 
+#### Backup requirement
+
+A release declared with `LIGHTWEIGHT_SQL_RELEASE(version, highestTimestamp, { .requiresBackup = true })`,
+a migration whose `RequiresBackup()` returns true, or a pre-migrate step whose `requiresBackup`
+predicate returns true demands a backup of the database taken after its last migration (see
+[Backup requirement](sql-migrations.md#backup-requirement)). Only the work the command runs counts:
+`migrate` checks every pending migration, `migrate-to-release <VERSION>` the pending ones up to that
+release, `apply <TIMESTAMP>` that one migration, and each of them the steps whose predicate is true.
+
+The requirement is met when the newest `backup` or `restore` record in `schema_backups` saw exactly
+the migration history the database has now (`dbtool backup` and `dbtool restore` write such records,
+see [backup](#backup)). Otherwise the command refuses before any step or migration runs, prints what
+demands the backup and how to take one, and exits with code `4`:
+
+```
+Error: release 3.0.0 requires a backup of this database taken after its last migration.
+The newest backup (before-upgrade.zip, 2026-10-18 09:00:00 UTC) does not match the current migration history.
+Run: dbtool backup --output <file>   or   dbtool migrate --backup-to <file>
+Or, to migrate without a backup (recorded as waived): dbtool migrate --without-backup
+```
+
+- `--backup-to <file>` backs up the database (as `backup --output <file>` would), verifies the
+  archive, records it and then migrates, all under the one migration lock the command holds. A backup
+  that fails stops the command; an archive that cannot be recorded is named in the refusal, or in a
+  warning when the command goes on. `migrate` takes the backup even when nothing is pending;
+  `migrate-to-release` takes no backup when the database is already at or past the release, and says so.
+- `--without-backup` is the only override: the command runs, prints a warning naming what it skips
+  and writes a `waived` row into `schema_backups`. A `waived` row never counts as a backup later.
+  It cannot be combined with `--backup-to`.
+- `--dry-run` never refuses: it prints `-- Backup required: ...` and says what a real run would do
+  (refuse, back up first with `--backup-to`, or migrate and record the waiver with `--without-backup`),
+  and writes nothing.
+
+> **The lock does not stop the application.** The migration lock keeps other migrations out between
+> the backup and the migration, not the application's own writes. Stop the application during an
+> upgrade that requires a backup, or the backup misses what it wrote in between.
+
 #### Skipped rows
 
 An insert declared with `Insert(...).IfNotExists({keys})` (see
@@ -439,6 +476,9 @@ declares a dependency on a migration whose timestamp is `>` the release
 boundary (and is not already applied), `migrate-to-release` refuses to run
 rather than applying a partial state that violates the dependency contract.
 
+A release, migration or step among the work it runs can require a backup first; see
+[Backup requirement](#backup-requirement) (`--backup-to`, `--without-backup`, exit code `4`).
+
 ### list-pending
 
 List migrations waiting to be applied:
@@ -478,6 +518,9 @@ dbtool apply 20260126120000
 
 `apply` has no dry run: it rejects `--dry-run` with an error instead of applying.
 Use `dbtool migrate --dry-run` to preview pending migrations.
+
+When the migration, or its release, or a pre-migrate step requires a backup, `apply` refuses without
+one like `migrate`; see [Backup requirement](#backup-requirement).
 
 ### rollback \<TIMESTAMP\>
 
@@ -545,8 +588,9 @@ command simply exits. See [Checksum Mismatches](#checksum-mismatches).
 
 ### hard-reset
 
-Drops every table the registered migrations own, plus the `schema_migrations` table, and leaves
-tables it does not own untouched:
+Drops every table the registered migrations own, plus the `schema_migrations` table and the
+`schema_backups` table with all its backup, restore and `waived` records, and leaves tables it does
+not own untouched:
 
 ```bash
 dbtool hard-reset --yes
@@ -559,7 +603,8 @@ computed by folding the registered migration plan, not by guessing from the live
 tables survive. Like `rewrite-checksums`, it refuses to run without `--yes`.
 
 `--dry-run` prints the three groups it computed — tables to drop, migration-declared but absent, and
-user-owned tables it will preserve — without touching anything.
+user-owned tables it will preserve — and whether it would drop `schema_backups`, without touching
+anything.
 
 ### unicode-upgrade-tables
 
@@ -777,6 +822,17 @@ key's referenced schema. A single `--schema X`, and no `--schema` at all, write 
 they always wrote (format version `1.0`). One exception: a backup refuses tables whose archive
 name or folder would collide (see below), where it used to overwrite one with the other.
 
+**The backup is recorded.** After the archive is written, `backup` verifies it against its checksums
+and appends a `backup` record to `schema_backups` with the migration history it saw before it read
+any data (see [Backup requirement](#backup-requirement)). No record is written for `--schema-only`,
+for a `--filter-tables` other than `*`, or for a target taken from a discovered `dbtool.yml`;
+`--verbose` says why and, when one is written, prints its id. A `schema_backups` the user cannot
+write only warns (the backup still exits `0`), and such a backup cannot satisfy a requirement. An
+archive that fails verification fails the command. The record lives in the connection's default
+schema, or in the schema a single `--schema` names. The archive leaves out the bookkeeping tables:
+`schema_backups` itself and, on SQLite, the migration lock's `_lightweight_locks`, so a restore
+never brings back old records or a held lock.
+
 > **SQL Server and PostgreSQL without `--schema`:** the backup reads the tables of every schema but
 > records none of them, and a restore puts every table into one schema. Tables of the same name in
 > different schemas are refused: the backup stops and names them. For a database whose tables span
@@ -817,6 +873,16 @@ schema it comes from:
 - On SQLite, which has no schemas, the archive restores only if every table name is unique across
   its schemas, compared case-insensitively as SQLite does; the tables then lose their schema.
   Otherwise the restore is refused and names the tables that occur in more than one schema.
+
+**The restore is recorded.** After a successful restore the archive is verified and a `restore`
+record with the migration history the restore left is appended to `schema_backups`, so the database
+counts as backed up by that archive. The live `schema_backups` is never replaced: a restore skips the
+bookkeeping tables, also in archives of older versions that still hold them. No record is written for
+`--schema-only`, a `--filter-tables` other than `*`, a target taken from a discovered `dbtool.yml`,
+or an archive whose `metadata.json` marks it partial (filtered, schema-only, or a table failed). An
+archive that fails verification still restores: the restore warns that it is not recorded and cannot
+satisfy a migration backup requirement, and exits `0`. A `schema_backups` that cannot be written
+only warns, too.
 
 **Restoring into PostgreSQL.** Tables are created in the schema the restore targets: the archive's
 `schema_name`, or `--schema`. A single-schema archive from SQL Server records `dbo`, which a
@@ -872,6 +938,9 @@ interleaving), so chunk-level checksums would diverge even when the data is iden
 It prints a summary line (`N tables compared, M identical, K differing`) and exits `0` when every
 common table is identical and both archives hold the same set of tables, or `1` otherwise.
 
+`schema_backups`, the backup bookkeeping table, is always treated as ignored. Backups leave it out;
+archives of older versions hold it, and two of them differ in it by the record of the first.
+
 ## Command-Line Options Reference
 
 | Option | Description | Default |
@@ -894,6 +963,8 @@ common table is identical and both archives hold the same set of tables, or `1` 
 | `--quiet`, `-q` | Suppress progress output | |
 | `--dry-run`, `-n` | Preview without executing; `apply` rejects it | |
 | `--no-lock` | Skip migration locking | |
+| `--backup-to <FILE>` | For `migrate`, `apply`, `migrate-to-release`: back up, verify and record the database first (as `backup --output`), under the migration lock. Not with `--schema-only` or `--filter-tables` | |
+| `--without-backup` | For `migrate`, `apply`, `migrate-to-release`: run although a required backup is missing; warns and records a `waived` row. Not with `--backup-to` | |
 | `--schema-only` | For backup/restore: skip data, transferring schema only | |
 | `--memory-limit <SIZE>` | Memory limit for restore (accepts the size suffixes below) | |
 | `--batch-size <N>` | Rows per batch for restore | |
@@ -1063,6 +1134,15 @@ dbtool status
 ```
 
 ### Backup Before Migration
+
+`--backup-to` backs up, verifies and records the database and then migrates, under one migration lock
+(see [Backup requirement](#backup-requirement)):
+
+```bash
+dbtool migrate --backup-to pre-migration-backup.zip --compression zstd
+```
+
+The same in separate steps:
 
 ```bash
 # Create backup

@@ -247,6 +247,11 @@ namespace
     }
 } // namespace
 
+bool IsValidSchemaName(std::string_view schema) noexcept
+{
+    return IsSafeSchemaIdentifier(schema);
+}
+
 void MigrationManager::SetDefaultSchema(std::string schema)
 {
     if (schema == _defaultSchema)

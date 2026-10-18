@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "../SqlAdvisoryLock.hpp"
 #include "../SqlColumnTypeDefinitions.hpp"
 #include "../SqlConnection.hpp"
+#include "../SqlMigration.hpp"
 #include "../SqlQuery.hpp"
 #include "../SqlSchema.hpp"
 #include "../SqlStatement.hpp"
@@ -207,6 +209,80 @@ namespace
         return flattened;
     }
 
+    /// Whether an archive holds every table with its data; stored as `metadata.json`'s `complete`.
+    enum class ArchiveCompleteness : std::uint8_t
+    {
+        Complete, ///< Every table, with its data.
+        Partial,  ///< Filtered, schema-only, or a table failed.
+    };
+
+    /// Tables a backup leaves out and a restore skips: the backup records and the bookkeeping of every
+    /// advisory-lock handler (a held migration lock on SQLite). They describe the live database, not its data.
+    [[nodiscard]] bool IsBookkeepingTable(std::string_view tableName)
+    {
+        if (tableName == SqlMigration::BackupRecordTableName)
+            return true;
+        auto const handlers =
+            std::array { &SqliteAdvisoryLockOps(), &SqlServerAdvisoryLockOps(), &PostgreSqlAdvisoryLockOps() };
+        return std::ranges::any_of(handlers, [tableName](SqlAdvisoryLockHandler const* handler) {
+            return std::ranges::contains(handler->BookkeepingTableNames(), tableName);
+        });
+    }
+
+    /// Forwards to another progress manager and counts the errors reported through it.
+    class ErrorCountingProgress final: public ProgressManager
+    {
+      public:
+        explicit ErrorCountingProgress(ProgressManager& inner) noexcept:
+            _inner { &inner }
+        {
+        }
+
+        void Update(Progress const& p) override
+        {
+            if (p.state == Progress::State::Error)
+                ++_errors;
+            _inner->Update(p);
+        }
+        void AllDone() override
+        {
+            _inner->AllDone();
+        }
+        void SetMaxTableNameLength(size_t len) override
+        {
+            _inner->SetMaxTableNameLength(len);
+        }
+        [[nodiscard]] size_t ErrorCount() const noexcept override
+        {
+            return _inner->ErrorCount();
+        }
+        void SetTotalItems(size_t totalItems) override
+        {
+            _inner->SetTotalItems(totalItems);
+        }
+        void AddTotalItems(size_t additionalItems) override
+        {
+            _inner->AddTotalItems(additionalItems);
+        }
+        void OnItemsProcessed(size_t count) override
+        {
+            _inner->OnItemsProcessed(count);
+        }
+        void SetTotalTables(size_t totalTables) override
+        {
+            _inner->SetTotalTables(totalTables);
+        }
+
+        /// @return The number of errors reported through this manager.
+        [[nodiscard]] size_t ReportedErrors() const noexcept
+        {
+            return _errors.load();
+        }
+
+      private:
+        ProgressManager* _inner;
+        std::atomic<size_t> _errors { 0 };
+    };
 } // namespace
 
 /// Builds metadata.json; @p schemaNames with two or more entries makes it a multi-schema archive.
@@ -214,12 +290,14 @@ namespace
 static std::string CreateArchiveMetadata(SqlConnectionString const& connectionString,
                                          SqlSchema::TableList const& tables,
                                          std::string const& schema,
-                                         std::vector<std::string> const& schemaNames)
+                                         std::vector<std::string> const& schemaNames,
+                                         ArchiveCompleteness completeness)
 {
     bool const multiSchema = schemaNames.size() > 1;
     nlohmann::json metadata;
     metadata["format_version"] = multiSchema ? MultiSchemaFormatVersion : SingleSchemaFormatVersion;
     metadata["creation_time"] = detail::CurrentDateTime();
+    metadata["complete"] = completeness == ArchiveCompleteness::Complete;
     // Redact PWD/Password so a secretRef-resolved plaintext credential is never
     // persisted into the archive's metadata. Nothing reads this field back at
     // restore time; it is diagnostic only.
@@ -395,7 +473,7 @@ std::string CreateMetadata(SqlConnectionString const& connectionString,
                            SqlSchema::TableList const& tables,
                            std::string const& schema)
 {
-    return CreateArchiveMetadata(connectionString, tables, schema, {});
+    return CreateArchiveMetadata(connectionString, tables, schema, {}, ArchiveCompleteness::Complete);
 }
 
 void Backup(std::filesystem::path const& outputFile,
@@ -415,13 +493,15 @@ void Backup(std::filesystem::path const& outputFile,
 void BackupSchemas(std::filesystem::path const& outputFile,
                    SqlConnectionString const& connectionString,
                    unsigned concurrency,
-                   ProgressManager& progress,
+                   ProgressManager& outerProgress,
                    std::vector<std::string> const& schemas,
                    std::string const& tableFilter,
                    RetrySettings const& retrySettings,
                    BackupSettings const& backupSettings)
 {
     ZoneScopedN("SqlBackup::Backup");
+    // Counts the table errors, which make the archive partial.
+    auto progress = ErrorCountingProgress { outerProgress };
     {
         auto const sanitized = SqlConnectionString::SanitizePwd(connectionString.value);
         ZoneTextObject(sanitized);
@@ -607,15 +687,11 @@ void BackupSchemas(std::filesystem::path const& outputFile,
         for (auto const& scannedSchema: schemaNames)
         {
             ZoneScopedN("Backup::Phase::SchemaScan");
-            // Skips reading the schema of tables the filter rejects.
-            SqlSchema::TableFilterPredicate tableFilterPredicate;
-            if (!filter.MatchesAll())
-            {
-                tableFilterPredicate = [&filter, &scannedSchema](std::string_view /*schemaName*/,
-                                                                 std::string_view tableName) {
-                    return filter.Matches(scannedSchema, tableName);
+            // Skips reading the schema of tables the filter rejects, and of the bookkeeping tables.
+            SqlSchema::TableFilterPredicate const tableFilterPredicate =
+                [&filter, &scannedSchema](std::string_view /*schemaName*/, std::string_view tableName) {
+                    return !IsBookkeepingTable(tableName) && filter.Matches(scannedSchema, tableName);
                 };
-            }
             SqlSchema::ReadAllTables(
                 stmt, mainConn.DatabaseName(), scannedSchema, schemaCallback, tableReadyCallback, tableFilterPredicate);
         }
@@ -781,7 +857,11 @@ void BackupSchemas(std::filesystem::path const& outputFile,
         ZoneScopedN("Backup::Phase::Finalize");
 
         // Create metadata.json from completed tables (moved to end since we need full list)
-        auto const metadataJson = CreateArchiveMetadata(connectionString, completedTables, schema, schemaNames);
+        auto const completeness = filter.MatchesAll() && !backupSettings.schemaOnly && progress.ReportedErrors() == 0
+                                      ? ArchiveCompleteness::Complete
+                                      : ArchiveCompleteness::Partial;
+        auto const metadataJson =
+            CreateArchiveMetadata(connectionString, completedTables, schema, schemaNames, completeness);
 
         // Add metadata.json to ZIP
         // Use malloc for metadata to ensure consistent memory management with chunks.
@@ -1090,6 +1170,25 @@ namespace
     using ChecksumList = std::map<std::string, std::string>;
 
     /// The entries `checksums.json` lists with their hashes; empty when the archive has none.
+    /// `metadata.json`'s `complete`; true when the key is missing (archives of older versions).
+    std::expected<bool, std::string> ReadArchiveCompleteness(Zip::ZipArchive const& archive)
+    {
+        auto const index = archive.LocateEntry("metadata.json");
+        if (!index)
+            return std::unexpected { "metadata.json not found in archive" };
+        auto const text = archive.ReadEntryAsString(*index);
+        if (!text)
+            return std::unexpected { std::format("Failed to read metadata.json: {}", text.error().message) };
+        try
+        {
+            return nlohmann::json::parse(*text).value("complete", true);
+        }
+        catch (nlohmann::json::exception const& exception)
+        {
+            return std::unexpected { std::format("Malformed metadata.json: {}", exception.what()) };
+        }
+    }
+
     std::expected<ChecksumList, std::string> ReadListedChecksums(Zip::ZipArchive const& archive)
     {
         auto const index = archive.LocateEntry("checksums.json");
@@ -1180,10 +1279,14 @@ namespace
         if (!verified)
             return std::unexpected { verified.error() };
 
+        auto const complete = ReadArchiveCompleteness(*archive);
+        if (!complete)
+            return std::unexpected { complete.error() };
+
         auto const archiveSha256 = HashFile(archiveFile);
         if (!archiveSha256)
             return std::unexpected { archiveSha256.error() };
-        return ArchiveVerification { .archiveSha256 = *archiveSha256, .verifiedEntries = *verified };
+        return ArchiveVerification { .archiveSha256 = *archiveSha256, .verifiedEntries = *verified, .complete = *complete };
     }
 } // namespace
 
@@ -1360,6 +1463,12 @@ void Restore(std::filesystem::path const& inputFile,
     }
 
     std::map<std::string, TableInfo> tableMap = ParseSchema(metadataStr, &progress);
+
+    // Older archives may hold bookkeeping tables; the live ones stay as they are.
+    std::erase_if(tableMap, [](auto const& pair) {
+        auto const& [key, info] = pair;
+        return IsBookkeepingTable(info.name.empty() ? key : info.name);
+    });
 
     // Apply table filter
     auto const filter = TableFilter::Parse(tableFilter);

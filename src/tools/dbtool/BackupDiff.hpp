@@ -95,6 +95,7 @@ struct BackupDiffResult
 ///        `ignoreTableError`) when several do. Names that match nothing are listed in
 ///        `unmatchedIgnoreTables`.
 ///        Pass an empty set to treat every difference as a failure (no default — be explicit).
+///        `schema_backups`, the backup bookkeeping table, is always treated as ignored.
 /// @param observer Streaming sink for per-table events, or nullptr to suppress streaming.
 /// @return The aggregate result. `differenceFound` is the authoritative pass/fail signal; it is
 ///         true when any non-ignored difference is found or either archive cannot be read.

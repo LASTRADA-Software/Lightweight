@@ -2,6 +2,7 @@
 
 #include <Lightweight/SqlBackup.hpp>
 #include <Lightweight/SqlBackup/BatchManager.hpp>
+#include <Lightweight/Zip/ZipArchive.hpp>
 
 #if defined(__clang__)
     #pragma clang diagnostic push
@@ -18,6 +19,7 @@
 #include <functional>
 #include <iostream>
 #include <mutex>
+#include <optional>
 #include <ranges>
 #include <stdexcept>
 #include <string>
@@ -50,6 +52,34 @@ struct LambdaProgressManager: SqlBackup::ProgressManager
         // do nothing
     }
 };
+
+/// What `RewriteArchive` makes of one entry: its new name and content, or std::nullopt to drop it.
+using ArchiveEntryRewrite =
+    std::function<std::optional<std::pair<std::string, std::string>>(std::string const& name, std::string content)>;
+
+/// Writes @p target with the entries of @p source, each passed through @p rewrite.
+inline void RewriteArchive(std::filesystem::path const& source,
+                           std::filesystem::path const& target,
+                           ArchiveEntryRewrite const& rewrite)
+{
+    auto input = Zip::ZipArchive::Open(source);
+    if (!input)
+        throw std::runtime_error("cannot open " + input.error().message);
+    auto output = Zip::ZipArchive::Create(target);
+    if (!output)
+        throw std::runtime_error("cannot create " + output.error().message);
+    for (auto const& entry: input->GetAllEntries())
+    {
+        auto content = input->ReadEntryAsString(entry.index);
+        if (!content)
+            throw std::runtime_error("cannot read " + entry.name);
+        if (auto const rewritten = rewrite(entry.name, std::move(*content)))
+            if (!output->AddString(rewritten->first, rewritten->second))
+                throw std::runtime_error("cannot write " + rewritten->first);
+    }
+    if (!output->Close())
+        throw std::runtime_error("cannot close the rewritten archive");
+}
 
 struct ScopedFileRemoved
 {

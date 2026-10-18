@@ -32,6 +32,7 @@ The `metadata.json` file is a JSON object with the following fields:
 | --- | --- | --- |
 | `format_version` | String | The backup format version: `1.0` for an archive of one schema, `2.0` for a [multi-schema archive](#6-multi-schema-archives). |
 | `creation_time` | ISO 8601 String | Timestamp of when the backup was created (e.g., `2024-01-01T12:00:00Z`). |
+| `complete` | Boolean | Whether the archive holds every table with its data: false for a filtered or schema-only backup and for one in which a table failed. Missing in archives of older versions, which count as complete. |
 | `original_connection_string` | String | The connection string used to create the backup, with `PWD`/`Password` attribute values redacted to `***`. Redaction parses the string attribute-wise and honours ODBC `{...}` quoting, so a brace-quoted password containing `;` (`PWD={pa;ss}`) is masked whole. Diagnostic only — it is not read back at restore time. |
 | `schema_name` | String | The database schema name (e.g., `dbo` for SQL Server). Empty in a multi-schema archive. |
 | `schema_names` | Array | (Multi-schema archives only) The names of the schemas the archive holds, sorted. |
