@@ -371,6 +371,13 @@ ColumnLayout {
         Layout.minimumHeight: 6
     }
 
+    TaskProgressList {
+        Layout.fillWidth: true
+        model: AppController.runner.tasks
+        // The model is cleared when the next run starts, so a failed row stays visible until then.
+        visible: count > 0
+    }
+
     // Primary action button — the one brand-red action on the screen.
     LsButton {
         Layout.fillWidth: true

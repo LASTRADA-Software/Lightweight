@@ -89,6 +89,8 @@ Rectangle {
     readonly property bool migrating: AppController.runner.phase !== MigrationRunner.Idle
     readonly property bool backingUp: AppController.backupRunner.phase !== BackupRunner.Idle
     readonly property bool busy: migrating || backingUp
+    // Pre-migrate steps run with every apply, so a run is worth starting even with nothing pending.
+    readonly property bool hasWork: AppController.pendingCount > 0 || AppController.preMigrateStepCount > 0
     readonly property bool allIdle: AppController.runner.phase === MigrationRunner.Idle
                                     && AppController.backupRunner.phase === BackupRunner.Idle
                                     && AppController.managedBackups.phase === ManagedBackupController.Idle
@@ -147,6 +149,8 @@ Rectangle {
         root.lastResult = "none"
         root.runStates = ({})
         root.lastBackupFile = ""
+        // The backup comes first, so a failed backup must not show the previous run's rows.
+        AppController.runner.tasks.clear()
         if (root.backupFirst)
             backupFileDialog.open()
         else
@@ -478,10 +482,10 @@ Rectangle {
                     Layout.fillWidth: true
                     visible: AppController.connected
                     number: 2
-                    title: AppController.pendingCount > 0 || root.busy || root.lastResult !== "none"
+                    title: root.hasWork || root.busy || root.lastResult !== "none"
                            ? qsTr("Review what will change") : qsTr("Review")
                     readonly property bool past: root.busy || root.lastResult === "success"
-                    stepState: past ? "done" : (AppController.pendingCount > 0 ? "active" : "done")
+                    stepState: past ? "done" : (root.hasWork ? "active" : "done")
                     collapsed: past
                     meta: past
                           ? qsTr("%1 → %2").arg(reviewStep.fromLabel).arg(AppController.targetReleaseLabel)
@@ -551,7 +555,7 @@ Rectangle {
                     id: runStep
                     Layout.fillWidth: true
                     visible: AppController.connected
-                             && (AppController.pendingCount > 0 || root.busy || root.lastResult !== "none")
+                             && (root.hasWork || root.busy || root.lastResult !== "none")
                     number: 3
                     title: root.busy ? qsTr("Running")
                          : root.lastResult === "success" ? qsTr("Done")
@@ -579,12 +583,14 @@ Rectangle {
                             variant: "primary"
                             size: "lg"
                             glyph: "play"
-                            text: qsTr("Run %n migration(s)", "", AppController.pendingCount)
+                            text: AppController.pendingCount > 0
+                                  ? qsTr("Run %n migration(s)", "", AppController.pendingCount)
+                                  : qsTr("Run pre-migrate steps")
                             // Mirrors the mutual busy guard in C++: a migration
                             // started during a managed backup (or an ad-hoc
                             // backup/restore) would rewrite the schema the
                             // archive is being read from.
-                            enabled: root.allIdle && AppController.pendingCount > 0
+                            enabled: root.allIdle && root.hasWork
                             onClicked: root.startRun()
                         }
 
@@ -608,8 +614,16 @@ Rectangle {
                         spacing: 10
                         visible: root.busy
 
+                        TaskProgressList {
+                            id: runTasks
+                            width: parent.width
+                            model: AppController.runner.tasks
+                            visible: !root.backingUp && count > 0
+                        }
+
                         RowLayout {
                             width: parent.width
+                            visible: !runTasks.visible
                             Label {
                                 Layout.fillWidth: true
                                 text: root.backingUp
@@ -634,6 +648,7 @@ Rectangle {
 
                         ProgressTrack {
                             width: parent.width
+                            visible: !runTasks.visible
                             implicitHeight: 8
                             from: 0
                             to: Math.max(1, root.progressTotal)
@@ -715,6 +730,12 @@ Rectangle {
                             }
                         }
 
+                        TaskProgressList {
+                            width: parent.width
+                            model: AppController.runner.tasks
+                            visible: count > 0
+                        }
+
                         PlanList {
                             width: parent.width
                             showRunState: true
@@ -787,6 +808,12 @@ Rectangle {
                                       .filter(function(s) { return s && s.length > 0 }).join("\n")
                         }
 
+                        TaskProgressList {
+                            width: parent.width
+                            model: AppController.runner.tasks
+                            visible: count > 0
+                        }
+
                         PlanList {
                             width: parent.width
                             visible: Object.keys(root.runStates).length > 0
@@ -825,7 +852,7 @@ Rectangle {
                                 variant: "primary"
                                 glyph: "refresh"
                                 text: qsTr("Retry")
-                                enabled: AppController.pendingCount > 0 && root.allIdle
+                                enabled: root.hasWork && root.allIdle
                                 onClicked: {
                                     root.dismissResult()
                                     AppController.runner.applyUpTo("")

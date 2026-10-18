@@ -14,6 +14,7 @@
 #pragma once
 
 #include "LogLevel.hpp"
+#include "Models/ProgressTaskModel.hpp"
 
 #include <atomic>
 #include <functional>
@@ -51,6 +52,9 @@ class MigrationRunner: public QObject
     Q_ENUM(Phase)
 
     Q_PROPERTY(Phase phase READ phase NOTIFY phaseChanged)
+    /// The tasks of the current or last run: its pre-migrate steps and, for an apply run, its migrations.
+    /// They stay after the run ended, failed rows included, until the next run (also a rollback) starts.
+    Q_PROPERTY(DbtoolGui::ProgressTaskModel* tasks READ tasks CONSTANT)
 
     /// Runs the plugins' post-migrate hooks against the manager it is given. Returns
     /// false when a hook failed, after reporting each failure through the log callback.
@@ -76,17 +80,26 @@ class MigrationRunner: public QObject
     /// @param hook Callable running the plugins' post-migrate hooks.
     void setPostMigrateHook(PostMigrateHook hook);
 
+    /// @return The tasks of the current or last run; cleared when the next run starts.
+    [[nodiscard]] ProgressTaskModel* tasks() noexcept
+    {
+        return &_tasks;
+    }
+
     /// Dry-run / apply up to an inclusive target timestamp. An empty or
     /// "0" target applies every pending migration — same semantics as
     /// `dbtool migrate`. Non-empty targets filter pending migrations to
-    /// those whose timestamp is `<= target`.
+    /// those whose timestamp is `<= target`. Both run the plugins'
+    /// pre-migrate steps first; the apply run holds the migration lock for
+    /// them, and a cancel or a failing step ends the run before any migration.
     Q_INVOKABLE void dryRunUpTo(QString const& targetTimestamp);
     Q_INVOKABLE void applyUpTo(QString const& targetTimestamp);
 
     /// Dry-run / apply the explicit list of migration timestamps. Only
     /// timestamps that are currently pending are acted on; already-applied
     /// timestamps are silently skipped. Used when the user has ticked
-    /// individual rows in the migration list.
+    /// individual rows in the migration list. The pre-migrate steps run first,
+    /// as for `dryRunUpTo` / `applyUpTo`.
     Q_INVOKABLE void dryRunSelected(QStringList const& timestamps);
     Q_INVOKABLE void applySelected(QStringList const& timestamps);
 
@@ -140,9 +153,14 @@ class MigrationRunner: public QObject
     /// @return True when it is safe to start a run.
     [[nodiscard]] bool CanStartMutatingRun(char const* what);
 
+    /// Starts a run on the GUI thread: Running, no cancel request, and the last run's tasks cleared.
+    void BeginRun();
+
     Lightweight::SqlMigration::MigrationManager* _manager = nullptr;
     std::function<bool()> _busyProbe;
     PostMigrateHook _postMigrateHook;
+    /// Declared before `_pool`, so the pool's queued work has finished before the model goes.
+    ProgressTaskModel _tasks;
     QThreadPool _pool;
     std::atomic<Phase> _phase { Phase::Idle };
     std::atomic<bool> _cancelRequested { false };

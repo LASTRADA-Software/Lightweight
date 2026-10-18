@@ -28,6 +28,8 @@ ColumnLayout {
     property real value: 0
     /// Total work; a value <= 0 means "not known yet" and the bar sweeps.
     property real to: 0
+    /// Whether the work failed; the title and the bar turn red.
+    property bool failed: false
 
     spacing: 6
 
@@ -39,7 +41,7 @@ ColumnLayout {
             Layout.fillWidth: true
             Layout.minimumWidth: 0
             text: root.title
-            color: Theme.clrOnSurface
+            color: root.failed ? Theme.clrError : Theme.clrOnSurface
             font.pixelSize: Theme.sizeBody
             font.weight: Font.DemiBold
             elide: Text.ElideRight
@@ -60,5 +62,6 @@ ColumnLayout {
         to: root.to
         value: root.value
         indeterminate: root.to <= 0
+        fillColor: root.failed ? Theme.clrErrorDot : Theme.clrPrimary
     }
 }

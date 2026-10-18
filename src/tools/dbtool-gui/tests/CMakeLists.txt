@@ -19,7 +19,9 @@ qt_add_executable(dbtool-gui-tests
     ManagedBackupCoreTests.cpp
     ManagedBackupControllerTests.cpp
     MigrationRunnerPostMigrateTests.cpp
+    MigrationRunnerPreMigrateTests.cpp
     NoErrorDialogsTests.cpp
+    ProgressTaskModelTests.cpp
     RunnerBusyGuardTests.cpp
 )
 
@@ -43,6 +45,13 @@ set_target_properties(dbtool-gui-tests PROPERTIES
     # clang-tidy policy — opt out, like the executable does.
     CXX_CLANG_TIDY ""
 )
+
+# The post-migrate recorder fixture, whose post-init hook registers a pre-migrate step; the
+# plugin-reload test checks that a reload while connected keeps it.
+target_compile_definitions(dbtool-gui-tests PRIVATE
+    DBTOOL_GUI_TESTS_PRE_MIGRATE_RECORDER_PLUGIN="$<TARGET_FILE:post_migrate_plugin>"
+)
+add_dependencies(dbtool-gui-tests post_migrate_plugin)
 
 # Embed a hand-written application manifest via an .rc RT_MANIFEST resource,
 # exactly like the `dbtool-gui` executable does (see ../CMakeLists.txt and

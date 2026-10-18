@@ -150,6 +150,8 @@ class AppController: public QObject
     Q_PROPERTY(int unknownCount READ unknownCount NOTIFY migrationsChanged)
     Q_PROPERTY(int checksumMismatchCount READ checksumMismatchCount NOTIFY migrationsChanged)
     Q_PROPERTY(int issuesCount READ issuesCount NOTIFY migrationsChanged)
+    /// Pre-migrate steps the plugins registered for the connected database; they run with the next apply.
+    Q_PROPERTY(int preMigrateStepCount READ preMigrateStepCount NOTIFY migrationsChanged)
     Q_PROPERTY(int selectionCount READ selectionCount NOTIFY selectionChanged)
 
     /// Human-readable label for the release that the DB is currently at.
@@ -305,6 +307,9 @@ class AppController: public QObject
     [[nodiscard]] int unknownCount() const;
     [[nodiscard]] int checksumMismatchCount() const;
     [[nodiscard]] int issuesCount() const;
+    /// @return The number of pre-migrate steps the plugins registered for the connected database;
+    ///         they run with the next apply.
+    [[nodiscard]] int preMigrateStepCount() const;
     [[nodiscard]] int selectionCount() const;
 
     [[nodiscard]] QString currentReleaseLabel() const;
@@ -535,6 +540,9 @@ class AppController: public QObject
     /// the reload as pending; the run's `finished` handler then performs it.
     void ReloadPlugins();
 
+    /// Runs the loaded plugins' post-init hooks on the migration connection, logging every failure.
+    void RunPostInitHooks();
+
     /// Drops the "connected" flag (emitting `connectedChanged`) without
     /// tearing down the underlying `SqlConnection` — those are reclaimed
     /// lazily by the pool. Call this whenever the property that identifies
@@ -592,6 +600,8 @@ class AppController: public QObject
     bool _installedMigrationLogSink = false;
     /// True when `ReloadPlugins` was refused during a migration run and must run once it finishes.
     bool _pluginReloadPending = false;
+    /// True while `connectToProfile` reloads the plugins; it runs the post-init hooks itself, on the new connection.
+    bool _connecting = false;
     QString _profilePath;
     QString _lastError;
     QString _lastWarning;

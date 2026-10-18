@@ -72,6 +72,8 @@ set(MIGRATIONS_GUI_CXX_SOURCES
     Models/OdbcDataSourceListModel.cpp
     Models/ProfileListModel.hpp
     Models/ProfileListModel.cpp
+    Models/ProgressTaskModel.hpp
+    Models/ProgressTaskModel.cpp
     Models/ReleaseListModel.hpp
     Models/ReleaseListModel.cpp
     Models/SqlResultModel.hpp
@@ -125,6 +127,7 @@ set(MIGRATIONS_GUI_QML_FILES
     qml/RunOutcome.qml
     qml/ConnectDialog.qml
     qml/RunFormat.qml
+    qml/TaskProgressList.qml
 )
 
 # A reusable QML module so the migrations view can be embedded by other Qt

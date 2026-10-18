@@ -153,6 +153,30 @@ namespace
         return QString::fromUtf8(msg.data(), static_cast<qsizetype>(msg.size()));
     }
 
+    /// Sets a flag for its lifetime and clears it again, also when the scope is left by an exception.
+    class ScopedFlag
+    {
+      public:
+        explicit ScopedFlag(bool& flag) noexcept:
+            _flag { flag }
+        {
+            _flag = true;
+        }
+
+        ScopedFlag(ScopedFlag const&) = delete;
+        ScopedFlag(ScopedFlag&&) = delete;
+        ScopedFlag& operator=(ScopedFlag const&) = delete;
+        ScopedFlag& operator=(ScopedFlag&&) = delete;
+
+        ~ScopedFlag()
+        {
+            _flag = false;
+        }
+
+      private:
+        bool& _flag;
+    };
+
     /// A profile's connection string with its password folded in.
     struct ProfileConnection
     {
@@ -768,7 +792,11 @@ bool AppController::connectToProfile()
     // `ReloadPlugins` here also guarantees the user always sees the latest
     // set of DLLs even if they dropped new ones into the directory between
     // clicks — same watcher-less "just rescan on action" semantics as dbtool.
-    ReloadPlugins();
+    // The post-init hooks run below, on the new connection, not on the one being replaced.
+    {
+        auto const connecting = ScopedFlag { _connecting };
+        ReloadPlugins();
+    }
 
     Lightweight::SqlConnectionString const defaultConnectionString { connectionString };
 
@@ -868,10 +896,7 @@ bool AppController::connectToProfile()
     // (`ApplySingleMigration` / `MarkMigrationAsApplied` / `RevertSingleMigration`),
     // so introspection-only connects against a fresh or unmanaged database
     // leave the schema untouched.
-    Lightweight::Tools::RunPluginPostInitHooks(
-        _plugins->entries, manager.GetDataMapper().Connection(), manager, [this](std::string_view message) {
-            LogError(QString::fromUtf8(message.data(), static_cast<int>(message.size())));
-        });
+    RunPostInitHooks();
 
     // `Refresh` reads `GetAppliedMigrationIds` which merges the plugin-supplied
     // overlay with whatever rows exist in `schema_migrations`. The accessor
@@ -902,6 +927,8 @@ bool AppController::connectToProfile()
     _backupRunner.setConnectionString(QString::fromStdString(connectionString));
 
     _connected = true;
+    // The rows of the last run belong to the previous connection.
+    _runner.tasks()->clear();
     _connectedMode = _connectionMode;
     _connectedTarget = _connectionMode == QStringLiteral("profile") ? _currentProfile
                        : _connectionMode == QStringLiteral("dsn")
@@ -954,6 +981,11 @@ int AppController::appliedCount() const
 int AppController::pendingCount() const
 {
     return CountWithStatus(_migrations, QStringLiteral("pending"));
+}
+
+int AppController::preMigrateStepCount() const
+{
+    return static_cast<int>(Lightweight::SqlMigration::MigrationManager::GetInstance().GetPreMigrateSteps().size());
 }
 
 int AppController::pendingUnreleasedCount() const
@@ -1439,6 +1471,9 @@ void AppController::InvalidateConnectionTarget()
     if (!_connected)
         return;
     _connected = false;
+    // The rows of a run in flight still update; those of a finished run belong to the old target.
+    if (_runner.phase() == MigrationRunner::Phase::Idle)
+        _runner.tasks()->clear();
     _connectedMode.clear();
     _connectedTarget.clear();
     emit connectedChanged();
@@ -1472,6 +1507,22 @@ void AppController::RefreshMigrationModelsAfterRun()
         }
     }
     emit migrationsChanged();
+}
+
+void AppController::RunPostInitHooks()
+{
+    auto& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
+    try
+    {
+        Lightweight::Tools::RunPluginPostInitHooks(
+            _plugins->entries, manager.GetDataMapper().Connection(), manager, [this](std::string_view message) {
+                LogError(QString::fromUtf8(message.data(), static_cast<int>(message.size())));
+            });
+    }
+    catch (std::exception const& e)
+    {
+        LogError(QStringLiteral("Plugin post-init hooks failed: %1").arg(ExceptionMessage(e)));
+    }
 }
 
 void AppController::ReloadPlugins()
@@ -1543,6 +1594,11 @@ void AppController::ReloadPlugins()
             ReportError(errorText);
         }
     }
+
+    // Unloading dropped what the post-init hooks registered on connect (pre-migrate steps, the
+    // virtual-applied overlay), so a reload while connected runs them again on the live connection.
+    if (_connected && !_connecting)
+        RunPostInitHooks();
 
     // When a connection is live, overlay applied status from schema_migrations;
     // otherwise show every plugin migration as "unknown" — we have not (yet)

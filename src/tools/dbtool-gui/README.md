@@ -151,6 +151,27 @@ Settings, else the default location. Adding a profile never changes the open
 connection or the selected profile, and is refused while a migration, backup or
 restore is running (the reload would reset the status those runs report into).
 
+### Task progress and pre-migrate steps
+
+A run shows its tasks as a list (`TaskProgressList.qml`, fed by
+`MigrationRunner.tasks`, a `ProgressTaskModel`): one row per pre-migrate step a
+plugin registered, indented rows for the units and tables a step reports, and a
+*Migrations* row for an apply run. A row without a total sweeps; a finished
+sub-task's row disappears, a finished top-level row stays until the next run
+(a rollback included) starts, and a failed row stays, red with its reason and
+stopped where it failed. The list stays on screen after the run, next to the
+Simple view's outcome and above the Expert view's *Apply*, and a failed task
+also writes `failed <task>: <reason>` to the log. The worker reports through
+queued calls, coalesced to one update per task every 50 ms.
+
+Every apply (Simple view *Run*, Expert view *Apply*, also with nothing pending)
+runs the steps first, on the migration connection under the migration lock; a dry
+run calls them in dry-run mode, without the lock, so they only report their
+plan. With steps registered and nothing pending, the Simple view offers *Run
+pre-migrate steps*. A step that throws fails the run before any migration.
+*Cancel* is checked before and after each step, and a step itself may stop
+between its units; a run cancelled during the steps applies no migration.
+
 ### Known limitations
 
 - **No archive retention / generations.** Exactly one archive exists per
