@@ -88,6 +88,7 @@ set(HEADER_FILES
     Zip/ZipError.hpp
 
     ImmortalInstance.hpp
+    ProgressTask.hpp
     SqlAdvisoryLock.hpp
     SqlConnectInfo.hpp
     SqlConnection.hpp

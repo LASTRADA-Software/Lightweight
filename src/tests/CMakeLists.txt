@@ -54,6 +54,7 @@ set(SOURCE_FILES
     ProfileFileEditorTests.cpp
     ProfilePasswordTests.cpp
     ProfileCipherTests.cpp
+    ProgressTaskTests.cpp
     SecretResolverTests.cpp
     DataMapper/BatchTests.cpp
     DataMapper/CreateTests.cpp
@@ -137,6 +138,7 @@ set(SOURCE_FILES
     dbtool/StandardProgressManagerTests.cpp
     dbtool/BackupDiffTests.cpp
     dbtool/CommandAccessTests.cpp
+    dbtool/TaskProgressRendererTests.cpp
     dbtool/UnicodeUpgradeReportTests.cpp
     UnicodeConverterTests.cpp
     Utils.cpp

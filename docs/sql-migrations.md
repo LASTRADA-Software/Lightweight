@@ -436,6 +436,17 @@ installed hook.
 `dbtool` exposes this via the `--schema` flag and `dbtool-gui` exposes it as
 a "Schema" input on both the Profile and the direct-ODBC connection tabs.
 
+### Progress reporting
+
+Long-running library calls report their work through `Lightweight::ProgressTask`, an interface the
+host (a CLI, a GUI) implements and passes in; the library only calls it. Tasks nest: a task opens
+sub-tasks with `BeginSubTask`, advances with `Advance`, and destroying a task marks it finished. A
+total of 0 makes a task indeterminate (the host shows that it runs, not how far it got). Long loops
+poll `IsCancellationRequested()` at safe points. `UnicodeUpgradeTables` and `RunPreMigrateSteps`
+take a `ProgressTask&`; `NullProgressTask` reports nothing and is never cancelled, for hosts that
+pass none. `dbtool` draws the task tree with its `--progress` styles. A task that fails calls
+`Fail(reason)` before it ends, so the host shows it as failed (a row that stays visible), not as done.
+
 ### Applying Migrations Programmatically
 
 ```cpp

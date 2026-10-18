@@ -15,6 +15,7 @@ module;
 #include "DataBinder/SqlRawColumn.hpp"
 #include "DataMapper/QueryBuilders.hpp"
 #include "Lightweight.hpp"
+#include "ProgressTask.hpp"
 #include "QueryFormatter/PostgreSqlFormatter.hpp"
 #include "QueryFormatter/SQLiteFormatter.hpp"
 #include "QueryFormatter/SqlServerFormatter.hpp"
@@ -106,6 +107,7 @@ using Lightweight::MapFromRecordFields;
 using Lightweight::MemberClassType;
 using Lightweight::MemberIndexOf;
 using Lightweight::NotSqlElements;
+using Lightweight::NullProgressTask;
 using Lightweight::ParseConnectionString;
 using Lightweight::ParseEncryptionMode;
 using Lightweight::PostgreSqlFormatter;
@@ -113,6 +115,7 @@ using Lightweight::PostgreSqlRetryOps;
 using Lightweight::PreparedStatementCacheCapacityDefault;
 using Lightweight::PreparedStatementCacheCapacitySuggested;
 using Lightweight::PrimaryKey;
+using Lightweight::ProgressTask;
 using Lightweight::QualifiedColumnName;
 using Lightweight::RecordColumnCount;
 using Lightweight::RecordColumnMember;

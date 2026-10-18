@@ -3,8 +3,12 @@ add_library(dbtool_lib STATIC
     BackupDiff.hpp
     CommandAccess.cpp
     CommandAccess.hpp
+    ProgressText.cpp
+    ProgressText.hpp
     StandardProgressManager.cpp
     StandardProgressManager.hpp
+    TaskProgressRenderer.cpp
+    TaskProgressRenderer.hpp
     UnicodeUpgradeReport.cpp
     UnicodeUpgradeReport.hpp
 )
