@@ -410,12 +410,18 @@ namespace SqlColumnTypeDefinitions
 namespace SqlMigration
 {
     using Lightweight::SqlMigration::ChecksumVerificationResult;
+    using Lightweight::SqlMigration::ExecutionMode;
     using Lightweight::SqlMigration::Migration;
     using Lightweight::SqlMigration::MigrationBase;
     using Lightweight::SqlMigration::MigrationManager;
     using Lightweight::SqlMigration::MigrationStatus;
     using Lightweight::SqlMigration::MigrationTimestamp;
     using Lightweight::SqlMigration::PostMigrateErrorSink;
+    using Lightweight::SqlMigration::PreMigrateStep;
+    using Lightweight::SqlMigration::PreMigrateStepError;
+    using Lightweight::SqlMigration::PreMigrateStepInfo;
+    using Lightweight::SqlMigration::PreMigrateStepOptions;
+    using Lightweight::SqlMigration::PreMigrateStepsOutcome;
     using Lightweight::SqlMigration::RevertResult;
 } // namespace SqlMigration
 

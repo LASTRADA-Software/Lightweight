@@ -54,6 +54,7 @@ set(SOURCE_FILES
     ProfileFileEditorTests.cpp
     ProfilePasswordTests.cpp
     ProfileCipherTests.cpp
+    PreMigrateStepTests.cpp
     ProgressTaskTests.cpp
     SecretResolverTests.cpp
     DataMapper/BatchTests.cpp

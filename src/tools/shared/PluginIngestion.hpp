@@ -123,7 +123,7 @@ struct PluginIngestOptions
                                                       PluginIngestOptions const& options = {});
 
 /// Unloads `plugins` once `central` no longer refers to them. `central` first drops its
-/// compat policy, migrations and releases, and closes its data mapper: the policy is a
+/// compat policy, pre-migrate steps, migrations and releases, and closes its data mapper: the policy is a
 /// `std::function` that a plugin's static initializer typically installs, and a plugin that
 /// links Lightweight statically fills the mapper with objects of its own copy of the library
 /// when a hook queries through it. Destroying either after the library is unloaded calls
@@ -146,6 +146,8 @@ void UnloadPlugins(std::vector<LoadedPlugin>& plugins, Lightweight::SqlMigration
 /// version-tracking schemes (e.g. SqlMigrationsPlugin's
 /// `LASTRADA_PROPERTIES` → virtual-applied overlay) once a live ODBC link
 /// exists and the merged migration manager is fully populated.
+///
+/// First removes every pre-migrate step, which the hooks register anew.
 ///
 /// Hooks that throw are reported through `logError` and skipped — a
 /// misbehaving plugin must not abort the host's startup or connect path.

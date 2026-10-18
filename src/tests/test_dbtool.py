@@ -344,6 +344,166 @@ def test_post_migrate_hook(base_cmd, dbtool, plugins_dir, connection_string):
             sys.exit(1)
 
 
+def test_pre_migrate_steps(base_cmd, dbtool, plugins_dir, connection_string):
+    """PostMigrateRecorderPlugin registers "Recorder step" when LIGHTWEIGHT_TEST_PRE_MIGRATE_LOG is set.
+    migrate, migrate-to-release and apply run it under the migration lock before their first migration
+    (also with nothing pending), dry runs call it with dryRun=1 and without the lock, read-only
+    commands never call it, and a step that throws stops the command before any migration."""
+    print("--- 15. pre-migrate steps run before the first migration, under the lock ---")
+    run_command(base_cmd + ["hard-reset", "--yes"])
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        log_path = os.path.join(tmpdir, "steps.log")
+
+        def run_logged(command, expected_exit=0, extra_env=None, cmd_prefix=base_cmd):
+            """Runs dbtool with the step log; `expected_exit` None accepts any exit code."""
+            if os.path.exists(log_path):
+                os.remove(log_path)
+            env = dict(os.environ, LIGHTWEIGHT_TEST_PRE_MIGRATE_LOG=log_path, LIGHTWEIGHT_TEST_POST_MIGRATE_LOG=log_path)
+            env.update(extra_env or {})
+            result = run_command(cmd_prefix + command, check=False, env=env)
+            if expected_exit is not None and result.returncode != expected_exit:
+                print(f"dbtool {' '.join(command)} exited {result.returncode}, expected {expected_exit}:\n"
+                      f"{result.stdout}\n{result.stderr}")
+                sys.exit(1)
+            lines = []
+            if os.path.exists(log_path):
+                with open(log_path, encoding="utf-8") as f:
+                    lines = [line.strip() for line in f if line.strip()]
+            return result, lines
+
+        cases = [
+            (["status"], []),
+            (["list-pending"], []),
+            (["releases"], []),
+            (["migrate", "--dry-run"], ["pre-migrate dryRun=1 pending=3 lock=free"]),
+            (["migrate-to-release", "1.0.0"],
+             ["pre-migrate dryRun=0 pending=3 lock=held", "post-migrate pending=1 lock=held"]),
+            (["migrate"], ["pre-migrate dryRun=0 pending=1 lock=held", "post-migrate pending=0 lock=held"]),
+            (["migrate"], ["pre-migrate dryRun=0 pending=0 lock=held", "post-migrate pending=0 lock=held"]),
+            (["rollback", "20230201000000"], []),
+            (["apply", "20230201000000"], ["pre-migrate dryRun=0 pending=1 lock=held", "post-migrate pending=0 lock=held"]),
+        ]
+        for command, expected in cases:
+            _, lines = run_logged(command)
+            if lines != expected:
+                print(f"dbtool {' '.join(command)}: step/hook log {lines}, expected {expected}")
+                sys.exit(1)
+
+        # A step that throws stops the command before its first migration.
+        run_command(base_cmd + ["hard-reset", "--yes"])
+        result, lines = run_logged(["migrate"], expected_exit=None, extra_env={"LIGHTWEIGHT_TEST_PRE_MIGRATE_FAIL": "1"})
+        if result.returncode == 0:
+            print("migrate with a failing pre-migrate step unexpectedly succeeded")
+            sys.exit(1)
+        if 'Pre-migrate step "Recorder step" failed: pre-migrate failure requested' not in result.stderr:
+            print(f"the failing step was not reported:\n{result.stderr}")
+            sys.exit(1)
+        if "failed Recorder step" not in result.stdout or "done Recorder step" in result.stdout:
+            print(f"the failing step did not end as failed:\n{result.stdout}")
+            sys.exit(1)
+        if lines != ["pre-migrate dryRun=0 pending=3 lock=held"]:
+            print(f"a failed step still reached the migrations or the post-migrate hook: {lines}")
+            sys.exit(1)
+        if "Initial Migration" not in run_command(base_cmd + ["list-pending"]).stdout:
+            print("a migration was applied although the pre-migrate step failed")
+            sys.exit(1)
+
+        # With a step, the step and the migrations render as tasks.
+        result, _ = run_logged(["migrate", "--progress", "logline"])
+        for fragment in ("begin Recorder step", "done Recorder step", "begin Migrations"):
+            if fragment not in result.stdout:
+                print(f"migrate --progress logline lacks '{fragment}':\n{result.stdout}")
+                sys.exit(1)
+
+        # A migration that throws ends the "Migrations" task as failed, not as done.
+        plugin_extensions = (".dll", ".so", ".dylib")
+        failing = next((name for name in os.listdir(plugins_dir)
+                        if name.startswith("FailingMigrationFixture.") and name.endswith(plugin_extensions)), None)
+        if failing is None:
+            print(f"FailingMigrationFixture not found under {plugins_dir}")
+            sys.exit(1)
+        failing_dir = os.path.join(tmpdir, "failing-plugins")
+        os.makedirs(failing_dir)
+        for name in os.listdir(plugins_dir):
+            stem, extension = os.path.splitext(name)
+            if extension in plugin_extensions and stem.lower().endswith("plugin"):
+                shutil.copy2(os.path.join(plugins_dir, name), os.path.join(failing_dir, name))
+        shutil.copy2(os.path.join(plugins_dir, failing),
+                     os.path.join(failing_dir, "FailingMigrationPlugin" + os.path.splitext(failing)[1]))
+        failing_cmd = [dbtool, "--plugins-dir", failing_dir, "--connection-string", connection_string]
+        try:
+            run_command(base_cmd + ["hard-reset", "--yes"])
+            result, _ = run_logged(["migrate", "--progress", "logline"], expected_exit=None, cmd_prefix=failing_cmd)
+            if result.returncode == 0:
+                print("migrate with a failing migration unexpectedly succeeded")
+                sys.exit(1)
+            if "failed Migrations" not in result.stdout or "done Migrations" in result.stdout:
+                print(f"the failing migration did not end the Migrations task as failed:\n{result.stdout}")
+                sys.exit(1)
+        finally:
+            # The failing fixture cannot be reset through its own plugins; the plain ones drop everything.
+            run_command(base_cmd + ["hard-reset", "--yes"], check=False)
+        run_command(base_cmd + ["migrate"])
+
+        # A dry run draws its tasks to stderr, so stdout stays the plan.
+        result, _ = run_logged(["migrate", "--dry-run"])
+        if "begin " in result.stdout or "done " in result.stdout:
+            print(f"migrate --dry-run wrote task lines to stdout:\n{result.stdout}")
+            sys.exit(1)
+        if "begin Recorder step" not in result.stderr:
+            print(f"migrate --dry-run did not render the step on stderr:\n{result.stderr}")
+            sys.exit(1)
+
+        # The default animated style falls back to log lines when stdout is not a terminal.
+        run_command(base_cmd + ["hard-reset", "--yes"])
+        result, _ = run_logged(["migrate"])
+        if "\x1b" in result.stdout:
+            print(f"migrate wrote escape sequences to a piped stdout:\n{result.stdout!r}")
+            sys.exit(1)
+        if "begin Recorder step" not in result.stdout:
+            print(f"migrate on a piped stdout did not fall back to log lines:\n{result.stdout}")
+            sys.exit(1)
+
+        # Without steps, apply prints only its summary line, no per-migration line.
+        run_command(base_cmd + ["hard-reset", "--yes"])
+        run_command(base_cmd + ["migrate"])
+        run_command(base_cmd + ["rollback", "20230201000000"])
+        applied_plain = run_command(base_cmd + ["apply", "20230201000000"])
+        if "[1/1]" in applied_plain.stdout or "Applied migration 20230201000000" not in applied_plain.stdout:
+            print(f"apply without steps printed an unexpected output:\n{applied_plain.stdout}")
+            sys.exit(1)
+
+        # With a step registered, --quiet still prints the manager's own messages.
+
+        def fixture_named(prefix):
+            return next((name for name in os.listdir(plugins_dir)
+                         if name.startswith(prefix) and name.endswith(plugin_extensions)), None)
+
+        recorder = fixture_named("PostMigrateRecorderPlugin.")
+        seed = fixture_named("SeedRowFixture.")
+        if recorder is None or seed is None:
+            print(f"PostMigrateRecorderPlugin or SeedRowFixture not found under {plugins_dir}")
+            sys.exit(1)
+        seed_dir = os.path.join(tmpdir, "seed-plugins")
+        os.makedirs(seed_dir)
+        shutil.copy2(os.path.join(plugins_dir, recorder), os.path.join(seed_dir, recorder))
+        shutil.copy2(os.path.join(plugins_dir, seed),
+                     os.path.join(seed_dir, "SeedRowPlugin" + os.path.splitext(seed)[1]))
+        seed_cmd = [dbtool, "--plugins-dir", seed_dir, "--connection-string", connection_string]
+        try:
+            run_command(seed_cmd + ["hard-reset", "--yes"])
+            run_logged(["migrate"], cmd_prefix=seed_cmd)
+            run_command(seed_cmd + ["rollback", "20240301000001"])
+            run_command(seed_cmd + ["exec", """INSERT INTO "Categories" ("Id", "Name") VALUES (200, 'pre-existing')"""])
+            result, _ = run_logged(["migrate", "--quiet"], cmd_prefix=seed_cmd)
+            if "Skipped existing row:" not in result.stdout:
+                print(f"migrate --quiet with a pre-migrate step lost the manager's message:\n{result.stdout}")
+                sys.exit(1)
+        finally:
+            run_command(seed_cmd + ["hard-reset", "--yes"], check=False)
+
+
 def with_sqlite_database(connection_string, database_path):
     """The SQLite connection string with its Database= attribute replaced by `database_path`."""
     parts = [part for part in connection_string.split(";")
@@ -363,7 +523,7 @@ def test_target_precedence(dbtool, plugins_dir, connection_string):
     that write refuse the discovered target and leave A untouched, while read-only ones
     may still use it unless a loaded plugin has a post-init hook. SQLite only. The tree's
     own dbtool.yml stops the upward walk before any dbtool.yml above the temp directory."""
-    print("--- 15. a discovered defaultProfile never receives a write ---")
+    print("--- 16. a discovered defaultProfile never receives a write ---")
     with tempfile.TemporaryDirectory() as tmpdir:
         # The long form: dbtool prints discovered paths canonically, without 8.3 short names.
         tmpdir = os.path.realpath(tmpdir)
@@ -524,7 +684,7 @@ def test_exit_code_after_compat_policy_plugin(dbtool, plugins_dir, connection_st
     """A plugin that installs a compat policy at load time, as an application's migration
     plugin may, must not crash dbtool on exit: the process returns the command's own exit code,
     also when a later plugin fails to load."""
-    print("--- 16. dbtool exits with the command's exit code after loading a compat-policy plugin ---")
+    print("--- 17. dbtool exits with the command's exit code after loading a compat-policy plugin ---")
     plugin_extensions = (".dll", ".so", ".dylib")
     fixture = next((name for name in os.listdir(plugins_dir)
                     if name.startswith("CompatPolicyFixture.") and name.endswith(plugin_extensions)), None)
@@ -749,7 +909,7 @@ def test_skipped_seed_rows(base_cmd, dbtool, plugins_dir, connection_string):
     their summary line, exit 0, and leave the existing row as it was. Rows that are inserted,
     the first statement of the migration included, are never reported (dbtool holds its
     migration lock while it migrates)."""
-    print("--- 17. IfNotExists inserts skip and report existing rows ---")
+    print("--- 18. IfNotExists inserts skip and report existing rows ---")
     run_command(base_cmd + ["hard-reset", "--yes"])
 
     plugin_extensions = (".dll", ".so", ".dylib")
@@ -1338,6 +1498,8 @@ def main():
     test_multi_schema_backup(args.dbtool, args.plugins_dir, connection_string, is_sqlite)
 
     test_post_migrate_hook(base_cmd, args.dbtool, args.plugins_dir, connection_string)
+
+    test_pre_migrate_steps(base_cmd, args.dbtool, args.plugins_dir, connection_string)
 
     if is_sqlite:
         test_target_precedence(args.dbtool, args.plugins_dir, connection_string)

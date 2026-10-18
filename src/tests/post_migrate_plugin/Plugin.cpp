@@ -5,7 +5,8 @@
 // LIGHTWEIGHT_TEST_POST_MIGRATE_LOG / LIGHTWEIGHT_TEST_POST_INIT_LOG, so
 // test_dbtool.py can count the calls per dbtool command. Without those
 // variables the hooks do nothing, which keeps the plugin inert for every other
-// test sharing the plugins directory.
+// test sharing the plugins directory. With LIGHTWEIGHT_TEST_PRE_MIGRATE_LOG set, its post-init hook
+// registers the pre-migrate step "Recorder step", which appends one line per call to that file.
 
 #include <Lightweight/SqlAdvisoryLock.hpp>
 #include <Lightweight/SqlConnection.hpp>
@@ -19,6 +20,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 
 #if defined(_MSC_VER)
     // C4996 flags getenv as unsafe; the plugin only reads test-harness variables.
@@ -51,12 +53,47 @@ std::string MigrationLockState(SqlConnection const& connection)
     return "error: " + probe.error().message;
 }
 
+/// Registers "Recorder step" when LIGHTWEIGHT_TEST_PRE_MIGRATE_LOG names a file: it logs its execution
+/// mode, the pending count and the lock state, needs a backup with
+/// LIGHTWEIGHT_TEST_PRE_MIGRATE_REQUIRES_BACKUP and throws with LIGHTWEIGHT_TEST_PRE_MIGRATE_FAIL.
+void RegisterRecorderStep(SqlMigration::MigrationManager& manager)
+{
+    auto logPath = std::string { Environment("LIGHTWEIGHT_TEST_PRE_MIGRATE_LOG") };
+    if (logPath.empty())
+        return;
+    auto options = SqlMigration::PreMigrateStepOptions {
+        .requiresBackup =
+            [](SqlConnection&, SqlMigration::MigrationManager&) {
+                return !Environment("LIGHTWEIGHT_TEST_PRE_MIGRATE_REQUIRES_BACKUP").empty();
+            },
+    };
+    manager.AddPreMigrateStep("Recorder step",
+                              std::move(options),
+                              [logPath = std::move(logPath)](SqlConnection& connection,
+                                                             SqlMigration::MigrationManager& stepManager,
+                                                             ProgressTask& progress,
+                                                             SqlMigration::ExecutionMode mode) {
+                                  progress.Advance(0, "recording");
+                                  {
+                                      auto log = std::ofstream { logPath, std::ios::app };
+                                      log << std::format("pre-migrate dryRun={} pending={} lock={}\n",
+                                                         mode == SqlMigration::ExecutionMode::DryRun ? 1 : 0,
+                                                         stepManager.GetPending().size(),
+                                                         MigrationLockState(connection));
+                                  }
+                                  if (!Environment("LIGHTWEIGHT_TEST_PRE_MIGRATE_FAIL").empty())
+                                      throw std::runtime_error(
+                                          "pre-migrate failure requested by LIGHTWEIGHT_TEST_PRE_MIGRATE_FAIL");
+                              });
+}
+
 } // namespace
 
 LIGHTWEIGHT_MIGRATION_PLUGIN()
 
 LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connection, manager)
 {
+    RegisterRecorderStep(manager);
     static_cast<void>(connection);
     auto const logPath = Environment("LIGHTWEIGHT_TEST_POST_INIT_LOG");
     if (logPath.empty())

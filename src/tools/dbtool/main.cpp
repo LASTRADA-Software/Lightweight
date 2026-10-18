@@ -3,7 +3,9 @@
 #include "BackupDiff.hpp"
 #include "CommandAccess.hpp"
 #include "Lightweight/SqlConnectInfo.hpp"
+#include "ProgressText.hpp"
 #include "StandardProgressManager.hpp"
+#include "TaskProgressRenderer.hpp"
 #include "UnicodeUpgradeReport.hpp"
 
 #include <Lightweight/DataMapper/DataMapper.hpp>
@@ -28,6 +30,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <optional>
 #include <print>
 #include <ranges>
@@ -1433,9 +1436,179 @@ std::string SkippedRowsSuffix(MigrationManager const& manager, std::size_t skipp
     return std::format(", skipped {} existing row(s)", skipped);
 }
 
-int Migrate(MigrationManager& manager, bool dryRun)
+/// Prints the manager's status messages to stdout, dbtool's historical output.
+void InstallStdoutLogSink(MigrationManager& manager)
 {
-    if (dryRun)
+    manager.SetLogSink([](std::string_view message) { std::println("{}", message); });
+}
+
+/// The task renderer of a migrating command, drawing as `--progress` (or `--quiet`) says.
+///
+/// Output that is not a terminal gets log lines, since the animated styles write cursor escapes.
+/// A dry run draws to stderr, so its stdout stays the SQL plan.
+class CommandProgress
+{
+  public:
+    explicit CommandProgress(Options const& options)
+    {
+        auto const requested = [&] {
+            switch (options.progressType)
+            {
+                case ProgressType::Unicode:
+                    return Tools::TaskProgressStyle::Unicode;
+                case ProgressType::Ascii:
+                    return Tools::TaskProgressStyle::Ascii;
+                case ProgressType::Loglines:
+                    return Tools::TaskProgressStyle::LogLine;
+                case ProgressType::None:
+                    return Tools::TaskProgressStyle::None;
+            }
+            std::unreachable();
+        }();
+        auto& stream = options.dryRun ? std::cerr : std::cout;
+        auto const destination = Tools::DestinationOf(stream);
+        auto const animated = requested == Tools::TaskProgressStyle::Unicode || requested == Tools::TaskProgressStyle::Ascii;
+        _style = animated && destination == Tools::ProgressDestination::NotTerminal ? Tools::TaskProgressStyle::LogLine
+                                                                                    : requested;
+        _renderer = std::make_unique<Tools::TaskProgressRenderer>(_style, stream, destination);
+    }
+
+    /// @return The task the command reports to.
+    [[nodiscard]] ProgressTask& Task() const noexcept
+    {
+        return *_renderer;
+    }
+
+    /// @return True when the manager's messages must go through the task to not break the bars.
+    [[nodiscard]] bool RoutesMessagesThroughTask() const noexcept
+    {
+        return _style == Tools::TaskProgressStyle::Unicode || _style == Tools::TaskProgressStyle::Ascii;
+    }
+
+    /// Ends the rendering, so the command can print below the final frame.
+    void Finish() noexcept
+    {
+        _renderer.reset();
+    }
+
+  private:
+    Tools::TaskProgressStyle _style = Tools::TaskProgressStyle::None;
+    std::unique_ptr<Tools::TaskProgressRenderer> _renderer;
+};
+
+/// Routes the manager's status messages through a task while it lives, so they print above the task
+/// bars instead of breaking them; the stdout sink comes back afterwards.
+class ScopedProgressLogSink
+{
+  public:
+    ScopedProgressLogSink(MigrationManager& manager, ProgressTask& progress):
+        _manager { manager }
+    {
+        _manager.SetLogSink([&progress](std::string_view message) { progress.Log(ProgressTask::LogLevel::Info, message); });
+    }
+    ScopedProgressLogSink(ScopedProgressLogSink const&) = delete;
+    ScopedProgressLogSink(ScopedProgressLogSink&&) = delete;
+    ScopedProgressLogSink& operator=(ScopedProgressLogSink const&) = delete;
+    ScopedProgressLogSink& operator=(ScopedProgressLogSink&&) = delete;
+    ~ScopedProgressLogSink()
+    {
+        InstallStdoutLogSink(_manager);
+    }
+
+  private:
+    MigrationManager& _manager;
+};
+
+/// Runs the pre-migrate steps of a migrating command, when there are any.
+/// @return True to go on with the migrations.
+[[nodiscard]] bool RunPreMigrateStepsOf(MigrationManager& manager, CommandProgress const& progress, ExecutionMode mode)
+{
+    if (manager.GetPreMigrateSteps().empty())
+        return true;
+    auto const sink =
+        progress.RoutesMessagesThroughTask() ? std::make_unique<ScopedProgressLogSink>(manager, progress.Task()) : nullptr;
+    return manager.RunPreMigrateSteps(progress.Task(), mode) == PreMigrateStepsOutcome::Completed;
+}
+
+/// The applying phase of a migrating command. Without pre-migrate steps it prints the historical
+/// `[i/n] Applying ...` lines; with steps it shows a "Migrations" task that names each migration
+/// before it is applied, and routes the manager's messages like `RunPreMigrateStepsOf`.
+class MigrationsPhase
+{
+  public:
+    MigrationsPhase(MigrationManager& manager, CommandProgress const& progress)
+    {
+        if (manager.GetPreMigrateSteps().empty())
+            return;
+        if (progress.RoutesMessagesThroughTask())
+            _sink = std::make_unique<ScopedProgressLogSink>(manager, progress.Task());
+        _task = progress.Task().BeginSubTask("Migrations", 0);
+    }
+
+    /// Reports that migration @p index of @p count is about to be applied.
+    void Starting(MigrationBase const& migration, std::size_t index, std::size_t count)
+    {
+        if (!_task)
+        {
+            std::println("[{}/{}] Applying {} {}", index + 1, count, migration.GetTimestamp().value, migration.GetTitle());
+            return;
+        }
+        if (index == 0)
+            _task->SetTotal(count);
+        _task->Advance(index == 0 ? 0 : 1, std::format("{} {}", migration.GetTimestamp().value, migration.GetTitle()));
+    }
+
+    /// Names the only migration of a command that applies a single one; prints nothing without a task.
+    void StartingSingle(MigrationBase const& migration)
+    {
+        if (!_task)
+            return;
+        _task->SetTotal(1);
+        _task->Advance(0, std::format("{} {}", migration.GetTimestamp().value, migration.GetTitle()));
+    }
+
+    /// Marks the last started migration done.
+    void Done()
+    {
+        if (_task)
+            _task->Advance(1);
+    }
+
+    /// Runs @p apply; when it throws, marks the task failed with the error and rethrows.
+    /// @return What @p apply returns.
+    template <typename Apply>
+    decltype(auto) Run(Apply&& apply)
+    {
+        try
+        {
+            return std::forward<Apply>(apply)();
+        }
+        catch (std::exception const& error)
+        {
+            if (_task)
+                _task->Fail(error.what());
+            throw;
+        }
+    }
+
+    /// Ends the task and restores the stdout sink, so the command can print its summary.
+    void Close()
+    {
+        _task.reset();
+        _sink.reset();
+    }
+
+  private:
+    std::unique_ptr<ScopedProgressLogSink> _sink;
+    std::unique_ptr<ProgressTask> _task;
+};
+
+int Migrate(MigrationManager& manager, CommandProgress const& progress, ExecutionMode mode)
+{
+    if (!RunPreMigrateStepsOf(manager, progress, mode))
+        return EXIT_FAILURE;
+
+    if (mode == ExecutionMode::DryRun)
     {
         std::println("-- Dry run: Showing SQL statements that would be executed\n");
         auto statements = manager.PreviewPendingMigrations([](MigrationBase const& m, size_t i, size_t n) {
@@ -1457,9 +1630,14 @@ int Migrate(MigrationManager& manager, bool dryRun)
 
     std::println("Applying pending migrations...");
     auto const skippedBefore = manager.SkippedExistingRowCount();
-    size_t count = manager.ApplyPendingMigrations([](MigrationBase const& m, size_t i, size_t n) {
-        std::println("[{}/{}] Applying {} {}", i + 1, n, m.GetTimestamp().value, m.GetTitle());
+    auto phase = MigrationsPhase { manager, progress };
+    size_t const count = phase.Run([&] {
+        return manager.ApplyPendingMigrations(
+            [&phase](MigrationBase const& m, size_t i, size_t n) { phase.Starting(m, i, n); });
     });
+    if (count > 0)
+        phase.Done();
+    phase.Close();
     if (count == 0)
         std::println("Database is already up to date. No migrations to apply.");
     else
@@ -1478,11 +1656,18 @@ int ExitCodeOf(std::expected<int, std::string> const& result)
     return EXIT_FAILURE;
 }
 
-int ApplyMigration(MigrationManager& manager, std::string_view argument)
+int ApplyMigration(MigrationManager& manager, CommandProgress const& progress, std::string_view argument)
 {
-    return ExitCodeOf(GetMigration(manager, argument).and_then([&manager](MigrationBase const* migration) {
+    return ExitCodeOf(GetMigration(manager, argument).and_then([&manager, &progress](MigrationBase const* migration) {
+        if (!RunPreMigrateStepsOf(manager, progress, ExecutionMode::Execute))
+            return std::expected<int, std::string> { EXIT_FAILURE };
         auto const skippedBefore = manager.SkippedExistingRowCount();
-        manager.ApplySingleMigration(*migration);
+        {
+            auto phase = MigrationsPhase { manager, progress };
+            phase.StartingSingle(*migration);
+            phase.Run([&] { manager.ApplySingleMigration(*migration); });
+            phase.Done();
+        }
         std::println("Applied migration {}{}.", migration->GetTimestamp().value, SkippedRowsSuffix(manager, skippedBefore));
         return std::expected<int, std::string> { EXIT_SUCCESS };
     }));
@@ -1920,9 +2105,12 @@ int Releases(MigrationManager& manager)
 ///
 /// @param manager The migration manager instance.
 /// @param argument The target release version string.
-/// @param dryRun When true, print the SQL that would be executed without touching the database.
+/// @param mode With `DryRun`, print the SQL that would be executed without touching the database.
 /// @return EXIT_SUCCESS on success, EXIT_FAILURE on error.
-int MigrateToRelease(MigrationManager& manager, std::string_view argument, bool dryRun)
+int MigrateToRelease(MigrationManager& manager,
+                     CommandProgress const& progress,
+                     std::string_view argument,
+                     ExecutionMode mode)
 {
     if (argument.empty())
     {
@@ -1950,7 +2138,10 @@ int MigrateToRelease(MigrationManager& manager, std::string_view argument, bool 
         return EXIT_SUCCESS;
     }
 
-    if (dryRun)
+    if (!RunPreMigrateStepsOf(manager, progress, mode))
+        return EXIT_FAILURE;
+
+    if (mode == ExecutionMode::DryRun)
     {
         std::println("-- Dry run: SQL that would be executed up to release '{}' (timestamp {})\n",
                      release->version,
@@ -1977,10 +2168,14 @@ int MigrateToRelease(MigrationManager& manager, std::string_view argument, bool 
                  release->version,
                  release->highestTimestamp.value);
     auto const skippedBefore = manager.SkippedExistingRowCount();
-    size_t const count =
-        manager.ApplyPendingMigrationsUpTo(release->highestTimestamp, [](MigrationBase const& m, size_t i, size_t n) {
-            std::println("[{}/{}] Applying {} {}", i + 1, n, m.GetTimestamp().value, m.GetTitle());
-        });
+    auto phase = MigrationsPhase { manager, progress };
+    size_t const count = phase.Run([&] {
+        return manager.ApplyPendingMigrationsUpTo(
+            release->highestTimestamp, [&phase](MigrationBase const& m, size_t i, size_t n) { phase.Starting(m, i, n); });
+    });
+    if (count > 0)
+        phase.Done();
+    phase.Close();
     std::println(
         "Applied {} migration(s) up to release '{}'{}.", count, argument, SkippedRowsSuffix(manager, skippedBefore));
     return EXIT_SUCCESS;
@@ -3023,7 +3218,7 @@ MigrationManager& GetMigrationManager(Options const& options)
         // "Transitioning from LASTRADA_PROPERTIES …" line) to stdout so the
         // historical CLI output is preserved exactly. dbtool-gui installs its
         // own sink that routes through `qInfo`.
-        manager.SetLogSink([](std::string_view message) { std::println("{}", message); });
+        InstallStdoutLogSink(manager);
 
         // Run optional plugin post-init hooks. Each plugin may export a
         // `LightweightMigrationPluginPostInit(SqlConnection&, MigrationManager&)`
@@ -3080,6 +3275,12 @@ void WarnIfAllSchemasIgnored(Options const& options)
         std::println(std::cerr, "Warning: --all-schemas applies to backup only; {} ignores it.", options.command);
 }
 
+/// @return `DryRun` when the command only previews, else `Execute`.
+ExecutionMode ExecutionModeOf(Options const& options)
+{
+    return options.dryRun ? ExecutionMode::DryRun : ExecutionMode::Execute;
+}
+
 /// Dispatches a DB-connected command to its handler. Assumes the caller has
 /// already established the ODBC connection via `SetupConnectionString`.
 int DispatchDbCommand(Options const& options)
@@ -3097,7 +3298,10 @@ int DispatchDbCommand(Options const& options)
     {
         auto& manager = GetMigrationManager(options);
         OptionalScopedLock const lock(manager, options.noLock || options.dryRun);
-        return RunPostMigrateHooks(manager, Migrate(manager, options.dryRun), options.dryRun);
+        auto progress = CommandProgress { options };
+        auto const exitCode = Migrate(manager, progress, ExecutionModeOf(options));
+        progress.Finish();
+        return RunPostMigrateHooks(manager, exitCode, options.dryRun);
     }
     if (options.command == "apply")
     {
@@ -3108,7 +3312,10 @@ int DispatchDbCommand(Options const& options)
         }
         auto& manager = GetMigrationManager(options);
         OptionalScopedLock const lock(manager, options.noLock);
-        return RunPostMigrateHooks(manager, ApplyMigration(manager, options.argument), /*dryRun=*/false);
+        auto progress = CommandProgress { options };
+        auto const exitCode = ApplyMigration(manager, progress, options.argument);
+        progress.Finish();
+        return RunPostMigrateHooks(manager, exitCode, /*dryRun=*/false);
     }
     if (options.command == "rollback")
     {
@@ -3132,7 +3339,10 @@ int DispatchDbCommand(Options const& options)
     {
         auto& manager = GetMigrationManager(options);
         OptionalScopedLock const lock(manager, options.noLock || options.dryRun);
-        return RunPostMigrateHooks(manager, MigrateToRelease(manager, options.argument, options.dryRun), options.dryRun);
+        auto progress = CommandProgress { options };
+        auto const exitCode = MigrateToRelease(manager, progress, options.argument, ExecutionModeOf(options));
+        progress.Finish();
+        return RunPostMigrateHooks(manager, exitCode, options.dryRun);
     }
     if (options.command == "mark-applied")
     {

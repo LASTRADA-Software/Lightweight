@@ -347,6 +347,8 @@ Use `--dry-run` to preview SQL without executing:
 dbtool migrate --dry-run --connection-string "..."
 ```
 
+Plugins may register [pre-migrate steps](#optional-pre-migrate-steps) that run before the first migration.
+
 On success, `migrate` prints a status summary (registered, applied, pending,
 latest release, checksum verdict) so you can confirm the database's current
 state in a single command. If there are no pending migrations, it explicitly
@@ -998,13 +1000,36 @@ the remaining plugins' hooks still run. The macro exports a non-throwing entry p
 that catches the exception inside the plugin, so it never crosses the shared-library
 boundary.
 
+### Optional Pre-Migrate Steps
+
+A plugin may register steps from its post-init hook with
+`manager.AddPreMigrateStep(title, options, step)` (see
+[Pre-migrate steps](sql-migrations.md#pre-migrate-steps)). `migrate`, `apply` and
+`migrate-to-release` run them in registration order before their first migration, also when
+nothing is pending, on the migration connection and under the migration lock (with `--no-lock` no
+lock is taken). With `--dry-run` the steps are called in dry-run mode: they report their plan, change
+nothing and run without the lock. Read-only commands, rollbacks and `mark-applied` never run them.
+
+A step that throws stops the command before any migration is applied and `dbtool` exits non-zero
+with `Pre-migrate step "<title>" failed: <message>`; the post-migrate hooks do not run. The failed
+step shows as failed, not done: a cross mark (`unicode`), `x` (`ascii`) or a `failed ...` line (`loglines`).
+
+Without registered steps the commands print exactly what they print without this feature. With steps,
+the steps and the migrations render as tasks according to `--progress`: `unicode` and `ascii` draw bars
+that repaint in place, `loglines` prints one line per event, and `--quiet` draws nothing. When stdout
+is not a terminal the animated styles fall back to log lines, so a redirected run or a CI log holds
+no cursor escape sequences. In bar mode the manager's own messages (for example
+`Skipped existing row: ...`) print above the bars with an `info ` prefix; with `loglines`,
+`--quiet` or a redirected stdout they print as they do without steps. A dry run draws its tasks to
+stderr as log lines, whatever `--progress` says, so `dbtool migrate --dry-run > plan.sql` keeps only the SQL and its `--` comments.
+
 ### Plugin Lifetime
 
 `dbtool` keeps its plugins loaded until it exits; `dbtool-gui` also unloads them when it
 reloads the plugin list (another profile or plugins directory). Before either unloads a
 plugin, and also when a later plugin fails to load, the migration manager drops what the
 plugins gave it: the compat policy (`SetCompatPolicy`, usually installed from a plugin's
-static initializer), the migrations and the releases. The process then exits with the
+static initializer), the pre-migrate steps, the migrations and the releases. The process then exits with the
 command's own exit code.
 
 Anything else a plugin installs process-wide — a callback on the migration manager or the

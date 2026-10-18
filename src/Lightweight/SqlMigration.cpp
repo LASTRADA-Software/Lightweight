@@ -368,6 +368,60 @@ std::size_t MigrationManager::SkippedExistingRowCount() const noexcept
     return _skippedExistingRowCount;
 }
 
+void MigrationManager::AddPreMigrateStep(std::string title, PreMigrateStepOptions options, PreMigrateStep step)
+{
+    if (!step)
+        throw std::invalid_argument(std::format("Pre-migrate step \"{}\" has no code.", title));
+    if (std::ranges::contains(_preMigrateSteps, title, &RegisteredPreMigrateStep::title))
+        throw std::invalid_argument(std::format("Duplicate pre-migrate step \"{}\".", title));
+    _preMigrateSteps.push_back({ .title = std::move(title), .options = std::move(options), .run = std::move(step) });
+}
+
+std::vector<PreMigrateStepInfo> MigrationManager::GetPreMigrateSteps() const
+{
+    auto steps = std::vector<PreMigrateStepInfo> {};
+    steps.reserve(_preMigrateSteps.size());
+    for (auto const& step: _preMigrateSteps)
+        steps.push_back(
+            { .title = step.title, .declaresBackupRequirement = static_cast<bool>(step.options.requiresBackup) });
+    return steps;
+}
+
+void MigrationManager::RemoveAllPreMigrateSteps() noexcept
+{
+    _preMigrateSteps.clear();
+}
+
+PreMigrateStepsOutcome MigrationManager::RunPreMigrateSteps(ProgressTask& parent, ExecutionMode mode)
+{
+    // A copy: a step that registers or removes steps must not invalidate this loop.
+    auto const steps = _preMigrateSteps;
+    if (steps.empty())
+        return PreMigrateStepsOutcome::Completed;
+    auto& connection = GetDataMapper().Connection();
+    for (auto const& step: steps)
+    {
+        if (parent.IsCancellationRequested())
+            return PreMigrateStepsOutcome::Cancelled;
+        auto const task = parent.BeginSubTask(step.title, 0);
+        try
+        {
+            step.run(connection, *this, *task, mode);
+        }
+        catch (std::exception const& error)
+        {
+            task->Fail(error.what());
+            throw PreMigrateStepError(step.title, error.what());
+        }
+        catch (...)
+        {
+            task->Fail("unknown exception");
+            throw PreMigrateStepError(step.title, "unknown exception");
+        }
+    }
+    return parent.IsCancellationRequested() ? PreMigrateStepsOutcome::Cancelled : PreMigrateStepsOutcome::Completed;
+}
+
 namespace
 {
     /// @brief Renders a key value of a skipped-row line: numbers bare, anything else single-quoted.

@@ -102,6 +102,9 @@ A plugin can also export two optional hooks, described in
 | `LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connection, manager)` | before every dbtool command, read-only ones included; failures are logged only |
 | `LIGHTWEIGHT_MIGRATION_PLUGIN_POSTMIGRATE(connection, manager)` | after a successful `migrate` / `migrate-to-release` / `apply`, under the migration lock; a failure fails the command |
 
+The post-init hook may also call `manager.AddPreMigrateStep(...)` to register work that runs before
+the first migration; see [Pre-migrate steps](#pre-migrate-steps).
+
 ## Table Operations
 
 ### CreateTable
@@ -446,6 +449,52 @@ poll `IsCancellationRequested()` at safe points. `UnicodeUpgradeTables` and `Run
 take a `ProgressTask&`; `NullProgressTask` reports nothing and is never cancelled, for hosts that
 pass none. `dbtool` draws the task tree with its `--progress` styles. A task that fails calls
 `Fail(reason)` before it ends, so the host shows it as failed (a row that stays visible), not as done.
+
+### Pre-migrate steps
+
+A plugin can register work that runs before the first pending migration, such as widening columns
+the migrations then rely on. Register it from the post-init hook:
+
+```cpp
+MigrationManager::AddPreMigrateStep(std::string title,
+                                    PreMigrateStepOptions options,
+                                    PreMigrateStep step);
+// PreMigrateStep = std::function<void(SqlConnection&, MigrationManager&, ProgressTask&, ExecutionMode)>
+```
+
+- **When they run:** `migrate`, `apply` and `migrate-to-release` run the steps in registration order
+  whenever they reach their apply phase, also with nothing pending (`apply` once its migration is
+  found; `migrate-to-release` after its "already at or past" check). Status and read-only commands
+  never run them.
+- **Lock and connection:** a step gets the migration connection, on which the command holds the migration
+  lock unless it opted out of locking.
+- **Dry run:** with `ExecutionMode::DryRun` the step reports its plan and changes nothing. A dry run
+  calls the steps, like it previews migrations, without taking the lock.
+- **Progress:** each step runs under its own sub-task of the command's `ProgressTask`, titled like the step.
+- **Failure:** a step that throws stops the command with `PreMigrateStepError` before any migration runs;
+  later steps do not run, and the step's task ends as failed. A step that can live with a problem calls
+  `progress.Log(ProgressTask::LogLevel::Warning, ...)` and returns normally; the migrations then continue.
+- **Cancellation:** `RunPreMigrateSteps` checks `IsCancellationRequested()` before and after each step and
+  returns `PreMigrateStepsOutcome::Cancelled`; the caller then applies no migration.
+- **Lifetime:** a step is code of its plugin. Hosts call `RemoveAllPreMigrateSteps()` before running post-init
+  hooks again (a reconnect) and before unloading a plugin, so a step is never registered twice nor outlives
+  its library.
+- **`requiresBackup`:** an optional predicate in `PreMigrateStepOptions`, evaluated on the migration
+  connection before the run, says whether this run of the step demands a backup.
+
+```cpp
+LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connection, manager)
+{
+    if (NeedsTextWidening(connection))
+        manager.AddPreMigrateStep("Widen text columns",
+                                  { .requiresBackup = [](SqlConnection&, MigrationManager& m) {
+                                        return !m.UnicodeUpgradeTables(ExecutionMode::DryRun).columns.empty();
+                                    } },
+                                  [](SqlConnection&, MigrationManager& m, ProgressTask& progress, ExecutionMode mode) {
+                                      std::ignore = m.UnicodeUpgradeTables(mode, &progress);
+                                  });
+}
+```
 
 ### Applying Migrations Programmatically
 

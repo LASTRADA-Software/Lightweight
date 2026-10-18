@@ -449,6 +449,11 @@ void RecordingPostInit(Lightweight::SqlConnection& /*connection*/, Lightweight::
     ++RecordedHookCalls().postInit;
 }
 
+void RegisteringPostInit(Lightweight::SqlConnection& /*connection*/, Lightweight::SqlMigration::MigrationManager& manager)
+{
+    manager.AddPreMigrateStep("Plugin step", {}, [](auto&, auto&, auto&, auto) {});
+}
+
 bool RecordingPostMigrate(Lightweight::SqlConnection& /*connection*/,
                           Lightweight::SqlMigration::MigrationManager& /*manager*/,
                           Lightweight::SqlMigration::PostMigrateErrorSink /*reportError*/,
@@ -552,6 +557,25 @@ TEST_CASE("RunPluginPostMigrateHooks and RunPluginPostInitHooks resolve only the
     CHECK(RecordedHookCalls().postMigrate == 1);
 }
 
+TEST_CASE("RunPluginPostInitHooks — a second run replaces the steps of the first", "[PluginIngestion]")
+{
+    auto const plugins = std::vector {
+        MakeHookPlugin("a", { { "LightweightMigrationPluginPostInit", AsSymbol(&RegisteringPostInit) } }),
+    };
+    Lightweight::SqlConnection connection { std::nullopt };
+    Lightweight::SqlMigration::MigrationManager central;
+    auto errors = std::vector<std::string> {};
+    auto const logError = [&errors](std::string_view message) {
+        errors.emplace_back(message);
+    };
+
+    Lightweight::Tools::RunPluginPostInitHooks(plugins, connection, central, logError);
+    Lightweight::Tools::RunPluginPostInitHooks(plugins, connection, central, logError);
+
+    CHECK(errors.empty());
+    CHECK(central.GetPreMigrateSteps().size() == 1);
+}
+
 TEST_CASE("PluginsWithPostInitHook lists exactly the plugins that export a post-init hook", "[PluginIngestion]")
 {
     auto const plugins = std::vector {
@@ -578,6 +602,7 @@ TEST_CASE("UnloadPlugins — central lets go of plugin state before the plugin i
     central.AddMigration(&migration);
     central.RegisterRelease("1.0.0", Lightweight::SqlMigration::MigrationTimestamp { 20260301000000ULL });
     central.SetCompatPolicy([](Lightweight::SqlMigration::MigrationBase const&) { return std::set<std::string> {}; });
+    central.AddPreMigrateStep("Plugin step", {}, [](auto&, auto&, auto&, auto) {});
 
     // What central still held when the plugin's handle was released, i.e. its library unloaded.
     struct StateAtUnload
@@ -586,13 +611,15 @@ TEST_CASE("UnloadPlugins — central lets go of plugin state before the plugin i
         bool hadCompatPolicy = false;
         std::size_t migrations = 0;
         std::size_t releases = 0;
+        std::size_t preMigrateSteps = 0;
     } stateAtUnload;
 
     auto const recordStateAtUnload = [&](void*) {
         stateAtUnload = { .unloaded = true,
                           .hadCompatPolicy = static_cast<bool>(central.GetCompatPolicy()),
                           .migrations = central.GetAllMigrations().size(),
-                          .releases = central.GetAllReleases().size() };
+                          .releases = central.GetAllReleases().size(),
+                          .preMigrateSteps = central.GetPreMigrateSteps().size() };
     };
     auto plugins = std::vector<Lightweight::Tools::LoadedPlugin> {};
     plugins.push_back(Lightweight::Tools::LoadedPlugin {
@@ -607,6 +634,7 @@ TEST_CASE("UnloadPlugins — central lets go of plugin state before the plugin i
     CHECK_FALSE(stateAtUnload.hadCompatPolicy);
     CHECK(stateAtUnload.migrations == 0);
     CHECK(stateAtUnload.releases == 0);
+    CHECK(stateAtUnload.preMigrateSteps == 0);
 }
 
 TEST_CASE("IngestPlugins — a failed load unloads the plugins loaded before it only after central lets go of them",

@@ -131,6 +131,7 @@ std::vector<LoadedPlugin> IngestPlugins(std::span<std::filesystem::path const> d
 void UnloadPlugins(std::vector<LoadedPlugin>& plugins, Lightweight::SqlMigration::MigrationManager& central)
 {
     central.SetCompatPolicy({});
+    central.RemoveAllPreMigrateSteps();
     central.RemoveAllMigrations();
     central.RemoveAllReleases();
     central.CloseDataMapper();
@@ -171,6 +172,8 @@ void RunPluginPostInitHooks(std::span<LoadedPlugin const> plugins,
 {
     using HookSignature = void(Lightweight::SqlConnection&, Lightweight::SqlMigration::MigrationManager&);
 
+    // The hooks register the steps anew; a step registered by an earlier run would be a duplicate.
+    central.RemoveAllPreMigrateSteps();
     for (auto const& plugin: plugins)
     {
         auto* const postInit = plugin.TryGetFunction<HookSignature>(std::string { PostInitHookSymbol });

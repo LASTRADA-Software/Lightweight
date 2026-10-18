@@ -4,6 +4,7 @@
 
 #include "Api.hpp"
 #include "DataMapper/DataMapper.hpp"
+#include "ProgressTask.hpp"
 #include "SqlError.hpp"
 #include "SqlQuery/Migrate.hpp"
 #include "SqlQuery/MigrationPlan.hpp"
@@ -13,6 +14,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <exception>
+#include <format>
 #include <functional>
 #include <list>
 #include <map>
@@ -20,6 +22,7 @@
 #include <optional>
 #include <set>
 #include <span>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -240,6 +243,80 @@ namespace SqlMigration
         std::size_t _unitCount;
     };
 
+    class MigrationManager;
+
+    /// Whether an operation changes the database or only reports what it would change.
+    ///
+    /// @ingroup SqlMigration
+    enum class ExecutionMode : std::uint8_t
+    {
+        Execute, ///< Carry the operation out.
+        DryRun,  ///< Report the plan and change nothing.
+    };
+
+    /// Options of a pre-migrate step.
+    ///
+    /// @ingroup SqlMigration
+    struct PreMigrateStepOptions
+    {
+        /// Whether this run of the step demands a backup of the database taken after its last
+        /// migration (see `MigrationManager::BackupRequirementFor`), e.g. "the dry-run plan is not
+        /// empty". Evaluated on the migration connection before the run; empty means never. Hosts call it
+        /// on every requirement check and from any thread (a worker, or a GUI's own), so keep it cheap.
+        std::function<bool(SqlConnection&, MigrationManager&)> requiresBackup;
+    };
+
+    /// Work a plugin runs before the first pending migration of `migrate`, `apply` and `migrate-to-release`.
+    ///
+    /// The first parameter is the migration connection, on which the host holds the migration lock
+    /// unless it opted out of locking; then the host's manager, the step's own task and the execution
+    /// mode, in which a dry run makes the step report its plan and change nothing.
+    ///
+    /// @ingroup SqlMigration
+    using PreMigrateStep = std::function<void(SqlConnection&, MigrationManager&, ProgressTask&, ExecutionMode)>;
+
+    /// A registered pre-migrate step, without its code.
+    ///
+    /// @ingroup SqlMigration
+    struct PreMigrateStepInfo
+    {
+        std::string title;                      ///< The step's title, as its task shows it.
+        bool declaresBackupRequirement = false; ///< Whether the step has a `requiresBackup` predicate.
+    };
+
+    /// How `MigrationManager::RunPreMigrateSteps` ended.
+    ///
+    /// @ingroup SqlMigration
+    enum class PreMigrateStepsOutcome : std::uint8_t
+    {
+        Completed, ///< Every step ran; the migrations may follow.
+        Cancelled, ///< The task asked to cancel; the caller applies no migration.
+    };
+
+    /// A pre-migrate step threw; the command stops and applies no migration.
+    ///
+    /// @ingroup SqlMigration
+    class PreMigrateStepError final: public std::runtime_error
+    {
+      public:
+        /// @param stepTitle The failed step.
+        /// @param cause What the step threw.
+        PreMigrateStepError(std::string stepTitle, std::string_view cause):
+            std::runtime_error(std::format("Pre-migrate step \"{}\" failed: {}", stepTitle, cause)),
+            _stepTitle { std::move(stepTitle) }
+        {
+        }
+
+        /// @return The title of the step that failed.
+        [[nodiscard]] std::string const& StepTitle() const noexcept
+        {
+            return _stepTitle;
+        }
+
+      private:
+        std::string _stepTitle;
+    };
+
     /// Main API to use for managing SQL migrations
     ///
     /// This class is a singleton and can be accessed using the GetInstance() method.
@@ -434,6 +511,35 @@ namespace SqlMigration
         /// migration has committed, so a migration that fails and rolls back reports no skips.
         /// Callers that need the count of one run take the difference before and after it.
         [[nodiscard]] LIGHTWEIGHT_API std::size_t SkippedExistingRowCount() const noexcept;
+
+        /// Registers a step that `migrate`, `apply` and `migrate-to-release` run, in registration order,
+        /// before their first pending migration (also when none is pending). Plugins register steps
+        /// from their post-init hook; a step is code of that plugin, so hosts call
+        /// `RemoveAllPreMigrateSteps` before running post-init hooks again and before unloading it.
+        ///
+        /// @param title The step's title, unique among the steps.
+        /// @param options The step's options.
+        /// @param step The step's code.
+        /// @throws std::invalid_argument when @p step is empty or a step titled @p title exists.
+        LIGHTWEIGHT_API void AddPreMigrateStep(std::string title, PreMigrateStepOptions options, PreMigrateStep step);
+
+        /// @return The registered pre-migrate steps, in registration order.
+        [[nodiscard]] LIGHTWEIGHT_API std::vector<PreMigrateStepInfo> GetPreMigrateSteps() const;
+
+        /// Removes every pre-migrate step.
+        LIGHTWEIGHT_API void RemoveAllPreMigrateSteps() noexcept;
+
+        /// Runs the pre-migrate steps in registration order, each under a sub-task of @p parent named
+        /// like the step, on the migration connection. The caller holds the migration lock (unless it
+        /// opted out of locking) and calls this before applying the first pending migration. Status and
+        /// read-only commands never call it. Cancellation is checked before and after each step.
+        ///
+        /// @param parent The task the steps' tasks open under.
+        /// @param mode Whether the steps only report their plan.
+        /// @return `Cancelled` when @p parent asked to cancel; the caller then applies no migration.
+        /// @throws PreMigrateStepError when a step throws, also something other than a `std::exception`
+        ///         ("unknown exception"); the steps after it do not run.
+        [[nodiscard]] LIGHTWEIGHT_API PreMigrateStepsOutcome RunPreMigrateSteps(ProgressTask& parent, ExecutionMode mode);
 
         /// Get the data mapper used for migrations.
         ///
@@ -875,6 +981,14 @@ namespace SqlMigration
         /// each of @p skippedRows via @ref Log.
         void ReportSkippedRows(std::vector<std::string> const& skippedRows);
 
+        /// A registered pre-migrate step with its code.
+        struct RegisteredPreMigrateStep
+        {
+            std::string title;
+            PreMigrateStepOptions options;
+            PreMigrateStep run;
+        };
+
         MigrationList _migrations;
         std::vector<MigrationRelease> _releases;
         std::unique_ptr<DataMapper> _dataMapper;
@@ -894,6 +1008,9 @@ namespace SqlMigration
         LogSink _logSink; ///< Optional status-message sink. Empty by default.
 
         std::size_t _skippedExistingRowCount {}; ///< Rows skipped by `IfNotExists` inserts so far.
+
+        /// Registered pre-migrate steps, in registration order.
+        std::vector<RegisteredPreMigrateStep> _preMigrateSteps;
     };
 
 /// Requires the user to call LIGHTWEIGHT_MIGRATION_PLUGIN() in exactly one CPP file of the migration plugin.
