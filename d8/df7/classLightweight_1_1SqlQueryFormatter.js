@@ -38,5 +38,6 @@ var classLightweight_1_1SqlQueryFormatter =
     [ "IdentifiersAreCaseInsensitive", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#ac7830e152feff1b173ba8ddf731aaea9", null ],
     [ "SupportsSchemas", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a378d45364a1eca876043be27c31bd3e1", null ],
     [ "CreateSchemaIfNotExists", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1d973789fe4e659b30eb414dea1d6941", null ],
-    [ "ReportRowCountsStatement", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a21a962ad99398b3b0e882a11a38a7e9f", null ]
+    [ "ReportRowCountsStatement", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a21a962ad99398b3b0e882a11a38a7e9f", null ],
+    [ "TableRowCountEstimateQuery", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#af6c9a232a03e7fa7e9a1e50287f1e53b", null ]
 ];

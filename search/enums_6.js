@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['operation_0',['Operation',['../d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#a7ac19fb91d4b1c37df372428d663b241',1,'Lightweight::SqlMigration::MigrationException']]]
+  ['loglevel_0',['LogLevel',['../d2/d3e/classLightweight_1_1ProgressTask.html#a57324dc0a9d777d017a5313fef4ee1c2',1,'Lightweight::ProgressTask']]]
 ];

@@ -31,12 +31,13 @@ var searchData=
   ['getnullablecolumn_28',['getnullablecolumn',['../d8/d63/classLightweight_1_1SqlResultCursor.html#a9584b83387781b98d5251839cf2c581d',1,'Lightweight::SqlResultCursor::GetNullableColumn(SQLUSMALLINT column) const'],['../d8/d63/classLightweight_1_1SqlResultCursor.html#a951a43777480d379682c76014b0d1be7',1,'Lightweight::SqlResultCursor::GetNullableColumn(std::string_view name) const']]],
   ['getoperation_29',['GetOperation',['../d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#a53cfe81acb8bc98d0d67e9a45fbb5fc6',1,'Lightweight::SqlMigration::MigrationException']]],
   ['getpending_30',['GetPending',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#aab92b49c10d74eed31938623707627d4',1,'Lightweight::SqlMigration::MigrationManager']]],
-  ['getplan_31',['getplan',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a503a9d905ab222a68bb4fcbec1510154',1,'Lightweight::SqlMigrationQueryBuilder::GetPlan() &amp;&amp;'],['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a52eaec0c096b8f29fce67268c22cf433',1,'Lightweight::SqlMigrationQueryBuilder::GetPlan() const &amp;']]],
-  ['getprimarykeyfield_32',['GetPrimaryKeyField',['../d7/d2f/group__DataMapper.html#ga0690ab017d7ae25c81a0889a6385ba33',1,'Lightweight']]],
-  ['getprimarykeyfields_33',['GetPrimaryKeyFields',['../d7/d2f/group__DataMapper.html#ga26e1044be43f92bbb88188317ffba9b5',1,'Lightweight']]],
-  ['getrecordmemberat_34',['GetRecordMemberAt',['../d7/d2f/group__DataMapper.html#ga3803a99a6793b7b2dcd55824b002fc69',1,'Lightweight']]],
-  ['getstepindex_35',['GetStepIndex',['../d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#ae719f328736efcdb1e98ad53a6dbe6dd',1,'Lightweight::SqlMigration::MigrationException']]],
-  ['getstring_36',['GetString',['../da/d6c/classLightweight_1_1RowArrayCursor.html#a6d0e1111dd4aa4f69a282b65de578c05',1,'Lightweight::RowArrayCursor']]],
-  ['gettimestamp_37',['gettimestamp',['../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a0ab6e8c26f230333862500cc5e39a03e',1,'Lightweight::SqlMigration::MigrationBase::GetTimestamp()'],['../da/d6c/classLightweight_1_1RowArrayCursor.html#ab2a0986037e9cf89ee7e5ed09bf9fb19',1,'Lightweight::RowArrayCursor::GetTimestamp()']]],
-  ['gettitle_38',['GetTitle',['../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a120faae4809045b0fd412b6550b634f0',1,'Lightweight::SqlMigration::MigrationBase']]]
+  ['getplan_31',['getplan',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a52eaec0c096b8f29fce67268c22cf433',1,'Lightweight::SqlMigrationQueryBuilder::GetPlan() const &amp;'],['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a503a9d905ab222a68bb4fcbec1510154',1,'Lightweight::SqlMigrationQueryBuilder::GetPlan() &amp;&amp;']]],
+  ['getpremigratesteps_32',['GetPreMigrateSteps',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#afcc080928b6120766270b44aaaf7b7b1',1,'Lightweight::SqlMigration::MigrationManager']]],
+  ['getprimarykeyfield_33',['GetPrimaryKeyField',['../d7/d2f/group__DataMapper.html#ga0690ab017d7ae25c81a0889a6385ba33',1,'Lightweight']]],
+  ['getprimarykeyfields_34',['GetPrimaryKeyFields',['../d7/d2f/group__DataMapper.html#ga26e1044be43f92bbb88188317ffba9b5',1,'Lightweight']]],
+  ['getrecordmemberat_35',['GetRecordMemberAt',['../d7/d2f/group__DataMapper.html#ga3803a99a6793b7b2dcd55824b002fc69',1,'Lightweight']]],
+  ['getstepindex_36',['GetStepIndex',['../d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#ae719f328736efcdb1e98ad53a6dbe6dd',1,'Lightweight::SqlMigration::MigrationException']]],
+  ['getstring_37',['GetString',['../da/d6c/classLightweight_1_1RowArrayCursor.html#a6d0e1111dd4aa4f69a282b65de578c05',1,'Lightweight::RowArrayCursor']]],
+  ['gettimestamp_38',['gettimestamp',['../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a0ab6e8c26f230333862500cc5e39a03e',1,'Lightweight::SqlMigration::MigrationBase::GetTimestamp()'],['../da/d6c/classLightweight_1_1RowArrayCursor.html#ab2a0986037e9cf89ee7e5ed09bf9fb19',1,'Lightweight::RowArrayCursor::GetTimestamp()']]],
+  ['gettitle_39',['GetTitle',['../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a120faae4809045b0fd412b6550b634f0',1,'Lightweight::SqlMigration::MigrationBase']]]
 ];

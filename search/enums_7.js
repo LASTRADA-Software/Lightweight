@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['poolerror_0',['PoolError',['../d6/de4/group__ConnectionPool.html#gadf41c4387dc86267bded533482280862',1,'Lightweight']]]
+  ['modifiedstate_0',['ModifiedState',['../de/d61/classLightweight_1_1DataMapper.html#ac8cfda8ec587a1c2007646116c426441',1,'Lightweight::DataMapper']]]
 ];

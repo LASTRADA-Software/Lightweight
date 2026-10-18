@@ -77,6 +77,9 @@ var hierarchy =
     [ "Lightweight::Pool< Config >", "d3/d30/classLightweight_1_1Pool.html", null ],
     [ "Lightweight::Pool< Config >::PooledDataMapper", "de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html", null ],
     [ "Lightweight::PoolConfig", "df/d1a/structLightweight_1_1PoolConfig.html", null ],
+    [ "Lightweight::ProgressTask", "d2/d3e/classLightweight_1_1ProgressTask.html", [
+      [ "Lightweight::NullProgressTask", "d0/db8/classLightweight_1_1NullProgressTask.html", null ]
+    ] ],
     [ "Lightweight::RecordMemberList< MemberPointers >", "d2/d94/structLightweight_1_1RecordMemberList.html", null ],
     [ "Lightweight::RowArrayCursor", "da/d6c/classLightweight_1_1RowArrayCursor.html", null ],
     [ "Lightweight::SqlAdvisoryLockHandler", "d4/d61/classLightweight_1_1SqlAdvisoryLockHandler.html", null ],
@@ -85,6 +88,7 @@ var hierarchy =
     [ "Lightweight::SqlAlterTableCommands::DropIndexIfExists", "d9/dd1/structLightweight_1_1SqlAlterTableCommands_1_1DropIndexIfExists.html", null ],
     [ "Lightweight::SqlAlterTablePlan", "dd/d75/structLightweight_1_1SqlAlterTablePlan.html", null ],
     [ "Lightweight::SqlAlterTableQueryBuilder", "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html", null ],
+    [ "Lightweight::SqlBackup::ArchiveVerification", "df/d1e/structLightweight_1_1SqlBackup_1_1ArchiveVerification.html", null ],
     [ "Lightweight::SqlBackup::BackupSettings", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html", null ],
     [ "Lightweight::SqlBackup::ChunkReader", "d2/d99/structLightweight_1_1SqlBackup_1_1ChunkReader.html", null ],
     [ "Lightweight::SqlBackup::ChunkWriter", "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html", null ],
@@ -132,8 +136,11 @@ var hierarchy =
     [ "Lightweight::SqlLatencyHistogram", "df/d78/structLightweight_1_1SqlLatencyHistogram.html", null ],
     [ "Lightweight::SqlLockError", "d6/d3b/structLightweight_1_1SqlLockError.html", null ],
     [ "Lightweight::SqlLogger", "db/dfd/classLightweight_1_1SqlLogger.html", null ],
+    [ "Lightweight::SqlMigration::BackupRecord", "de/dd2/structLightweight_1_1SqlMigration_1_1BackupRecord.html", null ],
+    [ "Lightweight::SqlMigration::BackupRequirement", "dc/d94/structLightweight_1_1SqlMigration_1_1BackupRequirement.html", null ],
     [ "Lightweight::SqlMigration::ChecksumVerificationResult", "da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html", null ],
     [ "Lightweight::SqlMigration::MigrationBase", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html", null ],
+    [ "Lightweight::SqlMigration::MigrationHistoryState", "d3/d5b/structLightweight_1_1SqlMigration_1_1MigrationHistoryState.html", null ],
     [ "Lightweight::SqlMigration::MigrationManager", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html", null ],
     [ "Lightweight::SqlMigration::MigrationManager::ChecksumRewriteEntry", "d9/df2/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ChecksumRewriteEntry.html", null ],
     [ "Lightweight::SqlMigration::MigrationManager::ColumnUpgradeEntry", "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html", null ],
@@ -145,8 +152,11 @@ var hierarchy =
     [ "Lightweight::SqlMigration::MigrationManager::UnicodeUpgradeResult", "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html", null ],
     [ "Lightweight::SqlMigration::MigrationMetadata", "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html", null ],
     [ "Lightweight::SqlMigration::MigrationRelease", "d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html", null ],
+    [ "Lightweight::SqlMigration::MigrationReleaseOptions", "d5/db9/structLightweight_1_1SqlMigration_1_1MigrationReleaseOptions.html", null ],
     [ "Lightweight::SqlMigration::MigrationStatus", "d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html", null ],
     [ "Lightweight::SqlMigration::MigrationTimestamp", "d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html", null ],
+    [ "Lightweight::SqlMigration::PreMigrateStepInfo", "da/d53/structLightweight_1_1SqlMigration_1_1PreMigrateStepInfo.html", null ],
+    [ "Lightweight::SqlMigration::PreMigrateStepOptions", "de/dfb/structLightweight_1_1SqlMigration_1_1PreMigrateStepOptions.html", null ],
     [ "Lightweight::SqlMigration::RevertResult", "d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html", null ],
     [ "Lightweight::SqlMigrationDeleteBuilder", "da/d17/classLightweight_1_1SqlMigrationDeleteBuilder.html", null ],
     [ "Lightweight::SqlMigrationInsertBuilder", "d0/d05/classLightweight_1_1SqlMigrationInsertBuilder.html", null ],
@@ -212,6 +222,7 @@ var hierarchy =
       [ "std::runtime_error", null, [
         [ "Lightweight::Async::OperationCancelledError", "d3/dd5/classLightweight_1_1Async_1_1OperationCancelledError.html", null ],
         [ "Lightweight::RowArrayCursorUnsupported", "de/d9f/classLightweight_1_1RowArrayCursorUnsupported.html", null ],
+        [ "Lightweight::SqlMigration::PreMigrateStepError", "da/de3/classLightweight_1_1SqlMigration_1_1PreMigrateStepError.html", null ],
         [ "Lightweight::SqlRequireLoadedError", "da/df2/classLightweight_1_1SqlRequireLoadedError.html", null ],
         [ "Lightweight::SqlTransactionException", "d5/d19/classLightweight_1_1SqlTransactionException.html", null ]
       ] ]

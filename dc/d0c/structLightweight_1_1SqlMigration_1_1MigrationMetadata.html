@@ -110,6 +110,9 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:aede084084d8c094a9f4e08d86b8f13f8" id="r_aede084084d8c094a9f4e08d86b8f13f8"><td class="memItemLeft" align="right" valign="top">std::string_view&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#aede084084d8c094a9f4e08d86b8f13f8">description</a> {}</td></tr>
 <tr class="memdesc:aede084084d8c094a9f4e08d86b8f13f8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Long-form description. Recorded in schema_migrations when the migration is applied.  <br /></td></tr>
 <tr class="separator:aede084084d8c094a9f4e08d86b8f13f8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a65e4336ec9a39cfd5a125fd89863cae6" id="r_a65e4336ec9a39cfd5a125fd89863cae6"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#a65e4336ec9a39cfd5a125fd89863cae6">requiresBackup</a> = false</td></tr>
+<tr class="memdesc:a65e4336ec9a39cfd5a125fd89863cae6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether running the migration requires a backup; see <code><a class="el" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a631eb7328bc52932cd15cd4f9ada9712">MigrationBase::RequiresBackup</a></code>.  <br /></td></tr>
+<tr class="separator:a65e4336ec9a39cfd5a125fd89863cae6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Represents a single unique SQL migration.</p>
@@ -117,7 +120,7 @@ Public Attributes</h2></td></tr>
 <p>Optional metadata attached to a Migration at construction time.</p>
 <p>All fields are optional. Unset fields behave as if the feature were not used (e.g. empty dependencies preserves timestamp order). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01115">1115</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01403">1403</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="aaacc540bd4fd3ab8f556b8cc92f2894b" name="aaacc540bd4fd3ab8f556b8cc92f2894b"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aaacc540bd4fd3ab8f556b8cc92f2894b">&#9670;&#160;</a></span>dependencies</h2>
@@ -133,7 +136,7 @@ Public Attributes</h2></td></tr>
 
 <p>Migrations that must be applied before this one. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01118">1118</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01406">1406</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -151,7 +154,7 @@ Public Attributes</h2></td></tr>
 
 <p>Author of the migration. Recorded in schema_migrations when the migration is applied. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01120">1120</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01408">1408</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -169,7 +172,25 @@ Public Attributes</h2></td></tr>
 
 <p>Long-form description. Recorded in schema_migrations when the migration is applied. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01122">1122</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01410">1410</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a65e4336ec9a39cfd5a125fd89863cae6" name="a65e4336ec9a39cfd5a125fd89863cae6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a65e4336ec9a39cfd5a125fd89863cae6">&#9670;&#160;</a></span>requiresBackup</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool Lightweight::SqlMigration::MigrationMetadata::requiresBackup = false</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Whether running the migration requires a backup; see <code><a class="el" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a631eb7328bc52932cd15cd4f9ada9712">MigrationBase::RequiresBackup</a></code>. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01412">1412</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>

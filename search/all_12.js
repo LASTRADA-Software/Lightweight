@@ -11,6 +11,6 @@ var searchData=
   ['keycolumns_8',['keyColumns',['../dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a959e4f65383c549b2d25bb2605ccbc4a',1,'Lightweight::SqlInsertDataPlan']]],
   ['keys_20into_20the_20same_20table_9',['Several foreign keys into the same table',['../d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#several-foreign-keys-into-the-same-table',1,'']]],
   ['keys_20relation_10',['Foreign keys relation',['../index.html#foreign-keys-relation',1,'']]],
-  ['kind_11',['kind',['../d6/dfb/structLightweight_1_1Tools_1_1CxxModelPrinter_1_1PlannedRelation.html#a15fd23005c8faef345ccd0d6a8738c75',1,'Lightweight::Tools::CxxModelPrinter::PlannedRelation::kind'],['../d6/dfb/structLightweight_1_1Tools_1_1CxxModelPrinter_1_1PlannedRelation.html#a2eef1942dd0b41833109a8c59ddc61f2',1,'Lightweight::Tools::CxxModelPrinter::PlannedRelation::Kind']]],
+  ['kind_11',['kind',['../de/dd2/structLightweight_1_1SqlMigration_1_1BackupRecord.html#aa9c76614a9491c5d435a40286586b40c',1,'Lightweight::SqlMigration::BackupRecord::kind'],['../d6/dfb/structLightweight_1_1Tools_1_1CxxModelPrinter_1_1PlannedRelation.html#a15fd23005c8faef345ccd0d6a8738c75',1,'Lightweight::Tools::CxxModelPrinter::PlannedRelation::kind'],['../d6/dfb/structLightweight_1_1Tools_1_1CxxModelPrinter_1_1PlannedRelation.html#a2eef1942dd0b41833109a8c59ddc61f2',1,'Lightweight::Tools::CxxModelPrinter::PlannedRelation::Kind']]],
   ['known_20limitations_12',['Known limitations',['../index.html#known-limitations',1,'']]]
 ];

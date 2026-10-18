@@ -239,6 +239,9 @@ virtual <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.h
 <tr class="memitem:a21a962ad99398b3b0e882a11a38a7e9f" id="r_a21a962ad99398b3b0e882a11a38a7e9f"><td class="memItemLeft" align="right" valign="top">virtual std::string_view&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a21a962ad99398b3b0e882a11a38a7e9f">ReportRowCountsStatement</a> () const noexcept</td></tr>
 <tr class="memdesc:a21a962ad99398b3b0e882a11a38a7e9f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the statement that makes the session report affected-row counts again.  <br /></td></tr>
 <tr class="separator:a21a962ad99398b3b0e882a11a38a7e9f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af6c9a232a03e7fa7e9a1e50287f1e53b" id="r_af6c9a232a03e7fa7e9a1e50287f1e53b"><td class="memItemLeft" align="right" valign="top">virtual std::string_view&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#af6c9a232a03e7fa7e9a1e50287f1e53b">TableRowCountEstimateQuery</a> () const noexcept</td></tr>
+<tr class="memdesc:af6c9a232a03e7fa7e9a1e50287f1e53b"><td class="mdescLeft">&#160;</td><td class="mdescRight">A query estimating a table's row count from the catalog's statistics, without reading the table. It takes two parameters, the schema name and then the table name, and yields one integer.  <br /></td></tr>
+<tr class="separator:af6c9a232a03e7fa7e9a1e50287f1e53b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -1143,6 +1146,36 @@ template&lt;typename Range &gt; </div>
 <dl class="section return"><dt>Returns</dt><dd>The statement to execute, or an empty string when there is nothing to execute. </dd></dl>
 
 <p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00378">378</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+
+</div>
+</div>
+<a id="af6c9a232a03e7fa7e9a1e50287f1e53b" name="af6c9a232a03e7fa7e9a1e50287f1e53b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af6c9a232a03e7fa7e9a1e50287f1e53b">&#9670;&#160;</a></span>TableRowCountEstimateQuery()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual std::string_view Lightweight::SqlQueryFormatter::TableRowCountEstimateQuery </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>A query estimating a table's row count from the catalog's statistics, without reading the table. It takes two parameters, the schema name and then the table name, and yields one integer. </p>
+<dl class="section return"><dt>Returns</dt><dd>The query, or empty when the dialect keeps no such statistics; callers then count with <code>SELECT COUNT(*)</code>, which reads the whole table. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00388">388</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>

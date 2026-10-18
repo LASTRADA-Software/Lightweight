@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['indextype_0',['IndexType',['../d6/daa/group__QueryBuilder.html#ga17470447b60d4554d19d30e877645d07',1,'Lightweight']]]
+  ['growthstrategy_0',['GrowthStrategy',['../d6/de4/group__ConnectionPool.html#gadf7777be559a52bca78d24e4a99a4f0c',1,'Lightweight']]]
 ];

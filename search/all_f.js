@@ -5,7 +5,7 @@ var searchData=
   ['handling_20in_20oracle_20database_2',['64-bit Integer Handling in Oracle Database',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#autotoc_md64-bit-integer-handling-in-oracle-database',1,'']]],
   ['handling_20tt_20n_20tt_3',['3.4 Null Handling (&lt;tt&gt;&quot;n&quot;&lt;/tt&gt;)',['../d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md34-null-handling-n',1,'']]],
   ['hard_20reset_4',['hard-reset',['../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#hard-reset',1,'']]],
-  ['hardreset_5',['HardReset',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a20c8c6018a3d4c75c69a57e2f63d0459',1,'Lightweight::SqlMigration::MigrationManager']]],
+  ['hardreset_5',['HardReset',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a7bff8cdde7593a286e4f9c3cb2dbba80',1,'Lightweight::SqlMigration::MigrationManager']]],
   ['hardresetresult_6',['HardResetResult',['../d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html',1,'Lightweight::SqlMigration::MigrationManager']]],
   ['hasautoincrementprimarykey_7',['HasAutoIncrementPrimaryKey',['../d7/d2f/group__DataMapper.html#ga1e58d42e8c42aa174027b744d8eb78e0',1,'Lightweight']]],
   ['hascompositeprimarykey_8',['HasCompositePrimaryKey',['../d7/d2f/group__DataMapper.html#ga4c03c83d5812a80abd311d682123dac5',1,'Lightweight']]],

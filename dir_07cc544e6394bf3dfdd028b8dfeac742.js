@@ -14,6 +14,7 @@ var dir_07cc544e6394bf3dfdd028b8dfeac742 =
     [ "ImmortalInstance.hpp", "d0/dff/ImmortalInstance_8hpp_source.html", null ],
     [ "Lightweight.hpp", "d3/d69/Lightweight_8hpp_source.html", null ],
     [ "PostgreSqlForeignKeys.hpp", "d6/dc2/PostgreSqlForeignKeys_8hpp_source.html", null ],
+    [ "ProgressTask.hpp", "dd/de8/ProgressTask_8hpp_source.html", null ],
     [ "SqlAdvisoryLock.hpp", "d5/d4b/SqlAdvisoryLock_8hpp_source.html", null ],
     [ "SqlBackup.hpp", "db/dd1/SqlBackup_8hpp_source.html", null ],
     [ "SqlColumnTypeDefinitions.hpp", "d8/db2/SqlColumnTypeDefinitions_8hpp_source.html", null ],
@@ -42,5 +43,6 @@ var dir_07cc544e6394bf3dfdd028b8dfeac742 =
     [ "SqlTransaction.hpp", "d9/da6/SqlTransaction_8hpp_source.html", null ],
     [ "ThreadSafeQueue.hpp", "d4/d48/ThreadSafeQueue_8hpp_source.html", null ],
     [ "TracyProfiler.hpp", "dd/d2a/TracyProfiler_8hpp_source.html", null ],
+    [ "UnicodeUpgradeProgress.hpp", "d7/d79/UnicodeUpgradeProgress_8hpp_source.html", null ],
     [ "Utils.hpp", "d7/d09/Utils_8hpp_source.html", null ]
 ];

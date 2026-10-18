@@ -134,6 +134,8 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a2ec317eaae756e721addecb505082902"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4d9ec4afc996dacc72bbe5948aa7db73" id="r_a4d9ec4afc996dacc72bbe5948aa7db73"><td class="memItemLeft" align="right" valign="top">virtual std::string_view&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a4d9ec4afc996dacc72bbe5948aa7db73">GetDescription</a> () const noexcept</td></tr>
 <tr class="separator:a4d9ec4afc996dacc72bbe5948aa7db73"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a631eb7328bc52932cd15cd4f9ada9712" id="r_a631eb7328bc52932cd15cd4f9ada9712"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a631eb7328bc52932cd15cd4f9ada9712">RequiresBackup</a> () const noexcept</td></tr>
+<tr class="separator:a631eb7328bc52932cd15cd4f9ada9712"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0ab6e8c26f230333862500cc5e39a03e" id="r_a0ab6e8c26f230333862500cc5e39a03e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">MigrationTimestamp</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a0ab6e8c26f230333862500cc5e39a03e">GetTimestamp</a> () const noexcept</td></tr>
 <tr class="separator:a0ab6e8c26f230333862500cc5e39a03e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a120faae4809045b0fd412b6550b634f0" id="r_a120faae4809045b0fd412b6550b634f0"><td class="memItemLeft" align="right" valign="top">std::string_view&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a120faae4809045b0fd412b6550b634f0">GetTitle</a> () const noexcept</td></tr>
@@ -144,7 +146,7 @@ Public Member Functions</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Represents a single unique SQL migration. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00989">989</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01267">1267</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="ab7a7ef460d0a27d3104beb9c89757d28" name="ab7a7ef460d0a27d3104beb9c89757d28"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ab7a7ef460d0a27d3104beb9c89757d28">&#9670;&#160;</a></span>MigrationBase()</h2>
@@ -182,7 +184,7 @@ Public Member Functions</h2></td></tr>
 
 <p>Constructs a migration with the given timestamp and title. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00999">999</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01277">1277</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1e2638d4b642e5692df3d2ab24e199a4">Lightweight::SqlMigration::MigrationManager::AddMigration()</a>, and <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ae03991a2dff12fb763353d0327c29bf8">Lightweight::SqlMigration::MigrationManager::GetInstance()</a>.</p>
 
@@ -213,7 +215,7 @@ Public Member Functions</h2></td></tr>
 <p>Unregisters this migration from the singleton manager the constructor registered it with.</p>
 <p>Registration is a side effect of construction, so deregistration has to be one of destruction: otherwise the manager keeps a pointer to a dead object, and its duplicate-timestamp lookup dereferences it. A later migration reusing that storage is then reported as a duplicate of itself. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01012">1012</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01290">1290</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ae03991a2dff12fb763353d0327c29bf8">Lightweight::SqlMigration::MigrationManager::GetInstance()</a>, and <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a7611c88a34f8863aae59392f4d13c7d3">Lightweight::SqlMigration::MigrationManager::RemoveMigration()</a>.</p>
 
@@ -284,7 +286,7 @@ Public Member Functions</h2></td></tr>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01025">1025</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01303">1303</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -314,7 +316,7 @@ Public Member Functions</h2></td></tr>
 <p>This method determines whether the migration can be safely reverted. The default implementation returns false. Derived classes that implement <a class="el" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#abf76f7e1b5519cef9ca2aee981d9054b">Down()</a> should override this to return true.</p>
 <dl class="section return"><dt>Returns</dt><dd>true if <a class="el" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#abf76f7e1b5519cef9ca2aee981d9054b">Down()</a> is implemented and can revert this migration. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01037">1037</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01315">1315</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -344,7 +346,7 @@ Public Member Functions</h2></td></tr>
 <p>Dependencies are enforced at apply time: each declared dependency must be registered and applied (or pending in the same run, in dependency order) before this migration will run. The default implementation returns no dependencies, preserving timestamp-ordered apply behavior.</p>
 <dl class="section return"><dt>Returns</dt><dd>Vector of dependency timestamps. Empty if this migration has none. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01050">1050</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01328">1328</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -373,7 +375,7 @@ Public Member Functions</h2></td></tr>
 <p>Get the author of the migration, if any.</p>
 <dl class="section return"><dt>Returns</dt><dd>Author string, empty if not set. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01058">1058</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01336">1336</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -403,7 +405,36 @@ Public Member Functions</h2></td></tr>
 <p>This is a multi-line description in addition to the short title.</p>
 <dl class="section return"><dt>Returns</dt><dd><a class="el" href="../../de/d22/structLightweight_1_1Description.html" title="Customization point providing pre-computed reflection metadata for a record type.">Description</a> string, empty if not set. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01068">1068</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01346">1346</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a631eb7328bc52932cd15cd4f9ada9712" name="a631eb7328bc52932cd15cd4f9ada9712"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a631eb7328bc52932cd15cd4f9ada9712">&#9670;&#160;</a></span>RequiresBackup()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual bool Lightweight::SqlMigration::MigrationBase::RequiresBackup </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Whether running this migration requires a backup of the database taken after its last migration (see <code><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#aff7702bfe2be5552850c10c05c4a1fb9">MigrationManager::BackupRequirementFor</a></code>). A release's <code>requiresBackup</code> adds the same demand for all of its migrations.</p>
+<dl class="section return"><dt>Returns</dt><dd>False unless overridden. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01356">1356</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -432,7 +463,7 @@ Public Member Functions</h2></td></tr>
 <p>Get the timestamp of the migration.</p>
 <dl class="section return"><dt>Returns</dt><dd>Timestamp of the migration. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01076">1076</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01364">1364</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -461,7 +492,7 @@ Public Member Functions</h2></td></tr>
 <p>Get the title of the migration.</p>
 <dl class="section return"><dt>Returns</dt><dd>Title of the migration. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01084">1084</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01372">1372</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>

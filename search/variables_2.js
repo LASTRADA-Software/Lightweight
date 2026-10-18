@@ -1,11 +1,12 @@
 var searchData=
 [
   ['backoffmultiplier_0',['backoffMultiplier',['../d9/d7e/structLightweight_1_1SqlRetrySettings.html#a2fd9afb5b130603c232593485cee7c4a',1,'Lightweight::SqlRetrySettings']]],
-  ['batchsize_1',['batchSize',['../da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#a537031b2f22d3a8b8372965543208aee',1,'Lightweight::SqlBackup::RestoreSettings']]],
-  ['blockfetches_2',['blockFetches',['../df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html#ac2368297f19fc2e78636a129ac09909b',1,'Lightweight::SqlStatisticsSnapshot']]],
-  ['blocksize_3',['BlockSize',['../d2/d43/classLightweight_1_1SqlBackup_1_1Sha256.html#a0b95549d0a226e34ee256fba54134374',1,'Lightweight::SqlBackup::Sha256']]],
-  ['bucketcount_4',['BucketCount',['../df/d78/structLightweight_1_1SqlLatencyHistogram.html#a8761e5a3937cfc780372139a4cee5957',1,'Lightweight::SqlLatencyHistogram']]],
-  ['buckets_5',['buckets',['../df/d78/structLightweight_1_1SqlLatencyHistogram.html#a29f494ad59a3fdbe440e4dfe88c353ec',1,'Lightweight::SqlLatencyHistogram']]],
-  ['bufferlength_6',['bufferLength',['../da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a7cc9f36813cfe7afbb318d8c0c99963e',1,'Lightweight::SqlRawColumnMetadata']]],
-  ['busytimeout_7',['busyTimeout',['../d9/d23/structLightweight_1_1SqliteConnectionSettings.html#a667752138a5c4017c8cfb614f545cd3e',1,'Lightweight::SqliteConnectionSettings']]]
+  ['backuprecordtablename_1',['BackupRecordTableName',['../db/df6/group__SqlMigration.html#ga725e7cf4f241c632bd0039f39499a9af',1,'Lightweight::SqlMigration']]],
+  ['batchsize_2',['batchSize',['../da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#a537031b2f22d3a8b8372965543208aee',1,'Lightweight::SqlBackup::RestoreSettings']]],
+  ['blockfetches_3',['blockFetches',['../df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html#ac2368297f19fc2e78636a129ac09909b',1,'Lightweight::SqlStatisticsSnapshot']]],
+  ['blocksize_4',['BlockSize',['../d2/d43/classLightweight_1_1SqlBackup_1_1Sha256.html#a0b95549d0a226e34ee256fba54134374',1,'Lightweight::SqlBackup::Sha256']]],
+  ['bucketcount_5',['BucketCount',['../df/d78/structLightweight_1_1SqlLatencyHistogram.html#a8761e5a3937cfc780372139a4cee5957',1,'Lightweight::SqlLatencyHistogram']]],
+  ['buckets_6',['buckets',['../df/d78/structLightweight_1_1SqlLatencyHistogram.html#a29f494ad59a3fdbe440e4dfe88c353ec',1,'Lightweight::SqlLatencyHistogram']]],
+  ['bufferlength_7',['bufferLength',['../da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a7cc9f36813cfe7afbb318d8c0c99963e',1,'Lightweight::SqlRawColumnMetadata']]],
+  ['busytimeout_8',['busyTimeout',['../d9/d23/structLightweight_1_1SqliteConnectionSettings.html#a667752138a5c4017c8cfb614f545cd3e',1,'Lightweight::SqliteConnectionSettings']]]
 ];

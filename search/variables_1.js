@@ -8,6 +8,8 @@ var searchData=
   ['alias_5',['alias',['../d1/d0e/structLightweight_1_1AliasedTableName.html#a133d7fa005f1e68b4fb7195c3fcf7e33',1,'Lightweight::AliasedTableName']]],
   ['all_6',['all',['../dd/d27/structLightweight_1_1HasMany_1_1Loader.html#aaabe04603600df384d30d62563315d4f',1,'Lightweight::HasMany::Loader::all'],['../d8/da3/structLightweight_1_1HasManyThrough_1_1Loader.html#a7da6ad55333f58bf876b528fc198f17c',1,'Lightweight::HasManyThrough::Loader::all']]],
   ['appliedcount_7',['appliedCount',['../d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html#a1ac8a6b73ea294f3a7bee66b97feb2c1',1,'Lightweight::SqlMigration::MigrationStatus']]],
-  ['author_8',['author',['../dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#ab52a61034e07facd43a641d9c40f9b62',1,'Lightweight::SqlMigration::MigrationMetadata']]],
-  ['autodetectrelation_9',['AutoDetectRelation',['../d7/d2f/group__DataMapper.html#gaa5bfaacd1c94e825fbd19612b0f80d2a',1,'Lightweight']]]
+  ['archivefilename_8',['archiveFileName',['../de/dd2/structLightweight_1_1SqlMigration_1_1BackupRecord.html#aab4e0687ea7fafaed530194b5cccc5c5',1,'Lightweight::SqlMigration::BackupRecord']]],
+  ['archivesha256_9',['archivesha256',['../df/d1e/structLightweight_1_1SqlBackup_1_1ArchiveVerification.html#a09042c884cc6e48f3cd3cb8b8ee5a740',1,'Lightweight::SqlBackup::ArchiveVerification::archiveSha256'],['../de/dd2/structLightweight_1_1SqlMigration_1_1BackupRecord.html#ababa26b69ab95eb63248715e89f296bb',1,'Lightweight::SqlMigration::BackupRecord::archiveSha256']]],
+  ['author_10',['author',['../dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#ab52a61034e07facd43a641d9c40f9b62',1,'Lightweight::SqlMigration::MigrationMetadata']]],
+  ['autodetectrelation_11',['AutoDetectRelation',['../d7/d2f/group__DataMapper.html#gaa5bfaacd1c94e825fbd19612b0f80d2a',1,'Lightweight']]]
 ];

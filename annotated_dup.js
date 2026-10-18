@@ -20,6 +20,7 @@ var annotated_dup =
         [ "DropIndexIfExists", "d9/dd1/structLightweight_1_1SqlAlterTableCommands_1_1DropIndexIfExists.html", "d9/dd1/structLightweight_1_1SqlAlterTableCommands_1_1DropIndexIfExists" ]
       ] ],
       [ "SqlBackup", null, [
+        [ "ArchiveVerification", "df/d1e/structLightweight_1_1SqlBackup_1_1ArchiveVerification.html", "df/d1e/structLightweight_1_1SqlBackup_1_1ArchiveVerification" ],
         [ "BackupSettings", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings" ],
         [ "ChunkReader", "d2/d99/structLightweight_1_1SqlBackup_1_1ChunkReader.html", "d2/d99/structLightweight_1_1SqlBackup_1_1ChunkReader" ],
         [ "ChunkWriter", "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html", "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter" ],
@@ -33,14 +34,21 @@ var annotated_dup =
         [ "TableInfo", "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html", "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo" ]
       ] ],
       [ "SqlMigration", null, [
+        [ "BackupRecord", "de/dd2/structLightweight_1_1SqlMigration_1_1BackupRecord.html", "de/dd2/structLightweight_1_1SqlMigration_1_1BackupRecord" ],
+        [ "BackupRequirement", "dc/d94/structLightweight_1_1SqlMigration_1_1BackupRequirement.html", "dc/d94/structLightweight_1_1SqlMigration_1_1BackupRequirement" ],
         [ "ChecksumVerificationResult", "da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html", "da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult" ],
         [ "MigrationBase", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase" ],
         [ "MigrationException", "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html", "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException" ],
+        [ "MigrationHistoryState", "d3/d5b/structLightweight_1_1SqlMigration_1_1MigrationHistoryState.html", "d3/d5b/structLightweight_1_1SqlMigration_1_1MigrationHistoryState" ],
         [ "MigrationManager", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager" ],
         [ "MigrationMetadata", "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html", "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata" ],
         [ "MigrationRelease", "d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html", "d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease" ],
+        [ "MigrationReleaseOptions", "d5/db9/structLightweight_1_1SqlMigration_1_1MigrationReleaseOptions.html", "d5/db9/structLightweight_1_1SqlMigration_1_1MigrationReleaseOptions" ],
         [ "MigrationStatus", "d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html", "d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus" ],
         [ "MigrationTimestamp", "d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html", "d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp" ],
+        [ "PreMigrateStepError", "da/de3/classLightweight_1_1SqlMigration_1_1PreMigrateStepError.html", "da/de3/classLightweight_1_1SqlMigration_1_1PreMigrateStepError" ],
+        [ "PreMigrateStepInfo", "da/d53/structLightweight_1_1SqlMigration_1_1PreMigrateStepInfo.html", "da/d53/structLightweight_1_1SqlMigration_1_1PreMigrateStepInfo" ],
+        [ "PreMigrateStepOptions", "de/dfb/structLightweight_1_1SqlMigration_1_1PreMigrateStepOptions.html", "de/dfb/structLightweight_1_1SqlMigration_1_1PreMigrateStepOptions" ],
         [ "RevertResult", "d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html", "d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult" ],
         [ "UnicodeUpgradeUnitError", "d5/dd4/classLightweight_1_1SqlMigration_1_1UnicodeUpgradeUnitError.html", "d5/dd4/classLightweight_1_1SqlMigration_1_1UnicodeUpgradeUnitError" ]
       ] ],
@@ -70,8 +78,10 @@ var annotated_dup =
       [ "HasManyThrough", "de/d73/classLightweight_1_1HasManyThrough.html", "de/d73/classLightweight_1_1HasManyThrough" ],
       [ "HasOneThrough", "df/d63/classLightweight_1_1HasOneThrough.html", "df/d63/classLightweight_1_1HasOneThrough" ],
       [ "MigrationRenderContext", "d4/d23/structLightweight_1_1MigrationRenderContext.html", "d4/d23/structLightweight_1_1MigrationRenderContext" ],
+      [ "NullProgressTask", "d0/db8/classLightweight_1_1NullProgressTask.html", "d0/db8/classLightweight_1_1NullProgressTask" ],
       [ "Pool", "d3/d30/classLightweight_1_1Pool.html", "d3/d30/classLightweight_1_1Pool" ],
       [ "PoolConfig", "df/d1a/structLightweight_1_1PoolConfig.html", "df/d1a/structLightweight_1_1PoolConfig" ],
+      [ "ProgressTask", "d2/d3e/classLightweight_1_1ProgressTask.html", "d2/d3e/classLightweight_1_1ProgressTask" ],
       [ "RecordMemberList", "d2/d94/structLightweight_1_1RecordMemberList.html", "d2/d94/structLightweight_1_1RecordMemberList" ],
       [ "RowArrayCursor", "da/d6c/classLightweight_1_1RowArrayCursor.html", "da/d6c/classLightweight_1_1RowArrayCursor" ],
       [ "RowArrayCursorUnsupported", "de/d9f/classLightweight_1_1RowArrayCursorUnsupported.html", null ],

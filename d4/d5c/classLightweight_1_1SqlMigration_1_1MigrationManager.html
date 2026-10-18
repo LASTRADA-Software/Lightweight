@@ -187,6 +187,16 @@ LIGHTWEIGHT_API std::string_view&#160;</td><td class="memItemRight" valign="bott
 <tr class="memitem:add671494b092c5adc33d1a55f04af024" id="r_add671494b092c5adc33d1a55f04af024"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#add671494b092c5adc33d1a55f04af024">SkippedExistingRowCount</a> () const noexcept</td></tr>
 <tr class="memdesc:add671494b092c5adc33d1a55f04af024"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of rows <code>Insert(...).IfNotExists(...)</code> steps skipped because a row with the same key values already existed, counted over the manager's lifetime.  <br /></td></tr>
 <tr class="separator:add671494b092c5adc33d1a55f04af024"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abb289b7d173a073b1adbee87f2f6088e" id="r_abb289b7d173a073b1adbee87f2f6088e"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#abb289b7d173a073b1adbee87f2f6088e">AddPreMigrateStep</a> (std::string title, <a class="el" href="../../de/dfb/structLightweight_1_1SqlMigration_1_1PreMigrateStepOptions.html">PreMigrateStepOptions</a> options, <a class="el" href="../../db/df6/group__SqlMigration.html#gaa69c7762f67912d76fe146c91015dff2">PreMigrateStep</a> step)</td></tr>
+<tr class="separator:abb289b7d173a073b1adbee87f2f6088e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afcc080928b6120766270b44aaaf7b7b1" id="r_afcc080928b6120766270b44aaaf7b7b1"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::vector&lt; <a class="el" href="../../da/d53/structLightweight_1_1SqlMigration_1_1PreMigrateStepInfo.html">PreMigrateStepInfo</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#afcc080928b6120766270b44aaaf7b7b1">GetPreMigrateSteps</a> () const</td></tr>
+<tr class="separator:afcc080928b6120766270b44aaaf7b7b1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac67bcf712823347c9a6b68e20a8c9b30" id="r_ac67bcf712823347c9a6b68e20a8c9b30"><td class="memItemLeft" align="right" valign="top"><a id="ac67bcf712823347c9a6b68e20a8c9b30" name="ac67bcf712823347c9a6b68e20a8c9b30"></a>
+LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><b>RemoveAllPreMigrateSteps</b> () noexcept</td></tr>
+<tr class="memdesc:ac67bcf712823347c9a6b68e20a8c9b30"><td class="mdescLeft">&#160;</td><td class="mdescRight">Removes every pre-migrate step. <br /></td></tr>
+<tr class="separator:ac67bcf712823347c9a6b68e20a8c9b30"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac07a387494c23200ccedcc4f7362cc07" id="r_ac07a387494c23200ccedcc4f7362cc07"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../db/df6/group__SqlMigration.html#ga9e1d1a1e5e2a8b3037c3674ee85f1f91">PreMigrateStepsOutcome</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ac07a387494c23200ccedcc4f7362cc07">RunPreMigrateSteps</a> (<a class="el" href="../../d2/d3e/classLightweight_1_1ProgressTask.html">ProgressTask</a> &amp;parent, <a class="el" href="../../db/df6/group__SqlMigration.html#ga5af50b883bf2abc7126d3944fd4a99c5">ExecutionMode</a> mode)</td></tr>
+<tr class="separator:ac07a387494c23200ccedcc4f7362cc07"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1869bb06cd3794f327182136cccff094" id="r_a1869bb06cd3794f327182136cccff094"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html">DataMapper</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1869bb06cd3794f327182136cccff094">GetDataMapper</a> ()</td></tr>
 <tr class="separator:a1869bb06cd3794f327182136cccff094"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a48ed86737153cbf627f517f3b0d11322" id="r_a48ed86737153cbf627f517f3b0d11322"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html">DataMapper</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a48ed86737153cbf627f517f3b0d11322">GetDataMapper</a> () const</td></tr>
@@ -220,12 +230,12 @@ LIGHTWEIGHT_API std::vector&lt; std::string &gt;&#160;</td><td class="memItemRig
 <tr class="memitem:a500e17dc06f73a877dc7e7a99342feaa" id="r_a500e17dc06f73a877dc7e7a99342feaa"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html">PlanFoldingResult</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a500e17dc06f73a877dc7e7a99342feaa">FoldRegisteredMigrations</a> (<a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const &amp;formatter, std::optional&lt; <a class="el" href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">MigrationTimestamp</a> &gt; upToInclusive=std::nullopt) const</td></tr>
 <tr class="memdesc:a500e17dc06f73a877dc7e7a99342feaa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pure plan-walk that folds the effect of every registered migration.  <br /></td></tr>
 <tr class="separator:a500e17dc06f73a877dc7e7a99342feaa"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a20c8c6018a3d4c75c69a57e2f63d0459" id="r_a20c8c6018a3d4c75c69a57e2f63d0459"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html">HardResetResult</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a20c8c6018a3d4c75c69a57e2f63d0459">HardReset</a> (bool dryRun=false)</td></tr>
-<tr class="memdesc:a20c8c6018a3d4c75c69a57e2f63d0459"><td class="mdescLeft">&#160;</td><td class="mdescRight">Drops every table the registered migrations would create (incl. <code>schema_migrations</code>), preserving any user-created tables.  <br /></td></tr>
-<tr class="separator:a20c8c6018a3d4c75c69a57e2f63d0459"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac98fe163c2161de8faf1d8e7d588bd92" id="r_ac98fe163c2161de8faf1d8e7d588bd92"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html">UnicodeUpgradeResult</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ac98fe163c2161de8faf1d8e7d588bd92">UnicodeUpgradeTables</a> (bool dryRun=false)</td></tr>
-<tr class="memdesc:ac98fe163c2161de8faf1d8e7d588bd92"><td class="mdescLeft">&#160;</td><td class="mdescRight">Rewrites legacy <code>VARCHAR/CHAR</code> columns to <code>NVARCHAR/NCHAR</code> where the registered migrations now declare wide types.  <br /></td></tr>
-<tr class="separator:ac98fe163c2161de8faf1d8e7d588bd92"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7bff8cdde7593a286e4f9c3cb2dbba80" id="r_a7bff8cdde7593a286e4f9c3cb2dbba80"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html">HardResetResult</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a7bff8cdde7593a286e4f9c3cb2dbba80">HardReset</a> (<a class="el" href="../../db/df6/group__SqlMigration.html#ga5af50b883bf2abc7126d3944fd4a99c5">ExecutionMode</a> mode=<a class="el" href="../../db/df6/group__SqlMigration.html#gga5af50b883bf2abc7126d3944fd4a99c5a40cd014b7b6251e3a22e6a45a73a64e1">ExecutionMode::Execute</a>)</td></tr>
+<tr class="memdesc:a7bff8cdde7593a286e4f9c3cb2dbba80"><td class="mdescLeft">&#160;</td><td class="mdescRight">Drops every table the registered migrations would create (incl. <code>schema_migrations</code>), preserving any user-created tables.  <br /></td></tr>
+<tr class="separator:a7bff8cdde7593a286e4f9c3cb2dbba80"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa615760b0b39716aa7036660f39b380d" id="r_aa615760b0b39716aa7036660f39b380d"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html">UnicodeUpgradeResult</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#aa615760b0b39716aa7036660f39b380d">UnicodeUpgradeTables</a> (<a class="el" href="../../db/df6/group__SqlMigration.html#ga5af50b883bf2abc7126d3944fd4a99c5">ExecutionMode</a> mode=<a class="el" href="../../db/df6/group__SqlMigration.html#gga5af50b883bf2abc7126d3944fd4a99c5a40cd014b7b6251e3a22e6a45a73a64e1">ExecutionMode::Execute</a>, <a class="el" href="../../d2/d3e/classLightweight_1_1ProgressTask.html">ProgressTask</a> *progress=nullptr)</td></tr>
+<tr class="memdesc:aa615760b0b39716aa7036660f39b380d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Rewrites legacy <code>VARCHAR/CHAR</code> columns to <code>NVARCHAR/NCHAR</code> where the registered migrations now declare wide types.  <br /></td></tr>
+<tr class="separator:aa615760b0b39716aa7036660f39b380d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a70539241ba2c17c1ce40ce89ec177f55" id="r_a70539241ba2c17c1ce40ce89ec177f55"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d2/d24/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1RewriteChecksumsResult.html">RewriteChecksumsResult</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a70539241ba2c17c1ce40ce89ec177f55">RewriteChecksums</a> (bool dryRun=false)</td></tr>
 <tr class="memdesc:a70539241ba2c17c1ce40ce89ec177f55"><td class="mdescLeft">&#160;</td><td class="mdescRight">Re-stamps <code>schema_migrations.checksum</code> rows that have drifted.  <br /></td></tr>
 <tr class="separator:a70539241ba2c17c1ce40ce89ec177f55"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -243,8 +253,8 @@ LIGHTWEIGHT_API std::vector&lt; std::string &gt;&#160;</td><td class="memItemRig
 <tr class="separator:aaaca2ec37763d11612d487ecad5daebf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab30c624d73149913fc06226b9d7b595a" id="r_ab30c624d73149913fc06226b9d7b595a"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ab30c624d73149913fc06226b9d7b595a">ValidateDependencies</a> () const</td></tr>
 <tr class="separator:ab30c624d73149913fc06226b9d7b595a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a542c4d9a99d7bbd8116e7c5f688be0bd" id="r_a542c4d9a99d7bbd8116e7c5f688be0bd"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a542c4d9a99d7bbd8116e7c5f688be0bd">RegisterRelease</a> (std::string version, <a class="el" href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">MigrationTimestamp</a> highestTimestamp)</td></tr>
-<tr class="separator:a542c4d9a99d7bbd8116e7c5f688be0bd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a92f68d4760e1e7c1fca3b864597d3a12" id="r_a92f68d4760e1e7c1fca3b864597d3a12"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a92f68d4760e1e7c1fca3b864597d3a12">RegisterRelease</a> (std::string version, <a class="el" href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">MigrationTimestamp</a> highestTimestamp, <a class="el" href="../../d5/db9/structLightweight_1_1SqlMigration_1_1MigrationReleaseOptions.html">MigrationReleaseOptions</a> options={})</td></tr>
+<tr class="separator:a92f68d4760e1e7c1fca3b864597d3a12"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4a3c08e9053c7409a170abd9891e15bf" id="r_a4a3c08e9053c7409a170abd9891e15bf"><td class="memItemLeft" align="right" valign="top"><a id="a4a3c08e9053c7409a170abd9891e15bf" name="a4a3c08e9053c7409a170abd9891e15bf"></a>
 LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><b>RemoveAllReleases</b> ()</td></tr>
 <tr class="memdesc:a4a3c08e9053c7409a170abd9891e15bf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Remove all registered releases. Useful for resetting state in tests. <br /></td></tr>
@@ -259,6 +269,8 @@ LIGHTWEIGHT_API std::vector&lt; <a class="el" href="../../d1/d4f/structLightweig
 <tr class="separator:a97663a37d26d962c2c17d97706651c0f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a97918619adda32f2e9f65b089221a01f" id="r_a97918619adda32f2e9f65b089221a01f"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a259626f016bf24f265c81c1bc4446ae1">MigrationList</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a97918619adda32f2e9f65b089221a01f">GetMigrationsForRelease</a> (std::string_view version) const</td></tr>
 <tr class="separator:a97918619adda32f2e9f65b089221a01f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aff7702bfe2be5552850c10c05c4a1fb9" id="r_aff7702bfe2be5552850c10c05c4a1fb9"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../dc/d94/structLightweight_1_1SqlMigration_1_1BackupRequirement.html">BackupRequirement</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#aff7702bfe2be5552850c10c05c4a1fb9">BackupRequirementFor</a> (std::span&lt; <a class="el" href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">MigrationTimestamp</a> const &gt; toRun)</td></tr>
+<tr class="separator:aff7702bfe2be5552850c10c05c4a1fb9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -269,7 +281,7 @@ Static Public Member Functions</h2></td></tr>
 <div class="textblock"><p>Main API to use for managing SQL migrations</p>
 <p>This class is a singleton and can be accessed using the <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ae03991a2dff12fb763353d0327c29bf8">GetInstance()</a> method. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00248">248</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00452">452</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 </div><h2 class="groupheader">Member Typedef Documentation</h2>
 <a id="a259626f016bf24f265c81c1bc4446ae1" name="a259626f016bf24f265c81c1bc4446ae1"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a259626f016bf24f265c81c1bc4446ae1">&#9670;&#160;</a></span>MigrationList</h2>
@@ -285,7 +297,7 @@ Static Public Member Functions</h2></td></tr>
 
 <p>Type alias for a list of migration pointers. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00252">252</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00456">456</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -303,7 +315,7 @@ Static Public Member Functions</h2></td></tr>
 
 <p>Callback type invoked during migration execution to report progress. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00302">302</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00506">506</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -320,7 +332,7 @@ Static Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 <p>Optional sink for informational status messages emitted by plugin hooks (e.g. the "Transitioning from LASTRADA_PROPERTIES …" banner). <code>dbtool</code> installs a sink that prints to <code>stdout</code> to preserve the historical CLI output; <code>dbtool-gui</code> installs a sink that routes through its <code>LogInfo</code> channel so the banner shows up in the activity log instead of going to a hidden stream. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00415">415</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00619">619</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -339,7 +351,7 @@ Static Public Member Functions</h2></td></tr>
 <p>Per-migration compat policy. </p>
 <p>Given a migration about to be applied (or previewed), returns the set of compat flags that should be active while rendering it. Plugins that ship legacy migrations use this to scope compat behaviour to their own timestamp range (e.g. a plugin enables <code>lup-truncate</code> for migrations predating a given release). Unset means "strict for every migration". </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00469">469</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00701">701</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -371,7 +383,7 @@ Static Public Member Functions</h2></td></tr>
 <dd>
 Reference to the migration manager. </dd></dl>
 
-<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00999">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>, and <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01012">Lightweight::SqlMigration::MigrationBase::~MigrationBase()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01277">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>, and <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01290">Lightweight::SqlMigration::MigrationBase::~MigrationBase()</a>.</p>
 
 </div>
 </div>
@@ -398,7 +410,7 @@ Reference to the migration manager. </dd></dl>
   </dd>
 </dl>
 
-<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00999">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01277">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>.</p>
 
 </div>
 </div>
@@ -495,7 +507,7 @@ Reference to the migration manager. </dd></dl>
   </dd>
 </dl>
 
-<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01012">Lightweight::SqlMigration::MigrationBase::~MigrationBase()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01290">Lightweight::SqlMigration::MigrationBase::~MigrationBase()</a>.</p>
 
 </div>
 </div>
@@ -836,6 +848,116 @@ Reference to the migration manager. </dd></dl>
 
 </div>
 </div>
+<a id="abb289b7d173a073b1adbee87f2f6088e" name="abb289b7d173a073b1adbee87f2f6088e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abb289b7d173a073b1adbee87f2f6088e">&#9670;&#160;</a></span>AddPreMigrateStep()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API void Lightweight::SqlMigration::MigrationManager::AddPreMigrateStep </td>
+          <td>(</td>
+          <td class="paramtype">std::string&#160;</td>
+          <td class="paramname"><em>title</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="../../de/dfb/structLightweight_1_1SqlMigration_1_1PreMigrateStepOptions.html">PreMigrateStepOptions</a>&#160;</td>
+          <td class="paramname"><em>options</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="../../db/df6/group__SqlMigration.html#gaa69c7762f67912d76fe146c91015dff2">PreMigrateStep</a>&#160;</td>
+          <td class="paramname"><em>step</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Registers a step that <code>migrate</code>, <code>apply</code> and <code>migrate-to-release</code> run, in registration order, before their first pending migration (also when none is pending). Plugins register steps from their post-init hook; a step is code of that plugin, so hosts call <code>RemoveAllPreMigrateSteps</code> before running post-init hooks again and before unloading it.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">title</td><td>The step's title, unique among the steps. </td></tr>
+    <tr><td class="paramname">options</td><td>The step's options. </td></tr>
+    <tr><td class="paramname">step</td><td>The step's code. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="exception"><dt>Exceptions</dt><dd>
+  <table class="exception">
+    <tr><td class="paramname">std::invalid_argument</td><td>when <code>step</code> is empty or a step titled <code>title</code> exists. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="afcc080928b6120766270b44aaaf7b7b1" name="afcc080928b6120766270b44aaaf7b7b1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afcc080928b6120766270b44aaaf7b7b1">&#9670;&#160;</a></span>GetPreMigrateSteps()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API std::vector&lt; <a class="el" href="../../da/d53/structLightweight_1_1SqlMigration_1_1PreMigrateStepInfo.html">PreMigrateStepInfo</a> &gt; Lightweight::SqlMigration::MigrationManager::GetPreMigrateSteps </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<dl class="section return"><dt>Returns</dt><dd>The registered pre-migrate steps, in registration order. </dd></dl>
+
+</div>
+</div>
+<a id="ac07a387494c23200ccedcc4f7362cc07" name="ac07a387494c23200ccedcc4f7362cc07"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac07a387494c23200ccedcc4f7362cc07">&#9670;&#160;</a></span>RunPreMigrateSteps()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../db/df6/group__SqlMigration.html#ga9e1d1a1e5e2a8b3037c3674ee85f1f91">PreMigrateStepsOutcome</a> Lightweight::SqlMigration::MigrationManager::RunPreMigrateSteps </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="../../d2/d3e/classLightweight_1_1ProgressTask.html">ProgressTask</a> &amp;&#160;</td>
+          <td class="paramname"><em>parent</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="../../db/df6/group__SqlMigration.html#ga5af50b883bf2abc7126d3944fd4a99c5">ExecutionMode</a>&#160;</td>
+          <td class="paramname"><em>mode</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Runs the pre-migrate steps in registration order, each under a sub-task of <code>parent</code> named like the step, on the migration connection. The caller holds the migration lock (unless it opted out of locking) and calls this before applying the first pending migration. Status and read-only commands never call it. Cancellation is checked before and after each step.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">parent</td><td>The task the steps' tasks open under. </td></tr>
+    <tr><td class="paramname">mode</td><td>Whether the steps only report their plan. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd><code>Cancelled</code> when <code>parent</code> asked to cancel; the caller then applies no migration. </dd></dl>
+<dl class="exception"><dt>Exceptions</dt><dd>
+  <table class="exception">
+    <tr><td class="paramname"><a class="el" href="../../da/de3/classLightweight_1_1SqlMigration_1_1PreMigrateStepError.html">PreMigrateStepError</a></td><td>when a step throws; the steps after it do not run. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="a1869bb06cd3794f327182136cccff094" name="a1869bb06cd3794f327182136cccff094"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a1869bb06cd3794f327182136cccff094">&#9670;&#160;</a></span>GetDataMapper() <span class="overload">[1/2]</span></h2>
 
@@ -860,7 +982,7 @@ Reference to the migration manager. </dd></dl>
   </dd>
 </dl>
 
-<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00451">GetDataMapper()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00683">GetDataMapper()</a>.</p>
 
 </div>
 </div>
@@ -889,7 +1011,7 @@ Reference to the migration manager. </dd></dl>
 
 <p>Get the data mapper used for migrations. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00451">451</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00683">683</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1869bb06cd3794f327182136cccff094">GetDataMapper()</a>.</p>
 
@@ -1020,8 +1142,8 @@ Reference to the migration manager. </dd></dl>
 
 </div>
 </div>
-<a id="a20c8c6018a3d4c75c69a57e2f63d0459" name="a20c8c6018a3d4c75c69a57e2f63d0459"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a20c8c6018a3d4c75c69a57e2f63d0459">&#9670;&#160;</a></span>HardReset()</h2>
+<a id="a7bff8cdde7593a286e4f9c3cb2dbba80" name="a7bff8cdde7593a286e4f9c3cb2dbba80"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7bff8cdde7593a286e4f9c3cb2dbba80">&#9670;&#160;</a></span>HardReset()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1029,8 +1151,8 @@ Reference to the migration manager. </dd></dl>
         <tr>
           <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html">HardResetResult</a> Lightweight::SqlMigration::MigrationManager::HardReset </td>
           <td>(</td>
-          <td class="paramtype">bool&#160;</td>
-          <td class="paramname"><em>dryRun</em> = <code>false</code></td><td>)</td>
+          <td class="paramtype"><a class="el" href="../../db/df6/group__SqlMigration.html#ga5af50b883bf2abc7126d3944fd4a99c5">ExecutionMode</a>&#160;</td>
+          <td class="paramname"><em>mode</em> = <code><a class="el" href="../../db/df6/group__SqlMigration.html#gga5af50b883bf2abc7126d3944fd4a99c5a40cd014b7b6251e3a22e6a45a73a64e1">ExecutionMode::Execute</a></code></td><td>)</td>
           <td></td>
         </tr>
       </table>
@@ -1039,17 +1161,18 @@ Reference to the migration manager. </dd></dl>
 <p>Drops every table the registered migrations would create (incl. <code>schema_migrations</code>), preserving any user-created tables. </p>
 <p>Folds all registered migrations to compute the migration-owned set, intersects with the live schema (via <code>SqlSchema::ReadAllTables</code>), then drops the matching live tables in <b>reverse</b> creation order with <code>cascade=true ifExists=true</code>. The <code>schema_migrations</code> table is dropped explicitly because it's created outside the registered-migrations stream.</p>
 <p>Tables present in the live DB but not in the migration plan are left alone and reported under <code>preservedTables</code> so operators can spot them.</p>
+<p>Also drops <code>schema_backups</code>: its records describe backups of the migration state being discarded.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">dryRun</td><td>When true, returns the would-be plan without writing anything. </td></tr>
+    <tr><td class="paramname">mode</td><td><code><a class="el" href="../../db/df6/group__SqlMigration.html#gga5af50b883bf2abc7126d3944fd4a99c5ad46997bcbf0a9a134490cdc3f1fddfce" title="Report the plan and change nothing.">ExecutionMode::DryRun</a></code> returns the would-be plan without writing anything. </td></tr>
   </table>
   </dd>
 </dl>
 
 </div>
 </div>
-<a id="ac98fe163c2161de8faf1d8e7d588bd92" name="ac98fe163c2161de8faf1d8e7d588bd92"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac98fe163c2161de8faf1d8e7d588bd92">&#9670;&#160;</a></span>UnicodeUpgradeTables()</h2>
+<a id="aa615760b0b39716aa7036660f39b380d" name="aa615760b0b39716aa7036660f39b380d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa615760b0b39716aa7036660f39b380d">&#9670;&#160;</a></span>UnicodeUpgradeTables()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1057,9 +1180,19 @@ Reference to the migration manager. </dd></dl>
         <tr>
           <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html">UnicodeUpgradeResult</a> Lightweight::SqlMigration::MigrationManager::UnicodeUpgradeTables </td>
           <td>(</td>
-          <td class="paramtype">bool&#160;</td>
-          <td class="paramname"><em>dryRun</em> = <code>false</code></td><td>)</td>
+          <td class="paramtype"><a class="el" href="../../db/df6/group__SqlMigration.html#ga5af50b883bf2abc7126d3944fd4a99c5">ExecutionMode</a>&#160;</td>
+          <td class="paramname"><em>mode</em> = <code><a class="el" href="../../db/df6/group__SqlMigration.html#gga5af50b883bf2abc7126d3944fd4a99c5a40cd014b7b6251e3a22e6a45a73a64e1">ExecutionMode::Execute</a></code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype"><a class="el" href="../../d2/d3e/classLightweight_1_1ProgressTask.html">ProgressTask</a> *&#160;</td>
+          <td class="paramname"><em>progress</em> = <code>nullptr</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -1070,9 +1203,11 @@ Reference to the migration manager. </dd></dl>
 <p>The live tables of every schema are read. A declared table resolves to the schema its migration names; else to the first schema holding that name in the connection's name resolution order (SQL Server: the user's default schema, then <code>dbo</code>; PostgreSQL: the search path); else to the only schema holding it. Each column is altered, and its dependents found, in the schema it was resolved to. When several schemas hold a declared name, none of them is in that order and one has a column to widen, the call throws <code>std::runtime_error</code> naming them.</p>
 <p>Where a foreign key needs both sides to share one text type (SQL Server), every column a foreign key joins to an upgraded column is upgraded too, declared or not, and reported with <code><a class="el" href="../../d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a68ef8f0286f85e4a60f163bc5b8d9c93">ColumnUpgradeEntry::joinedByForeignKeyTo</a></code> set. Such a column must have the same narrow type and size and must not be declared with another type; otherwise the call throws <code>std::runtime_error</code> naming it, in a dry run too, before anything has changed.</p>
 <p>Each unit (see <code><a class="el" href="../../d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#aeb98b3bba22e6cf0453ca74fa3b70e7d">UnicodeUpgradeResult::units</a></code>) runs in a transaction of its own and is committed before the next one starts; the log sink reports each committed unit. Under the simple recovery model, or while log backups run, the transaction log then only has to hold one unit, so the largest unit sets its peak. A failing unit is rolled back and stops the call with <code><a class="el" href="../../d5/dd4/classLightweight_1_1SqlMigration_1_1UnicodeUpgradeUnitError.html">UnicodeUpgradeUnitError</a></code>, which names it and says how many units were committed before it. A later call continues where this one stopped, as the plan is computed from the live schema.</p>
+<p>A unit that fails is reported as failed on its tasks (the failing table's, the unit's and the overall one) before the call throws.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">dryRun</td><td>When true, returns the would-be diff without writing anything. </td></tr>
+    <tr><td class="paramname">mode</td><td><code><a class="el" href="../../db/df6/group__SqlMigration.html#gga5af50b883bf2abc7126d3944fd4a99c5ad46997bcbf0a9a134490cdc3f1fddfce" title="Report the plan and change nothing.">ExecutionMode::DryRun</a></code> returns the would-be diff without writing anything and reports only the plan to <code>progress</code>. </td></tr>
+    <tr><td class="paramname">progress</td><td>Receives planning, an overall task weighted by the tables' row counts (SQL Server: <code>sys.partitions</code>; PostgreSQL: <code>pg_class.reltuples</code>; otherwise <code>COUNT(*)</code>), one task per unit and per table; null reports nothing. Cancellation is checked after each committed unit except the last; see <code><a class="el" href="../../d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#a9e4563cca3b0dcd0a348e517e33135d9">UnicodeUpgradeResult::wasCancelled</a></code>. </td></tr>
   </table>
   </dd>
 </dl>
@@ -1318,8 +1453,8 @@ Reference to the migration manager. </dd></dl>
 
 </div>
 </div>
-<a id="a542c4d9a99d7bbd8116e7c5f688be0bd" name="a542c4d9a99d7bbd8116e7c5f688be0bd"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a542c4d9a99d7bbd8116e7c5f688be0bd">&#9670;&#160;</a></span>RegisterRelease()</h2>
+<a id="a92f68d4760e1e7c1fca3b864597d3a12" name="a92f68d4760e1e7c1fca3b864597d3a12"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a92f68d4760e1e7c1fca3b864597d3a12">&#9670;&#160;</a></span>RegisterRelease()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1334,7 +1469,13 @@ Reference to the migration manager. </dd></dl>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype"><a class="el" href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">MigrationTimestamp</a>&#160;</td>
-          <td class="paramname"><em>highestTimestamp</em>&#160;</td>
+          <td class="paramname"><em>highestTimestamp</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="../../d5/db9/structLightweight_1_1SqlMigration_1_1MigrationReleaseOptions.html">MigrationReleaseOptions</a>&#160;</td>
+          <td class="paramname"><em>options</em> = <code>{}</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -1344,11 +1485,12 @@ Reference to the migration manager. </dd></dl>
       </table>
 </div><div class="memdoc">
 <p>Register a release marker for a software version.</p>
-<p>Typically called from <code><a class="el" href="../../db/df6/group__SqlMigration.html#ga91ef871053a7180297054840ef21a41a" title="Associates a software release (version string) with the highest migration timestamp present at the ti...">LIGHTWEIGHT_SQL_RELEASE(version, timestamp)</a></code> at static init time. Releases are ordered by <code>highestTimestamp</code>; two releases may not share the same <code>highestTimestamp</code>, and the same version string may not be registered twice.</p>
+<p>Typically called from <code><a class="el" href="../../db/df6/group__SqlMigration.html#ga7413081170fb5038b079d2b68bbb7a6f" title="Associates a software release (version string) with the highest migration timestamp present at the ti...">LIGHTWEIGHT_SQL_RELEASE(version, timestamp)</a></code> at static init time. Releases are ordered by <code>highestTimestamp</code>; two releases may not share the same <code>highestTimestamp</code>, and the same version string may not be registered twice.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">version</td><td>Human-readable version, e.g. "6.7.0". </td></tr>
     <tr><td class="paramname">highestTimestamp</td><td>Highest migration timestamp (inclusive) that belongs to this release. </td></tr>
+    <tr><td class="paramname">options</td><td>Release options, e.g. <code>{ .requiresBackup = true }</code>. </td></tr>
   </table>
   </dd>
 </dl>
@@ -1441,6 +1583,39 @@ Reference to the migration manager. </dd></dl>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Migrations in the release, ordered by timestamp. Empty if the version is unknown. </dd></dl>
+
+</div>
+</div>
+<a id="aff7702bfe2be5552850c10c05c4a1fb9" name="aff7702bfe2be5552850c10c05c4a1fb9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aff7702bfe2be5552850c10c05c4a1fb9">&#9670;&#160;</a></span>BackupRequirementFor()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../dc/d94/structLightweight_1_1SqlMigration_1_1BackupRequirement.html">BackupRequirement</a> Lightweight::SqlMigration::MigrationManager::BackupRequirementFor </td>
+          <td>(</td>
+          <td class="paramtype">std::span&lt; <a class="el" href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">MigrationTimestamp</a> const &gt;&#160;</td>
+          <td class="paramname"><em>toRun</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Whether the work a command will run needs a backup first, and whether one exists.</p>
+<p>Only that work counts: a migration of <code>toRun</code> demands a backup when it <code>RequiresBackup()</code> or its release declares <code>requiresBackup</code>, and a registered pre-migrate step when its <code>requiresBackup</code> predicate returns true (evaluated here, on the migration connection). Pass all pending migrations for <code>migrate</code>, the pending ones up to the release for <code>migrate-to-release</code>, the named one for <code>apply</code>. Only when something demands a backup are <code>schema_backups</code> and <code>schema_migrations</code> read: the newest <code>backup</code> or <code>restore</code> record must cover the database's current state (see <code>BackupRecordCovers</code>).</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">toRun</td><td>The migrations the command will run. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The requirement; <code>required</code> is false when nothing demands a backup. </dd></dl>
+<dl class="exception"><dt>Exceptions</dt><dd>
+  <table class="exception">
+    <tr><td class="paramname">whatever</td><td>a step's predicate throws. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>

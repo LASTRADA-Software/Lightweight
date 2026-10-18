@@ -107,13 +107,15 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a48cc0c694f65a3ad2e43b839ab5d5088" id="r_a48cc0c694f65a3ad2e43b839ab5d5088"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">MigrationTimestamp</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html#a48cc0c694f65a3ad2e43b839ab5d5088">highestTimestamp</a></td></tr>
 <tr class="memdesc:a48cc0c694f65a3ad2e43b839ab5d5088"><td class="mdescLeft">&#160;</td><td class="mdescRight">Highest migration timestamp contained in this release (inclusive).  <br /></td></tr>
 <tr class="separator:a48cc0c694f65a3ad2e43b839ab5d5088"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aecdc1dec1f1b3b056d4400beb516236c" id="r_aecdc1dec1f1b3b056d4400beb516236c"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html#aecdc1dec1f1b3b056d4400beb516236c">requiresBackup</a> = false</td></tr>
+<tr class="separator:aecdc1dec1f1b3b056d4400beb516236c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Associates a software release with the highest migration timestamp present at release time.</p>
-<p>Releases are declared in source (typically a migration plugin) via <code><a class="el" href="../../db/df6/group__SqlMigration.html#ga91ef871053a7180297054840ef21a41a" title="Associates a software release (version string) with the highest migration timestamp present at the ti...">LIGHTWEIGHT_SQL_RELEASE(version, highestTimestamp)</a></code>. They let tools answer questions like "which migrations belong to release 6.7.0?" or "roll back everything applied after 6.7.0".</p>
+<p>Releases are declared in source (typically a migration plugin) via <code><a class="el" href="../../db/df6/group__SqlMigration.html#ga7413081170fb5038b079d2b68bbb7a6f" title="Associates a software release (version string) with the highest migration timestamp present at the ti...">LIGHTWEIGHT_SQL_RELEASE(version, highestTimestamp[, options])</a></code>. They let tools answer questions like "which migrations belong to release 6.7.0?" or "roll back everything applied after 6.7.0".</p>
 <p>The <code>highestTimestamp</code> is an inclusive upper bound: a migration <code>M</code> belongs to the release iff <code>prev_release_ts &lt; M.timestamp &lt;= highestTimestamp</code>, where <code>prev_release_ts</code> is the previous release's timestamp (or 0 if there is none). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00199">199</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00203">203</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="ab1116d155822475c5e653b49aa5805aa" name="ab1116d155822475c5e653b49aa5805aa"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ab1116d155822475c5e653b49aa5805aa">&#9670;&#160;</a></span>version</h2>
@@ -129,7 +131,7 @@ Public Attributes</h2></td></tr>
 
 <p>Human-readable version string, e.g. "6.7.0". </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00202">202</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00206">206</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -147,7 +149,24 @@ Public Attributes</h2></td></tr>
 
 <p>Highest migration timestamp contained in this release (inclusive). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00204">204</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00208">208</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+
+</div>
+</div>
+<a id="aecdc1dec1f1b3b056d4400beb516236c" name="aecdc1dec1f1b3b056d4400beb516236c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aecdc1dec1f1b3b056d4400beb516236c">&#9670;&#160;</a></span>requiresBackup</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool Lightweight::SqlMigration::MigrationRelease::requiresBackup = false</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Whether every migration of this release requires a backup of the database taken after its last migration (see <code><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#aff7702bfe2be5552850c10c05c4a1fb9">MigrationManager::BackupRequirementFor</a></code>). </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00211">211</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
