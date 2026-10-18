@@ -15,6 +15,7 @@
 #include "../LogLevel.hpp"
 #include "../ManagedBackupController.hpp"
 #include "../MigrationRunner.hpp"
+#include "MigrationRunnerTestSupport.hpp"
 #include "SqliteDriver.hpp"
 
 #include <Lightweight/SqlBackup.hpp>
@@ -37,6 +38,7 @@
 #include <QtTest/QSignalSpy>
 #include <Secrets/ProfileCipher.hpp>
 
+using DbtoolGui::Tests::ScopedSettingRestore;
 using DbtoolGui::Tests::SqliteDriver;
 
 namespace
@@ -61,35 +63,6 @@ namespace
         lines << args.value(0).toString();
     return lines.join(QLatin1Char('\n'));
 }
-
-/// Puts one QSettings key of the test application back to its value at construction, also
-/// when the test fails or throws.
-class ScopedSettingRestore
-{
-  public:
-    explicit ScopedSettingRestore(QString key):
-        _key(std::move(key)),
-        _previous(QSettings().value(_key))
-    {
-    }
-
-    ScopedSettingRestore(ScopedSettingRestore const&) = delete;
-    ScopedSettingRestore(ScopedSettingRestore&&) = delete;
-    ScopedSettingRestore& operator=(ScopedSettingRestore const&) = delete;
-    ScopedSettingRestore& operator=(ScopedSettingRestore&&) = delete;
-
-    ~ScopedSettingRestore()
-    {
-        if (_previous.isValid())
-            QSettings().setValue(_key, _previous);
-        else
-            QSettings().remove(_key);
-    }
-
-  private:
-    QString _key;
-    QVariant _previous;
-};
 
 } // namespace
 

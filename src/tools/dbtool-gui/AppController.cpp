@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "AppController.hpp"
+#include "BackupRequirementSupport.hpp"
 
 #include <Lightweight/DataMapper/DataMapper.hpp>
 #include <Lightweight/SqlConnectInfo.hpp>
@@ -9,6 +10,8 @@
 #include <Lightweight/SqlMigration.hpp>
 #include <Lightweight/SqlServerType.hpp>
 
+#include <BackupRecording.hpp>
+#include <Config/BackupOutput.hpp>
 #include <Config/ConfigDiscovery.hpp>
 #include <Config/ProfileAdd.hpp>
 #include <Config/ProfilePassword.hpp>
@@ -44,9 +47,12 @@ struct AppController::PluginsBundle
 } // namespace DbtoolGui
 
 #include <algorithm>
+#include <chrono>
 #include <exception>
 #include <filesystem>
+#include <format>
 #include <span>
+#include <system_error>
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDateTime>
@@ -327,6 +333,8 @@ AppController::AppController(QObject* parent):
             _lastFailedTimestamp.clear();
             _lastFailedTitle.clear();
         }
+        // "Migrate without a backup" covers one run only.
+        setMigrateWithoutBackup(false);
         RefreshMigrationModelsAfterRun();
         if (_pluginReloadPending)
         {
@@ -349,6 +357,11 @@ AppController::AppController(QObject* parent):
             if (ok && _connected)
                 RefreshMigrationModelsAfterRun();
         });
+    // A recorded Back up or Restore can satisfy the backup requirement; one that could not be recorded says why.
+    QObject::connect(&_backupRunner, &BackupRunner::finished, this, [this](bool /*ok*/, QString const& /*summary*/) {
+        _lastRecordError = _backupRunner.lastResult().value(QStringLiteral("recordError")).toString();
+        RefreshBackupRequirement();
+    });
 
     _fileWatcher = new QFileSystemWatcher(this);
     QObject::connect(_fileWatcher, &QFileSystemWatcher::fileChanged, this, &AppController::OnProfileFileChanged);
@@ -725,6 +738,17 @@ bool AppController::connectToProfile()
         emit lastWarningChanged();
         return false;
     }
+    // A backup or restore in flight reports its record into the requirement of the database it ran against.
+    if (_backupRunner.phase() != BackupRunner::Phase::Idle)
+    {
+        _lastWarning = QStringLiteral("Wait for the current backup or restore to finish before connecting.");
+        emit lastWarningChanged();
+        return false;
+    }
+
+    // A waiver was given for the previous database; this one starts without it.
+    setMigrateWithoutBackup(false);
+    _lastRecordError.clear();
 
     // Connection-source dispatch — the `connectionMode` property is the
     // single source of truth. This removes the old ambiguity where whichever
@@ -925,6 +949,7 @@ bool AppController::connectToProfile()
     // decrypted or resolved password and the DSN form, which the raw profile
     // fields would lack.
     _backupRunner.setConnectionString(QString::fromStdString(connectionString));
+    _backupRunner.setRecordSchema(QString::fromStdString(std::string { manager.DefaultSchema() }));
 
     _connected = true;
     // The rows of the last run belong to the previous connection.
@@ -943,6 +968,7 @@ bool AppController::connectToProfile()
     // the flip so any binding that indirectly reads `_connected` (now or
     // later) gets the final state.
     emit migrationsChanged();
+    RefreshBackupRequirement();
     return true;
 }
 
@@ -986,6 +1012,137 @@ int AppController::pendingCount() const
 int AppController::preMigrateStepCount() const
 {
     return static_cast<int>(Lightweight::SqlMigration::MigrationManager::GetInstance().GetPreMigrateSteps().size());
+}
+
+void AppController::setMigrateWithoutBackup(bool value)
+{
+    _runner.setBackupWaived(value ? BackupWaiver::Waived : BackupWaiver::NotWaived);
+    if (_migrateWithoutBackup == value)
+        return;
+    _migrateWithoutBackup = value;
+    emit migrateWithoutBackupChanged();
+}
+
+namespace
+{
+
+    /// What declares a backup requirement, for when it could not be evaluated: the releases of the pending
+    /// migrations that require one, the pending migrations that require one themselves (unless their release
+    /// is named), and the pre-migrate steps that declare one, in that order.
+    QStringList DeclaredBackupRequirements(Lightweight::SqlMigration::MigrationManager const& manager)
+    {
+        auto pending = std::vector<Lightweight::SqlMigration::MigrationBase const*> {};
+        try
+        {
+            for (auto const* migration: manager.GetPending())
+                pending.push_back(migration);
+        }
+        catch (std::exception const&)
+        {
+            // The history cannot be read either, so every migration may be pending.
+            for (auto const* migration: manager.GetAllMigrations())
+                pending.push_back(migration);
+        }
+        auto releases = QStringList {};
+        auto migrations = QStringList {};
+        for (auto const* migration: pending)
+        {
+            if (auto const* release = manager.FindReleaseForTimestamp(migration->GetTimestamp());
+                release && release->requiresBackup)
+            {
+                auto const reason = QStringLiteral("release %1").arg(QString::fromStdString(release->version));
+                if (!releases.contains(reason))
+                    releases.append(reason);
+            }
+            else if (migration->RequiresBackup())
+                migrations.append(QStringLiteral("migration %1 \"%2\"")
+                                      .arg(migration->GetTimestamp().value)
+                                      .arg(QString::fromStdString(std::string { migration->GetTitle() })));
+        }
+        auto steps = QStringList {};
+        for (auto const& step: manager.GetPreMigrateSteps())
+            if (step.declaresBackupRequirement)
+                steps.append(QStringLiteral("step \"%1\"").arg(QString::fromStdString(step.title)));
+        return releases + migrations + steps;
+    }
+
+} // namespace
+
+void AppController::RefreshBackupRequirement()
+{
+    // The check reads through the migration connection, which a running migration uses.
+    if (_runner.phase() != MigrationRunner::Phase::Idle)
+        return;
+
+    auto required = false;
+    auto reasons = QStringList {};
+    auto note = QString {};
+    if (_connected)
+    {
+        auto& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
+        try
+        {
+            auto const requirement = manager.BackupRequirementFor(TimestampsOf(manager.GetPending()));
+            required = requirement.required && !requirement.satisfied;
+            if (required)
+            {
+                for (auto const& reason: requirement.reasons)
+                    reasons.append(QString::fromStdString(reason));
+                if (!_lastRecordError.isEmpty())
+                    note = _lastRecordError;
+                else if (requirement.lastBackup)
+                    note = QString::fromStdString(Lightweight::Tools::DescribeStaleBackup(*requirement.lastBackup));
+            }
+        }
+        catch (std::exception const& e)
+        {
+            reasons = DeclaredBackupRequirements(manager);
+            required = !reasons.isEmpty();
+            if (required)
+                note = QStringLiteral("Could not check the backup requirement: %1").arg(ExceptionMessage(e));
+        }
+    }
+
+    // Nothing left to waive, so a waiver ticked earlier must not carry over to a later requirement.
+    if (!required)
+        setMigrateWithoutBackup(false);
+
+    if (required == _backupRequired && reasons == _backupRequirementReasons && note == _backupRequirementNote)
+        return;
+    _backupRequired = required;
+    _backupRequirementReasons = std::move(reasons);
+    _backupRequirementNote = std::move(note);
+    emit backupRequirementChanged();
+}
+
+void AppController::backUpNow()
+{
+    if (!_connected || AnyRunInFlight())
+        return;
+    // A generated name, handed over as a path built from UTF-16, so a non-ASCII target keeps its spelling.
+    auto const now = std::chrono::system_clock::now();
+    auto const fileName =
+        QString::fromStdString(Lightweight::Config::GeneratedBackupFileName(_connectedTarget.toStdString(), now));
+    auto const output = Lightweight::Config::ResolveBackupOutput({
+        .requested = std::filesystem::path { fileName.toStdU16String() },
+        .folder = std::filesystem::path { _managedBackups.effectiveBackupFolder().toStdU16String() },
+        .profileName = {},
+        .now = now,
+    });
+    if (!output)
+    {
+        LogError(QStringLiteral("Back up now: no backup folder is configured; choose one in Settings."));
+        return;
+    }
+    auto ignored = std::error_code {};
+    std::filesystem::create_directories(output->path.parent_path(), ignored);
+    if (!std::filesystem::is_directory(output->path.parent_path()))
+    {
+        LogError(QStringLiteral("Back up now: cannot create the backup folder %1.")
+                     .arg(QString::fromStdU16String(output->path.parent_path().u16string())));
+        return;
+    }
+    _backupRunner.runBackup(QString::fromStdU16String(output->path.u16string()));
 }
 
 int AppController::pendingUnreleasedCount() const
@@ -1477,6 +1634,9 @@ void AppController::InvalidateConnectionTarget()
     _connectedMode.clear();
     _connectedTarget.clear();
     emit connectedChanged();
+    setMigrateWithoutBackup(false);
+    _lastRecordError.clear();
+    RefreshBackupRequirement();
     LogInfo(QStringLiteral("Disconnected."));
 }
 
@@ -1507,6 +1667,7 @@ void AppController::RefreshMigrationModelsAfterRun()
         }
     }
     emit migrationsChanged();
+    RefreshBackupRequirement();
 }
 
 void AppController::RunPostInitHooks()
@@ -1623,6 +1784,9 @@ void AppController::ReloadPlugins()
                 .arg(_migrations.rowCount())
                 .arg(_releases.rowCount()));
     emit migrationsChanged();
+    // A connect checks the requirement once it has run the hooks on its new connection.
+    if (!_connecting)
+        RefreshBackupRequirement();
 }
 
 void AppController::Log(LogLevel level, QString line)

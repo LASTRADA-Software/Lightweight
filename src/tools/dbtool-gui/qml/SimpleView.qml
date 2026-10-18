@@ -94,6 +94,9 @@ Rectangle {
     readonly property bool allIdle: AppController.runner.phase === MigrationRunner.Idle
                                     && AppController.backupRunner.phase === BackupRunner.Idle
                                     && AppController.managedBackups.phase === ManagedBackupController.Idle
+    // A required backup is missing and the user did not waive it. "Back up first" makes the backup
+    // the run needs; the runner re-checks under the lock, so a backup it cannot record still refuses.
+    readonly property bool backupBlocked: AppController.backupRequired && !AppController.migrateWithoutBackup
 
     Connections {
         target: AppController.runner
@@ -578,6 +581,17 @@ Rectangle {
                             ToolTip.text: qsTr("Write a backup archive before applying, so you can restore it from Backups.")
                         }
 
+                        BackupRequiredAlert {
+                            width: parent.width
+                            visible: AppController.backupRequired
+                            reasons: AppController.backupRequirementReasons
+                            note: AppController.backupRequirementNote
+                            busy: !root.allIdle
+                            waived: AppController.migrateWithoutBackup
+                            onBackupRequested: AppController.backUpNow()
+                            onWaivedToggled: (checked) => AppController.setMigrateWithoutBackup(checked)
+                        }
+
                         LsButton {
                             width: parent.width
                             variant: "primary"
@@ -590,7 +604,7 @@ Rectangle {
                             // started during a managed backup (or an ad-hoc
                             // backup/restore) would rewrite the schema the
                             // archive is being read from.
-                            enabled: root.allIdle && root.hasWork
+                            enabled: root.allIdle && root.hasWork && (!root.backupBlocked || root.backupFirst)
                             onClicked: root.startRun()
                         }
 
@@ -852,7 +866,7 @@ Rectangle {
                                 variant: "primary"
                                 glyph: "refresh"
                                 text: qsTr("Retry")
-                                enabled: root.hasWork && root.allIdle
+                                enabled: root.hasWork && root.allIdle && !root.backupBlocked
                                 onClicked: {
                                     root.dismissResult()
                                     AppController.runner.applyUpTo("")

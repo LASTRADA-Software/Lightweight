@@ -31,6 +31,8 @@ ColumnLayout {
     property bool backupBeforeApply: false
 
     readonly property bool hasSelection: AppController.selectionCount > 0
+    /// A required backup is missing and the user did not waive it; dry runs stay available.
+    readonly property bool backupBlocked: AppController.backupRequired && !AppController.migrateWithoutBackup
 
     /// Resolves the effective `targetTimestamp` for `applyUpTo` / `dryRunUpTo`.
     /// Empty string means "apply everything pending".
@@ -378,6 +380,19 @@ ColumnLayout {
         visible: count > 0
     }
 
+    BackupRequiredAlert {
+        Layout.fillWidth: true
+        visible: AppController.connected && AppController.backupRequired
+        reasons: AppController.backupRequirementReasons
+        note: AppController.backupRequirementNote
+        busy: AppController.runner.phase !== MigrationRunner.Idle
+              || AppController.backupRunner.phase !== BackupRunner.Idle
+              || AppController.managedBackups.phase !== ManagedBackupController.Idle
+        waived: AppController.migrateWithoutBackup
+        onBackupRequested: AppController.backUpNow()
+        onWaivedToggled: (checked) => AppController.setMigrateWithoutBackup(checked)
+    }
+
     // Primary action button — the one brand-red action on the screen.
     LsButton {
         Layout.fillWidth: true
@@ -397,6 +412,7 @@ ColumnLayout {
                          && AppController.managedBackups.phase === ManagedBackupController.Idle))
                  && (root.target !== "release" || root.hasSelection || root.selectedRelease.length > 0)
                  && (root.target !== "timestamp" || root.hasSelection || root.specificTimestamp.length > 0)
+                 && (root.dryRun || !root.backupBlocked)
         ToolTip.visible: hovered
         ToolTip.delay: 500
         ToolTip.timeout: 10000

@@ -1,30 +1,40 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // Headless tests for BackupRunner's bookkeeping: the shared progress surface,
-// the structured outcome, and the verdict on a run that finishes without
-// throwing but lost tables. A fake archive operation drives the runner, so no
-// database or ODBC driver is involved.
+// the structured outcome, the verdict on a run that finishes without throwing
+// but lost tables, and the `schema_backups` record of a clean run. Most cases
+// drive the runner with a fake archive operation and a fake recorder; the
+// `[sqlite]` cases run the real backup, restore and record against SQLite.
 
 #include "../BackupRunner.hpp"
+#include "../LogLevel.hpp"
+#include "MigrationRunnerTestSupport.hpp"
 #include "SqliteDriver.hpp"
 
+#include <Lightweight/DataMapper/DataMapper.hpp>
 #include <Lightweight/SqlBackup.hpp>
 #include <Lightweight/SqlConnection.hpp>
+#include <Lightweight/SqlMigration.hpp>
 #include <Lightweight/SqlStatement.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
+#include <expected>
 #include <future>
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
+#include <BackupRecording.hpp>
 #include <QtCore/QTemporaryDir>
 #include <QtCore/QVariantList>
 #include <QtTest/QSignalSpy>
 
 using DbtoolGui::BackupRunner;
 using DbtoolGui::BackupTableListModel;
+using DbtoolGui::Tests::LoggedAt;
 using DbtoolGui::Tests::SqliteConnectionString;
 using Lightweight::SqlBackup::Progress;
 using Lightweight::SqlBackup::ProgressManager;
@@ -534,4 +544,249 @@ TEST_CASE("BackupRunner reports restoring a missing archive as a failed run", "[
     CHECK_FALSE(done.first().at(0).toBool());
     CHECK_FALSE(Text(runner.lastResult(), "summary").isEmpty());
     CHECK(runner.phase() == BackupRunner::Phase::Idle);
+}
+
+namespace
+{
+
+/// A record as the recorder fakes return it.
+[[nodiscard]] Lightweight::SqlMigration::BackupRecord FakeRecord()
+{
+    return Lightweight::SqlMigration::BackupRecord { .id = 1, .archiveFileName = "archive.zip" };
+}
+
+/// The result type of `BackupRunner::Recorder::record`.
+using RecordResult = std::expected<Lightweight::SqlMigration::BackupRecord, Lightweight::Tools::BackupRecordError>;
+
+/// A `captureStart` fake that captures nothing.
+[[nodiscard]] Lightweight::Tools::BackupStart NoStart(std::string const& /*connectionString*/, std::string const& /*schema*/)
+{
+    return {};
+}
+
+/// A backup operation that copies one table.
+void CopyOneTable(std::filesystem::path const& /*archive*/,
+                  std::string const& /*connectionString*/,
+                  ProgressManager& progress)
+{
+    progress.SetTotalTables(1);
+    Copied(progress, "orders", 1);
+}
+
+} // namespace
+
+TEST_CASE("BackupRunner records a successful backup with the state captured before it",
+          "[dbtool-gui][backup-runner][backup-record]")
+{
+    auto calls = std::vector<std::string> {};
+    BackupRunner runner;
+    runner.setBackupOperation(
+        [&calls](std::filesystem::path const& archive, std::string const& cs, ProgressManager& progress) {
+            calls.emplace_back("backup");
+            CopyOneTable(archive, cs, progress);
+        });
+    runner.setRecorder({
+        .captureStart =
+            [&calls](std::string const& cs, std::string const& schema) {
+                calls.emplace_back("start");
+                return NoStart(cs, schema);
+            },
+        .record = [&calls](BackupRunner::Operation,
+                           std::filesystem::path const&,
+                           std::string const&,
+                           std::string const&,
+                           Lightweight::Tools::BackupStart const&) -> RecordResult {
+            calls.emplace_back("record");
+            return FakeRecord();
+        },
+    });
+    QSignalSpy done(&runner, &BackupRunner::finished);
+
+    runner.runBackup(QStringLiteral("archive.zip"));
+    REQUIRE(WaitFor(done));
+
+    CHECK(calls == std::vector<std::string> { "start", "backup", "record" });
+    CHECK(done.first().at(0).toBool());
+    CHECK(runner.lastResult().value("ok").toBool());
+    CHECK(runner.lastResult().value("recorded").toBool());
+    CHECK(Text(runner.lastResult(), "recordError").isEmpty());
+}
+
+TEST_CASE("BackupRunner says so when a backup cannot be recorded, and the backup still succeeds",
+          "[dbtool-gui][backup-runner][backup-record]")
+{
+    BackupRunner runner;
+    runner.setBackupOperation(&CopyOneTable);
+    runner.setRecorder({
+        .captureStart = &NoStart,
+        .record = [](BackupRunner::Operation,
+                     std::filesystem::path const&,
+                     std::string const&,
+                     std::string const&,
+                     Lightweight::Tools::BackupStart const&) -> RecordResult {
+            return std::unexpected(Lightweight::Tools::BackupRecordError {
+                .kind = Lightweight::Tools::BackupRecordError::Kind::WriteFailed, .message = "denied" });
+        },
+    });
+    QSignalSpy logs(&runner, &BackupRunner::logLine);
+    QSignalSpy done(&runner, &BackupRunner::finished);
+
+    runner.runBackup(QStringLiteral("archive.zip"));
+    REQUIRE(WaitFor(done));
+
+    CHECK(done.first().at(0).toBool());
+    CHECK(runner.lastResult().value("ok").toBool());
+    CHECK_FALSE(runner.lastResult().value("recorded").toBool());
+    CHECK(Text(runner.lastResult(), "recordError").contains("denied"));
+    CHECK(LoggedAt(logs, DbtoolGui::LogLevel::Warning, QStringLiteral("cannot satisfy a migration backup requirement")));
+}
+
+TEST_CASE("BackupRunner fails a backup whose archive fails verification", "[dbtool-gui][backup-runner][backup-record]")
+{
+    BackupRunner runner;
+    runner.setBackupOperation(&CopyOneTable);
+    runner.setRecorder({
+        .captureStart = &NoStart,
+        .record = [](BackupRunner::Operation,
+                     std::filesystem::path const&,
+                     std::string const&,
+                     std::string const&,
+                     Lightweight::Tools::BackupStart const&) -> RecordResult {
+            return std::unexpected(Lightweight::Tools::BackupRecordError {
+                .kind = Lightweight::Tools::BackupRecordError::Kind::VerificationFailed, .message = "bad checksum" });
+        },
+    });
+    QSignalSpy done(&runner, &BackupRunner::finished);
+
+    runner.runBackup(QStringLiteral("archive.zip"));
+    REQUIRE(WaitFor(done));
+
+    CHECK_FALSE(done.first().at(0).toBool());
+    CHECK_FALSE(runner.lastResult().value("ok").toBool());
+    CHECK_FALSE(runner.lastResult().value("recorded").toBool());
+    CHECK(Text(runner.lastResult(), "summary").contains("failed verification"));
+    CHECK(done.first().at(1).toString().contains("failed verification"));
+}
+
+TEST_CASE("BackupRunner writes no record for a backup with table errors", "[dbtool-gui][backup-runner][backup-record]")
+{
+    auto recordCalls = 0;
+    BackupRunner runner;
+    runner.setBackupOperation([](std::filesystem::path const&, std::string const&, ProgressManager& progress) {
+        progress.SetTotalTables(2);
+        Copied(progress, "orders", 1);
+        Failed(progress, "invoices", "locked");
+    });
+    runner.setRecorder({
+        .captureStart = &NoStart,
+        .record = [&recordCalls](BackupRunner::Operation,
+                                 std::filesystem::path const&,
+                                 std::string const&,
+                                 std::string const&,
+                                 Lightweight::Tools::BackupStart const&) -> RecordResult {
+            ++recordCalls;
+            return FakeRecord();
+        },
+    });
+    QSignalSpy done(&runner, &BackupRunner::finished);
+
+    runner.runBackup(QStringLiteral("archive.zip"));
+    REQUIRE(WaitFor(done));
+
+    CHECK_FALSE(done.first().at(0).toBool());
+    CHECK(recordCalls == 0);
+    CHECK_FALSE(runner.lastResult().value("recorded").toBool());
+}
+
+TEST_CASE("BackupRunner records a successful restore", "[dbtool-gui][backup-runner][backup-record]")
+{
+    auto startCalls = 0;
+    auto recordedOperations = std::vector<BackupRunner::Operation> {};
+    BackupRunner runner;
+    runner.setRestoreOperation(&CopyOneTable);
+    runner.setRecorder({
+        .captureStart =
+            [&startCalls](std::string const& cs, std::string const& schema) {
+                ++startCalls;
+                return NoStart(cs, schema);
+            },
+        .record = [&recordedOperations](BackupRunner::Operation operation,
+                                        std::filesystem::path const&,
+                                        std::string const&,
+                                        std::string const&,
+                                        Lightweight::Tools::BackupStart const&) -> RecordResult {
+            recordedOperations.push_back(operation);
+            return FakeRecord();
+        },
+    });
+    QSignalSpy done(&runner, &BackupRunner::finished);
+
+    runner.runRestore(QStringLiteral("archive.zip"));
+    REQUIRE(WaitFor(done));
+
+    CHECK(done.first().at(0).toBool());
+    CHECK(startCalls == 0);
+    CHECK(recordedOperations == std::vector<BackupRunner::Operation> { BackupRunner::Operation::Restore });
+    CHECK(runner.lastResult().value("recorded").toBool());
+}
+
+TEST_CASE("BackupRunner records a real SQLite backup in schema_backups, a non-ASCII archive name included",
+          "[dbtool-gui][backup-runner][backup-record][sqlite]")
+{
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    auto const database = (dir.path() + "/recorded.db").toStdString();
+    {
+        auto connection =
+            Lightweight::SqlConnection { Lightweight::SqlConnectionString { SqliteConnectionString(database) } };
+        auto stmt = Lightweight::SqlStatement { connection };
+        (void) stmt.ExecuteDirect("CREATE TABLE items (id INTEGER PRIMARY KEY, label VARCHAR(32) NOT NULL)");
+        (void) stmt.ExecuteDirect("INSERT INTO items (id, label) VALUES (1, 'one')");
+    }
+
+    BackupRunner runner;
+    runner.setConnectionString(QString::fromStdString(SqliteConnectionString(database)));
+    QSignalSpy done(&runner, &BackupRunner::finished);
+    runner.runBackup(dir.path() + QString::fromUtf16(u"/Sicherung-Müller.zip"));
+    REQUIRE(WaitFor(done, 30000));
+    INFO(Text(runner.lastResult(), "summary").toStdString()
+         << " / " << Text(runner.lastResult(), "recordError").toStdString());
+    CHECK(done.first().at(0).toBool());
+    CHECK(runner.lastResult().value("recorded").toBool());
+
+    auto mapper = Lightweight::DataMapper { Lightweight::SqlConnectionString { SqliteConnectionString(database) } };
+    auto const latest = Lightweight::SqlMigration::ReadLatestBackupRecord(mapper);
+    REQUIRE(latest.has_value());
+    CHECK(latest->kind == Lightweight::SqlMigration::BackupRecordKind::Backup);
+    CHECK(latest->archiveFileName == "Sicherung-M\xc3\xbcller.zip");
+}
+
+TEST_CASE("BackupRunner keeps a restore that fails verification a success that warns",
+          "[dbtool-gui][backup-runner][backup-record]")
+{
+    BackupRunner runner;
+    runner.setRestoreOperation(&CopyOneTable);
+    runner.setRecorder({
+        .captureStart = &NoStart,
+        .record = [](BackupRunner::Operation,
+                     std::filesystem::path const&,
+                     std::string const&,
+                     std::string const&,
+                     Lightweight::Tools::BackupStart const&) -> RecordResult {
+            return std::unexpected(Lightweight::Tools::BackupRecordError {
+                .kind = Lightweight::Tools::BackupRecordError::Kind::VerificationFailed, .message = "bad checksum" });
+        },
+    });
+    QSignalSpy logs(&runner, &BackupRunner::logLine);
+    QSignalSpy done(&runner, &BackupRunner::finished);
+
+    runner.runRestore(QStringLiteral("archive.zip"));
+    REQUIRE(WaitFor(done));
+
+    // The database was rewritten either way; only the record is missing.
+    CHECK(done.first().at(0).toBool());
+    CHECK(runner.lastResult().value("ok").toBool());
+    CHECK_FALSE(runner.lastResult().value("recorded").toBool());
+    CHECK(Text(runner.lastResult(), "recordError").contains("bad checksum"));
+    CHECK(LoggedAt(logs, DbtoolGui::LogLevel::Warning, QStringLiteral("cannot satisfy a migration backup requirement")));
 }

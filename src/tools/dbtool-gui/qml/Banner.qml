@@ -23,6 +23,8 @@ Rectangle {
     property string text: ""
     /// Items placed at the right edge (e.g. a ghost `LsButton` "Clear").
     property list<Item> actions
+    /// Items placed below the body text, wrapping onto further lines in a narrow banner.
+    property list<Item> controls
 
     // [background, border, foreground, glyph] per kind.
     readonly property var _kinds: ({
@@ -72,6 +74,7 @@ Rectangle {
                 wrapMode: Text.Wrap
             }
             Label {
+                objectName: "bannerText"
                 Layout.fillWidth: true
                 visible: root.text !== ""
                 text: root.text
@@ -79,6 +82,13 @@ Rectangle {
                 font.pixelSize: Theme.sizeBodySm + 1
                 lineHeight: 1.15
                 wrapMode: Text.Wrap
+            }
+            Flow {
+                Layout.fillWidth: true
+                Layout.topMargin: 6
+                visible: root.controls.length > 0
+                spacing: 6
+                children: root.controls
             }
         }
 

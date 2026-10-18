@@ -17,6 +17,7 @@
 #include "Models/ProgressTaskModel.hpp"
 
 #include <atomic>
+#include <cstdint>
 #include <functional>
 #include <string_view>
 
@@ -37,6 +38,13 @@ namespace SqlMigration
 
 namespace DbtoolGui
 {
+
+/// Whether an apply run may go ahead although the work it runs requires a backup that does not exist.
+enum class BackupWaiver : std::uint8_t
+{
+    NotWaived, ///< The run refuses while a required backup is missing.
+    Waived,    ///< The run goes ahead, logs a warning and records a `waived` row in `schema_backups`.
+};
 
 class MigrationRunner: public QObject
 {
@@ -80,6 +88,11 @@ class MigrationRunner: public QObject
     /// @param hook Callable running the plugins' post-migrate hooks.
     void setPostMigrateHook(PostMigrateHook hook);
 
+    /// Sets the waiver of the apply runs started from now on; each run reads it once when it starts.
+    /// The runner never resets it; the caller does after each run.
+    /// @param waiver Whether a run may go ahead without a required backup.
+    void setBackupWaived(BackupWaiver waiver) noexcept;
+
     /// @return The tasks of the current or last run; cleared when the next run starts.
     [[nodiscard]] ProgressTaskModel* tasks() noexcept
     {
@@ -92,6 +105,10 @@ class MigrationRunner: public QObject
     /// those whose timestamp is `<= target`. Both run the plugins'
     /// pre-migrate steps first; the apply run holds the migration lock for
     /// them, and a cancel or a failing step ends the run before any migration.
+    /// Under that lock and before the steps, the apply run refuses when the
+    /// migrations it runs (or a step) require a backup that does not exist,
+    /// unless the run is waived (see `setBackupWaived`); a dry run reports the
+    /// requirement and goes on.
     Q_INVOKABLE void dryRunUpTo(QString const& targetTimestamp);
     Q_INVOKABLE void applyUpTo(QString const& targetTimestamp);
 
@@ -159,6 +176,7 @@ class MigrationRunner: public QObject
     Lightweight::SqlMigration::MigrationManager* _manager = nullptr;
     std::function<bool()> _busyProbe;
     PostMigrateHook _postMigrateHook;
+    BackupWaiver _backupWaiver = BackupWaiver::NotWaived;
     /// Declared before `_pool`, so the pool's queued work has finished before the model goes.
     ProgressTaskModel _tasks;
     QThreadPool _pool;

@@ -172,6 +172,42 @@ pre-migrate steps*. A step that throws fails the run before any migration.
 *Cancel* is checked before and after each step, and a step itself may stop
 between its units; a run cancelled during the steps applies no migration.
 
+### Backup requirement
+
+A release, a migration or a pre-migrate step can require a backup of the
+database taken after its last migration (see `docs/sql-migrations.md`). While
+the pending migrations need one that does not exist yet
+(`AppController.backupRequired`):
+
+- **Disabled buttons, one alert** — *Run* and *Retry* in the Simple view and
+  *Apply* in the Expert view are disabled; dry runs stay available. An alert
+  next to them (`BackupRequiredAlert.qml`) names what requires the backup
+  (`backupRequirementReasons`), says why the newest backup does not count or why
+  the last one could not be recorded (`backupRequirementNote`), and asks to stop
+  every application that writes to the database until the migrations have
+  finished: the migration lock does not stop their writes.
+- **Back up now** — writes `<target>-<timestamp>.zip` into the backup folder
+  (Settings), with no file dialog, and records it. Once it finished, the buttons
+  enable. The Simple view's *Back up the database first* makes the same kind of
+  backup before the run.
+- **Migrate without a backup** — the alert's checkbox waives the requirement for
+  one run. It is unchecked at start, never stored in the settings, and cleared
+  after each run, on every connect and disconnect, and as soon as no backup is
+  required any more (after *Back up now*, say), so it never carries over to a
+  later requirement. The run writes a `waived` row into `schema_backups`, which
+  never satisfies a later requirement, and logs a warning that says whether that
+  row could be written.
+- **The runner re-checks** — the alert judges every pending migration; an apply
+  run checks the migrations it actually runs again under the migration lock,
+  before the pre-migrate steps, and refuses when a backup is still missing.
+- **Which backups count** — *Back up now*, *Back up the database first* and the
+  Backup & restore panel's *Back up* and *Restore* record their verified archive
+  in `schema_backups` (a restore records the migration history it left). The
+  managed per-profile backups write no record. A backup whose record cannot be
+  written still succeeds, logs a warning that it cannot satisfy the requirement
+  and leaves the alert showing why; an archive that fails verification fails
+  the backup.
+
 ### Known limitations
 
 - **No archive retention / generations.** Exactly one archive exists per

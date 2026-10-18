@@ -13,6 +13,7 @@ qt_add_executable(dbtool-gui-tests
     AppControllerTests.cpp
     BackupActiveTablesModelTests.cpp
     BackupProfileFilterModelTests.cpp
+    BackupRequirementControllerTests.cpp
     BackupRunnerTests.cpp
     BackupStatusListModelTests.cpp
     BackupTableListModelTests.cpp
@@ -34,11 +35,13 @@ target_link_libraries(dbtool-gui-tests PRIVATE
     Qt6::Test
 )
 
-# The compat-policy fixture plugin from src/tests, which the plugin-reload test loads.
+# Fixture plugins from src/tests: the compat-policy one, which the plugin-reload test loads, and
+# the backup-required one, which the backup-requirement tests load.
 target_compile_definitions(dbtool-gui-tests PRIVATE
     DBTOOL_GUI_TESTS_COMPAT_POLICY_FIXTURE="$<TARGET_FILE:compat_policy_fixture>"
+    DBTOOL_GUI_TESTS_BACKUP_REQUIRED_FIXTURE="$<TARGET_FILE:backup_required_release_fixture>"
 )
-add_dependencies(dbtool-gui-tests compat_policy_fixture)
+add_dependencies(dbtool-gui-tests compat_policy_fixture backup_required_release_fixture)
 
 set_target_properties(dbtool-gui-tests PROPERTIES
     # Qt's camelCase signal/slot convention clashes with the project-wide

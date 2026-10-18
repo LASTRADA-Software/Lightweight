@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "BackupRequirementSupport.hpp"
 #include "MigrationRunner.hpp"
 
 #include <Lightweight/ProgressTask.hpp>
 #include <Lightweight/SqlMigration.hpp>
 #include <Lightweight/SqlScopedLock.hpp>
 
+#include <cstddef>
 #include <cstdint>
 #include <exception>
 #include <functional>
@@ -17,6 +19,7 @@
 #include <utility>
 #include <vector>
 
+#include <BackupRecording.hpp>
 #include <PluginIngestion.hpp>
 #include <QtCore/QMetaObject>
 #include <QtCore/QRunnable>
@@ -125,6 +128,11 @@ void MigrationRunner::setBusyProbe(std::function<bool()> probe)
 void MigrationRunner::setPostMigrateHook(PostMigrateHook hook)
 {
     _postMigrateHook = std::move(hook);
+}
+
+void MigrationRunner::setBackupWaived(BackupWaiver waiver) noexcept
+{
+    _backupWaiver = waiver;
 }
 
 bool MigrationRunner::CanStartMutatingRun(char const* what)
@@ -261,6 +269,24 @@ namespace
         QString summary;
     };
 
+    /// The log line of a run that refuses because a required backup is missing.
+    QString BackupRequiredLine(Lightweight::SqlMigration::BackupRequirement const& requirement)
+    {
+        return QStringLiteral("!! %1.").arg(
+            QString::fromStdString(Lightweight::Tools::DescribeBackupRequirement(requirement)));
+    }
+
+    /// The dry run's report of a backup requirement.
+    /// @param waiver Whether "Migrate without a backup" is ticked for the real run.
+    QString BackupRequiredDryRunLine(Lightweight::SqlMigration::BackupRequirement const& requirement, BackupWaiver waiver)
+    {
+        return QString::fromStdString(Lightweight::Tools::FormatBackupRequirementDryRun(
+            requirement,
+            waiver == BackupWaiver::Waived ? Lightweight::Tools::BackupOverride::Waive
+                                           : Lightweight::Tools::BackupOverride::None,
+            { .backupFirst = "Back up the database first", .waive = "Migrate without a backup" }));
+    }
+
     /// The runner's log level of a task's message.
     LogLevel ToLogLevel(Lightweight::ProgressTask::LogLevel level)
     {
@@ -362,6 +388,53 @@ namespace
         return { .ok = true, .summary = QStringLiteral("Applied %1 migration(s).").arg(applied) };
     }
 
+    /// Checks the backup requirement of an apply run, under the migration lock.
+    /// @param toRun The migrations the run applies.
+    /// @param waiver Whether the user waived a missing backup for this run.
+    /// @return std::nullopt to go on, else the refused run's outcome.
+    std::optional<ApplyOutcome> CheckBackupRequirement(
+        MigrationRunner* runner,
+        Lightweight::SqlMigration::MigrationManager& manager,
+        std::vector<Lightweight::SqlMigration::MigrationBase const*> const& toRun,
+        BackupWaiver waiver)
+    {
+        auto const requirement = manager.BackupRequirementFor(TimestampsOf(toRun));
+        if (!requirement.required || requirement.satisfied)
+            return std::nullopt;
+        if (waiver == BackupWaiver::NotWaived)
+        {
+            PostLogLine(runner, BackupRequiredLine(requirement), LogLevel::Error);
+            return ApplyOutcome { .ok = false, .summary = QStringLiteral("A backup is required to run the migrations.") };
+        }
+        // The user ticked "Migrate without a backup": go on, but leave an audit row and say so.
+        auto const recorded =
+            Lightweight::Tools::RecordWaiver(manager.GetDataMapper(), Lightweight::Tools::ToolVersion(RecordToolName));
+        PostLogLine(runner,
+                    QString::fromStdString(Lightweight::Tools::FormatBackupWaiver(
+                        requirement, recorded ? std::string_view {} : recorded.error().message)),
+                    LogLevel::Warning);
+        return std::nullopt;
+    }
+
+    /// Logs the backup requirement of a dry run's migrations, when there is one; a failing check only warns.
+    void ReportBackupRequirement(MigrationRunner* runner,
+                                 Lightweight::SqlMigration::MigrationManager& manager,
+                                 std::vector<Lightweight::SqlMigration::MigrationBase const*> const& toRun,
+                                 BackupWaiver waiver)
+    {
+        try
+        {
+            if (auto const requirement = manager.BackupRequirementFor(TimestampsOf(toRun)); requirement.required)
+                PostLogLine(runner, BackupRequiredDryRunLine(requirement, waiver), LogLevel::Info);
+        }
+        catch (std::exception const& e)
+        {
+            PostLogLine(runner,
+                        QStringLiteral("-- Could not check the backup requirement: %1").arg(QString::fromUtf8(e.what())),
+                        LogLevel::Warning);
+        }
+    }
+
     /// Runs `applyRun` under the migration advisory lock and, when it succeeded, the post-migrate
     /// hook. The lock is released before this returns, so the caller reports the outcome only once
     /// the shared connection is idle again. Any exception becomes a failed outcome, so a run can
@@ -423,7 +496,8 @@ void MigrationRunner::dryRunUpTo(QString const& targetTimestamp)
     auto* tasks = &_tasks;
     auto const targetTs = targetTimestamp.toULongLong();
 
-    Enqueue([runner, manager, tasks, targetTs, targetLabel = targetTimestamp] {
+    Enqueue([runner, manager, tasks, targetTs, targetLabel = targetTimestamp, waiver = _backupWaiver] {
+        ReportBackupRequirement(runner, *manager, CollectPendingUpTo(*manager, targetTs), waiver);
         auto const root = CreateRunTask(runner, tasks);
         if (auto const stopped = RunSteps(runner, *manager, *root, Lightweight::SqlMigration::ExecutionMode::DryRun))
         {
@@ -473,8 +547,17 @@ void MigrationRunner::applyUpTo(QString const& targetTimestamp)
     auto* tasks = &_tasks;
     auto const targetTs = targetTimestamp.toULongLong();
 
-    Enqueue([runner, manager, tasks, targetTs, targetLabel = targetTimestamp, postMigrateHook = _postMigrateHook] {
+    Enqueue([runner,
+             manager,
+             tasks,
+             targetTs,
+             targetLabel = targetTimestamp,
+             postMigrateHook = _postMigrateHook,
+             waiver = _backupWaiver] {
         auto const outcome = RunLockedApply(runner, *manager, postMigrateHook, [&] {
+            if (auto const refused =
+                    CheckBackupRequirement(runner, *manager, CollectPendingUpTo(*manager, targetTs), waiver))
+                return *refused;
             auto const root = CreateRunTask(runner, tasks);
             if (auto const stopped = RunSteps(runner, *manager, *root, Lightweight::SqlMigration::ExecutionMode::Execute))
                 return *stopped;
@@ -504,7 +587,8 @@ void MigrationRunner::dryRunSelected(QStringList const& timestamps)
     auto* manager = _manager;
     auto* tasks = &_tasks;
 
-    Enqueue([runner, manager, tasks, snapshot = timestamps] {
+    Enqueue([runner, manager, tasks, snapshot = timestamps, waiver = _backupWaiver] {
+        ReportBackupRequirement(runner, *manager, CollectSelected(*manager, snapshot), waiver);
         auto const root = CreateRunTask(runner, tasks);
         if (auto const stopped = RunSteps(runner, *manager, *root, Lightweight::SqlMigration::ExecutionMode::DryRun))
         {
@@ -536,8 +620,10 @@ void MigrationRunner::applySelected(QStringList const& timestamps)
     auto* manager = _manager;
     auto* tasks = &_tasks;
 
-    Enqueue([runner, manager, tasks, snapshot = timestamps, postMigrateHook = _postMigrateHook] {
+    Enqueue([runner, manager, tasks, snapshot = timestamps, postMigrateHook = _postMigrateHook, waiver = _backupWaiver] {
         auto const outcome = RunLockedApply(runner, *manager, postMigrateHook, [&] {
+            if (auto const refused = CheckBackupRequirement(runner, *manager, CollectSelected(*manager, snapshot), waiver))
+                return *refused;
             auto const root = CreateRunTask(runner, tasks);
             if (auto const stopped = RunSteps(runner, *manager, *root, Lightweight::SqlMigration::ExecutionMode::Execute))
                 return *stopped;

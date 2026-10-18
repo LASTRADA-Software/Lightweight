@@ -43,6 +43,7 @@ set(MIGRATIONS_GUI_CXX_SOURCES
     AppController.cpp
     BackupRunner.hpp
     BackupRunner.cpp
+    BackupRequirementSupport.hpp
     LogLevel.hpp
     ManagedBackupController.hpp
     ManagedBackupController.cpp
@@ -128,6 +129,7 @@ set(MIGRATIONS_GUI_QML_FILES
     qml/ConnectDialog.qml
     qml/RunFormat.qml
     qml/TaskProgressList.qml
+    qml/BackupRequiredAlert.qml
 )
 
 # A reusable QML module so the migrations view can be embedded by other Qt

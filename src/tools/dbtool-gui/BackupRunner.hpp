@@ -19,6 +19,7 @@
 #include "Models/BackupTableListModel.hpp"
 
 #include <atomic>
+#include <expected>
 #include <filesystem>
 #include <functional>
 #include <string>
@@ -29,6 +30,7 @@
 #include <QtCore/QVariantMap>
 #include <QtQmlIntegration/QtQmlIntegration>
 
+// Forward declarations keep the tools_shared headers out of this moc-processed header (see AppController.hpp).
 namespace Lightweight
 {
 struct SqlConnectionString;
@@ -36,6 +38,15 @@ namespace SqlBackup
 {
     struct ProgressManager;
 }
+namespace SqlMigration
+{
+    struct BackupRecord;
+}
+namespace Tools
+{
+    struct BackupRecordError;
+    struct BackupStart;
+} // namespace Tools
 } // namespace Lightweight
 
 namespace DbtoolGui
@@ -72,6 +83,25 @@ class BackupRunner: public QObject
                                             std::string const& connectionString,
                                             Lightweight::SqlBackup::ProgressManager& progress)>;
 
+    /// Writes the `schema_backups` record of a finished run, so a backup can satisfy a migration
+    /// backup requirement. Both members run on the worker thread; the defaults connect their own
+    /// mapper and call `Tools::CaptureBackupStart` / `Tools::RecordBackup` / `Tools::RecordRestore`.
+    struct Recorder
+    {
+        /// Reads the migration history before a backup reads any data; throws when it cannot.
+        std::function<Lightweight::Tools::BackupStart(std::string const& connectionString, std::string const& schema)>
+            captureStart;
+        /// Verifies the archive of a clean run and records it; @p start is the captured state of a backup
+        /// (default-constructed for a restore).
+        std::function<std::expected<Lightweight::SqlMigration::BackupRecord, Lightweight::Tools::BackupRecordError>(
+            Operation operation,
+            std::filesystem::path const& archive,
+            std::string const& connectionString,
+            std::string const& schema,
+            Lightweight::Tools::BackupStart const& start)>
+            record;
+    };
+
     // See MigrationRunner.hpp for the rationale — without Q_PROPERTY the
     // `phase` binding in QML is a stuck method handle, not a live value.
     Q_PROPERTY(Phase phase READ phase NOTIFY phaseChanged)
@@ -104,7 +134,11 @@ class BackupRunner: public QObject
     /// again once a new run starts. Keys: `operation` ("backup" | "restore"),
     /// `ok`, `archive`, `target`, `summary`, `error` (set only when the run threw),
     /// `tables`, `failedCount`, `failedTables` (list of `{table, reason}`),
-    /// `rows`, `durationMs`, `finishedAt`.
+    /// `rows`, `durationMs`, `finishedAt`, `recorded` (whether the run wrote its
+    /// `schema_backups` record) and `recordError` (why it did not; empty when it did,
+    /// and for a failed run, which is never recorded). A backup whose archive fails
+    /// verification fails; a restore that fails it, or any run whose record cannot be
+    /// written, stays ok with `recordError` set and a warning logged.
     Q_PROPERTY(QVariantMap lastResult READ lastResult NOTIFY lastResultChanged)
 
     explicit BackupRunner(QObject* parent = nullptr);
@@ -141,6 +175,15 @@ class BackupRunner: public QObject
     /// Replaces the operation `runRestore` executes (tests).
     /// @param operation The replacement; empty restores the default.
     void setRestoreOperation(RunOperation operation);
+
+    /// Replaces how runs are recorded in `schema_backups` (tests).
+    /// @param recorder The replacement; an empty member restores its default.
+    void setRecorder(Recorder recorder);
+
+    /// Schema whose `schema_backups` table records the runs: the schema the migrations use. Empty
+    /// means the connection's default schema.
+    /// @param schema The schema name.
+    Q_INVOKABLE void setRecordSchema(QString const& schema);
 
     Q_INVOKABLE void runBackup(QString const& outputFile);
     Q_INVOKABLE void runRestore(QString const& inputFile);
@@ -235,6 +278,8 @@ class BackupRunner: public QObject
     std::function<bool()> _busyProbe;
     RunOperation _backupOperation;
     RunOperation _restoreOperation;
+    Recorder _recorder;
+    std::string _recordSchema;
 };
 
 } // namespace DbtoolGui
