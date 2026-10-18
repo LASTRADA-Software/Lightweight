@@ -32,6 +32,7 @@ module;
 #include "Tools/CxxModelPrinter.hpp"
 #include "Zip/ZipArchive.hpp"
 #include "Zip/ZipError.hpp"
+#include "Zip/ZipPath.hpp"
 
 #include <reflection-cpp/reflection.hpp>
 
@@ -464,6 +465,7 @@ namespace Zip
     using Lightweight::Zip::ZipEntry;
     using Lightweight::Zip::ZipError;
     using Lightweight::Zip::ZipErrorCode;
+    using Lightweight::Zip::ZipPathUtf8;
 } // namespace Zip
 } // namespace Lightweight
 

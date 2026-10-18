@@ -7,6 +7,7 @@
 #include "../SqlStatement.hpp"
 #include "../ThreadSafeQueue.hpp"
 #include "../TracyProfiler.hpp"
+#include "../Zip/ZipPath.hpp"
 #include "Backup.hpp"
 #include "ChunkPlanner.hpp"
 #include "Common.hpp"
@@ -454,7 +455,7 @@ void BackupSchemas(std::filesystem::path const& outputFile,
 
     // Create ZIP archive early so workers can write to it
     int err = 0;
-    zip_t* zip = zip_open(outputFile.string().c_str(), ZIP_CREATE | ZIP_TRUNCATE, &err);
+    zip_t* zip = zip_open(Zip::ZipPathUtf8(outputFile).c_str(), ZIP_CREATE | ZIP_TRUNCATE, &err);
     if (!zip)
     {
         zip_error_t zerr;
@@ -516,7 +517,9 @@ void BackupSchemas(std::filesystem::path const& outputFile,
                 std::filesystem::remove_all(dir, ec);
             }
         };
-        auto const tempDirGuard = TempDirGuard { std::filesystem::path { outputFile.string() + ".tmp" } };
+        auto tempDirectory = outputFile;
+        tempDirectory += ".tmp";
+        auto const tempDirGuard = TempDirGuard { std::move(tempDirectory) };
         std::filesystem::create_directories(tempDirGuard.dir);
 
         // The merge keeps the workers' sealed archives open as raw-copy sources until the final
@@ -725,10 +728,10 @@ void BackupSchemas(std::filesystem::path const& outputFile,
                     for (auto const& archivePath: archive.SealedArchives())
                     {
                         int mergeErr = 0;
-                        zip_t* src = zip_open(archivePath.string().c_str(), ZIP_RDONLY, &mergeErr);
+                        zip_t* src = zip_open(Zip::ZipPathUtf8(archivePath).c_str(), ZIP_RDONLY, &mergeErr);
                         if (!src)
                             throw std::runtime_error("Failed to open worker chunk archive for merge: "
-                                                     + archivePath.string());
+                                                     + Zip::ZipPathUtf8(archivePath));
                         mergeSources.sources.push_back(src);
 
                         auto const numEntries = zip_get_num_entries(src, 0);
@@ -1055,10 +1058,10 @@ std::expected<std::vector<std::string>, std::string> ReadArchiveSchemas(std::fil
 {
     int error = 0;
     auto const zip =
-        std::unique_ptr<zip_t, decltype(&zip_close)> { zip_open(archiveFile.string().c_str(), ZIP_RDONLY, &error),
+        std::unique_ptr<zip_t, decltype(&zip_close)> { zip_open(Zip::ZipPathUtf8(archiveFile).c_str(), ZIP_RDONLY, &error),
                                                        &zip_close };
     if (!zip)
-        return std::unexpected { std::format("Failed to open backup archive {}", archiveFile.string()) };
+        return std::unexpected { std::format("Failed to open backup archive {}", Zip::ZipPathUtf8(archiveFile)) };
 
     zip_stat_t metadataStat;
     zip_int64_t const metadataIndex = zip_name_locate(zip.get(), "metadata.json", 0);
@@ -1107,7 +1110,7 @@ void Restore(std::filesystem::path const& inputFile,
 {
     ZoneScopedN("SqlBackup::Restore");
     {
-        auto const inputFileStr = inputFile.string();
+        auto const inputFileStr = Zip::ZipPathUtf8(inputFile);
         ZoneTextObject(inputFileStr);
     }
     ZoneValue(concurrency);
@@ -1125,7 +1128,7 @@ void Restore(std::filesystem::path const& inputFile,
     }
 
     int err = 0;
-    zip_t* zip = zip_open(inputFile.string().c_str(), ZIP_RDONLY, &err);
+    zip_t* zip = zip_open(Zip::ZipPathUtf8(inputFile).c_str(), ZIP_RDONLY, &err);
     // LCOV_EXCL_START - Error handling for zip file operations
     if (!zip)
     {

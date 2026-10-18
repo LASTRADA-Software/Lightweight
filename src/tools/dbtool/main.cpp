@@ -17,6 +17,7 @@
 #include <Lightweight/SqlSchema.hpp>
 #include <Lightweight/SqlScopedLock.hpp>
 #include <Lightweight/Utils.hpp>
+#include <Lightweight/Zip/ZipPath.hpp>
 
 #include <algorithm>
 #include <array>
@@ -2868,7 +2869,7 @@ int RestoreDryRun(Options const& options, std::string const& schema)
 
     // Read metadata from the backup file
     int err = 0;
-    zip_t* zip = zip_open(options.inputFile.string().c_str(), ZIP_RDONLY, &err);
+    zip_t* zip = zip_open(Lightweight::Zip::ZipPathUtf8(options.inputFile).c_str(), ZIP_RDONLY, &err);
     if (!zip)
     {
         std::println(std::cerr, "Error: Failed to open backup file.");

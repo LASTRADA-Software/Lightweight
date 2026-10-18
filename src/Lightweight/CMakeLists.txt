@@ -86,6 +86,7 @@ set(HEADER_FILES
     Zip/ZipArchive.hpp
     Zip/ZipEntry.hpp
     Zip/ZipError.hpp
+    Zip/ZipPath.hpp
 
     ImmortalInstance.hpp
     ProgressTask.hpp

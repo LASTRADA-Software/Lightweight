@@ -110,6 +110,7 @@ set(SOURCE_FILES
     ThreadSafeQueueTests.cpp
     SqlVariantAccessorTests.cpp
     SqlVariantDbTests.cpp
+    SqlBackup/ArchivePathTests.cpp
     SqlBackup/AllColumnTypesTests.cpp
     SqlBackup/EncodingRoundTripTests.cpp
     SqlBackup/RestoreConversionTests.cpp

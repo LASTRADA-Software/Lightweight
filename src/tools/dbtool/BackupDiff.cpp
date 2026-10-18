@@ -6,6 +6,7 @@
 #include <Lightweight/SqlBackup/MsgPackChunkFormats.hpp>
 #include <Lightweight/SqlBackup/Sha256.hpp>
 #include <Lightweight/SqlBackup/SqlBackupFormats.hpp>
+#include <Lightweight/Zip/ZipPath.hpp>
 
 #include <array>
 #include <cstdint>
@@ -55,7 +56,7 @@ namespace
         explicit ZipReader(std::filesystem::path const& path)
         {
             int err = 0;
-            _zip = zip_open(path.string().c_str(), ZIP_RDONLY, &err);
+            _zip = zip_open(Lightweight::Zip::ZipPathUtf8(path).c_str(), ZIP_RDONLY, &err);
         }
 
         ZipReader(ZipReader const&) = delete;

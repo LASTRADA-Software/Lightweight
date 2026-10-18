@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "../TracyProfiler.hpp"
 #include "../Zip/ZipError.hpp"
+#include "../Zip/ZipPath.hpp"
 #include "WorkerChunkArchive.hpp"
 
 #include <algorithm>
@@ -44,10 +45,10 @@ void WorkerChunkArchive::OpenNextArchive()
 {
     m_currentPath = m_directory / std::format("worker-{}-{}.zip", m_workerId, m_rotationIndex++);
     int err = 0;
-    m_current = zip_open(m_currentPath.string().c_str(), ZIP_CREATE | ZIP_TRUNCATE, &err);
+    m_current = zip_open(Zip::ZipPathUtf8(m_currentPath).c_str(), ZIP_CREATE | ZIP_TRUNCATE, &err);
     if (!m_current)
         throw std::runtime_error { std::format("Failed to create worker chunk archive {}: {}",
-                                               m_currentPath.string(),
+                                               Zip::ZipPathUtf8(m_currentPath),
                                                Zip::ZipError::FromOpenError(err, Zip::ZipErrorCode::OpenFailed).message) };
     m_currentInputBytes = 0;
     m_currentNames.clear();
@@ -114,7 +115,7 @@ void WorkerChunkArchive::Seal()
         std::string const message = zip_error_strerror(zerr);
         zip_discard(archive);
         throw std::runtime_error { std::format(
-            "Failed to seal worker chunk archive {}: {}", m_currentPath.string(), message) };
+            "Failed to seal worker chunk archive {}: {}", Zip::ZipPathUtf8(m_currentPath), message) };
     }
     // libzip does not materialize a file for an archive whose entries were all deleted again;
     // only record archives that actually exist on disk.

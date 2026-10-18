@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "ZipArchive.hpp"
+#include "ZipPath.hpp"
 
 #include <cstring>
 #include <utility>
@@ -40,7 +41,7 @@ ZipArchive::~ZipArchive() noexcept
 std::expected<ZipArchive, ZipError> ZipArchive::Open(std::filesystem::path const& path)
 {
     int errorCode = 0;
-    zip_t* zip = zip_open(path.string().c_str(), ZIP_RDONLY, &errorCode);
+    zip_t* zip = zip_open(ZipPathUtf8(path).c_str(), ZIP_RDONLY, &errorCode);
     if (!zip)
         return std::unexpected(ZipError::FromOpenError(errorCode, ZipErrorCode::OpenFailed));
 
@@ -50,7 +51,7 @@ std::expected<ZipArchive, ZipError> ZipArchive::Open(std::filesystem::path const
 std::expected<ZipArchive, ZipError> ZipArchive::Create(std::filesystem::path const& path)
 {
     int errorCode = 0;
-    zip_t* zip = zip_open(path.string().c_str(), ZIP_CREATE | ZIP_EXCL, &errorCode);
+    zip_t* zip = zip_open(ZipPathUtf8(path).c_str(), ZIP_CREATE | ZIP_EXCL, &errorCode);
     if (!zip)
         return std::unexpected(ZipError::FromOpenError(errorCode, ZipErrorCode::OpenFailed));
 
@@ -60,7 +61,7 @@ std::expected<ZipArchive, ZipError> ZipArchive::Create(std::filesystem::path con
 std::expected<ZipArchive, ZipError> ZipArchive::CreateOrTruncate(std::filesystem::path const& path)
 {
     int errorCode = 0;
-    zip_t* zip = zip_open(path.string().c_str(), ZIP_CREATE | ZIP_TRUNCATE, &errorCode);
+    zip_t* zip = zip_open(ZipPathUtf8(path).c_str(), ZIP_CREATE | ZIP_TRUNCATE, &errorCode);
     if (!zip)
         return std::unexpected(ZipError::FromOpenError(errorCode, ZipErrorCode::OpenFailed));
 
