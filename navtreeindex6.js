@@ -1,5 +1,6 @@
 var NAVTREEINDEX6 =
 {
+"da/da6/structLightweight_1_1SqlPoolStatistics.html#ab94ec8b9865e5d838d4942cdbc45700a":[19,6,14,2],
 "da/da6/structLightweight_1_1SqlPoolStatistics.html#ad171570bc9e10521592308c76d33ef24":[19,6,14,8],
 "da/da6/structLightweight_1_1SqlPoolStatistics.html#ad30a6a72eb576012d6f75d00dc230055":[19,6,14,1],
 "da/da8/classLightweight_1_1SqlConnection.html":[19,6,3],
@@ -248,6 +249,5 @@ var NAVTREEINDEX6 =
 "db/dfd/classLightweight_1_1SqlLogger.html#af7c5638382912daeb780c763c5711ee2":[19,6,5,23],
 "db/dfd/classLightweight_1_1SqlLogger.html#af7d984686564f12829697aaffa839395":[19,6,5,13],
 "db/dfd/classLightweight_1_1SqlLogger.html#af9ba5d916ab908a9a5a5d0ea7966751b":[19,6,5,4],
-"dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html":[19,7,16],
-"dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#a65e4336ec9a39cfd5a125fd89863cae6":[19,7,16,3]
+"dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html":[19,7,16]
 };

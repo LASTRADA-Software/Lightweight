@@ -1,5 +1,6 @@
 var NAVTREEINDEX7 =
 {
+"dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#a65e4336ec9a39cfd5a125fd89863cae6":[19,7,16,3],
 "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#aaacc540bd4fd3ab8f556b8cc92f2894b":[19,7,16,0],
 "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#ab52a61034e07facd43a641d9c40f9b62":[19,7,16,1],
 "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#aede084084d8c094a9f4e08d86b8f13f8":[19,7,16,2],
@@ -248,6 +249,5 @@ var NAVTREEINDEX7 =
 "de/d61/classLightweight_1_1DataMapper.html#a14f4830a73bb932956d1d66f8f1ef69f":[19,3,9,31],
 "de/d61/classLightweight_1_1DataMapper.html#a1c49ec5976087ab4899eb8d2b3c534b3":[19,3,9,40],
 "de/d61/classLightweight_1_1DataMapper.html#a2169593bd11e17f7d602a5246b0ce5ea":[19,3,9,2],
-"de/d61/classLightweight_1_1DataMapper.html#a26cf5a8f4f6f3cf5840bb6fe6974e168":[19,3,9,42],
-"de/d61/classLightweight_1_1DataMapper.html#a275a2f5e36efeb2bd98f6c73b8f73c4b":[19,3,9,11]
+"de/d61/classLightweight_1_1DataMapper.html#a26cf5a8f4f6f3cf5840bb6fe6974e168":[19,3,9,42]
 };

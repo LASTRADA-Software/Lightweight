@@ -1,5 +1,6 @@
 var NAVTREEINDEX8 =
 {
+"de/d61/classLightweight_1_1DataMapper.html#a275a2f5e36efeb2bd98f6c73b8f73c4b":[19,3,9,11],
 "de/d61/classLightweight_1_1DataMapper.html#a2b2b5b2f4bc610b6a8f518ce88a6e485":[19,3,9,26],
 "de/d61/classLightweight_1_1DataMapper.html#a2cd193a868954406545c989fbefec702":[19,3,9,33],
 "de/d61/classLightweight_1_1DataMapper.html#a2eb801d4d427d114bbc0c3b01068f307":[19,3,9,6],
@@ -248,6 +249,5 @@ var NAVTREEINDEX8 =
 "df/d49/classLightweight_1_1SqlRetryPolicy.html#a34676e8137f5e2629e02e72511833152":[19,9,6,1],
 "df/d49/classLightweight_1_1SqlRetryPolicy.html#a3574a8084b1e14928fcdf0cd47c0623d":[19,9,6,9],
 "df/d49/classLightweight_1_1SqlRetryPolicy.html#a4aa80edc122bc584d893aa68e6dfbbf7":[19,9,6,5],
-"df/d49/classLightweight_1_1SqlRetryPolicy.html#ac0c6d548882c4336434d020265b14577":[19,9,6,3],
-"df/d49/classLightweight_1_1SqlRetryPolicy.html#ae651a297dedb9e10e1cc29d1c7b11f7e":[19,9,6,7]
+"df/d49/classLightweight_1_1SqlRetryPolicy.html#ac0c6d548882c4336434d020265b14577":[19,9,6,3]
 };

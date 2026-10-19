@@ -114,11 +114,13 @@ Public Attributes</h2></td></tr>
 <tr class="separator:a5da7e6fd9a84f00e8aafb68637ac0c62"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af24b850a50a1ddf570bafe458be64f16" id="r_af24b850a50a1ddf570bafe458be64f16"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#af24b850a50a1ddf570bafe458be64f16">schemaMigrationsDropped</a> = false</td></tr>
 <tr class="separator:af24b850a50a1ddf570bafe458be64f16"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2113a105369c49cd4645f70d65098a02" id="r_a2113a105369c49cd4645f70d65098a02"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#a2113a105369c49cd4645f70d65098a02">schemaBackupsDropped</a> = false</td></tr>
+<tr class="separator:a2113a105369c49cd4645f70d65098a02"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Result of a <code>HardReset</code> call. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00849">849</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00851">851</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="af96c4af24cdc9ce53b3a27f507fbfc1e" name="af96c4af24cdc9ce53b3a27f507fbfc1e"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#af96c4af24cdc9ce53b3a27f507fbfc1e">&#9670;&#160;</a></span>wasDryRun</h2>
@@ -133,7 +135,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>True when the populating call was a dry-run; the result describes the would-be plan and no DDL was issued. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00853">853</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00855">855</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -150,7 +152,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Tables the registered migrations <em>would</em> have created and were also present in the live DB — these were dropped (or would be dropped on a real run). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00856">856</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00858">858</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -167,7 +169,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Tables registered migrations declare but that aren't in the live DB — nothing to do for these. Reported for visibility only. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00859">859</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00861">861</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -184,7 +186,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Tables in the live DB the registered migrations don't know about — left alone (user-owned). Reported prominently so operators notice. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00862">862</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00864">864</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -201,7 +203,24 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Whether the <code>schema_migrations</code> table itself was dropped (always true on a real run, false on dry-run). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00865">865</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00867">867</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a2113a105369c49cd4645f70d65098a02" name="a2113a105369c49cd4645f70d65098a02"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2113a105369c49cd4645f70d65098a02">&#9670;&#160;</a></span>schemaBackupsDropped</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool Lightweight::SqlMigration::MigrationManager::HardResetResult::schemaBackupsDropped = false</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Whether <code>schema_backups</code> exists and was dropped (or, in a dry run, would be), with every backup, restore and waived record in it. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00870">870</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>

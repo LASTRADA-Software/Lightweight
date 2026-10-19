@@ -121,9 +121,9 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <p>Whether this run of the step demands a backup of the database taken after its last migration (see <code><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#aff7702bfe2be5552850c10c05c4a1fb9">MigrationManager::BackupRequirementFor</a></code>), e.g. "the dry-run plan is not
-empty". Evaluated on the migration connection before the run; empty means never. </p>
+empty". Evaluated on the migration connection before the run; empty means never. Hosts call it on every requirement check and from any thread (a worker, or a GUI's own), so keep it cheap. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00400">400</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00401">401</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>

@@ -1,5 +1,6 @@
 var NAVTREEINDEX3 =
 {
+"d6/daa/group__QueryBuilder.html#gaf5129886f9f25ac627e908d6ce38406b":[19,8,33],
 "d6/daa/group__QueryBuilder.html#gaf9ef87a2dfb32d1e09850a53a5ca73eb":[19,8,32],
 "d6/daa/group__QueryBuilder.html#gga17470447b60d4554d19d30e877645d07a40fd8860f93339c96fc54abffc1f7594":[19,8,28,0],
 "d6/daa/group__QueryBuilder.html#gga17470447b60d4554d19d30e877645d07ad019979a29c88c8d69bab3a63388da97":[19,8,28,1],
@@ -248,6 +249,5 @@ var NAVTREEINDEX3 =
 "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#where--null--not-null":[4,1,5],
 "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#where-in":[4,1,4],
 "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#writing-the-rows":[4,6,0,0],
-"d7/d9a/classLightweight_1_1SqlDynamicString.html":[19,1,5],
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#a02be3f28ff302516bb8a6690464820f7":[19,1,5,29]
+"d7/d9a/classLightweight_1_1SqlDynamicString.html":[19,1,5]
 };

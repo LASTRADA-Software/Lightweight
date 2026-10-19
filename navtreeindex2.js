@@ -131,6 +131,7 @@ var NAVTREEINDEX2 =
 "d5/d4b/SqlAdvisoryLock_8hpp_source.html":[22,0,1,15],
 "d5/d5a/Album_8hpp_source.html":[22,0,0,0,0,0],
 "d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html":[19,7,14,2],
+"d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#a2113a105369c49cd4645f70d65098a02":[19,7,14,2,5],
 "d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#a374c3e5219e1b82c0fb5283d9599a41d":[19,7,14,2,2],
 "d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#a5da7e6fd9a84f00e8aafb68637ac0c62":[19,7,14,2,3],
 "d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#abfd242340ca076711738bf65659e5081":[19,7,14,2,1],
@@ -248,6 +249,5 @@ var NAVTREEINDEX2 =
 "d6/daa/group__QueryBuilder.html#ga64b43173582d2792574a35a701acc139":[19,8,31],
 "d6/daa/group__QueryBuilder.html#ga7d3d803ee8e7236cf6257b7bf760b471":[19,8,29],
 "d6/daa/group__QueryBuilder.html#gace7448ea30e7d08a6417adef1c6edc6e":[19,8,27],
-"d6/daa/group__QueryBuilder.html#gaeba5ba4ebe64ce27d81a82bdf1ea11d7":[19,8,34],
-"d6/daa/group__QueryBuilder.html#gaf5129886f9f25ac627e908d6ce38406b":[19,8,33]
+"d6/daa/group__QueryBuilder.html#gaeba5ba4ebe64ce27d81a82bdf1ea11d7":[19,8,34]
 };
