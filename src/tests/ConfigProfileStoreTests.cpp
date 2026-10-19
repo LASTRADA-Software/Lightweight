@@ -613,6 +613,39 @@ TEST_CASE("ProfileStore — backup folders round-trip through Save", "[ProfileSt
     CHECK(reloaded->Find("prod")->backupDir.generic_string() == "/srv/backups/prod");
 }
 
+TEST_CASE("ProfileStore — non-ASCII backup folders keep their spelling", "[ProfileStore][backup-dir]")
+{
+    // UTF-8 "Sicherungen-Müller", the encoding dbtool.yml uses.
+    ScopedTempYaml const yaml("defaultBackupDir: /srv/Sicherungen-M\xC3\xBCller\n"
+                              "profiles:\n"
+                              "  prod:\n"
+                              "    dsn: PROD\n"
+                              "    backupDir: /srv/Sicherungen-M\xC3\xBCller/prod\n");
+
+    auto const loaded = Lightweight::Config::ProfileStore::LoadOrDefault(yaml.Path());
+
+    if (!loaded)
+    {
+        FAIL("the file did not load");
+        return;
+    }
+    CHECK(loaded->DefaultBackupDir().generic_u8string() == u8"/srv/Sicherungen-M\u00fcller");
+    auto const* prod = loaded->Find("prod");
+    REQUIRE(prod != nullptr);
+    CHECK(prod->backupDir.generic_u8string() == u8"/srv/Sicherungen-M\u00fcller/prod");
+
+    // Saving writes the same UTF-8 back.
+    ScopedTempYaml const saved("");
+    REQUIRE(loaded->Save(saved.Path()).has_value());
+    auto const reloaded = Lightweight::Config::ProfileStore::LoadOrDefault(saved.Path());
+    if (!reloaded)
+    {
+        FAIL("the saved file did not load");
+        return;
+    }
+    CHECK(reloaded->DefaultBackupDir().generic_u8string() == u8"/srv/Sicherungen-M\u00fcller");
+}
+
 namespace
 {
 

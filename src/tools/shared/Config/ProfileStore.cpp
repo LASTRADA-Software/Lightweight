@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <filesystem>
 #include <format>
 #include <fstream>
 #include <sstream>
@@ -34,6 +35,23 @@
 
 namespace Lightweight::Config
 {
+
+namespace
+{
+    /// A folder named in dbtool.yml, which is UTF-8; a plain `std::string` path would read it in the
+    /// ANSI code page on Windows.
+    [[nodiscard]] std::filesystem::path PathFromUtf8(std::string const& text)
+    {
+        return std::filesystem::path { std::u8string { text.begin(), text.end() } };
+    }
+
+    /// The UTF-8 spelling of @p path, as dbtool.yml stores it.
+    [[nodiscard]] std::string Utf8FromPath(std::filesystem::path const& path)
+    {
+        auto const text = path.u8string();
+        return std::string { text.begin(), text.end() };
+    }
+} // namespace
 
 SqlConnectInfo Profile::ToConnectInfo(std::string_view password) const
 {
@@ -126,7 +144,7 @@ namespace
             p.pluginsDir = nLegacy.as<std::string>();
 
         if (auto n = node["backupDir"]; n && n.IsScalar())
-            p.backupDir = n.as<std::string>();
+            p.backupDir = PathFromUtf8(n.as<std::string>());
 
         if (auto n = node["schema"])
             p.schema = n.as<std::string>();
@@ -192,7 +210,7 @@ namespace
                 out << YAML::Key << key << YAML::Value << value;
         };
         emit("pluginsDir", p.pluginsDir.string());
-        emit("backupDir", p.backupDir.string());
+        emit("backupDir", Utf8FromPath(p.backupDir));
         emit("schema", p.schema);
         emit("dsn", p.dsn);
         emit("connectionString", p.connectionString);
@@ -278,7 +296,7 @@ std::expected<ProfileStore, std::string> ProfileStore::LoadOrDefault(std::filesy
 
     // A blank `defaultBackupDir:` (YAML null) means "none".
     if (auto n = root["defaultBackupDir"]; n && n.IsScalar())
-        store._defaultBackupDir = n.as<std::string>();
+        store._defaultBackupDir = PathFromUtf8(n.as<std::string>());
 
     auto profiles = root["profiles"];
     if (!profiles || !profiles.IsMap())
@@ -334,7 +352,7 @@ std::expected<void, std::string> ProfileStore::Save(std::filesystem::path path) 
     }
 
     if (!_defaultBackupDir.empty())
-        out << YAML::Key << "defaultBackupDir" << YAML::Value << _defaultBackupDir.string();
+        out << YAML::Key << "defaultBackupDir" << YAML::Value << Utf8FromPath(_defaultBackupDir);
 
     out << YAML::Key << "profiles" << YAML::Value << YAML::BeginMap;
     for (auto const& p: _profiles)

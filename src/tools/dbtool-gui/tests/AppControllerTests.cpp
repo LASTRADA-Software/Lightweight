@@ -502,6 +502,22 @@ TEST_CASE("loading a dbtool.yml with defaultBackupDir sets the default backup fo
     CHECK(controller.managedBackups()->defaultBackupFolder() != QString::fromStdString(backups));
 }
 
+TEST_CASE("a non-ASCII defaultBackupDir keeps its spelling as the default backup folder",
+          "[dbtool-gui][AppController][backup-dir]")
+{
+    QTemporaryDir dir;
+    auto const configPath = std::filesystem::path { dir.path().toStdU16String() } / "dbtool.yml";
+    // UTF-8 "D:/Sicherungen-Müller", as dbtool.yml stores it.
+    std::ofstream(configPath, std::ios::binary)
+        << "defaultBackupDir: \"D:/Sicherungen-M\xC3\xBCller\"\nprofiles:\n  p:\n    dsn: \"X\"\n";
+
+    DbtoolGui::AppController controller;
+    controller.managedBackups()->setBackupFolder(QString {}); // nothing chosen in Settings
+    REQUIRE(controller.loadProfiles(QString::fromStdU16String(configPath.u16string())));
+
+    CHECK(controller.managedBackups()->defaultBackupFolder() == QString::fromUtf16(u"D:/Sicherungen-M\u00fcller"));
+}
+
 TEST_CASE("switching to an empty plugins dir drops the unloaded plugins' compat policy, migrations and releases",
           "[dbtool-gui][AppController][plugins]")
 {
