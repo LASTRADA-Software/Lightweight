@@ -26,7 +26,7 @@ struct BackupOutputRequest
     /// The configured backup folder (`EffectiveBackupDir`); empty when none is configured.
     std::filesystem::path folder;
 
-    /// Name of the selected profile, used for a generated file name; may be empty.
+    /// Name of the selected profile, UTF-8, used for a generated file name; may be empty.
     std::string_view profileName;
 
     /// The moment the backup starts, used for a generated file name.

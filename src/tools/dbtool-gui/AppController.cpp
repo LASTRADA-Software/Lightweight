@@ -1119,15 +1119,12 @@ void AppController::backUpNow()
 {
     if (!_connected || AnyRunInFlight())
         return;
-    // A generated name, handed over as a path built from UTF-16, so a non-ASCII target keeps its spelling.
-    auto const now = std::chrono::system_clock::now();
-    auto const fileName =
-        QString::fromStdString(Lightweight::Config::GeneratedBackupFileName(_connectedTarget.toStdString(), now));
+    auto const profileName = _connectedTarget.toStdString();
     auto const output = Lightweight::Config::ResolveBackupOutput({
-        .requested = std::filesystem::path { fileName.toStdU16String() },
+        .requested = {},
         .folder = std::filesystem::path { _managedBackups.effectiveBackupFolder().toStdU16String() },
-        .profileName = {},
-        .now = now,
+        .profileName = profileName,
+        .now = std::chrono::system_clock::now(),
     });
     if (!output)
     {
