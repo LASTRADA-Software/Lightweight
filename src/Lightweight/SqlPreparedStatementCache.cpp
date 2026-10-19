@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "SqlOdbcWide.hpp"
 #include "SqlPreparedStatementCache.hpp"
 
 #include <iterator>
@@ -18,7 +19,10 @@ namespace
     void FreeHandle(SqlPreparedStatementCache::PreparedHandle const& handle) noexcept
     {
         if (handle.nativeHandle != SQL_NULL_HSTMT)
+        {
+            detail::UnregisterAnsiOnlyHandle(handle.nativeHandle);
             SQLFreeHandle(SQL_HANDLE_STMT, handle.nativeHandle);
+        }
     }
 } // namespace
 

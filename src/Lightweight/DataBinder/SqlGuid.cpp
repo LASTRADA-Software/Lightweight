@@ -84,47 +84,9 @@ SqlGuid SqlGuid::Create() noexcept
 
 std::optional<SqlGuid> SqlGuid::TryParse(std::string_view const& text) noexcept
 {
-    SqlGuid guid {};
-
-    // UUID format: xxxxxxxx-xxxx-Mxxx-Nxxx-xxxxxxxxxxxx
-    // M is the version and N is the variant
-
-    // Check for length
-    if (text.size() != 36)
+    if (!detail::IsWellFormedGuidText(text))
         return std::nullopt;
-
-    // Check for dashes
-    if (text[8] != '-' || text[13] != '-' || text[18] != '-' || text[23] != '-')
-        return std::nullopt;
-
-    // Version must be 1, 2, 3, 4, or 5
-    auto const version = text[14];
-    if (!('1' <= version && version <= '5'))
-        return std::nullopt;
-
-    // Variant nibble at position 19 must be a valid hex digit
-    // We accept all variants (RFC 4122: 8-B, Microsoft: C-D, etc.)
-    auto const variant = text[19];
-    auto const isHexDigit =
-        (variant >= '0' && variant <= '9') || (variant >= 'A' && variant <= 'F') || (variant >= 'a' && variant <= 'f');
-    if (!isHexDigit)
-        return std::nullopt;
-
-    // clang-format off
-    size_t i = 0;
-    for (auto const index: { 0, 2, 4, 6,
-                             9, 11,
-                             14, 16,
-                             19, 21,
-                             24, 26, 28, 30, 32, 34 })
-    {
-        if (std::from_chars(text.data() + index, text.data() + index + 2, guid.data[i], 16).ec != std::errc())
-            return std::nullopt;
-        i++;
-    }
-    // clang-format on
-
-    return guid;
+    return UnsafeParse(text);
 }
 
 SQLRETURN SqlDataBinder<SqlGuid>::InputParameter(SQLHSTMT stmt,

@@ -33,8 +33,11 @@ if(MSVC)
 endif()
 
 set(SOURCE_FILES
+    BackupRecordingTests.cpp
+    BackupRequirementTests.cpp
     ConfigDiscoveryTests.cpp
     ConfigBackupOutputTests.cpp
+    ConfigConnectionTargetTests.cpp
     ConfigProfileStoreTests.cpp
     ColumnTypeRoundTripTests.cpp
     CoreTests.cpp
@@ -47,11 +50,15 @@ set(SOURCE_FILES
     DataSourceEnumeratorTests.cpp
     Ddl2CppColumnTypeTests.cpp
     PluginDiscoveryTests.cpp
+    NoErrorDialogsTests.cpp
     PluginIngestionTests.cpp
     ProfileAddTests.cpp
     ProfileFileEditorTests.cpp
     ProfilePasswordTests.cpp
     ProfileCipherTests.cpp
+    PreMigrateStepTests.cpp
+    ProgressTaskTests.cpp
+    UnicodeUpgradeProgressTests.cpp
     SecretResolverTests.cpp
     DataMapper/BatchTests.cpp
     DataMapper/CreateTests.cpp
@@ -105,8 +112,11 @@ set(SOURCE_FILES
     ThreadSafeQueueTests.cpp
     SqlVariantAccessorTests.cpp
     SqlVariantDbTests.cpp
+    SqlBackup/ArchivePathTests.cpp
+    SqlBackup/ArchiveVerificationTests.cpp
     SqlBackup/AllColumnTypesTests.cpp
     SqlBackup/EncodingRoundTripTests.cpp
+    SqlBackup/RestoreConversionTests.cpp
     SqlBackup/BatchManagerIntegrationTests.cpp
     SqlBackup/ChunkPlannerTests.cpp
     SqlBackup/CommonHelpersTests.cpp
@@ -119,6 +129,7 @@ set(SOURCE_FILES
     SqlBackup/BatchManagerTests.cpp
     SqlBackup/MsgPackChunkFormatsTests.cpp
     SqlBackup/MultiPkTests.cpp
+    SqlBackup/MultiSchemaTests.cpp
     SqlBackup/Benchmarks.cpp
     SqlBackup/MetadataRedactionTests.cpp
     SqlBackup/ParseSchemaTests.cpp
@@ -132,6 +143,10 @@ set(SOURCE_FILES
     SqlBackup/ProductionReadinessTests.cpp
     dbtool/StandardProgressManagerTests.cpp
     dbtool/BackupDiffTests.cpp
+    dbtool/BackupRequirementReportTests.cpp
+    dbtool/CommandAccessTests.cpp
+    dbtool/TaskProgressRendererTests.cpp
+    dbtool/UnicodeUpgradeReportTests.cpp
     UnicodeConverterTests.cpp
     Utils.cpp
     UtilsTests.cpp
@@ -176,6 +191,9 @@ install(FILES test_dbtool.py DESTINATION ${CMAKE_INSTALL_DATADIR}/Lightweight/te
 
 add_subdirectory(dummy_migration_plugin)
 add_subdirectory(dummy_migration_plugin_2)
+add_subdirectory(post_migrate_plugin)
+add_subdirectory(compat_policy_plugin)
+add_subdirectory(seed_row_fixture)
 
 # Register dbtool integration test
 find_package(Python3 REQUIRED COMPONENTS Interpreter)

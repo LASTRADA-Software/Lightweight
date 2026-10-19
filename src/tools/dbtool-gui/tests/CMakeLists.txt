@@ -13,11 +13,16 @@ qt_add_executable(dbtool-gui-tests
     AppControllerTests.cpp
     BackupActiveTablesModelTests.cpp
     BackupProfileFilterModelTests.cpp
+    BackupRequirementControllerTests.cpp
     BackupRunnerTests.cpp
     BackupStatusListModelTests.cpp
     BackupTableListModelTests.cpp
     ManagedBackupCoreTests.cpp
     ManagedBackupControllerTests.cpp
+    MigrationRunnerPostMigrateTests.cpp
+    MigrationRunnerPreMigrateTests.cpp
+    NoErrorDialogsTests.cpp
+    ProgressTaskModelTests.cpp
     RunnerBusyGuardTests.cpp
 )
 
@@ -30,11 +35,26 @@ target_link_libraries(dbtool-gui-tests PRIVATE
     Qt6::Test
 )
 
+# Fixture plugins from src/tests: the compat-policy one, which the plugin-reload test loads, and
+# the backup-required one, which the backup-requirement tests load.
+target_compile_definitions(dbtool-gui-tests PRIVATE
+    DBTOOL_GUI_TESTS_COMPAT_POLICY_FIXTURE="$<TARGET_FILE:compat_policy_fixture>"
+    DBTOOL_GUI_TESTS_BACKUP_REQUIRED_FIXTURE="$<TARGET_FILE:backup_required_release_fixture>"
+)
+add_dependencies(dbtool-gui-tests compat_policy_fixture backup_required_release_fixture)
+
 set_target_properties(dbtool-gui-tests PROPERTIES
     # Qt's camelCase signal/slot convention clashes with the project-wide
     # clang-tidy policy — opt out, like the executable does.
     CXX_CLANG_TIDY ""
 )
+
+# The post-migrate recorder fixture, whose post-init hook registers a pre-migrate step; the
+# plugin-reload test checks that a reload while connected keeps it.
+target_compile_definitions(dbtool-gui-tests PRIVATE
+    DBTOOL_GUI_TESTS_PRE_MIGRATE_RECORDER_PLUGIN="$<TARGET_FILE:post_migrate_plugin>"
+)
+add_dependencies(dbtool-gui-tests post_migrate_plugin)
 
 # Embed a hand-written application manifest via an .rc RT_MANIFEST resource,
 # exactly like the `dbtool-gui` executable does (see ../CMakeLists.txt and
@@ -66,9 +86,10 @@ if(WIN32)
     )
 endif()
 
-# Stage the Qt offscreen + minimal platform plugins next to the test binary
-# so `QT_QPA_PLATFORM=offscreen` resolves without a display server. The same
-# windeployqt invocation copies QML modules, image format plugins, etc.
+# Stage the Qt runtime next to the test binary. windeployqt deploys only the
+# `windows` platform plugin by default, so `--include-plugins qoffscreen` adds
+# the one `QT_QPA_PLATFORM=offscreen` needs to run without a display server.
+# The same invocation copies QML modules, image format plugins, etc.
 if(WIN32)
     find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS ${Qt6_DIR}/../../../bin)
     if(WINDEPLOYQT_EXECUTABLE)
@@ -76,6 +97,7 @@ if(WIN32)
             COMMAND "${WINDEPLOYQT_EXECUTABLE}"
                     --no-translations
                     --no-system-d3d-compiler
+                    --include-plugins qoffscreen
                     --qmldir "${CMAKE_CURRENT_SOURCE_DIR}/../qml"
                     "$<TARGET_FILE:dbtool-gui-tests>"
             COMMENT "Running windeployqt for dbtool-gui-tests"
@@ -132,8 +154,8 @@ if(WIN32)
     )
 endif()
 
-# Stage the Qt platform plugins next to the qmltest binary so it can launch
-# under `QT_QPA_PLATFORM=offscreen` from a clean install.
+# Stage the Qt runtime, including the offscreen platform plugin, next to the
+# qmltest binary so it can launch under `QT_QPA_PLATFORM=offscreen`.
 if(WIN32)
     find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS ${Qt6_DIR}/../../../bin)
     if(WINDEPLOYQT_EXECUTABLE)
@@ -141,6 +163,7 @@ if(WIN32)
             COMMAND "${WINDEPLOYQT_EXECUTABLE}"
                     --no-translations
                     --no-system-d3d-compiler
+                    --include-plugins qoffscreen
                     --qmldir "${CMAKE_CURRENT_SOURCE_DIR}/../qml"
                     "$<TARGET_FILE:dbtool-gui-qmltest>"
             COMMENT "Running windeployqt for dbtool-gui-qmltest"

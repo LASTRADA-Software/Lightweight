@@ -138,5 +138,5 @@ TEST_CASE("Sha256: ToHex output is lowercase and zero-padded", "[Sha256]")
     CHECK(hex.ends_with("ab"));
     // Every hex character must be lowercase (no A-F).
     for (char const c: hex)
-        CHECK((c >= '0' && c <= '9' || c >= 'a' && c <= 'f'));
+        CHECK(((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')));
 }

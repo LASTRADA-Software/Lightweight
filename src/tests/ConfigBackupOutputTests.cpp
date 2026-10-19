@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <regex>
 #include <string>
+#include <string_view>
 
 #include <Config/BackupOutput.hpp>
 
@@ -17,10 +18,10 @@ namespace Cfg = Lightweight::Config;
 namespace
 {
 
-Cfg::BackupOutputRequest Request(std::string requested, std::string folder, std::string_view profile = "prod")
+Cfg::BackupOutputRequest Request(std::string_view requested, std::string_view folder, std::string_view profile = "prod")
 {
-    return Cfg::BackupOutputRequest { .requested = std::move(requested),
-                                      .folder = std::move(folder),
+    return Cfg::BackupOutputRequest { .requested = fs::path { requested },
+                                      .folder = fs::path { folder },
                                       .profileName = profile,
                                       .now = std::chrono::system_clock::now() };
 }
@@ -71,6 +72,21 @@ TEST_CASE("ResolveBackupOutput generates a name when --output is omitted", "[bac
     CHECK(output->path.parent_path() == fs::path { "/srv/backups" });
     auto const name = output->path.filename().string();
     CHECK(std::regex_match(name, std::regex { R"(prod-\d{8}-\d{6}\.zip)" }));
+}
+
+TEST_CASE("ResolveBackupOutput keeps a non-ASCII profile name in a generated name", "[backup-dir]")
+{
+    auto const output = Cfg::ResolveBackupOutput(Request("", "/srv/backups", "M\xC3\xBCller"));
+
+    if (!output)
+    {
+        FAIL("no backup output");
+        return;
+    }
+    // Compared as UTF-8, independent of the platform's narrow code page.
+    auto const name = output->path.filename().u8string();
+    CHECK(name.starts_with(u8"M\u00fcller-"));
+    CHECK(output->path.parent_path() == fs::path { "/srv/backups" });
 }
 
 TEST_CASE("ResolveBackupOutput without a configured folder changes nothing", "[backup-dir]")

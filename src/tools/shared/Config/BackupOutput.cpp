@@ -63,7 +63,10 @@ std::optional<BackupOutput> ResolveBackupOutput(BackupOutputRequest const& reque
     {
         if (request.folder.empty())
             return std::nullopt;
-        return BackupOutput { .path = request.folder / GeneratedBackupFileName(request.profileName, request.now),
+        // The name is UTF-8; a `std::string` path would read it in the ANSI code page on Windows.
+        auto const fileName = GeneratedBackupFileName(request.profileName, request.now);
+        return BackupOutput { .path = request.folder
+                                      / std::filesystem::path { std::u8string { fileName.begin(), fileName.end() } },
                               .inConfiguredFolder = true };
     }
 

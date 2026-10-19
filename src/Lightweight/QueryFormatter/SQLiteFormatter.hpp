@@ -42,6 +42,16 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         return true;
     }
 
+    [[nodiscard]] bool IdentifiersAreCaseInsensitive() const noexcept override
+    {
+        return true;
+    }
+
+    [[nodiscard]] bool SupportsSchemas() const noexcept override
+    {
+        return false;
+    }
+
     /// Builds the SQL query used to check whether a column exists on a SQLite table.
     ///
     /// The migration executor uses this to resolve the `-- LIGHTWEIGHT_SQLITE_GUARD:`
@@ -64,13 +74,16 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         return std::format(R"(INSERT INTO "{}" ({}) VALUES ({}))", intoTable, fields, values);
     }
 
-    [[nodiscard]] std::string Insert(std::string_view /*schema*/,
+    [[nodiscard]] std::string Insert(std::string_view schema,
                                      std::string_view intoTable,
                                      std::string_view fields,
                                      std::string_view values) const override
     {
-        // SQLite doesn't support schemas - ignore schema parameter
-        return std::format(R"(INSERT INTO "{}" ({}) VALUES ({}))", intoTable, fields, values);
+        // SQLite has no schemas and ignores it; a dialect that inherits this method names it.
+        return std::format("INSERT INTO {} ({}) VALUES ({})",
+                           FormatTableName(SupportsSchemas() ? schema : std::string_view {}, intoTable),
+                           fields,
+                           values);
     }
 
     [[nodiscard]] std::string QueryLastInsertId(std::string_view /*tableName*/) const override
@@ -314,6 +327,8 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
                                          bool ifNotExists = false) const override
     {
         auto sqlQueries = StringList {};
+        // SQLite has no schemas and ignores it; a dialect that inherits this method (PostgreSQL) names it.
+        auto const qualifiedTableName = FormatTableName(SupportsSchemas() ? schema : std::string_view {}, tableName);
 
         // NOLINTNEXTLINE(readability-function-cognitive-complexity)
         sqlQueries.emplace_back([&]() {
@@ -321,9 +336,7 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
             sqlQueryString << "CREATE TABLE ";
             if (ifNotExists)
                 sqlQueryString << "IF NOT EXISTS ";
-            // SQLite doesn't support schemas - ignore schema parameter
-            (void) schema;
-            sqlQueryString << "\"" << tableName << "\" (";
+            sqlQueryString << qualifiedTableName << " (";
             std::vector<SqlColumnDeclaration const*> pks;
             size_t currentColumn = 0;
             std::string foreignKeyConstraints;
@@ -419,14 +432,17 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
             {
                 // primary keys are always indexed
                 if (column.unique)
-                    sqlQueries.emplace_back(std::format(R"(CREATE UNIQUE INDEX "{}_{}_index" ON "{}" ("{}");)",
+                    sqlQueries.emplace_back(std::format(R"(CREATE UNIQUE INDEX "{}_{}_index" ON {} ("{}");)",
                                                         tableName,
                                                         column.name,
-                                                        tableName,
+                                                        qualifiedTableName,
                                                         column.name));
                 else
-                    sqlQueries.emplace_back(std::format(
-                        R"(CREATE INDEX "{}_{}_index" ON "{}" ("{}");)", tableName, column.name, tableName, column.name));
+                    sqlQueries.emplace_back(std::format(R"(CREATE INDEX "{}_{}_index" ON {} ("{}");)",
+                                                        tableName,
+                                                        column.name,
+                                                        qualifiedTableName,
+                                                        column.name));
             }
         }
 

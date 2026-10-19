@@ -150,6 +150,22 @@ class AppController: public QObject
     Q_PROPERTY(int unknownCount READ unknownCount NOTIFY migrationsChanged)
     Q_PROPERTY(int checksumMismatchCount READ checksumMismatchCount NOTIFY migrationsChanged)
     Q_PROPERTY(int issuesCount READ issuesCount NOTIFY migrationsChanged)
+    /// Pre-migrate steps the plugins registered for the connected database; they run with the next apply.
+    Q_PROPERTY(int preMigrateStepCount READ preMigrateStepCount NOTIFY migrationsChanged)
+    /// True while a release or pre-migrate step of the pending migrations requires a backup that does
+    /// not exist yet. The migrate buttons are disabled meanwhile; dry runs stay available.
+    Q_PROPERTY(bool backupRequired READ backupRequired NOTIFY backupRequirementChanged)
+    /// What requires the backup while `backupRequired` is true, e.g. `release 3.0.0` or `step "Widen text columns"`.
+    Q_PROPERTY(QStringList backupRequirementReasons READ backupRequirementReasons NOTIFY backupRequirementChanged)
+    /// Why the newest backup does not count, why the last backup could not be recorded, or why the
+    /// requirement could not be checked; empty when there is nothing to add.
+    Q_PROPERTY(QString backupRequirementNote READ backupRequirementNote NOTIFY backupRequirementChanged)
+    /// Whether the user ticked "Migrate without a backup": the next apply run goes ahead although a
+    /// required backup is missing and records the waiver. False at start, never persisted, and reset
+    /// whenever a migration run finishes, on every connect and disconnect, and as soon as no backup
+    /// is required any more (e.g. after Back up now), so it never carries over to a later requirement.
+    Q_PROPERTY(
+        bool migrateWithoutBackup READ migrateWithoutBackup WRITE setMigrateWithoutBackup NOTIFY migrateWithoutBackupChanged)
     Q_PROPERTY(int selectionCount READ selectionCount NOTIFY selectionChanged)
 
     /// Human-readable label for the release that the DB is currently at.
@@ -305,6 +321,42 @@ class AppController: public QObject
     [[nodiscard]] int unknownCount() const;
     [[nodiscard]] int checksumMismatchCount() const;
     [[nodiscard]] int issuesCount() const;
+    /// @return The number of pre-migrate steps the plugins registered for the connected database;
+    ///         they run with the next apply.
+    [[nodiscard]] int preMigrateStepCount() const;
+
+    /// @return Whether a required backup is missing for the pending migrations (see the property).
+    [[nodiscard]] bool backupRequired() const noexcept
+    {
+        return _backupRequired;
+    }
+
+    /// @return What requires the missing backup; empty while none is missing.
+    [[nodiscard]] QStringList const& backupRequirementReasons() const noexcept
+    {
+        return _backupRequirementReasons;
+    }
+
+    /// @return The extra line of the backup requirement alert; empty when there is nothing to add.
+    [[nodiscard]] QString const& backupRequirementNote() const noexcept
+    {
+        return _backupRequirementNote;
+    }
+
+    /// @return Whether the next apply run may go ahead without a required backup.
+    [[nodiscard]] bool migrateWithoutBackup() const noexcept
+    {
+        return _migrateWithoutBackup;
+    }
+
+    /// Ticks or clears "Migrate without a backup" for the next apply run; never persisted.
+    /// @param value Whether the next apply run may go ahead without a required backup.
+    Q_INVOKABLE void setMigrateWithoutBackup(bool value);
+
+    /// Backs up the connected database into the backup folder under a generated
+    /// `<target>-<timestamp>.zip` name, without a dialog. The backup is recorded, so it satisfies
+    /// the backup requirement once it finished. Does nothing unless connected and every runner is idle.
+    Q_INVOKABLE void backUpNow();
     [[nodiscard]] int selectionCount() const;
 
     [[nodiscard]] QString currentReleaseLabel() const;
@@ -406,6 +458,7 @@ class AppController: public QObject
     /// connection string if no profile is selected). Loads migration plugins
     /// from the profile's `pluginsDir`, creates the `schema_migrations`
     /// table if it is missing, and refreshes the migration / release models.
+    /// Refused with a warning while a migration run, a backup or a restore is active.
     Q_INVOKABLE bool connectToProfile();
 
     /// Re-enumerates the system ODBC DSNs and refreshes the
@@ -478,6 +531,8 @@ class AppController: public QObject
     void lastErrorChanged();
     void lastWarningChanged();
     void migrationsChanged();
+    void backupRequirementChanged();
+    void migrateWithoutBackupChanged();
     void selectionChanged();
     void logVisibleChanged();
     void viewModeChanged();
@@ -530,8 +585,12 @@ class AppController: public QObject
     /// property that influences the effective directory (plugins override,
     /// current profile, connection mode) changes, so the migration list is
     /// always visible as soon as a directory is known — without waiting for
-    /// a successful DB connect.
+    /// a successful DB connect. While a migration run is active it only marks
+    /// the reload as pending; the run's `finished` handler then performs it.
     void ReloadPlugins();
+
+    /// Runs the loaded plugins' post-init hooks on the migration connection, logging every failure.
+    void RunPostInitHooks();
 
     /// Drops the "connected" flag (emitting `connectedChanged`) without
     /// tearing down the underlying `SqlConnection` — those are reclaimed
@@ -549,6 +608,19 @@ class AppController: public QObject
     /// falls back to a plugin-only refresh and surfaces the reason as a
     /// warning. Always emits `migrationsChanged()`.
     void RefreshMigrationModelsAfterRun();
+
+    /// Re-evaluates `backupRequired`, its reasons and its note for all pending migrations, the scope
+    /// the Simple view's Run and the default Apply run; the runner re-checks the scope it actually runs.
+    /// Clears everything while not connected and leaves it alone while a migration run is in flight.
+    void RefreshBackupRequirement();
+
+    /// Opaque bundle of `Lightweight::Tools::LoadedPlugin` keeping every
+    /// loaded shared library alive. Defined in `AppController.cpp` so the
+    /// header doesn't pull in `<PluginIngestion.hpp>` (see the comment at
+    /// the top of this file for the moc-parser reason). Declared before
+    /// `_runner`, so the runner's pool has finished before the plugins unload.
+    struct PluginsBundle;
+    std::unique_ptr<PluginsBundle> _plugins;
 
     ProfileListModel _profiles;
     OdbcDataSourceListModel _odbcDataSources;
@@ -580,10 +652,24 @@ class AppController: public QObject
     /// True once `connectToProfile` routed the migration manager's log sink into this
     /// controller; the destructor removes it again so it cannot outlive us.
     bool _installedMigrationLogSink = false;
+    /// True when `ReloadPlugins` was refused during a migration run and must run once it finishes.
+    bool _pluginReloadPending = false;
+    /// True while `connectToProfile` reloads the plugins; it runs the post-init hooks itself, on the new connection.
+    bool _connecting = false;
     QString _profilePath;
     QString _lastError;
     QString _lastWarning;
     bool _connected = false;
+    /// See the `backupRequired` property.
+    bool _backupRequired = false;
+    /// See the `backupRequirementReasons` property.
+    QStringList _backupRequirementReasons;
+    /// See the `backupRequirementNote` property.
+    QString _backupRequirementNote;
+    /// Why the last Back up or Restore could not be recorded; empty when it was.
+    QString _lastRecordError;
+    /// See the `migrateWithoutBackup` property.
+    bool _migrateWithoutBackup = false;
     QString _connectedTarget;
     QString _connectedMode;
     bool _logVisible = true;
@@ -622,16 +708,6 @@ class AppController: public QObject
     /// held by raw pointer to keep `<QtCore/QFileSystemWatcher>` out of this
     /// header. The instance is parented to `this` so Qt reclaims it.
     class QFileSystemWatcher* _fileWatcher = nullptr;
-
-    // Plugins must outlive every MigrationBase pointer the MigrationManager
-    // holds — unloading a plugin invalidates its migrations. Keep them for
-    // the lifetime of the controller.
-    /// Opaque bundle of `Lightweight::Tools::LoadedPlugin` keeping every
-    /// loaded shared library alive. Defined in `AppController.cpp` so the
-    /// header doesn't pull in `<PluginIngestion.hpp>` (see the comment at
-    /// the top of this file for the moc-parser reason).
-    struct PluginsBundle;
-    std::unique_ptr<PluginsBundle> _plugins;
 };
 
 } // namespace DbtoolGui

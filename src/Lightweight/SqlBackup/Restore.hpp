@@ -7,6 +7,7 @@
 #include "SqlBackup.hpp"
 
 #include <atomic>
+#include <cstdint>
 #include <deque>
 #include <expected>
 #include <map>
@@ -47,12 +48,66 @@ struct FetchChunkError
     std::string message;
 };
 
+/// The tables a chunk of which failed to restore, shared by all restore workers.
+struct FailedTables
+{
+    /// Records @p tableName as failed.
+    /// @param tableName The table.
+    void Add(std::string const& tableName)
+    {
+        auto const lock = std::scoped_lock(_mutex);
+        _names.insert(tableName);
+    }
+
+    /// Tests whether @p tableName has failed.
+    /// @param tableName The table.
+    /// @return `true` once a chunk of the table failed.
+    [[nodiscard]] bool Contains(std::string const& tableName) const
+    {
+        auto const lock = std::scoped_lock(_mutex);
+        return _names.contains(tableName);
+    }
+
+  private:
+    mutable std::mutex _mutex;
+    std::set<std::string> _names;
+};
+
+/// The result of restoring one chunk.
+enum class ChunkRestoreOutcome : std::uint8_t
+{
+    /// The chunk was restored.
+    Restored,
+    /// A value of the chunk does not convert to its column's type: the table fails, the worker goes on.
+    TableFailed,
+    /// The chunk failed in a way that stops the worker (a database error, a lost connection).
+    WorkerFailed,
+};
+
+/// Returns the schema a table is restored into: the one the archive records for it, else @p defaultSchema.
+/// @param info The table.
+/// @param defaultSchema The schema the restore targets.
+[[nodiscard]] inline std::string TargetSchema(TableInfo const& info, std::string const& defaultSchema)
+{
+    return info.schema.empty() ? defaultSchema : info.schema;
+}
+
+/// Returns a table's name in the database: the name the archive records, else its key in the table map.
+/// @param key The table's key in the table map.
+/// @param info The table.
+[[nodiscard]] inline std::string TargetTableName(std::string const& key, TableInfo const& info)
+{
+    return info.name.empty() ? key : info.name;
+}
+
 /// Context for restore operations, shared between restore workers.
 struct RestoreContext
 {
     SqlConnectionString connectionString;
     std::string schema;
     std::map<std::string, TableInfo> const& tableMap;
+    /// The archive folder of each table's chunks (see @ref ChunkDirectory) -> the table's key in @ref tableMap.
+    std::map<std::string, std::string> const& chunkTables;
     std::deque<ZipEntryInfo>& dataQueue;
     zip_t* zip;
     std::mutex& queueMutex;
@@ -64,6 +119,8 @@ struct RestoreContext
     std::map<std::string, std::string> const* checksums; // entryName -> expected SHA-256 hash (optional)
     RetrySettings const& retrySettings;
     RestoreSettings restoreSettings;
+    /// Tables whose remaining chunks are skipped because one of their chunks failed.
+    FailedTables& failedTables;
 };
 
 /// Increments the chunk counter and reports completion status.
@@ -91,13 +148,18 @@ std::expected<RestoreChunkInfo, FetchChunkError> FetchNextRestoreChunk(RestoreCo
 /// @param workerConn The database connection.
 /// @param chunk The chunk data to restore.
 /// @param batchCapacity The batch size for bulk inserts.
-/// @return true if chunk was restored successfully, false if errors occurred.
-bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChunkInfo const& chunk, size_t batchCapacity);
+/// @return Whether the chunk was restored, failed only its table, or failed the worker.
+ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
+                                     SqlConnection& workerConn,
+                                     RestoreChunkInfo const& chunk,
+                                     size_t batchCapacity);
 
 /// Worker function that processes chunks from the restore queue.
 ///
 /// This function processes restore chunks from the shared queue, using the helper functions
 /// FetchNextRestoreChunk() for I/O operations and RestoreChunkData() for database operations.
+/// Once a chunk of a table fails, the remaining chunks of that table are skipped. A value that does
+/// not convert fails only its table; any other chunk failure also stops this worker.
 ///
 /// @param ctx The restore context containing queue, progress tracking, and settings.
 /// @param workerConn The database connection for this worker.
@@ -135,7 +197,8 @@ LIGHTWEIGHT_API void ApplyDatabaseConstraints(SqlConnectionString const& connect
 /// Recreates the database schema by dropping and creating tables from the backup metadata.
 ///
 /// This function creates tables in dependency order for SQLite (to satisfy FK constraints on CREATE),
-/// or alphabetically for other databases (where FKs are added via ALTER TABLE later).
+/// or alphabetically for other databases (where FKs are added via ALTER TABLE later). The schemas
+/// that a multi-schema archive records are created first unless they exist.
 ///
 /// @param connectionString The connection string for the target database.
 /// @param schema The database schema name to create tables in.

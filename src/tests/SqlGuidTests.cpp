@@ -9,6 +9,7 @@
 #include <format>
 #include <optional>
 #include <stdexcept>
+#include <string>
 #include <string_view>
 
 using namespace Lightweight;
@@ -50,11 +51,41 @@ TEST_CASE("SqlGuid::TryParse rejects malformed dashes", "[SqlGuid]")
     CHECK_FALSE(SqlGuid::TryParse("550E8400-E29B-41D4-A716x446655440000").has_value());
 }
 
-TEST_CASE("SqlGuid::TryParse rejects invalid version digits", "[SqlGuid]")
+TEST_CASE("SqlGuid::TryParse accepts any version nibble", "[SqlGuid]")
 {
-    CHECK_FALSE(SqlGuid::TryParse("550E8400-E29B-01D4-A716-446655440000").has_value()); // version 0
-    CHECK_FALSE(SqlGuid::TryParse("550E8400-E29B-61D4-A716-446655440000").has_value()); // version 6
-    CHECK_FALSE(SqlGuid::TryParse("550E8400-E29B-X1D4-A716-446655440000").has_value()); // non-digit
+    // SQL Server accepts any 8-4-4-4-12 hex value, and older Lightweight builds stored GUIDs whose
+    // version nibble lies outside 1..5 (byte-swapped Data3); those must still parse.
+    for (char const version: { '0', '6', '7', '9', 'A', 'E', 'F', 'e' })
+    {
+        auto text = std::string { "550E8400-E29B-01D4-A716-446655440000" };
+        text[14] = version;
+        INFO(text);
+        CHECK(SqlGuid::TryParse(text).has_value());
+    }
+}
+
+TEST_CASE("SqlGuid::TryParse rejects a non-hex version nibble", "[SqlGuid]")
+{
+    CHECK_FALSE(SqlGuid::TryParse("550E8400-E29B-X1D4-A716-446655440000").has_value());
+}
+
+TEST_CASE("SqlGuid::TryParse round-trips a GUID with a non-RFC version nibble byte for byte", "[SqlGuid]")
+{
+    constexpr std::string_view text { "FCC64492-FF82-E040-9C3A-12AB34CD56EF" };
+    auto const guid = SqlGuid::TryParse(text);
+    REQUIRE(guid.has_value());
+    if (!guid.has_value())
+        return;
+
+    // Canonical order: data[i] is the i-th hex pair of the text, so no group is reordered.
+    uint8_t const expected[16] = {
+        0xFC, 0xC6, 0x44, 0x92, 0xFF, 0x82, 0xE0, 0x40, 0x9C, 0x3A, 0x12, 0xAB, 0x34, 0xCD, 0x56, 0xEF,
+    };
+    CHECK(std::ranges::equal(guid->data, expected));
+    CHECK(to_string(*guid) == text);
+
+    constexpr SqlGuid unsafe = SqlGuid::UnsafeParse(text);
+    CHECK(unsafe == *guid);
 }
 
 TEST_CASE("SqlGuid::TryParse rejects non-hex variant digit", "[SqlGuid]")
@@ -65,6 +96,12 @@ TEST_CASE("SqlGuid::TryParse rejects non-hex variant digit", "[SqlGuid]")
 TEST_CASE("SqlGuid::TryParse rejects non-hex bytes inside the payload", "[SqlGuid]")
 {
     CHECK_FALSE(SqlGuid::TryParse("ZZZZZZZZ-E29B-41D4-A716-446655440000").has_value());
+}
+
+TEST_CASE("SqlGuid::TryParse rejects a hex pair whose second character is not hex", "[SqlGuid]")
+{
+    CHECK_FALSE(SqlGuid::TryParse("550E840G-E29B-41D4-A716-446655440000").has_value());
+    CHECK_FALSE(SqlGuid::TryParse("550E8400-E29B-41D4-A716-44665544000+").has_value());
 }
 
 // ================================================================================================

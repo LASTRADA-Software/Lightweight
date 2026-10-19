@@ -15,6 +15,7 @@ module;
 #include "DataBinder/SqlRawColumn.hpp"
 #include "DataMapper/QueryBuilders.hpp"
 #include "Lightweight.hpp"
+#include "ProgressTask.hpp"
 #include "QueryFormatter/PostgreSqlFormatter.hpp"
 #include "QueryFormatter/SQLiteFormatter.hpp"
 #include "QueryFormatter/SqlServerFormatter.hpp"
@@ -31,6 +32,7 @@ module;
 #include "Tools/CxxModelPrinter.hpp"
 #include "Zip/ZipArchive.hpp"
 #include "Zip/ZipError.hpp"
+#include "Zip/ZipPath.hpp"
 
 #include <reflection-cpp/reflection.hpp>
 
@@ -106,6 +108,7 @@ using Lightweight::MapFromRecordFields;
 using Lightweight::MemberClassType;
 using Lightweight::MemberIndexOf;
 using Lightweight::NotSqlElements;
+using Lightweight::NullProgressTask;
 using Lightweight::ParseConnectionString;
 using Lightweight::ParseEncryptionMode;
 using Lightweight::PostgreSqlFormatter;
@@ -113,6 +116,7 @@ using Lightweight::PostgreSqlRetryOps;
 using Lightweight::PreparedStatementCacheCapacityDefault;
 using Lightweight::PreparedStatementCacheCapacitySuggested;
 using Lightweight::PrimaryKey;
+using Lightweight::ProgressTask;
 using Lightweight::QualifiedColumnName;
 using Lightweight::RecordColumnCount;
 using Lightweight::RecordColumnMember;
@@ -141,6 +145,7 @@ using Lightweight::SqlBasicSelectQueryBuilder;
 using Lightweight::SqlBasicStringBinderConcept;
 using Lightweight::SqlBasicStringOperations;
 using Lightweight::SqlBinary;
+using Lightweight::SqlBoundStatement;
 using Lightweight::SqlColumnDeclaration;
 using Lightweight::SqlColumnTypeDefinition;
 using Lightweight::SqlColumnTypeDefinitionOf;
@@ -286,6 +291,7 @@ using Lightweight::ThreadSafeQueue;
 using Lightweight::ThreadSleeper;
 using Lightweight::Through;
 using Lightweight::ThroughRecordOf;
+using Lightweight::ToBoundSql;
 using Lightweight::ToSql;
 using Lightweight::ToStdWideString;
 using Lightweight::ToStringView;
@@ -347,7 +353,9 @@ namespace SqlAlterTableColumn
 
 namespace SqlBackup
 {
+    using Lightweight::SqlBackup::ArchiveVerification;
     using Lightweight::SqlBackup::Backup;
+    using Lightweight::SqlBackup::BackupSchemas;
     using Lightweight::SqlBackup::BackupSettings;
     using Lightweight::SqlBackup::BackupValue;
     using Lightweight::SqlBackup::CalculateRestoreSettings;
@@ -360,6 +368,7 @@ namespace SqlBackup
     using Lightweight::SqlBackup::CreateMsgPackChunkReader;
     using Lightweight::SqlBackup::CreateMsgPackChunkReaderFromBuffer;
     using Lightweight::SqlBackup::CreateMsgPackChunkWriter;
+    using Lightweight::SqlBackup::DefaultRestoreSchema;
     using Lightweight::SqlBackup::ErrorTrackingProgressManager;
     using Lightweight::SqlBackup::GetAvailableSystemMemory;
     using Lightweight::SqlBackup::GetSupportedCompressionMethods;
@@ -368,12 +377,14 @@ namespace SqlBackup
     using Lightweight::SqlBackup::ParseSchema;
     using Lightweight::SqlBackup::Progress;
     using Lightweight::SqlBackup::ProgressManager;
+    using Lightweight::SqlBackup::ReadArchiveSchemas;
     using Lightweight::SqlBackup::Restore;
     using Lightweight::SqlBackup::RestoreSettings;
     using Lightweight::SqlBackup::RetrySettings;
     using Lightweight::SqlBackup::Sha256;
     using Lightweight::SqlBackup::TableFilter;
     using Lightweight::SqlBackup::TableInfo;
+    using Lightweight::SqlBackup::VerifyArchive;
 } // namespace SqlBackup
 
 namespace SqlColumnTypeDefinitions
@@ -401,18 +412,39 @@ namespace SqlColumnTypeDefinitions
 
 namespace SqlMigration
 {
+    using Lightweight::SqlMigration::BackupRecord;
+    using Lightweight::SqlMigration::BackupRecordCovers;
+    using Lightweight::SqlMigration::BackupRecordKind;
+    using Lightweight::SqlMigration::BackupRecordTableName;
+    using Lightweight::SqlMigration::BackupRequirement;
     using Lightweight::SqlMigration::ChecksumVerificationResult;
+    using Lightweight::SqlMigration::EmptyMigrationHistoryDigest;
+    using Lightweight::SqlMigration::ExecutionMode;
+    using Lightweight::SqlMigration::IsValidSchemaName;
     using Lightweight::SqlMigration::Migration;
     using Lightweight::SqlMigration::MigrationBase;
+    using Lightweight::SqlMigration::MigrationHistoryState;
     using Lightweight::SqlMigration::MigrationManager;
+    using Lightweight::SqlMigration::MigrationRelease;
+    using Lightweight::SqlMigration::MigrationReleaseOptions;
     using Lightweight::SqlMigration::MigrationStatus;
     using Lightweight::SqlMigration::MigrationTimestamp;
+    using Lightweight::SqlMigration::PostMigrateErrorSink;
+    using Lightweight::SqlMigration::PreMigrateStep;
+    using Lightweight::SqlMigration::PreMigrateStepError;
+    using Lightweight::SqlMigration::PreMigrateStepInfo;
+    using Lightweight::SqlMigration::PreMigrateStepOptions;
+    using Lightweight::SqlMigration::PreMigrateStepsOutcome;
+    using Lightweight::SqlMigration::ReadLatestBackupRecord;
+    using Lightweight::SqlMigration::ReadMigrationHistoryState;
     using Lightweight::SqlMigration::RevertResult;
+    using Lightweight::SqlMigration::WriteBackupRecord;
 } // namespace SqlMigration
 
 namespace SqlSchema
 {
     using Lightweight::SqlSchema::AllForeignKeysTo;
+    using Lightweight::SqlSchema::AllUserSchemas;
     using Lightweight::SqlSchema::Column;
     using Lightweight::SqlSchema::ColumnIdentifier;
     using Lightweight::SqlSchema::ColumnIdentifierSequence;
@@ -448,6 +480,7 @@ namespace Zip
     using Lightweight::Zip::ZipEntry;
     using Lightweight::Zip::ZipError;
     using Lightweight::Zip::ZipErrorCode;
+    using Lightweight::Zip::ZipPathUtf8;
 } // namespace Zip
 } // namespace Lightweight
 

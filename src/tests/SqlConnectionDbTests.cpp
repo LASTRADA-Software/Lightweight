@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "UniqueTempPath.hpp"
 #include "Utils.hpp"
 
 #include <Lightweight/Lightweight.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <array>
+#include <cctype>
 #include <chrono>
 #include <filesystem>
 #include <format>
@@ -14,6 +17,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <tuple>
 #include <utility>
 
 using namespace Lightweight;
@@ -431,14 +435,27 @@ std::string QueryJournalMode(SqlConnection& connection)
 SqlConnectionString WithSqliteDatabaseFile(std::filesystem::path const& path)
 {
     auto map = ParseConnectionString(SqlConnection::DefaultConnectionString());
-    map["DATABASE"] = path.string();
+    auto const utf8Path = path.u8string();
+    map["DATABASE"] = std::string { utf8Path.begin(), utf8Path.end() };
     return BuildConnectionString(map);
 }
 
-/// A scratch SQLite database file path, unique per test.
+/// @p connectionString with its DRIVER spelled through @p respell, which the driver manager matches
+/// case-insensitively: the same driver under a name no earlier connection of this process used.
+template <typename Respell>
+SqlConnectionString WithDriverSpelling(SqlConnectionString const& connectionString, Respell const& respell)
+{
+    auto map = ParseConnectionString(connectionString);
+    auto& driver = map["DRIVER"];
+    std::ranges::transform(driver, driver.begin(), [&](char c) { return respell(static_cast<unsigned char>(c)); });
+    return BuildConnectionString(map);
+}
+
+/// A scratch SQLite database file path, unique per test and per test run, so that runs sharing the
+/// temporary directory never open one another's files.
 std::filesystem::path ScratchSqliteDatabasePath(std::string_view name)
 {
-    return std::filesystem::temp_directory_path() / std::format("lightweight-{}.db", name);
+    return UniqueTempPath(std::format("lightweight-{}", name), ".db");
 }
 
 /// Removes a SQLite database file together with its journal and WAL side files.
@@ -446,7 +463,7 @@ void RemoveSqliteDatabaseFiles(std::filesystem::path const& path)
 {
     auto ec = std::error_code {};
     for (auto const* suffix: { "", "-wal", "-shm", "-journal" })
-        std::filesystem::remove(std::filesystem::path { path.string() + suffix }, ec);
+        std::filesystem::remove(std::filesystem::path { path } += suffix, ec);
 }
 
 } // namespace
@@ -624,4 +641,221 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: SQLite settings are inert on ot
 
     auto stmt = SqlStatement { connection };
     CHECK(stmt.ExecuteDirectScalar<int>("SELECT 1").value_or(0) == 1);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlConnection: a non-ASCII SQLite database path in the connection string is kept",
+                 "[SqlConnection][SQLite]")
+{
+    if (SqlConnection {}.ServerType() != SqlServerType::SQLITE)
+        SKIP("SQLite-only: the connection string names the database file");
+
+    auto const scratch = ScratchSqliteDatabasePath("non-ascii-path");
+    auto const path = scratch.parent_path() / (std::filesystem::path { u8"Café-" } += scratch.filename());
+    RemoveSqliteDatabaseFiles(path);
+    auto const cleanup = detail::Finally([&] { RemoveSqliteDatabaseFiles(path); });
+
+    {
+        auto connection = SqlConnection { WithSqliteDatabaseFile(path) };
+        REQUIRE(connection.IsAlive());
+        auto stmt = SqlStatement { connection };
+        std::ignore = stmt.ExecuteDirect("CREATE TABLE probe (id INTEGER)");
+    }
+    CHECK(std::filesystem::exists(path));
+}
+
+namespace
+{
+
+/// Reads the real diagnostics and counts the reads for connection handles, which a connect makes
+/// only after an attempt failed.
+class CountingDiagnosticSource final: public SqlDiagnosticSource
+{
+  public:
+    [[nodiscard]] SqlErrorInfo Diagnose(SQLSMALLINT handleType, SQLHANDLE handle) override
+    {
+        if (handleType == SQL_HANDLE_DBC)
+            ++_connectionReads;
+        SetDiagnosticSource(nullptr);
+        auto const restore = detail::Finally([this] { SetDiagnosticSource(this); });
+        switch (handleType)
+        {
+            case SQL_HANDLE_DBC:
+                return SqlErrorInfo::FromConnectionHandle(handle);
+            case SQL_HANDLE_STMT:
+                return SqlErrorInfo::FromStatementHandle(handle);
+            default:
+                return SqlErrorInfo::FromEnvironmentHandle(handle);
+        }
+    }
+
+    [[nodiscard]] int ConnectionReads() const noexcept
+    {
+        return _connectionReads;
+    }
+
+  private:
+    int _connectionReads = 0;
+};
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlConnection: a non-ASCII SQLite path reaches a driver no connection reached before",
+                 "[SqlConnection][SQLite]")
+{
+    if (SqlConnection {}.ServerType() != SqlServerType::SQLITE)
+        SKIP("SQLite-only: the connection string names the database file");
+
+    // Unseen, so the connect goes wide, probes the driver, and reconnects with UTF-8 if it is ANSI-only.
+    auto const scratch = ScratchSqliteDatabasePath("unseen-driver");
+    auto const path = scratch.parent_path() / (std::filesystem::path { u8"crème-" } += scratch.filename());
+#if !defined(_WIN32)
+    // Where the first, wide attempt reached an ANSI-only driver: narrowed to Latin-1 bytes.
+    auto const narrowed = scratch.parent_path() / (std::string { "cr\xE8me-" } + scratch.filename().string());
+#endif
+    auto const cleanup = detail::Finally([&] {
+        RemoveSqliteDatabaseFiles(path);
+#if !defined(_WIN32)
+        RemoveSqliteDatabaseFiles(narrowed);
+#endif
+    });
+
+    auto const connectionString =
+        WithDriverSpelling(WithSqliteDatabaseFile(path), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    auto acceptsWideText = true;
+    auto connectDiagnostics = CountingDiagnosticSource {};
+    {
+        auto connection = [&] {
+            SetDiagnosticSource(&connectDiagnostics);
+            auto const restore = detail::Finally([] { SetDiagnosticSource(nullptr); });
+            return SqlConnection { connectionString };
+        }();
+        REQUIRE(connection.IsAlive());
+        acceptsWideText = connection.AcceptsWideQueryText();
+        auto stmt = SqlStatement { connection };
+        std::ignore = stmt.ExecuteDirect("CREATE TABLE probe (id INTEGER)");
+    }
+    CHECK(std::filesystem::exists(path));
+#if defined(__APPLE__)
+    // APFS refuses a file name that is not valid UTF-8, so on an ANSI-only driver the wide attempt
+    // fails to open the narrowed name, and the connect is retried with the UTF-8 bytes.
+    CHECK_FALSE(std::filesystem::exists(narrowed));
+    if (!acceptsWideText)
+        CHECK(connectDiagnostics.ConnectionReads() > 0);
+#elif !defined(_WIN32)
+    // The documented cost of a first connect to an unseen ANSI-only driver: the wide attempt opened
+    // the narrowed name, which the driver creates as an empty file.
+    CHECK(std::filesystem::exists(narrowed) == !acceptsWideText);
+#endif
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlConnection: a wide connect an unseen driver fails on non-ASCII text is retried as UTF-8",
+                 "[SqlConnection][SQLite]")
+{
+    if (SqlConnection {}.ServerType() != SqlServerType::SQLITE)
+        SKIP("SQLite-only: the connection string names the database file");
+
+    // The directory exists under its UTF-8 name only, so the narrowed path of a wide attempt that
+    // reaches an ANSI-only driver cannot be opened and that attempt fails.
+    auto const scratch = ScratchSqliteDatabasePath("failed-wide-connect");
+    auto const directory = scratch.parent_path() / (std::filesystem::path { u8"naïve-" } += scratch.stem());
+    std::filesystem::create_directories(directory);
+    auto const path = directory / "database.db";
+    auto const cleanup = detail::Finally([&] {
+        auto ec = std::error_code {};
+        std::filesystem::remove_all(directory, ec);
+    });
+
+    auto const connectionString =
+        WithDriverSpelling(WithSqliteDatabaseFile(path), [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+    {
+        auto connection = SqlConnection { connectionString };
+        REQUIRE(connection.IsAlive());
+        auto stmt = SqlStatement { connection };
+        std::ignore = stmt.ExecuteDirect("CREATE TABLE probe (id INTEGER)");
+    }
+    CHECK(std::filesystem::exists(path));
+}
+
+namespace
+{
+
+/// Reports the same SQLSTATE for every diagnostic, so a test decides why a connect failed.
+class FixedSqlStateSource final: public SqlDiagnosticSource
+{
+  public:
+    explicit FixedSqlStateSource(std::string sqlState):
+        _sqlState { std::move(sqlState) }
+    {
+    }
+
+    [[nodiscard]] SqlErrorInfo Diagnose(SQLSMALLINT /*handleType*/, SQLHANDLE /*handle*/) override
+    {
+        return SqlErrorInfo { .nativeErrorCode = 0, .sqlState = _sqlState, .message = "scripted failure" };
+    }
+
+  private:
+    std::string _sqlState;
+};
+
+/// Connects to @p connectionString, without retries, while every diagnostic reports @p sqlState.
+bool ConnectReportingSqlState(SqlConnectionString const& connectionString, std::string sqlState)
+{
+    auto source = FixedSqlStateSource { std::move(sqlState) };
+    SetDiagnosticSource(&source);
+    auto const restore = detail::Finally([] { SetDiagnosticSource(nullptr); });
+    auto connection = SqlConnection { std::nullopt };
+    connection.SetConnectRetrySettings(SqlRetrySettings { .maxRetries = 0 });
+    return connection.Connect(connectionString);
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlConnection: a failed wide connect is retried as UTF-8 unless the server was not reached",
+                 "[SqlConnection][SQLite]")
+{
+    if (SqlConnection {}.ServerType() != SqlServerType::SQLITE)
+        SKIP("SQLite-only: the connection string names the database file");
+    if (SqlConnection {}.AcceptsWideQueryText())
+        SKIP("Covers ANSI-only drivers: only there does a wide connect fail on narrowed text");
+
+    // As above: the wide attempt fails because the narrowed directory name does not exist.
+    auto const scratch = ScratchSqliteDatabasePath("retry-by-sqlstate");
+    auto const directory = scratch.parent_path() / (std::filesystem::path { u8"naïve-" } += scratch.stem());
+    std::filesystem::create_directories(directory);
+    auto const path = directory / "database.db";
+    auto const cleanup = detail::Finally([&] {
+        auto ec = std::error_code {};
+        std::filesystem::remove_all(directory, ec);
+    });
+    auto const _ = ScopedSqlNullLogger {};
+
+    // A driver spelling no other connection uses, so the connect makes the wide attempt: the letters
+    // in the positions @p upperCaseMask sets are upper case, the others lower case.
+    auto const unseenSpelling = [&](unsigned upperCaseMask) {
+        auto position = 0U;
+        return WithDriverSpelling(WithSqliteDatabaseFile(path), [&](unsigned char c) {
+            auto const upper = ((upperCaseMask >> (position++ % 8U)) & 1U) != 0;
+            return static_cast<char>(upper ? std::toupper(c) : std::tolower(c));
+        });
+    };
+
+    // A failed connect is not remembered, so these may share one spelling.
+    for (auto const* sqlState: { "08001", "08S01", "HYT00", "HYT01" })
+    {
+        INFO("SQLSTATE " << sqlState);
+        CHECK_FALSE(ConnectReportingSqlState(unseenSpelling(0b0101'0101U), sqlState));
+        CHECK_FALSE(std::filesystem::exists(path));
+    }
+
+    for (auto const& [sqlState, upperCaseMask]: { std::pair { "HY000", 0b1010'1010U }, std::pair { "28000", 0b0110'0110U } })
+    {
+        INFO("SQLSTATE " << sqlState);
+        CHECK(ConnectReportingSqlState(unseenSpelling(upperCaseMask), sqlState));
+        CHECK(std::filesystem::exists(path));
+        RemoveSqliteDatabaseFiles(path);
+    }
 }

@@ -403,6 +403,19 @@ class [[nodiscard]] SqlMigrationInsertBuilder final
         return *this;
     }
 
+    /// @brief Makes the INSERT skip its row when a row with the same key values already exists.
+    ///
+    /// Renders `INSERT INTO t (...) SELECT ... WHERE NOT EXISTS (SELECT 1 FROM t WHERE key = ...)`,
+    /// so a seed row a database already holds no longer fails the migration. An existing row is
+    /// left as it is, even when its non-key columns differ from the values given here.
+    /// Rendering the plan throws `std::invalid_argument` when a key column is not one of the
+    /// `Set` columns or its value is NULL.
+    ///
+    /// @param keyColumns The columns identifying the row; must not be empty.
+    /// @return This builder, for chaining.
+    /// @throws std::invalid_argument @p keyColumns is empty.
+    LIGHTWEIGHT_API SqlMigrationInsertBuilder& IfNotExists(std::vector<std::string> keyColumns);
+
   private:
     SqlInsertDataPlan& _plan;
 };
@@ -515,6 +528,10 @@ class [[nodiscard]] SqlMigrationQueryBuilder final
     }
 
     /// Sets the schema name for the migration.
+    ///
+    /// On SQL Server and PostgreSQL, `CreateTable` then creates the table in that schema, which must
+    /// exist. On PostgreSQL this differs from earlier releases, which created it in the `search_path`
+    /// schema, so the checksums of such migrations changed (see `dbtool rewrite-checksums`).
     LIGHTWEIGHT_API SqlMigrationQueryBuilder& WithSchema(std::string schemaName);
 
     /// Creates a new database.

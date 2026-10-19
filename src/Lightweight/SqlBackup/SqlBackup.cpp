@@ -1,17 +1,22 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "../SqlAdvisoryLock.hpp"
 #include "../SqlColumnTypeDefinitions.hpp"
 #include "../SqlConnection.hpp"
+#include "../SqlMigration.hpp"
 #include "../SqlQuery.hpp"
 #include "../SqlSchema.hpp"
 #include "../SqlStatement.hpp"
 #include "../ThreadSafeQueue.hpp"
 #include "../TracyProfiler.hpp"
+#include "../Zip/ZipArchive.hpp"
+#include "../Zip/ZipPath.hpp"
 #include "Backup.hpp"
 #include "ChunkPlanner.hpp"
 #include "Common.hpp"
 #include "ConnectionPool.hpp"
 #include "Restore.hpp"
+#include "Sha256.hpp"
 #include "SqlBackup.hpp"
 #include "SqlBackupFormats.hpp"
 #include "TableFilter.hpp"
@@ -19,12 +24,18 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <cctype>
 #include <chrono>
 #include <deque>
+#include <expected>
 #include <format>
+#include <fstream>
+#include <map>
+#include <memory>
 #include <mutex>
 #include <ranges>
 #include <set>
+#include <string>
 #include <string_view>
 #include <thread>
 #include <variant>
@@ -155,19 +166,145 @@ std::string RedactConnectionStringSecrets(std::string_view connectionString)
     return SqlConnectionString::SanitizePwd(connectionString);
 }
 
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
-std::string CreateMetadata(SqlConnectionString const& connectionString,
-                           SqlSchema::TableList const& tables,
-                           std::string const& schema)
+namespace
 {
+    /// The format of an archive that holds one schema (or the tables of all schemas, unqualified).
+    constexpr auto SingleSchemaFormatVersion = std::string_view { "1.0" };
+
+    /// The format of an archive that records each table's schema.
+    constexpr auto MultiSchemaFormatVersion = std::string_view { "2.0" };
+
+    /// Re-keys the tables of a multi-schema archive by their bare names and drops their schemas, for
+    /// a target without schemas.
+    /// @param tableMap The tables of the archive.
+    /// @param caseInsensitive Whether the target treats names that differ only in case as one.
+    /// @return The flattened tables, or the names that occur in more than one schema.
+    std::expected<std::map<std::string, TableInfo>, std::vector<std::string>> FlattenSchemas(
+        std::map<std::string, TableInfo> const& tableMap, bool caseInsensitive)
+    {
+        std::map<std::string, TableInfo> flattened;
+        std::map<std::string, std::string> seenNames; // compared spelling -> first name
+        std::set<std::string> duplicates;
+        for (auto const& [key, info]: tableMap)
+        {
+            auto table = info;
+            table.schema.clear();
+            for (auto& foreignKey: table.foreignKeys)
+            {
+                foreignKey.foreignKey.table.schema.clear();
+                foreignKey.primaryKey.table.schema.clear();
+            }
+            auto const [seen, inserted] =
+                seenNames.emplace(caseInsensitive ? detail::ToLowerAscii(info.name) : info.name, info.name);
+            if (!inserted)
+            {
+                duplicates.insert(seen->second);
+                duplicates.insert(info.name);
+                continue;
+            }
+            flattened.emplace(info.name, std::move(table));
+        }
+        if (!duplicates.empty())
+            return std::unexpected { std::vector<std::string>(duplicates.begin(), duplicates.end()) };
+        return flattened;
+    }
+
+    /// Whether an archive holds every table with its data; stored as `metadata.json`'s `complete`.
+    enum class ArchiveCompleteness : std::uint8_t
+    {
+        Complete, ///< Every table, with its data.
+        Partial,  ///< Filtered, schema-only, or a table failed.
+    };
+
+    /// Tables a backup leaves out and a restore skips: the backup records and the bookkeeping of every
+    /// advisory-lock handler (a held migration lock on SQLite). They describe the live database, not its data.
+    [[nodiscard]] bool IsBookkeepingTable(std::string_view tableName)
+    {
+        if (tableName == SqlMigration::BackupRecordTableName)
+            return true;
+        auto const handlers =
+            std::array { &SqliteAdvisoryLockOps(), &SqlServerAdvisoryLockOps(), &PostgreSqlAdvisoryLockOps() };
+        return std::ranges::any_of(handlers, [tableName](SqlAdvisoryLockHandler const* handler) {
+            return std::ranges::contains(handler->BookkeepingTableNames(), tableName);
+        });
+    }
+
+    /// Forwards to another progress manager and counts the errors reported through it.
+    class ErrorCountingProgress final: public ProgressManager
+    {
+      public:
+        explicit ErrorCountingProgress(ProgressManager& inner) noexcept:
+            _inner { &inner }
+        {
+        }
+
+        void Update(Progress const& p) override
+        {
+            if (p.state == Progress::State::Error)
+                ++_errors;
+            _inner->Update(p);
+        }
+        void AllDone() override
+        {
+            _inner->AllDone();
+        }
+        void SetMaxTableNameLength(size_t len) override
+        {
+            _inner->SetMaxTableNameLength(len);
+        }
+        [[nodiscard]] size_t ErrorCount() const noexcept override
+        {
+            return _inner->ErrorCount();
+        }
+        void SetTotalItems(size_t totalItems) override
+        {
+            _inner->SetTotalItems(totalItems);
+        }
+        void AddTotalItems(size_t additionalItems) override
+        {
+            _inner->AddTotalItems(additionalItems);
+        }
+        void OnItemsProcessed(size_t count) override
+        {
+            _inner->OnItemsProcessed(count);
+        }
+        void SetTotalTables(size_t totalTables) override
+        {
+            _inner->SetTotalTables(totalTables);
+        }
+
+        /// @return The number of errors reported through this manager.
+        [[nodiscard]] size_t ReportedErrors() const noexcept
+        {
+            return _errors.load();
+        }
+
+      private:
+        ProgressManager* _inner;
+        std::atomic<size_t> _errors { 0 };
+    };
+} // namespace
+
+/// Builds metadata.json; @p schemaNames with two or more entries makes it a multi-schema archive.
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+static std::string CreateArchiveMetadata(SqlConnectionString const& connectionString,
+                                         SqlSchema::TableList const& tables,
+                                         std::string const& schema,
+                                         std::vector<std::string> const& schemaNames,
+                                         ArchiveCompleteness completeness)
+{
+    bool const multiSchema = schemaNames.size() > 1;
     nlohmann::json metadata;
-    metadata["format_version"] = "1.0";
+    metadata["format_version"] = multiSchema ? MultiSchemaFormatVersion : SingleSchemaFormatVersion;
     metadata["creation_time"] = detail::CurrentDateTime();
+    metadata["complete"] = completeness == ArchiveCompleteness::Complete;
     // Redact PWD/Password so a secretRef-resolved plaintext credential is never
     // persisted into the archive's metadata. Nothing reads this field back at
     // restore time; it is diagnostic only.
     metadata["original_connection_string"] = RedactConnectionStringSecrets(connectionString.value);
     metadata["schema_name"] = schema;
+    if (multiSchema)
+        metadata["schema_names"] = schemaNames;
     metadata["schema"] = nlohmann::json::array();
 
     SqlConnection conn { std::nullopt };
@@ -200,12 +337,15 @@ std::string CreateMetadata(SqlConnectionString const& connectionString,
     {
         nlohmann::json t;
         t["name"] = table.name;
+        if (multiSchema)
+            t["schema"] = table.schema;
 
         try
         {
             t["rows"] = static_cast<size_t>(
-                stmt.ExecuteDirectScalar<int64_t>(
-                        std::format("SELECT COUNT(*) FROM {}", detail::FormatTableName(schema, table.name)))
+                stmt
+                    .ExecuteDirectScalar<int64_t>(std::format(
+                        "SELECT COUNT(*) FROM {}", detail::FormatTableName(multiSchema ? table.schema : schema, table.name)))
                     .value_or(0));
         }
         catch (...)
@@ -306,6 +446,8 @@ std::string CreateMetadata(SqlConnectionString const& connectionString,
             f["columns"] = fk.foreignKey.columns;
             f["referenced_table"] = fk.primaryKey.table.table;
             f["referenced_columns"] = fk.primaryKey.columns;
+            if (multiSchema)
+                f["referenced_schema"] = fk.primaryKey.table.schema.empty() ? table.schema : fk.primaryKey.table.schema;
             t["foreign_keys"].push_back(f);
         }
 
@@ -327,7 +469,13 @@ std::string CreateMetadata(SqlConnectionString const& connectionString,
     return metadata.dump();
 }
 
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+std::string CreateMetadata(SqlConnectionString const& connectionString,
+                           SqlSchema::TableList const& tables,
+                           std::string const& schema)
+{
+    return CreateArchiveMetadata(connectionString, tables, schema, {}, ArchiveCompleteness::Complete);
+}
+
 void Backup(std::filesystem::path const& outputFile,
             SqlConnectionString const& connectionString,
             unsigned concurrency,
@@ -337,7 +485,23 @@ void Backup(std::filesystem::path const& outputFile,
             RetrySettings const& retrySettings,
             BackupSettings const& backupSettings)
 {
+    BackupSchemas(
+        outputFile, connectionString, concurrency, progress, { schema }, tableFilter, retrySettings, backupSettings);
+}
+
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+void BackupSchemas(std::filesystem::path const& outputFile,
+                   SqlConnectionString const& connectionString,
+                   unsigned concurrency,
+                   ProgressManager& outerProgress,
+                   std::vector<std::string> const& schemas,
+                   std::string const& tableFilter,
+                   RetrySettings const& retrySettings,
+                   BackupSettings const& backupSettings)
+{
     ZoneScopedN("SqlBackup::Backup");
+    // Counts the table errors, which make the archive partial.
+    auto progress = ErrorCountingProgress { outerProgress };
     {
         auto const sanitized = SqlConnectionString::SanitizePwd(connectionString.value);
         ZoneTextObject(sanitized);
@@ -351,6 +515,21 @@ void Backup(std::filesystem::path const& outputFile,
         throw std::runtime_error(std::format("Failed to connect to database: {}", error.message));
     }
 
+    auto const schemaNames =
+        detail::NormalizeSchemaNames(schemas, mainConn.QueryFormatter().IdentifiersAreCaseInsensitive());
+    bool const multiSchema = schemaNames.size() > 1;
+    if (multiSchema && std::ranges::contains(schemaNames, std::string {}))
+    {
+        progress.Update({ .state = Progress::State::Error,
+                          .tableName = "",
+                          .currentRows = 0,
+                          .totalRows = 0,
+                          .message = "Backup failed: an empty schema name cannot be combined with other schemas" });
+        return;
+    }
+    // The schema of a single-schema archive; a multi-schema archive records one per table instead.
+    std::string const schema = multiSchema ? std::string {} : schemaNames.front();
+
     // All databases run multi-threaded. (Historically MS SQL Server was clamped to a single worker
     // over a suspected ODBC driver data race. Each worker uses its own independent SqlConnection,
     // and an initial multi-threaded backup compared byte-identical to a single-threaded baseline via
@@ -359,7 +538,7 @@ void Backup(std::filesystem::path const& outputFile,
 
     // Create ZIP archive early so workers can write to it
     int err = 0;
-    zip_t* zip = zip_open(outputFile.string().c_str(), ZIP_CREATE | ZIP_TRUNCATE, &err);
+    zip_t* zip = zip_open(Zip::ZipPathUtf8(outputFile).c_str(), ZIP_CREATE | ZIP_TRUNCATE, &err);
     if (!zip)
     {
         zip_error_t zerr;
@@ -421,7 +600,9 @@ void Backup(std::filesystem::path const& outputFile,
                 std::filesystem::remove_all(dir, ec);
             }
         };
-        auto const tempDirGuard = TempDirGuard { std::filesystem::path { outputFile.string() + ".tmp" } };
+        auto tempDirectory = outputFile;
+        tempDirectory += ".tmp";
+        auto const tempDirGuard = TempDirGuard { std::move(tempDirectory) };
         std::filesystem::create_directories(tempDirGuard.dir);
 
         // The merge keeps the workers' sealed archives open as raw-copy sources until the final
@@ -470,6 +651,7 @@ void Backup(std::filesystem::path const& outputFile,
             .checksumMutex = &checksumMutex,
             .retrySettings = retrySettings,
             .backupSettings = backupSettings,
+            .multiSchema = multiSchema,
         };
 
         // Schema progress callback
@@ -497,24 +679,21 @@ void Backup(std::filesystem::path const& outputFile,
             completedTables.push_back(std::move(table));
         };
 
-        // Create table filter predicate to skip reading schema for non-matching tables
-        SqlSchema::TableFilterPredicate tableFilterPredicate;
-        if (!filter.MatchesAll())
-        {
-            tableFilterPredicate = [&filter, &schema](std::string_view /*schemaName*/, std::string_view tableName) {
-                return filter.Matches(schema, tableName);
-            };
-        }
-
         // Run schema scanning FIRST - collect all tables before starting workers.
         // This avoids data races in the ODBC driver during concurrent query execution.
         // The MS SQL ODBC driver and OpenSSL have shared internal state that's not thread-safe
         // when multiple connections are executing queries concurrently with schema queries.
         auto stmt = SqlStatement { mainConn };
+        for (auto const& scannedSchema: schemaNames)
         {
             ZoneScopedN("Backup::Phase::SchemaScan");
+            // Skips reading the schema of tables the filter rejects, and of the bookkeeping tables.
+            SqlSchema::TableFilterPredicate const tableFilterPredicate =
+                [&filter, &scannedSchema](std::string_view /*schemaName*/, std::string_view tableName) {
+                    return !IsBookkeepingTable(tableName) && filter.Matches(scannedSchema, tableName);
+                };
             SqlSchema::ReadAllTables(
-                stmt, mainConn.DatabaseName(), schema, schemaCallback, tableReadyCallback, tableFilterPredicate);
+                stmt, mainConn.DatabaseName(), scannedSchema, schemaCallback, tableReadyCallback, tableFilterPredicate);
         }
 
         progress.Update({ .state = Progress::State::Finished,
@@ -522,6 +701,16 @@ void Backup(std::filesystem::path const& outputFile,
                           .currentRows = completedTables.size(),
                           .totalRows = completedTables.size(),
                           .message = "" });
+
+        if (auto const collisions = detail::DescribeTableNameCollisions(completedTables, multiSchema); !collisions.empty())
+        {
+            progress.Update({ .state = Progress::State::Error,
+                              .tableName = "",
+                              .currentRows = 0,
+                              .totalRows = 0,
+                              .message = "Backup failed: " + collisions });
+            return;
+        }
 
         progress.SetMaxTableNameLength(maxTableNameLength.load());
 
@@ -618,10 +807,10 @@ void Backup(std::filesystem::path const& outputFile,
                     for (auto const& archivePath: archive.SealedArchives())
                     {
                         int mergeErr = 0;
-                        zip_t* src = zip_open(archivePath.string().c_str(), ZIP_RDONLY, &mergeErr);
+                        zip_t* src = zip_open(Zip::ZipPathUtf8(archivePath).c_str(), ZIP_RDONLY, &mergeErr);
                         if (!src)
                             throw std::runtime_error("Failed to open worker chunk archive for merge: "
-                                                     + archivePath.string());
+                                                     + Zip::ZipPathUtf8(archivePath));
                         mergeSources.sources.push_back(src);
 
                         auto const numEntries = zip_get_num_entries(src, 0);
@@ -668,7 +857,11 @@ void Backup(std::filesystem::path const& outputFile,
         ZoneScopedN("Backup::Phase::Finalize");
 
         // Create metadata.json from completed tables (moved to end since we need full list)
-        auto const metadataJson = CreateMetadata(connectionString, completedTables, schema);
+        auto const completeness = filter.MatchesAll() && !backupSettings.schemaOnly && progress.ReportedErrors() == 0
+                                      ? ArchiveCompleteness::Complete
+                                      : ArchiveCompleteness::Partial;
+        auto const metadataJson =
+            CreateArchiveMetadata(connectionString, completedTables, schema, schemaNames, completeness);
 
         // Add metadata.json to ZIP
         // Use malloc for metadata to ensure consistent memory management with chunks.
@@ -792,6 +985,8 @@ std::map<std::string, TableInfo> ParseSchema(std::string_view metadataJson, Prog
     {
         std::string tableName = tableJson["name"];
         TableInfo info;
+        info.name = tableName;
+        info.schema = tableJson.value("schema", "");
         info.rowCount = tableJson.value<size_t>("rows", 0);
         bool first = true;
 
@@ -892,10 +1087,12 @@ std::map<std::string, TableInfo> ParseSchema(std::string_view metadataJson, Prog
             for (auto const& fkJson: tableJson["foreign_keys"])
             {
                 SqlSchema::ForeignKeyConstraint fk;
-                // We don't have full Qualified names in JSON, assuming same catalog/schema or simple table names
+                // Only a multi-schema archive records schemas; otherwise both tables share the restore's schema.
+                fk.foreignKey.table.schema = info.schema;
                 fk.foreignKey.table.table = tableName;
                 fk.foreignKey.columns = fkJson["columns"].get<std::vector<std::string>>();
 
+                fk.primaryKey.table.schema = fkJson.value("referenced_schema", "");
                 fk.primaryKey.table.table = fkJson["referenced_table"];
                 fk.primaryKey.columns = fkJson["referenced_columns"].get<std::vector<std::string>>();
 
@@ -934,9 +1131,192 @@ std::map<std::string, TableInfo> ParseSchema(std::string_view metadataJson, Prog
             }
         }
 
-        tableMap[tableName] = std::move(info);
+        auto key = info.schema.empty() ? tableName : std::format("{}.{}", info.schema, tableName);
+        tableMap[std::move(key)] = std::move(info);
     }
     return tableMap;
+}
+
+std::expected<std::vector<std::string>, std::string> ReadArchiveSchemas(std::filesystem::path const& archiveFile)
+{
+    int error = 0;
+    auto const zip =
+        std::unique_ptr<zip_t, decltype(&zip_close)> { zip_open(Zip::ZipPathUtf8(archiveFile).c_str(), ZIP_RDONLY, &error),
+                                                       &zip_close };
+    if (!zip)
+        return std::unexpected { std::format("Failed to open backup archive {}", Zip::ZipPathUtf8(archiveFile)) };
+
+    zip_stat_t metadataStat;
+    zip_int64_t const metadataIndex = zip_name_locate(zip.get(), "metadata.json", 0);
+    if (metadataIndex < 0 || zip_stat_index(zip.get(), static_cast<zip_uint64_t>(metadataIndex), 0, &metadataStat) < 0)
+        return std::unexpected { "metadata.json not found in archive" };
+    auto const metadataText = detail::ReadZipEntry<std::string>(zip.get(), metadataIndex, metadataStat.size);
+
+    try
+    {
+        auto const metadata = nlohmann::json::parse(metadataText);
+        if (metadata.value("format_version", "") == MultiSchemaFormatVersion)
+            return metadata.value("schema_names", std::vector<std::string> {});
+        return std::vector<std::string> { metadata.value("schema_name", "") };
+    }
+    catch (nlohmann::json::exception const& exception)
+    {
+        return std::unexpected { std::format("Malformed metadata.json: {}", exception.what()) };
+    }
+}
+
+namespace
+{
+    using ChecksumList = std::map<std::string, std::string>;
+
+    /// The entries `checksums.json` lists with their hashes; empty when the archive has none.
+    /// `metadata.json`'s `complete`; true when the key is missing (archives of older versions).
+    std::expected<bool, std::string> ReadArchiveCompleteness(Zip::ZipArchive const& archive)
+    {
+        auto const index = archive.LocateEntry("metadata.json");
+        if (!index)
+            return std::unexpected { "metadata.json not found in archive" };
+        auto const text = archive.ReadEntryAsString(*index);
+        if (!text)
+            return std::unexpected { std::format("Failed to read metadata.json: {}", text.error().message) };
+        try
+        {
+            return nlohmann::json::parse(*text).value("complete", true);
+        }
+        catch (nlohmann::json::exception const& exception)
+        {
+            return std::unexpected { std::format("Malformed metadata.json: {}", exception.what()) };
+        }
+    }
+
+    std::expected<ChecksumList, std::string> ReadListedChecksums(Zip::ZipArchive const& archive)
+    {
+        auto const index = archive.LocateEntry("checksums.json");
+        if (!index)
+            return ChecksumList {};
+        auto const text = archive.ReadEntryAsString(*index);
+        if (!text)
+            return std::unexpected { std::format("Failed to read checksums.json: {}", text.error().message) };
+        try
+        {
+            auto listed = ChecksumList {};
+            // Named: a range-for does not keep the parsed document alive before C++23's lifetime extension.
+            auto const checksums = nlohmann::json::parse(*text);
+            for (auto const& [name, hash]: checksums.at("files").items())
+                listed.emplace(name, hash.get<std::string>());
+            return listed;
+        }
+        catch (nlohmann::json::exception const& exception)
+        {
+            return std::unexpected { std::format("Malformed checksums.json: {}", exception.what()) };
+        }
+    }
+
+    /// Hashes each listed entry; @return how many matched, or a message naming the first that does not.
+    std::expected<std::size_t, std::string> VerifyListedEntries(Zip::ZipArchive const& archive, ChecksumList const& listed)
+    {
+        auto verified = std::size_t { 0 };
+        for (auto const& [name, expectedHash]: listed)
+        {
+            auto const index = archive.LocateEntry(name);
+            if (!index)
+                return std::unexpected { std::format("{} is listed in checksums.json but missing from the archive", name) };
+            auto const content = archive.ReadEntry(*index);
+            if (!content)
+                return std::unexpected { std::format("Failed to read {}: {}", name, content.error().message) };
+            if (Sha256::Hash(content->data(), content->size()) != expectedHash)
+                return std::unexpected { std::format("checksum mismatch in {}", name) };
+            ++verified;
+        }
+        return verified;
+    }
+
+    /// SHA-256 of the whole file in 1 MiB chunks, lowercase hex.
+    std::expected<std::string, std::string> HashFile(std::filesystem::path const& path)
+    {
+        auto file = std::ifstream { path, std::ios::binary };
+        if (!file)
+            return std::unexpected { std::format("Failed to open backup archive {}", Zip::ZipPathUtf8(path)) };
+        constexpr std::size_t chunkSize = 1024 * 1024;
+        auto buffer = std::vector<char>(chunkSize);
+        auto hasher = Sha256 {};
+        while (file.read(buffer.data(), static_cast<std::streamsize>(buffer.size())) || file.gcount() > 0)
+            hasher.Update(buffer.data(), static_cast<std::size_t>(file.gcount()));
+        if (!file.eof())
+            return std::unexpected { std::format("Failed to read backup archive {}", Zip::ZipPathUtf8(path)) };
+        return Sha256::ToHex(hasher.Finalize());
+    }
+} // namespace
+
+namespace
+{
+    std::expected<ArchiveVerification, std::string> VerifyArchiveUnguarded(std::filesystem::path const& archiveFile)
+    {
+        auto const archive = Zip::ZipArchive::Open(archiveFile);
+        if (!archive)
+            return std::unexpected { std::format(
+                "Failed to open backup archive {}: {}", Zip::ZipPathUtf8(archiveFile), archive.error().message) };
+
+        if (!archive->LocateEntry("metadata.json"))
+            return std::unexpected { "metadata.json not found in archive" };
+
+        auto const entries = archive->GetAllEntries();
+        auto dataEntries = std::vector<std::string> {};
+        for (auto const& entry: entries)
+            if (entry.name.starts_with("data/"))
+                dataEntries.push_back(entry.name);
+
+        auto const listed = ReadListedChecksums(*archive);
+        if (!listed)
+            return std::unexpected { listed.error() };
+        if (listed->empty() && !dataEntries.empty() && !archive->LocateEntry("checksums.json"))
+            return std::unexpected { "checksums.json not found in archive" };
+        for (auto const& entryName: dataEntries)
+            if (!listed->contains(entryName))
+                return std::unexpected { std::format("{} is not listed in checksums.json", entryName) };
+
+        auto const verified = VerifyListedEntries(*archive, *listed);
+        if (!verified)
+            return std::unexpected { verified.error() };
+
+        auto const complete = ReadArchiveCompleteness(*archive);
+        if (!complete)
+            return std::unexpected { complete.error() };
+
+        auto const archiveSha256 = HashFile(archiveFile);
+        if (!archiveSha256)
+            return std::unexpected { archiveSha256.error() };
+        return ArchiveVerification { .archiveSha256 = *archiveSha256, .verifiedEntries = *verified, .complete = *complete };
+    }
+} // namespace
+
+std::expected<ArchiveVerification, std::string> VerifyArchive(std::filesystem::path const& archiveFile)
+{
+    try
+    {
+        return VerifyArchiveUnguarded(archiveFile);
+    }
+    catch (std::exception const& exception)
+    {
+        return std::unexpected { std::format(
+            "Failed to verify backup archive {}: {}", Zip::ZipPathUtf8(archiveFile), exception.what()) };
+    }
+}
+
+std::string DefaultRestoreSchema(std::filesystem::path const& archiveFile,
+                                 std::string const& defaultSchema,
+                                 bool caseInsensitive)
+{
+    auto const archiveSchemas = ReadArchiveSchemas(archiveFile);
+    if (defaultSchema.empty() || !archiveSchemas || archiveSchemas->size() <= 1)
+        return defaultSchema;
+    auto const comparable = [caseInsensitive](std::string const& name) {
+        return caseInsensitive ? detail::ToLowerAscii(name) : name;
+    };
+    auto const wanted = comparable(defaultSchema);
+    bool const recorded = std::ranges::any_of(
+        *archiveSchemas, [&](std::string const& archiveSchema) { return comparable(archiveSchema) == wanted; });
+    return recorded ? std::string {} : defaultSchema;
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -951,7 +1331,7 @@ void Restore(std::filesystem::path const& inputFile,
 {
     ZoneScopedN("SqlBackup::Restore");
     {
-        auto const inputFileStr = inputFile.string();
+        auto const inputFileStr = Zip::ZipPathUtf8(inputFile);
         ZoneTextObject(inputFileStr);
     }
     ZoneValue(concurrency);
@@ -969,7 +1349,7 @@ void Restore(std::filesystem::path const& inputFile,
     }
 
     int err = 0;
-    zip_t* zip = zip_open(inputFile.string().c_str(), ZIP_RDONLY, &err);
+    zip_t* zip = zip_open(Zip::ZipPathUtf8(inputFile).c_str(), ZIP_RDONLY, &err);
     // LCOV_EXCL_START - Error handling for zip file operations
     if (!zip)
     {
@@ -1019,13 +1399,32 @@ void Restore(std::filesystem::path const& inputFile,
 
     // Validate format version
     std::string const formatVersion = metadata.value("format_version", "");
-    if (!formatVersion.empty() && formatVersion != "1.0")
+    if (!formatVersion.empty() && formatVersion != SingleSchemaFormatVersion && formatVersion != MultiSchemaFormatVersion)
     {
         progress.Update({ .state = Progress::State::Error,
                           .tableName = "",
                           .currentRows = 0,
                           .totalRows = std::nullopt,
-                          .message = std::format("Unsupported backup format version: {}. Expected: 1.0", formatVersion) });
+                          .message = std::format("Unsupported backup format version: {}. Expected: {} or {}",
+                                                 formatVersion,
+                                                 SingleSchemaFormatVersion,
+                                                 MultiSchemaFormatVersion) });
+        zip_close(zip);
+        return;
+    }
+
+    bool const multiSchema = formatVersion == MultiSchemaFormatVersion;
+    if (multiSchema && !schema.empty())
+    {
+        progress.Update(
+            { .state = Progress::State::Error,
+              .tableName = "",
+              .currentRows = 0,
+              .totalRows = std::nullopt,
+              .message = std::format("Restore refused: the archive holds several schemas ({}), which are restored into "
+                                     "the schemas they come from; a target schema ('{}') cannot be applied to it",
+                                     detail::JoinNames(metadata.value("schema_names", std::vector<std::string> {})),
+                                     schema) });
         zip_close(zip);
         return;
     }
@@ -1065,11 +1464,59 @@ void Restore(std::filesystem::path const& inputFile,
 
     std::map<std::string, TableInfo> tableMap = ParseSchema(metadataStr, &progress);
 
+    // Older archives may hold bookkeeping tables; the live ones stay as they are.
+    std::erase_if(tableMap, [](auto const& pair) {
+        auto const& [key, info] = pair;
+        return IsBookkeepingTable(info.name.empty() ? key : info.name);
+    });
+
     // Apply table filter
     auto const filter = TableFilter::Parse(tableFilter);
     if (!filter.MatchesAll())
     {
-        std::erase_if(tableMap, [&](auto const& pair) { return !filter.Matches(effectiveSchema, pair.first); });
+        std::erase_if(tableMap, [&](auto const& pair) {
+            auto const& [key, info] = pair;
+            return !filter.Matches(info.schema.empty() ? effectiveSchema : info.schema, info.name.empty() ? key : info.name);
+        });
+    }
+
+    // The archive folder of each table's chunks -> its key in tableMap.
+    std::map<std::string, std::string> chunkTables;
+    for (auto const& [key, info]: tableMap)
+        chunkTables.emplace(detail::ChunkDirectory(info.schema, info.name.empty() ? key : info.name), key);
+
+    if (multiSchema)
+    {
+        SqlConnection probe { std::nullopt };
+        if (!probe.Connect(connectionString))
+        {
+            progress.Update({ .state = Progress::State::Error,
+                              .tableName = "",
+                              .currentRows = 0,
+                              .totalRows = std::nullopt,
+                              .message = "Failed to connect to the target database: " + probe.LastError().message });
+            zip_close(zip);
+            return;
+        }
+        if (!probe.QueryFormatter().SupportsSchemas())
+        {
+            auto flattened = FlattenSchemas(tableMap, probe.QueryFormatter().IdentifiersAreCaseInsensitive());
+            if (!flattened)
+            {
+                progress.Update({ .state = Progress::State::Error,
+                                  .tableName = "",
+                                  .currentRows = 0,
+                                  .totalRows = std::nullopt,
+                                  .message = std::format("Restore refused: the target database has no schemas, and "
+                                                         "these tables exist in more than one schema of the archive: {}",
+                                                         detail::JoinNames(flattened.error())) });
+                zip_close(zip);
+                return;
+            }
+            for (auto& [directory, key]: chunkTables)
+                key = tableMap.at(key).name;
+            tableMap = std::move(*flattened);
+        }
     }
 
     std::set<std::string> const createdTables =
@@ -1136,30 +1583,24 @@ void Restore(std::filesystem::path const& inputFile,
             continue;
 
         std::string name = stat.name;
-        if (name.starts_with("data/") && name.ends_with(".msgpack"))
-        {
-            // Extract table name from path: data/TABLE_NAME/chunk.msgpack
-            auto const firstSlash = name.find('/');
-            auto const secondSlash = name.find('/', firstSlash + 1);
-            if (firstSlash != std::string::npos && secondSlash != std::string::npos)
-            {
-                std::string const tableName = name.substr(firstSlash + 1, secondSlash - firstSlash - 1);
-                // Skip chunks for tables that failed to create
-                if (!createdTables.contains(tableName))
-                    continue;
+        auto const directory = detail::ChunkDirectoryOf(name);
+        if (!directory)
+            continue;
+        auto const table = chunkTables.find(std::string { *directory });
+        // Skip chunks of tables that were filtered out or failed to create
+        if (table == chunkTables.end() || !createdTables.contains(table->second))
+            continue;
 
-                // Count chunks per table for chunk-based completion detection
-                totalChunksPerTable[tableName]++;
+        // Count chunks per table for chunk-based completion detection
+        totalChunksPerTable[table->second]++;
 
-                // Only add entries that pass validation AND are counted
-                dataQueue.push_back(detail::ZipEntryInfo {
-                    .index = i,
-                    .name = std::move(name),
-                    .size = stat.size,
-                    .valid = true,
-                });
-            }
-        }
+        // Only add entries that pass validation AND are counted
+        dataQueue.push_back(detail::ZipEntryInfo {
+            .index = i,
+            .name = std::move(name),
+            .size = stat.size,
+            .valid = true,
+        });
     }
 
     std::mutex queueMutex;
@@ -1203,10 +1644,12 @@ void Restore(std::filesystem::path const& inputFile,
                                                   ? restoreSettings
                                                   : CalculateRestoreSettings(GetAvailableSystemMemory(), concurrency);
 
+    detail::FailedTables failedDataTables;
     detail::RestoreContext ctx {
         .connectionString = connectionString,
         .schema = effectiveSchema,
         .tableMap = filteredTableMap,
+        .chunkTables = chunkTables,
         .dataQueue = dataQueue,
         .zip = zip,
         .queueMutex = queueMutex,
@@ -1218,6 +1661,7 @@ void Restore(std::filesystem::path const& inputFile,
         .checksums = checksums.empty() ? nullptr : &checksums,
         .retrySettings = retrySettings,
         .restoreSettings = effectiveSettings,
+        .failedTables = failedDataTables,
     };
 
     // All databases restore multi-threaded. (Historically MS SQL Server was clamped to a single
@@ -1249,6 +1693,17 @@ void Restore(std::filesystem::path const& inputFile,
 
     for (auto& t: threads)
         t.join();
+
+    // A worker stops on a database error; once all have stopped, chunks may be left unrestored.
+    for (auto const& [tableName, processed]: chunksProcessed)
+    {
+        if (processed->load() < totalChunksPerTable[tableName])
+            progress.Update({ .state = Progress::State::Error,
+                              .tableName = tableName,
+                              .currentRows = tableProgress.at(tableName)->load(),
+                              .totalRows = std::nullopt,
+                              .message = "Not fully restored: the restore stopped after an earlier error" });
+    }
 
     detail::ApplyDatabaseConstraints(connectionString, effectiveSchema, filteredTableMap, progress);
     detail::RestoreIndexes(connectionString, effectiveSchema, filteredTableMap, progress);

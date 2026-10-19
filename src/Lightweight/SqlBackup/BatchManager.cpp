@@ -9,12 +9,19 @@
 #include "BatchManager.hpp"
 
 #include <algorithm>
+#include <array>
 #include <charconv>
+#include <cmath>
 #include <cstring>
 #include <format>
+#include <limits>
 #include <optional>
+#include <ranges>
+#include <stdexcept>
 #include <string>
+#include <string_view>
 #include <type_traits>
+#include <utility>
 #include <variant>
 
 namespace Lightweight::detail
@@ -22,21 +29,191 @@ namespace Lightweight::detail
 
 using namespace SqlBackup;
 
-/// Parses a numeric value from [first, last) into @p out, leaving @p out unchanged on a parse failure.
+/// Thrown by a batch column for a non-NULL backup value it cannot convert to the column's type.
+/// BatchManager rethrows it as a std::runtime_error naming the table and the column.
+struct UnconvertibleValueError: std::runtime_error
+{
+    using std::runtime_error::runtime_error;
+};
+
+/// Quotes the text @p text for an error message: at most 64 bytes, never cut inside a UTF-8
+/// sequence, with control characters written as `\xHH`.
+/// @param text The text value.
+/// @return The quoted text, followed by its size when it was shortened.
+inline std::string QuoteText(std::string_view text)
+{
+    constexpr size_t MaxShownLength = 64;
+    constexpr auto IsUtf8Continuation = [](char character) {
+        return (static_cast<unsigned char>(character) & 0xC0U) == 0x80U;
+    };
+    auto shownLength = std::min(text.size(), MaxShownLength);
+    while (shownLength > 0 && shownLength < text.size() && IsUtf8Continuation(text[shownLength]))
+        --shownLength;
+
+    std::string quoted = "'";
+    for (char const character: text.substr(0, shownLength))
+    {
+        auto const code = static_cast<unsigned char>(character);
+        if (code < 0x20U || code == 0x7FU)
+            quoted += std::format("\\x{:02X}", code);
+        else
+            quoted += character;
+    }
+    if (shownLength < text.size())
+        return std::format("{}...' ({} bytes)", quoted, text.size());
+    return quoted + "'";
+}
+
+/// Describes @p value for an error message: text quoted (and shortened when long), binary by size.
+/// @param value A backup value, or an element of a column batch.
+/// @return The description.
+template <typename T>
+std::string DescribeValue(T const& value)
+{
+    if constexpr (std::is_convertible_v<T const&, std::string_view>)
+        return QuoteText(std::string_view { value });
+    else if constexpr (std::is_same_v<T, std::vector<uint8_t>>)
+        return std::format("a {}-byte binary value", value.size());
+    else if constexpr (std::is_same_v<T, std::monostate>)
+        return "NULL";
+    else
+        return std::format("{}", value);
+}
+
+/// Throws UnconvertibleValueError for @p value, which is not a valid @p typeName.
+/// @param value The value that does not convert.
+/// @param typeName The column type, as the error message names it.
+template <typename T>
+[[noreturn]] void RejectValue(T const& value, std::string_view typeName)
+{
+    throw UnconvertibleValueError(std::format("{} is not a valid {}", DescribeValue(value), typeName));
+}
+
+/// Throws UnconvertibleValueError for the backup value @p value; see RejectValue().
+/// @param value The value that does not convert.
+/// @param typeName The column type, as the error message names it.
+[[noreturn]] void RejectBackupValue(BackupValue const& value, std::string_view typeName)
+{
+    std::visit([typeName](auto const& alternative) { RejectValue(alternative, typeName); }, value);
+    std::unreachable();
+}
+
+/// Tests whether the archived text @p text stands for NULL.
+/// @param text An archived text value.
+/// @return `true` for an empty text and for `NULL`.
+constexpr bool IsNullText(std::string_view text) noexcept
+{
+    return text.empty() || text == "NULL";
+}
+
+/// Parses the whole of @p text as a value of the numeric column type @p T.
+///
+/// SQL_BIT columns also read `true` and `false`, the texts a column archived with mixed value
+/// types holds for booleans.
 /// @note Floating-point types use the locale-independent, error-reporting Lightweight::detail::ParseFloat
 /// helper (std::from_chars' float overloads are unavailable before macOS 26 in libc++); integral types use
 /// std::from_chars directly.
-template <typename T>
-void ParseNumeric(char const* first, char const* last, T& out)
+/// @param text The text to parse.
+/// @return The value, or std::nullopt if @p text is not entirely a number in T's range.
+template <typename T, SQLSMALLINT SqlType>
+std::optional<T> ParseNumeric(std::string_view text)
 {
-    if constexpr (std::is_floating_point_v<T>)
+    if constexpr (SqlType == SQL_BIT)
     {
-        if (auto const parsed = ParseFloat<T>(first, last))
-            out = *parsed;
+        if (text == "true")
+            return T { 1 };
+        if (text == "false")
+            return T { 0 };
+    }
+    if constexpr (std::is_floating_point_v<T>)
+        return ParseFloat<T>(text.data(), text.data() + text.size());
+    else
+    {
+        T value {};
+        auto const [end, error] = std::from_chars(text.data(), text.data() + text.size(), value);
+        if (error != std::errc {} || end != text.data() + text.size())
+            return std::nullopt;
+        return value;
+    }
+}
+
+/// Returns the name an error message gives a numeric column bound as @p sqlType.
+/// @param sqlType The SQL type the column binds as.
+/// @return The type name.
+constexpr std::string_view NumericTypeName(SQLSMALLINT sqlType) noexcept
+{
+    switch (sqlType)
+    {
+        case SQL_BIT:
+            return "bool";
+        case SQL_TINYINT:
+            return "tinyint";
+        case SQL_SMALLINT:
+            return "smallint";
+        case SQL_INTEGER:
+            return "integer";
+        case SQL_BIGINT:
+            return "bigint";
+        case SQL_DOUBLE:
+            return "real";
+        default:
+            return "number";
+    }
+}
+
+/// The place of one numeric field in a fixed-layout date or time text.
+struct TextField
+{
+    /// The offset of the field's first character.
+    size_t position;
+    /// The number of characters of the field.
+    size_t length;
+};
+
+/// Parses the numeric @p fields of the fixed-layout text @p text, which every field must fit in.
+/// @param text The date or time text.
+/// @param fields Where each field lies in @p text.
+/// @return The field values in the order of @p fields, or std::nullopt if a field is not entirely
+///         decimal digits (a sign is rejected).
+template <size_t FieldCount>
+std::optional<std::array<unsigned, FieldCount>> ParseFields(std::string_view text,
+                                                            std::array<TextField, FieldCount> const& fields)
+{
+    std::array<unsigned, FieldCount> values {};
+    for (auto const index: std::views::iota(size_t { 0 }, FieldCount))
+    {
+        auto const* const first = text.data() + fields[index].position;
+        auto const* const last = first + fields[index].length;
+        auto const [end, error] = std::from_chars(first, last, values[index]);
+        if (error != std::errc {} || end != last)
+            return std::nullopt;
+    }
+    return values;
+}
+
+/// Converts the native backup value @p value to the numeric column type @p T.
+/// @param value A bool, integer or floating-point value.
+/// @return The value, or std::nullopt if it lies outside T's range (or is not finite).
+template <typename T, typename Source>
+std::optional<T> NarrowNumeric(Source value)
+{
+    if constexpr (std::is_same_v<Source, bool>)
+        return static_cast<T>(value ? 1 : 0);
+    else if constexpr (std::is_floating_point_v<T>)
+        return static_cast<T>(value);
+    else if constexpr (std::is_floating_point_v<Source>)
+    {
+        // Casting a double that does not fit T is undefined behaviour, so check the range first.
+        if (!std::isfinite(value) || value < static_cast<Source>(std::numeric_limits<T>::min())
+            || value >= static_cast<Source>(std::numeric_limits<T>::max()) + Source { 1 })
+            return std::nullopt;
+        return static_cast<T>(value);
     }
     else
     {
-        std::from_chars(first, last, out);
+        if (!std::in_range<T>(value))
+            return std::nullopt;
+        return static_cast<T>(value);
     }
 }
 
@@ -68,6 +245,9 @@ struct BatchColumn
     /// Clear the batch column.
     virtual void Clear() = 0;
 
+    /// Number of values (NULL included) the column holds that are not flushed yet.
+    [[nodiscard]] virtual size_t PendingRows() const = 0;
+
     /// Bytes the column's fixed-stride raw buffer will occupy at ToRaw() time. Used to flush
     /// early when variable-length values (large binaries) would make stride x rows explode.
     [[nodiscard]] virtual size_t ProjectedRawBytes() const
@@ -91,81 +271,78 @@ struct TypedBatchColumn: BatchColumn
         metadata.sqlType = SqlType;
     }
 
+    /// The column type, as error messages name it.
+    static constexpr std::string_view TypeName = NumericTypeName(SqlType);
+
+    /// The values the column accepts, inclusive, when narrower than T's range.
+    std::optional<std::pair<int64_t, int64_t>> valueRange;
+
     void PushNull() override
     {
         data.push_back(T {});
         indicators.push_back(SQL_NULL_DATA);
     }
 
-    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
+    /// Tests whether @p value lies in `valueRange`.
+    /// @param value The converted value.
+    /// @return `true` if no range is set or @p value lies in it.
+    [[nodiscard]] bool InValueRange(T value) const noexcept
+    {
+        if constexpr (std::is_integral_v<T>)
+            return !valueRange
+                   || (std::cmp_greater_equal(value, valueRange->first) && std::cmp_less_equal(value, valueRange->second));
+        else
+            return true;
+    }
+
+    /// Appends the number @p text, or NULL for a NULL text.
+    /// @throws UnconvertibleValueError if @p text is no number of this column's type.
+    void PushText(std::string_view text)
+    {
+        if (IsNullText(text))
+        {
+            PushNull();
+            return;
+        }
+        auto const value = ParseNumeric<T, SqlType>(text);
+        if (!value || !InValueRange(*value))
+            RejectValue(text, TypeName);
+        data.push_back(*value);
+        indicators.push_back(sizeof(T));
+    }
+
+    /// Appends the native value @p value.
+    /// @throws UnconvertibleValueError if @p value lies outside this column type's range.
+    template <typename Source>
+    void PushNative(Source value)
+    {
+        auto const narrowed = NarrowNumeric<T>(value);
+        if (!narrowed || !InValueRange(*narrowed))
+            RejectValue(value, TypeName);
+        data.push_back(*narrowed);
+        indicators.push_back(sizeof(T));
+    }
+
     void PushFromBatch(ColumnBatch::ColumnData const& colData,
                        std::vector<bool> const& nulls,
                        size_t offset,
                        size_t count) override
     {
         std::visit(
-            // NOLINTNEXTLINE(readability-function-cognitive-complexity)
             [&](auto const& inVec) {
                 using VecT = std::decay_t<decltype(inVec)>;
-                for (size_t i = 0; i < count; ++i)
+                for (auto const idx: std::views::iota(offset, offset + count))
                 {
-                    size_t idx = offset + i;
-                    if (idx < nulls.size() && nulls[idx])
-                    {
-                        PushNull();
-                        continue;
-                    }
-
                     if constexpr (std::is_same_v<VecT, std::monostate>)
-                    {
                         PushNull();
-                    }
+                    else if ((idx < nulls.size() && nulls[idx]) || idx >= inVec.size())
+                        PushNull();
                     else if constexpr (std::is_same_v<VecT, std::vector<std::string>>)
-                    {
-                        if (idx < inVec.size())
-                        {
-                            T v {};
-                            auto const& s = inVec[idx];
-                            if (s == "NULL" || s.empty())
-                                PushNull();
-                            else
-                            {
-                                ParseNumeric(s.data(), s.data() + s.size(), v);
-                                data.push_back(v);
-                                indicators.push_back(sizeof(T));
-                            }
-                        }
-                        else
-                            PushNull();
-                    }
-                    else if constexpr (std::is_same_v<VecT, std::vector<bool>>)
-                    {
-                        if (idx < inVec.size())
-                        {
-                            data.push_back(static_cast<T>(inVec[idx] ? 1 : 0));
-                            indicators.push_back(sizeof(T));
-                        }
-                        else
-                            PushNull();
-                    }
-                    else if constexpr (std::is_same_v<typename VecT::value_type, std::vector<uint8_t>>)
-                    {
-                        PushNull();
-                    }
-                    else if constexpr (std::is_convertible_v<typename VecT::value_type, T>)
-                    {
-                        if (idx < inVec.size())
-                        {
-                            data.push_back(static_cast<T>(inVec[idx]));
-                            indicators.push_back(sizeof(T));
-                        }
-                        else
-                            PushNull();
-                    }
+                        PushText(inVec[idx]);
+                    else if constexpr (std::is_same_v<VecT, std::vector<std::vector<uint8_t>>>)
+                        RejectValue(inVec[idx], TypeName);
                     else
-                    {
-                        PushNull();
-                    }
+                        PushNative(std::ranges::range_value_t<VecT> { inVec[idx] });
                 }
             },
             colData);
@@ -177,6 +354,11 @@ struct TypedBatchColumn: BatchColumn
         data.shrink_to_fit();
         indicators.clear();
         indicators.shrink_to_fit();
+    }
+
+    [[nodiscard]] size_t PendingRows() const override
+    {
+        return indicators.size();
     }
 
     SqlRawColumn ToRaw() override
@@ -208,25 +390,15 @@ struct NumericBatchColumn: TypedBatchColumn<T, CType, SqlType>
                 }
                 else if constexpr (std::is_same_v<ArgT, std::string>)
                 {
-                    if (arg == "NULL")
-                        this->PushNull();
-                    else
-                    {
-                        T v {};
-                        ParseNumeric(arg.data(), arg.data() + arg.size(), v);
-                        this->data.push_back(v);
-                        this->indicators.push_back(sizeof(T));
-                    }
+                    this->PushText(arg);
                 }
-                else if constexpr (std::is_convertible_v<ArgT, T>)
+                else if constexpr (std::is_same_v<ArgT, std::vector<uint8_t>>)
                 {
-                    this->data.push_back(static_cast<T>(arg));
-                    this->indicators.push_back(sizeof(T));
+                    RejectValue(arg, Base::TypeName);
                 }
                 else
                 {
-                    this->data.push_back(static_cast<T>(0));
-                    this->indicators.push_back(sizeof(T));
+                    this->PushNative(arg);
                 }
             },
             val);
@@ -250,73 +422,80 @@ struct DateTimeBatchColumn: BatchColumn
         metadata.decimalDigits = 7; // Fractional seconds precision
     }
 
+    /// Where year, month, day, hour, minute and second lie in a datetime text.
+    static constexpr std::array Layout {
+        TextField { .position = 0, .length = 4 },  TextField { .position = 5, .length = 2 },
+        TextField { .position = 8, .length = 2 },  TextField { .position = 11, .length = 2 },
+        TextField { .position = 14, .length = 2 }, TextField { .position = 17, .length = 2 }
+    };
+
     /// Parses ISO 8601 datetime string format: YYYY-MM-DDTHH:MM:SS.mmm
-    static SQL_TIMESTAMP_STRUCT ParseDateTime(std::string_view s)
+    /// (or `YYYY-MM-DD HH:MM:SS`); fractional digits beyond milliseconds are ignored.
+    /// @param s The datetime text.
+    /// @return The timestamp, or std::nullopt if a field of @p s is not a number.
+    static std::optional<SQL_TIMESTAMP_STRUCT> ParseDateTime(std::string_view s)
     {
-        SQL_TIMESTAMP_STRUCT ts {};
-
-        // Expected format: "YYYY-MM-DDTHH:MM:SS.mmm" (length 23)
-        // or "YYYY-MM-DD HH:MM:SS" (length 19) or similar variations
         if (s.size() < 19)
-            return ts;
+            return std::nullopt;
 
-        auto parseNum = [&s](size_t pos, size_t len) -> int {
-            int val = 0;
-            std::from_chars(s.data() + pos, s.data() + pos + len, val);
-            return val;
-        };
+        auto const fields = ParseFields(s, Layout);
+        if (!fields)
+            return std::nullopt;
+        auto const [year, month, day, hour, minute, second] = *fields;
 
-        ts.year = static_cast<SQLSMALLINT>(parseNum(0, 4));
-        ts.month = static_cast<SQLUSMALLINT>(parseNum(5, 2));
-        ts.day = static_cast<SQLUSMALLINT>(parseNum(8, 2));
-        ts.hour = static_cast<SQLUSMALLINT>(parseNum(11, 2));
-        ts.minute = static_cast<SQLUSMALLINT>(parseNum(14, 2));
-        ts.second = static_cast<SQLUSMALLINT>(parseNum(17, 2));
+        SQL_TIMESTAMP_STRUCT ts {};
+        ts.year = static_cast<SQLSMALLINT>(year);
+        ts.month = static_cast<SQLUSMALLINT>(month);
+        ts.day = static_cast<SQLUSMALLINT>(day);
+        ts.hour = static_cast<SQLUSMALLINT>(hour);
+        ts.minute = static_cast<SQLUSMALLINT>(minute);
+        ts.second = static_cast<SQLUSMALLINT>(second);
 
         // Parse fractional seconds if present (after position 19, following '.')
         if (s.size() > 20 && s[19] == '.')
         {
-            // Parse milliseconds and convert to nanoseconds (fraction field is in 100ns units)
-            int millis = 0;
+            // Parse milliseconds; SQL_TIMESTAMP_STRUCT::fraction is in nanoseconds
             size_t fracLen = std::min(s.size() - 20, size_t { 3 });
-            std::from_chars(s.data() + 20, s.data() + 20 + fracLen, millis);
+            auto const fraction = ParseFields(s, std::array { TextField { .position = 20, .length = fracLen } });
+            if (!fraction)
+                return std::nullopt;
+            auto millis = (*fraction)[0];
             // Pad to 3 digits if shorter
             while (fracLen < 3)
             {
                 millis *= 10;
                 fracLen++;
             }
-            ts.fraction = static_cast<SQLUINTEGER>(millis) * 1'000'000; // ms to 100ns units
+            ts.fraction = static_cast<SQLUINTEGER>(millis) * 1'000'000; // ms to ns
         }
 
         return ts;
     }
 
+    /// Appends the datetime @p text, or NULL for a NULL text.
+    /// @throws UnconvertibleValueError if @p text is no datetime.
+    void PushText(std::string_view text)
+    {
+        if (IsNullText(text))
+        {
+            PushNull();
+            return;
+        }
+        auto const value = ParseDateTime(text);
+        if (!value)
+            RejectValue(text, "datetime");
+        data.push_back(*value);
+        indicators.push_back(sizeof(SQL_TIMESTAMP_STRUCT));
+    }
+
     void Push(BackupValue const& val) override
     {
-        std::visit(
-            [this](auto&& arg) {
-                using ArgT = std::decay_t<decltype(arg)>;
-                if constexpr (std::is_same_v<ArgT, std::monostate>)
-                {
-                    this->PushNull();
-                }
-                else if constexpr (std::is_same_v<ArgT, std::string>)
-                {
-                    if (arg.empty() || arg == "NULL")
-                        this->PushNull();
-                    else
-                    {
-                        data.push_back(ParseDateTime(arg));
-                        indicators.push_back(sizeof(SQL_TIMESTAMP_STRUCT));
-                    }
-                }
-                else
-                {
-                    this->PushNull();
-                }
-            },
-            val);
+        if (std::holds_alternative<std::monostate>(val))
+            PushNull();
+        else if (auto const* text = std::get_if<std::string>(&val))
+            PushText(*text);
+        else
+            RejectBackupValue(val, "datetime");
     }
 
     void PushFromBatch(ColumnBatch::ColumnData const& colData,
@@ -325,42 +504,18 @@ struct DateTimeBatchColumn: BatchColumn
                        size_t count) override
     {
         std::visit(
-            // NOLINTNEXTLINE(readability-function-cognitive-complexity)
             [&](auto const& inVec) {
                 using VecT = std::decay_t<decltype(inVec)>;
-                for (size_t i = 0; i < count; ++i)
+                for (auto const idx: std::views::iota(offset, offset + count))
                 {
-                    size_t idx = offset + i;
-                    if (idx < nulls.size() && nulls[idx])
-                    {
-                        PushNull();
-                        continue;
-                    }
-
                     if constexpr (std::is_same_v<VecT, std::monostate>)
-                    {
                         PushNull();
-                    }
+                    else if ((idx < nulls.size() && nulls[idx]) || idx >= inVec.size())
+                        PushNull();
                     else if constexpr (std::is_same_v<VecT, std::vector<std::string>>)
-                    {
-                        if (idx < inVec.size())
-                        {
-                            auto const& s = inVec[idx];
-                            if (s.empty() || s == "NULL")
-                                PushNull();
-                            else
-                            {
-                                data.push_back(ParseDateTime(s));
-                                indicators.push_back(sizeof(SQL_TIMESTAMP_STRUCT));
-                            }
-                        }
-                        else
-                            PushNull();
-                    }
+                        PushText(inVec[idx]);
                     else
-                    {
-                        PushNull();
-                    }
+                        RejectValue(inVec[idx], "datetime");
                 }
             },
             colData);
@@ -378,6 +533,11 @@ struct DateTimeBatchColumn: BatchColumn
         data.shrink_to_fit();
         indicators.clear();
         indicators.shrink_to_fit();
+    }
+
+    [[nodiscard]] size_t PendingRows() const override
+    {
+        return indicators.size();
     }
 
     SqlRawColumn ToRaw() override
@@ -407,53 +567,55 @@ struct DateBatchColumn: BatchColumn
         metadata.size = 10; // YYYY-MM-DD
     }
 
+    /// Where year, month and day lie in a date text.
+    static constexpr std::array Layout { TextField { .position = 0, .length = 4 },
+                                         TextField { .position = 5, .length = 2 },
+                                         TextField { .position = 8, .length = 2 } };
+
     /// Parses ISO 8601 date string format: YYYY-MM-DD
-    static SQL_DATE_STRUCT ParseDate(std::string_view s)
+    /// @param s The date text.
+    /// @return The date, or std::nullopt if a field of @p s is not a number.
+    static std::optional<SQL_DATE_STRUCT> ParseDate(std::string_view s)
     {
-        SQL_DATE_STRUCT ds {};
-
-        // Expected format: "YYYY-MM-DD" (length 10)
         if (s.size() < 10)
-            return ds;
+            return std::nullopt;
 
-        auto parseNum = [&s](size_t pos, size_t len) -> int {
-            int val = 0;
-            std::from_chars(s.data() + pos, s.data() + pos + len, val);
-            return val;
-        };
+        auto const fields = ParseFields(s, Layout);
+        if (!fields)
+            return std::nullopt;
+        auto const [year, month, day] = *fields;
 
-        ds.year = static_cast<SQLSMALLINT>(parseNum(0, 4));
-        ds.month = static_cast<SQLUSMALLINT>(parseNum(5, 2));
-        ds.day = static_cast<SQLUSMALLINT>(parseNum(8, 2));
-
+        SQL_DATE_STRUCT ds {};
+        ds.year = static_cast<SQLSMALLINT>(year);
+        ds.month = static_cast<SQLUSMALLINT>(month);
+        ds.day = static_cast<SQLUSMALLINT>(day);
         return ds;
+    }
+
+    /// Appends the date @p text, or NULL for a NULL text.
+    /// @throws UnconvertibleValueError if @p text is no date.
+    void PushText(std::string_view text)
+    {
+        if (IsNullText(text))
+        {
+            PushNull();
+            return;
+        }
+        auto const value = ParseDate(text);
+        if (!value)
+            RejectValue(text, "date");
+        data.push_back(*value);
+        indicators.push_back(sizeof(SQL_DATE_STRUCT));
     }
 
     void Push(BackupValue const& val) override
     {
-        std::visit(
-            [this](auto&& arg) {
-                using ArgT = std::decay_t<decltype(arg)>;
-                if constexpr (std::is_same_v<ArgT, std::monostate>)
-                {
-                    this->PushNull();
-                }
-                else if constexpr (std::is_same_v<ArgT, std::string>)
-                {
-                    if (arg.empty() || arg == "NULL")
-                        this->PushNull();
-                    else
-                    {
-                        data.push_back(ParseDate(arg));
-                        indicators.push_back(sizeof(SQL_DATE_STRUCT));
-                    }
-                }
-                else
-                {
-                    this->PushNull();
-                }
-            },
-            val);
+        if (std::holds_alternative<std::monostate>(val))
+            PushNull();
+        else if (auto const* text = std::get_if<std::string>(&val))
+            PushText(*text);
+        else
+            RejectBackupValue(val, "date");
     }
 
     void PushFromBatch(ColumnBatch::ColumnData const& colData,
@@ -462,42 +624,18 @@ struct DateBatchColumn: BatchColumn
                        size_t count) override
     {
         std::visit(
-            // NOLINTNEXTLINE(readability-function-cognitive-complexity)
             [&](auto const& inVec) {
                 using VecT = std::decay_t<decltype(inVec)>;
-                for (size_t i = 0; i < count; ++i)
+                for (auto const idx: std::views::iota(offset, offset + count))
                 {
-                    size_t idx = offset + i;
-                    if (idx < nulls.size() && nulls[idx])
-                    {
-                        PushNull();
-                        continue;
-                    }
-
                     if constexpr (std::is_same_v<VecT, std::monostate>)
-                    {
                         PushNull();
-                    }
+                    else if ((idx < nulls.size() && nulls[idx]) || idx >= inVec.size())
+                        PushNull();
                     else if constexpr (std::is_same_v<VecT, std::vector<std::string>>)
-                    {
-                        if (idx < inVec.size())
-                        {
-                            auto const& s = inVec[idx];
-                            if (s.empty() || s == "NULL")
-                                PushNull();
-                            else
-                            {
-                                data.push_back(ParseDate(s));
-                                indicators.push_back(sizeof(SQL_DATE_STRUCT));
-                            }
-                        }
-                        else
-                            PushNull();
-                    }
+                        PushText(inVec[idx]);
                     else
-                    {
-                        PushNull();
-                    }
+                        RejectValue(inVec[idx], "date");
                 }
             },
             colData);
@@ -515,6 +653,11 @@ struct DateBatchColumn: BatchColumn
         data.shrink_to_fit();
         indicators.clear();
         indicators.shrink_to_fit();
+    }
+
+    [[nodiscard]] size_t PendingRows() const override
+    {
+        return indicators.size();
     }
 
     SqlRawColumn ToRaw() override
@@ -547,54 +690,56 @@ struct TimeBatchColumn: BatchColumn
         metadata.decimalDigits = 0;
     }
 
+    /// Where hour, minute and second lie in a time text.
+    static constexpr std::array Layout { TextField { .position = 0, .length = 2 },
+                                         TextField { .position = 3, .length = 2 },
+                                         TextField { .position = 6, .length = 2 } };
+
     /// Parses time string format: HH:MM:SS or HH:MM:SS.ffffff
     /// Note: Fractional seconds are ignored as SQL_TIME_STRUCT doesn't support them.
-    static SQL_TIME_STRUCT ParseTime(std::string_view s)
+    /// @param s The time text.
+    /// @return The time, or std::nullopt if a field of @p s is not a number.
+    static std::optional<SQL_TIME_STRUCT> ParseTime(std::string_view s)
     {
-        SQL_TIME_STRUCT ts {};
-
-        // Expected format: "HH:MM:SS" (length 8) or "HH:MM:SS.ffffff"
         if (s.size() < 8)
-            return ts;
+            return std::nullopt;
 
-        auto parseNum = [&s](size_t pos, size_t len) -> int {
-            int val = 0;
-            std::from_chars(s.data() + pos, s.data() + pos + len, val);
-            return val;
-        };
+        auto const fields = ParseFields(s, Layout);
+        if (!fields)
+            return std::nullopt;
+        auto const [hour, minute, second] = *fields;
 
-        ts.hour = static_cast<SQLUSMALLINT>(parseNum(0, 2));
-        ts.minute = static_cast<SQLUSMALLINT>(parseNum(3, 2));
-        ts.second = static_cast<SQLUSMALLINT>(parseNum(6, 2));
-
+        SQL_TIME_STRUCT ts {};
+        ts.hour = static_cast<SQLUSMALLINT>(hour);
+        ts.minute = static_cast<SQLUSMALLINT>(minute);
+        ts.second = static_cast<SQLUSMALLINT>(second);
         return ts;
+    }
+
+    /// Appends the time @p text, or NULL for a NULL text.
+    /// @throws UnconvertibleValueError if @p text is no time.
+    void PushText(std::string_view text)
+    {
+        if (IsNullText(text))
+        {
+            PushNull();
+            return;
+        }
+        auto const value = ParseTime(text);
+        if (!value)
+            RejectValue(text, "time");
+        data.push_back(*value);
+        indicators.push_back(sizeof(SQL_TIME_STRUCT));
     }
 
     void Push(BackupValue const& val) override
     {
-        std::visit(
-            [this](auto&& arg) {
-                using ArgT = std::decay_t<decltype(arg)>;
-                if constexpr (std::is_same_v<ArgT, std::monostate>)
-                {
-                    this->PushNull();
-                }
-                else if constexpr (std::is_same_v<ArgT, std::string>)
-                {
-                    if (arg.empty() || arg == "NULL")
-                        this->PushNull();
-                    else
-                    {
-                        data.push_back(ParseTime(arg));
-                        indicators.push_back(sizeof(SQL_TIME_STRUCT));
-                    }
-                }
-                else
-                {
-                    this->PushNull();
-                }
-            },
-            val);
+        if (std::holds_alternative<std::monostate>(val))
+            PushNull();
+        else if (auto const* text = std::get_if<std::string>(&val))
+            PushText(*text);
+        else
+            RejectBackupValue(val, "time");
     }
 
     void PushFromBatch(ColumnBatch::ColumnData const& colData,
@@ -603,42 +748,18 @@ struct TimeBatchColumn: BatchColumn
                        size_t count) override
     {
         std::visit(
-            // NOLINTNEXTLINE(readability-function-cognitive-complexity)
             [&](auto const& inVec) {
                 using VecT = std::decay_t<decltype(inVec)>;
-                for (size_t i = 0; i < count; ++i)
+                for (auto const idx: std::views::iota(offset, offset + count))
                 {
-                    size_t idx = offset + i;
-                    if (idx < nulls.size() && nulls[idx])
-                    {
-                        PushNull();
-                        continue;
-                    }
-
                     if constexpr (std::is_same_v<VecT, std::monostate>)
-                    {
                         PushNull();
-                    }
+                    else if ((idx < nulls.size() && nulls[idx]) || idx >= inVec.size())
+                        PushNull();
                     else if constexpr (std::is_same_v<VecT, std::vector<std::string>>)
-                    {
-                        if (idx < inVec.size())
-                        {
-                            auto const& s = inVec[idx];
-                            if (s.empty() || s == "NULL")
-                                PushNull();
-                            else
-                            {
-                                data.push_back(ParseTime(s));
-                                indicators.push_back(sizeof(SQL_TIME_STRUCT));
-                            }
-                        }
-                        else
-                            PushNull();
-                    }
+                        PushText(inVec[idx]);
                     else
-                    {
-                        PushNull();
-                    }
+                        RejectValue(inVec[idx], "time");
                 }
             },
             colData);
@@ -656,6 +777,11 @@ struct TimeBatchColumn: BatchColumn
         data.shrink_to_fit();
         indicators.clear();
         indicators.shrink_to_fit();
+    }
+
+    [[nodiscard]] size_t PendingRows() const override
+    {
+        return indicators.size();
     }
 
     SqlRawColumn ToRaw() override
@@ -688,35 +814,30 @@ struct StringTimeBatchColumn: BatchColumn
         metadata.decimalDigits = 6;
     }
 
+    /// Appends the time @p text for the server to parse, or NULL for a NULL text.
+    void PushText(std::string_view text)
+    {
+        if (IsNullText(text))
+        {
+            PushNull();
+            return;
+        }
+        std::array<char, 16> buf {};
+        auto const len = std::min(text.size(), size_t { 15 });
+        std::memcpy(buf.data(), text.data(), len);
+        buf[len] = '\0';
+        data.push_back(buf);
+        indicators.push_back(static_cast<SQLLEN>(len));
+    }
+
     void Push(BackupValue const& val) override
     {
-        std::visit(
-            [this](auto&& arg) {
-                using ArgT = std::decay_t<decltype(arg)>;
-                if constexpr (std::is_same_v<ArgT, std::monostate>)
-                {
-                    this->PushNull();
-                }
-                else if constexpr (std::is_same_v<ArgT, std::string>)
-                {
-                    if (arg.empty() || arg == "NULL")
-                        this->PushNull();
-                    else
-                    {
-                        std::array<char, 16> buf {};
-                        auto const len = std::min(arg.size(), size_t { 15 });
-                        std::memcpy(buf.data(), arg.data(), len);
-                        buf[len] = '\0';
-                        data.push_back(buf);
-                        indicators.push_back(static_cast<SQLLEN>(len));
-                    }
-                }
-                else
-                {
-                    this->PushNull();
-                }
-            },
-            val);
+        if (std::holds_alternative<std::monostate>(val))
+            PushNull();
+        else if (auto const* text = std::get_if<std::string>(&val))
+            PushText(*text);
+        else
+            RejectBackupValue(val, "time");
     }
 
     void PushFromBatch(ColumnBatch::ColumnData const& colData,
@@ -725,46 +846,18 @@ struct StringTimeBatchColumn: BatchColumn
                        size_t count) override
     {
         std::visit(
-            // NOLINTNEXTLINE(readability-function-cognitive-complexity)
             [&](auto const& inVec) {
                 using VecT = std::decay_t<decltype(inVec)>;
-                for (size_t i = 0; i < count; ++i)
+                for (auto const idx: std::views::iota(offset, offset + count))
                 {
-                    size_t idx = offset + i;
-                    if (idx < nulls.size() && nulls[idx])
-                    {
-                        PushNull();
-                        continue;
-                    }
-
                     if constexpr (std::is_same_v<VecT, std::monostate>)
-                    {
                         PushNull();
-                    }
+                    else if ((idx < nulls.size() && nulls[idx]) || idx >= inVec.size())
+                        PushNull();
                     else if constexpr (std::is_same_v<VecT, std::vector<std::string>>)
-                    {
-                        if (idx < inVec.size())
-                        {
-                            auto const& s = inVec[idx];
-                            if (s.empty() || s == "NULL")
-                                PushNull();
-                            else
-                            {
-                                std::array<char, 16> buf {};
-                                auto const len = std::min(s.size(), size_t { 15 });
-                                std::memcpy(buf.data(), s.data(), len);
-                                buf[len] = '\0';
-                                data.push_back(buf);
-                                indicators.push_back(static_cast<SQLLEN>(len));
-                            }
-                        }
-                        else
-                            PushNull();
-                    }
+                        PushText(inVec[idx]);
                     else
-                    {
-                        PushNull();
-                    }
+                        RejectValue(inVec[idx], "time");
                 }
             },
             colData);
@@ -782,6 +875,11 @@ struct StringTimeBatchColumn: BatchColumn
         data.shrink_to_fit();
         indicators.clear();
         indicators.shrink_to_fit();
+    }
+
+    [[nodiscard]] size_t PendingRows() const override
+    {
+        return indicators.size();
     }
 
     SqlRawColumn ToRaw() override
@@ -943,6 +1041,11 @@ struct MsTimeBatchColumn: BatchColumn
         indicators.shrink_to_fit();
     }
 
+    [[nodiscard]] size_t PendingRows() const override
+    {
+        return indicators.size();
+    }
+
     SqlRawColumn ToRaw() override
     {
         SqlRawColumnMetadata meta = metadata;
@@ -1018,7 +1121,7 @@ struct StringBatchColumn: BatchColumn
                             if constexpr (!std::is_same_v<typename VecT::value_type, std::vector<uint8_t>>)
                                 PushString(std::format("{}", val));
                             else
-                                PushNull();
+                                RejectValue(val, "text");
                         }
                         else
                             PushNull();
@@ -1038,7 +1141,7 @@ struct StringBatchColumn: BatchColumn
                 else if constexpr (std::is_same_v<ArgT, std::string>)
                     this->PushString(arg);
                 else if constexpr (std::is_same_v<ArgT, std::vector<uint8_t>>)
-                    this->PushNull();
+                    RejectValue(arg, "text");
                 else
                     this->PushString(std::format("{}", arg));
             },
@@ -1074,6 +1177,11 @@ struct StringBatchColumn: BatchColumn
     [[nodiscard]] size_t ProjectedRawBytes() const override
     {
         return std::max(maxActual, size_t { 1 }) * values.size();
+    }
+
+    [[nodiscard]] size_t PendingRows() const override
+    {
+        return indicators.size();
     }
 
     SqlRawColumn ToRaw() override
@@ -1161,7 +1269,7 @@ struct WideStringBatchColumn: BatchColumn
                             }
                             else
                             {
-                                PushNull();
+                                RejectValue(inVec[idx], "text");
                             }
                         }
                         else
@@ -1187,7 +1295,7 @@ struct WideStringBatchColumn: BatchColumn
                 }
                 else if constexpr (std::is_same_v<ArgT, std::vector<uint8_t>>)
                 {
-                    this->PushNull();
+                    RejectValue(arg, "text");
                 }
                 else
                 {
@@ -1227,6 +1335,11 @@ struct WideStringBatchColumn: BatchColumn
     [[nodiscard]] size_t ProjectedRawBytes() const override
     {
         return std::max(maxActualChars, size_t { 1 }) * sizeof(char16_t) * values.size();
+    }
+
+    [[nodiscard]] size_t PendingRows() const override
+    {
+        return indicators.size();
     }
 
     SqlRawColumn ToRaw() override
@@ -1274,21 +1387,27 @@ struct BinaryBatchColumn: BatchColumn
         values.push_back(std::move(v));
     }
 
-    static std::vector<uint8_t> DecodeHex(std::string_view s)
+    /// Decodes the hex text @p s.
+    /// @param s Two hex digits per byte, upper or lower case.
+    /// @return The bytes, or std::nullopt if @p s has an odd length or a non-hex character.
+    static std::optional<std::vector<uint8_t>> DecodeHex(std::string_view s)
     {
-        auto fromHex = [](char c) -> uint8_t {
-            if (c >= '0' && c <= '9')
-                return static_cast<uint8_t>(c - '0');
-            if (c >= 'A' && c <= 'F')
-                return static_cast<uint8_t>(c - 'A' + 10);
-            if (c >= 'a' && c <= 'f')
-                return static_cast<uint8_t>(c - 'a' + 10);
-            return 0;
-        };
+        if (s.size() % 2 != 0 || !std::ranges::all_of(s, IsHexDigit))
+            return std::nullopt;
         std::vector<uint8_t> out(s.size() / 2);
-        for (size_t b = 0; b < out.size(); ++b)
-            out[b] = static_cast<uint8_t>((fromHex(s[b * 2]) << 4) | fromHex(s[(b * 2) + 1]));
+        for (auto const index: std::views::iota(size_t { 0 }, out.size()))
+            out[index] = static_cast<uint8_t>((HexDigitValue(s[index * 2]) << 4) | HexDigitValue(s[(index * 2) + 1]));
         return out;
+    }
+
+    /// Appends the bytes the hex text @p text encodes.
+    /// @throws UnconvertibleValueError if @p text is no hex text.
+    void PushHexText(std::string const& text)
+    {
+        auto decoded = DecodeHex(text);
+        if (!decoded)
+            RejectValue(text, "binary");
+        AppendValue(std::move(*decoded)); // full hex-decoded value
     }
 
     void PushFromBatch(ColumnBatch::ColumnData const& colData,
@@ -1299,33 +1418,18 @@ struct BinaryBatchColumn: BatchColumn
         std::visit(
             [&](auto const& inVec) {
                 using VecT = std::decay_t<decltype(inVec)>;
-                for (size_t i = 0; i < count; ++i)
+                for (auto const idx: std::views::iota(offset, offset + count))
                 {
-                    size_t const idx = offset + i;
-                    if (idx < nulls.size() && nulls[idx])
-                    {
+                    if constexpr (std::is_same_v<VecT, std::monostate>)
                         PushNull();
-                        continue;
-                    }
-
-                    if constexpr (std::is_same_v<VecT, std::vector<std::vector<uint8_t>>>)
-                    {
-                        if (idx < inVec.size())
-                            AppendValue(inVec[idx]); // full value: no truncation
-                        else
-                            PushNull();
-                    }
+                    else if ((idx < nulls.size() && nulls[idx]) || idx >= inVec.size())
+                        PushNull();
+                    else if constexpr (std::is_same_v<VecT, std::vector<std::vector<uint8_t>>>)
+                        AppendValue(inVec[idx]); // full value: no truncation
                     else if constexpr (std::is_same_v<VecT, std::vector<std::string>>)
-                    {
-                        if (idx < inVec.size())
-                            AppendValue(DecodeHex(inVec[idx])); // full hex-decoded value
-                        else
-                            PushNull();
-                    }
+                        PushHexText(inVec[idx]);
                     else
-                    {
-                        PushNull();
-                    }
+                        RejectValue(inVec[idx], "binary");
                 }
             },
             colData);
@@ -1340,8 +1444,10 @@ struct BinaryBatchColumn: BatchColumn
                     AppendValue(arg);
                 else if constexpr (std::is_same_v<ArgT, std::string>)
                     AppendValue(std::vector<uint8_t>(arg.begin(), arg.end()));
-                else
+                else if constexpr (std::is_same_v<ArgT, std::monostate>)
                     this->PushNull();
+                else
+                    RejectValue(arg, "binary");
             },
             val);
     }
@@ -1366,6 +1472,11 @@ struct BinaryBatchColumn: BatchColumn
     [[nodiscard]] size_t ProjectedRawBytes() const override
     {
         return std::max(maxActual, size_t { 1 }) * values.size();
+    }
+
+    [[nodiscard]] size_t PendingRows() const override
+    {
+        return indicators.size();
     }
 
     SqlRawColumn ToRaw() override
@@ -1419,47 +1530,40 @@ struct GuidBatchColumn: BatchColumn
         indicators.push_back(sizeof(SqlGuid));
     }
 
+    /// Appends the GUID @p text, or NULL for a NULL text. Any well-formed GUID is accepted, whatever
+    /// its version nibble, and keeps its text's bytes.
+    /// @throws UnconvertibleValueError if @p text is no GUID.
+    void PushText(std::string_view text)
+    {
+        if (IsNullText(text))
+        {
+            PushNull();
+            return;
+        }
+        auto const guid = SqlGuid::TryParse(text);
+        if (!guid)
+            RejectValue(text, "GUID");
+        PushGuid(*guid);
+    }
+
     void PushFromBatch(ColumnBatch::ColumnData const& colData,
                        std::vector<bool> const& nulls,
                        size_t offset,
                        size_t count) override
     {
         std::visit(
-            // NOLINTNEXTLINE(readability-function-cognitive-complexity)
             [&](auto const& inVec) {
                 using VecT = std::decay_t<decltype(inVec)>;
-                for (size_t i = 0; i < count; ++i)
+                for (auto const idx: std::views::iota(offset, offset + count))
                 {
-                    size_t idx = offset + i;
-                    if (idx < nulls.size() && nulls[idx])
-                    {
-                        PushNull();
-                        continue;
-                    }
-
                     if constexpr (std::is_same_v<VecT, std::monostate>)
-                    {
                         PushNull();
-                    }
+                    else if ((idx < nulls.size() && nulls[idx]) || idx >= inVec.size())
+                        PushNull();
                     else if constexpr (std::is_same_v<VecT, std::vector<std::string>>)
-                    {
-                        if (idx < inVec.size())
-                        {
-                            auto const& s = inVec[idx];
-                            if (s == "NULL" || s.empty())
-                                PushNull();
-                            else if (auto guid = SqlGuid::TryParse(s); guid.has_value())
-                                PushGuid(*guid);
-                            else
-                                PushNull();
-                        }
-                        else
-                            PushNull();
-                    }
+                        PushText(inVec[idx]);
                     else
-                    {
-                        PushNull();
-                    }
+                        RejectValue(inVec[idx], "GUID");
                 }
             },
             colData);
@@ -1467,28 +1571,12 @@ struct GuidBatchColumn: BatchColumn
 
     void Push(BackupValue const& val) override
     {
-        std::visit(
-            [this](auto&& arg) {
-                using ArgT = std::decay_t<decltype(arg)>;
-                if constexpr (std::is_same_v<ArgT, std::monostate>)
-                {
-                    this->PushNull();
-                }
-                else if constexpr (std::is_same_v<ArgT, std::string>)
-                {
-                    if (arg == "NULL" || arg.empty())
-                        this->PushNull();
-                    else if (auto guid = SqlGuid::TryParse(arg); guid.has_value())
-                        this->PushGuid(*guid);
-                    else
-                        this->PushNull();
-                }
-                else
-                {
-                    this->PushNull();
-                }
-            },
-            val);
+        if (std::holds_alternative<std::monostate>(val))
+            PushNull();
+        else if (auto const* text = std::get_if<std::string>(&val))
+            PushText(*text);
+        else
+            RejectBackupValue(val, "GUID");
     }
 
     void Clear() override
@@ -1497,6 +1585,11 @@ struct GuidBatchColumn: BatchColumn
         data.shrink_to_fit();
         indicators.clear();
         indicators.shrink_to_fit();
+    }
+
+    [[nodiscard]] size_t PendingRows() const override
+    {
+        return indicators.size();
     }
 
     SqlRawColumn ToRaw() override
@@ -1568,14 +1661,17 @@ namespace
 BatchManager::BatchManager(BatchExecutor executor,
                            std::vector<SqlColumnDeclaration> const& colDecls,
                            size_t capacity,
-                           SqlServerType serverType):
+                           SqlServerType serverType,
+                           std::string tableName):
     executor(std::move(executor)),
-    serverType(serverType)
+    serverType(serverType),
+    tableName(std::move(tableName))
 {
     // logic to create columns based on type
     for (auto const& col: colDecls)
     {
         columns.push_back(CreateColumn(col));
+        columnNames.push_back(col.name);
     }
 
     // Calculate memory-aware capacity
@@ -1657,7 +1753,13 @@ std::unique_ptr<BatchColumn> BatchManager::CreateColumn(SqlColumnDeclaration con
     {
         if (meta.size == 0)
             meta.size = 3;
-        return std::make_unique<NumericBatchColumn<int8_t, SQL_C_TINYINT, SQL_TINYINT>>(meta);
+        // SQL Server's TINYINT is unsigned 0..255. Elsewhere it holds what an int8_t or a uint8_t
+        // field wrote, so accept -128..255 and bind it as a short.
+        if (serverType == SqlServerType::MICROSOFT_SQL)
+            return std::make_unique<NumericBatchColumn<uint8_t, SQL_C_UTINYINT, SQL_TINYINT>>(meta);
+        auto column = std::make_unique<NumericBatchColumn<int16_t, SQL_C_SSHORT, SQL_TINYINT>>(meta);
+        column->valueRange = std::pair<int64_t, int64_t> { -128, 255 };
+        return column;
     }
     if (std::holds_alternative<SqlColumnTypeDefinitions::Real>(col.type))
     {
@@ -1820,15 +1922,38 @@ void BatchManager::Flush()
     }
     catch (...)
     {
-        for (auto& c: columns)
-            c->Clear();
-        rowCount = 0;
+        DiscardPendingRows();
         throw;
     }
 
+    rowsFlushed += rowCount;
+    DiscardPendingRows();
+}
+
+void BatchManager::DiscardPendingRows()
+{
     for (auto& c: columns)
         c->Clear();
     rowCount = 0;
+}
+
+void BatchManager::PushIntoColumn(size_t columnIndex, std::function<void(BatchColumn&)> const& push)
+{
+    try
+    {
+        push(*columns[columnIndex]);
+    }
+    catch (UnconvertibleValueError const& error)
+    {
+        // The column holds the values before the rejected one, so this is the rejected row.
+        auto const row = rowsFlushed + columns[columnIndex]->PendingRows() + 1;
+        DiscardPendingRows();
+        auto const& columnName = columnNames[columnIndex];
+        throw BackupValueConversionError(
+            tableName.empty()
+                ? std::format("column '{}', row {}: {}", columnName, row, error.what())
+                : std::format("table '{}', column '{}', row {}: {}", tableName, columnName, row, error.what()));
+    }
 }
 
 namespace
@@ -1851,8 +1976,8 @@ void BatchManager::PushRow(std::vector<BackupValue> const& row)
 {
     if (row.size() != columns.size())
         return;
-    for (size_t i = 0; i < row.size(); ++i)
-        columns[i]->Push(row[i]);
+    for (auto const columnIndex: std::views::iota(size_t { 0 }, row.size()))
+        PushIntoColumn(columnIndex, [&row, columnIndex](BatchColumn& column) { column.Push(row[columnIndex]); });
     rowCount++;
     if (rowCount >= capacity || ExceedsByteBudget(columns))
         Flush();
@@ -1878,9 +2003,11 @@ void BatchManager::PushBatch(ColumnBatch const& batch)
         }
 
         size_t const chunk = std::min(remaining, space);
-        for (size_t i = 0; i < columns.size(); ++i)
+        for (auto const columnIndex: std::views::iota(size_t { 0 }, columns.size()))
         {
-            columns[i]->PushFromBatch(batch.columns[i], batch.nullIndicators[i], offset, chunk);
+            PushIntoColumn(columnIndex, [&](BatchColumn& column) {
+                column.PushFromBatch(batch.columns[columnIndex], batch.nullIndicators[columnIndex], offset, chunk);
+            });
         }
 
         rowCount += chunk;

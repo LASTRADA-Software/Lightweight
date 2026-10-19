@@ -6,9 +6,11 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <filesystem>
 #include <format>
 #include <fstream>
 #include <sstream>
+#include <string>
 
 #include <yaml-cpp/yaml.h>
 
@@ -33,6 +35,23 @@
 
 namespace Lightweight::Config
 {
+
+namespace
+{
+    /// A folder named in dbtool.yml, which is UTF-8; a plain `std::string` path would read it in the
+    /// ANSI code page on Windows.
+    [[nodiscard]] std::filesystem::path PathFromUtf8(std::string const& text)
+    {
+        return std::filesystem::path { std::u8string { text.begin(), text.end() } };
+    }
+
+    /// The UTF-8 spelling of @p path, as dbtool.yml stores it.
+    [[nodiscard]] std::string Utf8FromPath(std::filesystem::path const& path)
+    {
+        auto const text = path.u8string();
+        return std::string { text.begin(), text.end() };
+    }
+} // namespace
 
 SqlConnectInfo Profile::ToConnectInfo(std::string_view password) const
 {
@@ -63,8 +82,32 @@ SqlConnectInfo Profile::ToConnectInfo(std::string_view password) const
     return SqlConnectionString { std::move(extended) };
 }
 
+namespace
+{
+    /// Value of the environment variable `name`; empty when it is unset.
+    std::string EnvironmentValue(char const* name)
+    {
+#ifdef _WIN32
+        auto size = std::size_t {};
+        if (getenv_s(&size, nullptr, 0, name) != 0 || size == 0)
+            return {};
+        auto value = std::string(size, '\0');
+        if (getenv_s(&size, value.data(), value.size(), name) != 0)
+            return {};
+        value.resize(size - 1); // size counts the terminating null
+        return value;
+#else
+        auto const* const value = std::getenv(name);
+        return value != nullptr ? std::string { value } : std::string {};
+#endif
+    }
+} // namespace
+
 std::filesystem::path ProfileStore::DefaultPath()
 {
+    if (auto const directory = EnvironmentValue(UserConfigDirectoryVariable); !directory.empty())
+        return std::filesystem::path(directory) / "dbtool.yml";
+
 #ifdef _WIN32
     char path[MAX_PATH];
     if (SUCCEEDED(SHGetFolderPathA(nullptr, CSIDL_APPDATA, nullptr, 0, path)))
@@ -101,7 +144,7 @@ namespace
             p.pluginsDir = nLegacy.as<std::string>();
 
         if (auto n = node["backupDir"]; n && n.IsScalar())
-            p.backupDir = n.as<std::string>();
+            p.backupDir = PathFromUtf8(n.as<std::string>());
 
         if (auto n = node["schema"])
             p.schema = n.as<std::string>();
@@ -167,7 +210,7 @@ namespace
                 out << YAML::Key << key << YAML::Value << value;
         };
         emit("pluginsDir", p.pluginsDir.string());
-        emit("backupDir", p.backupDir.string());
+        emit("backupDir", Utf8FromPath(p.backupDir));
         emit("schema", p.schema);
         emit("dsn", p.dsn);
         emit("connectionString", p.connectionString);
@@ -253,7 +296,7 @@ std::expected<ProfileStore, std::string> ProfileStore::LoadOrDefault(std::filesy
 
     // A blank `defaultBackupDir:` (YAML null) means "none".
     if (auto n = root["defaultBackupDir"]; n && n.IsScalar())
-        store._defaultBackupDir = n.as<std::string>();
+        store._defaultBackupDir = PathFromUtf8(n.as<std::string>());
 
     auto profiles = root["profiles"];
     if (!profiles || !profiles.IsMap())
@@ -309,7 +352,7 @@ std::expected<void, std::string> ProfileStore::Save(std::filesystem::path path) 
     }
 
     if (!_defaultBackupDir.empty())
-        out << YAML::Key << "defaultBackupDir" << YAML::Value << _defaultBackupDir.string();
+        out << YAML::Key << "defaultBackupDir" << YAML::Value << Utf8FromPath(_defaultBackupDir);
 
     out << YAML::Key << "profiles" << YAML::Value << YAML::BeginMap;
     for (auto const& p: _profiles)

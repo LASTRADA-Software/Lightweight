@@ -7,10 +7,15 @@
 # also a tools-private STATIC library shared between dbtool and dbtool-gui.
 
 add_library(tools_shared STATIC
+    BackupRecording.cpp
+    BackupRecording.hpp
+
     Config/BackupOutput.cpp
     Config/BackupOutput.hpp
     Config/ConfigDiscovery.cpp
     Config/ConfigDiscovery.hpp
+    Config/ConnectionTarget.cpp
+    Config/ConnectionTarget.hpp
     Config/ProfileAdd.cpp
     Config/ProfileAdd.hpp
     Config/ProfileFileEditor.cpp
@@ -19,6 +24,8 @@ add_library(tools_shared STATIC
     Config/ProfilePassword.hpp
     Config/ProfileStore.cpp
     Config/ProfileStore.hpp
+
+    NoErrorDialogs.hpp
 
     PluginDiscovery.cpp
     PluginDiscovery.hpp
@@ -47,6 +54,9 @@ add_library(tools_shared STATIC
 )
 
 target_compile_features(tools_shared PUBLIC cxx_std_23)
+
+# The version `ToolVersion` stamps into schema_backups records.
+target_compile_definitions(tools_shared PRIVATE LIGHTWEIGHT_TOOLS_VERSION="${LIGHTWEIGHT_VERSION_STRING}")
 
 # Consumers `#include "Config/ProfileStore.hpp"`, etc. — the `Lightweight/`
 # prefix used by the public library is intentionally not part of this

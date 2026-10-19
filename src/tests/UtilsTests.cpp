@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "UniqueTempPath.hpp"
+
 #include <Lightweight/DataMapper/Field.hpp>
 #include <Lightweight/DataMapper/Record.hpp>
 #include <Lightweight/SqlBackup/Common.hpp>
@@ -19,6 +21,7 @@
 #include <limits>
 #include <optional>
 #include <string_view>
+#include <system_error>
 #include <type_traits>
 #include <variant>
 
@@ -364,7 +367,7 @@ TEST_CASE("EnsureSqliteDatabaseFileExists: in-memory paths short-circuit", "[Sql
 
 TEST_CASE("EnsureSqliteDatabaseFileExists: creates file at fresh path", "[SqlConnectInfo]")
 {
-    auto const tempDir = std::filesystem::temp_directory_path() / "lightweight-coverage-test";
+    auto const tempDir = UniqueTempPath("lightweight-coverage-test");
     std::filesystem::create_directories(tempDir);
     auto const dbPath = tempDir / "fresh.db";
     std::filesystem::remove(dbPath); // make sure it doesn't exist
@@ -372,7 +375,8 @@ TEST_CASE("EnsureSqliteDatabaseFileExists: creates file at fresh path", "[SqlCon
     SqlConnectionString const cs { .value = std::format("Driver=SQLite3;Database={};", dbPath.string()) };
     CHECK(EnsureSqliteDatabaseFileExists(cs));
     CHECK(std::filesystem::exists(dbPath));
-    std::filesystem::remove(dbPath);
+    auto ec = std::error_code {};
+    std::filesystem::remove_all(tempDir, ec);
 }
 
 TEST_CASE("SqlConnectionDataSource::FromConnectionString extracts fields", "[SqlConnectInfo]")

@@ -1,17 +1,24 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "RecordingProgressTask.hpp"
 #include "Utils.hpp"
 
 #include <Lightweight/Lightweight.hpp>
 #include <Lightweight/QueryFormatter/SqlServerFormatter.hpp>
+#include <Lightweight/SqlBackup/Common.hpp>
+#include <Lightweight/SqlBackup/SqlBackup.hpp>
 #include <Lightweight/SqlScopedLock.hpp>
 
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <algorithm>
+#include <cctype>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <streambuf>
 
 #include <CodeGen/SplitFileWriter.hpp>
@@ -27,6 +34,7 @@ std::ostream& operator<<(std::ostream& os, Lightweight::SqlMigration::MigrationT
 } // namespace std
 
 using namespace Lightweight;
+using Lightweight::SqlMigration::ExecutionMode;
 
 class SqlMigrationTestFixture: public SqlTestFixture
 {
@@ -300,6 +308,58 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Transaction Rollback", "[SqlMigration
         // Should throw because table should have been rolled back
         CHECK_THROWS_AS((void) stmt.ExecuteDirect("SELECT count(*) FROM should_not_exist"), SqlException);
     }
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "SQL Server: an error late in a migration batch fails and rolls back the migration",
+                 "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    auto& connection = manager.GetDataMapper().Connection();
+    if (connection.ServerType() != SqlServerType::MICROSOFT_SQL)
+        return; // Only SQL Server reports each row count of a batch as a result of its own.
+
+    auto const createTable = SqlMigration::Migration<202610170101>("create probe", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("BatchProbe").PrimaryKey("Id", Integer()).RequiredColumn("Value", Integer());
+        plan.Insert("BatchProbe").Set("Id", 1).Set("Value", 10);
+    });
+    manager.CreateMigrationHistory();
+    manager.ApplySingleMigration(createTable);
+
+    auto const storedValue = [&] {
+        auto stmt = SqlStatement { connection };
+        return stmt.ExecuteDirectScalar<int>(R"(SELECT "Value" FROM "BatchProbe" WHERE "Id" = 1)").value_or(-1);
+    };
+
+    // A guard that counts, changes a row and then refuses; and a batch whose second statement fails.
+    auto const batch =
+        GENERATE(as<std::string> {},
+                 R"(DECLARE @n INT; SELECT @n = COUNT(*) FROM sys.columns; )"
+                 R"(UPDATE "BatchProbe" SET "Value" = 43 WHERE "Id" = 1; THROW 50000, N'refused', 1;)",
+                 R"(UPDATE "BatchProbe" SET "Value" = 40 WHERE "Id" = 1; INSERT INTO "NoSuchTable" VALUES (1);)");
+    // Without the migration lock, at the server default NOCOUNT OFF, and under the lock dbtool takes.
+    auto const underLock = GENERATE(false, true);
+    CAPTURE(batch, underLock);
+
+    auto const refused = SqlMigration::Migration<202610170102>(
+        "refused batch", [&batch](SqlMigrationQueryBuilder& plan) { plan.RawSql(batch); });
+
+    (void) SqlStatement { connection }.ExecuteDirect("SET NOCOUNT OFF");
+    auto lock = std::optional<SqlScopedLock> {};
+    if (underLock)
+        lock.emplace(connection, "lightweight_batch_error_lock");
+
+    {
+        auto const _ = ScopedSqlNullLogger {}; // the failure is expected
+        CHECK_THROWS_AS(manager.ApplySingleMigration(refused), SqlMigration::MigrationException);
+    }
+    lock.reset();
+
+    CHECK(storedValue() == 10);
+    auto const applied = manager.GetAppliedMigrationIds();
+    CHECK(std::ranges::find(applied, SqlMigration::MigrationTimestamp { 202610170102 }) == applied.end());
 }
 
 TEST_CASE_METHOD(SqlMigrationTestFixture, "MigrationException carries structured context", "[SqlMigration]")
@@ -2109,6 +2169,7 @@ TEST_CASE("ToSql: lup-truncate off leaves oversize INSERT values intact", "[SqlM
         .schemaName = "",
         .tableName = "T",
         .columns = { { "n", Lightweight::SqlVariant(std::string("hellooo")) } }, // 7 > 5
+        .keyColumns = {},
     };
 
     CapturingWarningLogger capture;
@@ -2148,6 +2209,7 @@ TEST_CASE("ToSql: lup-truncate on clips oversize INSERT values and warns", "[Sql
         .schemaName = "",
         .tableName = "T",
         .columns = { { "n", Lightweight::SqlVariant(std::string("hellooo")) } },
+        .keyColumns = {},
     };
 
     CapturingWarningLogger capture;
@@ -2198,6 +2260,7 @@ TEST_CASE("ToSql: lup-truncate handles UTF-8 multi-byte by character count", "[S
         .schemaName = "",
         .tableName = "T",
         .columns = { { "n", Lightweight::SqlVariant(std::string("Körnung")) } },
+        .keyColumns = {},
     };
 
     CapturingWarningLogger capture;
@@ -2237,6 +2300,7 @@ TEST_CASE("ToSql: lup-truncate truncates string_view values from char-array lite
         .schemaName = "",
         .tableName = "T",
         .columns = { { "n", Lightweight::SqlVariant("hellooo") } },
+        .keyColumns = {},
     };
 
     auto const sql = Lightweight::ToSql(formatter, SqlMigrationPlanElement { insert }, context);
@@ -2280,6 +2344,7 @@ TEST_CASE("ToSql: DROP TABLE evicts column widths from the cache", "[SqlMigratio
         .schemaName = "",
         .tableName = "T",
         .columns = { { "n", Lightweight::SqlVariant(std::string("hellooo")) } },
+        .keyColumns = {},
     };
     CapturingWarningLogger capture;
     auto const sql = Lightweight::ToSql(formatter, SqlMigrationPlanElement { insert }, context);
@@ -2602,12 +2667,12 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     mgr.CreateMigrationHistory();
     REQUIRE(mgr.ApplyPendingMigrations() == 2);
 
-    auto const dryRun = mgr.HardReset(/*dryRun=*/true);
+    auto const dryRun = mgr.HardReset(ExecutionMode::DryRun);
     CHECK(dryRun.wasDryRun);
     CHECK(dryRun.droppedTables.size() == 2);
     CHECK_FALSE(dryRun.schemaMigrationsDropped);
 
-    auto const live = mgr.HardReset(/*dryRun=*/false);
+    auto const live = mgr.HardReset(ExecutionMode::Execute);
     CHECK_FALSE(live.wasDryRun);
     CHECK(live.droppedTables.size() == 2);
     CHECK(live.schemaMigrationsDropped);
@@ -2633,7 +2698,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "HardReset: preserves user tables", "[
     auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
     (void) stmt.ExecuteDirect("CREATE TABLE user_t (id INTEGER PRIMARY KEY)");
 
-    auto const result = mgr.HardReset(/*dryRun=*/false);
+    auto const result = mgr.HardReset(ExecutionMode::Execute);
     REQUIRE(result.preservedTables.size() == 1);
     CHECK(result.preservedTables[0].table == "user_t");
 
@@ -2659,10 +2724,116 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "HardReset: dry-run is observationally
     REQUIRE(mgr.ApplyPendingMigrations() == 1);
 
     auto const before = mgr.GetAppliedMigrationIds().size();
-    auto const result = mgr.HardReset(/*dryRun=*/true);
+    auto const result = mgr.HardReset(ExecutionMode::DryRun);
     auto const after = mgr.GetAppliedMigrationIds().size();
     CHECK(before == after);
     CHECK_FALSE(result.schemaMigrationsDropped);
+}
+
+namespace
+{
+/// Installs a SQL Server database DDL trigger that refuses every ALTER TABLE for its lifetime, so the
+/// foreign-key drops a cascading DropTable batch runs after its row-counting SELECT fail.
+class RefuseAlterTableTrigger
+{
+  public:
+    explicit RefuseAlterTableTrigger(SqlConnection& connection):
+        _connection { connection }
+    {
+        (void) SqlStatement { _connection }.ExecuteDirect(
+            "CREATE TRIGGER lightweight_refuse_alter ON DATABASE FOR ALTER_TABLE AS THROW 50000, N'alter refused', 1;");
+    }
+    ~RefuseAlterTableTrigger()
+    {
+        try
+        {
+            (void) SqlStatement { _connection }.ExecuteDirect("DROP TRIGGER lightweight_refuse_alter ON DATABASE");
+        }
+        catch (...) // NOLINT(bugprone-empty-catch) - a destructor must not throw
+        {
+        }
+    }
+    RefuseAlterTableTrigger(RefuseAlterTableTrigger const&) = delete;
+    RefuseAlterTableTrigger(RefuseAlterTableTrigger&&) = delete;
+    RefuseAlterTableTrigger& operator=(RefuseAlterTableTrigger const&) = delete;
+    RefuseAlterTableTrigger& operator=(RefuseAlterTableTrigger&&) = delete;
+
+  private:
+    SqlConnection& _connection;
+};
+
+/// Records the messages of the progress updates a restore helper reports.
+class RecordingProgressManager: public SqlBackup::ErrorTrackingProgressManager
+{
+  public:
+    void Update(SqlBackup::Progress const& progress) override
+    {
+        ErrorTrackingProgressManager::Update(progress);
+        messages.push_back(progress.message);
+    }
+    void AllDone() override {}
+
+    std::vector<std::string> messages;
+};
+} // namespace
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "SQL Server: HardReset reports the error of a refused foreign-key drop",
+                 "[SqlMigration][HardReset]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto& connection = mgr.GetDataMapper().Connection();
+    if (connection.ServerType() != SqlServerType::MICROSOFT_SQL)
+        return; // DDL triggers and multi-result batches are SQL Server specific here.
+
+    fold_test::FoldStub<20'10'17'00'00'01> m1 { "create parent", [](SqlMigrationQueryBuilder& plan) {
+                                                   plan.CreateTable("reset_parent").PrimaryKey("id", Integer());
+                                               } };
+    mgr.CreateMigrationHistory();
+    REQUIRE(mgr.ApplyPendingMigrations() == 1);
+    // A user table that HardReset keeps, so dropping the parent must drop its foreign key first.
+    (void) SqlStatement { connection }.ExecuteDirect(
+        R"(CREATE TABLE "reset_user" ("id" INT PRIMARY KEY, "parent_id" INT REFERENCES "reset_parent" ("id")))");
+
+    auto const message = [&] {
+        auto const trigger = RefuseAlterTableTrigger { connection };
+        auto const _ = ScopedSqlNullLogger {}; // the failure is expected
+        try
+        {
+            (void) mgr.HardReset(ExecutionMode::Execute);
+        }
+        catch (SqlException const& error)
+        {
+            return std::string { error.what() };
+        }
+        return std::string {};
+    }();
+    // The refusal itself, not the later DROP TABLE that fails because the foreign key survived.
+    CHECK(message.contains("alter refused"));
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "SQL Server: a restore's table drop reports the error of a refused foreign-key drop",
+                 "[SqlBackup]")
+{
+    auto& connection = SqlMigration::MigrationManager::GetInstance().GetDataMapper().Connection();
+    if (connection.ServerType() != SqlServerType::MICROSOFT_SQL)
+        return; // DDL triggers and multi-result batches are SQL Server specific here.
+
+    auto stmt = SqlStatement { connection };
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "restore_parent" ("id" INT PRIMARY KEY))");
+    (void) stmt.ExecuteDirect(
+        R"(CREATE TABLE "restore_child" ("id" INT PRIMARY KEY, "parent_id" INT REFERENCES "restore_parent" ("id")))");
+
+    auto progress = RecordingProgressManager {};
+    {
+        auto const trigger = RefuseAlterTableTrigger { connection };
+        auto const _ = ScopedSqlNullLogger {};
+        CHECK_FALSE(SqlBackup::detail::DropTableIfExists(connection, std::string {}, "restore_parent", progress));
+    }
+    REQUIRE(progress.messages.size() == 1);
+    CHECK(progress.messages[0].contains("alter refused"));
 }
 
 // ============================================================================
@@ -2686,7 +2857,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "UnicodeUpgradeTables: dry-run reports
     mgr.CreateMigrationHistory();
     REQUIRE(mgr.ApplyPendingMigrations() == 1);
 
-    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::DryRun);
     CHECK(result.wasDryRun);
     // Same intended/live types — no entries.
     CHECK(result.columns.empty());
@@ -2715,7 +2886,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     REQUIRE(mgr.ApplyPendingMigrations() == 1);
 
     // Should run cleanly without exceptions.
-    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
     (void) result;
 
     // After the upgrade the table must still be queryable. SqlSchema::ReadAllTables is
@@ -2857,7 +3028,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     auto& mgr = SqlMigration::MigrationManager::GetInstance();
     mgr.CreateMigrationHistory();
 
-    auto const result = mgr.HardReset(/*dryRun=*/false);
+    auto const result = mgr.HardReset(ExecutionMode::Execute);
 
     auto const bookkeeping = formatter.AdvisoryLockOps().BookkeepingTableNames();
     for (auto const& name: bookkeeping)
@@ -3430,6 +3601,7 @@ TEST_CASE("ToSql: lup-truncate clips wide-string and SqlText variants, also on U
             .schemaName = "",
             .tableName = "T",
             .columns = { { "n", std::move(value) } },
+            .keyColumns = {},
         };
         auto const sql = Lightweight::ToSql(formatter, SqlMigrationPlanElement { insert }, context);
         REQUIRE(sql.size() == 1);
@@ -3735,38 +3907,43 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
         }
     };
 
-    auto const dry = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    auto const dry = mgr.UnicodeUpgradeTables(ExecutionMode::DryRun);
     CHECK(dry.wasDryRun);
 
-    if (stmt.Connection().ServerType() == SqlServerType::POSTGRESQL)
+    auto const serverType = stmt.Connection().ServerType();
+    auto const textIsOneType = serverType == SqlServerType::POSTGRESQL || serverType == SqlServerType::SQLITE;
+    // psqlODBC's ANSI driver: psqlodbca.so off Windows, PSQLODBC30A.DLL on Windows.
+    auto const driverName = [&] {
+        auto name = stmt.Connection().DriverName();
+        std::ranges::transform(name, name.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        return name;
+    }();
+    auto const isAnsiPostgreSqlDriver =
+        serverType == SqlServerType::POSTGRESQL && (driverName.contains("psqlodbca") || driverName.contains("psqlodbc30a"));
+    if (serverType == SqlServerType::POSTGRESQL && !isAnsiPostgreSqlDriver)
     {
-        // psqlODBC (Unicode driver) reports VARCHAR columns as wide types and
-        // PostgreSQL stores all strings as UTF-8, so there is no narrow/wide
-        // drift to repair — the correct result is "nothing to do".
+        // psqlODBC's Unicode driver reports VARCHAR columns as wide types and PostgreSQL stores
+        // all strings as UTF-8, so there is no narrow/wide drift to repair.
         CHECK(dry.columns.empty());
     }
-    else if (stmt.Connection().ServerType() == SqlServerType::SQLITE && dry.columns.empty())
+    else if (serverType == SqlServerType::SQLITE && dry.columns.empty())
     {
-        // The SQLite ODBC driver's Unicode build (the stock Windows DLL) reports
-        // every text column as a wide type, so — as with psqlODBC — no narrow/wide
-        // drift is observable and "nothing to do" is the correct result. The ANSI
-        // build (typical on Linux) reports the declared narrow type and takes the
-        // upgrade path below.
+        // The SQLite ODBC driver's Unicode build (the stock Windows DLL) reports every text column
+        // as a wide type, so no drift is observable; its ANSI build takes the upgrade path below.
         SUCCEED();
     }
     else
     {
         REQUIRE_FALSE(dry.columns.empty());
 
-        auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+        auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
         CHECK_FALSE(result.wasDryRun);
         REQUIRE_FALSE(result.columns.empty());
 
-        // After the real run the drift is gone — except on SQLite, whose ODBC
-        // driver cannot distinguish VARCHAR from NVARCHAR in live metadata (see
-        // the roundtrip test above), so the reader keeps reporting the narrow type.
-        if (stmt.Connection().ServerType() != SqlServerType::SQLITE)
-            CHECK(mgr.UnicodeUpgradeTables(/*dryRun=*/true).columns.empty());
+        // After the real run the drift is gone — except where narrow and wide text are one type
+        // (PostgreSQL, SQLite): there the ANSI driver keeps reporting the narrow type.
+        if (!textIsOneType)
+            CHECK(mgr.UnicodeUpgradeTables(ExecutionMode::DryRun).columns.empty());
     }
 
     // The upgraded table must stay usable.
@@ -4006,13 +4183,13 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     };
 
     // A dry run reports what would be dropped and recreated, and changes nothing.
-    auto const preview = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    auto const preview = mgr.UnicodeUpgradeTables(ExecutionMode::DryRun);
     CHECK(std::ranges::contains(preview.rebuiltObjects, std::string { "PRIMARY KEY PK_legacy_users on dbo.uu_users" }));
     CHECK(std::ranges::contains(preview.rebuiltObjects,
                                 std::string { "FOREIGN KEY FK_legacy_line_refs on dbo.uu_line_refs" }));
     CHECK(LiveDataType(stmt, "uu_users", "NAME") == "char");
 
-    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
     REQUIRE(result.columns.size() == 6);
 
     CHECK(LiveDataType(stmt, "uu_users", "NAME") == "nchar");
@@ -4055,7 +4232,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     CHECK(stmt.ExecuteDirectScalar<long long>("SELECT COUNT(*) FROM uu_orders").value_or(-1) == 0);
     (void) stmt.ExecuteDirect("SET ANSI_WARNINGS OFF");
 
-    CHECK(mgr.UnicodeUpgradeTables(/*dryRun=*/true).columns.empty());
+    CHECK(mgr.UnicodeUpgradeTables(ExecutionMode::DryRun).columns.empty());
 }
 
 TEST_CASE_METHOD(SqlMigrationTestFixture,
@@ -4081,7 +4258,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
 
     try
     {
-        std::ignore = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+        std::ignore = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
         FAIL("expected the schema-bound view to block the upgrade");
     }
     catch (std::runtime_error const& e)
@@ -4095,6 +4272,357 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     CHECK(CatalogScalar(stmt, "SELECT type FROM sys.key_constraints WHERE parent_object_id = OBJECT_ID('uu_bound')")
           == "PK");
     (void) stmt.ExecuteDirect("DROP VIEW uu_bound_view");
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server widens undeclared columns that reference an upgraded key",
+                 "[SqlMigration][UnicodeUpgrade]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("only SQL Server rejects a foreign key between narrow and wide text");
+    mgr.CreateMigrationHistory();
+
+    // A legacy shape the migrations no longer describe: uu_fk_child.REF was renamed since, and
+    // uu_fk_log is not declared at all. Both reference the key the migrations widen.
+    for (auto const* sql: {
+             "CREATE TABLE uu_fk_parent (NAME CHAR(30) NOT NULL CONSTRAINT PK_uu_fk_parent PRIMARY KEY)",
+             "CREATE TABLE uu_fk_child (ID INT NOT NULL CONSTRAINT PK_uu_fk_child PRIMARY KEY, "
+             "REF CHAR(30) NOT NULL CONSTRAINT FK_uu_fk_child_ref REFERENCES uu_fk_parent (NAME))",
+             "CREATE UNIQUE INDEX IX_uu_fk_child_ref ON uu_fk_child (REF, ID)",
+             "CREATE TABLE uu_fk_log (ID INT NOT NULL PRIMARY KEY, "
+             "PARENT_NAME CHAR(30) NULL CONSTRAINT FK_uu_fk_log_parent REFERENCES uu_fk_parent (NAME))",
+             "INSERT INTO uu_fk_parent (NAME) VALUES ('alice')",
+             "INSERT INTO uu_fk_child (ID, REF) VALUES (1, 'alice')",
+             "INSERT INTO uu_fk_log (ID, PARENT_NAME) VALUES (1, 'alice')",
+         })
+        (void) stmt.ExecuteDirect(sql);
+
+    fold_test::FoldStub<20'26'10'16'00'01> decl {
+        "declare wide",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("uu_fk_parent").PrimaryKey("NAME", NChar(30));
+            plan.CreateTable("uu_fk_child").PrimaryKey("ID", Integer()).RequiredColumn("PARENT_NAME", NChar(30));
+        }
+    };
+
+    auto const upgraded = [](SqlMigration::MigrationManager::UnicodeUpgradeResult const& result) {
+        auto names = std::vector<std::string> {};
+        for (auto const& c: result.columns)
+            names.push_back(std::format("{}.{} {}", c.table.table, c.column, c.joinedByForeignKeyTo));
+        std::ranges::sort(names);
+        return names;
+    };
+    auto const expected = std::vector<std::string> {
+        "uu_fk_child.REF uu_fk_parent.NAME",
+        "uu_fk_log.PARENT_NAME uu_fk_parent.NAME",
+        "uu_fk_parent.NAME ",
+    };
+
+    // The dry run lists the referencing columns next to the declared one, and changes nothing.
+    auto const preview = mgr.UnicodeUpgradeTables(ExecutionMode::DryRun);
+    CHECK(upgraded(preview) == expected);
+    CHECK(std::ranges::contains(preview.rebuiltObjects, std::string { "INDEX IX_uu_fk_child_ref on dbo.uu_fk_child" }));
+    CHECK(std::ranges::contains(preview.rebuiltObjects, std::string { "FOREIGN KEY FK_uu_fk_log_parent on dbo.uu_fk_log" }));
+    CHECK(LiveDataType(stmt, "uu_fk_child", "REF") == "char");
+
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
+    CHECK(upgraded(result) == expected);
+    CHECK(LiveDataType(stmt, "uu_fk_parent", "NAME") == "nchar");
+    CHECK(LiveDataType(stmt, "uu_fk_child", "REF") == "nchar");
+    CHECK(LiveDataType(stmt, "uu_fk_log", "PARENT_NAME") == "nchar");
+
+    // The foreign keys and the index are back under their original names, on the same columns.
+    CHECK(CatalogScalar(stmt,
+                        "SELECT OBJECT_NAME(referenced_object_id) FROM sys.foreign_keys WHERE name = "
+                        "'FK_uu_fk_child_ref'")
+          == "uu_fk_parent");
+    CHECK(CatalogScalar(stmt,
+                        "SELECT OBJECT_NAME(referenced_object_id) FROM sys.foreign_keys WHERE name = "
+                        "'FK_uu_fk_log_parent'")
+          == "uu_fk_parent");
+    CHECK(CatalogScalar(stmt,
+                        "SELECT CAST(i.is_unique AS VARCHAR(1)) + STRING_AGG(COL_NAME(ic.object_id, ic.column_id), ',') "
+                        "WITHIN GROUP (ORDER BY ic.key_ordinal) FROM sys.indexes i JOIN sys.index_columns ic ON "
+                        "ic.object_id = i.object_id AND ic.index_id = i.index_id WHERE i.name = 'IX_uu_fk_child_ref' "
+                        "GROUP BY i.is_unique")
+          == "1REF,ID");
+
+    // The data survives and the keys still bite.
+    CHECK(stmt.ExecuteDirectScalar<long long>("SELECT COUNT(*) FROM uu_fk_child WHERE REF = N'alice'").value_or(0) == 1);
+    CHECK_THROWS(stmt.ExecuteDirect("INSERT INTO uu_fk_log (ID, PARENT_NAME) VALUES (2, N'nobody')"));
+
+    CHECK(mgr.UnicodeUpgradeTables(ExecutionMode::DryRun).columns.empty());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server widens the primary key of an undeclared table that references an "
+                 "upgraded key, and what references that key in turn",
+                 "[SqlMigration][UnicodeUpgrade]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("only SQL Server rejects a foreign key between narrow and wide text");
+    mgr.CreateMigrationHistory();
+
+    // uu_fk_xref is declared by no migration, and its referencing column is also its primary key, which
+    // uu_fk_xref_note references in turn: a second hop.
+    for (auto const* sql: {
+             "CREATE TABLE uu_fk_product (PRODUCT CHAR(30) NOT NULL CONSTRAINT PK_uu_fk_product PRIMARY KEY)",
+             "CREATE TABLE uu_fk_xref (PRODUCT_CODE CHAR(30) NOT NULL CONSTRAINT PK_uu_fk_xref PRIMARY KEY, "
+             "CONSTRAINT FK_uu_fk_xref_product_code FOREIGN KEY (PRODUCT_CODE) REFERENCES uu_fk_product (PRODUCT))",
+             "CREATE TABLE uu_fk_xref_note (ID INT NOT NULL PRIMARY KEY, PRODUCT_CODE CHAR(30) NOT NULL "
+             "CONSTRAINT FK_uu_fk_xref_note REFERENCES uu_fk_xref (PRODUCT_CODE))",
+             "INSERT INTO uu_fk_product (PRODUCT) VALUES ('sand')",
+             "INSERT INTO uu_fk_xref (PRODUCT_CODE) VALUES ('sand')",
+             "INSERT INTO uu_fk_xref_note (ID, PRODUCT_CODE) VALUES (1, 'sand')",
+         })
+        (void) stmt.ExecuteDirect(sql);
+
+    fold_test::FoldStub<20'26'10'16'00'05> decl { "declare wide", [](SqlMigrationQueryBuilder& plan) {
+                                                     plan.CreateTable("uu_fk_product").PrimaryKey("PRODUCT", NChar(30));
+                                                 } };
+
+    auto const preview = mgr.UnicodeUpgradeTables(ExecutionMode::DryRun);
+    CHECK(std::ranges::contains(preview.rebuiltObjects, std::string { "PRIMARY KEY PK_uu_fk_xref on dbo.uu_fk_xref" }));
+
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
+    auto const upgraded = [&] {
+        auto names = std::vector<std::string> {};
+        for (auto const& c: result.columns)
+            names.push_back(std::format("{}.{} {}", c.table.table, c.column, c.joinedByForeignKeyTo));
+        std::ranges::sort(names);
+        return names;
+    }();
+    CHECK(upgraded
+          == std::vector<std::string> {
+              "uu_fk_product.PRODUCT ",
+              "uu_fk_xref.PRODUCT_CODE uu_fk_product.PRODUCT",
+              "uu_fk_xref_note.PRODUCT_CODE uu_fk_xref.PRODUCT_CODE",
+          });
+    // The second-hop foreign key is reported among the rebuilt ones too.
+    CHECK(std::ranges::any_of(result.rebuiltForeignKeys,
+                              [](auto const& fk) { return fk.referencedTableName == "uu_fk_xref"; }));
+    CHECK(LiveDataType(stmt, "uu_fk_product", "PRODUCT") == "nchar");
+    CHECK(LiveDataType(stmt, "uu_fk_xref", "PRODUCT_CODE") == "nchar");
+    CHECK(LiveDataType(stmt, "uu_fk_xref_note", "PRODUCT_CODE") == "nchar");
+    CHECK(CatalogScalar(stmt,
+                        "SELECT OBJECT_NAME(referenced_object_id) FROM sys.foreign_keys WHERE name = "
+                        "'FK_uu_fk_xref_note'")
+          == "uu_fk_xref");
+    CHECK(CatalogScalar(stmt, "SELECT type FROM sys.key_constraints WHERE name = 'PK_uu_fk_xref'") == "PK");
+    CHECK(CatalogScalar(stmt,
+                        "SELECT OBJECT_NAME(referenced_object_id) FROM sys.foreign_keys WHERE name = "
+                        "'FK_uu_fk_xref_product_code'")
+          == "uu_fk_product");
+    CHECK(stmt.ExecuteDirectScalar<long long>("SELECT COUNT(*) FROM uu_fk_xref").value_or(0) == 1);
+    CHECK(stmt.ExecuteDirectScalar<long long>("SELECT COUNT(*) FROM uu_fk_xref_note").value_or(0) == 1);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server pairs the columns of a composite foreign key by position",
+                 "[SqlMigration][UnicodeUpgrade]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("only SQL Server rejects a foreign key between narrow and wide text");
+    mgr.CreateMigrationHistory();
+
+    // The child lists the key columns in another order than its own column order.
+    for (auto const* sql: {
+             "CREATE TABLE uu_fk_pair (ID INT NOT NULL, CODE CHAR(10) NOT NULL, NOTE CHAR(10) NULL, "
+             "CONSTRAINT PK_uu_fk_pair PRIMARY KEY (ID, CODE))",
+             "CREATE TABLE uu_fk_pair_ref (CODE CHAR(10) NOT NULL, LABEL CHAR(10) NULL, ID INT NOT NULL, "
+             "CONSTRAINT FK_uu_fk_pair_ref FOREIGN KEY (ID, CODE) REFERENCES uu_fk_pair (ID, CODE))",
+             "INSERT INTO uu_fk_pair (ID, CODE) VALUES (1, 'a')",
+             "INSERT INTO uu_fk_pair_ref (CODE, ID) VALUES ('a', 1)",
+         })
+        (void) stmt.ExecuteDirect(sql);
+
+    fold_test::FoldStub<20'26'10'16'00'06> decl { "declare wide", [](SqlMigrationQueryBuilder& plan) {
+                                                     plan.CreateTable("uu_fk_pair")
+                                                         .RequiredColumn("ID", Integer())
+                                                         .RequiredColumn("CODE", NChar(10))
+                                                         .Column("NOTE", Char(10));
+                                                 } };
+
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
+    REQUIRE(result.columns.size() == 2);
+    CHECK(result.columns.back().table.table == "uu_fk_pair_ref");
+    CHECK(result.columns.back().column == "CODE");
+    CHECK(result.columns.back().joinedByForeignKeyTo == "uu_fk_pair.CODE");
+    CHECK(LiveDataType(stmt, "uu_fk_pair_ref", "CODE") == "nchar");
+    CHECK(LiveDataType(stmt, "uu_fk_pair_ref", "ID") == "int");
+    CHECK(LiveDataType(stmt, "uu_fk_pair_ref", "LABEL") == "char");
+    CHECK(CatalogScalar(stmt,
+                        "SELECT STRING_AGG(COL_NAME(parent_object_id, parent_column_id) + '>' + "
+                        "COL_NAME(referenced_object_id, referenced_column_id), ',') WITHIN GROUP "
+                        "(ORDER BY constraint_column_id) FROM sys.foreign_key_columns WHERE constraint_object_id = "
+                        "OBJECT_ID('FK_uu_fk_pair_ref')")
+          == "ID>ID,CODE>CODE");
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server leaves a same-named table in another schema alone",
+                 "[SqlMigration][UnicodeUpgrade]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("only SQL Server rejects a foreign key between narrow and wide text");
+    mgr.CreateMigrationHistory();
+
+    // Another schema, sorting before dbo, holds a table named like the undeclared referencing one.
+    (void) stmt.ExecuteDirect("DROP TABLE IF EXISTS aa_uu_other.uu_fk_twin");
+    (void) stmt.ExecuteDirect("DROP SCHEMA IF EXISTS aa_uu_other");
+    (void) stmt.ExecuteDirect("CREATE SCHEMA aa_uu_other");
+    for (auto const* sql: {
+             "CREATE TABLE aa_uu_other.uu_fk_twin (REF CHAR(30) NOT NULL)",
+             "CREATE TABLE uu_fk_origin (NAME CHAR(30) NOT NULL PRIMARY KEY)",
+             "CREATE TABLE uu_fk_twin (REF CHAR(30) NOT NULL CONSTRAINT FK_uu_fk_twin REFERENCES uu_fk_origin (NAME))",
+         })
+        (void) stmt.ExecuteDirect(sql);
+
+    fold_test::FoldStub<20'26'10'16'00'07> decl { "declare wide", [](SqlMigrationQueryBuilder& plan) {
+                                                     plan.CreateTable("uu_fk_origin").PrimaryKey("NAME", NChar(30));
+                                                 } };
+
+    auto const twinType = [&](std::string_view schema) {
+        return CatalogScalar(stmt,
+                             std::format("SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{}' "
+                                         "AND TABLE_NAME = 'uu_fk_twin' AND COLUMN_NAME = 'REF'",
+                                         schema));
+    };
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
+    CHECK(result.columns.size() == 2);
+    CHECK(twinType("dbo") == "nchar");
+    CHECK(twinType("aa_uu_other") == "char");
+
+    (void) stmt.ExecuteDirect("DROP TABLE aa_uu_other.uu_fk_twin");
+    (void) stmt.ExecuteDirect("DROP SCHEMA aa_uu_other");
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server widens an undeclared key that an upgraded column references",
+                 "[SqlMigration][UnicodeUpgrade]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("only SQL Server rejects a foreign key between narrow and wide text");
+    mgr.CreateMigrationHistory();
+
+    for (auto const* sql: {
+             "CREATE TABLE uu_fk_codes (CODE VARCHAR(10) NOT NULL CONSTRAINT PK_uu_fk_codes PRIMARY KEY)",
+             "CREATE TABLE uu_fk_items (ID INT NOT NULL PRIMARY KEY, "
+             "CODE VARCHAR(10) NOT NULL CONSTRAINT FK_uu_fk_items_code REFERENCES uu_fk_codes (CODE))",
+             "INSERT INTO uu_fk_codes (CODE) VALUES ('a')",
+             "INSERT INTO uu_fk_items (ID, CODE) VALUES (1, 'a')",
+         })
+        (void) stmt.ExecuteDirect(sql);
+
+    fold_test::FoldStub<20'26'10'16'00'02> decl {
+        "declare wide",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("uu_fk_items").PrimaryKey("ID", Integer()).RequiredColumn("CODE", NVarchar(10));
+        }
+    };
+
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
+    REQUIRE(result.columns.size() == 2);
+    CHECK(result.columns.back().table.table == "uu_fk_codes");
+    CHECK(result.columns.back().joinedByForeignKeyTo == "uu_fk_items.CODE");
+    CHECK(LiveDataType(stmt, "uu_fk_items", "CODE") == "nvarchar");
+    CHECK(LiveDataType(stmt, "uu_fk_codes", "CODE") == "nvarchar");
+    CHECK(CatalogScalar(stmt, "SELECT name FROM sys.foreign_keys WHERE name = 'FK_uu_fk_items_code'")
+          == "FK_uu_fk_items_code");
+    CHECK(CatalogScalar(stmt, "SELECT type FROM sys.key_constraints WHERE name = 'PK_uu_fk_codes'") == "PK");
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server refuses a referencing column declared with another type",
+                 "[SqlMigration][UnicodeUpgrade]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("only SQL Server rejects a foreign key between narrow and wide text");
+    mgr.CreateMigrationHistory();
+
+    for (auto const* sql: {
+             "CREATE TABLE uu_fk_owner (NAME CHAR(30) NOT NULL PRIMARY KEY)",
+             "CREATE TABLE uu_fk_pinned (ID INT NOT NULL PRIMARY KEY, "
+             "OWNER CHAR(30) NOT NULL REFERENCES uu_fk_owner (NAME))",
+         })
+        (void) stmt.ExecuteDirect(sql);
+
+    // The migrations widen the key but keep the referencing column narrow: no upgrade can satisfy both.
+    fold_test::FoldStub<20'26'10'16'00'03> decl {
+        "declare a contradiction",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("uu_fk_owner").PrimaryKey("NAME", NChar(30));
+            plan.CreateTable("uu_fk_pinned").PrimaryKey("ID", Integer()).RequiredColumn("OWNER", Char(30));
+        }
+    };
+
+    for (auto const mode: { ExecutionMode::DryRun, ExecutionMode::Execute })
+    {
+        CAPTURE(static_cast<int>(mode));
+        try
+        {
+            std::ignore = mgr.UnicodeUpgradeTables(mode);
+            FAIL("expected the narrow declaration to block the upgrade");
+        }
+        catch (std::runtime_error const& e)
+        {
+            CHECK(std::string_view { e.what() }.contains("uu_fk_pinned.OWNER"));
+            CHECK(std::string_view { e.what() }.contains("uu_fk_owner.NAME"));
+        }
+    }
+    CHECK(LiveDataType(stmt, "uu_fk_owner", "NAME") == "char");
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: matches declared names to the live schema without regard to case",
+                 "[SqlMigration][UnicodeUpgrade]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    mgr.CreateMigrationHistory();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "uu_Case_Stamp" ("Item_Name" CHAR(254) NOT NULL))");
+
+    fold_test::FoldStub<20'26'10'16'00'04> decl {
+        "declare upper case",
+        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("UU_CASE_STAMP").RequiredColumn("ITEM_NAME", NChar(254)); }
+    };
+
+    auto const dry = mgr.UnicodeUpgradeTables(ExecutionMode::DryRun);
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+    {
+        // PostgreSQL: quoted identifiers are case-sensitive, so the declared table is another one.
+        // SQLite: the Unicode ODBC driver reports CHAR as wide, so there is no drift to see.
+        if (stmt.Connection().ServerType() == SqlServerType::POSTGRESQL)
+            CHECK(dry.columns.empty());
+        return;
+    }
+
+    REQUIRE(dry.columns.size() == 1);
+    CHECK(dry.columns.front().table.table == "uu_Case_Stamp");
+    CHECK(dry.columns.front().column == "Item_Name");
+
+    std::ignore = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
+    CHECK(LiveDataType(stmt, "uu_Case_Stamp", "Item_Name") == "nchar");
+    CHECK(mgr.UnicodeUpgradeTables(ExecutionMode::DryRun).columns.empty());
 }
 
 TEST_CASE_METHOD(SqlMigrationTestFixture,
@@ -4150,4 +4678,1448 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     auto cursor = stmt.ExecuteDirect(R"(SELECT COUNT(*) FROM "partial_queue")");
     REQUIRE(cursor.FetchRow());
     CHECK(cursor.GetColumn<int64_t>(1) == 4);
+}
+
+// ================================================================================================
+// unicode-upgrade-tables in a database whose tables span several schemas
+// ================================================================================================
+
+namespace
+{
+
+/// Data type of @p schema.@p table.@p column, from INFORMATION_SCHEMA.
+std::string LiveDataTypeIn(SqlStatement& stmt, std::string_view schema, std::string_view table, std::string_view column)
+{
+    return CatalogScalar(stmt,
+                         std::format("SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{}' AND "
+                                     "TABLE_NAME = '{}' AND COLUMN_NAME = '{}'",
+                                     schema,
+                                     table,
+                                     column));
+}
+
+/// Drops what the SQL Server multi-schema upgrade tests create, ending any impersonation first.
+void DropSqlServerMultiSchemaFixture(SqlStatement& stmt)
+{
+    for (auto const* sql: {
+             "IF USER_NAME() = N'uu_ms_sales_user' REVERT",
+             "IF OBJECT_ID(N'sales.uu_ms_orders') IS NOT NULL DROP TABLE sales.uu_ms_orders",
+             "IF OBJECT_ID(N'dbo.uu_ms_orders') IS NOT NULL DROP TABLE dbo.uu_ms_orders",
+             "IF OBJECT_ID(N'dbo.uu_ms_customers') IS NOT NULL DROP TABLE dbo.uu_ms_customers",
+             "IF OBJECT_ID(N'sales.uu_ms_customers') IS NOT NULL DROP TABLE sales.uu_ms_customers",
+             "IF OBJECT_ID(N'uu_ms_other.uu_ms_customers') IS NOT NULL DROP TABLE uu_ms_other.uu_ms_customers",
+             "IF OBJECT_ID(N'uu_ms_third.uu_ms_customers') IS NOT NULL DROP TABLE uu_ms_third.uu_ms_customers",
+             "IF SCHEMA_ID(N'uu_ms_other') IS NOT NULL DROP SCHEMA uu_ms_other",
+             "IF SCHEMA_ID(N'uu_ms_third') IS NOT NULL DROP SCHEMA uu_ms_third",
+             "IF USER_ID(N'uu_ms_sales_user') IS NOT NULL DROP USER uu_ms_sales_user",
+         })
+        (void) stmt.ExecuteDirect(sql);
+    // A `sales` schema that still holds other objects stays.
+    constexpr auto dropEmptySchema = "IF SCHEMA_ID(N'sales') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM sys.objects "
+                                     "WHERE schema_id = SCHEMA_ID(N'sales')) DROP SCHEMA sales";
+    (void) stmt.ExecuteDirect(dropEmptySchema);
+}
+
+/// Creates `sales` and a user whose default schema it is, for `EXECUTE AS USER`.
+void CreateSalesUser(SqlStatement& stmt)
+{
+    for (auto const* sql: {
+             "CREATE SCHEMA sales",
+             "CREATE USER uu_ms_sales_user WITHOUT LOGIN WITH DEFAULT_SCHEMA = sales",
+             "ALTER ROLE db_owner ADD MEMBER uu_ms_sales_user",
+         })
+        (void) stmt.ExecuteDirect(sql);
+}
+
+/// Registers (for its lifetime) a migration that declares both test tables, unqualified and wide.
+std::unique_ptr<SqlMigration::MigrationBase> DeclareMultiSchemaUpgradeTables()
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    return std::make_unique<fold_test::FoldStub<20'26'10'17'00'01>>("declare wide", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("uu_ms_customers").PrimaryKey("CODE", NChar(10)).Column("NAME", NVarchar(30));
+        plan.CreateTable("uu_ms_orders").PrimaryKey("ID", Integer()).RequiredColumn("CUSTOMER_CODE", NChar(10));
+    });
+}
+
+/// Runs a real upgrade and returns the message it fails with ("" when it succeeds).
+std::string UpgradeError(SqlMigration::MigrationManager& manager, ExecutionMode mode)
+{
+    try
+    {
+        std::ignore = manager.UnicodeUpgradeTables(mode);
+        return {};
+    }
+    catch (std::runtime_error const& error)
+    {
+        return error.what();
+    }
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server widens a key in dbo while the default schema is another one",
+                 "[SqlMigration][UnicodeUpgrade][MultiSchema]")
+{
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("only SQL Server keeps narrow and wide text apart, so only there a key blocks the upgrade");
+    mgr.CreateMigrationHistory();
+
+    DropSqlServerMultiSchemaFixture(stmt);
+    auto const cleanup = detail::Finally([&] { DropSqlServerMultiSchemaFixture(stmt); });
+    // A CHAR key in dbo, referenced from the default schema `sales`: unqualified names resolve
+    // to sales first and then to dbo, as for a login whose default schema is not dbo.
+    CreateSalesUser(stmt);
+    for (auto const* sql: {
+             "CREATE TABLE dbo.uu_ms_customers (CODE CHAR(10) NOT NULL CONSTRAINT PK_uu_ms_customers PRIMARY KEY, "
+             "NAME VARCHAR(30) NULL)",
+             "CREATE TABLE sales.uu_ms_orders (ID INT NOT NULL CONSTRAINT PK_uu_ms_orders PRIMARY KEY, "
+             "CUSTOMER_CODE CHAR(10) NOT NULL CONSTRAINT FK_uu_ms_orders_customer FOREIGN KEY "
+             "REFERENCES dbo.uu_ms_customers (CODE))",
+             "INSERT INTO dbo.uu_ms_customers (CODE, NAME) VALUES ('c1', 'first')",
+             "INSERT INTO sales.uu_ms_orders (ID, CUSTOMER_CODE) VALUES (1, 'c1')",
+         })
+        (void) stmt.ExecuteDirect(sql);
+    auto const declared = DeclareMultiSchemaUpgradeTables();
+    (void) stmt.ExecuteDirect("EXECUTE AS USER = N'uu_ms_sales_user'");
+
+    auto const preview = mgr.UnicodeUpgradeTables(ExecutionMode::DryRun);
+    CHECK(std::ranges::contains(preview.rebuiltObjects,
+                                std::string { "PRIMARY KEY PK_uu_ms_customers on dbo.uu_ms_customers" }));
+    CHECK(std::ranges::contains(preview.rebuiltObjects,
+                                std::string { "FOREIGN KEY FK_uu_ms_orders_customer on sales.uu_ms_orders" }));
+
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
+    CHECK(result.columns.size() == 3);
+    (void) stmt.ExecuteDirect("REVERT");
+
+    CHECK(LiveDataTypeIn(stmt, "dbo", "uu_ms_customers", "CODE") == "nchar");
+    CHECK(LiveDataTypeIn(stmt, "dbo", "uu_ms_customers", "NAME") == "nvarchar");
+    CHECK(LiveDataTypeIn(stmt, "sales", "uu_ms_orders", "CUSTOMER_CODE") == "nchar");
+    CHECK(CatalogScalar(stmt, "SELECT type FROM sys.key_constraints WHERE name = 'PK_uu_ms_customers'") == "PK");
+    CHECK(CatalogScalar(stmt, "SELECT name FROM sys.foreign_keys WHERE name = 'FK_uu_ms_orders_customer'")
+          == "FK_uu_ms_orders_customer");
+    CHECK_THROWS(stmt.ExecuteDirect("INSERT INTO sales.uu_ms_orders (ID, CUSTOMER_CODE) VALUES (2, 'none')"));
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server widens a key in a schema other than the default one",
+                 "[SqlMigration][UnicodeUpgrade][MultiSchema]")
+{
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("only SQL Server keeps narrow and wide text apart, so only there a key blocks the upgrade");
+    mgr.CreateMigrationHistory();
+
+    DropSqlServerMultiSchemaFixture(stmt);
+    auto const cleanup = detail::Finally([&] { DropSqlServerMultiSchemaFixture(stmt); });
+    // A CHAR key in `sales`, its only holder, referenced from the default schema dbo.
+    for (auto const* sql: {
+             "CREATE SCHEMA sales",
+             "CREATE TABLE sales.uu_ms_customers (CODE CHAR(10) NOT NULL CONSTRAINT PK_uu_ms_customers PRIMARY KEY, "
+             "NAME VARCHAR(30) NULL)",
+             "CREATE TABLE dbo.uu_ms_orders (ID INT NOT NULL CONSTRAINT PK_uu_ms_orders PRIMARY KEY, "
+             "CUSTOMER_CODE CHAR(10) NOT NULL CONSTRAINT FK_uu_ms_orders_customer FOREIGN KEY "
+             "REFERENCES sales.uu_ms_customers (CODE))",
+             "INSERT INTO sales.uu_ms_customers (CODE, NAME) VALUES ('c1', 'first')",
+         })
+        (void) stmt.ExecuteDirect(sql);
+    auto const declared = DeclareMultiSchemaUpgradeTables();
+
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
+    CHECK(result.columns.size() == 3);
+    CHECK(std::ranges::contains(result.rebuiltObjects,
+                                std::string { "PRIMARY KEY PK_uu_ms_customers on sales.uu_ms_customers" }));
+    CHECK(LiveDataTypeIn(stmt, "sales", "uu_ms_customers", "CODE") == "nchar");
+    CHECK(LiveDataTypeIn(stmt, "dbo", "uu_ms_orders", "CUSTOMER_CODE") == "nchar");
+    CHECK(CatalogScalar(stmt, "SELECT type FROM sys.key_constraints WHERE name = 'PK_uu_ms_customers'") == "PK");
+    CHECK(CatalogScalar(stmt, "SELECT name FROM sys.foreign_keys WHERE name = 'FK_uu_ms_orders_customer'")
+          == "FK_uu_ms_orders_customer");
+    CHECK_THROWS(stmt.ExecuteDirect("INSERT INTO dbo.uu_ms_orders (ID, CUSTOMER_CODE) VALUES (1, 'none')"));
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server refuses a declared name that several off-path schemas hold",
+                 "[SqlMigration][UnicodeUpgrade][MultiSchema]")
+{
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("the resolution order default schema, then dbo, is SQL Server's");
+    mgr.CreateMigrationHistory();
+
+    DropSqlServerMultiSchemaFixture(stmt);
+    auto const cleanup = detail::Finally([&] { DropSqlServerMultiSchemaFixture(stmt); });
+    // The declared name in two schemas, neither the default schema `sales` nor dbo.
+    CreateSalesUser(stmt);
+    for (auto const* sql: {
+             "CREATE SCHEMA uu_ms_other",
+             "CREATE SCHEMA uu_ms_third",
+             "CREATE TABLE uu_ms_other.uu_ms_customers (CODE CHAR(10) NOT NULL PRIMARY KEY)",
+             "CREATE TABLE uu_ms_third.uu_ms_customers (CODE NCHAR(10) NOT NULL PRIMARY KEY)",
+         })
+        (void) stmt.ExecuteDirect(sql);
+    auto const declared = DeclareMultiSchemaUpgradeTables();
+    (void) stmt.ExecuteDirect("EXECUTE AS USER = N'uu_ms_sales_user'");
+
+    for (auto const mode: { ExecutionMode::DryRun, ExecutionMode::Execute })
+    {
+        auto const error = UpgradeError(mgr, mode);
+        CHECK(error.contains("the schemas uu_ms_other, uu_ms_third each hold one"));
+        CHECK(error.contains("resolve through sales, dbo only"));
+    }
+    (void) stmt.ExecuteDirect("REVERT");
+    CHECK(LiveDataTypeIn(stmt, "uu_ms_other", "uu_ms_customers", "CODE") == "char");
+    CHECK(LiveDataTypeIn(stmt, "uu_ms_third", "uu_ms_customers", "CODE") == "nchar");
+
+    // Once neither holder has a column to widen, the ambiguity no longer matters.
+    (void) stmt.ExecuteDirect("DROP TABLE uu_ms_other.uu_ms_customers");
+    (void) stmt.ExecuteDirect("CREATE TABLE uu_ms_other.uu_ms_customers (CODE NCHAR(10) NOT NULL PRIMARY KEY)");
+    (void) stmt.ExecuteDirect("EXECUTE AS USER = N'uu_ms_sales_user'");
+    CHECK(UpgradeError(mgr, ExecutionMode::Execute).empty());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: PostgreSQL resolves a declared name through the whole search path",
+                 "[SqlMigration][UnicodeUpgrade][MultiSchema]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::POSTGRESQL)
+        SKIP("the search path is PostgreSQL's");
+    mgr.CreateMigrationHistory();
+
+    auto const dropFixture = [&] {
+        (void) stmt.ExecuteDirect("RESET search_path");
+        (void) stmt.ExecuteDirect(R"(DROP TABLE IF EXISTS "public"."uu_ms_customers")");
+        for (auto const* schema: { "uu_ms_first", "uu_ms_other", "uu_ms_third" })
+            (void) stmt.ExecuteDirect(std::format(R"(DROP SCHEMA IF EXISTS "{}" CASCADE)", schema));
+    };
+    dropFixture();
+    auto const cleanup = detail::Finally(dropFixture);
+    for (auto const* sql: {
+             R"(CREATE SCHEMA "uu_ms_first")",
+             R"(CREATE SCHEMA "uu_ms_other")",
+             R"(CREATE SCHEMA "uu_ms_third")",
+             R"(CREATE TABLE "public"."uu_ms_customers" ("CODE" CHAR(10) NOT NULL PRIMARY KEY))",
+             R"(CREATE TABLE "uu_ms_other"."uu_ms_customers" ("CODE" CHAR(10) NOT NULL PRIMARY KEY))",
+         })
+        (void) stmt.ExecuteDirect(sql);
+    auto const declared = DeclareMultiSchemaUpgradeTables();
+
+    // The Unicode ODBC driver reports CHAR as wide text, so nothing qualifies and nothing is refused;
+    // the ANSI driver reports it as narrow, so the resolution decides what is widened.
+    auto const liveTables = SqlSchema::ReadAllTables(stmt, std::string {}, std::string {});
+    auto const liveCustomers = std::ranges::find_if(liveTables, [](SqlSchema::Table const& table) {
+        return table.schema == "public" && table.name == "uu_ms_customers";
+    });
+    REQUIRE(liveCustomers != liveTables.end());
+    REQUIRE(liveCustomers->columns.size() == 1);
+    auto const narrowText = std::holds_alternative<Char>(liveCustomers->columns.front().type);
+
+    // public is the second search path entry; the first one holds no such table.
+    (void) stmt.ExecuteDirect(R"(SET search_path TO "uu_ms_first", "public")");
+    auto const preview = mgr.UnicodeUpgradeTables(ExecutionMode::DryRun);
+    if (narrowText)
+    {
+        REQUIRE(preview.columns.size() == 1);
+        CHECK(preview.columns.front().table.schema == "public");
+        CHECK(preview.columns.front().table.table == "uu_ms_customers");
+    }
+    else
+        CHECK(preview.columns.empty());
+
+    // Two holders off the search path, and one has a column to widen: refused, nothing changes.
+    (void) stmt.ExecuteDirect(R"(DROP TABLE "public"."uu_ms_customers")");
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "uu_ms_third"."uu_ms_customers" ("CODE" CHAR(10) NOT NULL PRIMARY KEY))");
+    for (auto const mode: { ExecutionMode::DryRun, ExecutionMode::Execute })
+    {
+        auto const error = UpgradeError(mgr, mode);
+        if (narrowText)
+        {
+            CHECK(error.contains("the schemas uu_ms_other, uu_ms_third each hold one"));
+            CHECK(error.contains("resolve through uu_ms_first, public only"));
+        }
+        else
+            CHECK(error.empty());
+    }
+    CHECK(LiveDataTypeIn(stmt, "uu_ms_other", "uu_ms_customers", "CODE") == "character");
+}
+
+TEST_CASE("Checksum of a plain Insert is unchanged by IfNotExists support", "[SqlMigration]")
+{
+    // SHA-256 of `INSERT INTO "users" ("name", "age") VALUES ('John', 30)` plus its newline,
+    // the text a plain insert has always rendered to on SQLite.
+    auto const migration = SqlMigration::Migration<202610170001>(
+        "plain insert", [](SqlMigrationQueryBuilder& plan) { plan.Insert("users").Set("name", "John").Set("age", 30); });
+    CHECK(migration.ComputeChecksum(SqlQueryFormatter::Sqlite())
+          == "15702bf904b0d121320cfa4af0ef18a9d66de7b2ffdc0af0e0f81c58488d5b9e");
+
+    auto const conditional = SqlMigration::Migration<202610170002>("conditional insert", [](SqlMigrationQueryBuilder& plan) {
+        plan.Insert("users").Set("name", "John").Set("age", 30).IfNotExists({ "name" });
+    });
+    CHECK(conditional.ComputeChecksum(SqlQueryFormatter::Sqlite())
+          != migration.ComputeChecksum(SqlQueryFormatter::Sqlite()));
+}
+
+TEST_CASE("ToBoundSql binds the values of an IfNotExists insert", "[SqlMigration]")
+{
+    auto builder = SqlQueryBuilder(SqlQueryFormatter::Sqlite()).Migration();
+    builder.WithSchema("sales");
+    builder.Insert("Categories").Set("Id", 7).Set("Name", "Grüße").Set("Note", SqlNullValue).IfNotExists({ "Id" });
+    builder.Insert("Categories").Set("Id", 8);
+    auto const plan = std::move(builder).GetPlan();
+
+    auto const bound = ToBoundSql(plan.steps.at(0)).value_or(SqlBoundStatement {});
+    CHECK(bound.sql
+          == R"(INSERT INTO "sales"."Categories" ("Id", "Name", "Note") SELECT ?, ?, ? )"
+             R"(WHERE NOT EXISTS (SELECT 1 FROM "sales"."Categories" WHERE "Id" = ?))");
+    REQUIRE(bound.parameters.size() == 4);
+    CHECK(bound.parameters[0] == SqlVariant { 7 });
+    // UTF-8 text is bound as UTF-16, so the driver never reads it in the client code page.
+    REQUIRE(std::holds_alternative<std::u16string>(bound.parameters[1].value));
+    CHECK(std::get<std::u16string>(bound.parameters[1].value) == u"Grüße");
+    CHECK(bound.parameters[2].IsNull());
+    CHECK(bound.parameters[3] == SqlVariant { 7 });
+
+    // A plain insert has no bound form; it keeps running as its literal rendering.
+    CHECK_FALSE(ToBoundSql(plan.steps.at(1)).has_value());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Insert IfNotExists skips an existing row", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto const createTable = SqlMigration::Migration<202610170003>("create categories", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("Categories").PrimaryKey("Id", Integer()).RequiredColumn("Name", NVarchar(50));
+    });
+    // Down inserts the same key with a different name, so a revert exercises the skip as well.
+    auto const seedRow = SqlMigration::Migration<202610170004>(
+        "seed category",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.Insert("Categories").Set("Id", 200).Set("Name", "Grüße").IfNotExists({ "Id" });
+        },
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.Insert("Categories").Set("Id", 200).Set("Name", "different").IfNotExists({ "Id" });
+        });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    auto logged = std::vector<std::string> {};
+    manager.SetLogSink([&logged](std::string_view message) { logged.emplace_back(message); });
+    auto const restoreSink = ::Lightweight::detail::Finally([&manager] { manager.SetLogSink({}); });
+
+    auto const rowCount = [] {
+        auto stmt = SqlStatement {};
+        return stmt.ExecuteDirectScalar<long long>(R"(SELECT COUNT(*) FROM "Categories")").value_or(-1);
+    };
+    auto const storedName = [] {
+        auto stmt = SqlStatement {};
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "Name" FROM "Categories" WHERE "Id" = 200)");
+        REQUIRE(cursor.FetchRow());
+        auto value = SqlVariant {};
+        REQUIRE(cursor.GetColumn(1, &value));
+        return value.ToString();
+    };
+
+    manager.CreateMigrationHistory();
+    auto const skippedAtStart = manager.SkippedExistingRowCount();
+
+    // First run inserts the row, with its non-ASCII value intact.
+    REQUIRE(manager.ApplyPendingMigrations() == 2);
+    CHECK(manager.SkippedExistingRowCount() == skippedAtStart);
+    CHECK(logged.empty());
+    CHECK(rowCount() == 1);
+    CHECK(storedName() == "Grüße");
+
+    // Reverting runs Down's insert of the same key: skipped, and the existing values stay.
+    manager.RevertSingleMigration(seedRow);
+    CHECK(manager.SkippedExistingRowCount() == skippedAtStart + 1);
+    REQUIRE(logged.size() == 1);
+    CHECK(logged[0] == "Skipped existing row: 202610170004 Categories (Id=200)");
+    CHECK(rowCount() == 1);
+    CHECK(storedName() == "Grüße");
+
+    // Applying again finds the row in place: no error, no second row, reported again.
+    CHECK_NOTHROW(manager.ApplySingleMigration(seedRow));
+    CHECK(manager.SkippedExistingRowCount() == skippedAtStart + 2);
+    REQUIRE(logged.size() == 2);
+    CHECK(logged[1] == "Skipped existing row: 202610170004 Categories (Id=200)");
+    CHECK(rowCount() == 1);
+    CHECK(storedName() == "Grüße");
+    CHECK(manager.GetPending().empty());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Insert IfNotExists stores bound values like literal ones", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    // Row 1 goes through the plain insert's literal path, row 2 through the bound one.
+    auto const migration = SqlMigration::Migration<202610170006>("bound values", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("Categories")
+            .PrimaryKey("Id", Integer())
+            .Column("Name", NVarchar(50))
+            .Column("Label", Varchar(50))
+            .Column("Note", Varchar(50));
+        plan.Insert("Categories").Set("Id", 1).Set("Name", "Grüße").Set("Label", "Café crème").Set("Note", SqlNullValue);
+        plan.Insert("Categories")
+            .Set("Id", 2)
+            .Set("Name", "Grüße")
+            .Set("Label", "Café crème")
+            .Set("Note", SqlNullValue)
+            .IfNotExists({ "Id" });
+    });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+    REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+    auto const readRow = [](int id) {
+        auto stmt = SqlStatement {};
+        auto cursor =
+            stmt.ExecuteDirect(std::format(R"(SELECT "Name", "Label", "Note" FROM "Categories" WHERE "Id" = {})", id));
+        REQUIRE(cursor.FetchRow());
+        // Fetched as UTF-16, so the driver decodes a narrow column from its code page.
+        auto values = std::vector<std::optional<std::u16string>> {};
+        for (auto const column: std::views::iota(SQLUSMALLINT { 1 }, SQLUSMALLINT { 4 }))
+            values.push_back(cursor.GetNullableColumn<std::u16string>(column));
+        return values;
+    };
+
+    auto const literal = readRow(1);
+    auto const bound = readRow(2);
+    CHECK(literal[0] == u"Grüße");
+    CHECK(literal[1] == u"Café crème");
+    CHECK_FALSE(literal[2].has_value());
+    CHECK(bound == literal);
+
+    // The server itself finds both rows' text equal, the narrow column included.
+    auto stmt = SqlStatement {};
+    CHECK(stmt.ExecuteDirectScalar<long long>(
+                  R"(SELECT COUNT(*) FROM "Categories" a, "Categories" b WHERE a."Id" = 1 AND b."Id" = 2 )"
+                  R"(AND a."Label" = b."Label" AND a."Name" = b."Name")")
+              .value_or(-1)
+          == 1);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Insert IfNotExists reports a composite string key quoted", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto const migration = SqlMigration::Migration<202610170005>("composite seed", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("Codes").RequiredColumn("Kind", Varchar(20)).RequiredColumn("Id", Integer());
+        plan.Insert("Codes").Set("Kind", "O'Brien").Set("Id", 7);
+        plan.Insert("Codes").Set("Kind", "O'Brien").Set("Id", 7).IfNotExists({ "Kind", "Id" });
+        plan.Insert("Codes").Set("Kind", "O'Brien").Set("Id", 8).IfNotExists({ "Kind", "Id" });
+    });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    auto logged = std::vector<std::string> {};
+    manager.SetLogSink([&logged](std::string_view message) { logged.emplace_back(message); });
+    auto const restoreSink = ::Lightweight::detail::Finally([&manager] { manager.SetLogSink({}); });
+
+    manager.CreateMigrationHistory();
+    REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+    REQUIRE(logged.size() == 1);
+    CHECK(logged[0] == "Skipped existing row: 202610170005 Codes (Kind='O''Brien', Id=7)");
+    auto stmt = SqlStatement {};
+    CHECK(stmt.ExecuteDirectScalar<long long>(R"(SELECT COUNT(*) FROM "Codes")").value_or(-1) == 2);
+}
+
+namespace
+{
+/// Captures the migration manager's log lines for the lifetime of the object.
+class CapturedMigrationLog
+{
+  public:
+    CapturedMigrationLog()
+    {
+        SqlMigration::MigrationManager::GetInstance().SetLogSink(
+            [this](std::string_view message) { _lines.emplace_back(message); });
+    }
+    ~CapturedMigrationLog()
+    {
+        SqlMigration::MigrationManager::GetInstance().SetLogSink({});
+    }
+    CapturedMigrationLog(CapturedMigrationLog const&) = delete;
+    CapturedMigrationLog(CapturedMigrationLog&&) = delete;
+    CapturedMigrationLog& operator=(CapturedMigrationLog const&) = delete;
+    CapturedMigrationLog& operator=(CapturedMigrationLog&&) = delete;
+
+    [[nodiscard]] std::vector<std::string> const& Lines() const noexcept
+    {
+        return _lines;
+    }
+
+  private:
+    std::vector<std::string> _lines;
+};
+} // namespace
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "Insert IfNotExists counts inserted rows under the migration lock",
+                 "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto const createTable = SqlMigration::Migration<202610170007>("create categories", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("Categories").PrimaryKey("Id", Integer()).RequiredColumn("Name", NVarchar(50));
+        plan.Insert("Categories").Set("Id", 300).Set("Name", "existing");
+    });
+    // The first IfNotExists statement inserts a new row; the second finds its row in place.
+    auto const seedRows = SqlMigration::Migration<202610170008>("seed categories", [](SqlMigrationQueryBuilder& plan) {
+        plan.Insert("Categories").Set("Id", 100).Set("Name", "Books").IfNotExists({ "Id" });
+        plan.Insert("Categories").Set("Id", 300).Set("Name", "other").IfNotExists({ "Id" });
+    });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    auto const log = CapturedMigrationLog {};
+    auto& connection = manager.GetDataMapper().Connection();
+    manager.CreateMigrationHistory();
+    auto const skippedAtStart = manager.SkippedExistingRowCount();
+
+    {
+        // dbtool holds this lock while it migrates; it must not leave the session without row counts.
+        auto const lock = SqlScopedLock { connection, "lightweight_if_not_exists_lock" };
+        REQUIRE(manager.ApplyPendingMigrations() == 2);
+    }
+
+    REQUIRE(log.Lines().size() == 1);
+    CHECK(log.Lines()[0] == "Skipped existing row: 202610170008 Categories (Id=300)");
+    CHECK(manager.SkippedExistingRowCount() == skippedAtStart + 1);
+    auto stmt = SqlStatement { connection };
+    CHECK(stmt.ExecuteDirectScalar<long long>(R"(SELECT COUNT(*) FROM "Categories")").value_or(-1) == 2);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "SQL Server: the migration lock restores the session's NOCOUNT", "[SqlScopedLock]")
+{
+    auto& connection = SqlMigration::MigrationManager::GetInstance().GetDataMapper().Connection();
+    if (connection.ServerType() != SqlServerType::MICROSOFT_SQL)
+        return; // NOCOUNT is a SQL Server session option.
+
+    auto const noCountIsOn = [&] {
+        auto stmt = SqlStatement { connection };
+        return stmt.ExecuteDirectScalar<int>("SELECT @@OPTIONS & 512").value_or(-1) != 0;
+    };
+
+    REQUIRE_FALSE(noCountIsOn());
+    {
+        auto const lock = SqlScopedLock { connection, "lightweight_nocount_lock" };
+        CHECK_FALSE(noCountIsOn());
+    }
+    CHECK_FALSE(noCountIsOn());
+
+    // A session that had NOCOUNT on keeps it.
+    (void) SqlStatement { connection }.ExecuteDirect("SET NOCOUNT ON");
+    {
+        auto const lock = SqlScopedLock { connection, "lightweight_nocount_lock" };
+        CHECK(noCountIsOn());
+    }
+    CHECK(noCountIsOn());
+    (void) SqlStatement { connection }.ExecuteDirect("SET NOCOUNT OFF");
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "SQL Server: Insert IfNotExists counts inserted rows under NOCOUNT ON",
+                 "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    auto& connection = manager.GetDataMapper().Connection();
+    if (connection.ServerType() != SqlServerType::MICROSOFT_SQL)
+        return; // NOCOUNT is a SQL Server session option.
+
+    auto const createTable = SqlMigration::Migration<202610170009>("create categories", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("Categories").PrimaryKey("Id", Integer()).RequiredColumn("Name", NVarchar(50));
+    });
+    auto const seedRow = SqlMigration::Migration<202610170016>("seed under nocount", [](SqlMigrationQueryBuilder& plan) {
+        plan.Insert("Categories").Set("Id", 100).Set("Name", "Books").IfNotExists({ "Id" });
+    });
+
+    auto const log = CapturedMigrationLog {};
+    manager.CreateMigrationHistory();
+    auto const skippedAtStart = manager.SkippedExistingRowCount();
+
+    // Whatever left the session without row counts, the skip must not be inferred from it.
+    manager.ApplySingleMigration(createTable);
+    (void) SqlStatement { connection }.ExecuteDirect("SET NOCOUNT ON");
+    manager.ApplySingleMigration(seedRow);
+
+    CHECK(log.Lines().empty());
+    CHECK(manager.SkippedExistingRowCount() == skippedAtStart);
+    auto stmt = SqlStatement { connection };
+    CHECK(stmt.ExecuteDirectScalar<long long>(R"(SELECT COUNT(*) FROM "Categories")").value_or(-1) == 1);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "Insert IfNotExists reports no skips of a migration that rolls back",
+                 "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto const createTable = SqlMigration::Migration<202610170010>("create categories", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("Categories").PrimaryKey("Id", Integer()).RequiredColumn("Name", NVarchar(50));
+        plan.Insert("Categories").Set("Id", 300).Set("Name", "existing");
+    });
+    auto const failing = SqlMigration::Migration<202610170011>("skip then fail", [](SqlMigrationQueryBuilder& plan) {
+        plan.Insert("Categories").Set("Id", 300).Set("Name", "other").IfNotExists({ "Id" });
+        plan.RawSql("THIS_IS_INVALID_SQL_TO_FORCE_FAILURE");
+    });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    auto const log = CapturedMigrationLog {};
+    manager.CreateMigrationHistory();
+    auto const skippedAtStart = manager.SkippedExistingRowCount();
+
+    {
+        auto const _ = ScopedSqlNullLogger {}; // the failure is expected
+        CHECK_THROWS(manager.ApplyPendingMigrations());
+    }
+
+    CHECK(log.Lines().empty());
+    CHECK(manager.SkippedExistingRowCount() == skippedAtStart);
+    CHECK(manager.GetAppliedMigrationIds().size() == 1);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Insert IfNotExists names the schema in a skip line", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    // A schema every backend already has.
+    static auto const schema = [&]() -> std::string {
+        switch (manager.GetDataMapper().Connection().ServerType())
+        {
+            case SqlServerType::MICROSOFT_SQL:
+                return "dbo";
+            case SqlServerType::POSTGRESQL:
+                return "public";
+            default:
+                return "main";
+        }
+    }();
+
+    auto const migration = SqlMigration::Migration<202610170012>("schema seed", [](SqlMigrationQueryBuilder& plan) {
+        plan.WithSchema(schema);
+        plan.CreateTable("Codes").PrimaryKey("Id", Integer());
+        plan.Insert("Codes").Set("Id", 7);
+        plan.Insert("Codes").Set("Id", 7).IfNotExists({ "Id" });
+    });
+
+    auto const log = CapturedMigrationLog {};
+    manager.CreateMigrationHistory();
+    REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+    REQUIRE(log.Lines().size() == 1);
+    CHECK(log.Lines()[0] == std::format("Skipped existing row: 202610170012 {}.Codes (Id=7)", schema));
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Insert IfNotExists stores bound doubles like literal ones", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    // Rows 1-3 go through the plain insert's literal path, rows 11-13 through the bound one.
+    auto const migration = SqlMigration::Migration<202610170013>("bound doubles", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("Measures")
+            .PrimaryKey("Id", Integer())
+            .Column("Wide", Real { .precision = 53 })
+            .Column("Narrow", Real {})
+            .Column("Fixed", Decimal { .precision = 10, .scale = 4 });
+        for (auto const& [id, value]: std::array { std::pair { 1, 40.3399 }, std::pair { 2, 0.5 }, std::pair { 3, -12.25 } })
+        {
+            plan.Insert("Measures").Set("Id", id).Set("Wide", value).Set("Narrow", value).Set("Fixed", value);
+            plan.Insert("Measures")
+                .Set("Id", id + 10)
+                .Set("Wide", value)
+                .Set("Narrow", value)
+                .Set("Fixed", value)
+                .IfNotExists({ "Id" });
+        }
+    });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+    REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+    // Compared by the server, value for value.
+    auto stmt = SqlStatement {};
+    CHECK(stmt.ExecuteDirectScalar<long long>(
+                  R"(SELECT COUNT(*) FROM "Measures" a, "Measures" b WHERE b."Id" = a."Id" + 10 )"
+                  R"(AND a."Wide" = b."Wide" AND a."Narrow" = b."Narrow" AND a."Fixed" = b."Fixed")")
+              .value_or(-1)
+          == 3);
+    CHECK(stmt.ExecuteDirectScalar<double>(R"(SELECT "Wide" FROM "Measures" WHERE "Id" = 11)").value_or(0.0) == 40.3399);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Insert IfNotExists binds NULL into any column type", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto const migration = SqlMigration::Migration<202610170014>("bound nulls", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("Nullables")
+            .PrimaryKey("Id", Integer())
+            .Column("Number", Integer())
+            .Column("BigNumber", Bigint())
+            .Column("Narrow", Real {})
+            .Column("Wide", Real { .precision = 53 })
+            .Column("Fixed", Decimal { .precision = 10, .scale = 4 })
+            .Column("Flag", Bool())
+            .Column("Bytes", VarBinary { .size = 16 });
+        // NULL in the first parameter slot, then NULLs after the key.
+        plan.Insert("Nullables")
+            .Set("Number", SqlNullValue)
+            .Set("BigNumber", SqlNullValue)
+            .Set("Narrow", SqlNullValue)
+            .Set("Wide", SqlNullValue)
+            .Set("Fixed", SqlNullValue)
+            .Set("Flag", SqlNullValue)
+            .Set("Bytes", SqlNullValue)
+            .Set("Id", 1)
+            .IfNotExists({ "Id" });
+        plan.Insert("Nullables")
+            .Set("Id", 2)
+            .Set("Bytes", SqlNullValue)
+            .Set("Flag", SqlNullValue)
+            .Set("Fixed", SqlNullValue)
+            .Set("Wide", SqlNullValue)
+            .Set("Narrow", SqlNullValue)
+            .Set("BigNumber", SqlNullValue)
+            .Set("Number", SqlNullValue)
+            .IfNotExists({ "Id" });
+    });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+    REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+    auto stmt = SqlStatement {};
+    CHECK(stmt.ExecuteDirectScalar<long long>(
+                  R"(SELECT COUNT(*) FROM "Nullables" WHERE "Number" IS NULL AND "BigNumber" IS NULL )"
+                  R"(AND "Narrow" IS NULL AND "Wide" IS NULL AND "Fixed" IS NULL AND "Flag" IS NULL AND "Bytes" IS NULL)")
+              .value_or(-1)
+          == 2);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Insert IfNotExists names the migration in a validation error", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto const migration = SqlMigration::Migration<202610170015>("bad key", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("Codes").PrimaryKey("Id", Integer());
+        plan.Insert("Codes").Set("Id", 7).IfNotExists({ "Code" });
+    });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+    auto const message = [&] {
+        try
+        {
+            (void) manager.ApplyPendingMigrations();
+        }
+        catch (std::invalid_argument const& error)
+        {
+            return std::string { error.what() };
+        }
+        return std::string {};
+    }();
+    CHECK(message.starts_with("Migration 202610170015 'bad key': "));
+    CHECK(message.contains(R"(key column "Code")"));
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server names the schema of a joined column when the plan spans several",
+                 "[SqlMigration][UnicodeUpgrade][MultiSchema]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("only SQL Server widens columns that a foreign key joins");
+    mgr.CreateMigrationHistory();
+
+    DropSqlServerMultiSchemaFixture(stmt);
+    auto const cleanup = detail::Finally([&] { DropSqlServerMultiSchemaFixture(stmt); });
+    for (auto const* sql: {
+             "CREATE SCHEMA sales",
+             "CREATE TABLE sales.uu_ms_customers (CODE CHAR(10) NOT NULL CONSTRAINT PK_uu_ms_customers PRIMARY KEY)",
+             "CREATE TABLE dbo.uu_ms_orders (ID INT NOT NULL PRIMARY KEY, CUSTOMER_CODE CHAR(10) NOT NULL "
+             "CONSTRAINT FK_uu_ms_orders_customer FOREIGN KEY REFERENCES sales.uu_ms_customers (CODE))",
+         })
+        (void) stmt.ExecuteDirect(sql);
+    // Only the key is declared; the referencing column is widened because the foreign key joins it.
+    fold_test::FoldStub<20'26'10'17'00'04> decl { "declare wide", [](SqlMigrationQueryBuilder& plan) {
+                                                     plan.CreateTable("uu_ms_customers").PrimaryKey("CODE", NChar(10));
+                                                 } };
+
+    auto const preview = mgr.UnicodeUpgradeTables(ExecutionMode::DryRun);
+    REQUIRE(preview.columns.size() == 2);
+    CHECK(preview.columns[1].table.schema == "dbo");
+    CHECK(preview.columns[1].column == "CUSTOMER_CODE");
+    CHECK(preview.columns[1].joinedByForeignKeyTo == "sales.uu_ms_customers.CODE");
+}
+
+// ================================================================================================
+// unicode-upgrade-tables commits unit by unit
+// ================================================================================================
+
+namespace
+{
+
+/// The tables of @p unit as `schema.table` (or `table`), in order.
+std::vector<std::string> UnitTables(std::vector<SqlSchema::FullyQualifiedTableName> const& unit)
+{
+    auto tables = std::vector<std::string> {};
+    for (auto const& table: unit)
+        tables.push_back(table.schema.empty() ? table.table : std::format("{}.{}", table.schema, table.table));
+    return tables;
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server commits each unit on its own and a rerun continues",
+                 "[SqlMigration][UnicodeUpgrade][Units]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("a database DDL trigger injects the failure, which is SQL Server's");
+    mgr.CreateMigrationHistory();
+
+    auto const dropFixture = [&] {
+        for (auto const* sql: {
+                 "IF EXISTS (SELECT 1 FROM sys.triggers WHERE name = N'uu_unit_block' AND parent_class = 0) "
+                 "DROP TRIGGER uu_unit_block ON DATABASE",
+                 "IF OBJECT_ID(N'dbo.uu_unit_c') IS NOT NULL DROP TABLE dbo.uu_unit_c",
+                 "IF OBJECT_ID(N'dbo.uu_unit_a') IS NOT NULL DROP TABLE dbo.uu_unit_a",
+                 "IF OBJECT_ID(N'dbo.uu_unit_b') IS NOT NULL DROP TABLE dbo.uu_unit_b",
+             })
+            (void) stmt.ExecuteDirect(sql);
+    };
+    dropFixture();
+    auto const cleanup = detail::Finally(dropFixture);
+    // uu_unit_c joins uu_unit_a by a foreign key, so they form one unit; uu_unit_b is a unit of its own.
+    for (auto const* sql: {
+             "CREATE TABLE dbo.uu_unit_a (CODE CHAR(10) NOT NULL CONSTRAINT PK_uu_unit_a PRIMARY KEY, "
+             "NOTE VARCHAR(20) NULL CONSTRAINT UQ_uu_unit_a_note UNIQUE)",
+             "CREATE TABLE dbo.uu_unit_c (ID INT NOT NULL CONSTRAINT PK_uu_unit_c PRIMARY KEY, "
+             "A_CODE CHAR(10) NOT NULL CONSTRAINT FK_uu_unit_c_a FOREIGN KEY REFERENCES dbo.uu_unit_a (CODE))",
+             "CREATE TABLE dbo.uu_unit_b (CODE CHAR(10) NOT NULL CONSTRAINT PK_uu_unit_b PRIMARY KEY)",
+             "INSERT INTO dbo.uu_unit_a (CODE, NOTE) VALUES ('a1', 'first')",
+             "INSERT INTO dbo.uu_unit_c (ID, A_CODE) VALUES (1, 'a1')",
+             "INSERT INTO dbo.uu_unit_b (CODE) VALUES ('b1')",
+         })
+        (void) stmt.ExecuteDirect(sql);
+    fold_test::FoldStub<20'26'10'17'00'02> decl {
+        "declare wide",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("uu_unit_a").PrimaryKey("CODE", NChar(10)).Column("NOTE", NVarchar(20));
+            plan.CreateTable("uu_unit_b").PrimaryKey("CODE", NChar(10));
+        }
+    };
+
+    auto const preview = mgr.UnicodeUpgradeTables(ExecutionMode::DryRun);
+    REQUIRE(preview.units.size() == 2);
+    CHECK(UnitTables(preview.units[0]) == std::vector<std::string> { "dbo.uu_unit_a", "dbo.uu_unit_c" });
+    CHECK(UnitTables(preview.units[1]) == std::vector<std::string> { "dbo.uu_unit_b" });
+    // One schema: the joined column names the column it follows without a schema.
+    auto const joined = std::ranges::find(
+        preview.columns, std::string { "A_CODE" }, &SqlMigration::MigrationManager::ColumnUpgradeEntry::column);
+    REQUIRE(joined != preview.columns.end());
+    CHECK(joined->joinedByForeignKeyTo == "uu_unit_a.CODE");
+
+    // Every ALTER TABLE on uu_unit_b fails, so the second unit does (XML methods need ANSI_WARNINGS).
+    (void) stmt.ExecuteDirect("CREATE TRIGGER uu_unit_block ON DATABASE FOR ALTER_TABLE AS SET ANSI_WARNINGS ON; "
+                              "IF EVENTDATA().value('(/EVENT_INSTANCE/ObjectName)[1]', 'nvarchar(128)') = N'uu_unit_b' "
+                              "BEGIN RAISERROR (N'blocked by the test', 16, 1); ROLLBACK; END");
+    auto committedUnits = std::vector<std::string> {};
+    mgr.SetLogSink([&](std::string_view message) {
+        if (message.starts_with("committed unit "))
+            committedUnits.emplace_back(message);
+    });
+    auto const resetSink = detail::Finally([&] { mgr.SetLogSink({}); });
+    auto error = std::string {};
+    auto progressJournal = RecordingProgressTask::Journal {};
+    auto progressRoot = RecordingProgressTask { progressJournal };
+    try
+    {
+        std::ignore = mgr.UnicodeUpgradeTables(ExecutionMode::Execute, &progressRoot);
+    }
+    catch (SqlMigration::UnicodeUpgradeUnitError const& failure)
+    {
+        // A SqlException that keeps the cause's diagnostics.
+        error = failure.info().message;
+        CHECK(failure.UnitNumber() == 2);
+        CHECK(failure.UnitCount() == 2);
+        CHECK(failure.info().nativeErrorCode != 0);
+        CHECK(failure.info().sqlState != "     ");
+    }
+    INFO(error);
+    CHECK(error.contains("unit 2 of 2 (dbo.uu_unit_b) failed and was rolled back"));
+    CHECK(error.contains("the 1 unit(s) before it are committed"));
+    CHECK(error.contains("blocked by the test"));
+    CHECK(committedUnits == std::vector<std::string> { "committed unit 1 of 2: dbo.uu_unit_a, dbo.uu_unit_c" });
+
+    // The failure is reported on the second unit and the overall task, and not on the first.
+    auto failEvents = std::vector<std::string> {};
+    std::ranges::copy_if(progressJournal.events, std::back_inserter(failEvents), [](std::string const& event) {
+        return event.starts_with("fail ");
+    });
+    CHECK(std::ranges::any_of(failEvents, [](std::string const& event) {
+        return event.starts_with("fail Upgrade text columns to Unicode/Unit 2 of 2 ");
+    }));
+    CHECK(std::ranges::any_of(failEvents, [](std::string const& event) {
+        return event.starts_with("fail Upgrade text columns to Unicode ") && !event.contains("/Unit");
+    }));
+    CHECK(std::ranges::none_of(failEvents, [](std::string const& event) { return event.contains("Unit 1 of 2"); }));
+
+    // The first unit stays committed with all its objects; the second is untouched.
+    CHECK(LiveDataTypeIn(stmt, "dbo", "uu_unit_a", "CODE") == "nchar");
+    CHECK(LiveDataTypeIn(stmt, "dbo", "uu_unit_a", "NOTE") == "nvarchar");
+    CHECK(LiveDataTypeIn(stmt, "dbo", "uu_unit_c", "A_CODE") == "nchar");
+    CHECK(CatalogScalar(stmt, "SELECT type FROM sys.key_constraints WHERE name = 'PK_uu_unit_a'") == "PK");
+    CHECK(CatalogScalar(stmt, "SELECT type FROM sys.key_constraints WHERE name = 'UQ_uu_unit_a_note'") == "UQ");
+    CHECK(CatalogScalar(stmt, "SELECT name FROM sys.foreign_keys WHERE name = 'FK_uu_unit_c_a'") == "FK_uu_unit_c_a");
+    CHECK(LiveDataTypeIn(stmt, "dbo", "uu_unit_b", "CODE") == "char");
+    CHECK(CatalogScalar(stmt, "SELECT type FROM sys.key_constraints WHERE name = 'PK_uu_unit_b'") == "PK");
+    CHECK(stmt.ExecuteDirectScalar<long long>("SELECT COUNT(*) FROM dbo.uu_unit_b").value_or(0) == 1);
+
+    // A rerun plans only what is left and completes.
+    (void) stmt.ExecuteDirect("DROP TRIGGER uu_unit_block ON DATABASE");
+    auto const rerun = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
+    REQUIRE(rerun.columns.size() == 1);
+    CHECK(rerun.columns.front().table.table == "uu_unit_b");
+    CHECK(rerun.units.size() == 1);
+    CHECK(LiveDataTypeIn(stmt, "dbo", "uu_unit_b", "CODE") == "nchar");
+    CHECK(CatalogScalar(stmt, "SELECT type FROM sys.key_constraints WHERE name = 'PK_uu_unit_b'") == "PK");
+    CHECK(mgr.UnicodeUpgradeTables(ExecutionMode::DryRun).columns.empty());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: tables joined by a foreign key share a unit on every backend",
+                 "[SqlMigration][UnicodeUpgrade][Units]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    mgr.CreateMigrationHistory();
+
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& m) {
+        m.CreateTable("uu_unit_a").PrimaryKey("CODE", Varchar(10)).Column("NOTE", Varchar(20));
+        m.CreateTable("uu_unit_b").PrimaryKey("CODE", Varchar(10));
+        m.CreateTable("uu_unit_c")
+            .PrimaryKey("ID", Integer())
+            .ForeignKey(
+                "A_CODE", Varchar(10), SqlForeignKeyReferenceDefinition { .tableName = "uu_unit_a", .columnName = "CODE" });
+    });
+    fold_test::FoldStub<20'26'10'17'00'03> decl {
+        "declare wide",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("uu_unit_a").PrimaryKey("CODE", NVarchar(10)).Column("NOTE", NVarchar(20));
+            plan.CreateTable("uu_unit_b").PrimaryKey("CODE", NVarchar(10));
+            plan.CreateTable("uu_unit_c").PrimaryKey("ID", Integer()).Column("A_CODE", NVarchar(10));
+        }
+    };
+
+    auto const preview = mgr.UnicodeUpgradeTables(ExecutionMode::DryRun);
+    if (preview.columns.empty())
+    {
+        // PostgreSQL's Unicode driver (and some SQLite builds) report the narrow columns as wide.
+        CHECK(preview.units.empty());
+        return;
+    }
+    REQUIRE(preview.units.size() == 2);
+    auto const tablesOf = [](std::vector<SqlSchema::FullyQualifiedTableName> const& unit) {
+        auto names = std::vector<std::string> {};
+        for (auto const& table: unit)
+            names.push_back(table.table);
+        return names;
+    };
+    CHECK(tablesOf(preview.units[0]) == std::vector<std::string> { "uu_unit_a", "uu_unit_c" });
+    CHECK(tablesOf(preview.units[1]) == std::vector<std::string> { "uu_unit_b" });
+
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
+    CHECK(result.units.size() == 2);
+    auto const liveTables = SqlSchema::ReadAllTables(stmt, std::string {}, std::string {});
+    CHECK(std::ranges::count_if(liveTables, [](SqlSchema::Table const& table) { return table.name.starts_with("uu_unit_"); })
+          == 3);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server fails a unit on an error a later result of its batch reports",
+                 "[SqlMigration][UnicodeUpgrade][Units]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("a database DDL trigger injects the failure, which is SQL Server's");
+    mgr.CreateMigrationHistory();
+
+    auto const dropFixture = [&] {
+        for (auto const* sql: {
+                 "IF EXISTS (SELECT 1 FROM sys.triggers WHERE name = N'uu_unit_late' AND parent_class = 0) "
+                 "DROP TRIGGER uu_unit_late ON DATABASE",
+                 "IF OBJECT_ID(N'dbo.uu_unit_b') IS NOT NULL DROP TABLE dbo.uu_unit_b",
+                 "IF OBJECT_ID(N'dbo.uu_unit_log') IS NOT NULL DROP TABLE dbo.uu_unit_log",
+             })
+            (void) stmt.ExecuteDirect(sql);
+    };
+    dropFixture();
+    auto const cleanup = detail::Finally(dropFixture);
+    for (auto const* sql: {
+             "CREATE TABLE dbo.uu_unit_b (CODE CHAR(10) NOT NULL CONSTRAINT PK_uu_unit_b PRIMARY KEY)",
+             "CREATE TABLE dbo.uu_unit_log (N INT NOT NULL)",
+             "INSERT INTO dbo.uu_unit_log (N) VALUES (0)",
+         })
+        (void) stmt.ExecuteDirect(sql);
+    fold_test::FoldStub<20'26'10'17'00'05> decl { "declare wide", [](SqlMigrationQueryBuilder& plan) {
+                                                     plan.CreateTable("uu_unit_b").PrimaryKey("CODE", NChar(10));
+                                                 } };
+
+    // The row count of the UPDATE is the batch's first result, so the error only arrives with
+    // a later one; the ALTER TABLE itself succeeds.
+    (void) stmt.ExecuteDirect("CREATE TRIGGER uu_unit_late ON DATABASE FOR ALTER_TABLE AS SET NOCOUNT OFF; "
+                              "UPDATE dbo.uu_unit_log SET N = N + 1; RAISERROR (N'late failure', 16, 1)");
+    auto const error = UpgradeError(mgr, ExecutionMode::Execute);
+    INFO(error);
+    CHECK(error.contains("unit 1 of 1 (dbo.uu_unit_b) failed and was rolled back; no unit was committed"));
+    CHECK(error.contains("late failure"));
+    CHECK(LiveDataTypeIn(stmt, "dbo", "uu_unit_b", "CODE") == "char");
+    CHECK(CatalogScalar(stmt, "SELECT type FROM sys.key_constraints WHERE name = 'PK_uu_unit_b'") == "PK");
+    CHECK(stmt.ExecuteDirectScalar<long long>("SELECT N FROM dbo.uu_unit_log").value_or(-1) == 0);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQL Server keeps tables in one unit whatever order the walk records keys in",
+                 "[SqlMigration][UnicodeUpgrade][Units]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("only SQL Server widens columns that a foreign key joins");
+    mgr.CreateMigrationHistory();
+
+    auto const dropFixture = [&] {
+        for (auto const* sql: {
+                 "IF OBJECT_ID(N'dbo.uu_join_y') IS NOT NULL DROP TABLE dbo.uu_join_y",
+                 "IF OBJECT_ID(N'dbo.uu_join_x') IS NOT NULL DROP TABLE dbo.uu_join_x",
+                 "IF OBJECT_ID(N'dbo.uu_join_r1') IS NOT NULL DROP TABLE dbo.uu_join_r1",
+                 "IF OBJECT_ID(N'dbo.uu_join_r2') IS NOT NULL DROP TABLE dbo.uu_join_r2",
+             })
+            (void) stmt.ExecuteDirect(sql);
+    };
+    dropFixture();
+    auto const cleanup = detail::Finally(dropFixture);
+    // Two declared keys, each reached by an undeclared column; those two columns are joined by a
+    // foreign key of their own, which a walk that visits both before either may never record.
+    for (auto const* sql: {
+             "CREATE TABLE dbo.uu_join_r1 (CODE CHAR(10) NOT NULL CONSTRAINT PK_uu_join_r1 PRIMARY KEY)",
+             "CREATE TABLE dbo.uu_join_r2 (CODE CHAR(10) NOT NULL CONSTRAINT PK_uu_join_r2 PRIMARY KEY)",
+             "CREATE TABLE dbo.uu_join_x (K CHAR(10) NOT NULL CONSTRAINT PK_uu_join_x PRIMARY KEY "
+             "CONSTRAINT FK_uu_join_x_r1 FOREIGN KEY REFERENCES dbo.uu_join_r1 (CODE))",
+             "CREATE TABLE dbo.uu_join_y (ID INT NOT NULL PRIMARY KEY, K CHAR(10) NOT NULL, "
+             "CONSTRAINT FK_uu_join_y_r2 FOREIGN KEY (K) REFERENCES dbo.uu_join_r2 (CODE), "
+             "CONSTRAINT FK_uu_join_y_x FOREIGN KEY (K) REFERENCES dbo.uu_join_x (K))",
+         })
+        (void) stmt.ExecuteDirect(sql);
+    fold_test::FoldStub<20'26'10'17'00'06> decl { "declare wide", [](SqlMigrationQueryBuilder& plan) {
+                                                     plan.CreateTable("uu_join_r1").PrimaryKey("CODE", NChar(10));
+                                                     plan.CreateTable("uu_join_r2").PrimaryKey("CODE", NChar(10));
+                                                 } };
+
+    auto const preview = mgr.UnicodeUpgradeTables(ExecutionMode::DryRun);
+    REQUIRE(preview.units.size() == 1);
+    auto tables = UnitTables(preview.units.front());
+    std::ranges::sort(tables);
+    CHECK(tables == std::vector<std::string> { "dbo.uu_join_r1", "dbo.uu_join_r2", "dbo.uu_join_x", "dbo.uu_join_y" });
+
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
+    CHECK(result.columns.size() == 4);
+    for (auto const* table: { "uu_join_r1", "uu_join_r2" })
+        CHECK(LiveDataTypeIn(stmt, "dbo", table, "CODE") == "nchar");
+    CHECK(LiveDataTypeIn(stmt, "dbo", "uu_join_x", "K") == "nchar");
+    CHECK(LiveDataTypeIn(stmt, "dbo", "uu_join_y", "K") == "nchar");
+    for (auto const* name: { "FK_uu_join_x_r1", "FK_uu_join_y_r2", "FK_uu_join_y_x" })
+        CHECK(CatalogScalar(stmt, std::format("SELECT name FROM sys.foreign_keys WHERE name = '{}'", name)) == name);
+}
+
+namespace
+{
+/// A column whose values render as quoted text, binary or a keyword rather than as a plain number.
+struct TypedSeedColumn
+{
+    std::string name;
+    SqlColumnTypeDefinition type;
+    SqlVariant value;
+    /// How SQLite stores the literal: `typeof(column) || ':' || quote(column)`.
+    std::string sqliteRepresentation;
+};
+
+std::vector<TypedSeedColumn> TypedSeedColumns()
+{
+    using namespace SqlColumnTypeDefinitions;
+    using namespace std::chrono_literals;
+    using std::chrono::February;
+
+    // Sub-millisecond fractions, which the literal renderings of time and timestamp handle differently.
+    return {
+        { .name = "Ref",
+          .type = Guid {},
+          .value = SqlVariant { SqlGuid::UnsafeParse("0f8fad5b-d9cb-469f-a165-70867728950e") },
+          .sqliteRepresentation = "text:'0F8FAD5B-D9CB-469F-A165-70867728950E'" },
+        { .name = "Day",
+          .type = Date {},
+          .value = SqlVariant { SqlDate { 2024y, February, 29d } },
+          .sqliteRepresentation = "text:'2024-02-29'" },
+        { .name = "Moment",
+          .type = Time {},
+          .value = SqlVariant { SqlTime { 13h, 45min, 30s, 123456us } },
+          .sqliteRepresentation = "text:'13:45:30.123456'" },
+        { .name = "Stamp",
+          .type = DateTime {},
+          .value = SqlVariant { SqlDateTime { 2024y, February, 29d, 13h, 45min, 30s, 123456700ns } },
+          .sqliteRepresentation = "text:'2024-02-29T13:45:30.123'" },
+        { .name = "Price",
+          .type = Decimal { .precision = 10, .scale = 4 },
+          .value = SqlVariant { SqlDynamicNumeric { .unscaledValue = -403399, .precision = 10, .scale = 4 } },
+          .sqliteRepresentation = "real:-40.3399" },
+        { .name = "Amount",
+          .type = Decimal { .precision = 28, .scale = 12 },
+          .value = SqlVariant { SqlDynamicNumeric { .unscaledValue = 123456789012000000, .precision = 28, .scale = 12 } },
+          .sqliteRepresentation = "real:123456.789012" },
+        { .name = "Bytes",
+          .type = VarBinary { .size = 16 },
+          .value = SqlVariant { SqlBinary { 0x00, 0xFF, 0x10, 0x27 } },
+          .sqliteRepresentation = "blob:X'00FF1027'" },
+        { .name = "Flag", .type = Bool {}, .value = SqlVariant { true }, .sqliteRepresentation = "integer:1" },
+    };
+}
+
+/// Creates @p tableName with an integer `Id` and one nullable column per typed seed column.
+void CreateTypedSeedTable(SqlMigrationQueryBuilder& plan, std::string const& tableName)
+{
+    auto table = plan.CreateTable(tableName);
+    table.RequiredColumn("Id", SqlColumnTypeDefinitions::Integer());
+    for (auto const& column: TypedSeedColumns())
+        table.Column(column.name, column.type);
+}
+
+/// Inserts a row of @p id and every typed seed column's value, skipped by @p keyColumns when given.
+void InsertTypedSeedRow(SqlMigrationQueryBuilder& plan,
+                        std::string const& tableName,
+                        int id,
+                        std::vector<std::string> keyColumns = {})
+{
+    auto insert = plan.Insert(tableName);
+    insert.Set("Id", id);
+    for (auto const& column: TypedSeedColumns())
+        insert.Set(column.name, column.value);
+    if (!keyColumns.empty())
+        insert.IfNotExists(std::move(keyColumns));
+}
+} // namespace
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "Insert IfNotExists stores bound values of every type like literal ones",
+                 "[SqlMigration]")
+{
+    // Row 1 goes through the plain insert's literal path, row 2 through the bound one.
+    auto const migration = SqlMigration::Migration<202610170017>("bound typed values", [](SqlMigrationQueryBuilder& plan) {
+        CreateTypedSeedTable(plan, "Typed");
+        InsertTypedSeedRow(plan, "Typed", 1);
+        InsertTypedSeedRow(plan, "Typed", 2, { "Id" });
+    });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+    REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+    auto const isSqlite = manager.GetDataMapper().Connection().ServerType() == SqlServerType::SQLITE;
+    auto const readValue = [](std::string const& expression, int id) {
+        auto stmt = SqlStatement {};
+        auto cursor = stmt.ExecuteDirect(std::format(R"(SELECT {} FROM "Typed" WHERE "Id" = {})", expression, id));
+        REQUIRE(cursor.FetchRow());
+        auto value = SqlVariant {};
+        REQUIRE(cursor.GetColumn(1, &value));
+        return value.ToString();
+    };
+
+    for (auto const& column: TypedSeedColumns())
+    {
+        INFO("column " << column.name);
+        auto const quoted = std::format(R"("{}")", column.name);
+        auto const literal = readValue(quoted, 1);
+        auto const bound = readValue(quoted, 2);
+        UNSCOPED_INFO("literal " << literal << ", bound " << bound);
+        CHECK(bound == literal);
+
+        // The server itself finds both rows' values equal.
+        auto stmt = SqlStatement {};
+        CHECK(stmt
+                  .ExecuteDirectScalar<long long>(std::format(
+                      R"(SELECT COUNT(*) FROM "Typed" a, "Typed" b WHERE a."Id" = 1 AND b."Id" = 2 AND a.{0} = b.{0})",
+                      quoted))
+                  .value_or(-1)
+              == 1);
+
+        // SQLite keeps whatever storage class and text it was given, so compare those, too.
+        if (isSqlite)
+        {
+            auto const representation = std::format("typeof({0}) || ':' || quote({0})", quoted);
+            CHECK(readValue(representation, 1) == column.sqliteRepresentation);
+            CHECK(readValue(representation, 2) == column.sqliteRepresentation);
+        }
+    }
+
+    // The timestamp literal carries milliseconds, so the bound timestamp must not keep more.
+    if (!isSqlite)
+    {
+        auto stmt = SqlStatement {};
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "Stamp" FROM "Typed" WHERE "Id" = 2)");
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<SqlDateTime>(1).sqlValue.fraction == 123'000'000);
+    }
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "Insert IfNotExists finds a literal-stored row by a key of every type",
+                 "[SqlMigration]")
+{
+    auto const seedRow = SqlMigration::Migration<202610170018>("seed typed row", [](SqlMigrationQueryBuilder& plan) {
+        CreateTypedSeedTable(plan, "Seeded");
+        InsertTypedSeedRow(plan, "Seeded", 1);
+    });
+    // Each insert is keyed on one typed column alone and must find the literal-stored row.
+    auto const seedAgain = SqlMigration::Migration<202610170019>("seed typed row again", [](SqlMigrationQueryBuilder& plan) {
+        auto id = 100;
+        for (auto const& column: TypedSeedColumns())
+            InsertTypedSeedRow(plan, "Seeded", id++, { column.name });
+    });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    auto const log = CapturedMigrationLog {};
+    manager.CreateMigrationHistory();
+    auto const skippedAtStart = manager.SkippedExistingRowCount();
+    REQUIRE(manager.ApplyPendingMigrations() == 2);
+
+    auto const columnCount = TypedSeedColumns().size();
+    CHECK(manager.SkippedExistingRowCount() == skippedAtStart + columnCount);
+    REQUIRE(log.Lines().size() == columnCount);
+    for (auto const& line: log.Lines())
+        UNSCOPED_INFO(line);
+    CHECK(log.Lines()[0] == "Skipped existing row: 202610170019 Seeded (Ref='0F8FAD5B-D9CB-469F-A165-70867728950E')");
+    auto stmt = SqlStatement {};
+    CHECK(stmt.ExecuteDirectScalar<long long>(R"(SELECT COUNT(*) FROM "Seeded")").value_or(-1) == 1);
+}
+
+TEST_CASE("ToBoundSql binds a GUID, date, time and timestamp as their literal text", "[SqlMigration]")
+{
+    auto builder = SqlQueryBuilder(SqlQueryFormatter::Sqlite()).Migration();
+    auto insert = builder.Insert("Typed");
+    for (auto const& column: TypedSeedColumns())
+        insert.Set(column.name, column.value);
+    insert.IfNotExists({ "Ref" });
+    auto const plan = std::move(builder).GetPlan();
+
+    auto const bound = ToBoundSql(plan.steps.at(0)).value_or(SqlBoundStatement {});
+    REQUIRE(bound.parameters.size() == TypedSeedColumns().size() + 1);
+    auto const boundText = [&](std::size_t index) {
+        auto const* text = std::get_if<std::u16string>(&bound.parameters[index].value);
+        return text ? *text : std::u16string {};
+    };
+    CHECK(boundText(0) == u"0F8FAD5B-D9CB-469F-A165-70867728950E");
+    CHECK(boundText(1) == u"2024-02-29");
+    CHECK(boundText(2) == u"13:45:30.123456");
+    CHECK(boundText(3) == u"2024-02-29T13:45:30.123");
+    CHECK(boundText(8) == u"0F8FAD5B-D9CB-469F-A165-70867728950E");
+
+    // Exact decimals, binary values and bool keep their native binding.
+    CHECK(std::holds_alternative<SqlDynamicNumeric>(bound.parameters[4].value));
+    CHECK(std::holds_alternative<SqlBinary>(bound.parameters[6].value));
+    CHECK(std::holds_alternative<bool>(bound.parameters[7].value));
+}
+
+// ================================================================================================
+// unicode-upgrade-tables keeps foreign keys it did not create
+// ================================================================================================
+
+namespace
+{
+
+/// Whether the driver reports @p column of the live @p table as narrow `CHAR` or `VARCHAR`
+/// (else nothing qualifies).
+bool ReportsNarrowText(SqlStatement& stmt, std::string_view schema, std::string_view table, std::string_view column)
+{
+    auto const liveTables = SqlSchema::ReadAllTables(stmt, std::string {}, std::string {});
+    for (auto const& live: liveTables)
+        if ((schema.empty() || live.schema == schema) && live.name == table)
+            for (auto const& liveColumn: live.columns)
+                if (liveColumn.name == column)
+                    return std::holds_alternative<SqlColumnTypeDefinitions::Char>(liveColumn.type)
+                           || std::holds_alternative<SqlColumnTypeDefinitions::Varchar>(liveColumn.type);
+    return false;
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: PostgreSQL recreates a foreign key under its own name and against its own table",
+                 "[SqlMigration][UnicodeUpgrade][MultiSchema]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::POSTGRESQL)
+        SKIP("the search path is PostgreSQL's");
+    mgr.CreateMigrationHistory();
+    // A name another tool chose, and the name Lightweight itself would give the key.
+    auto const keyName = std::string { GENERATE("custom_child_parent_link", "FK_uu_fk_child_CODE") };
+
+    auto const dropFixture = [&] {
+        (void) stmt.ExecuteDirect("RESET search_path");
+        (void) stmt.ExecuteDirect(R"(DROP TABLE IF EXISTS "public"."uu_fk_child")");
+        (void) stmt.ExecuteDirect(R"(DROP TABLE IF EXISTS "public"."uu_fk_parent")");
+        (void) stmt.ExecuteDirect(R"(DROP SCHEMA IF EXISTS "uu_fk_first" CASCADE)");
+    };
+    dropFixture();
+    auto const cleanup = detail::Finally(dropFixture);
+    // A foreign key another tool created (its own name, ON DELETE CASCADE), and a table of the
+    // referenced name in a schema earlier on the search path, holding the same key value.
+    for (auto const* sql: {
+             R"(CREATE SCHEMA "uu_fk_first")",
+             R"(CREATE TABLE "uu_fk_first"."uu_fk_parent" ("CODE" CHAR(10) NOT NULL PRIMARY KEY))",
+             R"(INSERT INTO "uu_fk_first"."uu_fk_parent" ("CODE") VALUES ('p1'))",
+             R"(CREATE TABLE "public"."uu_fk_parent" ("CODE" CHAR(10) NOT NULL PRIMARY KEY))",
+             R"(INSERT INTO "public"."uu_fk_parent" ("CODE") VALUES ('p1'))",
+         })
+        (void) stmt.ExecuteDirect(sql);
+    (void) stmt.ExecuteDirect(
+        std::format(R"(CREATE TABLE "public"."uu_fk_child" ("ID" INTEGER NOT NULL PRIMARY KEY, "CODE" CHAR(10) NOT NULL, )"
+                    R"(CONSTRAINT "{}" FOREIGN KEY ("CODE") REFERENCES "public"."uu_fk_parent" ("CODE") ON DELETE CASCADE))",
+                    keyName));
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "public"."uu_fk_child" ("ID", "CODE") VALUES (1, 'p1'))");
+    (void) stmt.ExecuteDirect(R"(SET search_path TO "uu_fk_first", "public")");
+    fold_test::FoldStub<20'26'10'17'00'07> decl {
+        "declare wide",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("uu_fk_child").PrimaryKey("ID", Integer()).RequiredColumn("CODE", NChar(10));
+        }
+    };
+
+    auto const narrowText = ReportsNarrowText(stmt, "public", "uu_fk_child", "CODE");
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
+    if (!narrowText)
+    {
+        // The Unicode ODBC driver reports CHAR as wide text, so nothing qualifies.
+        CHECK(result.columns.empty());
+        return;
+    }
+    REQUIRE(result.columns.size() == 1);
+    CHECK(result.columns.front().table.schema == "public");
+    // The key keeps its name and its action, and still references public.uu_fk_parent.
+    CHECK(CatalogScalar(
+              stmt,
+              std::format("SELECT n.nspname || '.' || r.relname || ':' || CAST(c.confdeltype AS TEXT) FROM pg_constraint c "
+                          "JOIN pg_class r ON r.oid = c.confrelid JOIN pg_namespace n ON n.oid = r.relnamespace "
+                          "WHERE c.conname = '{}'",
+                          keyName))
+          == "public.uu_fk_parent:c");
+    (void) stmt.ExecuteDirect(R"(DELETE FROM "public"."uu_fk_parent")");
+    CHECK(stmt.ExecuteDirectScalar<long long>(R"(SELECT COUNT(*) FROM "public"."uu_fk_child")").value_or(-1) == 0);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: SQLite keeps a foreign key of its own name through the table rebuild",
+                 "[SqlMigration][UnicodeUpgrade]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::SQLITE)
+        SKIP("the table rebuild is SQLite's");
+    mgr.CreateMigrationHistory();
+
+    for (auto const* sql: {
+             R"(CREATE TABLE "uu_fk_parent" ("CODE" VARCHAR(10) NOT NULL PRIMARY KEY))",
+             R"(CREATE TABLE "uu_fk_child" ("ID" INTEGER NOT NULL PRIMARY KEY, "CODE" VARCHAR(10) NOT NULL, )"
+             R"(CONSTRAINT "custom_child_parent_link" FOREIGN KEY ("CODE") REFERENCES "uu_fk_parent" ("CODE") )"
+             R"(ON DELETE CASCADE))",
+         })
+        (void) stmt.ExecuteDirect(sql);
+    fold_test::FoldStub<20'26'10'17'00'08> decl {
+        "declare wide",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("uu_fk_child").PrimaryKey("ID", Integer()).RequiredColumn("CODE", NVarchar(10));
+        }
+    };
+
+    auto const narrowText = ReportsNarrowText(stmt, {}, "uu_fk_child", "CODE");
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
+    if (!narrowText)
+    {
+        // Some SQLite ODBC builds report VARCHAR as wide text, so nothing qualifies.
+        CHECK(result.columns.empty());
+        return;
+    }
+    REQUIRE(result.columns.size() == 1);
+    auto const createSql = CatalogScalar(stmt, "SELECT sql FROM sqlite_master WHERE name = 'uu_fk_child'");
+    INFO(createSql);
+    CHECK(createSql.contains("custom_child_parent_link"));
+    CHECK(createSql.contains("ON DELETE CASCADE"));
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: PostgreSQL changes a column under the caller's search path",
+                 "[SqlMigration][UnicodeUpgrade]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::POSTGRESQL)
+        SKIP("the search path is PostgreSQL's");
+    mgr.CreateMigrationHistory();
+
+    auto const dropFixture = [&] {
+        (void) stmt.ExecuteDirect("RESET search_path");
+        (void) stmt.ExecuteDirect(R"(DROP TABLE IF EXISTS "public"."uu_fn_t")");
+        (void) stmt.ExecuteDirect(R"(DROP FUNCTION IF EXISTS "public"."uu_fn_norm"(TEXT))");
+        (void) stmt.ExecuteDirect(R"(DROP FUNCTION IF EXISTS "public"."uu_fn_helper"(TEXT))");
+    };
+    dropFixture();
+    auto const cleanup = detail::Finally(dropFixture);
+    // A CHECK constraint calls a function whose body names another one unqualified, so it resolves
+    // it through the search path whenever the constraint is evaluated. (Index expressions cannot
+    // rely on the search path: PostgreSQL evaluates them with a restricted one.)
+    (void) stmt.ExecuteDirect(R"(SET search_path TO "public")");
+    for (auto const* sql: {
+             R"(CREATE FUNCTION "public"."uu_fn_helper"(TEXT) RETURNS TEXT IMMUTABLE LANGUAGE sql AS 'SELECT upper($1)')",
+             R"(CREATE FUNCTION "public"."uu_fn_norm"(TEXT) RETURNS TEXT IMMUTABLE LANGUAGE sql )"
+             R"(AS 'SELECT uu_fn_helper($1)')",
+             R"(CREATE TABLE "public"."uu_fn_t" ("ID" INTEGER NOT NULL PRIMARY KEY, "CODE" VARCHAR(10) NOT NULL )"
+             R"(CHECK ("public"."uu_fn_norm"("CODE") <> '')))",
+             R"(INSERT INTO "public"."uu_fn_t" ("ID", "CODE") VALUES (1, 'a1'))",
+         })
+        (void) stmt.ExecuteDirect(sql);
+    fold_test::FoldStub<20'26'10'17'00'09> decl {
+        "declare wide",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("uu_fn_t").PrimaryKey("ID", Integer()).RequiredColumn("CODE", NVarchar(10));
+        }
+    };
+
+    // With a driver that reports VARCHAR as narrow the column is changed (to the same type, as
+    // PostgreSQL has no separate wide text) and the CHECK constraint is evaluated again.
+    auto const error = UpgradeError(mgr, ExecutionMode::Execute);
+    INFO(error);
+    CHECK(error.empty());
+    // The session's own search path is back after the unit.
+    CHECK(CatalogScalar(stmt, "SELECT current_setting('search_path')") == "public");
 }

@@ -1,21 +1,26 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "BackupRequirementSupport.hpp"
 #include "BackupRunner.hpp"
 #include "TableState.hpp"
 
+#include <Lightweight/DataMapper/DataMapper.hpp>
 #include <Lightweight/SqlBackup.hpp>
 #include <Lightweight/SqlConnectInfo.hpp>
+#include <Lightweight/SqlMigration.hpp>
 
 #include <algorithm>
 #include <chrono>
 #include <exception>
 #include <filesystem>
 #include <mutex>
+#include <optional>
 #include <thread>
 #include <unordered_set>
 #include <utility>
 #include <vector>
 
+#include <BackupRecording.hpp>
 #include <QtCore/QDebug>
 #include <QtCore/QMetaObject>
 #include <QtCore/QRunnable>
@@ -343,13 +348,96 @@ namespace
             archive, Lightweight::SqlConnectionString { connectionString }, BackupConcurrency(), progress);
     }
 
+    /// Default `Recorder::captureStart`: the migration history, read on a mapper of its own.
+    Lightweight::Tools::BackupStart CaptureBackupStartOn(std::string const& connectionString, std::string const& schema)
+    {
+        auto mapper =
+            Lightweight::Tools::ConnectRecordDataMapper(Lightweight::SqlConnectionString { connectionString }, schema);
+        return Lightweight::Tools::CaptureBackupStart(mapper);
+    }
+
+    /// Default `Recorder::record`: verifies the archive and writes its record on a mapper of its own.
+    std::expected<Lightweight::SqlMigration::BackupRecord, Lightweight::Tools::BackupRecordError> RecordRunOn(
+        BackupRunner::Operation operation,
+        std::filesystem::path const& archive,
+        std::string const& connectionString,
+        std::string const& schema,
+        Lightweight::Tools::BackupStart const& start)
+    {
+        try
+        {
+            auto mapper =
+                Lightweight::Tools::ConnectRecordDataMapper(Lightweight::SqlConnectionString { connectionString }, schema);
+            auto const toolVersion = Lightweight::Tools::ToolVersion(RecordToolName);
+            return operation == BackupRunner::Operation::Backup
+                       ? Lightweight::Tools::RecordBackup(mapper, archive, start, toolVersion)
+                       : Lightweight::Tools::RecordRestore(mapper, archive, toolVersion);
+        }
+        catch (std::exception const& e)
+        {
+            return std::unexpected(Lightweight::Tools::BackupRecordError {
+                .kind = Lightweight::Tools::BackupRecordError::Kind::WriteFailed, .message = e.what() });
+        }
+    }
+
+    /// The sentence that says why a run was not recorded.
+    QString DescribeUnrecorded(BackupRunner::Operation operation, Lightweight::Tools::BackupRecordError const& error)
+    {
+        return QString::fromStdString(operation == BackupRunner::Operation::Backup
+                                          ? Lightweight::Tools::DescribeUnrecordedBackup(error)
+                                          : Lightweight::Tools::DescribeUnrecordedRestore(error));
+    }
+
+    /// Records a clean run; a backup archive that fails verification fails the run. A restore that fails
+    /// verification has already rewritten the database, so it stays a success that only warns.
+    /// @param recorder Writes the record.
+    /// @param operation Which kind of run this was.
+    /// @param archive The archive written or restored.
+    /// @param connectionString The database the run was against.
+    /// @param schema The schema whose `schema_backups` table receives the record.
+    /// @param start What a backup captured before it started; ignored for a restore.
+    /// @param outcome The run's outcome, failed here when the archive fails verification.
+    /// @return Why the run was not recorded; empty when it was.
+    QString RecordRun(BackupRunner::Recorder const& recorder,
+                      BackupRunner::Operation operation,
+                      std::filesystem::path const& archive,
+                      std::string const& connectionString,
+                      std::string const& schema,
+                      Lightweight::Tools::BackupStart const& start,
+                      RunSummary& outcome)
+    {
+        auto recorded = std::expected<Lightweight::SqlMigration::BackupRecord, Lightweight::Tools::BackupRecordError> {};
+        try
+        {
+            recorded = recorder.record(operation, archive, connectionString, schema, start);
+        }
+        catch (std::exception const& e)
+        {
+            recorded = std::unexpected(Lightweight::Tools::BackupRecordError {
+                .kind = Lightweight::Tools::BackupRecordError::Kind::WriteFailed, .message = e.what() });
+        }
+        if (recorded)
+            return {};
+        auto const message = DescribeUnrecorded(operation, recorded.error());
+        if (operation == BackupRunner::Operation::Backup
+            && recorded.error().kind == Lightweight::Tools::BackupRecordError::Kind::VerificationFailed)
+        {
+            outcome.ok = false;
+            outcome.summary = message;
+            outcome.result.insert(QStringLiteral("ok"), false);
+            outcome.result.insert(QStringLiteral("summary"), message);
+        }
+        return message;
+    }
+
 } // namespace
 
 BackupRunner::BackupRunner(QObject* parent):
     QObject(parent),
     _tables(this),
     _backupOperation(&RunSqlBackup),
-    _restoreOperation(&RunSqlRestore)
+    _restoreOperation(&RunSqlRestore),
+    _recorder { .captureStart = &CaptureBackupStartOn, .record = &RecordRunOn }
 {
     // Serialise GUI-initiated backup / restore operations so the progress
     // pane and cancel button stay coherent. Worker-level parallelism lives
@@ -401,6 +489,17 @@ void BackupRunner::setRestoreOperation(RunOperation operation)
     _restoreOperation = operation ? std::move(operation) : RunOperation { &RunSqlRestore };
 }
 
+void BackupRunner::setRecorder(Recorder recorder)
+{
+    _recorder.captureStart = recorder.captureStart ? std::move(recorder.captureStart) : &CaptureBackupStartOn;
+    _recorder.record = recorder.record ? std::move(recorder.record) : &RecordRunOn;
+}
+
+void BackupRunner::setRecordSchema(QString const& schema)
+{
+    _recordSchema = schema.toStdString();
+}
+
 bool BackupRunner::CanStartRun(char const* what)
 {
     if (phase() != Phase::Idle)
@@ -449,35 +548,79 @@ void BackupRunner::Run(Operation operation, QString const& archiveFile, RunOpera
     auto const cs = _connectionString.toStdString();
     auto const target = _targetLabel;
 
-    _pool.start(new FunctionTask([runner, operation, archiveFile, operationFn, cs, target] {
-        auto const started = std::chrono::steady_clock::now();
-        auto error = QString {};
-        EmittingProgressManager pm(runner);
-        try
-        {
-            operationFn(std::filesystem::path(archiveFile.toStdString()), cs, pm);
-        }
-        catch (std::exception const& e)
-        {
-            error = QString::fromUtf8(e.what());
-        }
-        auto const durationMs =
-            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - started).count();
-        auto outcome = pm.Summarize(operation, archiveFile, error, static_cast<qint64>(durationMs));
-        outcome.result.insert(QStringLiteral("target"), target);
+    _pool.start(new FunctionTask(
+        [runner, operation, archiveFile, operationFn, cs, target, recorder = _recorder, recordSchema = _recordSchema] {
+            auto const archive = std::filesystem::path { archiveFile.toStdU16String() };
+            auto const started = std::chrono::steady_clock::now();
+            // A backup's record keeps the migration history as it was before the backup read any data.
+            auto start = std::optional<Lightweight::Tools::BackupStart> {};
+            auto recordError = QString {};
+            if (operation == Operation::Backup)
+            {
+                try
+                {
+                    start = recorder.captureStart(cs, recordSchema);
+                }
+                catch (std::exception const& e)
+                {
+                    recordError = DescribeUnrecorded(
+                        operation,
+                        { .kind = Lightweight::Tools::BackupRecordError::Kind::WriteFailed,
+                          .message = std::string { "could not read the migration history: " } + e.what() });
+                }
+            }
 
-        QMetaObject::invokeMethod(
-            runner,
-            [runner, outcome = std::move(outcome)]() mutable {
-                outcome.result.insert(QStringLiteral("finishedAt"), QDateTime::currentDateTime());
-                runner->_lastResult = std::move(outcome.result);
-                runner->_phase.store(Phase::Idle, std::memory_order_release);
-                emit runner->lastResultChanged();
-                emit runner->phaseChanged();
-                emit runner->finished(outcome.ok, outcome.summary);
-            },
-            Qt::QueuedConnection);
-    }));
+            auto error = QString {};
+            EmittingProgressManager pm(runner);
+            try
+            {
+                operationFn(archive, cs, pm);
+            }
+            catch (std::exception const& e)
+            {
+                error = QString::fromUtf8(e.what());
+            }
+            auto const durationMs =
+                std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - started).count();
+            auto outcome = pm.Summarize(operation, archiveFile, error, static_cast<qint64>(durationMs));
+            outcome.result.insert(QStringLiteral("target"), target);
+
+            // Only a clean run is recorded; a failed one already says why in its summary.
+            auto recorded = false;
+            if (!outcome.ok)
+                recordError.clear();
+            else if (operation == Operation::Restore || start)
+            {
+                recordError = RecordRun(recorder,
+                                        operation,
+                                        archive,
+                                        cs,
+                                        recordSchema,
+                                        start.value_or(Lightweight::Tools::BackupStart {}),
+                                        outcome);
+                recorded = recordError.isEmpty();
+            }
+            if (outcome.ok && !recordError.isEmpty())
+                QMetaObject::invokeMethod(runner,
+                                          "logLine",
+                                          Qt::QueuedConnection,
+                                          Q_ARG(QString, recordError),
+                                          Q_ARG(DbtoolGui::LogLevel, LogLevel::Warning));
+            outcome.result.insert(QStringLiteral("recorded"), recorded);
+            outcome.result.insert(QStringLiteral("recordError"), recordError);
+
+            QMetaObject::invokeMethod(
+                runner,
+                [runner, outcome = std::move(outcome)]() mutable {
+                    outcome.result.insert(QStringLiteral("finishedAt"), QDateTime::currentDateTime());
+                    runner->_lastResult = std::move(outcome.result);
+                    runner->_phase.store(Phase::Idle, std::memory_order_release);
+                    emit runner->lastResultChanged();
+                    emit runner->phaseChanged();
+                    emit runner->finished(outcome.ok, outcome.summary);
+                },
+                Qt::QueuedConnection);
+        }));
 }
 
 } // namespace DbtoolGui

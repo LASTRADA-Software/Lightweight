@@ -15,6 +15,11 @@ A backup is a single zip archive containing:
 - `data/<table>/NNNN_SS.msgpack` — the table data, split into self-contained msgpack
   chunks (`NNNN` = window index, `SS` = sub-chunk within the window).
 
+`SqlBackup::BackupSchemas` backs up several schemas into one archive. It then stores the
+data under `data/<schema>/<table>/` and records each table's schema and each foreign
+key's referenced schema, so that a restore recreates every table in its own schema
+(see [sql-backup-format.md](sql-backup-format.md#6-multi-schema-archives)).
+
 Backup and restore work against SQLite3, Microsoft SQL Server, and PostgreSQL through
 ODBC; all per-DBMS SQL differences are handled internally.
 
@@ -78,7 +83,16 @@ automatically when the backup finishes (also on failure).
 - **Re-running a backup** to the same output is always safe — every entry is
   overwritten, never appended.
 - **Integrity:** every chunk is SHA-256-hashed into `checksums.json` and verified on
-  restore.
+  restore. `SqlBackup::VerifyArchive(file)` checks a finished archive the same way without a
+  database: it needs `metadata.json`, every `data/` entry listed in `checksums.json` with a matching
+  SHA-256, and returns the SHA-256 of the whole file. A schema-only archive has no data entries and
+  needs no `checksums.json`. A failure names the entry at fault.
+- **Bookkeeping tables are left out:** `schema_backups` and the tables the advisory-lock handlers
+  keep (`_lightweight_locks` on SQLite, which holds a row while the migration lock is taken) are never
+  backed up, and a restore skips them in archives that still hold them. The live tables stay as they
+  are: a restore never brings back old backup records or a held lock.
+- **Completeness:** `metadata.json`'s `complete` is false for a filtered or schema-only backup and for
+  one in which a table failed; `VerifyArchive` reports it. Archives without the key count as complete.
 
 ## Consistency caveats (online backup)
 

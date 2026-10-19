@@ -735,3 +735,40 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlSchema does not carry a foreign key onto th
     (void) stmt.ExecuteDirect(R"(DROP TABLE IF EXISTS "FkOrder")");
     (void) stmt.ExecuteDirect(R"(DROP TABLE IF EXISTS "FkCustomer")");
 }
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadTable describes a table with non-ASCII names", "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("Café")
+            .PrimaryKey("Crème", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Naïve", SqlColumnTypeDefinitions::Integer {});
+    });
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("Ångström")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .ForeignKey("Crème",
+                        SqlColumnTypeDefinitions::Integer {},
+                        SqlForeignKeyReferenceDefinition { .tableName = "Café", .columnName = "Crème" });
+    });
+
+    auto const database = stmt.Connection().DatabaseName();
+    auto const allTables = SqlSchema::ReadAllTables(stmt, database, /*schema=*/"");
+    CHECK(std::ranges::contains(allTables, "Café", &SqlSchema::Table::name));
+
+    auto const described = SqlSchema::ReadTable(
+        stmt, SqlSchema::FullyQualifiedTableName { .catalog = database, .schema = "", .table = "Café" });
+    REQUIRE(described.has_value());
+    auto const table = described.value_or(SqlSchema::Table {});
+    CHECK(table.name == "Café");
+    auto const columnNames = table.columns | std::views::transform(&SqlSchema::Column::name);
+    CHECK(std::ranges::contains(columnNames, "Crème"));
+    CHECK(std::ranges::contains(columnNames, "Naïve"));
+    CHECK(table.primaryKeys == std::vector<std::string> { "Crème" });
+
+    auto const referencing = SqlSchema::AllForeignKeysTo(
+        stmt, SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = "Café" });
+    REQUIRE(referencing.size() == 1);
+    CHECK(referencing.front().foreignKey.table.table == "Ångström");
+    CHECK(referencing.front().foreignKey.columns == std::vector<std::string> { "Crème" });
+}

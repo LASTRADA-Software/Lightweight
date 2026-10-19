@@ -20,6 +20,8 @@ The backup file is a ZIP archive with the following internal structure:
 
 - **`metadata.json`**: Located at the root. Contains backup metadata and the full database schema.
 - **`data/<TableName>/`**: Contains the actual row data for the table, split into multiple chunks associated with the table.
+  A multi-schema archive (format version `2.0`, see [section 6](#6-multi-schema-archives)) uses `data/<SchemaName>/<TableName>/` instead.
+  Dots in either name are written as underscores.
 - **Chunks**: Files are named sequentially (e.g., `0001.msgpack`, `0002.msgpack`) and contain a batch of rows in a column-oriented MessagePack format.
 
 ## 2. Metadata Manifest (`metadata.json`)
@@ -28,10 +30,12 @@ The `metadata.json` file is a JSON object with the following fields:
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `format_version` | String | The backup format version (e.g., `1.0`). |
+| `format_version` | String | The backup format version: `1.0` for an archive of one schema, `2.0` for a [multi-schema archive](#6-multi-schema-archives). |
 | `creation_time` | ISO 8601 String | Timestamp of when the backup was created (e.g., `2024-01-01T12:00:00Z`). |
+| `complete` | Boolean | Whether the archive holds every table with its data: false for a filtered or schema-only backup and for one in which a table failed. Missing in archives of older versions, which count as complete. |
 | `original_connection_string` | String | The connection string used to create the backup, with `PWD`/`Password` attribute values redacted to `***`. Redaction parses the string attribute-wise and honours ODBC `{...}` quoting, so a brace-quoted password containing `;` (`PWD={pa;ss}`) is masked whole. Diagnostic only — it is not read back at restore time. |
-| `schema_name` | String | The database schema name (e.g., `dbo` for SQL Server). |
+| `schema_name` | String | The database schema name (e.g., `dbo` for SQL Server). Empty in a multi-schema archive. |
+| `schema_names` | Array | (Multi-schema archives only) The names of the schemas the archive holds, sorted. |
 | `server` | Object | Server identification information. |
 | `schema` | Array | A list of table definitions. |
 
@@ -53,6 +57,7 @@ Each object in the `schema` array represents a table:
 | Field | Type | Description |
 | --- | --- | --- |
 | `name` | String | The table name. |
+| `schema` | String | (Multi-schema archives only) The schema the table belongs to. |
 | `rows` | Integer | Total number of rows in the table at the time of backup. |
 | `columns` | Array | List of column definitions. |
 | `foreign_keys` | Array | List of foreign key constraints. |
@@ -82,6 +87,7 @@ Each object in the `foreign_keys` array represents a foreign key constraint:
 | `name` | String | The name of the foreign key constraint (may be empty). |
 | `columns` | Array | List of column names in the local table. |
 | `referenced_table` | String | The name of the referenced (parent) table. |
+| `referenced_schema` | String | (Multi-schema archives only) The schema of the referenced table, which may differ from the table's own. |
 | `referenced_columns` | Array | List of column names in the referenced table. |
 
 ## 3. Data Chunk Format (`.msgpack`)
@@ -173,3 +179,27 @@ Not all compression methods may be available depending on how libzip was compile
 ### 5.4 Restoration Compatibility
 
 Backup files can be restored regardless of which compression method was used, as long as the restoring system's libzip supports the compression method used during backup. For maximum portability, use `deflate` compression.
+
+## 6. Multi-schema Archives
+
+A backup of two or more schemas (`dbtool backup --schema dbo,sales` or `--all-schemas`) writes format version `2.0`.
+A backup of one schema, or of none named, keeps writing version `1.0` byte for byte, and version `1.0` archives restore as before.
+One exception: such a backup now refuses tables whose archive name or folder would collide, where it used to overwrite one with the other.
+Releases that only know version `1.0` refuse a `2.0` archive with "Unsupported backup format version" rather than restore it wrongly.
+
+Version `2.0` differs from `1.0` here:
+
+| Where | Version `2.0` |
+| --- | --- |
+| `schema_name` | Empty. |
+| `schema_names` | Lists the schemas. |
+| Table definition | Carries `schema`. Two schemas may hold tables of the same name. |
+| Foreign key definition | Carries `referenced_schema`. |
+| Data folder | `data/<SchemaName>/<TableName>/`. |
+
+Restoring a version `2.0` archive:
+
+- Recreates each table in its recorded schema, creating missing schemas first, and then adds every foreign key, also those that reference another schema.
+- Refuses a target schema (`dbtool restore --schema`).
+- Into a database without schemas (SQLite), succeeds only if every table name is unique across the schemas (case-insensitively), and then drops the schemas. Otherwise it is refused.
+- `backup-diff` keys a table of a version `2.0` archive as `<SchemaName>/<TableName>`, the data folder below `data/`.

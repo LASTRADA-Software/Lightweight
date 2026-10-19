@@ -10,12 +10,16 @@
 // Every test uses its own temp file under `temp_directory_path()` to stay
 // independent of the real user config at `$HOME/.config/dbtool/dbtool.yml`.
 
+#include "UniqueTempPath.hpp"
+
 #include <Lightweight/SqlConnectInfo.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <variant>
@@ -34,8 +38,7 @@ class ScopedTempYaml
     explicit ScopedTempYaml(std::string_view contents)
     {
         static int counter = 0;
-        _path =
-            std::filesystem::temp_directory_path() / ("lightweight-profilestore-test-" + std::to_string(++counter) + ".yml");
+        _path = UniqueTempPath("lightweight-profilestore-test-" + std::to_string(++counter), ".yml");
         std::ofstream out(_path, std::ios::binary | std::ios::trunc);
         out << contents;
     }
@@ -62,7 +65,7 @@ class ScopedTempYaml
 
 TEST_CASE("ProfileStore — missing file yields empty store, not an error", "[ProfileStore]")
 {
-    auto const nonexistent = std::filesystem::temp_directory_path() / "lightweight-profilestore-none.yml";
+    auto const nonexistent = UniqueTempPath("lightweight-profilestore-none", ".yml");
     std::filesystem::remove(nonexistent); // just in case.
 
     auto const result = Lightweight::Config::ProfileStore::LoadOrDefault(nonexistent);
@@ -136,7 +139,7 @@ TEST_CASE("ProfileStore — save/load round-trip is lossless", "[ProfileStore]")
 {
     using namespace Lightweight::Config;
 
-    auto const path = std::filesystem::temp_directory_path() / "lightweight-profilestore-roundtrip.yml";
+    auto const path = UniqueTempPath("lightweight-profilestore-roundtrip", ".yml");
     std::filesystem::remove(path);
 
     ProfileStore store;
@@ -333,7 +336,7 @@ TEST_CASE("ProfileStore — defaultPluginsDir round-trips through Save", "[Profi
 {
     using namespace Lightweight::Config;
 
-    auto const path = std::filesystem::temp_directory_path() / "lightweight-profilestore-globaldir.yml";
+    auto const path = UniqueTempPath("lightweight-profilestore-globaldir", ".yml");
     std::filesystem::remove(path);
 
     ProfileStore store;
@@ -369,7 +372,7 @@ TEST_CASE("ProfileStore — defaultPluginsDir multi-entry round-trip preserves o
 {
     using namespace Lightweight::Config;
 
-    auto const path = std::filesystem::temp_directory_path() / "lightweight-profilestore-globaldirs.yml";
+    auto const path = UniqueTempPath("lightweight-profilestore-globaldirs", ".yml");
     std::filesystem::remove(path);
 
     ProfileStore store;
@@ -608,4 +611,118 @@ TEST_CASE("ProfileStore — backup folders round-trip through Save", "[ProfileSt
     REQUIRE(reloaded.has_value());
     CHECK(reloaded->DefaultBackupDir().generic_string() == "/srv/backups");
     CHECK(reloaded->Find("prod")->backupDir.generic_string() == "/srv/backups/prod");
+}
+
+TEST_CASE("ProfileStore — non-ASCII backup folders keep their spelling", "[ProfileStore][backup-dir]")
+{
+    // UTF-8 "Sicherungen-Müller", the encoding dbtool.yml uses.
+    ScopedTempYaml const yaml("defaultBackupDir: /srv/Sicherungen-M\xC3\xBCller\n"
+                              "profiles:\n"
+                              "  prod:\n"
+                              "    dsn: PROD\n"
+                              "    backupDir: /srv/Sicherungen-M\xC3\xBCller/prod\n");
+
+    auto const loaded = Lightweight::Config::ProfileStore::LoadOrDefault(yaml.Path());
+
+    if (!loaded)
+    {
+        FAIL("the file did not load");
+        return;
+    }
+    CHECK(loaded->DefaultBackupDir().generic_u8string() == u8"/srv/Sicherungen-M\u00fcller");
+    auto const* prod = loaded->Find("prod");
+    REQUIRE(prod != nullptr);
+    CHECK(prod->backupDir.generic_u8string() == u8"/srv/Sicherungen-M\u00fcller/prod");
+
+    // Saving writes the same UTF-8 back.
+    ScopedTempYaml const saved("");
+    REQUIRE(loaded->Save(saved.Path()).has_value());
+    auto const reloaded = Lightweight::Config::ProfileStore::LoadOrDefault(saved.Path());
+    if (!reloaded)
+    {
+        FAIL("the saved file did not load");
+        return;
+    }
+    CHECK(reloaded->DefaultBackupDir().generic_u8string() == u8"/srv/Sicherungen-M\u00fcller");
+}
+
+namespace
+{
+
+/// Sets an environment variable for the lifetime of the object and then restores its previous
+/// value, or unsets it when it had none.
+class ScopedEnvironmentVariable
+{
+  public:
+    ScopedEnvironmentVariable(char const* name, std::string const& value):
+        _name { name },
+        _previousValue { Read(name) }
+    {
+        Write(name, value);
+    }
+
+    ScopedEnvironmentVariable(ScopedEnvironmentVariable const&) = delete;
+    ScopedEnvironmentVariable(ScopedEnvironmentVariable&&) = delete;
+    ScopedEnvironmentVariable& operator=(ScopedEnvironmentVariable const&) = delete;
+    ScopedEnvironmentVariable& operator=(ScopedEnvironmentVariable&&) = delete;
+
+    ~ScopedEnvironmentVariable()
+    {
+        Write(_name, _previousValue.value_or(std::string {}));
+    }
+
+  private:
+    static std::optional<std::string> Read(char const* name)
+    {
+#ifdef _WIN32
+        auto size = std::size_t {};
+        if (getenv_s(&size, nullptr, 0, name) != 0 || size == 0)
+            return std::nullopt;
+        auto value = std::string(size, '\0');
+        if (getenv_s(&size, value.data(), value.size(), name) != 0)
+            return std::nullopt;
+        value.resize(size - 1); // size counts the terminating null
+        return value;
+#else
+        if (auto const* const value = std::getenv(name); value != nullptr)
+            return std::string { value };
+        return std::nullopt;
+#endif
+    }
+
+    /// Sets `name` to `value`; an empty value unsets it.
+    static void Write(char const* name, std::string const& value)
+    {
+#ifdef _WIN32
+        _putenv_s(name, value.c_str());
+#else
+        if (value.empty())
+            unsetenv(name);
+        else
+            setenv(name, value.c_str(), 1);
+#endif
+    }
+
+    char const* _name;
+    std::optional<std::string> _previousValue;
+};
+
+} // namespace
+
+TEST_CASE("ProfileStore::DefaultPath honours LIGHTWEIGHT_DBTOOL_USER_CONFIG_DIR", "[ProfileStore]")
+{
+    auto const directory = UniqueTempPath("lightweight-user-config-override");
+    auto overridden = std::filesystem::path {};
+    {
+        ScopedEnvironmentVariable const unset { Lightweight::Config::ProfileStore::UserConfigDirectoryVariable, "" };
+        auto const platformDefault = Lightweight::Config::ProfileStore::DefaultPath();
+        {
+            ScopedEnvironmentVariable const set { Lightweight::Config::ProfileStore::UserConfigDirectoryVariable,
+                                                  directory.string() };
+            overridden = Lightweight::Config::ProfileStore::DefaultPath();
+        }
+        CHECK(Lightweight::Config::ProfileStore::DefaultPath() == platformDefault);
+        CHECK(platformDefault != overridden);
+    }
+    CHECK(overridden == directory / "dbtool.yml");
 }

@@ -94,6 +94,17 @@ LIGHTWEIGHT_SQL_MIGRATION(20260126120000, "Create users table")
 The `LIGHTWEIGHT_MIGRATION_PLUGIN()` macro exports the `AcquireMigrationManager()` function
 that dbtool uses to load migrations from the plugin.
 
+A plugin can also export two optional hooks, described in
+[dbtool.md](dbtool.md#optional-post-init-hook):
+
+| Macro | Runs |
+|-------|------|
+| `LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connection, manager)` | before every dbtool command, read-only ones included; failures are logged only |
+| `LIGHTWEIGHT_MIGRATION_PLUGIN_POSTMIGRATE(connection, manager)` | after a successful `migrate` / `migrate-to-release` / `apply`, under the migration lock; a failure fails the command |
+
+The post-init hook may also call `manager.AddPreMigrateStep(...)` to register work that runs before
+the first migration; see [Pre-migrate steps](#pre-migrate-steps).
+
 ## Table Operations
 
 ### CreateTable
@@ -208,6 +219,71 @@ plan.Insert("settings")
     .Set("key", "app_version")
     .Set("value", "1.0.0");
 ```
+
+#### Rows that may already exist (`IfNotExists`)
+
+A database may already contain a reference row that a later migration inserts, for example one
+applied earlier by a hotfix. A plain `Insert` then fails with a duplicate key and stops the whole
+migration. `IfNotExists` names the key columns that identify the row and makes the insert skip it
+when a row with the same key values exists:
+
+```cpp
+plan.Insert("Categories")
+    .Set("Id", 200)
+    .Set("Name", "Books")
+    .IfNotExists({ "Id" });
+```
+
+It runs as one statement on every backend, with the table schema-qualified the same way as a plain
+insert. Run through `MigrationManager` (and so through `dbtool`), every value is bound as a
+parameter:
+
+```sql
+INSERT INTO "Categories" ("Id", "Name") SELECT ?, ?
+WHERE NOT EXISTS (SELECT 1 FROM "Categories" WHERE "Id" = ?)
+```
+
+- Checksums and previews (`--dry-run`, `ToSql`) show the same statement with the values as
+  literals, rendered exactly as a plain `Insert` renders them, so a checksum does not depend on how
+  the values reach the database. Adding `IfNotExists` changes a migration's checksum; a plain
+  `Insert` renders, checksums and runs exactly as before. `ToBoundSql` returns the bound form.
+- `SqlStatement::MigrateDirect` and other callers that execute `ToSql()` output run the literal
+  form instead; it skips existing rows the same way.
+- UTF-8 text is bound as UTF-16, so it is stored exactly as its literal would store it, in wide and
+  narrow columns alike. Integers and NULL (into any column type) store identically, too.
+- On SQL Server, a migration with an `IfNotExists` insert first runs `SET NOCOUNT OFF`, since the
+  skip is read from the affected-row count; the setting stays in effect for the session afterwards.
+- A GUID, date, time or timestamp is bound as the text its literal quotes, so the server parses
+  the same text either way. Bound natively, a time or timestamp would keep the fraction the literal
+  drops (a timestamp literal has milliseconds), and SQLite would store a timestamp in a different
+  text form, which a key comparison then never matches.
+  On SQL Server, a date sent as text into a DATETIME or SMALLDATETIME column under a session
+  language with DMY date order (e.g. `SET LANGUAGE British`) is read as `yyyy-dd-mm`; a plain
+  `Insert` literal is read the same way, and a DATE or DATETIME2 column is not affected.
+- `SqlDynamicNumeric` (also at high scale such as DECIMAL(28,12)), binary values and `bool` are
+  bound natively and store exactly as their literals.
+- A key column of any of these types finds a row a plain `Insert` stored.
+- A `double` is bound as its binary value. In FLOAT/REAL columns and in DECIMAL columns of low scale
+  (e.g. `40.3399`, `0.5`, `-12.25` into DECIMAL(10,4)) it stores exactly as the literal of a plain
+  `Insert`. Known divergences, where the literal is parsed as a decimal instead:
+  - a DECIMAL column with more fractional digits than the double holds exactly: `123456.789012`
+    into DECIMAL(28,12) stores `123456.789011999994` bound and `123456.789012000000` as a literal;
+  - SQLite parses some literals 1-2 ULP away from the correctly rounded double (e.g.
+    `0.30000000000000004`, `1e-7`), which the bound value carries;
+  - a double into a text column: SQLite stores `3.0` bound as `"3.0"`, as a literal as `"3"`.
+
+  Do not key `IfNotExists` on such a double: in these cases the bound key misses a row a plain
+  `Insert` stored, and the insert then adds a duplicate. Use `SqlNumeric` / `SqlDynamicNumeric`
+  for exact decimal values.
+- An existing row is left as it is, **even when its non-key columns differ** from the values in
+  the migration. `IfNotExists` only prevents the duplicate; it never updates.
+- Several key columns are combined with `AND`: `.IfNotExists({ "Kind", "Id" })`.
+- Rendering the plan throws `std::invalid_argument` when a key column is not one of the `Set`
+  columns, or when its value is NULL (`=` never matches NULL, so the row would be inserted again on
+  every run). `IfNotExists({})` throws right away.
+- Each skipped row is counted (`MigrationManager::SkippedExistingRowCount()`) and reported through
+  the manager's log sink as `Skipped existing row: <timestamp> <table> (<key>=<value>, ...)`. See
+  [dbtool](dbtool.md#skipped-rows) for how `dbtool` prints it.
 
 ### Update
 
@@ -349,12 +425,135 @@ specific "make this the session default" statement for every new connection:
   `WithSchema(...)` builder.
 - **SQLite** — no schema concept; the hook is a no-op.
 
+On PostgreSQL a `CreateTable` built with `WithSchema(...)` names the schema for the table and its
+indexes (earlier releases created them in the `search_path` schema). So the schema must exist, and
+a database migrated by an earlier release reports checksum mismatches for those migrations until
+`dbtool rewrite-checksums` rewrites them. The table's inline foreign keys still name the referenced
+table without a schema; they resolve through the `search_path`, so the referenced table must lie
+in a schema on the `search_path`.
+
 Schema names are validated against `[A-Za-z0-9_]` and rejected via
 `std::invalid_argument` otherwise. Passing `""` clears any previously
 installed hook.
 
 `dbtool` exposes this via the `--schema` flag and `dbtool-gui` exposes it as
 a "Schema" input on both the Profile and the direct-ODBC connection tabs.
+
+### Progress reporting
+
+Long-running library calls report their work through `Lightweight::ProgressTask`, an interface the
+host (a CLI, a GUI) implements and passes in; the library only calls it. Tasks nest: a task opens
+sub-tasks with `BeginSubTask`, advances with `Advance`, and destroying a task marks it finished. A
+total of 0 makes a task indeterminate (the host shows that it runs, not how far it got). Long loops
+poll `IsCancellationRequested()` at safe points. `UnicodeUpgradeTables` takes an `ExecutionMode`
+and a `ProgressTask*` (null reports nothing); `RunPreMigrateSteps` takes a `ProgressTask&`.
+`NullProgressTask` reports nothing and is never cancelled, for hosts that pass none.
+`UnicodeUpgradeTables` reports planning, an overall task weighted by the planned tables' row counts,
+a task per unit and per table. It checks for cancellation after each committed unit except the last and
+then returns with `UnicodeUpgradeResult::wasCancelled` set (`committedUnitCount` says how many units it
+committed); a later call continues with the next unit. `dbtool` draws the task tree with its `--progress`
+styles. A task that fails calls `Fail(reason)` before it ends, so the host shows it as failed (a row that
+stays visible), not as done.
+
+### Pre-migrate steps
+
+A plugin can register work that runs before the first pending migration, such as widening columns
+the migrations then rely on. Register it from the post-init hook:
+
+```cpp
+MigrationManager::AddPreMigrateStep(std::string title,
+                                    PreMigrateStepOptions options,
+                                    PreMigrateStep step);
+// PreMigrateStep = std::function<void(SqlConnection&, MigrationManager&, ProgressTask&, ExecutionMode)>
+```
+
+- **When they run:** `migrate`, `apply` and `migrate-to-release` run the steps in registration order
+  whenever they reach their apply phase, also with nothing pending (`apply` once its migration is
+  found; `migrate-to-release` after its "already at or past" check). Status and read-only commands
+  never run them.
+- **Lock and connection:** a step gets the migration connection, on which the command holds the migration
+  lock unless it opted out of locking.
+- **Dry run:** with `ExecutionMode::DryRun` the step reports its plan and changes nothing. A dry run
+  calls the steps, like it previews migrations, without taking the lock.
+- **Progress:** each step runs under its own sub-task of the command's `ProgressTask`, titled like the step.
+- **Failure:** a step that throws stops the command with `PreMigrateStepError` before any migration runs;
+  later steps do not run, and the step's task ends as failed. A step that can live with a problem calls
+  `progress.Log(ProgressTask::LogLevel::Warning, ...)` and returns normally; the migrations then continue.
+- **Cancellation:** `RunPreMigrateSteps` checks `IsCancellationRequested()` before and after each step and
+  returns `PreMigrateStepsOutcome::Cancelled`; the caller then applies no migration.
+- **Lifetime:** a step is code of its plugin. Hosts call `RemoveAllPreMigrateSteps()` before running post-init
+  hooks again (a reconnect) and before unloading a plugin, so a step is never registered twice nor outlives
+  its library.
+- **`requiresBackup`:** an optional predicate in `PreMigrateStepOptions`, evaluated on the migration
+  connection before the run, says whether this run of the step demands a backup (see
+  [Backup requirement](#backup-requirement)). Hosts evaluate it on every check, not only before a
+  run (dbtool-gui after each connect, run and backup), and on whatever thread they check from, a
+  worker or a GUI's own thread. Keep it reasonably cheap, and free of thread affinity.
+
+```cpp
+LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connection, manager)
+{
+    if (NeedsTextWidening(connection))
+        manager.AddPreMigrateStep("Widen text columns",
+                                  { .requiresBackup = [](SqlConnection&, MigrationManager& m) {
+                                        return !m.UnicodeUpgradeTables(ExecutionMode::DryRun).columns.empty();
+                                    } },
+                                  [](SqlConnection&, MigrationManager& m, ProgressTask& progress, ExecutionMode mode) {
+                                      std::ignore = m.UnicodeUpgradeTables(mode, &progress);
+                                  });
+}
+```
+
+### Backup requirement
+
+Work that is hard to undo can demand a backup of the database first. Three things can:
+
+- a migration: `MigrationBase::RequiresBackup()`, set through `MigrationMetadata::requiresBackup`;
+- a release, as shorthand for all of its migrations:
+  `LIGHTWEIGHT_SQL_RELEASE("3.0.0", 20260501120000, { .requiresBackup = true });`
+  (or `MigrationManager::RegisterRelease(version, timestamp, { .requiresBackup = true })`);
+- a pre-migrate step whose `requiresBackup` predicate returns true.
+
+`MigrationManager::BackupRequirementFor(toRun)` answers whether the work a command is about to run needs a
+backup and whether one exists. **Only the work the command will run counts:** pass all pending migrations
+for `migrate`, the pending ones up to the release for `migrate-to-release`, the named one for `apply`.
+Step predicates are evaluated by that call, on the migration connection. A predicate that throws makes
+the call throw.
+
+```cpp
+auto const pending = std::vector<MigrationTimestamp> { /* what the command will run */ };
+auto const requirement = manager.BackupRequirementFor(pending);
+if (requirement.required && !requirement.satisfied)
+{
+    // requirement.reasons: `release 3.0.0`, `migration 20260501120000 "Add orders"`, `step "Widen text columns"`
+}
+```
+
+| Member | Meaning |
+|--------|---------|
+| `required` | Something demands a backup. |
+| `reasons` | What demands it, in this order: releases, migrations, steps. A migration whose release already demands one is not named again. |
+| `satisfied` | True when nothing is required; otherwise the newest `backup` or `restore` record covers the database's current state. |
+| `lastBackup` | The newest `backup` or `restore` record; `waived` rows are skipped. |
+
+When nothing demands a backup, neither `schema_backups` nor `schema_migrations` is read or created.
+
+**Freshness rule** (`BackupRecordCovers`): a backup that saw exactly the current migration history covers.
+`ReadMigrationHistoryState` returns a digest: the SHA-256 of the physical `schema_migrations` rows sorted
+by version, one `<version>|<applied_at>` line each (`applied_at` as milliseconds since the Unix epoch,
+empty when null; the virtual-applied overlay does not count). A `backup` or `restore` record covers when
+its stored digest equals the current one, so any migration applied, re-applied, rolled back or re-stamped
+since changes the result. Only values read from the database are compared; `created_at` is informational.
+A `waived` row (or any unknown kind) never covers.
+
+A record is built from a `MigrationHistoryState` (`BackupRecord::observedState`), never from a clock. Read
+the state before the backup reads any data, and for a restore after it finished.
+
+Only backups recorded by Lightweight's tools (`dbtool`, `dbtool-gui`) count, because only they write
+`schema_backups` rows. An archive made by other means satisfies nothing.
+
+> **The migration lock stops other migrations, not the application's own writes made between the backup
+> and the migration. Stop the application during such an upgrade.**
 
 ### Applying Migrations Programmatically
 
@@ -418,6 +617,13 @@ manager.SetCompatPolicy([](SqlMigration::MigrationBase const& migration) {
 Flags only change the SQL sent to the database. Checksums are computed from the migration as
 declared, so the same migration has the same checksum on every database.
 
+A policy installed by a plugin is code from that plugin's library. `dbtool` and `dbtool-gui`
+clear the policy, the migrations and the releases before they unload plugins
+(`Lightweight::Tools::UnloadPlugins`): at exit, after a failed plugin load, and in `dbtool-gui`
+whenever it reloads the plugin list, where the reloaded plugins' static initializers install
+their policy again. A host that loads plugins itself must do the same, or the manager calls into
+an unloaded library: at the next migration it applies, or in its destructor when the process exits.
+
 ### Preview (Dry-Run)
 
 Generate SQL without executing:
@@ -480,6 +686,24 @@ Lightweight automatically creates a `schema_migrations` table to track applied m
 | version | BIGINT | Migration timestamp |
 | checksum | VARCHAR(64) | SHA-256 checksum of migration SQL |
 | applied_at | DATETIME | When the migration was applied |
+
+### schema_backups Table
+
+`dbtool` and `dbtool-gui` append a row to `schema_backups` after a verified backup or a restore, and when
+a run goes ahead without a required backup because the user waived it. The table is created on first use
+and dropped by `HardReset` (its rows describe the migration state being discarded). Read and write it with
+`ReadLatestBackupRecord` / `WriteBackupRecord`; see [Backup requirement](#backup-requirement) for how it is used.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | BIGINT | Assigned by the database; the newest record has the highest |
+| created_at | DATETIME | Informational, UTC: for a backup when it started reading the database, for a restore when it finished |
+| archive_file_name | NVARCHAR(255) | Archive name without its directory; empty for `waived` |
+| archive_sha256 | VARCHAR(64) | SHA-256 of the archive file, lowercase hex; empty for `waived` |
+| last_migration | BIGINT | Highest version in `schema_migrations` at `created_at`; null when there was none |
+| migration_state_digest | VARCHAR(64) | Digest of the `schema_migrations` history the backup saw (read before it started; a restore: after it finished) |
+| tool_version | VARCHAR(128) | The tool that wrote the row, e.g. `dbtool 1.2.3` |
+| kind | VARCHAR(16) | `backup`, `restore` or `waived` |
 
 ### Concurrency Control
 

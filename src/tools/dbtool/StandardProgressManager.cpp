@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "ProgressText.hpp"
 #include "StandardProgressManager.hpp"
 
 #include <cmath>
@@ -7,53 +8,8 @@
 #include <iostream>
 #include <string_view>
 
-#include <core/tui/TerminalOutput.hpp>
-
 namespace Lightweight::Tools
 {
-
-/// core-cpp's terminal output, writing to an injected stream instead of the process's standard
-/// output. Composing the escape sequences is core-cpp's; this only says where the bytes go and
-/// whether that is a terminal.
-class OStreamTerminalOutput final: public core::tui::TerminalOutput
-{
-  public:
-    OStreamTerminalOutput(std::ostream& out, ProgressDestination destination):
-        _out { out },
-        _destination { destination }
-    {
-    }
-
-    [[nodiscard]] bool isTerminal() const noexcept override
-    {
-        return _destination == ProgressDestination::Terminal;
-    }
-
-  protected:
-    void writeToDestination(std::string_view bytes) override
-    {
-        _out.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
-        _out.flush();
-    }
-
-  private:
-    std::ostream& _out;
-    ProgressDestination _destination;
-};
-
-namespace
-{
-
-    /// Whether @p out is a terminal: only std::cout can be, and only when the operating system says
-    /// the process's standard output is one.
-    ProgressDestination DestinationOf(std::ostream const& out)
-    {
-        if (&out != &std::cout || !core::tui::TerminalOutput {}.isTerminal())
-            return ProgressDestination::NotTerminal;
-        return ProgressDestination::Terminal;
-    }
-
-} // namespace
 
 StandardProgressManager::StandardProgressManager(bool useUnicode, std::ostream& out):
     StandardProgressManager(useUnicode, out, DestinationOf(out))
@@ -259,10 +215,7 @@ void StandardProgressManager::AllDone()
     auto const now = std::chrono::steady_clock::now();
     auto const elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - _startTime);
     auto const total_ms = elapsed.count();
-    auto const h = total_ms / 3600000;
-    auto const m = (total_ms % 3600000) / 60000;
-    auto const s = (total_ms % 60000) / 1000;
-    auto const ms = total_ms % 1000;
+    auto const timeStr = FormatElapsed(elapsed);
 
     _output->linefeed();
 
@@ -271,12 +224,11 @@ void StandardProgressManager::AllDone()
     {
         size_t const processed = _processedItems.load();
         auto const rate = static_cast<double>(processed) / (static_cast<double>(total_ms) / 1000.0);
-        _output->writeRaw(std::format(
-            "Total time: {:02}:{:02}:{:02}.{:03} | {} rows processed | {:.0f} rows/s\n", h, m, s, ms, processed, rate));
+        _output->writeRaw(std::format("Total time: {} | {} rows processed | {:.0f} rows/s\n", timeStr, processed, rate));
     }
     else
     {
-        _output->writeRaw(std::format("Total time: {:02}:{:02}:{:02}.{:03}\n", h, m, s, ms));
+        _output->writeRaw(std::format("Total time: {}\n", timeStr));
     }
 
     if (_issuesByTable.empty())
@@ -392,27 +344,7 @@ void StandardProgressManager::PrintLine(int lineIndex, SqlBackup::Progress const
         int const barWidth = 20;
         int const filled = static_cast<int>((pct * barWidth) / 100);
 
-        if (_useUnicode)
-        {
-            // FiraCode progress bar:
-            //   U+EE00 (Left empty)
-            //   U+EE01 (Middle empty)
-            //   U+EE02 (Right empty)
-            //   U+EE03 (Left filled)
-            //   U+EE04 (Middle filled)
-            //   U+EE05 (Right filled)
-            bar += (filled > 0) ? "\uEE03" : "\uEE00";
-            for (int i = 0; i < barWidth; ++i)
-                bar += (i < filled) ? "\uEE04" : "\uEE01";
-            bar += (filled == barWidth) ? "\uEE05 " : "\uEE02 ";
-        }
-        else
-        {
-            bar += "[";
-            for (int i = 0; i < barWidth; ++i)
-                bar += (i < filled) ? "=" : ".";
-            bar += "] ";
-        }
+        bar = RenderBarCells(filled, barWidth, _useUnicode ? BarGlyphs::Unicode : BarGlyphs::Ascii);
     }
 
     auto const load = [&p, pct]() {
@@ -427,12 +359,7 @@ void StandardProgressManager::PrintLine(int lineIndex, SqlBackup::Progress const
     auto const tableStartIt = _tableStartTimes.find(p.tableName);
     auto const tableStart = (tableStartIt != _tableStartTimes.end()) ? tableStartIt->second : _startTime;
     auto const elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - tableStart);
-    auto const total_ms = elapsed.count();
-    auto const h = total_ms / 3600000;
-    auto const m = (total_ms % 3600000) / 60000;
-    auto const s = (total_ms % 60000) / 1000;
-    auto const ms = total_ms % 1000;
-    auto const timeStr = std::format("{:02}:{:02}:{:02}.{:03}", h, m, s, ms);
+    auto const timeStr = FormatElapsed(elapsed);
 
     // Icon + Time + Name + Bar + Load + Message
     _output->writeRaw(
@@ -552,20 +479,7 @@ void StandardProgressManager::PrintSummaryLine()
     // Use rounding to match the displayed percentage (which also rounds)
     int const filled = std::min(barWidth, static_cast<int>(std::lround((pct * barWidth) / 100.0)));
 
-    if (_useUnicode)
-    {
-        bar += (filled > 0) ? "\uEE03" : "\uEE00";
-        for (int i = 0; i < barWidth; ++i)
-            bar += (i < filled) ? "\uEE04" : "\uEE01";
-        bar += (filled == barWidth) ? "\uEE05 " : "\uEE02 ";
-    }
-    else
-    {
-        bar += "[";
-        for (int i = 0; i < barWidth; ++i)
-            bar += (i < filled) ? "=" : ".";
-        bar += "] ";
-    }
+    bar = RenderBarCells(filled, barWidth, _useUnicode ? BarGlyphs::Unicode : BarGlyphs::Ascii);
 
     // Format ETA
     // Note: We never show "done" here - that's only shown in AllDone()
@@ -627,12 +541,7 @@ void StandardProgressManager::PrintSummaryLine()
     // Calculate elapsed time (same format as table lines)
     auto const now = std::chrono::steady_clock::now();
     auto const elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - _startTime);
-    auto const total_ms = elapsed.count();
-    auto const h = total_ms / 3600000;
-    auto const m = (total_ms % 3600000) / 60000;
-    auto const s = (total_ms % 60000) / 1000;
-    auto const ms = total_ms % 1000;
-    auto const timeStr = std::format("{:02}:{:02}:{:02}.{:03}", h, m, s, ms);
+    auto const timeStr = FormatElapsed(elapsed);
 
     _output->writeRaw(std::format(
         "📊 {} {:<{}} {}{:5.2f}% ({}, ETA: {})", timeStr, "progress ", _maxTableNameLength, bar, pct, rateStr, etaStr));

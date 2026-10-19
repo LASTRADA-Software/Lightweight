@@ -86,7 +86,10 @@ set(HEADER_FILES
     Zip/ZipArchive.hpp
     Zip/ZipEntry.hpp
     Zip/ZipError.hpp
+    Zip/ZipPath.hpp
 
+    ImmortalInstance.hpp
+    ProgressTask.hpp
     SqlAdvisoryLock.hpp
     SqlConnectInfo.hpp
     SqlConnection.hpp
@@ -127,6 +130,7 @@ set(SOURCE_FILES
     SqlBackup/SqlBackup.cpp
     SqlBackup/TableFilter.cpp
     SqlBackup/WorkerChunkArchive.cpp
+    SqlBackupRecord.cpp
 
     SqlConnectInfo.cpp
     SqlConnection.cpp
@@ -146,6 +150,7 @@ set(SOURCE_FILES
     SqlScopedLock.cpp
     SqlSchema.cpp
     SqlServerDependentObjects.cpp
+    PostgreSqlForeignKeys.cpp
     SqlStatement.cpp
     SqlTransaction.cpp
     Utils.cpp

@@ -6,7 +6,10 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <format>
+#include <optional>
 #include <stdexcept>
+#include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -224,7 +227,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Repeated Prepare of the same query keeps execu
 
     auto const* const query = R"(SELECT "FirstName" FROM "Employees" WHERE "Salary" > ? ORDER BY "EmployeeID")";
 
-    for (auto const [threshold, expectedRows]: { std::pair { 45'000, 3 }, { 55'000, 2 }, { 65'000, 1 } })
+    for (auto const& [threshold, expectedRows]: { std::pair { 45'000, 3 }, { 55'000, 2 }, { 65'000, 1 } })
     {
         stmt.Prepare(query);
         auto cursor = stmt.Execute(threshold);
@@ -672,4 +675,64 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlResultCursor named access rejects an empty 
 
     REQUIRE(cursor.FetchRow());
     CHECK_THROWS_AS(cursor.GetColumn<int>(""), std::invalid_argument);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlStatement::ConsumePendingResults", "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("PendingProbe").PrimaryKey("Id", SqlColumnTypeDefinitions::Integer());
+    });
+
+    // Nothing pending, also after a statement that matched no rows.
+    CHECK_NOTHROW(stmt.ExecuteDirect(R"(INSERT INTO "PendingProbe" ("Id") VALUES (1))").ConsumePendingResults());
+    CHECK_NOTHROW(stmt.ExecuteDirect(R"(DELETE FROM "PendingProbe" WHERE "Id" = 2)").ConsumePendingResults());
+    CHECK(stmt.ExecuteDirectScalar<long long>(R"(SELECT COUNT(*) FROM "PendingProbe")").value_or(-1) == 1);
+
+    if (stmt.Connection().ServerType() == SqlServerType::MICROSOFT_SQL)
+    {
+        // The error of a later statement in a batch surfaces only here.
+        (void) stmt.ExecuteDirect("SET NOCOUNT OFF");
+        auto const _ = ScopedSqlNullLogger {};
+        CHECK_THROWS_AS(stmt.ExecuteDirect(R"(DELETE FROM "PendingProbe" WHERE "Id" = 1; THROW 50000, N'refused', 1;)")
+                            .ConsumePendingResults(),
+                        SqlException);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Query text carries non-ASCII literals to the database intact", "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    auto const literal = stmt.Connection().QueryFormatter().StringLiteral("Grüße");
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "LiteralText" ("Id" INTEGER, "Value" VARCHAR(30)))");
+    (void) stmt.ExecuteDirect(std::format(R"(INSERT INTO "LiteralText" ("Id", "Value") VALUES (1, {}))", literal));
+
+    // Fetched as UTF-16, so the driver decodes the column itself.
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "Value" FROM "LiteralText" WHERE "Id" = 1)");
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetNullableColumn<std::u16string>(1) == std::optional<std::u16string> { u"Grüße" });
+    cursor.ConsumePendingResults();
+
+    // A prepared query's text takes the same way to the driver.
+    stmt.Prepare(std::format(R"(SELECT COUNT(*) FROM "LiteralText" WHERE "Value" = {} AND "Id" = ?)", literal));
+    auto counted = stmt.Execute(1);
+    REQUIRE(counted.FetchRow());
+    CHECK(counted.GetColumn<int>(1) == 1);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "A driver diagnostic quoting a non-ASCII identifier reaches the caller intact",
+                 "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    auto message = std::string {};
+    try
+    {
+        (void) stmt.ExecuteDirect(R"(SELECT * FROM "Café_absent")");
+    }
+    catch (SqlException const& failure)
+    {
+        message = failure.info().message;
+    }
+    CHECK(message.contains("Café_absent"));
 }

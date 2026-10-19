@@ -119,8 +119,14 @@ class ProfileStore
   public:
     ProfileStore() = default;
 
+    /// Environment variable that, when set, names the directory of the per-user `dbtool.yml`
+    /// instead of the platform default. Lets tests and scripted runs stay off the user's file.
+    /// Takes an absolute path; a relative one resolves against the working directory.
+    static constexpr char const* UserConfigDirectoryVariable = "LIGHTWEIGHT_DBTOOL_USER_CONFIG_DIR";
+
     /// Path where `LoadOrDefault()` looks when given no explicit path.
     ///
+    /// - `$LIGHTWEIGHT_DBTOOL_USER_CONFIG_DIR/dbtool.yml` when that variable is set
     /// - Windows: `%APPDATA%\dbtool\dbtool.yml`
     /// - POSIX:   `$XDG_CONFIG_HOME/dbtool/dbtool.yml` or
     ///            `$HOME/.config/dbtool/dbtool.yml`

@@ -54,6 +54,12 @@ Async::Task<int> DeepChain(int depth)
     co_return 1 + co_await DeepChain(depth - 1);
 }
 
+Async::Task<int> SyncWaitInsideTask()
+{
+    auto const nested = Async::SyncWait(DeepChain(1'000));
+    co_return nested + co_await AddOne(0);
+}
+
 } // namespace
 
 TEST_CASE("Async.Task: returns a value", "[Async][Task]")
@@ -89,6 +95,11 @@ TEST_CASE("Async.Task: deep symmetric-transfer chain does not overflow the stack
 {
     // If symmetric transfer were not used, this would overflow the native stack.
     CHECK(Async::SyncWait(DeepChain(100'000)) == 100'000);
+}
+
+TEST_CASE("Async.Task: SyncWait nested inside a running task completes", "[Async][Task]")
+{
+    CHECK(Async::SyncWait(SyncWaitInsideTask()) == 1'001);
 }
 
 TEST_CASE("Async.Task: lazy — body does not run until awaited", "[Async][Task]")

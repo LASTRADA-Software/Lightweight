@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "AppController.hpp"
+#include "BackupRequirementSupport.hpp"
 
 #include <Lightweight/DataMapper/DataMapper.hpp>
 #include <Lightweight/SqlConnectInfo.hpp>
@@ -9,6 +10,8 @@
 #include <Lightweight/SqlMigration.hpp>
 #include <Lightweight/SqlServerType.hpp>
 
+#include <BackupRecording.hpp>
+#include <Config/BackupOutput.hpp>
 #include <Config/ConfigDiscovery.hpp>
 #include <Config/ProfileAdd.hpp>
 #include <Config/ProfilePassword.hpp>
@@ -26,15 +29,30 @@ namespace DbtoolGui
 /// need to see `<PluginIngestion.hpp>`.
 struct AppController::PluginsBundle
 {
+    PluginsBundle() = default;
+    PluginsBundle(PluginsBundle const&) = delete;
+    PluginsBundle(PluginsBundle&&) = delete;
+    PluginsBundle& operator=(PluginsBundle const&) = delete;
+    PluginsBundle& operator=(PluginsBundle&&) = delete;
+
+    /// Unloads the plugins only after the process-wide manager has let go of their code.
+    ~PluginsBundle()
+    {
+        Lightweight::Tools::UnloadPlugins(entries, Lightweight::SqlMigration::MigrationManager::GetInstance());
+    }
+
     std::vector<Lightweight::Tools::LoadedPlugin> entries;
 };
 
 } // namespace DbtoolGui
 
 #include <algorithm>
+#include <chrono>
 #include <exception>
 #include <filesystem>
+#include <format>
 #include <span>
+#include <system_error>
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDateTime>
@@ -81,6 +99,9 @@ namespace
     constexpr auto kKeyProfileStorePath = "config/profileStorePath";
     constexpr auto kKeyLogVisible = "ui/logVisible";
     constexpr auto kKeyViewMode = "ui/viewMode";
+
+    /// The warning shown while a plugin reload waits for the migration run to finish.
+    constexpr auto PluginReloadDeferredWarning = "Plugins will reload after the current run finishes.";
 
     /// Appends `;{key}={value}` to `cs` when `value` is non-empty. The value is
     /// rendered through `FormatConnectionStringValue`, so a password the
@@ -138,6 +159,30 @@ namespace
         return QString::fromUtf8(msg.data(), static_cast<qsizetype>(msg.size()));
     }
 
+    /// Sets a flag for its lifetime and clears it again, also when the scope is left by an exception.
+    class ScopedFlag
+    {
+      public:
+        explicit ScopedFlag(bool& flag) noexcept:
+            _flag { flag }
+        {
+            _flag = true;
+        }
+
+        ScopedFlag(ScopedFlag const&) = delete;
+        ScopedFlag(ScopedFlag&&) = delete;
+        ScopedFlag& operator=(ScopedFlag const&) = delete;
+        ScopedFlag& operator=(ScopedFlag&&) = delete;
+
+        ~ScopedFlag()
+        {
+            _flag = false;
+        }
+
+      private:
+        bool& _flag;
+    };
+
     /// A profile's connection string with its password folded in.
     struct ProfileConnection
     {
@@ -182,10 +227,15 @@ void AppController::SeedVerbose(bool enabled) noexcept
 
 AppController::AppController(QObject* parent):
     QObject(parent),
-    _verbose(s_initialVerbose),
-    _plugins(std::make_unique<PluginsBundle>())
+    _plugins(std::make_unique<PluginsBundle>()),
+    _verbose(s_initialVerbose)
 {
     _runner.SetManager(&Lightweight::SqlMigration::MigrationManager::GetInstance());
+    _runner.setPostMigrateHook(
+        [this](Lightweight::SqlMigration::MigrationManager& manager, std::function<void(std::string_view)> const& logError) {
+            return Lightweight::Tools::RunPluginPostMigrateHooks(
+                _plugins->entries, manager.GetDataMapper().Connection(), manager, logError);
+        });
 
     QObject::connect(&_migrations, &MigrationListModel::selectionChanged, this, &AppController::selectionChanged);
 
@@ -283,7 +333,18 @@ AppController::AppController(QObject* parent):
             _lastFailedTimestamp.clear();
             _lastFailedTitle.clear();
         }
+        // "Migrate without a backup" covers one run only.
+        setMigrateWithoutBackup(false);
         RefreshMigrationModelsAfterRun();
+        if (_pluginReloadPending)
+        {
+            ReloadPlugins();
+            if (_lastWarning == QLatin1String { PluginReloadDeferredWarning })
+            {
+                _lastWarning.clear();
+                emit lastWarningChanged();
+            }
+        }
     });
     // A managed restore rewrites the target database, so a restore into the
     // connected profile leaves the migration list showing the pre-restore
@@ -296,6 +357,11 @@ AppController::AppController(QObject* parent):
             if (ok && _connected)
                 RefreshMigrationModelsAfterRun();
         });
+    // A recorded Back up or Restore can satisfy the backup requirement; one that could not be recorded says why.
+    QObject::connect(&_backupRunner, &BackupRunner::finished, this, [this](bool /*ok*/, QString const& /*summary*/) {
+        _lastRecordError = _backupRunner.lastResult().value(QStringLiteral("recordError")).toString();
+        RefreshBackupRequirement();
+    });
 
     _fileWatcher = new QFileSystemWatcher(this);
     QObject::connect(_fileWatcher, &QFileSystemWatcher::fileChanged, this, &AppController::OnProfileFileChanged);
@@ -632,7 +698,7 @@ bool AppController::loadProfiles(QString const& path)
     _profiles.ReplaceFrom(_store);
     // The folder dbtool.yml names (if any) becomes the default backup folder, so an installer can
     // pre-configure it; a folder chosen in Settings still wins.
-    _managedBackups.setConfiguredBackupFolder(QString::fromStdString(_store.DefaultBackupDir().string()));
+    _managedBackups.setConfiguredBackupFolder(QString::fromStdU16String(_store.DefaultBackupDir().u16string()));
     _managedBackups.setProfiles(_store.Profiles());
     if (_currentProfile.isEmpty())
         setCurrentProfile(QString::fromStdString(_store.DefaultProfileName()));
@@ -664,6 +730,25 @@ bool AppController::loadProfiles(QString const& path)
 bool AppController::connectToProfile()
 {
     ClearError();
+
+    // Connecting replaces the default connection and reconnects the mapper a running migration uses.
+    if (_runner.phase() != MigrationRunner::Phase::Idle)
+    {
+        _lastWarning = QStringLiteral("Wait for the current migration run to finish before connecting.");
+        emit lastWarningChanged();
+        return false;
+    }
+    // A backup or restore in flight reports its record into the requirement of the database it ran against.
+    if (_backupRunner.phase() != BackupRunner::Phase::Idle)
+    {
+        _lastWarning = QStringLiteral("Wait for the current backup or restore to finish before connecting.");
+        emit lastWarningChanged();
+        return false;
+    }
+
+    // A waiver was given for the previous database; this one starts without it.
+    setMigrateWithoutBackup(false);
+    _lastRecordError.clear();
 
     // Connection-source dispatch — the `connectionMode` property is the
     // single source of truth. This removes the old ambiguity where whichever
@@ -731,7 +816,11 @@ bool AppController::connectToProfile()
     // `ReloadPlugins` here also guarantees the user always sees the latest
     // set of DLLs even if they dropped new ones into the directory between
     // clicks — same watcher-less "just rescan on action" semantics as dbtool.
-    ReloadPlugins();
+    // The post-init hooks run below, on the new connection, not on the one being replaced.
+    {
+        auto const connecting = ScopedFlag { _connecting };
+        ReloadPlugins();
+    }
 
     Lightweight::SqlConnectionString const defaultConnectionString { connectionString };
 
@@ -831,10 +920,7 @@ bool AppController::connectToProfile()
     // (`ApplySingleMigration` / `MarkMigrationAsApplied` / `RevertSingleMigration`),
     // so introspection-only connects against a fresh or unmanaged database
     // leave the schema untouched.
-    Lightweight::Tools::RunPluginPostInitHooks(
-        _plugins->entries, manager.GetDataMapper().Connection(), manager, [this](std::string_view message) {
-            LogError(QString::fromUtf8(message.data(), static_cast<int>(message.size())));
-        });
+    RunPostInitHooks();
 
     // `Refresh` reads `GetAppliedMigrationIds` which merges the plugin-supplied
     // overlay with whatever rows exist in `schema_migrations`. The accessor
@@ -863,8 +949,11 @@ bool AppController::connectToProfile()
     // decrypted or resolved password and the DSN form, which the raw profile
     // fields would lack.
     _backupRunner.setConnectionString(QString::fromStdString(connectionString));
+    _backupRunner.setRecordSchema(QString::fromStdString(std::string { manager.DefaultSchema() }));
 
     _connected = true;
+    // The rows of the last run belong to the previous connection.
+    _runner.tasks()->clear();
     _connectedMode = _connectionMode;
     _connectedTarget = _connectionMode == QStringLiteral("profile") ? _currentProfile
                        : _connectionMode == QStringLiteral("dsn")
@@ -879,6 +968,7 @@ bool AppController::connectToProfile()
     // the flip so any binding that indirectly reads `_connected` (now or
     // later) gets the final state.
     emit migrationsChanged();
+    RefreshBackupRequirement();
     return true;
 }
 
@@ -917,6 +1007,139 @@ int AppController::appliedCount() const
 int AppController::pendingCount() const
 {
     return CountWithStatus(_migrations, QStringLiteral("pending"));
+}
+
+int AppController::preMigrateStepCount() const
+{
+    return static_cast<int>(Lightweight::SqlMigration::MigrationManager::GetInstance().GetPreMigrateSteps().size());
+}
+
+void AppController::setMigrateWithoutBackup(bool value)
+{
+    _runner.setBackupWaived(value ? BackupWaiver::Waived : BackupWaiver::NotWaived);
+    if (_migrateWithoutBackup == value)
+        return;
+    _migrateWithoutBackup = value;
+    emit migrateWithoutBackupChanged();
+}
+
+namespace
+{
+
+    /// What declares a backup requirement, for when it could not be evaluated: the releases of the pending
+    /// migrations that require one, the pending migrations that require one themselves (unless their release
+    /// is named), and the pre-migrate steps that declare one, in that order.
+    QStringList DeclaredBackupRequirements(Lightweight::SqlMigration::MigrationManager const& manager)
+    {
+        auto pending = std::vector<Lightweight::SqlMigration::MigrationBase const*> {};
+        try
+        {
+            for (auto const* migration: manager.GetPending())
+                pending.push_back(migration);
+        }
+        catch (std::exception const&)
+        {
+            // The history cannot be read either, so every migration may be pending.
+            for (auto const* migration: manager.GetAllMigrations())
+                pending.push_back(migration);
+        }
+        auto releases = QStringList {};
+        auto migrations = QStringList {};
+        for (auto const* migration: pending)
+        {
+            if (auto const* release = manager.FindReleaseForTimestamp(migration->GetTimestamp());
+                release && release->requiresBackup)
+            {
+                auto const reason = QStringLiteral("release %1").arg(QString::fromStdString(release->version));
+                if (!releases.contains(reason))
+                    releases.append(reason);
+            }
+            else if (migration->RequiresBackup())
+                migrations.append(QStringLiteral("migration %1 \"%2\"")
+                                      .arg(migration->GetTimestamp().value)
+                                      .arg(QString::fromStdString(std::string { migration->GetTitle() })));
+        }
+        auto steps = QStringList {};
+        for (auto const& step: manager.GetPreMigrateSteps())
+            if (step.declaresBackupRequirement)
+                steps.append(QStringLiteral("step \"%1\"").arg(QString::fromStdString(step.title)));
+        return releases + migrations + steps;
+    }
+
+} // namespace
+
+void AppController::RefreshBackupRequirement()
+{
+    // The check reads through the migration connection, which a running migration uses.
+    if (_runner.phase() != MigrationRunner::Phase::Idle)
+        return;
+
+    auto required = false;
+    auto reasons = QStringList {};
+    auto note = QString {};
+    if (_connected)
+    {
+        auto& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
+        try
+        {
+            auto const requirement = manager.BackupRequirementFor(TimestampsOf(manager.GetPending()));
+            required = requirement.required && !requirement.satisfied;
+            if (required)
+            {
+                for (auto const& reason: requirement.reasons)
+                    reasons.append(QString::fromStdString(reason));
+                if (!_lastRecordError.isEmpty())
+                    note = _lastRecordError;
+                else if (requirement.lastBackup)
+                    note = QString::fromStdString(Lightweight::Tools::DescribeStaleBackup(*requirement.lastBackup));
+            }
+        }
+        catch (std::exception const& e)
+        {
+            reasons = DeclaredBackupRequirements(manager);
+            required = !reasons.isEmpty();
+            if (required)
+                note = QStringLiteral("Could not check the backup requirement: %1").arg(ExceptionMessage(e));
+        }
+    }
+
+    // Nothing left to waive, so a waiver ticked earlier must not carry over to a later requirement.
+    if (!required)
+        setMigrateWithoutBackup(false);
+
+    if (required == _backupRequired && reasons == _backupRequirementReasons && note == _backupRequirementNote)
+        return;
+    _backupRequired = required;
+    _backupRequirementReasons = std::move(reasons);
+    _backupRequirementNote = std::move(note);
+    emit backupRequirementChanged();
+}
+
+void AppController::backUpNow()
+{
+    if (!_connected || AnyRunInFlight())
+        return;
+    auto const profileName = _connectedTarget.toStdString();
+    auto const output = Lightweight::Config::ResolveBackupOutput({
+        .requested = {},
+        .folder = std::filesystem::path { _managedBackups.effectiveBackupFolder().toStdU16String() },
+        .profileName = profileName,
+        .now = std::chrono::system_clock::now(),
+    });
+    if (!output)
+    {
+        LogError(QStringLiteral("Back up now: no backup folder is configured; choose one in Settings."));
+        return;
+    }
+    auto ignored = std::error_code {};
+    std::filesystem::create_directories(output->path.parent_path(), ignored);
+    if (!std::filesystem::is_directory(output->path.parent_path()))
+    {
+        LogError(QStringLiteral("Back up now: cannot create the backup folder %1.")
+                     .arg(QString::fromStdU16String(output->path.parent_path().u16string())));
+        return;
+    }
+    _backupRunner.runBackup(QString::fromStdU16String(output->path.u16string()));
 }
 
 int AppController::pendingUnreleasedCount() const
@@ -1402,9 +1625,15 @@ void AppController::InvalidateConnectionTarget()
     if (!_connected)
         return;
     _connected = false;
+    // The rows of a run in flight still update; those of a finished run belong to the old target.
+    if (_runner.phase() == MigrationRunner::Phase::Idle)
+        _runner.tasks()->clear();
     _connectedMode.clear();
     _connectedTarget.clear();
     emit connectedChanged();
+    setMigrateWithoutBackup(false);
+    _lastRecordError.clear();
+    RefreshBackupRequirement();
     LogInfo(QStringLiteral("Disconnected."));
 }
 
@@ -1435,18 +1664,43 @@ void AppController::RefreshMigrationModelsAfterRun()
         }
     }
     emit migrationsChanged();
+    RefreshBackupRequirement();
+}
+
+void AppController::RunPostInitHooks()
+{
+    auto& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
+    try
+    {
+        Lightweight::Tools::RunPluginPostInitHooks(
+            _plugins->entries, manager.GetDataMapper().Connection(), manager, [this](std::string_view message) {
+                LogError(QString::fromUtf8(message.data(), static_cast<int>(message.size())));
+            });
+    }
+    catch (std::exception const& e)
+    {
+        LogError(QStringLiteral("Plugin post-init hooks failed: %1").arg(ExceptionMessage(e)));
+    }
 }
 
 void AppController::ReloadPlugins()
 {
+    // Unloading the plugins closes the mapper's connection, which a running migration still uses.
+    if (_runner.phase() != MigrationRunner::Phase::Idle)
+    {
+        _pluginReloadPending = true;
+        _lastWarning = QString::fromLatin1(PluginReloadDeferredWarning);
+        emit lastWarningChanged();
+        return;
+    }
+    _pluginReloadPending = false;
+
     auto const pluginsDirs = EffectivePluginsDir();
 
     auto& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
     // Wipe first, so switching to a profile with no plugins-dir clears
     // the stale list instead of leaving the previous one showing.
-    manager.RemoveAllMigrations();
-    manager.RemoveAllReleases();
-    _plugins->entries.clear();
+    Lightweight::Tools::UnloadPlugins(_plugins->entries, manager);
 
     if (pluginsDirs.empty())
     {
@@ -1499,6 +1753,11 @@ void AppController::ReloadPlugins()
         }
     }
 
+    // Unloading dropped what the post-init hooks registered on connect (pre-migrate steps, the
+    // virtual-applied overlay), so a reload while connected runs them again on the live connection.
+    if (_connected && !_connecting)
+        RunPostInitHooks();
+
     // When a connection is live, overlay applied status from schema_migrations;
     // otherwise show every plugin migration as "unknown" — we have not (yet)
     // queried the target DB, so "pending" would be a guess. On any failure
@@ -1522,6 +1781,9 @@ void AppController::ReloadPlugins()
                 .arg(_migrations.rowCount())
                 .arg(_releases.rowCount()));
     emit migrationsChanged();
+    // A connect checks the requirement once it has run the hooks on its new connection.
+    if (!_connecting)
+        RefreshBackupRequirement();
 }
 
 void AppController::Log(LogLevel level, QString line)

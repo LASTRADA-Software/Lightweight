@@ -281,6 +281,12 @@ and be passed as the offload target, so the whole process shares a single pool. 
 `Async::Task` is a plain awaitable, a coroutine in the other runtime can `co_await` a Lightweight
 task directly; route its continuation through the same adapter to keep it on the host thread.
 
+One GCC-specific limit: GCC builds hand control between coroutines through a per-thread trampoline
+loop, which resumes them from a `noexcept` function. A coroutine type of another runtime whose
+promise's `unhandled_exception()` rethrows the exception, and that `co_await`s an `Async::Task`,
+therefore ends in `std::terminate` under GCC, where Clang and MSVC propagate the exception to the
+caller. Promise types that store the exception (as `Async::Task` does) are not affected.
+
 ## Build
 
 The async API is a first-class part of the library — always built, no configuration required.

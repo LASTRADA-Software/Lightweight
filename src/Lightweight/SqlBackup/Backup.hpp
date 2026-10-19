@@ -42,6 +42,8 @@ struct BackupContext
     std::mutex* checksumMutex;
     RetrySettings const& retrySettings;
     BackupSettings const& backupSettings;
+    /// Whether the archive holds several schemas, so each table's chunks go below its schema's folder.
+    bool multiSchema;
 };
 
 /// Builds a SELECT query with ORDER BY for deterministic results.
@@ -78,20 +80,20 @@ std::string BuildSelectQueryWithOffset(SqlQueryFormatter const& formatter,
                                                                                        SqlSchema::Table const& table,
                                                                                        std::string const& pkColumn);
 
-/// Deletes stale window sub-chunk entries [firstStale, end) of @p tableName's window
+/// Deletes stale window sub-chunk entries [firstStale, end) of a table's window
 /// @p windowIndex from the worker's chunk archive (and their checksums). Used after a per-window
 /// retry produced fewer sub-chunks than an earlier attempt (live data drift), so restore never
 /// reads stale rows: names still in the worker's current archive are deleted outright, names
 /// already sealed are tombstoned so the finalize merge skips them.
 /// @param archive The worker's chunk archive the window's sub-chunks were written to.
 /// @param ctx The backup context (checksums map).
-/// @param tableName The (unsanitized) table name.
+/// @param chunkDirectory The table's chunk folder below `data/` (see @ref ChunkDirectory).
 /// @param windowIndex The plan-time window index.
 /// @param firstStale First stale sub-chunk id (== sub-chunk count of the final attempt).
 /// @param end One past the last sub-chunk id any attempt flushed.
 LIGHTWEIGHT_API void DeleteStaleSubChunks(WorkerChunkArchive& archive,
                                           BackupContext& ctx,
-                                          std::string const& tableName,
+                                          std::string_view chunkDirectory,
                                           uint32_t windowIndex,
                                           size_t firstStale,
                                           size_t end);

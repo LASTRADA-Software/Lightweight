@@ -72,6 +72,17 @@ TEST_CASE("SqlQueryFormatter::DateFunction emits the per-DBMS current-date keywo
 }
 
 // ================================================================================================
+// IdentifiersAreCaseInsensitive — whether a declared name matches a live one of another case
+// ================================================================================================
+
+TEST_CASE("SqlQueryFormatter::IdentifiersAreCaseInsensitive except on PostgreSQL", "[SqlQueryFormatter]")
+{
+    CHECK(SqlQueryFormatter::Sqlite().IdentifiersAreCaseInsensitive());
+    CHECK(SqlQueryFormatter::SqlServer().IdentifiersAreCaseInsensitive());
+    CHECK_FALSE(SqlQueryFormatter::PostgrSQL().IdentifiersAreCaseInsensitive());
+}
+
+// ================================================================================================
 // StringLiteral (string_view) — quote single quotes by doubling them
 // ================================================================================================
 
@@ -264,4 +275,11 @@ TEST_CASE("SqlQueryFormatter::DropTable on SQL Server with cascade emits a two-s
     REQUIRE(sqls.size() == 2);
     CHECK(sqls[0].contains("sys.foreign_keys"));
     CHECK(sqls[1].starts_with("DROP TABLE IF EXISTS"));
+}
+
+TEST_CASE("TableRowCountEstimateQuery reads the catalog on SQL Server and PostgreSQL only", "[SqlQueryFormatter]")
+{
+    CHECK(SqlQueryFormatter::SqlServer().TableRowCountEstimateQuery().contains("sys.partitions"));
+    CHECK(SqlQueryFormatter::PostgrSQL().TableRowCountEstimateQuery().contains("reltuples"));
+    CHECK(SqlQueryFormatter::Sqlite().TableRowCountEstimateQuery().empty());
 }

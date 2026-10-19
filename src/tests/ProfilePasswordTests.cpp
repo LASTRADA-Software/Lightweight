@@ -4,6 +4,8 @@
 // secretRef) and for encrypting a plaintext password in place after it has
 // been proven to work.
 
+#include "UniqueTempPath.hpp"
+
 #include <Lightweight/SqlConnectInfo.hpp>
 #include <Lightweight/SqlConnection.hpp>
 
@@ -74,7 +76,7 @@ class TempConfig
     explicit TempConfig(std::string_view contents)
     {
         static int counter = 0;
-        _dir = fs::temp_directory_path() / ("lightweight-password-" + std::to_string(++counter));
+        _dir = UniqueTempPath("lightweight-password-" + std::to_string(++counter));
         fs::remove_all(_dir);
         fs::create_directories(_dir);
         _path = _dir / "dbtool.yml";

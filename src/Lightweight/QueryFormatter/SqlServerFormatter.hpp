@@ -41,6 +41,25 @@ class SqlServerQueryFormatter final: public SQLiteQueryFormatter
         return true;
     }
 
+    [[nodiscard]] bool IdentifiersAreCaseInsensitive() const noexcept override
+    {
+        return true;
+    }
+
+    [[nodiscard]] bool SupportsSchemas() const noexcept override
+    {
+        return true;
+    }
+
+    [[nodiscard]] std::string CreateSchemaIfNotExists(std::string_view schema) const override
+    {
+        // CREATE SCHEMA must be the only statement of its batch, hence the EXEC.
+        auto const identifier = DoubleQuoteCharacter(schema, '"');
+        return std::format(R"(IF SCHEMA_ID(N'{}') IS NULL EXEC(N'CREATE SCHEMA "{}"'))",
+                           DoubleQuoteCharacter(schema, '\''),
+                           DoubleQuoteCharacter(identifier, '\''));
+    }
+
     [[nodiscard]] StringList DropTable(std::string_view schemaName,
                                        std::string_view const& tableName,
                                        bool ifExists = false,
@@ -271,6 +290,22 @@ EXEC sp_executesql @sql;)",
     [[nodiscard]] std::string_view ReadUncommittedTableHint() const noexcept override
     {
         return " WITH (READUNCOMMITTED)";
+    }
+
+    [[nodiscard]] std::string_view ReportRowCountsStatement() const noexcept override
+    {
+        return "SET NOCOUNT OFF";
+    }
+
+    /// The row count SQL Server keeps for the table's heap or clustered index in `sys.partitions`, read
+    /// without touching the data and visible to anyone who can see the table (no `VIEW DATABASE STATE`).
+    /// @return The query, bound with the schema name and then the table name.
+    [[nodiscard]] std::string_view TableRowCountEstimateQuery() const noexcept override
+    {
+        return "SELECT COALESCE(SUM(p.rows), 0) FROM sys.partitions AS p "
+               "JOIN sys.tables AS t ON t.object_id = p.object_id "
+               "JOIN sys.schemas AS s ON s.schema_id = t.schema_id "
+               "WHERE s.name = ? AND t.name = ? AND p.index_id IN (0, 1)";
     }
 
     [[nodiscard]] std::string SelectFirst(bool distinct,
@@ -665,7 +700,11 @@ EXEC sp_executesql @sql;)",
                                 ss << ", ";
                             ss << '"' << col << '"';
                         }
-                        ss << ") REFERENCES " << FormatTableName(schemaName, actualCommand.referencedTableName) << " (";
+                        auto const referencedSchemaName = actualCommand.referencedSchemaName.empty()
+                                                              ? schemaName
+                                                              : std::string_view { actualCommand.referencedSchemaName };
+                        ss << ") REFERENCES " << FormatTableName(referencedSchemaName, actualCommand.referencedTableName)
+                           << " (";
 
                         i = 0;
                         for (auto const& col: actualCommand.referencedColumns)

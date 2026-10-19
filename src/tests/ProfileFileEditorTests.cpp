@@ -4,6 +4,8 @@
 // the bytes it targets: comments, ordering, quoting style and line endings of
 // everything else are the user's and must survive untouched.
 
+#include "UniqueTempPath.hpp"
+
 #include <catch2/catch_test_macros.hpp>
 
 #include <chrono>
@@ -45,7 +47,7 @@ class TempFile
     explicit TempFile(std::string_view contents, bool create = true)
     {
         static int counter = 0;
-        _dir = fs::temp_directory_path() / ("lightweight-editor-" + std::to_string(++counter));
+        _dir = UniqueTempPath("lightweight-editor-" + std::to_string(++counter));
         fs::remove_all(_dir);
         fs::create_directories(_dir);
         _path = _dir / "dbtool.yml";

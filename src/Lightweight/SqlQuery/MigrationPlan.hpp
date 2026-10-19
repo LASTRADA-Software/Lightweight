@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <functional>
 #include <map>
+#include <optional>
 #include <set>
 #include <string>
 #include <string_view>
@@ -327,6 +328,8 @@ namespace SqlAlterTableCommands
         std::vector<std::string> columns;
         std::string referencedTableName;
         std::vector<std::string> referencedColumns;
+        /// The schema of the referenced table; empty means the schema of the altered table.
+        std::string referencedSchemaName {};
     };
 
     struct DropForeignKey
@@ -436,6 +439,13 @@ struct SqlInsertDataPlan
 
     /// The columns and their values to insert.
     std::vector<std::pair<std::string, SqlVariant>> columns;
+
+    /// @brief Key columns that make the insert conditional, empty for a plain insert.
+    ///
+    /// When non-empty, the row is inserted only if no row with the same values in these
+    /// columns exists yet (`INSERT ... SELECT ... WHERE NOT EXISTS (...)`). Each key column
+    /// must be one of @ref columns and must not hold NULL; rendering throws otherwise.
+    std::vector<std::string> keyColumns;
 };
 
 /// @brief Represents a SQL UPDATE data plan for migrations.
@@ -686,6 +696,51 @@ struct [[nodiscard]] MigrationRenderContext
 [[nodiscard]] LIGHTWEIGHT_API std::vector<std::string> ToSql(SqlQueryFormatter const& formatter,
                                                              SqlMigrationPlanElement const& element,
                                                              MigrationRenderContext& context);
+
+/// @brief A statement whose values are bound as parameters when it runs.
+///
+/// @ingroup QueryBuilder
+struct SqlBoundStatement
+{
+    /// The statement text, with one `?` placeholder per parameter.
+    std::string sql;
+
+    /// The values bound to the placeholders, in order.
+    std::vector<SqlVariant> parameters;
+};
+
+/// @brief Renders an `Insert(...).IfNotExists(...)` step for execution with bound parameters.
+///
+/// `MigrationManager` executes this form, binding the values, while checksums and previews
+/// (`ToSql`) keep showing them as literals, so the checksum of a migration does not depend on how
+/// its values reach the database. Callers that run `ToSql` output themselves (e.g.
+/// `SqlStatement::MigrateDirect`) execute the literal form.
+///
+/// UTF-8 text is bound as UTF-16, so it is stored exactly as its literal rendering would store it.
+/// A GUID, date, time or timestamp is bound as the text its literal quotes, so the server parses the
+/// same text either way: a native time or timestamp would keep the fraction the literal drops, and
+/// SQLite would store a timestamp in another text form that a key comparison never matches.
+/// Other values are bound natively. Exact decimals (also at high scale), binary values and `bool`
+/// store exactly as their literals; a `double` reaches the column as its binary value. That stores
+/// the same as the literal for FLOAT/REAL columns and for DECIMAL columns of low scale, but it can
+/// differ where the literal is parsed as a decimal: a DECIMAL column with more fractional digits
+/// than the double holds exactly (e.g. DECIMAL(28,12) receives 123456.789011999994 rather than
+/// 123456.789012000000), SQLite parsing some literals 1-2 ULP off the correctly rounded double the
+/// bound value carries, and a double into a text column (SQLite stores 3.0 as "3.0" bound, "3" as a
+/// literal). Exact decimals belong in `SqlNumeric` / `SqlDynamicNumeric`.
+///
+/// @param element The step to render.
+/// @return The bound statement, or nothing when @p element is not an `IfNotExists` insert.
+/// @throws std::invalid_argument A key column is not one of the insert's columns or holds NULL.
+///
+/// @ingroup QueryBuilder
+[[nodiscard]] LIGHTWEIGHT_API std::optional<SqlBoundStatement> ToBoundSql(SqlMigrationPlanElement const& element);
+
+/// @overload
+/// Applies the value-level compat knobs of @p context (string truncation) like `ToSql` does. Callers
+/// render the step with `ToSql(formatter, element, context)` first, which reports the truncation.
+[[nodiscard]] LIGHTWEIGHT_API std::optional<SqlBoundStatement> ToBoundSql(SqlMigrationPlanElement const& element,
+                                                                          MigrationRenderContext& context);
 
 /// @brief Represents a SQL migration plan.
 ///

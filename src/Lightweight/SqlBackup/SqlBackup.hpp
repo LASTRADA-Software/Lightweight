@@ -8,7 +8,9 @@
 #include "../SqlSchema.hpp"
 
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <filesystem>
 #include <map>
 #include <string>
@@ -156,6 +158,13 @@ struct TableInfo
 
     /// The number of rows in the table.
     size_t rowCount = 0;
+
+    /// The table's name in the database.
+    std::string name;
+
+    /// The table's schema as a multi-schema archive records it; empty for a single-schema archive,
+    /// whose tables all go into the schema the restore targets.
+    std::string schema;
 };
 
 /// @ingroup Backup
@@ -311,7 +320,79 @@ LIGHTWEIGHT_API void Backup(std::filesystem::path const& outputFile,
                             RetrySettings const& retrySettings = {},
                             BackupSettings const& backupSettings = {});
 
+/// Backs up the tables of several schemas to one file.
+///
+/// No schema or a single one writes exactly the archive @ref Backup writes for that schema. Two or
+/// more write a multi-schema archive (format version 2.0), which records each table's schema and
+/// each foreign key's referenced schema, so a restore recreates every table in its own schema.
+///
+/// @param outputFile the output file.
+/// @param connectionString the connection string used to connect to the database.
+/// @param concurrency the number of concurrent jobs.
+/// @param progress the progress manager to use for progress updates.
+/// @param schemas the database schemas to back up.
+/// @param tableFilter comma-separated table filter patterns, as for @ref Backup.
+/// @param retrySettings configuration for retry behavior on transient errors.
+/// @param backupSettings configuration for compression method, level, and chunk size.
+LIGHTWEIGHT_API void BackupSchemas(std::filesystem::path const& outputFile,
+                                   SqlConnectionString const& connectionString,
+                                   unsigned concurrency,
+                                   ProgressManager& progress,
+                                   std::vector<std::string> const& schemas,
+                                   std::string const& tableFilter = "*",
+                                   RetrySettings const& retrySettings = {},
+                                   BackupSettings const& backupSettings = {});
+
+/// Reads the schemas a backup archive records.
+///
+/// @param archiveFile the backup archive.
+/// @return One name (possibly empty) for a single-schema archive, several for a multi-schema
+///         archive, or an error message if the archive's metadata cannot be read.
+[[nodiscard]] LIGHTWEIGHT_API std::expected<std::vector<std::string>, std::string> ReadArchiveSchemas(
+    std::filesystem::path const& archiveFile);
+
+/// What `VerifyArchive` found.
+struct ArchiveVerification
+{
+    /// SHA-256 of the whole archive file, lowercase hex.
+    std::string archiveSha256;
+    /// Entries whose SHA-256 matched `checksums.json`.
+    std::size_t verifiedEntries = 0;
+    /// Whether the archive holds every table with its data: false for a filtered or schema-only backup
+    /// and for one in which a table failed (`metadata.json`'s `complete`; archives without it count as complete).
+    bool complete = true;
+};
+
+/// Checks that a backup archive is complete: it holds `metadata.json`, `checksums.json` lists every data
+/// entry (`data/...`), and every listed entry's SHA-256 matches. An archive without data entries (schema
+/// only) needs no `checksums.json`. Also hashes the whole file.
+///
+/// @param archiveFile The archive.
+/// @return The verification, or a message naming what is wrong.
+[[nodiscard]] LIGHTWEIGHT_API std::expected<ArchiveVerification, std::string> VerifyArchive(
+    std::filesystem::path const& archiveFile);
+
+/// Decides what a schema that the caller did not ask for, but took from a default (a profile), means
+/// for restoring @p archiveFile.
+///
+/// A multi-schema archive refuses every target schema. A default that names one of its schemas is
+/// therefore dropped, so the archive restores into its own schemas; any other default is kept, so
+/// @ref Restore refuses it. Other archives keep the default.
+///
+/// @param archiveFile the backup archive.
+/// @param defaultSchema the default schema.
+/// @param caseInsensitive whether the target compares identifiers case-insensitively
+///        (`SqlQueryFormatter::IdentifiersAreCaseInsensitive()`).
+/// @return The schema to pass to @ref Restore.
+[[nodiscard]] LIGHTWEIGHT_API std::string DefaultRestoreSchema(std::filesystem::path const& archiveFile,
+                                                               std::string const& defaultSchema,
+                                                               bool caseInsensitive);
+
 /// Restores the database from a file.
+///
+/// A multi-schema archive restores every table into the schema it records, creating missing
+/// schemas; it refuses a target @p schema, and on a database without schemas (SQLite) it is
+/// refused unless every table name is unique across the schemas.
 ///
 /// @param inputFile the input file.
 /// @param connectionString the connection string used to connect to the database.
@@ -371,6 +452,8 @@ LIGHTWEIGHT_API std::string CreateMetadata(SqlConnectionString const& connection
                                            std::string const& schema = {});
 
 /// Parses the metadata JSON content and returns a map of table info.
+///
+/// A single-schema archive keys each table by its name, a multi-schema archive by `schema.name`.
 ///
 /// @param metadataJson content of the metadata.json file.
 LIGHTWEIGHT_API std::map<std::string, TableInfo> ParseSchema(std::string_view metadataJson,

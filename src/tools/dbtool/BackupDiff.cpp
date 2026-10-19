@@ -2,19 +2,26 @@
 
 #include "BackupDiff.hpp"
 
+#include <Lightweight/SqlBackup/Common.hpp>
 #include <Lightweight/SqlBackup/MsgPackChunkFormats.hpp>
 #include <Lightweight/SqlBackup/Sha256.hpp>
 #include <Lightweight/SqlBackup/SqlBackupFormats.hpp>
+#include <Lightweight/SqlMigration.hpp>
+#include <Lightweight/Zip/ZipPath.hpp>
 
 #include <array>
 #include <cstdint>
 #include <cstring>
 #include <exception>
+#include <expected>
+#include <format>
 #include <map>
 #include <optional>
+#include <ranges>
 #include <set>
 #include <span>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -36,6 +43,8 @@ using Lightweight::SqlBackup::BackupValue;
 using Lightweight::SqlBackup::ColumnBatch;
 using Lightweight::SqlBackup::CreateMsgPackChunkReaderFromBuffer;
 using Lightweight::SqlBackup::Sha256;
+using Lightweight::SqlBackup::detail::ChunkDirectory;
+using Lightweight::SqlBackup::detail::JoinNames;
 
 namespace
 {
@@ -48,7 +57,7 @@ namespace
         explicit ZipReader(std::filesystem::path const& path)
         {
             int err = 0;
-            _zip = zip_open(path.string().c_str(), ZIP_RDONLY, &err);
+            _zip = zip_open(Lightweight::Zip::ZipPathUtf8(path).c_str(), ZIP_RDONLY, &err);
         }
 
         ZipReader(ZipReader const&) = delete;
@@ -85,7 +94,8 @@ namespace
 
     /// Enumerates the data chunks per table from a backup archive.
     ///
-    /// Table identity is taken from the `data/<sanitized_table>/NNNN.msgpack` entry-name prefix
+    /// Table identity is taken from the `data/<folder>/NNNN.msgpack` entry-name prefix, where the
+    /// folder is `<sanitized_table>`, or `<sanitized_schema>/<sanitized_table>` in a multi-schema archive,
     /// rather than from `metadata.json`. The on-disk path is the *sanitized* table name (the
     /// backup writer replaces '.' with '_'); using it directly guarantees both archives are keyed
     /// the same way and sidesteps any schema/sanitization mismatch between the two metadata files.
@@ -103,21 +113,66 @@ namespace
             if (zip_stat_index(zip, static_cast<zip_uint64_t>(i), 0, &stat) < 0)
                 continue;
 
-            std::string const name = stat.name;
-            if (!name.starts_with("data/") || !name.ends_with(".msgpack"))
+            auto const directory = Lightweight::SqlBackup::detail::ChunkDirectoryOf(stat.name);
+            if (!directory)
                 continue;
 
-            // Path format: data/<table>/<chunk>.msgpack
-            auto const firstSlash = name.find('/');
-            auto const secondSlash = name.find('/', firstSlash + 1);
-            if (firstSlash == std::string::npos || secondSlash == std::string::npos)
-                continue;
-
-            std::string tableName = name.substr(firstSlash + 1, secondSlash - firstSlash - 1);
-            result[std::move(tableName)].push_back(ChunkEntry { .index = static_cast<zip_uint64_t>(i), .size = stat.size });
+            result[std::string { *directory }].push_back(
+                ChunkEntry { .index = static_cast<zip_uint64_t>(i), .size = stat.size });
         }
 
         return result;
+    }
+
+    /// The table keys an ignore set resolves to, and the names that matched no table.
+    struct ResolvedIgnoreTables
+    {
+        std::set<std::string> keys;
+        std::vector<std::string> unmatched;
+    };
+
+    /// Returns the table keys of @p allTables that @p name names (see BackupDiff for the rules).
+    std::vector<std::string> IgnoreTableCandidates(std::string const& name, std::set<std::string> const& allTables)
+    {
+        if (allTables.contains(name))
+            return { name };
+        if (auto const dot = name.find('.'); dot != std::string::npos)
+        {
+            auto qualified = ChunkDirectory(name.substr(0, dot), name.substr(dot + 1));
+            if (allTables.contains(qualified))
+                return { std::move(qualified) };
+        }
+        auto const sanitized = ChunkDirectory({}, name);
+        std::vector<std::string> candidates;
+        for (auto const& key: allTables)
+        {
+            auto const separator = key.rfind('/');
+            auto const tablePart =
+                separator == std::string::npos ? std::string_view { key } : std::string_view { key }.substr(separator + 1);
+            if (tablePart == sanitized)
+                candidates.push_back(key);
+        }
+        return candidates;
+    }
+
+    /// Maps each name of @p ignoreTables onto the table keys of @p allTables.
+    /// @return The keys and unmatched names, or the error message for an ambiguous name.
+    std::expected<ResolvedIgnoreTables, std::string> ResolveIgnoredTables(std::set<std::string> const& ignoreTables,
+                                                                          std::set<std::string> const& allTables)
+    {
+        ResolvedIgnoreTables resolved;
+        for (auto const& name: ignoreTables)
+        {
+            auto const candidates = IgnoreTableCandidates(name, allTables);
+            if (candidates.size() > 1)
+                return std::unexpected { std::format(
+                    "--ignore-table {} is ambiguous; name one of: {}", name, JoinNames(candidates)) };
+            if (candidates.empty())
+                resolved.unmatched.push_back(name);
+            else
+                resolved.keys.insert(candidates.front());
+        }
+        return resolved;
     }
 
     /// Reads a zip entry fully into a byte buffer. Returns an empty optional on any read failure.
@@ -361,6 +416,21 @@ namespace
         return event;
     }
 
+    /// @p ignored plus every table of @p allTables that is `schema_backups`, in any schema: the backup
+    /// bookkeeping differs between any two backups, so it never fails a comparison.
+    std::set<std::string> WithBackupRecordsIgnored(std::set<std::string> ignored, std::set<std::string> const& allTables)
+    {
+        for (auto const& name: allTables)
+        {
+            auto const separator = name.rfind('/');
+            auto const table =
+                separator == std::string::npos ? std::string_view { name } : std::string_view { name }.substr(separator + 1);
+            if (table == SqlMigration::BackupRecordTableName)
+                ignored.insert(name);
+        }
+        return ignored;
+    }
+
 } // namespace
 
 BackupDiffResult BackupDiff(std::filesystem::path const& left,
@@ -399,6 +469,16 @@ BackupDiffResult BackupDiff(std::filesystem::path const& left,
     for (auto const& [name, _]: rightChunks)
         allTables.insert(name);
 
+    auto const resolvedIgnoreTables = ResolveIgnoredTables(ignoreTables, allTables);
+    if (!resolvedIgnoreTables)
+    {
+        result.ignoreTableError = resolvedIgnoreTables.error();
+        result.differenceFound = true;
+        return result;
+    }
+    auto const ignored = WithBackupRecordsIgnored(resolvedIgnoreTables->keys, allTables);
+    result.unmatchedIgnoreTables = resolvedIgnoreTables->unmatched;
+
     // Count a reported difference as either a hard failure or an (ignored) informational drift.
     auto const recordDifference = [&result](bool ignored) {
         if (ignored)
@@ -414,13 +494,13 @@ BackupDiffResult BackupDiff(std::filesystem::path const& left,
         if (inLeft && inRight)
             continue; // Common tables are compared by row multiset below.
 
-        bool const ignored = ignoreTables.contains(name);
+        bool const isIgnored = ignored.contains(name);
         BackupDiffEvent event;
         event.kind = inLeft ? BackupDiffEvent::Kind::OnlyInLeft : BackupDiffEvent::Kind::OnlyInRight;
         event.table = name;
-        event.ignored = ignored;
+        event.ignored = isIgnored;
         emit(event);
-        recordDifference(ignored);
+        recordDifference(isIgnored);
     }
 
     // Compare the row multiset of each common table, one table at a time on both sides.
@@ -430,9 +510,9 @@ BackupDiffResult BackupDiff(std::filesystem::path const& left,
             continue;
 
         ++result.comparedTables;
-        bool const ignored = ignoreTables.contains(name);
+        bool const isIgnored = ignored.contains(name);
         auto const event = CompareCommonTable(
-            leftZip.Handle(), rightZip.Handle(), leftChunks.at(name), rightChunks.at(name), name, ignored, MaxExamples);
+            leftZip.Handle(), rightZip.Handle(), leftChunks.at(name), rightChunks.at(name), name, isIgnored, MaxExamples);
         emit(event);
 
         switch (event.kind)
@@ -446,7 +526,7 @@ BackupDiffResult BackupDiff(std::filesystem::path const& left,
                 break;
             case BackupDiffEvent::Kind::Differing:
                 ++result.differingTables;
-                recordDifference(ignored);
+                recordDifference(isIgnored);
                 break;
             case BackupDiffEvent::Kind::OnlyInLeft:
             case BackupDiffEvent::Kind::OnlyInRight:

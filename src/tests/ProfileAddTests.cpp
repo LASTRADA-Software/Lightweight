@@ -3,6 +3,8 @@
 // Unit tests for adding a profile to dbtool.yml with its password encrypted —
 // the code behind `dbtool add-profile` and dbtool-gui's "Save as profile…".
 
+#include "UniqueTempPath.hpp"
+
 #include <Lightweight/SqlConnectInfo.hpp>
 
 #include <catch2/catch_test_macros.hpp>
@@ -46,7 +48,7 @@ class TempDir
     TempDir()
     {
         static int counter = 0;
-        _dir = fs::temp_directory_path() / ("lightweight-profile-add-" + std::to_string(++counter));
+        _dir = UniqueTempPath("lightweight-profile-add-" + std::to_string(++counter));
         fs::remove_all(_dir);
         fs::create_directories(_dir);
     }

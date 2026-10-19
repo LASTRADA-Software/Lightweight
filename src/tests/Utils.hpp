@@ -12,7 +12,6 @@
         #define WIN32_LEAN_AND_MEAN
     #endif
     #include <Windows.h>
-    #include <crtdbg.h>
 #endif
 
 #include <Lightweight/Lightweight.hpp>
@@ -416,29 +415,9 @@ class SqlTestFixture
 
     using MainProgramArgs = std::tuple<int, char**>;
 
-    /// @brief Suppress modal Windows error dialogs that would otherwise block
-    /// unattended runs (CI, scripted/AI agents) on `abort()`, CRT debug asserts,
-    /// or Win32 critical errors. The diagnostic still reaches stderr; it just
-    /// does not pop a window that needs a human click.
-    static void SuppressBlockingErrorDialogs()
-    {
-#if defined(_WIN32) || defined(_WIN64)
-        _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
-        SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
-    #if !defined(NDEBUG)
-        for (auto const reportType: { _CRT_ASSERT, _CRT_ERROR, _CRT_WARN })
-        {
-            _CrtSetReportMode(reportType, _CRTDBG_MODE_FILE);
-            _CrtSetReportFile(reportType, _CRTDBG_FILE_STDERR);
-        }
-    #endif
-#endif
-    }
-
     // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     static std::variant<MainProgramArgs, int> Initialize(int argc, char** argv)
     {
-        SuppressBlockingErrorDialogs();
         Lightweight::SqlLogger::SetLogger(TestSuiteSqlLogger::GetLogger());
 
         using namespace std::string_view_literals;
@@ -929,7 +908,9 @@ class SqlTestFixture
             auto cursor = Lightweight::SqlResultCursor(stmt);
             while (cursor.FetchRow())
             {
-                result.emplace_back(cursor.GetColumn<std::string>(3)); // table name
+                // Read as UTF-16: a narrow read may hand back a non-ASCII name in the client code page.
+                auto const utf8 = Lightweight::ToUtf8(std::u16string_view { cursor.GetColumn<std::u16string>(3) });
+                result.emplace_back(reinterpret_cast<char const*>(utf8.data()), utf8.size());
             }
         }
         return result;
@@ -1026,14 +1007,17 @@ inline std::ostream& operator<<(std::ostream& os, Lightweight::SqlDynamicString<
     // Remove any newlines and reduce all whitespace to a single space
     result.erase(std::unique(result.begin(), // NOLINT(modernize-use-ranges)
                              result.end(),
-                             [](char a, char b) { return std::isspace(a) && std::isspace(b); }),
+                             [](char a, char b) {
+                                 return std::isspace(static_cast<unsigned char>(a))
+                                        && std::isspace(static_cast<unsigned char>(b));
+                             }),
                  result.end());
 
     // trim lading and trailing whitespace
-    while (!result.empty() && std::isspace(result.front()))
+    while (!result.empty() && std::isspace(static_cast<unsigned char>(result.front())))
         result.erase(result.begin());
 
-    while (!result.empty() && std::isspace(result.back()))
+    while (!result.empty() && std::isspace(static_cast<unsigned char>(result.back())))
         result.pop_back();
 
     return result;

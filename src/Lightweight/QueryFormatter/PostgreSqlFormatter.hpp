@@ -21,6 +21,31 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
         return false;
     }
 
+    [[nodiscard]] bool IdentifiersAreCaseInsensitive() const noexcept override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool SupportsSchemas() const noexcept override
+    {
+        return true;
+    }
+
+    [[nodiscard]] std::string CreateSchemaIfNotExists(std::string_view schema) const override
+    {
+        // CREATE SCHEMA IF NOT EXISTS checks the CREATE privilege on the database even when the schema exists.
+        // The dollar-quote tag must not occur in the name, or the name would end the DO body.
+        auto tag = std::string { "$lw$" };
+        auto tagNumber = 0;
+        while (schema.contains(tag))
+            tag = std::format("$lw{}$", ++tagNumber);
+        return std::format(R"(DO {0} BEGIN IF NOT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = '{1}') THEN )"
+                           R"(CREATE SCHEMA "{2}"; END IF; END {0})",
+                           tag,
+                           DoubleQuoteCharacter(schema, '\''),
+                           DoubleQuoteCharacter(schema, '"'));
+    }
+
     [[nodiscard]] StringList DropTable(std::string_view schemaName,
                                        std::string_view const& tableName,
                                        bool ifExists = false,
@@ -280,7 +305,11 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
                                 ss << ", ";
                             ss << '"' << col << '"';
                         }
-                        ss << ") REFERENCES " << FormatTableName(schemaName, actualCommand.referencedTableName) << " (";
+                        auto const referencedSchemaName = actualCommand.referencedSchemaName.empty()
+                                                              ? schemaName
+                                                              : std::string_view { actualCommand.referencedSchemaName };
+                        ss << ") REFERENCES " << FormatTableName(referencedSchemaName, actualCommand.referencedTableName)
+                           << " (";
 
                         i = 0;
                         for (auto const& col: actualCommand.referencedColumns)
@@ -348,6 +377,14 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
     [[nodiscard]] SqlRetryClassifier const& RetryOps() const noexcept override
     {
         return PostgreSqlRetryOps();
+    }
+
+    /// The planner's tuple estimate of `pg_class`, which `ANALYZE` and autovacuum keep.
+    [[nodiscard]] std::string_view TableRowCountEstimateQuery() const noexcept override
+    {
+        return "SELECT CAST(GREATEST(c.reltuples, 0) AS BIGINT) FROM pg_catalog.pg_class AS c "
+               "JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace "
+               "WHERE n.nspname = ? AND c.relname = ?";
     }
 };
 

@@ -299,6 +299,18 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// Retrieves the last insert ID of the given table.
     [[nodiscard]] LIGHTWEIGHT_API size_t LastInsertId(std::string_view tableName);
 
+    /// @brief Steps through every result the last execution still has pending and throws for the
+    /// first one that failed.
+    ///
+    /// A batch of several statements can report an error of a later statement only when its
+    /// result is reached (on SQL Server, every statement that produces a row count is a result of
+    /// its own). Closing the cursor discards those results without looking, because it must not
+    /// throw. Call this after executing a batch whose failure must not go unnoticed.
+    ///
+    /// @param location The caller's source location, reported with the error.
+    /// @throws SqlException A pending result reports an error.
+    LIGHTWEIGHT_API void ConsumePendingResults(std::source_location location = std::source_location::current());
+
   private:
     friend class SqlResultCursor;
     friend class RowArrayCursor;
@@ -444,13 +456,13 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
         SQLULEN processedCount,
         SQLULEN expectedCount,
         std::source_location sourceLocation = std::source_location::current()) const;
-    /// @brief Re-issues @c SQLPrepareW after a reused prepared statement went stale, for one retry.
+    /// @brief Re-issues @c SQLPrepare after a reused prepared statement went stale, for one retry.
     ///
-    /// @c Prepare() skips @c SQLPrepareW when the statement handle already holds exactly this query
+    /// @c Prepare() skips @c SQLPrepare when the statement handle already holds exactly this query
     /// text. A prepared statement can nevertheless stop being executable - most visibly on PostgreSQL,
     /// where a DDL change between two executions makes the server reject the cached plan with
     /// @c 0A000 - so an execute that fails with one of those SQLSTATEs re-prepares once and runs again.
-    /// Parameter bindings live on the handle and survive @c SQLPrepareW, so the caller's already-bound
+    /// Parameter bindings live on the handle and survive @c SQLPrepare, so the caller's already-bound
     /// arguments stay valid for the retry.
     ///
     /// @note Retrying re-executes the whole statement. That is safe for the conditions listed above
@@ -555,6 +567,16 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// @throws SqlException The driver rejected the prepare, or could not report the parameter count.
     void PrepareOnHandle(std::string queryText);
 
+    /// @brief Executes @p query directly on the handle, through the entry point the driver takes query
+    /// text on (see SqlConnection::AcceptsWideQueryText()).
+    /// @param query The SQL text to execute, UTF-8.
+    /// @return The SQLExecDirect return code.
+    [[nodiscard]] SQLRETURN ExecDirectOnHandle(std::string_view query);
+
+    /// @brief Records a freshly allocated handle of a connection to an ANSI-only driver, so that its
+    /// diagnostics are read through the ANSI entry points (see detail::RegisterAnsiOnlyHandle()).
+    void RegisterHandleTextEntry() noexcept;
+
     /// @brief Describes every parameter of the prepared query.
     ///
     /// The MS SQL Server driver refuses @c SQLDescribeParam() (07009) once any parameter of the
@@ -658,6 +680,12 @@ class [[nodiscard]] SqlResultCursor
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE size_t NumColumnsAffected() const
     {
         return m_stmt->NumColumnsAffected();
+    }
+
+    /// @copydoc SqlStatement::ConsumePendingResults
+    LIGHTWEIGHT_FORCE_INLINE void ConsumePendingResults(std::source_location location = std::source_location::current())
+    {
+        m_stmt->ConsumePendingResults(location);
     }
 
     /// Binds the given arguments to the prepared statement to store the fetched data to.
@@ -2304,7 +2332,7 @@ void SqlStatement::MigrateDirect(Callable const& callable, std::source_location 
                             "requires a table rebuild (e.g. ALTER COLUMN or a foreign-key change). Apply it through "
                             "MigrationManager::ApplyPendingMigrations, which runs the rebuild executor.\n  Script: {}",
                             query));
-        [[maybe_unused]] auto cursor = ExecuteDirect(query, location);
+        ExecuteDirect(query, location).ConsumePendingResults(location);
     }
 
     // The plans of any pooled handle were derived from the schema we just changed.
@@ -2357,7 +2385,8 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::CloseCursor() noexcept
     // cursor — remaining result sets stay pending on the *connection*, and
     // without MARS every subsequent statement on that connection fails with
     // HY000 "Connection is busy with results for another command". Drain via
-    // SQLMoreResults until SQL_NO_DATA (or an error), then close.
+    // SQLMoreResults until SQL_NO_DATA (or an error), then close. An error found here is dropped;
+    // callers that must see it use ConsumePendingResults() first.
     //
     // SQLMoreResults is standard ODBC; SQLite and PostgreSQL drivers return
     // SQL_NO_DATA on the first call when nothing is pending, so the cost on

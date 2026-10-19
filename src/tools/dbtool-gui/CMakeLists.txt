@@ -43,6 +43,7 @@ set(MIGRATIONS_GUI_CXX_SOURCES
     AppController.cpp
     BackupRunner.hpp
     BackupRunner.cpp
+    BackupRequirementSupport.hpp
     LogLevel.hpp
     ManagedBackupController.hpp
     ManagedBackupController.cpp
@@ -72,6 +73,8 @@ set(MIGRATIONS_GUI_CXX_SOURCES
     Models/OdbcDataSourceListModel.cpp
     Models/ProfileListModel.hpp
     Models/ProfileListModel.cpp
+    Models/ProgressTaskModel.hpp
+    Models/ProgressTaskModel.cpp
     Models/ReleaseListModel.hpp
     Models/ReleaseListModel.cpp
     Models/SqlResultModel.hpp
@@ -125,6 +128,8 @@ set(MIGRATIONS_GUI_QML_FILES
     qml/RunOutcome.qml
     qml/ConnectDialog.qml
     qml/RunFormat.qml
+    qml/TaskProgressList.qml
+    qml/BackupRequiredAlert.qml
 )
 
 # A reusable QML module so the migrations view can be embedded by other Qt
@@ -192,6 +197,8 @@ set_target_properties(dbtool-gui-lib PROPERTIES
 # Thin executable: only main.cpp + wiring. All real logic lives in the lib.
 qt_add_executable(dbtool-gui
     main.cpp
+    SettingsLocation.hpp
+    StderrMessageHandler.hpp
 )
 
 # Windows: supply our own application manifest instead of the one Qt's
@@ -295,7 +302,7 @@ endif()
 
 # Post-build deployment hooks so a fresh checkout can run the binary without
 # manually copying Qt DLLs / frameworks. No-ops on Linux (use system Qt or
-# AppImage out-of-tree).
+# AppImage out-of-tree). The offscreen platform plugin is for dbtool-gui-smoke.
 if(WIN32)
     find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS ${Qt6_DIR}/../../../bin)
     if(WINDEPLOYQT_EXECUTABLE)
@@ -303,6 +310,7 @@ if(WIN32)
             COMMAND "${WINDEPLOYQT_EXECUTABLE}"
                     --no-translations
                     --no-system-d3d-compiler
+                    --include-plugins qoffscreen
                     --qmldir "${CMAKE_CURRENT_SOURCE_DIR}/qml"
                     "$<TARGET_FILE:dbtool-gui>"
             COMMENT "Running windeployqt for dbtool-gui"

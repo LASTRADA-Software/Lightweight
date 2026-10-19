@@ -15,8 +15,11 @@
 #include "../LogLevel.hpp"
 #include "../ManagedBackupController.hpp"
 #include "../MigrationRunner.hpp"
+#include "MigrationRunnerTestSupport.hpp"
+#include "SqliteDriver.hpp"
 
 #include <Lightweight/SqlBackup.hpp>
+#include <Lightweight/SqlMigration.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -24,13 +27,19 @@
 #include <fstream>
 #include <iterator>
 #include <string>
+#include <utility>
 
+#include <QtCore/QCoreApplication>
 #include <QtCore/QSettings>
 #include <QtCore/QString>
 #include <QtCore/QStringList>
 #include <QtCore/QTemporaryDir>
+#include <QtCore/QVariant>
 #include <QtTest/QSignalSpy>
 #include <Secrets/ProfileCipher.hpp>
+
+using DbtoolGui::Tests::ScopedSettingRestore;
+using DbtoolGui::Tests::SqliteDriver;
 
 namespace
 {
@@ -63,6 +72,18 @@ TEST_CASE("AppController constructs in a disconnected state", "[dbtool-gui][AppC
 
     CHECK_FALSE(controller.connected());
     CHECK(controller.lastError().isEmpty());
+}
+
+TEST_CASE("preMigrateStepCount counts the steps registered on the process-wide manager", "[dbtool-gui][AppController]")
+{
+    auto& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
+    DbtoolGui::AppController const controller;
+    REQUIRE(controller.preMigrateStepCount() == 0);
+
+    manager.AddPreMigrateStep("Widen text columns", {}, [](auto&&...) {});
+    CHECK(controller.preMigrateStepCount() == 1);
+    manager.RemoveAllPreMigrateSteps();
+    CHECK(controller.preMigrateStepCount() == 0);
 }
 
 TEST_CASE("AppController buffers a startup banner that replays on attachLogSink", "[dbtool-gui][AppController][startup]")
@@ -228,14 +249,6 @@ TEST_CASE("the busy guard between the three runners is mutual", "[dbtool-gui][Ap
 
 namespace
 {
-
-/// SQLite ODBC driver name as registered on this platform.
-constexpr char const* SqliteDriver =
-#ifdef _WIN32
-    "SQLite3 ODBC Driver";
-#else
-    "SQLite3";
-#endif
 
 /// Reads a whole file as text.
 std::string ReadFile(std::filesystem::path const& path)
@@ -487,4 +500,224 @@ TEST_CASE("loading a dbtool.yml with defaultBackupDir sets the default backup fo
     std::ofstream(configPath, std::ios::binary | std::ios::trunc) << "profiles:\n  p:\n    dsn: \"X\"\n";
     REQUIRE(controller.loadProfiles(QString::fromStdString(configPath.string())));
     CHECK(controller.managedBackups()->defaultBackupFolder() != QString::fromStdString(backups));
+}
+
+TEST_CASE("a non-ASCII defaultBackupDir keeps its spelling as the default backup folder",
+          "[dbtool-gui][AppController][backup-dir]")
+{
+    QTemporaryDir dir;
+    auto const configPath = std::filesystem::path { dir.path().toStdU16String() } / "dbtool.yml";
+    // UTF-8 "D:/Sicherungen-Müller", as dbtool.yml stores it.
+    std::ofstream(configPath, std::ios::binary)
+        << "defaultBackupDir: \"D:/Sicherungen-M\xC3\xBCller\"\nprofiles:\n  p:\n    dsn: \"X\"\n";
+
+    DbtoolGui::AppController controller;
+    controller.managedBackups()->setBackupFolder(QString {}); // nothing chosen in Settings
+    REQUIRE(controller.loadProfiles(QString::fromStdU16String(configPath.u16string())));
+
+    CHECK(controller.managedBackups()->defaultBackupFolder() == QString::fromUtf16(u"D:/Sicherungen-M\u00fcller"));
+}
+
+TEST_CASE("switching to an empty plugins dir drops the unloaded plugins' compat policy, migrations and releases",
+          "[dbtool-gui][AppController][plugins]")
+{
+    // setPluginsDir persists under the test application's QSettings, never the real app's.
+    ScopedSettingRestore const restorePluginsDir { QStringLiteral("config/pluginsDir") };
+
+    QTemporaryDir dir;
+    auto const root = std::filesystem::path { dir.path().toStdString() };
+    auto const fixture = std::filesystem::path { DBTOOL_GUI_TESTS_COMPAT_POLICY_FIXTURE };
+    std::filesystem::create_directories(root / "plugins");
+    std::filesystem::create_directories(root / "empty");
+    std::filesystem::copy_file(fixture, root / "plugins" / ("CompatPolicyPlugin" + fixture.extension().string()));
+    // A profile file without plugin directories, so only the Settings-page plugins dir applies.
+    std::ofstream(root / "dbtool.yml", std::ios::binary) << "profiles:\n  p:\n    dsn: \"X\"\n";
+
+    auto const& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
+    {
+        DbtoolGui::AppController controller;
+        REQUIRE(controller.loadProfiles(QString::fromStdString((root / "dbtool.yml").string())));
+
+        controller.setPluginsDir(QString::fromStdString((root / "plugins").string()));
+        REQUIRE(static_cast<bool>(manager.GetCompatPolicy()));
+        REQUIRE(manager.GetAllMigrations().size() == 3);
+        REQUIRE(manager.GetAllReleases().size() == 1);
+
+        controller.setPluginsDir(QString::fromStdString((root / "empty").string()));
+        CHECK_FALSE(static_cast<bool>(manager.GetCompatPolicy()));
+        CHECK(manager.GetAllMigrations().empty());
+        CHECK(manager.GetAllReleases().empty());
+    }
+}
+
+TEST_CASE("a plugin reload requested during a migration run waits until the run finishes",
+          "[dbtool-gui][AppController][plugins][busy-guard]")
+{
+    ScopedSettingRestore const restorePluginsDir { QStringLiteral("config/pluginsDir") };
+
+    QTemporaryDir dir;
+    auto const root = std::filesystem::path { dir.path().toStdString() };
+    auto const fixture = std::filesystem::path { DBTOOL_GUI_TESTS_COMPAT_POLICY_FIXTURE };
+    std::filesystem::create_directories(root / "plugins");
+    std::filesystem::create_directories(root / "empty");
+    std::filesystem::copy_file(fixture, root / "plugins" / ("CompatPolicyPlugin" + fixture.extension().string()));
+    std::ofstream(root / "dbtool.yml", std::ios::binary)
+        << "profiles:\n  p:\n    connectionString: \"Driver={" << SqliteDriver
+        << "};Database=" << (root / "gui-reload.db").generic_string() << "\"\n";
+
+    auto const& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
+    {
+        DbtoolGui::AppController controller;
+        REQUIRE(controller.loadProfiles(QString::fromStdString((root / "dbtool.yml").string())));
+        controller.setConnectionMode(QStringLiteral("profile"));
+        controller.setCurrentProfile(QStringLiteral("p"));
+        controller.setPluginsDir(QString::fromStdString((root / "plugins").string()));
+        REQUIRE(controller.connectToProfile());
+        REQUIRE(manager.GetAllMigrations().size() == 3);
+
+        QSignalSpy finished(controller.runner(), &DbtoolGui::MigrationRunner::finished);
+        controller.runner()->dryRunUpTo(QString {});
+        // The reset back to Idle is posted to this thread, so the run stays Running until the spy waits.
+        REQUIRE(controller.runner()->phase() == DbtoolGui::MigrationRunner::Phase::Running);
+
+        controller.setPluginsDir(QString::fromStdString((root / "empty").string()));
+        CHECK(manager.GetAllMigrations().size() == 3);
+        CHECK(controller.lastWarning().contains(QStringLiteral("after the current run")));
+
+        REQUIRE((finished.count() > 0 || finished.wait(30000)));
+        CHECK(manager.GetAllMigrations().empty());
+        CHECK(controller.lastWarning().isEmpty());
+    }
+}
+
+namespace
+{
+
+/// Sets a process environment variable for its lifetime, then removes it.
+class ScopedTestVariable
+{
+  public:
+    ScopedTestVariable(char const* name, std::filesystem::path const& value):
+        _name { name }
+    {
+        qputenv(_name, QByteArray::fromStdString(value.string()));
+    }
+
+    ScopedTestVariable(ScopedTestVariable const&) = delete;
+    ScopedTestVariable(ScopedTestVariable&&) = delete;
+    ScopedTestVariable& operator=(ScopedTestVariable const&) = delete;
+    ScopedTestVariable& operator=(ScopedTestVariable&&) = delete;
+
+    ~ScopedTestVariable()
+    {
+        qunsetenv(_name);
+    }
+
+  private:
+    char const* _name;
+};
+
+/// Writes a `dbtool.yml` under @p root whose profile `p` connects to `<root>/<database>` with the
+/// post-migrate recorder plugin, copied to `<root>/plugins`.
+void WriteRecorderWorkspace(std::filesystem::path const& root, std::string const& database)
+{
+    auto const plugin = std::filesystem::path { DBTOOL_GUI_TESTS_PRE_MIGRATE_RECORDER_PLUGIN };
+    std::filesystem::create_directories(root / "plugins");
+    std::filesystem::copy_file(plugin, root / "plugins" / plugin.filename());
+    std::ofstream(root / "dbtool.yml", std::ios::binary)
+        << "profiles:\n  p:\n    connectionString: \"Driver={" << SqliteDriver
+        << "};Database=" << (root / database).generic_string() << "\"\n    pluginsDir: \""
+        << (root / "plugins").generic_string() << "\"\n";
+}
+
+/// The number of lines in @p file; 0 when it does not exist.
+[[nodiscard]] int LineCount(std::filesystem::path const& file)
+{
+    auto stream = std::ifstream { file };
+    auto lines = 0;
+    for (auto line = std::string {}; std::getline(stream, line);)
+        ++lines;
+    return lines;
+}
+
+} // namespace
+
+TEST_CASE("a plugin reload while connected keeps the pre-migrate steps the plugins register on connect",
+          "[dbtool-gui][AppController][plugins][pre-migrate]")
+{
+    QTemporaryDir dir;
+    auto const root = std::filesystem::path { dir.path().toStdString() };
+    WriteRecorderWorkspace(root, "gui-steps.db");
+    // The fixture's post-init hook registers its "Recorder step" only while this names a log file.
+    auto const stepLog = ScopedTestVariable { "LIGHTWEIGHT_TEST_PRE_MIGRATE_LOG", root / "steps.log" };
+
+    DbtoolGui::AppController controller;
+    REQUIRE(controller.loadProfiles(QString::fromStdString((root / "dbtool.yml").string())));
+    controller.setConnectionMode(QStringLiteral("profile"));
+    controller.setCurrentProfile(QStringLiteral("p"));
+    REQUIRE(controller.connectToProfile());
+    REQUIRE(controller.preMigrateStepCount() == 1);
+
+    // Reloading the profile file reloads the plugins, which unloads the steps registered on connect.
+    QSignalSpy migrationsChanged(&controller, &DbtoolGui::AppController::migrationsChanged);
+    REQUIRE(controller.loadProfiles(QString::fromStdString((root / "dbtool.yml").string())));
+    CHECK(controller.connected());
+    CHECK(controller.preMigrateStepCount() == 1);
+    CHECK(migrationsChanged.count() > 0);
+}
+
+TEST_CASE("a reconnect runs the plugins' post-init hooks once and drops the last run's rows",
+          "[dbtool-gui][AppController][plugins][pre-migrate]")
+{
+    QTemporaryDir dir;
+    auto const root = std::filesystem::path { dir.path().toStdString() };
+    WriteRecorderWorkspace(root, "gui-reconnect.db");
+    auto const stepLog = ScopedTestVariable { "LIGHTWEIGHT_TEST_PRE_MIGRATE_LOG", root / "steps.log" };
+    auto const postInitLog = ScopedTestVariable { "LIGHTWEIGHT_TEST_POST_INIT_LOG", root / "post-init.log" };
+
+    DbtoolGui::AppController controller;
+    REQUIRE(controller.loadProfiles(QString::fromStdString((root / "dbtool.yml").string())));
+    controller.setConnectionMode(QStringLiteral("profile"));
+    controller.setCurrentProfile(QStringLiteral("p"));
+    REQUIRE(controller.connectToProfile());
+    REQUIRE(LineCount(root / "post-init.log") == 1);
+
+    QSignalSpy finished(controller.runner(), &DbtoolGui::MigrationRunner::finished);
+    controller.runner()->dryRunUpTo(QString {});
+    REQUIRE((finished.count() > 0 || finished.wait(30000)));
+    QCoreApplication::processEvents();
+    REQUIRE(controller.runner()->tasks()->rowCount() > 0);
+
+    // The reload inside connect leaves the hooks to connect, which runs them once, on the new connection.
+    REQUIRE(controller.connectToProfile());
+    CHECK(LineCount(root / "post-init.log") == 2);
+    CHECK(controller.preMigrateStepCount() == 1);
+    CHECK(controller.runner()->tasks()->rowCount() == 0);
+}
+
+TEST_CASE("connectToProfile is refused while a migration run is active", "[dbtool-gui][AppController][busy-guard]")
+{
+    QTemporaryDir dir;
+    auto const root = std::filesystem::path { dir.path().toStdString() };
+    std::ofstream(root / "dbtool.yml", std::ios::binary)
+        << "profiles:\n  p:\n    connectionString: \"Driver={" << SqliteDriver
+        << "};Database=" << (root / "gui-connect.db").generic_string() << "\"\n";
+
+    DbtoolGui::AppController controller;
+    REQUIRE(controller.loadProfiles(QString::fromStdString((root / "dbtool.yml").string())));
+    controller.setConnectionMode(QStringLiteral("profile"));
+    controller.setCurrentProfile(QStringLiteral("p"));
+    REQUIRE(controller.connectToProfile());
+
+    QSignalSpy finished(controller.runner(), &DbtoolGui::MigrationRunner::finished);
+    controller.runner()->dryRunUpTo(QString {});
+    REQUIRE(controller.runner()->phase() == DbtoolGui::MigrationRunner::Phase::Running);
+
+    // Reconnecting would replace the connection the running dry run reads through.
+    CHECK_FALSE(controller.connectToProfile());
+    CHECK(controller.lastWarning().contains(QStringLiteral("before connecting")));
+    CHECK(controller.connected());
+
+    REQUIRE((finished.count() > 0 || finished.wait(30000)));
+    CHECK(controller.connectToProfile());
 }

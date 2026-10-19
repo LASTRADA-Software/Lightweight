@@ -1,14 +1,26 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "BackupRequirementSupport.hpp"
 #include "MigrationRunner.hpp"
 
+#include <Lightweight/ProgressTask.hpp>
 #include <Lightweight/SqlMigration.hpp>
+#include <Lightweight/SqlScopedLock.hpp>
 
+#include <cstddef>
 #include <cstdint>
 #include <exception>
+#include <functional>
+#include <memory>
+#include <optional>
+#include <ranges>
+#include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
+#include <BackupRecording.hpp>
+#include <PluginIngestion.hpp>
 #include <QtCore/QMetaObject>
 #include <QtCore/QRunnable>
 #include <QtCore/QSet>
@@ -26,11 +38,14 @@ namespace
     /// collapsed to whitespace once the text is wrapped in a `<span>` tag.
     void PostMigrationFailureLines(class MigrationRunner* runner, Lightweight::SqlMigration::MigrationException const& ex);
 
+    /// Runs @p fn on a pool thread. An exception that escapes it is handed to @p onFailure, so the
+    /// run still reports "finished" and its phase leaves Running.
     class FunctionTask final: public QRunnable
     {
       public:
-        explicit FunctionTask(std::function<void()> fn):
-            _fn(std::move(fn))
+        FunctionTask(std::function<void()> fn, std::function<void(std::exception const&)> onFailure):
+            _fn(std::move(fn)),
+            _onFailure(std::move(onFailure))
         {
             setAutoDelete(true);
         }
@@ -40,16 +55,15 @@ namespace
             {
                 _fn();
             }
-            catch (std::exception const&)
+            catch (std::exception const& e)
             {
-                // The task is responsible for posting a "finished" signal from its
-                // own catch handler; swallowing here just prevents an uncaught
-                // exception from terminating the worker thread.
+                _onFailure(e);
             }
         }
 
       private:
         std::function<void()> _fn;
+        std::function<void(std::exception const&)> _onFailure;
     };
 
     /// Collects the list of pending migration pointers whose timestamp is
@@ -94,9 +108,10 @@ namespace
 MigrationRunner::MigrationRunner(QObject* parent):
     QObject(parent)
 {
-    // One worker is enough — every operation holds the migration advisory
-    // lock (SqlScopedLock on "lightweight_migration"), and trying to run two
-    // concurrently would deadlock the same connection.
+    // One worker is enough — every operation shares the manager's single
+    // connection, and apply runs hold the migration advisory lock on it
+    // (SqlScopedLock on "lightweight_migration"), so two concurrent runs
+    // would deadlock that connection.
     _pool.setMaxThreadCount(1);
 }
 
@@ -108,6 +123,16 @@ void MigrationRunner::SetManager(Lightweight::SqlMigration::MigrationManager* ma
 void MigrationRunner::setBusyProbe(std::function<bool()> probe)
 {
     _busyProbe = std::move(probe);
+}
+
+void MigrationRunner::setPostMigrateHook(PostMigrateHook hook)
+{
+    _postMigrateHook = std::move(hook);
+}
+
+void MigrationRunner::setBackupWaived(BackupWaiver waiver) noexcept
+{
+    _backupWaiver = waiver;
 }
 
 bool MigrationRunner::CanStartMutatingRun(char const* what)
@@ -124,9 +149,11 @@ bool MigrationRunner::CanStartMutatingRun(char const* what)
     return true;
 }
 
-void MigrationRunner::Enqueue(std::function<void()> task)
+void MigrationRunner::BeginRun()
 {
-    _pool.start(new FunctionTask(std::move(task)));
+    SetPhase(Phase::Running);
+    _cancelRequested.store(false, std::memory_order_release);
+    _tasks.clear();
 }
 
 void MigrationRunner::SetPhase(Phase newPhase)
@@ -235,20 +262,248 @@ namespace
             Qt::QueuedConnection);
     }
 
+    /// How an apply run ended. Reported with `PostFinished` only once the migration lock is released.
+    struct ApplyOutcome
+    {
+        bool ok = false;
+        QString summary;
+    };
+
+    /// The log line of a run that refuses because a required backup is missing.
+    QString BackupRequiredLine(Lightweight::SqlMigration::BackupRequirement const& requirement)
+    {
+        return QStringLiteral("!! %1.").arg(
+            QString::fromStdString(Lightweight::Tools::DescribeBackupRequirement(requirement)));
+    }
+
+    /// The dry run's report of a backup requirement.
+    /// @param waiver Whether "Migrate without a backup" is ticked for the real run.
+    QString BackupRequiredDryRunLine(Lightweight::SqlMigration::BackupRequirement const& requirement, BackupWaiver waiver)
+    {
+        return QString::fromStdString(Lightweight::Tools::FormatBackupRequirementDryRun(
+            requirement,
+            waiver == BackupWaiver::Waived ? Lightweight::Tools::BackupOverride::Waive
+                                           : Lightweight::Tools::BackupOverride::None,
+            { .backupFirst = "Back up the database first", .waive = "Migrate without a backup" }));
+    }
+
+    /// The runner's log level of a task's message.
+    LogLevel ToLogLevel(Lightweight::ProgressTask::LogLevel level)
+    {
+        switch (level)
+        {
+            case Lightweight::ProgressTask::LogLevel::Error:
+                return LogLevel::Error;
+            case Lightweight::ProgressTask::LogLevel::Warning:
+                return LogLevel::Warning;
+            case Lightweight::ProgressTask::LogLevel::Info:
+                break;
+        }
+        return LogLevel::Info;
+    }
+
+    /// The root task of a run: its sub-tasks become rows of the runner's task model, its logs log lines,
+    /// and it reports cancellation once the user pressed Cancel.
+    std::unique_ptr<Lightweight::ProgressTask> CreateRunTask(MigrationRunner* runner, ProgressTaskModel* tasks)
+    {
+        return tasks->CreateRootTask([runner] { return runner->phase() == MigrationRunner::Phase::Cancelling; },
+                                     [runner](Lightweight::ProgressTask::LogLevel level, QString const& message) {
+                                         PostLogLine(runner, message, ToLogLevel(level));
+                                     });
+    }
+
+    /// Runs the pre-migrate steps of a run; a cancellation or a throwing step ends the run here.
+    /// @return std::nullopt to go on with the migrations, else the run's outcome.
+    std::optional<ApplyOutcome> RunSteps(MigrationRunner* runner,
+                                         Lightweight::SqlMigration::MigrationManager& manager,
+                                         Lightweight::ProgressTask& root,
+                                         Lightweight::SqlMigration::ExecutionMode mode)
+    {
+        try
+        {
+            if (manager.RunPreMigrateSteps(root, mode) == Lightweight::SqlMigration::PreMigrateStepsOutcome::Completed)
+                return std::nullopt;
+            PostLogLine(runner, QStringLiteral("-- Cancelled during the pre-migrate steps."), LogLevel::Warning);
+            return ApplyOutcome { .ok = false,
+                                  .summary =
+                                      QStringLiteral("Cancelled during the pre-migrate steps; no migration was applied.") };
+        }
+        catch (Lightweight::SqlMigration::PreMigrateStepError const& error)
+        {
+            // The failed step's task has logged the failure already.
+            return ApplyOutcome { .ok = false, .summary = QString::fromUtf8(error.what()) };
+        }
+    }
+
+    /// Applies `toRun` in order under a "Migrations" task of @p root, stopping at the first failure or at a
+    /// cancellation request.
+    ApplyOutcome ApplyMigrations(MigrationRunner* runner,
+                                 Lightweight::SqlMigration::MigrationManager& manager,
+                                 std::vector<Lightweight::SqlMigration::MigrationBase const*> const& toRun,
+                                 Lightweight::ProgressTask& root)
+    {
+        auto const migrations = root.BeginSubTask("Migrations", toRun.size());
+        size_t applied = 0;
+        for (auto const index: std::views::iota(std::size_t { 0 }, toRun.size()))
+        {
+            auto const* migration = toRun[index];
+            if (runner->phase() == MigrationRunner::Phase::Cancelling)
+            {
+                PostLogLine(runner, QStringLiteral("-- Cancelled after %1 migration(s).").arg(applied), LogLevel::Warning);
+                return { .ok = false, .summary = QStringLiteral("Cancelled after %1 migrations.").arg(applied) };
+            }
+            auto const ts = migration->GetTimestamp().value;
+            auto const title = QString::fromStdString(std::string { migration->GetTitle() });
+            auto const detail = QStringLiteral("%1 %2").arg(ts).arg(title).toStdString();
+            try
+            {
+                PostProgress(runner, *migration, index, toRun.size(), QStringLiteral("applying"));
+                migrations->Advance(0, detail);
+                manager.ApplySingleMigration(*migration);
+                migrations->Advance(1, detail);
+                PostMigrationCompleted(runner, ts, QStringLiteral("applied"));
+                ++applied;
+            }
+            catch (Lightweight::SqlMigration::MigrationException const& e)
+            {
+                migrations->Fail(e.what());
+                PostMigrationFailed(runner, ts);
+                PostMigrationFailureLines(runner, e);
+                return { .ok = false,
+                         .summary =
+                             QStringLiteral("Applied %1 of %2 migrations before failing.").arg(applied).arg(toRun.size()) };
+            }
+            catch (std::exception const& e)
+            {
+                migrations->Fail(e.what());
+                PostMigrationFailed(runner, ts);
+                PostLogLine(runner,
+                            QStringLiteral("!! %1 %2 \u2014 %3").arg(ts).arg(title).arg(QString::fromUtf8(e.what())),
+                            LogLevel::Error);
+                return { .ok = false,
+                         .summary =
+                             QStringLiteral("Applied %1 of %2 migrations before failing.").arg(applied).arg(toRun.size()) };
+            }
+        }
+        return { .ok = true, .summary = QStringLiteral("Applied %1 migration(s).").arg(applied) };
+    }
+
+    /// Checks the backup requirement of an apply run, under the migration lock.
+    /// @param toRun The migrations the run applies.
+    /// @param waiver Whether the user waived a missing backup for this run.
+    /// @return std::nullopt to go on, else the refused run's outcome.
+    std::optional<ApplyOutcome> CheckBackupRequirement(
+        MigrationRunner* runner,
+        Lightweight::SqlMigration::MigrationManager& manager,
+        std::vector<Lightweight::SqlMigration::MigrationBase const*> const& toRun,
+        BackupWaiver waiver)
+    {
+        auto const requirement = manager.BackupRequirementFor(TimestampsOf(toRun));
+        if (!requirement.required || requirement.satisfied)
+            return std::nullopt;
+        if (waiver == BackupWaiver::NotWaived)
+        {
+            PostLogLine(runner, BackupRequiredLine(requirement), LogLevel::Error);
+            return ApplyOutcome { .ok = false, .summary = QStringLiteral("A backup is required to run the migrations.") };
+        }
+        // The user ticked "Migrate without a backup": go on, but leave an audit row and say so.
+        auto const recorded =
+            Lightweight::Tools::RecordWaiver(manager.GetDataMapper(), Lightweight::Tools::ToolVersion(RecordToolName));
+        PostLogLine(runner,
+                    QString::fromStdString(Lightweight::Tools::FormatBackupWaiver(
+                        requirement, recorded ? std::string_view {} : recorded.error().message)),
+                    LogLevel::Warning);
+        return std::nullopt;
+    }
+
+    /// Logs the backup requirement of a dry run's migrations, when there is one; a failing check only warns.
+    void ReportBackupRequirement(MigrationRunner* runner,
+                                 Lightweight::SqlMigration::MigrationManager& manager,
+                                 std::vector<Lightweight::SqlMigration::MigrationBase const*> const& toRun,
+                                 BackupWaiver waiver)
+    {
+        try
+        {
+            if (auto const requirement = manager.BackupRequirementFor(TimestampsOf(toRun)); requirement.required)
+                PostLogLine(runner, BackupRequiredDryRunLine(requirement, waiver), LogLevel::Info);
+        }
+        catch (std::exception const& e)
+        {
+            PostLogLine(runner,
+                        QStringLiteral("-- Could not check the backup requirement: %1").arg(QString::fromUtf8(e.what())),
+                        LogLevel::Warning);
+        }
+    }
+
+    /// Runs `applyRun` under the migration advisory lock and, when it succeeded, the post-migrate
+    /// hook. The lock is released before this returns, so the caller reports the outcome only once
+    /// the shared connection is idle again. Any exception becomes a failed outcome, so a run can
+    /// never stay `Running`.
+    ApplyOutcome RunLockedApply(MigrationRunner* runner,
+                                Lightweight::SqlMigration::MigrationManager& manager,
+                                MigrationRunner::PostMigrateHook const& postMigrateHook,
+                                std::function<ApplyOutcome()> const& applyRun)
+    {
+        try
+        {
+            auto const lock = Lightweight::SqlScopedLock::TryConstruct(manager.GetDataMapper().Connection(),
+                                                                       Lightweight::Tools::MigrationLockName);
+            if (!lock)
+            {
+                PostLogLine(
+                    runner, QStringLiteral("!! %1").arg(QString::fromStdString(lock.error().message)), LogLevel::Error);
+                return { .ok = false, .summary = QStringLiteral("Could not acquire the migration lock.") };
+            }
+
+            auto outcome = applyRun();
+            if (!outcome.ok || !postMigrateHook)
+                return outcome;
+
+            auto const logError = [runner](std::string_view message) {
+                PostLogLine(
+                    runner, QString::fromUtf8(message.data(), static_cast<qsizetype>(message.size())), LogLevel::Error);
+            };
+            if (!postMigrateHook(manager, logError))
+                return { .ok = false,
+                         .summary = QStringLiteral("%1 A plugin post-migrate hook failed.").arg(outcome.summary) };
+            return outcome;
+        }
+        catch (std::exception const& e)
+        {
+            PostLogLine(runner, QStringLiteral("!! %1").arg(QString::fromUtf8(e.what())), LogLevel::Error);
+            return { .ok = false, .summary = QString::fromUtf8(e.what()) };
+        }
+    }
+
 } // namespace
+
+void MigrationRunner::Enqueue(std::function<void()> task)
+{
+    _pool.start(new FunctionTask(std::move(task), [this](std::exception const& e) {
+        PostLogLine(this, QStringLiteral("!! %1").arg(QString::fromUtf8(e.what())), LogLevel::Error);
+        PostFinished(this, false, QString::fromUtf8(e.what()));
+    }));
+}
 
 void MigrationRunner::dryRunUpTo(QString const& targetTimestamp)
 {
     if (!_manager || phase() != Phase::Idle)
         return;
-    SetPhase(Phase::Running);
-    _cancelRequested.store(false, std::memory_order_release);
+    BeginRun();
 
     auto* runner = this;
     auto* manager = _manager;
+    auto* tasks = &_tasks;
     auto const targetTs = targetTimestamp.toULongLong();
 
-    Enqueue([runner, manager, targetTs, targetLabel = targetTimestamp] {
+    Enqueue([runner, manager, tasks, targetTs, targetLabel = targetTimestamp, waiver = _backupWaiver] {
+        ReportBackupRequirement(runner, *manager, CollectPendingUpTo(*manager, targetTs), waiver);
+        auto const root = CreateRunTask(runner, tasks);
+        if (auto const stopped = RunSteps(runner, *manager, *root, Lightweight::SqlMigration::ExecutionMode::DryRun))
+        {
+            PostFinished(runner, stopped->ok, stopped->summary);
+            return;
+        }
         auto const toRun = CollectPendingUpTo(*manager, targetTs);
         if (toRun.empty())
         {
@@ -285,69 +540,40 @@ void MigrationRunner::applyUpTo(QString const& targetTimestamp)
 {
     if (!CanStartMutatingRun("Apply migrations"))
         return;
-    SetPhase(Phase::Running);
-    _cancelRequested.store(false, std::memory_order_release);
+    BeginRun();
 
     auto* runner = this;
     auto* manager = _manager;
+    auto* tasks = &_tasks;
     auto const targetTs = targetTimestamp.toULongLong();
 
-    Enqueue([runner, manager, targetTs, targetLabel = targetTimestamp] {
-        auto const toRun = CollectPendingUpTo(*manager, targetTs);
-        if (toRun.empty())
-        {
-            PostLogLine(runner,
-                        targetTs == 0 ? QStringLiteral("No pending migrations to apply.")
-                                      : QStringLiteral("No pending migrations up to %1.").arg(targetLabel),
-                        LogLevel::Warning);
-            PostFinished(runner, true, QStringLiteral("Applied 0 migrations."));
-            return;
-        }
-
-        PostLogLine(runner, QStringLiteral("Applying %1 migration(s)...").arg(toRun.size()), LogLevel::Info);
-
-        size_t applied = 0;
-        for (size_t i = 0; i < toRun.size(); ++i)
-        {
-            if (runner->phase() == Phase::Cancelling)
+    Enqueue([runner,
+             manager,
+             tasks,
+             targetTs,
+             targetLabel = targetTimestamp,
+             postMigrateHook = _postMigrateHook,
+             waiver = _backupWaiver] {
+        auto const outcome = RunLockedApply(runner, *manager, postMigrateHook, [&] {
+            if (auto const refused =
+                    CheckBackupRequirement(runner, *manager, CollectPendingUpTo(*manager, targetTs), waiver))
+                return *refused;
+            auto const root = CreateRunTask(runner, tasks);
+            if (auto const stopped = RunSteps(runner, *manager, *root, Lightweight::SqlMigration::ExecutionMode::Execute))
+                return *stopped;
+            auto const toRun = CollectPendingUpTo(*manager, targetTs);
+            if (toRun.empty())
             {
-                PostLogLine(runner, QStringLiteral("-- Cancelled after %1 migration(s).").arg(applied), LogLevel::Warning);
-                PostFinished(runner, false, QStringLiteral("Cancelled after %1 migrations.").arg(applied));
-                return;
-            }
-            auto const ts = toRun[i]->GetTimestamp().value;
-            try
-            {
-                PostProgress(runner, *toRun[i], i, toRun.size(), QStringLiteral("applying"));
-                manager->ApplySingleMigration(*toRun[i]);
-                PostMigrationCompleted(runner, ts, QStringLiteral("applied"));
-                ++applied;
-            }
-            catch (Lightweight::SqlMigration::MigrationException const& e)
-            {
-                PostMigrationFailed(runner, ts);
-                PostMigrationFailureLines(runner, e);
-                PostFinished(runner,
-                             false,
-                             QStringLiteral("Applied %1 of %2 migrations before failing.").arg(applied).arg(toRun.size()));
-                return;
-            }
-            catch (std::exception const& e)
-            {
-                PostMigrationFailed(runner, ts);
                 PostLogLine(runner,
-                            QStringLiteral("!! %1 %2 — %3")
-                                .arg(ts)
-                                .arg(QString::fromStdString(std::string { toRun[i]->GetTitle() }))
-                                .arg(QString::fromUtf8(e.what())),
-                            LogLevel::Error);
-                PostFinished(runner,
-                             false,
-                             QStringLiteral("Applied %1 of %2 migrations before failing.").arg(applied).arg(toRun.size()));
-                return;
+                            targetTs == 0 ? QStringLiteral("No pending migrations to apply.")
+                                          : QStringLiteral("No pending migrations up to %1.").arg(targetLabel),
+                            LogLevel::Warning);
+                return ApplyOutcome { .ok = true, .summary = QStringLiteral("Applied 0 migrations.") };
             }
-        }
-        PostFinished(runner, true, QStringLiteral("Applied %1 migration(s).").arg(applied));
+            PostLogLine(runner, QStringLiteral("Applying %1 migration(s)...").arg(toRun.size()), LogLevel::Info);
+            return ApplyMigrations(runner, *manager, toRun, *root);
+        });
+        PostFinished(runner, outcome.ok, outcome.summary);
     });
 }
 
@@ -355,14 +581,20 @@ void MigrationRunner::dryRunSelected(QStringList const& timestamps)
 {
     if (!_manager || phase() != Phase::Idle)
         return;
-    SetPhase(Phase::Running);
-    _cancelRequested.store(false, std::memory_order_release);
+    BeginRun();
 
     auto* runner = this;
     auto* manager = _manager;
-    auto const snapshot = timestamps; // captured by value
+    auto* tasks = &_tasks;
 
-    Enqueue([runner, manager, snapshot] {
+    Enqueue([runner, manager, tasks, snapshot = timestamps, waiver = _backupWaiver] {
+        ReportBackupRequirement(runner, *manager, CollectSelected(*manager, snapshot), waiver);
+        auto const root = CreateRunTask(runner, tasks);
+        if (auto const stopped = RunSteps(runner, *manager, *root, Lightweight::SqlMigration::ExecutionMode::DryRun))
+        {
+            PostFinished(runner, stopped->ok, stopped->summary);
+            return;
+        }
         auto const toRun = CollectSelected(*manager, snapshot);
         if (toRun.empty())
         {
@@ -382,59 +614,29 @@ void MigrationRunner::applySelected(QStringList const& timestamps)
 {
     if (!CanStartMutatingRun("Apply migrations"))
         return;
-    SetPhase(Phase::Running);
-    _cancelRequested.store(false, std::memory_order_release);
+    BeginRun();
 
     auto* runner = this;
     auto* manager = _manager;
-    auto const snapshot = timestamps;
+    auto* tasks = &_tasks;
 
-    Enqueue([runner, manager, snapshot] {
-        auto const toRun = CollectSelected(*manager, snapshot);
-        if (toRun.empty())
-        {
-            PostLogLine(runner, QStringLiteral("No pending migrations in the current selection."), LogLevel::Warning);
-            PostFinished(runner, true, QStringLiteral("Applied 0 migrations."));
-            return;
-        }
-
-        PostLogLine(runner, QStringLiteral("Applying %1 selected migration(s)...").arg(toRun.size()), LogLevel::Info);
-
-        size_t applied = 0;
-        for (size_t i = 0; i < toRun.size(); ++i)
-        {
-            if (runner->phase() == Phase::Cancelling)
+    Enqueue([runner, manager, tasks, snapshot = timestamps, postMigrateHook = _postMigrateHook, waiver = _backupWaiver] {
+        auto const outcome = RunLockedApply(runner, *manager, postMigrateHook, [&] {
+            if (auto const refused = CheckBackupRequirement(runner, *manager, CollectSelected(*manager, snapshot), waiver))
+                return *refused;
+            auto const root = CreateRunTask(runner, tasks);
+            if (auto const stopped = RunSteps(runner, *manager, *root, Lightweight::SqlMigration::ExecutionMode::Execute))
+                return *stopped;
+            auto const toRun = CollectSelected(*manager, snapshot);
+            if (toRun.empty())
             {
-                PostLogLine(runner, QStringLiteral("-- Cancelled after %1 migration(s).").arg(applied), LogLevel::Warning);
-                PostFinished(runner, false, QStringLiteral("Cancelled after %1 migrations.").arg(applied));
-                return;
+                PostLogLine(runner, QStringLiteral("No pending migrations in the current selection."), LogLevel::Warning);
+                return ApplyOutcome { .ok = true, .summary = QStringLiteral("Applied 0 migrations.") };
             }
-            auto const ts = toRun[i]->GetTimestamp().value;
-            try
-            {
-                PostProgress(runner, *toRun[i], i, toRun.size(), QStringLiteral("applying"));
-                manager->ApplySingleMigration(*toRun[i]);
-                PostMigrationCompleted(runner, ts, QStringLiteral("applied"));
-                ++applied;
-            }
-            catch (Lightweight::SqlMigration::MigrationException const& e)
-            {
-                PostMigrationFailed(runner, ts);
-                PostMigrationFailureLines(runner, e);
-                PostFinished(
-                    runner, false, QStringLiteral("Applied %1 of %2 before failing.").arg(applied).arg(toRun.size()));
-                return;
-            }
-            catch (std::exception const& e)
-            {
-                PostMigrationFailed(runner, ts);
-                PostLogLine(runner, QStringLiteral("!! %1 — %2").arg(ts).arg(QString::fromUtf8(e.what())), LogLevel::Error);
-                PostFinished(
-                    runner, false, QStringLiteral("Applied %1 of %2 before failing.").arg(applied).arg(toRun.size()));
-                return;
-            }
-        }
-        PostFinished(runner, true, QStringLiteral("Applied %1 migration(s).").arg(applied));
+            PostLogLine(runner, QStringLiteral("Applying %1 selected migration(s)...").arg(toRun.size()), LogLevel::Info);
+            return ApplyMigrations(runner, *manager, toRun, *root);
+        });
+        PostFinished(runner, outcome.ok, outcome.summary);
     });
 }
 
@@ -442,8 +644,7 @@ void MigrationRunner::rollbackToRelease(QString const& version)
 {
     if (!CanStartMutatingRun("Rollback"))
         return;
-    SetPhase(Phase::Running);
-    _cancelRequested.store(false, std::memory_order_release);
+    BeginRun();
 
     auto* runner = this;
     auto* manager = _manager;

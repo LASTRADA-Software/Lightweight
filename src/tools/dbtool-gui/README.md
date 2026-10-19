@@ -151,6 +151,63 @@ Settings, else the default location. Adding a profile never changes the open
 connection or the selected profile, and is refused while a migration, backup or
 restore is running (the reload would reset the status those runs report into).
 
+### Task progress and pre-migrate steps
+
+A run shows its tasks as a list (`TaskProgressList.qml`, fed by
+`MigrationRunner.tasks`, a `ProgressTaskModel`): one row per pre-migrate step a
+plugin registered, indented rows for the units and tables a step reports, and a
+*Migrations* row for an apply run. A row without a total sweeps; a finished
+sub-task's row disappears, a finished top-level row stays until the next run
+(a rollback included) starts, and a failed row stays, red with its reason and
+stopped where it failed. The list stays on screen after the run, next to the
+Simple view's outcome and above the Expert view's *Apply*, and a failed task
+also writes `failed <task>: <reason>` to the log. The worker reports through
+queued calls, coalesced to one update per task every 50 ms.
+
+Every apply (Simple view *Run*, Expert view *Apply*, also with nothing pending)
+runs the steps first, on the migration connection under the migration lock; a dry
+run calls them in dry-run mode, without the lock, so they only report their
+plan. With steps registered and nothing pending, the Simple view offers *Run
+pre-migrate steps*. A step that throws fails the run before any migration.
+*Cancel* is checked before and after each step, and a step itself may stop
+between its units; a run cancelled during the steps applies no migration.
+
+### Backup requirement
+
+A release, a migration or a pre-migrate step can require a backup of the
+database taken after its last migration (see `docs/sql-migrations.md`). While
+the pending migrations need one that does not exist yet
+(`AppController.backupRequired`):
+
+- **Disabled buttons, one alert** — *Run* and *Retry* in the Simple view and
+  *Apply* in the Expert view are disabled; dry runs stay available. An alert
+  next to them (`BackupRequiredAlert.qml`) names what requires the backup
+  (`backupRequirementReasons`), says why the newest backup does not count or why
+  the last one could not be recorded (`backupRequirementNote`), and asks to stop
+  every application that writes to the database until the migrations have
+  finished: the migration lock does not stop their writes.
+- **Back up now** — writes `<target>-<timestamp>.zip` into the backup folder
+  (Settings), with no file dialog, and records it. Once it finished, the buttons
+  enable. The Simple view's *Back up the database first* makes the same kind of
+  backup before the run.
+- **Migrate without a backup** — the alert's checkbox waives the requirement for
+  one run. It is unchecked at start, never stored in the settings, and cleared
+  after each run, on every connect and disconnect, and as soon as no backup is
+  required any more (after *Back up now*, say), so it never carries over to a
+  later requirement. The run writes a `waived` row into `schema_backups`, which
+  never satisfies a later requirement, and logs a warning that says whether that
+  row could be written.
+- **The runner re-checks** — the alert judges every pending migration; an apply
+  run checks the migrations it actually runs again under the migration lock,
+  before the pre-migrate steps, and refuses when a backup is still missing.
+- **Which backups count** — *Back up now*, *Back up the database first* and the
+  Backup & restore panel's *Back up* and *Restore* record their verified archive
+  in `schema_backups` (a restore records the migration history it left). The
+  managed per-profile backups write no record. A backup whose record cannot be
+  written still succeeds, logs a warning that it cannot satisfy the requirement
+  and leaves the alert showing why; an archive that fails verification fails
+  the backup.
+
 ### Known limitations
 
 - **No archive retention / generations.** Exactly one archive exists per

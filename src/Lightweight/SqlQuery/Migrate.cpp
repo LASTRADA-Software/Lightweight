@@ -3,6 +3,9 @@
 #include "../SqlQueryFormatter.hpp"
 #include "Migrate.hpp"
 
+#include <format>
+#include <stdexcept>
+
 namespace Lightweight
 {
 
@@ -251,6 +254,7 @@ SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddCompositeForeignKey(std
         .columns = std::move(columns),
         .referencedTableName = std::move(referencedTableName),
         .referencedColumns = std::move(referencedColumns),
+        .referencedSchemaName = {},
     });
     return *this;
 }
@@ -436,8 +440,18 @@ SqlMigrationInsertBuilder SqlMigrationQueryBuilder::Insert(std::string_view tabl
         .schemaName = _schemaName,
         .tableName = std::string(tableName),
         .columns = {},
+        .keyColumns = {},
     });
     return SqlMigrationInsertBuilder { std::get<SqlInsertDataPlan>(_migrationPlan.steps.back()) };
+}
+
+SqlMigrationInsertBuilder& SqlMigrationInsertBuilder::IfNotExists(std::vector<std::string> keyColumns)
+{
+    if (keyColumns.empty())
+        throw std::invalid_argument(
+            std::format(R"(IfNotExists on INSERT INTO "{}" needs at least one key column)", _plan.tableName));
+    _plan.keyColumns = std::move(keyColumns);
+    return *this;
 }
 
 SqlMigrationUpdateBuilder SqlMigrationQueryBuilder::Update(std::string_view tableName)

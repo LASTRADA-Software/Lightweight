@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "../../Lightweight/SqlBackup/WorkerChunkArchive.hpp"
+#include "../UniqueTempPath.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -30,7 +31,7 @@ struct TempDir
     std::filesystem::path path;
 
     TempDir():
-        path { std::filesystem::temp_directory_path() / "worker_chunk_archive_test" }
+        path { UniqueTempPath("worker_chunk_archive_test") }
     {
         std::filesystem::remove_all(path);
         std::filesystem::create_directories(path);

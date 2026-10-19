@@ -69,6 +69,8 @@ struct BackupDiffResult
     std::size_t identicalTables = 0;    ///< Common tables that compared identical.
     std::size_t differingTables = 0;    ///< Common tables that differed (or failed to read).
     std::size_t ignoredDifferences = 0; ///< Differences suppressed by the ignore set.
+    std::string ignoreTableError;       ///< Why the ignore set was refused (an ambiguous name); empty if it was not.
+    std::vector<std::string> unmatchedIgnoreTables; ///< Ignore-set names that match no table of either archive.
 };
 
 /// Compares the DATA CONTENT of two Lightweight backup archives, order-independently.
@@ -87,8 +89,13 @@ struct BackupDiffResult
 /// @param ignoreTables Sanitized table names whose differences are reported but do NOT count
 ///        as a failure. Use for high-write tables (e.g. log tables) that legitimately drift
 ///        between two backups of a *live* database, so a stress comparison isn't drowned out
-///        by benign live-data churn. The match is on the data-path (sanitized) table name.
+///        by benign live-data churn. The match is on the data-path (sanitized) table name, which
+///        in a multi-schema archive is `<schema>/<table>`. There `<schema>.<table>` matches too, and
+///        a bare table name matches when exactly one schema holds it; it is refused (see
+///        `ignoreTableError`) when several do. Names that match nothing are listed in
+///        `unmatchedIgnoreTables`.
 ///        Pass an empty set to treat every difference as a failure (no default — be explicit).
+///        `schema_backups`, the backup bookkeeping table, is always treated as ignored.
 /// @param observer Streaming sink for per-table events, or nullptr to suppress streaming.
 /// @return The aggregate result. `differenceFound` is the authoritative pass/fail signal; it is
 ///         true when any non-ignored difference is found or either archive cannot be read.
