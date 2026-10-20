@@ -2,6 +2,9 @@
 
 #include "AppController.hpp"
 #include "BackupRequirementSupport.hpp"
+#include "ControllerJobs.hpp"
+#include "ExceptionMessage.hpp"
+#include "Models/MigrationSnapshot.hpp"
 
 #include <Lightweight/DataMapper/DataMapper.hpp>
 #include <Lightweight/SqlConnectInfo.hpp>
@@ -63,6 +66,7 @@ struct AppController::PluginsBundle
 #include <QtCore/QModelIndex>
 #include <QtCore/QSettings>
 #include <QtCore/QSysInfo>
+#include <QtCore/QThread>
 #include <QtCore/QTimer>
 #include <QtCore/QUrl>
 #include <QtCore/QVariantMap>
@@ -118,28 +122,6 @@ namespace
         cs += Lightweight::FormatConnectionStringValue(value);
     }
 
-    /// Extracts the friendliest available message from a thrown exception.
-    /// Prefers `SqlException::info().message` because ODBC error strings
-    /// include the driver-level explanation ("no such table", "column foo is
-    /// missing", …) while `what()` usually decays to the bare SQLSTATE.
-    QString ExceptionMessage(std::exception const& e)
-    {
-        if (auto const* sqle = dynamic_cast<Lightweight::SqlException const*>(&e))
-        {
-            auto const& info = sqle->info();
-            QString const msg = QString::fromStdString(info.message).trimmed();
-            QString const state = QString::fromStdString(info.sqlState).trimmed();
-            if (!msg.isEmpty())
-            {
-                if (!state.isEmpty() && state != QStringLiteral("00000"))
-                    return QStringLiteral("%1 [SQLSTATE %2]").arg(msg, state);
-                return msg;
-            }
-        }
-        auto const fallback = QString::fromUtf8(e.what()).trimmed();
-        return fallback.isEmpty() ? QStringLiteral("(no details reported)") : fallback;
-    }
-
     /// Maps the internal `SqlServerType` enum to the human-readable display
     /// string already used by the project's `std::formatter` specialization
     /// (which `dbtool` and the docs also use). Keeps the GUI's "Connected:"
@@ -150,38 +132,6 @@ namespace
     {
         return QString::fromStdString(std::format("{}", serverType));
     }
-
-    /// Converts a UTF-8 `std::string_view` (the form every `PluginIngestion`
-    /// callback receives) into the `QString` the log feed wants. Centralised
-    /// so the three callbacks below all do the trim/convert the same way.
-    [[nodiscard]] QString FromUtf8View(std::string_view msg)
-    {
-        return QString::fromUtf8(msg.data(), static_cast<qsizetype>(msg.size()));
-    }
-
-    /// Sets a flag for its lifetime and clears it again, also when the scope is left by an exception.
-    class ScopedFlag
-    {
-      public:
-        explicit ScopedFlag(bool& flag) noexcept:
-            _flag { flag }
-        {
-            _flag = true;
-        }
-
-        ScopedFlag(ScopedFlag const&) = delete;
-        ScopedFlag(ScopedFlag&&) = delete;
-        ScopedFlag& operator=(ScopedFlag const&) = delete;
-        ScopedFlag& operator=(ScopedFlag&&) = delete;
-
-        ~ScopedFlag()
-        {
-            _flag = false;
-        }
-
-      private:
-        bool& _flag;
-    };
 
     /// A profile's connection string with its password folded in.
     struct ProfileConnection
@@ -239,11 +189,8 @@ AppController::AppController(QObject* parent):
 
     QObject::connect(&_migrations, &MigrationListModel::selectionChanged, this, &AppController::selectionChanged);
 
-    // Live per-row status updates from the runner. Instead of calling
-    // `_migrations.Refresh()` after every migration (which rebuilds the whole
-    // model and is noisy in the UI) we flip individual row statuses as
-    // events fire: "pending" → "running" → "applied" (or back to "pending"
-    // on failure / rollback).
+    // The runner's events flip single rows ("pending" → "running" → "applied", or back to "pending" on
+    // failure), so a run never rebuilds the whole model per migration.
     QObject::connect(&_runner, &MigrationRunner::migrationStarted, this, [this](qulonglong ts) {
         _migrations.SetRowStatusByTimestamp(ts, QStringLiteral("running"));
         // A new run started — clear any stale failure
@@ -322,11 +269,8 @@ AppController::AppController(QObject* parent):
         return _managedBackups.phase() != ManagedBackupController::Phase::Idle
                || _runner.phase() != MigrationRunner::Phase::Idle;
     });
-    // After a run finishes, do one authoritative refresh. `Refresh` touches
-    // schema_migrations and will throw on an unmanaged database — we fall
-    // back to `RefreshPluginsOnly` in that case. An uncaught exception
-    // here would propagate into Qt's signal dispatcher and terminate the
-    // process (observed as `abort()` on Windows).
+    // After a run finishes, do one authoritative refresh of the models; an
+    // unmanaged database falls back to the plugin-only view with a warning.
     QObject::connect(&_runner, &MigrationRunner::finished, this, [this](bool ok, QString const& /*summary*/) {
         if (ok)
         {
@@ -338,7 +282,7 @@ AppController::AppController(QObject* parent):
         RefreshMigrationModelsAfterRun();
         if (_pluginReloadPending)
         {
-            ReloadPlugins();
+            RequestPluginReload();
             if (_lastWarning == QLatin1String { PluginReloadDeferredWarning })
             {
                 _lastWarning.clear();
@@ -368,7 +312,8 @@ AppController::AppController(QObject* parent):
 
     // Restore preferences BEFORE loading profiles. `loadProfiles` only sets
     // a default profile when `_currentProfile` is empty, so feeding the
-    // saved value here preserves the user's choice across restarts.
+    // saved value here preserves the user's choice across restarts. Only
+    // these reads and the discovery below run before the first frame.
     QSettings settings;
     auto const savedMode = settings.value(kKeyMode).toString();
     if (savedMode == QStringLiteral("dsn") || savedMode == QStringLiteral("custom"))
@@ -400,46 +345,86 @@ AppController::AppController(QObject* parent):
     if (savedView == QStringLiteral("expert"))
         _viewMode = savedView;
 
-    // Honour the user-customised store path (if any); otherwise discover the
-    // nearest dbtool.yml (working dir, then executable dir, then the per-user
-    // default). Both paths run through `loadProfiles` so the file watcher and
-    // profile model are wired identically.
+    // Discovery walks the filesystem, so it runs once; `defaultProfileStorePath` reads the result.
     auto const discoveredStore = DiscoverProfileStore();
-    auto const initialStorePath =
-        !_profileStorePath.isEmpty() ? std::filesystem::path(_profileStorePath.toStdString()) : discoveredStore.path;
-    if (std::filesystem::exists(initialStorePath))
-        (void) loadProfiles(QString::fromStdString(initialStorePath.string()));
+    _discoveredStorePath = QString::fromStdString(discoveredStore.path.string());
+    _discoveredStoreSource = QString::fromUtf8(Lightweight::Config::ToString(discoveredStore.source).data());
 
-    refreshOdbcDataSources();
+    QObject::connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit, this, &AppController::Shutdown);
 
-    // Startup banner — emitted while no QML receiver exists yet; the buffer
-    // in `Log()` holds these until `LogPanel.qml` calls `attachLogSink()`,
-    // at which point they replay in order. Plain English throughout —
-    // never the CLI flag name (e.g. "Plugins directory", not "--plugins-dir").
+    // Everything else waits for the event loop, so the window shows before any slow work starts.
+    QMetaObject::invokeMethod(this, &AppController::BeginStartup, Qt::QueuedConnection);
+}
+
+void AppController::BeginStartup()
+{
+    _startupBegun = true;
+
+    // Honour the user-customised store path (if any); otherwise the discovered
+    // dbtool.yml. A store loaded before the event loop ran (by a test) wins.
+    auto const initialStorePath = !_profileStorePath.isEmpty() ? _profileStorePath : _discoveredStorePath;
+    if (!_storeLoaded && std::filesystem::exists(initialStorePath.toStdString()))
+        (void) loadProfiles(initialStorePath);
+
+    // Plain English throughout — never the CLI flag name (e.g. "Plugins directory", not "--plugins-dir").
     LogInfo(QStringLiteral("dbtool-gui starting (Qt %1)").arg(QLatin1String(qVersion())));
     LogInfo(QStringLiteral("View mode: %1").arg(_viewMode));
-    {
-        auto const storePath = QString::fromStdString(initialStorePath.string());
-        auto const source = !_profileStorePath.isEmpty()
-                                ? QStringLiteral("chosen in Settings")
-                                : QString::fromUtf8(Lightweight::Config::ToString(discoveredStore.source).data());
-        LogInfo(QStringLiteral("Profile store: %1 (found via %2, %3 profile(s))")
-                    .arg(storePath, source)
-                    .arg(_profiles.rowCount()));
-    }
+    auto const source = !_profileStorePath.isEmpty() ? QStringLiteral("chosen in Settings") : _discoveredStoreSource;
+    LogInfo(QStringLiteral("Profile store: %1 (found via %2, %3 profile(s))")
+                .arg(initialStorePath, source)
+                .arg(_profiles.rowCount()));
 
-    // Load the plugin DLLs eagerly so the migration list is populated before
-    // the user clicks Connect. This runs after profile + settings restoration
-    // because `EffectivePluginsDir()` consults both `_pluginsDir` and the
-    // current profile. Safe to run here even if no connection is open —
-    // plugin discovery is a pure filesystem operation.
-    ReloadPlugins();
+    refreshOdbcDataSources();
+    if (!_awaitingFirstFrame)
+        StartFirstPluginLoad();
+    UpdateActivity();
+}
 
-    LogInfo(QStringLiteral("Ready — not connected. Pick a profile to connect."));
+void AppController::awaitFirstFrame(QQuickWindow* window)
+{
+    if (!window || !_startupPending)
+        return;
+    _awaitingFirstFrame = true;
+    QObject::connect(window,
+                     &QQuickWindow::frameSwapped,
+                     this,
+                     &AppController::OnFirstFrame,
+                     static_cast<Qt::ConnectionType>(Qt::QueuedConnection | Qt::SingleShotConnection));
+    window->update();
+    QTimer::singleShot(std::chrono::seconds { 2 }, this, &AppController::OnFirstFrame);
+}
+
+void AppController::OnFirstFrame()
+{
+    if (!std::exchange(_awaitingFirstFrame, false))
+        return;
+    if (_startupBegun)
+        StartFirstPluginLoad();
+}
+
+void AppController::StartFirstPluginLoad()
+{
+    if (!std::exchange(_startupPending, false))
+        return;
+    RequestPluginReload();
+    UpdateActivity();
+}
+
+void AppController::Shutdown()
+{
+    if (std::exchange(_shuttingDown, true))
+        return;
+    _pluginReloadFlushQueued = false;
+    _runner.cancel();
+    // A job in flight uses the plugins, the manager and this object's address; let it finish first.
+    (void) _runner.Worker().WaitForDone(std::chrono::milliseconds::max());
+    (void) _odbcWorker.WaitForDone(std::chrono::milliseconds::max());
 }
 
 AppController::~AppController()
 {
+    Shutdown();
+
     // The sink captures `this`; leaving it on the process-wide manager would let the
     // next controller's first migration query call into a destroyed object.
     if (_installedMigrationLogSink)
@@ -470,9 +455,10 @@ void AppController::setCurrentProfile(QString const& name)
     // queried for real. Otherwise the previous profile's applied/pending
     // labels would keep rendering on top of the new plugin set.
     InvalidateConnectionTarget();
+    ++_targetGeneration;
     // Profiles may carry their own `pluginsDir`; switch the loaded plugin
     // set so the UI matches the selection without a reconnect.
-    ReloadPlugins();
+    RequestPluginReload();
 }
 
 void AppController::setConnectionStringOverride(QString const& connectionString)
@@ -530,9 +516,10 @@ void AppController::setConnectionMode(QString const& mode)
     // flag so the reload path renders "unknown" instead of re-applying
     // the prior source's applied-set to the new target.
     InvalidateConnectionTarget();
+    ++_targetGeneration;
     // Mode changes swap which plugins-dir is authoritative (profile's own
     // vs the user override), so reload to reflect the new effective set.
-    ReloadPlugins();
+    RequestPluginReload();
 }
 
 void AppController::setSelectedDsn(QString const& dsn)
@@ -581,9 +568,10 @@ void AppController::setPluginsDir(QString const& pluginsDir)
     QSettings().setValue(kKeyPluginsDir, pluginsDir);
     emit pluginsDirChanged();
     emit connectionSummaryChanged();
+    ++_targetGeneration;
     // Users expect dropping a new plugins-dir path to populate the migration
     // list immediately — no explicit reconnect button press.
-    ReloadPlugins();
+    RequestPluginReload();
 }
 
 void AppController::EncryptPlaintextPassword(Lightweight::Config::Profile const& profile)
@@ -607,7 +595,7 @@ void AppController::EncryptPlaintextPassword(Lightweight::Config::Profile const&
 
 QString AppController::defaultProfileStorePath() const
 {
-    return QString::fromStdString(DiscoverProfileStore().path.string());
+    return _discoveredStorePath;
 }
 
 void AppController::setProfileStorePath(QString const& path)
@@ -686,7 +674,7 @@ void AppController::ClearError()
 
 bool AppController::loadProfiles(QString const& path)
 {
-    auto const effectivePath = path.isEmpty() ? QString::fromStdString(DiscoverProfileStore().path.string()) : path;
+    auto const effectivePath = path.isEmpty() ? _discoveredStorePath : path;
 
     auto result = Lightweight::Config::ProfileStore::LoadOrDefault(effectivePath.toStdString());
     if (!result)
@@ -695,6 +683,7 @@ bool AppController::loadProfiles(QString const& path)
         return false;
     }
     _store = std::move(*result);
+    _storeLoaded = true;
     _profiles.ReplaceFrom(_store);
     // The folder dbtool.yml names (if any) becomes the default backup folder, so an installer can
     // pre-configure it; a folder chosen in Settings still wins.
@@ -723,7 +712,8 @@ bool AppController::loadProfiles(QString const& path)
     // Profile data may carry a new `pluginsDir` (or the same profile with a
     // different value than last load). `setCurrentProfile` only fires when
     // the *name* changes, so handle the same-name-different-dir case here.
-    ReloadPlugins();
+    if (EffectivePluginsDir() != _requestedPluginDirectories)
+        RequestPluginReload();
     return true;
 }
 
@@ -812,15 +802,12 @@ bool AppController::connectToProfile()
     auto& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
 
     // Plugin discovery is a pure filesystem operation independent of ODBC,
-    // so a failed connect must not hide which DLLs were picked up. Running
-    // `ReloadPlugins` here also guarantees the user always sees the latest
-    // set of DLLs even if they dropped new ones into the directory between
-    // clicks — same watcher-less "just rescan on action" semantics as dbtool.
-    // The post-init hooks run below, on the new connection, not on the one being replaced.
-    {
-        auto const connecting = ScopedFlag { _connecting };
-        ReloadPlugins();
-    }
+    // so a failed connect must not hide which DLLs were picked up. Reloading
+    // here also guarantees the user always sees the latest set of DLLs even
+    // if they dropped new ones into the directory between clicks — same
+    // watcher-less "just rescan on action" semantics as dbtool. The post-init
+    // hooks run below, on the new connection, not on the one being replaced.
+    ReloadPluginsNow();
 
     Lightweight::SqlConnectionString const defaultConnectionString { connectionString };
 
@@ -920,30 +907,21 @@ bool AppController::connectToProfile()
     // (`ApplySingleMigration` / `MarkMigrationAsApplied` / `RevertSingleMigration`),
     // so introspection-only connects against a fresh or unmanaged database
     // leave the schema untouched.
-    RunPostInitHooks();
+    RunPostInitHooks(_plugins->entries, manager, [this](QString line) { LogError(std::move(line)); });
 
-    // `Refresh` reads `GetAppliedMigrationIds` which merges the plugin-supplied
+    // The snapshot reads `GetAppliedMigrationIds`, which merges the plugin-supplied
     // overlay with whatever rows exist in `schema_migrations`. The accessor
     // already swallows a missing-table `SqlException` and returns the overlay
-    // alone, but a Refresh-level failure (e.g. malformed row, unreadable
-    // column) should still surface as a warning instead of leaving the GUI
-    // stuck on a stale model.
-    try
+    // alone; any other failure (e.g. malformed row, unreadable column) falls
+    // back to a plain-plugin view and surfaces as a warning instead of leaving
+    // the GUI stuck on a stale model.
+    auto snapshot = CaptureMigrationSnapshot(manager, AppliedState::Database);
+    if (!snapshot.warning.isEmpty())
     {
-        _migrations.Refresh(manager);
-        _releases.Refresh(manager);
-    }
-    catch (std::exception const& e)
-    {
-        _lastWarning = QStringLiteral("Could not read migration history: %1").arg(ExceptionMessage(e));
+        _lastWarning = snapshot.warning;
         emit lastWarningChanged();
-        // Fall back to a plain-plugin view. The overlay is still observable
-        // via `RefreshPluginsOnly` because it lives on the manager, not in
-        // `schema_migrations`.
-        _migrations.RefreshPluginsOnly(manager);
-        _releases.Refresh(manager);
     }
-    emit migrationsChanged();
+    ApplySnapshot(std::move(snapshot));
 
     // Backup/restore reuse exactly the connection that just opened — including a
     // decrypted or resolved password and the DSN form, which the raw profile
@@ -952,6 +930,7 @@ bool AppController::connectToProfile()
     _backupRunner.setRecordSchema(QString::fromStdString(std::string { manager.DefaultSchema() }));
 
     _connected = true;
+    _readyLogged = true;
     // The rows of the last run belong to the previous connection.
     _runner.tasks()->clear();
     _connectedMode = _connectionMode;
@@ -1011,7 +990,7 @@ int AppController::pendingCount() const
 
 int AppController::preMigrateStepCount() const
 {
-    return static_cast<int>(Lightweight::SqlMigration::MigrationManager::GetInstance().GetPreMigrateSteps().size());
+    return _preMigrateStepCount;
 }
 
 void AppController::setMigrateWithoutBackup(bool value)
@@ -1073,6 +1052,12 @@ void AppController::RefreshBackupRequirement()
     // The check reads through the migration connection, which a running migration uses.
     if (_runner.phase() != MigrationRunner::Phase::Idle)
         return;
+    // While connected it also reads the plugins' migrations, which a plugin load is replacing.
+    if (_connected && pluginsLoading())
+    {
+        _backupRequirementAfterReloadPending = true;
+        return;
+    }
 
     auto required = false;
     auto reasons = QStringList {};
@@ -1179,94 +1164,50 @@ int AppController::selectionCount() const
 
 QString AppController::currentReleaseLabel() const
 {
-    auto const& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
-
     // "Current" = state the DB is actually in. We intentionally do NOT
-    // gate on `_connected` here: `connectToProfile()` emits
-    // `migrationsChanged` *before* flipping `_connected = true`, and we
-    // want the label to already show the right version at that point —
-    // the Simple view only shows the Status card when connected anyway,
-    // so a pre-connect read from this accessor never reaches the user.
+    // gate on `_connected` here: the Simple view only shows the Status card
+    // when connected anyway, so a pre-connect read never reaches the user.
     //
-    // We deliberately do NOT call `manager.GetAppliedMigrationIds()` here:
-    // this accessor is bound from QML on the UI thread, and QML re-evaluates
-    // the binding on every `migrationsChanged()` emission — including the
-    // one fired between every migration during an `applyUpTo` run. The
-    // migration run holds the only `SqlConnection` on a worker thread; an
-    // ODBC handle is not safe for concurrent use, so a DB query from the
-    // UI thread mid-run surfaces as HY000 "Connection is busy" and aborts
-    // the run. Instead, read from `_migrations` — the in-memory model is
-    // kept in sync per row by `migrationCompleted` →
-    // `SetRowStatusByTimestamp`, so it knows which migrations are applied
-    // at any point during a run without touching the database.
-    auto const appliedRaw = _migrations.AppliedTimestamps();
-    if (appliedRaw.empty())
+    // Everything comes from the models, never from the manager: this
+    // accessor is bound from QML on the UI thread and re-evaluated on every
+    // `migrationsChanged()`, including the ones fired between migrations of
+    // a run, while the worker holds the only `SqlConnection`. The model is
+    // kept in sync per row by `migrationCompleted` → `SetRowStatusByTimestamp`.
+    auto const applied = _migrations.AppliedTimestamps();
+    if (applied.empty())
         return QStringLiteral("(fresh database)");
 
-    std::vector<Lightweight::SqlMigration::MigrationTimestamp> applied;
-    applied.reserve(appliedRaw.size());
-    for (auto const ts: appliedRaw)
-        applied.push_back(Lightweight::SqlMigration::MigrationTimestamp { ts });
+    auto const highest = std::ranges::max(applied);
+    auto const& releases = _releases.Rows();
+    auto const countAbove = [&applied](std::uint64_t bound) {
+        return std::ranges::count_if(applied, [bound](std::uint64_t timestamp) { return timestamp > bound; });
+    };
 
-    auto const highest = *std::ranges::max_element(applied);
-    auto const* release = manager.FindReleaseForTimestamp(highest);
-    auto const& releases = manager.GetAllReleases();
-
+    // The release that contains `highest`: the one with the smallest upper bound at or above it.
+    ReleaseRow const* release = nullptr;
+    for (auto const& row: releases)
+        if (row.highestTimestamp >= highest && (!release || row.highestTimestamp < release->highestTimestamp))
+            release = &row;
     if (release)
     {
-        // Count applied timestamps strictly above this release's upper
-        // bound — those are "unreleased" tip migrations. Note: a release
-        // with `highestTimestamp == highest` yields zero extras.
-        int unreleased = 0;
-        for (auto const& ts: applied)
-            if (ts.value > release->highestTimestamp.value)
-                ++unreleased;
-        auto label = QString::fromStdString(release->version);
-        if (unreleased > 0)
+        // Applied timestamps above this release's upper bound are "unreleased" tip migrations.
+        auto label = release->version;
+        if (auto const unreleased = countAbove(release->highestTimestamp); unreleased > 0)
             label += QStringLiteral(" (+%1 unreleased)").arg(unreleased);
         return label;
     }
 
-    // No release contains this timestamp. Two cases:
-    //   (a) No releases declared at all  -> show raw timestamp.
-    //   (b) Applied ts is past the last  -> "unreleased" beyond latest.
+    // No release contains this timestamp: no releases at all (show the raw
+    // timestamp), or the applied set runs past the last release.
     if (releases.empty())
-        return QString::number(highest.value);
-
-    auto const& last = releases.back();
-    int unreleased = 0;
-    for (auto const& ts: applied)
-        if (ts.value > last.highestTimestamp.value)
-            ++unreleased;
-    return QStringLiteral("%1 (+%2 unreleased)").arg(QString::fromStdString(last.version)).arg(unreleased);
+        return QString::number(highest);
+    auto const& last = *std::ranges::max_element(releases, {}, &ReleaseRow::highestTimestamp);
+    return QStringLiteral("%1 (+%2 unreleased)").arg(last.version).arg(countAbove(last.highestTimestamp));
 }
 
 QString AppController::targetReleaseLabel() const
 {
-    auto const& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
-    auto const& releases = manager.GetAllReleases();
-
-    // Total = every migration the plugin set knows about. Releases cover
-    // a prefix of that set; anything past the last release's highest
-    // timestamp is "unreleased" and will still be applied on "Run".
-    auto const& allMigrations = manager.GetAllMigrations();
-    if (releases.empty())
-    {
-        // No release declared — best we can offer is "latest" meaning
-        // "apply every pending migration".
-        return allMigrations.empty() ? QStringLiteral("(no migrations)") : QStringLiteral("latest");
-    }
-
-    auto const& last = releases.back();
-    int unreleased = 0;
-    for (auto const* m: allMigrations)
-        if (m->GetTimestamp().value > last.highestTimestamp.value)
-            ++unreleased;
-
-    auto label = QString::fromStdString(last.version);
-    if (unreleased > 0)
-        label += QStringLiteral(" (+%1 unreleased)").arg(unreleased);
-    return label;
+    return _targetReleaseLabel;
 }
 
 QString AppController::buildFailureReport() const
@@ -1359,11 +1300,11 @@ void AppController::selectAllPending(bool selected)
 
 QString AppController::releaseHighestTimestamp(QString const& version) const
 {
-    auto const& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
-    auto const* release = manager.FindReleaseByVersion(version.toStdString());
-    if (!release)
+    auto const& releases = _releases.Rows();
+    auto const release = std::ranges::find(releases, version, &ReleaseRow::version);
+    if (release == releases.end())
         return {};
-    return QString::number(release->highestTimestamp.value);
+    return QString::number(release->highestTimestamp);
 }
 
 QStringList AppController::previewMigrationSql(QString const& timestamp) const
@@ -1383,6 +1324,9 @@ QStringList AppController::previewMigrationSql(QString const& timestamp) const
     // not — short-circuit to a placeholder when a run is in flight.
     if (_runner.phase() != MigrationRunner::Phase::Idle)
         return { QStringLiteral("-- Preview unavailable during a migration run.") };
+    // The worker is swapping the plugins, and with them the migrations, out from under the manager.
+    if (pluginsLoading())
+        return { QStringLiteral("-- Preview unavailable while the plugins load.") };
 
     auto const& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
     auto const* migration = manager.GetMigration(Lightweight::SqlMigration::MigrationTimestamp { ts });
@@ -1410,7 +1354,33 @@ QStringList AppController::previewMigrationSql(QString const& timestamp) const
 
 void AppController::refreshOdbcDataSources()
 {
-    _odbcDataSources.Replace(Lightweight::Odbc::EnumerateDataSources());
+    if (_shuttingDown)
+        return;
+    if (_odbcRefreshing)
+    {
+        _odbcRefreshAgain = true;
+        return;
+    }
+    _odbcRefreshing = true;
+    UpdateActivity();
+
+    auto const finish = [this](std::vector<Lightweight::Odbc::DataSourceInfo> sources, QString failure) {
+        QMetaObject::invokeMethod(
+            this,
+            [this, sources = std::move(sources), failure = std::move(failure)] {
+                if (failure.isEmpty())
+                    _odbcDataSources.Replace(sources);
+                else
+                    LogWarn(QStringLiteral("Could not list the ODBC data sources: %1").arg(failure));
+                _odbcRefreshing = false;
+                UpdateActivity();
+                if (std::exchange(_odbcRefreshAgain, false))
+                    refreshOdbcDataSources();
+            },
+            Qt::QueuedConnection);
+    };
+    _odbcWorker.Enqueue([finish] { finish(Lightweight::Odbc::EnumerateDataSources(), {}); },
+                        [finish](std::exception const& e) { finish({}, QString::fromUtf8(e.what())); });
 }
 
 QString AppController::profilePathDisplay() const
@@ -1452,7 +1422,7 @@ QString AppController::ProfileTargetPath() const
         return _profilePath;
     if (!_profileStorePath.isEmpty())
         return _profileStorePath;
-    return QString::fromStdString(DiscoverProfileStore().path.string());
+    return _discoveredStorePath;
 }
 
 std::string AppController::OpenConnectionPassword() const
@@ -1639,51 +1609,64 @@ void AppController::InvalidateConnectionTarget()
 
 void AppController::RefreshMigrationModelsAfterRun()
 {
-    // `Refresh` touches schema_migrations and will throw on an unmanaged
-    // database — we fall back to `RefreshPluginsOnly` in that case. An uncaught
-    // exception here would propagate into Qt's signal dispatcher and terminate
-    // the process (observed as `abort()` on Windows).
-    auto& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
-    try
+    // The worker is swapping the plugins out from under the manager; re-read once that is done.
+    if (pluginsLoading())
     {
-        _migrations.Refresh(manager);
-        _releases.Refresh(manager);
+        _modelRefreshAfterReloadPending = true;
+        return;
     }
-    catch (std::exception const& e)
+    // The snapshot touches schema_migrations, which an unmanaged database lacks;
+    // it then falls back to the plugin-only view and says why.
+    auto snapshot = CaptureMigrationSnapshot(Lightweight::SqlMigration::MigrationManager::GetInstance(),
+                                             _connected ? AppliedState::Database : AppliedState::Unknown);
+    if (!snapshot.warning.isEmpty())
     {
-        _lastWarning = QStringLiteral("Could not refresh migration list: %1").arg(ExceptionMessage(e));
+        _lastWarning = snapshot.warning;
         emit lastWarningChanged();
-        try
-        {
-            _migrations.RefreshPluginsOnly(manager);
-            _releases.Refresh(manager);
-        }
-        catch (std::exception const&)
-        {
-            // Even the plugin-only refresh failed — leave the model alone.
-        }
     }
-    emit migrationsChanged();
+    ApplySnapshot(std::move(snapshot));
     RefreshBackupRequirement();
 }
 
-void AppController::RunPostInitHooks()
+bool AppController::pluginsLoading() const noexcept
 {
-    auto& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
-    try
-    {
-        Lightweight::Tools::RunPluginPostInitHooks(
-            _plugins->entries, manager.GetDataMapper().Connection(), manager, [this](std::string_view message) {
-                LogError(QString::fromUtf8(message.data(), static_cast<int>(message.size())));
-            });
-    }
-    catch (std::exception const& e)
-    {
-        LogError(QStringLiteral("Plugin post-init hooks failed: %1").arg(ExceptionMessage(e)));
-    }
+    return _startupPending || _pluginReloadFlushQueued || _pluginReloadJobsInFlight > 0;
 }
 
-void AppController::ReloadPlugins()
+bool AppController::busy() const noexcept
+{
+    return pluginsLoading() || _odbcRefreshing;
+}
+
+QString AppController::activityText() const
+{
+    if (pluginsLoading())
+        return QStringLiteral("Loading plugins…");
+    if (_odbcRefreshing)
+        return QStringLiteral("Listing ODBC data sources…");
+    return {};
+}
+
+void AppController::UpdateActivity()
+{
+    auto const loading = pluginsLoading();
+    if (loading == _announcedPluginsLoading && _odbcRefreshing == _announcedOdbcRefreshing)
+        return;
+    _announcedPluginsLoading = loading;
+    _announcedOdbcRefreshing = _odbcRefreshing;
+    emit activityChanged();
+}
+
+void AppController::ApplySnapshot(MigrationSnapshot snapshot)
+{
+    _migrations.ReplaceRows(std::move(snapshot.migrations));
+    _releases.ReplaceRows(std::move(snapshot.releases));
+    _preMigrateStepCount = snapshot.preMigrateStepCount;
+    _targetReleaseLabel = std::move(snapshot.targetReleaseLabel);
+    emit migrationsChanged();
+}
+
+void AppController::RequestPluginReload()
 {
     // Unloading the plugins closes the mapper's connection, which a running migration still uses.
     if (_runner.phase() != MigrationRunner::Phase::Idle)
@@ -1694,100 +1677,120 @@ void AppController::ReloadPlugins()
         return;
     }
     _pluginReloadPending = false;
+    // The first load is still to come and reads the state of then; after a quit nothing starts.
+    if (_startupPending || _shuttingDown || _pluginReloadFlushQueued)
+        return;
+    _pluginReloadFlushQueued = true;
+    QMetaObject::invokeMethod(this, &AppController::FlushPluginReload, Qt::QueuedConnection);
+    UpdateActivity();
+}
 
-    auto const pluginsDirs = EffectivePluginsDir();
-
-    auto& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
-    // Wipe first, so switching to a profile with no plugins-dir clears
-    // the stale list instead of leaving the previous one showing.
-    Lightweight::Tools::UnloadPlugins(_plugins->entries, manager);
-
-    if (pluginsDirs.empty())
+void AppController::FlushPluginReload()
+{
+    // A connect in between loaded the plugins itself.
+    if (!std::exchange(_pluginReloadFlushQueued, false))
+        return;
+    // A run started after the request; it reloads once it finished.
+    if (_runner.phase() != MigrationRunner::Phase::Idle)
     {
-        LogInfo(QStringLiteral("Plugins directory: none configured"));
+        _pluginReloadPending = true;
+        UpdateActivity();
+        return;
     }
-    else
+
+    auto request = PluginReloadRequest {
+        .directories = EffectivePluginsDir(),
+        .state = _connected ? AppliedState::Database : AppliedState::Unknown,
+        .generation = _targetGeneration,
+    };
+    _requestedPluginDirectories = request.directories;
+    ++_pluginReloadJobsInFlight;
+    auto* const plugins = &_plugins->entries;
+    auto const post = [this](PluginReloadOutcome outcome) {
+        QMetaObject::invokeMethod(
+            this,
+            [this, outcome = std::move(outcome)]() mutable { ApplyPluginReload(std::move(outcome)); },
+            Qt::QueuedConnection);
+    };
+    _runner.Worker().Enqueue(
+        [post, plugins, request] {
+            post(RunPluginReload(request, *plugins, Lightweight::SqlMigration::MigrationManager::GetInstance()));
+        },
+        [post, generation = request.generation](std::exception const& e) {
+            auto outcome = PluginReloadOutcome {};
+            outcome.generation = generation;
+            outcome.error = QStringLiteral("Failed to load plugins: %1").arg(ExceptionMessage(e));
+            outcome.log.emplace_back(outcome.error, LogLevel::Error);
+            post(std::move(outcome));
+        });
+    UpdateActivity();
+}
+
+void AppController::ReloadPluginsNow()
+{
+    // Every reload requested or in flight, the first one included, is superseded by this one;
+    // their outcomes become stale.
+    ++_targetGeneration;
+    _startupPending = false;
+    _pluginReloadFlushQueued = false;
+    (void) _runner.Worker().WaitForDone(std::chrono::milliseconds::max());
+
+    auto request = PluginReloadRequest {
+        .directories = EffectivePluginsDir(),
+        .state = AppliedState::Unknown,
+        .generation = _targetGeneration,
+    };
+    _requestedPluginDirectories = request.directories;
+    auto outcome = RunPluginReload(request, _plugins->entries, Lightweight::SqlMigration::MigrationManager::GetInstance());
+    for (auto& [line, level]: outcome.log)
+        Log(level, std::move(line));
+    if (!outcome.error.isEmpty())
+        ReportError(outcome.error);
+    // The connect reads the history and checks the backup requirement itself, on its new connection.
+    ApplySnapshot(std::move(outcome.snapshot));
+    UpdateActivity();
+}
+
+void AppController::ApplyPluginReload(PluginReloadOutcome outcome)
+{
+    --_pluginReloadJobsInFlight;
+    for (auto& [line, level]: outcome.log)
+        Log(level, std::move(line));
+
+    if (outcome.generation == _targetGeneration)
     {
-        QStringList dirDisplay;
-        dirDisplay.reserve(static_cast<qsizetype>(pluginsDirs.size()));
-        for (auto const& dir: pluginsDirs)
-            dirDisplay.append(QString::fromStdString(dir.string()));
-        LogInfo(QStringLiteral("Plugins directory: %1").arg(dirDisplay.join(QStringLiteral("; "))));
-
-        Lightweight::Tools::PluginIngestOptions opts;
-        // Forward every discovery event through the unified log feed.
-        // Successful loads / shadowed candidates run unconditionally —
-        // `_verbose` is no longer required to *see* discovery state,
-        // only to surface extra noise on stderr that nobody reads.
-        opts.logLoading = [this](std::string_view msg) {
-            LogInfo(QStringLiteral("Loaded plugin: %1").arg(FromUtf8View(msg)));
-        };
-        opts.logShadowed = [this](std::string_view msg) {
-            LogWarn(QStringLiteral("Plugin shadowed: %1").arg(FromUtf8View(msg)));
-        };
-        opts.logError = [this](std::string_view msg) {
-            LogError(QStringLiteral("Plugin failed: %1").arg(FromUtf8View(msg)));
-        };
-        opts.throwOnLoadError = false;
-
-        try
+        if (!outcome.error.isEmpty())
+            ReportError(outcome.error);
+        ApplySnapshot(std::move(outcome.snapshot));
+        _backupRequirementAfterReloadPending = true;
+        if (!pluginsLoading() && !_readyLogged && !_connected)
         {
-            _plugins->entries =
-                Lightweight::Tools::IngestPlugins(pluginsDirs, Lightweight::Tools::DefaultPluginLoader(), manager, opts);
+            _readyLogged = true;
+            LogInfo(QStringLiteral("Ready — not connected. Pick a profile to connect."));
         }
-        catch (std::exception const& e)
+    }
+    // A later reload, if any, does what was put off during this one.
+    if (!pluginsLoading())
+    {
+        if (std::exchange(_modelRefreshAfterReloadPending, false) && _connected)
         {
-            // `throwOnLoadError = false` in GUI options means we usually
-            // do not reach this branch — only `IngestPlugins`'s own
-            // contract violations (or directory-iteration errors) bubble
-            // up. Surface them on the error banner anyway so the user
-            // sees something went wrong.
-            QStringList paths;
-            paths.reserve(static_cast<qsizetype>(pluginsDirs.size()));
-            for (auto const& dir: pluginsDirs)
-                paths.append(QString::fromStdString(dir.string()));
-            auto const errorText = QStringLiteral("Failed to load plugins from %1: %2")
-                                       .arg(paths.join(QStringLiteral("; ")), QString::fromUtf8(e.what()));
-            LogError(errorText);
-            ReportError(errorText);
+            _backupRequirementAfterReloadPending = false;
+            RefreshMigrationModelsAfterRun();
         }
+        else if (std::exchange(_backupRequirementAfterReloadPending, false))
+            RefreshBackupRequirement();
     }
-
-    // Unloading dropped what the post-init hooks registered on connect (pre-migrate steps, the
-    // virtual-applied overlay), so a reload while connected runs them again on the live connection.
-    if (_connected && !_connecting)
-        RunPostInitHooks();
-
-    // When a connection is live, overlay applied status from schema_migrations;
-    // otherwise show every plugin migration as "unknown" — we have not (yet)
-    // queried the target DB, so "pending" would be a guess. On any failure
-    // (e.g. schema_migrations missing on a live connection), fall back to
-    // the plugins-only "pending" view: the schema_migrations lookup succeeded
-    // in returning "nothing is applied", so "pending" is an observation, not
-    // a guess.
-    try
-    {
-        if (_connected)
-            _migrations.Refresh(manager);
-        else
-            _migrations.RefreshAsUnknown(manager);
-    }
-    catch (std::exception const&)
-    {
-        _migrations.RefreshPluginsOnly(manager);
-    }
-    _releases.Refresh(manager);
-    LogInfo(QStringLiteral("Migrations available: %1 · Releases declared: %2")
-                .arg(_migrations.rowCount())
-                .arg(_releases.rowCount()));
-    emit migrationsChanged();
-    // A connect checks the requirement once it has run the hooks on its new connection.
-    if (!_connecting)
-        RefreshBackupRequirement();
+    UpdateActivity();
 }
 
 void AppController::Log(LogLevel level, QString line)
 {
+    // Plugin hooks run on the worker and log through the manager's sink; their lines hop to this thread.
+    if (QThread::currentThread() != thread())
+    {
+        QMetaObject::invokeMethod(this, [this, level, line = std::move(line)] { Log(level, line); }, Qt::QueuedConnection);
+        return;
+    }
     if (_logSinkAttached)
     {
         emit logLine(std::move(line), level);

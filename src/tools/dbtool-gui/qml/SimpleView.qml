@@ -610,6 +610,7 @@ Rectangle {
                             // backup/restore) would rewrite the schema the
                             // archive is being read from.
                             enabled: root.allIdle && root.hasWork && (!root.backupBlocked || root.backupFirst)
+                                     && !AppController.busy
                             onClicked: root.startRun()
                         }
 
@@ -880,7 +881,7 @@ Rectangle {
                                 variant: "primary"
                                 glyph: "refresh"
                                 text: qsTr("Retry")
-                                enabled: root.hasWork && root.allIdle && !root.backupBlocked
+                                enabled: root.hasWork && root.allIdle && !root.backupBlocked && !AppController.busy
                                 onClicked: {
                                     root.dismissResult()
                                     AppController.runner.applyUpTo("")

@@ -36,6 +36,7 @@ target_link_libraries(dbtool-gui-tests PRIVATE
     Catch2::Catch2
     Qt6::Core
     Qt6::Gui
+    Qt6::Quick
     Qt6::Test
 )
 
@@ -210,7 +211,7 @@ set_tests_properties(dbtool-gui-qmltest PROPERTIES
 
 # GUI workflow tests: the real Main window driven through its controls by Qt Quick Test, with the
 # `DbtoolGuiWorkflow` helpers (WorkflowFixture, UiWatchdog) registered into QML. One CTest, and with
-# it one process and one AppController, per `workflow/tst_workflow_*.qml` file.
+# it one process and one AppController, per test function of a `workflow/tst_workflow_*.qml` file.
 qt_add_executable(dbtool-gui-workflowtest
     workflow/workflowtest_main.cpp
     support/UiWatchdog.hpp
@@ -278,16 +279,39 @@ if(WIN32)
     endif()
 endif()
 
+# The AppController is a process-wide singleton, so each test function gets a process of its own:
+# the CTest `dbtool-gui-workflow-<file stem>-<function>` runs `<TestCase name>::<function>` only.
 file(GLOB DBTOOL_GUI_WORKFLOW_FILES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/workflow/tst_workflow_*.qml)
 foreach(workflowFile IN LISTS DBTOOL_GUI_WORKFLOW_FILES)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${workflowFile})
     get_filename_component(workflowStem ${workflowFile} NAME_WE)
-    add_test(NAME dbtool-gui-workflow-${workflowStem}
-        COMMAND dbtool-gui-workflowtest -input ${workflowFile}
-    )
-    set_tests_properties(dbtool-gui-workflow-${workflowStem} PROPERTIES
-        LABELS "dbtool-gui"
-        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;LIGHTWEIGHT_NO_ERROR_DIALOGS=1"
-    )
+    file(STRINGS ${workflowFile} workflowNameLines REGEX "^    name: \"[A-Za-z0-9_]+\"")
+    if(NOT workflowNameLines MATCHES "name: \"([A-Za-z0-9_]+)\"")
+        message(FATAL_ERROR "${workflowFile} needs a `name: \"...\"` line at the top level of its WorkflowTestCase")
+    endif()
+    set(workflowCaseName ${CMAKE_MATCH_1})
+    # `_data` functions feed data-driven tests and are no tests themselves. A test function written
+    # any other way than the strict form would silently run nowhere, so the two counts must agree.
+    file(STRINGS ${workflowFile} workflowFunctionLines REGEX "^    function test_[A-Za-z0-9_]+[(]")
+    list(FILTER workflowFunctionLines EXCLUDE REGEX "_data[(]")
+    file(STRINGS ${workflowFile} workflowLooseLines REGEX "function[ \t]+test_")
+    list(FILTER workflowLooseLines EXCLUDE REGEX "function[ \t]+test_[A-Za-z0-9_]*_data[ \t]*[(]")
+    list(LENGTH workflowFunctionLines workflowStrictCount)
+    list(LENGTH workflowLooseLines workflowLooseCount)
+    if(NOT workflowStrictCount EQUAL workflowLooseCount)
+        message(FATAL_ERROR "${workflowFile}: ${workflowLooseCount} test functions, but only ${workflowStrictCount} "
+                            "in the form `    function test_<name>(` (4-space indent) that registers a CTest")
+    endif()
+    foreach(functionLine IN LISTS workflowFunctionLines)
+        string(REGEX MATCH "test_[A-Za-z0-9_]+" workflowFunction "${functionLine}")
+        add_test(NAME dbtool-gui-workflow-${workflowStem}-${workflowFunction}
+            COMMAND dbtool-gui-workflowtest -input ${workflowFile} ${workflowCaseName}::${workflowFunction}
+        )
+        set_tests_properties(dbtool-gui-workflow-${workflowStem}-${workflowFunction} PROPERTIES
+            LABELS "dbtool-gui"
+            ENVIRONMENT "QT_QPA_PLATFORM=offscreen;LIGHTWEIGHT_NO_ERROR_DIALOGS=1"
+        )
+    endforeach()
 endforeach()
 
 # Process-level smoke test driven from Python: launches the real `dbtool-gui`

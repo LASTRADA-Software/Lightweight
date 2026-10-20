@@ -61,7 +61,8 @@ class WorkflowFixture final: public QObject
 
     /// Creates a new plugins directory holding the fixture plugins @p fixtureKeys, each copied as
     /// `<key>Plugin<ext>` so discovery picks it up. Keys: `workflow`, `recorder`,
-    /// `backupRequiredRelease`, `migrationRequiresBackup`, `unicodeCandidate`, `failing`, `bulk`.
+    /// `backupRequiredRelease`, `migrationRequiresBackup`, `unicodeCandidate`, `failing`, `bulk`, and
+    /// `broken`: a `brokenPlugin<ext>` file that is no library, so loading it fails.
     /// @return The directory.
     Q_INVOKABLE QString newPluginsDir(QStringList const& fixtureKeys);
 

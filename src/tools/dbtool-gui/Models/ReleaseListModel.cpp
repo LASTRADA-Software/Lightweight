@@ -2,11 +2,7 @@
 
 #include "ReleaseListModel.hpp"
 
-#include <Lightweight/SqlMigration.hpp>
-
-#include <algorithm>
-#include <ranges>
-#include <unordered_set>
+#include <utility>
 
 #include <QtCore/QByteArray>
 
@@ -58,70 +54,10 @@ QHash<int, QByteArray> ReleaseListModel::roleNames() const
     };
 }
 
-void ReleaseListModel::Refresh(Lightweight::SqlMigration::MigrationManager const& manager)
+void ReleaseListModel::ReplaceRows(std::vector<ReleaseRow> rows)
 {
-    using namespace Lightweight::SqlMigration;
-
-    // Every throwing call (GetAppliedMigrationIds in particular — which
-    // blows up on an unmanaged database) happens before the reset block
-    // so we never leave the model in a half-reset state. See the same
-    // comment in MigrationListModel.cpp.
-    auto const& releases = manager.GetAllReleases();
-
-    std::vector<ReleaseRow> staged;
-    std::unordered_set<uint64_t> appliedSet;
-
-    // Try to fetch the applied-ids set. If the table doesn't exist yet we
-    // fall through with an empty set, which is the right mental model for
-    // an unmanaged database: every release's status becomes "pending".
-    try
-    {
-        auto const applied = manager.GetAppliedMigrationIds();
-        appliedSet.reserve(applied.size());
-        for (auto const& ts: applied)
-            appliedSet.insert(ts.value);
-    }
-    catch (std::exception const&)
-    {
-        // Intentional: leave appliedSet empty.
-    }
-
-    staged.reserve(releases.size());
-    for (auto const& release: releases)
-    {
-        auto const migrations = manager.GetMigrationsForRelease(release.version);
-        auto const isApplied = [&](auto const* m) {
-            return appliedSet.contains(m->GetTimestamp().value);
-        };
-
-        QString status;
-        if (migrations.empty())
-            status = QStringLiteral("empty");
-        else if (std::ranges::all_of(migrations, isApplied))
-            status = QStringLiteral("applied");
-        else if (std::ranges::any_of(migrations, isApplied))
-            status = QStringLiteral("partial");
-        else
-            status = QStringLiteral("pending");
-
-        staged.push_back(ReleaseRow {
-            .version = QString::fromStdString(release.version),
-            .highestTimestamp = release.highestTimestamp.value,
-            .migrationCount = static_cast<int>(migrations.size()),
-            .status = status,
-        });
-    }
-
-    // Sort newest release on top: the plugin registers releases in
-    // declaration order (typically oldest first), which surfaces the
-    // oldest release at the top of the sidebar — the opposite of what a
-    // deploy-focused UI wants. Sorting by `highestTimestamp` keeps the
-    // "whatever is closest to HEAD" release where the eye lands first.
-    std::ranges::sort(staged,
-                      [](ReleaseRow const& a, ReleaseRow const& b) { return a.highestTimestamp > b.highestTimestamp; });
-
     beginResetModel();
-    _rows = std::move(staged);
+    _rows = std::move(rows);
     endResetModel();
 }
 

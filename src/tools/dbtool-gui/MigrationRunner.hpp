@@ -2,7 +2,7 @@
 //
 // `MigrationRunner` is the GUI's asynchronous wrapper around
 // `Lightweight::SqlMigration::MigrationManager`. It fans work out to a
-// dedicated `QThreadPool` so the UI thread stays responsive during long
+// dedicated `SerialWorker` so the UI thread stays responsive during long
 // ALTER statements; each operation's progress is surfaced via Qt signals the
 // view-model marshals onto the GUI thread.
 //
@@ -15,6 +15,7 @@
 
 #include "LogLevel.hpp"
 #include "Models/ProgressTaskModel.hpp"
+#include "SerialWorker.hpp"
 
 #include <atomic>
 #include <cstdint>
@@ -23,7 +24,6 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QStringList>
-#include <QtCore/QThreadPool>
 #include <QtQmlIntegration/QtQmlIntegration>
 
 // Forward declaration keeps the Lightweight/SqlMigration.hpp chain out of
@@ -92,6 +92,14 @@ class MigrationRunner: public QObject
     /// The runner never resets it; the caller does after each run.
     /// @param waiver Whether a run may go ahead without a required backup.
     void setBackupWaived(BackupWaiver waiver) noexcept;
+
+    /// The one worker thread every use of the shared migration connection runs on: the runs, and the
+    /// controller's plugin and database jobs. A single thread, because apply runs hold the migration
+    /// lock on that connection and an ODBC connection has one user at a time.
+    [[nodiscard]] SerialWorker& Worker() noexcept
+    {
+        return _worker;
+    }
 
     /// @return The tasks of the current or last run; cleared when the next run starts.
     [[nodiscard]] ProgressTaskModel* tasks() noexcept
@@ -177,9 +185,9 @@ class MigrationRunner: public QObject
     std::function<bool()> _busyProbe;
     PostMigrateHook _postMigrateHook;
     BackupWaiver _backupWaiver = BackupWaiver::NotWaived;
-    /// Declared before `_pool`, so the pool's queued work has finished before the model goes.
+    /// Declared before `_worker`, so the queued work has finished before the model goes.
     ProgressTaskModel _tasks;
-    QThreadPool _pool;
+    SerialWorker _worker;
     std::atomic<Phase> _phase { Phase::Idle };
     std::atomic<bool> _cancelRequested { false };
 };

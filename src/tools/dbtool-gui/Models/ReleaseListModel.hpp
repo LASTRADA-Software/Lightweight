@@ -13,18 +13,6 @@
 #include <QtCore/QAbstractListModel>
 #include <QtQmlIntegration/QtQmlIntegration>
 
-// Forward declaration: see MigrationRunner.hpp. Including
-// `<Lightweight/SqlMigration.hpp>` here causes Qt's `qmltyperegistrar` to
-// re-anchor the surrounding `DbtoolGui` namespace inside `Lightweight::` in
-// the generated `*_qmltyperegistrations.cpp`, which then fails to compile.
-namespace Lightweight
-{
-namespace SqlMigration
-{
-    class MigrationManager;
-}
-} // namespace Lightweight
-
 namespace DbtoolGui
 {
 
@@ -57,7 +45,15 @@ class ReleaseListModel: public QAbstractListModel
     [[nodiscard]] QVariant data(QModelIndex const& index, int role = Qt::DisplayRole) const override;
     [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
 
-    void Refresh(Lightweight::SqlMigration::MigrationManager const& manager);
+    /// Replaces every row, e.g. with those of a `MigrationSnapshot`.
+    /// @param rows The new rows, newest release first.
+    void ReplaceRows(std::vector<ReleaseRow> rows);
+
+    /// @return The rows, newest release first.
+    [[nodiscard]] std::vector<ReleaseRow> const& Rows() const noexcept
+    {
+        return _rows;
+    }
 
   private:
     std::vector<ReleaseRow> _rows;

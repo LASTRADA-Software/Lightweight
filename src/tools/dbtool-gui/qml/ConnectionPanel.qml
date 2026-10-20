@@ -362,6 +362,7 @@ Column {
             glyph: AppController.connected ? "refresh" : "plug"
             text: AppController.connected ? qsTr("Reconnect") : qsTr("Connect")
             enabled: {
+                if (AppController.busy) return false;
                 if (AppController.connectionMode === "profile") return AppController.currentProfile.length > 0;
                 if (AppController.connectionMode === "dsn")     return AppController.selectedDsn.length > 0;
                 return AppController.connectionStringOverride.length > 0;

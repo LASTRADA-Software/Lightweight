@@ -166,6 +166,7 @@ void RegisterLongStep(SqlMigration::MigrationManager& manager)
 // Written out instead of LIGHTWEIGHT_MIGRATION_PLUGIN() so a test can slow down and count plugin loads.
 extern "C" LIGHTWEIGHT_EXPORT Lightweight::SqlMigration::MigrationManager* AcquireMigrationManager()
 {
+    AppendLine("LIGHTWEIGHT_TEST_PLUGIN_LOAD_BEGIN_LOG", "begin");
     SleepFor("LIGHTWEIGHT_TEST_PLUGIN_LOAD_DELAY_MS");
     AppendLine("LIGHTWEIGHT_TEST_PLUGIN_LOAD_LOG", "load");
     return &SqlMigration::MigrationManager::GetInstance();

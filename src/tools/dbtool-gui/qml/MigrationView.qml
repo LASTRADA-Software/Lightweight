@@ -442,15 +442,25 @@ Item {
             visible: listView.count === 0
             spacing: 6
 
+            Spinner {
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: AppController.pluginsLoading
+                running: visible
+                diameter: 22
+            }
             Glyph {
                 anchors.horizontalCenter: parent.horizontalCenter
+                visible: !AppController.pluginsLoading
                 name: AppController.connected ? "layers" : "plug"
                 size: 22
                 color: Theme.clrOnSurfaceFaint
             }
             Label {
+                objectName: "migrationListEmptyTitle"
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: AppController.connected
+                text: AppController.pluginsLoading
+                    ? qsTr("Loading plugins…")
+                    : AppController.connected
                     ? qsTr("No migrations registered")
                     : qsTr("Not connected")
                 color: Theme.clrOnSurfaceMed
@@ -459,6 +469,7 @@ Item {
             }
             Label {
                 anchors.horizontalCenter: parent.horizontalCenter
+                visible: !AppController.pluginsLoading
                 text: AppController.connected
                     ? qsTr("Point a profile at a plugin directory to see migrations here.")
                     : qsTr("Pick a profile in the left pane and press Connect.")

@@ -10,6 +10,7 @@
 #include "../BackupRunner.hpp"
 #include "../ManagedBackupController.hpp"
 #include "../MigrationRunner.hpp"
+#include "ControllerTestSupport.hpp"
 #include "MigrationRunnerTestSupport.hpp"
 #include "SqliteDriver.hpp"
 
@@ -42,6 +43,7 @@ using DbtoolGui::MigrationRunner;
 using DbtoolGui::Tests::RecordedKinds;
 using DbtoolGui::Tests::ScopedSettingRestore;
 using DbtoolGui::Tests::SqliteDriver;
+using DbtoolGui::Tests::WaitForIdle;
 using Lightweight::SqlMigration::MigrationManager;
 using Lightweight::SqlMigration::MigrationTimestamp;
 
@@ -124,6 +126,7 @@ TEST_CASE("a release that requires a backup blocks the migrations until Back up 
     ScopedSettingRestore const restoreBackupFolder { QStringLiteral("backup/folder") };
     auto const workspace = BackupRequiredWorkspace();
     AppController controller;
+    REQUIRE(WaitForIdle(controller));
     workspace.Connect(controller);
 
     CHECK(controller.backupRequired());
@@ -144,6 +147,7 @@ TEST_CASE("without declarations nothing is blocked", "[dbtool-gui][AppController
     ScopedSettingRestore const restoreBackupFolder { QStringLiteral("backup/folder") };
     auto const workspace = Workspace { DBTOOL_GUI_TESTS_COMPAT_POLICY_FIXTURE, "CompatPolicyPlugin", "p" };
     AppController controller;
+    REQUIRE(WaitForIdle(controller));
     workspace.Connect(controller);
 
     REQUIRE(controller.pendingCount() > 0);
@@ -157,6 +161,7 @@ TEST_CASE("a backup that cannot be recorded leaves the migrations blocked and sa
     ScopedSettingRestore const restoreBackupFolder { QStringLiteral("backup/folder") };
     auto const workspace = BackupRequiredWorkspace();
     AppController controller;
+    REQUIRE(WaitForIdle(controller));
     workspace.Connect(controller);
     REQUIRE(controller.backupRequired());
 
@@ -185,6 +190,7 @@ TEST_CASE("the \"Migrate without a backup\" checkbox enables the buttons for one
     ScopedSettingRestore const restoreBackupFolder { QStringLiteral("backup/folder") };
     auto const workspace = BackupRequiredWorkspace();
     AppController controller;
+    REQUIRE(WaitForIdle(controller));
     workspace.Connect(controller);
     REQUIRE(controller.backupRequired());
 
@@ -220,6 +226,7 @@ TEST_CASE("the \"Migrate without a backup\" checkbox resets on reconnect", "[dbt
     ScopedSettingRestore const restoreBackupFolder { QStringLiteral("backup/folder") };
     auto const workspace = BackupRequiredWorkspace();
     AppController controller;
+    REQUIRE(WaitForIdle(controller));
     workspace.Connect(controller);
 
     controller.setMigrateWithoutBackup(true);
@@ -234,6 +241,7 @@ TEST_CASE("the \"Migrate without a backup\" checkbox resets on disconnect",
     ScopedSettingRestore const restoreBackupFolder { QStringLiteral("backup/folder") };
     auto const workspace = BackupRequiredWorkspace();
     AppController controller;
+    REQUIRE(WaitForIdle(controller));
     workspace.Connect(controller);
 
     controller.setMigrateWithoutBackup(true);
@@ -251,6 +259,7 @@ TEST_CASE("the \"Migrate without a backup\" checkbox resets once a backup satisf
     ScopedSettingRestore const restoreBackupFolder { QStringLiteral("backup/folder") };
     auto const workspace = BackupRequiredWorkspace();
     AppController controller;
+    REQUIRE(WaitForIdle(controller));
     workspace.Connect(controller);
 
     controller.setMigrateWithoutBackup(true);
@@ -264,6 +273,7 @@ TEST_CASE("connectToProfile is refused while a backup runs", "[dbtool-gui][AppCo
     ScopedSettingRestore const restoreBackupFolder { QStringLiteral("backup/folder") };
     auto const workspace = BackupRequiredWorkspace();
     AppController controller;
+    REQUIRE(WaitForIdle(controller));
     workspace.Connect(controller);
 
     QSignalSpy done(controller.backupRunner(), &BackupRunner::finished);
@@ -284,6 +294,7 @@ TEST_CASE("Back up now names the archive after a non-ASCII target correctly",
     auto const workspace =
         Workspace { DBTOOL_GUI_TESTS_BACKUP_REQUIRED_FIXTURE, "BackupRequiredReleasePlugin", "M\xc3\xbcller" };
     AppController controller;
+    REQUIRE(WaitForIdle(controller));
     workspace.Connect(controller);
     REQUIRE(controller.connectedTarget() == QString::fromUtf16(u"M\u00fcller"));
 

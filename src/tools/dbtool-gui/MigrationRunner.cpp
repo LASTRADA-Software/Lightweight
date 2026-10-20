@@ -22,7 +22,6 @@
 #include <BackupRecording.hpp>
 #include <PluginIngestion.hpp>
 #include <QtCore/QMetaObject>
-#include <QtCore/QRunnable>
 #include <QtCore/QSet>
 
 namespace DbtoolGui
@@ -37,34 +36,6 @@ namespace
     /// only way to keep them visually separated — embedded `\n` characters get
     /// collapsed to whitespace once the text is wrapped in a `<span>` tag.
     void PostMigrationFailureLines(class MigrationRunner* runner, Lightweight::SqlMigration::MigrationException const& ex);
-
-    /// Runs @p fn on a pool thread. An exception that escapes it is handed to @p onFailure, so the
-    /// run still reports "finished" and its phase leaves Running.
-    class FunctionTask final: public QRunnable
-    {
-      public:
-        FunctionTask(std::function<void()> fn, std::function<void(std::exception const&)> onFailure):
-            _fn(std::move(fn)),
-            _onFailure(std::move(onFailure))
-        {
-            setAutoDelete(true);
-        }
-        void run() override
-        {
-            try
-            {
-                _fn();
-            }
-            catch (std::exception const& e)
-            {
-                _onFailure(e);
-            }
-        }
-
-      private:
-        std::function<void()> _fn;
-        std::function<void(std::exception const&)> _onFailure;
-    };
 
     /// Collects the list of pending migration pointers whose timestamp is
     /// `<= targetTs` (0 means no upper bound). Returned in timestamp-ascending
@@ -108,11 +79,6 @@ namespace
 MigrationRunner::MigrationRunner(QObject* parent):
     QObject(parent)
 {
-    // One worker is enough — every operation shares the manager's single
-    // connection, and apply runs hold the migration advisory lock on it
-    // (SqlScopedLock on "lightweight_migration"), so two concurrent runs
-    // would deadlock that connection.
-    _pool.setMaxThreadCount(1);
 }
 
 void MigrationRunner::SetManager(Lightweight::SqlMigration::MigrationManager* manager) noexcept
@@ -479,10 +445,10 @@ namespace
 
 void MigrationRunner::Enqueue(std::function<void()> task)
 {
-    _pool.start(new FunctionTask(std::move(task), [this](std::exception const& e) {
+    _worker.Enqueue(std::move(task), [this](std::exception const& e) {
         PostLogLine(this, QStringLiteral("!! %1").arg(QString::fromUtf8(e.what())), LogLevel::Error);
         PostFinished(this, false, QString::fromUtf8(e.what()));
-    }));
+    });
 }
 
 void MigrationRunner::dryRunUpTo(QString const& targetTimestamp)

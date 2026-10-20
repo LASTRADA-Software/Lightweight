@@ -18,6 +18,7 @@
 #include "Models/OdbcDataSourceListModel.hpp"
 #include "Models/ProfileListModel.hpp"
 #include "Models/ReleaseListModel.hpp"
+#include "SerialWorker.hpp"
 #include "SqlQueryRunner.hpp"
 
 #include <Config/ConfigDiscovery.hpp>
@@ -28,6 +29,7 @@
 #include <QtCore/QString>
 #include <QtCore/QVariantMap>
 #include <QtQml/QQmlEngine>
+#include <QtQuick/QQuickWindow>
 
 // `_plugins` below is a pimpl pointer (defined in AppController.cpp) so
 // this moc-parsed header avoids pulling in <PluginIngestion.hpp>. The
@@ -36,12 +38,17 @@
 // which leaks subsequent declarations (e.g. `DbtoolGui`) into the
 // outer namespace and breaks the generated meta-object.
 
+#include <cstdint>
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace DbtoolGui
 {
+
+struct MigrationSnapshot;
+struct PluginReloadOutcome;
 
 class AppController: public QObject
 {
@@ -190,6 +197,16 @@ class AppController: public QObject
     /// "I don't want to see that right now" choice survives restarts.
     Q_PROPERTY(bool logVisible READ logVisible WRITE setLogVisible NOTIFY logVisibleChanged)
 
+    /// True while the plugins load on the worker: from construction until the first snapshot is
+    /// applied, and again for every reload until its snapshot arrives.
+    Q_PROPERTY(bool pluginsLoading READ pluginsLoading NOTIFY activityChanged)
+    /// True while the ODBC data sources are enumerated on a worker.
+    Q_PROPERTY(bool odbcRefreshing READ odbcRefreshing NOTIFY activityChanged)
+    /// True while any controller job is queued or running; controls that need its result stay disabled.
+    Q_PROPERTY(bool busy READ busy NOTIFY activityChanged)
+    /// What the running job does, e.g. "Loading plugins…"; empty while idle.
+    Q_PROPERTY(QString activityText READ activityText NOTIFY activityChanged)
+
   public:
     explicit AppController(QObject* parent = nullptr);
     ~AppController() override;
@@ -230,8 +247,8 @@ class AppController: public QObject
     /// Seeds the initial value of `_verbose` before the QML engine
     /// instantiates the singleton. Must be called before any QML access to
     /// `AppController`. Threads the parsed `--verbose`/`-v` flag into the controller's first
-    /// `ReloadPlugins()`. Idempotent; later changes take effect on the next
-    /// `ReloadPlugins()` only if the value is updated via `SetVerbose`.
+    /// plugin load. Idempotent; later changes take effect on the next
+    /// plugin load only if the value is updated via `SetVerbose`.
     ///
     /// Calling `SeedVerbose(false)` is equivalent to not calling
     /// `SeedVerbose` at all — `_verbose` defaults to `false`. The `bool`
@@ -374,6 +391,21 @@ class AppController: public QObject
     }
     Q_INVOKABLE void setLogVisible(bool visible);
 
+    /// @return Whether the plugins are loading (see the property).
+    [[nodiscard]] bool pluginsLoading() const noexcept;
+
+    /// @return Whether the ODBC data sources are being enumerated.
+    [[nodiscard]] bool odbcRefreshing() const noexcept
+    {
+        return _odbcRefreshing;
+    }
+
+    /// @return Whether any controller job is queued or running.
+    [[nodiscard]] bool busy() const noexcept;
+
+    /// @return What the running job does; empty while idle.
+    [[nodiscard]] QString activityText() const;
+
     /// Assembles the multi-line diagnostic bundle surfaced on the Simple
     /// view's Failure card (env + connection summary + current/target
     /// versions + failed migration + last ~200 log lines). QML calls this
@@ -461,8 +493,8 @@ class AppController: public QObject
     /// Refused with a warning while a migration run, a backup or a restore is active.
     Q_INVOKABLE bool connectToProfile();
 
-    /// Re-enumerates the system ODBC DSNs and refreshes the
-    /// `odbcDataSources` model. Safe to call repeatedly; synchronous.
+    /// Re-enumerates the system ODBC DSNs on a worker and refreshes the `odbcDataSources` model when
+    /// done; `odbcRefreshing` is true meanwhile. A call during a refresh runs one more afterwards.
     Q_INVOKABLE void refreshOdbcDataSources();
 
     /// Opens the loaded profile file with the system's default handler
@@ -508,6 +540,19 @@ class AppController: public QObject
     /// the buffered banner.
     Q_INVOKABLE void attachLogSink();
 
+    /// Holds the first plugin load back until @p window has shown its first frame, so the window
+    /// appears before any plugin library is mapped. Called by `Main.qml` when it is created; a
+    /// controller nobody calls this on (a test without a window) loads right after its startup.
+    /// Gives up waiting after two seconds, for a window that never renders (e.g. minimized).
+    /// @param window The main window.
+    Q_INVOKABLE void awaitFirstFrame(QQuickWindow* window);
+
+    /// Stops starting jobs, asks a migration run to cancel, and waits for the worker jobs in flight
+    /// (a plugin load, a run, an ODBC enumeration) to finish. Runs on `QCoreApplication::aboutToQuit`,
+    /// so quitting never tears down the process while a job still uses the plugins or the manager,
+    /// and again from the destructor. Idempotent.
+    void Shutdown();
+
   signals:
     /// Unified log-pane feed: every startup banner, plugin discovery event,
     /// connection-state change, and migration progress line emerges here.
@@ -536,6 +581,8 @@ class AppController: public QObject
     void selectionChanged();
     void logVisibleChanged();
     void viewModeChanged();
+    /// `pluginsLoading`, `odbcRefreshing`, `busy` or `activityText` changed.
+    void activityChanged();
     void error(QString message);
 
   private slots:
@@ -547,6 +594,20 @@ class AppController: public QObject
 
   private:
     void ReportError(QString const& message);
+
+    /// Second half of the constructor, queued so the window shows first: loads the discovered profile
+    /// store unless one is loaded already, logs the banner, and starts the ODBC refresh and the plugin load.
+    void BeginStartup();
+
+    /// Emits `activityChanged` when `pluginsLoading` or `odbcRefreshing` changed.
+    void UpdateActivity();
+
+    /// Puts a snapshot's rows into the models and keeps its derived figures; emits `migrationsChanged`.
+    void ApplySnapshot(MigrationSnapshot snapshot);
+
+    /// Applies the outcome of a plugin reload job: its log always, its snapshot only while its
+    /// generation is current; then refreshes the backup requirement once no reload is left.
+    void ApplyPluginReload(PluginReloadOutcome outcome);
 
     /// True while a migration, backup or restore is in flight.
     [[nodiscard]] bool AnyRunInFlight() const;
@@ -580,32 +641,40 @@ class AppController: public QObject
     /// store is a list. Returns an empty vector when nothing is configured.
     [[nodiscard]] std::vector<std::filesystem::path> EffectivePluginsDir() const;
 
-    /// Rebuilds the plugin list from `EffectivePluginsDir()` and refreshes
-    /// the migration / release models. Triggered at startup and whenever a
-    /// property that influences the effective directory (plugins override,
-    /// current profile, connection mode) changes, so the migration list is
-    /// always visible as soon as a directory is known — without waiting for
-    /// a successful DB connect. While a migration run is active it only marks
-    /// the reload as pending; the run's `finished` handler then performs it.
-    void ReloadPlugins();
+    /// Asks for the plugins to be reloaded from `EffectivePluginsDir()` on the worker, so the
+    /// migration list follows the plugins directory, profile and mode without a connect. Every
+    /// request made before control returns to the event loop becomes one job (`FlushPluginReload`).
+    /// While a migration run is active it only marks the reload as pending; the run's `finished`
+    /// handler requests it again.
+    void RequestPluginReload();
 
-    /// Runs the loaded plugins' post-init hooks on the migration connection, logging every failure.
-    void RunPostInitHooks();
+    /// Starts the one reload job the requests since the last flush asked for.
+    void FlushPluginReload();
+
+    /// Reloads the plugins on the GUI thread once the worker has drained, for a connect that needs
+    /// them loaded before it opens the connection. Supersedes every reload requested or in flight.
+    void ReloadPluginsNow();
+
+    /// Starts the first plugin load, once: after `BeginStartup`, and after the first frame when
+    /// `awaitFirstFrame` asked for one.
+    void StartFirstPluginLoad();
+
+    /// The main window showed its first frame, or waiting for it gave up.
+    void OnFirstFrame();
 
     /// Drops the "connected" flag (emitting `connectedChanged`) without
     /// tearing down the underlying `SqlConnection` — those are reclaimed
     /// lazily by the pool. Call this whenever the property that identifies
     /// the *target database* changes (profile switch, connection-mode
-    /// swap) so the next `ReloadPlugins()` goes through the "unknown"
-    /// path instead of re-running `Refresh` against whatever applied-set
-    /// the prior profile's DB exposed.
+    /// swap) so the next plugin reload goes through the "unknown" path
+    /// instead of re-reading whatever applied-set the prior profile's DB
+    /// exposed.
     void InvalidateConnectionTarget();
 
     /// Re-reads the migration / release models from the manager after a run
     /// that may have changed the database's applied-set (a finished migration
-    /// run, or a managed restore into the connected profile). A full `Refresh`
-    /// touches `schema_migrations` and throws on an unmanaged database, so it
-    /// falls back to a plugin-only refresh and surfaces the reason as a
+    /// run, or a managed restore into the connected profile). An unreadable
+    /// history falls back to a plugin-only view and surfaces the reason as a
     /// warning. Always emits `migrationsChanged()`.
     void RefreshMigrationModelsAfterRun();
 
@@ -618,7 +687,7 @@ class AppController: public QObject
     /// loaded shared library alive. Defined in `AppController.cpp` so the
     /// header doesn't pull in `<PluginIngestion.hpp>` (see the comment at
     /// the top of this file for the moc-parser reason). Declared before
-    /// `_runner`, so the runner's pool has finished before the plugins unload.
+    /// `_runner`, so the runner's worker has finished before the plugins unload.
     struct PluginsBundle;
     std::unique_ptr<PluginsBundle> _plugins;
 
@@ -652,10 +721,48 @@ class AppController: public QObject
     /// True once `connectToProfile` routed the migration manager's log sink into this
     /// controller; the destructor removes it again so it cannot outlive us.
     bool _installedMigrationLogSink = false;
-    /// True when `ReloadPlugins` was refused during a migration run and must run once it finishes.
+    /// True when a plugin reload was refused during a migration run and must run once it finishes.
     bool _pluginReloadPending = false;
-    /// True while `connectToProfile` reloads the plugins; it runs the post-init hooks itself, on the new connection.
-    bool _connecting = false;
+    /// True from construction until `BeginStartup` ran.
+    bool _startupPending = true;
+    /// True while a `FlushPluginReload` is queued.
+    bool _pluginReloadFlushQueued = false;
+    /// Plugin reload jobs whose outcome has not been applied yet.
+    int _pluginReloadJobsInFlight = 0;
+    /// The directories of the last plugin reload; empty before the first.
+    std::optional<std::vector<std::filesystem::path>> _requestedPluginDirectories;
+    /// Identifies the target the UI shows: bumped by every profile, mode, plugins-directory or
+    /// connection change. A job outcome of an older generation is stale and dropped.
+    std::uint64_t _targetGeneration = 0;
+    /// True once a profile store was loaded; the startup then leaves it alone.
+    bool _storeLoaded = false;
+    /// True once the startup's "Ready" line was logged.
+    bool _readyLogged = false;
+    /// See the `odbcRefreshing` property.
+    bool _odbcRefreshing = false;
+    /// True when `refreshOdbcDataSources` was called during a refresh; one more runs afterwards.
+    bool _odbcRefreshAgain = false;
+    /// The `pluginsLoading` value `UpdateActivity` last announced.
+    bool _announcedPluginsLoading = true;
+    /// The `odbcRefreshing` value `UpdateActivity` last announced.
+    bool _announcedOdbcRefreshing = false;
+    /// True once `BeginStartup` ran.
+    bool _startupBegun = false;
+    /// True from `awaitFirstFrame` until the first frame (or the fallback) arrived.
+    bool _awaitingFirstFrame = false;
+    /// True once `Shutdown` ran; no job starts any more.
+    bool _shuttingDown = false;
+    /// A managed restore finished during a plugin load; the models are re-read once the load is done.
+    bool _modelRefreshAfterReloadPending = false;
+    /// A backup-requirement check was asked for during a plugin load; it runs once the load is done.
+    bool _backupRequirementAfterReloadPending = false;
+    /// The profile store discovery picked when the controller was created, and how it was found.
+    QString _discoveredStorePath;
+    QString _discoveredStoreSource;
+    /// The pre-migrate step count of the last applied snapshot.
+    int _preMigrateStepCount = 0;
+    /// The target release label of the last applied snapshot.
+    QString _targetReleaseLabel;
     QString _profilePath;
     QString _lastError;
     QString _lastWarning;
@@ -708,6 +815,9 @@ class AppController: public QObject
     /// held by raw pointer to keep `<QtCore/QFileSystemWatcher>` out of this
     /// header. The instance is parented to `this` so Qt reclaims it.
     class QFileSystemWatcher* _fileWatcher = nullptr;
+
+    /// Enumerates the ODBC data sources; declared last, so it has finished before any member goes.
+    SerialWorker _odbcWorker;
 };
 
 } // namespace DbtoolGui

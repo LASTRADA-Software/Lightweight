@@ -185,6 +185,13 @@ QString WorkflowFixture::newPluginsDir(QStringList const& fixtureKeys)
     std::filesystem::create_directories(target);
     for (auto const& key: fixtureKeys)
     {
+        if (key == QStringLiteral("broken"))
+        {
+            // Named like a plugin but no loadable library, so loading it fails.
+            auto const extension = std::filesystem::path { FixtureModules.front().path }.extension().string();
+            std::ofstream { target / ("brokenPlugin" + extension), std::ios::binary } << "not a shared library";
+            continue;
+        }
         auto const module = std::ranges::find_if(
             FixtureModules, [&key](FixtureModule const& entry) { return key.toStdString() == entry.key; });
         if (module == FixtureModules.end())

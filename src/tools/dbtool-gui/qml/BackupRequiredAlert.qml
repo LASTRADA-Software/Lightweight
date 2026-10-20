@@ -19,7 +19,7 @@ Banner {
     property var reasons: []
     /// Extra line: why the newest backup does not count, or why the last one could not be recorded.
     property string note: ""
-    /// Disables "Back up now" and the checkbox while another run is in flight.
+    /// Disables "Back up now" and the checkbox while another run is in flight; a controller job does too.
     property bool busy: false
     /// Whether "Migrate without a backup" is ticked (bound to `AppController.migrateWithoutBackup`).
     property bool waived: false
@@ -50,7 +50,7 @@ Banner {
             objectName: "backUpNowButton"
             text: qsTr("Back up now")
             glyph: "archive"
-            enabled: !root.busy
+            enabled: !root.busy && !AppController.busy
             onClicked: root.backupRequested()
         },
         CheckBox {
@@ -68,7 +68,7 @@ Banner {
                 verticalAlignment: Text.AlignVCenter
             }
             checked: root.waived
-            enabled: !root.busy
+            enabled: !root.busy && !AppController.busy
             ToolTip.visible: hovered
             ToolTip.delay: 500
             ToolTip.text: qsTr("Runs the migrations once without a backup. The run is recorded as waived; the next run needs a backup again.")

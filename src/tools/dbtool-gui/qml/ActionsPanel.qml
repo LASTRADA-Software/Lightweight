@@ -420,6 +420,7 @@ ColumnLayout {
                  && (root.target !== "release" || root.hasSelection || root.selectedRelease.length > 0)
                  && (root.target !== "timestamp" || root.hasSelection || root.specificTimestamp.length > 0)
                  && (root.dryRun || !root.backupBlocked)
+                 && !AppController.busy
         ToolTip.visible: hovered
         ToolTip.delay: 500
         ToolTip.timeout: 10000
@@ -468,6 +469,7 @@ ColumnLayout {
                  && AppController.runner.phase === MigrationRunner.Idle
                  && AppController.backupRunner.phase === BackupRunner.Idle
                  && AppController.managedBackups.phase === ManagedBackupController.Idle
+                 && !AppController.busy
         text: qsTr("Rollback to release %1…").arg(root.selectedRelease)
         ToolTip.visible: hovered
         ToolTip.delay: 500

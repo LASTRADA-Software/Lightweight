@@ -44,6 +44,10 @@ set(MIGRATIONS_GUI_CXX_SOURCES
     BackupRunner.hpp
     BackupRunner.cpp
     BackupRequirementSupport.hpp
+    ControllerJobs.hpp
+    ControllerJobs.cpp
+    ExceptionMessage.hpp
+    ExceptionMessage.cpp
     LogLevel.hpp
     ManagedBackupController.hpp
     ManagedBackupController.cpp
@@ -53,6 +57,8 @@ set(MIGRATIONS_GUI_CXX_SOURCES
     MigrationRunner.cpp
     QmlProgressManager.hpp
     QmlProgressManager.cpp
+    SerialWorker.hpp
+    SerialWorker.cpp
     SqlQueryRunner.hpp
     SqlQueryRunner.cpp
     SqlSyntaxHighlighter.hpp
@@ -69,6 +75,8 @@ set(MIGRATIONS_GUI_CXX_SOURCES
     Models/BackupTableListModel.cpp
     Models/MigrationListModel.hpp
     Models/MigrationListModel.cpp
+    Models/MigrationSnapshot.hpp
+    Models/MigrationSnapshot.cpp
     Models/OdbcDataSourceListModel.hpp
     Models/OdbcDataSourceListModel.cpp
     Models/ProfileListModel.hpp

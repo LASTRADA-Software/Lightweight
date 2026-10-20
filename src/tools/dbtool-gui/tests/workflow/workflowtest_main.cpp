@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // Entry point of the dbtool-gui workflow tests: Qt Quick Test with the `DbtoolGuiWorkflow` module
-// (`WorkflowFixture`, `UiWatchdog`) registered into its engine. CTest runs one test file per process,
-// so every file gets a fresh `AppController`. See `tests/qmltest_main.cpp` for the shared set-up.
+// (`WorkflowFixture`, `UiWatchdog`) registered into its engine. CTest runs one test function per
+// process, so every test gets a fresh `AppController`. See `tests/qmltest_main.cpp` for the shared set-up.
 
 #include "../../StderrMessageHandler.hpp"
 #include "../TestIsolation.hpp"

@@ -91,7 +91,11 @@ ApplicationWindow {
     // during the initial geometry computation would otherwise clobber the
     // persisted size with zero / partial values.
     property bool _geometryReady: false
-    Component.onCompleted: _geometryReady = true
+    Component.onCompleted: {
+        _geometryReady = true
+        // The plugins load once this window has shown its first frame.
+        AppController.awaitFirstFrame(root)
+    }
 
     onWidthChanged: saveCurrentGeometry()
     onHeightChanged: saveCurrentGeometry()
@@ -163,7 +167,7 @@ ApplicationWindow {
     /// "settings"); unknown pages are ignored.
     function navigate(page) {
         if (page === "backups")
-            AppController.managedBackups.refreshStatus()
+            AppController.managedBackups.requestStatusRefresh()
         if (page === "migrations" || page === "backups" || page === "settings")
             currentPage = page
     }
@@ -249,6 +253,7 @@ ApplicationWindow {
                                 ToolTip.visible: hovered
                                 ToolTip.delay: 500
                                 ToolTip.text: qsTr("Re-read applied migrations and re-scan the plugin directory.")
+                                enabled: !AppController.busy
                                 onClicked: AppController.connectToProfile()
                             }
                         ]

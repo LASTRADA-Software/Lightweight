@@ -6,7 +6,7 @@
 // (applied / pending / unknown / checksum-mismatch) without cross-referencing
 // multiple collections.
 //
-// The model is a snapshot: rows change only when `Refresh()` is called. That
+// The model is a snapshot: rows change only when `ReplaceRows()` is called. That
 // mirrors the CLI (`dbtool status`) behaviour and keeps the model cheap even
 // when the migration set is large.
 
@@ -18,18 +18,6 @@
 
 #include <QtCore/QAbstractListModel>
 #include <QtQmlIntegration/QtQmlIntegration>
-
-// Forward declaration: see MigrationRunner.hpp. Including
-// `<Lightweight/SqlMigration.hpp>` here causes Qt's `qmltyperegistrar` to
-// re-anchor the surrounding `DbtoolGui` namespace inside `Lightweight::` in
-// the generated `*_qmltyperegistrations.cpp`, which then fails to compile.
-namespace Lightweight
-{
-namespace SqlMigration
-{
-    class MigrationManager;
-}
-} // namespace Lightweight
 
 namespace DbtoolGui
 {
@@ -78,25 +66,9 @@ class MigrationListModel: public QAbstractListModel
     [[nodiscard]] Qt::ItemFlags flags(QModelIndex const& index) const override;
     [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
 
-    /// Rebuilds rows from a freshly-queried `MigrationManager`. Safe to call
-    /// multiple times. Clears any existing selection — callers that want to
-    /// preserve selection across refreshes must capture it beforehand.
-    void Refresh(Lightweight::SqlMigration::MigrationManager const& manager);
-
-    /// Degraded-mode refresh that only enumerates the plugin-declared
-    /// migrations and skips `GetAppliedMigrationIds` / `VerifyChecksums`.
-    /// Used when the DB has no `schema_migrations` table yet so the UI
-    /// still shows the full migration plan instead of going blank.
-    void RefreshPluginsOnly(Lightweight::SqlMigration::MigrationManager const& manager);
-
-    /// Same shape as `RefreshPluginsOnly` but every row is staged with
-    /// status `"unknown"`. Used whenever the connection's applied-set has
-    /// not (yet) been consulted for the currently-loaded plugin set — e.g.
-    /// on startup before the first Connect, or right after the user
-    /// switches to a different profile / connection mode. Showing
-    /// `"pending"` in those cases would be a lie: we haven't asked the new
-    /// database yet, so we do not know whether each migration is applied.
-    void RefreshAsUnknown(Lightweight::SqlMigration::MigrationManager const& manager);
+    /// Replaces every row, e.g. with those of a `MigrationSnapshot`. Clears any existing selection.
+    /// @param rows The new rows, newest first.
+    void ReplaceRows(std::vector<MigrationRow> rows);
 
     /// Overwrites the `status` field of the row whose `timestamp` matches,
     /// emits `dataChanged` for that row, and returns `true` if a row was

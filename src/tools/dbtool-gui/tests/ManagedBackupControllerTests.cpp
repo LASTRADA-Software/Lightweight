@@ -133,15 +133,19 @@ TEST_CASE("setBackupFolder persists, notifies, and feeds effectiveBackupFolder",
     controller.setBackupFolder(QString {}); // reset for other tests
 }
 
-TEST_CASE("setProfiles populates the status model and refreshStatus scans archives",
+TEST_CASE("setProfiles populates the status model and requestStatusRefresh scans archives",
           "[dbtool-gui][managed-backup-controller]")
 {
     QTemporaryDir dir;
     ManagedBackupController controller;
+    QSignalSpy refreshed(&controller, &ManagedBackupController::statusRefreshed);
     controller.setBackupFolder(dir.path());
     controller.setProfiles({ SqliteProfile(dir, "alpha"), SqliteProfile(dir, "beta") });
 
     REQUIRE(controller.status()->rowCount() == 2);
+    // The scan runs in the background; the two requests above deliver one result, the later one.
+    REQUIRE(WaitFor(refreshed));
+    CHECK(refreshed.count() == 1);
     CHECK(controller.folderProblem().isEmpty());
 
     // Drop a fake archive for alpha and re-scan.
@@ -149,7 +153,9 @@ TEST_CASE("setProfiles populates the status model and refreshStatus scans archiv
     REQUIRE(file.open(QIODevice::WriteOnly));
     file.write("xxxx");
     file.close();
-    controller.refreshStatus();
+    refreshed.clear();
+    controller.requestStatusRefresh();
+    REQUIRE(WaitFor(refreshed));
 
     auto* model = controller.status();
     CHECK(model->data(model->index(0, 0), DbtoolGui::BackupStatusListModel::ArchiveExistsRole).toBool());
@@ -168,9 +174,13 @@ TEST_CASE("folderProblem is set when the folder path is unusable", "[dbtool-gui]
     blocker.close();
 
     ManagedBackupController controller;
+    QSignalSpy refreshed(&controller, &ManagedBackupController::statusRefreshed);
     controller.setBackupFolder(dir.path() + "/blocker");
     controller.setProfiles({ SqliteProfile(dir, "alpha") });
 
+    // Scanned in the background: nothing is known before the result arrives.
+    CHECK(controller.folderProblem().isEmpty());
+    REQUIRE(WaitFor(refreshed));
     CHECK_FALSE(controller.folderProblem().isEmpty());
     controller.setBackupFolder(QString {});
 }
@@ -199,7 +209,10 @@ TEST_CASE("backupAll writes one archive per profile and reports success", "[dbto
     auto const beta = SqliteProfile(dir, "beta");
     SeedDatabase(alpha);
     SeedDatabase(beta);
+    QSignalSpy refreshed(&controller, &ManagedBackupController::statusRefreshed);
     controller.setProfiles({ alpha, beta });
+    REQUIRE(WaitFor(refreshed));
+    refreshed.clear();
     QSignalSpy done(&controller, &ManagedBackupController::finished);
 
     controller.backupAll();
@@ -207,6 +220,8 @@ TEST_CASE("backupAll writes one archive per profile and reports success", "[dbto
     REQUIRE(WaitFor(done));
     CHECK(done.first().at(0).toBool());
     CHECK(done.first().at(1).toString() == "Backed up 2 profile(s).");
+    // The archives are re-scanned in the background, never on the calling thread.
+    REQUIRE(WaitFor(refreshed));
     CHECK(QFile::exists(dir.path() + "/backups/alpha.zip"));
     CHECK(QFile::exists(dir.path() + "/backups/beta.zip"));
     CHECK_FALSE(QFile::exists(dir.path() + "/backups/alpha.zip.tmp"));
@@ -313,7 +328,7 @@ TEST_CASE("backupAll refuses while a run is already in progress", "[dbtool-gui][
     controller.setBackupFolder(QString {});
 }
 
-TEST_CASE("backupAll refuses when the backup folder is unusable", "[dbtool-gui][managed-backup-controller][run]")
+TEST_CASE("backupAll fails when the backup folder is unusable", "[dbtool-gui][managed-backup-controller][run]")
 {
     QTemporaryDir dir;
     QFile blocker(dir.path() + "/blocker");
@@ -322,18 +337,29 @@ TEST_CASE("backupAll refuses when the backup folder is unusable", "[dbtool-gui][
     blocker.close();
 
     ManagedBackupController controller;
+    QSignalSpy refreshed(&controller, &ManagedBackupController::statusRefreshed);
     controller.setBackupFolder(dir.path() + "/blocker"); // a file, not a directory
     controller.setProfiles({ SqliteProfile(dir, "alpha") });
+    REQUIRE(WaitFor(refreshed));
+    refreshed.clear();
     QSignalSpy logs(&controller, &ManagedBackupController::logLine);
+    QSignalSpy done(&controller, &ManagedBackupController::finished);
 
+    // The folder is checked by the run, off the calling thread, which then fails.
     controller.backupAll();
+    REQUIRE(WaitFor(done));
+    // The failed run re-scans the folder in the background, never on the calling thread.
+    REQUIRE(WaitFor(refreshed));
 
+    CHECK_FALSE(done.first().at(0).toBool());
     CHECK(controller.phase() == ManagedBackupController::Phase::Idle);
     REQUIRE(logs.count() >= 1);
-    // The refusal must name the folder problem (not the busy-probe path):
+    // The failure must name the folder problem (not the busy-probe path):
     // "blocker exists but is not a directory." is what CheckWritableFolder
     // reports for a file where a directory is expected.
-    CHECK(logs.first().at(0).toString().contains("not a directory"));
+    CHECK(logs.last().at(0).toString().contains("not a directory"));
+    CHECK(done.first().at(1).toString().contains("not a directory"));
+    CHECK_FALSE(controller.folderProblem().isEmpty());
 
     controller.setBackupFolder(QString {});
 }
