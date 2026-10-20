@@ -141,6 +141,19 @@ TestCase {
         compare(combo.currentIndex, row)
     }
 
+    /// Picks release @p version as the migration target with key input in the release picker.
+    function chooseRelease(version) {
+        clickControl("targetOption_release")
+        const releases = AppController.releases
+        for (let row = 0; row < releases.rowCount(); ++row) {
+            if (releases.data(releases.index(row, 0), ReleaseListModel.VersionRole) === version) {
+                pickWithKeys("releasePicker", row)
+                return
+            }
+        }
+        fail(`no release ${version}`)
+    }
+
     /// Names what the test does from now on; the watchdog report names the step of the longest stall.
     function step(name) {
         watchdog.step = name

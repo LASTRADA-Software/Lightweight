@@ -82,21 +82,6 @@ WorkflowTestCase {
         compare(appliedMigrations(), 3)
     }
 
-    /// Picks release @p version as the target, which shows the rollback button.
-    function chooseRelease(version) {
-        clickControl("targetOption_release")
-        const picker = findRequired("releasePicker")
-        const releases = AppController.releases
-        for (let row = 0; row < releases.rowCount(); ++row) {
-            if (releases.data(releases.index(row, 0), ReleaseListModel.VersionRole) === version) {
-                picker.currentIndex = row
-                picker.activated(row)
-                return
-            }
-        }
-        fail(`no release ${version}`)
-    }
-
     /// Clicks Rollback and waits for the run to finish; returns `[ok, summary]`.
     function rollBack() {
         const before = finishedSpy.count
