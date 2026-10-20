@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "BackupRequirementSupport.hpp"
 #include "ManagedBackupController.hpp"
 #include "ManagedBackupCore.hpp"
 #include "SettingsLocation.hpp"
@@ -14,6 +15,7 @@
 #include <chrono>
 #include <exception>
 #include <filesystem>
+#include <format>
 #include <memory>
 #include <optional>
 #include <ranges>
@@ -23,6 +25,7 @@
 #include <utility>
 
 #include <QtCore/QDateTime>
+#include <QtCore/QDeadlineTimer>
 #include <QtCore/QDebug>
 #include <QtCore/QMetaObject>
 #include <QtCore/QRunnable>
@@ -62,6 +65,33 @@ namespace
     [[nodiscard]] QString FromPath(std::filesystem::path const& value)
     {
         return QString::fromStdU16String(value.u16string());
+    }
+
+    /// One archive's status, as a scan found it.
+    struct ArchiveScan
+    {
+        QString profileName;
+        ManagedBackup::ArchiveStatus status;
+    };
+
+    /// What one archive-status scan of the backup folder found.
+    struct StatusScan
+    {
+        /// Why the folder cannot be used; empty when it can.
+        QString folderProblem;
+        std::vector<ArchiveScan> archives;
+    };
+
+    /// Checks @p folder and stats each profile's archive in it; filesystem work only, safe on any thread.
+    [[nodiscard]] StatusScan ScanStatus(std::filesystem::path const& folder, std::vector<std::string> const& profileNames)
+    {
+        auto scan = StatusScan {};
+        if (auto usable = ManagedBackup::CheckWritableFolder(folder); !usable)
+            scan.folderProblem = QString::fromStdString(usable.error());
+        for (auto const& entry: ManagedBackup::PlanArchiveNames(profileNames))
+            scan.archives.push_back({ .profileName = QString::fromStdString(entry.profileName),
+                                      .status = ManagedBackup::ScanArchive(folder / entry.fileName) });
+        return scan;
     }
 
     /// Converts a std::filesystem file time to QDateTime (UTC-based).
@@ -304,6 +334,51 @@ namespace
         return Lightweight::SqlBackup::DefaultRestoreSchema(archiveFile, schema, caseInsensitive);
     }
 
+    /// The schema @p schema names for `schema_backups`: empty for a list of schemas, like the CLI.
+    std::string RecordSchemaOf(std::string const& schema)
+    {
+        return schema.contains(',') ? std::string {} : schema;
+    }
+
+    /// Writes the record of a run on the worker; any failure comes back as an error rather than a throw.
+    /// @return Why the record was not written; empty when it was.
+    std::optional<Lightweight::Tools::BackupRecordError> WriteRecord(BackupRunner::Recorder const& recorder,
+                                                                     BackupRunner::Operation operation,
+                                                                     std::filesystem::path const& archive,
+                                                                     std::string const& connectionString,
+                                                                     std::string const& schema,
+                                                                     Lightweight::Tools::BackupStart const& start)
+    {
+        try
+        {
+            if (auto const recorded = recorder.record(operation, archive, connectionString, schema, start); !recorded)
+                return recorded.error();
+        }
+        catch (std::exception const& e)
+        {
+            return Lightweight::Tools::BackupRecordError { .kind = Lightweight::Tools::BackupRecordError::Kind::WriteFailed,
+                                                           .message = e.what() };
+        }
+        return std::nullopt;
+    }
+
+    /// Verifies @p archive with the recorder's verification; any failure comes back as an error rather than a throw.
+    /// @return Why the archive is bad; empty when it passes.
+    std::optional<Lightweight::Tools::BackupRecordError> VerifyArchiveFile(BackupRunner::Recorder const& recorder,
+                                                                           std::filesystem::path const& archive)
+    {
+        try
+        {
+            return recorder.verifyArchive(archive);
+        }
+        catch (std::exception const& e)
+        {
+            return Lightweight::Tools::BackupRecordError {
+                .kind = Lightweight::Tools::BackupRecordError::Kind::VerificationFailed, .message = e.what()
+            };
+        }
+    }
+
     /// Default `RestoreOperation`: the real `SqlBackup::Restore` call.
     void RunSqlRestore(std::filesystem::path const& archiveFile,
                        std::string const& connectionString,
@@ -315,10 +390,21 @@ namespace
     }
 } // namespace
 
+bool ManagedBackupController::WaitForDone(std::chrono::milliseconds timeout)
+{
+    auto const deadline = timeout == std::chrono::milliseconds::max() ? QDeadlineTimer { QDeadlineTimer::Forever }
+                                                                      : QDeadlineTimer { timeout };
+    auto const runDone = _pool.waitForDone(deadline);
+    auto const remaining =
+        deadline.isForever() ? std::chrono::milliseconds::max() : std::chrono::milliseconds { deadline.remainingTime() };
+    return _statusWorker.WaitForDone(remaining) && runDone;
+}
+
 ManagedBackupController::ManagedBackupController(QObject* parent):
     QObject(parent),
     _backupOperation(&RunSqlBackup),
     _restoreOperation(&RunSqlRestore),
+    _recorder(DefaultBackupRecorder()),
     _connectionProbe(&ProbeConnection),
     _backupFolder(QSettings().value(QString::fromLatin1(kKeyBackupFolder)).toString())
 {
@@ -340,7 +426,7 @@ void ManagedBackupController::setBackupFolder(QString const& folder)
     _backupFolder = folder;
     QSettings().setValue(QString::fromLatin1(kKeyBackupFolder), folder);
     emit backupFolderChanged();
-    refreshStatus();
+    requestStatusRefresh();
 }
 
 QString ManagedBackupController::effectiveBackupFolder() const
@@ -363,7 +449,7 @@ void ManagedBackupController::setConfiguredBackupFolder(QString const& folder)
         return;
     _configuredBackupFolder = folder;
     emit backupFolderChanged();
-    refreshStatus();
+    requestStatusRefresh();
 }
 
 void ManagedBackupController::setProfiles(std::vector<Lightweight::Config::Profile> profiles)
@@ -374,7 +460,7 @@ void ManagedBackupController::setProfiles(std::vector<Lightweight::Config::Profi
     for (auto const& profile: _profiles)
         names << QString::fromStdString(profile.name);
     _status.resetProfiles(names);
-    refreshStatus();
+    requestStatusRefresh();
 }
 
 void ManagedBackupController::setBusyProbe(std::function<bool()> probe)
@@ -385,6 +471,17 @@ void ManagedBackupController::setBusyProbe(std::function<bool()> probe)
 void ManagedBackupController::setBackupOperation(BackupOperation operation)
 {
     _backupOperation = operation ? std::move(operation) : BackupOperation { &RunSqlBackup };
+}
+
+void ManagedBackupController::setRecorder(BackupRunner::Recorder recorder)
+{
+    _recorder = DefaultBackupRecorder();
+    if (recorder.captureStart)
+        _recorder.captureStart = std::move(recorder.captureStart);
+    if (recorder.verifyArchive)
+        _recorder.verifyArchive = std::move(recorder.verifyArchive);
+    if (recorder.record)
+        _recorder.record = std::move(recorder.record);
 }
 
 void ManagedBackupController::setRestoreOperation(RestoreOperation operation)
@@ -427,28 +524,49 @@ void ManagedBackupController::RouteTableTotal(QString const& profile, int totalT
         tables->setTotalTables(totalTables);
 }
 
-void ManagedBackupController::refreshStatus()
+namespace
 {
-    auto const folder = ToPath(effectiveBackupFolder());
-
-    if (auto usable = ManagedBackup::CheckWritableFolder(folder); !usable)
-        SetFolderProblem(QString::fromStdString(usable.error()));
-    else
-        SetFolderProblem({});
-
-    std::vector<std::string> names;
-    names.reserve(_profiles.size());
-    for (auto const& profile: _profiles)
-        names.push_back(profile.name);
-
-    for (auto const& entry: ManagedBackup::PlanArchiveNames(names))
+    [[nodiscard]] std::vector<std::string> ProfileNames(std::vector<Lightweight::Config::Profile> const& profiles)
     {
-        auto const archiveStatus = ManagedBackup::ScanArchive(folder / entry.fileName);
-        _status.setArchiveStatus(QString::fromStdString(entry.profileName),
-                                 archiveStatus.exists,
-                                 static_cast<qulonglong>(archiveStatus.sizeBytes),
-                                 archiveStatus.exists ? ToQDateTime(archiveStatus.mtime) : QDateTime {});
+        auto names = std::vector<std::string> {};
+        names.reserve(profiles.size());
+        for (auto const& profile: profiles)
+            names.push_back(profile.name);
+        return names;
     }
+
+    void ApplyStatusScan(StatusScan const& scan, BackupStatusListModel& model)
+    {
+        for (auto const& [profileName, status]: scan.archives)
+            model.setArchiveStatus(profileName,
+                                   status.exists,
+                                   static_cast<qulonglong>(status.sizeBytes),
+                                   status.exists ? ToQDateTime(status.mtime) : QDateTime {});
+    }
+} // namespace
+
+void ManagedBackupController::requestStatusRefresh()
+{
+    auto const generation = ++_statusGeneration;
+    auto* self = this;
+    auto const post = [self, generation](StatusScan scan) {
+        QMetaObject::invokeMethod(
+            self,
+            [self, generation, scan = std::move(scan)] {
+                if (generation != self->_statusGeneration)
+                    return;
+                self->SetFolderProblem(scan.folderProblem);
+                ApplyStatusScan(scan, self->_status);
+                emit self->statusRefreshed();
+            },
+            Qt::QueuedConnection);
+    };
+    _statusWorker.Enqueue([post,
+                           folder = ToPath(effectiveBackupFolder()),
+                           names = ProfileNames(_profiles)] { post(ScanStatus(folder, names)); },
+                          [post](std::exception const& e) {
+                              post(StatusScan { .folderProblem = QString::fromUtf8(e.what()), .archives = {} });
+                          });
 }
 
 bool ManagedBackupController::StartRunGuard(char const* what)
@@ -465,14 +583,19 @@ bool ManagedBackupController::StartRunGuard(char const* what)
                      LogLevel::Warning);
         return false;
     }
-    refreshStatus();
-    if (!_folderProblem.isEmpty())
-    {
-        emit logLine(QStringLiteral("%1: %2").arg(QLatin1String(what), _folderProblem), LogLevel::Error);
-        return false;
-    }
     return true;
 }
+
+namespace
+{
+    /// Why a run cannot use @p folder, prefixed with @p what; empty when it can. Checked on the run's worker.
+    [[nodiscard]] QString FolderFailure(std::filesystem::path const& folder, QString const& what)
+    {
+        if (auto usable = ManagedBackup::CheckWritableFolder(folder); !usable)
+            return QStringLiteral("%1: %2").arg(what, QString::fromStdString(usable.error()));
+        return {};
+    }
+} // namespace
 
 std::optional<ManagedBackup::ArchivePlanEntry> ManagedBackupController::PlanEntryFor(std::string const& name) const
 {
@@ -520,6 +643,7 @@ void ManagedBackupController::RunBackups(std::vector<Lightweight::Config::Profil
 {
     if (!StartRunGuard(what))
         return;
+    _runKind = RunKind::Backup;
 
     // Plan against the FULL profile list (via PlanEntryFor) so a single-profile
     // run sees the same collision flag backupAll would — a plan built from only
@@ -549,6 +673,7 @@ void ManagedBackupController::RunBackups(std::vector<Lightweight::Config::Profil
     // The operation is copied into the task now, on the GUI thread, so the
     // worker never reads the member while another thread could replace it.
     auto backupOperation = _backupOperation;
+    auto recorder = _recorder;
     auto onPlaintextPasswordVerified = _onPlaintextPasswordVerified;
     auto connectionProbe = _connectionProbe;
     // QThreadPool::start() takes ownership of the raw pointer (it deletes
@@ -558,9 +683,28 @@ void ManagedBackupController::RunBackups(std::vector<Lightweight::Config::Profil
                                                 profiles = std::move(profiles),
                                                 plan = std::move(plan),
                                                 folder,
+                                                what = QString::fromLatin1(what),
                                                 backupOperation = std::move(backupOperation),
+                                                recorder = std::move(recorder),
                                                 onPlaintextPasswordVerified = std::move(onPlaintextPasswordVerified),
                                                 connectionProbe = std::move(connectionProbe)] {
+        if (auto const failure = FolderFailure(folder, what); !failure.isEmpty())
+        {
+            QMetaObject::invokeMethod(
+                self,
+                [self, failure, plan] {
+                    for (auto const& entry: plan)
+                        self->_status.setRunState(
+                            QString::fromStdString(entry.profileName), QStringLiteral("failed"), failure);
+                    self->_phase.store(Phase::Idle, std::memory_order_release);
+                    emit self->phaseChanged();
+                    self->requestStatusRefresh();
+                    emit self->logLine(failure, LogLevel::Error);
+                    emit self->finished(false, failure);
+                },
+                Qt::QueuedConnection);
+            return;
+        }
         auto resolver = Lightweight::Secrets::MakeNonInteractiveResolver();
         int okCount = 0;
         int failCount = 0;
@@ -600,6 +744,33 @@ void ManagedBackupController::RunBackups(std::vector<Lightweight::Config::Profil
                 Qt::QueuedConnection);
             auto const finalPath = folder / entry.fileName;
             auto const tmpPath = ManagedBackup::TempArchivePath(finalPath);
+            auto const recordSchema = RecordSchemaOf(profile.schema);
+            auto const reportRecord = [self, qname](QString const& message) {
+                QMetaObject::invokeMethod(
+                    self, "recordResult", Qt::QueuedConnection, Q_ARG(QString, qname), Q_ARG(QString, message));
+            };
+            auto const warnUnrecorded = [self, reportRecord](QString const& message) {
+                QMetaObject::invokeMethod(self,
+                                          "logLine",
+                                          Qt::QueuedConnection,
+                                          Q_ARG(QString, message),
+                                          Q_ARG(DbtoolGui::LogLevel, LogLevel::Warning));
+                reportRecord(message);
+            };
+            // The record keeps the migration history as it was before the backup read any data.
+            auto start = std::optional<Lightweight::Tools::BackupStart> {};
+            auto captureWarning = QString {};
+            try
+            {
+                start = recorder.captureStart(*cs, recordSchema);
+            }
+            catch (std::exception const& e)
+            {
+                captureWarning =
+                    DescribeUnrecorded(BackupRunner::Operation::Backup,
+                                       { .kind = Lightweight::Tools::BackupRecordError::Kind::WriteFailed,
+                                         .message = std::string { "could not read the migration history: " } + e.what() });
+            }
             try
             {
                 EmittingProgressManager pm(self, qname);
@@ -614,8 +785,19 @@ void ManagedBackupController::RunBackups(std::vector<Lightweight::Config::Profil
                 // promoted at all.
                 if (auto const errorCount = pm.ErrorCount(); errorCount > 0)
                     throw std::runtime_error(PartialBackupMessage(errorCount).toStdString());
+                // A bad archive must never replace the last good one, nor appear where none existed.
+                if (auto const failure = VerifyArchiveFile(recorder, tmpPath))
+                    throw std::runtime_error(DescribeUnrecorded(BackupRunner::Operation::Backup, *failure).toStdString());
                 if (auto committed = ManagedBackup::CommitArchive(tmpPath, finalPath); !committed)
                     throw std::runtime_error(committed.error());
+                // The archive is in place either way, so a record that cannot be written only warns.
+                if (!start)
+                    warnUnrecorded(captureWarning);
+                else if (auto const failure =
+                             WriteRecord(recorder, BackupRunner::Operation::Backup, finalPath, *cs, recordSchema, *start))
+                    warnUnrecorded(DescribeUnrecorded(BackupRunner::Operation::Backup, *failure));
+                else
+                    reportRecord({});
                 ++okCount;
                 setState(QStringLiteral("ok"));
             }
@@ -640,7 +822,7 @@ void ManagedBackupController::RunBackups(std::vector<Lightweight::Config::Profil
             [self, ok, summary] {
                 self->_phase.store(Phase::Idle, std::memory_order_release);
                 emit self->phaseChanged();
-                self->refreshStatus();
+                self->requestStatusRefresh();
                 emit self->finished(ok, summary);
             },
             Qt::QueuedConnection);
@@ -667,6 +849,7 @@ void ManagedBackupController::RunRestore(QString const& archiveProfile,
 {
     if (!StartRunGuard("Restore"))
         return;
+    _runKind = RunKind::Restore;
 
     std::optional<Lightweight::Config::Profile> targetProfile;
     auto effectiveSchema = schema;
@@ -717,6 +900,7 @@ void ManagedBackupController::RunRestore(QString const& archiveProfile,
     auto const schemaStd = effectiveSchema.toStdString();
     // Copied on the GUI thread — see the note in RunBackups().
     auto restoreOperation = _restoreOperation;
+    auto recorder = _recorder;
     auto onPlaintextPasswordVerified = _onPlaintextPasswordVerified;
     auto connectionProbe = _connectionProbe;
     // See the ownership-transfer note in RunBackups(): QThreadPool::start()
@@ -729,8 +913,22 @@ void ManagedBackupController::RunRestore(QString const& archiveProfile,
                                                 schemaStd,
                                                 archiveName,
                                                 restoreOperation = std::move(restoreOperation),
+                                                recorder = std::move(recorder),
                                                 onPlaintextPasswordVerified = std::move(onPlaintextPasswordVerified),
                                                 connectionProbe = std::move(connectionProbe)] {
+        if (auto const failure = FolderFailure(archivePath.parent_path(), QStringLiteral("Restore")); !failure.isEmpty())
+        {
+            QMetaObject::invokeMethod(
+                self,
+                [self, failure] {
+                    self->_phase.store(Phase::Idle, std::memory_order_release);
+                    emit self->phaseChanged();
+                    emit self->logLine(failure, LogLevel::Error);
+                    emit self->finished(false, failure);
+                },
+                Qt::QueuedConnection);
+            return;
+        }
         auto cs = rawCs;
         if (targetProfile)
         {
@@ -758,7 +956,8 @@ void ManagedBackupController::RunRestore(QString const& archiveProfile,
         try
         {
             EmittingProgressManager pm(self, archiveName);
-            restoreOperation(archivePath, cs, RestoreSchemaFor(archivePath, cs, schemaStd, targetProfile.has_value()), pm);
+            auto const restoreSchema = RestoreSchemaFor(archivePath, cs, schemaStd, targetProfile.has_value());
+            restoreOperation(archivePath, cs, restoreSchema, pm);
             // Like Backup(), Restore() reports a table it could not
             // recreate as a `Progress::State::Error` and carries on — see
             // `CreateTablesInOrder`, which drops the archived table first
@@ -771,7 +970,27 @@ void ManagedBackupController::RunRestore(QString const& archiveProfile,
                 summary = PartialRestoreMessage(errorCount);
             }
             else
+            {
                 summary = QStringLiteral("Restore read %1").arg(FromPath(archivePath));
+                // The data is restored either way, so a record that cannot be written only warns.
+                auto recordMessage = QString {};
+                if (auto const failure = WriteRecord(
+                        recorder, BackupRunner::Operation::Restore, archivePath, cs, RecordSchemaOf(restoreSchema), {}))
+                {
+                    recordMessage = DescribeUnrecorded(BackupRunner::Operation::Restore, *failure);
+                    QMetaObject::invokeMethod(self,
+                                              "logLine",
+                                              Qt::QueuedConnection,
+                                              Q_ARG(QString, recordMessage),
+                                              Q_ARG(DbtoolGui::LogLevel, LogLevel::Warning));
+                }
+                QMetaObject::invokeMethod(
+                    self,
+                    "recordResult",
+                    Qt::QueuedConnection,
+                    Q_ARG(QString, targetProfile ? QString::fromStdString(targetProfile->name) : QString {}),
+                    Q_ARG(QString, recordMessage));
+            }
         }
         catch (std::exception const& e)
         {

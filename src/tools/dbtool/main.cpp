@@ -3609,8 +3609,8 @@ MigrationManager& GetMigrationManager(Options const& options)
         InstallStdoutLogSink(manager);
 
         // Run optional plugin post-init hooks. Each plugin may export a
-        // `LightweightMigrationPluginPostInit(SqlConnection&, MigrationManager&)`
-        // symbol (via `LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(...)`) for one-shot
+        // `LightweightMigrationPluginPostInitReported` entry point
+        // (via `LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(...)`) for one-shot
         // bridging work that needs both a live connection and the merged
         // migration manager. Per-plugin failures are reported but do not abort
         // dbtool startup — a misbehaving plugin must not be able to brick

@@ -6,6 +6,7 @@
 // finished run looks like is pinned without running one.
 
 import QtQuick
+import QtQuick.Layouts
 import QtTest
 import Lightweight.Migrations
 
@@ -19,6 +20,14 @@ TestCase {
 
     Component { id: progressComponent; RunProgress { width: 600 } }
     Component { id: outcomeComponent; RunOutcome { width: 600 } }
+    Component {
+        id: narrowColumnComponent
+        ColumnLayout {
+            property alias progress: narrowProgress
+            width: 200
+            RunProgress { id: narrowProgress; Layout.fillWidth: true }
+        }
+    }
     SignalSpy { id: dismissSpy; signalName: "dismissed" }
     SignalSpy { id: folderSpy; signalName: "showInFolder" }
 
@@ -80,6 +89,15 @@ TestCase {
         const block = createTemporaryObject(progressComponent, root, { title: "Preparing…", value: 0, to: 0 })
         verify(block !== null)
         verify(findChild(block, "runProgressTrack").indeterminate)
+    }
+
+    function test_a_long_detail_elides_instead_of_widening_a_narrow_column() {
+        const column = createTemporaryObject(narrowColumnComponent, root)
+        verify(column !== null)
+        column.progress.title = "Widen text columns"
+        column.progress.detail = "Would upgrade 2 column(s) across 1 table(s) in 1 unit(s). · 00:01"
+        verify(waitForPolish(column), "the column must finish its layout")
+        compare(column.progress.width, 200)
     }
 
     // --- RunOutcome --------------------------------------------------------

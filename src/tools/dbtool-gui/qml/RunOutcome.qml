@@ -118,6 +118,7 @@ ColumnLayout {
         text: root.body()
         actions: [
             LsButton {
+                objectName: "runOutcomeShowInFolder"
                 visible: root._ok
                 text: qsTr("Show in folder")
                 glyph: "folder-outline"

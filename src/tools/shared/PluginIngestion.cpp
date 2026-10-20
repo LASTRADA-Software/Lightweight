@@ -165,39 +165,55 @@ PluginLoaderFn DefaultPluginLoader()
     };
 }
 
+namespace
+{
+    /// The exported entry point of both plugin hooks; see `LIGHTWEIGHT_DETAIL_MIGRATION_PLUGIN_HOOK`.
+    using PluginHookSignature = bool(Lightweight::SqlConnection&,
+                                     Lightweight::SqlMigration::MigrationManager&,
+                                     Lightweight::SqlMigration::PluginHookErrorSink,
+                                     void*) noexcept;
+
+    /// Stores the reported message in the `std::string` the context points to.
+    void CollectHookMessage(void* context, char const* message) noexcept
+    {
+        *static_cast<std::string*>(context) = message != nullptr ? message : "";
+    }
+} // namespace
+
 void RunPluginPostInitHooks(std::span<LoadedPlugin const> plugins,
                             Lightweight::SqlConnection& connection,
                             Lightweight::SqlMigration::MigrationManager& central,
                             std::function<void(std::string_view)> const& logError)
 {
-    using HookSignature = void(Lightweight::SqlConnection&, Lightweight::SqlMigration::MigrationManager&);
-
     // The hooks register the steps anew; a step registered by an earlier run would be a duplicate.
     central.RemoveAllPreMigrateSteps();
     for (auto const& plugin: plugins)
     {
-        auto* const postInit = plugin.TryGetFunction<HookSignature>(std::string { PostInitHookSymbol });
+        auto* const postInit = plugin.TryGetFunction<PluginHookSignature>(std::string { PostInitHookSymbol });
         if (postInit == nullptr)
+        {
+            // Calling the old entry point through the new signature would be undefined behaviour.
+            if (logError && plugin.TryGetFunction<void()>(std::string { LegacyPostInitHookSymbol }) != nullptr)
+                logError(
+                    std::format("Plugin {} was built against an older Lightweight; rebuild it to run its post-init hook",
+                                plugin.path.string()));
             continue; // Optional symbol — plugins without legacy glue skip the hook.
+        }
 
-        try
-        {
-            postInit(connection, central);
-        }
-        catch (std::exception const& exception)
-        {
-            if (logError)
-                logError(std::format("Plugin post-init failed ({}): {}", plugin.path.string(), exception.what()));
-        }
+        auto message = std::string {};
+        if (postInit(connection, central, CollectHookMessage, &message))
+            continue;
+        if (logError)
+            logError(std::format(
+                "Plugin post-init failed ({}): {}", plugin.path.string(), message.empty() ? "(no message)" : message));
     }
 }
 
 std::vector<std::filesystem::path> PluginsWithPostInitHook(std::span<LoadedPlugin const> plugins)
 {
-    using HookSignature = void(Lightweight::SqlConnection&, Lightweight::SqlMigration::MigrationManager&);
     auto withHook = std::vector<std::filesystem::path> {};
     for (auto const& plugin: plugins)
-        if (plugin.TryGetFunction<HookSignature>(std::string { PostInitHookSymbol }) != nullptr)
+        if (plugin.TryGetFunction<PluginHookSignature>(std::string { PostInitHookSymbol }) != nullptr)
             withHook.push_back(plugin.path);
     return withHook;
 }
@@ -207,23 +223,15 @@ bool RunPluginPostMigrateHooks(std::span<LoadedPlugin const> plugins,
                                Lightweight::SqlMigration::MigrationManager& central,
                                std::function<void(std::string_view)> const& logError)
 {
-    using HookSignature = bool(Lightweight::SqlConnection&,
-                               Lightweight::SqlMigration::MigrationManager&,
-                               Lightweight::SqlMigration::PostMigrateErrorSink,
-                               void*) noexcept;
-    auto const collectMessage = [](void* context, char const* message) noexcept {
-        *static_cast<std::string*>(context) = message != nullptr ? message : "";
-    };
-
     auto allSucceeded = true;
     for (auto const& plugin: plugins)
     {
-        auto* const postMigrate = plugin.TryGetFunction<HookSignature>("LightweightMigrationPluginPostMigrate");
+        auto* const postMigrate = plugin.TryGetFunction<PluginHookSignature>("LightweightMigrationPluginPostMigrate");
         if (postMigrate == nullptr)
             continue;
 
         auto message = std::string {};
-        if (postMigrate(connection, central, collectMessage, &message))
+        if (postMigrate(connection, central, CollectHookMessage, &message))
             continue;
 
         allSucceeded = false;

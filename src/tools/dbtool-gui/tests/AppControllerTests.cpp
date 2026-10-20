@@ -15,6 +15,8 @@
 #include "../LogLevel.hpp"
 #include "../ManagedBackupController.hpp"
 #include "../MigrationRunner.hpp"
+#include "../Models/MigrationSnapshot.hpp"
+#include "ControllerTestSupport.hpp"
 #include "MigrationRunnerTestSupport.hpp"
 #include "SqliteDriver.hpp"
 
@@ -23,23 +25,36 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <atomic>
+#include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <future>
 #include <iterator>
+#include <memory>
 #include <string>
+#include <thread>
 #include <utility>
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QElapsedTimer>
+#include <QtCore/QFile>
 #include <QtCore/QSettings>
 #include <QtCore/QString>
 #include <QtCore/QStringList>
 #include <QtCore/QTemporaryDir>
+#include <QtCore/QTimer>
+#include <QtCore/QUrl>
 #include <QtCore/QVariant>
+#include <QtQuick/QQuickWindow>
 #include <QtTest/QSignalSpy>
+#include <QtTest/QTest>
 #include <Secrets/ProfileCipher.hpp>
 
+using DbtoolGui::Tests::ConnectAndWait;
 using DbtoolGui::Tests::ScopedSettingRestore;
 using DbtoolGui::Tests::SqliteDriver;
+using DbtoolGui::Tests::WaitForIdle;
 
 namespace
 {
@@ -69,26 +84,32 @@ namespace
 TEST_CASE("AppController constructs in a disconnected state", "[dbtool-gui][AppController]")
 {
     DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
 
     CHECK_FALSE(controller.connected());
     CHECK(controller.lastError().isEmpty());
 }
 
-TEST_CASE("preMigrateStepCount counts the steps registered on the process-wide manager", "[dbtool-gui][AppController]")
+TEST_CASE("preMigrateStepCount reads the snapshot, which counts the steps registered on the manager",
+          "[dbtool-gui][AppController]")
 {
     auto& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
-    DbtoolGui::AppController const controller;
+    DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
     REQUIRE(controller.preMigrateStepCount() == 0);
 
     manager.AddPreMigrateStep("Widen text columns", {}, [](auto&&...) {});
-    CHECK(controller.preMigrateStepCount() == 1);
-    manager.RemoveAllPreMigrateSteps();
+    CHECK(DbtoolGui::CaptureMigrationSnapshot(manager, DbtoolGui::AppliedState::Unknown).preMigrateStepCount == 1);
+    // The GUI thread never reads the manager; the count changes with the next snapshot only.
     CHECK(controller.preMigrateStepCount() == 0);
+    manager.RemoveAllPreMigrateSteps();
+    CHECK(DbtoolGui::CaptureMigrationSnapshot(manager, DbtoolGui::AppliedState::Unknown).preMigrateStepCount == 0);
 }
 
 TEST_CASE("AppController buffers a startup banner that replays on attachLogSink", "[dbtool-gui][AppController][startup]")
 {
     DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
     QSignalSpy spy(&controller, &DbtoolGui::AppController::logLine);
     REQUIRE(spy.isValid());
 
@@ -113,6 +134,7 @@ TEST_CASE("AppController buffers a startup banner that replays on attachLogSink"
 TEST_CASE("attachLogSink is idempotent — banner does not replay on a second call", "[dbtool-gui][AppController][startup]")
 {
     DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
     QSignalSpy spy(&controller, &DbtoolGui::AppController::logLine);
 
     controller.attachLogSink();
@@ -129,6 +151,7 @@ TEST_CASE("loadProfiles populates the profiles model from a fixture YAML", "[dbt
     REQUIRE(std::filesystem::exists(fixturePath));
 
     DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
     auto const ok = controller.loadProfiles(QString::fromStdString(fixturePath.string()));
 
     REQUIRE(ok);
@@ -139,6 +162,7 @@ TEST_CASE("loadProfiles populates the profiles model from a fixture YAML", "[dbt
 TEST_CASE("setMigrationSelected on an unknown timestamp is a no-op", "[dbtool-gui][AppController][selection]")
 {
     DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
     REQUIRE(controller.selectedMigrationTimestamps().isEmpty());
 
     controller.setMigrationSelected(QStringLiteral("99999999999999-ghost"), true);
@@ -150,6 +174,7 @@ TEST_CASE("setMigrationSelected on an unknown timestamp is a no-op", "[dbtool-gu
 TEST_CASE("selectAllPending on an empty migration list is a no-op", "[dbtool-gui][AppController][selection]")
 {
     DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
 
     controller.selectAllPending(true);
     CHECK(controller.selectionCount() == 0);
@@ -158,17 +183,21 @@ TEST_CASE("selectAllPending on an empty migration list is a no-op", "[dbtool-gui
     CHECK(controller.selectionCount() == 0);
 }
 
-TEST_CASE("previewMigrationSql returns empty for an unknown timestamp", "[dbtool-gui][AppController]")
+TEST_CASE("a SQL preview of a timestamp that is no number replies empty at once", "[dbtool-gui][AppController]")
 {
     DbtoolGui::AppController controller;
-    auto const sql = controller.previewMigrationSql(QStringLiteral("19700101000000-not-a-migration"));
-    CHECK(sql.isEmpty());
+    REQUIRE(WaitForIdle(controller));
+    QSignalSpy ready(&controller, &DbtoolGui::AppController::migrationSqlPreviewReady);
+    controller.requestMigrationSqlPreview(QStringLiteral("19700101000000-not-a-migration"));
+    REQUIRE(ready.count() == 1);
+    CHECK(ready.first().at(1).toStringList().isEmpty());
 }
 
 TEST_CASE("buildFailureReport returns a non-empty multi-line bundle even when disconnected",
           "[dbtool-gui][AppController][failure-report]")
 {
     DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
     auto const report = controller.buildFailureReport();
 
     REQUIRE_FALSE(report.isEmpty());
@@ -181,6 +210,7 @@ TEST_CASE("buildFailureReport returns a non-empty multi-line bundle even when di
 TEST_CASE("releaseHighestTimestamp returns empty for an unknown release", "[dbtool-gui][AppController]")
 {
     DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
     auto const ts = controller.releaseHighestTimestamp(QStringLiteral("v999.999.999"));
     CHECK(ts.isEmpty());
 }
@@ -189,6 +219,7 @@ TEST_CASE("managedBackups is exposed and follows loadProfiles", "[dbtool-gui][Ap
 {
     auto const fixturePath = FixturesDir() / "dbtool.yml";
     DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
     REQUIRE(controller.managedBackups() != nullptr);
     CHECK(controller.managedBackups()->status()->rowCount() == 0);
 
@@ -206,6 +237,7 @@ TEST_CASE("the busy guard between the three runners is mutual", "[dbtool-gui][Ap
     auto const fixturePath = FixturesDir() / "dbtool.yml";
     QTemporaryDir dir;
     DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
     REQUIRE(controller.loadProfiles(QString::fromStdString(fixturePath.string())));
 
     auto* managed = controller.managedBackups();
@@ -269,6 +301,7 @@ TEST_CASE("connectToProfile encrypts a working plaintext password in place", "[d
         << "};Database=" << (root / "gui-password.db").generic_string() << "\"\n    password: hunter2 # old\n";
 
     DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
     QStringList log;
     QObject::connect(&controller, &DbtoolGui::AppController::logLine, [&log](QString const& line, DbtoolGui::LogLevel) {
         log.append(line);
@@ -277,7 +310,7 @@ TEST_CASE("connectToProfile encrypts a working plaintext password in place", "[d
     REQUIRE(controller.loadProfiles(QString::fromStdString(configPath.string())));
     controller.setConnectionMode(QStringLiteral("profile"));
     controller.setCurrentProfile(QStringLiteral("p"));
-    REQUIRE(controller.connectToProfile());
+    REQUIRE(ConnectAndWait(controller));
 
     INFO("controller log:\n" << log.join(QLatin1Char('\n')).toStdString());
     auto const text = ReadFile(configPath);
@@ -299,6 +332,7 @@ TEST_CASE("startup discovers dbtool.yml above the working directory", "[dbtool-g
     std::filesystem::current_path(root / "sub");
     DbtoolGui::AppController controller;
     std::filesystem::current_path(previous);
+    REQUIRE(WaitForIdle(controller));
 
     CHECK(std::filesystem::path { controller.profilePath().toStdString() } == root / "dbtool.yml");
     CHECK(controller.profiles()->rowCount() == 1);
@@ -317,10 +351,11 @@ TEST_CASE("backup and restore use the connection string with the decrypted passw
         << "};Database=" << (root / "gui-backup.db").generic_string() << "\"\n    password: \"" << *encrypted << "\"\n";
 
     DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
     REQUIRE(controller.loadProfiles(QString::fromStdString(configPath.string())));
     controller.setConnectionMode(QStringLiteral("profile"));
     controller.setCurrentProfile(QStringLiteral("p"));
-    REQUIRE(controller.connectToProfile());
+    REQUIRE(ConnectAndWait(controller));
 
     CHECK(controller.backupRunner()->connectionString().contains(QStringLiteral("PWD=s3cr3t")));
 }
@@ -328,6 +363,7 @@ TEST_CASE("backup and restore use the connection string with the decrypted passw
 TEST_CASE("connectedTarget and connectedMode are empty while nothing is connected", "[dbtool-gui][AppController]")
 {
     DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
 
     // Labels that say "connected to …" read these, not the selected profile, so they must
     // not name anything until a connection is actually open.
@@ -344,6 +380,7 @@ TEST_CASE("addProfile writes an encrypted profile and reloads the list", "[dbtoo
     std::ofstream(configPath, std::ios::binary) << "# team file\nprofiles:\n  existing:\n    dsn: \"OLD\"\n";
 
     DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
     REQUIRE(controller.loadProfiles(QString::fromStdString(configPath.string())));
     REQUIRE(controller.profiles()->rowCount() == 1);
 
@@ -375,6 +412,7 @@ TEST_CASE("addProfile refuses what cannot become a profile and leaves the file a
     auto const before = ReadFile(configPath);
 
     DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
     REQUIRE(controller.loadProfiles(QString::fromStdString(configPath.string())));
 
     CHECK_FALSE(controller.addProfile({ { "name", "" }, { "kind", "dsn" }, { "dsn", "X" } }).isEmpty());
@@ -396,6 +434,7 @@ TEST_CASE("connectionDraft offers a custom connection for saving, without its pa
     std::ofstream(configPath, std::ios::binary) << "profiles:\n  scratch:\n    dsn: \"OLD\"\n";
 
     DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
     REQUIRE(controller.loadProfiles(QString::fromStdString(configPath.string())));
 
     // Nothing open: nothing to save.
@@ -405,7 +444,7 @@ TEST_CASE("connectionDraft offers a custom connection for saving, without its pa
     controller.setConnectionMode(QStringLiteral("custom"));
     controller.setConnectionStringOverride(
         QString::fromStdString("Driver={" + std::string { SqliteDriver } + "};Database=" + database + ";PWD=hunter2"));
-    REQUIRE(controller.connectToProfile());
+    REQUIRE(ConnectAndWait(controller));
 
     auto const draft = controller.connectionDraft();
     CHECK(draft.value(QStringLiteral("available")).toBool());
@@ -445,10 +484,11 @@ TEST_CASE("a profile connection is already saved, so there is no draft to offer"
                                                 << "};Database=" << (root / "gui-saved.db").generic_string() << "\"\n";
 
     DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
     REQUIRE(controller.loadProfiles(QString::fromStdString(configPath.string())));
     controller.setConnectionMode(QStringLiteral("profile"));
     controller.setCurrentProfile(QStringLiteral("p"));
-    REQUIRE(controller.connectToProfile());
+    REQUIRE(ConnectAndWait(controller));
 
     CHECK(controller.connectedMode() == QStringLiteral("profile"));
     CHECK(controller.connectedTarget() == QStringLiteral("p"));
@@ -464,12 +504,13 @@ TEST_CASE("connectedTarget names the open connection, not the selected profile",
                                                 << "};Database=" << (root / "gui-profile.db").generic_string() << "\"\n";
 
     DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
     REQUIRE(controller.loadProfiles(QString::fromStdString(configPath.string())));
     controller.setCurrentProfile(QStringLiteral("p"));
     controller.setConnectionMode(QStringLiteral("custom"));
     controller.setConnectionStringOverride(QString::fromStdString("Driver={" + std::string { SqliteDriver }
                                                                   + "};Database=" + (root / "other.db").generic_string()));
-    REQUIRE(controller.connectToProfile());
+    REQUIRE(ConnectAndWait(controller));
 
     // The selected profile is still "p", but the open connection is the custom one.
     CHECK(controller.currentProfile() == QStringLiteral("p"));
@@ -490,6 +531,7 @@ TEST_CASE("loading a dbtool.yml with defaultBackupDir sets the default backup fo
         << "defaultBackupDir: \"" << backups << "\"\nprofiles:\n  p:\n    dsn: \"X\"\n";
 
     DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
     controller.managedBackups()->setBackupFolder(QString {}); // nothing chosen in Settings
     REQUIRE(controller.loadProfiles(QString::fromStdString(configPath.string())));
 
@@ -512,6 +554,7 @@ TEST_CASE("a non-ASCII defaultBackupDir keeps its spelling as the default backup
         << "defaultBackupDir: \"D:/Sicherungen-M\xC3\xBCller\"\nprofiles:\n  p:\n    dsn: \"X\"\n";
 
     DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
     controller.managedBackups()->setBackupFolder(QString {}); // nothing chosen in Settings
     REQUIRE(controller.loadProfiles(QString::fromStdU16String(configPath.u16string())));
 
@@ -536,14 +579,17 @@ TEST_CASE("switching to an empty plugins dir drops the unloaded plugins' compat 
     auto const& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
     {
         DbtoolGui::AppController controller;
+        REQUIRE(WaitForIdle(controller));
         REQUIRE(controller.loadProfiles(QString::fromStdString((root / "dbtool.yml").string())));
 
         controller.setPluginsDir(QString::fromStdString((root / "plugins").string()));
+        REQUIRE(WaitForIdle(controller));
         REQUIRE(static_cast<bool>(manager.GetCompatPolicy()));
         REQUIRE(manager.GetAllMigrations().size() == 3);
         REQUIRE(manager.GetAllReleases().size() == 1);
 
         controller.setPluginsDir(QString::fromStdString((root / "empty").string()));
+        REQUIRE(WaitForIdle(controller));
         CHECK_FALSE(static_cast<bool>(manager.GetCompatPolicy()));
         CHECK(manager.GetAllMigrations().empty());
         CHECK(manager.GetAllReleases().empty());
@@ -568,11 +614,12 @@ TEST_CASE("a plugin reload requested during a migration run waits until the run 
     auto const& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
     {
         DbtoolGui::AppController controller;
+        REQUIRE(WaitForIdle(controller));
         REQUIRE(controller.loadProfiles(QString::fromStdString((root / "dbtool.yml").string())));
         controller.setConnectionMode(QStringLiteral("profile"));
         controller.setCurrentProfile(QStringLiteral("p"));
         controller.setPluginsDir(QString::fromStdString((root / "plugins").string()));
-        REQUIRE(controller.connectToProfile());
+        REQUIRE(ConnectAndWait(controller));
         REQUIRE(manager.GetAllMigrations().size() == 3);
 
         QSignalSpy finished(controller.runner(), &DbtoolGui::MigrationRunner::finished);
@@ -585,6 +632,7 @@ TEST_CASE("a plugin reload requested during a migration run waits until the run 
         CHECK(controller.lastWarning().contains(QStringLiteral("after the current run")));
 
         REQUIRE((finished.count() > 0 || finished.wait(30000)));
+        REQUIRE(WaitForIdle(controller));
         CHECK(manager.GetAllMigrations().empty());
         CHECK(controller.lastWarning().isEmpty());
     }
@@ -652,15 +700,26 @@ TEST_CASE("a plugin reload while connected keeps the pre-migrate steps the plugi
     auto const stepLog = ScopedTestVariable { "LIGHTWEIGHT_TEST_PRE_MIGRATE_LOG", root / "steps.log" };
 
     DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
     REQUIRE(controller.loadProfiles(QString::fromStdString((root / "dbtool.yml").string())));
     controller.setConnectionMode(QStringLiteral("profile"));
     controller.setCurrentProfile(QStringLiteral("p"));
-    REQUIRE(controller.connectToProfile());
+    REQUIRE(ConnectAndWait(controller));
     REQUIRE(controller.preMigrateStepCount() == 1);
 
-    // Reloading the profile file reloads the plugins, which unloads the steps registered on connect.
+    // A profile file naming another plugins directory reloads the plugins, which unloads the steps
+    // registered on connect; an unchanged directory would not reload at all.
+    auto const plugin = std::filesystem::path { DBTOOL_GUI_TESTS_PRE_MIGRATE_RECORDER_PLUGIN };
+    std::filesystem::create_directories(root / "plugins2");
+    std::filesystem::copy_file(plugin, root / "plugins2" / plugin.filename());
+    std::ofstream(root / "dbtool.yml", std::ios::binary | std::ios::trunc)
+        << "profiles:\n  p:\n    connectionString: \"Driver={" << SqliteDriver
+        << "};Database=" << (root / "gui-steps.db").generic_string() << "\"\n    pluginsDir: \""
+        << (root / "plugins2").generic_string() << "\"\n";
     QSignalSpy migrationsChanged(&controller, &DbtoolGui::AppController::migrationsChanged);
     REQUIRE(controller.loadProfiles(QString::fromStdString((root / "dbtool.yml").string())));
+    CHECK(controller.pluginsLoading());
+    REQUIRE(WaitForIdle(controller));
     CHECK(controller.connected());
     CHECK(controller.preMigrateStepCount() == 1);
     CHECK(migrationsChanged.count() > 0);
@@ -676,10 +735,11 @@ TEST_CASE("a reconnect runs the plugins' post-init hooks once and drops the last
     auto const postInitLog = ScopedTestVariable { "LIGHTWEIGHT_TEST_POST_INIT_LOG", root / "post-init.log" };
 
     DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
     REQUIRE(controller.loadProfiles(QString::fromStdString((root / "dbtool.yml").string())));
     controller.setConnectionMode(QStringLiteral("profile"));
     controller.setCurrentProfile(QStringLiteral("p"));
-    REQUIRE(controller.connectToProfile());
+    REQUIRE(ConnectAndWait(controller));
     REQUIRE(LineCount(root / "post-init.log") == 1);
 
     QSignalSpy finished(controller.runner(), &DbtoolGui::MigrationRunner::finished);
@@ -689,7 +749,7 @@ TEST_CASE("a reconnect runs the plugins' post-init hooks once and drops the last
     REQUIRE(controller.runner()->tasks()->rowCount() > 0);
 
     // The reload inside connect leaves the hooks to connect, which runs them once, on the new connection.
-    REQUIRE(controller.connectToProfile());
+    REQUIRE(ConnectAndWait(controller));
     CHECK(LineCount(root / "post-init.log") == 2);
     CHECK(controller.preMigrateStepCount() == 1);
     CHECK(controller.runner()->tasks()->rowCount() == 0);
@@ -704,10 +764,11 @@ TEST_CASE("connectToProfile is refused while a migration run is active", "[dbtoo
         << "};Database=" << (root / "gui-connect.db").generic_string() << "\"\n";
 
     DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
     REQUIRE(controller.loadProfiles(QString::fromStdString((root / "dbtool.yml").string())));
     controller.setConnectionMode(QStringLiteral("profile"));
     controller.setCurrentProfile(QStringLiteral("p"));
-    REQUIRE(controller.connectToProfile());
+    REQUIRE(ConnectAndWait(controller));
 
     QSignalSpy finished(controller.runner(), &DbtoolGui::MigrationRunner::finished);
     controller.runner()->dryRunUpTo(QString {});
@@ -719,5 +780,365 @@ TEST_CASE("connectToProfile is refused while a migration run is active", "[dbtoo
     CHECK(controller.connected());
 
     REQUIRE((finished.count() > 0 || finished.wait(30000)));
-    CHECK(controller.connectToProfile());
+    CHECK(ConnectAndWait(controller));
+}
+
+TEST_CASE("the constructor returns before the plugins load", "[dbtool-gui][AppController][startup]")
+{
+    ScopedSettingRestore const restorePluginsDir { QStringLiteral("config/pluginsDir") };
+    QTemporaryDir dir;
+    auto const root = std::filesystem::path { dir.path().toStdString() };
+    auto const plugin = std::filesystem::path { DBTOOL_GUI_TESTS_PRE_MIGRATE_RECORDER_PLUGIN };
+    std::filesystem::create_directories(root / "plugins");
+    std::filesystem::copy_file(plugin, root / "plugins" / plugin.filename());
+    QSettings().setValue(QStringLiteral("config/pluginsDir"), QString::fromStdString((root / "plugins").string()));
+    auto const loadDelay = ScopedTestVariable { "LIGHTWEIGHT_TEST_PLUGIN_LOAD_DELAY_MS", "2000" };
+    auto const loadLog = ScopedTestVariable { "LIGHTWEIGHT_TEST_PLUGIN_LOAD_LOG", root / "load.log" };
+
+    auto timer = QElapsedTimer {};
+    timer.start();
+    DbtoolGui::AppController controller;
+    CHECK(timer.elapsed() < 500);
+    CHECK(LineCount(root / "load.log") == 0);
+    CHECK(controller.pluginsLoading());
+    CHECK(controller.busy());
+    CHECK(controller.activityText() == QStringLiteral("Loading plugins…"));
+
+    REQUIRE(WaitForIdle(controller));
+    CHECK_FALSE(controller.pluginsLoading());
+    CHECK(controller.activityText().isEmpty());
+    CHECK(LineCount(root / "load.log") == 1);
+}
+
+TEST_CASE("plugin reload requests in one event-loop turn coalesce into one load", "[dbtool-gui][AppController][startup]")
+{
+    ScopedSettingRestore const restorePluginsDir { QStringLiteral("config/pluginsDir") };
+    ScopedSettingRestore const restoreMode { QStringLiteral("connection/mode") };
+    ScopedSettingRestore const restoreProfile { QStringLiteral("connection/profile") };
+    QTemporaryDir dir;
+    auto const root = std::filesystem::path { dir.path().toStdString() };
+    auto const plugin = std::filesystem::path { DBTOOL_GUI_TESTS_PRE_MIGRATE_RECORDER_PLUGIN };
+    for (auto const* const name: { "plugins", "plugins2" })
+    {
+        std::filesystem::create_directories(root / name);
+        std::filesystem::copy_file(plugin, root / name / plugin.filename());
+    }
+    std::ofstream(root / "dbtool.yml", std::ios::binary) << "profiles:\n  p:\n    dsn: \"X\"\n  q:\n    dsn: \"Y\"\n";
+    QSettings().setValue(QStringLiteral("config/pluginsDir"), QString::fromStdString((root / "plugins").string()));
+    auto const loadLog = ScopedTestVariable { "LIGHTWEIGHT_TEST_PLUGIN_LOAD_LOG", root / "load.log" };
+
+    DbtoolGui::AppController controller;
+    // A store loaded before the startup ran is kept, and its reload joins the startup's.
+    REQUIRE(controller.loadProfiles(QString::fromStdString((root / "dbtool.yml").string())));
+    REQUIRE(WaitForIdle(controller));
+    REQUIRE(LineCount(root / "load.log") == 1);
+
+    controller.setPluginsDir(QString::fromStdString((root / "plugins2").string()));
+    controller.setConnectionMode(QStringLiteral("dsn"));
+    controller.setCurrentProfile(controller.currentProfile() == QStringLiteral("p") ? QStringLiteral("q")
+                                                                                    : QStringLiteral("p"));
+    CHECK(controller.pluginsLoading());
+    REQUIRE(WaitForIdle(controller));
+    CHECK(LineCount(root / "load.log") == 2);
+
+    // Reloading the profile file with the same effective plugins directory loads nothing.
+    REQUIRE(controller.loadProfiles(QString::fromStdString((root / "dbtool.yml").string())));
+    CHECK_FALSE(controller.pluginsLoading());
+    REQUIRE(WaitForIdle(controller));
+    CHECK(LineCount(root / "load.log") == 2);
+}
+
+namespace
+{
+
+/// A plugins directory with the recorder fixture as the Settings-page plugins directory, whose load
+/// logs its begin and end to `begin.log` and `load.log` and takes @p delayMs in between.
+class SlowPluginWorkspace
+{
+  public:
+    explicit SlowPluginWorkspace(char const* delayMs):
+        _root { _directory.path().toStdString() },
+        _loadDelay { "LIGHTWEIGHT_TEST_PLUGIN_LOAD_DELAY_MS", delayMs },
+        _beginLog { "LIGHTWEIGHT_TEST_PLUGIN_LOAD_BEGIN_LOG", _root / "begin.log" },
+        _loadLog { "LIGHTWEIGHT_TEST_PLUGIN_LOAD_LOG", _root / "load.log" }
+    {
+        auto const plugin = std::filesystem::path { DBTOOL_GUI_TESTS_PRE_MIGRATE_RECORDER_PLUGIN };
+        std::filesystem::create_directories(_root / "plugins");
+        std::filesystem::copy_file(plugin, _root / "plugins" / plugin.filename());
+        QSettings().setValue(QStringLiteral("config/pluginsDir"), QString::fromStdString((_root / "plugins").string()));
+    }
+
+    /// @return Whether the plugin load has begun.
+    [[nodiscard]] bool LoadBegun() const
+    {
+        return LineCount(_root / "begin.log") > 0;
+    }
+
+    /// @return The plugin loads that have finished.
+    [[nodiscard]] int LoadsFinished() const
+    {
+        return LineCount(_root / "load.log");
+    }
+
+  private:
+    ScopedSettingRestore _restorePluginsDir { QStringLiteral("config/pluginsDir") };
+    QTemporaryDir _directory;
+    std::filesystem::path _root;
+    ScopedTestVariable _loadDelay;
+    ScopedTestVariable _beginLog;
+    ScopedTestVariable _loadLog;
+};
+
+} // namespace
+
+TEST_CASE("quitting while the plugins load waits for the load and leaves cleanly", "[dbtool-gui][AppController][startup]")
+{
+    auto const workspace = SlowPluginWorkspace { "2000" };
+    auto controller = std::make_unique<DbtoolGui::AppController>();
+
+    // The real quit path: the application's event loop ends while the worker is inside the load.
+    auto poll = QTimer {};
+    QObject::connect(&poll, &QTimer::timeout, [&workspace] {
+        if (workspace.LoadBegun())
+            QCoreApplication::quit();
+    });
+    poll.start(10);
+    auto guard = QTimer {};
+    guard.setSingleShot(true);
+    QObject::connect(&guard, &QTimer::timeout, [] { QCoreApplication::exit(1); });
+    guard.start(std::chrono::seconds { 30 });
+    REQUIRE(QCoreApplication::exec() == 0);
+    poll.stop();
+
+    // aboutToQuit drained the worker: the load has finished, not merely begun.
+    CHECK(workspace.LoadsFinished() == 1);
+    controller.reset();
+    CHECK(workspace.LoadsFinished() == 1);
+}
+
+TEST_CASE("a controller told to await the first frame loads no plugin before it", "[dbtool-gui][AppController][startup]")
+{
+    auto const workspace = SlowPluginWorkspace { "0" };
+    auto window = QQuickWindow {};
+    DbtoolGui::AppController controller;
+    controller.awaitFirstFrame(&window);
+
+    // Deliver the queued startup and anything it queues in turn, then let the worker run what it got.
+    for (auto turn = 0; turn < 3; ++turn)
+        QCoreApplication::processEvents();
+    REQUIRE(controller.runner()->Worker().WaitForDone(std::chrono::seconds { 30 }));
+    CHECK_FALSE(workspace.LoadBegun());
+    CHECK(controller.pluginsLoading());
+
+    window.show();
+    REQUIRE(WaitForIdle(controller));
+    CHECK(workspace.LoadsFinished() == 1);
+}
+
+TEST_CASE("destroying the controller while a connect is in flight waits for the worker",
+          "[dbtool-gui][AppController][lifetime]")
+{
+    QTemporaryDir dir;
+    auto const root = std::filesystem::path { dir.path().toStdString() };
+    WriteRecorderWorkspace(root, "gui-quit.db");
+    auto const postInitDelay = ScopedTestVariable { "LIGHTWEIGHT_TEST_POST_INIT_DELAY_MS", "1000" };
+    auto const postInitLog = ScopedTestVariable { "LIGHTWEIGHT_TEST_POST_INIT_LOG", root / "post-init.log" };
+
+    auto controller = std::make_unique<DbtoolGui::AppController>();
+    REQUIRE(WaitForIdle(*controller));
+    REQUIRE(controller->loadProfiles(QString::fromStdString((root / "dbtool.yml").string())));
+    controller->setConnectionMode(QStringLiteral("profile"));
+    controller->setCurrentProfile(QStringLiteral("p"));
+    REQUIRE(WaitForIdle(*controller));
+    REQUIRE(controller->connectToProfile());
+    REQUIRE(controller->connecting());
+
+    // The real quit path: the application's event loop ends while the connect job is in flight.
+    QTimer::singleShot(0, [] { QCoreApplication::quit(); });
+    auto guard = QTimer {};
+    guard.setSingleShot(true);
+    QObject::connect(&guard, &QTimer::timeout, [] { QCoreApplication::exit(1); });
+    guard.start(std::chrono::seconds { 30 });
+    REQUIRE(QCoreApplication::exec() == 0);
+
+    // aboutToQuit drained the worker: the post-init hook has run, not merely begun.
+    CHECK(LineCount(root / "post-init.log") == 1);
+    controller.reset();
+    CHECK(LineCount(root / "post-init.log") == 1);
+}
+
+TEST_CASE("quitting stops waiting for a job after the drain limit", "[dbtool-gui][AppController][lifetime]")
+{
+    auto const workspace = SlowPluginWorkspace { "3000" };
+    DbtoolGui::AppController controller;
+    REQUIRE(QTest::qWaitFor([&workspace] { return workspace.LoadBegun(); }, 15000));
+
+    auto exceeded = false;
+    controller.SetShutdownDrainLimit(std::chrono::milliseconds { 200 }, [&exceeded] { exceeded = true; });
+    auto timer = QElapsedTimer {};
+    timer.start();
+    controller.Shutdown();
+    CHECK(exceeded);
+    CHECK(timer.elapsed() < 2000);
+    CHECK(workspace.LoadsFinished() == 0);
+
+    // The members the load uses must outlive it.
+    REQUIRE(controller.runner()->Worker().WaitForDone(std::chrono::milliseconds::max()));
+}
+
+TEST_CASE("quitting while a managed backup runs waits for the backup", "[dbtool-gui][AppController][lifetime]")
+{
+    QTemporaryDir dir;
+    // Connected around the controller's own aboutToQuit handler: one runs before its drain, one after.
+    auto const quitting = std::make_shared<std::atomic<bool>>(false);
+    auto const drainReturned = std::make_shared<std::atomic<bool>>(false);
+    auto before = QObject {};
+    QObject::connect(qApp, &QCoreApplication::aboutToQuit, &before, [quitting] { *quitting = true; });
+    auto controller = std::make_unique<DbtoolGui::AppController>();
+    auto after = QObject {};
+    QObject::connect(qApp, &QCoreApplication::aboutToQuit, &after, [drainReturned] { *drainReturned = true; });
+
+    REQUIRE(WaitForIdle(*controller));
+    REQUIRE(controller->loadProfiles(QString::fromStdString((FixturesDir() / "dbtool.yml").string())));
+    auto* managed = controller->managedBackups();
+    managed->setBackupFolder(dir.path());
+    auto const archivesWritten = std::make_shared<std::atomic<int>>(0);
+    auto const drainReturnedWhileRunning = std::make_shared<std::atomic<bool>>(false);
+    // The backup runs on through the quit; a drain that waits for it cannot return before it ends,
+    // so it gives up looking for that return after a second.
+    managed->setBackupOperation([=](std::filesystem::path const& file,
+                                    std::string const& /*connectionString*/,
+                                    std::string const& /*schema*/,
+                                    Lightweight::SqlBackup::ProgressManager& /*progress*/) {
+        auto const quitDeadline = std::chrono::steady_clock::now() + std::chrono::seconds { 30 };
+        while (!*quitting && std::chrono::steady_clock::now() < quitDeadline)
+            std::this_thread::yield();
+        auto const drainDeadline = std::chrono::steady_clock::now() + std::chrono::seconds { 1 };
+        while (!*drainReturned && std::chrono::steady_clock::now() < drainDeadline)
+            std::this_thread::yield();
+        *drainReturnedWhileRunning = drainReturned->load();
+        std::ofstream(file) << "archive";
+        ++*archivesWritten;
+    });
+    managed->backupProfile(QStringLiteral("sqlite-temp"));
+    REQUIRE(managed->phase() == DbtoolGui::ManagedBackupController::Phase::Running);
+    // The backup outlasts this limit; a run in flight is waited for to its end regardless.
+    auto exceeded = false;
+    controller->SetShutdownDrainLimit(std::chrono::milliseconds { 200 }, [&exceeded] { exceeded = true; });
+
+    QTimer::singleShot(0, [] { QCoreApplication::quit(); });
+    auto guard = QTimer {};
+    guard.setSingleShot(true);
+    QObject::connect(&guard, &QTimer::timeout, [] { QCoreApplication::exit(1); });
+    guard.start(std::chrono::seconds { 30 });
+    REQUIRE(QCoreApplication::exec() == 0);
+
+    CHECK(*archivesWritten == 1);
+    CHECK_FALSE(*drainReturnedWhileRunning);
+    CHECK_FALSE(exceeded);
+    managed->setBackupFolder(QString {});
+    controller.reset();
+}
+
+TEST_CASE("editing the connection string while connecting with it ends that connect", "[dbtool-gui][AppController]")
+{
+    ScopedSettingRestore const restoreMode { QStringLiteral("connection/mode") };
+    ScopedSettingRestore const restoreString { QStringLiteral("connection/overrideString") };
+    ScopedSettingRestore const restorePluginsDir { QStringLiteral("config/pluginsDir") };
+    QTemporaryDir dir;
+    auto const root = std::filesystem::path { dir.path().toStdString() };
+    WriteRecorderWorkspace(root, "gui-custom.db");
+    QSettings().setValue(QStringLiteral("config/pluginsDir"), QString::fromStdString((root / "plugins").string()));
+    auto const postInitDelay = ScopedTestVariable { "LIGHTWEIGHT_TEST_POST_INIT_DELAY_MS", "1000" };
+
+    DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
+    controller.setConnectionMode(QStringLiteral("custom"));
+    auto const connectionString =
+        std::string { "Driver={" } + SqliteDriver + "};Database=" + (root / "gui-custom.db").generic_string();
+    controller.setConnectionStringOverride(QString::fromStdString(connectionString));
+    REQUIRE(WaitForIdle(controller));
+    REQUIRE(controller.connectToProfile());
+    REQUIRE(controller.connecting());
+
+    // The connect targets the old string; the edit ends it, and its result never shows.
+    controller.setConnectionStringOverride(QString::fromStdString(connectionString + ";Timeout=5"));
+    CHECK_FALSE(controller.connecting());
+    REQUIRE(WaitForIdle(controller));
+    REQUIRE(controller.runner()->Worker().WaitForDone(std::chrono::seconds { 30 }));
+    QCoreApplication::processEvents();
+    CHECK_FALSE(controller.connected());
+}
+
+TEST_CASE("typing a DSN or connection string during a plugin load keeps the load's result", "[dbtool-gui][AppController]")
+{
+    ScopedSettingRestore const restoreMode { QStringLiteral("connection/mode") };
+    ScopedSettingRestore const restoreDsn { QStringLiteral("connection/dsn") };
+    ScopedSettingRestore const restoreString { QStringLiteral("connection/overrideString") };
+    QSettings().setValue(QStringLiteral("connection/mode"), QStringLiteral("dsn"));
+    auto const workspace = SlowPluginWorkspace { "1000" };
+    auto const fixture = std::filesystem::path { DBTOOL_GUI_TESTS_COMPAT_POLICY_FIXTURE };
+    auto const pluginsDir =
+        std::filesystem::path { QSettings().value(QStringLiteral("config/pluginsDir")).toString().toStdString() };
+    std::filesystem::copy_file(fixture, pluginsDir / ("CompatPolicyPlugin" + fixture.extension().string()));
+
+    DbtoolGui::AppController controller;
+    QStringList log;
+    QObject::connect(&controller, &DbtoolGui::AppController::logLine, [&log](QString const& line, DbtoolGui::LogLevel) {
+        log.append(line);
+    });
+    controller.attachLogSink();
+    REQUIRE(QTest::qWaitFor([&workspace] { return workspace.LoadBegun(); }, 15000));
+
+    // The startup load is in flight; the fields of the active mode and of the other one are edited.
+    controller.setSelectedDsn(QStringLiteral("SomeDsn"));
+    controller.setDsnUser(QStringLiteral("someone"));
+    controller.setConnectionStringOverride(QStringLiteral("Driver=X;Database=y"));
+    REQUIRE(WaitForIdle(controller));
+
+    INFO("controller log:\n" << log.join(QLatin1Char('\n')).toStdString());
+    CHECK(workspace.LoadsFinished() == 1);
+    CHECK(controller.migrationCount() == 3);
+    CHECK(log.filter(QStringLiteral("Ready — not connected")).size() == 1);
+}
+
+TEST_CASE("loading the profile store from an empty path reads the per-user default file", "[dbtool-gui][AppController]")
+{
+    // The test isolation points the per-user default into its own directory; any file there is put back.
+    auto const defaultPath = Lightweight::Config::ProfileStore::DefaultPath();
+    auto const backupPath = std::filesystem::path { defaultPath }.concat(".before-test");
+    auto const hadFile = std::filesystem::exists(defaultPath);
+    if (hadFile)
+        std::filesystem::rename(defaultPath, backupPath);
+    std::filesystem::create_directories(defaultPath.parent_path());
+    std::ofstream { defaultPath } << "profiles:\n  fromDefault:\n    dsn: \"x\"\n";
+    auto const loaded = DbtoolGui::AppController::LoadProfileStore({});
+    std::filesystem::remove(defaultPath);
+    if (hadFile)
+        std::filesystem::rename(backupPath, defaultPath);
+    REQUIRE(loaded.has_value());
+    CHECK(loaded->store.Find("fromDefault") != nullptr);
+}
+
+TEST_CASE("the failure report is saved while a database job keeps the migration worker busy",
+          "[dbtool-gui][AppController][file-write]")
+{
+    auto const directory = QTemporaryDir {};
+    REQUIRE(directory.isValid());
+    DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
+    auto release = std::promise<void> {};
+    controller.runner()->Worker().Enqueue([released = release.get_future().share()] { released.wait(); },
+                                          [](std::exception const&) {});
+    QSignalSpy saved(&controller, &DbtoolGui::AppController::failureReportSaved);
+    auto const path = directory.filePath(QStringLiteral("report.txt"));
+
+    controller.saveFailureReport(QUrl::fromLocalFile(path));
+    auto const savedWhileBusy = saved.count() > 0 || saved.wait(5000);
+    release.set_value();
+    REQUIRE(controller.runner()->Worker().WaitForDone(std::chrono::seconds { 30 }));
+
+    REQUIRE(savedWhileBusy);
+    CHECK(saved.first().at(1).toString().isEmpty());
+    CHECK(QFile::exists(path));
 }

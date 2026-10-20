@@ -30,8 +30,8 @@ namespace DbtoolGui
 /// timer copies the changed snapshots into their rows every `UpdateInterval`, so a task that
 /// advances per row changes its row at most once per interval and no update is lost. The root
 /// task has no row. A finished sub-task's row disappears, a finished top-level row stays until
-/// `clear()`, and a failed row always stays, so the user sees what failed and why. `Fail` also
-/// sends `failed <title>: <reason>` to the run's log callback at error level.
+/// `clear()`, and a failed row always stays (a row that ended unfinished because the run was cancelled reads cancelled), so
+/// the user sees what failed and why. `Fail` also sends `failed <title>: <reason>` to the run's log callback at error level.
 class ProgressTaskModel: public QAbstractListModel
 {
     Q_OBJECT
@@ -57,6 +57,7 @@ class ProgressTaskModel: public QAbstractListModel
         FinishedRole,                 ///< Whether the task ended.
         FailedRole,                   ///< Whether the task failed.
         FailureReasonRole,            ///< Why the task failed; empty otherwise.
+        CancelledRole,                ///< Whether the task ended unfinished because the run was cancelled.
     };
     Q_ENUM(Role)
 
@@ -124,6 +125,7 @@ class ProgressTaskModel: public QAbstractListModel
         std::uint64_t done = 0;
         QString detail;
         bool failed = false;
+        bool cancelled = false;
         QString failureReason;
         std::chrono::steady_clock::time_point started;
         std::optional<std::chrono::steady_clock::time_point> finished;
@@ -136,8 +138,17 @@ class ProgressTaskModel: public QAbstractListModel
                     std::uint64_t total,
                     std::chrono::steady_clock::time_point started);
 
-    /// Applies a task's last snapshot, then removes its row or marks it finished.
-    void ApplyEnd(std::uint64_t id, std::chrono::steady_clock::time_point finished);
+    /// Whether the run was cancelled when a task ended.
+    enum class CancellationAtEnd : std::uint8_t
+    {
+        NotRequested,
+        Requested,
+    };
+
+    /// Applies a task's last snapshot, then removes its row or marks it finished; a row with a total that
+    /// did not reach it while @p cancellation was requested is marked cancelled. A row without a total
+    /// cannot tell an interruption from completion, so it reads done.
+    void ApplyEnd(std::uint64_t id, std::chrono::steady_clock::time_point finished, CancellationAtEnd cancellation);
 
     /// Copies the task's snapshot into its row when it changed, clearing its dirty flag.
     /// @return Whether the row changed.

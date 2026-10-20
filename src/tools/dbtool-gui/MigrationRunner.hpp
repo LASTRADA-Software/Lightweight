@@ -2,7 +2,7 @@
 //
 // `MigrationRunner` is the GUI's asynchronous wrapper around
 // `Lightweight::SqlMigration::MigrationManager`. It fans work out to a
-// dedicated `QThreadPool` so the UI thread stays responsive during long
+// dedicated `SerialWorker` so the UI thread stays responsive during long
 // ALTER statements; each operation's progress is surfaced via Qt signals the
 // view-model marshals onto the GUI thread.
 //
@@ -15,15 +15,20 @@
 
 #include "LogLevel.hpp"
 #include "Models/ProgressTaskModel.hpp"
+#include "SerialWorker.hpp"
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
+#include <deque>
 #include <functional>
+#include <mutex>
 #include <string_view>
+#include <utility>
 
 #include <QtCore/QObject>
 #include <QtCore/QStringList>
-#include <QtCore/QThreadPool>
+#include <QtCore/QTimer>
 #include <QtQmlIntegration/QtQmlIntegration>
 
 // Forward declaration keeps the Lightweight/SqlMigration.hpp chain out of
@@ -44,6 +49,13 @@ enum class BackupWaiver : std::uint8_t
 {
     NotWaived, ///< The run refuses while a required backup is missing.
     Waived,    ///< The run goes ahead, logs a warning and records a `waived` row in `schema_backups`.
+};
+
+/// Whether an apply, apply-selected or rollback run takes the migration lock; dry runs never take it.
+enum class MigrationLocking : std::uint8_t
+{
+    Acquire, ///< The run holds the migration lock and refuses when another migrator holds it.
+    Skip,    ///< The run goes ahead without the lock and says so in the log.
 };
 
 class MigrationRunner: public QObject
@@ -93,6 +105,27 @@ class MigrationRunner: public QObject
     /// @param waiver Whether a run may go ahead without a required backup.
     void setBackupWaived(BackupWaiver waiver) noexcept;
 
+    /// How long a run waits for the migration lock by default, as `SqlScopedLock::TryConstruct` does.
+    static constexpr std::chrono::milliseconds DefaultLockTimeout { 30000 };
+
+    /// Sets whether the apply, apply-selected and rollback runs started from now on take the migration
+    /// lock; each run reads it once when it starts. Defaults to `MigrationLocking::Acquire`. The backup
+    /// requirement is checked the same way either way.
+    /// @param locking Whether the runs take the lock.
+    void setLocking(MigrationLocking locking) noexcept;
+
+    /// Sets how long the runs started from now on wait for the migration lock before they refuse.
+    /// @param timeout The wait; `DefaultLockTimeout` unless set.
+    void setLockTimeout(std::chrono::milliseconds timeout) noexcept;
+
+    /// The one worker thread every use of the shared migration connection runs on: the runs, and the
+    /// controller's plugin and database jobs. A single thread, because apply runs hold the migration
+    /// lock on that connection and an ODBC connection has one user at a time.
+    [[nodiscard]] SerialWorker& Worker() noexcept
+    {
+        return _worker;
+    }
+
     /// @return The tasks of the current or last run; cleared when the next run starts.
     [[nodiscard]] ProgressTaskModel* tasks() noexcept
     {
@@ -104,11 +137,11 @@ class MigrationRunner: public QObject
     /// `dbtool migrate`. Non-empty targets filter pending migrations to
     /// those whose timestamp is `<= target`. Both run the plugins'
     /// pre-migrate steps first; the apply run holds the migration lock for
-    /// them, and a cancel or a failing step ends the run before any migration.
-    /// Under that lock and before the steps, the apply run refuses when the
-    /// migrations it runs (or a step) require a backup that does not exist,
-    /// unless the run is waived (see `setBackupWaived`); a dry run reports the
-    /// requirement and goes on.
+    /// them unless locking is skipped (see `setLocking`), and a cancel or a
+    /// failing step ends the run before any migration. Before the steps, the
+    /// apply run refuses when the migrations it runs (or a step) require a
+    /// backup that does not exist, unless the run is waived (see
+    /// `setBackupWaived`); a dry run reports the requirement and goes on.
     Q_INVOKABLE void dryRunUpTo(QString const& targetTimestamp);
     Q_INVOKABLE void applyUpTo(QString const& targetTimestamp);
 
@@ -120,7 +153,8 @@ class MigrationRunner: public QObject
     Q_INVOKABLE void dryRunSelected(QStringList const& timestamps);
     Q_INVOKABLE void applySelected(QStringList const& timestamps);
 
-    /// Rolls back migrations applied after the release named `version`.
+    /// Rolls back migrations applied after the release named `version`, under the migration lock
+    /// unless locking is skipped (see `setLocking`).
     Q_INVOKABLE void rollbackToRelease(QString const& version);
 
     /// Best-effort cooperative cancellation. Currently-executing SQL is not
@@ -138,6 +172,53 @@ class MigrationRunner: public QObject
     /// live in an anonymous namespace outside the class — keeping it
     /// private would require friend declarations or extra plumbing.
     void SetPhase(Phase newPhase);
+
+    /// What a run reports from the worker to the GUI thread.
+    struct Notification
+    {
+        /// Which signals the notification emits.
+        enum class Kind : std::uint8_t
+        {
+            /// `logLine(text, level)`.
+            LogLine,
+            /// `migrationStarted(timestamp)`, `progress(timestamp, title, index, total)` and `logLine(text)`.
+            MigrationStarted,
+            /// `migrationCompleted(timestamp, text)`; `text` is the new status.
+            MigrationCompleted,
+            /// `migrationFailed(timestamp)`.
+            MigrationFailed,
+            /// The phase goes back to Idle, then `finished(ok, text)`.
+            Finished,
+        };
+        /// @return A `LogLine` notification of @p text at @p level.
+        [[nodiscard]] static Notification Line(QString text, LogLevel level)
+        {
+            auto notification = Notification {};
+            notification.text = std::move(text);
+            notification.level = level;
+            return notification;
+        }
+
+        Kind kind = Kind::LogLine;
+        QString text;
+        LogLevel level = LogLevel::Info;
+        qulonglong timestamp = 0;
+        QString title;
+        int index = 0;
+        int total = 0;
+        bool ok = false;
+    };
+
+    /// How often the GUI thread takes the notifications the worker queued.
+    static constexpr std::chrono::milliseconds DrainInterval { 16 };
+
+    /// The GUI-thread time one drain may spend; what is left waits for the next one.
+    static constexpr std::chrono::milliseconds DrainBudget { 8 };
+
+    /// Worker side: queues @p notification for the GUI thread, which takes queued notifications in
+    /// order, in timed batches of at most `DrainBudget`. However fast a run goes, the GUI thread gets
+    /// one wake-up per batch, not one event per notification.
+    void Notify(Notification notification);
 
   signals:
     void progress(qulonglong timestamp, QString title, int index, int total);
@@ -173,15 +254,28 @@ class MigrationRunner: public QObject
     /// Starts a run on the GUI thread: Running, no cancel request, and the last run's tasks cleared.
     void BeginRun();
 
+    /// Emits the queued notifications in order until the queue is empty or `DrainBudget` is spent.
+    void DrainNotifications();
+
+    /// Emits the signals of @p notification.
+    void Emit(Notification const& notification);
+
     Lightweight::SqlMigration::MigrationManager* _manager = nullptr;
     std::function<bool()> _busyProbe;
     PostMigrateHook _postMigrateHook;
     BackupWaiver _backupWaiver = BackupWaiver::NotWaived;
-    /// Declared before `_pool`, so the pool's queued work has finished before the model goes.
+    MigrationLocking _locking = MigrationLocking::Acquire;
+    std::chrono::milliseconds _lockTimeout = DefaultLockTimeout;
+    /// Declared before `_worker`, so the queued work has finished before the model goes.
     ProgressTaskModel _tasks;
-    QThreadPool _pool;
+    /// The notifications the worker queued for the GUI thread; declared before `_worker` like `_tasks`.
+    std::mutex _notificationMutex;
+    std::deque<Notification> _notifications;
+    QTimer _drainTimer;
+    /// Declared before `_worker`, so a queued job never reads them after they are gone.
     std::atomic<Phase> _phase { Phase::Idle };
     std::atomic<bool> _cancelRequested { false };
+    SerialWorker _worker;
 };
 
 } // namespace DbtoolGui

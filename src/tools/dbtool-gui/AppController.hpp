@@ -14,20 +14,27 @@
 #include "LogLevel.hpp"
 #include "ManagedBackupController.hpp"
 #include "MigrationRunner.hpp"
+#include "Models/LogLineModel.hpp"
 #include "Models/MigrationListModel.hpp"
 #include "Models/OdbcDataSourceListModel.hpp"
 #include "Models/ProfileListModel.hpp"
 #include "Models/ReleaseListModel.hpp"
+#include "SerialWorker.hpp"
 #include "SqlQueryRunner.hpp"
 
 #include <Config/ConfigDiscovery.hpp>
 #include <Config/ProfileStore.hpp>
+#include <QtCore/QByteArray>
 #include <QtCore/QList>
 #include <QtCore/QObject>
 #include <QtCore/QPair>
+#include <QtCore/QSettings>
 #include <QtCore/QString>
+#include <QtCore/QTimer>
+#include <QtCore/QUrl>
 #include <QtCore/QVariantMap>
 #include <QtQml/QQmlEngine>
+#include <QtQuick/QQuickWindow>
 
 // `_plugins` below is a pimpl pointer (defined in AppController.cpp) so
 // this moc-parsed header avoids pulling in <PluginIngestion.hpp>. The
@@ -36,12 +43,26 @@
 // which leaks subsequent declarations (e.g. `DbtoolGui`) into the
 // outer namespace and breaks the generated meta-object.
 
+#include <array>
+#include <atomic>
+#include <chrono>
+#include <cstdint>
+#include <expected>
 #include <filesystem>
+#include <functional>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace DbtoolGui
 {
+
+struct BackupRequirementState;
+struct ConnectOutcome;
+struct ConnectRequest;
+struct HistoryRefreshOutcome;
+struct MigrationSnapshot;
+struct PluginReloadOutcome;
 
 class AppController: public QObject
 {
@@ -56,6 +77,8 @@ class AppController: public QObject
     Q_PROPERTY(MigrationRunner* runner READ runner CONSTANT)
     Q_PROPERTY(BackupRunner* backupRunner READ backupRunner CONSTANT)
     Q_PROPERTY(DbtoolGui::ManagedBackupController* managedBackups READ managedBackups CONSTANT)
+    /// The log pane's lines, bounded to `LogLineModel::Capacity`.
+    Q_PROPERTY(DbtoolGui::LogLineModel* logLines READ logLines CONSTANT)
     /// Ad-hoc SQL execution helper exposed to the Expert view's SQL Query
     /// tab. Stays construction-empty until the user issues a query — picks
     /// up the global default connection string set by `connectToProfile`.
@@ -190,7 +213,43 @@ class AppController: public QObject
     /// "I don't want to see that right now" choice survives restarts.
     Q_PROPERTY(bool logVisible READ logVisible WRITE setLogVisible NOTIFY logVisibleChanged)
 
+    /// True while the plugins load on the worker: from construction until the first snapshot is
+    /// applied, and again for every reload until its snapshot arrives.
+    Q_PROPERTY(bool pluginsLoading READ pluginsLoading NOTIFY activityChanged)
+    /// True while the ODBC data sources are enumerated on a worker.
+    Q_PROPERTY(bool odbcRefreshing READ odbcRefreshing NOTIFY activityChanged)
+    /// True while any controller job is queued or running; controls that need its result stay disabled.
+    Q_PROPERTY(bool busy READ busy NOTIFY activityChanged)
+    /// True while a migration, rollback or pre-migrate run, a backup or restore, or a managed backup or
+    /// restore is in flight; the main window refuses to close meanwhile.
+    Q_PROPERTY(bool closeBlocked READ closeBlocked NOTIFY closeBlockedChanged)
+    /// Why the window refuses to close, naming the run in flight; empty while it closes.
+    Q_PROPERTY(QString closeBlockedReason READ closeBlockedReason NOTIFY closeBlockedChanged)
+    /// True while the run that blocks closing can be cancelled (a migration run not yet cancelling).
+    Q_PROPERTY(bool closeBlockingRunCancellable READ closeBlockingRunCancellable NOTIFY closeBlockedChanged)
+    /// What the running job does, e.g. "Loading plugins…"; empty while idle.
+    Q_PROPERTY(QString activityText READ activityText NOTIFY activityChanged)
+    /// True from an accepted `connectToProfile` until its job, the backup-requirement check included, is done.
+    Q_PROPERTY(bool connecting READ connecting NOTIFY activityChanged)
+    /// True while the backup requirement is evaluated on the worker; `backupRequired` is not final meanwhile.
+    Q_PROPERTY(bool backupRequirementPending READ backupRequirementPending NOTIFY activityChanged)
+    /// True from an accepted `applyAfterBackup` until its backup finished and the apply was started or dropped.
+    Q_PROPERTY(bool chainedBackupPending READ chainedBackupPending NOTIFY chainedBackupPendingChanged)
+
   public:
+    /// How a change of the profile file on disk was handled.
+    enum class ProfileFileReaction : int
+    {
+        /// The profiles were reloaded from the file.
+        Reloaded,
+        /// The file holds what the controller last loaded or wrote (an encrypted password, say), so the
+        /// store is current already; a repeated notification of one save ends here too.
+        IgnoredOwnWrite,
+        /// A connect, reload or run was in flight; the profiles reload once the controller is idle.
+        Deferred,
+    };
+    Q_ENUM(ProfileFileReaction)
+
     explicit AppController(QObject* parent = nullptr);
     ~AppController() override;
 
@@ -212,6 +271,11 @@ class AppController: public QObject
     {
         return &_releases;
     }
+    /// @return The log pane's lines.
+    [[nodiscard]] LogLineModel* logLines() noexcept
+    {
+        return &_logLines;
+    }
     [[nodiscard]] MigrationRunner* runner() noexcept
     {
         return &_runner;
@@ -230,8 +294,8 @@ class AppController: public QObject
     /// Seeds the initial value of `_verbose` before the QML engine
     /// instantiates the singleton. Must be called before any QML access to
     /// `AppController`. Threads the parsed `--verbose`/`-v` flag into the controller's first
-    /// `ReloadPlugins()`. Idempotent; later changes take effect on the next
-    /// `ReloadPlugins()` only if the value is updated via `SetVerbose`.
+    /// plugin load. Idempotent; later changes take effect on the next
+    /// plugin load only if the value is updated via `SetVerbose`.
     ///
     /// Calling `SeedVerbose(false)` is equivalent to not calling
     /// `SeedVerbose` at all — `_verbose` defaults to `false`. The `bool`
@@ -241,6 +305,16 @@ class AppController: public QObject
     /// @param enabled Whether shadow-plugin notices should be emitted via
     ///                `qInfo()`.
     static void SeedVerbose(bool enabled) noexcept;
+
+    /// Opens a URL in the desktop's default handler (file manager, text editor).
+    using UrlOpener = std::function<void(QUrl const&)>;
+
+    /// Replaces the function `openProfileFileExternally` and `revealInFolder` open URLs with; the
+    /// default is `QDesktopServices::openUrl`. Tests seed a recorder so no real file manager starts.
+    /// An empty @p opener restores the default. Must be called before the GUI starts; not thread-safe.
+    /// @param opener Called with the URL to open.
+    static void SeedUrlOpener(UrlOpener opener);
+
     [[nodiscard]] SqlQueryRunner* sqlQueryRunner() noexcept
     {
         return &_sqlQueryRunner;
@@ -357,6 +431,28 @@ class AppController: public QObject
     /// `<target>-<timestamp>.zip` name, without a dialog. The backup is recorded, so it satisfies
     /// the backup requirement once it finished. Does nothing unless connected and every runner is idle.
     Q_INVOKABLE void backUpNow();
+
+    /// Backs up the connected database and, once the backup succeeded, applies migrations: the
+    /// timestamps @p selectedTimestamps when there are any, else everything up to @p targetTimestamp.
+    /// A backup that fails or cannot start applies nothing, logs an error and emits `chainedBackupFailed`.
+    /// Does nothing, beyond a log line, unless connected and every runner is idle.
+    /// @param archivePath The archive to write; empty writes a generated `<target>-<timestamp>.zip`
+    ///        into the backup folder, as `backUpNow` does.
+    /// @param targetTimestamp The apply target as for `MigrationRunner::applyUpTo`; empty applies everything pending.
+    /// @param selectedTimestamps The migrations to apply as for `MigrationRunner::applySelected`.
+    Q_INVOKABLE void applyAfterBackup(QString const& archivePath,
+                                      QString const& targetTimestamp,
+                                      QStringList const& selectedTimestamps);
+
+    /// @return Whether a backup started by `applyAfterBackup` is in flight.
+    [[nodiscard]] bool chainedBackupPending() const noexcept
+    {
+        return _chainedBackupPending;
+    }
+
+    /// Sets whether the apply, apply-selected and rollback runs take the migration lock.
+    /// @param mode `"skip"` runs them without the lock; anything else, `"acquire"` included, takes it.
+    Q_INVOKABLE void setMigrationLocking(QString const& mode);
     [[nodiscard]] int selectionCount() const;
 
     [[nodiscard]] QString currentReleaseLabel() const;
@@ -374,6 +470,42 @@ class AppController: public QObject
     }
     Q_INVOKABLE void setLogVisible(bool visible);
 
+    /// @return Whether the plugins are loading (see the property).
+    [[nodiscard]] bool pluginsLoading() const noexcept;
+
+    /// @return Whether the ODBC data sources are being enumerated.
+    [[nodiscard]] bool odbcRefreshing() const noexcept
+    {
+        return _odbcRefreshing;
+    }
+
+    /// @return Whether any controller job is queued or running.
+    [[nodiscard]] bool busy() const noexcept;
+
+    /// @return Whether a run is in flight, so the window must not close.
+    [[nodiscard]] bool closeBlocked() const;
+
+    /// @return Why the window must not close; empty while it may.
+    [[nodiscard]] QString closeBlockedReason() const;
+
+    /// @return Whether the run that blocks closing can be cancelled.
+    [[nodiscard]] bool closeBlockingRunCancellable() const;
+
+    /// Asks the run that blocks closing to stop, when it can be cancelled.
+    Q_INVOKABLE void cancelBlockingRun();
+
+    /// @return What the running job does; empty while idle.
+    [[nodiscard]] QString activityText() const;
+
+    /// @return Whether a connect job is in flight (see the property).
+    [[nodiscard]] bool connecting() const noexcept
+    {
+        return _connecting;
+    }
+
+    /// @return Whether the backup requirement is being evaluated (see the property).
+    [[nodiscard]] bool backupRequirementPending() const noexcept;
+
     /// Assembles the multi-line diagnostic bundle surfaced on the Simple
     /// view's Failure card (env + connection summary + current/target
     /// versions + failed migration + last ~200 log lines). QML calls this
@@ -382,12 +514,21 @@ class AppController: public QObject
     /// `connectionStringOverride` or `dsnPassword`.
     Q_INVOKABLE QString buildFailureReport() const;
 
+    /// Writes `buildFailureReport()` to the local file @p file on the worker, replacing it; the outcome
+    /// arrives as `failureReportSaved`.
+    /// @param file The destination, as a file dialog returns it.
+    Q_INVOKABLE void saveFailureReport(QUrl const& file);
+
+    /// @param url A URL a file dialog returned.
+    /// @return Its local path in the platform's separators (UNC paths included); empty when it is no local file.
+    Q_INVOKABLE QString localFilePath(QUrl const& url) const;
+
     /// Timestamps of the rows the user has ticked in the migration list.
     /// Exposed so the ActionsPanel's primary button can hand them straight
     /// to `MigrationRunner::applySelected` / `dryRunSelected`.
     Q_INVOKABLE QStringList selectedMigrationTimestamps() const;
 
-    /// Toggles the selected state of a row by timestamp. No-op for
+    /// Toggles the selected state of a row by timestamp, in O(1). No-op for
     /// already-applied / unknown rows (see `MigrationListModel::setData`).
     Q_INVOKABLE void setMigrationSelected(QString const& timestamp, bool selected);
 
@@ -401,12 +542,13 @@ class AppController: public QObject
     /// without duplicating the lookup in JavaScript.
     Q_INVOKABLE QString releaseHighestTimestamp(QString const& version) const;
 
-    /// Builds the list of SQL statements that `PreviewMigration` would emit
-    /// for the migration with the given timestamp. Returns an empty list if
-    /// the timestamp is unknown or parsing fails. The preview is dialect-
-    /// aware: it uses whatever connection is currently active, so the rendered
-    /// SQL matches what an actual apply on that database would run.
-    Q_INVOKABLE QStringList previewMigrationSql(QString const& timestamp) const;
+    /// Builds, on the worker, the SQL statements applying the migration @p timestamp would run on the
+    /// open connection, and emits `migrationSqlPreviewReady` with them. While not connected, during a
+    /// migration run, and for a timestamp that is no number, the reply (a placeholder line, or nothing) is
+    /// emitted at once. When the target changed before the statements arrive, they are replaced by a line
+    /// saying so.
+    /// @param timestamp The migration's timestamp as a decimal string.
+    Q_INVOKABLE void requestMigrationSqlPreview(QString const& timestamp);
 
     void setCurrentProfile(QString const& name);
 
@@ -454,15 +596,17 @@ class AppController: public QObject
     /// `path` may be empty to pick the default location.
     Q_INVOKABLE bool loadProfiles(QString const& path = {});
 
-    /// Connects to the currently-selected profile (or to the override
-    /// connection string if no profile is selected). Loads migration plugins
-    /// from the profile's `pluginsDir`, creates the `schema_migrations`
-    /// table if it is missing, and refreshes the migration / release models.
-    /// Refused with a warning while a migration run, a backup or a restore is active.
+    /// Connects through the current connection mode: the selected profile, DSN or connection string.
+    /// Validates the input here and starts one worker job that reloads the plugins, opens the connection,
+    /// runs the post-init hooks, reads the history and evaluates the backup requirement; `connecting` is
+    /// true until `connectFinished`. A result whose target changed meanwhile is dropped.
+    /// Refused with a warning while a migration run, a backup or a restore is active, and refused while
+    /// a connect is in flight.
+    /// @return Whether a connect job started.
     Q_INVOKABLE bool connectToProfile();
 
-    /// Re-enumerates the system ODBC DSNs and refreshes the
-    /// `odbcDataSources` model. Safe to call repeatedly; synchronous.
+    /// Re-enumerates the system ODBC DSNs on a worker and refreshes the `odbcDataSources` model when
+    /// done; `odbcRefreshing` is true meanwhile. A call during a refresh runs one more afterwards.
     Q_INVOKABLE void refreshOdbcDataSources();
 
     /// Opens the loaded profile file with the system's default handler
@@ -508,6 +652,67 @@ class AppController: public QObject
     /// the buffered banner.
     Q_INVOKABLE void attachLogSink();
 
+    /// Holds the first plugin load back until @p window has shown its first frame, so the window
+    /// appears before any plugin library is mapped. Called by `Main.qml` when it is created; a
+    /// controller nobody calls this on (a test without a window) loads right after its startup.
+    /// Gives up waiting after two seconds, for a window that never renders (e.g. minimized).
+    /// @param window The main window.
+    Q_INVOKABLE void awaitFirstFrame(QQuickWindow* window);
+
+    /// Stops starting jobs, hides the windows, asks a migration run and an ad-hoc query to cancel, writes
+    /// the settings, and waits for the jobs in flight (a plugin load, a connect, a run, a backup or
+    /// restore, a query, an ODBC enumeration, a backup-folder scan) to finish. Runs on
+    /// `QCoreApplication::aboutToQuit`, so quitting never tears down the process while a job still uses
+    /// the plugins or the manager, and again from the destructor. Idempotent.
+    /// While a migration, backup or restore is in flight it waits for as long as that takes, since ending
+    /// it midway would leave the database or the archive half-written; otherwise the wait is bounded
+    /// (see `SetShutdownDrainLimit`), as a read job may block in a driver call that ignores cancellation.
+    void Shutdown();
+
+    /// The longest `Shutdown` waits for the jobs in flight by default when no run is in flight.
+    static constexpr std::chrono::milliseconds DefaultShutdownDrainLimit = std::chrono::seconds { 30 };
+
+    /// Bounds the wait of `Shutdown` while no migration, backup or restore is in flight. When a job still
+    /// runs after @p limit, @p onExceeded runs and `Shutdown` returns. Without a handler the process then
+    /// ends at once, with `TerminateProcess` on Windows and `std::quick_exit` elsewhere: neither runs the
+    /// static or DLL destructors a still-running job could be using.
+    /// A caller passing a handler must keep this controller alive until the jobs have finished, for
+    /// instance by waiting on `runner()->Worker()`: the jobs use its members.
+    /// @param limit How long `Shutdown` waits for the jobs in flight.
+    /// @param onExceeded Runs when a job still runs after @p limit; empty restores the default.
+    void SetShutdownDrainLimit(std::chrono::milliseconds limit, std::function<void()> onExceeded);
+
+    /// Size and SHA-256 of a profile file's content.
+    struct ProfileFileFingerprint
+    {
+        /// The file.
+        QString path;
+        /// Its size in bytes.
+        qint64 size = 0;
+        /// The SHA-256 of its content.
+        QByteArray sha256;
+
+        bool operator==(ProfileFileFingerprint const&) const = default;
+    };
+
+    /// @return The fingerprint of the file @p path; empty when it cannot be read.
+    [[nodiscard]] static std::optional<ProfileFileFingerprint> FingerprintOf(QString const& path);
+
+    /// A profile store and the fingerprint of the very bytes it was parsed from.
+    struct LoadedProfileStore
+    {
+        /// The parsed store; empty when the file does not exist.
+        Lightweight::Config::ProfileStore store;
+        /// Empty when the file does not exist (the store is then empty).
+        std::optional<ProfileFileFingerprint> fingerprint;
+    };
+
+    /// Reads the profile file @p path once, then parses and fingerprints those bytes, so an edit made
+    /// in between can never be taken for content already loaded. A missing file is an empty store.
+    /// @param requestedPath The profile file; empty means `ProfileStore::DefaultPath()`, as for `LoadOrDefault`.
+    /// @return The store and its fingerprint, or the read or parse error.
+    [[nodiscard]] static std::expected<LoadedProfileStore, std::string> LoadProfileStore(QString const& requestedPath);
+
   signals:
     /// Unified log-pane feed: every startup banner, plugin discovery event,
     /// connection-state change, and migration progress line emerges here.
@@ -533,20 +738,115 @@ class AppController: public QObject
     void migrationsChanged();
     void backupRequirementChanged();
     void migrateWithoutBackupChanged();
+    /// `chainedBackupPending` changed.
+    void chainedBackupPendingChanged();
+    /// A `saveFailureReport` finished.
+    /// @param path The local path written, or the URL's text when it is no local file.
+    /// @param error Empty on success, otherwise why the report could not be written.
+    void failureReportSaved(QString path, QString error);
+    /// The backup `applyAfterBackup` started failed or could not start, so no migration ran.
+    /// @param summary Why, e.g. the backup's own summary.
+    void chainedBackupFailed(QString summary);
+    /// The backup succeeded but the migrations after it could not start, so none ran.
+    /// @param summary Why.
+    void chainedApplyFailed(QString summary);
     void selectionChanged();
     void logVisibleChanged();
     void viewModeChanged();
+    /// `pluginsLoading`, `odbcRefreshing`, `connecting`, `backupRequirementPending`, `busy` or
+    /// `activityText` changed.
+    void activityChanged();
+    /// `closeBlocked`, `closeBlockedReason` or `closeBlockingRunCancellable` changed.
+    void closeBlockedChanged();
+    /// A quit request (QML `Qt.quit()`) was refused because a run is in flight; nothing closed.
+    void quitRefused();
     void error(QString message);
+    /// A connect ended: its job finished, its backup-requirement check included, or the target it was
+    /// connecting to changed. `connected` tells whether a connection is open.
+    void connectFinished();
+    /// The reply to `requestMigrationSqlPreview`.
+    /// @param timestamp The timestamp the preview was asked for.
+    /// @param statements The statements; empty for an unknown migration; one comment line when there is
+    ///        nothing to preview (not connected, a run in flight, the connection changed meanwhile).
+    void migrationSqlPreviewReady(QString timestamp, QStringList statements);
+    /// A change of the profile file on disk was handled.
+    /// @param reaction What was done about it.
+    void profileFileChangeHandled(DbtoolGui::AppController::ProfileFileReaction reaction);
 
   private slots:
-    /// File-system watcher callback — fires when the profile YAML changes
-    /// on disk. We reload only when a run is idle; otherwise we defer to
-    /// the next user-triggered reconnect to avoid swapping migrations out
-    /// from under an in-flight operation.
+    /// File-system watcher callback — fires when the profile YAML changes on disk. Changes are
+    /// debounced into one `HandleProfileFileChange`.
     void OnProfileFileChanged(QString const& path);
 
   private:
+    /// Handles the debounced change of the watched profile file: drops a change of a file that is no
+    /// longer the profile file, ignores content the controller loaded or wrote last, defers while a
+    /// connect, reload or run is in flight, and reloads the profiles otherwise.
+    void HandleProfileFileChange();
+
+    /// Reloads the profiles for a change deferred earlier, once nothing is in flight any more.
+    void ApplyDeferredProfileFileChange();
+
+    /// True while the profile store must not be swapped: a connect, reload, check or run is in flight.
+    [[nodiscard]] bool ProfileReloadBlocked() const;
+
     void ReportError(QString const& message);
+
+    /// Second half of the constructor, queued so the window shows first: loads the discovered profile
+    /// store unless one is loaded already, logs the banner, and starts the ODBC refresh and the plugin load.
+    void BeginStartup();
+
+    /// Emits `activityChanged` when any of the activity properties changed.
+    void UpdateActivity();
+
+    /// Puts a snapshot's rows into the models and keeps its derived figures; emits `migrationsChanged`.
+    void ApplySnapshot(MigrationSnapshot snapshot);
+
+    /// Applies the outcome of a plugin reload job: its log always, its snapshot only while its
+    /// generation is current; then checks the backup requirement once no reload is left.
+    void ApplyPluginReload(PluginReloadOutcome outcome);
+
+    /// Applies the connection part of a connect job: its log always; while its generation is current,
+    /// its snapshot, and on success the connected state and the encryption of a plaintext password.
+    /// @param request The request the job ran.
+    /// @param outcome What it produced.
+    /// @param plaintextProfile The profile whose plaintext password the connect used; encrypted on success.
+    void ApplyConnect(ConnectRequest const& request,
+                      ConnectOutcome outcome,
+                      std::optional<Lightweight::Config::Profile> const& plaintextProfile);
+
+    /// Ends a connect job: applies its backup requirement while current, clears `connecting`, and
+    /// emits `connectFinished`.
+    /// @param requirement The requirement the job evaluated; empty when it did not connect.
+    /// @param generation The generation of the connect.
+    void FinishConnect(std::optional<BackupRequirementState> requirement, std::uint64_t generation);
+
+    /// Evaluates the backup requirement on the worker while connected, and clears it while not.
+    /// Leaves it alone while a migration run is in flight.
+    void RequestBackupRequirementCheck();
+
+    /// Shows @p state as the backup requirement; resets the waiver when nothing is required.
+    void ApplyBackupRequirement(BackupRequirementState state);
+
+    /// Applies a current history re-read: its snapshot and, while connected, its requirement.
+    void ApplyHistoryRefresh(HistoryRefreshOutcome outcome);
+
+    /// Makes every job result for the target the UI showed until now stale: ends a connect in flight at
+    /// once (its job drops out at its next check) and stops counting the checks and re-reads in flight.
+    void BumpTargetGeneration();
+
+    /// An input of the connection mode @p mode changed (a DSN, its credentials or schema, a connection
+    /// string or its schema). While that mode is active and a connect is in flight, that connect targets
+    /// the old input, so it ends and its result becomes stale.
+    /// @param mode "dsn" or "custom".
+    void TargetInputChanged(QString const& mode);
+
+    /// Stores @p value under @p key in the settings; they are written to disk shortly after, in one go.
+    void PersistSetting(char const* key, QVariant const& value);
+
+    /// Waits up to @p limit for every worker to finish its jobs.
+    /// @return Whether none still runs.
+    [[nodiscard]] bool DrainWorkers(std::chrono::milliseconds limit);
 
     /// True while a migration, backup or restore is in flight.
     [[nodiscard]] bool AnyRunInFlight() const;
@@ -569,8 +869,32 @@ class AppController: public QObject
     void LogWarn(QString line);
     void LogError(QString line);
 
+    /// The generated `<target>-<timestamp>.zip` archive path in the backup folder; touches no disk.
+    /// @return The archive path, or why there is none, e.g. "no backup folder is configured; choose one in Settings."
+    [[nodiscard]] std::expected<QString, QString> GeneratedBackupArchive() const;
+
+    /// Receives the archive path once its folder exists, or why it could not be created.
+    using BackupFolderReady = std::function<void(std::expected<QString, QString>)>;
+
+    /// Creates the folder of @p archivePath on the worker and calls @p ready on the GUI thread with the
+    /// archive path, or the failure; also a failure when the connection changed meanwhile.
+    void PrepareBackupFolder(QString const& archivePath, BackupFolderReady ready);
+
+    /// Ends the apply `applyAfterBackup` put off without running it: logs @p reason and emits `chainedApplyFailed`.
+    void FailChainedApply(QString const& reason);
+
+    /// Ends a pending `applyAfterBackup` without applying: logs @p reason and emits `chainedBackupFailed`.
+    void FailChainedBackup(QString const& reason);
+
+    /// Clears `chainedBackupPending`, emitting its change signal when it was set.
+    void EndChainedBackup();
+
+    /// Starts the apply `applyAfterBackup` put off, once its backup finished successfully.
+    void ApplyChainedRun();
+
     /// Encrypts the plaintext password of `profile` in the loaded dbtool.yml after a
-    /// successful connection, logging the outcome; never fails the connect.
+    /// successful connection, logging the outcome; never fails the connect. The store is re-read in
+    /// place, and the file watcher's echo of the write is ignored.
     void EncryptPlaintextPassword(Lightweight::Config::Profile const& profile);
 
     /// Computes the effective plugin search directories for the current
@@ -580,50 +904,49 @@ class AppController: public QObject
     /// store is a list. Returns an empty vector when nothing is configured.
     [[nodiscard]] std::vector<std::filesystem::path> EffectivePluginsDir() const;
 
-    /// Rebuilds the plugin list from `EffectivePluginsDir()` and refreshes
-    /// the migration / release models. Triggered at startup and whenever a
-    /// property that influences the effective directory (plugins override,
-    /// current profile, connection mode) changes, so the migration list is
-    /// always visible as soon as a directory is known — without waiting for
-    /// a successful DB connect. While a migration run is active it only marks
-    /// the reload as pending; the run's `finished` handler then performs it.
-    void ReloadPlugins();
+    /// Asks for the plugins to be reloaded from `EffectivePluginsDir()` on the worker, so the
+    /// migration list follows the plugins directory, profile and mode without a connect. Every
+    /// request made before control returns to the event loop becomes one job (`FlushPluginReload`).
+    /// While a migration run is active it only marks the reload as pending; the run's `finished`
+    /// handler requests it again.
+    void RequestPluginReload();
 
-    /// Runs the loaded plugins' post-init hooks on the migration connection, logging every failure.
-    void RunPostInitHooks();
+    /// Starts the one reload job the requests since the last flush asked for.
+    void FlushPluginReload();
+
+    /// Starts the first plugin load, once: after `BeginStartup`, and after the first frame when
+    /// `awaitFirstFrame` asked for one.
+    void StartFirstPluginLoad();
+
+    /// The main window showed its first frame, or waiting for it gave up.
+    void OnFirstFrame();
 
     /// Drops the "connected" flag (emitting `connectedChanged`) without
     /// tearing down the underlying `SqlConnection` — those are reclaimed
     /// lazily by the pool. Call this whenever the property that identifies
     /// the *target database* changes (profile switch, connection-mode
-    /// swap) so the next `ReloadPlugins()` goes through the "unknown"
-    /// path instead of re-running `Refresh` against whatever applied-set
-    /// the prior profile's DB exposed.
+    /// swap) so the next plugin reload goes through the "unknown" path
+    /// instead of re-reading whatever applied-set the prior profile's DB
+    /// exposed.
     void InvalidateConnectionTarget();
 
-    /// Re-reads the migration / release models from the manager after a run
-    /// that may have changed the database's applied-set (a finished migration
-    /// run, or a managed restore into the connected profile). A full `Refresh`
-    /// touches `schema_migrations` and throws on an unmanaged database, so it
-    /// falls back to a plugin-only refresh and surfaces the reason as a
-    /// warning. Always emits `migrationsChanged()`.
+    /// Re-reads the models, and while connected the backup requirement, in one worker job after a run
+    /// that may have changed the database's applied-set (a finished migration run, or a managed restore
+    /// into the connected profile). An unreadable history falls back to a plugin-only view and surfaces
+    /// the reason as a warning.
     void RefreshMigrationModelsAfterRun();
-
-    /// Re-evaluates `backupRequired`, its reasons and its note for all pending migrations, the scope
-    /// the Simple view's Run and the default Apply run; the runner re-checks the scope it actually runs.
-    /// Clears everything while not connected and leaves it alone while a migration run is in flight.
-    void RefreshBackupRequirement();
 
     /// Opaque bundle of `Lightweight::Tools::LoadedPlugin` keeping every
     /// loaded shared library alive. Defined in `AppController.cpp` so the
     /// header doesn't pull in `<PluginIngestion.hpp>` (see the comment at
     /// the top of this file for the moc-parser reason). Declared before
-    /// `_runner`, so the runner's pool has finished before the plugins unload.
+    /// `_runner`, so the runner's worker has finished before the plugins unload.
     struct PluginsBundle;
     std::unique_ptr<PluginsBundle> _plugins;
 
     ProfileListModel _profiles;
     OdbcDataSourceListModel _odbcDataSources;
+    LogLineModel _logLines;
     MigrationListModel _migrations;
     ReleaseListModel _releases;
     MigrationRunner _runner;
@@ -649,13 +972,57 @@ class AppController: public QObject
     /// User-customised `dbtool.yml` location; empty means "use the discovered
     /// dbtool.yml" (see `Config::FindConfigFile`).
     QString _profileStorePath;
-    /// True once `connectToProfile` routed the migration manager's log sink into this
-    /// controller; the destructor removes it again so it cannot outlive us.
+    /// True once a connect routed the migration manager's log sink into this controller; the
+    /// destructor removes it again so it cannot outlive us.
     bool _installedMigrationLogSink = false;
-    /// True when `ReloadPlugins` was refused during a migration run and must run once it finishes.
+    /// True when a plugin reload was put off during a migration run or a connect and must run once it finishes.
     bool _pluginReloadPending = false;
-    /// True while `connectToProfile` reloads the plugins; it runs the post-init hooks itself, on the new connection.
+    /// True from construction until `BeginStartup` ran.
+    bool _startupPending = true;
+    /// True while a `FlushPluginReload` is queued.
+    bool _pluginReloadFlushQueued = false;
+    /// Plugin reload jobs whose outcome has not been applied yet.
+    int _pluginReloadJobsInFlight = 0;
+    /// The directories of the last plugin reload; empty before the first.
+    std::optional<std::vector<std::filesystem::path>> _requestedPluginDirectories;
+    /// Identifies the target the UI shows: bumped by every profile, mode, plugins-directory or
+    /// connection change. A job outcome of an older generation is stale and dropped.
+    std::atomic<std::uint64_t> _targetGeneration { 0 };
+    /// True once a profile store was loaded; the startup then leaves it alone.
+    bool _storeLoaded = false;
+    /// True once the startup's "Ready" line was logged.
+    bool _readyLogged = false;
+    /// See the `odbcRefreshing` property.
+    bool _odbcRefreshing = false;
+    /// True when `refreshOdbcDataSources` was called during a refresh; one more runs afterwards.
+    bool _odbcRefreshAgain = false;
+    /// True once `BeginStartup` ran.
+    bool _startupBegun = false;
+    /// True from `awaitFirstFrame` until the first frame (or the fallback) arrived.
+    bool _awaitingFirstFrame = false;
+    /// True once `Shutdown` ran; no job starts any more.
+    bool _shuttingDown = false;
+    /// See the `connecting` property.
     bool _connecting = false;
+    /// True while the connect job in flight evaluates the backup requirement of its new connection.
+    bool _connectRequirementPending = false;
+    /// Backup-requirement checks queued or running on the worker, the after-run re-reads included.
+    int _backupRequirementChecksInFlight = 0;
+    /// History re-reads queued or running on the worker.
+    int _historyRefreshesInFlight = 0;
+    /// The activity `UpdateActivity` last announced: loading, ODBC, connecting, requirement, history.
+    std::array<bool, 5> _announcedActivity { true, false, false, false, false };
+    /// How long `Shutdown` waits for the jobs in flight.
+    std::chrono::milliseconds _shutdownDrainLimit = DefaultShutdownDrainLimit;
+    /// Runs when the jobs are still running after `_shutdownDrainLimit`.
+    std::function<void()> _onShutdownDrainExceeded;
+    /// The profile store discovery picked when the controller was created, and how it was found.
+    QString _discoveredStorePath;
+    QString _discoveredStoreSource;
+    /// The pre-migrate step count of the last applied snapshot.
+    int _preMigrateStepCount = 0;
+    /// The target release label of the last applied snapshot.
+    QString _targetReleaseLabel;
     QString _profilePath;
     QString _lastError;
     QString _lastWarning;
@@ -670,6 +1037,16 @@ class AppController: public QObject
     QString _lastRecordError;
     /// See the `migrateWithoutBackup` property.
     bool _migrateWithoutBackup = false;
+    /// See the `chainedBackupPending` property.
+    bool _chainedBackupPending = false;
+    /// The apply target `applyAfterBackup` runs once its backup succeeded.
+    QString _chainedApplyTarget;
+    /// The migrations `applyAfterBackup` applies instead of the target when not empty.
+    QStringList _chainedApplySelection;
+    /// The target generation `applyAfterBackup` started under; a later one applies nothing.
+    std::uint64_t _chainedApplyGeneration = 0;
+    /// True while a backup folder is created on the worker, so no second backup starts meanwhile.
+    bool _backupFolderPreparing = false;
     QString _connectedTarget;
     QString _connectedMode;
     bool _logVisible = true;
@@ -708,6 +1085,32 @@ class AppController: public QObject
     /// held by raw pointer to keep `<QtCore/QFileSystemWatcher>` out of this
     /// header. The instance is parented to `this` so Qt reclaims it.
     class QFileSystemWatcher* _fileWatcher = nullptr;
+    /// Collects the watcher's notifications of one save into one `HandleProfileFileChange`.
+    QTimer* _profileFileDebounce = nullptr;
+    /// The watched file the last notification named.
+    QString _changedProfileFile;
+    /// The profile file as this controller last loaded or wrote it; a change to that content is ignored.
+    std::optional<ProfileFileFingerprint> _knownFingerprint;
+    /// The profile file whose change waits for the controller to be idle; empty when none does.
+    QString _deferredProfileFile;
+    /// True while an `ApplyDeferredProfileFileChange` is queued.
+    bool _deferredProfileFileQueued = false;
+
+    /// How long the counters may lag a run's row status changes.
+    static constexpr std::chrono::milliseconds RowStatusNotifyInterval { 100 };
+    /// Emits `migrationsChanged` once for the row status changes of the last `RowStatusNotifyInterval`.
+    QTimer* _migrationsChangedThrottle = nullptr;
+
+    /// The application's settings, written to disk by `_settingsSync` rather than once per setter.
+    QSettings* _settings = nullptr;
+    /// Writes `_settings` shortly after the last change; `Shutdown` writes what is left.
+    QTimer* _settingsSync = nullptr;
+
+    /// Enumerates the ODBC data sources; declared last, so it has finished before any member goes.
+    SerialWorker _odbcWorker;
+    /// Does the file I/O that may stall on a network share, so it never queues behind database jobs;
+    /// declared last for the same reason as `_odbcWorker`.
+    SerialWorker _fileWorker;
 };
 
 } // namespace DbtoolGui

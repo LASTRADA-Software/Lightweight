@@ -189,6 +189,30 @@ TEST_CASE("ProfileStore — malformed YAML returns a readable error", "[ProfileS
     CHECK(result.error().contains("broken"));
 }
 
+TEST_CASE("ProfileStore — Parse reads the same store as LoadOrDefault from the same bytes", "[ProfileStore]")
+{
+    auto const content = std::string { R"(defaultProfile: b
+profiles:
+  a:
+    connectionString: "DRIVER=SQLite3;Database=a.db"
+  b:
+    dsn: "b"
+)" };
+    ScopedTempYaml const yaml(content);
+    auto const loaded = Lightweight::Config::ProfileStore::LoadOrDefault(yaml.Path());
+    auto const parsed = Lightweight::Config::ProfileStore::Parse(content, yaml.Path());
+    REQUIRE(loaded.has_value());
+    REQUIRE(parsed.has_value());
+    CHECK(parsed->DefaultProfileName() == "b");
+    REQUIRE(parsed->Profiles().size() == 2);
+    CHECK(parsed->Profiles()[0].connectionString == loaded->Profiles()[0].connectionString);
+    CHECK(parsed->Profiles()[1].dsn == "b");
+
+    auto const broken = Lightweight::Config::ProfileStore::Parse("profiles: [", yaml.Path());
+    REQUIRE_FALSE(broken.has_value());
+    CHECK(broken.error().contains(yaml.Path().filename().string()));
+}
+
 TEST_CASE("Profile::ToConnectInfo — a resolved password is appended with connection-string quoting", "[ProfileStore]")
 {
     using namespace Lightweight;

@@ -49,7 +49,7 @@ struct LoadedPlugin
     /// function pointer for the symbol they want to verify a caller looks
     /// up. Empty `std::function` is treated as "no symbol available" by
     /// `TryGetFunction`. Used by post-load hooks (e.g. dbtool's
-    /// `LightweightMigrationPluginPostInit`) that need to discover
+    /// `LightweightMigrationPluginPostInitReported`) that need to discover
     /// optional extension points without re-opening the shared library.
     std::function<PluginLoader::GenericFunctionPointer(std::string const&)> tryGetSymbol {};
 
@@ -140,7 +140,7 @@ void UnloadPlugins(std::vector<LoadedPlugin>& plugins, Lightweight::SqlMigration
 /// `std::runtime_error` when `PluginLoader` construction itself fails.
 [[nodiscard]] PluginLoaderFn DefaultPluginLoader();
 
-/// Invoke every plugin's optional `LightweightMigrationPluginPostInit` hook
+/// Invoke every plugin's optional post-init hook (`PostInitHookSymbol`)
 /// against the supplied connection and central manager. Used by `dbtool` and
 /// `dbtool-gui` to give plugins a one-shot opportunity to bridge legacy
 /// version-tracking schemes (e.g. SqlMigrationsPlugin's
@@ -149,9 +149,13 @@ void UnloadPlugins(std::vector<LoadedPlugin>& plugins, Lightweight::SqlMigration
 ///
 /// First removes every pre-migrate step, which the hooks register anew.
 ///
-/// Hooks that throw are reported through `logError` and skipped — a
+/// Hooks that fail (the macro's entry point catches what the body throws
+/// and reports it) are reported through `logError` and skipped — a
 /// misbehaving plugin must not abort the host's startup or connect path.
-/// Plugins that do not export the symbol are silently bypassed.
+/// Plugins that do not export the symbol are silently bypassed. A plugin that
+/// exports only `LegacyPostInitHookSymbol` was built against an older
+/// Lightweight whose hook has another signature: it is not called, and one
+/// warning asking to rebuild it goes to `logError`.
 ///
 /// @param plugins  Plugin set returned by `IngestPlugins`.
 /// @param connection Live connection to pass to each hook.
@@ -165,7 +169,11 @@ void RunPluginPostInitHooks(std::span<LoadedPlugin const> plugins,
                             std::function<void(std::string_view)> const& logError);
 
 /// Symbol of the optional post-init hook (`LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT`).
-inline constexpr std::string_view PostInitHookSymbol = "LightweightMigrationPluginPostInit";
+inline constexpr std::string_view PostInitHookSymbol = "LightweightMigrationPluginPostInitReported";
+
+/// Symbol of the post-init hook of plugins built against an older Lightweight, a
+/// `void(SqlConnection&, MigrationManager&)` that may throw. Hosts never call it.
+inline constexpr std::string_view LegacyPostInitHookSymbol = "LightweightMigrationPluginPostInit";
 
 /// Lists the plugins that export a post-init hook. `RunPluginPostInitHooks` would run each of
 /// them against the database, and a hook may write (e.g. seed reference data).

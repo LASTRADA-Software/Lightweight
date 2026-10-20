@@ -33,6 +33,31 @@ ColumnLayout {
     readonly property bool hasSelection: AppController.selectionCount > 0
     /// A required backup is missing and the user did not waive it; dry runs stay available.
     readonly property bool backupBlocked: AppController.backupRequired && !AppController.migrateWithoutBackup
+    /// The Simple view always locks, so the switch only counts while the Expert view is shown.
+    readonly property string migrationLocking: root.acquireLock || AppController.viewMode !== "expert" ? "acquire" : "skip"
+    onMigrationLockingChanged: AppController.setMigrationLocking(root.migrationLocking)
+    Component.onCompleted: AppController.setMigrationLocking(root.migrationLocking)
+    /// Why the last "Back up first" backup failed; empty once the next run starts.
+    property string chainedBackupError: ""
+    /// The banner title for `chainedBackupError`: the backup failed, or the migrations after it did not start.
+    property string chainedBackupErrorTitle: ""
+
+    Connections {
+        target: AppController
+        function onChainedBackupFailed(summary) {
+            // The Simple view reports the backups it chains itself.
+            if (AppController.viewMode === "expert") {
+                root.chainedBackupErrorTitle = qsTr("The backup failed; no migration ran")
+                root.chainedBackupError = summary
+            }
+        }
+        function onChainedApplyFailed(summary) {
+            if (AppController.viewMode === "expert") {
+                root.chainedBackupErrorTitle = qsTr("The backup finished; the migrations did not start")
+                root.chainedBackupError = summary
+            }
+        }
+    }
 
     /// Resolves the effective `targetTimestamp` for `applyUpTo` / `dryRunUpTo`.
     /// Empty string means "apply everything pending".
@@ -63,9 +88,6 @@ ColumnLayout {
     Repeater {
         model: [
             { key: "latest",    label: qsTr("Latest — everything pending"),
-              help: AppController.pendingCount === 1
-                    ? qsTr("Apply the 1 pending migration.")
-                    : qsTr("Apply all %1 pending migrations.").arg(AppController.pendingCount),
               tip: qsTr("Apply every pending migration.") },
             { key: "release",   label: qsTr("Up to a release"),
               help: qsTr("Stop after the last migration of a declared release."),
@@ -77,6 +99,7 @@ ColumnLayout {
         Rectangle {
             id: optionRect
             required property var modelData
+            objectName: "targetOption_" + modelData.key
             readonly property bool active: root.target === modelData.key
             readonly property bool expanded: active && (modelData.key === "release" || modelData.key === "timestamp")
 
@@ -160,7 +183,11 @@ ColumnLayout {
                 }
                 Label {
                     width: parent.width
-                    text: optionRect.modelData.help
+                    // Read here, not in the model: a model change would rebuild every option.
+                    text: optionRect.modelData.key !== "latest" ? optionRect.modelData.help
+                        : AppController.pendingCount === 1
+                          ? qsTr("Apply the 1 pending migration.")
+                          : qsTr("Apply all %1 pending migrations.").arg(AppController.pendingCount)
                     color: Theme.clrOnSurfaceSubtle
                     font.pixelSize: Theme.sizeLabel
                     wrapMode: Text.WordWrap
@@ -173,6 +200,7 @@ ColumnLayout {
                 }
 
                 ComboBox {
+                    objectName: "releasePicker"
                     width: parent.width
                     visible: optionRect.expanded && optionRect.modelData.key === "release"
                     model: AppController.releases
@@ -184,6 +212,7 @@ ColumnLayout {
                 }
 
                 TimestampAutocomplete {
+                    objectName: "timestampField"
                     width: parent.width
                     visible: optionRect.expanded && optionRect.modelData.key === "timestamp"
                     value: root.specificTimestamp
@@ -208,6 +237,7 @@ ColumnLayout {
         text: qsTr("The target picker is bypassed.")
         actions: [
             LsButton {
+                objectName: "clearSelectionButton"
                 text: qsTr("Clear")
                 variant: "ghost"
                 onClicked: AppController.selectAllPending(false)
@@ -251,17 +281,17 @@ ColumnLayout {
             id: optionRows
             model: [
                 { label: qsTr("Dry run"),
-                  desc: qsTr("Run in a transaction, then roll back."),
+                  desc: qsTr("Show the SQL; change nothing."),
                   prop: "dryRun",
-                  tip: qsTr("Run inside a transaction and roll back — no changes persist.") },
+                  tip: qsTr("Shows what would run, including the pre-migrate steps' plan. Nothing is written.") },
                 { label: qsTr("Acquire lock"),
                   desc: qsTr("Block concurrent migrators (recommended)."),
                   prop: "acquireLock",
-                  tip: qsTr("Advisory lock on schema_migrations — blocks concurrent migrators.") },
+                  tip: qsTr("Hold the migration lock while applying or rolling back, so no other migrator runs at the same time.") },
                 { label: qsTr("Back up first"),
                   desc: qsTr("Snapshot schema + data to .zip."),
                   prop: "backupBeforeApply",
-                  tip: qsTr("Write a snapshot before the first migration runs.") },
+                  tip: qsTr("Write a snapshot before the first migration runs. Rollback does not back up.") },
             ]
             Item {
                 id: switchRow
@@ -294,6 +324,7 @@ ColumnLayout {
                         elide: Text.ElideRight
                     }
                     Label {
+                        objectName: "optionDesc_" + switchRow.modelData.prop
                         text: switchRow.modelData.desc
                         color: Theme.clrOnSurfaceSubtle
                         font.pixelSize: Theme.sizeLabel
@@ -304,6 +335,7 @@ ColumnLayout {
 
                 Switch {
                     id: toggleSwitch
+                    objectName: "optionSwitch_" + switchRow.modelData.prop
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     padding: 0
@@ -381,8 +413,10 @@ ColumnLayout {
     }
 
     BackupRequiredAlert {
+        objectName: "actionsBackupAlert"
         Layout.fillWidth: true
-        visible: AppController.connected && AppController.backupRequired
+        visible: AppController.connected && (AppController.backupRequired || AppController.backupRequirementPending)
+        pending: AppController.backupRequirementPending
         reasons: AppController.backupRequirementReasons
         note: AppController.backupRequirementNote
         busy: AppController.runner.phase !== MigrationRunner.Idle
@@ -393,13 +427,23 @@ ColumnLayout {
         onWaivedToggled: (checked) => AppController.setMigrateWithoutBackup(checked)
     }
 
+    Banner {
+        objectName: "chainedBackupFailedMessage"
+        Layout.fillWidth: true
+        visible: root.chainedBackupError !== ""
+        kind: "err"
+        title: root.chainedBackupErrorTitle
+        text: root.chainedBackupError
+    }
+
     // Primary action button — the one brand-red action on the screen.
     LsButton {
+        objectName: "primaryActionButton"
         Layout.fillWidth: true
         variant: "primary"
         size: "lg"
         glyph: "play"
-        busy: AppController.runner.phase !== MigrationRunner.Idle
+        busy: AppController.runner.phase !== MigrationRunner.Idle || AppController.chainedBackupPending
         // The backup/managed-backup terms mirror the mutual busy guard wired in
         // AppController: applying migrations while a backup is writing an
         // archive tears that archive, and the C++ guard would refuse the click
@@ -412,12 +456,15 @@ ColumnLayout {
                          && AppController.managedBackups.phase === ManagedBackupController.Idle))
                  && (root.target !== "release" || root.hasSelection || root.selectedRelease.length > 0)
                  && (root.target !== "timestamp" || root.hasSelection || root.specificTimestamp.length > 0)
-                 && (root.dryRun || !root.backupBlocked)
+                 && (root.dryRun || !root.backupBlocked || root.backupBeforeApply)
+                 && !AppController.backupRequirementPending
+                 && !AppController.busy
+                 && !AppController.chainedBackupPending
         ToolTip.visible: hovered
         ToolTip.delay: 500
         ToolTip.timeout: 10000
         ToolTip.text: root.dryRun
-            ? qsTr("Run inside a transaction and roll back.")
+            ? qsTr("Show what would run; change nothing.")
             : qsTr("<b>Destructive.</b> Apply the chosen target and commit.")
         text: {
             const verb = root.dryRun ? qsTr("Dry-run") : qsTr("Apply");
@@ -430,16 +477,16 @@ ColumnLayout {
             return qsTr("%1 pending migrations").arg(verb);
         }
         onClicked: {
-            if (root.hasSelection) {
-                const ids = AppController.selectedMigrationTimestamps();
-                if (root.dryRun)
-                    AppController.runner.dryRunSelected(ids);
-                else
-                    AppController.runner.applySelected(ids);
-                return;
-            }
-            const targetTs = root.resolvedTargetTimestamp();
-            if (root.dryRun)
+            root.chainedBackupError = "";
+            const ids = root.hasSelection ? AppController.selectedMigrationTimestamps() : [];
+            const targetTs = root.hasSelection ? "" : root.resolvedTargetTimestamp();
+            if (!root.dryRun && root.backupBeforeApply)
+                AppController.applyAfterBackup("", targetTs, ids);
+            else if (root.hasSelection && root.dryRun)
+                AppController.runner.dryRunSelected(ids);
+            else if (root.hasSelection)
+                AppController.runner.applySelected(ids);
+            else if (root.dryRun)
                 AppController.runner.dryRunUpTo(targetTs);
             else
                 AppController.runner.applyUpTo(targetTs);
@@ -451,6 +498,7 @@ ColumnLayout {
     // the destructive action requires an explicit click, and outlined in
     // error red (`danger`) so it never reads as the main action.
     LsButton {
+        objectName: "rollbackButton"
         Layout.fillWidth: true
         variant: "danger"
         size: "md"
@@ -460,6 +508,7 @@ ColumnLayout {
                  && AppController.runner.phase === MigrationRunner.Idle
                  && AppController.backupRunner.phase === BackupRunner.Idle
                  && AppController.managedBackups.phase === ManagedBackupController.Idle
+                 && !AppController.busy
         text: qsTr("Rollback to release %1…").arg(root.selectedRelease)
         ToolTip.visible: hovered
         ToolTip.delay: 500
@@ -471,7 +520,7 @@ ColumnLayout {
     Label {
         Layout.fillWidth: true
         horizontalAlignment: Text.AlignHCenter
-        text: qsTr("≈ dbtool migrate %1").arg(root.dryRun ? "--dry-run" : "")
+        text: qsTr("≈ dbtool migrate %1").arg(root.dryRun ? "--dry-run" : root.acquireLock ? "" : "--no-lock")
         color: Theme.clrOnSurfaceFaint
         font: Theme.monoFont(Theme.sizeLabel)
         elide: Text.ElideRight

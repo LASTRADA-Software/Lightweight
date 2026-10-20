@@ -338,6 +338,7 @@ Rectangle {
 
         // ---- SIZE (folded into the sub-line in card mode) ----
         Label {
+            objectName: "profileSizeLabel"
             visible: !root.compact
             Layout.row: 0
             Layout.column: root.compact ? 0 : 3
@@ -369,6 +370,7 @@ Rectangle {
                 spacing: 6
 
                 LsButton {
+                    objectName: "profileBackupButton"
                     variant: "secondary"
                     size: "sm"
                     text: root.backupLabel
@@ -376,6 +378,7 @@ Rectangle {
                     onClicked: root.backupRequested()
                 }
                 LsButton {
+                    objectName: "profileRestoreButton"
                     variant: "danger"
                     size: "sm"
                     text: qsTr("Restore…")

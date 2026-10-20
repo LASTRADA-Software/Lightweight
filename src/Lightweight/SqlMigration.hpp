@@ -1196,11 +1196,47 @@ namespace SqlMigration
         return &Lightweight::SqlMigration::MigrationManager::GetInstance();                              \
     }
 
+/// Defines the non-throwing exported C entry point @p entryPoint of a plugin hook, which runs the
+/// body that follows the macro as @p body and hands the message of an exception it throws to the
+/// host's error sink, returning false; no exception crosses the shared-library boundary. Use
+/// `LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT` or `LIGHTWEIGHT_MIGRATION_PLUGIN_POSTMIGRATE` instead.
+#define LIGHTWEIGHT_DETAIL_MIGRATION_PLUGIN_HOOK(entryPoint, body, connArg, mgrArg)                           \
+    static void body(Lightweight::SqlConnection&, Lightweight::SqlMigration::MigrationManager&);              \
+    extern "C" LIGHTWEIGHT_EXPORT bool entryPoint(Lightweight::SqlConnection& connection,                     \
+                                                  Lightweight::SqlMigration::MigrationManager& manager,       \
+                                                  Lightweight::SqlMigration::PluginHookErrorSink reportError, \
+                                                  void* errorContext) noexcept                                \
+    {                                                                                                         \
+        try                                                                                                   \
+        {                                                                                                     \
+            body(connection, manager);                                                                        \
+            return true;                                                                                      \
+        }                                                                                                     \
+        catch (std::exception const& exception)                                                               \
+        {                                                                                                     \
+            if (reportError != nullptr)                                                                       \
+                reportError(errorContext, exception.what());                                                  \
+        }                                                                                                     \
+        catch (...)                                                                                           \
+        {                                                                                                     \
+            if (reportError != nullptr)                                                                       \
+                reportError(errorContext, "unknown exception");                                               \
+        }                                                                                                     \
+        return false;                                                                                         \
+    }                                                                                                         \
+    static void body(Lightweight::SqlConnection&(connArg), Lightweight::SqlMigration::MigrationManager&(mgrArg))
+
 /// Optional hook executed once per plugin by dbtool, after migration history has been
 /// created and an active connection is available on the central manager. Plugins use
 /// this to perform one-shot bridging work that needs both a live `SqlConnection` and
 /// the merged `MigrationManager` — for example, importing legacy version tracking
 /// from a custom table into `schema_migrations`.
+///
+/// A hook body that throws is reported by the host and does not stop it. The macro exports the
+/// non-throwing C entry point `LightweightMigrationPluginPostInitReported`, which catches the
+/// exception and hands its message to the host, so no exception crosses the shared-library
+/// boundary, whatever exception model the plugin uses. Hosts skip, with a warning, a plugin that
+/// exports only the earlier `LightweightMigrationPluginPostInit`; rebuild such a plugin.
 ///
 /// Use as:
 ///
@@ -1212,9 +1248,9 @@ namespace SqlMigration
 /// @endcode
 ///
 /// @ingroup SqlMigration
-#define LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connArg, mgrArg)             \
-    extern "C" LIGHTWEIGHT_EXPORT void LightweightMigrationPluginPostInit( \
-        Lightweight::SqlConnection&(connArg), Lightweight::SqlMigration::MigrationManager&(mgrArg))
+#define LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connArg, mgrArg) \
+    LIGHTWEIGHT_DETAIL_MIGRATION_PLUGIN_HOOK(                  \
+        LightweightMigrationPluginPostInitReported, LightweightMigrationPluginPostInitBody, connArg, mgrArg)
 
 /// Optional hook executed once per plugin by dbtool and dbtool-gui after a successful
 /// `migrate`, `migrate-to-release` or `apply`, including runs where nothing was pending.
@@ -1237,41 +1273,19 @@ namespace SqlMigration
 /// @endcode
 ///
 /// @ingroup SqlMigration
-#define LIGHTWEIGHT_MIGRATION_PLUGIN_POSTMIGRATE(connArg, mgrArg)                                        \
-    static void LightweightMigrationPluginPostMigrateBody(Lightweight::SqlConnection&,                   \
-                                                          Lightweight::SqlMigration::MigrationManager&); \
-    extern "C" LIGHTWEIGHT_EXPORT bool LightweightMigrationPluginPostMigrate(                            \
-        Lightweight::SqlConnection& connection,                                                          \
-        Lightweight::SqlMigration::MigrationManager& manager,                                            \
-        Lightweight::SqlMigration::PostMigrateErrorSink reportError,                                     \
-        void* errorContext) noexcept                                                                     \
-    {                                                                                                    \
-        try                                                                                              \
-        {                                                                                                \
-            LightweightMigrationPluginPostMigrateBody(connection, manager);                              \
-            return true;                                                                                 \
-        }                                                                                                \
-        catch (std::exception const& exception)                                                          \
-        {                                                                                                \
-            if (reportError != nullptr)                                                                  \
-                reportError(errorContext, exception.what());                                             \
-        }                                                                                                \
-        catch (...)                                                                                      \
-        {                                                                                                \
-            if (reportError != nullptr)                                                                  \
-                reportError(errorContext, "unknown exception");                                          \
-        }                                                                                                \
-        return false;                                                                                    \
-    }                                                                                                    \
-    static void LightweightMigrationPluginPostMigrateBody(Lightweight::SqlConnection&(connArg),          \
-                                                          Lightweight::SqlMigration::MigrationManager&(mgrArg))
+#define LIGHTWEIGHT_MIGRATION_PLUGIN_POSTMIGRATE(connArg, mgrArg) \
+    LIGHTWEIGHT_DETAIL_MIGRATION_PLUGIN_HOOK(                     \
+        LightweightMigrationPluginPostMigrate, LightweightMigrationPluginPostMigrateBody, connArg, mgrArg)
 
-    /// Host-supplied sink that a plugin's post-migrate entry point reports a failure message to.
-    /// The entry point skips the report when the host passes a null sink.
+    /// Host-supplied sink that a plugin's post-init or post-migrate entry point reports a failure
+    /// message to. The entry point skips the report when the host passes a null sink.
     /// @param context The opaque context the host passed alongside the sink.
     /// @param message The failure message, only valid for the duration of the call. May be null
     ///                (an exception whose `what()` returns null), so the sink must handle that.
-    using PostMigrateErrorSink = void (*)(void* context, char const* message) noexcept;
+    using PluginHookErrorSink = void (*)(void* context, char const* message) noexcept;
+
+    /// The sink of the post-migrate entry point; see `PluginHookErrorSink`.
+    using PostMigrateErrorSink = PluginHookErrorSink;
 
     /// Represents a single unique SQL migration.
     ///

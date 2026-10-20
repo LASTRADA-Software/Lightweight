@@ -55,6 +55,7 @@ Rectangle {
                 id: chip
                 required property var modelData
                 required property int index
+                objectName: root.objectName !== "" ? root.objectName + "_" + modelData.value : ""
                 readonly property bool active: modelData.value === root.current
 
                 height: root._chipH

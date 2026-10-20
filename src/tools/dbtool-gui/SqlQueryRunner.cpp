@@ -15,6 +15,7 @@
 #include <sql.h>
 #include <sqlext.h>
 
+#include <QtCore/QDeadlineTimer>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QMetaObject>
 #include <QtCore/QRunnable>
@@ -265,6 +266,13 @@ void SqlQueryRunner::cancel()
     auto* const native = _activeStmt.load(std::memory_order_acquire);
     if (native != nullptr)
         SQLCancel(static_cast<SQLHSTMT>(native));
+}
+
+bool SqlQueryRunner::WaitForDone(std::chrono::milliseconds timeout)
+{
+    if (timeout == std::chrono::milliseconds::max())
+        return _pool.waitForDone(QDeadlineTimer { QDeadlineTimer::Forever });
+    return _pool.waitForDone(QDeadlineTimer { timeout });
 }
 
 } // namespace DbtoolGui

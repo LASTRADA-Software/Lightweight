@@ -52,9 +52,9 @@ Rectangle {
     property string lastResult: "none"
     property string lastSummary: ""
 
-    // Run-chain state: when `backupFirst` is ticked we run the backup first,
-    // wait for its `finished(ok=true)`, then kick off the apply. `pendingApply`
-    // guards the transition so a failed backup does NOT silently migrate on.
+    // Run-chain state: when `backupFirst` is ticked the backup runs first and
+    // AppController starts the apply only once it succeeded. `pendingApply`
+    // marks the chain this view started, so it shows the backup's outcome.
     property bool pendingApply: false
     // Target file the user picked for the pre-migration backup. Empty while
     // no backup is queued.
@@ -74,13 +74,38 @@ Rectangle {
     // Per-migration state of the current (or last) run, keyed by timestamp:
     // "running" | "done" | "failed". Lets the plan list keep showing a row
     // after the model has flipped it to "applied", so the done state can
-    // list exactly what this run changed. Reassigned (never mutated in
-    // place) so bindings re-evaluate.
+    // list exactly what this run changed. Changed in place, which costs the
+    // same for every migration of a long run; bindings depend on
+    // `runStatesRevision` to see a change.
     property var runStates: ({})
+    property int runStatesRevision: 0
+    property int runStateCount: 0
     function setRunState(timestamp, state) {
-        const next = Object.assign({}, runStates)
-        next[String(timestamp)] = state
-        runStates = next
+        const key = String(timestamp)
+        if (runStates[key] === undefined)
+            runStateCount += 1
+        runStates[key] = state
+        runStatesRevision += 1
+        root.runPlan.touch(key)
+    }
+    function clearRunStates() {
+        runStates = ({})
+        runStateCount = 0
+        runStatesRevision += 1
+        root.runPlan.clearTouched()
+    }
+
+    // The rows the plan lists show: a view over every row would create a delegate for each hidden one.
+    readonly property alias pendingPlan: pendingPlanModel
+    readonly property alias runPlan: runPlanModel
+    MigrationPlanModel {
+        id: pendingPlanModel
+        sourceModel: AppController.migrations
+    }
+    MigrationPlanModel {
+        id: runPlanModel
+        sourceModel: AppController.migrations
+        scope: MigrationPlanModel.Run
     }
 
     // When connected, step 1 collapses unless the user asked to change it.
@@ -125,24 +150,39 @@ Rectangle {
         }
     }
 
+    // AppController starts the apply after a successful backup (`applyAfterBackup`); this view only
+    // follows the outcome. A failed backup is reported first, so the backup handler then finds no chain.
     Connections {
-        target: AppController.backupRunner
-        function onFinished(ok, summary) {
+        target: AppController
+        function onChainedBackupFailed(summary) {
             if (!root.pendingApply)
                 return
             root.pendingApply = false
-            if (ok) {
-                root.lastBackupFile = root.pendingBackupFile
-                root.pendingBackupFile = ""
-                AppController.runner.applyUpTo("")
-            } else {
-                root.pendingBackupFile = ""
-                // Surface the backup failure in the same place the migration
-                // run would; the user's choice to back up first was not an
-                // invitation to ignore a failed backup and migrate anyway.
-                root.lastResult = "failure"
-                root.lastSummary = qsTr("Backup failed before migration could start: ") + summary
-            }
+            root.pendingBackupFile = ""
+            // Surface the backup failure in the same place the migration
+            // run would; the user's choice to back up first was not an
+            // invitation to ignore a failed backup and migrate anyway.
+            root.lastResult = "failure"
+            root.lastSummary = qsTr("Backup failed before migration could start: ") + summary
+        }
+    }
+    Connections {
+        target: AppController
+        function onChainedApplyFailed(summary) {
+            if (AppController.viewMode !== "simple")
+                return
+            root.lastResult = "failure"
+            root.lastSummary = qsTr("The backup finished, but the migrations could not start: ") + summary
+        }
+    }
+    Connections {
+        target: AppController.backupRunner
+        function onFinished(ok, summary) {
+            if (!root.pendingApply || !ok)
+                return
+            root.pendingApply = false
+            root.lastBackupFile = root.pendingBackupFile
+            root.pendingBackupFile = ""
         }
     }
 
@@ -150,7 +190,7 @@ Rectangle {
     /// the plan list shows only this run's migrations.
     function startRun() {
         root.lastResult = "none"
-        root.runStates = ({})
+        root.clearRunStates()
         root.lastBackupFile = ""
         // The backup comes first, so a failed backup must not show the previous run's rows.
         AppController.runner.tasks.clear()
@@ -163,53 +203,42 @@ Rectangle {
     /// Clears the outcome and returns the flow to the review state.
     function dismissResult() {
         root.lastResult = "none"
-        root.runStates = ({})
+        root.clearRunStates()
     }
 
     FileDialog {
         id: backupFileDialog
+        objectName: "backupFileDialog"
         title: qsTr("Choose backup file")
         fileMode: FileDialog.SaveFile
         nameFilters: [qsTr("Backup archive (*.zip)"), qsTr("All files (*)")]
         defaultSuffix: "zip"
         onAccepted: {
-            root.pendingBackupFile = selectedFile.toString().replace(/^file:\/\//, "")
+            const chainWasPending = AppController.chainedBackupPending
+            const archive = AppController.localFilePath(selectedFile)
+            AppController.applyAfterBackup(archive, "", [])
+            // A refused trigger leaves the chain that is running, and its archive, alone.
+            if (chainWasPending || !AppController.chainedBackupPending)
+                return
+            root.pendingBackupFile = archive
             root.pendingApply = true
-            AppController.backupRunner.runBackup(root.pendingBackupFile)
         }
     }
 
     FileDialog {
         id: saveReportDialog
+        objectName: "saveReportDialog"
         title: qsTr("Save failure report")
         fileMode: FileDialog.SaveFile
         nameFilters: [qsTr("Text file (*.txt)"), qsTr("All files (*)")]
         defaultSuffix: "txt"
-        onAccepted: {
-            const path = selectedFile.toString().replace(/^file:\/\//, "")
-            reportWriter.path = path
-            reportWriter.writeNow()
-        }
+        onAccepted: AppController.saveFailureReport(selectedFile)
     }
 
-    // QML cannot write files directly; a QML-side XHR `PUT` to a `file://`
-    // URL works cross-platform and avoids a C++ round-trip for what is a
-    // one-off text dump of `AppController.buildFailureReport()`.
-    QtObject {
-        id: reportWriter
-        property string path: ""
-        function writeNow() {
-            if (!path) return
-            const xhr = new XMLHttpRequest()
-            xhr.open("PUT", "file://" + path, true)
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === XMLHttpRequest.DONE) {
-                    toast.show(xhr.status === 0 || xhr.status === 200 || xhr.status === 201
-                        ? qsTr("Saved report to ") + path
-                        : qsTr("Could not save report (status ") + xhr.status + ")")
-                }
-            }
-            xhr.send(AppController.buildFailureReport())
+    Connections {
+        target: AppController
+        function onFailureReportSaved(path, error) {
+            toast.show(error === "" ? qsTr("Saved report to ") + path : qsTr("Could not save report: ") + error)
         }
     }
 
@@ -332,7 +361,7 @@ Rectangle {
                 interactive: contentHeight > height
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
-                model: AppController.migrations
+                model: plan.showRunState ? root.runPlan : root.pendingPlan
                 ScrollBar.vertical: ScrollBar { policy: list.interactive ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff }
 
                 delegate: Item {
@@ -342,14 +371,11 @@ Rectangle {
                     required property string status
                     required property string releaseVersion
 
-                    readonly property string runState: root.runStates[String(timestamp)] || ""
-                    readonly property bool included: plan.showRunState
-                                                     ? (runState !== "" || status === "pending")
-                                                     : status === "pending"
+                    readonly property string runState: root.runStatesRevision >= 0
+                                                       ? root.runStates[String(timestamp)] || "" : ""
 
                     width: ListView.view.width
-                    height: included ? 32 : 0
-                    visible: included
+                    height: 32
 
                     Rectangle {
                         anchors.fill: parent
@@ -556,6 +582,7 @@ Rectangle {
                 // 3. Run — idle, running, success and failure states.
                 StepSection {
                     id: runStep
+                    objectName: "runStep"
                     Layout.fillWidth: true
                     visible: AppController.connected
                              && (root.hasWork || root.busy || root.lastResult !== "none")
@@ -573,6 +600,7 @@ Rectangle {
 
                         CheckBox {
                             id: backupFirstCheckBox
+                            objectName: "backupFirstCheckBox"
                             text: qsTr("Back up the database first")
                             checked: root.backupFirst
                             onCheckedChanged: root.backupFirst = checked
@@ -582,8 +610,10 @@ Rectangle {
                         }
 
                         BackupRequiredAlert {
+                            objectName: "simpleBackupAlert"
                             width: parent.width
-                            visible: AppController.backupRequired
+                            visible: AppController.backupRequired || AppController.backupRequirementPending
+                            pending: AppController.backupRequirementPending
                             reasons: AppController.backupRequirementReasons
                             note: AppController.backupRequirementNote
                             busy: !root.allIdle
@@ -593,6 +623,7 @@ Rectangle {
                         }
 
                         LsButton {
+                            objectName: "runButton"
                             width: parent.width
                             variant: "primary"
                             size: "lg"
@@ -605,6 +636,7 @@ Rectangle {
                             // backup/restore) would rewrite the schema the
                             // archive is being read from.
                             enabled: root.allIdle && root.hasWork && (!root.backupBlocked || root.backupFirst)
+                                     && !AppController.backupRequirementPending && !AppController.busy
                             onClicked: root.startRun()
                         }
 
@@ -677,6 +709,7 @@ Rectangle {
                         }
 
                         LsButton {
+                            objectName: "cancelButton"
                             width: parent.width
                             size: "md"
                             text: AppController.runner.phase === MigrationRunner.Cancelling
@@ -725,6 +758,7 @@ Rectangle {
                                     Layout.fillWidth: true
                                     spacing: 2
                                     Label {
+                                        objectName: "successTitle"
                                         text: AppController.pendingCount === 0
                                               ? qsTr("Database is up to date") : qsTr("Migrations applied")
                                         color: Theme.clrSuccess
@@ -786,12 +820,14 @@ Rectangle {
                             spacing: 8
                             Item { Layout.fillWidth: true }
                             LsButton {
+                                objectName: "viewLogButton"
                                 variant: "ghost"
                                 glyph: "terminal"
                                 text: qsTr("View log")
-                                onClicked: AppController.setLogVisible(true)
+                                onClicked: { AppController.setViewMode("expert"); AppController.setLogVisible(true) }
                             }
                             LsButton {
+                                objectName: "doneButton"
                                 size: "md"
                                 text: qsTr("Done")
                                 onClicked: root.dismissResult()
@@ -815,6 +851,7 @@ Rectangle {
                         property bool bundleVisible: false
 
                         Banner {
+                            objectName: "failureBanner"
                             width: parent.width
                             kind: "err"
                             title: qsTr("Migration run failed")
@@ -830,7 +867,7 @@ Rectangle {
 
                         PlanList {
                             width: parent.width
-                            visible: Object.keys(root.runStates).length > 0
+                            visible: root.runStateCount > 0
                             showRunState: true
                         }
 
@@ -844,6 +881,7 @@ Rectangle {
                                 onClicked: failureBlock.bundleVisible = !failureBlock.bundleVisible
                             }
                             LsButton {
+                                objectName: "copyReportButton"
                                 glyph: "copy"
                                 text: qsTr("Copy report")
                                 onClicked: {
@@ -854,19 +892,23 @@ Rectangle {
                                 }
                             }
                             LsButton {
+                                objectName: "saveReportButton"
                                 text: qsTr("Save report…")
                                 onClicked: saveReportDialog.open()
                             }
                             LsButton {
+                                objectName: "showFullLogButton"
                                 glyph: "terminal"
                                 text: qsTr("Show full log")
-                                onClicked: AppController.setLogVisible(true)
+                                onClicked: { AppController.setViewMode("expert"); AppController.setLogVisible(true) }
                             }
                             LsButton {
+                                objectName: "retryButton"
                                 variant: "primary"
                                 glyph: "refresh"
                                 text: qsTr("Retry")
                                 enabled: root.hasWork && root.allIdle && !root.backupBlocked
+                                         && !AppController.backupRequirementPending && !AppController.busy
                                 onClicked: {
                                     root.dismissResult()
                                     AppController.runner.applyUpTo("")
@@ -908,6 +950,7 @@ Rectangle {
     // One line in the bottom right; auto-dismisses after ~3 seconds.
     Rectangle {
         id: toast
+        objectName: "toast"
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.margins: Theme.sp6
@@ -927,6 +970,7 @@ Rectangle {
 
         Label {
             id: toastLabel
+            objectName: "toastLabel"
             anchors.centerIn: parent
             text: toast.message
             color: "#ffffff"

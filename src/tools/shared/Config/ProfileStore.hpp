@@ -137,6 +137,14 @@ class ProfileStore
     /// or parse failure is reported via the error channel.
     [[nodiscard]] static std::expected<ProfileStore, std::string> LoadOrDefault(std::filesystem::path path = {});
 
+    /// Parses a store from the content of a profile file, e.g. bytes the caller read once to both
+    /// parse and fingerprint them.
+    /// @param yaml The file's content.
+    /// @param origin The file it came from; relative directories resolve against it and errors name it.
+    /// @return The store, or the parse or validation error.
+    [[nodiscard]] static std::expected<ProfileStore, std::string> Parse(std::string_view yaml,
+                                                                        std::filesystem::path const& origin);
+
     /// Writes the store back to `path`. Empty path means `DefaultPath()`.
     /// Creates parent directories as needed. Never writes secret values.
     [[nodiscard]] std::expected<void, std::string> Save(std::filesystem::path path = {}) const;

@@ -87,6 +87,7 @@ Rectangle {
                         id: tab
                         required property var modelData
                         required property int index
+                        objectName: index === 0 ? "logTab" : "sqlTab"
                         readonly property bool active: root.currentTab === index && root.expanded
 
                         width: tabContent.implicitWidth + 24
@@ -178,6 +179,7 @@ Rectangle {
                 }
 
                 LsButton {
+                    objectName: "copyLogButton"
                     anchors.verticalCenter: parent.verticalCenter
                     visible: root.expanded && root.currentTab === 0
                     variant: "ghost"
@@ -188,6 +190,7 @@ Rectangle {
                     onClicked: logPanel.copyLog()
                 }
                 LsButton {
+                    objectName: "clearLogButton"
                     anchors.verticalCenter: parent.verticalCenter
                     visible: root.expanded && root.currentTab === 0
                     variant: "ghost"
@@ -198,6 +201,7 @@ Rectangle {
                 // The chevron points toward where the panel will go.
                 LsButton {
                     id: toggleButton
+                    objectName: "logToggleButton"
                     anchors.verticalCenter: parent.verticalCenter
                     variant: "ghost"
                     iconOnly: true
@@ -223,6 +227,7 @@ Rectangle {
 
             LogPanel {
                 id: logPanel
+                objectName: "logPanel"
             }
             SqlQueryPanel {
                 id: sqlPanel

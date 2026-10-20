@@ -9,7 +9,10 @@
 #include "../StderrMessageHandler.hpp"
 #include "TestIsolation.hpp"
 
+#include <cstdio>
+
 #include <NoErrorDialogs.hpp>
+#include <QtCore/QtEnvironmentVariables>
 #include <QtQuickControls2/QQuickStyle>
 #include <QtQuickTest/quicktest.h>
 
@@ -32,6 +35,11 @@ int main(int argc, char** argv)
     // the kit components (LsButton, …) replace `background` / `contentItem`,
     // which the platform-native styles refuse to customise.
     QQuickStyle::setStyle(QStringLiteral("Fusion"));
+#ifdef _WIN32
+    // Without a console QtTest logs to the debugger, not to the stdout CTest captures.
+    if (!qEnvironmentVariableIsSet("QT_FORCE_STDERR_LOGGING"))
+        qputenv("QT_FORCE_STDERR_LOGGING", "1");
+#endif
     // Source dir is supplied at runtime via `-input <dir>`; pass `nullptr`
     // here so qmltestrunner doesn't fall back to a build-time path that
     // wouldn't exist on the CI runner.
@@ -40,6 +48,7 @@ int main(int argc, char** argv)
         DbtoolGui::Tests::ScopedTestIsolation const isolation;
         result = quick_test_main(argc, argv, "dbtool_gui_qmltest", nullptr);
     } // leaves and removes the isolation directory, which TerminateProcess below would skip
+    std::fflush(nullptr); // TerminateProcess skips the CRT's flush of buffered streams
 #ifdef _WIN32
     // See `tests/main.cpp` for the rationale: Qt 6 debug builds on
     // Windows segfault during DLL_PROCESS_DETACH after a QML test session,

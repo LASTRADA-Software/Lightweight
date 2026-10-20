@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // Kit status bar (`k-status`): a 26 px strip along the bottom of the content
-// area with the connection state and migration counts on the left and the
-// effective plugins directory on the right. Read-only; every value here is
-// actionable elsewhere in the UI.
+// area with the connection state, migration counts and the background activity
+// on the left and the effective plugins directory on the right. Read-only;
+// every value here is actionable elsewhere in the UI.
 
 import QtQuick
 import QtQuick.Controls
@@ -42,6 +42,7 @@ Rectangle {
                 color: AppController.connected ? Theme.clrSuccessDot : Theme.clrOnSurfaceFaint
             }
             Label {
+                objectName: "connectionStatusLabel"
                 anchors.verticalCenter: parent.verticalCenter
                 text: AppController.connected ? qsTr("Connected") : qsTr("Not connected")
                 color: Theme.clrOnSurfaceSubtle
@@ -58,10 +59,27 @@ Rectangle {
             font.pixelSize: Theme.sizeLabel
         }
         Label {
+            objectName: "countsLabel"
             visible: AppController.migrationCount > 0
             text: qsTr("%1 applied · %2 pending").arg(AppController.appliedCount).arg(AppController.pendingCount)
             color: Theme.clrOnSurfaceSubtle
             font.pixelSize: Theme.sizeLabel
+        }
+        Row {
+            objectName: "activityIndicator"
+            visible: AppController.busy
+            spacing: 6
+            Spinner {
+                anchors.verticalCenter: parent.verticalCenter
+                running: parent.visible
+            }
+            Label {
+                objectName: "activityText"
+                anchors.verticalCenter: parent.verticalCenter
+                text: AppController.activityText
+                color: Theme.clrOnSurfaceSubtle
+                font.pixelSize: Theme.sizeLabel
+            }
         }
         Item { Layout.fillWidth: true }
         Label {

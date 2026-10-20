@@ -6,30 +6,22 @@
 // (applied / pending / unknown / checksum-mismatch) without cross-referencing
 // multiple collections.
 //
-// The model is a snapshot: rows change only when `Refresh()` is called. That
+// The model is a snapshot: rows change only when `ReplaceRows()` is called. That
 // mirrors the CLI (`dbtool status`) behaviour and keeps the model cheap even
 // when the migration set is large.
 
 #pragma once
 
 #include <cstdint>
+#include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
 #include <QtCore/QAbstractListModel>
+#include <QtCore/QHash>
+#include <QtCore/QVariantMap>
 #include <QtQmlIntegration/QtQmlIntegration>
-
-// Forward declaration: see MigrationRunner.hpp. Including
-// `<Lightweight/SqlMigration.hpp>` here causes Qt's `qmltyperegistrar` to
-// re-anchor the surrounding `DbtoolGui` namespace inside `Lightweight::` in
-// the generated `*_qmltyperegistrations.cpp`, which then fails to compile.
-namespace Lightweight
-{
-namespace SqlMigration
-{
-    class MigrationManager;
-}
-} // namespace Lightweight
 
 namespace DbtoolGui
 {
@@ -54,10 +46,48 @@ struct MigrationRow
     bool selected = false;
 };
 
+/// Whether a row is selected for a custom apply set.
+enum class SelectionState : std::uint8_t
+{
+    Selected,
+    NotSelected,
+};
+
+/// Number of rows per status, kept current as rows change.
+struct StatusCounts
+{
+    /// Rows with status "applied".
+    int applied = 0;
+    /// Rows with status "pending".
+    int pending = 0;
+    /// Pending rows that belong to no release.
+    int pendingUnreleased = 0;
+    /// Rows with status "unknown".
+    int unknown = 0;
+    /// Rows with status "checksum-mismatch".
+    int checksumMismatch = 0;
+};
+
+/// The rows of one release, kept current as rows change.
+struct ReleaseTally
+{
+    /// Rows of the release that are not "unknown" (unknown rows belong to no declared migration set).
+    int total = 0;
+    /// Rows that are "applied" or "checksum-mismatch".
+    int applied = 0;
+    /// The newest timestamp of any row of the release; 0 when it has none.
+    std::uint64_t newest = 0;
+
+    bool operator==(ReleaseTally const&) const = default;
+};
+
 class MigrationListModel: public QAbstractListModel
 {
     Q_OBJECT
     QML_ELEMENT
+
+    /// How often the counts and release tallies were rebuilt from every row (on `ReplaceRows`).
+    Q_PROPERTY(int tallyRebuildCount READ tallyRebuildCount NOTIFY tallyRebuilt)
   public:
     enum Roles : int
     {
@@ -78,32 +108,30 @@ class MigrationListModel: public QAbstractListModel
     [[nodiscard]] Qt::ItemFlags flags(QModelIndex const& index) const override;
     [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
 
-    /// Rebuilds rows from a freshly-queried `MigrationManager`. Safe to call
-    /// multiple times. Clears any existing selection — callers that want to
-    /// preserve selection across refreshes must capture it beforehand.
-    void Refresh(Lightweight::SqlMigration::MigrationManager const& manager);
-
-    /// Degraded-mode refresh that only enumerates the plugin-declared
-    /// migrations and skips `GetAppliedMigrationIds` / `VerifyChecksums`.
-    /// Used when the DB has no `schema_migrations` table yet so the UI
-    /// still shows the full migration plan instead of going blank.
-    void RefreshPluginsOnly(Lightweight::SqlMigration::MigrationManager const& manager);
-
-    /// Same shape as `RefreshPluginsOnly` but every row is staged with
-    /// status `"unknown"`. Used whenever the connection's applied-set has
-    /// not (yet) been consulted for the currently-loaded plugin set — e.g.
-    /// on startup before the first Connect, or right after the user
-    /// switches to a different profile / connection mode. Showing
-    /// `"pending"` in those cases would be a lie: we haven't asked the new
-    /// database yet, so we do not know whether each migration is applied.
-    void RefreshAsUnknown(Lightweight::SqlMigration::MigrationManager const& manager);
+    /// Replaces every row, e.g. with those of a `MigrationSnapshot`. Clears any existing selection.
+    /// @param rows The new rows, newest first.
+    void ReplaceRows(std::vector<MigrationRow> rows);
 
     /// Overwrites the `status` field of the row whose `timestamp` matches,
     /// emits `dataChanged` for that row, and returns `true` if a row was
     /// updated. Used by the controller to surface live "running" /
     /// "applied" state from `MigrationRunner`'s signals without rebuilding
-    /// the whole model between migrations.
+    /// the whole model between migrations. O(1); keeps `Counts()` and
+    /// `AppliedTimestamps()` current.
     bool SetRowStatusByTimestamp(uint64_t timestamp, QString const& status);
+
+    /// Selects or deselects the pending row with @p timestamp in O(1); other rows are left alone.
+    /// @return Whether a pending row with that timestamp exists.
+    bool SetSelectedByTimestamp(std::uint64_t timestamp, SelectionState state);
+
+    /// @return The row with @p timestamp, in O(1); empty when there is none.
+    [[nodiscard]] std::optional<int> RowOfTimestamp(std::uint64_t timestamp) const;
+
+    /// @return The title of the row with @p timestamp; empty when there is none.
+    [[nodiscard]] QString TitleByTimestamp(std::uint64_t timestamp) const;
+
+    /// @return The number of rows per status, in O(1).
+    [[nodiscard]] StatusCounts Counts() const noexcept;
 
     /// Sets the `selected` flag for every pending row in one shot and emits
     /// a single `dataChanged` for the whole range. Used by the "Select all /
@@ -114,27 +142,60 @@ class MigrationListModel: public QAbstractListModel
     /// nothing is selected.
     [[nodiscard]] QStringList SelectedTimestamps() const;
 
-    /// Number of selected pending rows.
+    /// Number of selected pending rows, in O(1).
     [[nodiscard]] int SelectedCount() const noexcept;
 
     /// Timestamps of rows whose status reflects the migration as applied —
-    /// `"applied"` and `"checksum-mismatch"` (the latter is "applied with a
-    /// stored checksum that disagrees with the freshly-computed one", which
-    /// is still applied as far as the DB is concerned). Order matches the
-    /// row order produced by `Refresh()`. Used by UI-thread accessors that
-    /// must NOT issue SQL while a worker-thread migration run is in flight
-    /// (a re-query on the shared `SqlConnection` would race the worker and
-    /// surface as HY000 "Connection is busy"). See
-    /// `AppController::currentReleaseLabel`.
-    [[nodiscard]] std::vector<uint64_t> AppliedTimestamps() const;
+    /// `"applied"` and `"checksum-mismatch"` (applied, with a stored checksum
+    /// that disagrees with the computed one). Kept current per row change, so
+    /// UI-thread readers never query the database the worker is using.
+    [[nodiscard]] std::set<std::uint64_t> const& AppliedTimestamps() const noexcept;
+
+    /// @return The tally of the release @p version ("" is the unreleased group), in O(1).
+    [[nodiscard]] ReleaseTally ReleaseTallyOf(QString const& version) const;
+
+    /// @return The tally of the release @p version as `{ present, total, applied, newest }`: `present`
+    ///         whether any row belongs to it, `newest` a timestamp string ("" when it has no rows).
+    Q_INVOKABLE QVariantMap releaseTally(QString const& version) const;
+
+    /// @return How often the tallies were rebuilt from every row.
+    [[nodiscard]] int tallyRebuildCount() const noexcept;
 
   signals:
     /// Emitted in addition to `dataChanged` so QML consumers that only care
     /// about "how many are selected" can connect a single slot.
     void selectionChanged();
 
+    /// The tally of the release @p version changed by a row's status change; a reset changes all.
+    void releaseTallyChanged(QString version);
+
+    /// The counts and release tallies were rebuilt from every row.
+    void tallyRebuilt();
+
   private:
+    /// Whether `Tally` adds a row's share or takes it away.
+    enum class TallyDirection : std::uint8_t
+    {
+        Add,
+        Remove,
+    };
+
+    /// Adds @p row's status to, or removes it from, the counts, its release's tally, the applied set
+    /// and the selection count.
+    void Tally(MigrationRow const& row, TallyDirection direction);
+    /// Rebuilds the timestamp index, the counts, the release tallies, the applied set and the selection
+    /// count from `_rows`.
+    void RebuildIndex();
+    /// Sets the selection of the pending row at @p row; emits the change when there is one.
+    void SetSelectedAt(std::size_t row, SelectionState state);
+
     std::vector<MigrationRow> _rows;
+    QHash<std::uint64_t, int> _rowByTimestamp;
+    StatusCounts _counts;
+    std::set<std::uint64_t> _appliedTimestamps;
+    int _selectedCount = 0;
+    QHash<QString, ReleaseTally> _releaseTallies;
+    int _tallyRebuildCount = 0;
 };
 
 } // namespace DbtoolGui

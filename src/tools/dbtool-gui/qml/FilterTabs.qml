@@ -19,6 +19,9 @@ Item {
     signal activated(string key)
 
     property var tabs: []
+    /// Counts by tab key; they override a tab's `count`. Changing them keeps the tabs, where changing
+    /// `tabs` rebuilds every one.
+    property var counts: ({})
 
     implicitWidth: row.implicitWidth
     implicitHeight: 42
@@ -37,6 +40,8 @@ Item {
                 id: tab
                 required property var modelData
                 readonly property bool active: root.current === modelData.key
+                readonly property var count: root.counts[modelData.key] !== undefined ? root.counts[modelData.key]
+                                                                                     : modelData.count
 
                 height: row.height
                 width: content.implicitWidth + 24
@@ -68,7 +73,7 @@ Item {
 
                     Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
-                        visible: tab.modelData.count !== undefined
+                        visible: tab.count !== undefined
                         height: 17
                         width: Math.max(height, countLabel.implicitWidth + 12)
                         radius: Theme.rPill
@@ -77,7 +82,7 @@ Item {
                         Text {
                             id: countLabel
                             anchors.centerIn: parent
-                            text: tab.modelData.count !== undefined ? String(tab.modelData.count) : ""
+                            text: tab.count !== undefined ? String(tab.count) : ""
                             color: tab.active ? "#ffffff" : Theme.clrOnSurfaceMed
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.sizeLabel - 1

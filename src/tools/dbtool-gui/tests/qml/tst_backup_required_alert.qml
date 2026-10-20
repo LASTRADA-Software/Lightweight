@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // Behaviour tests for BackupRequiredAlert: it names what requires the backup with the agreeing
-// verb, "Back up now" asks for a backup, busy disables its controls, and the "Migrate without a
+// verb, "Back up now" asks for a backup, busy and a pending check disable its controls, and the "Migrate without a
 // backup" checkbox starts unchecked and reports a toggle.
 
 import QtQuick
@@ -56,6 +56,21 @@ TestCase {
         const checkBox = findChild(alert, "migrateWithoutBackupCheckBox")
         verify(!checkBox.enabled)
         verify(checkBox.contentItem.opacity < 1.0, "the label dims while disabled")
+    }
+
+    function test_pending_says_the_check_runs_and_disables_the_controls() {
+        const alert = createTemporaryObject(alertComponent, testCase, { reasons: [], pending: true })
+        verify(findChild(alert, "backupRequirementChecking").visible)
+        compare(findChild(alert, "backupRequirementChecking").text, "Checking whether a backup is required…")
+        compare(alert.title, "")
+        compare(alert.text, "")
+        verify(!findChild(alert, "backUpNowButton").enabled)
+        verify(!findChild(alert, "migrateWithoutBackupCheckBox").enabled)
+
+        alert.pending = false
+        alert.reasons = ["release 3.0.0"]
+        verify(!findChild(alert, "backupRequirementChecking").visible)
+        compare(alert.title, "A backup is required to run the migrations")
     }
 
     function test_the_checkbox_starts_unchecked_and_reports_a_toggle() {

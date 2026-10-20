@@ -10,6 +10,7 @@
 #include "../BackupRunner.hpp"
 #include "../ManagedBackupController.hpp"
 #include "../MigrationRunner.hpp"
+#include "ControllerTestSupport.hpp"
 #include "MigrationRunnerTestSupport.hpp"
 #include "SqliteDriver.hpp"
 
@@ -24,6 +25,7 @@
 #include <expected>
 #include <filesystem>
 #include <fstream>
+#include <future>
 #include <ranges>
 #include <string>
 #include <utility>
@@ -35,13 +37,16 @@
 #include <QtCore/QTemporaryDir>
 #include <QtCore/QVariant>
 #include <QtTest/QSignalSpy>
+#include <QtTest/QTest>
 
 using DbtoolGui::AppController;
 using DbtoolGui::BackupRunner;
 using DbtoolGui::MigrationRunner;
+using DbtoolGui::Tests::ConnectAndWait;
 using DbtoolGui::Tests::RecordedKinds;
 using DbtoolGui::Tests::ScopedSettingRestore;
 using DbtoolGui::Tests::SqliteDriver;
+using DbtoolGui::Tests::WaitForIdle;
 using Lightweight::SqlMigration::MigrationManager;
 using Lightweight::SqlMigration::MigrationTimestamp;
 
@@ -84,7 +89,7 @@ class Workspace
         REQUIRE(controller.loadProfiles(QString::fromStdU16String((_root / "dbtool.yml").u16string())));
         controller.setConnectionMode(QStringLiteral("profile"));
         controller.setCurrentProfile(_profileName);
-        REQUIRE(controller.connectToProfile());
+        REQUIRE(ConnectAndWait(controller));
     }
 
   private:
@@ -99,12 +104,13 @@ class Workspace
     return Workspace { DBTOOL_GUI_TESTS_BACKUP_REQUIRED_FIXTURE, "BackupRequiredReleasePlugin", "p" };
 }
 
-/// Runs "Back up now" and waits for the backup to finish.
+/// Runs "Back up now" and waits for the backup and the requirement check after it to finish.
 void BackUpNow(AppController& controller)
 {
     QSignalSpy done(controller.backupRunner(), &BackupRunner::finished);
     controller.backUpNow();
     REQUIRE((done.count() > 0 || done.wait(30000)));
+    REQUIRE(WaitForIdle(controller));
 }
 
 /// The number of `.zip` files in @p folder.
@@ -124,6 +130,7 @@ TEST_CASE("a release that requires a backup blocks the migrations until Back up 
     ScopedSettingRestore const restoreBackupFolder { QStringLiteral("backup/folder") };
     auto const workspace = BackupRequiredWorkspace();
     AppController controller;
+    REQUIRE(WaitForIdle(controller));
     workspace.Connect(controller);
 
     CHECK(controller.backupRequired());
@@ -139,11 +146,34 @@ TEST_CASE("a release that requires a backup blocks the migrations until Back up 
     CHECK(ArchiveCount(workspace.Backups()) == 1);
 }
 
+TEST_CASE("Back up now prepares its folder while a database job keeps the migration worker busy",
+          "[dbtool-gui][AppController][backup-requirement]")
+{
+    ScopedSettingRestore const restoreBackupFolder { QStringLiteral("backup/folder") };
+    auto const workspace = BackupRequiredWorkspace();
+    AppController controller;
+    REQUIRE(WaitForIdle(controller));
+    workspace.Connect(controller);
+    auto release = std::promise<void> {};
+    controller.runner()->Worker().Enqueue([released = release.get_future().share()] { released.wait(); },
+                                          [](std::exception const&) {});
+    QSignalSpy done(controller.backupRunner(), &BackupRunner::finished);
+
+    controller.backUpNow();
+    auto const backedUpWhileBusy = done.count() > 0 || done.wait(10000);
+    release.set_value();
+    REQUIRE(WaitForIdle(controller));
+
+    REQUIRE(backedUpWhileBusy);
+    CHECK(ArchiveCount(workspace.Backups()) == 1);
+}
+
 TEST_CASE("without declarations nothing is blocked", "[dbtool-gui][AppController][backup-requirement]")
 {
     ScopedSettingRestore const restoreBackupFolder { QStringLiteral("backup/folder") };
     auto const workspace = Workspace { DBTOOL_GUI_TESTS_COMPAT_POLICY_FIXTURE, "CompatPolicyPlugin", "p" };
     AppController controller;
+    REQUIRE(WaitForIdle(controller));
     workspace.Connect(controller);
 
     REQUIRE(controller.pendingCount() > 0);
@@ -157,11 +187,13 @@ TEST_CASE("a backup that cannot be recorded leaves the migrations blocked and sa
     ScopedSettingRestore const restoreBackupFolder { QStringLiteral("backup/folder") };
     auto const workspace = BackupRequiredWorkspace();
     AppController controller;
+    REQUIRE(WaitForIdle(controller));
     workspace.Connect(controller);
     REQUIRE(controller.backupRequired());
 
     controller.backupRunner()->setRecorder({
         .captureStart = {},
+        .verifyArchive = {},
         .record = [](BackupRunner::Operation,
                      std::filesystem::path const&,
                      std::string const&,
@@ -179,12 +211,46 @@ TEST_CASE("a backup that cannot be recorded leaves the migrations blocked and sa
     CHECK(controller.backupRequirementNote().contains(QStringLiteral("denied")));
 }
 
+TEST_CASE("a managed backup that cannot be recorded leaves the migrations blocked and says why",
+          "[dbtool-gui][AppController][backup-requirement]")
+{
+    ScopedSettingRestore const restoreBackupFolder { QStringLiteral("backup/folder") };
+    auto const workspace = BackupRequiredWorkspace();
+    AppController controller;
+    REQUIRE(WaitForIdle(controller));
+    workspace.Connect(controller);
+    REQUIRE(controller.backupRequired());
+
+    controller.managedBackups()->setRecorder({
+        .captureStart = {},
+        .verifyArchive = {},
+        .record = [](BackupRunner::Operation,
+                     std::filesystem::path const&,
+                     std::string const&,
+                     std::string const&,
+                     Lightweight::Tools::BackupStart const&)
+            -> std::expected<Lightweight::SqlMigration::BackupRecord, Lightweight::Tools::BackupRecordError> {
+            return std::unexpected(Lightweight::Tools::BackupRecordError {
+                .kind = Lightweight::Tools::BackupRecordError::Kind::WriteFailed, .message = "denied" });
+        },
+    });
+    QSignalSpy managedFinished(controller.managedBackups(), &DbtoolGui::ManagedBackupController::finished);
+    controller.managedBackups()->backupAll();
+    REQUIRE((managedFinished.count() > 0 || managedFinished.wait(30000)));
+    REQUIRE(WaitForIdle(controller));
+
+    CHECK(managedFinished.first().at(0).toBool());
+    CHECK(controller.backupRequired());
+    CHECK(controller.backupRequirementNote().contains(QStringLiteral("denied")));
+}
+
 TEST_CASE("the \"Migrate without a backup\" checkbox enables the buttons for one run only",
           "[dbtool-gui][AppController][backup-requirement]")
 {
     ScopedSettingRestore const restoreBackupFolder { QStringLiteral("backup/folder") };
     auto const workspace = BackupRequiredWorkspace();
     AppController controller;
+    REQUIRE(WaitForIdle(controller));
     workspace.Connect(controller);
     REQUIRE(controller.backupRequired());
 
@@ -201,8 +267,10 @@ TEST_CASE("the \"Migrate without a backup\" checkbox enables the buttons for one
     controller.runner()->applyUpTo(QString {});
     REQUIRE((finished.count() > 0 || finished.wait(30000)));
     REQUIRE(finished.first().at(0).toBool());
-
     CHECK_FALSE(controller.migrateWithoutBackup());
+    // The history and the requirement are re-read on the worker after the run.
+    REQUIRE(WaitForIdle(controller));
+
     auto& manager = MigrationManager::GetInstance();
     CHECK(manager.GetPending().empty());
     CHECK(RecordedKinds(manager.GetDataMapper()) == "waived");
@@ -211,7 +279,7 @@ TEST_CASE("the \"Migrate without a backup\" checkbox enables the buttons for one
     auto const* migration = manager.GetMigration(FixtureMigration);
     REQUIRE(migration != nullptr);
     manager.RevertSingleMigration(*migration);
-    REQUIRE(controller.connectToProfile());
+    REQUIRE(ConnectAndWait(controller));
     CHECK(controller.backupRequired());
 }
 
@@ -220,11 +288,12 @@ TEST_CASE("the \"Migrate without a backup\" checkbox resets on reconnect", "[dbt
     ScopedSettingRestore const restoreBackupFolder { QStringLiteral("backup/folder") };
     auto const workspace = BackupRequiredWorkspace();
     AppController controller;
+    REQUIRE(WaitForIdle(controller));
     workspace.Connect(controller);
 
     controller.setMigrateWithoutBackup(true);
     REQUIRE(controller.migrateWithoutBackup());
-    REQUIRE(controller.connectToProfile());
+    REQUIRE(ConnectAndWait(controller));
     CHECK_FALSE(controller.migrateWithoutBackup());
 }
 
@@ -234,6 +303,7 @@ TEST_CASE("the \"Migrate without a backup\" checkbox resets on disconnect",
     ScopedSettingRestore const restoreBackupFolder { QStringLiteral("backup/folder") };
     auto const workspace = BackupRequiredWorkspace();
     AppController controller;
+    REQUIRE(WaitForIdle(controller));
     workspace.Connect(controller);
 
     controller.setMigrateWithoutBackup(true);
@@ -251,6 +321,7 @@ TEST_CASE("the \"Migrate without a backup\" checkbox resets once a backup satisf
     ScopedSettingRestore const restoreBackupFolder { QStringLiteral("backup/folder") };
     auto const workspace = BackupRequiredWorkspace();
     AppController controller;
+    REQUIRE(WaitForIdle(controller));
     workspace.Connect(controller);
 
     controller.setMigrateWithoutBackup(true);
@@ -264,17 +335,18 @@ TEST_CASE("connectToProfile is refused while a backup runs", "[dbtool-gui][AppCo
     ScopedSettingRestore const restoreBackupFolder { QStringLiteral("backup/folder") };
     auto const workspace = BackupRequiredWorkspace();
     AppController controller;
+    REQUIRE(WaitForIdle(controller));
     workspace.Connect(controller);
 
     QSignalSpy done(controller.backupRunner(), &BackupRunner::finished);
     controller.backUpNow();
-    // The run reports back through this thread's event loop, so it is still running here.
-    REQUIRE(controller.backupRunner()->phase() == BackupRunner::Phase::Running);
+    // The backup folder is created on the worker first; the run then reports back through this thread's event loop.
+    REQUIRE(QTest::qWaitFor([&] { return controller.backupRunner()->phase() == BackupRunner::Phase::Running; }, 30000));
     CHECK_FALSE(controller.connectToProfile());
     CHECK(controller.lastWarning().contains(QStringLiteral("backup or restore")));
 
     REQUIRE((done.count() > 0 || done.wait(30000)));
-    CHECK(controller.connectToProfile());
+    CHECK(ConnectAndWait(controller));
 }
 
 TEST_CASE("Back up now names the archive after a non-ASCII target correctly",
@@ -284,6 +356,7 @@ TEST_CASE("Back up now names the archive after a non-ASCII target correctly",
     auto const workspace =
         Workspace { DBTOOL_GUI_TESTS_BACKUP_REQUIRED_FIXTURE, "BackupRequiredReleasePlugin", "M\xc3\xbcller" };
     AppController controller;
+    REQUIRE(WaitForIdle(controller));
     workspace.Connect(controller);
     REQUIRE(controller.connectedTarget() == QString::fromUtf16(u"M\u00fcller"));
 
@@ -296,4 +369,73 @@ TEST_CASE("Back up now names the archive after a non-ASCII target correctly",
     REQUIRE(names.size() == 1);
     CHECK(names.first().startsWith(QString::fromUtf16(u"M\u00fcller-")));
     CHECK_FALSE(controller.backupRequired());
+}
+
+TEST_CASE("Back up first then migrate: the run starts while the requirement check after the backup is pending",
+          "[dbtool-gui][AppController][backup-requirement]")
+{
+    ScopedSettingRestore const restoreBackupFolder { QStringLiteral("backup/folder") };
+    auto const workspace = BackupRequiredWorkspace();
+    AppController controller;
+    REQUIRE(WaitForIdle(controller));
+    workspace.Connect(controller);
+    REQUIRE(controller.backupRequired());
+
+    // The Simple view's chain: once the backup finished, start the run. Connected after the controller's
+    // own handler, which has just queued the requirement check the backup asks for.
+    QSignalSpy runFinished(controller.runner(), &MigrationRunner::finished);
+    auto backupOk = false;
+    auto checkPendingAtChain = false;
+    auto runRefused = true;
+    QObject::connect(controller.backupRunner(),
+                     &BackupRunner::finished,
+                     [&controller, &backupOk, &checkPendingAtChain, &runRefused](bool ok, QString const&) {
+                         backupOk = ok;
+                         checkPendingAtChain = controller.backupRequirementPending();
+                         controller.runner()->applyUpTo(QString {});
+                         runRefused = controller.runner()->phase() == MigrationRunner::Phase::Idle;
+                     });
+    QSignalSpy backupFinished(controller.backupRunner(), &BackupRunner::finished);
+    controller.backUpNow();
+    REQUIRE((backupFinished.count() > 0 || backupFinished.wait(30000)));
+    REQUIRE(backupOk);
+    CHECK(checkPendingAtChain);
+    REQUIRE_FALSE(runRefused);
+    REQUIRE((runFinished.count() > 0 || runFinished.wait(30000)));
+    CHECK(runFinished.first().at(0).toBool());
+    REQUIRE(WaitForIdle(controller));
+    CHECK(MigrationManager::GetInstance().GetPending().empty());
+    CHECK(controller.pendingCount() == 0);
+}
+
+TEST_CASE("a SQL preview asked for while disconnected replies at once that it needs a connection",
+          "[dbtool-gui][AppController][backup-requirement]")
+{
+    auto const workspace = BackupRequiredWorkspace();
+    AppController controller;
+    REQUIRE(WaitForIdle(controller));
+    QSignalSpy ready(&controller, &AppController::migrationSqlPreviewReady);
+    controller.requestMigrationSqlPreview(QString::number(FixtureMigration.value));
+    REQUIRE(ready.count() == 1);
+    CHECK(ready.first().at(1).toStringList()
+          == QStringList { QStringLiteral("-- Connect to a database to preview its SQL.") });
+}
+
+TEST_CASE("a SQL preview whose connection changed before it arrived shows no statements",
+          "[dbtool-gui][AppController][backup-requirement]")
+{
+    ScopedSettingRestore const restoreBackupFolder { QStringLiteral("backup/folder") };
+    auto const workspace = BackupRequiredWorkspace();
+    AppController controller;
+    REQUIRE(WaitForIdle(controller));
+    workspace.Connect(controller);
+
+    QSignalSpy ready(&controller, &AppController::migrationSqlPreviewReady);
+    controller.requestMigrationSqlPreview(QString::number(FixtureMigration.value));
+    // The reply is delivered through this thread's event loop, so it cannot arrive before the switch.
+    controller.setConnectionMode(QStringLiteral("dsn"));
+    REQUIRE(ready.wait(15000));
+    CHECK(ready.first().at(1).toStringList()
+          == QStringList { QStringLiteral("-- The connection changed; open the preview again.") });
+    REQUIRE(WaitForIdle(controller));
 }

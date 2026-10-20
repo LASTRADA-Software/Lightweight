@@ -14,6 +14,7 @@ import Lightweight.Migrations
 
 Item {
     id: root
+    objectName: "migrationList"
 
     property string filterTab: "all" // all | pending | applied | issues
     property string search: ""
@@ -27,95 +28,37 @@ Item {
     readonly property int countApplied: AppController.appliedCount
     readonly property int countIssues: AppController.issuesCount
 
-    /// Single source of truth for the tab + search filter, shared by the row
-    /// delegates and the per-release tallies so a section header disappears
-    /// exactly when none of its rows survive the filter.
-    function rowMatches(status, title, timestamp) {
-        if (root.filterTab === "pending" && status !== "pending") return false;
-        if (root.filterTab === "applied" && status !== "applied") return false;
-        if (root.filterTab === "issues"
-            && status !== "unknown"
-            && status !== "checksum-mismatch")
-            return false;
-        if (root.search.length > 0
-            && title.toLowerCase().indexOf(root.search.toLowerCase()) < 0
-            && timestamp.indexOf(root.search) < 0)
-            return false;
-        return true;
-    }
-
     // --- Release grouping ---------------------------------------------------
     // Rows arrive sorted newest-first and each carries its release version, so
-    // releases are contiguous and ListView sections can group them. Tallies
-    // per release (total / applied / rows passing the filter / newest
-    // timestamp) are rebuilt from the model, because `ReleaseListModel` only
-    // carries an aggregate status.
-    // Roles on MigrationListModel — keep in sync with the enum in the header
-    // (same convention as `TimestampAutocomplete.qml`).
-    readonly property int _roleTimestamp: 257
-    readonly property int _roleTitle: 258
-    readonly property int _roleStatus: 259
-    readonly property int _roleRelease: 260
-
-    property var _groups: ({})
-
-    /// User-toggled expand state per release, overriding the default.
-    property var _expandOverride: ({})
-
-    function _rebuildGroups() {
-        const m = AppController.migrations;
-        const out = {};
-        for (let i = 0; i < m.rowCount(); ++i) {
-            const idx = m.index(i, 0);
-            const status = m.data(idx, _roleStatus);
-            const ts = m.data(idx, _roleTimestamp);
-            const version = m.data(idx, _roleRelease) || "";
-            const g = out[version] || (out[version] = { total: 0, applied: 0, visible: 0, newest: "" });
-            // Unknown rows are applied-but-unregistered: shown in the group,
-            // but not counted towards its declared migration set.
-            if (status !== "unknown") {
-                g.total += 1;
-                if (status === "applied" || status === "checksum-mismatch")
-                    g.applied += 1;
-            }
-            if (rowMatches(status, m.data(idx, _roleTitle), ts))
-                g.visible += 1;
-            if (ts > g.newest)
-                g.newest = ts;
-        }
-        _groups = out;
+    // releases are contiguous and ListView sections can group them. The filter
+    // model drops the rows the tab, the search or a collapsed release hide, so
+    // the view creates delegates for shown rows only; the per-release tallies
+    // come from `MigrationListModel`, which keeps them current per row.
+    MigrationFilterModel {
+        id: shownRows
+        sourceModel: AppController.migrations
+        filterTab: root.filterTab
+        search: root.search
     }
+    /// The rows the table shows.
+    readonly property alias filterModel: shownRows
 
-    onFilterTabChanged: _rebuildGroups()
-    onSearchChanged: _rebuildGroups()
-    Component.onCompleted: _rebuildGroups()
+    /// Bumped whenever a release tally changes, so the section headers read it again.
+    property int _tallyRevision: 0
     Connections {
         target: AppController.migrations
-        function onModelReset() { root._rebuildGroups() }
-        function onDataChanged() { root._rebuildGroups() }
+        function onReleaseTallyChanged() { root._tallyRevision += 1 }
+        function onTallyRebuilt() { root._tallyRevision += 1 }
     }
 
     /// Groups start expanded; a click on a header collapses it. Any filter or
-    /// search expands every group so matches are never hidden behind a
-    /// header. Collapsing fully applied releases by default (as the mockup
-    /// shows) is deliberately not done: hidden rows are zero-height
-    /// delegates, and ListView instantiates every one of them inside the
-    /// viewport, so a default-collapsed plugin with hundreds of releases
-    /// would build its whole delegate set up front.
+    /// search expands every group so matches are never hidden behind a header.
     function isExpanded(version) {
-        if (filterTab !== "all" || search.length > 0)
-            return true;
-        return _expandOverride[version] !== false;
+        return shownRows.expansionRevision >= 0 && shownRows.isExpanded(version);
     }
 
     function toggleExpanded(version) {
-        // Filtered views always show every match; ignore the click there so
-        // it cannot silently collapse the group in the unfiltered view.
-        if (filterTab !== "all" || search.length > 0)
-            return;
-        const next = Object.assign({}, _expandOverride);
-        next[version] = !isExpanded(version);
-        _expandOverride = next;
+        shownRows.toggleExpanded(version);
     }
 
     /// "20260106101833" → "2026-01-06"; anything else is returned as-is.
@@ -167,15 +110,17 @@ Item {
                 anchors.bottom: parent.bottom
                 current: root.filterTab
                 tabs: [
-                    { key: "all",     label: qsTr("All"),     count: root.countAll,
+                    { key: "all",     label: qsTr("All"),
                       tip: qsTr("Every registered migration.") },
-                    { key: "pending", label: qsTr("Pending"), count: root.countPending,
+                    { key: "pending", label: qsTr("Pending"),
                       tip: qsTr("Not yet applied.") },
-                    { key: "applied", label: qsTr("Applied"), count: root.countApplied,
+                    { key: "applied", label: qsTr("Applied"),
                       tip: qsTr("Already in schema_migrations.") },
-                    { key: "issues",  label: qsTr("Issues"),  count: root.countIssues,
+                    { key: "issues",  label: qsTr("Issues"),
                       tip: qsTr("Unknown or checksum-mismatch rows.") },
                 ]
+                counts: ({ all: root.countAll, pending: root.countPending, applied: root.countApplied,
+                           issues: root.countIssues })
                 onActivated: key => root.filterTab = key
             }
 
@@ -365,6 +310,7 @@ Item {
 
         KineticListView {
             id: listView
+            objectName: "migrationListView"
             anchors.top: listHeader.bottom
             anchors.left: parent.left
             anchors.right: parent.right
@@ -375,20 +321,18 @@ Item {
             clip: true
             spacing: 0
 
-            model: AppController.migrations
+            model: shownRows
 
             section.property: "releaseVersion"
             section.criteria: ViewSection.FullString
             section.delegate: Item {
                 id: sectionItem
                 required property string section
-                readonly property var group: root._groups[section]
-                // Hide the header when the filter leaves nothing under it.
-                readonly property bool shown: !!group && group.visible > 0
+                readonly property var group: root._tallyRevision >= 0 ? AppController.migrations.releaseTally(section)
+                                                                         : ({})
 
                 width: listView.width
-                height: shown ? groupHeader.height : 0
-                visible: shown
+                height: groupHeader.height
 
                 ReleaseGroup {
                     id: groupHeader
@@ -410,6 +354,7 @@ Item {
                 // MigrationRow property is marked required — the
                 // explicit form always picks up the role values
                 // reliably on Qt 6's model/view pipeline.
+                objectName: "migrationRow_" + model.timestamp
                 timestamp: model.timestamp
                 title: model.title
                 status: model.status
@@ -418,9 +363,10 @@ Item {
 
                 onDoubleClicked: (ts, ttl) => previewDialog.showFor(ts, ttl)
 
-                visible: root.rowMatches(status, title, timestamp)
-                         && root.isExpanded(model.releaseVersion || "")
-                height: visible ? Theme.row : 0
+                // A collapsed release keeps only its first row, which carries the header, at no height.
+                readonly property bool shown: root.isExpanded(model.releaseVersion || "")
+                visible: shown
+                height: shown ? Theme.row : 0
             }
         }
 
@@ -434,21 +380,42 @@ Item {
             anchors.centerIn: Overlay.overlay
         }
 
+        // A filter or search that leaves no row.
+        Label {
+            objectName: "migrationListNoMatch"
+            anchors.centerIn: listView
+            visible: listView.count === 0 && AppController.migrationCount > 0
+            text: qsTr("No migrations match this filter")
+            color: Theme.clrOnSurfaceMed
+            font.pixelSize: Theme.sizeBody
+        }
+
         // Empty-state overlay
         Column {
             anchors.centerIn: listView
-            visible: listView.count === 0
+            // The list is empty, not just filtered down to nothing.
+            visible: AppController.migrationCount === 0
             spacing: 6
 
+            Spinner {
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: AppController.pluginsLoading
+                running: visible
+                diameter: 22
+            }
             Glyph {
                 anchors.horizontalCenter: parent.horizontalCenter
+                visible: !AppController.pluginsLoading
                 name: AppController.connected ? "layers" : "plug"
                 size: 22
                 color: Theme.clrOnSurfaceFaint
             }
             Label {
+                objectName: "migrationListEmptyTitle"
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: AppController.connected
+                text: AppController.pluginsLoading
+                    ? qsTr("Loading plugins…")
+                    : AppController.connected
                     ? qsTr("No migrations registered")
                     : qsTr("Not connected")
                 color: Theme.clrOnSurfaceMed
@@ -457,6 +424,7 @@ Item {
             }
             Label {
                 anchors.horizontalCenter: parent.horizontalCenter
+                visible: !AppController.pluginsLoading
                 text: AppController.connected
                     ? qsTr("Point a profile at a plugin directory to see migrations here.")
                     : qsTr("Pick a profile in the left pane and press Connect.")

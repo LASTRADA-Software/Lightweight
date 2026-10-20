@@ -47,6 +47,11 @@ ColumnLayout {
             elide: Text.ElideRight
         }
         Label {
+            // A long detail elides instead of widening the row past a narrow pane.
+            Layout.minimumWidth: 0
+            Layout.maximumWidth: implicitWidth
+            Layout.fillWidth: true
+            elide: Text.ElideRight
             visible: root.detail !== ""
             text: root.detail
             color: Theme.clrOnSurfaceSubtle

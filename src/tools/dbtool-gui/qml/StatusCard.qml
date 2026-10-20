@@ -33,25 +33,36 @@ Card {
     readonly property var _current: splitLabel(AppController.currentReleaseLabel)
     readonly property var _latest: splitLabel(AppController.targetReleaseLabel)
 
+    // The repeaters below count their rows instead of taking these arrays as models: a new model
+    // array, which every count change makes, would rebuild every row.
+    readonly property var _tiles: [
+        { label: qsTr("Current release"), value: root._current.value,
+          detail: root._current.detail.length > 0
+                  ? root._current.detail
+                  : qsTr("%1 applied").arg(AppController.appliedCount) },
+        { label: qsTr("Latest release"), value: root._latest.value,
+          detail: root._latest.detail.length > 0
+                  ? root._latest.detail
+                  : qsTr("%1 registered").arg(AppController.migrationCount) },
+    ]
+    readonly property var _chips: [
+        { label: qsTr("applied"),    count: AppController.appliedCount,          dot: Theme.clrSuccessDot, always: true },
+        { label: qsTr("pending"),    count: AppController.pendingCount,          dot: Theme.clrWarningDot, always: true },
+        { label: qsTr("unknown"),    count: AppController.unknownCount,          dot: Theme.clrErrorDot,   always: false },
+        { label: qsTr("checksum ≠"), count: AppController.checksumMismatchCount, dot: Theme.clrErrorDot,   always: false },
+    ]
+
     Row {
         id: readouts
         width: parent.width
         spacing: Theme.sp2
 
         Repeater {
-            model: [
-                { label: qsTr("Current release"), value: root._current.value,
-                  detail: root._current.detail.length > 0
-                          ? root._current.detail
-                          : qsTr("%1 applied").arg(AppController.appliedCount) },
-                { label: qsTr("Latest release"), value: root._latest.value,
-                  detail: root._latest.detail.length > 0
-                          ? root._latest.detail
-                          : qsTr("%1 registered").arg(AppController.migrationCount) },
-            ]
+            model: root._tiles.length
 
             Rectangle {
-                required property var modelData
+                required property int index
+                readonly property var entry: root._tiles[index]
                 width: (readouts.width - readouts.spacing) / 2
                 height: tile.implicitHeight + 18
                 radius: Theme.r3
@@ -69,7 +80,7 @@ Card {
 
                     Label {
                         width: parent.width
-                        text: modelData.label
+                        text: entry.label
                         color: Theme.clrOnSurfaceSubtle
                         font.pixelSize: Theme.sizeLabel
                         font.weight: Font.DemiBold
@@ -77,7 +88,7 @@ Card {
                     }
                     Label {
                         width: parent.width
-                        text: modelData.value.length > 0 ? modelData.value : "—"
+                        text: entry.value.length > 0 ? entry.value : "—"
                         color: Theme.clrOnSurface
                         font.pixelSize: 17
                         font.weight: Font.DemiBold
@@ -85,7 +96,7 @@ Card {
                     }
                     Label {
                         width: parent.width
-                        text: modelData.detail
+                        text: entry.detail
                         color: Theme.clrOnSurfaceSubtle
                         font.pixelSize: Theme.sizeLabel
                         elide: Text.ElideRight
@@ -103,16 +114,12 @@ Card {
         spacing: Theme.sp3
 
         Repeater {
-            model: [
-                { label: qsTr("applied"),    count: AppController.appliedCount,          dot: Theme.clrSuccessDot, always: true },
-                { label: qsTr("pending"),    count: AppController.pendingCount,          dot: Theme.clrWarningDot, always: true },
-                { label: qsTr("unknown"),    count: AppController.unknownCount,          dot: Theme.clrErrorDot,   always: false },
-                { label: qsTr("checksum ≠"), count: AppController.checksumMismatchCount, dot: Theme.clrErrorDot,   always: false },
-            ]
+            model: root._chips.length
 
             Row {
-                required property var modelData
-                visible: modelData.always || modelData.count > 0
+                required property int index
+                readonly property var entry: root._chips[index]
+                visible: entry.always || entry.count > 0
                 spacing: 5
 
                 Rectangle {
@@ -120,11 +127,11 @@ Card {
                     width: 7
                     height: 7
                     radius: 3.5
-                    color: modelData.dot
+                    color: entry.dot
                 }
                 Label {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "<b>%1</b> %2".arg(modelData.count).arg(modelData.label)
+                    text: "<b>%1</b> %2".arg(entry.count).arg(entry.label)
                     textFormat: Text.StyledText
                     color: Theme.clrOnSurfaceMed
                     font.pixelSize: Theme.sizeBodySm

@@ -430,6 +430,7 @@ namespace SqlMigration
     using Lightweight::SqlMigration::MigrationReleaseOptions;
     using Lightweight::SqlMigration::MigrationStatus;
     using Lightweight::SqlMigration::MigrationTimestamp;
+    using Lightweight::SqlMigration::PluginHookErrorSink;
     using Lightweight::SqlMigration::PostMigrateErrorSink;
     using Lightweight::SqlMigration::PreMigrateStep;
     using Lightweight::SqlMigration::PreMigrateStepError;

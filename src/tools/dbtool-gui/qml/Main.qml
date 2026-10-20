@@ -91,7 +91,11 @@ ApplicationWindow {
     // during the initial geometry computation would otherwise clobber the
     // persisted size with zero / partial values.
     property bool _geometryReady: false
-    Component.onCompleted: _geometryReady = true
+    Component.onCompleted: {
+        _geometryReady = true
+        // The plugins load once this window has shown its first frame.
+        AppController.awaitFirstFrame(root)
+    }
 
     onWidthChanged: saveCurrentGeometry()
     onHeightChanged: saveCurrentGeometry()
@@ -150,10 +154,50 @@ ApplicationWindow {
         sequence: "Ctrl+Q"
         context: Qt.ApplicationShortcut
         autoRepeat: false
-        onActivated: {
-            console.log("[Shortcut] Ctrl+Q activated, quitting");
-            Qt.quit();
+        // Through close(), so the guard against closing during a run applies.
+        onActivated: root.close()
+    }
+
+    /// True once a close was refused because a run is in flight; cleared when nothing blocks closing.
+    property bool closeRefused: false
+    onClosing: (close) => {
+        if (!AppController.closeBlocked)
+            return
+        close.accepted = false
+        root.closeRefused = true
+    }
+    Connections {
+        target: AppController
+        function onCloseBlockedChanged() {
+            if (!AppController.closeBlocked)
+                root.closeRefused = false
         }
+        function onQuitRefused() {
+            root.closeRefused = true
+        }
+    }
+
+    // Says why the window stays open, in the window rather than in a native dialog.
+    Banner {
+        objectName: "closeBlockedMessage"
+        parent: Overlay.overlay
+        z: 1000
+        visible: root.closeRefused
+        anchors.horizontalCenter: parent ? parent.horizontalCenter : undefined
+        anchors.bottom: parent ? parent.bottom : undefined
+        anchors.bottomMargin: 16
+        width: Math.min(root.width - 32, 520)
+        kind: "warn"
+        title: qsTr("The window stays open")
+        text: AppController.closeBlockedReason
+        actions: [
+            LsButton {
+                objectName: "closeBlockedCancelButton"
+                visible: AppController.closeBlockingRunCancellable
+                text: qsTr("Cancel the run")
+                onClicked: AppController.cancelBlockingRun()
+            }
+        ]
     }
 
     // Transient — not persisted. The app always opens on Migrations.
@@ -163,7 +207,7 @@ ApplicationWindow {
     /// "settings"); unknown pages are ignored.
     function navigate(page) {
         if (page === "backups")
-            AppController.managedBackups.refreshStatus()
+            AppController.managedBackups.requestStatusRefresh()
         if (page === "migrations" || page === "backups" || page === "settings")
             currentPage = page
     }
@@ -171,11 +215,13 @@ ApplicationWindow {
     // Rail destinations. Data-driven so adding a page is one entry here plus
     // one child of the StackLayout below.
     readonly property var railItems: [
-        { page: "migrations", label: qsTr("Migrations"), glyph: "layers",
-          badge: AppController.pendingCount, badgeKind: "warn" },
-        { page: "backups", label: qsTr("Backups"), glyph: "archive-outline",
-          badge: AppController.managedBackups.phase !== ManagedBackupController.Idle ? 1 : 0 },
+        { page: "migrations", label: qsTr("Migrations"), glyph: "layers", badgeKind: "warn" },
+        { page: "backups", label: qsTr("Backups"), glyph: "archive-outline" },
     ]
+    readonly property var railBadges: ({
+        migrations: AppController.pendingCount,
+        backups: AppController.managedBackups.phase !== ManagedBackupController.Idle ? 1 : 0,
+    })
     readonly property var railPinnedItems: [
         // Settings host the profile-file path, plugins directory and backup
         // folder. They are reachable from Simple view too: deployments that
@@ -195,6 +241,7 @@ ApplicationWindow {
             Layout.fillHeight: true
             Layout.preferredWidth: implicitWidth
             items: root.railItems
+            badges: root.railBadges
             pinnedItems: root.railPinnedItems
             currentPage: root.currentPage
             collapsed: root.railCollapsed
@@ -234,6 +281,7 @@ ApplicationWindow {
                         ]
                         actions: [
                             SegmentedControl {
+                                objectName: "viewModeControl"
                                 size: root.expert ? "md" : "sm"
                                 model: [ { value: "simple", label: qsTr("Simple") },
                                          { value: "expert", label: qsTr("Expert") } ]
@@ -241,12 +289,14 @@ ApplicationWindow {
                                 onActivated: (value) => AppController.setViewMode(value)
                             },
                             LsButton {
+                                objectName: "refreshButton"
                                 text: qsTr("Refresh")
                                 glyph: "refresh"
                                 iconOnly: !root.expert
                                 ToolTip.visible: hovered
                                 ToolTip.delay: 500
                                 ToolTip.text: qsTr("Re-read applied migrations and re-scan the plugin directory.")
+                                enabled: !AppController.busy
                                 onClicked: AppController.connectToProfile()
                             }
                         ]
@@ -259,18 +309,24 @@ ApplicationWindow {
 
                         SimpleView {
                             id: simpleView
+                            objectName: "simpleView"
                             onOpenBackups: root.navigate("backups")
                         }
-                        ExpertView { id: expertView }
+                        ExpertView {
+                            id: expertView
+                            objectName: "expertView"
+                        }
                     }
                 }
 
                 SettingsPage {
                     id: settingsPage
+                    objectName: "settingsPage"
                     onDone: root.currentPage = "migrations"
                 }
                 BackupsPage {
                     id: backupsPage
+                    objectName: "backupsPage"
                     onDone: root.currentPage = "migrations"
                     onOpenSettings: root.currentPage = "settings"
                 }

@@ -79,6 +79,7 @@ Column {
 
     // --- Mode selector ---
     SegmentedControl {
+        objectName: "connectionModeControl"
         width: parent.width
         fill: true
         current: AppController.connectionMode
@@ -106,6 +107,7 @@ Column {
 
         FieldLabel { text: qsTr("Profile") }
         ComboBox {
+            objectName: "profileCombo"
             width: parent.width
             model: AppController.profiles
             textRole: "name"
@@ -129,6 +131,7 @@ Column {
         // hover turns it into a brand-coloured link.
         Label {
             id: profilePathLabel
+            objectName: "profilePathLabel"
             width: parent.width
             readonly property bool hasPath: AppController.profilePath.length > 0
             text: hasPath ? qsTr("from %1").arg(AppController.profilePathDisplay)
@@ -164,6 +167,7 @@ Column {
             spacing: 6
             ComboBox {
                 id: dsnCombo
+                objectName: "dsnCombo"
                 width: parent.width - refreshDsnButton.width - parent.spacing
                 model: AppController.odbcDataSources
                 textRole: "name"
@@ -177,6 +181,7 @@ Column {
             }
             LsButton {
                 id: refreshDsnButton
+                objectName: "refreshDsnButton"
                 anchors.verticalCenter: dsnCombo.verticalCenter
                 height: dsnCombo.height
                 width: height
@@ -195,6 +200,7 @@ Column {
         Item { width: 1; height: 3 }
         FieldLabel { text: qsTr("Username (optional)") }
         TextField {
+            objectName: "dsnUserField"
             width: parent.width
             placeholderText: qsTr("leave empty to use DSN / Windows auth")
             placeholderTextColor: Theme.clrOnSurfaceFaint
@@ -204,6 +210,7 @@ Column {
         Item { width: 1; height: 3 }
         FieldLabel { text: qsTr("Password (optional)") }
         TextField {
+            objectName: "dsnPasswordField"
             width: parent.width
             placeholderText: qsTr("leave empty to use DSN / Windows auth")
             placeholderTextColor: Theme.clrOnSurfaceFaint
@@ -214,6 +221,7 @@ Column {
         Item { width: 1; height: 3 }
         FieldLabel { text: qsTr("Schema (optional)") }
         TextField {
+            objectName: "dsnSchemaField"
             width: parent.width
             placeholderText: qsTr("leave empty for the server default (e.g. dbo / public)")
             placeholderTextColor: Theme.clrOnSurfaceFaint
@@ -231,6 +239,7 @@ Column {
 
         FieldLabel { text: qsTr("Connection string") }
         TextField {
+            objectName: "customConnectionStringField"
             width: parent.width
             placeholderText: qsTr("DRIVER=...;DATABASE=...")
             placeholderTextColor: Theme.clrOnSurfaceFaint
@@ -241,6 +250,7 @@ Column {
         Item { width: 1; height: 3 }
         FieldLabel { text: qsTr("Schema (optional)") }
         TextField {
+            objectName: "customSchemaField"
             width: parent.width
             placeholderText: qsTr("leave empty for the server default (e.g. dbo / public)")
             placeholderTextColor: Theme.clrOnSurfaceFaint
@@ -264,6 +274,7 @@ Column {
             color: Theme.clrOnSurfaceSubtle
         }
         Label {
+            objectName: "connectionSummary"
             width: parent.width - summaryGlyph.width - parent.spacing
             text: AppController.connectionSummary
             color: Theme.clrOnSurfaceSubtle
@@ -275,6 +286,7 @@ Column {
 
     // --- Last error (red, blocking failures) ---
     MessageBox {
+        objectName: "connectionError"
         visible: AppController.lastError.length > 0
         message: AppController.lastError
     }
@@ -283,6 +295,7 @@ Column {
     // unmanaged". The connection is established; the user can still apply
     // migrations to bootstrap the schema_migrations table.
     MessageBox {
+        objectName: "connectionWarning"
         visible: AppController.lastWarning.length > 0
         message: AppController.lastWarning
         background: Theme.clrWarningBg
@@ -323,32 +336,18 @@ Column {
             }
         }
 
-        // A DSN or connection-string connection is not in dbtool.yml, so nothing
-        // else can back it up per profile: offer to keep it once it is open.
-        LsButton {
-            objectName: "saveAsProfileButton"
-            anchors.right: connectButton.left
-            anchors.rightMargin: 6
-            anchors.verticalCenter: parent.verticalCenter
-            variant: "ghost"
-            glyph: "plus"
-            text: qsTr("Save as profile…")
-            visible: AppController.connected && AppController.connectedMode !== "profile"
-            ToolTip.visible: hovered
-            ToolTip.delay: 500
-            ToolTip.timeout: 10000
-            ToolTip.text: qsTr("Keep this connection in dbtool.yml so it appears in the profile list.")
-            onClicked: saveProfileDialog.openForConnection()
-        }
-
         LsButton {
             id: connectButton
+            objectName: "connectButton"
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             variant: "secondary"
             glyph: AppController.connected ? "refresh" : "plug"
-            text: AppController.connected ? qsTr("Reconnect") : qsTr("Connect")
+            busy: AppController.connecting
+            text: AppController.connecting ? qsTr("Connecting…")
+                  : AppController.connected ? qsTr("Reconnect") : qsTr("Connect")
             enabled: {
+                if (AppController.busy) return false;
                 if (AppController.connectionMode === "profile") return AppController.currentProfile.length > 0;
                 if (AppController.connectionMode === "dsn")     return AppController.selectedDsn.length > 0;
                 return AppController.connectionStringOverride.length > 0;
@@ -361,6 +360,22 @@ Column {
                 : qsTr("Open an ODBC session to the target above.")
             onClicked: AppController.connectToProfile()
         }
+    }
+
+    // A DSN or connection-string connection is not in dbtool.yml, so nothing
+    // else can back it up per profile: offer to keep it once it is open.
+    LsButton {
+        objectName: "saveAsProfileButton"
+        width: parent.width
+        variant: "ghost"
+        glyph: "plus"
+        text: qsTr("Save as profile…")
+        visible: AppController.connected && AppController.connectedMode !== "profile"
+        ToolTip.visible: hovered
+        ToolTip.delay: 500
+        ToolTip.timeout: 10000
+        ToolTip.text: qsTr("Keep this connection in dbtool.yml so it appears in the profile list.")
+        onClicked: saveProfileDialog.openForConnection()
     }
 
     // Centred in the window, not in this panel (which may itself sit in a dialog).

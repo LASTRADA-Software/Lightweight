@@ -591,6 +591,7 @@ TEST_CASE("BackupRunner records a successful backup with the state captured befo
                 calls.emplace_back("start");
                 return NoStart(cs, schema);
             },
+        .verifyArchive = {},
         .record = [&calls](BackupRunner::Operation,
                            std::filesystem::path const&,
                            std::string const&,
@@ -619,6 +620,7 @@ TEST_CASE("BackupRunner says so when a backup cannot be recorded, and the backup
     runner.setBackupOperation(&CopyOneTable);
     runner.setRecorder({
         .captureStart = &NoStart,
+        .verifyArchive = {},
         .record = [](BackupRunner::Operation,
                      std::filesystem::path const&,
                      std::string const&,
@@ -647,6 +649,7 @@ TEST_CASE("BackupRunner fails a backup whose archive fails verification", "[dbto
     runner.setBackupOperation(&CopyOneTable);
     runner.setRecorder({
         .captureStart = &NoStart,
+        .verifyArchive = {},
         .record = [](BackupRunner::Operation,
                      std::filesystem::path const&,
                      std::string const&,
@@ -679,6 +682,7 @@ TEST_CASE("BackupRunner writes no record for a backup with table errors", "[dbto
     });
     runner.setRecorder({
         .captureStart = &NoStart,
+        .verifyArchive = {},
         .record = [&recordCalls](BackupRunner::Operation,
                                  std::filesystem::path const&,
                                  std::string const&,
@@ -710,6 +714,7 @@ TEST_CASE("BackupRunner records a successful restore", "[dbtool-gui][backup-runn
                 ++startCalls;
                 return NoStart(cs, schema);
             },
+        .verifyArchive = {},
         .record = [&recordedOperations](BackupRunner::Operation operation,
                                         std::filesystem::path const&,
                                         std::string const&,
@@ -768,6 +773,7 @@ TEST_CASE("BackupRunner keeps a restore that fails verification a success that w
     runner.setRestoreOperation(&CopyOneTable);
     runner.setRecorder({
         .captureStart = &NoStart,
+        .verifyArchive = {},
         .record = [](BackupRunner::Operation,
                      std::filesystem::path const&,
                      std::string const&,

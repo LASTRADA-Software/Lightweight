@@ -77,6 +77,7 @@ Rectangle {
 
     CheckBox {
         id: selectBox
+        objectName: "migrationRowCheck"
         anchors.left: parent.left
         anchors.leftMargin: root.leftInset
         anchors.verticalCenter: parent.verticalCenter

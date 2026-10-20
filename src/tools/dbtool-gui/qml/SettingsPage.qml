@@ -67,15 +67,6 @@ Rectangle {
         return ""
     }
 
-    /// Converts a file dialog URL to a local path for display and storage.
-    function _localPath(url) {
-        const s = url.toString()
-        const localPath = Qt.platform.os === "windows"
-            ? s.replace(/^file:\/{2,3}/, "")
-            : s.replace(/^file:\/{2}/, "")
-        return decodeURIComponent(localPath)
-    }
-
     // Kit text field (`k-ctl`): 32 px, mono for paths, brand border + tint on
     // focus, error border when `invalid`, optional leading glyph.
     component KitField: TextField {
@@ -226,6 +217,7 @@ Rectangle {
 
                         KitField {
                             id: storePathField
+                            objectName: "profileStorePathField"
                             Layout.fillWidth: true
                             Layout.minimumWidth: 80
                             placeholderText: AppController.defaultProfileStorePath
@@ -300,6 +292,7 @@ Rectangle {
 
                         KitField {
                             id: backupFolderField
+                            objectName: "backupFolderField"
                             Layout.fillWidth: true
                             Layout.minimumWidth: 80
                             leadingGlyph: "folder-outline"
@@ -359,7 +352,7 @@ Rectangle {
             return folder.length > 0 ? Qt.resolvedUrl("file:///" + folder) : "";
         }
         onAccepted: {
-            const decoded = root._localPath(selectedFile);
+            const decoded = AppController.localFilePath(selectedFile);
             storePathField.text = decoded;
             AppController.setProfileStorePath(decoded);
         }
@@ -375,7 +368,7 @@ Rectangle {
             return cur.length > 0 ? Qt.resolvedUrl("file:///" + cur) : "";
         }
         onAccepted: {
-            const decoded = root._localPath(selectedFolder);
+            const decoded = AppController.localFilePath(selectedFolder);
             backupFolderField.text = decoded;
             AppController.managedBackups.setBackupFolder(decoded);
         }

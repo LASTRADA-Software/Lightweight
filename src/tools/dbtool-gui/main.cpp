@@ -3,10 +3,10 @@
 // dbtool-gui — Qt 6 GUI companion to the dbtool CLI.
 //
 // Exposes the same migration / SQL-query / backup / profile workflows as the
-// dbtool CLI through a QML desktop UI. See docs/migrations-gui-plan.md for
-// the original design notes.
+// dbtool CLI through a QML desktop UI.
 
 #include "AppController.hpp"
+#include "CloseGuard.hpp"
 #include "SettingsLocation.hpp"
 #include "StderrMessageHandler.hpp"
 
@@ -136,6 +136,9 @@ int main(int argc, char* argv[])
             QCoreApplication::exit(-1);
         },
         Qt::QueuedConnection);
+
+    // Qt.quit() takes the guard against closing during a run instead of quitting at once.
+    DbtoolGui::InstallQuitGuard(engine);
 
     engine.loadFromModule(QStringLiteral("Lightweight.Migrations"), QStringLiteral("Main"));
 

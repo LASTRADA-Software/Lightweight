@@ -1,7 +1,7 @@
 # dbtool-gui — Qt 6 GUI companion to the dbtool CLI.
 #
 # Built only when LIGHTWEIGHT_BUILD_GUI is ON and Qt 6 was located by the
-# top-level LightweightFindQt probe. See docs/migrations-gui-plan.md for the design.
+# top-level LightweightFindQt probe.
 #
 # The C++ view-model layer lives in a STATIC backing library
 # (`dbtool-gui-lib`) so the test binaries under `tests/` can link against
@@ -44,6 +44,13 @@ set(MIGRATIONS_GUI_CXX_SOURCES
     BackupRunner.hpp
     BackupRunner.cpp
     BackupRequirementSupport.hpp
+    BackupRequirementSupport.cpp
+    CloseGuard.hpp
+    CloseGuard.cpp
+    ControllerJobs.hpp
+    ControllerJobs.cpp
+    ExceptionMessage.hpp
+    ExceptionMessage.cpp
     LogLevel.hpp
     ManagedBackupController.hpp
     ManagedBackupController.cpp
@@ -53,6 +60,8 @@ set(MIGRATIONS_GUI_CXX_SOURCES
     MigrationRunner.cpp
     QmlProgressManager.hpp
     QmlProgressManager.cpp
+    SerialWorker.hpp
+    SerialWorker.cpp
     SqlQueryRunner.hpp
     SqlQueryRunner.cpp
     SqlSyntaxHighlighter.hpp
@@ -67,8 +76,16 @@ set(MIGRATIONS_GUI_CXX_SOURCES
     Models/BackupStatusListModel.cpp
     Models/BackupTableListModel.hpp
     Models/BackupTableListModel.cpp
+    Models/LogLineModel.hpp
+    Models/LogLineModel.cpp
     Models/MigrationListModel.hpp
     Models/MigrationListModel.cpp
+    Models/MigrationFilterModel.hpp
+    Models/MigrationFilterModel.cpp
+    Models/MigrationPlanModel.hpp
+    Models/MigrationPlanModel.cpp
+    Models/MigrationSnapshot.hpp
+    Models/MigrationSnapshot.cpp
     Models/OdbcDataSourceListModel.hpp
     Models/OdbcDataSourceListModel.cpp
     Models/ProfileListModel.hpp

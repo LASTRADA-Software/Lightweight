@@ -260,10 +260,21 @@ std::expected<ProfileStore, std::string> ProfileStore::LoadOrDefault(std::filesy
     if (!std::filesystem::exists(path))
         return ProfileStore {}; // empty store is valid
 
+    auto file = std::ifstream { path, std::ios::binary };
+    if (!file)
+        return std::unexpected(std::format("failed to read {}", path.string()));
+    auto content = std::ostringstream {};
+    content << file.rdbuf();
+    return Parse(content.str(), path);
+}
+
+std::expected<ProfileStore, std::string> ProfileStore::Parse(std::string_view yaml, std::filesystem::path const& origin)
+{
+    auto const& path = origin;
     YAML::Node root;
     try
     {
-        root = YAML::LoadFile(path.string());
+        root = YAML::Load(std::string { yaml });
     }
     catch (std::exception const& e)
     {

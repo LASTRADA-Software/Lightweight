@@ -7,11 +7,14 @@
 
 #pragma once
 
+#include "BackupRunner.hpp"
 #include "LogLevel.hpp"
 #include "ManagedBackupCore.hpp"
 #include "Models/BackupStatusListModel.hpp"
+#include "SerialWorker.hpp"
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <functional>
@@ -54,6 +57,13 @@ class ManagedBackupController: public QObject
         Running,
     };
     Q_ENUM(Phase)
+
+    /// What the run in flight, or the last one, does.
+    enum class RunKind : std::uint8_t
+    {
+        Backup,  ///< Writes the managed archives of one or every profile.
+        Restore, ///< Reads a managed archive back into a database.
+    };
 
     /// The operation that writes one profile's archive. Injected so the
     /// failure semantics (a run that reports table-level errors without
@@ -111,7 +121,7 @@ class ManagedBackupController: public QObject
     }
 
     /// Sets and persists the backup folder (QSettings key "backup/folder");
-    /// re-scans archive status. Empty resets to the platform default.
+    /// re-scans archive status in the background. Empty resets to the platform default.
     /// @param folder Absolute directory path or empty.
     Q_INVOKABLE void setBackupFolder(QString const& folder);
 
@@ -128,9 +138,15 @@ class ManagedBackupController: public QObject
     /// Sets the folder dbtool.yml configures (`defaultBackupDir`); empty when it names none.
     /// Becomes the default folder, so a choice made in Settings still wins. Per-profile
     /// `backupDir` values do not apply here: the page keeps every profile's archive in one folder.
-    /// Re-scans archive status when the effective folder changes.
+    /// Re-scans archive status in the background when the effective folder changes.
     /// @param folder The configured folder, or empty.
     void setConfiguredBackupFolder(QString const& folder);
+
+    /// @return What the run in flight, or the last one, does.
+    [[nodiscard]] RunKind runKind() const noexcept
+    {
+        return _runKind;
+    }
 
     /// Current run phase (idle vs. running a backup/restore).
     [[nodiscard]] Phase phase() const noexcept
@@ -150,8 +166,9 @@ class ManagedBackupController: public QObject
         return _folderProblem;
     }
 
-    /// Replaces the profile snapshot that backup-all iterates over and
-    /// resets the status model. Called by AppController on profile load.
+    /// Replaces the profile snapshot that backup-all iterates over, resets
+    /// the status model and re-scans archive status in the background.
+    /// Called by AppController on profile load.
     /// @param profiles Copied store profiles, in store order.
     void setProfiles(std::vector<Lightweight::Config::Profile> profiles);
 
@@ -174,6 +191,11 @@ class ManagedBackupController: public QObject
     ///        (`Lightweight::SqlBackup::Restore`).
     void setRestoreOperation(RestoreOperation operation);
 
+    /// Replaces the recorder that writes a `schema_backups` record for every profile backed up and every
+    /// restore that read back cleanly. Same contract as `setBackupOperation`.
+    /// @param recorder New recorder; an unset function keeps its default (a record on a connection of its own).
+    void setRecorder(BackupRunner::Recorder recorder);
+
     /// Injects the handler told about plaintext passwords that a run has connected with. Must not be
     /// called while a run is in flight; the current value is copied into the worker task when a run starts.
     /// @param handler New handler; an empty callable disables the notification (the default).
@@ -184,13 +206,15 @@ class ManagedBackupController: public QObject
     /// @param probe New probe; an empty callable restores the default (a real connection).
     void setConnectionProbe(ConnectionProbe probe);
 
-    /// Re-scans <folder>/<profile>.zip for every profile and updates the
-    /// model's archive columns plus folderProblem.
-    Q_INVOKABLE void refreshStatus();
+    /// Re-scans <folder>/<profile>.zip for every profile on a background thread, then updates the
+    /// model's archive columns plus folderProblem on this one and emits `statusRefreshed`.
+    /// A result overtaken by a later refresh is dropped.
+    Q_INVOKABLE void requestStatusRefresh();
 
     /// Backs up every configured profile into the managed folder,
     /// sequentially, continuing past failures. No-op with a warning when
-    /// already running, the busy probe vetoes, or the folder is unusable.
+    /// already running or the busy probe vetoes; the run fails when the
+    /// folder is unusable.
     Q_INVOKABLE void backupAll();
 
     /// Backs up a single profile into the managed folder. Same guards as
@@ -217,6 +241,11 @@ class ManagedBackupController: public QObject
                                                       QString const& connectionString,
                                                       QString const& schema);
 
+    /// Blocks until the run and the archive-status scan in flight, if any, have finished or @p timeout ran out.
+    /// @param timeout How long to wait; `std::chrono::milliseconds::max()` waits for as long as it takes.
+    /// @return Whether no run is left.
+    [[nodiscard]] bool WaitForDone(std::chrono::milliseconds timeout);
+
   signals:
     void logLine(QString line, DbtoolGui::LogLevel level);
     /// Structured per-table progress for the live details panel. Emitted
@@ -237,9 +266,16 @@ class ManagedBackupController: public QObject
     /// @param totalTables Number of tables the run will process.
     void tableTotalKnown(QString profile, int totalTables);
     void finished(bool ok, QString summary);
+    /// Emitted (queued, before `finished`) once per profile backed up and per restore, with whether its
+    /// `schema_backups` record was written.
+    /// @param profile The profile whose database was recorded into; empty for a restore into a connection string.
+    /// @param error Why the run was not recorded; empty when it was.
+    void recordResult(QString profile, QString error);
     void phaseChanged();
     void backupFolderChanged();
     void folderProblemChanged();
+    /// A background archive-status scan (`requestStatusRefresh`) has been applied.
+    void statusRefreshed();
 
   private:
     /// Updates `_folderProblem` and emits `folderProblemChanged()` only when
@@ -262,9 +298,9 @@ class ManagedBackupController: public QObject
     /// @param totalTables Number of tables the run will process.
     void RouteTableTotal(QString const& profile, int totalTables);
 
-    /// Shared entry guard for backupAll()/backupProfile(): refuses (with a
-    /// logged Warning/Error line) when a run is already in progress, the
-    /// busy probe vetoes, or the managed folder is unusable.
+    /// Shared entry guard for backupAll()/backupProfile() and the restores:
+    /// refuses (with a logged Warning line) when a run is already in progress
+    /// or the busy probe vetoes. The run itself checks the folder first.
     /// @param what Short label used in the logged refusal message.
     /// @return True when it is safe to start a run.
     [[nodiscard]] bool StartRunGuard(char const* what);
@@ -315,23 +351,28 @@ class ManagedBackupController: public QObject
 
     BackupOperation _backupOperation;
     RestoreOperation _restoreOperation;
+    BackupRunner::Recorder _recorder;
     PlaintextPasswordVerifiedHandler _onPlaintextPasswordVerified;
     ConnectionProbe _connectionProbe;
     std::atomic<Phase> _phase { Phase::Idle };
+    RunKind _runKind = RunKind::Backup;
     BackupStatusListModel _status;
     std::vector<Lightweight::Config::Profile> _profiles;
     std::function<bool()> _busyProbe;
     QString _backupFolder;
     QString _configuredBackupFolder;
     QString _folderProblem;
+    /// Identifies the latest archive-status scan; an older scan's result is dropped.
+    std::uint64_t _statusGeneration = 0;
 
-    // `_pool` MUST be declared LAST so it is destroyed FIRST: non-static
-    // members are destroyed in reverse declaration order, and ~QThreadPool
-    // blocks until the running worker returns. The worker touches the members
-    // above (`_phase`, `_status`, the injected operations), so the pool has to
-    // join before any of them go away. Declaring it first would do the exact
-    // opposite — it would be destroyed last, after everything it protects.
+    // `_pool` MUST be declared after every member its worker touches, so it is
+    // destroyed BEFORE them: non-static members are destroyed in reverse
+    // declaration order, and ~QThreadPool blocks until the running worker
+    // returns. The worker touches the members above (`_phase`, `_status`, the
+    // injected operations), so the pool has to join before any of them go away.
     QThreadPool _pool;
+    /// Runs the background archive-status scans; they touch no member, they only post back.
+    SerialWorker _statusWorker;
 };
 
 } // namespace DbtoolGui
