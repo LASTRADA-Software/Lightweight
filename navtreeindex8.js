@@ -1,5 +1,10 @@
 var NAVTREEINDEX8 =
 {
+"de/d61/classLightweight_1_1DataMapper.html#a12eb981abeb0a4754aafb1e3050db3d9":[19,3,9,41],
+"de/d61/classLightweight_1_1DataMapper.html#a14f4830a73bb932956d1d66f8f1ef69f":[19,3,9,31],
+"de/d61/classLightweight_1_1DataMapper.html#a1c49ec5976087ab4899eb8d2b3c534b3":[19,3,9,40],
+"de/d61/classLightweight_1_1DataMapper.html#a2169593bd11e17f7d602a5246b0ce5ea":[19,3,9,2],
+"de/d61/classLightweight_1_1DataMapper.html#a26cf5a8f4f6f3cf5840bb6fe6974e168":[19,3,9,42],
 "de/d61/classLightweight_1_1DataMapper.html#a275a2f5e36efeb2bd98f6c73b8f73c4b":[19,3,9,11],
 "de/d61/classLightweight_1_1DataMapper.html#a2b2b5b2f4bc610b6a8f518ce88a6e485":[19,3,9,26],
 "de/d61/classLightweight_1_1DataMapper.html#a2cd193a868954406545c989fbefec702":[19,3,9,33],
@@ -244,10 +249,5 @@ var NAVTREEINDEX8 =
 "df/d3f/structLightweight_1_1SqlVariant.html#af3f6b677c46a51433e557a75078a07db":[19,1,12,15],
 "df/d3f/structLightweight_1_1SqlVariant.html#af528f083ac94acf3403ae2c989fd3256":[19,1,12,27],
 "df/d3f/structLightweight_1_1SqlVariant.html#affcbadd579dc7e2ff85503c8b6f3352d":[19,1,12,14],
-"df/d49/classLightweight_1_1SqlRetryPolicy.html":[19,9,6],
-"df/d49/classLightweight_1_1SqlRetryPolicy.html#a2a80d65d64c65e6329f2263f2d2c88f9":[19,9,6,6],
-"df/d49/classLightweight_1_1SqlRetryPolicy.html#a34676e8137f5e2629e02e72511833152":[19,9,6,1],
-"df/d49/classLightweight_1_1SqlRetryPolicy.html#a3574a8084b1e14928fcdf0cd47c0623d":[19,9,6,9],
-"df/d49/classLightweight_1_1SqlRetryPolicy.html#a4aa80edc122bc584d893aa68e6dfbbf7":[19,9,6,5],
-"df/d49/classLightweight_1_1SqlRetryPolicy.html#ac0c6d548882c4336434d020265b14577":[19,9,6,3]
+"df/d49/classLightweight_1_1SqlRetryPolicy.html":[19,9,6]
 };

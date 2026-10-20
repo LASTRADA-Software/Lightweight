@@ -37,6 +37,7 @@ var NAVTREE =
       [ "Retrying a connect that failed transiently", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#retrying-a-connect-that-failed-transiently", [
         [ "SQL Server: <tt>ConnectRetryCount</tt> and <tt>ConnectRetryInterval</tt>", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sql-server-connectretrycount-and-connectretryinterval", null ]
       ] ],
+      [ "Running on a connection handle another component owns", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#running-on-a-connection-handle-another-component-owns", null ],
       [ "Raw SQL Queries", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#raw-sql-queries", null ],
       [ "Transparent block-prefetch (fewer network round-trips)", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#transparent-block-prefetch-fewer-network-round-trips", null ],
       [ "Prepared Statements", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#prepared-statements", null ],
@@ -416,10 +417,10 @@ var NAVTREEINDEX =
 "d6/daa/group__QueryBuilder.html#gaf5129886f9f25ac627e908d6ce38406b",
 "d7/d9a/classLightweight_1_1SqlDynamicString.html#a02be3f28ff302516bb8a6690464820f7",
 "d9/d43/Employee_8hpp_source.html",
-"da/da6/structLightweight_1_1SqlPoolStatistics.html#ab94ec8b9865e5d838d4942cdbc45700a",
-"dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#a65e4336ec9a39cfd5a125fd89863cae6",
-"de/d61/classLightweight_1_1DataMapper.html#a275a2f5e36efeb2bd98f6c73b8f73c4b",
-"df/d49/classLightweight_1_1SqlRetryPolicy.html#ae651a297dedb9e10e1cc29d1c7b11f7e"
+"da/da6/structLightweight_1_1SqlPoolStatistics.html#a43aef722357d7f81387c413979240312",
+"db/dfd/classLightweight_1_1SqlLogger.html#ae1c85dd1cbc748a950f23637fb202555",
+"de/d61/classLightweight_1_1DataMapper.html#a12eb981abeb0a4754aafb1e3050db3d9",
+"df/d49/classLightweight_1_1SqlRetryPolicy.html#a2a80d65d64c65e6329f2263f2d2c88f9"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

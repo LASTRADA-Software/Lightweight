@@ -1,5 +1,10 @@
 var NAVTREEINDEX7 =
 {
+"db/dfd/classLightweight_1_1SqlLogger.html#ae1c85dd1cbc748a950f23637fb202555":[19,6,5,5],
+"db/dfd/classLightweight_1_1SqlLogger.html#af7c5638382912daeb780c763c5711ee2":[19,6,5,23],
+"db/dfd/classLightweight_1_1SqlLogger.html#af7d984686564f12829697aaffa839395":[19,6,5,13],
+"db/dfd/classLightweight_1_1SqlLogger.html#af9ba5d916ab908a9a5a5d0ea7966751b":[19,6,5,4],
+"dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html":[19,7,16],
 "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#a65e4336ec9a39cfd5a125fd89863cae6":[19,7,16,3],
 "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#aaacc540bd4fd3ab8f556b8cc92f2894b":[19,7,16,0],
 "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#ab52a61034e07facd43a641d9c40f9b62":[19,7,16,1],
@@ -244,10 +249,5 @@ var NAVTREEINDEX7 =
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#workflow-examples":[9,7],
 "de/d61/classLightweight_1_1DataMapper.html":[19,3,9],
 "de/d61/classLightweight_1_1DataMapper.html#a004c9eaa70d2a33b3533ffa9381995c4":[19,3,9,5],
-"de/d61/classLightweight_1_1DataMapper.html#a121ee55502ae3461f8773593a5342f5f":[19,3,9,7],
-"de/d61/classLightweight_1_1DataMapper.html#a12eb981abeb0a4754aafb1e3050db3d9":[19,3,9,41],
-"de/d61/classLightweight_1_1DataMapper.html#a14f4830a73bb932956d1d66f8f1ef69f":[19,3,9,31],
-"de/d61/classLightweight_1_1DataMapper.html#a1c49ec5976087ab4899eb8d2b3c534b3":[19,3,9,40],
-"de/d61/classLightweight_1_1DataMapper.html#a2169593bd11e17f7d602a5246b0ce5ea":[19,3,9,2],
-"de/d61/classLightweight_1_1DataMapper.html#a26cf5a8f4f6f3cf5840bb6fe6974e168":[19,3,9,42]
+"de/d61/classLightweight_1_1DataMapper.html#a121ee55502ae3461f8773593a5342f5f":[19,3,9,7]
 };

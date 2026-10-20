@@ -26,7 +26,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Lightweight<span id="projectnumber">&#160;0.20261008.0</span>
+   <div id="projectname">Lightweight<span id="projectnumber">&#160;0.20261019.0</span>
    </div>
   </td>
  </tr>
@@ -192,6 +192,13 @@ SQL Server: &lt;tt&gt;ConnectRetryCount&lt;/tt&gt; and &lt;tt&gt;ConnectRetryInt
 <li><b>The two mechanisms multiply.</b> With both enabled, a database that stays down costs up to the driver's attempts for each of Lightweight's. Size them together, or rely on one.</li>
 <li><b>PostgreSQL and SQLite drivers have no such keywords.</b> There, Lightweight's connect retry and the connection pool's <code>ValidateOnBorrow</code> (which replaces a dead pooled connection) are what is available.</li>
 </ul>
+<h1><a class="anchor" id="running-on-a-connection-handle-another-component-owns"></a>
+Running on a connection handle another component owns</h1>
+<p>When another data layer already holds a connected ODBC handle, <code>SqlConnection::Borrow</code> runs Lightweight statements on it, in the same session and therefore inside any transaction the owner has open:</p>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> connection = SqlConnection::Borrow(otherLayerHandle);</div>
+<div class="line"><span class="keyword">auto</span> stmt = SqlStatement { connection };</div>
+<div class="line">(void) stmt.ExecuteDirect(<span class="stringliteral">&quot;UPDATE \&quot;Orders\&quot; SET \&quot;Shipped\&quot; = 1&quot;</span>);</div>
+</div><!-- fragment --><p>A borrowed connection detects the server type like a connected one, but applies no session setting (string-truncation mode, SQLite settings, post-connected hook); <code>StringTruncationMode()</code> reports the mode the session already has. Closing or destroying it leaves the handle connected, and <code>Connect()</code> on it fails. <code>HandleOwnership()</code> tells a borrowed connection (<code>SqlHandleOwnership::Borrowed</code>) from one that owns its handles. The handle must stay valid until the borrowed connection is closed or destroyed, since both free the statement handles cached on it.</p>
 <h1><a class="anchor" id="raw-sql-queries"></a>
 Raw SQL Queries</h1>
 <p>To directly make a call to the database use <code>ExecuteDirect</code> function, for example </p><div class="fragment"><div class="line"><span class="keyword">auto</span> stmt = SqlStatement {};</div>

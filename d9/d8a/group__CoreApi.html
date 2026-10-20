@@ -26,7 +26,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Lightweight<span id="projectnumber">&#160;0.20261008.0</span>
+   <div id="projectname">Lightweight<span id="projectnumber">&#160;0.20261019.0</span>
    </div>
   </td>
  </tr>
@@ -175,6 +175,11 @@ Enumerations</h2></td></tr>
  }</td></tr>
 <tr class="memdesc:ga4e69e872eba3ff2b5e59b999b747add8"><td class="mdescLeft">&#160;</td><td class="mdescRight">The SQLite journal mode a connection requests when it is established.  <a href="../../d9/d8a/group__CoreApi.html#ga4e69e872eba3ff2b5e59b999b747add8">More...</a><br /></td></tr>
 <tr class="separator:ga4e69e872eba3ff2b5e59b999b747add8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gac575bf775e5877a5eeddbde62f8e8e67" id="r_gac575bf775e5877a5eeddbde62f8e8e67"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d8a/group__CoreApi.html#gac575bf775e5877a5eeddbde62f8e8e67">Lightweight::SqlHandleOwnership</a> : uint8_t { <a class="el" href="../../d9/d8a/group__CoreApi.html#ggac575bf775e5877a5eeddbde62f8e8e67a60848c692f8ddb0363e500da44563bae">SqlHandleOwnership::Owned</a>
+, <a class="el" href="../../d9/d8a/group__CoreApi.html#ggac575bf775e5877a5eeddbde62f8e8e67a0508624b46fa4785138cf2fdff6d7039">SqlHandleOwnership::Borrowed</a>
+ }</td></tr>
+<tr class="memdesc:gac575bf775e5877a5eeddbde62f8e8e67"><td class="mdescLeft">&#160;</td><td class="mdescRight">How a connection relates to its ODBC handles.  <a href="../../d9/d8a/group__CoreApi.html#gac575bf775e5877a5eeddbde62f8e8e67">More...</a><br /></td></tr>
+<tr class="separator:gac575bf775e5877a5eeddbde62f8e8e67"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga826d0a33e14c546691afe196b566b77d" id="r_ga826d0a33e14c546691afe196b566b77d"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d8a/group__CoreApi.html#ga826d0a33e14c546691afe196b566b77d">Lightweight::SqlPreparedStatementCaching</a> : uint8_t { <a class="el" href="../../d9/d8a/group__CoreApi.html#gga826d0a33e14c546691afe196b566b77da00d23a76e43b46dae9ec7aa9dcbebb32">SqlPreparedStatementCaching::Enabled</a>
 , <a class="el" href="../../d9/d8a/group__CoreApi.html#gga826d0a33e14c546691afe196b566b77dab9f5c797ebbf55adccdd8539a65a0241">SqlPreparedStatementCaching::Disabled</a>
  }</td></tr>
@@ -313,6 +318,38 @@ Functions</h2></td></tr>
 </table>
 
 <p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00078">78</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+
+</div>
+</div>
+<a id="gac575bf775e5877a5eeddbde62f8e8e67" name="gac575bf775e5877a5eeddbde62f8e8e67"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gac575bf775e5877a5eeddbde62f8e8e67">&#9670;&#160;</a></span>SqlHandleOwnership</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum class <a class="el" href="../../d9/d8a/group__CoreApi.html#gac575bf775e5877a5eeddbde62f8e8e67">Lightweight::SqlHandleOwnership</a> : uint8_t</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">strong</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>How a connection relates to its ODBC handles. </p>
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="ggac575bf775e5877a5eeddbde62f8e8e67a60848c692f8ddb0363e500da44563bae" name="ggac575bf775e5877a5eeddbde62f8e8e67a60848c692f8ddb0363e500da44563bae"></a>Owned&#160;</td><td class="fielddoc"><p>The connection allocated its handles, connects them and frees them on Close(). </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ggac575bf775e5877a5eeddbde62f8e8e67a0508624b46fa4785138cf2fdff6d7039" name="ggac575bf775e5877a5eeddbde62f8e8e67a0508624b46fa4785138cf2fdff6d7039"></a>Borrowed&#160;</td><td class="fielddoc"><p>Another component allocated and connected the handle and keeps owning it; the connection only runs statements on it (see <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a415efaa0919a0102b4adaa98dea446a2" title="Wraps an ODBC connection handle that another component allocated, connected and keeps owning.">SqlConnection::Borrow</a>). </p>
+</td></tr>
+</table>
+
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00136">136</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>

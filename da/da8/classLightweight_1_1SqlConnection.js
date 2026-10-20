@@ -6,6 +6,7 @@ var classLightweight_1_1SqlConnection =
     [ "SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html#ab9e2b5679f7ca67ead13107a020e7c65", null ],
     [ "~SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html#a62a9dd35027a98c52b3fcb66fcf2e731", null ],
     [ "operator=", "da/da8/classLightweight_1_1SqlConnection.html#a6632efa15e669b5892bcb1fe0e0dc683", null ],
+    [ "HandleOwnership", "da/da8/classLightweight_1_1SqlConnection.html#ad09f0b684536f19464eca151256c05e9", null ],
     [ "StringTruncationMode", "da/da8/classLightweight_1_1SqlConnection.html#a65a42e46a8954b2a4f88e0403c85ccff", null ],
     [ "SetStringTruncationMode", "da/da8/classLightweight_1_1SqlConnection.html#ad564a1c5ac5491bfdefad0bd38d83bbe", null ],
     [ "SqliteSettings", "da/da8/classLightweight_1_1SqlConnection.html#aec2394736e758433d81c29cb5c04d047", null ],

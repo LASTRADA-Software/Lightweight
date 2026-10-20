@@ -28,6 +28,7 @@ var group__CoreApi =
       [ "SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html#ab9e2b5679f7ca67ead13107a020e7c65", null ],
       [ "~SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html#a62a9dd35027a98c52b3fcb66fcf2e731", null ],
       [ "operator=", "da/da8/classLightweight_1_1SqlConnection.html#a6632efa15e669b5892bcb1fe0e0dc683", null ],
+      [ "HandleOwnership", "da/da8/classLightweight_1_1SqlConnection.html#ad09f0b684536f19464eca151256c05e9", null ],
       [ "StringTruncationMode", "da/da8/classLightweight_1_1SqlConnection.html#a65a42e46a8954b2a4f88e0403c85ccff", null ],
       [ "SetStringTruncationMode", "da/da8/classLightweight_1_1SqlConnection.html#ad564a1c5ac5491bfdefad0bd38d83bbe", null ],
       [ "SqliteSettings", "da/da8/classLightweight_1_1SqlConnection.html#aec2394736e758433d81c29cb5c04d047", null ],
@@ -320,6 +321,10 @@ var group__CoreApi =
       [ "Lightweight::SqliteJournalMode::Memory", "d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a4789f23283b3a61f858b641a1bef19a3", null ],
       [ "Lightweight::SqliteJournalMode::Wal", "d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a42c2820d1794f02d673fc37f0d620244", null ],
       [ "Lightweight::SqliteJournalMode::Off", "d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8ad15305d7a4e34e02489c74a5ef542f36", null ]
+    ] ],
+    [ "Lightweight::SqlHandleOwnership", "d9/d8a/group__CoreApi.html#gac575bf775e5877a5eeddbde62f8e8e67", [
+      [ "Lightweight::SqlHandleOwnership::Owned", "d9/d8a/group__CoreApi.html#ggac575bf775e5877a5eeddbde62f8e8e67a60848c692f8ddb0363e500da44563bae", null ],
+      [ "Lightweight::SqlHandleOwnership::Borrowed", "d9/d8a/group__CoreApi.html#ggac575bf775e5877a5eeddbde62f8e8e67a0508624b46fa4785138cf2fdff6d7039", null ]
     ] ],
     [ "Lightweight::SqlPreparedStatementCaching", "d9/d8a/group__CoreApi.html#ga826d0a33e14c546691afe196b566b77d", [
       [ "Lightweight::SqlPreparedStatementCaching::Enabled", "d9/d8a/group__CoreApi.html#gga826d0a33e14c546691afe196b566b77da00d23a76e43b46dae9ec7aa9dcbebb32", null ],
