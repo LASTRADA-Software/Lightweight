@@ -25,6 +25,7 @@
 #include <expected>
 #include <filesystem>
 #include <fstream>
+#include <future>
 #include <ranges>
 #include <string>
 #include <utility>
@@ -36,6 +37,7 @@
 #include <QtCore/QTemporaryDir>
 #include <QtCore/QVariant>
 #include <QtTest/QSignalSpy>
+#include <QtTest/QTest>
 
 using DbtoolGui::AppController;
 using DbtoolGui::BackupRunner;
@@ -141,6 +143,28 @@ TEST_CASE("a release that requires a backup blocks the migrations until Back up 
     CHECK(controller.backupRunner()->lastResult().value(QStringLiteral("recorded")).toBool());
     CHECK_FALSE(controller.backupRequired());
     CHECK(controller.backupRequirementReasons().isEmpty());
+    CHECK(ArchiveCount(workspace.Backups()) == 1);
+}
+
+TEST_CASE("Back up now prepares its folder while a database job keeps the migration worker busy",
+          "[dbtool-gui][AppController][backup-requirement]")
+{
+    ScopedSettingRestore const restoreBackupFolder { QStringLiteral("backup/folder") };
+    auto const workspace = BackupRequiredWorkspace();
+    AppController controller;
+    REQUIRE(WaitForIdle(controller));
+    workspace.Connect(controller);
+    auto release = std::promise<void> {};
+    controller.runner()->Worker().Enqueue([released = release.get_future().share()] { released.wait(); },
+                                          [](std::exception const&) {});
+    QSignalSpy done(controller.backupRunner(), &BackupRunner::finished);
+
+    controller.backUpNow();
+    auto const backedUpWhileBusy = done.count() > 0 || done.wait(10000);
+    release.set_value();
+    REQUIRE(WaitForIdle(controller));
+
+    REQUIRE(backedUpWhileBusy);
     CHECK(ArchiveCount(workspace.Backups()) == 1);
 }
 
@@ -282,8 +306,9 @@ TEST_CASE("connectToProfile is refused while a backup runs", "[dbtool-gui][AppCo
 
     QSignalSpy done(controller.backupRunner(), &BackupRunner::finished);
     controller.backUpNow();
-    // The run reports back through this thread's event loop, so it is still running here.
-    REQUIRE(controller.backupRunner()->phase() == BackupRunner::Phase::Running);
+    // The backup folder is created on the worker first; the run then reports back through this thread's event loop.
+    REQUIRE(QTest::qWaitFor([&] { return controller.backupRunner()->phase() == BackupRunner::Phase::Running; },
+                            30000));
     CHECK_FALSE(controller.connectToProfile());
     CHECK(controller.lastWarning().contains(QStringLiteral("backup or restore")));
 

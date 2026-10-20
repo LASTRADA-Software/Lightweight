@@ -474,6 +474,18 @@ void WorkflowFixture::ReleaseLock()
     _lockConnection.reset();
 }
 
+void WorkflowFixture::setLockTimeoutMs(int milliseconds)
+{
+    if (auto* const controller = Controller(); controller != nullptr)
+        controller->runner()->setLockTimeout(std::chrono::milliseconds { milliseconds });
+}
+
+void WorkflowFixture::detachMigrationManager()
+{
+    if (auto* const controller = Controller(); controller != nullptr)
+        controller->runner()->SetManager(nullptr);
+}
+
 void WorkflowFixture::emitRunnerLogLines(int count)
 {
     auto* const controller = Controller();

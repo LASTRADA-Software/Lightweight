@@ -232,6 +232,8 @@ class AppController: public QObject
     Q_PROPERTY(bool connecting READ connecting NOTIFY activityChanged)
     /// True while the backup requirement is evaluated on the worker; `backupRequired` is not final meanwhile.
     Q_PROPERTY(bool backupRequirementPending READ backupRequirementPending NOTIFY activityChanged)
+    /// True from an accepted `applyAfterBackup` until its backup finished and the apply was started or dropped.
+    Q_PROPERTY(bool chainedBackupPending READ chainedBackupPending NOTIFY chainedBackupPendingChanged)
 
   public:
     /// How a change of the profile file on disk was handled.
@@ -418,6 +420,28 @@ class AppController: public QObject
     /// `<target>-<timestamp>.zip` name, without a dialog. The backup is recorded, so it satisfies
     /// the backup requirement once it finished. Does nothing unless connected and every runner is idle.
     Q_INVOKABLE void backUpNow();
+
+    /// Backs up the connected database and, once the backup succeeded, applies migrations: the
+    /// timestamps @p selectedTimestamps when there are any, else everything up to @p targetTimestamp.
+    /// A backup that fails or cannot start applies nothing, logs an error and emits `chainedBackupFailed`.
+    /// Does nothing, beyond a log line, unless connected and every runner is idle.
+    /// @param archivePath The archive to write; empty writes a generated `<target>-<timestamp>.zip`
+    ///        into the backup folder, as `backUpNow` does.
+    /// @param targetTimestamp The apply target as for `MigrationRunner::applyUpTo`; empty applies everything pending.
+    /// @param selectedTimestamps The migrations to apply as for `MigrationRunner::applySelected`.
+    Q_INVOKABLE void applyAfterBackup(QString const& archivePath,
+                                      QString const& targetTimestamp,
+                                      QStringList const& selectedTimestamps);
+
+    /// @return Whether a backup started by `applyAfterBackup` is in flight.
+    [[nodiscard]] bool chainedBackupPending() const noexcept
+    {
+        return _chainedBackupPending;
+    }
+
+    /// Sets whether the apply, apply-selected and rollback runs take the migration lock.
+    /// @param mode `"skip"` runs them without the lock; anything else, `"acquire"` included, takes it.
+    Q_INVOKABLE void setMigrationLocking(QString const& mode);
     [[nodiscard]] int selectionCount() const;
 
     [[nodiscard]] QString currentReleaseLabel() const;
@@ -694,6 +718,14 @@ class AppController: public QObject
     void migrationsChanged();
     void backupRequirementChanged();
     void migrateWithoutBackupChanged();
+    /// `chainedBackupPending` changed.
+    void chainedBackupPendingChanged();
+    /// The backup `applyAfterBackup` started failed or could not start, so no migration ran.
+    /// @param summary Why, e.g. the backup's own summary.
+    void chainedBackupFailed(QString summary);
+    /// The backup succeeded but the migrations after it could not start, so none ran.
+    /// @param summary Why.
+    void chainedApplyFailed(QString summary);
     void selectionChanged();
     void logVisibleChanged();
     void viewModeChanged();
@@ -812,6 +844,29 @@ class AppController: public QObject
     void LogInfo(QString line);
     void LogWarn(QString line);
     void LogError(QString line);
+
+    /// The generated `<target>-<timestamp>.zip` archive path in the backup folder; touches no disk.
+    /// @return The archive path, or why there is none, e.g. "no backup folder is configured; choose one in Settings."
+    [[nodiscard]] std::expected<QString, QString> GeneratedBackupArchive() const;
+
+    /// Receives the archive path once its folder exists, or why it could not be created.
+    using BackupFolderReady = std::function<void(std::expected<QString, QString>)>;
+
+    /// Creates the folder of @p archivePath on the worker and calls @p ready on the GUI thread with the
+    /// archive path, or the failure; also a failure when the connection changed meanwhile.
+    void PrepareBackupFolder(QString const& archivePath, BackupFolderReady ready);
+
+    /// Ends the apply `applyAfterBackup` put off without running it: logs @p reason and emits `chainedApplyFailed`.
+    void FailChainedApply(QString const& reason);
+
+    /// Ends a pending `applyAfterBackup` without applying: logs @p reason and emits `chainedBackupFailed`.
+    void FailChainedBackup(QString const& reason);
+
+    /// Clears `chainedBackupPending`, emitting its change signal when it was set.
+    void EndChainedBackup();
+
+    /// Starts the apply `applyAfterBackup` put off, once its backup finished successfully.
+    void ApplyChainedRun();
 
     /// Encrypts the plaintext password of `profile` in the loaded dbtool.yml after a
     /// successful connection, logging the outcome; never fails the connect. The store is re-read in
@@ -958,6 +1013,16 @@ class AppController: public QObject
     QString _lastRecordError;
     /// See the `migrateWithoutBackup` property.
     bool _migrateWithoutBackup = false;
+    /// See the `chainedBackupPending` property.
+    bool _chainedBackupPending = false;
+    /// The apply target `applyAfterBackup` runs once its backup succeeded.
+    QString _chainedApplyTarget;
+    /// The migrations `applyAfterBackup` applies instead of the target when not empty.
+    QStringList _chainedApplySelection;
+    /// The target generation `applyAfterBackup` started under; a later one applies nothing.
+    std::uint64_t _chainedApplyGeneration = 0;
+    /// True while a backup folder is created on the worker, so no second backup starts meanwhile.
+    bool _backupFolderPreparing = false;
     QString _connectedTarget;
     QString _connectedMode;
     bool _logVisible = true;
@@ -1019,6 +1084,9 @@ class AppController: public QObject
 
     /// Enumerates the ODBC data sources; declared last, so it has finished before any member goes.
     SerialWorker _odbcWorker;
+    /// Does the file I/O that may stall on a network share, so it never queues behind database jobs;
+    /// declared last for the same reason as `_odbcWorker`.
+    SerialWorker _fileWorker;
 };
 
 } // namespace DbtoolGui

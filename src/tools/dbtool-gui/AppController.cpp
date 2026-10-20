@@ -312,6 +312,16 @@ AppController::AppController(QObject* parent):
         RequestBackupRequirementCheck();
         UpdateActivity();
     });
+    // "Back up first": the apply follows its backup from here, not from QML, so it never depends on the
+    // order in which QML and C++ handlers see `finished`. The runner's busy probe ignores the pending check.
+    QObject::connect(&_backupRunner, &BackupRunner::finished, this, [this](bool ok, QString const& summary) {
+        if (!_chainedBackupPending)
+            return;
+        if (!ok)
+            FailChainedBackup(summary);
+        else
+            ApplyChainedRun();
+    });
 
     _settings = new QSettings(this);
     _settingsSync = new QTimer(this);
@@ -480,6 +490,7 @@ bool AppController::DrainWorkers(std::chrono::milliseconds limit)
     drained = _managedBackups.WaitForDone(remaining()) && drained;
     drained = _sqlQueryRunner.WaitForDone(remaining()) && drained;
     drained = _odbcWorker.WaitForDone(remaining()) && drained;
+    drained = _fileWorker.WaitForDone(remaining()) && drained;
     return drained;
 }
 
@@ -1146,10 +1157,8 @@ void AppController::ApplyBackupRequirement(BackupRequirementState state)
     emit backupRequirementChanged();
 }
 
-void AppController::backUpNow()
+std::expected<QString, QString> AppController::GeneratedBackupArchive() const
 {
-    if (!_connected || AnyRunInFlight())
-        return;
     auto const profileName = _connectedTarget.toStdString();
     auto const output = Lightweight::Config::ResolveBackupOutput({
         .requested = {},
@@ -1158,19 +1167,147 @@ void AppController::backUpNow()
         .now = std::chrono::system_clock::now(),
     });
     if (!output)
+        return std::unexpected(QStringLiteral("no backup folder is configured; choose one in Settings."));
+    return QString::fromStdU16String(output->path.u16string());
+}
+
+void AppController::PrepareBackupFolder(QString const& archivePath, BackupFolderReady ready)
+{
+    _backupFolderPreparing = true;
+    emit closeBlockedChanged();
+    UpdateActivity();
+    auto const generation = _targetGeneration.load();
+    auto post = [this, generation, ready = std::move(ready)](std::expected<QString, QString> result) mutable {
+        QMetaObject::invokeMethod(
+            this,
+            [this, generation, ready = std::move(ready), result = std::move(result)]() mutable {
+                _backupFolderPreparing = false;
+                emit closeBlockedChanged();
+                UpdateActivity();
+                if (generation != _targetGeneration.load() || !_connected)
+                    result = std::unexpected(QStringLiteral("the connection changed."));
+                ready(std::move(result));
+            },
+            Qt::QueuedConnection);
+    };
+    // A network folder can stall for seconds, so the folder is created on the file worker.
+    auto const folder = std::filesystem::path { archivePath.toStdU16String() }.parent_path();
+    auto const postShared = std::make_shared<decltype(post)>(post);
+    _fileWorker.Enqueue(
+        [postShared, archivePath, folder] {
+            auto ignored = std::error_code {};
+            std::filesystem::create_directories(folder, ignored);
+            if (!std::filesystem::is_directory(folder))
+                return (*postShared)(std::unexpected(QStringLiteral("cannot create the backup folder %1.")
+                                                         .arg(QString::fromStdU16String(folder.u16string()))));
+            (*postShared)(archivePath);
+        },
+        [postShared](std::exception const& error) {
+            (*postShared)(std::unexpected(QString::fromUtf8(error.what())));
+        });
+}
+
+void AppController::backUpNow()
+{
+    if (!_connected || AnyRunInFlight() || _backupFolderPreparing)
+        return;
+    auto const archive = GeneratedBackupArchive();
+    if (!archive)
     {
-        LogError(QStringLiteral("Back up now: no backup folder is configured; choose one in Settings."));
+        LogError(QStringLiteral("Back up now: %1").arg(archive.error()));
         return;
     }
-    auto ignored = std::error_code {};
-    std::filesystem::create_directories(output->path.parent_path(), ignored);
-    if (!std::filesystem::is_directory(output->path.parent_path()))
+    PrepareBackupFolder(*archive, [this](std::expected<QString, QString> prepared) {
+        if (!prepared)
+        {
+            LogError(QStringLiteral("Back up now: %1").arg(prepared.error()));
+            return;
+        }
+        if (!AnyRunInFlight())
+            _backupRunner.runBackup(*prepared);
+    });
+}
+
+void AppController::applyAfterBackup(QString const& archivePath,
+                                     QString const& targetTimestamp,
+                                     QStringList const& selectedTimestamps)
+{
+    if (!_connected || AnyRunInFlight() || _chainedBackupPending || _backupFolderPreparing)
     {
-        LogError(QStringLiteral("Back up now: cannot create the backup folder %1.")
-                     .arg(QString::fromStdU16String(output->path.parent_path().u16string())));
+        LogWarn(QStringLiteral("Back up first: another operation is in progress; nothing was started."));
         return;
     }
-    _backupRunner.runBackup(QString::fromStdU16String(output->path.u16string()));
+    _chainedApplyTarget = targetTimestamp;
+    _chainedApplySelection = selectedTimestamps;
+    _chainedApplyGeneration = _targetGeneration.load();
+    _chainedBackupPending = true;
+    emit chainedBackupPendingChanged();
+
+    auto archive = std::expected<QString, QString> { archivePath };
+    if (archivePath.isEmpty())
+        archive = GeneratedBackupArchive();
+    if (!archive)
+    {
+        FailChainedBackup(archive.error());
+        return;
+    }
+    PrepareBackupFolder(*archive, [this](std::expected<QString, QString> prepared) {
+        if (!prepared)
+        {
+            FailChainedBackup(prepared.error());
+            return;
+        }
+        if (AnyRunInFlight())
+        {
+            FailChainedBackup(QStringLiteral("another operation started in the meantime."));
+            return;
+        }
+        _backupRunner.runBackup(*prepared);
+        if (_chainedBackupPending && _backupRunner.phase() == BackupRunner::Phase::Idle)
+            FailChainedBackup(QStringLiteral("the backup could not start."));
+    });
+}
+
+void AppController::ApplyChainedRun()
+{
+    EndChainedBackup();
+    if (_chainedApplyGeneration != _targetGeneration.load() || !_connected)
+    {
+        FailChainedApply(QStringLiteral("the connection changed during the backup."));
+        return;
+    }
+    if (_chainedApplySelection.isEmpty())
+        _runner.applyUpTo(_chainedApplyTarget);
+    else
+        _runner.applySelected(_chainedApplySelection);
+    if (_runner.phase() == MigrationRunner::Phase::Idle)
+        FailChainedApply(QStringLiteral("the migrations could not start."));
+}
+
+void AppController::FailChainedApply(QString const& reason)
+{
+    LogError(QStringLiteral("Back up first: the backup finished, but %1 No migration ran.").arg(reason));
+    emit chainedApplyFailed(reason);
+}
+
+void AppController::FailChainedBackup(QString const& reason)
+{
+    EndChainedBackup();
+    LogError(QStringLiteral("Back up first: %1 No migration ran.").arg(reason));
+    emit chainedBackupFailed(reason);
+}
+
+void AppController::EndChainedBackup()
+{
+    if (!_chainedBackupPending)
+        return;
+    _chainedBackupPending = false;
+    emit chainedBackupPendingChanged();
+}
+
+void AppController::setMigrationLocking(QString const& mode)
+{
+    _runner.setLocking(mode == QLatin1String { "skip" } ? MigrationLocking::Skip : MigrationLocking::Acquire);
 }
 
 int AppController::pendingUnreleasedCount() const
@@ -1443,7 +1580,7 @@ void AppController::openProfileFileExternally()
 bool AppController::AnyRunInFlight() const
 {
     return _runner.phase() != MigrationRunner::Phase::Idle || _backupRunner.phase() != BackupRunner::Phase::Idle
-           || _managedBackups.phase() != ManagedBackupController::Phase::Idle;
+           || _managedBackups.phase() != ManagedBackupController::Phase::Idle || _backupFolderPreparing;
 }
 
 bool AppController::closeBlocked() const
@@ -1453,7 +1590,10 @@ bool AppController::closeBlocked() const
 
 QString AppController::closeBlockedReason() const
 {
-    return CloseBlockedReason(_runner, _backupRunner, _managedBackups);
+    auto reason = CloseBlockedReason(_runner, _backupRunner, _managedBackups);
+    if (reason.isEmpty() && _backupFolderPreparing)
+        reason = QStringLiteral("A backup is being prepared. Wait until it starts.");
+    return reason;
 }
 
 bool AppController::closeBlockingRunCancellable() const

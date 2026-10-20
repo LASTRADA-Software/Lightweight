@@ -52,9 +52,9 @@ Rectangle {
     property string lastResult: "none"
     property string lastSummary: ""
 
-    // Run-chain state: when `backupFirst` is ticked we run the backup first,
-    // wait for its `finished(ok=true)`, then kick off the apply. `pendingApply`
-    // guards the transition so a failed backup does NOT silently migrate on.
+    // Run-chain state: when `backupFirst` is ticked the backup runs first and
+    // AppController starts the apply only once it succeeded. `pendingApply`
+    // marks the chain this view started, so it shows the backup's outcome.
     property bool pendingApply: false
     // Target file the user picked for the pre-migration backup. Empty while
     // no backup is queued.
@@ -150,24 +150,39 @@ Rectangle {
         }
     }
 
+    // AppController starts the apply after a successful backup (`applyAfterBackup`); this view only
+    // follows the outcome. A failed backup is reported first, so the backup handler then finds no chain.
     Connections {
-        target: AppController.backupRunner
-        function onFinished(ok, summary) {
+        target: AppController
+        function onChainedBackupFailed(summary) {
             if (!root.pendingApply)
                 return
             root.pendingApply = false
-            if (ok) {
-                root.lastBackupFile = root.pendingBackupFile
-                root.pendingBackupFile = ""
-                AppController.runner.applyUpTo("")
-            } else {
-                root.pendingBackupFile = ""
-                // Surface the backup failure in the same place the migration
-                // run would; the user's choice to back up first was not an
-                // invitation to ignore a failed backup and migrate anyway.
-                root.lastResult = "failure"
-                root.lastSummary = qsTr("Backup failed before migration could start: ") + summary
-            }
+            root.pendingBackupFile = ""
+            // Surface the backup failure in the same place the migration
+            // run would; the user's choice to back up first was not an
+            // invitation to ignore a failed backup and migrate anyway.
+            root.lastResult = "failure"
+            root.lastSummary = qsTr("Backup failed before migration could start: ") + summary
+        }
+    }
+    Connections {
+        target: AppController
+        function onChainedApplyFailed(summary) {
+            if (AppController.viewMode !== "simple")
+                return
+            root.lastResult = "failure"
+            root.lastSummary = qsTr("The backup finished, but the migrations could not start: ") + summary
+        }
+    }
+    Connections {
+        target: AppController.backupRunner
+        function onFinished(ok, summary) {
+            if (!root.pendingApply || !ok)
+                return
+            root.pendingApply = false
+            root.lastBackupFile = root.pendingBackupFile
+            root.pendingBackupFile = ""
         }
     }
 
@@ -200,8 +215,11 @@ Rectangle {
         defaultSuffix: "zip"
         onAccepted: {
             root.pendingBackupFile = selectedFile.toString().replace(/^file:\/\//, "")
-            root.pendingApply = true
-            AppController.backupRunner.runBackup(root.pendingBackupFile)
+            AppController.applyAfterBackup(root.pendingBackupFile, "", [])
+            // A refused trigger leaves the chain that is running alone.
+            root.pendingApply = AppController.chainedBackupPending
+            if (!root.pendingApply)
+                root.pendingBackupFile = ""
         }
     }
 
@@ -821,7 +839,7 @@ Rectangle {
                                 variant: "ghost"
                                 glyph: "terminal"
                                 text: qsTr("View log")
-                                onClicked: AppController.setLogVisible(true)
+                                onClicked: { AppController.setViewMode("expert"); AppController.setLogVisible(true) }
                             }
                             LsButton {
                                 objectName: "doneButton"
@@ -897,7 +915,7 @@ Rectangle {
                                 objectName: "showFullLogButton"
                                 glyph: "terminal"
                                 text: qsTr("Show full log")
-                                onClicked: AppController.setLogVisible(true)
+                                onClicked: { AppController.setViewMode("expert"); AppController.setLogVisible(true) }
                             }
                             LsButton {
                                 objectName: "retryButton"

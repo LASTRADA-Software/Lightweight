@@ -51,6 +51,13 @@ enum class BackupWaiver : std::uint8_t
     Waived,    ///< The run goes ahead, logs a warning and records a `waived` row in `schema_backups`.
 };
 
+/// Whether an apply, apply-selected or rollback run takes the migration lock; dry runs never take it.
+enum class MigrationLocking : std::uint8_t
+{
+    Acquire, ///< The run holds the migration lock and refuses when another migrator holds it.
+    Skip,    ///< The run goes ahead without the lock and says so in the log.
+};
+
 class MigrationRunner: public QObject
 {
     Q_OBJECT
@@ -98,6 +105,19 @@ class MigrationRunner: public QObject
     /// @param waiver Whether a run may go ahead without a required backup.
     void setBackupWaived(BackupWaiver waiver) noexcept;
 
+    /// How long a run waits for the migration lock by default, as `SqlScopedLock::TryConstruct` does.
+    static constexpr std::chrono::milliseconds DefaultLockTimeout { 30000 };
+
+    /// Sets whether the apply, apply-selected and rollback runs started from now on take the migration
+    /// lock; each run reads it once when it starts. Defaults to `MigrationLocking::Acquire`. The backup
+    /// requirement is checked the same way either way.
+    /// @param locking Whether the runs take the lock.
+    void setLocking(MigrationLocking locking) noexcept;
+
+    /// Sets how long the runs started from now on wait for the migration lock before they refuse.
+    /// @param timeout The wait; `DefaultLockTimeout` unless set.
+    void setLockTimeout(std::chrono::milliseconds timeout) noexcept;
+
     /// The one worker thread every use of the shared migration connection runs on: the runs, and the
     /// controller's plugin and database jobs. A single thread, because apply runs hold the migration
     /// lock on that connection and an ODBC connection has one user at a time.
@@ -117,11 +137,11 @@ class MigrationRunner: public QObject
     /// `dbtool migrate`. Non-empty targets filter pending migrations to
     /// those whose timestamp is `<= target`. Both run the plugins'
     /// pre-migrate steps first; the apply run holds the migration lock for
-    /// them, and a cancel or a failing step ends the run before any migration.
-    /// Under that lock and before the steps, the apply run refuses when the
-    /// migrations it runs (or a step) require a backup that does not exist,
-    /// unless the run is waived (see `setBackupWaived`); a dry run reports the
-    /// requirement and goes on.
+    /// them unless locking is skipped (see `setLocking`), and a cancel or a
+    /// failing step ends the run before any migration. Before the steps, the
+    /// apply run refuses when the migrations it runs (or a step) require a
+    /// backup that does not exist, unless the run is waived (see
+    /// `setBackupWaived`); a dry run reports the requirement and goes on.
     Q_INVOKABLE void dryRunUpTo(QString const& targetTimestamp);
     Q_INVOKABLE void applyUpTo(QString const& targetTimestamp);
 
@@ -133,7 +153,8 @@ class MigrationRunner: public QObject
     Q_INVOKABLE void dryRunSelected(QStringList const& timestamps);
     Q_INVOKABLE void applySelected(QStringList const& timestamps);
 
-    /// Rolls back migrations applied after the release named `version`.
+    /// Rolls back migrations applied after the release named `version`, under the migration lock
+    /// unless locking is skipped (see `setLocking`).
     Q_INVOKABLE void rollbackToRelease(QString const& version);
 
     /// Best-effort cooperative cancellation. Currently-executing SQL is not
@@ -243,6 +264,8 @@ class MigrationRunner: public QObject
     std::function<bool()> _busyProbe;
     PostMigrateHook _postMigrateHook;
     BackupWaiver _backupWaiver = BackupWaiver::NotWaived;
+    MigrationLocking _locking = MigrationLocking::Acquire;
+    std::chrono::milliseconds _lockTimeout = DefaultLockTimeout;
     /// Declared before `_worker`, so the queued work has finished before the model goes.
     ProgressTaskModel _tasks;
     /// The notifications the worker queued for the GUI thread; declared before `_worker` like `_tasks`.

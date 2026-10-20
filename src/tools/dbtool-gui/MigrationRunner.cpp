@@ -7,6 +7,7 @@
 #include <Lightweight/SqlMigration.hpp>
 #include <Lightweight/SqlScopedLock.hpp>
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
@@ -103,6 +104,16 @@ void MigrationRunner::setPostMigrateHook(PostMigrateHook hook)
 void MigrationRunner::setBackupWaived(BackupWaiver waiver) noexcept
 {
     _backupWaiver = waiver;
+}
+
+void MigrationRunner::setLocking(MigrationLocking locking) noexcept
+{
+    _locking = locking;
+}
+
+void MigrationRunner::setLockTimeout(std::chrono::milliseconds timeout) noexcept
+{
+    _lockTimeout = timeout;
 }
 
 bool MigrationRunner::CanStartMutatingRun(char const* what)
@@ -482,26 +493,57 @@ namespace
         }
     }
 
-    /// Runs `applyRun` under the migration advisory lock and, when it succeeded, the post-migrate
-    /// hook. The lock is released before this returns, so the caller reports the outcome only once
-    /// the shared connection is idle again. Any exception becomes a failed outcome, so a run can
-    /// never stay `Running`.
-    ApplyOutcome RunLockedApply(MigrationRunner* runner,
-                                Lightweight::SqlMigration::MigrationManager& manager,
-                                MigrationRunner::PostMigrateHook const& postMigrateHook,
-                                std::function<ApplyOutcome()> const& applyRun)
+    /// How a mutating run takes the migration lock, read once when the run starts.
+    struct LockPolicy
+    {
+        MigrationLocking locking = MigrationLocking::Acquire;
+        std::chrono::milliseconds timeout = MigrationRunner::DefaultLockTimeout;
+    };
+
+    /// Runs @p run under the migration advisory lock, or without it when the policy skips it. The lock
+    /// is released before this returns, so the caller reports the outcome only once the shared
+    /// connection is idle again. Any exception becomes a failed outcome, so a run can never stay `Running`.
+    ApplyOutcome RunUnderLock(MigrationRunner* runner,
+                              Lightweight::SqlMigration::MigrationManager& manager,
+                              LockPolicy const& policy,
+                              std::function<ApplyOutcome()> const& run)
     {
         try
         {
-            auto const lock = Lightweight::SqlScopedLock::TryConstruct(manager.GetDataMapper().Connection(),
-                                                                       Lightweight::Tools::MigrationLockName);
-            if (!lock)
+            auto lock = std::optional<Lightweight::SqlScopedLock> {};
+            if (policy.locking == MigrationLocking::Acquire)
             {
-                PostLogLine(
-                    runner, QStringLiteral("!! %1").arg(QString::fromStdString(lock.error().message)), LogLevel::Error);
-                return { .ok = false, .summary = QStringLiteral("Could not acquire the migration lock.") };
+                auto acquired = Lightweight::SqlScopedLock::TryConstruct(
+                    manager.GetDataMapper().Connection(), Lightweight::Tools::MigrationLockName, policy.timeout);
+                if (!acquired)
+                {
+                    PostLogLine(runner,
+                                QStringLiteral("!! %1").arg(QString::fromStdString(acquired.error().message)),
+                                LogLevel::Error);
+                    return { .ok = false, .summary = QStringLiteral("Could not acquire the migration lock.") };
+                }
+                lock.emplace(std::move(*acquired));
             }
+            else
+                PostLogLine(runner, QStringLiteral("-- Running without the migration lock."), LogLevel::Warning);
+            return run();
+        }
+        catch (std::exception const& e)
+        {
+            PostLogLine(runner, QStringLiteral("!! %1").arg(QString::fromUtf8(e.what())), LogLevel::Error);
+            return { .ok = false, .summary = QString::fromUtf8(e.what()) };
+        }
+    }
 
+    /// Runs `applyRun` under the migration lock as @p policy says and, when it succeeded, the
+    /// post-migrate hook, still under the lock (see `RunUnderLock`).
+    ApplyOutcome RunLockedApply(MigrationRunner* runner,
+                                Lightweight::SqlMigration::MigrationManager& manager,
+                                LockPolicy const& policy,
+                                MigrationRunner::PostMigrateHook const& postMigrateHook,
+                                std::function<ApplyOutcome()> const& applyRun)
+    {
+        return RunUnderLock(runner, manager, policy, [&]() -> ApplyOutcome {
             auto outcome = applyRun();
             if (!outcome.ok || !postMigrateHook)
                 return outcome;
@@ -514,10 +556,80 @@ namespace
                 return { .ok = false,
                          .summary = QStringLiteral("%1 A plugin post-migrate hook failed.").arg(outcome.summary) };
             return outcome;
+        });
+    }
+
+    /// Reverts the migrations applied after @p release, reporting each one and a failure in detail.
+    ApplyOutcome RollBack(MigrationRunner* runner,
+                          Lightweight::SqlMigration::MigrationManager& manager,
+                          Lightweight::SqlMigration::MigrationRelease const& release)
+    {
+        try
+        {
+            auto const result = manager.RevertToMigration(
+                release.highestTimestamp,
+                [runner](Lightweight::SqlMigration::MigrationBase const& migration, size_t i, size_t n) {
+                    PostProgress(runner, migration, i, n, QStringLiteral("rolling back"));
+                });
+
+            // RevertToMigration hands us the list of successfully reverted
+            // timestamps; mirror that into per-row `pending` updates so the
+            // main list flips without waiting for a full refresh.
+            for (auto const& ts: result.revertedTimestamps)
+                PostMigrationCompleted(runner, ts.value, QStringLiteral("pending"));
+
+            if (!result.failedAt.has_value())
+                return { .ok = true,
+                         .summary = QStringLiteral("Rolled back %1 migration(s) to release '%2'")
+                                        .arg(result.revertedTimestamps.size())
+                                        .arg(QString::fromStdString(release.version)) };
+
+            PostMigrationFailed(runner, result.failedAt->value);
+            // Mirror the CLI's multi-line breakdown in the log panel so
+            // users see title/step/SQL state/driver message/failing SQL
+            // as separate log entries — embedded newlines collapse
+            // inside the rich-text spans, so we split them here.
+            auto const ts = static_cast<qulonglong>(result.failedAt->value);
+            auto const title = QString::fromStdString(result.failedTitle);
+            PostLogLine(runner, QStringLiteral("!! Rollback failed: %1 - %2").arg(ts).arg(title), LogLevel::Error);
+            if (!result.failedSql.empty())
+            {
+                PostLogLine(runner,
+                            QStringLiteral("   Step: %1").arg(static_cast<qulonglong>(result.failedStepIndex)),
+                            LogLevel::Error);
+                if (!result.sqlState.empty() && result.sqlState != "     ")
+                    PostLogLine(runner,
+                                QStringLiteral("   SQL State: %1, Native error: %2")
+                                    .arg(QString::fromStdString(result.sqlState))
+                                    .arg(static_cast<qlonglong>(result.nativeErrorCode)),
+                                LogLevel::Error);
+                PostLogLine(runner, QStringLiteral("   Driver message:"), LogLevel::Error);
+                auto const driverMsg = QString::fromStdString(result.errorMessage);
+                for (auto const& line: driverMsg.split(QLatin1Char('\n'), Qt::KeepEmptyParts))
+                    PostLogLine(runner, QStringLiteral("     %1").arg(line), LogLevel::Error);
+                PostLogLine(runner, QStringLiteral("   Failed SQL:"), LogLevel::Error);
+                auto const failedSql = QString::fromStdString(result.failedSql);
+                for (auto const& line: failedSql.split(QLatin1Char('\n'), Qt::KeepEmptyParts))
+                    PostLogLine(runner, QStringLiteral("     %1").arg(line), LogLevel::Error);
+            }
+            else
+            {
+                PostLogLine(
+                    runner, QStringLiteral("   %1").arg(QString::fromStdString(result.errorMessage)), LogLevel::Error);
+            }
+            return { .ok = false, .summary = QStringLiteral("Rollback of migration %1 '%2' failed").arg(ts).arg(title) };
+        }
+        catch (Lightweight::SqlMigration::MigrationException const& e)
+        {
+            PostMigrationFailed(runner, e.GetMigrationTimestamp().value);
+            PostMigrationFailureLines(runner, e);
+            return { .ok = false,
+                     .summary = QStringLiteral("Rollback of migration %1 failed")
+                                    .arg(static_cast<qulonglong>(e.GetMigrationTimestamp().value)) };
         }
         catch (std::exception const& e)
         {
-            PostLogLine(runner, QStringLiteral("!! %1").arg(QString::fromUtf8(e.what())), LogLevel::Error);
+            PostLogLine(runner, QString::fromUtf8(e.what()), LogLevel::Error);
             return { .ok = false, .summary = QString::fromUtf8(e.what()) };
         }
     }
@@ -600,8 +712,9 @@ void MigrationRunner::applyUpTo(QString const& targetTimestamp)
              targetTs,
              targetLabel = targetTimestamp,
              postMigrateHook = _postMigrateHook,
-             waiver = _backupWaiver] {
-        auto const outcome = RunLockedApply(runner, *manager, postMigrateHook, [&] {
+             waiver = _backupWaiver,
+             lockPolicy = LockPolicy { .locking = _locking, .timeout = _lockTimeout }] {
+        auto const outcome = RunLockedApply(runner, *manager, lockPolicy, postMigrateHook, [&] {
             if (auto const refused =
                     CheckBackupRequirement(runner, *manager, CollectPendingUpTo(*manager, targetTs), waiver))
                 return *refused;
@@ -667,8 +780,14 @@ void MigrationRunner::applySelected(QStringList const& timestamps)
     auto* manager = _manager;
     auto* tasks = &_tasks;
 
-    Enqueue([runner, manager, tasks, snapshot = timestamps, postMigrateHook = _postMigrateHook, waiver = _backupWaiver] {
-        auto const outcome = RunLockedApply(runner, *manager, postMigrateHook, [&] {
+    Enqueue([runner,
+             manager,
+             tasks,
+             snapshot = timestamps,
+             postMigrateHook = _postMigrateHook,
+             waiver = _backupWaiver,
+             lockPolicy = LockPolicy { .locking = _locking, .timeout = _lockTimeout }] {
+        auto const outcome = RunLockedApply(runner, *manager, lockPolicy, postMigrateHook, [&] {
             if (auto const refused = CheckBackupRequirement(runner, *manager, CollectSelected(*manager, snapshot), waiver))
                 return *refused;
             auto const root = CreateRunTask(runner, tasks);
@@ -697,7 +816,7 @@ void MigrationRunner::rollbackToRelease(QString const& version)
     auto* manager = _manager;
     auto const versionStd = version.toStdString();
 
-    Enqueue([runner, manager, versionStd] {
+    Enqueue([runner, manager, versionStd, lockPolicy = LockPolicy { .locking = _locking, .timeout = _lockTimeout }] {
         auto const* release = manager->FindReleaseByVersion(versionStd);
         if (!release)
         {
@@ -706,79 +825,9 @@ void MigrationRunner::rollbackToRelease(QString const& version)
             PostFinished(runner, false, msg);
             return;
         }
-
-        try
-        {
-            auto const result = manager->RevertToMigration(
-                release->highestTimestamp,
-                [runner](Lightweight::SqlMigration::MigrationBase const& migration, size_t i, size_t n) {
-                    PostProgress(runner, migration, i, n, QStringLiteral("rolling back"));
-                });
-
-            // RevertToMigration hands us the list of successfully reverted
-            // timestamps; mirror that into per-row `pending` updates so the
-            // main list flips without waiting for a full refresh.
-            for (auto const& ts: result.revertedTimestamps)
-                PostMigrationCompleted(runner, ts.value, QStringLiteral("pending"));
-
-            if (result.failedAt.has_value())
-            {
-                PostMigrationFailed(runner, result.failedAt->value);
-                // Mirror the CLI's multi-line breakdown in the log panel so
-                // users see title/step/SQL state/driver message/failing SQL
-                // as separate log entries — embedded newlines collapse
-                // inside the rich-text spans, so we split them here.
-                auto const ts = static_cast<qulonglong>(result.failedAt->value);
-                auto const title = QString::fromStdString(result.failedTitle);
-                PostLogLine(runner, QStringLiteral("!! Rollback failed: %1 - %2").arg(ts).arg(title), LogLevel::Error);
-                if (!result.failedSql.empty())
-                {
-                    PostLogLine(runner,
-                                QStringLiteral("   Step: %1").arg(static_cast<qulonglong>(result.failedStepIndex)),
-                                LogLevel::Error);
-                    if (!result.sqlState.empty() && result.sqlState != "     ")
-                        PostLogLine(runner,
-                                    QStringLiteral("   SQL State: %1, Native error: %2")
-                                        .arg(QString::fromStdString(result.sqlState))
-                                        .arg(static_cast<qlonglong>(result.nativeErrorCode)),
-                                    LogLevel::Error);
-                    PostLogLine(runner, QStringLiteral("   Driver message:"), LogLevel::Error);
-                    auto const driverMsg = QString::fromStdString(result.errorMessage);
-                    for (auto const& line: driverMsg.split(QLatin1Char('\n'), Qt::KeepEmptyParts))
-                        PostLogLine(runner, QStringLiteral("     %1").arg(line), LogLevel::Error);
-                    PostLogLine(runner, QStringLiteral("   Failed SQL:"), LogLevel::Error);
-                    auto const failedSql = QString::fromStdString(result.failedSql);
-                    for (auto const& line: failedSql.split(QLatin1Char('\n'), Qt::KeepEmptyParts))
-                        PostLogLine(runner, QStringLiteral("     %1").arg(line), LogLevel::Error);
-                }
-                else
-                {
-                    PostLogLine(
-                        runner, QStringLiteral("   %1").arg(QString::fromStdString(result.errorMessage)), LogLevel::Error);
-                }
-                PostFinished(runner, false, QStringLiteral("Rollback of migration %1 '%2' failed").arg(ts).arg(title));
-            }
-            else
-                PostFinished(runner,
-                             true,
-                             QStringLiteral("Rolled back %1 migration(s) to release '%2'")
-                                 .arg(result.revertedTimestamps.size())
-                                 .arg(QString::fromStdString(versionStd)));
-        }
-        catch (Lightweight::SqlMigration::MigrationException const& e)
-        {
-            PostMigrationFailed(runner, e.GetMigrationTimestamp().value);
-            PostMigrationFailureLines(runner, e);
-            PostFinished(runner,
-                         false,
-                         QStringLiteral("Rollback of migration %1 failed")
-                             .arg(static_cast<qulonglong>(e.GetMigrationTimestamp().value)));
-        }
-        catch (std::exception const& e)
-        {
-            PostLogLine(runner, QString::fromUtf8(e.what()), LogLevel::Error);
-            PostFinished(runner, false, QString::fromUtf8(e.what()));
-        }
+        auto const outcome =
+            RunUnderLock(runner, *manager, lockPolicy, [&] { return RollBack(runner, *manager, *release); });
+        PostFinished(runner, outcome.ok, outcome.summary);
     });
 }
 

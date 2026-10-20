@@ -134,6 +134,13 @@ class WorkflowFixture final: public QObject
     /// Releases the lock `holdMigrationLock` took; nothing when none is held.
     Q_INVOKABLE void releaseMigrationLock();
 
+    /// Sets how long the controller's migration runs wait for the migration lock before they refuse.
+    /// @param milliseconds The wait.
+    Q_INVOKABLE void setLockTimeoutMs(int milliseconds);
+
+    /// Takes the migration manager away from the controller's runner, so no migration run can start.
+    Q_INVOKABLE void detachMigrationManager();
+
     /// Emits @p count info lines `Runner log line <i> of <count>` through the controller's migration runner.
     Q_INVOKABLE void emitRunnerLogLines(int count);
 
