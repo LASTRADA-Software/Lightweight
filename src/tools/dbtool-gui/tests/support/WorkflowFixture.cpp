@@ -3,8 +3,8 @@
 #include "../../AppController.hpp"
 #include "../../LogLevel.hpp"
 #include "../../MigrationRunner.hpp"
-#include "../SqliteDriver.hpp"
 #include "../../StderrMessageHandler.hpp"
+#include "../SqliteDriver.hpp"
 #include "WorkflowFixture.hpp"
 
 #include <Lightweight/SqlStatement.hpp>
@@ -34,6 +34,9 @@
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
 #include <QtCore/QFutureWatcher>
+#include <QtCore/QJsonDocument>
+#include <QtCore/QJsonObject>
+#include <QtCore/QJsonParseError>
 #include <QtCore/QProcess>
 #include <QtCore/QRegularExpression>
 #include <QtCore/QSettings>
@@ -479,13 +482,14 @@ QString WorkflowFixture::tempPath(QString const& name) const
     return _root.filePath(name);
 }
 
-int WorkflowFixture::runDbtool(QStringList const& arguments, QVariantMap const& environment)
+int WorkflowFixture::runDbtool(QStringList const& arguments, QVariantMap const& environment, int timeoutMs)
 {
     auto process = QProcess {};
     auto processEnvironment = QProcessEnvironment::systemEnvironment();
     for (auto const& [name, value]: environment.asKeyValueRange())
         processEnvironment.insert(name, value.toString());
     process.setProcessEnvironment(processEnvironment);
+    process.setProcessChannelMode(QProcess::MergedChannels);
 
     auto loop = QEventLoop {};
     auto exitCode = -1;
@@ -497,17 +501,144 @@ int WorkflowFixture::runDbtool(QStringList const& arguments, QVariantMap const& 
         if (error == QProcess::FailedToStart)
             loop.quit();
     });
-    QTimer::singleShot(std::chrono::minutes { 2 }, &loop, &QEventLoop::quit);
+    QTimer::singleShot(std::chrono::milliseconds { timeoutMs }, &loop, &QEventLoop::quit);
     process.start(QString::fromUtf8(DBTOOL_GUI_WORKFLOW_DBTOOL), arguments);
     // A local loop instead of waitForFinished keeps the GUI thread, and with it the watchdog, alive.
     loop.exec();
-    if (process.state() != QProcess::NotRunning)
+    auto const timedOut = process.state() != QProcess::NotRunning;
+    if (timedOut)
     {
         process.kill();
         process.waitForFinished();
-        return -1;
+    }
+    if (timedOut || exitCode != 0)
+    {
+        // The command line is left out on purpose: a connection string in it can carry a password.
+        auto const reason = timedOut ? QStringLiteral("ran over %1 ms").arg(timeoutMs)
+                                     : (exitCode == -1 ? QStringLiteral("did not start or crashed")
+                                                       : QStringLiteral("exited with code %1").arg(exitCode));
+        auto const output = QString::fromLocal8Bit(process.readAll()).replace(QStringLiteral("\r\n"), QStringLiteral("\n"));
+        ThrowError(QStringLiteral("dbtool %1; its output:\n%2").arg(reason, output));
+        return timedOut ? -1 : exitCode;
     }
     return exitCode;
+}
+
+namespace
+{
+
+    /// The `DBTOOL_GUI_WORKFLOW_*` settings and the problems with them, as `externalRun` and
+    /// `externalRunErrors` return them.
+    struct ExternalRunReading
+    {
+        QVariantMap run;
+        QStringList errors;
+    };
+
+    ExternalRunReading ReadExternalRun()
+    {
+        auto reading = ExternalRunReading {};
+        auto& run = reading.run;
+        auto& errors = reading.errors;
+        run = QVariantMap {
+            { QStringLiteral("pluginsDir"), qEnvironmentVariable("DBTOOL_GUI_WORKFLOW_PLUGINS_DIR") },
+            { QStringLiteral("profileFile"), qEnvironmentVariable("DBTOOL_GUI_WORKFLOW_PROFILE_FILE") },
+            { QStringLiteral("profile"), qEnvironmentVariable("DBTOOL_GUI_WORKFLOW_PROFILE") },
+            { QStringLiteral("skipFixtures"), false },
+            { QStringLiteral("longRunTimeoutMs"), WorkflowFixture::DefaultLongRunTimeoutMs },
+            { QStringLiteral("expectationsFile"), qEnvironmentVariable("DBTOOL_GUI_WORKFLOW_EXPECTATIONS") },
+        };
+
+        auto const skipFixtures = qEnvironmentVariable("DBTOOL_GUI_WORKFLOW_SKIP_FIXTURES");
+        if (skipFixtures == QStringLiteral("1"))
+            run.insert(QStringLiteral("skipFixtures"), true);
+        else if (!skipFixtures.isEmpty() && skipFixtures != QStringLiteral("0"))
+            errors.append(QStringLiteral("DBTOOL_GUI_WORKFLOW_SKIP_FIXTURES must be 0 or 1, not \"%1\"").arg(skipFixtures));
+
+        if (auto const timeout = qEnvironmentVariable("DBTOOL_GUI_WORKFLOW_LONG_RUN_TIMEOUT_MS"); !timeout.isEmpty())
+        {
+            auto isNumber = false;
+            auto const milliseconds = timeout.toInt(&isNumber);
+            if (isNumber && milliseconds > 0)
+                run.insert(QStringLiteral("longRunTimeoutMs"), milliseconds);
+            else
+                errors.append(
+                    QStringLiteral("DBTOOL_GUI_WORKFLOW_LONG_RUN_TIMEOUT_MS must be a positive integer, not \"%1\"")
+                        .arg(timeout));
+        }
+
+        auto const expectationsPath = run.value(QStringLiteral("expectationsFile")).toString();
+        if (expectationsPath.isEmpty())
+            return reading;
+        auto file = QFile { expectationsPath };
+        if (!file.open(QIODevice::ReadOnly))
+        {
+            errors.append(QStringLiteral("DBTOOL_GUI_WORKFLOW_EXPECTATIONS: cannot read %1: %2")
+                              .arg(expectationsPath, file.errorString()));
+            return reading;
+        }
+        auto parseError = QJsonParseError {};
+        auto const document = QJsonDocument::fromJson(file.readAll(), &parseError);
+        if (!document.isObject())
+        {
+            errors.append(QStringLiteral("DBTOOL_GUI_WORKFLOW_EXPECTATIONS: %1 holds no JSON object: %2")
+                              .arg(expectationsPath,
+                                   parseError.error == QJsonParseError::NoError ? QStringLiteral("not an object")
+                                                                                : parseError.errorString()));
+            return reading;
+        }
+        run.insert(QStringLiteral("expectations"), document.object().toVariantMap());
+        return reading;
+    }
+
+} // namespace
+
+QVariantMap WorkflowFixture::externalRun() const
+{
+    auto reading = ReadExternalRun();
+    if (!reading.errors.isEmpty())
+        ThrowError(reading.errors.join(QLatin1Char('\n')));
+    return reading.run;
+}
+
+QStringList WorkflowFixture::externalRunErrors() const
+{
+    return ReadExternalRun().errors;
+}
+
+int WorkflowFixture::longRunTimeoutMs() const
+{
+    return ReadExternalRun().run.value(QStringLiteral("longRunTimeoutMs")).toInt();
+}
+
+QString WorkflowFixture::copyProfileFileWithoutPluginsDirs(QString const& file)
+{
+    auto const source = ToPath(file);
+    auto store = Lightweight::Config::ProfileStore::LoadOrDefault(source);
+    if (!store)
+    {
+        ThrowError(QStringLiteral("cannot read %1: %2").arg(file, QString::fromStdString(store.error())));
+        return {};
+    }
+    auto const base = std::filesystem::absolute(source).parent_path();
+    auto const anchored = [&base](std::filesystem::path const& path) {
+        return path.empty() || path.is_absolute() ? path : base / path;
+    };
+    store->SetDefaultPluginsDir({});
+    store->SetDefaultBackupDir(anchored(store->DefaultBackupDir()));
+    for (auto profile: store->Profiles())
+    {
+        profile.pluginsDir.clear();
+        profile.backupDir = anchored(profile.backupDir);
+        store->Upsert(std::move(profile));
+    }
+    auto const copy = NextPath(QStringLiteral("profiles")) + QStringLiteral("/dbtool.yml");
+    if (auto const saved = store->Save(ToPath(copy)); !saved)
+    {
+        ThrowError(QStringLiteral("cannot write %1: %2").arg(copy, QString::fromStdString(saved.error())));
+        return {};
+    }
+    return copy;
 }
 
 QString WorkflowFixture::clipboardText() const

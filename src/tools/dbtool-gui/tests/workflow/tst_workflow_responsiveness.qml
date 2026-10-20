@@ -44,7 +44,7 @@ WorkflowTestCase {
     /// Applies every migration to `p`'s database with the dbtool CLI, behind the GUI's back.
     function migrateWithDbtool() {
         const exitCode = outsideWatchdog("dbtool migrate", () => WorkflowFixture.runDbtool(
-            ["migrate", "--without-backup", "--plugins-dir", pluginsDirectory, "--connection-string", databaseP], {}))
+            ["migrate", "--without-backup", "--plugins-dir", pluginsDirectory, "--connection-string", databaseP], {}, longRunTimeoutMs))
         compare(exitCode, 0)
     }
 

@@ -18,12 +18,12 @@
 #include <string>
 
 #include <QtCore/QObject>
-#include <QtCore/QtLogging>
 #include <QtCore/QString>
 #include <QtCore/QStringList>
 #include <QtCore/QTemporaryDir>
 #include <QtCore/QUrl>
 #include <QtCore/QVariant>
+#include <QtCore/QtLogging>
 
 class QQmlEngine;
 
@@ -145,9 +145,42 @@ class WorkflowFixture final: public QObject
     Q_INVOKABLE QString tempPath(QString const& name) const;
 
     /// Runs the `dbtool` CLI with @p arguments, the process environment plus @p environment, keeping
-    /// the event loop running meanwhile.
-    /// @return Its exit code; -1 when it could not start, crashed or ran over two minutes.
-    Q_INVOKABLE int runDbtool(QStringList const& arguments, QVariantMap const& environment);
+    /// the event loop running meanwhile. Throws, with the exit code and dbtool's output but never its
+    /// command line (which can carry a password), when it does not start, crashes, exits non-zero or
+    /// runs over @p timeoutMs.
+    /// @param arguments The command line after the program.
+    /// @param environment Variables added to the process environment.
+    /// @param timeoutMs How long dbtool may run, in milliseconds.
+    /// @return Its exit code: 0, unless the call threw.
+    Q_INVOKABLE int runDbtool(QStringList const& arguments, QVariantMap const& environment, int timeoutMs);
+
+    /// Default of `longRunTimeoutMs` in `externalRun`, in milliseconds.
+    static constexpr int DefaultLongRunTimeoutMs = 120000;
+
+    /// The settings of a run against plugins and profiles of one's own, read from the environment:
+    /// `DBTOOL_GUI_WORKFLOW_PLUGINS_DIR`, `DBTOOL_GUI_WORKFLOW_PROFILE_FILE`, `DBTOOL_GUI_WORKFLOW_PROFILE`,
+    /// `DBTOOL_GUI_WORKFLOW_SKIP_FIXTURES`, `DBTOOL_GUI_WORKFLOW_LONG_RUN_TIMEOUT_MS` and
+    /// `DBTOOL_GUI_WORKFLOW_EXPECTATIONS`. Throws the problems `externalRunErrors` lists.
+    /// @return `pluginsDir`, `profileFile` and `profile` (empty when unset), `skipFixtures` (true when
+    ///         the variable is `1`), `longRunTimeoutMs` (`DefaultLongRunTimeoutMs` when unset),
+    ///         `expectationsFile` (empty when unset) and `expectations`, that file's object (undefined
+    ///         when unset).
+    Q_INVOKABLE QVariantMap externalRun() const;
+
+    /// @return One message per `DBTOOL_GUI_WORKFLOW_*` variable that is set to something unusable,
+    ///         naming the variable; empty when every one is usable.
+    Q_INVOKABLE QStringList externalRunErrors() const;
+
+    /// @return `DBTOOL_GUI_WORKFLOW_LONG_RUN_TIMEOUT_MS`, or `DefaultLongRunTimeoutMs` when it is unset
+    ///         or unusable (`externalRunErrors` reports that).
+    Q_INVOKABLE int longRunTimeoutMs() const;
+
+    /// Copies the profile file @p file into the fixture's temporary directory without any plugins
+    /// directory: every profile's `pluginsDir` and the file's `defaultPluginsDir` are cleared, so the
+    /// Settings-page plugins directory decides which plugins load. Relative backup folders are made
+    /// absolute against @p file's directory, so they keep naming the same folders.
+    /// @return The copy's path.
+    Q_INVOKABLE QString copyProfileFileWithoutPluginsDirs(QString const& file);
 
     /// @return The warnings Qt logged that name a `.qml` file, from the process start (a QML type
     ///         that fails to load cleanly logs one while the module loads).

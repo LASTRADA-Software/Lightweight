@@ -8,6 +8,7 @@
 // never `cleanup()`. The report names the step of the longest stall: `openMain`, `clickControl` and
 // `step()` name steps, and fixture work the test does while the window is open runs through
 // `outsideWatchdog`, so it does not count.
+// `init()` fails every test function while a `DBTOOL_GUI_WORKFLOW_*` variable is unusable.
 
 import QtQuick
 import QtQuick.Controls
@@ -28,6 +29,9 @@ TestCase {
     property UiWatchdog watchdog: UiWatchdog { mode: testCase.watchdogMode }
     /// The Main window `openMain()` created; destroyed after each test function.
     property var main: null
+    /// How long a test waits for a migration run, a backup or a connect, in milliseconds:
+    /// `DBTOOL_GUI_WORKFLOW_LONG_RUN_TIMEOUT_MS`, 120000 when unset.
+    readonly property int longRunTimeoutMs: WorkflowFixture.longRunTimeoutMs()
 
     property bool _watchdogArmed: false
 
@@ -42,6 +46,12 @@ TestCase {
     /// Fails when a QML file logged a warning while the module loaded, such as a type that shadows a signal of its base.
     function initTestCase() {
         compare(WorkflowFixture.qmlWarnings(), [], "QML files must load without warnings")
+    }
+
+    /// Fails every test function while a `DBTOOL_GUI_WORKFLOW_*` variable is set to something unusable.
+    function init() {
+        const errors = WorkflowFixture.externalRunErrors()
+        verify(errors.length === 0, errors.join("\n"))
     }
 
     /// Creates the Main window, arms the watchdog on its first frame and waits for that frame.
@@ -82,7 +92,9 @@ TestCase {
 
     /// Scrolls every Flickable around `control` so that it is in view, as a user would; a click outside
     /// the window is lost. Fails when a Flickable the user cannot scroll hides it.
+    /// @return Whether it scrolled.
     function _scrollIntoView(control, objectName) {
+        let scrolled = false
         for (let item = control.parent; item; item = item.parent) {
             if (item.contentY === undefined || item.contentItem === undefined || item.flickableDirection === undefined)
                 continue
@@ -93,7 +105,9 @@ TestCase {
             step(`scroll ${objectName} into view`)
             const lowest = Math.max(item.originY, item.originY + item.contentHeight - item.height)
             item.contentY = Math.min(Math.max(item.originY, top - (item.height - control.height) / 2), lowest)
+            scrolled = true
         }
+        return scrolled
     }
 
     /// Clicks the control named `objectName` after checking that it is enabled, letting the layout settle
@@ -119,11 +133,28 @@ TestCase {
         return _clickItem(findInRow(rowName, objectName), `${rowName}/${objectName}`)
     }
 
+    /// Waits until `control` stays in place for one frame (16 ms), sampling again only while it
+    /// moves: a layout that settles a turn late, or a Flickable returning to its bounds, moves it under
+    /// a click. Fails when it is still moving after 100 samples.
+    function _waitUntilStill(control, objectName) {
+        let last = control.mapToItem(main.contentItem, 0, 0)
+        for (let sample = 0; sample < 100; ++sample) {
+            wait(16)
+            const now = control.mapToItem(main.contentItem, 0, 0)
+            if (now.x === last.x && now.y === last.y)
+                return
+            last = now
+        }
+        fail(`"${objectName}" keeps moving`)
+    }
+
     function _clickItem(control, objectName) {
         verify(control.enabled, `"${objectName}" must be enabled to be clicked`)
         // Layouts size their items on the next polish; a click before it can miss a control that just appeared.
         verify(waitForPolish(main), "the window must finish its layout")
-        _scrollIntoView(control, objectName)
+        _waitUntilStill(control, objectName)
+        if (_scrollIntoView(control, objectName))
+            _waitUntilStill(control, objectName)
         step(`click ${objectName}`)
         const centre = control.mapToItem(main.contentItem, control.width / 2, control.height / 2)
         verify(centre.x >= 0 && centre.y >= 0 && centre.x < main.width && centre.y < main.height,
