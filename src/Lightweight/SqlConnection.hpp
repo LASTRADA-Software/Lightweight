@@ -132,6 +132,18 @@ struct SqliteConnectionSettings
 };
 
 /// @ingroup CoreApi
+/// @brief How a connection relates to its ODBC handles.
+enum class SqlHandleOwnership : uint8_t
+{
+    /// The connection allocated its handles, connects them and frees them on Close().
+    Owned,
+
+    /// Another component allocated and connected the handle and keeps owning it; the connection only
+    /// runs statements on it (see SqlConnection::Borrow).
+    Borrowed,
+};
+
+/// @ingroup CoreApi
 /// @brief Represents a connection to a SQL database.
 class SqlConnection final
 {
@@ -173,6 +185,27 @@ class SqlConnection final
 
     /// Destructs this SQL connection object,
     LIGHTWEIGHT_API ~SqlConnection() noexcept;
+
+    /// @brief Wraps an ODBC connection handle that another component allocated, connected and keeps owning.
+    ///
+    /// Statements run on the borrowed connection share the owner's session, including any transaction
+    /// it has open. The server type, query formatter and driver name are detected as Connect() does,
+    /// but no session setting is applied: neither the string-truncation mode, nor the SQLite settings,
+    /// nor the post-connected hook. StringTruncationMode() reports the mode the session already has
+    /// (read from @c ANSI_WARNINGS on Microsoft SQL Server). Close() and the destructor detach from the
+    /// handle without disconnecting or freeing it, and Connect() on a borrowed connection fails.
+    ///
+    /// @param connectedHandle A connected ODBC connection handle. It must stay valid until the returned
+    ///                        connection is closed or destroyed, since both free the statement handles
+    ///                        cached on it.
+    /// @return A connection running on @p connectedHandle.
+    /// @throws std::invalid_argument if @p connectedHandle is null.
+    [[nodiscard]] LIGHTWEIGHT_API static SqlConnection Borrow(SQLHDBC connectedHandle);
+
+    /// @brief Tells whether this connection owns its ODBC handles or borrowed them (see @ref Borrow).
+    /// @return @ref SqlHandleOwnership::Borrowed for a connection made by @ref Borrow, else
+    ///         @ref SqlHandleOwnership::Owned.
+    [[nodiscard]] LIGHTWEIGHT_API SqlHandleOwnership HandleOwnership() const noexcept;
 
     /// Retrieves the default connection information.
     ///
@@ -323,6 +356,8 @@ class SqlConnection final
 
     /// Closes the connection, freeing the underlying ODBC handles.
     ///
+    /// A borrowed connection (see @ref Borrow) only detaches from its handle, leaving it connected.
+    ///
     /// This does not return the connection to any pool: `SqlConnection` owns its handles outright.
     /// Connection pooling is provided separately by `Lightweight::Pool` in
     /// `DataMapper/Pool.hpp`, which recycles pooled `DataMapper` instances.
@@ -333,6 +368,7 @@ class SqlConnection final
     /// This method can be called on a connection that has been closed via Close().
     /// If the ODBC handles have been freed, they will be automatically reallocated.
     /// A transient failure is retried as @ref SetConnectRetrySettings configures.
+    /// It always fails on a borrowed connection (see @ref Borrow).
     ///
     /// @retval true if the connection was successful.
     /// @retval false if the connection failed. Use LastError() to retrieve the error information.
@@ -343,6 +379,7 @@ class SqlConnection final
     /// This method can be called on a connection that has been closed via Close().
     /// If the ODBC handles have been freed, they will be automatically reallocated.
     /// A transient failure is retried as @ref SetConnectRetrySettings configures.
+    /// It always fails on a borrowed connection (see @ref Borrow).
     ///
     /// @retval true if the connection was successful.
     /// @retval false if the connection failed. Use LastError() to retrieve the error information.
@@ -615,6 +652,18 @@ class SqlConnection final
     [[nodiscard]] LIGHTWEIGHT_API Async::IAsyncBackend& AsyncBackend();
 
   private:
+    /// Selects the private constructor that borrows a handle, keeping it out of overload resolution
+    /// for the public constructors.
+    struct BorrowTag
+    {
+    };
+
+    /// Constructs a connection on a borrowed, already connected handle. Used by Borrow().
+    SqlConnection(BorrowTag /*tag*/, SQLHDBC connectedHandle);
+
+    /// Detects the server type, query formatter, driver name and text entry point of the connected handle.
+    void DetectServer();
+
     /// Ensures ODBC handles are allocated. Called by Connect() methods.
     /// If handles were freed by Close(), this method reallocates them.
     void EnsureHandlesAllocated();
@@ -646,6 +695,10 @@ class SqlConnection final
     /// Microsoft SQL Server. Throws if the SET statement fails, like the other connect-time settings.
     void ApplyStringTruncationMode();
 
+    /// Adopts the string-truncation mode the session already has, without changing it. Reads the
+    /// @c ANSI_WARNINGS state on Microsoft SQL Server; keeps the current mode on every other backend.
+    void ReadStringTruncationMode();
+
     // Private data members
     // Note: move/move assignment operators implemented manually
     // if adding new data members, make sure to update them accordingly.
@@ -657,6 +710,7 @@ class SqlConnection final
     std::string m_driverName;
     bool m_acceptsWideQueryText = true;
     SqlStringTruncationMode m_stringTruncationMode = SqlStringTruncationMode::Truncate;
+    SqlHandleOwnership m_handleOwnership = SqlHandleOwnership::Owned;
 
     struct Data;
     Data* m_data {};

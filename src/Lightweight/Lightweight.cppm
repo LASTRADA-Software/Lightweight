@@ -191,6 +191,7 @@ using Lightweight::SqlFixedStringMode;
 using Lightweight::SqlForeignKeyReferenceDefinition;
 using Lightweight::SqlGetColumnNativeType;
 using Lightweight::SqlGuid;
+using Lightweight::SqlHandleOwnership;
 using Lightweight::SqlInputParameterBatchBinder;
 using Lightweight::SqlInputParameterBinder;
 using Lightweight::SqlInsertDataPlan;
