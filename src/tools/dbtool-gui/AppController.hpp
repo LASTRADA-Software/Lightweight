@@ -305,6 +305,16 @@ class AppController: public QObject
     /// @param enabled Whether shadow-plugin notices should be emitted via
     ///                `qInfo()`.
     static void SeedVerbose(bool enabled) noexcept;
+
+    /// Opens a URL in the desktop's default handler (file manager, text editor).
+    using UrlOpener = std::function<void(QUrl const&)>;
+
+    /// Replaces the function `openProfileFileExternally` and `revealInFolder` open URLs with; the
+    /// default is `QDesktopServices::openUrl`. Tests seed a recorder so no real file manager starts.
+    /// An empty @p opener restores the default. Must be called before the GUI starts; not thread-safe.
+    /// @param opener Called with the URL to open.
+    static void SeedUrlOpener(UrlOpener opener);
+
     [[nodiscard]] SqlQueryRunner* sqlQueryRunner() noexcept
     {
         return &_sqlQueryRunner;

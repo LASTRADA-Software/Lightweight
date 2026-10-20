@@ -338,6 +338,7 @@ Rectangle {
 
         // ---- SIZE (folded into the sub-line in card mode) ----
         Label {
+            objectName: "profileSizeLabel"
             visible: !root.compact
             Layout.row: 0
             Layout.column: root.compact ? 0 : 3

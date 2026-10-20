@@ -39,6 +39,10 @@ namespace DbtoolGui::Tests
 /// remembers the warnings that name a `.qml` file, which `WorkflowFixture::qmlWarnings` returns.
 void RecordQmlWarningsAndWriteToStderr(QtMsgType type, QMessageLogContext const& context, QString const& message);
 
+/// The URL opener of the workflow tests (`AppController::SeedUrlOpener`): remembers the URL instead
+/// of starting a file manager or editor, for `WorkflowFixture::openedUrls`.
+void RecordOpenedUrl(QUrl const& url);
+
 /// Test-side helper exposed to QML. Everything it creates lives under one temporary directory and
 /// is removed, together with the SQL Server databases, user DSNs, environment changes and the held
 /// lock, when the engine destroys it. Failures throw a JavaScript error into the calling test.
@@ -119,11 +123,17 @@ class WorkflowFixture final: public QObject
     /// integer when the value reads as one, else its text; undefined when there is no row or it is NULL.
     Q_INVOKABLE QVariant queryScalar(QString const& connectionString, QString const& sql);
 
+    /// Runs the statement @p sql, which returns no rows (DDL, INSERT), on a connection of its own.
+    Q_INVOKABLE void executeSql(QString const& connectionString, QString const& sql);
+
     /// @return The number of lines in the file @p path; 0 when it does not exist.
     Q_INVOKABLE int lineCount(QString const& path) const;
 
     /// @return The `file:` URL of the local path @p path, as a file dialog returns it.
     Q_INVOKABLE QUrl localFileUrl(QString const& path) const;
+
+    /// @return The size in bytes of the file @p path; -1 when it does not exist.
+    Q_INVOKABLE qint64 fileSize(QString const& path) const;
 
     /// @return Whether a file exists at @p path.
     Q_INVOKABLE bool fileExists(QString const& path) const;
@@ -142,6 +152,9 @@ class WorkflowFixture final: public QObject
     /// @return The warnings Qt logged that name a `.qml` file, from the process start (a QML type
     ///         that fails to load cleanly logs one while the module loads).
     Q_INVOKABLE QStringList qmlWarnings() const;
+
+    /// @return The URLs the application asked the desktop to open, in order, as text; empty when none were opened.
+    Q_INVOKABLE QStringList openedUrls() const;
 
     /// @return The clipboard's text.
     Q_INVOKABLE QString clipboardText() const;

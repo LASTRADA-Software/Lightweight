@@ -131,6 +131,7 @@ Column {
         // hover turns it into a brand-coloured link.
         Label {
             id: profilePathLabel
+            objectName: "profilePathLabel"
             width: parent.width
             readonly property bool hasPath: AppController.profilePath.length > 0
             text: hasPath ? qsTr("from %1").arg(AppController.profilePathDisplay)

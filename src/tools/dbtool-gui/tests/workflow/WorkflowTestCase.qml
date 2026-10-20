@@ -100,7 +100,26 @@ TestCase {
     /// and scrolling it into view.
     function clickControl(objectName) {
         step(`click ${objectName}`)
-        const control = findRequired(objectName)
+        return _clickItem(findRequired(objectName), objectName)
+    }
+
+    /// The control named `objectName` inside the item named `rowName` (a list row, say); fails the test
+    /// unless there is exactly one.
+    function findInRow(rowName, objectName) {
+        const row = findRequired(rowName)
+        const matches = []
+        _collect(row, objectName, matches)
+        compare(matches.length, 1, `"${rowName}" must hold exactly one "${objectName}"`)
+        return matches[0]
+    }
+
+    /// Like `clickControl`, for the control named `objectName` inside the row named `rowName`.
+    function clickInRow(rowName, objectName) {
+        step(`click ${objectName} of ${rowName}`)
+        return _clickItem(findInRow(rowName, objectName), `${rowName}/${objectName}`)
+    }
+
+    function _clickItem(control, objectName) {
         verify(control.enabled, `"${objectName}" must be enabled to be clicked`)
         // Layouts size their items on the next polish; a click before it can miss a control that just appeared.
         verify(waitForPolish(main), "the window must finish its layout")

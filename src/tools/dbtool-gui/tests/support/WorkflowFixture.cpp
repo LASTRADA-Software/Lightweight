@@ -63,7 +63,21 @@ namespace
 {
     std::mutex RecordedQmlWarningsMutex;
     QStringList RecordedQmlWarnings;
+    std::mutex OpenedUrlsMutex;
+    QStringList OpenedUrls;
 } // namespace
+
+void RecordOpenedUrl(QUrl const& url)
+{
+    std::scoped_lock const lock { OpenedUrlsMutex };
+    OpenedUrls.push_back(url.toString());
+}
+
+QStringList WorkflowFixture::openedUrls() const
+{
+    std::scoped_lock const lock { OpenedUrlsMutex };
+    return OpenedUrls;
+}
 
 void RecordQmlWarningsAndWriteToStderr(QtMsgType const type, QMessageLogContext const& context, QString const& message)
 {
@@ -410,6 +424,23 @@ QVariant WorkflowFixture::queryScalar(QString const& connectionString, QString c
     }
 }
 
+void WorkflowFixture::executeSql(QString const& connectionString, QString const& sql)
+{
+    try
+    {
+        OffGuiThread([&] {
+            auto connection = Lightweight::SqlConnection { ToConnectionString(connectionString) };
+            auto statement = Lightweight::SqlStatement { connection };
+            statement.ExecuteDirect(sql.toStdString());
+            return 0;
+        });
+    }
+    catch (std::exception const& error)
+    {
+        ThrowError(QStringLiteral("statement failed: %1: %2").arg(sql, QString::fromUtf8(error.what())));
+    }
+}
+
 int WorkflowFixture::lineCount(QString const& path) const
 {
     auto stream = std::ifstream { ToPath(path) };
@@ -422,6 +453,12 @@ int WorkflowFixture::lineCount(QString const& path) const
 QUrl WorkflowFixture::localFileUrl(QString const& path) const
 {
     return QUrl::fromLocalFile(path);
+}
+
+qint64 WorkflowFixture::fileSize(QString const& path) const
+{
+    QFileInfo const info { path };
+    return info.exists() ? info.size() : -1;
 }
 
 bool WorkflowFixture::fileExists(QString const& path) const

@@ -4,6 +4,7 @@
 // (`WorkflowFixture`, `UiWatchdog`) registered into its engine. CTest runs one test function per
 // process, so every test gets a fresh `AppController`. See `tests/qmltest_main.cpp` for the shared set-up.
 
+#include "../../AppController.hpp"
 #include "../../StderrMessageHandler.hpp"
 #include "../TestIsolation.hpp"
 #include "../support/WorkflowFixture.hpp"
@@ -33,6 +34,7 @@ int main(int argc, char** argv)
 {
     Lightweight::Tools::DisableErrorDialogs();
     qInstallMessageHandler(DbtoolGui::Tests::RecordQmlWarningsAndWriteToStderr);
+    DbtoolGui::AppController::SeedUrlOpener(&DbtoolGui::Tests::RecordOpenedUrl);
     QTEST_SET_MAIN_SOURCE_PATH
     QQuickStyle::setStyle(QStringLiteral("Fusion"));
 #ifdef _WIN32

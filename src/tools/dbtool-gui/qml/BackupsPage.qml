@@ -579,6 +579,7 @@ Rectangle {
                                     knockout: Theme.clrFieldRoBg
                                 }
                                 Label {
+                                    objectName: "backupFolderLabel"
                                     Layout.fillWidth: true
                                     Layout.minimumWidth: 0
                                     text: root._managed.effectiveBackupFolder

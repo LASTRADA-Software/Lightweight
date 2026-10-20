@@ -324,6 +324,7 @@ Rectangle {
 
                 HorizontalHeaderView {
                     id: headerView
+                    objectName: "sqlResultHeader"
                     Layout.fillWidth: true
                     syncView: tableView
                     clip: true

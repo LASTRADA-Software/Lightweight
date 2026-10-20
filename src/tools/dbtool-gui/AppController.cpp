@@ -97,6 +97,17 @@ namespace
     /// `--verbose`/`-v` CLI flag; consumed by the singleton's constructor.
     bool s_initialVerbose = false;
 
+    /// The seeded URL opener; empty means `QDesktopServices::openUrl`.
+    AppController::UrlOpener s_urlOpener;
+
+    void OpenUrl(QUrl const& url)
+    {
+        if (s_urlOpener)
+            s_urlOpener(url);
+        else
+            QDesktopServices::openUrl(url);
+    }
+
     /// Settings keys — scoped to `connection/` so new preference groups can
     /// coexist (e.g. future `ui/splitSizes`) without a schema migration.
     constexpr auto kKeyMode = "connection/mode";
@@ -175,6 +186,11 @@ namespace
 void AppController::SeedVerbose(bool enabled) noexcept
 {
     s_initialVerbose = enabled;
+}
+
+void AppController::SeedUrlOpener(UrlOpener opener)
+{
+    s_urlOpener = std::move(opener);
 }
 
 AppController::AppController(QObject* parent):
@@ -1613,7 +1629,7 @@ void AppController::openProfileFileExternally()
 {
     if (_profilePath.isEmpty())
         return;
-    QDesktopServices::openUrl(QUrl::fromLocalFile(_profilePath));
+    OpenUrl(QUrl::fromLocalFile(_profilePath));
 }
 
 bool AppController::AnyRunInFlight() const
@@ -1773,7 +1789,7 @@ void AppController::revealInFolder(QString const& path)
 {
     if (path.isEmpty())
         return;
-    QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(path).absolutePath()));
+    OpenUrl(QUrl::fromLocalFile(QFileInfo(path).absolutePath()));
 }
 
 void AppController::OnProfileFileChanged(QString const& path)

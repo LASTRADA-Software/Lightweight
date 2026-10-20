@@ -222,4 +222,11 @@ WorkflowTestCase {
         compare(findRequired("profileCombo").count, 3)
         verify(rowNamed(AppController.profiles, "external") >= 0)
     }
+
+    function test_clicking_the_profile_file_path_opens_the_file() {
+        prepare()
+        compare(WorkflowFixture.openedUrls(), [])
+        clickControl("profilePathLabel")
+        compare(WorkflowFixture.openedUrls(), [WorkflowFixture.localFileUrl(profileFile).toString()])
+    }
 }
