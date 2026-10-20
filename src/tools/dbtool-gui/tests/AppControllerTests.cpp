@@ -1098,3 +1098,21 @@ TEST_CASE("typing a DSN or connection string during a plugin load keeps the load
     CHECK(controller.migrationCount() == 3);
     CHECK(log.filter(QStringLiteral("Ready — not connected")).size() == 1);
 }
+
+TEST_CASE("loading the profile store from an empty path reads the per-user default file", "[dbtool-gui][AppController]")
+{
+    // The test isolation points the per-user default into its own directory; any file there is put back.
+    auto const defaultPath = Lightweight::Config::ProfileStore::DefaultPath();
+    auto const backupPath = std::filesystem::path { defaultPath }.concat(".before-test");
+    auto const hadFile = std::filesystem::exists(defaultPath);
+    if (hadFile)
+        std::filesystem::rename(defaultPath, backupPath);
+    std::filesystem::create_directories(defaultPath.parent_path());
+    std::ofstream { defaultPath } << "profiles:\n  fromDefault:\n    dsn: \"x\"\n";
+    auto const loaded = DbtoolGui::AppController::LoadProfileStore({});
+    std::filesystem::remove(defaultPath);
+    if (hadFile)
+        std::filesystem::rename(backupPath, defaultPath);
+    REQUIRE(loaded.has_value());
+    CHECK(loaded->store.Find("fromDefault") != nullptr);
+}

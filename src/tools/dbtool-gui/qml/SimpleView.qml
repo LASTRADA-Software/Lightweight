@@ -74,13 +74,38 @@ Rectangle {
     // Per-migration state of the current (or last) run, keyed by timestamp:
     // "running" | "done" | "failed". Lets the plan list keep showing a row
     // after the model has flipped it to "applied", so the done state can
-    // list exactly what this run changed. Reassigned (never mutated in
-    // place) so bindings re-evaluate.
+    // list exactly what this run changed. Changed in place, which costs the
+    // same for every migration of a long run; bindings depend on
+    // `runStatesRevision` to see a change.
     property var runStates: ({})
+    property int runStatesRevision: 0
+    property int runStateCount: 0
     function setRunState(timestamp, state) {
-        const next = Object.assign({}, runStates)
-        next[String(timestamp)] = state
-        runStates = next
+        const key = String(timestamp)
+        if (runStates[key] === undefined)
+            runStateCount += 1
+        runStates[key] = state
+        runStatesRevision += 1
+        root.runPlan.touch(key)
+    }
+    function clearRunStates() {
+        runStates = ({})
+        runStateCount = 0
+        runStatesRevision += 1
+        root.runPlan.clearTouched()
+    }
+
+    // The rows the plan lists show: a view over every row would create a delegate for each hidden one.
+    readonly property alias pendingPlan: pendingPlanModel
+    readonly property alias runPlan: runPlanModel
+    MigrationPlanModel {
+        id: pendingPlanModel
+        sourceModel: AppController.migrations
+    }
+    MigrationPlanModel {
+        id: runPlanModel
+        sourceModel: AppController.migrations
+        scope: MigrationPlanModel.Run
     }
 
     // When connected, step 1 collapses unless the user asked to change it.
@@ -150,7 +175,7 @@ Rectangle {
     /// the plan list shows only this run's migrations.
     function startRun() {
         root.lastResult = "none"
-        root.runStates = ({})
+        root.clearRunStates()
         root.lastBackupFile = ""
         // The backup comes first, so a failed backup must not show the previous run's rows.
         AppController.runner.tasks.clear()
@@ -163,7 +188,7 @@ Rectangle {
     /// Clears the outcome and returns the flow to the review state.
     function dismissResult() {
         root.lastResult = "none"
-        root.runStates = ({})
+        root.clearRunStates()
     }
 
     FileDialog {
@@ -334,7 +359,7 @@ Rectangle {
                 interactive: contentHeight > height
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
-                model: AppController.migrations
+                model: plan.showRunState ? root.runPlan : root.pendingPlan
                 ScrollBar.vertical: ScrollBar { policy: list.interactive ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff }
 
                 delegate: Item {
@@ -344,14 +369,11 @@ Rectangle {
                     required property string status
                     required property string releaseVersion
 
-                    readonly property string runState: root.runStates[String(timestamp)] || ""
-                    readonly property bool included: plan.showRunState
-                                                     ? (runState !== "" || status === "pending")
-                                                     : status === "pending"
+                    readonly property string runState: root.runStatesRevision >= 0
+                                                       ? root.runStates[String(timestamp)] || "" : ""
 
                     width: ListView.view.width
-                    height: included ? 32 : 0
-                    visible: included
+                    height: 32
 
                     Rectangle {
                         anchors.fill: parent
@@ -842,7 +864,7 @@ Rectangle {
 
                         PlanList {
                             width: parent.width
-                            visible: Object.keys(root.runStates).length > 0
+                            visible: root.runStateCount > 0
                             showRunState: true
                         }
 

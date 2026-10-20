@@ -18,12 +18,17 @@
 #include "SerialWorker.hpp"
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
+#include <deque>
 #include <functional>
+#include <mutex>
 #include <string_view>
+#include <utility>
 
 #include <QtCore/QObject>
 #include <QtCore/QStringList>
+#include <QtCore/QTimer>
 #include <QtQmlIntegration/QtQmlIntegration>
 
 // Forward declaration keeps the Lightweight/SqlMigration.hpp chain out of
@@ -147,6 +152,53 @@ class MigrationRunner: public QObject
     /// private would require friend declarations or extra plumbing.
     void SetPhase(Phase newPhase);
 
+    /// What a run reports from the worker to the GUI thread.
+    struct Notification
+    {
+        /// Which signals the notification emits.
+        enum class Kind : std::uint8_t
+        {
+            /// `logLine(text, level)`.
+            LogLine,
+            /// `migrationStarted(timestamp)`, `progress(timestamp, title, index, total)` and `logLine(text)`.
+            MigrationStarted,
+            /// `migrationCompleted(timestamp, text)`; `text` is the new status.
+            MigrationCompleted,
+            /// `migrationFailed(timestamp)`.
+            MigrationFailed,
+            /// The phase goes back to Idle, then `finished(ok, text)`.
+            Finished,
+        };
+        /// @return A `LogLine` notification of @p text at @p level.
+        [[nodiscard]] static Notification Line(QString text, LogLevel level)
+        {
+            auto notification = Notification {};
+            notification.text = std::move(text);
+            notification.level = level;
+            return notification;
+        }
+
+        Kind kind = Kind::LogLine;
+        QString text;
+        LogLevel level = LogLevel::Info;
+        qulonglong timestamp = 0;
+        QString title;
+        int index = 0;
+        int total = 0;
+        bool ok = false;
+    };
+
+    /// How often the GUI thread takes the notifications the worker queued.
+    static constexpr std::chrono::milliseconds DrainInterval { 16 };
+
+    /// The GUI-thread time one drain may spend; what is left waits for the next one.
+    static constexpr std::chrono::milliseconds DrainBudget { 8 };
+
+    /// Worker side: queues @p notification for the GUI thread, which takes queued notifications in
+    /// order, in timed batches of at most `DrainBudget`. However fast a run goes, the GUI thread gets
+    /// one wake-up per batch, not one event per notification.
+    void Notify(Notification notification);
+
   signals:
     void progress(qulonglong timestamp, QString title, int index, int total);
     void logLine(QString line, DbtoolGui::LogLevel level);
@@ -181,15 +233,26 @@ class MigrationRunner: public QObject
     /// Starts a run on the GUI thread: Running, no cancel request, and the last run's tasks cleared.
     void BeginRun();
 
+    /// Emits the queued notifications in order until the queue is empty or `DrainBudget` is spent.
+    void DrainNotifications();
+
+    /// Emits the signals of @p notification.
+    void Emit(Notification const& notification);
+
     Lightweight::SqlMigration::MigrationManager* _manager = nullptr;
     std::function<bool()> _busyProbe;
     PostMigrateHook _postMigrateHook;
     BackupWaiver _backupWaiver = BackupWaiver::NotWaived;
     /// Declared before `_worker`, so the queued work has finished before the model goes.
     ProgressTaskModel _tasks;
-    SerialWorker _worker;
+    /// The notifications the worker queued for the GUI thread; declared before `_worker` like `_tasks`.
+    std::mutex _notificationMutex;
+    std::deque<Notification> _notifications;
+    QTimer _drainTimer;
+    /// Declared before `_worker`, so a queued job never reads them after they are gone.
     std::atomic<Phase> _phase { Phase::Idle };
     std::atomic<bool> _cancelRequested { false };
+    SerialWorker _worker;
 };
 
 } // namespace DbtoolGui

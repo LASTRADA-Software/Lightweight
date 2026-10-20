@@ -23,6 +23,9 @@ Rectangle {
 
     /// Main destinations, in display order.
     property var items: []
+    /// Badge counts by page; they override an entry's `badge`. Changing them keeps the rail items,
+    /// where changing `items` rebuilds every one.
+    property var badges: ({})
     /// Destinations pinned to the bottom of the rail (Settings).
     property var pinnedItems: []
     /// `page` of the active destination.
@@ -47,6 +50,7 @@ Rectangle {
         id: item
         required property var entry
         readonly property bool active: entry.page === root.currentPage
+        readonly property int badge: root.badges[entry.page] !== undefined ? root.badges[entry.page] : (entry.badge || 0)
 
         Layout.fillWidth: true
         Layout.preferredHeight: 34
@@ -88,7 +92,7 @@ Rectangle {
                 elide: Text.ElideRight
             }
             Rectangle {
-                visible: !root.collapsed && (item.entry.badge || 0) > 0
+                visible: !root.collapsed && item.badge > 0
                 Layout.preferredHeight: 18
                 Layout.preferredWidth: Math.max(18, badgeLabel.implicitWidth + 12)
                 radius: 9
@@ -96,7 +100,7 @@ Rectangle {
                 Label {
                     id: badgeLabel
                     anchors.centerIn: parent
-                    text: item.entry.badge || ""
+                    text: item.badge > 0 ? item.badge : ""
                     color: "#ffffff"
                     font.pixelSize: Theme.sizeLabel - 1
                     font.weight: Font.DemiBold
@@ -107,7 +111,7 @@ Rectangle {
 
         // Collapsed rail: the badge shrinks to a dot on the icon's corner.
         Rectangle {
-            visible: root.collapsed && (item.entry.badge || 0) > 0
+            visible: root.collapsed && item.badge > 0
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.rightMargin: 8

@@ -21,6 +21,7 @@
 
 #include <BackupRecording.hpp>
 #include <PluginIngestion.hpp>
+#include <QtCore/QElapsedTimer>
 #include <QtCore/QMetaObject>
 #include <QtCore/QSet>
 
@@ -79,6 +80,9 @@ namespace
 MigrationRunner::MigrationRunner(QObject* parent):
     QObject(parent)
 {
+    _drainTimer.setSingleShot(true);
+    _drainTimer.setInterval(DrainInterval);
+    QObject::connect(&_drainTimer, &QTimer::timeout, this, &MigrationRunner::DrainNotifications);
 }
 
 void MigrationRunner::SetManager(Lightweight::SqlMigration::MigrationManager* manager) noexcept
@@ -122,6 +126,71 @@ void MigrationRunner::BeginRun()
     _tasks.clear();
 }
 
+void MigrationRunner::Notify(Notification notification)
+{
+    auto wasEmpty = false;
+    {
+        auto const lock = std::lock_guard { _notificationMutex };
+        wasEmpty = _notifications.empty();
+        _notifications.push_back(std::move(notification));
+    }
+    // One wake-up per batch: the drain timer takes everything queued until it fires.
+    if (wasEmpty)
+        QMetaObject::invokeMethod(
+            this,
+            [this] {
+                if (!_drainTimer.isActive())
+                    _drainTimer.start();
+            },
+            Qt::QueuedConnection);
+}
+
+void MigrationRunner::DrainNotifications()
+{
+    auto clock = QElapsedTimer {};
+    clock.start();
+    while (clock.durationElapsed() < DrainBudget)
+    {
+        auto notification = std::optional<Notification> {};
+        {
+            auto const lock = std::lock_guard { _notificationMutex };
+            if (_notifications.empty())
+                return;
+            notification = std::move(_notifications.front());
+            _notifications.pop_front();
+        }
+        Emit(*notification);
+    }
+    auto const lock = std::lock_guard { _notificationMutex };
+    if (!_notifications.empty())
+        _drainTimer.start();
+}
+
+void MigrationRunner::Emit(Notification const& notification)
+{
+    switch (notification.kind)
+    {
+        case Notification::Kind::LogLine:
+            emit logLine(notification.text, notification.level);
+            break;
+        case Notification::Kind::MigrationStarted:
+            emit migrationStarted(notification.timestamp);
+            emit progress(notification.timestamp, notification.title, notification.index, notification.total);
+            emit logLine(notification.text, LogLevel::Info);
+            break;
+        case Notification::Kind::MigrationCompleted:
+            emit migrationCompleted(notification.timestamp, notification.text);
+            break;
+        case Notification::Kind::MigrationFailed:
+            emit migrationFailed(notification.timestamp);
+            break;
+        case Notification::Kind::Finished:
+            SetPhase(Phase::Idle);
+            emit finished(notification.ok, notification.text);
+            break;
+    }
+}
+
 void MigrationRunner::SetPhase(Phase newPhase)
 {
     auto const oldPhase = _phase.exchange(newPhase, std::memory_order_acq_rel);
@@ -132,12 +201,10 @@ void MigrationRunner::SetPhase(Phase newPhase)
 namespace
 {
 
-    /// Pushes a plain log line onto the runner from a worker thread, marshalling
-    /// through the event loop so QML consumers see it on the GUI thread.
+    /// Queues a plain log line from a worker thread; the GUI thread emits it with the next batch.
     void PostLogLine(MigrationRunner* runner, QString const& line, LogLevel level)
     {
-        QMetaObject::invokeMethod(
-            runner, [runner, line, level] { emit runner->logLine(line, level); }, Qt::QueuedConnection);
+        runner->Notify(MigrationRunner::Notification::Line(line, level));
     }
 
     /// Emits the standard `[i/n] <ts> <title>` progress line plus a `progress`
@@ -152,35 +219,46 @@ namespace
         auto const title = QString::fromStdString(std::string { migration.GetTitle() });
         auto const idx = static_cast<int>(i + 1);
         auto const total = static_cast<int>(n);
-        QMetaObject::invokeMethod(
-            runner,
-            [runner, ts, title, idx, total, verb] {
-                emit runner->migrationStarted(static_cast<qulonglong>(ts));
-                emit runner->progress(static_cast<qulonglong>(ts), title, idx, total);
-                emit runner->logLine(QStringLiteral("[%1/%2] %3 %4 %5").arg(idx).arg(total).arg(verb).arg(ts).arg(title),
-                                     LogLevel::Info);
-            },
-            Qt::QueuedConnection);
+        runner->Notify({
+            .kind = MigrationRunner::Notification::Kind::MigrationStarted,
+            .text = QStringLiteral("[%1/%2] %3 %4 %5").arg(idx).arg(total).arg(verb).arg(ts).arg(title),
+            .level = LogLevel::Info,
+            .timestamp = static_cast<qulonglong>(ts),
+            .title = title,
+            .index = idx,
+            .total = total,
+            .ok = false,
+        });
     }
 
     /// Emits `migrationCompleted` on the GUI thread.
     void PostMigrationCompleted(MigrationRunner* runner, uint64_t timestamp, QString const& newStatus)
     {
-        QMetaObject::invokeMethod(
-            runner,
-            [runner, timestamp, newStatus] {
-                emit runner->migrationCompleted(static_cast<qulonglong>(timestamp), newStatus);
-            },
-            Qt::QueuedConnection);
+        runner->Notify({
+            .kind = MigrationRunner::Notification::Kind::MigrationCompleted,
+            .text = newStatus,
+            .level = LogLevel::Info,
+            .timestamp = static_cast<qulonglong>(timestamp),
+            .title = {},
+            .index = 0,
+            .total = 0,
+            .ok = false,
+        });
     }
 
     /// Emits `migrationFailed` on the GUI thread.
     void PostMigrationFailed(MigrationRunner* runner, uint64_t timestamp)
     {
-        QMetaObject::invokeMethod(
-            runner,
-            [runner, timestamp] { emit runner->migrationFailed(static_cast<qulonglong>(timestamp)); },
-            Qt::QueuedConnection);
+        runner->Notify({
+            .kind = MigrationRunner::Notification::Kind::MigrationFailed,
+            .text = {},
+            .level = LogLevel::Info,
+            .timestamp = static_cast<qulonglong>(timestamp),
+            .title = {},
+            .index = 0,
+            .total = 0,
+            .ok = false,
+        });
     }
 
     void PostMigrationFailureLines(MigrationRunner* runner, Lightweight::SqlMigration::MigrationException const& ex)
@@ -219,13 +297,16 @@ namespace
 
     void PostFinished(MigrationRunner* runner, bool ok, QString const& summary)
     {
-        QMetaObject::invokeMethod(
-            runner,
-            [runner, ok, summary] {
-                runner->SetPhase(MigrationRunner::Phase::Idle);
-                emit runner->finished(ok, summary);
-            },
-            Qt::QueuedConnection);
+        runner->Notify({
+            .kind = MigrationRunner::Notification::Kind::Finished,
+            .text = summary,
+            .level = LogLevel::Info,
+            .timestamp = 0,
+            .title = {},
+            .index = 0,
+            .total = 0,
+            .ok = ok,
+        });
     }
 
     /// How an apply run ended. Reported with `PostFinished` only once the migration lock is released.

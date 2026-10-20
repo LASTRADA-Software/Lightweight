@@ -21,7 +21,7 @@ TestCase {
     height: 300
 
     /// What a stall over the budget does: UiWatchdog.Record reports it, UiWatchdog.Enforce fails the test.
-    property int watchdogMode: UiWatchdog.Record
+    property int watchdogMode: UiWatchdog.Enforce
     /// The heartbeat, armed by `openMain()` on the window's first frame.
     property UiWatchdog watchdog: UiWatchdog { mode: testCase.watchdogMode }
     /// The Main window `openMain()` created; destroyed after each test function.
@@ -73,11 +73,35 @@ TestCase {
         return found
     }
 
-    /// Clicks the control named `objectName` after checking that it is enabled.
+    /// Scrolls every Flickable around `control` so that it is in view, as a user would; a click outside
+    /// the window is lost. Fails when a Flickable the user cannot scroll hides it.
+    function _scrollIntoView(control, objectName) {
+        for (let item = control.parent; item; item = item.parent) {
+            if (item.contentY === undefined || item.contentItem === undefined || item.flickableDirection === undefined)
+                continue
+            const top = control.mapToItem(item.contentItem, 0, 0).y
+            if (top >= item.contentY && top + control.height <= item.contentY + item.height)
+                continue
+            verify(item.interactive !== false, `"${objectName}" is out of view in a Flickable the user cannot scroll`)
+            step(`scroll ${objectName} into view`)
+            const lowest = Math.max(item.originY, item.originY + item.contentHeight - item.height)
+            item.contentY = Math.min(Math.max(item.originY, top - (item.height - control.height) / 2), lowest)
+        }
+    }
+
+    /// Clicks the control named `objectName` after checking that it is enabled, letting the layout settle
+    /// and scrolling it into view.
     function clickControl(objectName) {
         step(`click ${objectName}`)
         const control = findRequired(objectName)
         verify(control.enabled, `"${objectName}" must be enabled to be clicked`)
+        // Layouts size their items on the next polish; a click before it can miss a control that just appeared.
+        verify(waitForPolish(main), "the window must finish its layout")
+        _scrollIntoView(control, objectName)
+        step(`click ${objectName}`)
+        const centre = control.mapToItem(main.contentItem, control.width / 2, control.height / 2)
+        verify(centre.x >= 0 && centre.y >= 0 && centre.x < main.width && centre.y < main.height,
+               `"${objectName}" must be inside the window to be clicked`)
         mouseClick(control)
         return control
     }

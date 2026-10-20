@@ -63,9 +63,6 @@ ColumnLayout {
     Repeater {
         model: [
             { key: "latest",    label: qsTr("Latest — everything pending"),
-              help: AppController.pendingCount === 1
-                    ? qsTr("Apply the 1 pending migration.")
-                    : qsTr("Apply all %1 pending migrations.").arg(AppController.pendingCount),
               tip: qsTr("Apply every pending migration.") },
             { key: "release",   label: qsTr("Up to a release"),
               help: qsTr("Stop after the last migration of a declared release."),
@@ -161,7 +158,11 @@ ColumnLayout {
                 }
                 Label {
                     width: parent.width
-                    text: optionRect.modelData.help
+                    // Read here, not in the model: a model change would rebuild every option.
+                    text: optionRect.modelData.key !== "latest" ? optionRect.modelData.help
+                        : AppController.pendingCount === 1
+                          ? qsTr("Apply the 1 pending migration.")
+                          : qsTr("Apply all %1 pending migrations.").arg(AppController.pendingCount)
                     color: Theme.clrOnSurfaceSubtle
                     font.pixelSize: Theme.sizeLabel
                     wrapMode: Text.WordWrap

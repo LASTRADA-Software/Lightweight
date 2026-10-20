@@ -215,11 +215,13 @@ ApplicationWindow {
     // Rail destinations. Data-driven so adding a page is one entry here plus
     // one child of the StackLayout below.
     readonly property var railItems: [
-        { page: "migrations", label: qsTr("Migrations"), glyph: "layers",
-          badge: AppController.pendingCount, badgeKind: "warn" },
-        { page: "backups", label: qsTr("Backups"), glyph: "archive-outline",
-          badge: AppController.managedBackups.phase !== ManagedBackupController.Idle ? 1 : 0 },
+        { page: "migrations", label: qsTr("Migrations"), glyph: "layers", badgeKind: "warn" },
+        { page: "backups", label: qsTr("Backups"), glyph: "archive-outline" },
     ]
+    readonly property var railBadges: ({
+        migrations: AppController.pendingCount,
+        backups: AppController.managedBackups.phase !== ManagedBackupController.Idle ? 1 : 0,
+    })
     readonly property var railPinnedItems: [
         // Settings host the profile-file path, plugins directory and backup
         // folder. They are reachable from Simple view too: deployments that
@@ -239,6 +241,7 @@ ApplicationWindow {
             Layout.fillHeight: true
             Layout.preferredWidth: implicitWidth
             items: root.railItems
+            badges: root.railBadges
             pinnedItems: root.railPinnedItems
             currentPage: root.currentPage
             collapsed: root.railCollapsed

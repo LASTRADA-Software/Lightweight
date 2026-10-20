@@ -2,6 +2,8 @@
 
 #include "MigrationListModel.hpp"
 
+#include <algorithm>
+#include <ranges>
 #include <utility>
 
 #include <QtCore/QByteArray>
@@ -57,19 +59,55 @@ bool MigrationListModel::setData(QModelIndex const& index, QVariant const& value
     if (role != SelectedRole)
         return false;
 
-    auto& r = _rows[static_cast<size_t>(row)];
     // Only pending rows are meaningful to select — already-applied rows would
     // produce a no-op in the runner and would be confusing UX.
-    if (r.status != QStringLiteral("pending"))
+    if (_rows[static_cast<size_t>(row)].status != QStringLiteral("pending"))
         return false;
 
-    auto const next = value.toBool();
-    if (r.selected == next)
-        return true;
-    r.selected = next;
-    emit dataChanged(index, index, { SelectedRole });
-    emit selectionChanged();
+    SetSelectedAt(static_cast<size_t>(row), value.toBool() ? SelectionState::Selected : SelectionState::NotSelected);
     return true;
+}
+
+void MigrationListModel::SetSelectedAt(std::size_t row, SelectionState state)
+{
+    auto& r = _rows[row];
+    auto const next = state == SelectionState::Selected;
+    if (r.selected == next)
+        return;
+    r.selected = next;
+    _selectedCount += next ? 1 : -1;
+    auto const qidx = index(static_cast<int>(row));
+    emit dataChanged(qidx, qidx, { SelectedRole });
+    emit selectionChanged();
+}
+
+bool MigrationListModel::SetSelectedByTimestamp(std::uint64_t timestamp, SelectionState state)
+{
+    auto const found = _rowByTimestamp.constFind(timestamp);
+    if (found == _rowByTimestamp.cend())
+        return false;
+    auto const row = static_cast<std::size_t>(*found);
+    if (_rows[row].status != QStringLiteral("pending"))
+        return false;
+    SetSelectedAt(row, state);
+    return true;
+}
+
+std::optional<int> MigrationListModel::RowOfTimestamp(std::uint64_t timestamp) const
+{
+    auto const found = _rowByTimestamp.constFind(timestamp);
+    return found == _rowByTimestamp.cend() ? std::nullopt : std::optional<int> { *found };
+}
+
+QString MigrationListModel::TitleByTimestamp(std::uint64_t timestamp) const
+{
+    auto const found = _rowByTimestamp.constFind(timestamp);
+    return found == _rowByTimestamp.cend() ? QString {} : _rows[static_cast<std::size_t>(*found)].title;
+}
+
+StatusCounts MigrationListModel::Counts() const noexcept
+{
+    return _counts;
 }
 
 Qt::ItemFlags MigrationListModel::flags(QModelIndex const& index) const
@@ -108,6 +146,7 @@ void MigrationListModel::SelectAllPending(bool selected)
         if (r.status == QStringLiteral("pending") && r.selected != selected)
         {
             r.selected = selected;
+            _selectedCount += selected ? 1 : -1;
             changed = true;
         }
     }
@@ -128,49 +167,118 @@ QStringList MigrationListModel::SelectedTimestamps() const
 
 int MigrationListModel::SelectedCount() const noexcept
 {
-    int n = 0;
-    for (auto const& r: _rows)
-        if (r.selected && r.status == QStringLiteral("pending"))
-            ++n;
-    return n;
+    return _selectedCount;
 }
 
-std::vector<uint64_t> MigrationListModel::AppliedTimestamps() const
+std::set<std::uint64_t> const& MigrationListModel::AppliedTimestamps() const noexcept
 {
-    std::vector<uint64_t> out;
-    out.reserve(_rows.size());
-    for (auto const& r: _rows)
-        if (r.status == QStringLiteral("applied") || r.status == QStringLiteral("checksum-mismatch"))
-            out.push_back(r.timestamp);
-    return out;
+    return _appliedTimestamps;
+}
+
+ReleaseTally MigrationListModel::ReleaseTallyOf(QString const& version) const
+{
+    return _releaseTallies.value(version);
+}
+
+QVariantMap MigrationListModel::releaseTally(QString const& version) const
+{
+    auto const tally = ReleaseTallyOf(version);
+    return {
+        { QStringLiteral("present"), _releaseTallies.contains(version) },
+        { QStringLiteral("total"), tally.total },
+        { QStringLiteral("applied"), tally.applied },
+        { QStringLiteral("newest"), tally.newest == 0 ? QString {} : QString::number(tally.newest) },
+    };
+}
+
+int MigrationListModel::tallyRebuildCount() const noexcept
+{
+    return _tallyRebuildCount;
+}
+
+void MigrationListModel::Tally(MigrationRow const& row, TallyDirection direction)
+{
+    auto const sign = direction == TallyDirection::Add ? 1 : -1;
+    auto const& status = row.status;
+    auto const applied = status == QStringLiteral("applied") || status == QStringLiteral("checksum-mismatch");
+    if (status != QStringLiteral("unknown"))
+    {
+        auto& release = _releaseTallies[row.releaseVersion];
+        release.total += sign;
+        if (applied)
+            release.applied += sign;
+    }
+    if (applied)
+    {
+        if (direction == TallyDirection::Add)
+            _appliedTimestamps.insert(row.timestamp);
+        else
+            _appliedTimestamps.erase(row.timestamp);
+        (status == QStringLiteral("applied") ? _counts.applied : _counts.checksumMismatch) += sign;
+    }
+    else if (status == QStringLiteral("pending"))
+    {
+        _counts.pending += sign;
+        if (row.releaseVersion.isEmpty())
+            _counts.pendingUnreleased += sign;
+        if (row.selected)
+            _selectedCount += sign;
+    }
+    else if (status == QStringLiteral("unknown"))
+        _counts.unknown += sign;
+}
+
+void MigrationListModel::RebuildIndex()
+{
+    _rowByTimestamp.clear();
+    _rowByTimestamp.reserve(static_cast<qsizetype>(_rows.size()));
+    _counts = {};
+    _appliedTimestamps.clear();
+    _selectedCount = 0;
+    _releaseTallies.clear();
+    for (auto const& [row, migration]: std::views::enumerate(_rows))
+    {
+        _rowByTimestamp.insert(migration.timestamp, static_cast<int>(row));
+        Tally(migration, TallyDirection::Add);
+        auto& newest = _releaseTallies[migration.releaseVersion].newest;
+        newest = std::max(newest, migration.timestamp);
+    }
+    ++_tallyRebuildCount;
 }
 
 bool MigrationListModel::SetRowStatusByTimestamp(uint64_t timestamp, QString const& status)
 {
-    for (size_t i = 0; i < _rows.size(); ++i)
-    {
-        if (_rows[i].timestamp != timestamp)
-            continue;
-        if (_rows[i].status == status)
-            return true;
-        _rows[i].status = status;
-        // Clear selection once the row leaves the pending state — nothing
-        // downstream can act on a non-pending row's selection anyway.
-        if (status != QStringLiteral("pending"))
-            _rows[i].selected = false;
-        auto const qidx = index(static_cast<int>(i));
-        emit dataChanged(qidx, qidx, { StatusRole, SelectedRole });
-        emit selectionChanged();
+    auto const found = _rowByTimestamp.constFind(timestamp);
+    if (found == _rowByTimestamp.cend())
+        return false;
+    auto& row = _rows[static_cast<std::size_t>(*found)];
+    if (row.status == status)
         return true;
-    }
-    return false;
+    auto const wasSelected = row.selected;
+    auto const releaseBefore = ReleaseTallyOf(row.releaseVersion);
+    Tally(row, TallyDirection::Remove);
+    row.status = status;
+    // Clear selection once the row leaves the pending state — nothing
+    // downstream can act on a non-pending row's selection anyway.
+    if (status != QStringLiteral("pending"))
+        row.selected = false;
+    Tally(row, TallyDirection::Add);
+    auto const qidx = index(*found);
+    emit dataChanged(qidx, qidx, { StatusRole, SelectedRole });
+    if (wasSelected != row.selected)
+        emit selectionChanged();
+    if (ReleaseTallyOf(row.releaseVersion) != releaseBefore)
+        emit releaseTallyChanged(row.releaseVersion);
+    return true;
 }
 
 void MigrationListModel::ReplaceRows(std::vector<MigrationRow> rows)
 {
     beginResetModel();
     _rows = std::move(rows);
+    RebuildIndex();
     endResetModel();
+    emit tallyRebuilt();
 }
 
 } // namespace DbtoolGui

@@ -56,13 +56,17 @@ struct AppController::PluginsBundle
 #include <filesystem>
 #include <format>
 #include <span>
+#include <string_view>
 #include <system_error>
+#include <utility>
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QCryptographicHash>
 #include <QtCore/QDateTime>
 #include <QtCore/QDeadlineTimer>
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
+#include <QtCore/QFile>
 #include <QtCore/QFileInfo>
 #include <QtCore/QFileSystemWatcher>
 #include <QtCore/QModelIndex>
@@ -197,9 +201,15 @@ AppController::AppController(QObject* parent):
         _lastFailedTimestamp.clear();
         _lastFailedTitle.clear();
     });
+    // The counters follow at a bounded rate: each `migrationsChanged` re-evaluates every count binding.
+    _migrationsChangedThrottle = new QTimer(this);
+    _migrationsChangedThrottle->setSingleShot(true);
+    _migrationsChangedThrottle->setInterval(RowStatusNotifyInterval);
+    QObject::connect(_migrationsChangedThrottle, &QTimer::timeout, this, &AppController::migrationsChanged);
     QObject::connect(&_runner, &MigrationRunner::migrationCompleted, this, [this](qulonglong ts, QString const& newStatus) {
         _migrations.SetRowStatusByTimestamp(ts, newStatus);
-        emit migrationsChanged(); // refreshes counters in the sidebar
+        if (!_migrationsChangedThrottle->isActive())
+            _migrationsChangedThrottle->start();
     });
     QObject::connect(&_runner, &MigrationRunner::migrationFailed, this, [this](qulonglong ts) {
         _migrations.SetRowStatusByTimestamp(ts, QStringLiteral("pending"));
@@ -208,18 +218,7 @@ AppController::AppController(QObject* parent):
         // "Failed migration: TS  title" without QML having
         // to re-query the list model after `finished`.
         _lastFailedTimestamp = QString::number(ts);
-        _lastFailedTitle.clear();
-        int const rows = _migrations.rowCount();
-        for (int i = 0; i < rows; ++i)
-        {
-            auto const idx = _migrations.index(i, 0);
-            auto const rowTs = _migrations.data(idx, MigrationListModel::TimestampRole).toString().toULongLong();
-            if (rowTs == ts)
-            {
-                _lastFailedTitle = _migrations.data(idx, MigrationListModel::TitleRole).toString();
-                break;
-            }
-        }
+        _lastFailedTitle = _migrations.TitleByTimestamp(ts);
         emit migrationsChanged();
     });
     // Ring-buffer the runner's log stream so `buildFailureReport` can
@@ -234,11 +233,12 @@ AppController::AppController(QObject* parent):
     QObject::connect(&_runner, &MigrationRunner::logLine, this, bufferLogLine);
     QObject::connect(&_backupRunner, &BackupRunner::logLine, this, bufferLogLine);
 
-    // The log pane subscribes to `AppController::logLine` (single source of
-    // truth). Forward the runners' streams so migration progress and backup
-    // events surface in the same feed as the startup banner.
-    QObject::connect(&_runner, &MigrationRunner::logLine, this, &AppController::logLine);
-    QObject::connect(&_backupRunner, &BackupRunner::logLine, this, &AppController::logLine);
+    // The runners' streams join the startup banner in the one log feed.
+    auto const forwardLogLine = [this](QString const& line, LogLevel level) {
+        Log(level, line);
+    };
+    QObject::connect(&_runner, &MigrationRunner::logLine, this, forwardLogLine);
+    QObject::connect(&_backupRunner, &BackupRunner::logLine, this, forwardLogLine);
     QObject::connect(&_managedBackups, &ManagedBackupController::logLine, this, [this](QString const& line, LogLevel level) {
         Log(level, line);
     });
@@ -304,11 +304,13 @@ AppController::AppController(QObject* parent):
         &_managedBackups, &ManagedBackupController::finished, this, [this](bool ok, QString const& /*summary*/) {
             if (ok && _connected)
                 RefreshMigrationModelsAfterRun();
+            UpdateActivity();
         });
     // A recorded Back up or Restore can satisfy the backup requirement; one that could not be recorded says why.
     QObject::connect(&_backupRunner, &BackupRunner::finished, this, [this](bool /*ok*/, QString const& /*summary*/) {
         _lastRecordError = _backupRunner.lastResult().value(QStringLiteral("recordError")).toString();
         RequestBackupRequirementCheck();
+        UpdateActivity();
     });
 
     _settings = new QSettings(this);
@@ -319,6 +321,11 @@ AppController::AppController(QObject* parent):
 
     _fileWatcher = new QFileSystemWatcher(this);
     QObject::connect(_fileWatcher, &QFileSystemWatcher::fileChanged, this, &AppController::OnProfileFileChanged);
+    // Editors save with write-then-rename and the watcher may report one save several times; let it settle.
+    _profileFileDebounce = new QTimer(this);
+    _profileFileDebounce->setSingleShot(true);
+    _profileFileDebounce->setInterval(std::chrono::milliseconds { 150 });
+    QObject::connect(_profileFileDebounce, &QTimer::timeout, this, &AppController::HandleProfileFileChange);
 
     // Restore preferences BEFORE loading profiles. `loadProfiles` only sets
     // a default profile when `_currentProfile` is empty, so feeding the
@@ -677,6 +684,14 @@ void AppController::EncryptPlaintextPassword(Lightweight::Config::Profile const&
     }
     LogInfo(QStringLiteral("Encrypted the plaintext password of profile ‘%1’ in %2")
                 .arg(QString::fromStdString(profile.name), _profilePath));
+    // Only the password changed: re-read the store in place; the watcher's echo of this write is ignored.
+    if (auto reloaded = LoadProfileStore(_profilePath); reloaded)
+    {
+        _knownFingerprint = std::move(reloaded->fingerprint);
+        _store = std::move(reloaded->store);
+        _profiles.ReplaceFrom(_store);
+        _managedBackups.setProfiles(_store.Profiles());
+    }
     if (upgraded->insideGitWorkTree)
         LogWarn(QStringLiteral("%1 is inside a git repository; the old plaintext password may remain in its "
                                "history. Consider changing the database password.")
@@ -766,14 +781,15 @@ bool AppController::loadProfiles(QString const& path)
 {
     auto const effectivePath = path.isEmpty() ? _discoveredStorePath : path;
 
-    auto result = Lightweight::Config::ProfileStore::LoadOrDefault(effectivePath.toStdString());
+    auto result = LoadProfileStore(effectivePath);
     if (!result)
     {
         ReportError(QString::fromStdString(result.error()));
         return false;
     }
-    _store = std::move(*result);
+    _store = std::move(result->store);
     _storeLoaded = true;
+    _knownFingerprint = std::move(result->fingerprint);
     _profiles.ReplaceFrom(_store);
     // The folder dbtool.yml names (if any) becomes the default backup folder, so an installer can
     // pre-configure it; a folder chosen in Settings still wins.
@@ -919,7 +935,12 @@ bool AppController::connectToProfile()
         .generation = generation,
         .logSink =
             [this](std::string_view message) {
-                LogInfo(QString::fromUtf8(message.data(), static_cast<qsizetype>(message.size())));
+                auto line = QString::fromUtf8(message.data(), static_cast<qsizetype>(message.size()));
+                // During a run, the manager's lines join the runner's queue, so they keep their order.
+                if (_runner.phase() != MigrationRunner::Phase::Idle)
+                    _runner.Notify(MigrationRunner::Notification::Line(std::move(line), LogLevel::Info));
+                else
+                    LogInfo(std::move(line));
             },
         .log = [this](LogLevel level, QString line) { Log(level, std::move(line)); },
         .isStale = [this, generation] { return _targetGeneration.load() != generation; },
@@ -1041,28 +1062,6 @@ void AppController::FinishConnect(std::optional<BackupRequirementState> requirem
     emit connectFinished();
 }
 
-namespace
-{
-
-    /// Counts rows in `MigrationListModel` whose `StatusRole` equals `status`.
-    /// Duplicating this traversal in the QML layer would miss model refreshes
-    /// (see the notify-enabled `Q_PROPERTY` wiring in AppController.hpp).
-    int CountWithStatus(MigrationListModel const& model, QString const& status)
-    {
-        int n = 0;
-        int const rows = model.rowCount();
-        for (int i = 0; i < rows; ++i)
-        {
-            auto const idx = model.index(i, 0);
-            auto const value = model.data(idx, MigrationListModel::StatusRole).toString();
-            if (value == status)
-                ++n;
-        }
-        return n;
-    }
-
-} // namespace
-
 int AppController::migrationCount() const
 {
     return _migrations.rowCount();
@@ -1070,12 +1069,12 @@ int AppController::migrationCount() const
 
 int AppController::appliedCount() const
 {
-    return CountWithStatus(_migrations, QStringLiteral("applied"));
+    return _migrations.Counts().applied;
 }
 
 int AppController::pendingCount() const
 {
-    return CountWithStatus(_migrations, QStringLiteral("pending"));
+    return _migrations.Counts().pending;
 }
 
 int AppController::preMigrateStepCount() const
@@ -1176,32 +1175,23 @@ void AppController::backUpNow()
 
 int AppController::pendingUnreleasedCount() const
 {
-    int n = 0;
-    int const rows = _migrations.rowCount();
-    for (int i = 0; i < rows; ++i)
-    {
-        auto const idx = _migrations.index(i, 0);
-        if (_migrations.data(idx, MigrationListModel::StatusRole).toString() != QStringLiteral("pending"))
-            continue;
-        if (_migrations.data(idx, MigrationListModel::ReleaseVersionRole).toString().isEmpty())
-            ++n;
-    }
-    return n;
+    return _migrations.Counts().pendingUnreleased;
 }
 
 int AppController::unknownCount() const
 {
-    return CountWithStatus(_migrations, QStringLiteral("unknown"));
+    return _migrations.Counts().unknown;
 }
 
 int AppController::checksumMismatchCount() const
 {
-    return CountWithStatus(_migrations, QStringLiteral("checksum-mismatch"));
+    return _migrations.Counts().checksumMismatch;
 }
 
 int AppController::issuesCount() const
 {
-    return unknownCount() + checksumMismatchCount();
+    auto const counts = _migrations.Counts();
+    return counts.unknown + counts.checksumMismatch;
 }
 
 int AppController::selectionCount() const
@@ -1220,14 +1210,14 @@ QString AppController::currentReleaseLabel() const
     // `migrationsChanged()`, including the ones fired between migrations of
     // a run, while the worker holds the only `SqlConnection`. The model is
     // kept in sync per row by `migrationCompleted` → `SetRowStatusByTimestamp`.
-    auto const applied = _migrations.AppliedTimestamps();
+    auto const& applied = _migrations.AppliedTimestamps();
     if (applied.empty())
         return QStringLiteral("(fresh database)");
 
-    auto const highest = std::ranges::max(applied);
+    auto const highest = *applied.rbegin();
     auto const& releases = _releases.Rows();
     auto const countAbove = [&applied](std::uint64_t bound) {
-        return std::ranges::count_if(applied, [bound](std::uint64_t timestamp) { return timestamp > bound; });
+        return std::ranges::distance(applied.upper_bound(bound), applied.end());
     };
 
     // The release that contains `highest`: the one with the smallest upper bound at or above it.
@@ -1326,18 +1316,8 @@ QStringList AppController::selectedMigrationTimestamps() const
 
 void AppController::setMigrationSelected(QString const& timestamp, bool selected)
 {
-    auto const ts = timestamp.toULongLong();
-    int const rows = _migrations.rowCount();
-    for (int i = 0; i < rows; ++i)
-    {
-        auto const idx = _migrations.index(i, 0);
-        auto const rowTs = _migrations.data(idx, MigrationListModel::TimestampRole).toString().toULongLong();
-        if (rowTs == ts)
-        {
-            _migrations.setData(idx, selected, MigrationListModel::SelectedRole);
-            return;
-        }
-    }
+    (void) _migrations.SetSelectedByTimestamp(timestamp.toULongLong(),
+                                              selected ? SelectionState::Selected : SelectionState::NotSelected);
 }
 
 void AppController::selectAllPending(bool selected)
@@ -1619,24 +1599,110 @@ void AppController::revealInFolder(QString const& path)
 
 void AppController::OnProfileFileChanged(QString const& path)
 {
-    // Don't swap the profile list out from under a running migration — that
-    // would yank migrations the plugins are still enumerated against. The
-    // user can re-click Reconnect once the run finishes.
-    if (_runner.phase() != MigrationRunner::Phase::Idle)
+    _changedProfileFile = path;
+    _profileFileDebounce->start();
+}
+
+namespace
+{
+    /// @return The content of the file @p path; empty when it cannot be read.
+    std::optional<QByteArray> ReadFile(QString const& path)
+    {
+        auto file = QFile { path };
+        if (!file.open(QIODevice::ReadOnly))
+            return std::nullopt;
+        return file.readAll();
+    }
+} // namespace
+
+std::optional<AppController::ProfileFileFingerprint> AppController::FingerprintOf(QString const& path)
+{
+    auto const content = ReadFile(path);
+    if (!content)
+        return std::nullopt;
+    return ProfileFileFingerprint {
+        .path = path,
+        .size = content->size(),
+        .sha256 = QCryptographicHash::hash(*content, QCryptographicHash::Sha256),
+    };
+}
+
+std::expected<AppController::LoadedProfileStore, std::string> AppController::LoadProfileStore(QString const& requestedPath)
+{
+    // As `ProfileStore::LoadOrDefault`, an empty path means the per-user default file.
+    auto const filePath = requestedPath.isEmpty() ? Lightweight::Config::ProfileStore::DefaultPath()
+                                                  : std::filesystem::path { requestedPath.toStdU16String() };
+    auto const path = QString::fromStdU16String(filePath.u16string());
+    if (!std::filesystem::exists(filePath))
+        return LoadedProfileStore { .store = {}, .fingerprint = std::nullopt };
+    auto const content = ReadFile(path);
+    if (!content)
+        return std::unexpected(std::format("failed to read {}", path.toStdString()));
+    auto store = Lightweight::Config::ProfileStore::Parse(
+        std::string_view { content->constData(), static_cast<std::size_t>(content->size()) }, filePath);
+    if (!store)
+        return std::unexpected(std::move(store.error()));
+    return LoadedProfileStore {
+        .store = *std::move(store),
+        .fingerprint =
+            ProfileFileFingerprint {
+                .path = path,
+                .size = content->size(),
+                .sha256 = QCryptographicHash::hash(*content, QCryptographicHash::Sha256),
+            },
+    };
+}
+
+void AppController::HandleProfileFileChange()
+{
+    auto const path = _changedProfileFile;
+    // A notification of the file the store was loaded from before a path change is stale.
+    if (_shuttingDown || path != _profilePath)
+        return;
+    // Write-then-rename drops the watch on the old inode; watch the new file.
+    auto const exists = std::filesystem::exists(path.toStdString());
+    if (_fileWatcher && exists && !_fileWatcher->files().contains(path))
+        _fileWatcher->addPath(path);
+    if (!exists)
         return;
 
-    // Editors like Notepad or vim use write-then-rename; the original inode
-    // goes away and the watcher drops the file. We debounce via a short
-    // singleShot to let the atomic rename settle, then re-add and reload.
-    QTimer::singleShot(150, this, [this, path] {
-        if (_fileWatcher && !_fileWatcher->files().contains(path) && std::filesystem::exists(path.toStdString()))
-        {
-            _fileWatcher->addPath(path);
-        }
-        if (!std::filesystem::exists(path.toStdString()))
-            return; // file was deleted, skip reload
-        (void) loadProfiles(path);
-    });
+    if (_knownFingerprint && _knownFingerprint == FingerprintOf(path))
+    {
+        emit profileFileChangeHandled(ProfileFileReaction::IgnoredOwnWrite);
+        return;
+    }
+    // Swapping the store under a connect or a run would pull profiles and plugins away from it.
+    if (ProfileReloadBlocked())
+    {
+        _deferredProfileFile = path;
+        emit profileFileChangeHandled(ProfileFileReaction::Deferred);
+        return;
+    }
+    _deferredProfileFile.clear();
+    (void) loadProfiles(path);
+    emit profileFileChangeHandled(ProfileFileReaction::Reloaded);
+}
+
+bool AppController::ProfileReloadBlocked() const
+{
+    return busy() || AnyRunInFlight();
+}
+
+void AppController::ApplyDeferredProfileFileChange()
+{
+    _deferredProfileFileQueued = false;
+    if (_deferredProfileFile.isEmpty() || _shuttingDown || ProfileReloadBlocked())
+        return;
+    auto const path = std::exchange(_deferredProfileFile, QString {});
+    if (path != _profilePath || !std::filesystem::exists(path.toStdString()))
+        return;
+    if (_knownFingerprint && _knownFingerprint == FingerprintOf(path))
+    {
+        emit profileFileChangeHandled(ProfileFileReaction::IgnoredOwnWrite);
+        return;
+    }
+    (void) loadProfiles(path);
+    emit profileFileChangeHandled(ProfileFileReaction::Reloaded);
 }
 
 std::vector<std::filesystem::path> AppController::EffectivePluginsDir() const
@@ -1771,14 +1837,22 @@ void AppController::UpdateActivity()
     auto const activity = std::array {
         pluginsLoading(), _odbcRefreshing, _connecting, backupRequirementPending(), _historyRefreshesInFlight > 0,
     };
-    if (activity == _announcedActivity)
-        return;
-    _announcedActivity = activity;
-    emit activityChanged();
+    if (activity != _announcedActivity)
+    {
+        _announcedActivity = activity;
+        emit activityChanged();
+    }
+    // A profile file change seen while busy applies once the controller is idle.
+    if (!_deferredProfileFile.isEmpty() && !_deferredProfileFileQueued && !ProfileReloadBlocked())
+    {
+        _deferredProfileFileQueued = true;
+        QMetaObject::invokeMethod(this, &AppController::ApplyDeferredProfileFileChange, Qt::QueuedConnection);
+    }
 }
 
 void AppController::ApplySnapshot(MigrationSnapshot snapshot)
 {
+    _migrationsChangedThrottle->stop();
     _migrations.ReplaceRows(std::move(snapshot.migrations));
     _releases.ReplaceRows(std::move(snapshot.releases));
     _preMigrateStepCount = snapshot.preMigrateStepCount;
@@ -1877,6 +1951,7 @@ void AppController::Log(LogLevel level, QString line)
         QMetaObject::invokeMethod(this, [this, level, line = std::move(line)] { Log(level, line); }, Qt::QueuedConnection);
         return;
     }
+    _logLines.Append(line, level);
     if (_logSinkAttached)
     {
         emit logLine(std::move(line), level);

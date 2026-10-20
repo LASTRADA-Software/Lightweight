@@ -84,6 +84,16 @@ class WorkflowFixture final: public QObject
     /// @return The file's path.
     Q_INVOKABLE QString writeProfileFile(QVariantList const& profiles, QString const& defaultProfile);
 
+    /// Reads one field of a profile from a profile file, as the application parses it.
+    /// @param file The profile file.
+    /// @param profile The profile's name.
+    /// @param field `connectionString`, `pluginsDir`, `schema`, `dsn`, `uid`, `secretRef`, `password` or `backupDir`.
+    /// @return The field's text; undefined when the profile or the field does not exist.
+    Q_INVOKABLE QVariant queryProfileField(QString const& file, QString const& profile, QString const& field);
+
+    /// Writes the file @p path again with the content it has, so a file watcher sees a change.
+    Q_INVOKABLE void rewriteFile(QString const& path);
+
     /// Sets the environment variable @p name to @p value until `restoreEnv`.
     Q_INVOKABLE void setEnv(QString const& name, QString const& value);
 

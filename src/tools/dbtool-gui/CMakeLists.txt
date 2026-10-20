@@ -76,8 +76,14 @@ set(MIGRATIONS_GUI_CXX_SOURCES
     Models/BackupStatusListModel.cpp
     Models/BackupTableListModel.hpp
     Models/BackupTableListModel.cpp
+    Models/LogLineModel.hpp
+    Models/LogLineModel.cpp
     Models/MigrationListModel.hpp
     Models/MigrationListModel.cpp
+    Models/MigrationFilterModel.hpp
+    Models/MigrationFilterModel.cpp
+    Models/MigrationPlanModel.hpp
+    Models/MigrationPlanModel.cpp
     Models/MigrationSnapshot.hpp
     Models/MigrationSnapshot.cpp
     Models/OdbcDataSourceListModel.hpp

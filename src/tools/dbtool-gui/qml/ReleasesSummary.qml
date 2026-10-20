@@ -16,6 +16,7 @@ import Lightweight.Migrations
 
 Card {
     id: root
+    objectName: "releasesSummary"
     title: qsTr("Releases")
     glyph: "layers"
     meta: listView.count === 1 ? qsTr("1 declared") : qsTr("%1 declared").arg(listView.count)
@@ -33,42 +34,22 @@ Card {
     /// still fit.
     property int maxVisibleRows: 8
 
-    // Per-release { total, applied } tallies, keyed by release version ("" is
-    // the unreleased bucket). `ReleaseListModel` only carries an aggregate
-    // status, so the bar's fill fraction is derived from the migration rows.
-    // Roles on MigrationListModel — keep in sync with the enum in the header
-    // (same convention as `TimestampAutocomplete.qml`).
-    readonly property int _roleStatus: 259
-    readonly property int _roleRelease: 260
-    property var _stats: ({})
-
-    function _rebuildStats() {
-        const m = AppController.migrations;
-        const out = {};
-        for (let i = 0; i < m.rowCount(); ++i) {
-            const idx = m.index(i, 0);
-            const status = m.data(idx, _roleStatus);
-            // Unknown rows are applied-but-unregistered: they belong to no
-            // release's declared migration set, matching ReleaseListModel.
-            if (status === "unknown")
-                continue;
-            const version = m.data(idx, _roleRelease) || "";
-            const s = out[version] || (out[version] = { total: 0, applied: 0 });
-            s.total += 1;
-            if (status === "applied" || status === "checksum-mismatch")
-                s.applied += 1;
-        }
-        _stats = out;
-    }
-
-    Component.onCompleted: _rebuildStats()
+    // Per-release { total, applied } tallies ("" is the unreleased bucket).
+    // `ReleaseListModel` only carries an aggregate status, so the bar's fill
+    // fraction comes from `MigrationListModel`, which keeps the tallies
+    // current per row. Bumped whenever a tally changes, so the rows read it again.
+    property int _tallyRevision: 0
     Connections {
         target: AppController.migrations
-        function onModelReset() { root._rebuildStats() }
-        function onDataChanged() { root._rebuildStats() }
+        function onReleaseTallyChanged() { root._tallyRevision += 1 }
+        function onTallyRebuilt() { root._tallyRevision += 1 }
     }
 
-    readonly property var _unreleased: _stats[""] || ({ total: 0, applied: 0 })
+    function _tally(version) {
+        return root._tallyRevision >= 0 ? AppController.migrations.releaseTally(version) : ({});
+    }
+
+    readonly property var _unreleased: _tally("")
 
     /// One `dt-rel` row. `label` is the version text (empty → italic
     /// "unreleased"), `total`/`applied` drive the bar and `status` the pill.
@@ -148,9 +129,9 @@ Card {
 
             width: ListView.view ? ListView.view.width : 0
             label: version
-            total: root._stats[version] ? root._stats[version].total : migrationCount
-            applied: root._stats[version] ? root._stats[version].applied
-                                          : (status === "applied" ? migrationCount : 0)
+            readonly property var tally: root._tally(version)
+            total: tally.present ? tally.total : migrationCount
+            applied: tally.present ? tally.applied : (status === "applied" ? migrationCount : 0)
         }
     }
 }

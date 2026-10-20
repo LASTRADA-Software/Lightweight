@@ -14,6 +14,7 @@
 #include "LogLevel.hpp"
 #include "ManagedBackupController.hpp"
 #include "MigrationRunner.hpp"
+#include "Models/LogLineModel.hpp"
 #include "Models/MigrationListModel.hpp"
 #include "Models/OdbcDataSourceListModel.hpp"
 #include "Models/ProfileListModel.hpp"
@@ -23,6 +24,7 @@
 
 #include <Config/ConfigDiscovery.hpp>
 #include <Config/ProfileStore.hpp>
+#include <QtCore/QByteArray>
 #include <QtCore/QList>
 #include <QtCore/QObject>
 #include <QtCore/QPair>
@@ -44,6 +46,7 @@
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <expected>
 #include <filesystem>
 #include <functional>
 #include <memory>
@@ -73,6 +76,8 @@ class AppController: public QObject
     Q_PROPERTY(MigrationRunner* runner READ runner CONSTANT)
     Q_PROPERTY(BackupRunner* backupRunner READ backupRunner CONSTANT)
     Q_PROPERTY(DbtoolGui::ManagedBackupController* managedBackups READ managedBackups CONSTANT)
+    /// The log pane's lines, bounded to `LogLineModel::Capacity`.
+    Q_PROPERTY(DbtoolGui::LogLineModel* logLines READ logLines CONSTANT)
     /// Ad-hoc SQL execution helper exposed to the Expert view's SQL Query
     /// tab. Stays construction-empty until the user issues a query — picks
     /// up the global default connection string set by `connectToProfile`.
@@ -229,6 +234,19 @@ class AppController: public QObject
     Q_PROPERTY(bool backupRequirementPending READ backupRequirementPending NOTIFY activityChanged)
 
   public:
+    /// How a change of the profile file on disk was handled.
+    enum class ProfileFileReaction : int
+    {
+        /// The profiles were reloaded from the file.
+        Reloaded,
+        /// The file holds what the controller last loaded or wrote (an encrypted password, say), so the
+        /// store is current already; a repeated notification of one save ends here too.
+        IgnoredOwnWrite,
+        /// A connect, reload or run was in flight; the profiles reload once the controller is idle.
+        Deferred,
+    };
+    Q_ENUM(ProfileFileReaction)
+
     explicit AppController(QObject* parent = nullptr);
     ~AppController() override;
 
@@ -249,6 +267,11 @@ class AppController: public QObject
     [[nodiscard]] ReleaseListModel* releases() noexcept
     {
         return &_releases;
+    }
+    /// @return The log pane's lines.
+    [[nodiscard]] LogLineModel* logLines() noexcept
+    {
+        return &_logLines;
     }
     [[nodiscard]] MigrationRunner* runner() noexcept
     {
@@ -461,7 +484,7 @@ class AppController: public QObject
     /// to `MigrationRunner::applySelected` / `dryRunSelected`.
     Q_INVOKABLE QStringList selectedMigrationTimestamps() const;
 
-    /// Toggles the selected state of a row by timestamp. No-op for
+    /// Toggles the selected state of a row by timestamp, in O(1). No-op for
     /// already-applied / unknown rows (see `MigrationListModel::setData`).
     Q_INVOKABLE void setMigrationSelected(QString const& timestamp, bool selected);
 
@@ -615,6 +638,37 @@ class AppController: public QObject
     /// @param onExceeded Runs when a job still runs after @p limit; empty restores the default.
     void SetShutdownDrainLimit(std::chrono::milliseconds limit, std::function<void()> onExceeded);
 
+    /// Size and SHA-256 of a profile file's content.
+    struct ProfileFileFingerprint
+    {
+        /// The file.
+        QString path;
+        /// Its size in bytes.
+        qint64 size = 0;
+        /// The SHA-256 of its content.
+        QByteArray sha256;
+
+        bool operator==(ProfileFileFingerprint const&) const = default;
+    };
+
+    /// @return The fingerprint of the file @p path; empty when it cannot be read.
+    [[nodiscard]] static std::optional<ProfileFileFingerprint> FingerprintOf(QString const& path);
+
+    /// A profile store and the fingerprint of the very bytes it was parsed from.
+    struct LoadedProfileStore
+    {
+        /// The parsed store; empty when the file does not exist.
+        Lightweight::Config::ProfileStore store;
+        /// Empty when the file does not exist (the store is then empty).
+        std::optional<ProfileFileFingerprint> fingerprint;
+    };
+
+    /// Reads the profile file @p path once, then parses and fingerprints those bytes, so an edit made
+    /// in between can never be taken for content already loaded. A missing file is an empty store.
+    /// @param requestedPath The profile file; empty means `ProfileStore::DefaultPath()`, as for `LoadOrDefault`.
+    /// @return The store and its fingerprint, or the read or parse error.
+    [[nodiscard]] static std::expected<LoadedProfileStore, std::string> LoadProfileStore(QString const& requestedPath);
+
   signals:
     /// Unified log-pane feed: every startup banner, plugin discovery event,
     /// connection-state change, and migration progress line emerges here.
@@ -659,15 +713,27 @@ class AppController: public QObject
     /// @param statements The statements; empty for an unknown migration; one comment line when there is
     ///        nothing to preview (not connected, a run in flight, the connection changed meanwhile).
     void migrationSqlPreviewReady(QString timestamp, QStringList statements);
+    /// A change of the profile file on disk was handled.
+    /// @param reaction What was done about it.
+    void profileFileChangeHandled(DbtoolGui::AppController::ProfileFileReaction reaction);
 
   private slots:
-    /// File-system watcher callback — fires when the profile YAML changes
-    /// on disk. We reload only when a run is idle; otherwise we defer to
-    /// the next user-triggered reconnect to avoid swapping migrations out
-    /// from under an in-flight operation.
+    /// File-system watcher callback — fires when the profile YAML changes on disk. Changes are
+    /// debounced into one `HandleProfileFileChange`.
     void OnProfileFileChanged(QString const& path);
 
   private:
+    /// Handles the debounced change of the watched profile file: drops a change of a file that is no
+    /// longer the profile file, ignores content the controller loaded or wrote last, defers while a
+    /// connect, reload or run is in flight, and reloads the profiles otherwise.
+    void HandleProfileFileChange();
+
+    /// Reloads the profiles for a change deferred earlier, once nothing is in flight any more.
+    void ApplyDeferredProfileFileChange();
+
+    /// True while the profile store must not be swapped: a connect, reload, check or run is in flight.
+    [[nodiscard]] bool ProfileReloadBlocked() const;
+
     void ReportError(QString const& message);
 
     /// Second half of the constructor, queued so the window shows first: loads the discovered profile
@@ -748,7 +814,8 @@ class AppController: public QObject
     void LogError(QString line);
 
     /// Encrypts the plaintext password of `profile` in the loaded dbtool.yml after a
-    /// successful connection, logging the outcome; never fails the connect.
+    /// successful connection, logging the outcome; never fails the connect. The store is re-read in
+    /// place, and the file watcher's echo of the write is ignored.
     void EncryptPlaintextPassword(Lightweight::Config::Profile const& profile);
 
     /// Computes the effective plugin search directories for the current
@@ -800,6 +867,7 @@ class AppController: public QObject
 
     ProfileListModel _profiles;
     OdbcDataSourceListModel _odbcDataSources;
+    LogLineModel _logLines;
     MigrationListModel _migrations;
     ReleaseListModel _releases;
     MigrationRunner _runner;
@@ -928,6 +996,21 @@ class AppController: public QObject
     /// held by raw pointer to keep `<QtCore/QFileSystemWatcher>` out of this
     /// header. The instance is parented to `this` so Qt reclaims it.
     class QFileSystemWatcher* _fileWatcher = nullptr;
+    /// Collects the watcher's notifications of one save into one `HandleProfileFileChange`.
+    QTimer* _profileFileDebounce = nullptr;
+    /// The watched file the last notification named.
+    QString _changedProfileFile;
+    /// The profile file as this controller last loaded or wrote it; a change to that content is ignored.
+    std::optional<ProfileFileFingerprint> _knownFingerprint;
+    /// The profile file whose change waits for the controller to be idle; empty when none does.
+    QString _deferredProfileFile;
+    /// True while an `ApplyDeferredProfileFileChange` is queued.
+    bool _deferredProfileFileQueued = false;
+
+    /// How long the counters may lag a run's row status changes.
+    static constexpr std::chrono::milliseconds RowStatusNotifyInterval { 100 };
+    /// Emits `migrationsChanged` once for the row status changes of the last `RowStatusNotifyInterval`.
+    QTimer* _migrationsChangedThrottle = nullptr;
 
     /// The application's settings, written to disk by `_settingsSync` rather than once per setter.
     QSettings* _settings = nullptr;

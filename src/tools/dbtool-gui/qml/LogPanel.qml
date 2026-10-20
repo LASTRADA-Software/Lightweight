@@ -10,12 +10,9 @@
 // level's colour, and the message. Warnings and errors colour the message
 // too, so they can be spotted while scrolling.
 //
-// The body is a read-only `TextArea` (not a ListView) so the user can
-// rubber-band across lines and copy chunks of the log to the clipboard.
-// Per-level colour is preserved via rich-text `<span>` tags — we build the
-// HTML incrementally instead of rebinding `text` on every new line, which
-// keeps long-running migrations from re-layouting the whole document on
-// each append.
+// The body is a ListView over `AppController.logLines`, which keeps the
+// newest lines only, so a run of any length stays cheap: only the visible
+// lines have delegates. The whole log is copied through the model.
 //
 // `LogPanel` is body-only: the tab strip, copy / clear tools and the
 // collapse toggle live in `BottomPanel.qml`, which calls `copyLog()` /
@@ -33,11 +30,8 @@ Rectangle {
     bottomLeftRadius: Theme.r3 - 1
     bottomRightRadius: Theme.r3 - 1
 
-    // Accumulating HTML document. Kept out of `TextArea.text` directly so
-    // the viewport does not re-highlight existing text while the migration
-    // is still streaming — TextArea's `append()` is the targeted-insert
-    // API that preserves cursor/selection state.
-    property int lineCount: 0
+    /// Number of lines the log holds.
+    readonly property int lineCount: AppController.logLines.count
 
     // `level` is `DbtoolGui::LogLevel` from C++ — the QML side receives the
     // underlying integer (0=Info, 1=Warning, 2=Error). Keep this table in
@@ -54,78 +48,100 @@ Rectangle {
         return _levels[level] || _levels[0];
     }
 
-    function escapeHtml(s) {
-        return s.replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/ /g, "&nbsp;");
-    }
-
     function clearLog() {
-        logText.clear();
-        root.lineCount = 0;
+        AppController.logLines.clear();
     }
 
     function copyLog() {
-        logText.selectAll();
-        logText.copy();
-        logText.deselect();
+        AppController.logLines.copyToClipboard();
     }
 
-    // Drain any startup banner / plugin-discovery / connect lines that
-    // `AppController` buffered before this panel existed. Idempotent on the
-    // C++ side, so a panel re-instantiation does not replay the banner.
+    // Lines logged before this panel existed are in the model already; the
+    // sink also releases the buffered `logLine` signals for other listeners.
     Component.onCompleted: AppController.attachLogSink()
 
-    Connections {
-        target: AppController
-        function onLogLine(line, level) {
-            const lv = root.levelFor(level);
-            const time = Qt.formatTime(new Date(), "hh:mm:ss");
-            // Each append is its own paragraph; the line-height opens the
-            // log up to the design's ~1.6 rhythm (Qt's rich-text subset
-            // honours it as a proportional block line height).
-            logText.append("<p style=\"margin:0; line-height:160%;\">"
-                + "<span style=\"color:" + Theme.clrCodeMuted + ";\">" + time + "</span>"
-                + "&nbsp;&nbsp;<span style=\"color:" + lv[1] + ";\">" + root.escapeHtml(lv[0]) + "</span>"
-                + "&nbsp;&nbsp;<span style=\"color:" + lv[2] + ";\">" + root.escapeHtml(line) + "</span></p>");
-            root.lineCount += 1;
-        }
-    }
-
-    ScrollView {
-        id: logScroll
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
+    ListView {
+        id: logView
+        objectName: "logView"
+        anchors.fill: parent
         clip: true
+        topMargin: 8
+        bottomMargin: 8
+        boundsBehavior: Flickable.StopAtBounds
+        reuseItems: true
+        model: AppController.logLines
 
-        WheelScrollAmplifier { target: logScroll.contentItem }
+        /// Follows new lines while the user is at the tail; scrolling up stops that.
+        property bool pinnedToTail: true
+        property bool _following: false
 
-        TextArea {
-            id: logText
-            readOnly: true
-            selectByMouse: true
-            persistentSelection: true
-            wrapMode: TextEdit.NoWrap
-            textFormat: TextEdit.RichText
+        // Lines added below leave contentY alone, so only the user's scrolling moves it.
+        onContentYChanged: {
+            if (!_following)
+                pinnedToTail = contentY + height >= originY + contentHeight - 24;
+        }
+        onCountChanged: {
+            if (!pinnedToTail)
+                return;
+            _following = true;
+            positionViewAtEnd();
+            _following = false;
+        }
+
+        WheelScrollAmplifier { target: logView }
+        ScrollBar.vertical: ScrollBar {}
+
+        // Lines the log no longer holds, so the top of the list does not pass for the start.
+        header: Label {
+            objectName: "logDroppedLines"
+            x: 14
+            width: logView.width - 28
+            height: visible ? implicitHeight + 6 : 0
+            visible: AppController.logLines.droppedCount > 0
+            text: qsTr("… %1 earlier lines dropped").arg(AppController.logLines.droppedCount)
+            textFormat: Text.PlainText
+            color: Theme.clrCodeMuted
             font: Theme.monoFont(Theme.sizeMono)
-            color: Theme.clrCodeText
-            selectionColor: Qt.rgba(Theme.clrPrimary.r, Theme.clrPrimary.g, Theme.clrPrimary.b, 0.55)
-            selectedTextColor: "#ffffff"
-            background: null
-            leftPadding: 14
-            rightPadding: 14
-            topPadding: 8
-            bottomPadding: 8
-            // Keep the view pinned to the tail as new lines arrive, but only
-            // when the user is already at the bottom — otherwise they are
-            // mid-copy or mid-scroll and auto-scrolling would yank the
-            // viewport out from under them.
-            onTextChanged: {
-                if (cursorPosition >= length - 1)
-                    cursorPosition = length;
+        }
+
+        // Long lines wrap, so nothing is cut off at the right edge.
+        delegate: Item {
+            id: lineRow
+            required property string time
+            required property int level
+            required property string text
+            readonly property var levelStyle: root.levelFor(level)
+
+            width: ListView.view.width
+            // The design's ~1.6 line rhythm: the spacing of one line goes below the (wrapped) message.
+            height: message.implicitHeight + Math.ceil(timeLabel.implicitHeight * 0.6)
+
+            Label {
+                id: timeLabel
+                x: 14
+                text: lineRow.time + "  "
+                textFormat: Text.PlainText
+                color: Theme.clrCodeMuted
+                font: Theme.monoFont(Theme.sizeMono)
+            }
+            Label {
+                id: levelLabel
+                anchors.left: timeLabel.right
+                text: lineRow.levelStyle[0] + "  "
+                textFormat: Text.PlainText
+                color: lineRow.levelStyle[1]
+                font: Theme.monoFont(Theme.sizeMono)
+            }
+            Label {
+                id: message
+                anchors.left: levelLabel.right
+                anchors.right: parent.right
+                anchors.rightMargin: 14
+                text: lineRow.text
+                textFormat: Text.PlainText
+                wrapMode: Text.WrapAnywhere
+                color: lineRow.levelStyle[2]
+                font: Theme.monoFont(Theme.sizeMono)
             }
         }
     }

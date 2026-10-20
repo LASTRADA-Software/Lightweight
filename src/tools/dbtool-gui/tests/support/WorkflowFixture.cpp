@@ -23,6 +23,7 @@
 #include <type_traits>
 #include <utility>
 
+#include <Config/ProfileStore.hpp>
 #include <PluginIngestion.hpp>
 #include <QtConcurrent/QtConcurrentRun>
 #include <QtCore/QCoreApplication>
@@ -271,6 +272,56 @@ QString WorkflowFixture::writeProfileFile(QVariantList const& profiles, QString 
         }
     }
     return path;
+}
+
+QVariant WorkflowFixture::queryProfileField(QString const& file, QString const& profile, QString const& field)
+{
+    auto const store = Lightweight::Config::ProfileStore::LoadOrDefault(ToPath(file));
+    if (!store)
+    {
+        ThrowError(QStringLiteral("cannot read %1: %2").arg(file, QString::fromStdString(store.error())));
+        return {};
+    }
+    auto const* const found = store->Find(profile.toStdString());
+    if (found == nullptr)
+        return {};
+    auto const text = [](std::string const& value) {
+        return QVariant { QString::fromStdString(value) };
+    };
+    auto const path = [](std::filesystem::path const& value) {
+        return QVariant { QString::fromStdU16String(value.u16string()) };
+    };
+    if (field == QStringLiteral("connectionString"))
+        return text(found->connectionString);
+    if (field == QStringLiteral("pluginsDir"))
+        return path(found->pluginsDir);
+    if (field == QStringLiteral("schema"))
+        return text(found->schema);
+    if (field == QStringLiteral("dsn"))
+        return text(found->dsn);
+    if (field == QStringLiteral("uid"))
+        return text(found->uid);
+    if (field == QStringLiteral("secretRef"))
+        return text(found->secretRef);
+    if (field == QStringLiteral("password"))
+        return text(found->password);
+    if (field == QStringLiteral("backupDir"))
+        return path(found->backupDir);
+    return {};
+}
+
+void WorkflowFixture::rewriteFile(QString const& path)
+{
+    auto file = QFile { path };
+    if (!file.open(QIODevice::ReadWrite))
+    {
+        ThrowError(QStringLiteral("cannot open %1: %2").arg(path, file.errorString()));
+        return;
+    }
+    auto const content = file.readAll();
+    file.seek(0);
+    if (file.write(content) != content.size())
+        ThrowError(QStringLiteral("cannot write %1: %2").arg(path, file.errorString()));
 }
 
 void WorkflowFixture::setEnv(QString const& name, QString const& value)
