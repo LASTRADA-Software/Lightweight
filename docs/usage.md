@@ -172,6 +172,25 @@ mind:
 - **PostgreSQL and SQLite drivers have no such keywords.** There, Lightweight's connect retry and the
   connection pool's `ValidateOnBorrow` (which replaces a dead pooled connection) are what is available.
 
+## Running on a connection handle another component owns
+
+When another data layer already holds a connected ODBC handle, `SqlConnection::Borrow` runs
+Lightweight statements on it, in the same session and therefore inside any transaction the owner has
+open:
+
+```cpp
+auto connection = SqlConnection::Borrow(otherLayerHandle);
+auto stmt = SqlStatement { connection };
+(void) stmt.ExecuteDirect("UPDATE \"Orders\" SET \"Shipped\" = 1");
+```
+
+A borrowed connection detects the server type like a connected one, but applies no session setting
+(string-truncation mode, SQLite settings, post-connected hook); `StringTruncationMode()` reports the
+mode the session already has. Closing or destroying it leaves the handle connected, and `Connect()` on
+it fails. `HandleOwnership()` tells a borrowed connection (`SqlHandleOwnership::Borrowed`) from one
+that owns its handles. The handle must stay valid until the borrowed connection is closed or
+destroyed, since both free the statement handles cached on it.
+
 ## Raw SQL Queries
 
 To directly make a call to the database use `ExecuteDirect` function, for example

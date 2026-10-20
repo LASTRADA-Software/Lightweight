@@ -95,6 +95,7 @@ set(SOURCE_FILES
     SqlPreparedStatementCacheTests.cpp
     SqlStatisticsTests.cpp
     MigrationLockTests.cpp
+    SqlConnectionBorrowTests.cpp
     SqlConnectionDbTests.cpp
     SqlBinaryAndTextDbTests.cpp
     SqlConnectInfoEdgeTests.cpp

@@ -301,6 +301,40 @@ SqlConnection::SqlConnection(std::optional<SqlConnectionString> connectInfo, Sql
     }
 }
 
+SqlConnection::SqlConnection(BorrowTag /*tag*/, SQLHDBC connectedHandle):
+    m_hDbc { connectedHandle },
+    m_connectionId { gNextConnectionId++ },
+    m_handleOwnership { SqlHandleOwnership::Borrowed },
+    m_data { new Data() }
+{
+    m_data->sqliteSettings = DefaultSqliteSettings();
+    m_data->connectRetrySettings = DefaultConnectRetrySettings();
+    try
+    {
+        DetectServer();
+        ReadStringTruncationMode();
+    }
+    catch (...)
+    {
+        // Throwing from the ctor body skips the destructor; the handle stays with its owner.
+        delete m_data;
+        m_data = nullptr;
+        throw;
+    }
+}
+
+SqlConnection SqlConnection::Borrow(SQLHDBC connectedHandle)
+{
+    if (connectedHandle == SQL_NULL_HDBC)
+        throw std::invalid_argument("SqlConnection::Borrow: the connection handle must not be null");
+    return SqlConnection { BorrowTag {}, connectedHandle };
+}
+
+SqlHandleOwnership SqlConnection::HandleOwnership() const noexcept
+{
+    return m_handleOwnership;
+}
+
 SqlConnection::SqlConnection(SqlConnection&& other) noexcept:
     m_hEnv { other.m_hEnv },
     m_hDbc { other.m_hDbc },
@@ -310,10 +344,12 @@ SqlConnection::SqlConnection(SqlConnection&& other) noexcept:
     m_driverName { std::move(other.m_driverName) },
     m_acceptsWideQueryText { other.m_acceptsWideQueryText },
     m_stringTruncationMode { other.m_stringTruncationMode },
+    m_handleOwnership { other.m_handleOwnership },
     m_data { other.m_data }
 {
     other.m_hEnv = {};
     other.m_hDbc = {};
+    other.m_handleOwnership = SqlHandleOwnership::Owned;
     other.m_data = nullptr;
 }
 
@@ -333,10 +369,12 @@ SqlConnection& SqlConnection::operator=(SqlConnection&& other) noexcept
     m_driverName = std::move(other.m_driverName);
     m_acceptsWideQueryText = other.m_acceptsWideQueryText;
     m_stringTruncationMode = other.m_stringTruncationMode;
+    m_handleOwnership = other.m_handleOwnership;
     m_data = other.m_data;
 
     other.m_hEnv = {};
     other.m_hDbc = {};
+    other.m_handleOwnership = SqlHandleOwnership::Owned;
     other.m_data = nullptr;
 
     return *this;
@@ -536,6 +574,19 @@ void SqlConnection::ApplyStringTruncationMode()
                                                                                                  : "SET ANSI_WARNINGS ON");
 }
 
+void SqlConnection::ReadStringTruncationMode()
+{
+    // Only Microsoft SQL Server keeps the mode in the session; elsewhere the default stays as it is.
+    if (m_serverType != SqlServerType::MICROSOFT_SQL)
+        return;
+
+    constexpr auto AnsiWarningsOption = 8; // The ANSI_WARNINGS bit of @@OPTIONS.
+    SqlStatement stmt(*this);
+    auto const ansiWarnings = stmt.ExecuteDirectScalar<int>(std::format("SELECT @@OPTIONS & {}", AnsiWarningsOption));
+    m_stringTruncationMode =
+        ansiWarnings.value_or(0) != 0 ? SqlStringTruncationMode::Error : SqlStringTruncationMode::Truncate;
+}
+
 SqliteConnectionSettings SqlConnection::DefaultSqliteSettings()
 {
     auto const lock = std::scoped_lock { gDefaultSqliteSettingsMutex };
@@ -611,6 +662,8 @@ std::expected<void, SqlErrorInfo> SqlConnection::ApplySqliteSettings()
 bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
 {
     ZoneScopedN("SqlConnection::Connect(DataSource)");
+    if (m_handleOwnership == SqlHandleOwnership::Borrowed)
+        return false; // The owner of the handle decides what it is connected to.
     EnsureHandlesAllocated();
     return ConnectWithRetry([this, &info] { return ConnectOnce(info); });
 }
@@ -759,6 +812,8 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionDataSo
 bool SqlConnection::Connect(SqlConnectionString sqlConnectionString) noexcept
 {
     ZoneScopedN("SqlConnection::Connect(ConnectionString)");
+    if (m_handleOwnership == SqlHandleOwnership::Borrowed)
+        return false; // The owner of the handle decides what it is connected to.
     EnsureHandlesAllocated();
     m_data->connectionString = std::move(sqlConnectionString);
     return ConnectWithRetry([this] { return ConnectOnce(); });
@@ -882,7 +937,7 @@ bool SqlConnection::ConnectWithRetry(Attempt const& attempt) noexcept
     }
 }
 
-bool SqlConnection::PostConnect()
+void SqlConnection::DetectServer()
 {
     auto const mappings = std::array {
         std::pair { "Microsoft SQL Server"sv, SqlServerType::MICROSOFT_SQL },
@@ -906,16 +961,22 @@ bool SqlConnection::PostConnect()
     // Get the driver name from the connection handle.
     m_driverName = GetInfoStringW(m_hDbc, SQL_DRIVER_NAME);
 
-    // Decided before the first statement below is issued, so every statement takes the right entry point.
+    // Decided before the first statement is issued, so every statement takes the right entry point.
     m_acceptsWideQueryText = DriverAcceptsWideQueryText(m_hDbc);
-    if (m_acceptsWideQueryText)
-        detail::UnregisterAnsiOnlyHandle(m_hDbc);
-    else
-        detail::RegisterAnsiOnlyHandle(m_hDbc, m_hDbc);
 
     // The server type is only known now, so this is the earliest point at which the backend capability
     // gate on the prepared-statement cache can be evaluated.
     ApplyPreparedStatementCacheCapacity();
+}
+
+bool SqlConnection::PostConnect()
+{
+    DetectServer();
+
+    if (m_acceptsWideQueryText)
+        detail::UnregisterAnsiOnlyHandle(m_hDbc);
+    else
+        detail::RegisterAnsiOnlyHandle(m_hDbc, m_hDbc);
 
     // The server type is likewise required before the truncation mode can be applied, since it decides
     // whether there is a session setting to issue at all.
@@ -952,6 +1013,15 @@ void SqlConnection::Close() noexcept
 {
     if (!m_hDbc)
         return;
+
+    if (m_handleOwnership == SqlHandleOwnership::Borrowed)
+    {
+        // Statement handles are children of the DBC handle, which outlives this connection: free ours.
+        if (m_data)
+            m_data->preparedStatementCache.Clear();
+        m_hDbc = {};
+        return;
+    }
 
     SqlLogger::GetLogger().OnConnectionClosed(*this);
     LIGHTWEIGHT_STATS_CONNECTION_CLOSED();
