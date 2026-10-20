@@ -50,7 +50,7 @@ Dialog {
             return
         fromConnection = true
         _kind = _draft.kind
-        reset(_draft.suggestedName)
+        _resetFields(_draft.suggestedName)
         storePassword.checked = _draft.hasPassword
         open()
     }
@@ -60,11 +60,11 @@ Dialog {
         _draft = ({})
         fromConnection = false
         _kind = "dsn"
-        reset("")
+        _resetFields("")
         open()
     }
 
-    function reset(suggestedName) {
+    function _resetFields(suggestedName) {
         nameField.text = suggestedName
         dsnField.text = ""
         connectionStringField.text = ""
@@ -252,6 +252,7 @@ Dialog {
                 spacing: 12
 
                 SegmentedControl {
+                    objectName: "profileKindControl"
                     Layout.fillWidth: true
                     fill: true
                     model: [ { value: "dsn", label: qsTr("ODBC data source") },

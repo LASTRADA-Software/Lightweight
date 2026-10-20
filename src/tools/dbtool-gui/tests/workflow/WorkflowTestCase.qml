@@ -4,11 +4,13 @@
 // by objectName, and runs a UI-thread watchdog from the window's first frame on. `cleanup()` runs
 // the file's `cleanupWorkflow()`, then releases the held migration lock, removes the user DSNs,
 // restores the environment, and reports the longest stall, failing the test in Enforce mode when
-// it exceeds the budget. Test files override `cleanupWorkflow()`, never `cleanup()`. The report names
-// the step of the longest stall: `openMain`, `clickControl` and `step()` name steps, and fixture work
-// the test does while the window is open runs through `outsideWatchdog`, so it does not count.
+// it exceeds the budget, or when a QML file logged a warning. Test files override `cleanupWorkflow()`,
+// never `cleanup()`. The report names the step of the longest stall: `openMain`, `clickControl` and
+// `step()` name steps, and fixture work the test does while the window is open runs through
+// `outsideWatchdog`, so it does not count.
 
 import QtQuick
+import QtQuick.Controls
 import QtTest
 import Lightweight.Migrations
 import DbtoolGuiWorkflow
@@ -35,6 +37,11 @@ TestCase {
         id: firstFrameSpy
         target: testCase.watchdog
         signalName: "firstFrame"
+    }
+
+    /// Fails when a QML file logged a warning while the module loaded, such as a type that shadows a signal of its base.
+    function initTestCase() {
+        compare(WorkflowFixture.qmlWarnings(), [], "QML files must load without warnings")
     }
 
     /// Creates the Main window, arms the watchdog on its first frame and waits for that frame.
@@ -66,7 +73,7 @@ TestCase {
         verify(main !== null, "openMain() must run first")
         const matches = []
         _collect(main.contentItem, objectName, matches)
-        _collect(main.overlay, objectName, matches)
+        _collect(main.contentItem.Overlay.overlay, objectName, matches)
         const visible = matches.filter(item => item.visible)
         const found = visible.length > 0 ? visible[0] : (matches.length > 0 ? matches[0] : findChild(main, objectName))
         verify(found !== null && found !== undefined, `no control named "${objectName}"`)
@@ -104,6 +111,34 @@ TestCase {
                `"${objectName}" must be inside the window to be clicked`)
         mouseClick(control)
         return control
+    }
+
+    /// Replaces the text of the field named `objectName` by typing @p text key by key, as a user does.
+    function typeText(objectName, text) {
+        const field = clickControl(objectName)
+        keyClick(Qt.Key_A, Qt.ControlModifier)
+        keyClick(Qt.Key_Delete)
+        for (const character of text)
+            keyClick(character)
+        return field
+    }
+
+    /// Like `typeText`, then presses Enter, which fires the field's `editingFinished` and `accepted`.
+    function typeInto(objectName, text) {
+        const field = typeText(objectName, text)
+        keyClick(Qt.Key_Return)
+        return field
+    }
+
+    /// Picks row @p row of the ComboBox named `objectName` with the arrow keys, which emits its `activated`.
+    function pickWithKeys(objectName, row) {
+        const combo = findRequired(objectName)
+        combo.forceActiveFocus()
+        verify(combo.activeFocus, `"${objectName}" must take the focus`)
+        step(`pick row ${row} of ${objectName}`)
+        for (let guard = 0; combo.currentIndex !== row && guard < 100; ++guard)
+            keyClick(combo.currentIndex < row ? Qt.Key_Down : Qt.Key_Up)
+        compare(combo.currentIndex, row)
     }
 
     /// Names what the test does from now on; the watchdog report names the step of the longest stall.
@@ -148,6 +183,7 @@ TestCase {
             WorkflowFixture.removeUserDsns()
             WorkflowFixture.restoreEnv()
             finishWatchdog()
+            compare(WorkflowFixture.qmlWarnings(), [], "the workflow must log no QML warning")
         }
     }
 }

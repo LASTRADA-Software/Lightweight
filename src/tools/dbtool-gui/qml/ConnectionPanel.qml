@@ -335,24 +335,6 @@ Column {
             }
         }
 
-        // A DSN or connection-string connection is not in dbtool.yml, so nothing
-        // else can back it up per profile: offer to keep it once it is open.
-        LsButton {
-            objectName: "saveAsProfileButton"
-            anchors.right: connectButton.left
-            anchors.rightMargin: 6
-            anchors.verticalCenter: parent.verticalCenter
-            variant: "ghost"
-            glyph: "plus"
-            text: qsTr("Save as profile…")
-            visible: AppController.connected && AppController.connectedMode !== "profile"
-            ToolTip.visible: hovered
-            ToolTip.delay: 500
-            ToolTip.timeout: 10000
-            ToolTip.text: qsTr("Keep this connection in dbtool.yml so it appears in the profile list.")
-            onClicked: saveProfileDialog.openForConnection()
-        }
-
         LsButton {
             id: connectButton
             objectName: "connectButton"
@@ -377,6 +359,22 @@ Column {
                 : qsTr("Open an ODBC session to the target above.")
             onClicked: AppController.connectToProfile()
         }
+    }
+
+    // A DSN or connection-string connection is not in dbtool.yml, so nothing
+    // else can back it up per profile: offer to keep it once it is open.
+    LsButton {
+        objectName: "saveAsProfileButton"
+        width: parent.width
+        variant: "ghost"
+        glyph: "plus"
+        text: qsTr("Save as profile…")
+        visible: AppController.connected && AppController.connectedMode !== "profile"
+        ToolTip.visible: hovered
+        ToolTip.delay: 500
+        ToolTip.timeout: 10000
+        ToolTip.text: qsTr("Keep this connection in dbtool.yml so it appears in the profile list.")
+        onClicked: saveProfileDialog.openForConnection()
     }
 
     // Centred in the window, not in this panel (which may itself sit in a dialog).

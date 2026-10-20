@@ -4,6 +4,7 @@
 #include "../../LogLevel.hpp"
 #include "../../MigrationRunner.hpp"
 #include "../SqliteDriver.hpp"
+#include "../../StderrMessageHandler.hpp"
 #include "WorkflowFixture.hpp"
 
 #include <Lightweight/SqlStatement.hpp>
@@ -15,6 +16,7 @@
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <mutex>
 #include <optional>
 #include <ranges>
 #include <string>
@@ -55,6 +57,28 @@
 
 namespace DbtoolGui::Tests
 {
+
+namespace
+{
+    std::mutex RecordedQmlWarningsMutex;
+    QStringList RecordedQmlWarnings;
+} // namespace
+
+void RecordQmlWarningsAndWriteToStderr(QtMsgType const type, QMessageLogContext const& context, QString const& message)
+{
+    if (type == QtWarningMsg && message.contains(QStringLiteral(".qml")))
+    {
+        std::scoped_lock const lock { RecordedQmlWarningsMutex };
+        RecordedQmlWarnings.push_back(message);
+    }
+    WriteQtMessageToStderr(type, context, message);
+}
+
+QStringList WorkflowFixture::qmlWarnings() const
+{
+    std::scoped_lock const lock { RecordedQmlWarningsMutex };
+    return RecordedQmlWarnings;
+}
 
 namespace
 {

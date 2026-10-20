@@ -49,6 +49,7 @@ Rectangle {
     component RailItem: Rectangle {
         id: item
         required property var entry
+        objectName: "navItem_" + entry.page
         readonly property bool active: entry.page === root.currentPage
         readonly property int badge: root.badges[entry.page] !== undefined ? root.badges[entry.page] : (entry.badge || 0)
 

@@ -6,6 +6,7 @@
 
 #include "../../StderrMessageHandler.hpp"
 #include "../TestIsolation.hpp"
+#include "../support/WorkflowFixture.hpp"
 #include "../support/WorkflowSetup.hpp"
 
 #include <cstdio>
@@ -31,7 +32,7 @@
 int main(int argc, char** argv)
 {
     Lightweight::Tools::DisableErrorDialogs();
-    qInstallMessageHandler(DbtoolGui::WriteQtMessageToStderr);
+    qInstallMessageHandler(DbtoolGui::Tests::RecordQmlWarningsAndWriteToStderr);
     QTEST_SET_MAIN_SOURCE_PATH
     QQuickStyle::setStyle(QStringLiteral("Fusion"));
 #ifdef _WIN32

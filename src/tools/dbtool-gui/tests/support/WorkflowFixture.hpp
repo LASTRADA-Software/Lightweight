@@ -18,6 +18,7 @@
 #include <string>
 
 #include <QtCore/QObject>
+#include <QtCore/QtLogging>
 #include <QtCore/QString>
 #include <QtCore/QStringList>
 #include <QtCore/QTemporaryDir>
@@ -32,6 +33,10 @@ class AppController;
 
 namespace DbtoolGui::Tests
 {
+
+/// Qt message handler of the workflow tests: writes every message like `WriteQtMessageToStderr` and
+/// remembers the warnings that name a `.qml` file, which `WorkflowFixture::qmlWarnings` returns.
+void RecordQmlWarningsAndWriteToStderr(QtMsgType type, QMessageLogContext const& context, QString const& message);
 
 /// Test-side helper exposed to QML. Everything it creates lives under one temporary directory and
 /// is removed, together with the SQL Server databases, user DSNs, environment changes and the held
@@ -123,6 +128,10 @@ class WorkflowFixture final: public QObject
     /// the event loop running meanwhile.
     /// @return Its exit code; -1 when it could not start, crashed or ran over two minutes.
     Q_INVOKABLE int runDbtool(QStringList const& arguments, QVariantMap const& environment);
+
+    /// @return The warnings Qt logged that name a `.qml` file, from the process start (a QML type
+    ///         that fails to load cleanly logs one while the module loads).
+    Q_INVOKABLE QStringList qmlWarnings() const;
 
     /// @return The clipboard's text.
     Q_INVOKABLE QString clipboardText() const;
