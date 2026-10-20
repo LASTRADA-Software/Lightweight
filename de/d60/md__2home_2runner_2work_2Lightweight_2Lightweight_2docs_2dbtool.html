@@ -636,14 +636,14 @@ Creating a Migration Plugin</h2>
 <div class="line">        .RequiredColumn(<span class="stringliteral">&quot;email&quot;</span>, Varchar(255))</div>
 <div class="line">        .Timestamps();</div>
 <div class="line">}</div>
-<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01592">SqlMigration.hpp:1592</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01606">SqlMigration.hpp:1606</a></div></div>
 <div class="ttc" id="agroup__SqlMigration_html_gaef227c1f2230d962d19572a234ceaa73"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN()</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01192">SqlMigration.hpp:1192</a></div></div>
 </div><!-- fragment --><h2><a class="anchor" id="loading-plugins"></a>
 Loading Plugins</h2>
 <div class="fragment"><div class="line">dbtool migrate --plugins-dir ./build/plugins</div>
 </div><!-- fragment --><h2><a class="anchor" id="optional-post-init-hook"></a>
 Optional Post-Init Hook</h2>
-<p>A plugin may export an optional <code>LightweightMigrationPluginPostInit</code> symbol that <code>dbtool</code> calls <b>once per invocation</b>, after <code>schema_migrations</code> has been created and a live connection is available. Use this for one-shot bridging work that needs both a <code>SqlConnection</code> and the merged <code>MigrationManager</code> — for example, importing a legacy version-tracking table into <code>schema_migrations</code>.</p>
+<p>A plugin may export an optional <code>LightweightMigrationPluginPostInitReported</code> symbol that <code>dbtool</code> calls <b>once per invocation</b>, after <code>schema_migrations</code> has been created and a live connection is available. Use this for one-shot bridging work that needs both a <code>SqlConnection</code> and the merged <code>MigrationManager</code> — for example, importing a legacy version-tracking table into <code>schema_migrations</code>.</p>
 <div class="fragment"><div class="line"><span class="preprocessor">#include &lt;Lightweight/SqlMigration.hpp&gt;</span></div>
 <div class="line"> </div>
 <div class="line"><a class="code hl_define" href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN</a>()</div>
@@ -655,8 +655,8 @@ Optional Post-Init Hook</h2>
 <div class="line">    <span class="comment">// to do.</span></div>
 <div class="line">    MyPlugin::BridgeLegacyState(manager, connection);</div>
 <div class="line">}</div>
-<div class="ttc" id="agroup__SqlMigration_html_ga8292c8bc098a73ae82344c31693bb4ff"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga8292c8bc098a73ae82344c31693bb4ff">LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connArg, mgrArg)</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01215">SqlMigration.hpp:1215</a></div></div>
-</div><!-- fragment --><p>The hook is <b>optional</b> — plugins that don't export the symbol behave exactly as before. Per-plugin exceptions are logged to stderr but do not abort <code>dbtool</code>.</p>
+<div class="ttc" id="agroup__SqlMigration_html_ga8292c8bc098a73ae82344c31693bb4ff"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga8292c8bc098a73ae82344c31693bb4ff">LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connArg, mgrArg)</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01251">SqlMigration.hpp:1251</a></div></div>
+</div><!-- fragment --><p>The hook is <b>optional</b> — plugins that don't export the symbol behave exactly as before. Per-plugin exceptions are logged to stderr but do not abort <code>dbtool</code>: the macro's entry point catches them, so none crosses the plugin boundary. A plugin built against an older Lightweight exports only <code>LightweightMigrationPluginPostInit</code>, whose signature differs; <code>dbtool</code> does not call it and logs a warning to rebuild the plugin.</p>
 <p>Post-init runs before every command, read-only ones included, and before the migration lock is taken and any migration runs. It is therefore the wrong place for work that needs the migrated schema; use the post-migrate hook for that.</p>
 <h2><a class="anchor" id="optional-post-migrate-hook"></a>
 Optional Post-Migrate Hook</h2>
@@ -671,7 +671,7 @@ Optional Post-Migrate Hook</h2>
 <div class="line">    <span class="comment">// successful migrate, including runs where nothing was pending.</span></div>
 <div class="line">    MyPlugin::SeedReferenceData(connection);</div>
 <div class="line">}</div>
-<div class="ttc" id="agroup__SqlMigration_html_ga1035792e18e9c01e4d09f2ff9a19f7f6"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga1035792e18e9c01e4d09f2ff9a19f7f6">LIGHTWEIGHT_MIGRATION_PLUGIN_POSTMIGRATE</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN_POSTMIGRATE(connArg, mgrArg)</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01240">SqlMigration.hpp:1240</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_ga1035792e18e9c01e4d09f2ff9a19f7f6"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga1035792e18e9c01e4d09f2ff9a19f7f6">LIGHTWEIGHT_MIGRATION_PLUGIN_POSTMIGRATE</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN_POSTMIGRATE(connArg, mgrArg)</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01276">SqlMigration.hpp:1276</a></div></div>
 </div><!-- fragment --><p>The hook is <b>optional</b> — plugins that don't export the symbol behave exactly as before. Unlike post-init, a failure is fatal for the command: when the body throws, the error is reported on stderr (<code>Plugin post-migrate failed (&lt;plugin&gt;): &lt;message&gt;</code>) and <code>dbtool</code> exits non-zero. The migrations that ran before the hook stay applied; the remaining plugins' hooks still run. The macro exports a non-throwing entry point that catches the exception inside the plugin, so it never crosses the shared-library boundary.</p>
 <h2><a class="anchor" id="optional-pre-migrate-steps"></a>
 Optional Pre-Migrate Steps</h2>
