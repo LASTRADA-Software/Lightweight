@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "../../CloseGuard.hpp"
 #include "UiWatchdog.hpp"
 #include "WorkflowFixture.hpp"
 
@@ -22,8 +23,10 @@ class WorkflowSetup final: public QObject
 
   public Q_SLOTS:
     /// Called by Qt Quick Test for each engine it creates.
-    void qmlEngineAvailable(QQmlEngine* /*engine*/)
+    void qmlEngineAvailable(QQmlEngine* engine)
     {
+        // Qt.quit() takes the application's guard against closing during a run.
+        InstallQuitGuard(*engine);
         if (_registered)
             return;
         _registered = true;

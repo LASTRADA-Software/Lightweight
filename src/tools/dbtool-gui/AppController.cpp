@@ -2,6 +2,7 @@
 
 #include "AppController.hpp"
 #include "BackupRequirementSupport.hpp"
+#include "CloseGuard.hpp"
 #include "ControllerJobs.hpp"
 #include "ExceptionMessage.hpp"
 #include "Models/MigrationSnapshot.hpp"
@@ -11,7 +12,6 @@
 #include <Lightweight/SqlConnection.hpp>
 #include <Lightweight/SqlError.hpp>
 #include <Lightweight/SqlMigration.hpp>
-#include <Lightweight/SqlServerType.hpp>
 
 #include <BackupRecording.hpp>
 #include <Config/BackupOutput.hpp>
@@ -51,6 +51,7 @@ struct AppController::PluginsBundle
 
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>
 #include <exception>
 #include <filesystem>
 #include <format>
@@ -59,6 +60,7 @@ struct AppController::PluginsBundle
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDateTime>
+#include <QtCore/QDeadlineTimer>
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
 #include <QtCore/QFileInfo>
@@ -71,6 +73,12 @@ struct AppController::PluginsBundle
 #include <QtCore/QUrl>
 #include <QtCore/QVariantMap>
 #include <QtGui/QDesktopServices>
+#include <QtGui/QGuiApplication>
+#include <QtGui/QWindow>
+
+#if defined(_WIN32)
+    #include <windows.h>
+#endif
 
 namespace DbtoolGui
 {
@@ -120,17 +128,6 @@ namespace
         cs += key;
         cs += '=';
         cs += Lightweight::FormatConnectionStringValue(value);
-    }
-
-    /// Maps the internal `SqlServerType` enum to the human-readable display
-    /// string already used by the project's `std::formatter` specialization
-    /// (which `dbtool` and the docs also use). Keeps the GUI's "Connected:"
-    /// log line consistent with every other surface that names a server.
-    /// @param serverType Server flavour detected by `SqlConnection`.
-    /// @return UTF-16 display string, e.g. `"PostgreSQL"` or `"SQLite"`.
-    [[nodiscard]] QString ServerTypeDisplayName(Lightweight::SqlServerType serverType)
-    {
-        return QString::fromStdString(std::format("{}", serverType));
     }
 
     /// A profile's connection string with its password folded in.
@@ -253,6 +250,10 @@ AppController::AppController(QObject* parent):
     _managedBackups.setBusyProbe([this] {
         return _runner.phase() != MigrationRunner::Phase::Idle || _backupRunner.phase() != BackupRunner::Phase::Idle;
     });
+    // Closing is refused while any of the three runners is in flight.
+    QObject::connect(&_runner, &MigrationRunner::phaseChanged, this, &AppController::closeBlockedChanged);
+    QObject::connect(&_backupRunner, &BackupRunner::phaseChanged, this, &AppController::closeBlockedChanged);
+    QObject::connect(&_managedBackups, &ManagedBackupController::phaseChanged, this, &AppController::closeBlockedChanged);
     // A managed backup or restore that connected with a plaintext password has proven it, exactly like
     // the interactive connect: store it encrypted right away. Only the password the run used is encrypted, so an
     // edit made to the file while the run was in flight is never overwritten with the older value.
@@ -261,9 +262,12 @@ AppController::AppController(QObject* parent):
         if (current && current->password == verified.password)
             EncryptPlaintextPassword(verified);
     });
+    // A plugin load or a connect replaces the plugins or the connection a run would use. Checks and
+    // re-reads only queue ahead of the run on the same worker, so a run may start behind them, e.g. right
+    // after a "back up first" backup, whose requirement check is still pending.
     _runner.setBusyProbe([this] {
         return _managedBackups.phase() != ManagedBackupController::Phase::Idle
-               || _backupRunner.phase() != BackupRunner::Phase::Idle;
+               || _backupRunner.phase() != BackupRunner::Phase::Idle || pluginsLoading() || _connecting;
     });
     _backupRunner.setBusyProbe([this] {
         return _managedBackups.phase() != ManagedBackupController::Phase::Idle
@@ -304,8 +308,14 @@ AppController::AppController(QObject* parent):
     // A recorded Back up or Restore can satisfy the backup requirement; one that could not be recorded says why.
     QObject::connect(&_backupRunner, &BackupRunner::finished, this, [this](bool /*ok*/, QString const& /*summary*/) {
         _lastRecordError = _backupRunner.lastResult().value(QStringLiteral("recordError")).toString();
-        RefreshBackupRequirement();
+        RequestBackupRequirementCheck();
     });
+
+    _settings = new QSettings(this);
+    _settingsSync = new QTimer(this);
+    _settingsSync->setSingleShot(true);
+    _settingsSync->setInterval(std::chrono::milliseconds { 500 });
+    QObject::connect(_settingsSync, &QTimer::timeout, _settings, &QSettings::sync);
 
     _fileWatcher = new QFileSystemWatcher(this);
     QObject::connect(_fileWatcher, &QFileSystemWatcher::fileChanged, this, &AppController::OnProfileFileChanged);
@@ -314,7 +324,7 @@ AppController::AppController(QObject* parent):
     // a default profile when `_currentProfile` is empty, so feeding the
     // saved value here preserves the user's choice across restarts. Only
     // these reads and the discovery below run before the first frame.
-    QSettings settings;
+    auto& settings = *_settings;
     auto const savedMode = settings.value(kKeyMode).toString();
     if (savedMode == QStringLiteral("dsn") || savedMode == QStringLiteral("custom"))
         _connectionMode = savedMode;
@@ -415,10 +425,84 @@ void AppController::Shutdown()
     if (std::exchange(_shuttingDown, true))
         return;
     _pluginReloadFlushQueued = false;
+    // Quitting from the keyboard must not leave a frozen window on screen while the jobs finish.
+    if (qobject_cast<QGuiApplication*>(QCoreApplication::instance()))
+        for (auto* const window: QGuiApplication::topLevelWindows())
+            window->hide();
+    _settingsSync->stop();
+    _settings->sync();
     _runner.cancel();
+    _sqlQueryRunner.cancel();
     // A job in flight uses the plugins, the manager and this object's address; let it finish first.
-    (void) _runner.Worker().WaitForDone(std::chrono::milliseconds::max());
-    (void) _odbcWorker.WaitForDone(std::chrono::milliseconds::max());
+    // A migration, backup or restore is waited for to its end: ending it midway leaves it half-written.
+    auto const limit = AnyRunInFlight() ? std::chrono::milliseconds::max() : _shutdownDrainLimit;
+    if (DrainWorkers(limit))
+        return;
+    if (_onShutdownDrainExceeded)
+    {
+        _onShutdownDrainExceeded();
+        return;
+    }
+    // A normal exit destroys the statics, and on Windows runs the DLL detach handlers, a job still uses.
+    qWarning("dbtool-gui: a job was still running %lld ms after quitting; exiting without cleanup.",
+             static_cast<long long>(limit.count()));
+#if defined(_WIN32)
+    TerminateProcess(GetCurrentProcess(), EXIT_FAILURE);
+#else
+    std::quick_exit(EXIT_FAILURE);
+#endif
+}
+
+void AppController::SetShutdownDrainLimit(std::chrono::milliseconds limit, std::function<void()> onExceeded)
+{
+    _shutdownDrainLimit = limit;
+    _onShutdownDrainExceeded = std::move(onExceeded);
+}
+
+bool AppController::DrainWorkers(std::chrono::milliseconds limit)
+{
+    auto const deadline =
+        limit == std::chrono::milliseconds::max() ? QDeadlineTimer { QDeadlineTimer::Forever } : QDeadlineTimer { limit };
+    auto const remaining = [&deadline] {
+        return deadline.isForever() ? std::chrono::milliseconds::max()
+                                    : std::chrono::milliseconds { std::max<qint64>(deadline.remainingTime(), 0) };
+    };
+    // Every worker gets its wait, so a stuck one does not keep the others from finishing.
+    auto drained = _runner.Worker().WaitForDone(remaining());
+    drained = _backupRunner.WaitForDone(remaining()) && drained;
+    drained = _managedBackups.WaitForDone(remaining()) && drained;
+    drained = _sqlQueryRunner.WaitForDone(remaining()) && drained;
+    drained = _odbcWorker.WaitForDone(remaining()) && drained;
+    return drained;
+}
+
+void AppController::BumpTargetGeneration()
+{
+    ++_targetGeneration;
+    // Checks and re-reads of the old target still in flight are dropped on arrival, so they no longer count.
+    _backupRequirementChecksInFlight = 0;
+    _historyRefreshesInFlight = 0;
+    if (std::exchange(_connecting, false))
+    {
+        _connectRequirementPending = false;
+        if (std::exchange(_pluginReloadPending, false))
+            RequestPluginReload();
+        emit connectFinished();
+    }
+    UpdateActivity();
+}
+
+void AppController::TargetInputChanged(QString const& mode)
+{
+    // Only a connect in flight targets the input; a plugin load and an open connection do not depend on it.
+    if (_connectionMode == mode && _connecting)
+        BumpTargetGeneration();
+}
+
+void AppController::PersistSetting(char const* key, QVariant const& value)
+{
+    _settings->setValue(QLatin1String { key }, value);
+    _settingsSync->start();
 }
 
 AppController::~AppController()
@@ -446,7 +530,7 @@ void AppController::setCurrentProfile(QString const& name)
     if (_currentProfile == name)
         return;
     _currentProfile = name;
-    QSettings().setValue(kKeyProfile, name);
+    PersistSetting(kKeyProfile, name);
     emit currentProfileChanged();
     emit connectionSummaryChanged();
     // Target DB has changed — drop the "connected" flag so the reload
@@ -455,7 +539,7 @@ void AppController::setCurrentProfile(QString const& name)
     // queried for real. Otherwise the previous profile's applied/pending
     // labels would keep rendering on top of the new plugin set.
     InvalidateConnectionTarget();
-    ++_targetGeneration;
+    BumpTargetGeneration();
     // Profiles may carry their own `pluginsDir`; switch the loaded plugin
     // set so the UI matches the selection without a reconnect.
     RequestPluginReload();
@@ -466,9 +550,10 @@ void AppController::setConnectionStringOverride(QString const& connectionString)
     if (_connectionStringOverride == connectionString)
         return;
     _connectionStringOverride = connectionString;
-    QSettings().setValue(kKeyOverrideString, connectionString);
+    PersistSetting(kKeyOverrideString, connectionString);
     emit connectionStringOverrideChanged();
     emit connectionSummaryChanged();
+    TargetInputChanged(QStringLiteral("custom"));
 }
 
 void AppController::setCustomSchema(QString const& schema)
@@ -476,9 +561,10 @@ void AppController::setCustomSchema(QString const& schema)
     if (_customSchema == schema)
         return;
     _customSchema = schema;
-    QSettings().setValue(kKeyCustomSchema, schema);
+    PersistSetting(kKeyCustomSchema, schema);
     emit customSchemaChanged();
     emit connectionSummaryChanged();
+    TargetInputChanged(QStringLiteral("custom"));
 }
 
 void AppController::setLogVisible(bool visible)
@@ -486,7 +572,7 @@ void AppController::setLogVisible(bool visible)
     if (_logVisible == visible)
         return;
     _logVisible = visible;
-    QSettings().setValue(kKeyLogVisible, visible);
+    PersistSetting(kKeyLogVisible, visible);
     emit logVisibleChanged();
 }
 
@@ -497,7 +583,7 @@ void AppController::setViewMode(QString const& mode)
     if (_viewMode == normalized)
         return;
     _viewMode = normalized;
-    QSettings().setValue(kKeyViewMode, normalized);
+    PersistSetting(kKeyViewMode, normalized);
     emit viewModeChanged();
 }
 
@@ -508,7 +594,7 @@ void AppController::setConnectionMode(QString const& mode)
     if (_connectionMode == normalized)
         return;
     _connectionMode = normalized;
-    QSettings().setValue(kKeyMode, normalized);
+    PersistSetting(kKeyMode, normalized);
     emit connectionModeChanged();
     emit connectionSummaryChanged();
     // Switching the connection source changes the target DB (profile's
@@ -516,7 +602,7 @@ void AppController::setConnectionMode(QString const& mode)
     // flag so the reload path renders "unknown" instead of re-applying
     // the prior source's applied-set to the new target.
     InvalidateConnectionTarget();
-    ++_targetGeneration;
+    BumpTargetGeneration();
     // Mode changes swap which plugins-dir is authoritative (profile's own
     // vs the user override), so reload to reflect the new effective set.
     RequestPluginReload();
@@ -527,9 +613,10 @@ void AppController::setSelectedDsn(QString const& dsn)
     if (_selectedDsn == dsn)
         return;
     _selectedDsn = dsn;
-    QSettings().setValue(kKeyDsn, dsn);
+    PersistSetting(kKeyDsn, dsn);
     emit selectedDsnChanged();
     emit connectionSummaryChanged();
+    TargetInputChanged(QStringLiteral("dsn"));
 }
 
 void AppController::setDsnUser(QString const& user)
@@ -537,8 +624,9 @@ void AppController::setDsnUser(QString const& user)
     if (_dsnUser == user)
         return;
     _dsnUser = user;
-    QSettings().setValue(kKeyDsnUser, user);
+    PersistSetting(kKeyDsnUser, user);
     emit dsnUserChanged();
+    TargetInputChanged(QStringLiteral("dsn"));
 }
 
 void AppController::setDsnPassword(QString const& password)
@@ -546,8 +634,9 @@ void AppController::setDsnPassword(QString const& password)
     if (_dsnPassword == password)
         return;
     _dsnPassword = password;
-    QSettings().setValue(kKeyDsnPassword, password);
+    PersistSetting(kKeyDsnPassword, password);
     emit dsnPasswordChanged();
+    TargetInputChanged(QStringLiteral("dsn"));
 }
 
 void AppController::setDsnSchema(QString const& schema)
@@ -555,9 +644,10 @@ void AppController::setDsnSchema(QString const& schema)
     if (_dsnSchema == schema)
         return;
     _dsnSchema = schema;
-    QSettings().setValue(kKeyDsnSchema, schema);
+    PersistSetting(kKeyDsnSchema, schema);
     emit dsnSchemaChanged();
     emit connectionSummaryChanged();
+    TargetInputChanged(QStringLiteral("dsn"));
 }
 
 void AppController::setPluginsDir(QString const& pluginsDir)
@@ -565,10 +655,10 @@ void AppController::setPluginsDir(QString const& pluginsDir)
     if (_pluginsDir == pluginsDir)
         return;
     _pluginsDir = pluginsDir;
-    QSettings().setValue(kKeyPluginsDir, pluginsDir);
+    PersistSetting(kKeyPluginsDir, pluginsDir);
     emit pluginsDirChanged();
     emit connectionSummaryChanged();
-    ++_targetGeneration;
+    BumpTargetGeneration();
     // Users expect dropping a new plugins-dir path to populate the migration
     // list immediately — no explicit reconnect button press.
     RequestPluginReload();
@@ -603,7 +693,7 @@ void AppController::setProfileStorePath(QString const& path)
     if (_profileStorePath == path)
         return;
     _profileStorePath = path;
-    QSettings().setValue(kKeyProfileStorePath, path);
+    PersistSetting(kKeyProfileStorePath, path);
     emit profileStorePathChanged();
 
     // Mirror the OnProfileFileChanged guard: do not swap the profile store
@@ -719,6 +809,9 @@ bool AppController::loadProfiles(QString const& path)
 
 bool AppController::connectToProfile()
 {
+    // One connect at a time: a second click while one is in flight starts nothing.
+    if (_connecting || _shuttingDown)
+        return false;
     ClearError();
 
     // Connecting replaces the default connection and reconnects the mapper a running migration uses.
@@ -797,158 +890,155 @@ bool AppController::connectToProfile()
         return false;
     }
 
+    // The schema of each connection mode comes from its own input: the profile's `schema` field,
+    // `dsnSchema`, or `customSchema`.
+    auto schema = std::string {};
+    if (_connectionMode == QStringLiteral("custom"))
+        schema = _customSchema.toStdString();
+    else if (_connectionMode == QStringLiteral("dsn"))
+        schema = _dsnSchema.toStdString();
+    else if (profile)
+        schema = profile->schema;
+
     LogInfo(QStringLiteral("Connecting %1…").arg(connectionSummary()));
 
-    auto& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
-
-    // Plugin discovery is a pure filesystem operation independent of ODBC,
-    // so a failed connect must not hide which DLLs were picked up. Reloading
-    // here also guarantees the user always sees the latest set of DLLs even
-    // if they dropped new ones into the directory between clicks — same
-    // watcher-less "just rescan on action" semantics as dbtool. The post-init
-    // hooks run below, on the new connection, not on the one being replaced.
-    ReloadPluginsNow();
-
-    Lightweight::SqlConnectionString const defaultConnectionString { connectionString };
-
-    // Bootstrap a fresh SQLite file if the profile points at one that does not
-    // exist yet — mirrors dbtool's behaviour so "create from scratch" works
-    // from the GUI too. No-op for every other driver.
-    (void) Lightweight::EnsureSqliteDatabaseFileExists(defaultConnectionString);
-
-    Lightweight::SqlConnection::SetDefaultConnectionString(defaultConnectionString);
-
-    // Resolve the effective default schema *before* opening the connection
-    // so the post-connect hook installed by `MigrationManager::SetDefaultSchema`
-    // is in place when the DataMapper below establishes the link. Each
-    // connection mode has its own UI input — profile mode pulls from the
-    // profile's own `schema` field, DSN mode reads `dsnSchema`, and custom
-    // mode reads `customSchema`.
-    std::string effectiveSchema;
-    if (_connectionMode == QStringLiteral("custom"))
-        effectiveSchema = _customSchema.toStdString();
-    else if (_connectionMode == QStringLiteral("dsn"))
-        effectiveSchema = _dsnSchema.toStdString();
-    else if (_connectionMode == QStringLiteral("profile") && profile)
-        effectiveSchema = profile->schema;
-
-    try
-    {
-        manager.SetDefaultSchema(effectiveSchema);
-    }
-    catch (std::invalid_argument const& ex)
-    {
-        ReportError(QString::fromStdString(ex.what()));
-        return false;
-    }
-
-    // The default connection string was just replaced, so this reconnects the manager's data mapper
-    // to it - now, where a failure can be reported, rather than on the manager's first use.
-    try
-    {
-        std::ignore = manager.GetDataMapper();
-    }
-    catch (std::exception const& e)
-    {
-        auto const failureMsg = ExceptionMessage(e);
-        LogError(QStringLiteral("Connection failed: %1").arg(failureMsg));
-        ReportError(QStringLiteral("Could not open the database connection: %1").arg(failureMsg));
-        return false;
-    }
-
-    // Connection is up — surface server flavour / database / version so the
-    // user knows *which* DB they just opened. Pulling these from
-    // `SqlConnection` (post-handshake) means we report what the driver
-    // actually negotiated, not what was in the typed-in connection string.
-    QString reachedDatabase;
-    try
-    {
-        auto const& connection = manager.GetDataMapper().Connection();
-        auto const serverDisplay = ServerTypeDisplayName(connection.ServerType());
-        auto const databaseName = QString::fromStdString(connection.DatabaseName());
-        reachedDatabase = databaseName;
-        auto const serverVersion = QString::fromStdString(connection.ServerVersion());
-        LogInfo(QStringLiteral("Connected: %1 · %2 · %3").arg(serverDisplay, databaseName, serverVersion));
-        if (!effectiveSchema.empty())
-            LogInfo(QStringLiteral("Schema search path: %1").arg(QString::fromStdString(effectiveSchema)));
-    }
-    catch (std::exception const&)
-    {
-        // Best-effort metadata read — if it fails the connect itself still
-        // succeeded, so silently skip the descriptive line rather than
-        // contradict the previous "Connecting …" with a misleading error.
-    }
-
-    // A plaintext password just proved that it works: store it encrypted. The
-    // profile is copied because the rewrite triggers a watcher-driven reload
-    // that replaces `_store`. A plaintext origin is only ever set in profile
-    // mode, which has already returned when no profile is selected.
-    if (passwordOrigin == Lightweight::Config::PasswordOrigin::Plaintext)
-        EncryptPlaintextPassword(Lightweight::Config::Profile { *profile });
-
-    // Route status banners emitted by plugin post-init hooks (e.g. the
-    // "Transitioning from LASTRADA_PROPERTIES …" line from SqlMigrationsPlugin)
-    // through `AppController::LogInfo` so the message lands in the GUI's log
-    // pane instead of stderr. Installed before invoking the hooks below so
-    // the very first banner is captured.
-    manager.SetLogSink(
-        [this](std::string_view message) { LogInfo(QString::fromUtf8(message.data(), static_cast<int>(message.size()))); });
+    // This connect supersedes every plugin reload requested or in flight; their outcomes become stale.
+    _startupPending = false;
+    _pluginReloadFlushQueued = false;
+    _pluginReloadPending = false;
+    BumpTargetGeneration();
+    auto const generation = _targetGeneration.load();
+    auto request = ConnectRequest {
+        .connectionString = std::move(connectionString),
+        .schema = std::move(schema),
+        .pluginDirectories = EffectivePluginsDir(),
+        .mode = _connectionMode,
+        .target = _connectionMode == QStringLiteral("profile") ? _currentProfile
+                  : _connectionMode == QStringLiteral("dsn")   ? _selectedDsn
+                                                               : QString {},
+        .generation = generation,
+        .logSink =
+            [this](std::string_view message) {
+                LogInfo(QString::fromUtf8(message.data(), static_cast<qsizetype>(message.size())));
+            },
+        .log = [this](LogLevel level, QString line) { Log(level, std::move(line)); },
+        .isStale = [this, generation] { return _targetGeneration.load() != generation; },
+    };
+    _requestedPluginDirectories = request.pluginDirectories;
     _installedMigrationLogSink = true;
+    _connecting = true;
 
-    // Run plugin post-init hooks (e.g. SqlMigrationsPlugin's transition glue
-    // that observes `LASTRADA_PROPERTIES NR=4` and populates the virtual
-    // applied overlay). Until this fires, the migration list would render the
-    // entire legacy range as pending. Per-plugin failures are surfaced via
-    // `LogError` but never abort the connect — a misbehaving plugin must not
-    // brick the GUI's read paths.
-    //
-    // We deliberately do NOT call `CreateMigrationHistory()` here: the table
-    // is materialised lazily inside Lightweight's write paths
-    // (`ApplySingleMigration` / `MarkMigrationAsApplied` / `RevertSingleMigration`),
-    // so introspection-only connects against a fresh or unmanaged database
-    // leave the schema untouched.
-    RunPostInitHooks(_plugins->entries, manager, [this](QString line) { LogError(std::move(line)); });
+    // A plaintext password that proves to work is stored encrypted; the profile is copied, since the
+    // rewrite reloads the store. A plaintext origin is only ever set in profile mode, with a profile.
+    auto plaintextProfile = passwordOrigin == Lightweight::Config::PasswordOrigin::Plaintext
+                                ? std::optional<Lightweight::Config::Profile> { *profile }
+                                : std::nullopt;
+    auto* const plugins = &_plugins->entries;
+    auto const recordError = _lastRecordError;
+    auto const finish = [this](std::optional<BackupRequirementState> requirement, std::uint64_t generation) {
+        QMetaObject::invokeMethod(
+            this,
+            [this, requirement = std::move(requirement), generation]() mutable {
+                FinishConnect(std::move(requirement), generation);
+            },
+            Qt::QueuedConnection);
+    };
+    _runner.Worker().Enqueue(
+        [this, finish, plugins, request, plaintextProfile = std::move(plaintextProfile), recordError]() mutable {
+            auto& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
+            auto outcome = RunConnect(request, *plugins, manager);
+            auto const ok = outcome.ok;
+            QMetaObject::invokeMethod(
+                this,
+                [this, request, outcome = std::move(outcome), plaintextProfile = std::move(plaintextProfile)]() mutable {
+                    ApplyConnect(request, std::move(outcome), plaintextProfile);
+                },
+                Qt::QueuedConnection);
+            // The new connection's requirement is part of the connect, so no other job sees it unchecked.
+            auto const evaluate = ok && !request.isStale();
+            finish(evaluate ? std::optional { EvaluateBackupRequirement(manager, recordError) } : std::nullopt,
+                   request.generation);
+        },
+        [this, finish, generation](std::exception const& e) {
+            QMetaObject::invokeMethod(
+                this,
+                [this, generation, message = ExceptionMessage(e)] {
+                    if (generation == _targetGeneration)
+                        ReportError(QStringLiteral("Could not connect: %1").arg(message));
+                },
+                Qt::QueuedConnection);
+            finish(std::nullopt, generation);
+        });
+    UpdateActivity();
+    return true;
+}
 
-    // The snapshot reads `GetAppliedMigrationIds`, which merges the plugin-supplied
-    // overlay with whatever rows exist in `schema_migrations`. The accessor
-    // already swallows a missing-table `SqlException` and returns the overlay
-    // alone; any other failure (e.g. malformed row, unreadable column) falls
-    // back to a plain-plugin view and surfaces as a warning instead of leaving
-    // the GUI stuck on a stale model.
-    auto snapshot = CaptureMigrationSnapshot(manager, AppliedState::Database);
-    if (!snapshot.warning.isEmpty())
+void AppController::ApplyConnect(ConnectRequest const& request,
+                                 ConnectOutcome outcome,
+                                 std::optional<Lightweight::Config::Profile> const& plaintextProfile)
+{
+    for (auto& [line, level]: outcome.log)
+        Log(level, std::move(line));
+    if (outcome.generation != _targetGeneration)
+        return;
+
+    if (!outcome.pluginError.isEmpty())
+        ReportError(outcome.pluginError);
+    if (!outcome.ok)
     {
-        _lastWarning = snapshot.warning;
+        // The default connection now names a database that could not be opened.
+        InvalidateConnectionTarget();
+        ApplySnapshot(std::move(outcome.snapshot));
+        ReportError(outcome.error);
+        return;
+    }
+
+    // The job goes on to evaluate the backup requirement of the new connection.
+    _connectRequirementPending = true;
+    if (!outcome.snapshot.warning.isEmpty())
+    {
+        _lastWarning = outcome.snapshot.warning;
         emit lastWarningChanged();
     }
-    ApplySnapshot(std::move(snapshot));
+    ApplySnapshot(std::move(outcome.snapshot));
 
-    // Backup/restore reuse exactly the connection that just opened — including a
-    // decrypted or resolved password and the DSN form, which the raw profile
-    // fields would lack.
-    _backupRunner.setConnectionString(QString::fromStdString(connectionString));
-    _backupRunner.setRecordSchema(QString::fromStdString(std::string { manager.DefaultSchema() }));
+    if (plaintextProfile)
+        EncryptPlaintextPassword(*plaintextProfile);
+
+    // Backup and restore reuse exactly this connection, including a decrypted or resolved password.
+    _backupRunner.setConnectionString(QString::fromStdString(request.connectionString));
+    _backupRunner.setRecordSchema(QString::fromStdString(outcome.defaultSchema));
 
     _connected = true;
     _readyLogged = true;
     // The rows of the last run belong to the previous connection.
     _runner.tasks()->clear();
-    _connectedMode = _connectionMode;
-    _connectedTarget = _connectionMode == QStringLiteral("profile") ? _currentProfile
-                       : _connectionMode == QStringLiteral("dsn")
-                           ? _selectedDsn
-                           : (!reachedDatabase.isEmpty() ? reachedDatabase : QStringLiteral("custom connection"));
+    _connectedMode = request.mode;
+    _connectedTarget = !request.target.isEmpty()            ? request.target
+                       : !outcome.reachedDatabase.isEmpty() ? outcome.reachedDatabase
+                                                            : QStringLiteral("custom connection");
     _backupRunner.setTargetLabel(_connectedTarget);
     emit connectedChanged();
     LogInfo(QStringLiteral("Applied migrations: %1 / %2").arg(appliedCount()).arg(_migrations.rowCount()));
-    // Release labels and counter bindings depend on the applied-set we
-    // just fetched. `Refresh` above already emitted `migrationsChanged`,
-    // but that fired while `_connected` was still false — re-emit after
-    // the flip so any binding that indirectly reads `_connected` (now or
-    // later) gets the final state.
+    // Bindings that read `connected` alongside the counters see the final state.
     emit migrationsChanged();
-    RefreshBackupRequirement();
-    return true;
+    UpdateActivity();
+}
+
+void AppController::FinishConnect(std::optional<BackupRequirementState> requirement, std::uint64_t generation)
+{
+    // A connect whose target changed ended already, when the generation was bumped.
+    if (generation != _targetGeneration)
+        return;
+    _connecting = false;
+    _connectRequirementPending = false;
+    if (_connected && requirement)
+        ApplyBackupRequirement(*std::move(requirement));
+    // A plugin reload put off during the connect runs now, on the state the connect left.
+    if (std::exchange(_pluginReloadPending, false))
+        RequestPluginReload();
+    UpdateActivity();
+    emit connectFinished();
 }
 
 namespace
@@ -1002,101 +1092,58 @@ void AppController::setMigrateWithoutBackup(bool value)
     emit migrateWithoutBackupChanged();
 }
 
-namespace
-{
-
-    /// What declares a backup requirement, for when it could not be evaluated: the releases of the pending
-    /// migrations that require one, the pending migrations that require one themselves (unless their release
-    /// is named), and the pre-migrate steps that declare one, in that order.
-    QStringList DeclaredBackupRequirements(Lightweight::SqlMigration::MigrationManager const& manager)
-    {
-        auto pending = std::vector<Lightweight::SqlMigration::MigrationBase const*> {};
-        try
-        {
-            for (auto const* migration: manager.GetPending())
-                pending.push_back(migration);
-        }
-        catch (std::exception const&)
-        {
-            // The history cannot be read either, so every migration may be pending.
-            for (auto const* migration: manager.GetAllMigrations())
-                pending.push_back(migration);
-        }
-        auto releases = QStringList {};
-        auto migrations = QStringList {};
-        for (auto const* migration: pending)
-        {
-            if (auto const* release = manager.FindReleaseForTimestamp(migration->GetTimestamp());
-                release && release->requiresBackup)
-            {
-                auto const reason = QStringLiteral("release %1").arg(QString::fromStdString(release->version));
-                if (!releases.contains(reason))
-                    releases.append(reason);
-            }
-            else if (migration->RequiresBackup())
-                migrations.append(QStringLiteral("migration %1 \"%2\"")
-                                      .arg(migration->GetTimestamp().value)
-                                      .arg(QString::fromStdString(std::string { migration->GetTitle() })));
-        }
-        auto steps = QStringList {};
-        for (auto const& step: manager.GetPreMigrateSteps())
-            if (step.declaresBackupRequirement)
-                steps.append(QStringLiteral("step \"%1\"").arg(QString::fromStdString(step.title)));
-        return releases + migrations + steps;
-    }
-
-} // namespace
-
-void AppController::RefreshBackupRequirement()
+void AppController::RequestBackupRequirementCheck()
 {
     // The check reads through the migration connection, which a running migration uses.
     if (_runner.phase() != MigrationRunner::Phase::Idle)
         return;
-    // While connected it also reads the plugins' migrations, which a plugin load is replacing.
-    if (_connected && pluginsLoading())
+    if (!_connected)
     {
-        _backupRequirementAfterReloadPending = true;
+        ApplyBackupRequirement({});
         return;
     }
+    if (_shuttingDown)
+        return;
 
-    auto required = false;
-    auto reasons = QStringList {};
-    auto note = QString {};
-    if (_connected)
-    {
-        auto& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
-        try
-        {
-            auto const requirement = manager.BackupRequirementFor(TimestampsOf(manager.GetPending()));
-            required = requirement.required && !requirement.satisfied;
-            if (required)
-            {
-                for (auto const& reason: requirement.reasons)
-                    reasons.append(QString::fromStdString(reason));
-                if (!_lastRecordError.isEmpty())
-                    note = _lastRecordError;
-                else if (requirement.lastBackup)
-                    note = QString::fromStdString(Lightweight::Tools::DescribeStaleBackup(*requirement.lastBackup));
-            }
-        }
-        catch (std::exception const& e)
-        {
-            reasons = DeclaredBackupRequirements(manager);
-            required = !reasons.isEmpty();
-            if (required)
-                note = QStringLiteral("Could not check the backup requirement: %1").arg(ExceptionMessage(e));
-        }
-    }
+    ++_backupRequirementChecksInFlight;
+    auto const generation = _targetGeneration.load();
+    auto const post = [this, generation](std::optional<BackupRequirementState> state) {
+        QMetaObject::invokeMethod(
+            this,
+            [this, state = std::move(state), generation]() mutable {
+                // A stale check stopped counting when the generation was bumped.
+                if (generation != _targetGeneration)
+                    return;
+                --_backupRequirementChecksInFlight;
+                if (state && _connected)
+                    ApplyBackupRequirement(*std::move(state));
+                UpdateActivity();
+            },
+            Qt::QueuedConnection);
+    };
+    _runner.Worker().Enqueue(
+        [this, post, recordError = _lastRecordError, generation] {
+            // The step predicates may take long; a check for a target the UI left is not worth it.
+            if (_targetGeneration.load() != generation)
+                return post(std::nullopt);
+            post(EvaluateBackupRequirement(Lightweight::SqlMigration::MigrationManager::GetInstance(), recordError));
+        },
+        [post](std::exception const&) { post(std::nullopt); });
+    UpdateActivity();
+}
 
+void AppController::ApplyBackupRequirement(BackupRequirementState state)
+{
     // Nothing left to waive, so a waiver ticked earlier must not carry over to a later requirement.
-    if (!required)
+    if (!state.required)
         setMigrateWithoutBackup(false);
 
-    if (required == _backupRequired && reasons == _backupRequirementReasons && note == _backupRequirementNote)
+    if (state.required == _backupRequired && state.reasons == _backupRequirementReasons
+        && state.note == _backupRequirementNote)
         return;
-    _backupRequired = required;
-    _backupRequirementReasons = std::move(reasons);
-    _backupRequirementNote = std::move(note);
+    _backupRequired = state.required;
+    _backupRequirementReasons = std::move(state.reasons);
+    _backupRequirementNote = std::move(state.note);
     emit backupRequirementChanged();
 }
 
@@ -1307,49 +1354,52 @@ QString AppController::releaseHighestTimestamp(QString const& version) const
     return QString::number(release->highestTimestamp);
 }
 
-QStringList AppController::previewMigrationSql(QString const& timestamp) const
+void AppController::requestMigrationSqlPreview(QString const& timestamp)
 {
-    // Parse as uint64_t — timestamps are emitted to QML as decimal strings.
-    bool ok = false;
-    auto const ts = timestamp.toULongLong(&ok);
+    // Timestamps reach QML as decimal strings.
+    auto ok = false;
+    auto const value = timestamp.toULongLong(&ok);
     if (!ok)
-        return {};
-
-    // Belt-and-suspenders for the same race documented in
-    // `currentReleaseLabel`: `PreviewMigration` issues INFORMATION_SCHEMA
-    // queries via `MakeWidthLookup` against the shared `SqlConnection`. If
-    // QML triggers this accessor while the worker thread is mid-migration,
-    // we'd hit "Connection is busy" again. The Simple-view UI disables
-    // preview during runs, but explicit-view callers (or future ones) might
-    // not — short-circuit to a placeholder when a run is in flight.
+    {
+        emit migrationSqlPreviewReady(timestamp, {});
+        return;
+    }
+    // Queued behind the run, the preview would only arrive once the run is over.
     if (_runner.phase() != MigrationRunner::Phase::Idle)
-        return { QStringLiteral("-- Preview unavailable during a migration run.") };
-    // The worker is swapping the plugins, and with them the migrations, out from under the manager.
-    if (pluginsLoading())
-        return { QStringLiteral("-- Preview unavailable while the plugins load.") };
-
-    auto const& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
-    auto const* migration = manager.GetMigration(Lightweight::SqlMigration::MigrationTimestamp { ts });
-    if (!migration)
-        return {};
-
-    // PreviewMigration needs an active default connection (to pick the
-    // target dialect). If the user hasn't connected yet, surface a single
-    // informational "line" instead of an empty list so the dialog body
-    // doesn't look accidentally blank.
-    try
     {
-        auto const statements = manager.PreviewMigration(*migration);
-        QStringList out;
-        out.reserve(static_cast<qsizetype>(statements.size()));
-        for (auto const& s: statements)
-            out.push_back(QString::fromStdString(s));
-        return out;
+        emit migrationSqlPreviewReady(timestamp, { QStringLiteral("-- Preview unavailable during a migration run.") });
+        return;
     }
-    catch (std::exception const& e)
+    // Without a connection the preview would open the default connection of a target the UI left.
+    if (!_connected)
     {
-        return { QStringLiteral("-- Preview failed: %1").arg(ExceptionMessage(e)) };
+        emit migrationSqlPreviewReady(timestamp, { QStringLiteral("-- Connect to a database to preview its SQL.") });
+        return;
     }
+    if (_shuttingDown)
+        return;
+
+    auto const generation = _targetGeneration.load();
+    auto const post = [this, timestamp, generation](QStringList statements) {
+        QMetaObject::invokeMethod(
+            this,
+            [this, timestamp, generation, statements = std::move(statements)] {
+                // The statements of a connection the UI left are dropped; the dialog says so instead.
+                emit migrationSqlPreviewReady(
+                    timestamp,
+                    generation == _targetGeneration
+                        ? statements
+                        : QStringList { QStringLiteral("-- The connection changed; open the preview again.") });
+            },
+            Qt::QueuedConnection);
+    };
+    _runner.Worker().Enqueue(
+        [this, post, value, generation] {
+            if (_targetGeneration.load() != generation)
+                return post({});
+            post(PreviewMigrationStatements(Lightweight::SqlMigration::MigrationManager::GetInstance(), value));
+        },
+        [post](std::exception const& e) { post({ QStringLiteral("-- Preview failed: %1").arg(ExceptionMessage(e)) }); });
 }
 
 void AppController::refreshOdbcDataSources()
@@ -1414,6 +1464,27 @@ bool AppController::AnyRunInFlight() const
 {
     return _runner.phase() != MigrationRunner::Phase::Idle || _backupRunner.phase() != BackupRunner::Phase::Idle
            || _managedBackups.phase() != ManagedBackupController::Phase::Idle;
+}
+
+bool AppController::closeBlocked() const
+{
+    return AnyRunInFlight();
+}
+
+QString AppController::closeBlockedReason() const
+{
+    return CloseBlockedReason(_runner, _backupRunner, _managedBackups);
+}
+
+bool AppController::closeBlockingRunCancellable() const
+{
+    return _runner.phase() == MigrationRunner::Phase::Running;
+}
+
+void AppController::cancelBlockingRun()
+{
+    if (closeBlockingRunCancellable())
+        _runner.cancel();
 }
 
 QString AppController::ProfileTargetPath() const
@@ -1595,6 +1666,8 @@ void AppController::InvalidateConnectionTarget()
     if (!_connected)
         return;
     _connected = false;
+    // Results of jobs for the old target, such as a requirement check, become stale.
+    BumpTargetGeneration();
     // The rows of a run in flight still update; those of a finished run belong to the old target.
     if (_runner.phase() == MigrationRunner::Phase::Idle)
         _runner.tasks()->clear();
@@ -1603,29 +1676,64 @@ void AppController::InvalidateConnectionTarget()
     emit connectedChanged();
     setMigrateWithoutBackup(false);
     _lastRecordError.clear();
-    RefreshBackupRequirement();
+    RequestBackupRequirementCheck();
     LogInfo(QStringLiteral("Disconnected."));
 }
 
 void AppController::RefreshMigrationModelsAfterRun()
 {
-    // The worker is swapping the plugins out from under the manager; re-read once that is done.
-    if (pluginsLoading())
-    {
-        _modelRefreshAfterReloadPending = true;
+    if (_shuttingDown)
         return;
-    }
-    // The snapshot touches schema_migrations, which an unmanaged database lacks;
-    // it then falls back to the plugin-only view and says why.
-    auto snapshot = CaptureMigrationSnapshot(Lightweight::SqlMigration::MigrationManager::GetInstance(),
-                                             _connected ? AppliedState::Database : AppliedState::Unknown);
-    if (!snapshot.warning.isEmpty())
+    auto const state = _connected ? AppliedState::Database : AppliedState::Unknown;
+    auto const withRequirement = _connected && _runner.phase() == MigrationRunner::Phase::Idle;
+    auto const generation = _targetGeneration.load();
+    ++_historyRefreshesInFlight;
+    if (withRequirement)
+        ++_backupRequirementChecksInFlight;
+    auto const post = [this, withRequirement, generation](std::optional<HistoryRefreshOutcome> outcome) {
+        QMetaObject::invokeMethod(
+            this,
+            [this, withRequirement, generation, outcome = std::move(outcome)]() mutable {
+                // A stale re-read stopped counting when the generation was bumped.
+                if (generation != _targetGeneration)
+                    return;
+                --_historyRefreshesInFlight;
+                if (withRequirement)
+                    --_backupRequirementChecksInFlight;
+                if (outcome)
+                    ApplyHistoryRefresh(*std::move(outcome));
+                UpdateActivity();
+            },
+            Qt::QueuedConnection);
+    };
+    // The snapshot touches schema_migrations, which an unmanaged database lacks; it then falls back to
+    // the plugin-only view and says why.
+    _runner.Worker().Enqueue(
+        [this, post, state, withRequirement, recordError = _lastRecordError, generation] {
+            if (_targetGeneration.load() != generation)
+                return post(std::nullopt);
+            auto& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
+            auto outcome = HistoryRefreshOutcome { .snapshot = CaptureMigrationSnapshot(manager, state),
+                                                   .requirement = std::nullopt,
+                                                   .generation = generation };
+            if (withRequirement && _targetGeneration.load() == generation)
+                outcome.requirement = EvaluateBackupRequirement(manager, recordError);
+            post(std::move(outcome));
+        },
+        [post](std::exception const&) { post(std::nullopt); });
+    UpdateActivity();
+}
+
+void AppController::ApplyHistoryRefresh(HistoryRefreshOutcome outcome)
+{
+    if (!outcome.snapshot.warning.isEmpty())
     {
-        _lastWarning = snapshot.warning;
+        _lastWarning = outcome.snapshot.warning;
         emit lastWarningChanged();
     }
-    ApplySnapshot(std::move(snapshot));
-    RefreshBackupRequirement();
+    ApplySnapshot(std::move(outcome.snapshot));
+    if (outcome.requirement && _connected)
+        ApplyBackupRequirement(*std::move(outcome.requirement));
 }
 
 bool AppController::pluginsLoading() const noexcept
@@ -1633,15 +1741,26 @@ bool AppController::pluginsLoading() const noexcept
     return _startupPending || _pluginReloadFlushQueued || _pluginReloadJobsInFlight > 0;
 }
 
+bool AppController::backupRequirementPending() const noexcept
+{
+    return _connectRequirementPending || _backupRequirementChecksInFlight > 0;
+}
+
 bool AppController::busy() const noexcept
 {
-    return pluginsLoading() || _odbcRefreshing;
+    return pluginsLoading() || _odbcRefreshing || _connecting || backupRequirementPending() || _historyRefreshesInFlight > 0;
 }
 
 QString AppController::activityText() const
 {
+    if (_connecting && !_connectRequirementPending)
+        return QStringLiteral("Connecting…");
     if (pluginsLoading())
         return QStringLiteral("Loading plugins…");
+    if (_historyRefreshesInFlight > 0)
+        return QStringLiteral("Reading the migration history…");
+    if (backupRequirementPending())
+        return QStringLiteral("Checking whether a backup is required…");
     if (_odbcRefreshing)
         return QStringLiteral("Listing ODBC data sources…");
     return {};
@@ -1649,11 +1768,12 @@ QString AppController::activityText() const
 
 void AppController::UpdateActivity()
 {
-    auto const loading = pluginsLoading();
-    if (loading == _announcedPluginsLoading && _odbcRefreshing == _announcedOdbcRefreshing)
+    auto const activity = std::array {
+        pluginsLoading(), _odbcRefreshing, _connecting, backupRequirementPending(), _historyRefreshesInFlight > 0,
+    };
+    if (activity == _announcedActivity)
         return;
-    _announcedPluginsLoading = loading;
-    _announcedOdbcRefreshing = _odbcRefreshing;
+    _announcedActivity = activity;
     emit activityChanged();
 }
 
@@ -1690,8 +1810,8 @@ void AppController::FlushPluginReload()
     // A connect in between loaded the plugins itself.
     if (!std::exchange(_pluginReloadFlushQueued, false))
         return;
-    // A run started after the request; it reloads once it finished.
-    if (_runner.phase() != MigrationRunner::Phase::Idle)
+    // A run or a connect started after the request; it reloads once it finished, on the state it left.
+    if (_runner.phase() != MigrationRunner::Phase::Idle || _connecting)
     {
         _pluginReloadPending = true;
         UpdateActivity();
@@ -1726,31 +1846,6 @@ void AppController::FlushPluginReload()
     UpdateActivity();
 }
 
-void AppController::ReloadPluginsNow()
-{
-    // Every reload requested or in flight, the first one included, is superseded by this one;
-    // their outcomes become stale.
-    ++_targetGeneration;
-    _startupPending = false;
-    _pluginReloadFlushQueued = false;
-    (void) _runner.Worker().WaitForDone(std::chrono::milliseconds::max());
-
-    auto request = PluginReloadRequest {
-        .directories = EffectivePluginsDir(),
-        .state = AppliedState::Unknown,
-        .generation = _targetGeneration,
-    };
-    _requestedPluginDirectories = request.directories;
-    auto outcome = RunPluginReload(request, _plugins->entries, Lightweight::SqlMigration::MigrationManager::GetInstance());
-    for (auto& [line, level]: outcome.log)
-        Log(level, std::move(line));
-    if (!outcome.error.isEmpty())
-        ReportError(outcome.error);
-    // The connect reads the history and checks the backup requirement itself, on its new connection.
-    ApplySnapshot(std::move(outcome.snapshot));
-    UpdateActivity();
-}
-
 void AppController::ApplyPluginReload(PluginReloadOutcome outcome)
 {
     --_pluginReloadJobsInFlight;
@@ -1762,23 +1857,14 @@ void AppController::ApplyPluginReload(PluginReloadOutcome outcome)
         if (!outcome.error.isEmpty())
             ReportError(outcome.error);
         ApplySnapshot(std::move(outcome.snapshot));
-        _backupRequirementAfterReloadPending = true;
         if (!pluginsLoading() && !_readyLogged && !_connected)
         {
             _readyLogged = true;
             LogInfo(QStringLiteral("Ready — not connected. Pick a profile to connect."));
         }
-    }
-    // A later reload, if any, does what was put off during this one.
-    if (!pluginsLoading())
-    {
-        if (std::exchange(_modelRefreshAfterReloadPending, false) && _connected)
-        {
-            _backupRequirementAfterReloadPending = false;
-            RefreshMigrationModelsAfterRun();
-        }
-        else if (std::exchange(_backupRequirementAfterReloadPending, false))
-            RefreshBackupRequirement();
+        // A later reload, if any, checks the requirement against the plugins it leaves; a connect does its own.
+        if (!pluginsLoading() && !_connecting)
+            RequestBackupRequirementCheck();
     }
     UpdateActivity();
 }

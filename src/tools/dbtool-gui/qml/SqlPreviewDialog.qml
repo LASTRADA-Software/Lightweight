@@ -37,16 +37,19 @@ Dialog {
     property string migrationTimestamp: ""
     property string migrationTitle: ""
 
-    /// Opens the dialog for a given migration. Resolves the SQL statements
-    /// via `AppController.previewMigrationSql()` and joins them with `;\n\n`
-    /// separators — the canonical separator between statements in a DDL
-    /// script. Some formatters emit statements with a trailing `;` already;
-    /// strip any trailing whitespace and `;` per statement before adding our
-    /// own terminator so the preview never shows `;;`.
+    /// Opens the dialog for a given migration and asks the worker for its SQL statements;
+    /// `showStatements` fills them in when they arrive.
     function showFor(timestamp, title) {
         migrationTimestamp = timestamp;
         migrationTitle = title;
-        const statements = AppController.previewMigrationSql(timestamp);
+        sqlText.text = qsTr("-- Building the preview…");
+        open();
+        AppController.requestMigrationSqlPreview(timestamp);
+    }
+
+    /// Shows the statements joined with `;\n\n`, the canonical separator between statements in a DDL
+    /// script. A trailing `;` and whitespace are stripped per statement first, so the preview never shows `;;`.
+    function showStatements(statements) {
         if (statements.length === 0) {
             sqlText.text = qsTr("-- No SQL statements emitted for this migration.\n")
                          + qsTr("-- (Connect to a database first if you expected output.)");
@@ -54,7 +57,15 @@ Dialog {
             const trimmed = statements.map(s => s.replace(/[\s;]+$/, ""));
             sqlText.text = trimmed.join(";\n\n") + ";\n";
         }
-        open();
+    }
+
+    Connections {
+        target: AppController
+        function onMigrationSqlPreviewReady(timestamp, statements) {
+            // A reply for a migration the dialog no longer shows is dropped.
+            if (timestamp === root.migrationTimestamp)
+                root.showStatements(statements);
+        }
     }
 
     // Kit dialog chrome (`dt-dlg`): white panel with a hairline border and a

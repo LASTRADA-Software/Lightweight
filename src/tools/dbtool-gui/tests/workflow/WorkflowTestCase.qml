@@ -4,7 +4,9 @@
 // by objectName, and runs a UI-thread watchdog from the window's first frame on. `cleanup()` runs
 // the file's `cleanupWorkflow()`, then releases the held migration lock, removes the user DSNs,
 // restores the environment, and reports the longest stall, failing the test in Enforce mode when
-// it exceeds the budget. Test files override `cleanupWorkflow()`, never `cleanup()`.
+// it exceeds the budget. Test files override `cleanupWorkflow()`, never `cleanup()`. The report names
+// the step of the longest stall: `openMain`, `clickControl` and `step()` name steps, and fixture work
+// the test does while the window is open runs through `outsideWatchdog`, so it does not count.
 
 import QtQuick
 import QtTest
@@ -37,6 +39,7 @@ TestCase {
 
     /// Creates the Main window, arms the watchdog on its first frame and waits for that frame.
     function openMain() {
+        step("open the Main window")
         firstFrameSpy.clear()
         main = createTemporaryObject(mainComponent, testCase)
         verify(main !== null, "the Main window must instantiate")
@@ -72,10 +75,28 @@ TestCase {
 
     /// Clicks the control named `objectName` after checking that it is enabled.
     function clickControl(objectName) {
+        step(`click ${objectName}`)
         const control = findRequired(objectName)
         verify(control.enabled, `"${objectName}" must be enabled to be clicked`)
         mouseClick(control)
         return control
+    }
+
+    /// Names what the test does from now on; the watchdog report names the step of the longest stall.
+    function step(name) {
+        watchdog.step = name
+    }
+
+    /// Runs `work`, fixture work of the test itself such as copying plugins or running dbtool, with the
+    /// watchdog paused, so the GUI-thread time it takes does not count against the application.
+    function outsideWatchdog(name, work) {
+        step(name)
+        watchdog.pause()
+        try {
+            return work()
+        } finally {
+            watchdog.resume()
+        }
     }
 
     /// Stops the watchdog, logs the longest stall and, in Enforce mode, fails the test when it exceeds the budget.
@@ -85,6 +106,7 @@ TestCase {
         _watchdogArmed = false
         watchdog.stop()
         const report = `UI watchdog: max gap ${watchdog.maxGapMs} ms of ${watchdog.budgetMs} ms`
+                       + (watchdog.maxGapStep !== "" ? ` (step: ${watchdog.maxGapStep})` : "")
         console.log(report)
         if (watchdog.mode === UiWatchdog.Enforce && watchdog.exceeded)
             fail(report)

@@ -5,7 +5,10 @@
 // any machine with the SQLite3 ODBC driver — same baseline as the rest of
 // the dbtool-gui tests.
 
+#include "../BackupRunner.hpp"
+#include "../CloseGuard.hpp"
 #include "../ManagedBackupController.hpp"
+#include "../MigrationRunner.hpp"
 #include "../Models/BackupStatusListModel.hpp"
 #include "../Models/BackupTableListModel.hpp"
 #include "../SettingsLocation.hpp"
@@ -18,8 +21,10 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <future>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -1046,6 +1051,53 @@ TEST_CASE("a plaintext password is handed over as soon as a restore connects to 
 
     CHECK(verified == std::vector<std::string> { "target" });
 
+    controller.setBackupFolder(QString {});
+}
+
+TEST_CASE("a managed restore in flight blocks closing and is named as a restore",
+          "[dbtool-gui][managed-backup-controller][close-guard]")
+{
+    QTemporaryDir dir;
+    ManagedBackupController controller;
+    controller.setBackupFolder(dir.path() + "/backups");
+    auto const source = SqliteProfile(dir, "source");
+    auto const target = SqliteProfile(dir, "target");
+    controller.setProfiles({ source, target });
+    controller.setBackupOperation(&WriteArchiveOperation);
+    controller.setConnectionProbe([](std::string const& /*connectionString*/) { return true; });
+
+    QSignalSpy backupDone(&controller, &ManagedBackupController::finished);
+    controller.backupProfile("source");
+    REQUIRE(WaitFor(backupDone));
+    REQUIRE(backupDone.first().at(0).toBool());
+
+    // The restore holds until the test has looked at the close guard.
+    auto release = std::promise<void> {};
+    auto released = release.get_future().share();
+    auto started = std::promise<void> {};
+    auto startedFuture = started.get_future();
+    controller.setRestoreOperation([released, &started](std::filesystem::path const& /*archiveFile*/,
+                                                        std::string const& /*connectionString*/,
+                                                        std::string const& /*schema*/,
+                                                        Lightweight::SqlBackup::ProgressManager& /*progress*/) {
+        started.set_value();
+        released.wait();
+    });
+
+    auto const runner = DbtoolGui::MigrationRunner {};
+    auto const backupRunner = DbtoolGui::BackupRunner {};
+    CHECK(DbtoolGui::CloseBlockedReason(runner, backupRunner, controller).isEmpty());
+
+    QSignalSpy restoreDone(&controller, &ManagedBackupController::finished);
+    controller.restoreArchive("source", "target");
+    REQUIRE(startedFuture.wait_for(std::chrono::seconds { 30 }) == std::future_status::ready);
+    CHECK(controller.phase() == ManagedBackupController::Phase::Running);
+    CHECK(DbtoolGui::CloseBlockedReason(runner, backupRunner, controller)
+          == QStringLiteral("A restore is running. Wait until it finishes."));
+
+    release.set_value();
+    REQUIRE(WaitFor(restoreDone));
+    CHECK(DbtoolGui::CloseBlockedReason(runner, backupRunner, controller).isEmpty());
     controller.setBackupFolder(QString {});
 }
 

@@ -17,6 +17,7 @@ qt_add_executable(dbtool-gui-tests
     BackupRunnerTests.cpp
     BackupStatusListModelTests.cpp
     BackupTableListModelTests.cpp
+    CloseGuardTests.cpp
     FixturePluginTests.cpp
     ManagedBackupCoreTests.cpp
     ManagedBackupControllerTests.cpp

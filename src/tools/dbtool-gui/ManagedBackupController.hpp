@@ -13,6 +13,7 @@
 #include "SerialWorker.hpp"
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <functional>
@@ -55,6 +56,13 @@ class ManagedBackupController: public QObject
         Running,
     };
     Q_ENUM(Phase)
+
+    /// What the run in flight, or the last one, does.
+    enum class RunKind : std::uint8_t
+    {
+        Backup,  ///< Writes the managed archives of one or every profile.
+        Restore, ///< Reads a managed archive back into a database.
+    };
 
     /// The operation that writes one profile's archive. Injected so the
     /// failure semantics (a run that reports table-level errors without
@@ -132,6 +140,12 @@ class ManagedBackupController: public QObject
     /// Re-scans archive status in the background when the effective folder changes.
     /// @param folder The configured folder, or empty.
     void setConfiguredBackupFolder(QString const& folder);
+
+    /// @return What the run in flight, or the last one, does.
+    [[nodiscard]] RunKind runKind() const noexcept
+    {
+        return _runKind;
+    }
 
     /// Current run phase (idle vs. running a backup/restore).
     [[nodiscard]] Phase phase() const noexcept
@@ -220,6 +234,11 @@ class ManagedBackupController: public QObject
     Q_INVOKABLE void restoreArchiveToConnectionString(QString const& archiveProfile,
                                                       QString const& connectionString,
                                                       QString const& schema);
+
+    /// Blocks until the run and the archive-status scan in flight, if any, have finished or @p timeout ran out.
+    /// @param timeout How long to wait; `std::chrono::milliseconds::max()` waits for as long as it takes.
+    /// @return Whether no run is left.
+    [[nodiscard]] bool WaitForDone(std::chrono::milliseconds timeout);
 
   signals:
     void logLine(QString line, DbtoolGui::LogLevel level);
@@ -324,6 +343,7 @@ class ManagedBackupController: public QObject
     PlaintextPasswordVerifiedHandler _onPlaintextPasswordVerified;
     ConnectionProbe _connectionProbe;
     std::atomic<Phase> _phase { Phase::Idle };
+    RunKind _runKind = RunKind::Backup;
     BackupStatusListModel _status;
     std::vector<Lightweight::Config::Profile> _profiles;
     std::function<bool()> _busyProbe;

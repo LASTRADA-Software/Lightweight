@@ -360,7 +360,9 @@ Column {
             anchors.verticalCenter: parent.verticalCenter
             variant: "secondary"
             glyph: AppController.connected ? "refresh" : "plug"
-            text: AppController.connected ? qsTr("Reconnect") : qsTr("Connect")
+            busy: AppController.connecting
+            text: AppController.connecting ? qsTr("Connecting…")
+                  : AppController.connected ? qsTr("Reconnect") : qsTr("Connect")
             enabled: {
                 if (AppController.busy) return false;
                 if (AppController.connectionMode === "profile") return AppController.currentProfile.length > 0;

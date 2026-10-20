@@ -19,6 +19,7 @@
 #include "Models/BackupTableListModel.hpp"
 
 #include <atomic>
+#include <chrono>
 #include <expected>
 #include <filesystem>
 #include <functional>
@@ -187,6 +188,11 @@ class BackupRunner: public QObject
 
     Q_INVOKABLE void runBackup(QString const& outputFile);
     Q_INVOKABLE void runRestore(QString const& inputFile);
+
+    /// Blocks until the run in flight, if any, has finished or @p timeout ran out.
+    /// @param timeout How long to wait; `std::chrono::milliseconds::max()` waits for as long as it takes.
+    /// @return Whether no run is left.
+    [[nodiscard]] bool WaitForDone(std::chrono::milliseconds timeout);
 
     [[nodiscard]] Phase phase() const noexcept
     {

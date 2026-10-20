@@ -388,7 +388,8 @@ ColumnLayout {
     BackupRequiredAlert {
         objectName: "actionsBackupAlert"
         Layout.fillWidth: true
-        visible: AppController.connected && AppController.backupRequired
+        visible: AppController.connected && (AppController.backupRequired || AppController.backupRequirementPending)
+        pending: AppController.backupRequirementPending
         reasons: AppController.backupRequirementReasons
         note: AppController.backupRequirementNote
         busy: AppController.runner.phase !== MigrationRunner.Idle
@@ -420,6 +421,7 @@ ColumnLayout {
                  && (root.target !== "release" || root.hasSelection || root.selectedRelease.length > 0)
                  && (root.target !== "timestamp" || root.hasSelection || root.specificTimestamp.length > 0)
                  && (root.dryRun || !root.backupBlocked)
+                 && !AppController.backupRequirementPending
                  && !AppController.busy
         ToolTip.visible: hovered
         ToolTip.delay: 500

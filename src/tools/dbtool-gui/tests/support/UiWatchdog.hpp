@@ -9,6 +9,7 @@
 
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QObject>
+#include <QtCore/QString>
 #include <QtCore/QTimer>
 
 class QQuickWindow;
@@ -29,6 +30,11 @@ class UiWatchdog: public QObject
     Q_PROPERTY(bool exceeded READ exceeded NOTIFY maxGapMsChanged)
     /// Whether a test only reports the measured gap or fails when it exceeds the budget.
     Q_PROPERTY(Mode mode READ mode WRITE setMode NOTIFY modeChanged)
+    /// What the test is doing, e.g. "click connectButton"; the report names it with the longest gap.
+    Q_PROPERTY(QString step READ step WRITE setStep NOTIFY stepChanged)
+    /// The step during which the longest gap happened: "A" when it began and ended in step A, "A → B"
+    /// when it began in A and ended in B.
+    Q_PROPERTY(QString maxGapStep READ maxGapStep NOTIFY maxGapMsChanged)
 
   public:
     /// What a test does with a gap over the budget.
@@ -75,6 +81,28 @@ class UiWatchdog: public QObject
     /// Sets the mode a test applies.
     void setMode(Mode mode);
 
+    /// @return What the test is doing.
+    [[nodiscard]] QString const& step() const noexcept
+    {
+        return _step;
+    }
+
+    /// Names what the test does from now on.
+    void setStep(QString const& step);
+
+    /// @return The step of the longest gap (see the property).
+    [[nodiscard]] QString const& maxGapStep() const noexcept
+    {
+        return _maxGapStep;
+    }
+
+    /// Stops counting while the test itself, not the application, holds the GUI thread (a fixture
+    /// helper copying files, say). Counts the gap up to now first; nothing while not armed.
+    Q_INVOKABLE void pause();
+
+    /// Counts again after `pause`, from now on.
+    Q_INVOKABLE void resume();
+
     /// Arms the watchdog once @p window has swapped its first frame from now on, so start-up work
     /// before that frame (QML compilation, for one) does not count. Emits `firstFrame` then.
     Q_INVOKABLE void armOnFirstFrame(QQuickWindow* window);
@@ -92,6 +120,8 @@ class UiWatchdog: public QObject
     void budgetMsChanged();
     /// The mode changed.
     void modeChanged();
+    /// The step changed.
+    void stepChanged();
     /// The window passed to `armOnFirstFrame` swapped its first frame; the watchdog is armed.
     void firstFrame();
 
@@ -102,6 +132,12 @@ class UiWatchdog: public QObject
     QElapsedTimer _sinceLastBeat;
     QMetaObject::Connection _frameConnection;
     int _maxGapMs = 0;
+    QString _step;
+    /// The step at the last heartbeat, where the next gap begins.
+    QString _stepAtLastBeat;
+    QString _maxGapStep;
+    /// Whether `pause` stopped an armed heartbeat, which `resume` restarts.
+    bool _paused = false;
     int _budgetMs = DefaultBudgetMs;
     Mode _mode = Mode::Record;
 };

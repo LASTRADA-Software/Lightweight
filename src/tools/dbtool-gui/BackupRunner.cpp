@@ -21,6 +21,7 @@
 #include <vector>
 
 #include <BackupRecording.hpp>
+#include <QtCore/QDeadlineTimer>
 #include <QtCore/QDebug>
 #include <QtCore/QMetaObject>
 #include <QtCore/QRunnable>
@@ -431,6 +432,13 @@ namespace
     }
 
 } // namespace
+
+bool BackupRunner::WaitForDone(std::chrono::milliseconds timeout)
+{
+    if (timeout == std::chrono::milliseconds::max())
+        return _pool.waitForDone(QDeadlineTimer { QDeadlineTimer::Forever });
+    return _pool.waitForDone(QDeadlineTimer { timeout });
+}
 
 BackupRunner::BackupRunner(QObject* parent):
     QObject(parent),

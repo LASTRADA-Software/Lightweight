@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <chrono>
 #include <limits>
+#include <utility>
 
 #include <QtQuick/QQuickWindow>
 
@@ -36,6 +37,32 @@ void UiWatchdog::setMode(Mode mode)
     Q_EMIT modeChanged();
 }
 
+void UiWatchdog::setStep(QString const& step)
+{
+    if (step == _step)
+        return;
+    _step = step;
+    Q_EMIT stepChanged();
+}
+
+void UiWatchdog::pause()
+{
+    if (!_heartbeat.isActive())
+        return;
+    Beat();
+    _heartbeat.stop();
+    _paused = true;
+}
+
+void UiWatchdog::resume()
+{
+    if (!std::exchange(_paused, false))
+        return;
+    _stepAtLastBeat = _step;
+    _sinceLastBeat.start();
+    _heartbeat.start();
+}
+
 void UiWatchdog::armOnFirstFrame(QQuickWindow* window)
 {
     if (window == nullptr)
@@ -56,9 +83,12 @@ void UiWatchdog::armOnFirstFrame(QQuickWindow* window)
 
 void UiWatchdog::armNow()
 {
+    _paused = false;
+    _stepAtLastBeat = _step;
     if (_maxGapMs != 0)
     {
         _maxGapMs = 0;
+        _maxGapStep.clear();
         Q_EMIT maxGapMsChanged();
     }
     _sinceLastBeat.start();
@@ -68,6 +98,7 @@ void UiWatchdog::armNow()
 void UiWatchdog::stop()
 {
     disconnect(_frameConnection);
+    _paused = false;
     if (!_heartbeat.isActive())
         return;
     Beat();
@@ -77,9 +108,11 @@ void UiWatchdog::stop()
 void UiWatchdog::Beat()
 {
     auto const gap = static_cast<int>(std::min<qint64>(_sinceLastBeat.restart(), std::numeric_limits<int>::max()));
+    auto const begunIn = std::exchange(_stepAtLastBeat, _step);
     if (gap <= _maxGapMs)
         return;
     _maxGapMs = gap;
+    _maxGapStep = begunIn == _step ? _step : QStringLiteral("%1 → %2").arg(begunIn, _step);
     Q_EMIT maxGapMsChanged();
 }
 

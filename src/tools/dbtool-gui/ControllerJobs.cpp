@@ -3,10 +3,17 @@
 #include "ControllerJobs.hpp"
 #include "ExceptionMessage.hpp"
 
+#include <Lightweight/DataMapper/DataMapper.hpp>
+#include <Lightweight/SqlConnectInfo.hpp>
+#include <Lightweight/SqlConnection.hpp>
 #include <Lightweight/SqlMigration.hpp>
+#include <Lightweight/SqlServerType.hpp>
 
+#include <format>
+#include <stdexcept>
 #include <string_view>
 #include <system_error>
+#include <tuple>
 
 #include <PluginIngestion.hpp>
 #include <PluginLoader.hpp>
@@ -112,6 +119,124 @@ PluginReloadOutcome RunPluginReload(PluginReloadRequest const& request,
             .arg(outcome.snapshot.migrations.size())
             .arg(outcome.snapshot.releases.size()));
     return outcome;
+}
+
+ConnectOutcome RunConnect(ConnectRequest const& request,
+                          std::vector<Lightweight::Tools::LoadedPlugin>& plugins,
+                          Lightweight::SqlMigration::MigrationManager& manager)
+{
+    auto outcome = ConnectOutcome {};
+    outcome.generation = request.generation;
+    auto const log = [&outcome, &request](LogLevel level, QString line) {
+        if (request.log)
+            request.log(level, std::move(line));
+        else
+            outcome.log.emplace_back(std::move(line), level);
+    };
+    auto const stale = [&request] {
+        return request.isStale && request.isStale();
+    };
+    if (stale())
+        return outcome;
+
+    // Rescan on every connect, so DLLs dropped into the directory between clicks are picked up; the
+    // post-init hooks run below, on the new connection, not on the one being replaced.
+    auto reload = RunPluginReload(PluginReloadRequest { .directories = request.pluginDirectories,
+                                                        .state = AppliedState::Unknown,
+                                                        .generation = request.generation },
+                                  plugins,
+                                  manager);
+    for (auto& [line, level]: reload.log)
+        log(level, std::move(line));
+    outcome.pluginError = std::move(reload.error);
+    outcome.snapshot = std::move(reload.snapshot);
+    if (stale())
+        return outcome;
+
+    auto const defaultConnectionString = Lightweight::SqlConnectionString { request.connectionString };
+    // Creates a SQLite file that does not exist yet, as dbtool does; a no-op for every other driver.
+    (void) Lightweight::EnsureSqliteDatabaseFileExists(defaultConnectionString);
+    Lightweight::SqlConnection::SetDefaultConnectionString(defaultConnectionString);
+
+    // Before the data mapper connects, so the schema's post-connect hook is in place for it.
+    try
+    {
+        manager.SetDefaultSchema(request.schema);
+    }
+    catch (std::invalid_argument const& e)
+    {
+        outcome.error = QString::fromStdString(e.what());
+        return outcome;
+    }
+
+    // The default connection string was just replaced, so this reconnects the manager's data mapper
+    // to it - now, where a failure can be reported, rather than on the manager's first use.
+    try
+    {
+        std::ignore = manager.GetDataMapper();
+    }
+    catch (std::exception const& e)
+    {
+        auto const failure = ExceptionMessage(e);
+        log(LogLevel::Error, QStringLiteral("Connection failed: %1").arg(failure));
+        outcome.error = QStringLiteral("Could not open the database connection: %1").arg(failure);
+        return outcome;
+    }
+
+    // What the driver negotiated, not what the connection string asked for.
+    try
+    {
+        auto const& connection = manager.GetDataMapper().Connection();
+        outcome.reachedDatabase = QString::fromStdString(connection.DatabaseName());
+        log(LogLevel::Info,
+            QStringLiteral("Connected: %1 · %2 · %3")
+                .arg(QString::fromStdString(std::format("{}", connection.ServerType())),
+                     outcome.reachedDatabase,
+                     QString::fromStdString(connection.ServerVersion())));
+        if (!request.schema.empty())
+            log(LogLevel::Info, QStringLiteral("Schema search path: %1").arg(QString::fromStdString(request.schema)));
+    }
+    catch (std::exception const&)
+    {
+        // Best effort: the connect itself succeeded, so a failed metadata read only skips the line.
+    }
+
+    if (stale())
+        return outcome;
+    // Installed before the hooks run, so their first banner reaches the GUI's log.
+    manager.SetLogSink(request.logSink);
+
+    // A plugin's post-init hook may, for instance, fill a virtual applied overlay from a legacy
+    // version table; until it ran, that range would show as pending. A failing hook is logged and
+    // never aborts the connect. The history table is not created here: Lightweight's write paths
+    // create it lazily, so an introspection-only connect leaves a fresh database untouched.
+    RunPostInitHooks(plugins, manager, [&log](QString line) { log(LogLevel::Error, std::move(line)); });
+
+    // Reads the history merged with the plugins' overlay; an unreadable history falls back to the
+    // plugins alone and says why in the snapshot's warning.
+    outcome.snapshot = CaptureMigrationSnapshot(manager, AppliedState::Database);
+    outcome.defaultSchema = std::string { manager.DefaultSchema() };
+    outcome.ok = true;
+    return outcome;
+}
+
+QStringList PreviewMigrationStatements(Lightweight::SqlMigration::MigrationManager const& manager, std::uint64_t timestamp)
+{
+    auto const* migration = manager.GetMigration(Lightweight::SqlMigration::MigrationTimestamp { timestamp });
+    if (!migration)
+        return {};
+    // The preview queries the connected database for the dialect and column widths.
+    try
+    {
+        auto statements = QStringList {};
+        for (auto const& statement: manager.PreviewMigration(*migration))
+            statements.push_back(QString::fromStdString(statement));
+        return statements;
+    }
+    catch (std::exception const& e)
+    {
+        return { QStringLiteral("-- Preview failed: %1").arg(ExceptionMessage(e)) };
+    }
 }
 
 } // namespace DbtoolGui

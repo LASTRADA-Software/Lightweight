@@ -38,4 +38,21 @@ namespace DbtoolGui::Tests
     return true;
 }
 
+/// Starts a connect and runs the event loop until it finished, its backup-requirement check included.
+/// @param controller The controller to connect.
+/// @param timeout How long to wait at most.
+/// @return Whether the controller is connected afterwards; false when the connect did not start or end in time.
+[[nodiscard]] inline bool ConnectAndWait(DbtoolGui::AppController& controller,
+                                         std::chrono::milliseconds timeout = std::chrono::seconds { 30 })
+{
+    auto finished = QSignalSpy { &controller, &DbtoolGui::AppController::connectFinished };
+    if (!controller.connectToProfile())
+        return false;
+    if (finished.isEmpty() && !finished.wait(static_cast<int>(timeout.count())))
+        return false;
+    // Deliver what the job posted besides its outcome, such as the manager's log lines.
+    QCoreApplication::processEvents();
+    return controller.connected();
+}
+
 } // namespace DbtoolGui::Tests

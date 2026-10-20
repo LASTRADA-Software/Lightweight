@@ -44,6 +44,9 @@ set(MIGRATIONS_GUI_CXX_SOURCES
     BackupRunner.hpp
     BackupRunner.cpp
     BackupRequirementSupport.hpp
+    BackupRequirementSupport.cpp
+    CloseGuard.hpp
+    CloseGuard.cpp
     ControllerJobs.hpp
     ControllerJobs.cpp
     ExceptionMessage.hpp

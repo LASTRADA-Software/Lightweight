@@ -23,6 +23,7 @@
 #include <utility>
 
 #include <QtCore/QDateTime>
+#include <QtCore/QDeadlineTimer>
 #include <QtCore/QDebug>
 #include <QtCore/QMetaObject>
 #include <QtCore/QRunnable>
@@ -342,6 +343,16 @@ namespace
     }
 } // namespace
 
+bool ManagedBackupController::WaitForDone(std::chrono::milliseconds timeout)
+{
+    auto const deadline = timeout == std::chrono::milliseconds::max() ? QDeadlineTimer { QDeadlineTimer::Forever }
+                                                                      : QDeadlineTimer { timeout };
+    auto const runDone = _pool.waitForDone(deadline);
+    auto const remaining =
+        deadline.isForever() ? std::chrono::milliseconds::max() : std::chrono::milliseconds { deadline.remainingTime() };
+    return _statusWorker.WaitForDone(remaining) && runDone;
+}
+
 ManagedBackupController::ManagedBackupController(QObject* parent):
     QObject(parent),
     _backupOperation(&RunSqlBackup),
@@ -573,6 +584,7 @@ void ManagedBackupController::RunBackups(std::vector<Lightweight::Config::Profil
 {
     if (!StartRunGuard(what))
         return;
+    _runKind = RunKind::Backup;
 
     // Plan against the FULL profile list (via PlanEntryFor) so a single-profile
     // run sees the same collision flag backupAll would — a plan built from only
@@ -738,6 +750,7 @@ void ManagedBackupController::RunRestore(QString const& archiveProfile,
 {
     if (!StartRunGuard("Restore"))
         return;
+    _runKind = RunKind::Restore;
 
     std::optional<Lightweight::Config::Profile> targetProfile;
     auto effectiveSchema = schema;

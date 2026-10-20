@@ -16,6 +16,7 @@
 #include "Models/SqlResultModel.hpp"
 
 #include <atomic>
+#include <chrono>
 #include <stop_token>
 
 #include <QtCore/QObject>
@@ -60,6 +61,11 @@ class SqlQueryRunner: public QObject
     /// interrupted while it is blocked inside `SQLExecDirect` / `SQLFetch`.
     /// No-op when `busy()` is `false`.
     Q_INVOKABLE void cancel();
+
+    /// Blocks until the query in flight, if any, has finished or @p timeout ran out.
+    /// @param timeout How long to wait; `std::chrono::milliseconds::max()` waits for as long as it takes.
+    /// @return Whether no query is left.
+    [[nodiscard]] bool WaitForDone(std::chrono::milliseconds timeout);
 
   signals:
     void busyChanged();

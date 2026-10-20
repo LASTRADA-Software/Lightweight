@@ -3,7 +3,8 @@
 // Shown next to the migrate buttons while a release or a pre-migrate step requires a backup that
 // does not exist yet: names what requires it, says a backup is required to run the migrations, and
 // offers "Back up now". The migration lock does not stop the application's own writes, so it also
-// asks to stop the application during the upgrade.
+// asks to stop the application during the upgrade. While the requirement is still being checked it
+// says so instead, with both controls disabled.
 //
 // Usage:
 //     BackupRequiredAlert { reasons: AppController.backupRequirementReasons; onBackupRequested: AppController.backUpNow() }
@@ -23,6 +24,8 @@ Banner {
     property bool busy: false
     /// Whether "Migrate without a backup" is ticked (bound to `AppController.migrateWithoutBackup`).
     property bool waived: false
+    /// Whether the requirement is still being checked (bound to `AppController.backupRequirementPending`).
+    property bool pending: false
 
     /// The user asked for a backup.
     signal backupRequested()
@@ -37,20 +40,30 @@ Banner {
         return list.slice(0, -1).join(", ") + qsTr(" and ") + list[list.length - 1]
     }
 
-    kind: "warn"
-    title: qsTr("A backup is required to run the migrations")
-    text: qsTr("%1 %2 a backup of this database taken after its last migration.")
+    kind: root.pending ? "info" : "warn"
+    title: root.pending ? "" : qsTr("A backup is required to run the migrations")
+    text: root.pending ? ""
+          : qsTr("%1 %2 a backup of this database taken after its last migration.")
               .arg(joinedReasons())
               .arg((root.reasons || []).length === 1 ? qsTr("requires") : qsTr("require"))
-          + (root.note !== "" ? " " + root.note : "")
-          + " " + qsTr("Stop every application that writes to this database until the migrations have finished: the migration lock does not stop its writes.")
+            + (root.note !== "" ? " " + root.note : "")
+            + " " + qsTr("Stop every application that writes to this database until the migrations have finished: the migration lock does not stop its writes.")
     // Below the text rather than in `actions`: the Expert view's pane is too narrow for both side by side.
     controls: [
+        Label {
+            objectName: "backupRequirementChecking"
+            visible: root.pending
+            width: parent ? parent.width : implicitWidth
+            text: qsTr("Checking whether a backup is required…")
+            color: root.foreground
+            font.pixelSize: Theme.sizeBodySm + 1
+            wrapMode: Text.Wrap
+        },
         LsButton {
             objectName: "backUpNowButton"
             text: qsTr("Back up now")
             glyph: "archive"
-            enabled: !root.busy && !AppController.busy
+            enabled: !root.busy && !root.pending && !AppController.busy
             onClicked: root.backupRequested()
         },
         CheckBox {
@@ -68,7 +81,7 @@ Banner {
                 verticalAlignment: Text.AlignVCenter
             }
             checked: root.waived
-            enabled: !root.busy && !AppController.busy
+            enabled: !root.busy && !root.pending && !AppController.busy
             ToolTip.visible: hovered
             ToolTip.delay: 500
             ToolTip.text: qsTr("Runs the migrations once without a backup. The run is recorded as waived; the next run needs a backup again.")

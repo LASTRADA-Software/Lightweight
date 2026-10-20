@@ -154,10 +154,50 @@ ApplicationWindow {
         sequence: "Ctrl+Q"
         context: Qt.ApplicationShortcut
         autoRepeat: false
-        onActivated: {
-            console.log("[Shortcut] Ctrl+Q activated, quitting");
-            Qt.quit();
+        // Through close(), so the guard against closing during a run applies.
+        onActivated: root.close()
+    }
+
+    /// True once a close was refused because a run is in flight; cleared when nothing blocks closing.
+    property bool closeRefused: false
+    onClosing: (close) => {
+        if (!AppController.closeBlocked)
+            return
+        close.accepted = false
+        root.closeRefused = true
+    }
+    Connections {
+        target: AppController
+        function onCloseBlockedChanged() {
+            if (!AppController.closeBlocked)
+                root.closeRefused = false
         }
+        function onQuitRefused() {
+            root.closeRefused = true
+        }
+    }
+
+    // Says why the window stays open, in the window rather than in a native dialog.
+    Banner {
+        objectName: "closeBlockedMessage"
+        parent: Overlay.overlay
+        z: 1000
+        visible: root.closeRefused
+        anchors.horizontalCenter: parent ? parent.horizontalCenter : undefined
+        anchors.bottom: parent ? parent.bottom : undefined
+        anchors.bottomMargin: 16
+        width: Math.min(root.width - 32, 520)
+        kind: "warn"
+        title: qsTr("The window stays open")
+        text: AppController.closeBlockedReason
+        actions: [
+            LsButton {
+                objectName: "closeBlockedCancelButton"
+                visible: AppController.closeBlockingRunCancellable
+                text: qsTr("Cancel the run")
+                onClicked: AppController.cancelBlockingRun()
+            }
+        ]
     }
 
     // Transient — not persisted. The app always opens on Migrations.

@@ -75,12 +75,14 @@ WorkflowTestCase {
     function test_one_change_cause_loads_the_plugins_once() {
         preparePlugins()
         prepareProfiles()
+        // Copying the plugins is the test's work, not the application's; it happens before the window opens.
+        const otherDirectory = WorkflowFixture.newPluginsDir(["recorder", "workflow"])
         openMain()
         waitForIdle()
         compare(WorkflowFixture.lineCount(loadLog), 1)
 
         // Three changes that each reload the plugins, made in one turn of the event loop.
-        const otherDirectory = WorkflowFixture.newPluginsDir(["recorder", "workflow"])
+        step("three changes in one turn")
         AppController.setPluginsDir(otherDirectory)
         AppController.setConnectionMode("dsn")
         AppController.currentProfile = "q"
