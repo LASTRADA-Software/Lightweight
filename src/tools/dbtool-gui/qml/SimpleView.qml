@@ -168,6 +168,7 @@ Rectangle {
 
     FileDialog {
         id: backupFileDialog
+        objectName: "backupFileDialog"
         title: qsTr("Choose backup file")
         fileMode: FileDialog.SaveFile
         nameFilters: [qsTr("Backup archive (*.zip)"), qsTr("All files (*)")]
@@ -181,6 +182,7 @@ Rectangle {
 
     FileDialog {
         id: saveReportDialog
+        objectName: "saveReportDialog"
         title: qsTr("Save failure report")
         fileMode: FileDialog.SaveFile
         nameFilters: [qsTr("Text file (*.txt)"), qsTr("All files (*)")]
@@ -556,6 +558,7 @@ Rectangle {
                 // 3. Run — idle, running, success and failure states.
                 StepSection {
                     id: runStep
+                    objectName: "runStep"
                     Layout.fillWidth: true
                     visible: AppController.connected
                              && (root.hasWork || root.busy || root.lastResult !== "none")
@@ -573,6 +576,7 @@ Rectangle {
 
                         CheckBox {
                             id: backupFirstCheckBox
+                            objectName: "backupFirstCheckBox"
                             text: qsTr("Back up the database first")
                             checked: root.backupFirst
                             onCheckedChanged: root.backupFirst = checked
@@ -593,6 +597,7 @@ Rectangle {
                         }
 
                         LsButton {
+                            objectName: "runButton"
                             width: parent.width
                             variant: "primary"
                             size: "lg"
@@ -677,6 +682,7 @@ Rectangle {
                         }
 
                         LsButton {
+                            objectName: "cancelButton"
                             width: parent.width
                             size: "md"
                             text: AppController.runner.phase === MigrationRunner.Cancelling
@@ -725,6 +731,7 @@ Rectangle {
                                     Layout.fillWidth: true
                                     spacing: 2
                                     Label {
+                                        objectName: "successTitle"
                                         text: AppController.pendingCount === 0
                                               ? qsTr("Database is up to date") : qsTr("Migrations applied")
                                         color: Theme.clrSuccess
@@ -786,12 +793,14 @@ Rectangle {
                             spacing: 8
                             Item { Layout.fillWidth: true }
                             LsButton {
+                                objectName: "viewLogButton"
                                 variant: "ghost"
                                 glyph: "terminal"
                                 text: qsTr("View log")
                                 onClicked: AppController.setLogVisible(true)
                             }
                             LsButton {
+                                objectName: "doneButton"
                                 size: "md"
                                 text: qsTr("Done")
                                 onClicked: root.dismissResult()
@@ -815,6 +824,7 @@ Rectangle {
                         property bool bundleVisible: false
 
                         Banner {
+                            objectName: "failureBanner"
                             width: parent.width
                             kind: "err"
                             title: qsTr("Migration run failed")
@@ -844,6 +854,7 @@ Rectangle {
                                 onClicked: failureBlock.bundleVisible = !failureBlock.bundleVisible
                             }
                             LsButton {
+                                objectName: "copyReportButton"
                                 glyph: "copy"
                                 text: qsTr("Copy report")
                                 onClicked: {
@@ -854,15 +865,18 @@ Rectangle {
                                 }
                             }
                             LsButton {
+                                objectName: "saveReportButton"
                                 text: qsTr("Save report…")
                                 onClicked: saveReportDialog.open()
                             }
                             LsButton {
+                                objectName: "showFullLogButton"
                                 glyph: "terminal"
                                 text: qsTr("Show full log")
                                 onClicked: AppController.setLogVisible(true)
                             }
                             LsButton {
+                                objectName: "retryButton"
                                 variant: "primary"
                                 glyph: "refresh"
                                 text: qsTr("Retry")

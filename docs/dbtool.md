@@ -1018,7 +1018,7 @@ dbtool migrate --plugins-dir ./build/plugins
 
 ### Optional Post-Init Hook
 
-A plugin may export an optional `LightweightMigrationPluginPostInit` symbol that
+A plugin may export an optional `LightweightMigrationPluginPostInitReported` symbol that
 `dbtool` calls **once per invocation**, after `schema_migrations` has been created
 and a live connection is available. Use this for one-shot bridging work that needs
 both a `SqlConnection` and the merged `MigrationManager` — for example, importing
@@ -1039,7 +1039,10 @@ LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connection, manager)
 ```
 
 The hook is **optional** — plugins that don't export the symbol behave exactly as
-before. Per-plugin exceptions are logged to stderr but do not abort `dbtool`.
+before. Per-plugin exceptions are logged to stderr but do not abort `dbtool`: the
+macro's entry point catches them, so none crosses the plugin boundary. A plugin built
+against an older Lightweight exports only `LightweightMigrationPluginPostInit`, whose
+signature differs; `dbtool` does not call it and logs a warning to rebuild the plugin.
 
 Post-init runs before every command, read-only ones included, and before the
 migration lock is taken and any migration runs. It is therefore the wrong place

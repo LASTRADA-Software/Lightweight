@@ -42,6 +42,7 @@ Rectangle {
                 color: AppController.connected ? Theme.clrSuccessDot : Theme.clrOnSurfaceFaint
             }
             Label {
+                objectName: "connectionStatusLabel"
                 anchors.verticalCenter: parent.verticalCenter
                 text: AppController.connected ? qsTr("Connected") : qsTr("Not connected")
                 color: Theme.clrOnSurfaceSubtle
@@ -58,6 +59,7 @@ Rectangle {
             font.pixelSize: Theme.sizeLabel
         }
         Label {
+            objectName: "countsLabel"
             visible: AppController.migrationCount > 0
             text: qsTr("%1 applied · %2 pending").arg(AppController.appliedCount).arg(AppController.pendingCount)
             color: Theme.clrOnSurfaceSubtle

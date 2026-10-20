@@ -446,14 +446,39 @@ HookCalls& RecordedHookCalls()
     return calls;
 }
 
-void RecordingPostInit(Lightweight::SqlConnection& /*connection*/, Lightweight::SqlMigration::MigrationManager& /*manager*/)
+bool RecordingPostInit(Lightweight::SqlConnection& /*connection*/,
+                       Lightweight::SqlMigration::MigrationManager& /*manager*/,
+                       Lightweight::SqlMigration::PluginHookErrorSink /*reportError*/,
+                       void* /*errorContext*/) noexcept
+{
+    ++RecordedHookCalls().postInit;
+    return true;
+}
+
+/// The post-init entry point of a plugin built against an older Lightweight; the host must never call it.
+void LegacyPostInit(Lightweight::SqlConnection& /*connection*/, Lightweight::SqlMigration::MigrationManager& /*manager*/)
 {
     ++RecordedHookCalls().postInit;
 }
 
-void RegisteringPostInit(Lightweight::SqlConnection& /*connection*/, Lightweight::SqlMigration::MigrationManager& manager)
+/// Stands in for a post-init body that threw: the exported entry point reports and returns false.
+bool FailingPostInit(Lightweight::SqlConnection& /*connection*/,
+                     Lightweight::SqlMigration::MigrationManager& /*manager*/,
+                     Lightweight::SqlMigration::PluginHookErrorSink reportError,
+                     void* errorContext) noexcept
+{
+    ++RecordedHookCalls().postInit;
+    reportError(errorContext, "bridge failed");
+    return false;
+}
+
+bool RegisteringPostInit(Lightweight::SqlConnection& /*connection*/,
+                         Lightweight::SqlMigration::MigrationManager& manager,
+                         Lightweight::SqlMigration::PluginHookErrorSink /*reportError*/,
+                         void* /*errorContext*/) noexcept
 {
     manager.AddPreMigrateStep("Plugin step", {}, [](auto&, auto&, auto&, auto) {});
+    return true;
 }
 
 bool RecordingPostMigrate(Lightweight::SqlConnection& /*connection*/,
@@ -544,7 +569,7 @@ TEST_CASE("RunPluginPostMigrateHooks and RunPluginPostInitHooks resolve only the
     RecordedHookCalls() = {};
     auto const plugins = std::vector {
         MakeHookPlugin("both",
-                       { { "LightweightMigrationPluginPostInit", AsSymbol(&RecordingPostInit) },
+                       { { "LightweightMigrationPluginPostInitReported", AsSymbol(&RecordingPostInit) },
                          { "LightweightMigrationPluginPostMigrate", AsSymbol(&RecordingPostMigrate) } }),
     };
     Lightweight::SqlConnection connection { std::nullopt };
@@ -559,10 +584,51 @@ TEST_CASE("RunPluginPostMigrateHooks and RunPluginPostInitHooks resolve only the
     CHECK(RecordedHookCalls().postMigrate == 1);
 }
 
+TEST_CASE("RunPluginPostInitHooks — a failing hook is reported and the others still run", "[PluginIngestion]")
+{
+    RecordedHookCalls() = {};
+    auto const plugins = std::vector {
+        MakeHookPlugin("failing", { { "LightweightMigrationPluginPostInitReported", AsSymbol(&FailingPostInit) } }),
+        MakeHookPlugin("healthy", { { "LightweightMigrationPluginPostInitReported", AsSymbol(&RecordingPostInit) } }),
+    };
+    Lightweight::SqlConnection connection { std::nullopt };
+    Lightweight::SqlMigration::MigrationManager central;
+    std::vector<std::string> errors;
+
+    Lightweight::Tools::RunPluginPostInitHooks(
+        plugins, connection, central, [&errors](std::string_view message) { errors.emplace_back(message); });
+
+    CHECK(RecordedHookCalls().postInit == 2);
+    REQUIRE(errors.size() == 1);
+    CHECK(errors.front().contains("Plugin post-init failed (failing)"));
+    CHECK(errors.front().contains("bridge failed"));
+}
+
+TEST_CASE("RunPluginPostInitHooks — a plugin with only the old post-init symbol is not called but warned about",
+          "[PluginIngestion]")
+{
+    RecordedHookCalls() = {};
+    auto const plugins = std::vector {
+        MakeHookPlugin("outdated", { { "LightweightMigrationPluginPostInit", AsSymbol(&LegacyPostInit) } }),
+        MakeHookPlugin("without-hook", {}),
+    };
+    Lightweight::SqlConnection connection { std::nullopt };
+    Lightweight::SqlMigration::MigrationManager central;
+    std::vector<std::string> errors;
+
+    Lightweight::Tools::RunPluginPostInitHooks(
+        plugins, connection, central, [&errors](std::string_view message) { errors.emplace_back(message); });
+
+    CHECK(RecordedHookCalls().postInit == 0);
+    REQUIRE(errors.size() == 1);
+    CHECK(errors.front() == "Plugin outdated was built against an older Lightweight; rebuild it to run its post-init hook");
+    CHECK(Lightweight::Tools::PluginsWithPostInitHook(plugins).empty());
+}
+
 TEST_CASE("RunPluginPostInitHooks — a second run replaces the steps of the first", "[PluginIngestion]")
 {
     auto const plugins = std::vector {
-        MakeHookPlugin("a", { { "LightweightMigrationPluginPostInit", AsSymbol(&RegisteringPostInit) } }),
+        MakeHookPlugin("a", { { "LightweightMigrationPluginPostInitReported", AsSymbol(&RegisteringPostInit) } }),
     };
     Lightweight::SqlConnection connection { std::nullopt };
     Lightweight::SqlMigration::MigrationManager central;
@@ -581,11 +647,11 @@ TEST_CASE("RunPluginPostInitHooks — a second run replaces the steps of the fir
 TEST_CASE("PluginsWithPostInitHook lists exactly the plugins that export a post-init hook", "[PluginIngestion]")
 {
     auto const plugins = std::vector {
-        MakeHookPlugin("seeding", { { "LightweightMigrationPluginPostInit", AsSymbol(&RecordingPostInit) } }),
+        MakeHookPlugin("seeding", { { "LightweightMigrationPluginPostInitReported", AsSymbol(&RecordingPostInit) } }),
         MakeHookPlugin("post-migrate-only",
                        { { "LightweightMigrationPluginPostMigrate", AsSymbol(&RecordingPostMigrate) } }),
         MakeHookPlugin("without-hook", {}),
-        MakeHookPlugin("bridging", { { "LightweightMigrationPluginPostInit", AsSymbol(&RecordingPostInit) } }),
+        MakeHookPlugin("bridging", { { "LightweightMigrationPluginPostInitReported", AsSymbol(&RecordingPostInit) } }),
     };
 
     CHECK(Lightweight::Tools::PluginsWithPostInitHook(plugins)

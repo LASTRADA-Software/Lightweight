@@ -234,6 +234,7 @@ ApplicationWindow {
                         ]
                         actions: [
                             SegmentedControl {
+                                objectName: "viewModeControl"
                                 size: root.expert ? "md" : "sm"
                                 model: [ { value: "simple", label: qsTr("Simple") },
                                          { value: "expert", label: qsTr("Expert") } ]
@@ -241,6 +242,7 @@ ApplicationWindow {
                                 onActivated: (value) => AppController.setViewMode(value)
                             },
                             LsButton {
+                                objectName: "refreshButton"
                                 text: qsTr("Refresh")
                                 glyph: "refresh"
                                 iconOnly: !root.expert
@@ -259,18 +261,24 @@ ApplicationWindow {
 
                         SimpleView {
                             id: simpleView
+                            objectName: "simpleView"
                             onOpenBackups: root.navigate("backups")
                         }
-                        ExpertView { id: expertView }
+                        ExpertView {
+                            id: expertView
+                            objectName: "expertView"
+                        }
                     }
                 }
 
                 SettingsPage {
                     id: settingsPage
+                    objectName: "settingsPage"
                     onDone: root.currentPage = "migrations"
                 }
                 BackupsPage {
                     id: backupsPage
+                    objectName: "backupsPage"
                     onDone: root.currentPage = "migrations"
                     onOpenSettings: root.currentPage = "settings"
                 }

@@ -226,6 +226,7 @@ Rectangle {
 
                         KitField {
                             id: storePathField
+                            objectName: "profileStorePathField"
                             Layout.fillWidth: true
                             Layout.minimumWidth: 80
                             placeholderText: AppController.defaultProfileStorePath
@@ -300,6 +301,7 @@ Rectangle {
 
                         KitField {
                             id: backupFolderField
+                            objectName: "backupFolderField"
                             Layout.fillWidth: true
                             Layout.minimumWidth: 80
                             leadingGlyph: "folder-outline"

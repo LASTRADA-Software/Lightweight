@@ -56,6 +56,7 @@ Column {
 
         TextField {
             id: pathField
+            objectName: "pluginsDirField"
             Layout.fillWidth: true
             Layout.minimumWidth: 80
             implicitHeight: Theme.ctlMd

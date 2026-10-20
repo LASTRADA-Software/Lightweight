@@ -17,6 +17,7 @@ qt_add_executable(dbtool-gui-tests
     BackupRunnerTests.cpp
     BackupStatusListModelTests.cpp
     BackupTableListModelTests.cpp
+    FixturePluginTests.cpp
     ManagedBackupCoreTests.cpp
     ManagedBackupControllerTests.cpp
     MigrationRunnerPostMigrateTests.cpp
@@ -24,6 +25,9 @@ qt_add_executable(dbtool-gui-tests
     NoErrorDialogsTests.cpp
     ProgressTaskModelTests.cpp
     RunnerBusyGuardTests.cpp
+    UiWatchdogTests.cpp
+    support/UiWatchdog.hpp
+    support/UiWatchdog.cpp
 )
 
 target_link_libraries(dbtool-gui-tests PRIVATE
@@ -55,6 +59,29 @@ target_compile_definitions(dbtool-gui-tests PRIVATE
     DBTOOL_GUI_TESTS_PRE_MIGRATE_RECORDER_PLUGIN="$<TARGET_FILE:post_migrate_plugin>"
 )
 add_dependencies(dbtool-gui-tests post_migrate_plugin)
+
+# The fixture plugins of the workflow tests, by the keys `WorkflowFixture::newPluginsDir` takes, and
+# the dbtool CLI the workflow tests run. Shared by `dbtool-gui-tests` and `dbtool-gui-workflowtest`.
+set(DBTOOL_GUI_WORKFLOW_FIXTURE_TARGETS
+    gui_workflow_fixture
+    post_migrate_plugin
+    backup_required_release_fixture
+    migration_requires_backup_fixture
+    unicode_candidate_fixture
+    failing_migration_fixture
+    bulk_migrations_fixture
+)
+set(DBTOOL_GUI_WORKFLOW_FIXTURE_DEFINITIONS
+    DBTOOL_GUI_WORKFLOW_FIXTURE_WORKFLOW="$<TARGET_FILE:gui_workflow_fixture>"
+    DBTOOL_GUI_WORKFLOW_FIXTURE_RECORDER="$<TARGET_FILE:post_migrate_plugin>"
+    DBTOOL_GUI_WORKFLOW_FIXTURE_BACKUP_REQUIRED_RELEASE="$<TARGET_FILE:backup_required_release_fixture>"
+    DBTOOL_GUI_WORKFLOW_FIXTURE_MIGRATION_REQUIRES_BACKUP="$<TARGET_FILE:migration_requires_backup_fixture>"
+    DBTOOL_GUI_WORKFLOW_FIXTURE_UNICODE_CANDIDATE="$<TARGET_FILE:unicode_candidate_fixture>"
+    DBTOOL_GUI_WORKFLOW_FIXTURE_FAILING="$<TARGET_FILE:failing_migration_fixture>"
+    DBTOOL_GUI_WORKFLOW_FIXTURE_BULK="$<TARGET_FILE:bulk_migrations_fixture>"
+)
+target_compile_definitions(dbtool-gui-tests PRIVATE ${DBTOOL_GUI_WORKFLOW_FIXTURE_DEFINITIONS})
+add_dependencies(dbtool-gui-tests ${DBTOOL_GUI_WORKFLOW_FIXTURE_TARGETS})
 
 # Embed a hand-written application manifest via an .rc RT_MANIFEST resource,
 # exactly like the `dbtool-gui` executable does (see ../CMakeLists.txt and
@@ -180,6 +207,88 @@ set_tests_properties(dbtool-gui-qmltest PROPERTIES
     LABELS "dbtool-gui"
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )
+
+# GUI workflow tests: the real Main window driven through its controls by Qt Quick Test, with the
+# `DbtoolGuiWorkflow` helpers (WorkflowFixture, UiWatchdog) registered into QML. One CTest, and with
+# it one process and one AppController, per `workflow/tst_workflow_*.qml` file.
+qt_add_executable(dbtool-gui-workflowtest
+    workflow/workflowtest_main.cpp
+    support/UiWatchdog.hpp
+    support/UiWatchdog.cpp
+    support/DbAccessProbe.hpp
+    support/DbAccessProbe.cpp
+    support/WorkflowFixture.hpp
+    support/WorkflowFixture.cpp
+    support/WorkflowSetup.hpp
+)
+
+target_link_libraries(dbtool-gui-workflowtest PRIVATE
+    Qt6::QuickTest
+    Qt6::Quick
+    Qt6::Qml
+    Qt6::Gui
+    dbtool-gui-lib
+    dbtool-gui-libplugin
+)
+
+# User DSNs for the DSN-mode workflow tests (SQLConfigDataSourceW); odbccp32 still needs the legacy stdio symbols.
+if(WIN32)
+    target_link_libraries(dbtool-gui-workflowtest PRIVATE odbccp32 legacy_stdio_definitions)
+endif()
+
+target_compile_definitions(dbtool-gui-workflowtest PRIVATE
+    ${DBTOOL_GUI_WORKFLOW_FIXTURE_DEFINITIONS}
+    DBTOOL_GUI_WORKFLOW_DBTOOL="$<TARGET_FILE:dbtool>"
+)
+add_dependencies(dbtool-gui-workflowtest ${DBTOOL_GUI_WORKFLOW_FIXTURE_TARGETS} dbtool)
+
+set_target_properties(dbtool-gui-workflowtest PROPERTIES
+    CXX_CLANG_TIDY ""
+)
+
+# Same lld-link SxS manifest-merge bug as `dbtool-gui-tests` above: embed the shared manifest via .rc.
+if(WIN32)
+    target_sources(dbtool-gui-workflowtest PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../dbtool-gui.manifest
+        ${CMAKE_CURRENT_SOURCE_DIR}/dbtool-gui-tests.rc
+    )
+    set_source_files_properties(
+        ${CMAKE_CURRENT_SOURCE_DIR}/../dbtool-gui.manifest
+        PROPERTIES HEADER_FILE_ONLY TRUE
+    )
+    target_link_options(dbtool-gui-workflowtest PRIVATE
+        $<$<CXX_COMPILER_ID:MSVC,Clang>:/MANIFEST:NO>
+    )
+endif()
+
+# Stage the Qt runtime, including the offscreen platform plugin, next to the binary.
+if(WIN32)
+    find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS ${Qt6_DIR}/../../../bin)
+    if(WINDEPLOYQT_EXECUTABLE)
+        add_custom_command(TARGET dbtool-gui-workflowtest POST_BUILD
+            COMMAND "${WINDEPLOYQT_EXECUTABLE}"
+                    --no-translations
+                    --no-system-d3d-compiler
+                    --include-plugins qoffscreen
+                    --qmldir "${CMAKE_CURRENT_SOURCE_DIR}/../qml"
+                    "$<TARGET_FILE:dbtool-gui-workflowtest>"
+            COMMENT "Running windeployqt for dbtool-gui-workflowtest"
+            VERBATIM
+        )
+    endif()
+endif()
+
+file(GLOB DBTOOL_GUI_WORKFLOW_FILES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/workflow/tst_workflow_*.qml)
+foreach(workflowFile IN LISTS DBTOOL_GUI_WORKFLOW_FILES)
+    get_filename_component(workflowStem ${workflowFile} NAME_WE)
+    add_test(NAME dbtool-gui-workflow-${workflowStem}
+        COMMAND dbtool-gui-workflowtest -input ${workflowFile}
+    )
+    set_tests_properties(dbtool-gui-workflow-${workflowStem} PROPERTIES
+        LABELS "dbtool-gui"
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;LIGHTWEIGHT_NO_ERROR_DIALOGS=1"
+    )
+endforeach()
 
 # Process-level smoke test driven from Python: launches the real `dbtool-gui`
 # binary under the offscreen platform plugin and asserts it stays alive

@@ -461,6 +461,7 @@ Rectangle {
                 }
                 LsButton {
                     id: confirmBtn
+                    objectName: "restoreConfirmButton"
                     variant: "dangerFill"
                     size: "md"
                     text: dlg.confirmText
@@ -497,6 +498,7 @@ Rectangle {
 
             actions: [
                 LsButton {
+                    objectName: "backupAllButton"
                     variant: "primary"
                     size: "md"
                     glyph: "download"
@@ -768,6 +770,7 @@ Rectangle {
 
                                 delegate: ProfileRow {
                                     id: profileRow
+                                    objectName: "profileRow_" + model.name
 
                                     // Roles are read through `model.<role>`
                                     // rather than as required properties: the
@@ -1288,6 +1291,7 @@ Rectangle {
             FieldLabel { Layout.fillWidth: true; text: qsTr("Restore into") }
             ComboBox {
                 id: targetCombo
+                objectName: "restoreTargetCombo"
                 Layout.fillWidth: true
                 implicitHeight: Theme.ctlMd
                 model: restoreDialog._targets
@@ -1305,6 +1309,7 @@ Rectangle {
             FieldLabel { Layout.fillWidth: true; text: qsTr("Connection string") }
             KitField {
                 id: customConnField
+                objectName: "restoreConnectionStringField"
                 Layout.fillWidth: true
                 mono: true
                 placeholderText: qsTr("Driver={…};Server=…;Database=…")

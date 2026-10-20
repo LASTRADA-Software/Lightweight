@@ -365,6 +365,7 @@ Item {
 
         KineticListView {
             id: listView
+            objectName: "migrationList"
             anchors.top: listHeader.bottom
             anchors.left: parent.left
             anchors.right: parent.right
@@ -410,6 +411,7 @@ Item {
                 // MigrationRow property is marked required — the
                 // explicit form always picks up the role values
                 // reliably on Qt 6's model/view pipeline.
+                objectName: "migrationRow_" + model.timestamp
                 timestamp: model.timestamp
                 title: model.title
                 status: model.status

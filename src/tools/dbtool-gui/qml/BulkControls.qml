@@ -32,6 +32,7 @@ Item {
 
     LsButton {
         id: button
+        objectName: "bulkMenuButton"
         variant: "ghost"
         size: "sm"
         iconOnly: true
@@ -46,6 +47,7 @@ Item {
         id: menu
 
         MenuItem {
+            objectName: "selectAllPendingItem"
             text: root.leftLabel
             checkable: true
             checked: root.activeLeft
@@ -57,6 +59,7 @@ Item {
             ToolTip.delay: 500
         }
         MenuItem {
+            objectName: "deselectAllItem"
             text: root.rightLabel
             checkable: true
             checked: root.activeRight

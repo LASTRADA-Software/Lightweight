@@ -203,6 +203,7 @@ Rectangle {
                         anchors.rightMargin: 8
                         spacing: 6
                         LsButton {
+                            objectName: "runQueryButton"
                             text: qsTr("Execute")
                             variant: "secondary"
                             glyph: "play"
@@ -250,6 +251,7 @@ Rectangle {
 
                     TextArea {
                         id: editor
+                        objectName: "sqlEditor"
                         placeholderText: qsTr("Type SQL here. Ctrl+Enter to run.")
                         placeholderTextColor: Theme.clrCodeMuted
                         font: Theme.monoFont(Theme.sizeMono)
@@ -296,6 +298,7 @@ Rectangle {
                     WheelScrollAmplifier { target: errorScroll.contentItem }
 
                     TextArea {
+                        objectName: "sqlError"
                         readOnly: true
                         selectByMouse: true
                         wrapMode: TextEdit.Wrap
@@ -347,6 +350,7 @@ Rectangle {
 
                 TableView {
                     id: tableView
+                    objectName: "sqlResultTable"
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true

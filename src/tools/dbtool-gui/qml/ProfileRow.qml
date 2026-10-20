@@ -369,6 +369,7 @@ Rectangle {
                 spacing: 6
 
                 LsButton {
+                    objectName: "profileBackupButton"
                     variant: "secondary"
                     size: "sm"
                     text: root.backupLabel
@@ -376,6 +377,7 @@ Rectangle {
                     onClicked: root.backupRequested()
                 }
                 LsButton {
+                    objectName: "profileRestoreButton"
                     variant: "danger"
                     size: "sm"
                     text: qsTr("Restore…")

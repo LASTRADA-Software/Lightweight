@@ -77,6 +77,7 @@ ColumnLayout {
         Rectangle {
             id: optionRect
             required property var modelData
+            objectName: "targetOption_" + modelData.key
             readonly property bool active: root.target === modelData.key
             readonly property bool expanded: active && (modelData.key === "release" || modelData.key === "timestamp")
 
@@ -173,6 +174,7 @@ ColumnLayout {
                 }
 
                 ComboBox {
+                    objectName: "releasePicker"
                     width: parent.width
                     visible: optionRect.expanded && optionRect.modelData.key === "release"
                     model: AppController.releases
@@ -184,6 +186,7 @@ ColumnLayout {
                 }
 
                 TimestampAutocomplete {
+                    objectName: "timestampField"
                     width: parent.width
                     visible: optionRect.expanded && optionRect.modelData.key === "timestamp"
                     value: root.specificTimestamp
@@ -208,6 +211,7 @@ ColumnLayout {
         text: qsTr("The target picker is bypassed.")
         actions: [
             LsButton {
+                objectName: "clearSelectionButton"
                 text: qsTr("Clear")
                 variant: "ghost"
                 onClicked: AppController.selectAllPending(false)
@@ -304,6 +308,7 @@ ColumnLayout {
 
                 Switch {
                     id: toggleSwitch
+                    objectName: "optionSwitch_" + switchRow.modelData.prop
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     padding: 0
@@ -381,6 +386,7 @@ ColumnLayout {
     }
 
     BackupRequiredAlert {
+        objectName: "actionsBackupAlert"
         Layout.fillWidth: true
         visible: AppController.connected && AppController.backupRequired
         reasons: AppController.backupRequirementReasons
@@ -395,6 +401,7 @@ ColumnLayout {
 
     // Primary action button — the one brand-red action on the screen.
     LsButton {
+        objectName: "primaryActionButton"
         Layout.fillWidth: true
         variant: "primary"
         size: "lg"
@@ -451,6 +458,7 @@ ColumnLayout {
     // the destructive action requires an explicit click, and outlined in
     // error red (`danger`) so it never reads as the main action.
     LsButton {
+        objectName: "rollbackButton"
         Layout.fillWidth: true
         variant: "danger"
         size: "md"

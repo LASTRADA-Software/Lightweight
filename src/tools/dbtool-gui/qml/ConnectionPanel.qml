@@ -79,6 +79,7 @@ Column {
 
     // --- Mode selector ---
     SegmentedControl {
+        objectName: "connectionModeControl"
         width: parent.width
         fill: true
         current: AppController.connectionMode
@@ -106,6 +107,7 @@ Column {
 
         FieldLabel { text: qsTr("Profile") }
         ComboBox {
+            objectName: "profileCombo"
             width: parent.width
             model: AppController.profiles
             textRole: "name"
@@ -164,6 +166,7 @@ Column {
             spacing: 6
             ComboBox {
                 id: dsnCombo
+                objectName: "dsnCombo"
                 width: parent.width - refreshDsnButton.width - parent.spacing
                 model: AppController.odbcDataSources
                 textRole: "name"
@@ -177,6 +180,7 @@ Column {
             }
             LsButton {
                 id: refreshDsnButton
+                objectName: "refreshDsnButton"
                 anchors.verticalCenter: dsnCombo.verticalCenter
                 height: dsnCombo.height
                 width: height
@@ -195,6 +199,7 @@ Column {
         Item { width: 1; height: 3 }
         FieldLabel { text: qsTr("Username (optional)") }
         TextField {
+            objectName: "dsnUserField"
             width: parent.width
             placeholderText: qsTr("leave empty to use DSN / Windows auth")
             placeholderTextColor: Theme.clrOnSurfaceFaint
@@ -204,6 +209,7 @@ Column {
         Item { width: 1; height: 3 }
         FieldLabel { text: qsTr("Password (optional)") }
         TextField {
+            objectName: "dsnPasswordField"
             width: parent.width
             placeholderText: qsTr("leave empty to use DSN / Windows auth")
             placeholderTextColor: Theme.clrOnSurfaceFaint
@@ -214,6 +220,7 @@ Column {
         Item { width: 1; height: 3 }
         FieldLabel { text: qsTr("Schema (optional)") }
         TextField {
+            objectName: "dsnSchemaField"
             width: parent.width
             placeholderText: qsTr("leave empty for the server default (e.g. dbo / public)")
             placeholderTextColor: Theme.clrOnSurfaceFaint
@@ -231,6 +238,7 @@ Column {
 
         FieldLabel { text: qsTr("Connection string") }
         TextField {
+            objectName: "customConnectionStringField"
             width: parent.width
             placeholderText: qsTr("DRIVER=...;DATABASE=...")
             placeholderTextColor: Theme.clrOnSurfaceFaint
@@ -241,6 +249,7 @@ Column {
         Item { width: 1; height: 3 }
         FieldLabel { text: qsTr("Schema (optional)") }
         TextField {
+            objectName: "customSchemaField"
             width: parent.width
             placeholderText: qsTr("leave empty for the server default (e.g. dbo / public)")
             placeholderTextColor: Theme.clrOnSurfaceFaint
@@ -264,6 +273,7 @@ Column {
             color: Theme.clrOnSurfaceSubtle
         }
         Label {
+            objectName: "connectionSummary"
             width: parent.width - summaryGlyph.width - parent.spacing
             text: AppController.connectionSummary
             color: Theme.clrOnSurfaceSubtle
@@ -275,6 +285,7 @@ Column {
 
     // --- Last error (red, blocking failures) ---
     MessageBox {
+        objectName: "connectionError"
         visible: AppController.lastError.length > 0
         message: AppController.lastError
     }
@@ -283,6 +294,7 @@ Column {
     // unmanaged". The connection is established; the user can still apply
     // migrations to bootstrap the schema_migrations table.
     MessageBox {
+        objectName: "connectionWarning"
         visible: AppController.lastWarning.length > 0
         message: AppController.lastWarning
         background: Theme.clrWarningBg
@@ -343,6 +355,7 @@ Column {
 
         LsButton {
             id: connectButton
+            objectName: "connectButton"
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             variant: "secondary"

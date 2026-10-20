@@ -19,6 +19,7 @@ import Lightweight.Migrations
 
 Dialog {
     id: root
+    objectName: "sqlPreviewDialog"
     title: qsTr("Migration SQL preview")
     modal: true
 
@@ -167,6 +168,7 @@ Dialog {
 
                 TextArea {
                     id: sqlText
+                    objectName: "sqlPreviewText"
                     readOnly: true
                     selectByMouse: true
                     persistentSelection: true

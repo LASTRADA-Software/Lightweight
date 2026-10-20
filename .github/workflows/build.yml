@@ -688,11 +688,12 @@ jobs:
               --load . --no-cache
 
   ubuntu_dbtool_gui:
-    # Headless CI coverage for the Qt 6 dbtool-gui binary. Runs three test
+    # Headless CI coverage for the Qt 6 dbtool-gui binary. Runs four test
     # layers under `QT_QPA_PLATFORM=offscreen` — Catch2 unit tests for
     # AppController, qmltestrunner suites for the Lightweight.Migrations QML
-    # module, and a process smoke test against the real binary. No display
-    # server is required.
+    # module, the GUI workflow tests against the real Main window (SQLite, and
+    # SQL Server 2022 in a container), and a process smoke test against the
+    # real binary. No display server is required.
     name: "dbtool-gui (Ubuntu, Qt 6.8, headless)"
     # ubuntu-24.04 ships Catch2 v3 (the test sources include the v3-only
     # `catch2/catch_session.hpp`); 22.04's `catch2` package is still v2.
@@ -720,6 +721,14 @@ jobs:
             uuid-dev libyaml-cpp-dev libzip-dev libssl-dev \
             python3-yaml \
             libgl1-mesa-dev libegl1 libxkbcommon0 libfontconfig1
+      - name: "Install MS SQL ODBC driver"
+        run: |
+          curl https://packages.microsoft.com/keys/microsoft.asc | sudo tee /etc/apt/trusted.gpg.d/microsoft.asc
+          sudo add-apt-repository "$(wget -qO- https://packages.microsoft.com/config/ubuntu/20.04/prod.list)"
+          sudo apt update
+          sudo ACCEPT_EULA=y DEBIAN_FRONTEND=noninteractive apt install -y mssql-tools18
+      - name: "Start MS SQL Server 2022"
+        run: python3 ./scripts/tests/docker-databases.py --start --wait mssql2022
       - name: "install Clang 20"
         # clang-20 is not in the stock Ubuntu repositories — pull it from the
         # official LLVM apt source.
@@ -749,8 +758,10 @@ jobs:
             -DLIGHTWEIGHT_BUILD_TESTS=ON \
             -DPEDANTIC_COMPILER_WERROR=OFF
       - name: "build"
-        run: cmake --build out/build/ci-gui --target dbtool-gui dbtool-gui-tests dbtool-gui-qmltest -- -j3
-      - name: "ctest (Catch2 + qmltestrunner + smoke)"
+        run: cmake --build out/build/ci-gui --target dbtool-gui dbtool-gui-tests dbtool-gui-qmltest dbtool-gui-workflowtest dbtool -- -j3
+      - name: "ctest (Catch2 + qmltestrunner + workflow + smoke)"
+        env:
+          DBTOOL_GUI_TEST_MSSQL_CONNECTION_STRING: "Driver={ODBC Driver 18 for SQL Server};SERVER=localhost;PORT=1433;UID=SA;PWD=Lightweight!Test42;TrustServerCertificate=yes;DATABASE=master"
         run: ctest --test-dir out/build/ci-gui -L dbtool-gui --output-on-failure
 
   ddl2cpp:
