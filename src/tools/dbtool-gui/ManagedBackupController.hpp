@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "BackupRunner.hpp"
 #include "LogLevel.hpp"
 #include "ManagedBackupCore.hpp"
 #include "Models/BackupStatusListModel.hpp"
@@ -190,6 +191,11 @@ class ManagedBackupController: public QObject
     ///        (`Lightweight::SqlBackup::Restore`).
     void setRestoreOperation(RestoreOperation operation);
 
+    /// Replaces the recorder that writes a `schema_backups` record for every profile backed up and every
+    /// restore that read back cleanly. Same contract as `setBackupOperation`.
+    /// @param recorder New recorder; an unset function keeps its default (a record on a connection of its own).
+    void setRecorder(BackupRunner::Recorder recorder);
+
     /// Injects the handler told about plaintext passwords that a run has connected with. Must not be
     /// called while a run is in flight; the current value is copied into the worker task when a run starts.
     /// @param handler New handler; an empty callable disables the notification (the default).
@@ -260,6 +266,11 @@ class ManagedBackupController: public QObject
     /// @param totalTables Number of tables the run will process.
     void tableTotalKnown(QString profile, int totalTables);
     void finished(bool ok, QString summary);
+    /// Emitted (queued, before `finished`) once per profile backed up and per restore, with whether its
+    /// `schema_backups` record was written.
+    /// @param profile The profile whose database was recorded into; empty for a restore into a connection string.
+    /// @param error Why the run was not recorded; empty when it was.
+    void recordResult(QString profile, QString error);
     void phaseChanged();
     void backupFolderChanged();
     void folderProblemChanged();
@@ -340,6 +351,7 @@ class ManagedBackupController: public QObject
 
     BackupOperation _backupOperation;
     RestoreOperation _restoreOperation;
+    BackupRunner::Recorder _recorder;
     PlaintextPasswordVerifiedHandler _onPlaintextPasswordVerified;
     ConnectionProbe _connectionProbe;
     std::atomic<Phase> _phase { Phase::Idle };

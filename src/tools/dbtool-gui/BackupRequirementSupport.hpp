@@ -4,12 +4,18 @@
 
 #pragma once
 
+#include "BackupRunner.hpp"
+
 #include <Lightweight/SqlMigration.hpp>
 
+#include <expected>
+#include <filesystem>
 #include <ranges>
+#include <string>
 #include <string_view>
 #include <vector>
 
+#include <BackupRecording.hpp>
 #include <QtCore/QString>
 #include <QtCore/QStringList>
 
@@ -54,5 +60,17 @@ struct BackupRequirementState
 /// @return The requirement; never throws.
 [[nodiscard]] BackupRequirementState EvaluateBackupRequirement(Lightweight::SqlMigration::MigrationManager& manager,
                                                                QString const& lastRecordError);
+
+/// The production recorder: reads the migration history and writes `schema_backups` records on a
+/// connection of its own, so a run can record on any worker thread.
+/// @return A recorder with both functions set.
+[[nodiscard]] BackupRunner::Recorder DefaultBackupRecorder();
+
+/// The sentence that says why a backup or restore was not recorded.
+/// @param operation Which kind of run it was.
+/// @param error Why the record was not written.
+/// @return The message to show or log.
+[[nodiscard]] QString DescribeUnrecorded(BackupRunner::Operation operation,
+                                         Lightweight::Tools::BackupRecordError const& error);
 
 } // namespace DbtoolGui

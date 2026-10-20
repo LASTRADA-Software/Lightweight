@@ -193,6 +193,7 @@ TEST_CASE("a backup that cannot be recorded leaves the migrations blocked and sa
 
     controller.backupRunner()->setRecorder({
         .captureStart = {},
+        .verifyArchive = {},
         .record = [](BackupRunner::Operation,
                      std::filesystem::path const&,
                      std::string const&,
@@ -206,6 +207,39 @@ TEST_CASE("a backup that cannot be recorded leaves the migrations blocked and sa
     BackUpNow(controller);
 
     CHECK(controller.backupRunner()->lastResult().value(QStringLiteral("ok")).toBool());
+    CHECK(controller.backupRequired());
+    CHECK(controller.backupRequirementNote().contains(QStringLiteral("denied")));
+}
+
+TEST_CASE("a managed backup that cannot be recorded leaves the migrations blocked and says why",
+          "[dbtool-gui][AppController][backup-requirement]")
+{
+    ScopedSettingRestore const restoreBackupFolder { QStringLiteral("backup/folder") };
+    auto const workspace = BackupRequiredWorkspace();
+    AppController controller;
+    REQUIRE(WaitForIdle(controller));
+    workspace.Connect(controller);
+    REQUIRE(controller.backupRequired());
+
+    controller.managedBackups()->setRecorder({
+        .captureStart = {},
+        .verifyArchive = {},
+        .record = [](BackupRunner::Operation,
+                     std::filesystem::path const&,
+                     std::string const&,
+                     std::string const&,
+                     Lightweight::Tools::BackupStart const&)
+            -> std::expected<Lightweight::SqlMigration::BackupRecord, Lightweight::Tools::BackupRecordError> {
+            return std::unexpected(Lightweight::Tools::BackupRecordError {
+                .kind = Lightweight::Tools::BackupRecordError::Kind::WriteFailed, .message = "denied" });
+        },
+    });
+    QSignalSpy managedFinished(controller.managedBackups(), &DbtoolGui::ManagedBackupController::finished);
+    controller.managedBackups()->backupAll();
+    REQUIRE((managedFinished.count() > 0 || managedFinished.wait(30000)));
+    REQUIRE(WaitForIdle(controller));
+
+    CHECK(managedFinished.first().at(0).toBool());
     CHECK(controller.backupRequired());
     CHECK(controller.backupRequirementNote().contains(QStringLiteral("denied")));
 }
@@ -307,8 +341,7 @@ TEST_CASE("connectToProfile is refused while a backup runs", "[dbtool-gui][AppCo
     QSignalSpy done(controller.backupRunner(), &BackupRunner::finished);
     controller.backUpNow();
     // The backup folder is created on the worker first; the run then reports back through this thread's event loop.
-    REQUIRE(QTest::qWaitFor([&] { return controller.backupRunner()->phase() == BackupRunner::Phase::Running; },
-                            30000));
+    REQUIRE(QTest::qWaitFor([&] { return controller.backupRunner()->phase() == BackupRunner::Phase::Running; }, 30000));
     CHECK_FALSE(controller.connectToProfile());
     CHECK(controller.lastWarning().contains(QStringLiteral("backup or restore")));
 

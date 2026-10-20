@@ -3,7 +3,12 @@
 #include "BackupRequirementSupport.hpp"
 #include "ExceptionMessage.hpp"
 
+#include <Lightweight/SqlBackup.hpp>
+
 #include <exception>
+#include <expected>
+#include <filesystem>
+#include <optional>
 #include <string>
 
 #include <BackupRecording.hpp>
@@ -54,7 +59,61 @@ namespace
         return releases + migrations + steps;
     }
 
+    /// Default `Recorder::captureStart`: the migration history, read on a mapper of its own.
+    Lightweight::Tools::BackupStart CaptureBackupStartOn(std::string const& connectionString, std::string const& schema)
+    {
+        auto mapper =
+            Lightweight::Tools::ConnectRecordDataMapper(Lightweight::SqlConnectionString { connectionString }, schema);
+        return Lightweight::Tools::CaptureBackupStart(mapper);
+    }
+
+    /// Default `Recorder::record`: verifies the archive and writes its record on a mapper of its own.
+    std::expected<Lightweight::SqlMigration::BackupRecord, Lightweight::Tools::BackupRecordError> RecordRunOn(
+        BackupRunner::Operation operation,
+        std::filesystem::path const& archive,
+        std::string const& connectionString,
+        std::string const& schema,
+        Lightweight::Tools::BackupStart const& start)
+    {
+        try
+        {
+            auto mapper =
+                Lightweight::Tools::ConnectRecordDataMapper(Lightweight::SqlConnectionString { connectionString }, schema);
+            auto const toolVersion = Lightweight::Tools::ToolVersion(RecordToolName);
+            return operation == BackupRunner::Operation::Backup
+                       ? Lightweight::Tools::RecordBackup(mapper, archive, start, toolVersion)
+                       : Lightweight::Tools::RecordRestore(mapper, archive, toolVersion);
+        }
+        catch (std::exception const& e)
+        {
+            return std::unexpected(Lightweight::Tools::BackupRecordError {
+                .kind = Lightweight::Tools::BackupRecordError::Kind::WriteFailed, .message = e.what() });
+        }
+    }
+
+    /// Default `Recorder::verifyArchive`: `SqlBackup::VerifyArchive`. The record verifies the archive again.
+    std::optional<Lightweight::Tools::BackupRecordError> VerifyArchiveOn(std::filesystem::path const& archive)
+    {
+        if (auto const verification = Lightweight::SqlBackup::VerifyArchive(archive); !verification)
+            return Lightweight::Tools::BackupRecordError {
+                .kind = Lightweight::Tools::BackupRecordError::Kind::VerificationFailed, .message = verification.error()
+            };
+        return std::nullopt;
+    }
+
 } // namespace
+
+BackupRunner::Recorder DefaultBackupRecorder()
+{
+    return { .captureStart = &CaptureBackupStartOn, .verifyArchive = &VerifyArchiveOn, .record = &RecordRunOn };
+}
+
+QString DescribeUnrecorded(BackupRunner::Operation operation, Lightweight::Tools::BackupRecordError const& error)
+{
+    return QString::fromStdString(operation == BackupRunner::Operation::Backup
+                                      ? Lightweight::Tools::DescribeUnrecordedBackup(error)
+                                      : Lightweight::Tools::DescribeUnrecordedRestore(error));
+}
 
 BackupRequirementState EvaluateBackupRequirement(Lightweight::SqlMigration::MigrationManager& manager,
                                                  QString const& lastRecordError)

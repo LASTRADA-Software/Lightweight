@@ -610,6 +610,7 @@ Rectangle {
                         }
 
                         BackupRequiredAlert {
+                            objectName: "simpleBackupAlert"
                             width: parent.width
                             visible: AppController.backupRequired || AppController.backupRequirementPending
                             pending: AppController.backupRequirementPending

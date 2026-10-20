@@ -295,18 +295,28 @@ AppController::AppController(QObject* parent):
             }
         }
     });
-    // A managed restore rewrites the target database, so a restore into the
-    // connected profile leaves the migration list showing the pre-restore
-    // applied-set. Mirror the runner's post-run refresh so the list re-reads
-    // `schema_migrations` once the restore succeeds. Only on success and only
-    // while connected — an unconnected refresh has nothing new to read, and a
-    // failed run did not change the database.
+    // A managed restore into the connected profile rewrites its database, so a successful run re-reads
+    // `schema_migrations` like the runner's post-run refresh. A partly failed run may still have backed up
+    // the connected profile, so it re-checks only the backup requirement.
     QObject::connect(
         &_managedBackups, &ManagedBackupController::finished, this, [this](bool ok, QString const& /*summary*/) {
-            if (ok && _connected)
-                RefreshMigrationModelsAfterRun();
+            if (_connected)
+            {
+                if (ok)
+                    RefreshMigrationModelsAfterRun();
+                else
+                    RequestBackupRequirementCheck();
+            }
             UpdateActivity();
         });
+    // A managed run into the connected profile's database leaves the same record outcome as an ad-hoc one.
+    QObject::connect(&_managedBackups,
+                     &ManagedBackupController::recordResult,
+                     this,
+                     [this](QString const& profile, QString const& error) {
+                         if (_connected && _connectedMode == QLatin1String { "profile" } && profile == _connectedTarget)
+                             _lastRecordError = error;
+                     });
     // A recorded Back up or Restore can satisfy the backup requirement; one that could not be recorded says why.
     QObject::connect(&_backupRunner, &BackupRunner::finished, this, [this](bool /*ok*/, QString const& /*summary*/) {
         _lastRecordError = _backupRunner.lastResult().value(QStringLiteral("recordError")).toString();
@@ -1203,9 +1213,7 @@ void AppController::PrepareBackupFolder(QString const& archivePath, BackupFolder
                                                          .arg(QString::fromStdU16String(folder.u16string()))));
             (*postShared)(archivePath);
         },
-        [postShared](std::exception const& error) {
-            (*postShared)(std::unexpected(QString::fromUtf8(error.what())));
-        });
+        [postShared](std::exception const& error) { (*postShared)(std::unexpected(QString::fromUtf8(error.what()))); });
 }
 
 void AppController::backUpNow()

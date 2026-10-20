@@ -21,14 +21,18 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <chrono>
+#include <expected>
 #include <filesystem>
 #include <fstream>
 #include <future>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
+#include <BackupRecording.hpp>
 #include <Config/ProfileStore.hpp>
 #include <QtCore/QEventLoop>
 #include <QtCore/QFile>
@@ -83,6 +87,74 @@ class ScopedEnvironmentVariable
     QByteArray _previous;
     bool _wasSet;
 };
+
+/// One call the injected recorder saw.
+struct RecorderCall
+{
+    std::string what; ///< "capture", "backup" (a record) or "restore" (a record)
+    std::string connectionString;
+    std::string schema;
+    std::filesystem::path archive;
+};
+
+/// A recorder that notes its calls in @p calls, in order; a record fails with @p recordFailure when it is set.
+/// The calls come from the worker, and the test reads them only after `finished`.
+[[nodiscard]] DbtoolGui::BackupRunner::Recorder NotingRecorder(
+    std::vector<RecorderCall>& calls, std::optional<Lightweight::Tools::BackupRecordError> recordFailure = std::nullopt)
+{
+    using DbtoolGui::BackupRunner;
+    return {
+        .captureStart =
+            [&calls](std::string const& connectionString, std::string const& schema) {
+                calls.push_back({ "capture", connectionString, schema, {} });
+                return Lightweight::Tools::BackupStart {};
+            },
+        .verifyArchive =
+            [](std::filesystem::path const&) { return std::optional<Lightweight::Tools::BackupRecordError> {}; },
+        .record = [&calls, recordFailure](BackupRunner::Operation operation,
+                                          std::filesystem::path const& archive,
+                                          std::string const& connectionString,
+                                          std::string const& schema,
+                                          Lightweight::Tools::BackupStart const& /*start*/)
+            -> std::expected<Lightweight::SqlMigration::BackupRecord, Lightweight::Tools::BackupRecordError> {
+            calls.push_back(
+                { operation == BackupRunner::Operation::Backup ? "backup" : "restore", connectionString, schema, archive });
+            if (recordFailure)
+                return std::unexpected(*recordFailure);
+            return Lightweight::SqlMigration::BackupRecord {};
+        },
+    };
+}
+
+/// A recorder that records nothing, for tests whose archives are not real.
+[[nodiscard]] DbtoolGui::BackupRunner::Recorder IgnoringRecorder()
+{
+    using DbtoolGui::BackupRunner;
+    return {
+        .captureStart = [](std::string const&, std::string const&) { return Lightweight::Tools::BackupStart {}; },
+        .verifyArchive =
+            [](std::filesystem::path const&) { return std::optional<Lightweight::Tools::BackupRecordError> {}; },
+        .record = [](BackupRunner::Operation,
+                     std::filesystem::path const&,
+                     std::string const&,
+                     std::string const&,
+                     Lightweight::Tools::BackupStart const&)
+            -> std::expected<Lightweight::SqlMigration::BackupRecord, Lightweight::Tools::BackupRecordError> {
+            return Lightweight::SqlMigration::BackupRecord {};
+        },
+    };
+}
+
+/// A recorder whose verification of every archive fails.
+[[nodiscard]] DbtoolGui::BackupRunner::Recorder FailingVerificationRecorder()
+{
+    auto recorder = IgnoringRecorder();
+    recorder.verifyArchive = [](std::filesystem::path const&) {
+        return std::optional { Lightweight::Tools::BackupRecordError {
+            .kind = Lightweight::Tools::BackupRecordError::Kind::VerificationFailed, .message = "not a zip" } };
+    };
+    return recorder;
+}
 
 /// Spins the event loop until `spy` has at least one emission or `ms` ran out.
 [[nodiscard]] bool WaitFor(QSignalSpy& spy, int ms = 30000)
@@ -868,6 +940,7 @@ TEST_CASE("a clean injected run still commits and reports success", "[dbtool-gui
     // reject a run that reported only non-Error progress.
     QTemporaryDir dir;
     ManagedBackupController controller;
+    controller.setRecorder(IgnoringRecorder());
     controller.setBackupFolder(dir.path() + "/backups");
     auto const alpha = SqliteProfile(dir, "alpha");
     SeedDatabase(alpha);
@@ -929,6 +1002,7 @@ TEST_CASE("a plaintext password is handed over for encryption as soon as a backu
 {
     QTemporaryDir dir;
     ManagedBackupController controller;
+    controller.setRecorder(IgnoringRecorder());
     controller.setBackupFolder(dir.path() + "/backups");
     auto plaintext = SqliteProfile(dir, "plaintext");
     plaintext.password = "hunter2";
@@ -1026,6 +1100,7 @@ TEST_CASE("a plaintext password is handed over as soon as a restore connects to 
 {
     QTemporaryDir dir;
     ManagedBackupController controller;
+    controller.setRecorder(IgnoringRecorder());
     controller.setBackupFolder(dir.path() + "/backups");
     auto const source = SqliteProfile(dir, "source");
     auto target = SqliteProfile(dir, "target");
@@ -1059,6 +1134,7 @@ TEST_CASE("a managed restore in flight blocks closing and is named as a restore"
 {
     QTemporaryDir dir;
     ManagedBackupController controller;
+    controller.setRecorder(IgnoringRecorder());
     controller.setBackupFolder(dir.path() + "/backups");
     auto const source = SqliteProfile(dir, "source");
     auto const target = SqliteProfile(dir, "target");
@@ -1179,6 +1255,264 @@ TEST_CASE("a multi-schema archive drops only a profile schema it holds; a typed 
     });
 
     CHECK(restoredSchemas == std::vector<std::string> { "", "restore_check", "sales" });
+
+    controller.setBackupFolder(QString {});
+}
+
+TEST_CASE("a managed backup records every successful profile once, with its final archive and schema",
+          "[dbtool-gui][managed-backup-controller][recording]")
+{
+    QTemporaryDir dir;
+    ManagedBackupController controller;
+    controller.setBackupFolder(dir.path() + "/backups");
+    auto alpha = SqliteProfile(dir, "alpha");
+    auto beta = SqliteProfile(dir, "beta");
+    beta.schema = "sales";
+    auto both = SqliteProfile(dir, "both");
+    both.schema = "a,b";
+    controller.setProfiles({ alpha, beta, both });
+    auto calls = std::vector<RecorderCall> {};
+    controller.setBackupOperation(&WriteArchiveOperation);
+    controller.setRecorder(NotingRecorder(calls));
+
+    QSignalSpy done(&controller, &ManagedBackupController::finished);
+    controller.backupAll();
+    REQUIRE(WaitFor(done));
+    REQUIRE(done.first().at(0).toBool());
+
+    REQUIRE(calls.size() == 6);
+    auto const folder = std::filesystem::path { (dir.path() + "/backups").toStdString() };
+    CHECK(calls[0].what == "capture");
+    CHECK(calls[0].connectionString == alpha.connectionString);
+    CHECK(calls[1].what == "backup");
+    CHECK(calls[1].archive == folder / "alpha.zip");
+    CHECK(calls[1].schema.empty());
+    CHECK(calls[3].archive == folder / "beta.zip");
+    CHECK(calls[3].schema == "sales");
+    CHECK(calls[5].archive == folder / "both.zip");
+    CHECK(calls[5].schema.empty());
+
+    controller.setBackupFolder(QString {});
+}
+
+TEST_CASE("a managed backup that failed, collided or lost tables records nothing",
+          "[dbtool-gui][managed-backup-controller][recording]")
+{
+    QTemporaryDir dir;
+    ManagedBackupController controller;
+    controller.setBackupFolder(dir.path() + "/backups");
+    auto const alpha = SqliteProfile(dir, "alpha");
+    controller.setProfiles({ alpha });
+    auto calls = std::vector<RecorderCall> {};
+    controller.setBackupOperation(FailingOperation(2, /*writeOutput*/ true));
+    controller.setRecorder(NotingRecorder(calls));
+
+    QSignalSpy done(&controller, &ManagedBackupController::finished);
+    controller.backupAll();
+    REQUIRE(WaitFor(done));
+
+    CHECK_FALSE(done.first().at(0).toBool());
+    CHECK(std::ranges::none_of(calls, [](RecorderCall const& call) { return call.what == "backup"; }));
+
+    controller.setBackupOperation(&WriteArchiveOperation);
+    controller.setProfiles({ SqliteProfile(dir, "a b"), SqliteProfile(dir, "a_b") });
+    calls.clear();
+    QSignalSpy collided(&controller, &ManagedBackupController::finished);
+    controller.backupAll();
+    REQUIRE(WaitFor(collided));
+    CHECK_FALSE(collided.first().at(0).toBool());
+    CHECK(std::ranges::count_if(calls, [](RecorderCall const& call) { return call.what == "backup"; }) == 1);
+
+    controller.setBackupFolder(QString {});
+}
+
+TEST_CASE("a managed backup whose record cannot be written keeps the new archive and warns",
+          "[dbtool-gui][managed-backup-controller][recording]")
+{
+    QTemporaryDir dir;
+    ManagedBackupController controller;
+    controller.setBackupFolder(dir.path() + "/backups");
+    controller.setProfiles({ SqliteProfile(dir, "alpha") });
+    controller.setBackupOperation(&WriteArchiveOperation);
+    auto calls = std::vector<RecorderCall> {};
+    controller.setRecorder(
+        NotingRecorder(calls,
+                       Lightweight::Tools::BackupRecordError {
+                           .kind = Lightweight::Tools::BackupRecordError::Kind::WriteFailed, .message = "disk full" }));
+    QSignalSpy warned(&controller, &ManagedBackupController::logLine);
+    QSignalSpy done(&controller, &ManagedBackupController::finished);
+    controller.backupAll();
+    REQUIRE(WaitFor(done));
+
+    CHECK(done.first().at(0).toBool());
+    CHECK(ReadAll(dir.path() + "/backups/alpha.zip") == "complete archive");
+    REQUIRE(warned.count() >= 1);
+    CHECK(warned.last().at(0).toString().contains("disk full"));
+    CHECK(warned.last().at(1).value<DbtoolGui::LogLevel>() == DbtoolGui::LogLevel::Warning);
+
+    controller.setBackupFolder(QString {});
+}
+
+TEST_CASE("a managed restore records into the target database, and a failed restore does not",
+          "[dbtool-gui][managed-backup-controller][recording]")
+{
+    QTemporaryDir dir;
+    ManagedBackupController controller;
+    controller.setBackupFolder(dir.path() + "/backups");
+    auto const source = SqliteProfile(dir, "source");
+    auto target = SqliteProfile(dir, "target");
+    target.schema = "sales";
+    controller.setProfiles({ source, target });
+    controller.setBackupOperation(&WriteArchiveOperation);
+    controller.setRestoreOperation(&NoOpRestoreOperation);
+    controller.setRecorder(IgnoringRecorder());
+    QSignalSpy backupDone(&controller, &ManagedBackupController::finished);
+    controller.backupProfile("source");
+    REQUIRE(WaitFor(backupDone));
+    REQUIRE(backupDone.first().at(0).toBool());
+
+    auto calls = std::vector<RecorderCall> {};
+    controller.setRecorder(NotingRecorder(calls));
+    QSignalSpy restoreDone(&controller, &ManagedBackupController::finished);
+    controller.restoreArchive("source", "target");
+    REQUIRE(WaitFor(restoreDone));
+    REQUIRE(restoreDone.first().at(0).toBool());
+    REQUIRE(calls.size() == 1);
+    CHECK(calls[0].what == "restore");
+    CHECK(calls[0].connectionString == target.connectionString);
+    CHECK(calls[0].schema == "sales");
+    CHECK(calls[0].archive == std::filesystem::path { (dir.path() + "/backups/source.zip").toStdString() });
+
+    calls.clear();
+    controller.setRestoreOperation(FailingOperation(1, /*writeOutput*/ false));
+    QSignalSpy failedDone(&controller, &ManagedBackupController::finished);
+    controller.restoreArchive("source", "target");
+    REQUIRE(WaitFor(failedDone));
+    CHECK_FALSE(failedDone.first().at(0).toBool());
+    CHECK(calls.empty());
+
+    controller.setBackupFolder(QString {});
+}
+
+TEST_CASE("a managed restore whose record cannot be written still succeeds and warns",
+          "[dbtool-gui][managed-backup-controller][recording]")
+{
+    QTemporaryDir dir;
+    ManagedBackupController controller;
+    controller.setBackupFolder(dir.path() + "/backups");
+    auto const source = SqliteProfile(dir, "source");
+    controller.setProfiles({ source });
+    controller.setBackupOperation(&WriteArchiveOperation);
+    controller.setRestoreOperation(&NoOpRestoreOperation);
+    controller.setRecorder(IgnoringRecorder());
+    QSignalSpy backupDone(&controller, &ManagedBackupController::finished);
+    controller.backupProfile("source");
+    REQUIRE(WaitFor(backupDone));
+
+    auto calls = std::vector<RecorderCall> {};
+    controller.setRecorder(NotingRecorder(
+        calls,
+        Lightweight::Tools::BackupRecordError { .kind = Lightweight::Tools::BackupRecordError::Kind::WriteFailed,
+                                                .message = "read-only database" }));
+    QSignalSpy warned(&controller, &ManagedBackupController::logLine);
+    QSignalSpy restoreDone(&controller, &ManagedBackupController::finished);
+    controller.restoreArchive("source", "source");
+    REQUIRE(WaitFor(restoreDone));
+    CHECK(restoreDone.first().at(0).toBool());
+    REQUIRE(warned.count() >= 1);
+    CHECK(warned.last().at(0).toString().contains("read-only database"));
+
+    controller.setBackupFolder(QString {});
+}
+
+TEST_CASE("a managed restore into a connection string records into it under the typed schema",
+          "[dbtool-gui][managed-backup-controller][recording]")
+{
+    QTemporaryDir dir;
+    ManagedBackupController controller;
+    controller.setBackupFolder(dir.path() + "/backups");
+    auto const source = SqliteProfile(dir, "source");
+    controller.setProfiles({ source });
+    controller.setBackupOperation(&WriteArchiveOperation);
+    controller.setRestoreOperation(&NoOpRestoreOperation);
+    controller.setRecorder(IgnoringRecorder());
+    QSignalSpy backupDone(&controller, &ManagedBackupController::finished);
+    controller.backupProfile("source");
+    REQUIRE(WaitFor(backupDone));
+    REQUIRE(backupDone.first().at(0).toBool());
+
+    auto calls = std::vector<RecorderCall> {};
+    controller.setRecorder(NotingRecorder(calls));
+    auto const custom = SqliteProfile(dir, "custom");
+    QSignalSpy typedDone(&controller, &ManagedBackupController::finished);
+    controller.restoreArchiveToConnectionString("source", QString::fromStdString(custom.connectionString), "sales");
+    REQUIRE(WaitFor(typedDone));
+    REQUIRE(typedDone.first().at(0).toBool());
+    REQUIRE(calls.size() == 1);
+    CHECK(calls[0].what == "restore");
+    CHECK(calls[0].connectionString == custom.connectionString);
+    CHECK(calls[0].schema == "sales");
+
+    calls.clear();
+    QSignalSpy listDone(&controller, &ManagedBackupController::finished);
+    controller.restoreArchiveToConnectionString("source", QString::fromStdString(custom.connectionString), "a,b");
+    REQUIRE(WaitFor(listDone));
+    REQUIRE(calls.size() == 1);
+    CHECK(calls[0].schema.empty());
+
+    controller.setBackupFolder(QString {});
+}
+
+TEST_CASE("a managed backup whose archive fails verification leaves no archive when there was none",
+          "[dbtool-gui][managed-backup-controller][recording]")
+{
+    QTemporaryDir dir;
+    ManagedBackupController controller;
+    controller.setBackupFolder(dir.path() + "/backups");
+    controller.setProfiles({ SqliteProfile(dir, "alpha") });
+    controller.setBackupOperation(&WriteArchiveOperation);
+    controller.setRecorder(FailingVerificationRecorder());
+    QSignalSpy done(&controller, &ManagedBackupController::finished);
+    controller.backupAll();
+    REQUIRE(WaitFor(done));
+
+    CHECK_FALSE(done.first().at(0).toBool());
+    CHECK_FALSE(QFile::exists(dir.path() + "/backups/alpha.zip"));
+    CHECK_FALSE(QFile::exists(dir.path() + "/backups/alpha.zip.tmp"));
+
+    controller.setBackupFolder(QString {});
+}
+
+TEST_CASE("a managed backup whose archive fails verification leaves the last good archive byte-identical",
+          "[dbtool-gui][managed-backup-controller][recording]")
+{
+    QTemporaryDir dir;
+    ManagedBackupController controller;
+    controller.setBackupFolder(dir.path() + "/backups");
+    controller.setProfiles({ SqliteProfile(dir, "alpha") });
+    controller.setBackupOperation(&WriteArchiveOperation);
+    controller.setRecorder(IgnoringRecorder());
+    QSignalSpy goodDone(&controller, &ManagedBackupController::finished);
+    controller.backupAll();
+    REQUIRE(WaitFor(goodDone));
+    REQUIRE(goodDone.first().at(0).toBool());
+    auto const archive = dir.path() + "/backups/alpha.zip";
+    auto const goodArchive = ReadAll(archive);
+    REQUIRE_FALSE(goodArchive.empty());
+
+    controller.setBackupOperation(
+        [](std::filesystem::path const& file,
+           std::string const&,
+           std::string const&,
+           Lightweight::SqlBackup::ProgressManager&) { std::ofstream(file) << "corrupt archive"; });
+    controller.setRecorder(FailingVerificationRecorder());
+    QSignalSpy badDone(&controller, &ManagedBackupController::finished);
+    controller.backupAll();
+    REQUIRE(WaitFor(badDone));
+
+    CHECK_FALSE(badDone.first().at(0).toBool());
+    CHECK(ReadAll(archive) == goodArchive);
+    CHECK_FALSE(QFile::exists(archive + ".tmp"));
 
     controller.setBackupFolder(QString {});
 }

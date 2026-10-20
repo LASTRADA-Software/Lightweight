@@ -123,7 +123,8 @@ void RegisterRecorderStep(SqlMigration::MigrationManager& manager)
 
 /// Registers "Long step" when LIGHTWEIGHT_TEST_LONG_STEP_MS is set: LIGHTWEIGHT_TEST_LONG_STEP_UNITS
 /// sub-tasks (4 when unset) that share that time in 50 ms slices and stop early on cancellation; the
-/// unit LIGHTWEIGHT_TEST_LONG_STEP_FAIL_AT fails its sub-task and throws.
+/// unit LIGHTWEIGHT_TEST_LONG_STEP_FAIL_AT fails its sub-task and throws. With LIGHTWEIGHT_TEST_LONG_STEP_LOG
+/// set, each unit appends a "unit N started" line to that file when it starts.
 void RegisterLongStep(SqlMigration::MigrationManager& manager)
 {
     if (Environment("LIGHTWEIGHT_TEST_LONG_STEP_MS").empty())
@@ -140,6 +141,7 @@ void RegisterLongStep(SqlMigration::MigrationManager& manager)
             progress.SetTotal(static_cast<std::uint64_t>(unitCount));
             for (auto const unit: std::views::iota(1, unitCount + 1))
             {
+                AppendLine("LIGHTWEIGHT_TEST_LONG_STEP_LOG", std::format("unit {} started", unit));
                 auto const unitTask = progress.BeginSubTask(std::format("Unit {} of {}", unit, unitCount),
                                                             static_cast<std::uint64_t>(unitDuration.count()));
                 for (auto remaining = unitDuration; remaining > std::chrono::milliseconds::zero(); remaining -= slice)

@@ -92,8 +92,10 @@ class ProgressTaskModel::QueuedTask final: public Lightweight::ProgressTask
     {
         if (_id == 0)
             return;
-        _registry->Post(
-            [id = _id, finished = _registry->clock()](ProgressTaskModel& model) { model.ApplyEnd(id, finished); });
+        auto const cancellation = IsCancellationRequested() ? CancellationAtEnd::Requested : CancellationAtEnd::NotRequested;
+        _registry->Post([id = _id, finished = _registry->clock(), cancellation](ProgressTaskModel& model) {
+            model.ApplyEnd(id, finished, cancellation);
+        });
     }
 
     [[nodiscard]] std::unique_ptr<ProgressTask> BeginSubTask(std::string_view title, std::uint64_t total) override
@@ -281,7 +283,9 @@ void ProgressTaskModel::ApplyBegin(std::uint64_t id,
         _timer.start();
 }
 
-void ProgressTaskModel::ApplyEnd(std::uint64_t id, std::chrono::steady_clock::time_point finished)
+void ProgressTaskModel::ApplyEnd(std::uint64_t id,
+                                 std::chrono::steady_clock::time_point finished,
+                                 CancellationAtEnd cancellation)
 {
     auto const rowIndex = RowOf(id);
     {
@@ -299,6 +303,8 @@ void ProgressTaskModel::ApplyEnd(std::uint64_t id, std::chrono::steady_clock::ti
     if (keep)
     {
         row.finished = finished;
+        row.cancelled =
+            cancellation == CancellationAtEnd::Requested && !row.failed && row.total != 0 && row.done < row.total;
         emit dataChanged(index(rowIndex, 0),
                          index(rowIndex, 0),
                          { TotalRole,
@@ -307,6 +313,7 @@ void ProgressTaskModel::ApplyEnd(std::uint64_t id, std::chrono::steady_clock::ti
                            IndeterminateRole,
                            FailedRole,
                            FailureReasonRole,
+                           CancelledRole,
                            FinishedRole,
                            ElapsedMsRole });
     }
@@ -379,6 +386,8 @@ QVariant ProgressTaskModel::data(QModelIndex const& index, int role) const
             return row.failed;
         case FailureReasonRole:
             return row.failureReason;
+        case CancelledRole:
+            return row.cancelled;
         default:
             return {};
     }
@@ -397,6 +406,7 @@ QHash<int, QByteArray> ProgressTaskModel::roleNames() const
         { FinishedRole, "finished" },
         { FailedRole, "failed" },
         { FailureReasonRole, "failureReason" },
+        { CancelledRole, "cancelled" },
     };
 }
 

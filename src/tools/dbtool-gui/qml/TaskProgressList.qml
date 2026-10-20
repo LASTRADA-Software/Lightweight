@@ -3,7 +3,8 @@
 // The tasks of a run in flight — pre-migrate steps, their units and tables, the
 // migrations — one `RunProgress` row per task, indented by depth. A task without a
 // total sweeps; a finished top-level task stays full until the next run; a failed
-// task stays red with its reason underneath.
+// task stays red with its reason underneath. A state line under each row reads
+// "done", "cancelled" or "❌ failed", and nothing while the task runs.
 //
 // Usage:
 //     TaskProgressList { model: AppController.runner.tasks }
@@ -33,6 +34,7 @@ ColumnLayout {
             spacing: Theme.sp1
 
             RunProgress {
+                objectName: "taskProgressBar"
                 Layout.fillWidth: true
                 title: model.title
                 detail: (model.detail !== "" ? model.detail + " · " : "") + RunFormat.clock(model.elapsedMs)
@@ -44,6 +46,16 @@ ColumnLayout {
             }
 
             Label {
+                objectName: "taskProgressState"
+                Layout.fillWidth: true
+                visible: text !== ""
+                text: model.failed ? "❌ " + qsTr("failed") : (model.cancelled ? qsTr("cancelled") : (model.finished ? qsTr("done") : ""))
+                color: model.failed ? Theme.clrError : Theme.clrOnSurfaceSubtle
+                font.pixelSize: Theme.sizeLabel
+            }
+
+            Label {
+                objectName: "taskProgressFailureReason"
                 Layout.fillWidth: true
                 visible: model.failed && model.failureReason !== ""
                 text: model.failureReason

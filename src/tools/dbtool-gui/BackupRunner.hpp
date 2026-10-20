@@ -92,6 +92,10 @@ class BackupRunner: public QObject
         /// Reads the migration history before a backup reads any data; throws when it cannot.
         std::function<Lightweight::Tools::BackupStart(std::string const& connectionString, std::string const& schema)>
             captureStart;
+        /// Verifies a written archive before anything replaces the last good one; empty when it passes. Used by
+        /// the managed backups only.
+        std::function<std::optional<Lightweight::Tools::BackupRecordError>(std::filesystem::path const& archive)>
+            verifyArchive;
         /// Verifies the archive of a clean run and records it; @p start is the captured state of a backup
         /// (default-constructed for a restore).
         std::function<std::expected<Lightweight::SqlMigration::BackupRecord, Lightweight::Tools::BackupRecordError>(

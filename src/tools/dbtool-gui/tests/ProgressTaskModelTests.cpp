@@ -160,3 +160,27 @@ TEST_CASE("ProgressTaskModel accepts tasks driven from another thread", "[dbtool
     CHECK(Data(model, 0, ProgressTaskModel::FinishedRole).toBool());
     CHECK(Data(model, 0, ProgressTaskModel::DoneRole).toULongLong() == 4);
 }
+
+TEST_CASE("ProgressTaskModel marks a task that stopped short of its total during a cancel as cancelled, not one that ended "
+          "normally",
+          "[dbtool-gui][ProgressTaskModel]")
+{
+    auto model = ProgressTaskModel {};
+    auto cancelled = false;
+    auto root = model.CreateRootTask([&cancelled] { return cancelled; }, {});
+    auto completed = root->BeginSubTask("Completed", 2);
+    completed->Advance(2);
+    completed.reset();
+    auto interrupted = root->BeginSubTask("Interrupted", 3);
+    interrupted->Advance(1);
+    auto sweeping = root->BeginSubTask("Sweeping", 0);
+    cancelled = true;
+    interrupted.reset();
+    sweeping.reset();
+    ProcessEvents();
+    REQUIRE(model.rowCount() == 3);
+    CHECK_FALSE(Data(model, 0, ProgressTaskModel::CancelledRole).toBool());
+    CHECK(Data(model, 1, ProgressTaskModel::CancelledRole).toBool());
+    CHECK_FALSE(Data(model, 2, ProgressTaskModel::CancelledRole).toBool());
+    CHECK(Data(model, 1, ProgressTaskModel::FinishedRole).toBool());
+}

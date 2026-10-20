@@ -349,46 +349,6 @@ namespace
             archive, Lightweight::SqlConnectionString { connectionString }, BackupConcurrency(), progress);
     }
 
-    /// Default `Recorder::captureStart`: the migration history, read on a mapper of its own.
-    Lightweight::Tools::BackupStart CaptureBackupStartOn(std::string const& connectionString, std::string const& schema)
-    {
-        auto mapper =
-            Lightweight::Tools::ConnectRecordDataMapper(Lightweight::SqlConnectionString { connectionString }, schema);
-        return Lightweight::Tools::CaptureBackupStart(mapper);
-    }
-
-    /// Default `Recorder::record`: verifies the archive and writes its record on a mapper of its own.
-    std::expected<Lightweight::SqlMigration::BackupRecord, Lightweight::Tools::BackupRecordError> RecordRunOn(
-        BackupRunner::Operation operation,
-        std::filesystem::path const& archive,
-        std::string const& connectionString,
-        std::string const& schema,
-        Lightweight::Tools::BackupStart const& start)
-    {
-        try
-        {
-            auto mapper =
-                Lightweight::Tools::ConnectRecordDataMapper(Lightweight::SqlConnectionString { connectionString }, schema);
-            auto const toolVersion = Lightweight::Tools::ToolVersion(RecordToolName);
-            return operation == BackupRunner::Operation::Backup
-                       ? Lightweight::Tools::RecordBackup(mapper, archive, start, toolVersion)
-                       : Lightweight::Tools::RecordRestore(mapper, archive, toolVersion);
-        }
-        catch (std::exception const& e)
-        {
-            return std::unexpected(Lightweight::Tools::BackupRecordError {
-                .kind = Lightweight::Tools::BackupRecordError::Kind::WriteFailed, .message = e.what() });
-        }
-    }
-
-    /// The sentence that says why a run was not recorded.
-    QString DescribeUnrecorded(BackupRunner::Operation operation, Lightweight::Tools::BackupRecordError const& error)
-    {
-        return QString::fromStdString(operation == BackupRunner::Operation::Backup
-                                          ? Lightweight::Tools::DescribeUnrecordedBackup(error)
-                                          : Lightweight::Tools::DescribeUnrecordedRestore(error));
-    }
-
     /// Records a clean run; a backup archive that fails verification fails the run. A restore that fails
     /// verification has already rewritten the database, so it stays a success that only warns.
     /// @param recorder Writes the record.
@@ -445,7 +405,7 @@ BackupRunner::BackupRunner(QObject* parent):
     _tables(this),
     _backupOperation(&RunSqlBackup),
     _restoreOperation(&RunSqlRestore),
-    _recorder { .captureStart = &CaptureBackupStartOn, .record = &RecordRunOn }
+    _recorder { DefaultBackupRecorder() }
 {
     // Serialise GUI-initiated backup / restore operations so the progress
     // pane and cancel button stay coherent. Worker-level parallelism lives
@@ -499,8 +459,13 @@ void BackupRunner::setRestoreOperation(RunOperation operation)
 
 void BackupRunner::setRecorder(Recorder recorder)
 {
-    _recorder.captureStart = recorder.captureStart ? std::move(recorder.captureStart) : &CaptureBackupStartOn;
-    _recorder.record = recorder.record ? std::move(recorder.record) : &RecordRunOn;
+    _recorder = DefaultBackupRecorder();
+    if (recorder.captureStart)
+        _recorder.captureStart = std::move(recorder.captureStart);
+    if (recorder.verifyArchive)
+        _recorder.verifyArchive = std::move(recorder.verifyArchive);
+    if (recorder.record)
+        _recorder.record = std::move(recorder.record);
 }
 
 void BackupRunner::setRecordSchema(QString const& schema)
