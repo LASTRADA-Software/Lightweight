@@ -214,12 +214,14 @@ Rectangle {
         nameFilters: [qsTr("Backup archive (*.zip)"), qsTr("All files (*)")]
         defaultSuffix: "zip"
         onAccepted: {
-            root.pendingBackupFile = selectedFile.toString().replace(/^file:\/\//, "")
-            AppController.applyAfterBackup(root.pendingBackupFile, "", [])
-            // A refused trigger leaves the chain that is running alone.
-            root.pendingApply = AppController.chainedBackupPending
-            if (!root.pendingApply)
-                root.pendingBackupFile = ""
+            const chainWasPending = AppController.chainedBackupPending
+            const archive = AppController.localFilePath(selectedFile)
+            AppController.applyAfterBackup(archive, "", [])
+            // A refused trigger leaves the chain that is running, and its archive, alone.
+            if (chainWasPending || !AppController.chainedBackupPending)
+                return
+            root.pendingBackupFile = archive
+            root.pendingApply = true
         }
     }
 
@@ -230,31 +232,13 @@ Rectangle {
         fileMode: FileDialog.SaveFile
         nameFilters: [qsTr("Text file (*.txt)"), qsTr("All files (*)")]
         defaultSuffix: "txt"
-        onAccepted: {
-            const path = selectedFile.toString().replace(/^file:\/\//, "")
-            reportWriter.path = path
-            reportWriter.writeNow()
-        }
+        onAccepted: AppController.saveFailureReport(selectedFile)
     }
 
-    // QML cannot write files directly; a QML-side XHR `PUT` to a `file://`
-    // URL works cross-platform and avoids a C++ round-trip for what is a
-    // one-off text dump of `AppController.buildFailureReport()`.
-    QtObject {
-        id: reportWriter
-        property string path: ""
-        function writeNow() {
-            if (!path) return
-            const xhr = new XMLHttpRequest()
-            xhr.open("PUT", "file://" + path, true)
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === XMLHttpRequest.DONE) {
-                    toast.show(xhr.status === 0 || xhr.status === 200 || xhr.status === 201
-                        ? qsTr("Saved report to ") + path
-                        : qsTr("Could not save report (status ") + xhr.status + ")")
-                }
-            }
-            xhr.send(AppController.buildFailureReport())
+    Connections {
+        target: AppController
+        function onFailureReportSaved(path, error) {
+            toast.show(error === "" ? qsTr("Saved report to ") + path : qsTr("Could not save report: ") + error)
         }
     }
 
@@ -965,6 +949,7 @@ Rectangle {
     // One line in the bottom right; auto-dismisses after ~3 seconds.
     Rectangle {
         id: toast
+        objectName: "toast"
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.margins: Theme.sp6
@@ -984,6 +969,7 @@ Rectangle {
 
         Label {
             id: toastLabel
+            objectName: "toastLabel"
             anchors.centerIn: parent
             text: toast.message
             color: "#ffffff"

@@ -19,8 +19,10 @@
 #include <utility>
 #include <vector>
 
+#include <QtCore/QByteArray>
 #include <QtCore/QString>
 #include <QtCore/QStringList>
+#include <QtCore/QUrl>
 
 namespace Lightweight
 {
@@ -151,5 +153,18 @@ struct HistoryRefreshOutcome
 /// @return The statements; empty for an unknown migration, one comment line when the preview failed.
 [[nodiscard]] QStringList PreviewMigrationStatements(Lightweight::SqlMigration::MigrationManager const& manager,
                                                      std::uint64_t timestamp);
+
+/// The local path of a file dialog's URL, in the platform's separators; on Windows a URL with a host
+/// (`file://server/share/x`) becomes the UNC path of that share.
+/// @param url The URL a file dialog returned.
+/// @return The path; empty when @p url is not a local file.
+[[nodiscard]] QString LocalFilePath(QUrl const& url);
+
+/// Writes @p content to @p path through a temporary file that replaces @p path only once everything
+/// was written and flushed, so a failed write leaves an existing file as it was.
+/// @param path The destination.
+/// @param content The bytes to write.
+/// @return Empty on success, otherwise why the file could not be written.
+[[nodiscard]] QString WriteFileAtomically(QString const& path, QByteArray const& content);
 
 } // namespace DbtoolGui

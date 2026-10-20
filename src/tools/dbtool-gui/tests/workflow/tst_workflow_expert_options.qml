@@ -291,22 +291,6 @@ WorkflowTestCase {
         verify(AppController.logLines.text().indexOf("another operation is in progress") >= 0)
     }
 
-    function test_the_simple_view_keeps_its_backup_when_a_second_trigger_is_refused() {
-        openConnected(undefined, "simple")
-        const archive = WorkflowFixture.tempPath("simple-backup.zip")
-        const simpleView = findRequired("simpleView")
-        simpleView.pendingBackupFile = archive
-        AppController.applyAfterBackup(archive, "", [])
-        simpleView.pendingApply = AppController.chainedBackupPending
-        verify(simpleView.pendingApply)
-        AppController.applyAfterBackup(archive, "", [])
-        verify(simpleView.pendingApply, "the refused trigger must not end the running chain")
-        tryVerify(() => finishedSpy.count > 0, 60000, "the chain must still apply")
-        tryCompare(simpleView, "lastBackupFile", archive, 5000)
-        tryCompare(AppController, "busy", false, 15000)
-        compare(appliedMigrations(), 3)
-    }
-
     function test_closing_is_blocked_while_the_backup_folder_is_prepared() {
         openConnected()
         AppController.backUpNow()

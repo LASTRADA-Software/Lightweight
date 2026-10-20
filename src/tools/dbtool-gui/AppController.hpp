@@ -31,6 +31,7 @@
 #include <QtCore/QSettings>
 #include <QtCore/QString>
 #include <QtCore/QTimer>
+#include <QtCore/QUrl>
 #include <QtCore/QVariantMap>
 #include <QtQml/QQmlEngine>
 #include <QtQuick/QQuickWindow>
@@ -503,6 +504,15 @@ class AppController: public QObject
     /// `connectionStringOverride` or `dsnPassword`.
     Q_INVOKABLE QString buildFailureReport() const;
 
+    /// Writes `buildFailureReport()` to the local file @p file on the worker, replacing it; the outcome
+    /// arrives as `failureReportSaved`.
+    /// @param file The destination, as a file dialog returns it.
+    Q_INVOKABLE void saveFailureReport(QUrl const& file);
+
+    /// @param url A URL a file dialog returned.
+    /// @return Its local path in the platform's separators (UNC paths included); empty when it is no local file.
+    Q_INVOKABLE QString localFilePath(QUrl const& url) const;
+
     /// Timestamps of the rows the user has ticked in the migration list.
     /// Exposed so the ActionsPanel's primary button can hand them straight
     /// to `MigrationRunner::applySelected` / `dryRunSelected`.
@@ -720,6 +730,10 @@ class AppController: public QObject
     void migrateWithoutBackupChanged();
     /// `chainedBackupPending` changed.
     void chainedBackupPendingChanged();
+    /// A `saveFailureReport` finished.
+    /// @param path The local path written, or the URL's text when it is no local file.
+    /// @param error Empty on success, otherwise why the report could not be written.
+    void failureReportSaved(QString path, QString error);
     /// The backup `applyAfterBackup` started failed or could not start, so no migration ran.
     /// @param summary Why, e.g. the backup's own summary.
     void chainedBackupFailed(QString summary);

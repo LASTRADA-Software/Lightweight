@@ -22,6 +22,7 @@
 #include <QtCore/QString>
 #include <QtCore/QStringList>
 #include <QtCore/QTemporaryDir>
+#include <QtCore/QUrl>
 #include <QtCore/QVariant>
 
 class QQmlEngine;
@@ -120,6 +121,15 @@ class WorkflowFixture final: public QObject
 
     /// @return The number of lines in the file @p path; 0 when it does not exist.
     Q_INVOKABLE int lineCount(QString const& path) const;
+
+    /// @return The `file:` URL of the local path @p path, as a file dialog returns it.
+    Q_INVOKABLE QUrl localFileUrl(QString const& path) const;
+
+    /// @return Whether a file exists at @p path.
+    Q_INVOKABLE bool fileExists(QString const& path) const;
+
+    /// @return The content of the file @p path as UTF-8 text; empty when it cannot be read.
+    Q_INVOKABLE QString fileText(QString const& path) const;
 
     /// @return The path @p name inside the fixture's temporary directory; nothing is created.
     Q_INVOKABLE QString tempPath(QString const& name) const;

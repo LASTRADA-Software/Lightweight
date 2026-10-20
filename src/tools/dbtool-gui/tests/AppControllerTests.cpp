@@ -29,6 +29,7 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <future>
 #include <iterator>
 #include <memory>
 #include <string>
@@ -37,11 +38,13 @@
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QElapsedTimer>
+#include <QtCore/QFile>
 #include <QtCore/QSettings>
 #include <QtCore/QString>
 #include <QtCore/QStringList>
 #include <QtCore/QTemporaryDir>
 #include <QtCore/QTimer>
+#include <QtCore/QUrl>
 #include <QtCore/QVariant>
 #include <QtQuick/QQuickWindow>
 #include <QtTest/QSignalSpy>
@@ -1115,4 +1118,27 @@ TEST_CASE("loading the profile store from an empty path reads the per-user defau
         std::filesystem::rename(backupPath, defaultPath);
     REQUIRE(loaded.has_value());
     CHECK(loaded->store.Find("fromDefault") != nullptr);
+}
+
+TEST_CASE("the failure report is saved while a database job keeps the migration worker busy",
+          "[dbtool-gui][AppController][file-write]")
+{
+    auto const directory = QTemporaryDir {};
+    REQUIRE(directory.isValid());
+    DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
+    auto release = std::promise<void> {};
+    controller.runner()->Worker().Enqueue([released = release.get_future().share()] { released.wait(); },
+                                          [](std::exception const&) {});
+    QSignalSpy saved(&controller, &DbtoolGui::AppController::failureReportSaved);
+    auto const path = directory.filePath(QStringLiteral("report.txt"));
+
+    controller.saveFailureReport(QUrl::fromLocalFile(path));
+    auto const savedWhileBusy = saved.count() > 0 || saved.wait(5000);
+    release.set_value();
+    REQUIRE(controller.runner()->Worker().WaitForDone(std::chrono::seconds { 30 }));
+
+    REQUIRE(savedWhileBusy);
+    CHECK(saved.first().at(1).toString().isEmpty());
+    CHECK(QFile::exists(path));
 }

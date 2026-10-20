@@ -1133,13 +1133,7 @@ Rectangle {
         options: FileDialog.DontConfirmOverwrite
         defaultSuffix: "zip"
         nameFilters: [ qsTr("Backup archives (*.zip)"), qsTr("All files (*)") ]
-        onAccepted: {
-            const url = selectedFile.toString()
-            const localPath = Qt.platform.os === "windows"
-                ? url.replace(/^file:\/{2,3}/, "")
-                : url.replace(/^file:\/{2}/, "")
-            customPathField.text = decodeURIComponent(localPath)
-        }
+        onAccepted: customPathField.text = AppController.localFilePath(selectedFile)
     }
 
     // --- Destructive per-profile restore confirmation ---

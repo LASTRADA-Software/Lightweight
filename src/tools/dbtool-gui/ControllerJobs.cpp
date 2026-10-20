@@ -17,6 +17,8 @@
 
 #include <PluginIngestion.hpp>
 #include <PluginLoader.hpp>
+#include <QtCore/QDir>
+#include <QtCore/QSaveFile>
 #include <QtCore/QStringList>
 
 namespace DbtoolGui
@@ -237,6 +239,25 @@ QStringList PreviewMigrationStatements(Lightweight::SqlMigration::MigrationManag
     {
         return { QStringLiteral("-- Preview failed: %1").arg(ExceptionMessage(e)) };
     }
+}
+
+QString LocalFilePath(QUrl const& url)
+{
+    if (!url.isLocalFile())
+        return {};
+    return QDir::toNativeSeparators(url.toLocalFile());
+}
+
+QString WriteFileAtomically(QString const& path, QByteArray const& content)
+{
+    auto file = QSaveFile { path };
+    if (!file.open(QIODevice::WriteOnly))
+        return file.errorString();
+    if (file.write(content) != content.size())
+        return file.errorString();
+    if (!file.commit())
+        return file.errorString();
+    return {};
 }
 
 } // namespace DbtoolGui

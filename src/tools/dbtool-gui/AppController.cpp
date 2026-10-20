@@ -70,6 +70,7 @@ struct AppController::PluginsBundle
 #include <QtCore/QFileInfo>
 #include <QtCore/QFileSystemWatcher>
 #include <QtCore/QModelIndex>
+#include <QtCore/QPointer>
 #include <QtCore/QSettings>
 #include <QtCore/QSysInfo>
 #include <QtCore/QThread>
@@ -1382,6 +1383,36 @@ QString AppController::currentReleaseLabel() const
 QString AppController::targetReleaseLabel() const
 {
     return _targetReleaseLabel;
+}
+
+void AppController::saveFailureReport(QUrl const& file)
+{
+    auto const path = LocalFilePath(file);
+    if (path.isEmpty())
+    {
+        emit failureReportSaved(file.toString(), QStringLiteral("not a local file."));
+        return;
+    }
+    // A network share can stall for seconds, so the file is written on the file worker.
+    auto const report = buildFailureReport().toUtf8();
+    auto const post = [self = QPointer<AppController> { this }, path](QString error) {
+        if (!self)
+            return;
+        QMetaObject::invokeMethod(
+            self.data(),
+            [self, path, error = std::move(error)] {
+                if (self)
+                    emit self->failureReportSaved(path, error);
+            },
+            Qt::QueuedConnection);
+    };
+    _fileWorker.Enqueue([post, path, report] { post(WriteFileAtomically(path, report)); },
+                        [post](std::exception const& error) { post(QString::fromUtf8(error.what())); });
+}
+
+QString AppController::localFilePath(QUrl const& url) const
+{
+    return LocalFilePath(url);
 }
 
 QString AppController::buildFailureReport() const

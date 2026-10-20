@@ -32,6 +32,7 @@
 #include <QtCore/QDir>
 #include <QtCore/QEventLoop>
 #include <QtCore/QFile>
+#include <QtCore/QFileInfo>
 #include <QtCore/QFutureWatcher>
 #include <QtCore/QProcess>
 #include <QtCore/QRegularExpression>
@@ -416,6 +417,24 @@ int WorkflowFixture::lineCount(QString const& path) const
     for (auto line = std::string {}; std::getline(stream, line);)
         ++lines;
     return lines;
+}
+
+QUrl WorkflowFixture::localFileUrl(QString const& path) const
+{
+    return QUrl::fromLocalFile(path);
+}
+
+bool WorkflowFixture::fileExists(QString const& path) const
+{
+    return QFileInfo::exists(path);
+}
+
+QString WorkflowFixture::fileText(QString const& path) const
+{
+    auto file = QFile { path };
+    if (!file.open(QIODevice::ReadOnly))
+        return {};
+    return QString::fromUtf8(file.readAll());
 }
 
 QString WorkflowFixture::tempPath(QString const& name) const

@@ -148,14 +148,6 @@ Column {
         currentFolder: AppController.pluginsDir.length > 0
             ? Qt.resolvedUrl("file:///" + AppController.pluginsDir)
             : ""
-        onAccepted: {
-            // selectedFolder is a QUrl like `file:///C:/path/to/plugins`.
-            // Strip the scheme for user-friendly display and storage.
-            const url = selectedFolder.toString();
-            const localPath = Qt.platform.os === "windows"
-                ? url.replace(/^file:\/{2,3}/, "")
-                : url.replace(/^file:\/{2}/, "");
-            AppController.setPluginsDir(decodeURIComponent(localPath));
-        }
+        onAccepted: AppController.setPluginsDir(AppController.localFilePath(selectedFolder))
     }
 }
