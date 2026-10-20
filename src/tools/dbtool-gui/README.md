@@ -17,13 +17,12 @@ rest of the project (library, dbtool, tests, examples) builds normally.
 
 ## Status
 
-**Phases 0–4 landed:** scaffolding, shared ProfileStore / DataSourceEnumerator
+**Landed:** scaffolding, shared ProfileStore / DataSourceEnumerator
 / SecretResolver in the library, Qt view-model layer (AppController,
 MigrationRunner, BackupRunner, ManagedBackupController, six QAbstractListModels,
 QmlProgressManager),
-a QML UI mirroring the mockup in `docs/migrations-gui-mockup.html`, and
-managed backups (see below). See `docs/migrations-gui-plan.md` for the full
-plan and deferred work.
+a QML UI, and managed backups (see below). Deferred work is listed under
+*What's deferred*.
 
 ### Look and feel
 
@@ -50,6 +49,57 @@ Design project, pages under `dbtool/`):
   (kit panel with header), `Banner`, `SegmentedControl`, `StepSection`,
   `StatusPill`, `Spinner`, and Lastrada line icons in `Glyph`.
 
+### Responsiveness
+
+The UI thread never waits for the database, the plugins or the disk: no stall over
+**1 s** (`UiWatchdog::DefaultBudgetMs`, enforced by the workflow tests). The window's first frame
+comes before any plugin load, ODBC enumeration or backup-folder scan. The profile file
+(`dbtool.yml`) is read and written on the UI thread, so the guarantee assumes it lies on a local disk.
+
+| Work | Where it runs |
+|------|---------------|
+| Plugin load and reload (once per real change of plugins directory, profile, mode or connect) | worker |
+| Connect, post-init hooks, history refresh, checksum verification, backup-requirement check | worker, one job |
+| Migration, pre-migrate step, backup and restore runs | worker (`MigrationRunner`, `BackupRunner`, `ManagedBackupController`) |
+| SQL preview, SQL query, ODBC data-source enumeration, backup-folder scan | worker |
+| Failure report save, backup-folder creation | file worker, never queued behind a database job |
+| Result delivery | queued calls to the UI thread; a result of an earlier profile, connection or reload is dropped |
+
+While a result is pending, the controls that depend on it stay disabled and show the wait:
+
+| Property (`AppController`) | Shown as |
+|----------------------------|----------|
+| `pluginsLoading` | "Loading plugins…" in the migration view |
+| `odbcRefreshing` | busy ODBC list |
+| `connecting` | "Connecting…" on the connect button; a second click starts nothing |
+| `backupRequirementPending` | *Run*, *Retry* and *Apply* disabled until the check finished |
+
+Also:
+
+- **No echo reload.** The GUI's own password-encryption write to `dbtool.yml` does not reload the
+  profiles again; an external change during a run or a connect is deferred, not lost.
+- **Cheap updates.** List and count updates cost O(changed rows); a run of thousands of migrations
+  does not rebuild the lists. The log is bounded.
+- **Close is refused while a run is in flight** (window close, `Ctrl+Q`, `Qt.quit()`); the log says
+  why. *Cancel* ends the run, then the window closes.
+- **Rollback takes the migration lock**, like Apply (see below); the log says when another migrator
+  holds it.
+
+### Expert view options
+
+| Control | Effect |
+|---------|--------|
+| *Acquire lock* | Apply, Apply selected and Rollback to release take the migration lock when on (default) and run without it when off. Dry run never locks. The Simple view always locks. The backup requirement is checked either way. |
+| *Back up first* | Apply backs up the database, then migrates only if the backup succeeded; a failed backup stops the run and is shown. |
+| *Dry run* | Shows the SQL and changes nothing. |
+
+### Plugin interface
+
+Plugins export `LightweightMigrationPluginPostInitReported` for the post-init hook (see
+[docs/dbtool.md](../../../docs/dbtool.md#optional-post-init-hook)). A plugin that exports only the
+old `LightweightMigrationPluginPostInit` is skipped with a warning: rebuild it against the current
+`LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT` macro. A throwing hook is logged and the connect completes.
+
 ### Managed backups
 
 The Backups page manages one `<profile>.zip` archive per configured profile
@@ -65,9 +115,9 @@ inside a single folder, instead of a one-off file picker:
 - **Backup all** — backs up every configured profile sequentially into
   `<folder>/<sanitized-profile-name>.zip`, continuing past per-profile
   failures; a single profile can also be backed up on its own from its row.
-- **Safe overwrite** — each archive is written to a `.tmp` sibling first and
-  atomically renamed over the final path on success, so a crash or failure
-  mid-write never corrupts the previous good archive.
+- **Safe overwrite** — each archive is written to a `.tmp` sibling first, verified, and
+  atomically renamed over the final path on success, so a crash, a failure or an archive
+  that fails verification never replaces the previous good archive.
 - **Partial runs are failures** — `SqlBackup::Backup` does not throw when an
   individual table fails; it reports `Progress::State::Error` and returns.
   The controller therefore gates the atomic rename on the progress manager's
@@ -202,11 +252,12 @@ the pending migrations need one that does not exist yet
   before the pre-migrate steps, and refuses when a backup is still missing.
 - **Which backups count** — *Back up now*, *Back up the database first* and the
   Backup & restore panel's *Back up* and *Restore* record their verified archive
-  in `schema_backups` (a restore records the migration history it left). The
-  managed per-profile backups write no record. A backup whose record cannot be
-  written still succeeds, logs a warning that it cannot satisfy the requirement
-  and leaves the alert showing why; an archive that fails verification fails
-  the backup.
+  in `schema_backups` (a restore records the migration history it left). Managed
+  per-profile backups are recorded the same way, after the archive was verified;
+  a managed restore replaces no archive and is recorded once it finished. A
+  backup whose record cannot be written still succeeds, logs a warning that it
+  cannot satisfy the requirement and leaves the alert showing why; an archive
+  that fails verification fails the backup.
 
 ### Known limitations
 
@@ -231,10 +282,10 @@ the pending migrations need one that does not exist yet
   (`env:` / `file:` / `stdin:`) is wired today and covers every headless / CI
   scenario.
 - Windows + macOS GitHub Actions runners for the GUI tests. The Linux job
-  (`ubuntu_dbtool_gui` in `.github/workflows/build.yml`) lands as the first
-  step; the same `jurplel/install-qt-action@v4` recipe drops onto the other
-  two platforms in a follow-up once the Linux job is stable.
-- Postgres / MSSQL fan-out for the GUI test job (the existing
+  (`ubuntu_dbtool_gui` in `.github/workflows/build.yml`) runs the workflow tests, SQL
+  Server scenarios included; the same `jurplel/install-qt-action@v4` recipe drops onto the other
+  two platforms in a follow-up.
+- Postgres fan-out for the GUI test job (the existing
   `dbms_test_matrix` pattern reused with `LIGHTWEIGHT_BUILD_GUI=ON`).
 
 ## Building
@@ -273,30 +324,113 @@ of a managed backup or restore of that profile.
 QT_QPA_PLATFORM=offscreen ./build/target/dbtool-gui &
 ```
 
-## Running the tests
+## Testing
 
 When the project is configured with `LIGHTWEIGHT_BUILD_GUI=ON` **and**
-`LIGHTWEIGHT_BUILD_TESTS=ON`, three CTest entries become available under the
-shared `dbtool-gui` label, all of which run under
-`QT_QPA_PLATFORM=offscreen`:
+`LIGHTWEIGHT_BUILD_TESTS=ON`, these CTest entries carry the shared `dbtool-gui` label and run
+under `QT_QPA_PLATFORM=offscreen`:
 
-| CTest entry          | Layer              | Runner                                  |
-|----------------------|--------------------|-----------------------------------------|
-| `dbtool-gui-tests`   | C++ view-model     | Catch2 (`AppControllerTests.cpp`, `BackupStatusListModelTests.cpp`, `ManagedBackupCoreTests.cpp`, `ManagedBackupControllerTests.cpp`) |
-| `dbtool-gui-qmltest` | QML components     | Qt `qmltestrunner` (`tests/qml/*.qml`, incl. `tst_backups_page.qml`) |
-| `dbtool-gui-smoke`   | Process startup    | `src/tests/test_dbtool_gui.py` (Python) |
-
-Run them all in one go:
+| CTest entry | Layer | Runner |
+|-------------|-------|--------|
+| `dbtool-gui-tests` | C++ view-models, runners, models, close guard, watchdog | Catch2 (`tests/*Tests.cpp`) |
+| `dbtool-gui-qmltest` | QML components | Qt `qmltestrunner` (`tests/qml/*.qml`) |
+| `dbtool-gui-workflow-<file stem>-<function>` (file stem, e.g. `tst_workflow_simple`) | The real `Main` window, driven by clicks | `dbtool-gui-workflowtest` on `tests/workflow/tst_workflow_*.qml` |
+| `dbtool-gui-smoke` | Process startup | `src/tests/test_dbtool_gui.py` |
 
 ```bash
 ctest --preset clang-debug -L dbtool-gui --output-on-failure
 # or, against the Windows build:
 ctest --preset clangcl-debug -L dbtool-gui --output-on-failure
+# one workflow test:
+ctest --preset clang-debug -R dbtool-gui-workflow-tst_workflow_simple-test_run_applies_every_pending_migration
 ```
 
-The same recipe runs on every push via the `dbtool-gui (Ubuntu, Qt 6.8,
-headless)` GitHub Actions job — see `ubuntu_dbtool_gui` in
-`.github/workflows/build.yml`.
+The same recipe runs on every push via the `dbtool-gui (Ubuntu, Qt 6.8, headless)` GitHub
+Actions job (`ubuntu_dbtool_gui` in `.github/workflows/build.yml`).
+
+### Workflow tests
+
+- **One process per test function.** `AppController` is a process-wide singleton, so CTest runs
+  each `test_*` function of a workflow file in a process of its own (`<TestCase name>::<function>`).
+  Test functions must be written `    function test_<name>(` (4-space indent); CMake fails the
+  configure otherwise.
+- **Real window.** Each test opens `Main`, finds controls by `objectName`, clicks them and asserts
+  what the user sees plus the database state afterwards (`WorkflowFixture`, `tests/support/`).
+- **UI watchdog.** A 10 ms heartbeat runs from the window's first frame; a stall over 1 s fails the
+  test. The report names the step of the longest gap. Fixture work runs outside the watchdog.
+- **Isolation.** Each test gets its own settings, plugin directory, databases and DSNs
+  (`TestIsolation.hpp`); `LIGHTWEIGHT_NO_ERROR_DIALOGS=1` keeps native dialogs away.
+- **Fixture databases are SQLite** unless noted. Scenarios that need narrow and wide text columns
+  to differ run on SQL Server, via the variable below, and assert the "nothing to upgrade" path
+  on SQLite.
+
+### Environment variables
+
+| Variable | Effect |
+|----------|--------|
+| `QT_QPA_PLATFORM=offscreen` | Required for headless runs (CTest sets it). |
+| `LIGHTWEIGHT_NO_ERROR_DIALOGS=1` | Replaces error message boxes with log lines (CTest sets it). |
+| `DBTOOL_GUI_TEST_MSSQL_CONNECTION_STRING` | ODBC connection string to a SQL Server master database; enables the SQL Server scenarios, each in a database of its own. CI starts `mssql2022`. |
+| `DBTOOL_GUI_WORKFLOW_PROFILE_FILE`, `DBTOOL_GUI_WORKFLOW_PROFILE` | Run the end-to-end test against an existing `dbtool.yml` and profile. Both are needed, plus the expectations and either the plugins directory or `SKIP_FIXTURES=1`: with a profile file of your own the fixture plugins are never used. |
+| `DBTOOL_GUI_WORKFLOW_EXPECTATIONS` | JSON file with the expected `pendingBefore` (number), `backupReasons` (array of strings; empty means no alert), `dryRunLogLine` and `secondDryRunLogLine` (strings). |
+| `DBTOOL_GUI_WORKFLOW_PLUGINS_DIR` | Plugins directory the end-to-end test loads, and asserts it loaded. With a profile file, the test loads a copy of that file without any `pluginsDir` or `defaultPluginsDir` (relative backup folders made absolute), so this directory wins; the application's own precedence (profile, then file, then Settings page) is unchanged. |
+| `DBTOOL_GUI_WORKFLOW_SKIP_FIXTURES` | `1`: no fixture plugins, database or seeding; needs the profile file. `0` or unset: the fixtures are used. |
+| `DBTOOL_GUI_WORKFLOW_LONG_RUN_TIMEOUT_MS` | How long a test waits for a run, backup, connect or a `dbtool` call (default 120000). |
+
+A `DBTOOL_GUI_WORKFLOW_*` variable set to something unusable (a timeout that is no positive
+integer, `SKIP_FIXTURES` other than `0` or `1`, an unreadable or non-object expectations file)
+fails every test function of every workflow file, with a message naming the variable. Nothing
+else cuts a long run short: the workflow CTests set no `TIMEOUT`, and `QTEST_FUNCTION_TIMEOUT`
+does not apply to Qt Quick Test.
+
+Fixture plugins (`src/tests/post_migrate_plugin`, `src/tests/gui_workflow_fixtures`) simulate slow
+or failing work through these variables; sleeps live only there.
+
+| Variable | Fixture behaviour |
+|----------|-------------------|
+| `LIGHTWEIGHT_TEST_PLUGIN_LOAD_DELAY_MS`, `_PLUGIN_LOAD_LOG`, `_PLUGIN_LOAD_BEGIN_LOG` | Sleep in the plugin's load; log each load. |
+| `LIGHTWEIGHT_TEST_POST_INIT_DELAY_MS`, `_POST_INIT_FAIL`, `_POST_INIT_LOG` | Slow, throwing or logged post-init hook. |
+| `LIGHTWEIGHT_TEST_PRE_MIGRATE_LOG`, `_PRE_MIGRATE_FAIL`, `_PRE_MIGRATE_REQUIRES_BACKUP`, `_PRE_MIGRATE_REQUIRES_BACKUP_DELAY_MS` | Recorder step; a step that throws; a step that requires a backup, with a slow predicate. |
+| `LIGHTWEIGHT_TEST_LONG_STEP_MS`, `_LONG_STEP_UNITS`, `_LONG_STEP_FAIL_AT`, `_LONG_STEP_LOG` | Long step reporting sub-task progress; fails at a given unit. |
+| `LIGHTWEIGHT_TEST_POST_MIGRATE_LOG`, `_POST_MIGRATE_FAIL` | Logged or throwing post-migrate hook. |
+| `LIGHTWEIGHT_TEST_BULK_MIGRATIONS` | Number of migrations the bulk fixture registers. |
+| `LIGHTWEIGHT_TEST_UNICODE_LEGACY_TYPES` | Unicode-candidate fixture creates narrow text columns. |
+
+### Running against your own plugins
+
+```bash
+DBTOOL_GUI_WORKFLOW_PROFILE_FILE=/path/to/dbtool.yml \
+DBTOOL_GUI_WORKFLOW_PROFILE=my-profile \
+DBTOOL_GUI_WORKFLOW_PLUGINS_DIR=/path/to/plugins \
+DBTOOL_GUI_WORKFLOW_EXPECTATIONS=/path/to/expectations.json \
+DBTOOL_GUI_WORKFLOW_SKIP_FIXTURES=1 \
+DBTOOL_GUI_WORKFLOW_LONG_RUN_TIMEOUT_MS=3600000 \
+ctest --preset clang-debug -R dbtool-gui-workflow-tst_workflow_end_to_end --output-on-failure
+```
+
+The watchdog stays on, so the run also proves the UI stays responsive on your data.
+The profile's database is migrated for real: use a copy.
+
+### Capability coverage
+
+| Capability | Workflow test file (`tests/workflow/`) |
+|------------|----------------------------------------|
+| Startup: first frame before slow plugins, single plugin load, no DB access while disconnected | `tst_workflow_startup.qml`, `tst_workflow_smoke.qml` |
+| Shell: rail and pages, Simple/Expert switch, log toggle, theme | `tst_workflow_shell.qml` |
+| Connection: profile, DSN and custom modes, ODBC refresh, connect failure, save/add profile, external profile-file change | `tst_workflow_connection.qml` |
+| Plugins: directory change, reload, post-init re-run | `tst_workflow_plugins.qml` |
+| Responsiveness: slow post-init and backup check, stale results, double connect, async refresh and SQL preview | `tst_workflow_responsiveness.qml` |
+| Cheap updates: no echo reload, deferred external change, 2000 migrations, bounded log | `tst_workflow_cheap_updates.qml` |
+| Simple view: Run, back-up-first chain, Cancel, outcomes, Retry, copy/save report, view log | `tst_workflow_simple.qml` |
+| Expert view: targets (latest, release, timestamp), Apply, Dry run, selection, rollback, SQL preview | `tst_workflow_expert.qml` |
+| Expert options: Acquire lock, Back up first, dry-run text, log views | `tst_workflow_expert_options.qml` |
+| Pre-migrate steps and progress: order, sub-tasks, failed step, cancel between units | `tst_workflow_steps.qml` |
+| Backup requirement: alert, Back up now, waiver, backup and restore records, re-evaluation | `tst_workflow_backup_requirement.qml` |
+| Backups page: back up all/one, restore to profile and connection string, custom backup, folder, reveal | `tst_workflow_backups.qml` |
+| SQL query tab: result, error | `tst_workflow_sql_query.qml` |
+| Settings persisted across a window restart | `tst_workflow_settings.qml` |
+| Close guard during a run | `tst_workflow_close.qml` |
+| Full upgrade and idempotent rerun | `tst_workflow_end_to_end.qml` |
 
 ## QML module
 
@@ -346,9 +480,8 @@ dbtool-gui/
                             ActionsPanel, LogPanel, ConnectionPanel,
                             BackupsPage, SettingsPage).
   tests/                    Headless test suites. Built when
-                            LIGHTWEIGHT_BUILD_TESTS=ON; see "Running the
-                            tests" above. Includes ManagedBackupCoreTests.cpp,
-                            ManagedBackupControllerTests.cpp,
-                            BackupStatusListModelTests.cpp, and
-                            qml/tst_backups_page.qml.
+                            LIGHTWEIGHT_BUILD_TESTS=ON; see "Testing" above.
+                            *Tests.cpp (Catch2), qml/ (component tests),
+                            workflow/ (window-level tests), support/
+                            (UiWatchdog, WorkflowFixture).
 ```

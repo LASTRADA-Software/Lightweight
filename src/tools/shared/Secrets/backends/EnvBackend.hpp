@@ -7,8 +7,7 @@
 // `Read("MY_PWD")` returns the value of `$MY_PWD` or `std::nullopt` when
 // unset. A bare reference (no key) falls back to
 // `LIGHTWEIGHT_<UPPER_PROFILE>_PWD` — hyphens are converted to underscores
-// and the whole name is uppercased, matching the convention documented in
-// `docs/migrations-gui-plan.md` §6.3.
+// and the whole name is uppercased.
 
 #pragma once
 

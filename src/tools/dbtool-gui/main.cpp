@@ -3,8 +3,7 @@
 // dbtool-gui — Qt 6 GUI companion to the dbtool CLI.
 //
 // Exposes the same migration / SQL-query / backup / profile workflows as the
-// dbtool CLI through a QML desktop UI. See docs/migrations-gui-plan.md for
-// the original design notes.
+// dbtool CLI through a QML desktop UI.
 
 #include "AppController.hpp"
 #include "CloseGuard.hpp"

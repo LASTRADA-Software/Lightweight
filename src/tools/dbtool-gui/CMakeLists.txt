@@ -1,7 +1,7 @@
 # dbtool-gui — Qt 6 GUI companion to the dbtool CLI.
 #
 # Built only when LIGHTWEIGHT_BUILD_GUI is ON and Qt 6 was located by the
-# top-level LightweightFindQt probe. See docs/migrations-gui-plan.md for the design.
+# top-level LightweightFindQt probe.
 #
 # The C++ view-model layer lives in a STATIC backing library
 # (`dbtool-gui-lib`) so the test binaries under `tests/` can link against
