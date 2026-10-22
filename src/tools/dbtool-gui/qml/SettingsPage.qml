@@ -222,7 +222,7 @@ Rectangle {
                             Layout.minimumWidth: 80
                             // The files discovery loaded, nearest first; shown while no path is set.
                             placeholderText: AppController.profileLayers.length > 0
-                                             ? AppController.profileLayers.join("\n")
+                                             ? AppController.profileLayers.join(", ")
                                              : AppController.defaultProfileStorePath
                             text: AppController.profileStorePath
                             onEditingFinished: AppController.setProfileStorePath(text)

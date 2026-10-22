@@ -5,6 +5,7 @@ import subprocess
 import sys
 import json
 import os
+import re
 import shutil
 import tempfile
 import zipfile
@@ -1710,6 +1711,24 @@ def main():
         if on_argv.returncode == 0 or "never accepted on the command line" not in on_argv.stderr:
             print(f"add-profile accepted a password on the command line:\n{on_argv.stderr}")
             sys.exit(1)
+
+    print("--- 12d2. add-profile stores relative directories as absolute paths ---")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # The file lives in another directory than the one the directories were typed in, where a
+        # relative value would resolve against the file instead.
+        cfg_path = os.path.join(tmpdir, "nested", "dbtool.yml")
+        run_command([args.dbtool, "--config", cfg_path, "add-profile", "--name", "rel", "--no-password",
+                     "--connection-string", profile_cs, "--plugins-dir", "rel-plugins",
+                     "--backup-dir", "rel-backups"], cwd=tmpdir)
+        with open(cfg_path, encoding="utf-8") as f:
+            stored = f.read()
+        for key, name in (("pluginsDir", "rel-plugins"), ("backupDir", "rel-backups")):
+            match = re.search(rf'^\s*{key}:\s*"?(.*?)"?\s*$', stored, re.MULTILINE)
+            value = match.group(1).replace("\\\\", "\\") if match else ""
+            expected = os.path.join(tmpdir, name)
+            if not os.path.isabs(value) or os.path.realpath(value) != os.path.realpath(expected):
+                print(f"add-profile stored {key} as {value!r} instead of {expected!r}:\n{stored}")
+                sys.exit(1)
 
     if is_sqlite:
         test_layered_writes(args.dbtool, args.plugins_dir, connection_string)

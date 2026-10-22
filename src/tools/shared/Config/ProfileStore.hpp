@@ -68,8 +68,8 @@ struct Profile
     /// Profile name, unique within a ProfileStore.
     std::string name;
 
-    /// Plugin search directory. Relative paths are resolved relative to
-    /// the current working directory at load time.
+    /// Plugin search directory. Stored as written; `LayeredProfileStore` resolves a relative
+    /// path against the directory of the dbtool.yml containing it.
     std::filesystem::path pluginsDir;
 
     /// Optional database schema (e.g. "dbo").
@@ -96,7 +96,8 @@ struct Profile
     std::string password;
 
     /// Folder this profile's backups are written to; overrides the store's `defaultBackupDir`.
-    /// Empty means "use the store-wide default". Relative paths are used as written.
+    /// Empty means "use the store-wide default". Stored as written; `LayeredProfileStore` resolves a
+    /// relative path against the directory of the dbtool.yml containing it.
     std::filesystem::path backupDir {};
 
     /// True when the profile carries enough info to attempt a connection.

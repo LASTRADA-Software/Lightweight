@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "Environment.hpp"
 #include "ProfileStore.hpp"
 
 #include <Lightweight/SqlConnectInfo.hpp>
@@ -81,27 +82,6 @@ SqlConnectInfo Profile::ToConnectInfo(std::string_view password) const
     extended += std::format("PWD={}", FormatConnectionStringValue(password));
     return SqlConnectionString { std::move(extended) };
 }
-
-namespace
-{
-    /// Value of the environment variable `name`; empty when it is unset.
-    std::string EnvironmentValue(char const* name)
-    {
-#ifdef _WIN32
-        auto size = std::size_t {};
-        if (getenv_s(&size, nullptr, 0, name) != 0 || size == 0)
-            return {};
-        auto value = std::string(size, '\0');
-        if (getenv_s(&size, value.data(), value.size(), name) != 0)
-            return {};
-        value.resize(size - 1); // size counts the terminating null
-        return value;
-#else
-        auto const* const value = std::getenv(name);
-        return value != nullptr ? std::string { value } : std::string {};
-#endif
-    }
-} // namespace
 
 std::filesystem::path ProfileStore::DefaultPath()
 {

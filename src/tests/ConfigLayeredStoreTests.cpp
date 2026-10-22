@@ -10,7 +10,6 @@
 #include <algorithm>
 #include <filesystem>
 #include <map>
-#include <ranges>
 #include <string>
 #include <vector>
 
@@ -48,7 +47,12 @@ std::vector<Cfg::ConfigCandidate> Candidates(std::vector<fs::path> const& paths)
                                       .source = path == User ? Cfg::ConfigSource::UserDefault
                                                              : Cfg::ConfigSource::ExecutableDirectory };
     };
-    return std::ranges::to<std::vector>(paths | std::views::transform(toCandidate));
+    // A plain loop: Clang cannot compile `std::ranges::to` against GCC 14's libstdc++.
+    auto candidates = std::vector<Cfg::ConfigCandidate> {};
+    candidates.reserve(paths.size());
+    for (auto const& path: paths)
+        candidates.push_back(toCandidate(path));
+    return candidates;
 }
 
 std::expected<Cfg::LayeredProfileStore, std::string> LoadFiles(Files const& files, std::vector<fs::path> const& paths)

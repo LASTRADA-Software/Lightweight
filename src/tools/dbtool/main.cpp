@@ -39,6 +39,7 @@
 #include <set>
 #include <span>
 #include <string>
+#include <system_error>
 #include <type_traits>
 #include <unordered_set>
 #include <variant>
@@ -557,9 +558,16 @@ struct LoadedConfig
 /// @return E.g. "/opt/acme/app-a/dbtool.yml, /opt/acme/dbtool.yml".
 [[nodiscard]] std::string JoinLayerPaths(Lightweight::Config::LayeredProfileStore const& layers)
 {
-    return layers.Layers()
-           | std::views::transform([](Lightweight::Config::ConfigLayer const& layer) { return layer.path.string(); })
-           | std::views::join_with(std::string_view { ", " }) | std::ranges::to<std::string>();
+    // A plain loop: libc++ has no views::join_with yet, and Clang cannot compile the
+    // `| std::ranges::to` pipe against GCC 14's libstdc++.
+    auto joined = std::string {};
+    for (auto const& layer: layers.Layers())
+    {
+        if (!joined.empty())
+            joined += ", ";
+        joined += layer.path.string();
+    }
+    return joined;
 }
 
 /// Locates and merges the run's dbtool.yml files. Exits on a missing `--config` file or a file
@@ -1310,9 +1318,11 @@ int ListProfiles(Options const& options)
     }
     if (layers->Empty())
     {
-        std::println("No profile configuration found (searched for {} above the executable directory, then {}).",
+        auto const inputs = Cfg::DefaultDiscoveryInputs();
+        std::println("No profile configuration found (searched for {} in {} and above, then {}).",
                      Cfg::ConfigFileName,
-                     Cfg::DefaultDiscoveryInputs().userDefault.string());
+                     inputs.executableDirectory.string(),
+                     inputs.userDefault.string());
         return EXIT_SUCCESS;
     }
     auto const& store = layers->Merged();
@@ -1414,6 +1424,19 @@ int ListProfiles(Options const& options)
     return EXIT_SUCCESS;
 }
 
+/// A directory given on the command line, made absolute against the working directory it was typed
+/// in: a relative value in dbtool.yml would resolve against that file's directory instead.
+/// @param directory The directory as given; empty for none.
+/// @return The absolute directory, or empty.
+[[nodiscard]] std::string CommandLineDirectory(std::filesystem::path const& directory)
+{
+    if (directory.empty())
+        return {};
+    std::error_code ec;
+    auto const absolute = std::filesystem::absolute(directory, ec);
+    return (ec ? directory : absolute).lexically_normal().string();
+}
+
 /// Implements `add-profile`: writes a new profile into dbtool.yml with its password
 /// encrypted, keeping the rest of the file (comments included) untouched. The
 /// password is read from a no-echo prompt, or one line of stdin when piped — never argv.
@@ -1464,9 +1487,9 @@ int AddProfileCommand(Options const& options)
         .dsn = options.dsn,
         .uid = options.uid,
         .schema = options.schema,
-        .pluginsDir = options.pluginsDirSet ? options.pluginsDir.front().string() : std::string {},
+        .pluginsDir = options.pluginsDirSet ? CommandLineDirectory(options.pluginsDir.front()) : std::string {},
         .password = {},
-        .backupDir = options.newBackupDir,
+        .backupDir = CommandLineDirectory(options.newBackupDir),
     };
     if (options.connectionStringSet && !Cfg::SplitInlinePassword(request.connectionString).password.empty())
         std::println(std::cerr, "Note: the password in --connection-string will be stored encrypted instead.");

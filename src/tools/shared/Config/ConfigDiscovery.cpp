@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "ConfigDiscovery.hpp"
+#include "Environment.hpp"
 #include "ProfileStore.hpp"
 
 #include <algorithm>
 #include <array>
-#include <cstdlib>
 #include <format>
 #include <system_error>
 #include <vector>
@@ -57,9 +57,8 @@ namespace
     /// The directory named by `ConfigSearchDirectoryVariable`, or an empty path when unset or empty.
     std::filesystem::path SearchDirectoryOverride()
     {
-        auto const name = std::string { ConfigSearchDirectoryVariable };
-        auto const* const value = std::getenv(name.c_str());
-        if (value == nullptr || *value == '\0')
+        auto const value = EnvironmentValue(std::string { ConfigSearchDirectoryVariable }.c_str());
+        if (value.empty())
             return {};
         std::error_code ec;
         auto absolute = std::filesystem::absolute(std::filesystem::path { value }, ec);

@@ -320,6 +320,13 @@ current directory is no longer searched. `LIGHTWEIGHT_DBTOOL_CONFIG_SEARCH_DIR`,
 when set, replaces the executable's directory as the start of the search (for
 tests and scripted runs).
 
+To share profiles between installations, follow "Deploying shared profiles" in
+[docs/dbtool.md](../../../docs/dbtool.md#where-dbtool-finds-dbtoolyml): `root: true` in an
+installation-owned file, no `pluginsDir` on shared profiles, `defaultPluginsDir` in each
+installation's own file, and the multi-profile shape in every layered file (a legacy
+single-profile file keeps working alone, but as a layer its `PluginsDir` belongs to its
+`default` profile and its implicit default shadows the shared file's).
+
 The startup log line `Profile store: <n> file(s): <nearest>, …, <file> (root) — <k> profile(s)`
 lists the loaded files in precedence order, and the Settings page shows them as
 the placeholder. A change to any of them reloads the profiles, discovering the

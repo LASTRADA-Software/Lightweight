@@ -164,6 +164,21 @@ same profiles. A profile's own `pluginsDir` still beats `defaultPluginsDir`, so 
 that sets `pluginsDir` pins every installation to that directory; leave it unset on shared
 profiles.
 
+**Deploying shared profiles.** For a layout like the one above:
+
+- Put `root: true` in a file the installation owns — the shared profiles file, or each
+  installation's own file if it should not share. Without it, every `dbtool.yml` further up (up to
+  the filesystem root) and the per-user file are merged too, and any of them can supply a
+  `defaultPluginsDir`, i.e. decide which plugin code dbtool loads.
+- Leave `pluginsDir` unset on shared profiles; each installation names its plugins with
+  `defaultPluginsDir` in its own file.
+- Write every layered file in the multi-profile shape (see
+  [Configuration File Format](#configuration-file-format)). A file in the legacy single-profile
+  shape is a profile named `default` plus an implicit `defaultProfile: default`: its `PluginsDir`
+  belongs to that profile only (it is not a `defaultPluginsDir`), and as a nearer layer its
+  implicit default shadows the shared file's `defaultProfile`. Legacy files keep working on their
+  own.
+
 **Where writes go.** `add-profile` without `--config` writes a new profile into the `root: true`
 file when one was loaded, otherwise into the per-user file (created if missing) — even when files
 were found above the executable. Replacing an existing profile (`--force`) and encrypting a
@@ -786,7 +801,7 @@ printf '%s\n' "$DB_PASSWORD" | dbtool add-profile --name ci \
 | `--name <NAME>` | Profile name (required) |
 | `--connection-string <STR>` / `--dsn <DSN>` | Exactly one is required. A `PWD=` inside the connection string is moved into the encrypted `password` field |
 | `--uid <UID>` | User name for a DSN profile |
-| `--schema <S>`, `--plugins-dir <DIR>`, `--backup-dir <DIR>` | Stored on the profile (`--backup-dir` becomes its `backupDir`) |
+| `--schema <S>`, `--plugins-dir <DIR>`, `--backup-dir <DIR>` | Stored on the profile (`--backup-dir` becomes its `backupDir`). A relative directory is made absolute against the current directory before it is written, since relative values in `dbtool.yml` resolve against that file's directory |
 | `--no-password` | Store the profile without a password |
 | `--set-default` | Make it the `defaultProfile` |
 | `--force` | Replace an existing profile of the same name |
