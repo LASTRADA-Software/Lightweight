@@ -27,6 +27,14 @@ std::expected<std::string, std::string> ReadConfigFile(std::filesystem::path con
 namespace
 {
 
+    /// Prefixes `error` with `file` unless it already names it.
+    std::string NamingFile(std::string error, std::filesystem::path const& file)
+    {
+        if (error.contains(file.string()))
+            return error;
+        return file.string() + ": " + error;
+    }
+
     /// Anchors a relative path at the directory of the file it was written in; empty and absolute
     /// paths are returned unchanged.
     std::filesystem::path ResolveAgainst(std::filesystem::path const& path, std::filesystem::path const& file)
@@ -66,10 +74,10 @@ std::expected<LayeredProfileStore, std::string> LayeredProfileStore::Load(std::s
     {
         auto const content = reader(candidate.path);
         if (!content)
-            return std::unexpected { content.error() };
+            return std::unexpected { NamingFile(content.error(), candidate.path) };
         auto parsed = ProfileStore::Parse(*content, candidate.path);
         if (!parsed)
-            return std::unexpected { candidate.path.string() + ": " + parsed.error() };
+            return std::unexpected { NamingFile(std::move(parsed.error()), candidate.path) };
 
         auto const isRoot = parsed->IsRoot();
         result._layers.push_back(ConfigLayer { .path = candidate.path, .source = candidate.source, .isRoot = isRoot });
@@ -127,6 +135,8 @@ ConfigLayer const* LayeredProfileStore::DefaultProfileOrigin() const noexcept
 
 std::filesystem::path LayeredProfileStore::NewProfileTarget(std::filesystem::path const& userDefault) const
 {
+    if (_layers.size() == 1 && _layers.front().source == ConfigSource::Explicit)
+        return _layers.front().path;
     auto const root = std::ranges::find_if(_layers, &ConfigLayer::isRoot);
     return root == _layers.end() ? userDefault : root->path;
 }

@@ -88,7 +88,8 @@ class LayeredProfileStore
 
     /// The file a newly added profile should be written to.
     /// @param userDefault The per-user file, used when no root layer was found.
-    /// @return The root layer's path when one was found, else `userDefault`.
+    /// @return The explicit file when one was loaded (regardless of its `root`), else the root
+    ///         layer's path when one was found, else `userDefault`.
     [[nodiscard]] std::filesystem::path NewProfileTarget(std::filesystem::path const& userDefault) const;
 
     /// The layer that sets `defaultProfile` if it is nearer than `target`, i.e. would shadow a
@@ -98,12 +99,12 @@ class LayeredProfileStore
     [[nodiscard]] ConfigLayer const* NearerLayerSettingDefault(std::filesystem::path const& target) const noexcept;
 
   private:
+    static constexpr std::size_t NoLayer = static_cast<std::size_t>(-1);
+
     std::vector<ConfigLayer> _layers;
     ProfileStore _merged;
     std::map<std::string, std::size_t, std::less<>> _profileOrigin;
-    std::size_t _defaultProfileOrigin = static_cast<std::size_t>(-1);
-
-    static constexpr std::size_t NoLayer = static_cast<std::size_t>(-1);
+    std::size_t _defaultProfileOrigin = NoLayer;
 };
 
 } // namespace Lightweight::Config

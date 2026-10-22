@@ -22,9 +22,12 @@ namespace Cfg = Lightweight::Config;
 namespace
 {
 
-fs::path const Near = "/opt/acme/app-a/dbtool.yml";
-fs::path const Far = "/opt/acme/dbtool.yml";
-fs::path const User = "/home/u/dbtool.yml";
+// Platform-absolute fixture paths (a drive letter is prepended on Windows).
+fs::path const Acme = fs::absolute("/opt/acme");
+fs::path const Near = Acme / "app-a" / "dbtool.yml";
+fs::path const Far = Acme / "dbtool.yml";
+fs::path const User = fs::absolute("/home/u/dbtool.yml");
+fs::path const Elsewhere = fs::absolute("/elsewhere/dbtool.yml");
 
 using Files = std::map<fs::path, std::string>;
 
@@ -67,8 +70,8 @@ Files DeploymentFiles(bool withRoot)
     return {
         { Near, "defaultPluginsDir: ./plugins\nprofiles: {}\n" },
         { Far,
-          std::string(withRoot ? "root: true\n" : "")
-              + "defaultPluginsDir: /shared\nprofiles:\n  p1:\n    dsn: A\n  p2:\n    dsn: B\n" },
+          std::string(withRoot ? "root: true\n" : "") + "defaultPluginsDir: " + (Acme / "shared").string()
+              + "\nprofiles:\n  p1:\n    dsn: A\n  p2:\n    dsn: B\n" },
         { User, "profiles:\n  u:\n    dsn: U\n" },
     };
 }
@@ -79,7 +82,7 @@ TEST_CASE("LayeredProfileStore — the deployment layout merges plugins and shar
 {
     auto const store = LoadFiles(DeploymentFiles(true), { Near, Far, User });
     REQUIRE(store);
-    CHECK(store->Merged().DefaultPluginsDir() == std::vector<fs::path> { "/opt/acme/app-a/plugins" });
+    CHECK(store->Merged().DefaultPluginsDir() == std::vector<fs::path> { Acme / "app-a" / "plugins" });
     CHECK(ProfileNames(store->Merged()) == std::vector<std::string> { "p1", "p2" });
     CHECK(store->Layers().size() == 2);
     CHECK(store->RootFound());
@@ -120,13 +123,13 @@ TEST_CASE("LayeredProfileStore — the nearest same-named profile wins whole", "
 TEST_CASE("LayeredProfileStore — store-wide values come from the nearest layer setting them", "[LayeredProfileStore]")
 {
     Files const files {
-        { Near, "defaultBackupDir: /near/bak\nprofiles:\n  p1:\n    dsn: A\n" },
-        { Far, "defaultProfile: p2\ndefaultBackupDir: /far/bak\nprofiles:\n  p2:\n    dsn: B\n" },
+        { Near, "defaultBackupDir: " + (Acme / "near-bak").string() + "\nprofiles:\n  p1:\n    dsn: A\n" },
+        { Far, "defaultProfile: p2\ndefaultBackupDir: " + (Acme / "far-bak").string() + "\nprofiles:\n  p2:\n    dsn: B\n" },
     };
     auto const store = LoadFiles(files, { Near, Far });
     REQUIRE(store);
     CHECK(store->Merged().DefaultProfileName() == "p2");
-    CHECK(store->Merged().DefaultBackupDir() == fs::path { "/near/bak" });
+    CHECK(store->Merged().DefaultBackupDir() == Acme / "near-bak");
     REQUIRE(store->DefaultProfileOrigin() != nullptr);
     CHECK(store->DefaultProfileOrigin()->path == Far);
 }
@@ -173,6 +176,12 @@ TEST_CASE("LayeredProfileStore — an explicit file is loaded alone", "[LayeredP
     REQUIRE(store);
     CHECK(store->Layers().size() == 1);
     CHECK(store->Merged().Find("p1") != nullptr);
+    CHECK(store->NewProfileTarget(User) == Near);
+
+    Files const unrooted { { Near, "profiles:\n  p1:\n    dsn: A\n" } };
+    auto const other = Cfg::LayeredProfileStore::Load(candidates, ReaderFor(unrooted));
+    REQUIRE(other);
+    CHECK(other->NewProfileTarget(User) == Near);
 }
 
 TEST_CASE("LayeredProfileStore — no candidates yields an empty store", "[LayeredProfileStore]")
@@ -192,7 +201,7 @@ TEST_CASE("LayeredProfileStore — NewProfileTarget is the root file, else the u
 
     auto const unrooted = LoadFiles(DeploymentFiles(false), { Near, Far, User });
     REQUIRE(unrooted);
-    CHECK(unrooted->NewProfileTarget("/elsewhere/dbtool.yml") == fs::path { "/elsewhere/dbtool.yml" });
+    CHECK(unrooted->NewProfileTarget(Elsewhere) == Elsewhere);
 
     auto const none = LoadFiles({}, {});
     REQUIRE(none);
@@ -224,14 +233,17 @@ TEST_CASE("LayeredProfileStore — ReadConfigFile reports a missing file", "[Lay
 
 TEST_CASE("LayeredProfileStore — relative directories resolve against their own file", "[LayeredProfileStore]")
 {
+    auto const AbsBak = fs::absolute("/abs/bak");
     Files const files {
-        { Near, "defaultBackupDir: ../bak\nprofiles:\n  p1:\n    dsn: A\n    pluginsDir: ./pl\n    backupDir: /abs/bak\n" },
+        { Near,
+          "defaultBackupDir: ../bak\nprofiles:\n  p1:\n    dsn: A\n    pluginsDir: ./pl\n    backupDir: " + AbsBak.string()
+              + "\n" },
         { Far, "profiles:\n  p2:\n    dsn: B\n    backupDir: bak2\n" },
     };
     auto const store = LoadFiles(files, { Near, Far });
     REQUIRE(store);
-    CHECK(store->Merged().DefaultBackupDir() == fs::path { "/opt/acme/bak" });
-    CHECK(store->Merged().Find("p1")->pluginsDir == fs::path { "/opt/acme/app-a/pl" });
-    CHECK(store->Merged().Find("p1")->backupDir == fs::path { "/abs/bak" });
-    CHECK(store->Merged().Find("p2")->backupDir == fs::path { "/opt/acme/bak2" });
+    CHECK(store->Merged().DefaultBackupDir() == Acme / "bak");
+    CHECK(store->Merged().Find("p1")->pluginsDir == Acme / "app-a" / "pl");
+    CHECK(store->Merged().Find("p1")->backupDir == AbsBak);
+    CHECK(store->Merged().Find("p2")->backupDir == Acme / "bak2");
 }
