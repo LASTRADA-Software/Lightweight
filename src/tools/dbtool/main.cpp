@@ -547,7 +547,7 @@ struct EnvironmentConnectionString
         });
 }
 
-/// Describes one loaded layer for logs and `list-profiles`.
+/// Describes one loaded layer for `list-profiles` and error messages.
 /// @param layer The layer.
 /// @return E.g. "/opt/acme/dbtool.yml (executable directory) (root)".
 [[nodiscard]] std::string DescribeLayer(Lightweight::Config::ConfigLayer const& layer)
@@ -589,7 +589,11 @@ struct EnvironmentConnectionString
         return std::nullopt;
     if (options.verbose)
         for (auto const& layer: layers->Layers())
-            std::println(std::cerr, "Using config: {}", DescribeLayer(layer));
+            std::println(std::cerr,
+                         "Using config: {} ({}{})",
+                         layer.path.string(),
+                         Lightweight::Config::ToString(layer.source),
+                         layer.isRoot ? ", root" : "");
     return *std::move(layers);
 }
 

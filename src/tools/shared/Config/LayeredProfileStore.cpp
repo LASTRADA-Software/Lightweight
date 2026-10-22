@@ -112,10 +112,15 @@ std::optional<std::string> LayeredProfileStore::ShadowedDefaultWarning(std::file
     auto const* nearer = NearerLayerSettingDefault(target);
     if (nearer == nullptr || _merged.DefaultProfileName() == newDefaultName)
         return std::nullopt;
+    // UTF-8 on every platform: path::string() is the ANSI code page on Windows and can throw.
+    auto const utf8 = [](std::filesystem::path const& path) {
+        auto const text = path.u8string();
+        return std::string { text.begin(), text.end() };
+    };
     return std::format("{} sets defaultProfile '{}', which takes precedence over {}.",
-                       nearer->path.string(),
+                       utf8(nearer->path),
                        _merged.DefaultProfileName(),
-                       target.string());
+                       utf8(target));
 }
 
 ConfigLayer const* LayeredProfileStore::NearerLayerSettingDefault(std::filesystem::path const& target) const noexcept
