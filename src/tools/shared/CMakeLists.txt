@@ -14,6 +14,8 @@ add_library(tools_shared STATIC
     Config/BackupOutput.hpp
     Config/ConfigDiscovery.cpp
     Config/ConfigDiscovery.hpp
+    Config/LayeredProfileStore.cpp
+    Config/LayeredProfileStore.hpp
     Config/ConnectionTarget.cpp
     Config/ConnectionTarget.hpp
     Config/ProfileAdd.cpp
