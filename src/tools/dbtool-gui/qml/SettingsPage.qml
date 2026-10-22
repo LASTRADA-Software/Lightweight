@@ -220,7 +220,10 @@ Rectangle {
                             objectName: "profileStorePathField"
                             Layout.fillWidth: true
                             Layout.minimumWidth: 80
-                            placeholderText: AppController.defaultProfileStorePath
+                            // The files discovery loaded, nearest first; shown while no path is set.
+                            placeholderText: AppController.profileLayers.length > 0
+                                             ? AppController.profileLayers.join("\n")
+                                             : AppController.defaultProfileStorePath
                             text: AppController.profileStorePath
                             onEditingFinished: AppController.setProfileStorePath(text)
                         }
@@ -250,7 +253,9 @@ Rectangle {
                     }
                     HelpLine {
                         width: parent.width
-                        text: qsTr("Empty uses the platform default, <span style=\"font-family:'%1'\">%2</span>.")
+                        text: qsTr("Empty merges every dbtool.yml from the program's folder upwards, up to one "
+                                   + "with <span style=\"font-family:'%1'\">root: true</span>, else followed by "
+                                   + "<span style=\"font-family:'%1'\">%2</span>.")
                               .arg(Theme.monoFamilies[0]).arg(AppController.defaultProfileStorePath)
                     }
                 }

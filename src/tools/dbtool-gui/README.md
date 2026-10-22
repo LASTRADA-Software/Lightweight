@@ -301,23 +301,52 @@ cmake -S . -B build -DLIGHTWEIGHT_BUILD_GUI=ON -DQt6_DIR=C:/Qt/6.11.0/msvc2022_6
 
 ## Configuration file and passwords
 
-With no profile-store path set in Settings, the GUI locates `dbtool.yml` exactly
-like `dbtool`: the nearest file above the working directory, then above the
-executable's directory, then the per-user file. The startup log line
-`Profile store: <path> (found via <rule>, N profile(s))` shows which one was
-used, and the Settings page shows it as the placeholder path.
+With a profile-store path set in Settings, the GUI uses exactly that file; nothing
+is searched and nothing is merged. Otherwise it **merges several files**, nearest
+first, exactly like `dbtool` (see
+[docs/dbtool.md](../../../docs/dbtool.md#where-dbtool-finds-dbtoolyml)):
+
+1. every `dbtool.yml` in the directory of the `dbtool-gui` executable and in each
+   of its parent directories, up to the filesystem root. A file whose top level
+   sets **`root: true`** ends the search: it is loaded, nothing above it is, and
+   the per-user file is not either;
+2. the per-user file, as the last layer, only when no loaded file set
+   `root: true`.
+
+The nearest file wins, per profile name and per file-wide value (`defaultProfile`,
+`defaultPluginsDir`, `defaultBackupDir`); a profile is never mixed from several
+files, and relative directories resolve against the file they are written in. The
+current directory is no longer searched. `LIGHTWEIGHT_DBTOOL_CONFIG_SEARCH_DIR`,
+when set, replaces the executable's directory as the start of the search (for
+tests and scripted runs).
+
+The startup log line `Profile store: <n> file(s): <nearest>, …, <file> (root) — <k> profile(s)`
+lists the loaded files in precedence order, and the Settings page shows them as
+the placeholder. A change to any of them reloads the profiles, discovering the
+files again; a `dbtool.yml` newly created in a parent directory is picked up on
+that reload or the next start.
+
+Writes go to one file only, keeping its comments: **Save as profile** writes a
+new profile into the `root: true` file when one was loaded, otherwise into the
+per-user file (created if missing); a name any loaded file already defines is
+refused, naming that file. When "make default" writes `defaultProfile` while a
+nearer file sets its own, the nearer one still wins and the GUI warns about it.
 
 Profile passwords follow the dbtool rules in
 [docs/dbtool.md](../../../docs/dbtool.md#profile-passwords): `enc:` values are
 decrypted, and a plaintext `password` is encrypted in place after the first
 successful connect — whether that connect is the interactive one or the start
-of a managed backup or restore of that profile.
+of a managed backup or restore of that profile. The password is written to the
+file the profile came from; if that file cannot be written (read-only, say), the
+connect still succeeds, the password stays plaintext on disk, and a warning
+banner names the file and the reason.
 
 ## Running
 
 ```bash
-# Launch; profiles come from the nearest dbtool.yml above the working or
-# executable directory, else the per-user file (see docs/dbtool.md):
+# Launch; profiles come from every dbtool.yml from the executable's directory
+# upwards (up to one with `root: true`), else also the per-user file
+# (see docs/dbtool.md):
 ./build/target/dbtool-gui
 
 # Headless smoke test (uses Qt's offscreen platform — no display needed):
