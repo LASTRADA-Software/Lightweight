@@ -233,6 +233,13 @@ class ProfileStore
         return _profiles.size();
     }
 
+    /// True when the parsed file declared `root: true`, i.e. lower-priority files must not be
+    /// layered beneath it. Not persisted by `Save`.
+    [[nodiscard]] bool IsRoot() const noexcept
+    {
+        return _isRoot;
+    }
+
     /// True when there are no profiles.
     [[nodiscard]] bool Empty() const noexcept
     {
@@ -241,6 +248,7 @@ class ProfileStore
 
   private:
     std::vector<Profile> _profiles;
+    bool _isRoot = false;
     std::string _defaultProfile;
     std::vector<std::filesystem::path> _defaultPluginsDir;
     std::filesystem::path _defaultBackupDir;

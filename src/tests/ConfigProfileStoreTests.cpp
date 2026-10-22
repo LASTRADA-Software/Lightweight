@@ -10,6 +10,7 @@
 // Every test uses its own temp file under `temp_directory_path()` to stay
 // independent of the real user config at `$HOME/.config/dbtool/dbtool.yml`.
 
+#include "ScopedEnvironmentVariable.hpp"
 #include "UniqueTempPath.hpp"
 
 #include <Lightweight/SqlConnectInfo.hpp>
@@ -670,69 +671,6 @@ TEST_CASE("ProfileStore — non-ASCII backup folders keep their spelling", "[Pro
     CHECK(reloaded->DefaultBackupDir().generic_u8string() == u8"/srv/Sicherungen-M\u00fcller");
 }
 
-namespace
-{
-
-/// Sets an environment variable for the lifetime of the object and then restores its previous
-/// value, or unsets it when it had none.
-class ScopedEnvironmentVariable
-{
-  public:
-    ScopedEnvironmentVariable(char const* name, std::string const& value):
-        _name { name },
-        _previousValue { Read(name) }
-    {
-        Write(name, value);
-    }
-
-    ScopedEnvironmentVariable(ScopedEnvironmentVariable const&) = delete;
-    ScopedEnvironmentVariable(ScopedEnvironmentVariable&&) = delete;
-    ScopedEnvironmentVariable& operator=(ScopedEnvironmentVariable const&) = delete;
-    ScopedEnvironmentVariable& operator=(ScopedEnvironmentVariable&&) = delete;
-
-    ~ScopedEnvironmentVariable()
-    {
-        Write(_name, _previousValue.value_or(std::string {}));
-    }
-
-  private:
-    static std::optional<std::string> Read(char const* name)
-    {
-#ifdef _WIN32
-        auto size = std::size_t {};
-        if (getenv_s(&size, nullptr, 0, name) != 0 || size == 0)
-            return std::nullopt;
-        auto value = std::string(size, '\0');
-        if (getenv_s(&size, value.data(), value.size(), name) != 0)
-            return std::nullopt;
-        value.resize(size - 1); // size counts the terminating null
-        return value;
-#else
-        if (auto const* const value = std::getenv(name); value != nullptr)
-            return std::string { value };
-        return std::nullopt;
-#endif
-    }
-
-    /// Sets `name` to `value`; an empty value unsets it.
-    static void Write(char const* name, std::string const& value)
-    {
-#ifdef _WIN32
-        _putenv_s(name, value.c_str());
-#else
-        if (value.empty())
-            unsetenv(name);
-        else
-            setenv(name, value.c_str(), 1);
-#endif
-    }
-
-    char const* _name;
-    std::optional<std::string> _previousValue;
-};
-
-} // namespace
-
 TEST_CASE("ProfileStore::DefaultPath honours LIGHTWEIGHT_DBTOOL_USER_CONFIG_DIR", "[ProfileStore]")
 {
     auto const directory = UniqueTempPath("lightweight-user-config-override");
@@ -749,4 +687,35 @@ TEST_CASE("ProfileStore::DefaultPath honours LIGHTWEIGHT_DBTOOL_USER_CONFIG_DIR"
         CHECK(platformDefault != overridden);
     }
     CHECK(overridden == directory / "dbtool.yml");
+}
+
+TEST_CASE("ProfileStore — root: true is recognised", "[ProfileStore]")
+{
+    namespace Cfg = Lightweight::Config;
+    auto const path = std::filesystem::path { "dbtool.yml" };
+
+    auto const rooted = Cfg::ProfileStore::Parse("root: true\nprofiles: {}\n", path);
+    REQUIRE(rooted.has_value());
+    CHECK(rooted->IsRoot());
+
+    auto const plain = Cfg::ProfileStore::Parse("profiles: {}\n", path);
+    REQUIRE(plain.has_value());
+    CHECK_FALSE(plain->IsRoot());
+
+    auto const unrooted = Cfg::ProfileStore::Parse("root: false\nprofiles: {}\n", path);
+    REQUIRE(unrooted.has_value());
+    CHECK_FALSE(unrooted->IsRoot());
+
+    auto const legacy = Cfg::ProfileStore::Parse("root: true\nConnectionString: \"DSN=x\"\n", path);
+    REQUIRE(legacy.has_value());
+    CHECK(legacy->IsRoot());
+    CHECK(legacy->Find("default") != nullptr);
+}
+
+TEST_CASE("ProfileStore — a non-boolean root is an error naming the file", "[ProfileStore]")
+{
+    auto const path = std::filesystem::path { "some" } / "dbtool.yml";
+    auto const result = Lightweight::Config::ProfileStore::Parse("root: maybe\n", path);
+    REQUIRE_FALSE(result.has_value());
+    CHECK(result.error().contains(path.string()));
 }

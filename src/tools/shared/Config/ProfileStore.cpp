@@ -283,6 +283,18 @@ std::expected<ProfileStore, std::string> ProfileStore::Parse(std::string_view ya
 
     ProfileStore store;
 
+    if (auto const n = root["root"])
+    {
+        try
+        {
+            store._isRoot = n.as<bool>();
+        }
+        catch (YAML::Exception const&)
+        {
+            return std::unexpected(std::format("invalid 'root' in {}: expected true or false", path.string()));
+        }
+    }
+
     if (LooksLikeLegacyShape(root))
     {
         // Translate to a single "default" profile preserving behaviour.

@@ -5,6 +5,7 @@
 // user default). Every test builds its own directory tree under the system temp
 // directory and injects all paths, so the real user config is never consulted.
 
+#include "ScopedEnvironmentVariable.hpp"
 #include "UniqueTempPath.hpp"
 
 #include <catch2/catch_test_macros.hpp>
@@ -12,6 +13,7 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <tuple>
 
 #include <Config/ConfigDiscovery.hpp>
 
@@ -193,4 +195,96 @@ TEST_CASE("ConfigDiscovery — sources have human-readable names", "[ConfigDisco
     CHECK(Cfg::ToString(Cfg::ConfigSource::ExecutableDirectory) == "executable directory");
     CHECK(Cfg::ToString(Cfg::ConfigSource::UserDefault) == "user default");
     CHECK(Cfg::ToString(Cfg::ConfigSource::None) == "none");
+}
+
+TEST_CASE("ConfigDiscovery — candidates are every file above the executable directory, nearest first", "[ConfigDiscovery]")
+{
+    if (StrayConfigAboveTemp())
+        SKIP("a dbtool.yml exists above the temp directory");
+    TempTree const tree;
+    auto const outer = tree.Config("a");
+    auto const inner = tree.Config("a/b");
+    auto const result = Cfg::FindConfigCandidates(
+        { .explicitPath = {}, .workingDirectory = {}, .executableDirectory = tree.Dir("a/b/c"), .userDefault = {} });
+    REQUIRE(result.has_value());
+    REQUIRE(result->size() == 2);
+    CHECK((*result)[0].path == inner);
+    CHECK((*result)[1].path == outer);
+    CHECK((*result)[0].source == Cfg::ConfigSource::ExecutableDirectory);
+    CHECK((*result)[1].source == Cfg::ConfigSource::ExecutableDirectory);
+}
+
+TEST_CASE("ConfigDiscovery — the user default is appended last", "[ConfigDiscovery]")
+{
+    if (StrayConfigAboveTemp())
+        SKIP("a dbtool.yml exists above the temp directory");
+    TempTree const tree;
+    std::ignore = tree.Config("exe");
+    auto const userDefault = tree.Config("user");
+    auto const result = Cfg::FindConfigCandidates(
+        { .explicitPath = {}, .workingDirectory = {}, .executableDirectory = tree.Dir("exe"), .userDefault = userDefault });
+    REQUIRE(result.has_value());
+    REQUIRE(result->size() == 2);
+    CHECK(result->back().path == userDefault);
+    CHECK(result->back().source == Cfg::ConfigSource::UserDefault);
+}
+
+TEST_CASE("ConfigDiscovery — the user default is not listed twice", "[ConfigDiscovery]")
+{
+    if (StrayConfigAboveTemp())
+        SKIP("a dbtool.yml exists above the temp directory");
+    TempTree const tree;
+    auto const shared = tree.Config("both");
+    auto const result = Cfg::FindConfigCandidates(
+        { .explicitPath = {}, .workingDirectory = {}, .executableDirectory = tree.Dir("both"), .userDefault = shared });
+    REQUIRE(result.has_value());
+    REQUIRE(result->size() == 1);
+    CHECK(result->front().source == Cfg::ConfigSource::ExecutableDirectory);
+}
+
+TEST_CASE("ConfigDiscovery — an explicit path is the only candidate", "[ConfigDiscovery]")
+{
+    TempTree const tree;
+    std::ignore = tree.Config("exe");
+    auto const explicitFile = tree.Config("explicit");
+    auto const result = Cfg::FindConfigCandidates({ .explicitPath = explicitFile,
+                                                    .workingDirectory = {},
+                                                    .executableDirectory = tree.Dir("exe/bin"),
+                                                    .userDefault = tree.Config("user") });
+    REQUIRE(result.has_value());
+    REQUIRE(result->size() == 1);
+    CHECK(result->front().path == explicitFile);
+    CHECK(result->front().source == Cfg::ConfigSource::Explicit);
+}
+
+TEST_CASE("ConfigDiscovery — a missing explicit path is a candidate error naming it", "[ConfigDiscovery]")
+{
+    TempTree const tree;
+    auto const missing = tree.Root() / "nope.yml";
+    auto const result = Cfg::FindConfigCandidates(
+        { .explicitPath = missing, .workingDirectory = {}, .executableDirectory = {}, .userDefault = {} });
+    REQUIRE_FALSE(result.has_value());
+    CHECK(result.error().contains(missing.string()));
+}
+
+TEST_CASE("ConfigDiscovery — no candidates when nothing exists", "[ConfigDiscovery]")
+{
+    if (StrayConfigAboveTemp())
+        SKIP("a dbtool.yml exists above the temp directory");
+    TempTree const tree;
+    auto const result = Cfg::FindConfigCandidates({ .explicitPath = {},
+                                                    .workingDirectory = {},
+                                                    .executableDirectory = tree.Dir("exe"),
+                                                    .userDefault = tree.Root() / "user" / "dbtool.yml" });
+    REQUIRE(result.has_value());
+    CHECK(result->empty());
+}
+
+TEST_CASE("ConfigDiscovery — the search directory variable replaces the executable directory", "[ConfigDiscovery]")
+{
+    TempTree const tree;
+    auto const directory = tree.Dir("x");
+    ScopedEnvironmentVariable const override { std::string { Cfg::ConfigSearchDirectoryVariable }.c_str(),
+                                               directory.string() };
+    CHECK(Cfg::DefaultDiscoveryInputs().executableDirectory == directory);
 }

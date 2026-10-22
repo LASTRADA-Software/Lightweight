@@ -17,6 +17,7 @@
 #include <filesystem>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace Lightweight::Config
 {
@@ -69,6 +70,30 @@ struct DiscoveryInputs
     /// Per-user fallback location.
     std::filesystem::path userDefault;
 };
+
+/// Environment variable that, when set and non-empty, replaces the executable directory as the
+/// start of the upward search. Lets tests and scripted runs stay off the real installation layout.
+/// A relative value resolves against the working directory.
+inline constexpr std::string_view ConfigSearchDirectoryVariable = "LIGHTWEIGHT_DBTOOL_CONFIG_SEARCH_DIR";
+
+/// One configuration file found by `FindConfigCandidates`.
+struct ConfigCandidate
+{
+    /// The file.
+    std::filesystem::path path;
+
+    /// The rule that found it.
+    ConfigSource source = ConfigSource::None;
+};
+
+/// Lists every configuration file that applies, for layered merging.
+///
+/// An explicit path yields exactly that one file. Otherwise every `dbtool.yml` from
+/// `executableDirectory` up to the filesystem root is listed nearest first, followed by
+/// `userDefault` when it exists and is not already listed.
+/// @param inputs Paths to consider.
+/// @return The candidates (empty when nothing exists), or an error when an explicit path does not exist.
+[[nodiscard]] std::expected<std::vector<ConfigCandidate>, std::string> FindConfigCandidates(DiscoveryInputs const& inputs);
 
 /// Finds the configuration file according to the lookup order above.
 /// @param inputs Paths to consider.
