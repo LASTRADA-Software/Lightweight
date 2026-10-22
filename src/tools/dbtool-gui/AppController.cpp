@@ -734,7 +734,7 @@ void AppController::EncryptPlaintextPassword(Lightweight::Config::Profile const&
     LogInfo(QStringLiteral("Encrypted the plaintext password of profile ‘%1’ in %2").arg(name, file));
     // Only the password changed: re-read the store in place; the watcher's echo of this write is ignored.
     if (auto reloaded = LoadProfileStore(ProfileStoreRequest()); reloaded)
-        AdoptProfileStore(*std::move(reloaded));
+        AdoptProfileStore(*std::move(reloaded), ProfileStoreRequest());
     if (upgraded->insideGitWorkTree)
         LogWarn(QStringLiteral("%1 is inside a git repository; the old plaintext password may remain in its "
                                "history. Consider changing the database password.")
@@ -828,9 +828,7 @@ bool AppController::loadProfiles(QString const& path)
         ReportError(QString::fromStdString(result.error()));
         return false;
     }
-    _loadedRequest = path;
-    _storeLoaded = true;
-    AdoptProfileStore(*std::move(result));
+    AdoptProfileStore(*std::move(result), path);
     // Editors that save via write-then-rename drop the watch once the inode
     // changes, so the watches are always cleared and re-added, not just when
     // the set of files changes.
@@ -1664,9 +1662,8 @@ QString AppController::ProfileStoreRequest() const
 QString AppController::newProfilePath() const
 {
     // A file loaded on its own is the target even before it exists.
-    if (auto request = ProfileStoreRequest(); !request.isEmpty())
-        return request;
-    return PathText(_layers.NewProfileTarget(Lightweight::Config::ProfileStore::DefaultPath()));
+    return PathText(
+        _layers.WriteTargetFor({}, FilePath(ProfileStoreRequest()), Lightweight::Config::ProfileStore::DefaultPath()));
 }
 
 std::string AppController::OpenConnectionPassword() const
@@ -1778,21 +1775,15 @@ QString AppController::addProfile(QVariantMap const& fields)
 
     LogInfo(QStringLiteral("Added profile ‘%1’ to %2").arg(name, path));
     // A nearer file's default still wins at load, so say which one, unless it names this profile already.
-    auto shadowedDefault = QString {};
-    if (auto const* nearer = makeDefault ? _layers.NearerLayerSettingDefault(target) : nullptr;
-        nearer != nullptr && Store().DefaultProfileName() != request.name)
-    {
-        shadowedDefault = QStringLiteral("%1 sets the default profile ‘%2’, which takes precedence over %3.")
-                              .arg(PathText(nearer->path), QString::fromStdString(Store().DefaultProfileName()), path);
-    }
+    auto const shadowedDefault = makeDefault ? _layers.ShadowedDefaultWarning(target, request.name) : std::nullopt;
     // Reload so the profile list and the managed-backup rows pick it up now rather than when the
     // file watcher notices. The selected profile and the open connection are left alone.
     if (!loadProfiles(ProfileStoreRequest()))
         return QStringLiteral("The profile was saved to %1, but the profile list could not be reloaded.").arg(path);
-    if (!shadowedDefault.isEmpty())
+    if (shadowedDefault)
     {
-        LogWarn(shadowedDefault);
-        _lastWarning = shadowedDefault;
+        _lastWarning = QString::fromStdString(*shadowedDefault);
+        LogWarn(_lastWarning);
         emit lastWarningChanged();
     }
     return {};
@@ -1807,8 +1798,8 @@ void AppController::revealInFolder(QString const& path)
 
 void AppController::OnProfileFileChanged(QString const& path)
 {
-    if (!_changedProfileFiles.contains(path))
-        _changedProfileFiles.append(path);
+    _changedProfileFiles.append(path);
+    _changedProfileFiles.removeDuplicates();
     _profileFileDebounce->start();
 }
 
@@ -1864,8 +1855,11 @@ std::expected<AppController::LoadedProfileStore, std::string> AppController::Loa
     });
 }
 
-void AppController::AdoptProfileStore(LoadedProfileStore loaded)
+void AppController::AdoptProfileStore(LoadedProfileStore loaded, QString request)
 {
+    auto const previousTarget = newProfilePath();
+    _loadedRequest = std::move(request);
+    _storeLoaded = true;
     _layers = std::move(loaded.layers);
     _knownFingerprints = std::move(loaded.fingerprints);
     _profiles.ReplaceFrom(Store());
@@ -1874,17 +1868,17 @@ void AppController::AdoptProfileStore(LoadedProfileStore loaded)
     auto layers = QStringList {};
     for (auto const& layer: _layers.Layers())
         layers.append(layer.isRoot ? PathText(layer.path) + QStringLiteral(" (root)") : PathText(layer.path));
-
-    // `newProfilePath` follows the layers and the loaded path too, so the change is always announced.
-    _profilePath = _layers.Empty() ? _loadedRequest : PathText(_layers.Layers().front().path);
+    auto nearest = _layers.Empty() ? _loadedRequest : PathText(_layers.Layers().front().path);
+    if (nearest == _profilePath && layers == _profileLayers && newProfilePath() == previousTarget)
+        return;
+    _profilePath = std::move(nearest);
     _profileLayers = std::move(layers);
     emit profilePathChanged();
 }
 
-bool AppController::IsKnownProfileFileContent(QString const& path) const
+bool AppController::IsLoadedLayer(QString const& path) const
 {
-    auto const known = std::ranges::find(_knownFingerprints, path, &ProfileFileFingerprint::path);
-    return known != _knownFingerprints.end() && *known == FingerprintOf(path);
+    return std::ranges::contains(_knownFingerprints, path, &ProfileFileFingerprint::path);
 }
 
 void AppController::HandleProfileFileChange()
@@ -1895,8 +1889,8 @@ void AppController::HandleProfileFileChange()
     // Write-then-rename drops the watch on the old inode; watch the new file.
     for (auto const& path: paths)
     {
-        auto const isLayer = std::ranges::contains(_knownFingerprints, path, &ProfileFileFingerprint::path);
-        if (_fileWatcher && isLayer && std::filesystem::exists(FilePath(path)) && !_fileWatcher->files().contains(path))
+        if (_fileWatcher && IsLoadedLayer(path) && std::filesystem::exists(FilePath(path))
+            && !_fileWatcher->files().contains(path))
             _fileWatcher->addPath(path);
     }
     ReactToProfileFileChanges(paths);
@@ -1907,15 +1901,18 @@ void AppController::ReactToProfileFileChanges(QStringList const& paths)
     // A notification of a file that is no longer loaded, e.g. before a path change, is stale; one
     // of a file that is gone for now (in the middle of a write-then-rename) is followed by another.
     auto const relevant = [this](QString const& path) {
-        return std::ranges::contains(_knownFingerprints, path, &ProfileFileFingerprint::path)
-               && std::filesystem::exists(FilePath(path));
+        return IsLoadedLayer(path) && std::filesystem::exists(FilePath(path));
     };
     auto changed = QStringList {};
     std::ranges::copy_if(paths, std::back_inserter(changed), relevant);
     if (changed.isEmpty())
         return;
 
-    if (std::ranges::all_of(changed, [this](QString const& path) { return IsKnownProfileFileContent(path); }))
+    auto const isKnownContent = [this](QString const& path) {
+        auto const known = std::ranges::find(_knownFingerprints, path, &ProfileFileFingerprint::path);
+        return known != _knownFingerprints.end() && *known == FingerprintOf(path);
+    };
+    if (std::ranges::all_of(changed, isKnownContent))
     {
         emit profileFileChangeHandled(ProfileFileReaction::IgnoredOwnWrite);
         return;
@@ -1923,9 +1920,8 @@ void AppController::ReactToProfileFileChanges(QStringList const& paths)
     // Swapping the store under a connect or a run would pull profiles and plugins away from it.
     if (ProfileReloadBlocked())
     {
-        for (auto const& path: changed)
-            if (!_deferredProfileFiles.contains(path))
-                _deferredProfileFiles.append(path);
+        _deferredProfileFiles.append(changed);
+        _deferredProfileFiles.removeDuplicates();
         emit profileFileChangeHandled(ProfileFileReaction::Deferred);
         return;
     }

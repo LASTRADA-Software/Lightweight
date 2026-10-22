@@ -94,11 +94,13 @@ std::expected<std::vector<ConfigCandidate>, std::string> FindConfigCandidates(Di
     }
 
     auto candidates = std::vector<ConfigCandidate> {};
-    for (auto& path: FindAllUpwards(inputs.executableDirectory))
+    for (auto& path: FindAllUpwards(inputs.searchStart))
         candidates.push_back({ .path = std::move(path), .source = ConfigSource::ExecutableDirectory });
 
     if (!inputs.userDefault.empty() && std::filesystem::is_regular_file(inputs.userDefault, ec))
     {
+        // The walk's directories are canonical but a dbtool.yml in them may be a symlink (e.g. to
+        // the per-user file), so each candidate is canonicalised too.
         auto const userCanonical = std::filesystem::weakly_canonical(inputs.userDefault, ec);
         auto const alreadyListed = std::ranges::any_of(candidates, [&](ConfigCandidate const& candidate) {
             std::error_code equivalentError;
@@ -115,7 +117,7 @@ DiscoveryInputs DefaultDiscoveryInputs(std::filesystem::path explicitPath)
     auto searchDirectory = SearchDirectoryOverride();
     return DiscoveryInputs {
         .explicitPath = std::move(explicitPath),
-        .executableDirectory = searchDirectory.empty() ? ExecutableDirectory() : std::move(searchDirectory),
+        .searchStart = searchDirectory.empty() ? ExecutableDirectory() : std::move(searchDirectory),
         .userDefault = ProfileStore::DefaultPath(),
     };
 }

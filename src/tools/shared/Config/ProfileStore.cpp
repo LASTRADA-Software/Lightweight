@@ -6,7 +6,6 @@
 #include <Lightweight/SqlConnectInfo.hpp>
 
 #include <algorithm>
-#include <cstdlib>
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -94,16 +93,16 @@ std::filesystem::path ProfileStore::DefaultPath()
         return std::filesystem::path(path) / "dbtool" / "dbtool.yml";
     return "dbtool.yml";
 #else
-    if (char const* xdg = std::getenv("XDG_CONFIG_HOME"); xdg && *xdg)
+    if (auto const xdg = EnvironmentValue("XDG_CONFIG_HOME"); !xdg.empty())
         return std::filesystem::path(xdg) / "dbtool" / "dbtool.yml";
 
-    char const* home = std::getenv("HOME");
-    if (!home)
+    auto home = EnvironmentValue("HOME");
+    if (home.empty())
     {
-        if (passwd* pwd = getpwuid(getuid()))
+        if (passwd const* pwd = getpwuid(getuid()); pwd != nullptr && pwd->pw_dir != nullptr)
             home = pwd->pw_dir;
     }
-    if (home && *home)
+    if (!home.empty())
         return std::filesystem::path(home) / ".config" / "dbtool" / "dbtool.yml";
 
     return "dbtool.yml";
@@ -240,12 +239,19 @@ std::expected<ProfileStore, std::string> ProfileStore::LoadOrDefault(std::filesy
     if (!std::filesystem::exists(path))
         return ProfileStore {}; // empty store is valid
 
-    auto file = std::ifstream { path, std::ios::binary };
-    if (!file)
-        return std::unexpected(std::format("failed to read {}", path.string()));
-    auto content = std::ostringstream {};
-    content << file.rdbuf();
-    return Parse(content.str(), path);
+    return ReadConfigFile(path).and_then([&path](std::string const& content) { return Parse(content, path); });
+}
+
+std::expected<std::string, std::string> ReadConfigFile(std::filesystem::path const& path)
+{
+    std::ifstream in { path, std::ios::binary };
+    if (!in)
+        return std::unexpected { "cannot read " + path.string() };
+    std::ostringstream content;
+    content << in.rdbuf();
+    if (in.bad())
+        return std::unexpected { "error reading " + path.string() };
+    return std::move(content).str();
 }
 
 std::expected<ProfileStore, std::string> ProfileStore::Parse(std::string_view yaml, std::filesystem::path const& origin)

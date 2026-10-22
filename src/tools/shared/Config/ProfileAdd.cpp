@@ -4,10 +4,27 @@
 
 #include <Lightweight/SqlConnectInfo.hpp>
 
+#include <filesystem>
+#include <system_error>
 #include <utility>
 
 namespace Lightweight::Config
 {
+
+namespace
+{
+    /// `directory` made absolute against the working directory, where it was typed: a relative value
+    /// in dbtool.yml would resolve against that file's directory instead. Empty stays empty.
+    std::string AbsoluteDirectory(std::string const& directory)
+    {
+        if (directory.empty())
+            return {};
+        std::error_code ec;
+        auto const given = std::filesystem::path { directory };
+        auto const absolute = std::filesystem::absolute(given, ec);
+        return (ec ? given : absolute).lexically_normal().string();
+    }
+} // namespace
 
 InlinePasswordSplit SplitInlinePassword(std::string const& connectionString)
 {
@@ -43,9 +60,9 @@ std::expected<void, std::string> AddProfileToFile(std::filesystem::path const& p
         .dsn = request.dsn,
         .uid = request.uid,
         .schema = request.schema,
-        .pluginsDir = request.pluginsDir,
+        .pluginsDir = AbsoluteDirectory(request.pluginsDir),
         .password = {},
-        .backupDir = request.backupDir,
+        .backupDir = AbsoluteDirectory(request.backupDir),
     };
     if (!password.empty())
     {

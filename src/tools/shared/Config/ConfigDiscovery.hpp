@@ -49,8 +49,9 @@ struct DiscoveryInputs
     /// Explicit path; empty when not given.
     std::filesystem::path explicitPath;
 
-    /// Start of the upward walk; empty skips it.
-    std::filesystem::path executableDirectory;
+    /// Start of the upward walk: the executable's directory, or `ConfigSearchDirectoryVariable`
+    /// when set; empty skips it.
+    std::filesystem::path searchStart;
 
     /// Per-user fallback location.
     std::filesystem::path userDefault;
@@ -74,7 +75,7 @@ struct ConfigCandidate
 /// Lists every configuration file that applies, for layered merging.
 ///
 /// An explicit path yields exactly that one file. Otherwise every `dbtool.yml` from
-/// `executableDirectory` up to the filesystem root is listed nearest first, followed by
+/// `searchStart` up to the filesystem root is listed nearest first, followed by
 /// `userDefault` when it exists and is not already listed.
 /// @param inputs Paths to consider.
 /// @return The candidates (empty when nothing exists), or an error when an explicit path does not exist.

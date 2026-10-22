@@ -219,6 +219,13 @@ class ProfileStore
     /// Inserts or replaces a profile with the given name.
     void Upsert(Profile profile);
 
+    /// Appends a profile without looking for one of the same name; the caller guarantees there is
+    /// none (e.g. `LayeredProfileStore`, which tracks the names it merged).
+    void AppendUnique(Profile profile)
+    {
+        _profiles.push_back(std::move(profile));
+    }
+
     /// Removes a profile by name. Returns true if removed.
     bool Remove(std::string_view name);
 
@@ -254,5 +261,10 @@ class ProfileStore
     std::vector<std::filesystem::path> _defaultPluginsDir;
     std::filesystem::path _defaultBackupDir;
 };
+
+/// Reads a whole configuration file from disk.
+/// @param path The file to read.
+/// @return The file's content, or an error naming `path`.
+[[nodiscard]] std::expected<std::string, std::string> ReadConfigFile(std::filesystem::path const& path);
 
 } // namespace Lightweight::Config

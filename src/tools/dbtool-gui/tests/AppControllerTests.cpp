@@ -18,6 +18,7 @@
 #include "../Models/MigrationSnapshot.hpp"
 #include "ControllerTestSupport.hpp"
 #include "MigrationRunnerTestSupport.hpp"
+#include "ScopedVariable.hpp"
 #include "SqliteDriver.hpp"
 
 #include <Lightweight/SqlBackup.hpp>
@@ -59,6 +60,7 @@
 
 using DbtoolGui::Tests::ConnectAndWait;
 using DbtoolGui::Tests::ScopedSettingRestore;
+using DbtoolGui::Tests::ScopedVariable;
 using DbtoolGui::Tests::SqliteDriver;
 using DbtoolGui::Tests::WaitForIdle;
 
@@ -301,35 +303,8 @@ QString ToQString(std::filesystem::path const& path)
     return QString::fromStdU16String(path.u16string());
 }
 
-/// Starts config discovery in another directory for the lifetime of the object.
-class ScopedSearchDirectory
-{
-  public:
-    explicit ScopedSearchDirectory(std::filesystem::path const& directory):
-        _wasSet { qEnvironmentVariableIsSet(Name.c_str()) },
-        _previous { qgetenv(Name.c_str()) }
-    {
-        qputenv(Name.c_str(), QFile::encodeName(ToQString(directory)));
-    }
-
-    ScopedSearchDirectory(ScopedSearchDirectory const&) = delete;
-    ScopedSearchDirectory(ScopedSearchDirectory&&) = delete;
-    ScopedSearchDirectory& operator=(ScopedSearchDirectory const&) = delete;
-    ScopedSearchDirectory& operator=(ScopedSearchDirectory&&) = delete;
-
-    ~ScopedSearchDirectory()
-    {
-        if (_wasSet)
-            qputenv(Name.c_str(), _previous);
-        else
-            qunsetenv(Name.c_str());
-    }
-
-  private:
-    inline static std::string const Name { Lightweight::Config::ConfigSearchDirectoryVariable };
-    bool _wasSet;
-    QByteArray _previous;
-};
+/// Set to a directory, starts config discovery there.
+std::string const SearchDirectoryVariable { Lightweight::Config::ConfigSearchDirectoryVariable };
 
 /// Moves the per-user dbtool.yml aside for the lifetime of the object and puts it back afterwards.
 class ScopedUserProfileFile
@@ -393,7 +368,7 @@ struct LayeredProfiles
     std::filesystem::path rootFile = base / "acme" / "dbtool.yml";
     std::filesystem::path appFile = base / "acme" / "app" / "dbtool.yml";
     ScopedSettingRestore storePath { QStringLiteral("config/profileStorePath") };
-    ScopedSearchDirectory searchDirectory { appFile.parent_path() };
+    ScopedVariable searchDirectory { SearchDirectoryVariable, appFile.parent_path() };
 };
 
 /// Runs the event loop until @p spy saw @p reaction.
@@ -456,7 +431,7 @@ TEST_CASE("startup discovers dbtool.yml above the search directory", "[dbtool-gu
     std::ofstream(root / "dbtool.yml", std::ios::binary) << "profiles:\n  found:\n    connectionString: \"Driver=x\"\n";
     auto const storePath = ScopedSettingRestore { QStringLiteral("config/profileStorePath") };
     QSettings().remove(QStringLiteral("config/profileStorePath"));
-    auto const searchDirectory = ScopedSearchDirectory { root / "sub" };
+    auto const searchDirectory = ScopedVariable { SearchDirectoryVariable, root / "sub" };
 
     // The working directory no longer takes part in discovery.
     DbtoolGui::AppController controller;
@@ -913,30 +888,6 @@ TEST_CASE("a plugin reload requested during a migration run waits until the run 
 namespace
 {
 
-/// Sets a process environment variable for its lifetime, then removes it.
-class ScopedTestVariable
-{
-  public:
-    ScopedTestVariable(char const* name, std::filesystem::path const& value):
-        _name { name }
-    {
-        qputenv(_name, QByteArray::fromStdString(value.string()));
-    }
-
-    ScopedTestVariable(ScopedTestVariable const&) = delete;
-    ScopedTestVariable(ScopedTestVariable&&) = delete;
-    ScopedTestVariable& operator=(ScopedTestVariable const&) = delete;
-    ScopedTestVariable& operator=(ScopedTestVariable&&) = delete;
-
-    ~ScopedTestVariable()
-    {
-        qunsetenv(_name);
-    }
-
-  private:
-    char const* _name;
-};
-
 /// Writes a `dbtool.yml` under @p root whose profile `p` connects to `<root>/<database>` with the
 /// post-migrate recorder plugin, copied to `<root>/plugins`.
 void WriteRecorderWorkspace(std::filesystem::path const& root, std::string const& database)
@@ -969,7 +920,7 @@ TEST_CASE("a plugin reload while connected keeps the pre-migrate steps the plugi
     auto const root = std::filesystem::path { dir.path().toStdString() };
     WriteRecorderWorkspace(root, "gui-steps.db");
     // The fixture's post-init hook registers its "Recorder step" only while this names a log file.
-    auto const stepLog = ScopedTestVariable { "LIGHTWEIGHT_TEST_PRE_MIGRATE_LOG", root / "steps.log" };
+    auto const stepLog = ScopedVariable { "LIGHTWEIGHT_TEST_PRE_MIGRATE_LOG", root / "steps.log" };
 
     DbtoolGui::AppController controller;
     REQUIRE(WaitForIdle(controller));
@@ -1003,8 +954,8 @@ TEST_CASE("a reconnect runs the plugins' post-init hooks once and drops the last
     QTemporaryDir dir;
     auto const root = std::filesystem::path { dir.path().toStdString() };
     WriteRecorderWorkspace(root, "gui-reconnect.db");
-    auto const stepLog = ScopedTestVariable { "LIGHTWEIGHT_TEST_PRE_MIGRATE_LOG", root / "steps.log" };
-    auto const postInitLog = ScopedTestVariable { "LIGHTWEIGHT_TEST_POST_INIT_LOG", root / "post-init.log" };
+    auto const stepLog = ScopedVariable { "LIGHTWEIGHT_TEST_PRE_MIGRATE_LOG", root / "steps.log" };
+    auto const postInitLog = ScopedVariable { "LIGHTWEIGHT_TEST_POST_INIT_LOG", root / "post-init.log" };
 
     DbtoolGui::AppController controller;
     REQUIRE(WaitForIdle(controller));
@@ -1064,8 +1015,8 @@ TEST_CASE("the constructor returns before the plugins load", "[dbtool-gui][AppCo
     std::filesystem::create_directories(root / "plugins");
     std::filesystem::copy_file(plugin, root / "plugins" / plugin.filename());
     QSettings().setValue(QStringLiteral("config/pluginsDir"), QString::fromStdString((root / "plugins").string()));
-    auto const loadDelay = ScopedTestVariable { "LIGHTWEIGHT_TEST_PLUGIN_LOAD_DELAY_MS", "2000" };
-    auto const loadLog = ScopedTestVariable { "LIGHTWEIGHT_TEST_PLUGIN_LOAD_LOG", root / "load.log" };
+    auto const loadDelay = ScopedVariable { "LIGHTWEIGHT_TEST_PLUGIN_LOAD_DELAY_MS", "2000" };
+    auto const loadLog = ScopedVariable { "LIGHTWEIGHT_TEST_PLUGIN_LOAD_LOG", root / "load.log" };
 
     auto timer = QElapsedTimer {};
     timer.start();
@@ -1097,7 +1048,7 @@ TEST_CASE("plugin reload requests in one event-loop turn coalesce into one load"
     }
     std::ofstream(root / "dbtool.yml", std::ios::binary) << "profiles:\n  p:\n    dsn: \"X\"\n  q:\n    dsn: \"Y\"\n";
     QSettings().setValue(QStringLiteral("config/pluginsDir"), QString::fromStdString((root / "plugins").string()));
-    auto const loadLog = ScopedTestVariable { "LIGHTWEIGHT_TEST_PLUGIN_LOAD_LOG", root / "load.log" };
+    auto const loadLog = ScopedVariable { "LIGHTWEIGHT_TEST_PLUGIN_LOAD_LOG", root / "load.log" };
 
     DbtoolGui::AppController controller;
     // A store loaded before the startup ran is kept, and its reload joins the startup's.
@@ -1156,9 +1107,9 @@ class SlowPluginWorkspace
     ScopedSettingRestore _restorePluginsDir { QStringLiteral("config/pluginsDir") };
     QTemporaryDir _directory;
     std::filesystem::path _root;
-    ScopedTestVariable _loadDelay;
-    ScopedTestVariable _beginLog;
-    ScopedTestVariable _loadLog;
+    ScopedVariable _loadDelay;
+    ScopedVariable _beginLog;
+    ScopedVariable _loadLog;
 };
 
 } // namespace
@@ -1213,8 +1164,8 @@ TEST_CASE("destroying the controller while a connect is in flight waits for the 
     QTemporaryDir dir;
     auto const root = std::filesystem::path { dir.path().toStdString() };
     WriteRecorderWorkspace(root, "gui-quit.db");
-    auto const postInitDelay = ScopedTestVariable { "LIGHTWEIGHT_TEST_POST_INIT_DELAY_MS", "1000" };
-    auto const postInitLog = ScopedTestVariable { "LIGHTWEIGHT_TEST_POST_INIT_LOG", root / "post-init.log" };
+    auto const postInitDelay = ScopedVariable { "LIGHTWEIGHT_TEST_POST_INIT_DELAY_MS", "1000" };
+    auto const postInitLog = ScopedVariable { "LIGHTWEIGHT_TEST_POST_INIT_LOG", root / "post-init.log" };
 
     auto controller = std::make_unique<DbtoolGui::AppController>();
     REQUIRE(WaitForIdle(*controller));
@@ -1321,7 +1272,7 @@ TEST_CASE("editing the connection string while connecting with it ends that conn
     auto const root = std::filesystem::path { dir.path().toStdString() };
     WriteRecorderWorkspace(root, "gui-custom.db");
     QSettings().setValue(QStringLiteral("config/pluginsDir"), QString::fromStdString((root / "plugins").string()));
-    auto const postInitDelay = ScopedTestVariable { "LIGHTWEIGHT_TEST_POST_INIT_DELAY_MS", "1000" };
+    auto const postInitDelay = ScopedVariable { "LIGHTWEIGHT_TEST_POST_INIT_DELAY_MS", "1000" };
 
     DbtoolGui::AppController controller;
     REQUIRE(WaitForIdle(controller));

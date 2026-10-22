@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <format>
 #include <map>
 #include <string>
 #include <vector>
@@ -88,8 +89,8 @@ TEST_CASE("LayeredProfileStore — the deployment layout merges plugins and shar
     REQUIRE(store);
     CHECK(store->Merged().DefaultPluginsDir() == std::vector<fs::path> { Acme / "app-a" / "plugins" });
     CHECK(ProfileNames(store->Merged()) == std::vector<std::string> { "p1", "p2" });
-    CHECK(store->Layers().size() == 2);
-    CHECK(store->RootFound());
+    REQUIRE(store->Layers().size() == 2);
+    CHECK(store->Layers().back().isRoot);
     CHECK_FALSE(store->Empty());
     REQUIRE(store->OriginOf("p1") != nullptr);
     CHECK(store->OriginOf("p1")->path == Far);
@@ -101,7 +102,7 @@ TEST_CASE("LayeredProfileStore — without root the user file is the last layer"
     auto const store = LoadFiles(DeploymentFiles(false), { Near, Far, User });
     REQUIRE(store);
     CHECK(store->Layers().size() == 3);
-    CHECK_FALSE(store->RootFound());
+    CHECK_FALSE(std::ranges::any_of(store->Layers(), &Cfg::ConfigLayer::isRoot));
     CHECK(store->Merged().Find("u") != nullptr);
     REQUIRE(store->OriginOf("u") != nullptr);
     CHECK(store->OriginOf("u")->source == Cfg::ConfigSource::UserDefault);
@@ -193,7 +194,6 @@ TEST_CASE("LayeredProfileStore — no candidates yields an empty store", "[Layer
     auto const store = LoadFiles({}, {});
     REQUIRE(store);
     CHECK(store->Empty());
-    CHECK_FALSE(store->RootFound());
     CHECK(store->DefaultProfileOrigin() == nullptr);
 }
 
@@ -225,6 +225,42 @@ TEST_CASE("LayeredProfileStore — NearerLayerSettingDefault", "[LayeredProfileS
     CHECK(store->NearerLayerSettingDefault(Near) == nullptr);
     REQUIRE(store->NearerLayerSettingDefault(User) != nullptr);
     CHECK(store->NearerLayerSettingDefault(User)->path == Near);
+}
+
+TEST_CASE("LayeredProfileStore — WriteTargetFor: explicit file, else the profile's own file, else NewProfileTarget",
+          "[LayeredProfileStore]")
+{
+    auto const rooted = LoadFiles(DeploymentFiles(true), { Near, Far, User });
+    REQUIRE(rooted);
+    CHECK(rooted->WriteTargetFor("p1", Elsewhere, User) == Elsewhere);
+    CHECK(rooted->WriteTargetFor("p1", {}, User) == Far);
+    CHECK(rooted->WriteTargetFor("fresh", {}, User) == Far);
+    CHECK(rooted->WriteTargetFor({}, {}, User) == Far);
+
+    auto const unrooted = LoadFiles(DeploymentFiles(false), { Near, Far, User });
+    REQUIRE(unrooted);
+    CHECK(unrooted->WriteTargetFor("u", {}, Elsewhere) == User);
+    CHECK(unrooted->WriteTargetFor("fresh", {}, Elsewhere) == Elsewhere);
+
+    // An explicit file that does not exist yet has no layer, yet stays the target.
+    auto const none = LoadFiles({}, {});
+    REQUIRE(none);
+    CHECK(none->WriteTargetFor("fresh", Elsewhere, User) == Elsewhere);
+}
+
+TEST_CASE("LayeredProfileStore — ShadowedDefaultWarning names the nearer file", "[LayeredProfileStore]")
+{
+    Files const files {
+        { Near, "defaultProfile: p1\nprofiles:\n  p1:\n    dsn: A\n" },
+        { Far, "profiles:\n  p2:\n    dsn: B\n" },
+    };
+    auto const store = LoadFiles(files, { Near, Far });
+    REQUIRE(store);
+    CHECK(store->ShadowedDefaultWarning(Far, "p2")
+          == std::format("{} sets defaultProfile 'p1', which takes precedence over {}.", Near.string(), Far.string()));
+    CHECK_FALSE(store->ShadowedDefaultWarning(Far, "p1").has_value());  // already the default
+    CHECK_FALSE(store->ShadowedDefaultWarning(Near, "p2").has_value()); // nothing nearer
+    CHECK(store->ShadowedDefaultWarning(User, "u").has_value());        // not a layer: the farthest
 }
 
 TEST_CASE("LayeredProfileStore — ReadConfigFile reports a missing file", "[LayeredProfileStore]")

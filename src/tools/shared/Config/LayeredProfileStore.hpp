@@ -13,6 +13,7 @@
 #include <filesystem>
 #include <functional>
 #include <map>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -34,13 +35,9 @@ struct ConfigLayer
     bool isRoot = false;
 };
 
-/// Reads a whole file; injected so dbtool-gui can fingerprint the bytes it parsed.
+/// Reads a whole file; injected so dbtool-gui can fingerprint the bytes it parsed. The default is
+/// `ReadConfigFile` (ProfileStore.hpp).
 using ConfigFileReader = std::function<std::expected<std::string, std::string>(std::filesystem::path const&)>;
-
-/// Reads files from disk (the default reader).
-/// @param path The file to read.
-/// @return The file's content, or an error naming `path`.
-[[nodiscard]] std::expected<std::string, std::string> ReadConfigFile(std::filesystem::path const& path);
 
 /// Read-only merge of layered profile files. The nearest layer wins per profile name and per
 /// store-wide value; profiles are never merged field by field. Relative directories in a layer
@@ -75,9 +72,6 @@ class LayeredProfileStore
         return _layers.empty();
     }
 
-    /// True when a loaded layer declared `root: true`.
-    [[nodiscard]] bool RootFound() const noexcept;
-
     /// The layer a merged profile came from.
     /// @param profileName Name of the profile.
     /// @return The layer, or nullptr when no such profile exists.
@@ -97,6 +91,24 @@ class LayeredProfileStore
     /// @param target The file being written; one that is not a layer counts as the farthest.
     /// @return The shadowing layer, or nullptr.
     [[nodiscard]] ConfigLayer const* NearerLayerSettingDefault(std::filesystem::path const& target) const noexcept;
+
+    /// The file a profile is written to, by the one rule both tools follow.
+    /// @param profileName The profile being added or replaced; empty for a new one.
+    /// @param explicitPath The file given explicitly (`--config`, the GUI's Settings path), even if it
+    ///        does not exist yet; empty when discovering.
+    /// @param userDefault The per-user file.
+    /// @return `explicitPath` when given, else the file `profileName` came from, else `NewProfileTarget`.
+    [[nodiscard]] std::filesystem::path WriteTargetFor(std::string_view profileName,
+                                                       std::filesystem::path const& explicitPath,
+                                                       std::filesystem::path const& userDefault) const;
+
+    /// The warning for writing `defaultProfile` into `target` while a nearer layer sets its own.
+    /// @param target The file the default is written to.
+    /// @param newDefaultName The profile made the default.
+    /// @return E.g. "<nearer> sets defaultProfile 'p1', which takes precedence over <target>.", or
+    ///         nothing when no nearer layer shadows it or it already names `newDefaultName`.
+    [[nodiscard]] std::optional<std::string> ShadowedDefaultWarning(std::filesystem::path const& target,
+                                                                    std::string_view newDefaultName) const;
 
   private:
     static constexpr std::size_t NoLayer = static_cast<std::size_t>(-1);

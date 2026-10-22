@@ -879,12 +879,15 @@ class AppController: public QObject
         return _layers.Merged();
     }
 
-    /// Makes @p loaded the profile store: the profile models, `profilePath` and `profileLayers`.
-    /// Leaves the watched files, the selected profile and the plugins alone.
-    void AdoptProfileStore(LoadedProfileStore loaded);
+    /// Makes @p loaded the profile store: the profile models, `profilePath` and `profileLayers`
+    /// (announced only when they or `newProfilePath` changed). Leaves the watched files, the
+    /// selected profile and the plugins alone.
+    /// @param loaded The store.
+    /// @param request The path it was loaded from (see `loadProfiles`); empty for discovery.
+    void AdoptProfileStore(LoadedProfileStore loaded, QString request);
 
-    /// Whether @p path is a loaded layer whose content is what this controller last read or wrote.
-    [[nodiscard]] bool IsKnownProfileFileContent(QString const& path) const;
+    /// Whether @p path is one of the loaded profile files.
+    [[nodiscard]] bool IsLoadedLayer(QString const& path) const;
 
     /// Reloads the profiles when one of the changed @p paths differs from what was loaded; defers that
     /// while a connect or run is in flight. Paths that are no loaded layer (any more) are ignored.
