@@ -7,7 +7,6 @@
 #include <array>
 #include <cstdlib>
 #include <format>
-#include <optional>
 #include <system_error>
 #include <vector>
 
@@ -31,28 +30,6 @@ namespace Lightweight::Config
 
 namespace
 {
-
-    /// Returns the nearest `dbtool.yml` at or above `start`, if any.
-    std::optional<std::filesystem::path> FindUpwards(std::filesystem::path const& start)
-    {
-        if (start.empty())
-            return std::nullopt;
-
-        std::error_code ec;
-        auto dir = std::filesystem::weakly_canonical(std::filesystem::absolute(start, ec), ec);
-        if (ec)
-            return std::nullopt;
-
-        while (true)
-        {
-            auto candidate = dir / ConfigFileName;
-            if (std::filesystem::is_regular_file(candidate, ec))
-                return candidate;
-            if (dir == dir.parent_path())
-                return std::nullopt;
-            dir = dir.parent_path();
-        }
-    }
 
     /// Collects every `dbtool.yml` at or above `start`, nearest first.
     std::vector<std::filesystem::path> FindAllUpwards(std::filesystem::path const& start)
@@ -97,8 +74,6 @@ std::string_view ToString(ConfigSource source) noexcept
     {
         case ConfigSource::Explicit:
             return "--config";
-        case ConfigSource::WorkingDirectory:
-            return "current directory";
         case ConfigSource::ExecutableDirectory:
             return "executable directory";
         case ConfigSource::UserDefault:
@@ -136,35 +111,11 @@ std::expected<std::vector<ConfigCandidate>, std::string> FindConfigCandidates(Di
     return candidates;
 }
 
-std::expected<DiscoveredConfig, std::string> FindConfigFile(DiscoveryInputs const& inputs)
-{
-    std::error_code ec;
-    if (!inputs.explicitPath.empty())
-    {
-        if (!std::filesystem::is_regular_file(inputs.explicitPath, ec))
-            return std::unexpected(std::format("Config file not found: {}", inputs.explicitPath.string()));
-        return DiscoveredConfig { .path = inputs.explicitPath, .source = ConfigSource::Explicit };
-    }
-
-    if (auto found = FindUpwards(inputs.workingDirectory))
-        return DiscoveredConfig { .path = std::move(*found), .source = ConfigSource::WorkingDirectory };
-
-    if (auto found = FindUpwards(inputs.executableDirectory))
-        return DiscoveredConfig { .path = std::move(*found), .source = ConfigSource::ExecutableDirectory };
-
-    if (!inputs.userDefault.empty() && std::filesystem::is_regular_file(inputs.userDefault, ec))
-        return DiscoveredConfig { .path = inputs.userDefault, .source = ConfigSource::UserDefault };
-
-    return DiscoveredConfig { .path = inputs.userDefault, .source = ConfigSource::None };
-}
-
 DiscoveryInputs DefaultDiscoveryInputs(std::filesystem::path explicitPath)
 {
-    std::error_code ec;
     auto searchDirectory = SearchDirectoryOverride();
     return DiscoveryInputs {
         .explicitPath = std::move(explicitPath),
-        .workingDirectory = std::filesystem::current_path(ec),
         .executableDirectory = searchDirectory.empty() ? ExecutableDirectory() : std::move(searchDirectory),
         .userDefault = ProfileStore::DefaultPath(),
     };
