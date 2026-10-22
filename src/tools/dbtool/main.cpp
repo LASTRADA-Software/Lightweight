@@ -557,10 +557,9 @@ struct LoadedConfig
 /// @return E.g. "/opt/acme/app-a/dbtool.yml, /opt/acme/dbtool.yml".
 [[nodiscard]] std::string JoinLayerPaths(Lightweight::Config::LayeredProfileStore const& layers)
 {
-    auto joined = std::string {};
-    for (auto const& layer: layers.Layers())
-        joined += std::format("{}{}", joined.empty() ? "" : ", ", layer.path.string());
-    return joined;
+    return layers.Layers()
+           | std::views::transform([](Lightweight::Config::ConfigLayer const& layer) { return layer.path.string(); })
+           | std::views::join_with(std::string_view { ", " }) | std::ranges::to<std::string>();
 }
 
 /// Locates and merges the run's dbtool.yml files. Exits on a missing `--config` file or a file
@@ -1494,7 +1493,8 @@ int AddProfileCommand(Options const& options)
     }
 
     std::println("Added profile '{}' to {}.", request.name, target.string());
-    if (auto const* nearer = options.setDefault ? layers->NearerLayerSettingDefault(target) : nullptr; nearer != nullptr)
+    auto const* nearer = options.setDefault ? layers->NearerLayerSettingDefault(target) : nullptr;
+    if (nearer != nullptr && layers->Merged().DefaultProfileName() != request.name)
         std::println(std::cerr,
                      "Warning: {} sets defaultProfile '{}', which takes precedence over {}.",
                      nearer->path.string(),

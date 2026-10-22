@@ -563,7 +563,7 @@ def test_layered_writes(dbtool, plugins_dir, connection_string):
     """Profile writes without --config land in the file that owns the profile: a new profile in
     the root file (or the per-user file when there is no root), an encrypted password in the
     profile's own file. SQLite only."""
-    print("--- 12e. writes go to the owning dbtool.yml ---")
+    print("--- 12i. writes go to the owning dbtool.yml ---")
     with tempfile.TemporaryDirectory() as tmpdir:
         tree = make_layered_tree(tmpdir)
         target = with_sqlite_database(connection_string, os.path.join(os.path.realpath(tmpdir), "layered.db"))
@@ -579,6 +579,18 @@ def test_layered_writes(dbtool, plugins_dir, connection_string):
             sys.exit(1)
         if file_fingerprint(tree["app"]) != app_before:
             print("add-profile changed the app-a dbtool.yml")
+            sys.exit(1)
+
+        # --force replaces a profile in the non-root layer that owns it.
+        write_text(tree["app"], "defaultPluginsDir: ./plugins\nprofiles:\n  local:\n"
+                                "    connectionString: \"DRIVER=SQLite3;Database=old.db\"\n")
+        root_before = file_fingerprint(tree["root"])
+        replaced = add_profile("local", "--force")
+        if replaced.returncode != 0 or "old.db" in read_text(tree["app"]) or "layered.db" not in read_text(tree["app"]):
+            print(f"add-profile --force did not replace the profile in the app-a file:\n{replaced.stderr}")
+            sys.exit(1)
+        if file_fingerprint(tree["root"]) != root_before:
+            print("add-profile --force of an app-a profile changed the root file")
             sys.exit(1)
 
         duplicate = add_profile("shared")

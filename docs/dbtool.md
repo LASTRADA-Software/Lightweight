@@ -145,7 +145,9 @@ written in.
 
 > **Changed:** the current directory and its parents are no longer searched. A project that keeps
 > a `dbtool.yml` at its root must now pass it with `--config`, or name its profiles in a file
-> above the executable or in the per-user file.
+> above the executable or in the per-user file. Relative `pluginsDir`, `defaultPluginsDir`,
+> `backupDir` and `defaultBackupDir` values now resolve against the directory of the `dbtool.yml`
+> they are written in — also for a `--config` file — instead of the working directory.
 
 This lets several installations share one set of profiles while each keeps its own plugins:
 
