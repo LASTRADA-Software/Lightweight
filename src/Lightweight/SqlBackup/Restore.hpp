@@ -78,10 +78,10 @@ enum class ChunkRestoreOutcome : std::uint8_t
 {
     /// The chunk was restored.
     Restored,
-    /// A value of the chunk does not convert to its column's type: the table fails, the worker goes on.
+    /// The chunk failed; only its table is affected, and the worker goes on with the other tables.
     TableFailed,
-    /// The chunk failed in a way that stops the worker (a database error, a lost connection).
-    WorkerFailed,
+    /// The chunk failed in a way that left the worker's connection unusable: the worker stops.
+    WorkerAborted,
 };
 
 /// Returns the schema a table is restored into: the one the archive records for it, else @p defaultSchema.
@@ -158,8 +158,10 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
 ///
 /// This function processes restore chunks from the shared queue, using the helper functions
 /// FetchNextRestoreChunk() for I/O operations and RestoreChunkData() for database operations.
-/// Once a chunk of a table fails, the remaining chunks of that table are skipped. A value that does
-/// not convert fails only its table; any other chunk failure also stops this worker.
+/// Once a chunk of a table fails, the remaining chunks of that table are skipped, but the worker
+/// keeps draining the queue so chunks belonging to other tables are not abandoned. Only a failure
+/// that leaves the worker's connection unusable stops it; the chunks it leaves queued are reported
+/// after all workers have finished.
 ///
 /// @param ctx The restore context containing queue, progress tracking, and settings.
 /// @param workerConn The database connection for this worker.

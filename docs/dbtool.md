@@ -968,8 +968,9 @@ The table's remaining chunks are skipped, the other tables are restored, and `db
 exits non-zero. The failed table may be left partly restored: each chunk is its own transaction,
 so chunks of the table that were restored before the failing one (or, with `--jobs` above 1, at
 the same time by other workers) stay, and on SQLite so do the rows committed within the failing
-chunk, which commits every 5,000 to 10,000 rows. A database error on insert still stops the worker
-that hit it; every table left not fully restored is reported as an error.
+chunk, which commits every 5,000 to 10,000 rows. A database error on insert marks the table failed
+and the worker goes on with the other tables; only a lost connection stops it. Every table left not
+fully restored is reported as an error.
 
 ### backup-diff
 

@@ -81,6 +81,26 @@ void IncrementChunkCounter(RestoreContext& ctx, std::string const& tableName, bo
     }
 }
 
+namespace
+{
+
+    /// Records a chunk's outcome against its table.
+    ///
+    /// A failed chunk marks its table failed before the chunk is counted, so a later successful chunk
+    /// cannot report the table as finished.
+    ///
+    /// @param ctx The restore context.
+    /// @param tableName The table the chunk belongs to.
+    /// @param restored Whether the chunk was restored.
+    void RecordChunkOutcome(RestoreContext& ctx, std::string const& tableName, bool restored)
+    {
+        if (!restored)
+            ctx.failedTables.Add(tableName);
+        IncrementChunkCounter(ctx, tableName, restored);
+    }
+
+} // namespace
+
 std::expected<RestoreChunkInfo, FetchChunkError> FetchNextRestoreChunk(RestoreContext& ctx)
 {
     ZoneScopedN("Restore::FetchChunk");
@@ -295,7 +315,13 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
                                       .currentRows = 0,
                                       .totalRows = 0,
                                       .message = "Insert failed: "s + e.what() });
-                return ChunkRestoreOutcome::WorkerFailed; // Non-transient or max retries exceeded
+
+                // A transient error that exhausted its retries may have left the connection dead;
+                // stop this worker rather than fail every remaining table on a dead handle. A
+                // non-transient error says the data was rejected, so the connection is still usable.
+                if (IsTransientError(e.info()) && !workerConn.IsAlive())
+                    return ChunkRestoreOutcome::WorkerAborted;
+                return ChunkRestoreOutcome::TableFailed;
             }
 
             ++retryCount;
@@ -318,7 +344,7 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
                                       .currentRows = 0,
                                       .totalRows = 0,
                                       .message = "Failed to reconnect after transient error" });
-                return ChunkRestoreOutcome::WorkerFailed;
+                return ChunkRestoreOutcome::WorkerAborted;
             }
 
             // Re-apply SQLite optimizations after reconnect
@@ -352,10 +378,10 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
                                   .currentRows = 0,
                                   .totalRows = 0,
                                   .message = "Insert failed: "s + e.what() });
-            return ChunkRestoreOutcome::WorkerFailed;
+            return ChunkRestoreOutcome::TableFailed;
         }
     }
-    return ChunkRestoreOutcome::WorkerFailed;
+    return ChunkRestoreOutcome::WorkerAborted;
 }
 
 void RestoreWorker(RestoreContext ctx, SqlConnection& workerConn)
@@ -395,8 +421,8 @@ void RestoreWorker(RestoreContext ctx, SqlConnection& workerConn)
                                       .totalRows = std::nullopt,
                                       .message = error.message });
                 if (!error.tableName.empty())
-                    IncrementChunkCounter(ctx, error.tableName, false);
-                return; // Abort worker on fetch error to ensure consistent restoration
+                    RecordChunkOutcome(ctx, error.tableName, false);
+                continue; // The remaining chunks are independent of this one.
             }
 
             auto const& chunk = *fetchResult;
@@ -412,12 +438,14 @@ void RestoreWorker(RestoreContext ctx, SqlConnection& workerConn)
             }
 
             auto const outcome = RestoreChunkData(ctx, workerConn, chunk, batchCapacity);
-            if (outcome != ChunkRestoreOutcome::Restored)
-                ctx.failedTables.Add(chunk.tableName);
-            IncrementChunkCounter(ctx, chunk.tableName, outcome == ChunkRestoreOutcome::Restored);
+            RecordChunkOutcome(ctx, chunk.tableName, outcome == ChunkRestoreOutcome::Restored);
 
-            if (outcome == ChunkRestoreOutcome::WorkerFailed)
-                return; // Abort worker on a database error to ensure consistent restoration
+            if (outcome == ChunkRestoreOutcome::WorkerAborted)
+            {
+                // The connection is gone; this worker cannot do useful work any more. The chunks
+                // it leaves queued are reported after all workers have finished.
+                return;
+            }
         }
     }
     catch (std::exception const& e)
