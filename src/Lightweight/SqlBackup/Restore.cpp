@@ -225,10 +225,23 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
                           .totalRows = chunk.displayTotal,
                           .message = "Restoring chunk " + path });
 
+    // Rows this chunk has already reported to OnItemsProcessed. A retry re-reads the chunk from
+    // the start, so only rows beyond this mark are new work.
+    size_t rowsReportedForChunk = 0;
+
+    // Takes back the rows an attempt added to the table's progress but did not leave in the table.
+    // A failed attempt's transaction rolls back; SQLite may already have committed part of it.
+    auto const rollBackUncommittedRows = [&](size_t uncommittedRows) {
+        if (uncommittedRows > 0)
+            (void) ctx.tableProgress.at(tableName)->fetch_sub(uncommittedRows);
+    };
+
     // Retry loop for chunk processing
     unsigned retryCount = 0;
     while (retryCount <= ctx.retrySettings.maxRetries)
     {
+        size_t rowsThisAttempt = 0;
+        size_t rowsCommittedThisAttempt = 0;
         try
         {
             // Use zero-copy reader directly from buffer (eliminates 2 memory copies)
@@ -301,6 +314,7 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
                         batchManager.PushBatch(batch);
                     }
                     rowsSinceCommit += batch.rowCount;
+                    rowsThisAttempt += batch.rowCount;
 
                     // Intermediate commit for SQLite to reduce WAL memory accumulation
                     if (isSQLite && maxRowsPerCommit > 0 && rowsSinceCommit >= maxRowsPerCommit)
@@ -309,6 +323,7 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
                         transaction.Commit();
                         transaction = SqlTransaction(workerConn, SqlTransactionMode::ROLLBACK);
                         rowsSinceCommit = 0;
+                        rowsCommittedThisAttempt = rowsThisAttempt;
                     }
 
                     auto& atomicCounter = *ctx.tableProgress.at(tableName);
@@ -321,8 +336,13 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
                                           .totalRows = chunk.displayTotal,
                                           .message = "Restoring chunk " + path });
 
-                    // Report items processed for ETA calculation
-                    ctx.progress.OnItemsProcessed(batch.rowCount);
+                    // Report items processed for ETA calculation, counting each row of the chunk
+                    // once even when a retry re-reads it.
+                    if (rowsThisAttempt > rowsReportedForChunk)
+                    {
+                        ctx.progress.OnItemsProcessed(rowsThisAttempt - rowsReportedForChunk);
+                        rowsReportedForChunk = rowsThisAttempt;
+                    }
                 }
 
                 {
@@ -338,6 +358,7 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
         }
         catch (SqlException const& e)
         {
+            rollBackUncommittedRows(rowsThisAttempt - rowsCommittedThisAttempt);
             if (ClassifyRetryOutcome(e.info(), retryCount, ctx.retrySettings) == RetryAction::GiveUp)
             {
                 ctx.progress.Update({ .state = Progress::State::Error,
@@ -394,6 +415,7 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
         }
         catch (::Lightweight::detail::BackupValueConversionError const& e)
         {
+            rollBackUncommittedRows(rowsThisAttempt - rowsCommittedThisAttempt);
             ctx.progress.Update({ .state = Progress::State::Error,
                                   .tableName = tableName,
                                   .currentRows = 0,
@@ -403,6 +425,7 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
         }
         catch (std::exception const& e)
         {
+            rollBackUncommittedRows(rowsThisAttempt - rowsCommittedThisAttempt);
             ctx.progress.Update({ .state = Progress::State::Error,
                                   .tableName = tableName,
                                   .currentRows = 0,

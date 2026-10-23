@@ -63,14 +63,14 @@ std::vector<std::string> const TableNames = {
 size_t const RowsPerTable = 25;
 size_t const RowsPerChunk = 10;
 
-/// Fails the first @p failureCount `SqlStatement::ExecuteBatch()` calls with a non-transient
-/// SQLSTATE. `RestoreChunkData()` therefore gives up immediately instead of retrying, which is
-/// exactly the chunk failure the issue describes.
+/// Fails the first @p failureCount `SqlStatement::ExecuteBatch()` calls with @p sqlState. A
+/// non-transient state makes `RestoreChunkData()` give up; a transient one makes it retry the chunk.
 class ExecuteBatchFault final: public SqlFaultSource
 {
   public:
-    explicit ExecuteBatchFault(int failureCount):
-        _remaining { failureCount }
+    explicit ExecuteBatchFault(int failureCount, std::string sqlState = "HY000"):
+        _remaining { failureCount },
+        _sqlState { std::move(sqlState) }
     {
     }
 
@@ -87,13 +87,14 @@ class ExecuteBatchFault final: public SqlFaultSource
 
         return SqlErrorInfo {
             .nativeErrorCode = 0,
-            .sqlState = "HY000",
+            .sqlState = _sqlState,
             .message = "injected restore chunk failure",
         };
     }
 
   private:
     std::atomic<int> _remaining;
+    std::string _sqlState;
 };
 
 /// Fails the first `ExecuteDirect` issued from `CreateTablesInOrder`, so one archived table cannot
@@ -246,13 +247,15 @@ void CorruptFirstChunkChecksum(std::filesystem::path const& archive)
 }
 
 /// Runs Restore() with @p failures injected chunk failures and returns the progress events.
-[[nodiscard]] std::vector<SqlBackup::Progress> RestoreWithFailures(unsigned concurrency, int failures)
+[[nodiscard]] std::vector<SqlBackup::Progress> RestoreWithFailures(unsigned concurrency,
+                                                                   int failures,
+                                                                   std::string sqlState = "HY000")
 {
     std::vector<SqlBackup::Progress> events;
     LambdaProgressManager pm { [&](SqlBackup::Progress const& progress) { events.push_back(progress); } };
 
     {
-        ExecuteBatchFault fault { failures };
+        ExecuteBatchFault fault { failures, std::move(sqlState) };
         SetFaultSource(&fault);
         auto const uninstall = detail::Finally([] { SetFaultSource(nullptr); });
 
@@ -327,6 +330,33 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlBackup::Restore continues after a chunk fai
         INFO("table " << tableName << " has " << count << " rows");
         CHECK(count == RowsPerTable);
         CHECK(HasEvent(events, SqlBackup::Progress::State::Finished, tableName));
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup::Restore counts a retried chunk's rows once", "[SqlBackup][restore]")
+{
+    ScopedFileRemoved const backupFileCleaner { BackupFile };
+
+    CreateAndFillTables();
+    REQUIRE_NOTHROW(BackupTables());
+    DropTables();
+
+    // A transient failure makes RestoreChunkData() re-read the chunk from the start. The rows the
+    // failed attempt read are not in the table, so they must not stay in the progress counters.
+    auto const events = RestoreWithFailures(/*concurrency=*/1, /*failures=*/1, /*sqlState=*/"40001");
+
+    auto const counts = RowCounts();
+    for (auto const& [tableName, count]: counts)
+    {
+        INFO("table " << tableName << " has " << count << " rows");
+        CHECK(count == RowsPerTable);
+    }
+
+    for (auto const& event: events)
+    {
+        INFO("event " << event.tableName << " " << event.currentRows << "/" << event.totalRows.value_or(0));
+        if (event.totalRows.has_value())
+            CHECK(event.currentRows <= *event.totalRows);
     }
 }
 
