@@ -533,6 +533,14 @@ class [[nodiscard]] SqlWhereClauseBuilder
                                      std::string_view onMainTableColumn);
 
     /// Constructs an INNER JOIN clause with a custom ON clause.
+    ///
+    /// @param joinTable The table to join with: a string, a string_view, or an AliasedTableName.
+    ///                  An aliased table renders as `JOIN "table" AS "alias"`, and the ON-clause
+    ///                  builder qualifies the joined table's columns with the alias, so the same table
+    ///                  can be joined more than once under different aliases.
+    /// @param onClauseBuilder Called with a SqlJoinConditionBuilder to compose the ON clause. If it
+    ///                        adds no condition, the join is dropped from the query.
+    /// @return The query builder, for chaining.
     template <typename OnChainCallable>
         requires std::invocable<OnChainCallable, SqlJoinConditionBuilder>
     [[nodiscard]] Derived& InnerJoin(TableName auto joinTable, OnChainCallable const& onClauseBuilder);
@@ -562,7 +570,15 @@ class [[nodiscard]] SqlWhereClauseBuilder
                                          std::string_view joinColumnName,
                                          std::string_view onMainTableColumn);
 
-    /// Constructs an LEFT OUTER JOIN clause with a custom ON clause.
+    /// Constructs a LEFT OUTER JOIN clause with a custom ON clause.
+    ///
+    /// @param joinTable The table to join with: a string, a string_view, or an AliasedTableName.
+    ///                  An aliased table renders as `JOIN "table" AS "alias"`, and the ON-clause
+    ///                  builder qualifies the joined table's columns with the alias, so the same table
+    ///                  can be joined more than once under different aliases.
+    /// @param onClauseBuilder Called with a SqlJoinConditionBuilder to compose the ON clause. If it
+    ///                        adds no condition, the join is dropped from the query.
+    /// @return The query builder, for chaining.
     template <typename OnChainCallable>
         requires std::invocable<OnChainCallable, SqlJoinConditionBuilder>
     [[nodiscard]] Derived& LeftOuterJoin(TableName auto joinTable, OnChainCallable const& onClauseBuilder);
@@ -577,7 +593,15 @@ class [[nodiscard]] SqlWhereClauseBuilder
                                           std::string_view joinColumnName,
                                           std::string_view onMainTableColumn);
 
-    /// Constructs an RIGHT OUTER JOIN clause with a custom ON clause.
+    /// Constructs a RIGHT OUTER JOIN clause with a custom ON clause.
+    ///
+    /// @param joinTable The table to join with: a string, a string_view, or an AliasedTableName.
+    ///                  An aliased table renders as `JOIN "table" AS "alias"`, and the ON-clause
+    ///                  builder qualifies the joined table's columns with the alias, so the same table
+    ///                  can be joined more than once under different aliases.
+    /// @param onClauseBuilder Called with a SqlJoinConditionBuilder to compose the ON clause. If it
+    ///                        adds no condition, the join is dropped from the query.
+    /// @return The query builder, for chaining.
     template <typename OnChainCallable>
         requires std::invocable<OnChainCallable, SqlJoinConditionBuilder>
     [[nodiscard]] Derived& RightOuterJoin(TableName auto joinTable, OnChainCallable const& onClauseBuilder);
@@ -592,7 +616,15 @@ class [[nodiscard]] SqlWhereClauseBuilder
                                          std::string_view joinColumnName,
                                          std::string_view onMainTableColumn);
 
-    /// Constructs an FULL OUTER JOIN clause with a custom ON clause.
+    /// Constructs a FULL OUTER JOIN clause with a custom ON clause.
+    ///
+    /// @param joinTable The table to join with: a string, a string_view, or an AliasedTableName.
+    ///                  An aliased table renders as `JOIN "table" AS "alias"`, and the ON-clause
+    ///                  builder qualifies the joined table's columns with the alias, so the same table
+    ///                  can be joined more than once under different aliases.
+    /// @param onClauseBuilder Called with a SqlJoinConditionBuilder to compose the ON clause. If it
+    ///                        adds no condition, the join is dropped from the query.
+    /// @return The query builder, for chaining.
     template <typename OnChainCallable>
         requires std::invocable<OnChainCallable, SqlJoinConditionBuilder>
     [[nodiscard]] Derived& FullOuterJoin(TableName auto joinTable, OnChainCallable const& onClauseBuilder);
@@ -1555,12 +1587,30 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Join(Jo
     };
 
     size_t const originalSize = DerivedSearchCondition().tableJoins.size();
-    DerivedSearchCondition().tableJoins += std::format("\n {0} JOIN \"{1}\"{2} ON ",
-                                                       JoinTypeStrings[static_cast<std::size_t>(joinType)],
-                                                       joinTable,
-                                                       DerivedSearchCondition().tableHint);
+    auto const joinTypeString = JoinTypeStrings[static_cast<std::size_t>(joinType)];
+
+    // The ON clause qualifies the joined table's columns by the name the statement knows it under.
+    auto const referenceTable = [&]() -> std::string_view {
+        if constexpr (std::is_same_v<std::remove_cvref_t<decltype(joinTable)>, AliasedTableName>)
+        {
+            DerivedSearchCondition().tableJoins += std::format("\n"
+                                                               R"( {0} JOIN "{1}" AS "{2}"{3} ON )",
+                                                               joinTypeString,
+                                                               joinTable.tableName,
+                                                               joinTable.alias,
+                                                               DerivedSearchCondition().tableHint);
+            return joinTable.alias;
+        }
+        else
+        {
+            DerivedSearchCondition().tableJoins +=
+                std::format("\n {0} JOIN \"{1}\"{2} ON ", joinTypeString, joinTable, DerivedSearchCondition().tableHint);
+            return joinTable;
+        }
+    }();
+
     size_t const sizeBefore = DerivedSearchCondition().tableJoins.size();
-    onClauseBuilder(SqlJoinConditionBuilder { joinTable, &DerivedSearchCondition(), &DerivedFormatter() });
+    onClauseBuilder(SqlJoinConditionBuilder { referenceTable, &DerivedSearchCondition(), &DerivedFormatter() });
     size_t const sizeAfter = DerivedSearchCondition().tableJoins.size();
     if (sizeBefore == sizeAfter)
         DerivedSearchCondition().tableJoins.resize(originalSize);

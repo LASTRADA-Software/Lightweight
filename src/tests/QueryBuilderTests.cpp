@@ -1199,6 +1199,258 @@ TEST_CASE_METHOD(SqlTestFixture, "Join with table aliasing", "[SqlQueryBuilder]"
     }
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "Join with table aliasing and an ON clause builder", "[SqlQueryBuilder]")
+{
+    using namespace std::string_view_literals;
+
+    std::vector<SqlVariant> inputBindings;
+
+    SECTION("inner join: the builder qualifies the joined columns with the alias")
+    {
+        CheckSqlQueryBuilder(
+            [&](SqlQueryBuilder& q) {
+                inputBindings.clear();
+                return q.FromTableAs("Table_A", "A")
+                    .Select(&inputBindings)
+                    .Fields({ "foo"sv, "bar"sv }, "B")
+                    .InnerJoin(AliasedTableName { .tableName = "Table_B", .alias = "B" },
+                               [](SqlJoinConditionBuilder join) {
+                                   return join.On("a_id", { .tableName = "A", .columnName = "id" })
+                                       .On("kind", { .tableName = "A", .columnName = "kind" })
+                                       .OnValue("rank", 7);
+                               })
+                    .Where(SqlQualifiedTableColumnName { .tableName = "A", .columnName = "foo" }, 42)
+                    .All();
+            },
+            QueryExpectations::All(
+                R"(SELECT "B"."foo", "B"."bar" FROM "Table_A" AS "A"
+                   INNER JOIN "Table_B" AS "B" ON "B"."a_id" = "A"."id" AND "B"."kind" = "A"."kind" AND "B"."rank" = ?
+                   WHERE "A"."foo" = ?)"),
+            [&]() {
+                REQUIRE(inputBindings.size() == 2);
+                CHECK(std::get<int>(inputBindings[0].value) == 7);
+                CHECK(std::get<int>(inputBindings[1].value) == 42);
+            });
+    }
+
+    SECTION("left outer join: without a bindings vector the value stays in the statement text")
+    {
+        CheckSqlQueryBuilder(
+            [](SqlQueryBuilder& q) {
+                return q.FromTableAs("Table_A", "A")
+                    .Select()
+                    .Fields({ "foo"sv, "bar"sv }, "B")
+                    .LeftOuterJoin(AliasedTableName { .tableName = "Table_B", .alias = "B" },
+                                   [](SqlJoinConditionBuilder join) {
+                                       return join.On("a_id", { .tableName = "A", .columnName = "id" })
+                                           .On("kind", { .tableName = "A", .columnName = "kind" })
+                                           .OnValue("rank", 7);
+                                   })
+                    .All();
+            },
+            QueryExpectations::All(
+                R"(SELECT "B"."foo", "B"."bar" FROM "Table_A" AS "A"
+                   LEFT OUTER JOIN "Table_B" AS "B" ON "B"."a_id" = "A"."id" AND "B"."kind" = "A"."kind" AND "B"."rank" = 7)"));
+    }
+
+    SECTION("left outer join with a table hint: the hint follows the alias")
+    {
+        CheckSqlQueryBuilder(
+            [&](SqlQueryBuilder& q) {
+                inputBindings.clear();
+                return q.FromTableAs("Table_A", "A")
+                    .Select(&inputBindings)
+                    .ReadUncommitted()
+                    .Fields({ "foo"sv, "bar"sv }, "B")
+                    .LeftOuterJoin(AliasedTableName { .tableName = "Table_B", .alias = "B" },
+                                   [](SqlJoinConditionBuilder join) {
+                                       return join.On("a_id", { .tableName = "A", .columnName = "id" })
+                                           .On("kind", { .tableName = "A", .columnName = "kind" })
+                                           .OnValue("rank", 7);
+                                   })
+                    .All();
+            },
+            QueryExpectations {
+                .sqlite = R"(SELECT "B"."foo", "B"."bar" FROM "Table_A" AS "A"
+                             LEFT OUTER JOIN "Table_B" AS "B" ON "B"."a_id" = "A"."id" AND "B"."kind" = "A"."kind" AND "B"."rank" = ?)",
+                .postgres = R"(SELECT "B"."foo", "B"."bar" FROM "Table_A" AS "A"
+                               LEFT OUTER JOIN "Table_B" AS "B" ON "B"."a_id" = "A"."id" AND "B"."kind" = "A"."kind" AND "B"."rank" = ?)",
+                .sqlServer = R"(SELECT "B"."foo", "B"."bar" FROM "Table_A" AS "A" WITH (READUNCOMMITTED)
+                                LEFT OUTER JOIN "Table_B" AS "B" WITH (READUNCOMMITTED) ON "B"."a_id" = "A"."id" AND "B"."kind" = "A"."kind" AND "B"."rank" = ?)",
+            },
+            [&]() {
+                REQUIRE(inputBindings.size() == 1);
+                CHECK(std::get<int>(inputBindings[0].value) == 7);
+            });
+    }
+
+    SECTION("inner join with a table hint")
+    {
+        CheckSqlQueryBuilder(
+            [](SqlQueryBuilder& q) {
+                return q.FromTableAs("Table_A", "A")
+                    .Select()
+                    .ReadUncommitted()
+                    .Fields({ "foo"sv, "bar"sv }, "B")
+                    .InnerJoin(AliasedTableName { .tableName = "Table_B", .alias = "B" },
+                               [](SqlJoinConditionBuilder join) {
+                                   return join.On("a_id", { .tableName = "A", .columnName = "id" })
+                                       .On("kind", { .tableName = "A", .columnName = "kind" })
+                                       .OnValue("rank", 7);
+                               })
+                    .All();
+            },
+            QueryExpectations {
+                .sqlite = R"(SELECT "B"."foo", "B"."bar" FROM "Table_A" AS "A"
+                             INNER JOIN "Table_B" AS "B" ON "B"."a_id" = "A"."id" AND "B"."kind" = "A"."kind" AND "B"."rank" = 7)",
+                .postgres = R"(SELECT "B"."foo", "B"."bar" FROM "Table_A" AS "A"
+                               INNER JOIN "Table_B" AS "B" ON "B"."a_id" = "A"."id" AND "B"."kind" = "A"."kind" AND "B"."rank" = 7)",
+                .sqlServer = R"(SELECT "B"."foo", "B"."bar" FROM "Table_A" AS "A" WITH (READUNCOMMITTED)
+                                INNER JOIN "Table_B" AS "B" WITH (READUNCOMMITTED) ON "B"."a_id" = "A"."id" AND "B"."kind" = "A"."kind" AND "B"."rank" = 7)",
+            });
+    }
+
+    SECTION("the same table joined twice under two aliases")
+    {
+        CheckSqlQueryBuilder(
+            [&](SqlQueryBuilder& q) {
+                inputBindings.clear();
+                return q.FromTableAs("Table_A", "A")
+                    .Select(&inputBindings)
+                    .Field(SqlQualifiedTableColumnName { .tableName = "First", .columnName = "foo" })
+                    .Field(SqlQualifiedTableColumnName { .tableName = "Second", .columnName = "foo" })
+                    .InnerJoin(AliasedTableName { .tableName = "Table_B", .alias = "First" },
+                               [](SqlJoinConditionBuilder join) {
+                                   return join.On("a_id", { .tableName = "A", .columnName = "id" }).OnValue("kind", 1);
+                               })
+                    .LeftOuterJoin(AliasedTableName { .tableName = "Table_B", .alias = "Second" },
+                                   [](SqlJoinConditionBuilder join) {
+                                       return join.On("a_id", { .tableName = "A", .columnName = "id" }).OnValue("kind", 2);
+                                   })
+                    .Where(SqlQualifiedTableColumnName { .tableName = "A", .columnName = "foo" }, 42)
+                    .All();
+            },
+            QueryExpectations::All(
+                R"(SELECT "First"."foo", "Second"."foo" FROM "Table_A" AS "A"
+                   INNER JOIN "Table_B" AS "First" ON "First"."a_id" = "A"."id" AND "First"."kind" = ?
+                   LEFT OUTER JOIN "Table_B" AS "Second" ON "Second"."a_id" = "A"."id" AND "Second"."kind" = ?
+                   WHERE "A"."foo" = ?)"),
+            [&]() {
+                REQUIRE(inputBindings.size() == 3);
+                CHECK(std::get<int>(inputBindings[0].value) == 1);
+                CHECK(std::get<int>(inputBindings[1].value) == 2);
+                CHECK(std::get<int>(inputBindings[2].value) == 42);
+            });
+    }
+
+    SECTION("right and full outer joins")
+    {
+        // Text only: SQLite's support for these join kinds is irrelevant here.
+        CheckSqlQueryBuilder(
+            [](SqlQueryBuilder& q) {
+                return q.FromTableAs("Table_A", "A")
+                    .Select()
+                    .Field(SqlQualifiedTableColumnName { .tableName = "B", .columnName = "foo" })
+                    .Field(SqlQualifiedTableColumnName { .tableName = "C", .columnName = "foo" })
+                    .RightOuterJoin(AliasedTableName { .tableName = "Table_B", .alias = "B" },
+                                    [](SqlJoinConditionBuilder join) {
+                                        return join.On("a_id", { .tableName = "A", .columnName = "id" });
+                                    })
+                    .FullOuterJoin(AliasedTableName { .tableName = "Table_B", .alias = "C" },
+                                   [](SqlJoinConditionBuilder join) {
+                                       return join.On("a_id", { .tableName = "A", .columnName = "id" });
+                                   })
+                    .All();
+            },
+            QueryExpectations {
+                .sqlite = R"(SELECT "B"."foo", "C"."foo" FROM "Table_A" AS "A"
+                             RIGHT OUTER JOIN "Table_B" AS "B" ON "B"."a_id" = "A"."id"
+                             FULL OUTER JOIN "Table_B" AS "C" ON "C"."a_id" = "A"."id")",
+                .postgres = R"(SELECT "B"."foo", "C"."foo" FROM "Table_A" AS "A"
+                               RIGHT OUTER JOIN "Table_B" AS "B" ON "B"."a_id" = "A"."id"
+                               FULL OUTER JOIN "Table_B" AS "C" ON "C"."a_id" = "A"."id")",
+                .sqlServer = R"(SELECT "B"."foo", "C"."foo" FROM "Table_A" AS "A"
+                                RIGHT OUTER JOIN "Table_B" AS "B" ON "B"."a_id" = "A"."id"
+                                FULL OUTER JOIN "Table_B" AS "C" ON "C"."a_id" = "A"."id")",
+            });
+    }
+
+    SECTION("a builder that adds no condition drops the aliased join")
+    {
+        CheckSqlQueryBuilder(
+            [](SqlQueryBuilder& q) {
+                return q.FromTableAs("Table_A", "A")
+                    .Select()
+                    .Fields({ "foo"sv, "bar"sv }, "A")
+                    .InnerJoin(AliasedTableName { .tableName = "Table_B", .alias = "B" },
+                               [](SqlJoinConditionBuilder join) { return join; })
+                    .All();
+            },
+            QueryExpectations::All(R"(SELECT "A"."foo", "A"."bar" FROM "Table_A" AS "A")"));
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Join with table aliasing and an ON clause builder executes", "[SqlQueryBuilder]")
+{
+    auto stmt = SqlStatement {};
+
+    CreateEmployeesTable(stmt);
+    FillEmployeesTable(stmt);
+
+    auto const firstName = SqlQualifiedTableColumnName { .tableName = "E", .columnName = "FirstName" };
+    auto const selfSalary = SqlQualifiedTableColumnName { .tableName = "Self", .columnName = "Salary" };
+    auto const wellPaidSalary = SqlQualifiedTableColumnName { .tableName = "WellPaid", .columnName = "Salary" };
+
+    // Each value is chosen so that binding them in any other order selects different rows.
+    std::vector<SqlVariant> inputBindings;
+    stmt.Prepare(stmt.QueryAs("Employees", "E")
+                     .Select(&inputBindings)
+                     .Field(firstName)
+                     .Field(selfSalary)
+                     .Field(wellPaidSalary)
+                     .InnerJoin(AliasedTableName { .tableName = "Employees", .alias = "Self" },
+                                [](SqlJoinConditionBuilder join) {
+                                    return join.On("EmployeeID", { .tableName = "E", .columnName = "EmployeeID" })
+                                        .On("LastName", { .tableName = "E", .columnName = "LastName" })
+                                        .OnValue("Salary", "<=", 65'000);
+                                })
+                     .LeftOuterJoin(AliasedTableName { .tableName = "Employees", .alias = "WellPaid" },
+                                    [](SqlJoinConditionBuilder join) {
+                                        return join.On("EmployeeID", { .tableName = "E", .columnName = "EmployeeID" })
+                                            .On("FirstName", { .tableName = "E", .columnName = "FirstName" })
+                                            .OnValue("Salary", ">=", 55'000);
+                                    })
+                     .Where(SqlQualifiedTableColumnName { .tableName = "E", .columnName = "Salary" }, ">=", 45'000)
+                     .OrderBy(firstName)
+                     .All());
+
+    REQUIRE(inputBindings.size() == 3);
+    CHECK(std::get<int>(inputBindings[0].value) == 65'000);
+    CHECK(std::get<int>(inputBindings[1].value) == 55'000);
+    CHECK(std::get<int>(inputBindings[2].value) == 45'000);
+
+    auto cursor = stmt.ExecuteWithVariants(inputBindings);
+
+    // Read the columns in order, one statement each: SQL Server rejects out-of-order SQLGetData.
+    REQUIRE(cursor.FetchRow());
+    auto const aliceName = cursor.GetColumn<std::string>(1);
+    auto const aliceSalary = cursor.GetColumn<int>(2);
+    auto const aliceWellPaidSalary = cursor.GetColumn<std::optional<int>>(3);
+    CHECK(aliceName == "Alice");
+    CHECK(aliceSalary == 50'000);
+    CHECK(aliceWellPaidSalary == std::nullopt);
+
+    REQUIRE(cursor.FetchRow());
+    auto const bobName = cursor.GetColumn<std::string>(1);
+    auto const bobSalary = cursor.GetColumn<int>(2);
+    auto const bobWellPaidSalary = cursor.GetColumn<std::optional<int>>(3);
+    CHECK(bobName == "Bob");
+    CHECK(bobSalary == 60'000);
+    CHECK(bobWellPaidSalary == std::optional { 60'000 });
+
+    CHECK(!cursor.FetchRow());
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.ReadUncommitted", "[SqlQueryBuilder]")
 {
     SECTION("FROM only")

@@ -134,6 +134,7 @@ interface. Here we present a compressed list of functions that can be used to cr
       ```
   -  `Inner`|`LeftOuter`|`RightOuter`|`FullOuter` + `Join`
     - See documentation for `SqlJoinConditionBuilder` for details 
+    - The joined table may be an `AliasedTableName`, also with an ON-clause builder: it renders as `JOIN "Table" AS "Alias"`, and the builder qualifies the joined table's columns with the alias, so one table can be joined several times, e.g. `LeftOuterJoin(AliasedTableName { .tableName = "Table_B", .alias = "B" }, [](SqlJoinConditionBuilder join) { return join.On("a_id", { .tableName = "A", .columnName = "id" }).OnValue("kind", 7); })`.
 - (optional) Dirty read
   - `ReadUncommitted()`
     - Reads every table the statement names uncommitted, without touching the connection's isolation level, so it also works inside an open transaction. On SQL Server the hint `WITH (READUNCOMMITTED)` is rendered after the FROM table and after each joined table (each after its alias); SQLite and PostgreSQL have no per-table hint and render the statement unchanged.
