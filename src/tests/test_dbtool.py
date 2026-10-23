@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 import argparse
+import atexit
 import subprocess
 import sys
 import json
 import os
+import re
 import shutil
 import tempfile
 import zipfile
@@ -521,12 +523,124 @@ def file_fingerprint(path):
         return f.read(), os.stat(path).st_mtime_ns
 
 
+SHARED_PROFILE_YAML = "profiles:\n  shared:\n    connectionString: \"DRIVER=SQLite3;Database=shared.db\"\n"
+
+
+def write_text(path, text):
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(text)
+
+
+def read_text(path):
+    with open(path, encoding="utf-8") as f:
+        return f.read()
+
+
+def make_layered_tree(tmpdir):
+    """The shared-profiles deployment: <tmp>/acme/dbtool.yml (root: true, profile `shared`),
+    <tmp>/acme/app-a/dbtool.yml (defaultPluginsDir: ./plugins) and a per-user file with profile
+    `personal`. Returns the paths and an environment that runs dbtool as if installed in app-a."""
+    tmpdir = os.path.realpath(tmpdir)
+    acme = os.path.join(tmpdir, "acme")
+    app_dir = os.path.join(acme, "app-a")
+    user_dir = os.path.join(tmpdir, "user")
+    os.makedirs(app_dir)
+    os.makedirs(user_dir)
+    tree = {
+        "app_dir": app_dir,
+        "root": os.path.join(acme, "dbtool.yml"),
+        "app": os.path.join(app_dir, "dbtool.yml"),
+        "user": os.path.join(user_dir, "dbtool.yml"),
+        "env": dict(os.environ, LIGHTWEIGHT_DBTOOL_USER_CONFIG_DIR=user_dir,
+                    LIGHTWEIGHT_DBTOOL_CONFIG_SEARCH_DIR=app_dir),
+    }
+    write_text(tree["root"], "root: true\n" + SHARED_PROFILE_YAML)
+    write_text(tree["app"], "defaultPluginsDir: ./plugins\n")
+    write_text(tree["user"], "profiles:\n  personal:\n    connectionString: \"DRIVER=SQLite3;Database=personal.db\"\n")
+    return tree
+
+
+def test_layered_writes(dbtool, plugins_dir, connection_string):
+    """Profile writes without --config land in the file that owns the profile: a new profile in
+    the root file (or the per-user file when there is no root), an encrypted password in the
+    profile's own file. SQLite only."""
+    print("--- 12i. writes go to the owning dbtool.yml ---")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tree = make_layered_tree(tmpdir)
+        target = with_sqlite_database(connection_string, os.path.join(os.path.realpath(tmpdir), "layered.db"))
+
+        def add_profile(name, *extra):
+            return run_command([dbtool, "add-profile", "--name", name, "--connection-string", target,
+                                "--no-password"] + list(extra), check=False, env=tree["env"])
+
+        app_before = file_fingerprint(tree["app"])
+        added = add_profile("n1")
+        if added.returncode != 0 or "n1" not in read_text(tree["root"]) or "n1" in read_text(tree["user"]):
+            print(f"add-profile did not write the new profile into the root file:\n{added.stderr}")
+            sys.exit(1)
+        if file_fingerprint(tree["app"]) != app_before:
+            print("add-profile changed the app-a dbtool.yml")
+            sys.exit(1)
+
+        # --force replaces a profile in the non-root layer that owns it.
+        write_text(tree["app"], "defaultPluginsDir: ./plugins\nprofiles:\n  local:\n"
+                                "    connectionString: \"DRIVER=SQLite3;Database=old.db\"\n")
+        root_before = file_fingerprint(tree["root"])
+        replaced = add_profile("local", "--force")
+        if replaced.returncode != 0 or "old.db" in read_text(tree["app"]) or "layered.db" not in read_text(tree["app"]):
+            print(f"add-profile --force did not replace the profile in the app-a file:\n{replaced.stderr}")
+            sys.exit(1)
+        if file_fingerprint(tree["root"]) != root_before:
+            print("add-profile --force of an app-a profile changed the root file")
+            sys.exit(1)
+
+        duplicate = add_profile("shared")
+        if duplicate.returncode == 0 or tree["root"] not in duplicate.stderr:
+            print(f"add-profile of an existing profile did not refuse, naming its file:\n{duplicate.stderr}")
+            sys.exit(1)
+
+        write_text(tree["app"], "defaultProfile: x\ndefaultPluginsDir: ./plugins\n")
+        shadowed = add_profile("n3", "--set-default")
+        if shadowed.returncode != 0 or "Warning:" not in shadowed.stderr or tree["app"] not in shadowed.stderr:
+            print(f"add-profile --set-default did not warn that app-a's defaultProfile wins:\n{shadowed.stderr}")
+            sys.exit(1)
+
+        secret = "e2e-dummy-password"
+        plaintext_root = ("root: true\n" + SHARED_PROFILE_YAML
+                          + f"  pw:\n    connectionString: {yaml_quote(target)}\n    password: {yaml_quote(secret)}\n")
+        write_text(tree["root"], plaintext_root)
+        status = ["--plugins-dir", plugins_dir, "--profile", "pw", "status"]
+        run_command([dbtool] + status, env=tree["env"])
+        text = read_text(tree["root"])
+        if "enc:" not in text or secret in text:
+            print(f"the plaintext password was not encrypted in the root file:\n{text}")
+            sys.exit(1)
+
+        if os.name != "nt" and os.geteuid() != 0:
+            write_text(tree["root"], plaintext_root)
+            os.chmod(tree["root"], 0o444)
+            try:
+                unwritable = run_command([dbtool] + status, check=False, env=tree["env"])
+            finally:
+                os.chmod(tree["root"], 0o644)
+            if unwritable.returncode != 0 or "Warning: could not encrypt" not in unwritable.stderr \
+                    or tree["root"] not in unwritable.stderr:
+                print(f"a read-only root file did not merely warn:\n{unwritable.stderr}")
+                sys.exit(1)
+
+        write_text(tree["root"], SHARED_PROFILE_YAML)
+        added = add_profile("n2")
+        if added.returncode != 0 or "n2" not in read_text(tree["user"]) or "n2" in read_text(tree["root"]):
+            print(f"add-profile without a root file did not write into the per-user file:\n{added.stderr}")
+            sys.exit(1)
+
+
 def test_target_precedence(dbtool, plugins_dir, connection_string):
     """A dbtool.yml found by discovery whose defaultProfile names database A, and
     SQL_CONNECTION_STRING naming database B: the environment wins; without it, commands
     that write refuse the discovered target and leave A untouched, while read-only ones
-    may still use it unless a loaded plugin has a post-init hook. SQLite only. The tree's
-    own dbtool.yml stops the upward walk before any dbtool.yml above the temp directory."""
+    may still use it unless a loaded plugin has a post-init hook. SQLite only. Discovery starts
+    at LIGHTWEIGHT_DBTOOL_CONFIG_SEARCH_DIR, which stands in for the executable's directory."""
     print("--- 16. a discovered defaultProfile never receives a write ---")
     with tempfile.TemporaryDirectory() as tmpdir:
         # The long form: dbtool prints discovered paths canonically, without 8.3 short names.
@@ -560,8 +674,9 @@ def test_target_precedence(dbtool, plugins_dir, connection_string):
         env_b = dict(env_none, SQL_CONNECTION_STRING=target_b)
         plugins = ["--plugins-dir", hook_free_plugins]
 
-        def dbtool_in_tree(command, env, check=True, cwd=nested, plugin_args=plugins):
-            return run_command([dbtool] + plugin_args + command, check=check, cwd=cwd, env=env)
+        def dbtool_in_tree(command, env, check=True, search=nested, plugin_args=plugins, input=None):
+            return run_command([dbtool] + plugin_args + command, check=check, input=input,
+                               env=dict(env, LIGHTWEIGHT_DBTOOL_CONFIG_SEARCH_DIR=search))
 
         def expect_refusal(result, command, *fragments):
             missing = [f for f in ("refusing to run", cfg_path) + fragments if f not in result.stderr]
@@ -605,7 +720,7 @@ def test_target_precedence(dbtool, plugins_dir, connection_string):
 
         # A named profile is explicit, from --config or from the discovered file, and its origin is printed.
         for command, origin in ((["--config", cfg_path, "--profile", "c", "migrate"], "--config"),
-                                (["--profile", "c", "migrate"], "discovered via current directory")):
+                                (["--profile", "c", "migrate"], "discovered via executable directory")):
             named = dbtool_in_tree(command, env_b)
             expected = f"Target: database {database_c} (from profile 'c' from {cfg_path} ({origin}))"
             if expected not in named.stderr:
@@ -652,7 +767,7 @@ def test_target_precedence(dbtool, plugins_dir, connection_string):
         os.makedirs(fallback)
         with open(os.path.join(fallback, "dbtool.yml"), "w", encoding="utf-8") as f:
             f.write(f"profiles:\n  first:\n    connectionString: {yaml_quote(target_a)}\n")
-        refused = dbtool_in_tree(["migrate"], env_none, check=False, cwd=fallback)
+        refused = dbtool_in_tree(["migrate"], env_none, check=False, search=fallback)
         if refused.returncode == 0 or "the first profile; the file sets no defaultProfile" not in refused.stderr:
             print(f"the refusal did not name the first-profile fallback:\n{refused.stderr}")
             sys.exit(1)
@@ -663,8 +778,8 @@ def test_target_precedence(dbtool, plugins_dir, connection_string):
         with open(os.path.join(prompting, "dbtool.yml"), "w", encoding="utf-8") as f:
             f.write("defaultProfile: s\nprofiles:\n"
                     f"  s:\n    connectionString: {yaml_quote(target_a)}\n    secretRef: \"stdin:\"\n")
-        refused = run_command([dbtool] + all_plugins + ["status"], check=False, cwd=prompting, env=env_none,
-                              input="")
+        refused = dbtool_in_tree(["status"], env_none, check=False, search=prompting, plugin_args=all_plugins,
+                                 input="")
         if refused.returncode == 0 or "post-init hook" not in refused.stderr:
             print(f"status did not refuse the hook plugins before asking for the password:\n{refused.stderr}")
             sys.exit(1)
@@ -1191,6 +1306,16 @@ def main():
     args.dbtool = os.path.abspath(args.dbtool)
     args.plugins_dir = os.path.abspath(args.plugins_dir)
 
+    # dbtool merges every dbtool.yml above its executable with the per-user file, so a developer's
+    # own ~/.config/dbtool/dbtool.yml, or a stray dbtool.yml above the build tree, would leak into
+    # every run. Both default to empty directories; a case overrides them through its own `env`.
+    isolation = tempfile.TemporaryDirectory()
+    atexit.register(isolation.cleanup)
+    for variable, folder in (("LIGHTWEIGHT_DBTOOL_USER_CONFIG_DIR", "user"),
+                             ("LIGHTWEIGHT_DBTOOL_CONFIG_SEARCH_DIR", "search")):
+        os.environ[variable] = os.path.join(isolation.name, folder)
+        os.makedirs(os.environ[variable])
+
     # Determine connection string: --test-env takes precedence over --connection-string
     if args.test_env:
         connection_string = load_connection_string_from_test_env(args.test_env)
@@ -1517,16 +1642,39 @@ def main():
             print(f"newer plugin copy was not the one loaded:\n{multi_result.stdout}")
             sys.exit(1)
 
-    print("--- 12c. config discovery walks up from the working directory ---")
+    print("--- 12c. layered dbtool.yml discovery ---")
     with tempfile.TemporaryDirectory() as tmpdir:
-        project = os.path.join(tmpdir, "proj")
-        nested = os.path.join(project, "sub", "dir")
-        os.makedirs(nested)
-        with open(os.path.join(project, "dbtool.yml"), "w", encoding="utf-8") as f:
-            f.write("profiles:\n  discovered:\n    connectionString: \"DRIVER=SQLite3;Database=x.db\"\n")
-        found = run_command([args.dbtool, "list-profiles"], cwd=nested)
-        if "discovered" not in found.stdout or "current directory" not in found.stdout:
-            print(f"list-profiles did not use the dbtool.yml above the working directory:\n{found.stdout}")
+        tree = make_layered_tree(tmpdir)
+        listed = run_command([args.dbtool, "list-profiles"], env=tree["env"]).stdout
+        missing = [f for f in ("shared", tree["app"], tree["root"], "(root)") if f not in listed]
+        if missing or "personal" in listed or listed.index(tree["app"]) > listed.index(tree["root"]):
+            print(f"list-profiles did not merge the layers nearest first, stopping at root (missing {missing}):\n"
+                  f"{listed}")
+            sys.exit(1)
+        root_line = next(line for line in listed.splitlines() if line.strip().startswith(tree["root"]))
+        if "(root)" not in root_line:
+            print(f"list-profiles did not mark {tree['root']} as the root:\n{listed}")
+            sys.exit(1)
+        # app-a's relative defaultPluginsDir resolves against app-a, not the working directory.
+        if os.path.join(tree["app_dir"], "plugins") not in listed:
+            print(f"the shared profile does not use app-a's plugins directory:\n{listed}")
+            sys.exit(1)
+
+        write_text(tree["root"], SHARED_PROFILE_YAML)
+        listed = run_command([args.dbtool, "list-profiles"], env=tree["env"]).stdout
+        if "personal" not in listed or tree["user"] not in listed \
+                or listed.index(tree["user"]) < listed.index(tree["root"]):
+            print(f"without root: true, the user file was not listed last:\n{listed}")
+            sys.exit(1)
+
+        # The working directory is no longer searched.
+        cwd_dir = os.path.join(tmpdir, "cwd")
+        os.makedirs(cwd_dir)
+        write_text(os.path.join(cwd_dir, "dbtool.yml"),
+                   "profiles:\n  cwdonly:\n    connectionString: \"DRIVER=SQLite3;Database=cwd.db\"\n")
+        listed = run_command([args.dbtool, "list-profiles"], cwd=cwd_dir, env=tree["env"]).stdout
+        if "cwdonly" in listed:
+            print(f"list-profiles still read the dbtool.yml in the working directory:\n{listed}")
             sys.exit(1)
 
     print("--- 12d. add-profile stores an encrypted password ---")
@@ -1563,6 +1711,27 @@ def main():
         if on_argv.returncode == 0 or "never accepted on the command line" not in on_argv.stderr:
             print(f"add-profile accepted a password on the command line:\n{on_argv.stderr}")
             sys.exit(1)
+
+    print("--- 12d2. add-profile stores relative directories as absolute paths ---")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # The file lives in another directory than the one the directories were typed in, where a
+        # relative value would resolve against the file instead.
+        cfg_path = os.path.join(tmpdir, "nested", "dbtool.yml")
+        run_command([args.dbtool, "--config", cfg_path, "add-profile", "--name", "rel", "--no-password",
+                     "--connection-string", profile_cs, "--plugins-dir", "rel-plugins",
+                     "--backup-dir", "rel-backups"], cwd=tmpdir)
+        with open(cfg_path, encoding="utf-8") as f:
+            stored = f.read()
+        for key, name in (("pluginsDir", "rel-plugins"), ("backupDir", "rel-backups")):
+            match = re.search(rf'^\s*{key}:\s*"?(.*?)"?\s*$', stored, re.MULTILINE)
+            value = match.group(1).replace("\\\\", "\\") if match else ""
+            expected = os.path.join(tmpdir, name)
+            if not os.path.isabs(value) or os.path.realpath(value) != os.path.realpath(expected):
+                print(f"add-profile stored {key} as {value!r} instead of {expected!r}:\n{stored}")
+                sys.exit(1)
+
+    if is_sqlite:
+        test_layered_writes(args.dbtool, args.plugins_dir, connection_string)
 
     print("--- 12h. backupDir / defaultBackupDir decide where backup writes ---")
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -1676,7 +1845,8 @@ def main():
         with open(os.path.join(tmpdir, "dbtool.yml"), "w", encoding="utf-8") as f:
             f.write("profiles: [this is: not valid\n")
         for help_cmd in (["help"], ["--help"], ["show-examples"]):
-            helped = run_command([args.dbtool] + help_cmd, cwd=tmpdir, check=False)
+            helped = run_command([args.dbtool] + help_cmd, check=False,
+                                 env=dict(os.environ, LIGHTWEIGHT_DBTOOL_CONFIG_SEARCH_DIR=tmpdir))
             if helped.returncode != 0:
                 print(f"dbtool {' '.join(help_cmd)} failed because of an unrelated broken dbtool.yml:\n{helped.stderr}")
                 sys.exit(1)

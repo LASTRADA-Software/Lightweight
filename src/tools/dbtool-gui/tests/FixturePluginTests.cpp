@@ -6,6 +6,7 @@
 
 #include "../../../tests/RecordingProgressTask.hpp"
 #include "MigrationRunnerTestSupport.hpp"
+#include "ScopedVariable.hpp"
 
 #include <Lightweight/SqlMigration.hpp>
 
@@ -26,6 +27,7 @@
 #include <QtCore/QTemporaryDir>
 #include <QtCore/QtEnvironmentVariables>
 
+using DbtoolGui::Tests::ScopedVariable;
 using DbtoolGui::Tests::ScratchDatabase;
 using Lightweight::SqlMigration::ExecutionMode;
 using Lightweight::SqlMigration::MigrationManager;
@@ -33,35 +35,6 @@ using Lightweight::SqlMigration::PreMigrateStepError;
 
 namespace
 {
-
-/// Sets an environment variable for one test and restores its previous value, or its absence, afterwards.
-class ScopedVariable
-{
-  public:
-    ScopedVariable(char const* name, std::string const& value):
-        _name { name },
-        _previous { qEnvironmentVariableIsSet(name) ? std::optional { qgetenv(name) } : std::nullopt }
-    {
-        qputenv(_name, QByteArray::fromStdString(value));
-    }
-
-    ScopedVariable(ScopedVariable const&) = delete;
-    ScopedVariable(ScopedVariable&&) = delete;
-    ScopedVariable& operator=(ScopedVariable const&) = delete;
-    ScopedVariable& operator=(ScopedVariable&&) = delete;
-
-    ~ScopedVariable()
-    {
-        if (_previous.has_value())
-            qputenv(_name, *_previous);
-        else
-            qunsetenv(_name);
-    }
-
-  private:
-    char const* _name;
-    std::optional<QByteArray> _previous;
-};
 
 /// One fixture plugin loaded into the process-wide migration manager from a scratch directory; unloaded on destruction.
 class LoadedFixture

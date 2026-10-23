@@ -23,6 +23,7 @@
 #include "SqlQueryRunner.hpp"
 
 #include <Config/ConfigDiscovery.hpp>
+#include <Config/LayeredProfileStore.hpp>
 #include <Config/ProfileStore.hpp>
 #include <QtCore/QByteArray>
 #include <QtCore/QList>
@@ -30,6 +31,7 @@
 #include <QtCore/QPair>
 #include <QtCore/QSettings>
 #include <QtCore/QString>
+#include <QtCore/QStringList>
 #include <QtCore/QTimer>
 #include <QtCore/QUrl>
 #include <QtCore/QVariantMap>
@@ -135,22 +137,28 @@ class AppController: public QObject
     /// server-side default schema".
     Q_PROPERTY(QString dsnSchema READ dsnSchema WRITE setDsnSchema NOTIFY dsnSchemaChanged)
     Q_PROPERTY(QString pluginsDir READ pluginsDir WRITE setPluginsDir NOTIFY pluginsDirChanged)
-    /// Custom path to the dbtool.yml profile store. Empty means "discover it":
-    /// the nearest dbtool.yml above the working or executable directory, else
-    /// the per-user default (`Config::FindConfigFile`). Persisted
+    /// Custom path to the dbtool.yml profile store, loaded on its own. Empty means "discover it":
+    /// every dbtool.yml from the executable's directory upwards, merged nearest first, up to one
+    /// declaring `root: true`, else followed by the per-user default (`Config::FindConfigCandidates`,
+    /// re-run on every reload). Persisted
     /// under `config/profileStorePath` so site installs that ship the YAML
     /// outside `%APPDATA%` / `$XDG_CONFIG_HOME` can point the GUI at it
     /// without sym-links.
     Q_PROPERTY(QString profileStorePath READ profileStorePath WRITE setProfileStorePath NOTIFY profileStorePathChanged)
-    /// The `dbtool.yml` that discovery picks when no custom path is set, exposed
-    /// so the QML Settings page can render it as the placeholder. CONSTANT —
-    /// discovery inputs (working and executable directory) are fixed at startup.
+    /// The per-user `dbtool.yml` (`ProfileStore::DefaultPath()`), the last layer discovery loads
+    /// when no file declared `root: true`, and where new profiles go then.
     Q_PROPERTY(QString defaultProfileStorePath READ defaultProfileStorePath CONSTANT)
     Q_PROPERTY(QString connectionSummary READ connectionSummary NOTIFY connectionSummaryChanged)
-    /// Absolute path of the profile file currently driving the profile
-    /// dropdown, or empty if no file has been loaded. Exposed so the
-    /// ConnectionPanel can both label the source and open it on click.
+    /// Absolute path of the nearest loaded profile file (or the file chosen in Settings), or empty
+    /// if none has been loaded. Exposed so the ConnectionPanel can both label the source and open
+    /// it on click.
     Q_PROPERTY(QString profilePath READ profilePath NOTIFY profilePathChanged)
+    /// Every loaded profile file, nearest (highest precedence) first; the one that declared
+    /// `root: true` is suffixed " (root)". For display only.
+    Q_PROPERTY(QStringList profileLayers READ profileLayers NOTIFY profilePathChanged)
+    /// The dbtool.yml a new profile is written to: the file chosen in Settings, else the root
+    /// layer, else the per-user default.
+    Q_PROPERTY(QString newProfilePath READ newProfilePath NOTIFY profilePathChanged)
     /// Display-friendly variant of `profilePath` — collapses the user's
     /// home directory prefix to `~`. UI-only; never pass this to file APIs.
     Q_PROPERTY(QString profilePathDisplay READ profilePathDisplay NOTIFY profilePathChanged)
@@ -387,6 +395,11 @@ class AppController: public QObject
         return _profilePath;
     }
     [[nodiscard]] QString profilePathDisplay() const;
+    [[nodiscard]] QStringList const& profileLayers() const noexcept
+    {
+        return _profileLayers;
+    }
+    [[nodiscard]] QString newProfilePath() const;
 
     [[nodiscard]] int migrationCount() const;
     [[nodiscard]] int appliedCount() const;
@@ -592,8 +605,10 @@ class AppController: public QObject
     /// is told via `lastWarning`.
     Q_INVOKABLE void setProfileStorePath(QString const& path);
 
-    /// Loads a ProfileStore from disk and repopulates the profiles model.
-    /// `path` may be empty to pick the default location.
+    /// Loads the profile store and repopulates the profiles model; reloads, such as after a file
+    /// changed, load from the same `path` again.
+    /// @param path A dbtool.yml to load on its own; empty discovers and merges the layered files.
+    /// @return Whether the store loaded; otherwise the error is reported.
     Q_INVOKABLE bool loadProfiles(QString const& path = {});
 
     /// Connects through the current connection mode: the selected profile, DSN or connection string.
@@ -628,8 +643,10 @@ class AppController: public QObject
     /// @return A user-displayable reason, or an empty string when the name is fine.
     Q_INVOKABLE QString profileNameProblem(QString const& name) const;
 
-    /// Adds a profile to the profile file (the one in use, else the default location) with its
-    /// password encrypted, then reloads the profile list. Neither the open connection nor the
+    /// Adds a profile to `newProfilePath` with its password encrypted, then reloads the profile
+    /// list. A name any loaded file defines is refused, naming that file. With `makeDefault`, a
+    /// nearer file that sets the default profile is named in `lastWarning`, since it still wins.
+    /// Neither the open connection nor the
     /// selected profile changes. Refused while a migration, backup or restore is running, since
     /// the reload would reset the status those runs report into.
     /// @param fields `name`, `kind` ("dsn" | "connectionString"), `dsn`, `connectionString`,
@@ -698,19 +715,20 @@ class AppController: public QObject
     /// @return The fingerprint of the file @p path; empty when it cannot be read.
     [[nodiscard]] static std::optional<ProfileFileFingerprint> FingerprintOf(QString const& path);
 
-    /// A profile store and the fingerprint of the very bytes it was parsed from.
+    /// Merged profile files and the fingerprints of the very bytes they were parsed from.
     struct LoadedProfileStore
     {
-        /// The parsed store; empty when the file does not exist.
-        Lightweight::Config::ProfileStore store;
-        /// Empty when the file does not exist (the store is then empty).
-        std::optional<ProfileFileFingerprint> fingerprint;
+        /// The merged files; empty when none exists.
+        Lightweight::Config::LayeredProfileStore layers;
+        /// One per layer, in the same order.
+        std::vector<ProfileFileFingerprint> fingerprints;
     };
 
-    /// Reads the profile file @p path once, then parses and fingerprints those bytes, so an edit made
-    /// in between can never be taken for content already loaded. A missing file is an empty store.
-    /// @param requestedPath The profile file; empty means `ProfileStore::DefaultPath()`, as for `LoadOrDefault`.
-    /// @return The store and its fingerprint, or the read or parse error.
+    /// Reads each profile file once, then parses and fingerprints those bytes, so an edit made in
+    /// between can never be taken for content already loaded.
+    /// @param requestedPath A file to load on its own (a missing one is an empty store); empty
+    ///        discovers the layered files (`Config::FindConfigCandidates`).
+    /// @return The merged store and its fingerprints, or the read or parse error naming the file.
     [[nodiscard]] static std::expected<LoadedProfileStore, std::string> LoadProfileStore(QString const& requestedPath);
 
   signals:
@@ -851,9 +869,29 @@ class AppController: public QObject
     /// True while a migration, backup or restore is in flight.
     [[nodiscard]] bool AnyRunInFlight() const;
 
-    /// The dbtool.yml a new profile is written to: the loaded file, else the one chosen in
-    /// Settings, else the discovered or per-user default.
-    [[nodiscard]] QString ProfileTargetPath() const;
+    /// The path `loadProfiles` loads from when reloading: the one last loaded, else the one chosen
+    /// in Settings; empty means discovery.
+    [[nodiscard]] QString ProfileStoreRequest() const;
+
+    /// The merged profiles of every loaded file.
+    [[nodiscard]] Lightweight::Config::ProfileStore const& Store() const noexcept
+    {
+        return _layers.Merged();
+    }
+
+    /// Makes @p loaded the profile store: the profile models, `profilePath` and `profileLayers`
+    /// (announced only when they or `newProfilePath` changed). Leaves the watched files, the
+    /// selected profile and the plugins alone.
+    /// @param loaded The store.
+    /// @param request The path it was loaded from (see `loadProfiles`); empty for discovery.
+    void AdoptProfileStore(LoadedProfileStore loaded, QString request);
+
+    /// Whether @p path is one of the loaded profile files.
+    [[nodiscard]] bool IsLoadedLayer(QString const& path) const;
+
+    /// Reloads the profiles when one of the changed @p paths differs from what was loaded; defers that
+    /// while a connect or run is in flight. Paths that are no loaded layer (any more) are ignored.
+    void ReactToProfileFileChanges(QStringList const& paths);
 
     /// Plaintext password of the open DSN or custom connection; empty when it has none.
     [[nodiscard]] std::string OpenConnectionPassword() const;
@@ -892,9 +930,10 @@ class AppController: public QObject
     /// Starts the apply `applyAfterBackup` put off, once its backup finished successfully.
     void ApplyChainedRun();
 
-    /// Encrypts the plaintext password of `profile` in the loaded dbtool.yml after a
-    /// successful connection, logging the outcome; never fails the connect. The store is re-read in
-    /// place, and the file watcher's echo of the write is ignored.
+    /// Encrypts the plaintext password of `profile` in the dbtool.yml it came from after a
+    /// successful connection, logging the outcome; never fails the connect. A failed write is also
+    /// shown as `lastWarning`. The store is re-read in place, and the file watcher's echo of the
+    /// write is ignored.
     void EncryptPlaintextPassword(Lightweight::Config::Profile const& profile);
 
     /// Computes the effective plugin search directories for the current
@@ -954,7 +993,12 @@ class AppController: public QObject
     ManagedBackupController _managedBackups;
     SqlQueryRunner _sqlQueryRunner;
 
-    Lightweight::Config::ProfileStore _store;
+    /// The loaded profile files; `Store()` is their merge.
+    Lightweight::Config::LayeredProfileStore _layers;
+    /// The path the store was last loaded from (see `loadProfiles`); empty means discovery.
+    QString _loadedRequest;
+    /// See the `profileLayers` property.
+    QStringList _profileLayers;
     QString _currentProfile;
     QString _connectionStringOverride;
     /// Per-tab schema override for `custom` connection mode. Mirrors the
@@ -970,7 +1014,7 @@ class AppController: public QObject
     QString _dsnSchema;
     QString _pluginsDir;
     /// User-customised `dbtool.yml` location; empty means "use the discovered
-    /// dbtool.yml" (see `Config::FindConfigFile`).
+    /// dbtool.yml files" (see `Config::FindConfigCandidates`).
     QString _profileStorePath;
     /// True once a connect routed the migration manager's log sink into this controller; the
     /// destructor removes it again so it cannot outlive us.
@@ -1016,9 +1060,6 @@ class AppController: public QObject
     std::chrono::milliseconds _shutdownDrainLimit = DefaultShutdownDrainLimit;
     /// Runs when the jobs are still running after `_shutdownDrainLimit`.
     std::function<void()> _onShutdownDrainExceeded;
-    /// The profile store discovery picked when the controller was created, and how it was found.
-    QString _discoveredStorePath;
-    QString _discoveredStoreSource;
     /// The pre-migrate step count of the last applied snapshot.
     int _preMigrateStepCount = 0;
     /// The target release label of the last applied snapshot.
@@ -1087,12 +1128,12 @@ class AppController: public QObject
     class QFileSystemWatcher* _fileWatcher = nullptr;
     /// Collects the watcher's notifications of one save into one `HandleProfileFileChange`.
     QTimer* _profileFileDebounce = nullptr;
-    /// The watched file the last notification named.
-    QString _changedProfileFile;
-    /// The profile file as this controller last loaded or wrote it; a change to that content is ignored.
-    std::optional<ProfileFileFingerprint> _knownFingerprint;
-    /// The profile file whose change waits for the controller to be idle; empty when none does.
-    QString _deferredProfileFile;
+    /// The watched files the notifications since the last `HandleProfileFileChange` named.
+    QStringList _changedProfileFiles;
+    /// Each profile file as this controller last loaded or wrote it; a change to that content is ignored.
+    std::vector<ProfileFileFingerprint> _knownFingerprints;
+    /// The profile files whose change waits for the controller to be idle; empty when none does.
+    QStringList _deferredProfileFiles;
     /// True while an `ApplyDeferredProfileFileChange` is queued.
     bool _deferredProfileFileQueued = false;
 

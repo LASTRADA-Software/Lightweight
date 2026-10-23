@@ -16,6 +16,10 @@ add_library(tools_shared STATIC
     Config/ConfigDiscovery.hpp
     Config/ConnectionTarget.cpp
     Config/ConnectionTarget.hpp
+    Config/Environment.cpp
+    Config/Environment.hpp
+    Config/LayeredProfileStore.cpp
+    Config/LayeredProfileStore.hpp
     Config/ProfileAdd.cpp
     Config/ProfileAdd.hpp
     Config/ProfileFileEditor.cpp

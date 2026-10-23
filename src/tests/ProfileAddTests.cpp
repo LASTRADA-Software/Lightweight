@@ -127,6 +127,25 @@ TEST_CASE("AddProfileToFile creates the file and stores a DSN profile with an en
     CHECK(resolved->value == "s3cret!");
 }
 
+TEST_CASE("AddProfileToFile stores relative directories made absolute against the working directory", "[profile-add]")
+{
+    TempDir dir;
+    auto request = DsnRequest();
+    request.pluginsDir = "rel-plugins";
+    request.backupDir = "rel-backups";
+
+    auto const added =
+        Cfg::AddProfileToFile(dir.File(), request, Cfg::ReplaceExisting::No, Cfg::MakeDefault::No, DevCipher());
+
+    INFO(ErrorOf(added));
+    REQUIRE(added.has_value());
+    auto const store = dir.Load();
+    auto const* profile = store.Find("warehouse");
+    REQUIRE(profile != nullptr);
+    CHECK(profile->pluginsDir == fs::absolute("rel-plugins").lexically_normal());
+    CHECK(profile->backupDir == fs::absolute("rel-backups").lexically_normal());
+}
+
 TEST_CASE("AddProfileToFile moves a password out of the connection string and stores it encrypted", "[profile-add]")
 {
     TempDir dir;

@@ -55,10 +55,12 @@ struct AppController::PluginsBundle
 #include <exception>
 #include <filesystem>
 #include <format>
+#include <iterator>
 #include <span>
 #include <string_view>
 #include <system_error>
 #include <utility>
+#include <vector>
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QCryptographicHash>
@@ -170,15 +172,16 @@ namespace
             });
     }
 
-    /// The dbtool.yml to use when the user has not picked one in Settings: the
-    /// nearest file above the working or executable directory, else the per-user
-    /// default (which may not exist yet).
-    [[nodiscard]] Lightweight::Config::DiscoveredConfig DiscoverProfileStore()
+    /// @return @p path as the UI and the file watcher spell it.
+    [[nodiscard]] QString PathText(std::filesystem::path const& path)
     {
-        namespace Cfg = Lightweight::Config;
-        // Only an explicit path can make discovery fail, and none is passed here.
-        return Cfg::FindConfigFile(Cfg::DefaultDiscoveryInputs())
-            .value_or(Cfg::DiscoveredConfig { .path = Cfg::ProfileStore::DefaultPath(), .source = Cfg::ConfigSource::None });
+        return QString::fromStdU16String(path.u16string());
+    }
+
+    /// @return @p text as a file path.
+    [[nodiscard]] std::filesystem::path FilePath(QString const& text)
+    {
+        return std::filesystem::path { text.toStdU16String() };
     }
 
 } // namespace
@@ -275,7 +278,7 @@ AppController::AppController(QObject* parent):
     // the interactive connect: store it encrypted right away. Only the password the run used is encrypted, so an
     // edit made to the file while the run was in flight is never overwritten with the older value.
     _managedBackups.setPlaintextPasswordVerifiedHandler([this](Lightweight::Config::Profile const& verified) {
-        auto const* current = _store.Find(verified.name);
+        auto const* current = Store().Find(verified.name);
         if (current && current->password == verified.password)
             EncryptPlaintextPassword(verified);
     });
@@ -367,7 +370,7 @@ AppController::AppController(QObject* parent):
     // Restore preferences BEFORE loading profiles. `loadProfiles` only sets
     // a default profile when `_currentProfile` is empty, so feeding the
     // saved value here preserves the user's choice across restarts. Only
-    // these reads and the discovery below run before the first frame.
+    // these reads run before the first frame.
     auto& settings = *_settings;
     auto const savedMode = settings.value(kKeyMode).toString();
     if (savedMode == QStringLiteral("dsn") || savedMode == QStringLiteral("custom"))
@@ -399,11 +402,6 @@ AppController::AppController(QObject* parent):
     if (savedView == QStringLiteral("expert"))
         _viewMode = savedView;
 
-    // Discovery walks the filesystem, so it runs once; `defaultProfileStorePath` reads the result.
-    auto const discoveredStore = DiscoverProfileStore();
-    _discoveredStorePath = QString::fromStdString(discoveredStore.path.string());
-    _discoveredStoreSource = QString::fromUtf8(Lightweight::Config::ToString(discoveredStore.source).data());
-
     QObject::connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit, this, &AppController::Shutdown);
 
     // Everything else waits for the event loop, so the window shows before any slow work starts.
@@ -414,18 +412,17 @@ void AppController::BeginStartup()
 {
     _startupBegun = true;
 
-    // Honour the user-customised store path (if any); otherwise the discovered
-    // dbtool.yml. A store loaded before the event loop ran (by a test) wins.
-    auto const initialStorePath = !_profileStorePath.isEmpty() ? _profileStorePath : _discoveredStorePath;
-    if (!_storeLoaded && std::filesystem::exists(initialStorePath.toStdString()))
-        (void) loadProfiles(initialStorePath);
+    // Honour the user-customised store path (if any); otherwise discover the
+    // layered dbtool.yml files. A store loaded before the event loop ran (by a test) wins.
+    if (!_storeLoaded && (_profileStorePath.isEmpty() || std::filesystem::exists(FilePath(_profileStorePath))))
+        (void) loadProfiles(_profileStorePath);
 
     // Plain English throughout — never the CLI flag name (e.g. "Plugins directory", not "--plugins-dir").
     LogInfo(QStringLiteral("dbtool-gui starting (Qt %1)").arg(QLatin1String(qVersion())));
     LogInfo(QStringLiteral("View mode: %1").arg(_viewMode));
-    auto const source = !_profileStorePath.isEmpty() ? QStringLiteral("chosen in Settings") : _discoveredStoreSource;
-    LogInfo(QStringLiteral("Profile store: %1 (found via %2, %3 profile(s))")
-                .arg(initialStorePath, source)
+    LogInfo(QStringLiteral("Profile store: %1 file(s): %2 — %3 profile(s)")
+                .arg(_profileLayers.size())
+                .arg(_profileLayers.isEmpty() ? QStringLiteral("none found") : _profileLayers.join(QStringLiteral(", ")))
                 .arg(_profiles.rowCount()));
 
     refreshOdbcDataSources();
@@ -711,34 +708,42 @@ void AppController::setPluginsDir(QString const& pluginsDir)
 
 void AppController::EncryptPlaintextPassword(Lightweight::Config::Profile const& profile)
 {
-    auto const configPath = std::filesystem::path { _profilePath.toStdString() };
+    auto const name = QString::fromStdString(profile.name);
+    auto const* origin = _layers.OriginOf(profile.name);
+    if (origin == nullptr)
+    {
+        LogWarn(QStringLiteral("Could not encrypt the plaintext password of profile ‘%1’: no profile file defines it "
+                               "any more.")
+                    .arg(name));
+        return;
+    }
+    // Copied: the reload below replaces the layer.
+    auto const configPath = origin->path;
+    auto const file = PathText(configPath);
     auto const upgraded =
         Lightweight::Config::UpgradePlaintextPassword(configPath, profile, Lightweight::Secrets::ProfileCipher::Builtin());
     if (!upgraded)
     {
-        LogWarn(QStringLiteral("Could not encrypt the plaintext password of profile ‘%1’: %2")
-                    .arg(QString::fromStdString(profile.name), QString::fromStdString(upgraded.error())));
+        _lastWarning = QStringLiteral("Could not encrypt the password of profile ‘%1’ in %2: %3. The password remains "
+                                      "plaintext on disk.")
+                           .arg(name, file, QString::fromStdString(upgraded.error()));
+        LogWarn(_lastWarning);
+        emit lastWarningChanged();
         return;
     }
-    LogInfo(QStringLiteral("Encrypted the plaintext password of profile ‘%1’ in %2")
-                .arg(QString::fromStdString(profile.name), _profilePath));
+    LogInfo(QStringLiteral("Encrypted the plaintext password of profile ‘%1’ in %2").arg(name, file));
     // Only the password changed: re-read the store in place; the watcher's echo of this write is ignored.
-    if (auto reloaded = LoadProfileStore(_profilePath); reloaded)
-    {
-        _knownFingerprint = std::move(reloaded->fingerprint);
-        _store = std::move(reloaded->store);
-        _profiles.ReplaceFrom(_store);
-        _managedBackups.setProfiles(_store.Profiles());
-    }
+    if (auto reloaded = LoadProfileStore(ProfileStoreRequest()); reloaded)
+        AdoptProfileStore(*std::move(reloaded), ProfileStoreRequest());
     if (upgraded->insideGitWorkTree)
         LogWarn(QStringLiteral("%1 is inside a git repository; the old plaintext password may remain in its "
                                "history. Consider changing the database password.")
-                    .arg(_profilePath));
+                    .arg(file));
 }
 
 QString AppController::defaultProfileStorePath() const
 {
-    return _discoveredStorePath;
+    return PathText(Lightweight::Config::ProfileStore::DefaultPath());
 }
 
 void AppController::setProfileStorePath(QString const& path)
@@ -759,10 +764,10 @@ void AppController::setProfileStorePath(QString const& path)
         return;
     }
 
-    // `loadProfiles({})` resolves to the discovered dbtool.yml; non-empty `path` is
-    // honoured verbatim. Missing files are tolerated — the profile dropdown
-    // simply goes empty.
-    if (path.isEmpty() || std::filesystem::exists(path.toStdString()))
+    // `loadProfiles({})` discovers the layered dbtool.yml files; non-empty `path` is
+    // honoured verbatim. A path that does not exist (yet) is not loaded, so typing
+    // one does not empty the profile dropdown on every keystroke.
+    if (path.isEmpty() || std::filesystem::exists(FilePath(path)))
         (void) loadProfiles(path);
 }
 
@@ -817,41 +822,28 @@ void AppController::ClearError()
 
 bool AppController::loadProfiles(QString const& path)
 {
-    auto const effectivePath = path.isEmpty() ? _discoveredStorePath : path;
-
-    auto result = LoadProfileStore(effectivePath);
+    auto result = LoadProfileStore(path);
     if (!result)
     {
         ReportError(QString::fromStdString(result.error()));
         return false;
     }
-    _store = std::move(result->store);
-    _storeLoaded = true;
-    _knownFingerprint = std::move(result->fingerprint);
-    _profiles.ReplaceFrom(_store);
+    AdoptProfileStore(*std::move(result), path);
+    // Editors that save via write-then-rename drop the watch once the inode
+    // changes, so the watches are always cleared and re-added, not just when
+    // the set of files changes.
+    if (_fileWatcher)
+    {
+        if (auto const existing = _fileWatcher->files(); !existing.isEmpty())
+            _fileWatcher->removePaths(existing);
+        for (auto const& layer: _layers.Layers())
+            _fileWatcher->addPath(PathText(layer.path));
+    }
     // The folder dbtool.yml names (if any) becomes the default backup folder, so an installer can
     // pre-configure it; a folder chosen in Settings still wins.
-    _managedBackups.setConfiguredBackupFolder(QString::fromStdU16String(_store.DefaultBackupDir().u16string()));
-    _managedBackups.setProfiles(_store.Profiles());
+    _managedBackups.setConfiguredBackupFolder(PathText(Store().DefaultBackupDir()));
     if (_currentProfile.isEmpty())
-        setCurrentProfile(QString::fromStdString(_store.DefaultProfileName()));
-
-    if (_profilePath != effectivePath)
-    {
-        // Re-register the watcher against the new path. Editors that save
-        // via write-then-rename drop the watch once the inode changes, so
-        // we always clear and re-add, not just on path swaps.
-        if (_fileWatcher)
-        {
-            auto const existing = _fileWatcher->files();
-            if (!existing.isEmpty())
-                _fileWatcher->removePaths(existing);
-            if (std::filesystem::exists(effectivePath.toStdString()))
-                _fileWatcher->addPath(effectivePath);
-        }
-        _profilePath = effectivePath;
-        emit profilePathChanged();
-    }
+        setCurrentProfile(QString::fromStdString(Store().DefaultProfileName()));
 
     // Profile data may carry a new `pluginsDir` (or the same profile with a
     // different value than last load). `setCurrentProfile` only fires when
@@ -894,7 +886,7 @@ bool AppController::connectToProfile()
     // Plugin-dir resolution lives in `EffectivePluginsDir()` so the same
     // rules apply on startup, property change, and connect.
     std::string connectionString;
-    Lightweight::Config::Profile const* profile = _store.Find(_currentProfile.toStdString());
+    Lightweight::Config::Profile const* profile = Store().Find(_currentProfile.toStdString());
     auto passwordOrigin = Lightweight::Config::PasswordOrigin::None;
 
     if (_connectionMode == QStringLiteral("dsn"))
@@ -1662,13 +1654,16 @@ void AppController::cancelBlockingRun()
         _runner.cancel();
 }
 
-QString AppController::ProfileTargetPath() const
+QString AppController::ProfileStoreRequest() const
 {
-    if (!_profilePath.isEmpty())
-        return _profilePath;
-    if (!_profileStorePath.isEmpty())
-        return _profileStorePath;
-    return _discoveredStorePath;
+    return _storeLoaded ? _loadedRequest : _profileStorePath;
+}
+
+QString AppController::newProfilePath() const
+{
+    // A file loaded on its own is the target even before it exists.
+    return PathText(
+        _layers.WriteTargetFor({}, FilePath(ProfileStoreRequest()), Lightweight::Config::ProfileStore::DefaultPath()));
 }
 
 std::string AppController::OpenConnectionPassword() const
@@ -1691,7 +1686,7 @@ QVariantMap AppController::connectionDraft() const
         { QStringLiteral("schema"), QString {} },
         { QStringLiteral("hasPassword"), false },
         { QStringLiteral("suggestedName"), QString {} },
-        { QStringLiteral("targetFile"), ProfileTargetPath() },
+        { QStringLiteral("targetFile"), newProfilePath() },
     };
     // A profile connection is already saved; nothing is open otherwise.
     if (!_connected || _connectedMode == QStringLiteral("profile"))
@@ -1718,7 +1713,7 @@ QVariantMap AppController::connectionDraft() const
 
     // Suggest a name nobody uses yet: "<base>", then "<base> 2", "<base> 3", …
     auto suggested = base;
-    for (auto n = 2; _store.Find(suggested.toStdString()) != nullptr; ++n)
+    for (auto n = 2; Store().Find(suggested.toStdString()) != nullptr; ++n)
         suggested = QStringLiteral("%1 %2").arg(base).arg(n);
     draft[QStringLiteral("suggestedName")] = suggested;
     return draft;
@@ -1729,8 +1724,8 @@ QString AppController::profileNameProblem(QString const& name) const
     auto const trimmed = name.trimmed();
     if (trimmed.isEmpty())
         return QStringLiteral("Enter a name for the profile.");
-    if (_store.Find(trimmed.toStdString()) != nullptr)
-        return QStringLiteral("A profile named ‘%1’ already exists.").arg(trimmed);
+    if (auto const* origin = _layers.OriginOf(trimmed.toStdString()); origin != nullptr)
+        return QStringLiteral("A profile named ‘%1’ already exists in %2.").arg(trimmed, PathText(origin->path));
     return {};
 }
 
@@ -1767,21 +1762,30 @@ QString AppController::addProfile(QVariantMap const& fields)
     if (request.password.empty() && fields.value(QStringLiteral("useOpenConnectionPassword")).toBool())
         request.password = OpenConnectionPassword();
 
-    auto const path = ProfileTargetPath();
-    auto const added = Cfg::AddProfileToFile(std::filesystem::path { path.toStdString() },
+    auto const path = newProfilePath();
+    auto const target = FilePath(path);
+    auto const makeDefault = fields.value(QStringLiteral("makeDefault")).toBool();
+    auto const added = Cfg::AddProfileToFile(target,
                                              request,
                                              Cfg::ReplaceExisting::No,
-                                             fields.value(QStringLiteral("makeDefault")).toBool() ? Cfg::MakeDefault::Yes
-                                                                                                  : Cfg::MakeDefault::No,
+                                             makeDefault ? Cfg::MakeDefault::Yes : Cfg::MakeDefault::No,
                                              Lightweight::Secrets::ProfileCipher::Builtin());
     if (!added)
         return QString::fromStdString(added.error());
 
     LogInfo(QStringLiteral("Added profile ‘%1’ to %2").arg(name, path));
+    // A nearer file's default still wins at load, so say which one, unless it names this profile already.
+    auto const shadowedDefault = makeDefault ? _layers.ShadowedDefaultWarning(target, request.name) : std::nullopt;
     // Reload so the profile list and the managed-backup rows pick it up now rather than when the
     // file watcher notices. The selected profile and the open connection are left alone.
-    if (!loadProfiles(path))
+    if (!loadProfiles(ProfileStoreRequest()))
         return QStringLiteral("The profile was saved to %1, but the profile list could not be reloaded.").arg(path);
+    if (shadowedDefault)
+    {
+        _lastWarning = QString::fromStdString(*shadowedDefault);
+        LogWarn(_lastWarning);
+        emit lastWarningChanged();
+    }
     return {};
 }
 
@@ -1794,7 +1798,8 @@ void AppController::revealInFolder(QString const& path)
 
 void AppController::OnProfileFileChanged(QString const& path)
 {
-    _changedProfileFile = path;
+    _changedProfileFiles.append(path);
+    _changedProfileFiles.removeDuplicates();
     _profileFileDebounce->start();
 }
 
@@ -1824,44 +1829,90 @@ std::optional<AppController::ProfileFileFingerprint> AppController::FingerprintO
 
 std::expected<AppController::LoadedProfileStore, std::string> AppController::LoadProfileStore(QString const& requestedPath)
 {
-    // As `ProfileStore::LoadOrDefault`, an empty path means the per-user default file.
-    auto const filePath = requestedPath.isEmpty() ? Lightweight::Config::ProfileStore::DefaultPath()
-                                                  : std::filesystem::path { requestedPath.toStdU16String() };
-    auto const path = QString::fromStdU16String(filePath.u16string());
-    if (!std::filesystem::exists(filePath))
-        return LoadedProfileStore { .store = {}, .fingerprint = std::nullopt };
-    auto const content = ReadFile(path);
-    if (!content)
-        return std::unexpected(std::format("failed to read {}", path.toStdString()));
-    auto store = Lightweight::Config::ProfileStore::Parse(
-        std::string_view { content->constData(), static_cast<std::size_t>(content->size()) }, filePath);
-    if (!store)
-        return std::unexpected(std::move(store.error()));
-    return LoadedProfileStore {
-        .store = *std::move(store),
-        .fingerprint =
-            ProfileFileFingerprint {
-                .path = path,
-                .size = content->size(),
-                .sha256 = QCryptographicHash::hash(*content, QCryptographicHash::Sha256),
-            },
+    namespace Cfg = Lightweight::Config;
+    auto candidates = std::vector<Cfg::ConfigCandidate> {};
+    if (requestedPath.isEmpty())
+        // Only an explicit path can make discovery fail, and none is passed here.
+        candidates = Cfg::FindConfigCandidates(Cfg::DefaultDiscoveryInputs()).value_or(std::vector<Cfg::ConfigCandidate> {});
+    else if (auto const filePath = FilePath(requestedPath); std::filesystem::exists(filePath))
+        candidates.push_back({ .path = filePath, .source = Cfg::ConfigSource::Explicit });
+
+    auto fingerprints = std::vector<ProfileFileFingerprint> {};
+    auto const reader = [&fingerprints](std::filesystem::path const& file) -> std::expected<std::string, std::string> {
+        auto const path = PathText(file);
+        auto const content = ReadFile(path);
+        if (!content)
+            return std::unexpected(std::format("failed to read {}", path.toStdString()));
+        fingerprints.push_back({
+            .path = path,
+            .size = content->size(),
+            .sha256 = QCryptographicHash::hash(*content, QCryptographicHash::Sha256),
+        });
+        return content->toStdString();
     };
+    return Cfg::LayeredProfileStore::Load(candidates, reader).transform([&fingerprints](Cfg::LayeredProfileStore layers) {
+        return LoadedProfileStore { .layers = std::move(layers), .fingerprints = std::move(fingerprints) };
+    });
+}
+
+void AppController::AdoptProfileStore(LoadedProfileStore loaded, QString request)
+{
+    auto const previousTarget = newProfilePath();
+    _loadedRequest = std::move(request);
+    _storeLoaded = true;
+    _layers = std::move(loaded.layers);
+    _knownFingerprints = std::move(loaded.fingerprints);
+    _profiles.ReplaceFrom(Store());
+    _managedBackups.setProfiles(Store().Profiles());
+
+    auto layers = QStringList {};
+    for (auto const& layer: _layers.Layers())
+        layers.append(layer.isRoot ? PathText(layer.path) + QStringLiteral(" (root)") : PathText(layer.path));
+    auto nearest = _layers.Empty() ? _loadedRequest : PathText(_layers.Layers().front().path);
+    if (nearest == _profilePath && layers == _profileLayers && newProfilePath() == previousTarget)
+        return;
+    _profilePath = std::move(nearest);
+    _profileLayers = std::move(layers);
+    emit profilePathChanged();
+}
+
+bool AppController::IsLoadedLayer(QString const& path) const
+{
+    return std::ranges::contains(_knownFingerprints, path, &ProfileFileFingerprint::path);
 }
 
 void AppController::HandleProfileFileChange()
 {
-    auto const path = _changedProfileFile;
-    // A notification of the file the store was loaded from before a path change is stale.
-    if (_shuttingDown || path != _profilePath)
+    auto const paths = std::exchange(_changedProfileFiles, QStringList {});
+    if (_shuttingDown)
         return;
     // Write-then-rename drops the watch on the old inode; watch the new file.
-    auto const exists = std::filesystem::exists(path.toStdString());
-    if (_fileWatcher && exists && !_fileWatcher->files().contains(path))
-        _fileWatcher->addPath(path);
-    if (!exists)
+    for (auto const& path: paths)
+    {
+        if (_fileWatcher && IsLoadedLayer(path) && std::filesystem::exists(FilePath(path))
+            && !_fileWatcher->files().contains(path))
+            _fileWatcher->addPath(path);
+    }
+    ReactToProfileFileChanges(paths);
+}
+
+void AppController::ReactToProfileFileChanges(QStringList const& paths)
+{
+    // A notification of a file that is no longer loaded, e.g. before a path change, is stale; one
+    // of a file that is gone for now (in the middle of a write-then-rename) is followed by another.
+    auto const relevant = [this](QString const& path) {
+        return IsLoadedLayer(path) && std::filesystem::exists(FilePath(path));
+    };
+    auto changed = QStringList {};
+    std::ranges::copy_if(paths, std::back_inserter(changed), relevant);
+    if (changed.isEmpty())
         return;
 
-    if (_knownFingerprint && _knownFingerprint == FingerprintOf(path))
+    auto const isKnownContent = [this](QString const& path) {
+        auto const known = std::ranges::find(_knownFingerprints, path, &ProfileFileFingerprint::path);
+        return known != _knownFingerprints.end() && *known == FingerprintOf(path);
+    };
+    if (std::ranges::all_of(changed, isKnownContent))
     {
         emit profileFileChangeHandled(ProfileFileReaction::IgnoredOwnWrite);
         return;
@@ -1869,12 +1920,14 @@ void AppController::HandleProfileFileChange()
     // Swapping the store under a connect or a run would pull profiles and plugins away from it.
     if (ProfileReloadBlocked())
     {
-        _deferredProfileFile = path;
+        _deferredProfileFiles.append(changed);
+        _deferredProfileFiles.removeDuplicates();
         emit profileFileChangeHandled(ProfileFileReaction::Deferred);
         return;
     }
-    _deferredProfileFile.clear();
-    (void) loadProfiles(path);
+    _deferredProfileFiles.clear();
+    // Discovery runs again, so a file that appeared or now declares `root: true` takes part.
+    (void) loadProfiles(_loadedRequest);
     emit profileFileChangeHandled(ProfileFileReaction::Reloaded);
 }
 
@@ -1886,18 +1939,9 @@ bool AppController::ProfileReloadBlocked() const
 void AppController::ApplyDeferredProfileFileChange()
 {
     _deferredProfileFileQueued = false;
-    if (_deferredProfileFile.isEmpty() || _shuttingDown || ProfileReloadBlocked())
+    if (_deferredProfileFiles.isEmpty() || _shuttingDown || ProfileReloadBlocked())
         return;
-    auto const path = std::exchange(_deferredProfileFile, QString {});
-    if (path != _profilePath || !std::filesystem::exists(path.toStdString()))
-        return;
-    if (_knownFingerprint && _knownFingerprint == FingerprintOf(path))
-    {
-        emit profileFileChangeHandled(ProfileFileReaction::IgnoredOwnWrite);
-        return;
-    }
-    (void) loadProfiles(path);
-    emit profileFileChangeHandled(ProfileFileReaction::Reloaded);
+    ReactToProfileFileChanges(std::exchange(_deferredProfileFiles, QStringList {}));
 }
 
 std::vector<std::filesystem::path> AppController::EffectivePluginsDir() const
@@ -1913,10 +1957,10 @@ std::vector<std::filesystem::path> AppController::EffectivePluginsDir() const
     //   3. The Settings-page global (`config/pluginsDir`) — GUI-only
     //      fallback for users without YAML access.
     //   4. Empty — caller surfaces "no plugins discovered".
-    if (auto const* profile = _store.Find(_currentProfile.toStdString()); profile && !profile->pluginsDir.empty())
+    if (auto const* profile = Store().Find(_currentProfile.toStdString()); profile && !profile->pluginsDir.empty())
         return { profile->pluginsDir };
-    if (!_store.DefaultPluginsDir().empty())
-        return _store.DefaultPluginsDir();
+    if (!Store().DefaultPluginsDir().empty())
+        return Store().DefaultPluginsDir();
     if (!_pluginsDir.isEmpty())
         return { std::filesystem::path { _pluginsDir.toStdString() } };
     return {};
@@ -2038,7 +2082,7 @@ void AppController::UpdateActivity()
         emit activityChanged();
     }
     // A profile file change seen while busy applies once the controller is idle.
-    if (!_deferredProfileFile.isEmpty() && !_deferredProfileFileQueued && !ProfileReloadBlocked())
+    if (!_deferredProfileFiles.isEmpty() && !_deferredProfileFileQueued && !ProfileReloadBlocked())
     {
         _deferredProfileFileQueued = true;
         QMetaObject::invokeMethod(this, &AppController::ApplyDeferredProfileFileChange, Qt::QueuedConnection);

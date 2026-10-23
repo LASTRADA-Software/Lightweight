@@ -377,8 +377,7 @@ Dialog {
 
             Label {
                 Layout.fillWidth: true
-                text: qsTr("Saved to %1").arg(AppController.profilePath !== "" ? AppController.profilePath
-                                                                               : AppController.defaultProfileStorePath)
+                text: qsTr("Saved to %1").arg(AppController.newProfilePath)
                 color: Theme.clrOnSurfaceSubtle
                 font: Theme.monoFont(11)
                 elide: Text.ElideMiddle

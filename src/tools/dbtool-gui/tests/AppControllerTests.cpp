@@ -18,6 +18,7 @@
 #include "../Models/MigrationSnapshot.hpp"
 #include "ControllerTestSupport.hpp"
 #include "MigrationRunnerTestSupport.hpp"
+#include "ScopedVariable.hpp"
 #include "SqliteDriver.hpp"
 
 #include <Lightweight/SqlBackup.hpp>
@@ -25,6 +26,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <filesystem>
@@ -33,10 +35,15 @@
 #include <iterator>
 #include <memory>
 #include <string>
+#include <string_view>
+#include <system_error>
 #include <thread>
 #include <utility>
 
+#include <Config/ConfigDiscovery.hpp>
+#include <Config/ProfileStore.hpp>
 #include <QtCore/QCoreApplication>
+#include <QtCore/QDeadlineTimer>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QFile>
 #include <QtCore/QSettings>
@@ -53,6 +60,7 @@
 
 using DbtoolGui::Tests::ConnectAndWait;
 using DbtoolGui::Tests::ScopedSettingRestore;
+using DbtoolGui::Tests::ScopedVariable;
 using DbtoolGui::Tests::SqliteDriver;
 using DbtoolGui::Tests::WaitForIdle;
 
@@ -289,6 +297,101 @@ std::string ReadFile(std::filesystem::path const& path)
     return { std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>() };
 }
 
+/// @return @p path as the controller spells file paths.
+QString ToQString(std::filesystem::path const& path)
+{
+    return QString::fromStdU16String(path.u16string());
+}
+
+/// Set to a directory, starts config discovery there.
+std::string const SearchDirectoryVariable { Lightweight::Config::ConfigSearchDirectoryVariable };
+
+/// Moves the per-user dbtool.yml aside for the lifetime of the object and puts it back afterwards.
+class ScopedUserProfileFile
+{
+  public:
+    ScopedUserProfileFile():
+        _path { Lightweight::Config::ProfileStore::DefaultPath() },
+        _backup { std::filesystem::path { _path }.concat(".before-test") },
+        _hadFile { std::filesystem::exists(_path) }
+    {
+        if (_hadFile)
+            std::filesystem::rename(_path, _backup);
+        std::filesystem::create_directories(_path.parent_path());
+    }
+
+    ScopedUserProfileFile(ScopedUserProfileFile const&) = delete;
+    ScopedUserProfileFile(ScopedUserProfileFile&&) = delete;
+    ScopedUserProfileFile& operator=(ScopedUserProfileFile const&) = delete;
+    ScopedUserProfileFile& operator=(ScopedUserProfileFile&&) = delete;
+
+    ~ScopedUserProfileFile()
+    {
+        auto ignored = std::error_code {};
+        std::filesystem::remove(_path, ignored);
+        if (_hadFile)
+            std::filesystem::rename(_backup, _path, ignored);
+    }
+
+    /// The per-user dbtool.yml.
+    [[nodiscard]] std::filesystem::path const& Path() const noexcept
+    {
+        return _path;
+    }
+
+  private:
+    std::filesystem::path _path;
+    std::filesystem::path _backup;
+    bool _hadFile;
+};
+
+/// A shared profiles file `acme/dbtool.yml` (profile `p1`, connectable, with a plaintext password)
+/// below which `acme/app/dbtool.yml` sets the backup folder, as two installations sharing profiles
+/// would lay them out. Discovery starts in `acme/app`; no profile-store path is set in Settings.
+struct LayeredProfiles
+{
+    /// @param appExtra Further top-level YAML for the installation's own file.
+    /// @param root Whether the shared file declares `root: true`.
+    explicit LayeredProfiles(std::string_view appExtra = {}, bool root = true)
+    {
+        QSettings().remove(QStringLiteral("config/profileStorePath"));
+        std::filesystem::create_directories(appFile.parent_path());
+        std::ofstream(rootFile, std::ios::binary)
+            << (root ? "root: true\n" : "") << "profiles:\n  p1:\n    connectionString: \"Driver={" << SqliteDriver
+            << "};Database=" << (base / "layers.db").generic_string() << "\"\n    password: hunter2\n";
+        std::ofstream(appFile, std::ios::binary) << "defaultBackupDir: \"" << (base / "backups").generic_string() << "\"\n"
+                                                 << appExtra;
+    }
+
+    QTemporaryDir dir;
+    std::filesystem::path base = std::filesystem::weakly_canonical(std::filesystem::path { dir.path().toStdU16String() });
+    std::filesystem::path rootFile = base / "acme" / "dbtool.yml";
+    std::filesystem::path appFile = base / "acme" / "app" / "dbtool.yml";
+    ScopedSettingRestore storePath { QStringLiteral("config/profileStorePath") };
+    ScopedVariable searchDirectory { SearchDirectoryVariable, appFile.parent_path() };
+};
+
+/// Runs the event loop until @p spy saw @p reaction.
+/// @return Whether it did within @p timeout.
+[[nodiscard]] bool WaitForReaction(QSignalSpy& spy,
+                                   DbtoolGui::AppController::ProfileFileReaction reaction,
+                                   std::chrono::milliseconds timeout = std::chrono::seconds { 10 })
+{
+    auto const seen = [&] {
+        return std::ranges::any_of(spy, [reaction](QList<QVariant> const& args) {
+            return args.value(0).value<DbtoolGui::AppController::ProfileFileReaction>() == reaction;
+        });
+    };
+    auto const deadline = QDeadlineTimer { timeout };
+    while (!seen())
+    {
+        if (deadline.hasExpired())
+            return false;
+        (void) spy.wait(static_cast<int>(std::clamp<qint64>(deadline.remainingTime(), 1, 100)));
+    }
+    return true;
+}
+
 } // namespace
 
 TEST_CASE("connectToProfile encrypts a working plaintext password in place", "[dbtool-gui][AppController][password]")
@@ -320,22 +423,164 @@ TEST_CASE("connectToProfile encrypts a working plaintext password in place", "[d
     CHECK_FALSE(text.contains("hunter2"));
 }
 
-TEST_CASE("startup discovers dbtool.yml above the working directory", "[dbtool-gui][AppController][discovery]")
+TEST_CASE("startup discovers dbtool.yml above the search directory", "[dbtool-gui][AppController][discovery]")
 {
-    QSettings().remove(QStringLiteral("config/profileStorePath"));
     QTemporaryDir dir;
-    auto const root = std::filesystem::path { dir.path().toStdString() };
+    auto const root = std::filesystem::weakly_canonical(std::filesystem::path { dir.path().toStdU16String() });
     std::filesystem::create_directories(root / "sub");
     std::ofstream(root / "dbtool.yml", std::ios::binary) << "profiles:\n  found:\n    connectionString: \"Driver=x\"\n";
+    auto const storePath = ScopedSettingRestore { QStringLiteral("config/profileStorePath") };
+    QSettings().remove(QStringLiteral("config/profileStorePath"));
+    auto const searchDirectory = ScopedVariable { SearchDirectoryVariable, root / "sub" };
 
-    auto const previous = std::filesystem::current_path();
-    std::filesystem::current_path(root / "sub");
+    // The working directory no longer takes part in discovery.
     DbtoolGui::AppController controller;
-    std::filesystem::current_path(previous);
     REQUIRE(WaitForIdle(controller));
 
-    CHECK(std::filesystem::path { controller.profilePath().toStdString() } == root / "dbtool.yml");
-    CHECK(controller.profiles()->rowCount() == 1);
+    CHECK(controller.profilePath() == ToQString(root / "dbtool.yml"));
+    CHECK_FALSE(controller.profileNameProblem(QStringLiteral("found")).isEmpty());
+}
+
+TEST_CASE("layered profile files are merged", "[dbtool-gui][AppController][discovery][layers]")
+{
+    LayeredProfiles const sandbox;
+
+    DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
+
+    CHECK(controller.profileNameProblem(QStringLiteral("p1")).contains(QStringLiteral("already exists")));
+    auto const layers = controller.profileLayers();
+    REQUIRE(layers.size() == 2);
+    CHECK(layers.at(0) == ToQString(sandbox.appFile));
+    CHECK(layers.at(1) == ToQString(sandbox.rootFile) + QStringLiteral(" (root)"));
+    CHECK(controller.profilePath() == ToQString(sandbox.appFile));
+}
+
+TEST_CASE("a change to any layer reloads", "[dbtool-gui][AppController][discovery][layers]")
+{
+    LayeredProfiles const sandbox;
+    DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
+    REQUIRE(controller.profileNameProblem(QStringLiteral("p2")).isEmpty());
+
+    auto handled = QSignalSpy { &controller, &DbtoolGui::AppController::profileFileChangeHandled };
+    std::ofstream(sandbox.rootFile, std::ios::binary | std::ios::app) << "  p2:\n    dsn: \"X\"\n";
+
+    REQUIRE(WaitForReaction(handled, DbtoolGui::AppController::ProfileFileReaction::Reloaded));
+    CHECK_FALSE(controller.profileNameProblem(QStringLiteral("p2")).isEmpty());
+}
+
+TEST_CASE("own write to a non-nearest layer is ignored", "[dbtool-gui][AppController][password][layers]")
+{
+    LayeredProfiles const sandbox;
+    auto const appBefore = ReadFile(sandbox.appFile);
+    DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
+    controller.setConnectionMode(QStringLiteral("profile"));
+    controller.setCurrentProfile(QStringLiteral("p1"));
+
+    auto handled = QSignalSpy { &controller, &DbtoolGui::AppController::profileFileChangeHandled };
+    REQUIRE(ConnectAndWait(controller));
+
+    auto const rootText = ReadFile(sandbox.rootFile);
+    CHECK(rootText.contains("password: \"enc:"));
+    CHECK_FALSE(rootText.contains("hunter2"));
+    CHECK(ReadFile(sandbox.appFile) == appBefore);
+    REQUIRE(WaitForReaction(handled, DbtoolGui::AppController::ProfileFileReaction::IgnoredOwnWrite));
+    CHECK_FALSE(std::ranges::any_of(handled, [](QList<QVariant> const& args) {
+        return args.value(0).value<DbtoolGui::AppController::ProfileFileReaction>()
+               == DbtoolGui::AppController::ProfileFileReaction::Reloaded;
+    }));
+}
+
+TEST_CASE("encrypting into a read-only origin warns", "[dbtool-gui][AppController][password][layers]")
+{
+    // The editor refuses a file without the owner-write bit itself, so this holds for root and on Windows too.
+    LayeredProfiles const sandbox;
+    std::filesystem::permissions(sandbox.rootFile,
+                                 std::filesystem::perms::owner_write | std::filesystem::perms::group_write
+                                     | std::filesystem::perms::others_write,
+                                 std::filesystem::perm_options::remove);
+    DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
+    controller.setConnectionMode(QStringLiteral("profile"));
+    controller.setCurrentProfile(QStringLiteral("p1"));
+
+    REQUIRE(ConnectAndWait(controller));
+
+    INFO(controller.lastWarning().toStdString());
+    CHECK(controller.lastWarning().contains(ToQString(sandbox.rootFile)));
+    CHECK(controller.lastError().isEmpty());
+    CHECK(ReadFile(sandbox.rootFile).contains("hunter2"));
+    std::filesystem::permissions(sandbox.rootFile, std::filesystem::perms::owner_write, std::filesystem::perm_options::add);
+}
+
+TEST_CASE("addProfile writes to the root file", "[dbtool-gui][AppController][add-profile][layers]")
+{
+    LayeredProfiles const sandbox;
+    auto const appBefore = ReadFile(sandbox.appFile);
+    DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
+
+    auto const error = controller.addProfile({ { "name", "warehouse" }, { "kind", "dsn" }, { "dsn", "WAREHOUSE" } });
+
+    INFO(error.toStdString());
+    CHECK(error.isEmpty());
+    CHECK(ReadFile(sandbox.rootFile).contains("warehouse"));
+    CHECK(ReadFile(sandbox.appFile) == appBefore);
+    CHECK_FALSE(controller.profileNameProblem(QStringLiteral("warehouse")).isEmpty());
+}
+
+TEST_CASE("addProfile refuses a name another layer defines", "[dbtool-gui][AppController][add-profile][layers]")
+{
+    LayeredProfiles const sandbox;
+    auto const rootBefore = ReadFile(sandbox.rootFile);
+    DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
+
+    auto const error = controller.addProfile({ { "name", "p1" }, { "kind", "dsn" }, { "dsn", "OTHER" } });
+
+    INFO(error.toStdString());
+    CHECK(error.contains(ToQString(sandbox.rootFile)));
+    CHECK(ReadFile(sandbox.rootFile) == rootBefore);
+}
+
+TEST_CASE("addProfile with makeDefault warns when a nearer layer sets the default",
+          "[dbtool-gui][AppController][add-profile][layers]")
+{
+    LayeredProfiles const sandbox { "defaultProfile: p1\n" };
+    DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
+
+    auto const error =
+        controller.addProfile({ { "name", "fresh" }, { "kind", "dsn" }, { "dsn", "FRESH" }, { "makeDefault", true } });
+
+    INFO(error.toStdString());
+    CHECK(error.isEmpty());
+    CHECK(ReadFile(sandbox.rootFile).contains(R"(defaultProfile: "fresh")"));
+    INFO(controller.lastWarning().toStdString());
+    CHECK(controller.lastWarning().contains(ToQString(sandbox.appFile)));
+}
+
+TEST_CASE("without root, addProfile writes to the user file", "[dbtool-gui][AppController][add-profile][layers]")
+{
+    LayeredProfiles const sandbox { {}, false };
+    auto const userFile = ScopedUserProfileFile {};
+    auto const rootBefore = ReadFile(sandbox.rootFile);
+    auto const appBefore = ReadFile(sandbox.appFile);
+    DbtoolGui::AppController controller;
+    REQUIRE(WaitForIdle(controller));
+
+    auto const error = controller.addProfile({ { "name", "personal" }, { "kind", "dsn" }, { "dsn", "MINE" } });
+
+    INFO(error.toStdString());
+    CHECK(error.isEmpty());
+    CHECK(ReadFile(userFile.Path()).contains("personal"));
+    CHECK(ReadFile(sandbox.rootFile) == rootBefore);
+    CHECK(ReadFile(sandbox.appFile) == appBefore);
+    CHECK_FALSE(controller.profileNameProblem(QStringLiteral("personal")).isEmpty());
+    REQUIRE_FALSE(controller.profileLayers().isEmpty());
+    CHECK(controller.profileLayers().back() == ToQString(userFile.Path()));
 }
 
 TEST_CASE("backup and restore use the connection string with the decrypted password",
@@ -549,16 +794,18 @@ TEST_CASE("a non-ASCII defaultBackupDir keeps its spelling as the default backup
 {
     QTemporaryDir dir;
     auto const configPath = std::filesystem::path { dir.path().toStdU16String() } / "dbtool.yml";
-    // UTF-8 "D:/Sicherungen-Müller", as dbtool.yml stores it.
+    // An absolute "<temp>/Sicherungen-Müller" in UTF-8, as dbtool.yml stores it; a relative one would
+    // resolve against the file's directory.
+    auto const folder = QString::fromUtf16(u"%1/Sicherungen-M\u00fcller").arg(dir.path());
     std::ofstream(configPath, std::ios::binary)
-        << "defaultBackupDir: \"D:/Sicherungen-M\xC3\xBCller\"\nprofiles:\n  p:\n    dsn: \"X\"\n";
+        << "defaultBackupDir: \"" << folder.toStdString() << "\"\nprofiles:\n  p:\n    dsn: \"X\"\n";
 
     DbtoolGui::AppController controller;
     REQUIRE(WaitForIdle(controller));
     controller.managedBackups()->setBackupFolder(QString {}); // nothing chosen in Settings
     REQUIRE(controller.loadProfiles(QString::fromStdU16String(configPath.u16string())));
 
-    CHECK(controller.managedBackups()->defaultBackupFolder() == QString::fromUtf16(u"D:/Sicherungen-M\u00fcller"));
+    CHECK(controller.managedBackups()->defaultBackupFolder() == folder);
 }
 
 TEST_CASE("switching to an empty plugins dir drops the unloaded plugins' compat policy, migrations and releases",
@@ -641,30 +888,6 @@ TEST_CASE("a plugin reload requested during a migration run waits until the run 
 namespace
 {
 
-/// Sets a process environment variable for its lifetime, then removes it.
-class ScopedTestVariable
-{
-  public:
-    ScopedTestVariable(char const* name, std::filesystem::path const& value):
-        _name { name }
-    {
-        qputenv(_name, QByteArray::fromStdString(value.string()));
-    }
-
-    ScopedTestVariable(ScopedTestVariable const&) = delete;
-    ScopedTestVariable(ScopedTestVariable&&) = delete;
-    ScopedTestVariable& operator=(ScopedTestVariable const&) = delete;
-    ScopedTestVariable& operator=(ScopedTestVariable&&) = delete;
-
-    ~ScopedTestVariable()
-    {
-        qunsetenv(_name);
-    }
-
-  private:
-    char const* _name;
-};
-
 /// Writes a `dbtool.yml` under @p root whose profile `p` connects to `<root>/<database>` with the
 /// post-migrate recorder plugin, copied to `<root>/plugins`.
 void WriteRecorderWorkspace(std::filesystem::path const& root, std::string const& database)
@@ -697,7 +920,7 @@ TEST_CASE("a plugin reload while connected keeps the pre-migrate steps the plugi
     auto const root = std::filesystem::path { dir.path().toStdString() };
     WriteRecorderWorkspace(root, "gui-steps.db");
     // The fixture's post-init hook registers its "Recorder step" only while this names a log file.
-    auto const stepLog = ScopedTestVariable { "LIGHTWEIGHT_TEST_PRE_MIGRATE_LOG", root / "steps.log" };
+    auto const stepLog = ScopedVariable { "LIGHTWEIGHT_TEST_PRE_MIGRATE_LOG", root / "steps.log" };
 
     DbtoolGui::AppController controller;
     REQUIRE(WaitForIdle(controller));
@@ -731,8 +954,8 @@ TEST_CASE("a reconnect runs the plugins' post-init hooks once and drops the last
     QTemporaryDir dir;
     auto const root = std::filesystem::path { dir.path().toStdString() };
     WriteRecorderWorkspace(root, "gui-reconnect.db");
-    auto const stepLog = ScopedTestVariable { "LIGHTWEIGHT_TEST_PRE_MIGRATE_LOG", root / "steps.log" };
-    auto const postInitLog = ScopedTestVariable { "LIGHTWEIGHT_TEST_POST_INIT_LOG", root / "post-init.log" };
+    auto const stepLog = ScopedVariable { "LIGHTWEIGHT_TEST_PRE_MIGRATE_LOG", root / "steps.log" };
+    auto const postInitLog = ScopedVariable { "LIGHTWEIGHT_TEST_POST_INIT_LOG", root / "post-init.log" };
 
     DbtoolGui::AppController controller;
     REQUIRE(WaitForIdle(controller));
@@ -792,8 +1015,8 @@ TEST_CASE("the constructor returns before the plugins load", "[dbtool-gui][AppCo
     std::filesystem::create_directories(root / "plugins");
     std::filesystem::copy_file(plugin, root / "plugins" / plugin.filename());
     QSettings().setValue(QStringLiteral("config/pluginsDir"), QString::fromStdString((root / "plugins").string()));
-    auto const loadDelay = ScopedTestVariable { "LIGHTWEIGHT_TEST_PLUGIN_LOAD_DELAY_MS", "2000" };
-    auto const loadLog = ScopedTestVariable { "LIGHTWEIGHT_TEST_PLUGIN_LOAD_LOG", root / "load.log" };
+    auto const loadDelay = ScopedVariable { "LIGHTWEIGHT_TEST_PLUGIN_LOAD_DELAY_MS", "2000" };
+    auto const loadLog = ScopedVariable { "LIGHTWEIGHT_TEST_PLUGIN_LOAD_LOG", root / "load.log" };
 
     auto timer = QElapsedTimer {};
     timer.start();
@@ -825,7 +1048,7 @@ TEST_CASE("plugin reload requests in one event-loop turn coalesce into one load"
     }
     std::ofstream(root / "dbtool.yml", std::ios::binary) << "profiles:\n  p:\n    dsn: \"X\"\n  q:\n    dsn: \"Y\"\n";
     QSettings().setValue(QStringLiteral("config/pluginsDir"), QString::fromStdString((root / "plugins").string()));
-    auto const loadLog = ScopedTestVariable { "LIGHTWEIGHT_TEST_PLUGIN_LOAD_LOG", root / "load.log" };
+    auto const loadLog = ScopedVariable { "LIGHTWEIGHT_TEST_PLUGIN_LOAD_LOG", root / "load.log" };
 
     DbtoolGui::AppController controller;
     // A store loaded before the startup ran is kept, and its reload joins the startup's.
@@ -884,9 +1107,9 @@ class SlowPluginWorkspace
     ScopedSettingRestore _restorePluginsDir { QStringLiteral("config/pluginsDir") };
     QTemporaryDir _directory;
     std::filesystem::path _root;
-    ScopedTestVariable _loadDelay;
-    ScopedTestVariable _beginLog;
-    ScopedTestVariable _loadLog;
+    ScopedVariable _loadDelay;
+    ScopedVariable _beginLog;
+    ScopedVariable _loadLog;
 };
 
 } // namespace
@@ -941,8 +1164,8 @@ TEST_CASE("destroying the controller while a connect is in flight waits for the 
     QTemporaryDir dir;
     auto const root = std::filesystem::path { dir.path().toStdString() };
     WriteRecorderWorkspace(root, "gui-quit.db");
-    auto const postInitDelay = ScopedTestVariable { "LIGHTWEIGHT_TEST_POST_INIT_DELAY_MS", "1000" };
-    auto const postInitLog = ScopedTestVariable { "LIGHTWEIGHT_TEST_POST_INIT_LOG", root / "post-init.log" };
+    auto const postInitDelay = ScopedVariable { "LIGHTWEIGHT_TEST_POST_INIT_DELAY_MS", "1000" };
+    auto const postInitLog = ScopedVariable { "LIGHTWEIGHT_TEST_POST_INIT_LOG", root / "post-init.log" };
 
     auto controller = std::make_unique<DbtoolGui::AppController>();
     REQUIRE(WaitForIdle(*controller));
@@ -1049,7 +1272,7 @@ TEST_CASE("editing the connection string while connecting with it ends that conn
     auto const root = std::filesystem::path { dir.path().toStdString() };
     WriteRecorderWorkspace(root, "gui-custom.db");
     QSettings().setValue(QStringLiteral("config/pluginsDir"), QString::fromStdString((root / "plugins").string()));
-    auto const postInitDelay = ScopedTestVariable { "LIGHTWEIGHT_TEST_POST_INIT_DELAY_MS", "1000" };
+    auto const postInitDelay = ScopedVariable { "LIGHTWEIGHT_TEST_POST_INIT_DELAY_MS", "1000" };
 
     DbtoolGui::AppController controller;
     REQUIRE(WaitForIdle(controller));
@@ -1102,22 +1325,22 @@ TEST_CASE("typing a DSN or connection string during a plugin load keeps the load
     CHECK(log.filter(QStringLiteral("Ready — not connected")).size() == 1);
 }
 
-TEST_CASE("loading the profile store from an empty path reads the per-user default file", "[dbtool-gui][AppController]")
+TEST_CASE("loading the profile store from an empty path discovers the layers, the per-user file last",
+          "[dbtool-gui][AppController][discovery][layers]")
 {
-    // The test isolation points the per-user default into its own directory; any file there is put back.
-    auto const defaultPath = Lightweight::Config::ProfileStore::DefaultPath();
-    auto const backupPath = std::filesystem::path { defaultPath }.concat(".before-test");
-    auto const hadFile = std::filesystem::exists(defaultPath);
-    if (hadFile)
-        std::filesystem::rename(defaultPath, backupPath);
-    std::filesystem::create_directories(defaultPath.parent_path());
-    std::ofstream { defaultPath } << "profiles:\n  fromDefault:\n    dsn: \"x\"\n";
+    LayeredProfiles const sandbox { {}, false };
+    auto const userFile = ScopedUserProfileFile {};
+    std::ofstream { userFile.Path() } << "profiles:\n  fromDefault:\n    dsn: \"x\"\n";
+
     auto const loaded = DbtoolGui::AppController::LoadProfileStore({});
-    std::filesystem::remove(defaultPath);
-    if (hadFile)
-        std::filesystem::rename(backupPath, defaultPath);
+
     REQUIRE(loaded.has_value());
-    CHECK(loaded->store.Find("fromDefault") != nullptr);
+    CHECK(loaded->layers.Merged().Find("fromDefault") != nullptr);
+    CHECK(loaded->layers.Merged().Find("p1") != nullptr);
+    REQUIRE_FALSE(loaded->layers.Empty());
+    CHECK(loaded->layers.Layers().front().path == sandbox.appFile);
+    CHECK(loaded->layers.Layers().back().path == userFile.Path());
+    CHECK(loaded->fingerprints.size() == loaded->layers.Layers().size());
 }
 
 TEST_CASE("the failure report is saved while a database job keeps the migration worker busy",

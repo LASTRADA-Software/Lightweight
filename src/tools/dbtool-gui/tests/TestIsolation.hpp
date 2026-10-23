@@ -14,6 +14,7 @@
 #include <string>
 #include <system_error>
 
+#include <Config/ConfigDiscovery.hpp>
 #include <Config/ProfileStore.hpp>
 #include <QtCore/QDir>
 #include <QtCore/QFile>
@@ -26,9 +27,10 @@ namespace DbtoolGui::Tests
 {
 
 /// For the lifetime of the object, runs the process in a fresh temporary directory that holds
-/// an empty `dbtool.yml`, so config discovery finds it before any file further up or next to
-/// the executable. The per-user `dbtool.yml`, the QSettings and the temporary directory (`TMP`,
-/// `TEMP`) all live under that directory too, and backups go to `settings/backups` there, which
+/// an empty `dbtool.yml` declaring `root: true`, and starts config discovery there
+/// (`LIGHTWEIGHT_DBTOOL_CONFIG_SEARCH_DIR`), so no file next to the executable, further up or in
+/// the user's profile is loaded. The per-user `dbtool.yml`, the QSettings and the temporary
+/// directory (`TMP`, `TEMP`) all live under that directory too, and backups go to `settings/backups` there, which
 /// `LIGHTWEIGHT_DBTOOL_GUI_SETTINGS_DIR` also makes the default backup folder. Construct it in
 /// `main` right after the error-dialog guard, before the application object or any test exists.
 class ScopedTestIsolation
@@ -49,8 +51,9 @@ class ScopedTestIsolation
         std::filesystem::create_directories(backupDirectory);
         std::filesystem::create_directories(temporaryDirectory);
         std::ofstream(workingDirectory / "dbtool.yml", std::ios::binary)
-            << "defaultBackupDir: \"" << Utf8(backupDirectory.generic_u8string()) << "\"\nprofiles: {}\n";
+            << "root: true\ndefaultBackupDir: \"" << Utf8(backupDirectory.generic_u8string()) << "\"\nprofiles: {}\n";
 
+        SetVariable(std::string { Lightweight::Config::ConfigSearchDirectoryVariable }.c_str(), workingDirectory);
         SetVariable(Lightweight::Config::ProfileStore::UserConfigDirectoryVariable, userConfigDirectory);
         SetVariable(SettingsDirectoryVariable, settingsDirectory);
         SetVariable("TMP", temporaryDirectory);

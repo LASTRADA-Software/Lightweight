@@ -162,14 +162,16 @@ def main() -> int:
 
 
 def _run_smoke(args: argparse.Namespace, sandbox: Path) -> int:
-    """Runs dbtool-gui isolated from the user's state: its working directory holds a throwaway
-    dbtool.yml (found before any dbtool.yml further up or in the user's profile) whose backup
-    folder is in the sandbox, and its QSettings and per-user dbtool.yml live under the sandbox
-    instead of the user's registry, settings file and profile."""
+    """Runs dbtool-gui isolated from the user's state: config discovery starts in the sandbox,
+    whose throwaway dbtool.yml declares `root: true` (so no dbtool.yml next to the binary, further
+    up or in the user's profile is loaded) and puts the backup folder in the sandbox, and its
+    QSettings and per-user dbtool.yml live under the sandbox instead of the user's registry,
+    settings file and profile."""
     sqlite_driver = "{SQLite3 ODBC Driver}" if os.name == "nt" else "SQLite3"
     database = (sandbox / "smoke.db").as_posix()
     backups = (sandbox / "backups").as_posix()
     (sandbox / "dbtool.yml").write_text(
+        "root: true\n"
         f'defaultBackupDir: "{backups}"\n'
         "defaultProfile: smoke\n"
         "profiles:\n"
@@ -188,6 +190,7 @@ def _run_smoke(args: argparse.Namespace, sandbox: Path) -> int:
     env["LIGHTWEIGHT_NO_ERROR_DIALOGS"] = "1"
     env["LIGHTWEIGHT_DBTOOL_GUI_SETTINGS_DIR"] = str(settings_dir)
     env["LIGHTWEIGHT_DBTOOL_USER_CONFIG_DIR"] = str(user_config_dir)
+    env["LIGHTWEIGHT_DBTOOL_CONFIG_SEARCH_DIR"] = str(sandbox)
 
     cmd = [
         str(args.dbtool_gui),
@@ -198,7 +201,6 @@ def _run_smoke(args: argparse.Namespace, sandbox: Path) -> int:
 
     proc = subprocess.Popen(
         cmd,
-        cwd=sandbox,
         env=env,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,

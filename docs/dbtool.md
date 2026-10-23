@@ -70,11 +70,11 @@ The resulting artefacts land in `out/package/<preset>/`.
 dbtool requires a database connection string. The first of these that supplies one wins:
 
 1. **Command-line option**: `--connection-string "..."`.
-2. **A named profile**: `--profile <NAME>`, from `--config <FILE>` or from the `dbtool.yml` that
-   discovery finds (see below).
+2. **A named profile**: `--profile <NAME>`, from `--config <FILE>` or from the `dbtool.yml` files
+   that discovery merges (see below).
 3. **An explicit config file**: `--config <FILE>` without `--profile` uses that file's `defaultProfile`.
 4. **Environment variable**: `SQL_CONNECTION_STRING`, then `ODBC_CONNECTION_STRING`.
-5. **A discovered config file**: the `defaultProfile` of the `dbtool.yml` that discovery finds.
+5. **A discovered config file**: the `defaultProfile` of the `dbtool.yml` files that discovery merges.
 
 The settings of a profile (`schema`, `pluginsDir`, `backupDir`) and the file-wide defaults that
 stand in for them (`defaultPluginsDir`, `defaultBackupDir`) apply only when that profile is
@@ -87,8 +87,8 @@ only `PluginsDir`) still applies. A file that sets no `defaultProfile` uses its 
 the default.
 
 **Commands that write never use a discovered `defaultProfile`.** Only rule 5 is implicit: a
-`dbtool.yml` in a parent directory, next to the executable or in the per-user location can
-point at a database you did not mean. So a command that can change the database refuses a
+`dbtool.yml` next to the executable, in one of its parent directories or in the per-user location
+can point at a database you did not mean. So a command that can change the database refuses a
 target that only rule 5 supplies, names the target and the file, and exits non-zero; pass
 `--profile`, `--config` or `--connection-string`, or set `SQL_CONNECTION_STRING`. These commands
 are `migrate`, `migrate-to-release`, `apply`, `rollback`, `rollback-to`, `rollback-to-release`,
@@ -123,21 +123,77 @@ Target: database D:\data\b.db (from environment variable SQL_CONNECTION_STRING)
 
 ### Where dbtool finds `dbtool.yml`
 
-The first match wins:
+With `--config <FILE>`, dbtool uses exactly that file (a missing file is an error); nothing is
+searched and nothing is merged.
 
-1. `--config <FILE>` (a missing file is an error);
-2. `dbtool.yml` in the current directory or any parent directory — so a project can keep its
-   own `dbtool.yml` at its root and every subdirectory picks it up;
-3. `dbtool.yml` in the directory of the `dbtool` executable or any parent directory — handy for
-   portable installs that ship a config next to the binary;
-4. the per-user file: `~/.config/dbtool/dbtool.yml` (Linux/macOS, honouring `$XDG_CONFIG_HOME`)
-   or `%APPDATA%\dbtool\dbtool.yml` (Windows). When `LIGHTWEIGHT_DBTOOL_USER_CONFIG_DIR` is set
-   to an absolute directory, the per-user file is `dbtool.yml` in that directory instead, which
-   keeps tests and scripted runs off the user's own file (a relative path resolves against the
-   working directory).
+Otherwise dbtool **merges several files**, nearest first:
 
-`dbtool list-profiles` shows which file was used and why; `--verbose` prints it for every other
-command. `dbtool-gui` uses the same lookup unless a profile-store path is set in its Settings.
+1. every `dbtool.yml` in the directory of the `dbtool` executable and in each of its parent
+   directories, up to the filesystem root. A file whose top level sets **`root: true`** ends the
+   search: it is loaded, nothing above it is, and the per-user file is not either;
+2. the per-user file, as the last layer, only when no loaded file set `root: true`:
+   `~/.config/dbtool/dbtool.yml` (Linux/macOS, honouring `$XDG_CONFIG_HOME`) or
+   `%APPDATA%\dbtool\dbtool.yml` (Windows). When `LIGHTWEIGHT_DBTOOL_USER_CONFIG_DIR` is set to an
+   absolute directory, the per-user file is `dbtool.yml` in that directory instead.
+
+The nearest file wins, per profile name and per file-wide value (`defaultProfile`,
+`defaultPluginsDir`, `defaultBackupDir`). A profile from a nearer file replaces a same-named one
+from a farther file as a whole; its fields are never mixed. A `defaultPluginsDir` list is not
+concatenated across files either. Relative directories (`pluginsDir`, `backupDir`,
+`defaultPluginsDir`, `defaultBackupDir`) resolve against the directory of the file they are
+written in.
+
+> **Changed:** the current directory and its parents are no longer searched. A project that keeps
+> a `dbtool.yml` at its root must now pass it with `--config`, or name its profiles in a file
+> above the executable or in the per-user file. Relative `pluginsDir`, `defaultPluginsDir`,
+> `backupDir` and `defaultBackupDir` values now resolve against the directory of the `dbtool.yml`
+> they are written in — also for a `--config` file — instead of the working directory.
+
+This lets several installations share one set of profiles while each keeps its own plugins:
+
+```
+/opt/acme/dbtool.yml               ← root: true; profiles shared by every installation
+/opt/acme/app-a/dbtool.yml         ← defaultPluginsDir: ./plugins
+/opt/acme/app-a/dbtool(.exe)
+/opt/acme/app-b/dbtool.yml         ← defaultPluginsDir: ./plugins
+/opt/acme/app-b/dbtool(.exe)
+```
+
+`app-a` uses `/opt/acme/app-a/plugins` with the shared profiles, `app-b` its own plugins with the
+same profiles. A profile's own `pluginsDir` still beats `defaultPluginsDir`, so a shared profile
+that sets `pluginsDir` pins every installation to that directory; leave it unset on shared
+profiles.
+
+**Deploying shared profiles.** For a layout like the one above:
+
+- Put `root: true` in a file the installation owns — the shared profiles file, or each
+  installation's own file if it should not share. Without it, every `dbtool.yml` further up (up to
+  the filesystem root) and the per-user file are merged too, and any of them can supply a
+  `defaultPluginsDir`, i.e. decide which plugin code dbtool loads.
+- Leave `pluginsDir` unset on shared profiles; each installation names its plugins with
+  `defaultPluginsDir` in its own file.
+- Write every layered file in the multi-profile shape (see
+  [Configuration File Format](#configuration-file-format)). A file in the legacy single-profile
+  shape is a profile named `default` plus an implicit `defaultProfile: default`: its `PluginsDir`
+  belongs to that profile only (it is not a `defaultPluginsDir`), and as a nearer layer its
+  implicit default shadows the shared file's `defaultProfile`. Legacy files keep working on their
+  own.
+
+**Where writes go.** `add-profile` without `--config` writes a new profile into the `root: true`
+file when one was loaded, otherwise into the per-user file (created if missing) — even when files
+were found above the executable. Replacing an existing profile (`--force`) and encrypting a
+plaintext password write to the file the profile came from. Only that one file is edited, with
+its comments and formatting kept. When `--set-default` writes `defaultProfile` into a file while
+a nearer file sets its own, the nearer one still wins and `add-profile` warns about it.
+
+`LIGHTWEIGHT_DBTOOL_CONFIG_SEARCH_DIR`, when set, replaces the executable's directory as the start
+of the search; it is meant for tests and scripted runs, which can also point
+`LIGHTWEIGHT_DBTOOL_USER_CONFIG_DIR` at an empty directory to stay off the user's own file. A
+relative value of either resolves against the working directory.
+
+`dbtool list-profiles` shows the merged files in precedence order and which file each profile
+came from; `--verbose` prints the files for every other command. `dbtool-gui` uses the same
+lookup unless a profile-store path is set in its Settings.
 
 ### Configuration File Format
 
@@ -154,7 +210,8 @@ Multi-profile shape:
 ```yaml
 defaultProfile: prod
 defaultPluginsDir: ./plugins        # store-wide fallback for any profile
-                                    # that omits its own `pluginsDir`
+                                    # that omits its own `pluginsDir`;
+                                    # relative to this file's directory
 defaultBackupDir: /var/backups/lightweight  # store-wide fallback backup folder
 profiles:
   prod:
@@ -220,7 +277,8 @@ none (the behaviour described below for `--output`).
   not used there.
 - As with the other profile defaults, a run that gives `--connection-string` without `--profile`
   applies no profile and therefore no backup folder.
-- Relative paths are used as written, i.e. relative to the working directory.
+- Relative paths resolve against the directory of the `dbtool.yml` they are written in (also for a
+  `--config` file). Before layered discovery they were relative to the working directory.
 
 ### Profile passwords
 
@@ -239,12 +297,14 @@ You never need to produce the `enc:` value by hand:
   [add-profile](#add-profile)).
 - **Plaintext is upgraded automatically.** If you write `password: hunter2`, dbtool uses it as is
   and — once a connection with it has succeeded — rewrites that one value in place as `enc:...`.
-  The rest of the file (comments, ordering, formatting) is left untouched. A password that fails to
+  The value is rewritten in the file the profile came from; the rest of that file (comments,
+  ordering, formatting) is left untouched. A password that fails to
   connect is left alone. A `dbtool.yml` that was only discovered, and whose default profile is
   therefore no target for writing commands, is not rewritten either; name it with `--config` or
-  the profile with `--profile` to upgrade it. If the file is read-only, dbtool warns and carries
-  on. If the file lives in a git repository, dbtool warns that the old plaintext may remain in its
-  history — change the database password in that case.
+  the profile with `--profile` to upgrade it. If the file is read-only, dbtool warns that the
+  password stays plaintext on disk and carries on. If the file lives in a git repository, dbtool
+  warns that the old plaintext may remain in its history — change the database password in that
+  case.
   dbtool-gui follows the same rule: it encrypts the value as soon as a connection with it succeeds,
   whether that is its interactive connect or the start of a managed backup or restore.
 
@@ -295,21 +355,24 @@ cannot silently produce a development-key build); use a fresh build directory, o
 
 ### Inspecting configured profiles
 
-Use `list-profiles` to enumerate every profile parsed from the configuration
-file. The command does not open a database connection, so it works against
+Use `list-profiles` to enumerate every profile of the merged configuration files. The command does not open a database connection, so it works against
 any platform. Values of `PWD=` / `Password=` inside a profile's raw
 `connectionString` are redacted to `***` in the output:
 
 ```bash
 $ dbtool list-profiles
-Profiles (from /home/me/project/dbtool.yml, found via current directory):
+Profiles (merged from 2 file(s)):
+  /opt/acme/app-a/dbtool.yml (executable directory)
+  /opt/acme/dbtool.yml (executable directory) (root)
 
-NAME  DEFAULT  CONNECTION                            AUTH       SCHEMA  PLUGINSDIR      BACKUPDIR
-prod  *        DRIVER={ODBC Driver 18 for SQL Se...  encrypted  dbo     ./migrations    /var/backups/lightweight/prod
-dev            DRIVER=SQLite3;Database=dev.db        -                  ./dev-plugins   /var/backups/lightweight
+NAME  DEFAULT  CONNECTION                            AUTH       SCHEMA  PLUGINSDIR               BACKUPDIR                      FILE
+prod  *        DRIVER={ODBC Driver 18 for SQL Se...  encrypted  dbo     /opt/acme/app-a/plugins  /var/backups/lightweight/prod  /opt/acme/dbtool.yml
+dev            DRIVER=SQLite3;Database=dev.db        -                  /opt/acme/dev-plugins    /var/backups/lightweight       /opt/acme/dbtool.yml
 ```
 
-`BACKUPDIR` is the profile's effective backup folder: its own `backupDir`, else `defaultBackupDir`.
+The header lists the merged files nearest first, how each was found, and marks the one that set
+`root: true`. `BACKUPDIR` is the profile's effective backup folder: its own `backupDir`, else
+`defaultBackupDir`. `FILE` is the file the profile came from.
 
 Use `--config <FILE>` to inspect a non-default configuration file. When no
 config file is found, `list-profiles` prints where it looked and exits successfully.
@@ -718,9 +781,11 @@ dbtool list-profiles
 
 ### add-profile
 
-Adds a profile to `dbtool.yml` (the file found as described in
-[Where dbtool finds `dbtool.yml`](#where-dbtool-finds-dbtoolyml), or `--config`; created if missing)
-with its password encrypted. Existing comments and formatting are preserved.
+Adds a profile to `dbtool.yml` with its password encrypted. With `--config`, that file (created if
+missing). Otherwise the `root: true` file of the merged files, else the per-user file; with
+`--force`, an existing profile is replaced in the file it came from (see
+[Where dbtool finds `dbtool.yml`](#where-dbtool-finds-dbtoolyml)). A name that any merged file
+already defines is refused without `--force`, naming that file. Existing comments and formatting are preserved.
 
 ```bash
 # Prompts for the password (no echo) and stores it encrypted
@@ -736,7 +801,7 @@ printf '%s\n' "$DB_PASSWORD" | dbtool add-profile --name ci \
 | `--name <NAME>` | Profile name (required) |
 | `--connection-string <STR>` / `--dsn <DSN>` | Exactly one is required. A `PWD=` inside the connection string is moved into the encrypted `password` field |
 | `--uid <UID>` | User name for a DSN profile |
-| `--schema <S>`, `--plugins-dir <DIR>`, `--backup-dir <DIR>` | Stored on the profile (`--backup-dir` becomes its `backupDir`) |
+| `--schema <S>`, `--plugins-dir <DIR>`, `--backup-dir <DIR>` | Stored on the profile (`--backup-dir` becomes its `backupDir`). A relative directory is made absolute against the current directory before it is written, since relative values in `dbtool.yml` resolve against that file's directory |
 | `--no-password` | Store the profile without a password |
 | `--set-default` | Make it the `defaultProfile` |
 | `--force` | Replace an existing profile of the same name |
@@ -948,7 +1013,7 @@ archives of older versions hold it, and two of them differ in it by the record o
 | `--connection-string <STR>` | ODBC connection string | |
 | `--schema <NAME>` | Database schema to use. `backup` takes a comma-separated list and then writes a multi-schema archive | |
 | `--all-schemas` | For backup: every schema that holds a user table | |
-| `--config <FILE>` | Path to configuration file | nearest `dbtool.yml` upward, then the per-user file (see [Configuration](#configuration)) |
+| `--config <FILE>` | Path to configuration file | every `dbtool.yml` from the executable's directory upward, merged, then the per-user file unless one sets `root: true` (see [Configuration](#configuration)) |
 | `--plugins-dir <DIR>` | Directory to scan for migration plugins | `.` (current directory) |
 | `--output <FILE>` | Output file for backup. A bare file name, or no `--output`, goes into the profile's `backupDir` / `defaultBackupDir` when one is configured | |
 | `--input <FILE>` | Input file for restore | |

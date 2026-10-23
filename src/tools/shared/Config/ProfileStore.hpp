@@ -52,6 +52,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -68,8 +69,8 @@ struct Profile
     /// Profile name, unique within a ProfileStore.
     std::string name;
 
-    /// Plugin search directory. Relative paths are resolved relative to
-    /// the current working directory at load time.
+    /// Plugin search directory. Stored as written; `LayeredProfileStore` resolves a relative
+    /// path against the directory of the dbtool.yml containing it.
     std::filesystem::path pluginsDir;
 
     /// Optional database schema (e.g. "dbo").
@@ -96,7 +97,8 @@ struct Profile
     std::string password;
 
     /// Folder this profile's backups are written to; overrides the store's `defaultBackupDir`.
-    /// Empty means "use the store-wide default". Relative paths are used as written.
+    /// Empty means "use the store-wide default". Stored as written; `LayeredProfileStore` resolves a
+    /// relative path against the directory of the dbtool.yml containing it.
     std::filesystem::path backupDir {};
 
     /// True when the profile carries enough info to attempt a connection.
@@ -218,6 +220,13 @@ class ProfileStore
     /// Inserts or replaces a profile with the given name.
     void Upsert(Profile profile);
 
+    /// Appends a profile without looking for one of the same name; the caller guarantees there is
+    /// none (e.g. `LayeredProfileStore`, which tracks the names it merged).
+    void AppendUnique(Profile profile)
+    {
+        _profiles.push_back(std::move(profile));
+    }
+
     /// Removes a profile by name. Returns true if removed.
     bool Remove(std::string_view name);
 
@@ -233,6 +242,13 @@ class ProfileStore
         return _profiles.size();
     }
 
+    /// True when the parsed file declared `root: true`, i.e. lower-priority files must not be
+    /// layered beneath it. Not persisted by `Save`.
+    [[nodiscard]] bool IsRoot() const noexcept
+    {
+        return _isRoot;
+    }
+
     /// True when there are no profiles.
     [[nodiscard]] bool Empty() const noexcept
     {
@@ -241,9 +257,15 @@ class ProfileStore
 
   private:
     std::vector<Profile> _profiles;
+    bool _isRoot = false;
     std::string _defaultProfile;
     std::vector<std::filesystem::path> _defaultPluginsDir;
     std::filesystem::path _defaultBackupDir;
 };
+
+/// Reads a whole configuration file from disk.
+/// @param path The file to read.
+/// @return The file's content, or an error naming `path`.
+[[nodiscard]] std::expected<std::string, std::string> ReadConfigFile(std::filesystem::path const& path);
 
 } // namespace Lightweight::Config

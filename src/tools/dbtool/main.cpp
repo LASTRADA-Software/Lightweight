@@ -39,6 +39,7 @@
 #include <set>
 #include <span>
 #include <string>
+#include <system_error>
 #include <type_traits>
 #include <unordered_set>
 #include <variant>
@@ -48,6 +49,7 @@
 #include <Config/BackupOutput.hpp>
 #include <Config/ConfigDiscovery.hpp>
 #include <Config/ConnectionTarget.hpp>
+#include <Config/LayeredProfileStore.hpp>
 #include <Config/ProfileAdd.hpp>
 #include <Config/ProfileFileEditor.hpp>
 #include <Config/ProfilePassword.hpp>
@@ -259,10 +261,12 @@ void PrintUsage()
     std::println("  {}--all-schemas{}             Backup every schema that holds user tables (excludes sys,",
                  c.option, c.reset);
     std::println("                            INFORMATION_SCHEMA, guest, db_* and pg_*)");
-    std::println("  {}--config{} {}<FILE>{}           Config file (default: nearest dbtool.yml above the current",
+    std::println("  {}--config{} {}<FILE>{}           Config file (default: every dbtool.yml from the executable",
                  c.option, c.reset, c.param, c.reset);
-    std::println("                            or executable directory, then the per-user config, whose");
-    std::println("                            folder LIGHTWEIGHT_DBTOOL_USER_CONFIG_DIR overrides)");
+    std::println("                            directory upwards, merged with the nearest winning, then the");
+    std::println("                            per-user config unless a file sets `root: true`. The per-user");
+    std::println("                            folder is overridden by LIGHTWEIGHT_DBTOOL_USER_CONFIG_DIR, the");
+    std::println("                            search start by LIGHTWEIGHT_DBTOOL_CONFIG_SEARCH_DIR)");
     std::println("  {}--profile{} {}<NAME>{}          Named profile from the config file (default: the file's",
                  c.option, c.reset, c.param, c.reset);
     std::println("                            defaultProfile, see --connection-string for when it applies)");
@@ -528,62 +532,107 @@ struct EnvironmentConnectionString
     return std::nullopt;
 }
 
-/// A loaded dbtool.yml and how it was found.
-struct LoadedConfig
-{
-    Lightweight::Config::ProfileStore store;
-    Lightweight::Config::DiscoveredConfig discovered;
-};
-
-/// Locates and loads the run's dbtool.yml (see `Config::FindConfigFile`). Exits on a missing
-/// `--config` file or one that does not parse.
-/// @param options Parsed options.
-/// @return The file, or `std::nullopt` when none exists.
-[[nodiscard]] std::optional<LoadedConfig> LoadConfig(Options const& options)
+/// Discovers the run's dbtool.yml files (see `Config::FindConfigCandidates`) and merges them.
+/// @param configFile `--config`, or empty to discover.
+/// @return The layers (none when no file exists), or an error naming the file that failed.
+[[nodiscard]] std::expected<Lightweight::Config::LayeredProfileStore, std::string> LoadConfigLayers(
+    std::filesystem::path const& configFile)
 {
     namespace Cfg = Lightweight::Config;
-    auto discovered = Cfg::FindConfigFile(Cfg::DefaultDiscoveryInputs(options.configFile));
-    if (!discovered)
-    {
-        std::println(std::cerr, "Error: {}", discovered.error());
-        std::exit(EXIT_FAILURE);
-    }
-    if (discovered->source == Cfg::ConfigSource::None)
-        return std::nullopt;
-    if (options.verbose)
-        std::println(
-            std::cerr, "Using config: {} (found via {})", discovered->path.string(), Cfg::ToString(discovered->source));
-
-    auto store = Cfg::ProfileStore::LoadOrDefault(discovered->path);
-    if (!store)
-    {
-        std::println(std::cerr, "Error loading config file: {}", store.error());
-        std::exit(EXIT_FAILURE);
-    }
-    return LoadedConfig { .store = std::move(*store), .discovered = std::move(*discovered) };
+    return Cfg::FindConfigCandidates(Cfg::DefaultDiscoveryInputs(configFile))
+        .and_then([](std::vector<Cfg::ConfigCandidate> const& candidates) {
+            return Cfg::LayeredProfileStore::Load(candidates).transform_error([](std::string const& error) {
+                return std::format("Loading config file: {}", error);
+            });
+        });
 }
 
-/// Selects the profile named by `--profile`, else the file's default. Exits when `--profile`
+/// Describes one loaded layer for `list-profiles` and error messages.
+/// @param layer The layer.
+/// @return E.g. "/opt/acme/dbtool.yml (executable directory) (root)".
+[[nodiscard]] std::string DescribeLayer(Lightweight::Config::ConfigLayer const& layer)
+{
+    return std::format(
+        "{} ({}){}", layer.path.string(), Lightweight::Config::ToString(layer.source), layer.isRoot ? " (root)" : "");
+}
+
+/// Joins the descriptions of all layers with ", ".
+/// @param layers The loaded layers.
+/// @return E.g. "/opt/acme/app-a/dbtool.yml (executable directory), /opt/acme/dbtool.yml (executable directory) (root)".
+[[nodiscard]] std::string JoinLayerDescriptions(Lightweight::Config::LayeredProfileStore const& layers)
+{
+    // A plain loop: libc++ has no views::join_with yet, and Clang cannot compile the
+    // `| std::ranges::to` pipe against GCC 14's libstdc++.
+    auto joined = std::string {};
+    for (auto const& layer: layers.Layers())
+    {
+        if (!joined.empty())
+            joined += ", ";
+        joined += DescribeLayer(layer);
+    }
+    return joined;
+}
+
+/// Locates and merges the run's dbtool.yml files. Exits on a missing `--config` file or a file
+/// that does not parse.
+/// @param options Parsed options.
+/// @return The layers, or `std::nullopt` when no file exists.
+[[nodiscard]] std::optional<Lightweight::Config::LayeredProfileStore> LoadConfig(Options const& options)
+{
+    auto layers = LoadConfigLayers(options.configFile);
+    if (!layers)
+    {
+        std::println(std::cerr, "Error: {}", layers.error());
+        std::exit(EXIT_FAILURE);
+    }
+    if (layers->Empty())
+        return std::nullopt;
+    if (options.verbose)
+        for (auto const& layer: layers->Layers())
+            std::println(std::cerr,
+                         "Using config: {} ({}{})",
+                         layer.path.string(),
+                         Lightweight::Config::ToString(layer.source),
+                         layer.isRoot ? ", root" : "");
+    return *std::move(layers);
+}
+
+/// Selects the profile named by `--profile`, else the merged default. Exits when `--profile`
 /// names a profile that no file defines.
 /// @param config  The loaded config, if any.
 /// @param options Parsed options.
 /// @return The profile, or null when there is none.
-[[nodiscard]] Lightweight::Config::Profile const* SelectProfile(std::optional<LoadedConfig> const& config,
-                                                                Options const& options)
+[[nodiscard]] Lightweight::Config::Profile const* SelectProfile(
+    std::optional<Lightweight::Config::LayeredProfileStore> const& config, Options const& options)
 {
     if (options.profileName.empty())
-        return config ? config->store.Default() : nullptr; // legacy files synthesise a "default" profile
+        return config ? config->Merged().Default() : nullptr; // legacy files synthesise a "default" profile
 
-    auto const* profile = config ? config->store.Find(options.profileName) : nullptr;
+    auto const* profile = config ? config->Merged().Find(options.profileName) : nullptr;
     if (!profile)
     {
         std::println(std::cerr,
                      "Error: profile '{}' not found in {}.",
                      options.profileName,
-                     config ? config->discovered.path.string() : std::string { "any dbtool.yml" });
+                     config ? JoinLayerDescriptions(*config) : std::string { "any dbtool.yml" });
         std::exit(EXIT_FAILURE);
     }
     return profile;
+}
+
+/// The layer that a run's profile settings are reported against: the selected profile's own
+/// file, else the file that set `defaultProfile`, else the nearest file.
+/// @param layers  The loaded layers; not empty.
+/// @param profile The selected profile, or null.
+/// @return The layer.
+[[nodiscard]] Lightweight::Config::ConfigLayer const& ReportedLayer(Lightweight::Config::LayeredProfileStore const& layers,
+                                                                    Lightweight::Config::Profile const* profile)
+{
+    if (auto const* origin = profile != nullptr ? layers.OriginOf(profile->name) : nullptr; origin != nullptr)
+        return *origin;
+    if (auto const* origin = layers.DefaultProfileOrigin(); origin != nullptr)
+        return *origin;
+    return layers.Layers().front();
 }
 
 /// Fills the options the CLI left unset from the selected profile: plugins and backup folders, schema.
@@ -605,7 +654,7 @@ void ApplyProfileSettings(Lightweight::Config::ProfileStore const& store,
 /// and fills `options` from it: the connection string, and the selected profile's settings that
 /// were not already set on the CLI. Supports both the legacy single-profile YAML shape (top-level
 /// `PluginsDir` / `ConnectionString` / `Schema`) and the multi-profile shape via
-/// `ProfileStore::LoadOrDefault`.
+/// the layered merge of `LayeredProfileStore`.
 ///
 /// The profile's password is deliberately *not* resolved here (see
 /// `ApplyProfilePassword`): commands that never connect must not prompt for it.
@@ -621,8 +670,9 @@ void ResolveConnectionTargetOptions(Options& options)
     auto const environment = FindEnvironmentConnectionString();
     if (config)
     {
-        options.resolvedConfigPath = config->discovered.path;
-        options.configSource = config->discovered.source;
+        auto const& layer = ReportedLayer(*config, profile);
+        options.resolvedConfigPath = layer.path;
+        options.configSource = layer.source;
     }
 
     auto const target = Cfg::ResolveConnectionTarget({
@@ -633,13 +683,14 @@ void ResolveConnectionTargetOptions(Options& options)
         .environmentConnectionString = environment.has_value(),
     });
     options.targetSource = target.source;
-    options.profileIsFirstFallback = config && profile != nullptr && options.profileName.empty()
-                                     && config->store.Find(config->store.DefaultProfileName()) == nullptr;
-    if (config)
-        options.declaredDefaultProfile = config->store.DefaultProfileName();
+    auto const* store = config ? &config->Merged() : nullptr;
+    options.profileIsFirstFallback = store != nullptr && profile != nullptr && options.profileName.empty()
+                                     && store->Find(store->DefaultProfileName()) == nullptr;
+    if (store != nullptr)
+        options.declaredDefaultProfile = store->DefaultProfileName();
 
-    if (config && profile != nullptr && target.appliesProfileSettings)
-        ApplyProfileSettings(config->store, *profile, options);
+    if (store != nullptr && profile != nullptr && target.appliesProfileSettings)
+        ApplyProfileSettings(*store, *profile, options);
 
     if (target.source == Cfg::ConnectionTargetSource::Environment && environment)
     {
@@ -794,8 +845,10 @@ void EncryptPlaintextPasswordIfConnectable(Options const& options)
     if (!upgraded)
     {
         std::println(std::cerr,
-                     "Warning: could not encrypt the plaintext password of profile '{}': {}",
+                     "Warning: could not encrypt the plaintext password of profile '{}' in {}: {}; it remains "
+                     "plaintext on disk.",
                      profile.name,
+                     options.resolvedConfigPath.string(),
                      upgraded.error());
         return;
     }
@@ -1248,9 +1301,9 @@ bool SetupConnectionString(SqlConnectionString const& connectionString, MissingS
     return joined;
 }
 
-/// Implements the `list-profiles` command: enumerates every profile parsed by
-/// `Lightweight::Config::ProfileStore` and prints a compact table with the
-/// fields that are safe to display. `PWD=`/`Password=` values inside a profile's
+/// Implements the `list-profiles` command: lists the merged dbtool.yml layers in precedence
+/// order, then every merged profile in a compact table with the fields that are safe to
+/// display and the file the profile came from. `PWD=`/`Password=` values inside a profile's
 /// raw `connectionString` are redacted via `SqlConnectionString::SanitizePwd`.
 ///
 /// Does not open a database connection — runs alongside `resolve-secret` /
@@ -1259,41 +1312,25 @@ int ListProfiles(Options const& options)
 {
     namespace Cfg = Lightweight::Config;
 
-    struct LoadedConfig
+    auto const layers = LoadConfigLayers(options.configFile);
+    if (!layers)
     {
-        Cfg::ProfileStore store;
-        Cfg::DiscoveredConfig discovered;
-    };
-
-    auto const loadedConfig =
-        Cfg::FindConfigFile(Cfg::DefaultDiscoveryInputs(options.configFile))
-            .and_then([](Cfg::DiscoveredConfig discovered) -> std::expected<LoadedConfig, std::string> {
-                if (discovered.source == Cfg::ConfigSource::None)
-                    return LoadedConfig { .store = {}, .discovered = std::move(discovered) };
-                return Cfg::ProfileStore::LoadOrDefault(discovered.path)
-                    .transform([&](Cfg::ProfileStore s) {
-                        return LoadedConfig { .store = std::move(s), .discovered = std::move(discovered) };
-                    })
-                    .transform_error([](std::string e) { return std::format("Loading config file: {}", e); });
-            });
-    if (!loadedConfig)
-    {
-        std::println(std::cerr, "Error: {}", loadedConfig.error());
+        std::println(std::cerr, "Error: {}", layers.error());
         return EXIT_FAILURE;
     }
-    if (loadedConfig->discovered.source == Cfg::ConfigSource::None)
+    if (layers->Empty())
     {
-        std::println("No profile configuration found (searched for {} above the current and executable "
-                     "directories, then {}).",
+        auto const inputs = Cfg::DefaultDiscoveryInputs();
+        std::println("No profile configuration found (searched for {} in {} and above, then {}).",
                      Cfg::ConfigFileName,
-                     loadedConfig->discovered.path.string());
+                     inputs.searchStart.string(),
+                     inputs.userDefault.string());
         return EXIT_SUCCESS;
     }
-    auto const& store = loadedConfig->store;
-    auto const& configPath = loadedConfig->discovered.path;
+    auto const& store = layers->Merged();
     if (store.Empty())
     {
-        std::println("No profiles configured in {}.", configPath.string());
+        std::println("No profiles configured in {}.", JoinLayerDescriptions(*layers));
         return EXIT_SUCCESS;
     }
 
@@ -1311,6 +1348,7 @@ int ListProfiles(Options const& options)
         std::string schema;
         std::string pluginsDir;
         std::string backupDir;
+        std::string file;
     };
 
     std::vector<Row> rows;
@@ -1324,6 +1362,7 @@ int ListProfiles(Options const& options)
             .schema = profile.schema,
             .pluginsDir = BuildProfilePluginsDirColumn(store, profile),
             .backupDir = store.EffectiveBackupDir(profile).string(),
+            .file = layers->OriginOf(profile.name)->path.string(),
         });
 
     auto const widthOf = [&](std::string Row::* member, std::string_view header) {
@@ -1339,12 +1378,15 @@ int ListProfiles(Options const& options)
     auto const authWidth = widthOf(&Row::auth, "AUTH");
     auto const schemaWidth = widthOf(&Row::schema, "SCHEMA");
     auto const pluginsDirWidth = widthOf(&Row::pluginsDir, "PLUGINSDIR");
+    auto const backupDirWidth = widthOf(&Row::backupDir, "BACKUPDIR");
 
     auto const c = IsStdoutTerminal() ? HelpColors::Colored() : HelpColors::Plain();
 
-    std::println("Profiles (from {}, found via {}):", configPath.string(), Cfg::ToString(loadedConfig->discovered.source));
+    std::println("Profiles (merged from {} file(s)):", layers->Layers().size());
+    for (auto const& layer: layers->Layers())
+        std::println("  {}", DescribeLayer(layer));
     std::println("");
-    std::println("{}{:<{}}  {:<{}}  {:<{}}  {:<{}}  {:<{}}  {:<{}}  {}{}",
+    std::println("{}{:<{}}  {:<{}}  {:<{}}  {:<{}}  {:<{}}  {:<{}}  {:<{}}  {}{}",
                  c.heading,
                  "NAME",
                  nameWidth,
@@ -1359,10 +1401,12 @@ int ListProfiles(Options const& options)
                  "PLUGINSDIR",
                  pluginsDirWidth,
                  "BACKUPDIR",
+                 backupDirWidth,
+                 "FILE",
                  c.reset);
 
     for (auto const& row: rows)
-        std::println("{:<{}}  {:<{}}  {:<{}}  {:<{}}  {:<{}}  {:<{}}  {}",
+        std::println("{:<{}}  {:<{}}  {:<{}}  {:<{}}  {:<{}}  {:<{}}  {:<{}}  {}",
                      row.name,
                      nameWidth,
                      row.defaultMarker,
@@ -1375,7 +1419,9 @@ int ListProfiles(Options const& options)
                      schemaWidth,
                      row.pluginsDir,
                      pluginsDirWidth,
-                     row.backupDir);
+                     row.backupDir,
+                     backupDirWidth,
+                     row.file);
 
     return EXIT_SUCCESS;
 }
@@ -1398,16 +1444,26 @@ int AddProfileCommand(Options const& options)
         return EXIT_FAILURE;
     }
 
-    auto const target = options.configFile.empty()
-                            ? Cfg::FindConfigFile(Cfg::DefaultDiscoveryInputs()).transform([](Cfg::DiscoveredConfig found) {
-                                  return std::move(found.path);
-                              })
-                            : std::expected<std::filesystem::path, std::string> { options.configFile };
-    if (!target)
+    // With --config the file itself is the target (and refuses a duplicate). Otherwise the
+    // merged layers decide: an existing profile stays in its own file, a new one goes to the
+    // root file, else to the per-user file.
+    auto layers = options.configFile.empty() ? LoadConfigLayers({}) : Cfg::LayeredProfileStore {};
+    if (!layers)
     {
-        std::println(std::cerr, "Error: {}", target.error());
+        std::println(std::cerr, "Error: {}", layers.error());
         return EXIT_FAILURE;
     }
+    auto const* existing = layers->OriginOf(options.newProfileName);
+    if (existing != nullptr && !options.force)
+    {
+        std::println(std::cerr,
+                     "Error: profile '{}' already exists in {}; use --force to replace it.",
+                     options.newProfileName,
+                     existing->path.string());
+        return EXIT_FAILURE;
+    }
+    auto const target =
+        layers->WriteTargetFor(options.newProfileName, options.configFile, Cfg::DefaultDiscoveryInputs().userDefault);
 
     auto request = Cfg::ProfileRequest {
         .name = options.newProfileName,
@@ -1432,7 +1488,7 @@ int AddProfileCommand(Options const& options)
         request.password = std::move(*entered);
     }
 
-    auto const written = Cfg::AddProfileToFile(*target,
+    auto const written = Cfg::AddProfileToFile(target,
                                                request,
                                                options.force ? Cfg::ReplaceExisting::Yes : Cfg::ReplaceExisting::No,
                                                options.setDefault ? Cfg::MakeDefault::Yes : Cfg::MakeDefault::No,
@@ -1443,7 +1499,9 @@ int AddProfileCommand(Options const& options)
         return EXIT_FAILURE;
     }
 
-    std::println("Added profile '{}' to {}.", request.name, target->string());
+    std::println("Added profile '{}' to {}.", request.name, target.string());
+    if (auto const warning = options.setDefault ? layers->ShadowedDefaultWarning(target, request.name) : std::nullopt)
+        std::println(std::cerr, "Warning: {}", *warning);
     return EXIT_SUCCESS;
 }
 

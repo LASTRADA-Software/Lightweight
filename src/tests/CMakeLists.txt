@@ -38,6 +38,7 @@ set(SOURCE_FILES
     ConfigDiscoveryTests.cpp
     ConfigBackupOutputTests.cpp
     ConfigConnectionTargetTests.cpp
+    ConfigLayeredStoreTests.cpp
     ConfigProfileStoreTests.cpp
     ColumnTypeRoundTripTests.cpp
     CoreTests.cpp

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "Environment.hpp"
 #include "ProfileStore.hpp"
 
 #include <Lightweight/SqlConnectInfo.hpp>
 
 #include <algorithm>
-#include <cstdlib>
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -82,27 +82,6 @@ SqlConnectInfo Profile::ToConnectInfo(std::string_view password) const
     return SqlConnectionString { std::move(extended) };
 }
 
-namespace
-{
-    /// Value of the environment variable `name`; empty when it is unset.
-    std::string EnvironmentValue(char const* name)
-    {
-#ifdef _WIN32
-        auto size = std::size_t {};
-        if (getenv_s(&size, nullptr, 0, name) != 0 || size == 0)
-            return {};
-        auto value = std::string(size, '\0');
-        if (getenv_s(&size, value.data(), value.size(), name) != 0)
-            return {};
-        value.resize(size - 1); // size counts the terminating null
-        return value;
-#else
-        auto const* const value = std::getenv(name);
-        return value != nullptr ? std::string { value } : std::string {};
-#endif
-    }
-} // namespace
-
 std::filesystem::path ProfileStore::DefaultPath()
 {
     if (auto const directory = EnvironmentValue(UserConfigDirectoryVariable); !directory.empty())
@@ -114,16 +93,16 @@ std::filesystem::path ProfileStore::DefaultPath()
         return std::filesystem::path(path) / "dbtool" / "dbtool.yml";
     return "dbtool.yml";
 #else
-    if (char const* xdg = std::getenv("XDG_CONFIG_HOME"); xdg && *xdg)
+    if (auto const xdg = EnvironmentValue("XDG_CONFIG_HOME"); !xdg.empty())
         return std::filesystem::path(xdg) / "dbtool" / "dbtool.yml";
 
-    char const* home = std::getenv("HOME");
-    if (!home)
+    auto home = EnvironmentValue("HOME");
+    if (home.empty())
     {
-        if (passwd* pwd = getpwuid(getuid()))
+        if (passwd const* pwd = getpwuid(getuid()); pwd != nullptr && pwd->pw_dir != nullptr)
             home = pwd->pw_dir;
     }
-    if (home && *home)
+    if (!home.empty())
         return std::filesystem::path(home) / ".config" / "dbtool" / "dbtool.yml";
 
     return "dbtool.yml";
@@ -260,12 +239,19 @@ std::expected<ProfileStore, std::string> ProfileStore::LoadOrDefault(std::filesy
     if (!std::filesystem::exists(path))
         return ProfileStore {}; // empty store is valid
 
-    auto file = std::ifstream { path, std::ios::binary };
-    if (!file)
-        return std::unexpected(std::format("failed to read {}", path.string()));
-    auto content = std::ostringstream {};
-    content << file.rdbuf();
-    return Parse(content.str(), path);
+    return ReadConfigFile(path).and_then([&path](std::string const& content) { return Parse(content, path); });
+}
+
+std::expected<std::string, std::string> ReadConfigFile(std::filesystem::path const& path)
+{
+    std::ifstream in { path, std::ios::binary };
+    if (!in)
+        return std::unexpected { "cannot read " + path.string() };
+    std::ostringstream content;
+    content << in.rdbuf();
+    if (in.bad())
+        return std::unexpected { "error reading " + path.string() };
+    return std::move(content).str();
 }
 
 std::expected<ProfileStore, std::string> ProfileStore::Parse(std::string_view yaml, std::filesystem::path const& origin)
@@ -282,6 +268,18 @@ std::expected<ProfileStore, std::string> ProfileStore::Parse(std::string_view ya
     }
 
     ProfileStore store;
+
+    if (auto const n = root["root"])
+    {
+        try
+        {
+            store._isRoot = n.as<bool>();
+        }
+        catch (YAML::Exception const&)
+        {
+            return std::unexpected(std::format("invalid 'root' in {}: expected true or false", path.string()));
+        }
+    }
 
     if (LooksLikeLegacyShape(root))
     {

@@ -39,13 +39,14 @@ struct ProfileRequest
     /// Default schema.
     std::string schema;
 
-    /// Plugin directory.
+    /// Plugin directory; a relative one is stored made absolute against the working directory.
     std::string pluginsDir;
 
     /// Plaintext password, or empty for none. Wins over a password found inside `connectionString`.
     std::string password;
 
-    /// Backup folder for this profile (`backupDir`); empty for none.
+    /// Backup folder for this profile (`backupDir`); empty for none. A relative one is stored made
+    /// absolute against the working directory.
     std::string backupDir;
 };
 
