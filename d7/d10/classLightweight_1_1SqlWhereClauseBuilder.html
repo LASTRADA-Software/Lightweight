@@ -211,7 +211,6 @@ template&lt;typename ColumnName &gt; </td></tr>
 <tr class="memitem:aa12861a1f76a3e9d06e902d2c3856b45" id="r_aa12861a1f76a3e9d06e902d2c3856b45"><td class="memTemplParams" colspan="2">template&lt;typename OnChainCallable &gt; <br />
 requires std::invocable&lt;OnChainCallable, <a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a>&gt;</td></tr>
 <tr class="memitem:aa12861a1f76a3e9d06e902d2c3856b45"><td class="memTemplItemLeft" align="right" valign="top">Derived &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#aa12861a1f76a3e9d06e902d2c3856b45">InnerJoin</a> (TableName auto joinTable, OnChainCallable const &amp;onClauseBuilder)</td></tr>
-<tr class="memdesc:aa12861a1f76a3e9d06e902d2c3856b45"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an INNER JOIN clause with a custom ON clause.  <br /></td></tr>
 <tr class="separator:aa12861a1f76a3e9d06e902d2c3856b45"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4241be56beceebced167232d63f669db" id="r_a4241be56beceebced167232d63f669db"><td class="memTemplParams" colspan="2">template&lt;auto LeftField, auto RightField&gt; </td></tr>
 <tr class="memitem:a4241be56beceebced167232d63f669db"><td class="memTemplItemLeft" align="right" valign="top">Derived &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a4241be56beceebced167232d63f669db">InnerJoin</a> ()</td></tr>
@@ -225,7 +224,6 @@ requires std::invocable&lt;OnChainCallable, <a class="el" href="../../dd/d97/cla
 <tr class="memitem:a8ed2c6f1e3810719878562ff5b826175" id="r_a8ed2c6f1e3810719878562ff5b826175"><td class="memTemplParams" colspan="2">template&lt;typename OnChainCallable &gt; <br />
 requires std::invocable&lt;OnChainCallable, <a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a>&gt;</td></tr>
 <tr class="memitem:a8ed2c6f1e3810719878562ff5b826175"><td class="memTemplItemLeft" align="right" valign="top">Derived &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a8ed2c6f1e3810719878562ff5b826175">LeftOuterJoin</a> (TableName auto joinTable, OnChainCallable const &amp;onClauseBuilder)</td></tr>
-<tr class="memdesc:a8ed2c6f1e3810719878562ff5b826175"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an LEFT OUTER JOIN clause with a custom ON clause.  <br /></td></tr>
 <tr class="separator:a8ed2c6f1e3810719878562ff5b826175"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a943ee6588d7153384fe60caeeaf0180e" id="r_a943ee6588d7153384fe60caeeaf0180e"><td class="memItemLeft" align="right" valign="top">Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a943ee6588d7153384fe60caeeaf0180e">RightOuterJoin</a> (TableName auto joinTable, std::string_view joinColumnName, <a class="el" href="../../db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html">SqlQualifiedTableColumnName</a> onOtherColumn)</td></tr>
 <tr class="memdesc:a943ee6588d7153384fe60caeeaf0180e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an RIGHT OUTER JOIN clause.  <br /></td></tr>
@@ -236,7 +234,6 @@ requires std::invocable&lt;OnChainCallable, <a class="el" href="../../dd/d97/cla
 <tr class="memitem:aba3c986f6278f6c462af37d09ed4f040" id="r_aba3c986f6278f6c462af37d09ed4f040"><td class="memTemplParams" colspan="2">template&lt;typename OnChainCallable &gt; <br />
 requires std::invocable&lt;OnChainCallable, <a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a>&gt;</td></tr>
 <tr class="memitem:aba3c986f6278f6c462af37d09ed4f040"><td class="memTemplItemLeft" align="right" valign="top">Derived &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#aba3c986f6278f6c462af37d09ed4f040">RightOuterJoin</a> (TableName auto joinTable, OnChainCallable const &amp;onClauseBuilder)</td></tr>
-<tr class="memdesc:aba3c986f6278f6c462af37d09ed4f040"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an RIGHT OUTER JOIN clause with a custom ON clause.  <br /></td></tr>
 <tr class="separator:aba3c986f6278f6c462af37d09ed4f040"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0bf7afcef92e29f0a8b9af5009f96279" id="r_a0bf7afcef92e29f0a8b9af5009f96279"><td class="memItemLeft" align="right" valign="top">Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a0bf7afcef92e29f0a8b9af5009f96279">FullOuterJoin</a> (TableName auto joinTable, std::string_view joinColumnName, <a class="el" href="../../db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html">SqlQualifiedTableColumnName</a> onOtherColumn)</td></tr>
 <tr class="memdesc:a0bf7afcef92e29f0a8b9af5009f96279"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an FULL OUTER JOIN clause.  <br /></td></tr>
@@ -247,7 +244,6 @@ requires std::invocable&lt;OnChainCallable, <a class="el" href="../../dd/d97/cla
 <tr class="memitem:a3af15963e88633d1965e258ab74ef9ba" id="r_a3af15963e88633d1965e258ab74ef9ba"><td class="memTemplParams" colspan="2">template&lt;typename OnChainCallable &gt; <br />
 requires std::invocable&lt;OnChainCallable, <a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a>&gt;</td></tr>
 <tr class="memitem:a3af15963e88633d1965e258ab74ef9ba"><td class="memTemplItemLeft" align="right" valign="top">Derived &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a3af15963e88633d1965e258ab74ef9ba">FullOuterJoin</a> (TableName auto joinTable, OnChainCallable const &amp;onClauseBuilder)</td></tr>
-<tr class="memdesc:a3af15963e88633d1965e258ab74ef9ba"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an FULL OUTER JOIN clause with a custom ON clause.  <br /></td></tr>
 <tr class="separator:a3af15963e88633d1965e258ab74ef9ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab31fe6eb54cec3b3db5060438a0c9937" id="r_ab31fe6eb54cec3b3db5060438a0c9937"><td class="memTemplParams" colspan="2">template&lt;typename ColumnName , typename T &gt; </td></tr>
 <tr class="memitem:ab31fe6eb54cec3b3db5060438a0c9937"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE Derived &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ab31fe6eb54cec3b3db5060438a0c9937">Where</a> (ColumnName const &amp;columnName, T const &amp;value)</td></tr>
@@ -373,7 +369,7 @@ template&lt;typename Derived &gt; </div>
 
 <p>Indicates, that the next WHERE clause should be AND-ed (default). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00842">842</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00874">874</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -404,7 +400,7 @@ template&lt;typename Derived &gt; </div>
 
 <p>Indicates, that the next WHERE clause should be OR-ed. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00849">849</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00881">881</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -435,7 +431,7 @@ template&lt;typename Derived &gt; </div>
 
 <p>Indicates, that the next WHERE clause should be negated. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00856">856</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00888">888</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -467,7 +463,7 @@ template&lt;typename Derived &gt; </div>
 
 <p>Constructs or extends a raw WHERE clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01263">1263</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01295">1295</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -576,7 +572,7 @@ template&lt;typename Derived &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01076">1076</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01108">1108</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -624,7 +620,7 @@ template&lt;typename Derived &gt; </div>
 
 <p>Constructs an INNER JOIN clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01084">1084</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01116">1116</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -659,10 +655,17 @@ requires std::invocable&lt;OnChainCallable, <a class="el" href="../../dd/d97/cla
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Constructs an INNER JOIN clause with a custom ON clause.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">joinTable</td><td>The table to join with: a string, a string_view, or an <a class="el" href="../../d1/d0e/structLightweight_1_1AliasedTableName.html" title="Name of table in a SQL query, where the table&#39;s name is aliased.">AliasedTableName</a>. An aliased table renders as <code>JOIN "table" AS "alias"</code>, and the ON-clause builder qualifies the joined table's columns with the alias, so the same table can be joined more than once under different aliases. </td></tr>
+    <tr><td class="paramname">onClauseBuilder</td><td>Called with a <a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html" title="Query builder for building JOIN conditions.">SqlJoinConditionBuilder</a> to compose the ON clause. If it adds no condition, the join is dropped from the query. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The query builder, for chaining. </dd></dl>
 
-<p>Constructs an INNER JOIN clause with a custom ON clause. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01112">1112</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01144">1144</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -695,7 +698,7 @@ template&lt;auto LeftField, auto RightField&gt; </div>
 <p>Example: </p><div class="fragment"><div class="line">InnerJoin&lt;&amp;JoinTestB::a_id, &amp;JoinTestA::id&gt;()</div>
 <div class="line"><span class="comment">// This will generate a INNER JOIN &quot;JoinTestB&quot; ON &quot;InnerTestB&quot;.&quot;a_id&quot; = &quot;JoinTestA&quot;.&quot;id&quot;</span></div>
 </div><!-- fragment --> 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01093">1093</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01125">1125</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00274">Lightweight::RecordTableName</a>.</p>
 
@@ -745,7 +748,7 @@ template&lt;typename Derived &gt; </div>
 
 <p>Constructs an LEFT OUTER JOIN clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01118">1118</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01150">1150</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -793,7 +796,7 @@ template&lt;typename Derived &gt; </div>
 
 <p>Constructs an LEFT OUTER JOIN clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01125">1125</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01157">1157</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -828,10 +831,17 @@ requires std::invocable&lt;OnChainCallable, <a class="el" href="../../dd/d97/cla
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Constructs a LEFT OUTER JOIN clause with a custom ON clause.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">joinTable</td><td>The table to join with: a string, a string_view, or an <a class="el" href="../../d1/d0e/structLightweight_1_1AliasedTableName.html" title="Name of table in a SQL query, where the table&#39;s name is aliased.">AliasedTableName</a>. An aliased table renders as <code>JOIN "table" AS "alias"</code>, and the ON-clause builder qualifies the joined table's columns with the alias, so the same table can be joined more than once under different aliases. </td></tr>
+    <tr><td class="paramname">onClauseBuilder</td><td>Called with a <a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html" title="Query builder for building JOIN conditions.">SqlJoinConditionBuilder</a> to compose the ON clause. If it adds no condition, the join is dropped from the query. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The query builder, for chaining. </dd></dl>
 
-<p>Constructs an LEFT OUTER JOIN clause with a custom ON clause. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01135">1135</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01167">1167</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -879,7 +889,7 @@ template&lt;typename Derived &gt; </div>
 
 <p>Constructs an RIGHT OUTER JOIN clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01141">1141</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01173">1173</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -927,7 +937,7 @@ template&lt;typename Derived &gt; </div>
 
 <p>Constructs an RIGHT OUTER JOIN clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01148">1148</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01180">1180</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -962,10 +972,17 @@ requires std::invocable&lt;OnChainCallable, <a class="el" href="../../dd/d97/cla
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Constructs a RIGHT OUTER JOIN clause with a custom ON clause.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">joinTable</td><td>The table to join with: a string, a string_view, or an <a class="el" href="../../d1/d0e/structLightweight_1_1AliasedTableName.html" title="Name of table in a SQL query, where the table&#39;s name is aliased.">AliasedTableName</a>. An aliased table renders as <code>JOIN "table" AS "alias"</code>, and the ON-clause builder qualifies the joined table's columns with the alias, so the same table can be joined more than once under different aliases. </td></tr>
+    <tr><td class="paramname">onClauseBuilder</td><td>Called with a <a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html" title="Query builder for building JOIN conditions.">SqlJoinConditionBuilder</a> to compose the ON clause. If it adds no condition, the join is dropped from the query. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The query builder, for chaining. </dd></dl>
 
-<p>Constructs an RIGHT OUTER JOIN clause with a custom ON clause. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01158">1158</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01190">1190</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1013,7 +1030,7 @@ template&lt;typename Derived &gt; </div>
 
 <p>Constructs an FULL OUTER JOIN clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01164">1164</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01196">1196</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1061,7 +1078,7 @@ template&lt;typename Derived &gt; </div>
 
 <p>Constructs an FULL OUTER JOIN clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01171">1171</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01203">1203</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1096,10 +1113,17 @@ requires std::invocable&lt;OnChainCallable, <a class="el" href="../../dd/d97/cla
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Constructs a FULL OUTER JOIN clause with a custom ON clause.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">joinTable</td><td>The table to join with: a string, a string_view, or an <a class="el" href="../../d1/d0e/structLightweight_1_1AliasedTableName.html" title="Name of table in a SQL query, where the table&#39;s name is aliased.">AliasedTableName</a>. An aliased table renders as <code>JOIN "table" AS "alias"</code>, and the ON-clause builder qualifies the joined table's columns with the alias, so the same table can be joined more than once under different aliases. </td></tr>
+    <tr><td class="paramname">onClauseBuilder</td><td>Called with a <a class="el" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html" title="Query builder for building JOIN conditions.">SqlJoinConditionBuilder</a> to compose the ON clause. If it adds no condition, the join is dropped from the query. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The query builder, for chaining. </dd></dl>
 
-<p>Constructs an FULL OUTER JOIN clause with a custom ON clause. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01181">1181</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01213">1213</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1143,7 +1167,7 @@ template&lt;typename ColumnName , typename T &gt; </div>
 
 <p>Constructs or extends a WHERE clause to test for equality. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00865">865</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00897">897</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1187,7 +1211,7 @@ template&lt;typename ColumnName , typename T &gt; </div>
 
 <p>Constructs or extends a WHERE/OR clause to test for equality. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00884">884</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00916">916</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1222,7 +1246,7 @@ requires std::invocable&lt;Callable, <a class="el" href="../../d7/d10/classLight
 
 <p>Constructs or extends a WHERE/OR clause to test for a group of values. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00894">894</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00926">926</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1257,7 +1281,7 @@ requires std::invocable&lt;Callable, <a class="el" href="../../d7/d10/classLight
 
 <p>Constructs or extends a WHERE/AND clause to test for a group of values. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00903">903</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00935">935</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1301,7 +1325,7 @@ template&lt;typename ColumnName , std::ranges::input_range InputRange&gt; </div>
 
 <p>Constructs or extends a WHERE IN clause with an input range. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00928">928</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00960">960</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1345,7 +1369,7 @@ template&lt;typename ColumnName , typename T &gt; </div>
 
 <p>Constructs or extends a WHERE IN clause with an initializer list. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00944">944</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00976">976</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1390,7 +1414,7 @@ requires (std::is_invocable_r_v&lt;std::string, decltype(&amp;SubSelectQuery::To
 
 <p>Constructs or extends a WHERE IN clause with a sub-select query. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00957">957</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00989">989</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1424,7 +1448,7 @@ template&lt;typename ColumnName &gt; </div>
 
 <p>Constructs or extends a WHERE clause to test for a value being not null. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00966">966</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00998">998</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1458,7 +1482,7 @@ template&lt;typename ColumnName &gt; </div>
 
 <p>Constructs or extends a WHERE clause to test for a value being null. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00974">974</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01006">1006</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1502,7 +1526,7 @@ template&lt;typename ColumnName , typename T &gt; </div>
 
 <p>Constructs or extends a WHERE clause to test for inequality. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00982">982</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01014">1014</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1536,7 +1560,7 @@ template&lt;typename ColumnName &gt; </div>
 
 <p>Constructs or extends a WHERE clause to test for a value being true. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00994">994</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01026">1026</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1570,7 +1594,7 @@ template&lt;typename ColumnName &gt; </div>
 
 <p>Constructs or extends a WHERE clause to test for a value being false. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01002">1002</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01034">1034</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1620,7 +1644,7 @@ template&lt;typename ColumnName , std::size_t N&gt; </div>
 
 <p>Constructs or extends a WHERE clause with a string literal value. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01028">1028</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01060">1060</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1670,7 +1694,7 @@ template&lt;typename ColumnName , typename T &gt; </div>
 
 <p>Constructs or extends a WHERE clause to test for a binary operation. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01038">1038</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01070">1070</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1721,7 +1745,7 @@ requires (std::is_invocable_r_v&lt;std::string, decltype(&amp;SubSelectQuery::To
 
 <p>Constructs or extends a WHERE clause with a sub-select query. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01058">1058</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01090">1090</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1771,7 +1795,7 @@ template&lt;typename ColumnName , typename T &gt; </div>
 
 <p>Constructs or extends a WHERE/OR clause with a binary operation. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01068">1068</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01100">1100</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a30f6074add24d19f3d657f17b1879963">Lightweight::SqlWhereClauseBuilder&lt; Derived &gt;::Where()</a>.</p>
 
@@ -1807,7 +1831,7 @@ template&lt;typename T &gt; </div>
 
 <p>Starts a conditional WHERE chain gated by a <code>std::optional</code> value. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01257">1257</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01289">1289</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1842,7 +1866,7 @@ requires (std::same_as&lt;ColumnName, <a class="el" href="../../db/d8e/structLig
 
 <p>Appends a column name to the WHERE condition. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01321">1321</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01353">1353</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1876,7 +1900,7 @@ template&lt;typename LiteralType &gt; </div>
 
 <p>Appends a literal value to the WHERE condition. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01329">1329</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01361">1361</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1920,7 +1944,7 @@ template&lt;typename LiteralType , typename TargetType &gt; </div>
 
 <p>Populates a literal value into the target string. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01410">1410</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01442">1442</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1970,7 +1994,7 @@ template&lt;typename Callable &gt; </div>
 
 <p>Constructs a JOIN clause with a custom ON clause builder. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01546">1546</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01578">1578</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>

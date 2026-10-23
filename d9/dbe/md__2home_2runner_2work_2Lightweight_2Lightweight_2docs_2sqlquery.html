@@ -256,6 +256,7 @@ Select elements</h1>
 </li>
 <li><code>Inner</code>|<code>LeftOuter</code>|<code>RightOuter</code>|<code>FullOuter</code> + <code>Join</code><ul>
 <li>See documentation for <code>SqlJoinConditionBuilder</code> for details</li>
+<li>The joined table may be an <code>AliasedTableName</code>, also with an ON-clause builder: it renders as <code>JOIN "Table" AS "Alias"</code>, and the builder qualifies the joined table's columns with the alias, so one table can be joined several times, e.g. <code>LeftOuterJoin(AliasedTableName { .tableName = "Table_B", .alias = "B" }, [](SqlJoinConditionBuilder join) { return join.On("a_id", { .tableName = "A", .columnName = "id" }).OnValue("kind", 7); })</code>.</li>
 </ul>
 </li>
 </ul>
