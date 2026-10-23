@@ -101,6 +101,24 @@ namespace
 
 } // namespace
 
+std::vector<IncompleteTable> FindIncompleteTables(RestoreContext const& ctx)
+{
+    // No worker can touch the set any more, so take one snapshot instead of locking per table.
+    auto const failedTables = ctx.failedTables.Snapshot();
+
+    std::vector<IncompleteTable> incompleteTables;
+    for (auto const& [tableName, chunkCounter]: ctx.chunksProcessed)
+    {
+        size_t const totalChunks = ctx.totalChunks.at(tableName);
+        size_t const chunksProcessed = chunkCounter->load();
+
+        if (chunksProcessed < totalChunks || failedTables.contains(tableName))
+            incompleteTables.push_back(
+                { .tableName = tableName, .chunksProcessed = chunksProcessed, .totalChunks = totalChunks });
+    }
+    return incompleteTables;
+}
+
 std::expected<RestoreChunkInfo, FetchChunkError> FetchNextRestoreChunk(RestoreContext& ctx)
 {
     ZoneScopedN("Restore::FetchChunk");
@@ -118,17 +136,12 @@ std::expected<RestoreChunkInfo, FetchChunkError> FetchNextRestoreChunk(RestoreCo
         ctx.dataQueue.pop_front();
     }
 
-    std::vector<uint8_t> content;
-    {
-        ZoneScopedN("Restore::UnzipChunk");
-        auto const lock = std::scoped_lock(ctx.fileMutex);
-        if (!entryInfo.valid)
-            return std::unexpected(
-                FetchChunkError { .tableName = "", .message = std::format("Invalid zip entry: {}", entryInfo.name) });
-        content = ReadZipEntry<std::vector<uint8_t>>(ctx.zip, entryInfo.index, entryInfo.size);
-    }
+    if (!entryInfo.valid)
+        return std::unexpected(
+            FetchChunkError { .tableName = "", .message = std::format("Invalid zip entry: {}", entryInfo.name) });
 
-    // Parse path FIRST to get tableName for chunk-based completion tracking.
+    // Parse the path before reading the chunk: a chunk of a table that already failed is counted
+    // as failed without being read or hashed.
     // Path format: data/<folder>/chunk_ID.msgpack, where <folder> is the table's ChunkDirectory.
     std::string const path = entryInfo.name;
     auto const directory = ChunkDirectoryOf(path);
@@ -141,6 +154,26 @@ std::expected<RestoreChunkInfo, FetchChunkError> FetchNextRestoreChunk(RestoreCo
         return std::unexpected(
             FetchChunkError { .tableName = "", .message = std::format("Unknown table in backup: {}", *directory) });
     std::string const& tableName = table->second;
+
+    auto const& tableInfo = ctx.tableMap.at(tableName);
+    std::optional<size_t> const displayTotal = tableInfo.rowCount > 0 ? std::optional { tableInfo.rowCount } : std::nullopt;
+
+    if (ctx.failedTables.Contains(tableName))
+        return RestoreChunkInfo {
+            .tableName = tableName,
+            .chunkPath = path,
+            .content = {},
+            .tableInfo = &tableInfo,
+            .displayTotal = displayTotal,
+            .skipForFailedTable = true,
+        };
+
+    std::vector<uint8_t> content;
+    {
+        ZoneScopedN("Restore::UnzipChunk");
+        auto const lock = std::scoped_lock(ctx.fileMutex);
+        content = ReadZipEntry<std::vector<uint8_t>>(ctx.zip, entryInfo.index, entryInfo.size);
+    }
 
     // Verify checksum if available
     if (ctx.checksums)
@@ -159,9 +192,6 @@ std::expected<RestoreChunkInfo, FetchChunkError> FetchNextRestoreChunk(RestoreCo
             }
         }
     }
-
-    auto const& tableInfo = ctx.tableMap.at(tableName);
-    std::optional<size_t> const displayTotal = tableInfo.rowCount > 0 ? std::optional { tableInfo.rowCount } : std::nullopt;
 
     return RestoreChunkInfo {
         .tableName = tableName,
@@ -316,10 +346,10 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
                                       .totalRows = 0,
                                       .message = "Insert failed: "s + e.what() });
 
-                // A transient error that exhausted its retries may have left the connection dead;
-                // stop this worker rather than fail every remaining table on a dead handle. A
-                // non-transient error says the data was rejected, so the connection is still usable.
-                if (IsTransientError(e.info()) && !workerConn.IsAlive())
+                // Stop this worker rather than fail every remaining table on a dead handle. A
+                // non-transient error usually means the data was rejected and the connection is
+                // still usable, but a server-side termination is reported as non-transient too.
+                if (!workerConn.IsAlive())
                     return ChunkRestoreOutcome::WorkerAborted;
                 return ChunkRestoreOutcome::TableFailed;
             }
@@ -431,7 +461,7 @@ void RestoreWorker(RestoreContext ctx, SqlConnection& workerConn)
             if (chunk.isEndOfStream)
                 return; // Queue empty, worker done
 
-            if (ctx.failedTables.Contains(chunk.tableName))
+            if (chunk.skipForFailedTable || ctx.failedTables.Contains(chunk.tableName))
             {
                 IncrementChunkCounter(ctx, chunk.tableName, false); // the table already failed
                 continue;

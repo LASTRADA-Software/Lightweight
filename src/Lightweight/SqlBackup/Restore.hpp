@@ -39,6 +39,9 @@ struct RestoreChunkInfo
     TableInfo const* tableInfo {};
     std::optional<size_t> displayTotal;
     bool isEndOfStream {}; ///< True when queue is empty and no more data is available.
+    /// True when the chunk belongs to a table that already failed: the worker counts it as failed
+    /// without reading it.
+    bool skipForFailedTable {};
 };
 
 /// Error information from FetchNextRestoreChunk.
@@ -66,6 +69,14 @@ struct FailedTables
     {
         auto const lock = std::scoped_lock(_mutex);
         return _names.contains(tableName);
+    }
+
+    /// Returns a copy of the failed table names.
+    /// @return The names of the tables a chunk of which failed.
+    [[nodiscard]] std::set<std::string> Snapshot() const
+    {
+        auto const lock = std::scoped_lock(_mutex);
+        return _names;
     }
 
   private:
@@ -129,6 +140,26 @@ struct RestoreContext
 /// @param tableName The name of the table being restored.
 /// @param success Whether the chunk was restored successfully.
 void IncrementChunkCounter(RestoreContext& ctx, std::string const& tableName, bool success);
+
+/// A table whose restore did not deliver every chunk.
+struct IncompleteTable
+{
+    /// The table's key in @ref RestoreContext::tableMap.
+    std::string tableName;
+    /// How many of the table's chunks were attempted.
+    size_t chunksProcessed {};
+    /// How many chunks the archive holds for the table.
+    size_t totalChunks {};
+};
+
+/// Returns the tables that did not receive all of their data.
+///
+/// A table is incomplete when one of its chunks failed, or when a worker that stopped never
+/// attempted its last chunk. Call it after all restore workers have finished.
+///
+/// @param ctx The restore context.
+/// @return One entry per incomplete table, ordered by table name.
+[[nodiscard]] LIGHTWEIGHT_API std::vector<IncompleteTable> FindIncompleteTables(RestoreContext const& ctx);
 
 /// Fetches the next chunk from the restore queue.
 ///

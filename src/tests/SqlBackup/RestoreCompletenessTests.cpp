@@ -8,34 +8,29 @@
 #include "TestHelpers.hpp"
 
 #include <Lightweight/SqlBackup.hpp>
+#include <Lightweight/SqlBackup/Restore.hpp>
 #include <Lightweight/SqlConnection.hpp>
 #include <Lightweight/SqlStatement.hpp>
 #include <Lightweight/Utils.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
-#include <nlohmann/json.hpp>
-
-#if defined(__clang__)
-    #pragma clang diagnostic push
-    #pragma clang diagnostic ignored "-Wnullability-extension"
-#endif
-#include <zip.h>
-#if defined(__clang__)
-    #pragma clang diagnostic pop
-#endif
-
 #include <atomic>
 #include <cstdint>
+#include <deque>
 #include <filesystem>
 #include <format>
 #include <map>
+#include <memory>
+#include <mutex>
 #include <optional>
 #include <ranges>
 #include <source_location>
 #include <string>
 #include <string_view>
 #include <vector>
+
+#include <nlohmann/json.hpp>
 
 using namespace Lightweight;
 using namespace Lightweight::SqlBackup::Tests;
@@ -94,6 +89,38 @@ class ExecuteBatchFault final: public SqlFaultSource
             .nativeErrorCode = 0,
             .sqlState = "HY000",
             .message = "injected restore chunk failure",
+        };
+    }
+
+  private:
+    std::atomic<int> _remaining;
+};
+
+/// Fails the first `ExecuteDirect` issued from `CreateTablesInOrder`, so one archived table cannot
+/// be created and the restored schema is partial.
+class SchemaCreationFault final: public SqlFaultSource
+{
+  public:
+    SchemaCreationFault():
+        _remaining { 1 }
+    {
+    }
+
+    [[nodiscard]] std::optional<SqlErrorInfo> NextFailure(SQLHSTMT, std::source_location const& location) override
+    {
+        if (_remaining.load(std::memory_order_relaxed) <= 0)
+            return std::nullopt;
+
+        if (!std::string_view(location.function_name()).contains("CreateTablesInOrder"))
+            return std::nullopt;
+
+        if (_remaining.fetch_sub(1) <= 0)
+            return std::nullopt;
+
+        return SqlErrorInfo {
+            .nativeErrorCode = 0,
+            .sqlState = "HY000",
+            .message = "injected schema creation failure",
         };
     }
 
@@ -190,43 +217,32 @@ void BackupTables()
 /// stays intact: the restore must report that table and keep restoring the others.
 void CorruptFirstChunkChecksum(std::filesystem::path const& archive)
 {
-    int err = 0;
-    zip_t* zip = zip_open(archive.string().c_str(), ZIP_CREATE, &err);
-    REQUIRE(zip != nullptr);
-
-    std::string checksumsJson;
-    zip_int64_t const checksumsIndex = zip_name_locate(zip, "checksums.json", 0);
-    REQUIRE(checksumsIndex >= 0);
-    {
-        zip_stat_t stat;
-        REQUIRE(zip_stat_index(zip, static_cast<zip_uint64_t>(checksumsIndex), 0, &stat) == 0);
-        checksumsJson.resize(stat.size);
-        zip_file_t* file = zip_fopen_index(zip, static_cast<zip_uint64_t>(checksumsIndex), 0);
-        REQUIRE(file != nullptr);
-        REQUIRE(zip_fread(file, checksumsJson.data(), checksumsJson.size())
-                == static_cast<zip_int64_t>(checksumsJson.size()));
-        zip_fclose(file);
-    }
-
-    auto checksums = nlohmann::json::parse(checksumsJson);
     std::string chunkEntry;
-    for (zip_int64_t i = 0, n = zip_get_num_entries(zip, 0); i < n; ++i)
+    for (auto const& entry: Zip::ZipArchive::Open(archive).value().GetAllEntries())
     {
-        std::string const name = zip_get_name(zip, static_cast<zip_uint64_t>(i), 0);
-        if (name.starts_with("data/") && name.ends_with(".msgpack"))
+        if (entry.name.starts_with("data/") && entry.name.ends_with(".msgpack"))
         {
-            chunkEntry = name;
+            chunkEntry = entry.name;
             break;
         }
     }
     REQUIRE_FALSE(chunkEntry.empty());
-    checksums["files"][chunkEntry] = std::string(64, '0');
 
-    std::string const modified = checksums.dump();
-    zip_source_t* source = zip_source_buffer(zip, modified.data(), modified.size(), 0);
-    REQUIRE(source != nullptr);
-    REQUIRE(zip_file_replace(zip, static_cast<zip_uint64_t>(checksumsIndex), source, 0) == 0);
-    REQUIRE(zip_close(zip) == 0);
+    std::filesystem::path const rewritten = archive.string() + ".rewritten";
+    ScopedFileRemoved const rewrittenCleaner { rewritten };
+    RewriteArchive(archive,
+                   rewritten,
+                   [&](std::string const& name, std::string content) -> std::optional<std::pair<std::string, std::string>> {
+                       if (name != "checksums.json")
+                           return std::pair { name, std::move(content) };
+
+                       auto checksums = nlohmann::json::parse(content);
+                       checksums["files"][chunkEntry] = std::string(64, '0');
+                       return std::pair { name, checksums.dump() };
+                   });
+
+    std::filesystem::remove(archive);
+    std::filesystem::rename(rewritten, archive);
 }
 
 /// Runs Restore() with @p failures injected chunk failures and returns the progress events.
@@ -315,7 +331,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlBackup::Restore continues after a chunk fai
 }
 
 TEST_CASE_METHOD(SqlTestFixture,
-                 "SqlBackup::Restore keeps concurrent workers on unrelated tables after failures",
+                 "SqlBackup::Restore reports an incomplete run and keeps unrelated tables after failures",
                  "[SqlBackup][restore]")
 {
     ScopedFileRemoved const backupFileCleaner { BackupFile };
@@ -329,6 +345,8 @@ TEST_CASE_METHOD(SqlTestFixture,
     // Two chunks fail. Each failed chunk fails only its own table; the remaining tables must be
     // restored completely, whichever worker happens to process them.
     auto const counts = RowCounts();
+    auto const shortTables = ShortTables(counts);
+    REQUIRE_FALSE(shortTables.empty());
     for (auto const& [tableName, count]: counts)
     {
         INFO("table " << tableName << " has " << count << " rows");
@@ -342,4 +360,101 @@ TEST_CASE_METHOD(SqlTestFixture,
             CHECK_FALSE(HasEvent(events, SqlBackup::Progress::State::Finished, tableName));
         }
     }
+
+    // The run must not claim success and must not constrain a database that is missing rows.
+    CHECK_FALSE(HasEvent(events, SqlBackup::Progress::State::Finished, ""));
+    CHECK(HasErrorMessage(events, "foreign key constraints and indexes were not applied"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlBackup::Restore does not constrain a schema it could not create",
+                 "[SqlBackup][restore]")
+{
+    ScopedFileRemoved const backupFileCleaner { BackupFile };
+
+    CreateAndFillTables();
+    REQUIRE_NOTHROW(BackupTables());
+    DropTables();
+
+    std::vector<SqlBackup::Progress> events;
+    LambdaProgressManager pm { [&](SqlBackup::Progress const& progress) { events.push_back(progress); } };
+    {
+        SchemaCreationFault fault;
+        SetFaultSource(&fault);
+        auto const uninstall = detail::Finally([] { SetFaultSource(nullptr); });
+        REQUIRE_NOTHROW(SqlBackup::Restore(BackupFile, SqlConnection::DefaultConnectionString(), 1, pm));
+    }
+
+    // One table could not be created, so the schema is partial: the run must report it and leave
+    // the constraints and indexes alone instead of failing on a foreign key to the missing table.
+    CHECK(HasErrorMessage(events, "did not restore completely"));
+    CHECK(HasErrorMessage(events, "foreign key constraints and indexes were not applied"));
+    CHECK_FALSE(HasEvent(events, SqlBackup::Progress::State::Finished, ""));
+}
+
+TEST_CASE("SqlBackup::detail::FindIncompleteTables reports failed and unattempted tables", "[SqlBackup][restore]")
+{
+    auto const tableMap = std::map<std::string, SqlBackup::TableInfo> {
+        { "complete", {} },
+        { "failed", {} },
+        { "unattempted", {} },
+    };
+    auto const chunkTables = std::map<std::string, std::string> {};
+    std::deque<SqlBackup::detail::ZipEntryInfo> queue;
+    std::mutex queueMutex;
+    std::mutex fileMutex;
+    SqlBackup::NullProgressManager pm;
+    SqlBackup::RestoreSettings restoreSettings;
+    SqlBackup::RetrySettings retrySettings;
+    SqlBackup::detail::FailedTables failedTables;
+    failedTables.Add("failed");
+
+    auto makeCounter = [](size_t value) {
+        return std::make_shared<std::atomic<size_t>>(value);
+    };
+
+    SqlBackup::detail::RestoreContext const ctx {
+        .connectionString = SqlConnectionString {},
+        .schema = {},
+        .tableMap = tableMap,
+        .chunkTables = chunkTables,
+        .dataQueue = queue,
+        .zip = nullptr,
+        .queueMutex = queueMutex,
+        .fileMutex = fileMutex,
+        .progress = pm,
+        .tableProgress =
+            {
+                { "complete", makeCounter(0) },
+                { "failed", makeCounter(0) },
+                { "unattempted", makeCounter(0) },
+            },
+        .chunksProcessed =
+            {
+                { "complete", makeCounter(2) },
+                { "failed", makeCounter(2) },
+                { "unattempted", makeCounter(1) },
+            },
+        .totalChunks =
+            {
+                { "complete", 2 },
+                { "failed", 2 },
+                { "unattempted", 3 },
+            },
+        .checksums = nullptr,
+        .retrySettings = retrySettings,
+        .restoreSettings = restoreSettings,
+        .failedTables = failedTables,
+    };
+
+    auto const incompleteTables = SqlBackup::detail::FindIncompleteTables(ctx);
+    REQUIRE(incompleteTables.size() == 2);
+
+    CHECK(incompleteTables[0].tableName == "failed");
+    CHECK(incompleteTables[0].chunksProcessed == 2);
+    CHECK(incompleteTables[0].totalChunks == 2);
+
+    CHECK(incompleteTables[1].tableName == "unattempted");
+    CHECK(incompleteTables[1].chunksProcessed == 1);
+    CHECK(incompleteTables[1].totalChunks == 3);
 }

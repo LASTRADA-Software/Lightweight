@@ -970,7 +970,8 @@ so chunks of the table that were restored before the failing one (or, with `--jo
 the same time by other workers) stay, and on SQLite so do the rows committed within the failing
 chunk, which commits every 5,000 to 10,000 rows. A database error on insert marks the table failed
 and the worker goes on with the other tables; only a lost connection stops it. Every table left not
-fully restored is reported as an error.
+fully restored is reported as an error, and the restore does not apply foreign key constraints or
+indexes to a database that is missing rows.
 
 ### backup-diff
 
