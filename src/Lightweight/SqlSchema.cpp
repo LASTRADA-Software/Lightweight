@@ -73,9 +73,9 @@ namespace
 
     /// Floating-point dialect type names whose driver-reported width must be overridden.
     ///
-    /// SQLite and MS SQL Server report `float`/`real` with a width that would narrow the column,
-    /// so both are deliberately widened to `double` rather than risk losing data. PostgreSQL names
-    /// its types `float4` (4-byte) and `float8` (8-byte) instead, and reports each width truthfully.
+    /// SQLite stores every `REAL` in 8 bytes, so its `float`/`real` columns are widened to `double`.
+    /// MS SQL Server columns never reach this table: their true width comes from @ref MssqlFloatPrecision.
+    /// PostgreSQL names its types `float4` (4-byte) and `float8` (8-byte) instead, and reports each width truthfully.
     constexpr auto FloatTypeNameMappings = std::array {
         FloatTypeNameMapping { .dialectTypeName = "float"sv, .odbcType = SQL_DOUBLE },
         FloatTypeNameMapping { .dialectTypeName = "FLOAT"sv, .odbcType = SQL_DOUBLE },
@@ -84,6 +84,16 @@ namespace
         FloatTypeNameMapping { .dialectTypeName = "float4"sv, .odbcType = SQL_REAL },
         FloatTypeNameMapping { .dialectTypeName = "float8"sv, .odbcType = SQL_DOUBLE },
     };
+
+    /// Maps the precision of an MS SQL Server `float(n)` column onto the width it is stored with.
+    ///
+    /// @param declaredPrecision The precision `n`, as reported by `sys.columns` or `SQLColumns`.
+    /// @return 24 for `float(1)` to `float(24)`, which are stored as the 4-byte `real`; 53 otherwise,
+    ///         including an unknown precision of 0, so a missing width never narrows the column.
+    constexpr std::size_t MssqlFloatPrecision(std::size_t declaredPrecision) noexcept
+    {
+        return declaredPrecision >= 1 && declaredPrecision <= 24 ? 24 : 53;
+    }
 
     /// Looks up @p dialectTypeName in @ref FloatTypeNameMappings.
     ///
@@ -1138,10 +1148,9 @@ namespace detail
                 || sysTypeName == "smallmoney")
                 return Decimal { .precision = static_cast<std::size_t>(metrics.precision < 0 ? 0 : metrics.precision),
                                  .scale = static_cast<std::size_t>(metrics.scale < 0 ? 0 : metrics.scale) };
-            // float/real both collapse to Real{53} to match the legacy MSSQL float fixup
-            // (SqlSchema.cpp), which hard-codes precision 53 regardless of the declared width.
+            // float/real report their true width; sys.columns gives real a precision of 24.
             if (sysTypeName == "float" || sysTypeName == "real")
-                return Real { .precision = 53 };
+                return Real { .precision = MssqlFloatPrecision(static_cast<std::size_t>(std::max(metrics.precision, 0))) };
             return std::nullopt;
         }
 
@@ -1410,6 +1419,7 @@ namespace detail
         // to avoid accessing non-existent columns which causes ODBC errors.
         auto columnCursor = SqlResultCursor(columnStmt);
         auto const numColumns = columnCursor.NumColumnsAffected();
+        auto const serverType = stmt.Connection().ServerType();
 
         while (columnCursor.FetchRow())
         {
@@ -1493,7 +1503,14 @@ namespace detail
                 // MakeColumnTypeFromNative turns into Decimal { 19, 4 } above. Overwriting
                 // the precision here would report a wrong precision and scale to every
                 // consumer of SqlSchema::Column.
-                if (auto const floatType = LookupFloatColumnType(column.dialectDependantTypeString))
+
+                // MS SQL Server reports a float's precision in COLUMN_SIZE, not in DECIMAL_DIGITS.
+                if (serverType == SqlServerType::MICROSOFT_SQL
+                    && std::holds_alternative<SqlColumnTypeDefinitions::Real>(column.type))
+                {
+                    column.type = SqlColumnTypeDefinitions::Real { .precision = MssqlFloatPrecision(column.size) };
+                }
+                else if (auto const floatType = LookupFloatColumnType(column.dialectDependantTypeString))
                 {
                     column.type = *floatType;
                 }
