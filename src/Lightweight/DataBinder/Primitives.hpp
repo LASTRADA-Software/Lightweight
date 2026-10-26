@@ -224,8 +224,8 @@ template <> struct SqlDataBinder<uint32_t>: SqlSimpleDataBinder<uint32_t, SQL_C_
 template <> struct SqlDataBinder<int64_t>: Int64DataBinderHelper<int64_t, SQL_C_SBIGINT> {};
 template <> struct SqlDataBinder<uint64_t>: Int64DataBinderHelper<uint64_t, SQL_C_UBIGINT> {};
 //template <> struct SqlDataBinder<uint64_t>: Int64DataBinderHelper<uint64_t, SQL_C_UBIGINT> {};
-template <> struct SqlDataBinder<float>: SqlSimpleDataBinder<float, SQL_C_FLOAT, SQL_REAL, SqlColumnTypeDefinitions::Real {}> {};
-template <> struct SqlDataBinder<double>: SqlSimpleDataBinder<double, SQL_C_DOUBLE, SQL_DOUBLE, SqlColumnTypeDefinitions::Real {}> {};
+template <> struct SqlDataBinder<float>: SqlSimpleDataBinder<float, SQL_C_FLOAT, SQL_REAL, SqlColumnTypeDefinitions::Real { .precision = 24 }> {};
+template <> struct SqlDataBinder<double>: SqlSimpleDataBinder<double, SQL_C_DOUBLE, SQL_DOUBLE, SqlColumnTypeDefinitions::Real { .precision = 53 }> {};
 #if !defined(_WIN32) && !defined(__APPLE__)
 template <> struct SqlDataBinder<long long>: Int64DataBinderHelper<long long, SQL_C_SBIGINT> {};
 template <> struct SqlDataBinder<unsigned long long>: Int64DataBinderHelper<unsigned long long, SQL_C_UBIGINT> {};

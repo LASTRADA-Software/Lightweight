@@ -6,6 +6,7 @@
 #include "Lightweight/DataMapper/QueryBuilders.hpp"
 
 #include <Lightweight/Lightweight.hpp>
+#include <Lightweight/SqlSchema.hpp>
 
 #include <reflection-cpp/reflection.hpp>
 
@@ -15,6 +16,8 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <algorithm>
+#include <string>
 #include <string_view>
 
 using namespace std::string_view_literals;
@@ -363,6 +366,41 @@ TEST_CASE_METHOD(SqlTestFixture, "Create: different record types in sequence on 
 
     auto const readAgain = dm.QuerySingle<CreateAmountThenTimestamp>(again.id).value();
     CHECK(readAgain.amount.Value() == 4.5);
+}
+
+struct CreateFloatingPointWidths
+{
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id;
+    Field<float> narrow;
+    Field<double> wide;
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "CreateTable gives float and double members their width", "[DataMapper]")
+{
+    using SqlColumnTypeDefinitions::Real;
+
+    auto dm = DataMapper();
+    dm.CreateTable<CreateFloatingPointWidths>();
+
+    auto stmt = SqlStatement {};
+    auto const table = SqlSchema::ReadTable(stmt,
+                                            SqlSchema::FullyQualifiedTableName {
+                                                .catalog = stmt.Connection().DatabaseName(),
+                                                .schema = "",
+                                                .table = std::string(RecordTableName<CreateFloatingPointWidths>),
+                                            });
+    REQUIRE(table.has_value());
+    auto const columns = table.value_or(SqlSchema::Table {}).columns;
+
+    auto const narrowColumn = std::ranges::find(columns, "narrow", &SqlSchema::Column::name);
+    auto const wideColumn = std::ranges::find(columns, "wide", &SqlSchema::Column::name);
+    REQUIRE(narrowColumn != columns.end());
+    REQUIRE(wideColumn != columns.end());
+
+    // SQLite stores every REAL as 8 bytes, so its reader reports both as 64-bit.
+    auto const expectedNarrowPrecision = stmt.Connection().ServerType() == SqlServerType::SQLITE ? 53U : 24U;
+    CHECK(narrowColumn->type == SqlColumnTypeDefinition { Real { .precision = expectedNarrowPrecision } });
+    CHECK(wideColumn->type == SqlColumnTypeDefinition { Real { .precision = 53 } });
 }
 
 // NOLINTEND(bugprone-unchecked-optional-access)
