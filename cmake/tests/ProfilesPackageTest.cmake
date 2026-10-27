@@ -66,6 +66,11 @@ foreach(_pair CMAKE_TOOLCHAIN_FILE:TOOLCHAIN_FILE VCPKG_TARGET_TRIPLET:TARGET_TR
 endforeach()
 if(GENERATOR)
     list(APPEND _forward -G "${GENERATOR}")
+    # A multi-config consumer would otherwise generate every configuration, but only BUILD_TYPE
+    # was installed, so the imported target has no library for the others.
+    if(BUILD_TYPE AND GENERATOR MATCHES "Visual Studio|Xcode|Multi-Config")
+        list(APPEND _forward "-DCMAKE_CONFIGURATION_TYPES=${BUILD_TYPE}")
+    endif()
 endif()
 
 run_step("consumer configure"
