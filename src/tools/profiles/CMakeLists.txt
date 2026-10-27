@@ -27,9 +27,22 @@ target_compile_definitions(LightweightProfiles PRIVATE BUILD_LIGHTWEIGHT_PROFILE
 target_compile_features(LightweightProfiles PUBLIC cxx_std_23)
 target_link_libraries(LightweightProfiles PRIVATE tools_shared)
 
-# tools_shared and core Lightweight are static here; keep their symbols out of the export table.
-if(UNIX AND NOT APPLE)
-    target_link_options(LightweightProfiles PRIVATE "LINKER:--exclude-libs,ALL")
+# tools_shared and core Lightweight are static here, and libstdc++ template instantiations pulled in
+# by this library's own objects have default visibility: restrict the export table to the
+# Lightweight::Profiles namespace with a linker-level filter (ELF version script / Mach-O symbol list).
+if(APPLE)
+    # _ZN11Lightweight8Profiles* covers functions; typeinfo/vtable use _ZTI/_ZTS/_ZTV prefixes.
+    target_link_options(LightweightProfiles PRIVATE
+        "LINKER:-exported_symbol,__ZN11Lightweight8Profiles*"
+        "LINKER:-exported_symbol,__ZTIN11Lightweight8Profiles*"
+        "LINKER:-exported_symbol,__ZTSN11Lightweight8Profiles*"
+        "LINKER:-exported_symbol,__ZTVN11Lightweight8Profiles*")
+elseif(UNIX)
+    set(_profiles_version_script "${CMAKE_CURRENT_SOURCE_DIR}/exports.map")
+    target_link_options(LightweightProfiles PRIVATE
+        "LINKER:--exclude-libs,ALL"
+        "LINKER:--version-script=${_profiles_version_script}")
+    set_property(TARGET LightweightProfiles APPEND PROPERTY LINK_DEPENDS "${_profiles_version_script}")
 endif()
 
 if(CLANG_TIDY_EXE)

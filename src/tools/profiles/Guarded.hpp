@@ -44,8 +44,8 @@ template <typename Body>
     }
     catch (...)
     {
-        // Formatting the message itself failed (out of memory); there is nothing better to report.
-        return Result(std::unexpected(std::string("unexpected error")));
+        // Building the message itself failed (out of memory): report an empty error, allocation-free.
+        return Result(std::unexpect);
     }
 }
 

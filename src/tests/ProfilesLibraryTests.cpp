@@ -6,10 +6,13 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <expected>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 
 #include <Secrets/ProfileCipher.hpp>
+#include <profiles/Guarded.hpp>
 
 namespace Profiles = Lightweight::Profiles;
 namespace Secrets = Lightweight::Secrets;
@@ -54,4 +57,37 @@ TEST_CASE("Library output matches ProfileCipher::Builtin()", "[profiles-lib]")
     auto const decrypted = Secrets::ProfileCipher::Builtin().Decrypt(*encrypted);
     REQUIRE(decrypted.has_value());
     CHECK(*decrypted == "x");
+}
+
+namespace
+{
+struct NotAStdException
+{
+};
+} // namespace
+
+TEST_CASE("Guarded converts exceptions into prefixed errors", "[profiles-lib]")
+{
+    using Result = std::expected<int, std::string>;
+
+    SECTION("success passes through")
+    {
+        auto const result = Profiles::detail::Guarded("ctx", [] { return Result(42); });
+        REQUIRE(result.has_value());
+        CHECK(*result == 42);
+    }
+
+    SECTION("std::exception keeps its message")
+    {
+        auto const result = Profiles::detail::Guarded("ctx", []() -> Result { throw std::runtime_error("boom"); });
+        REQUIRE(!result.has_value());
+        CHECK(result.error() == "ctx: boom");
+    }
+
+    SECTION("other exceptions become a generic message")
+    {
+        auto const result = Profiles::detail::Guarded("ctx", []() -> Result { throw NotAStdException {}; });
+        REQUIRE(!result.has_value());
+        CHECK(result.error() == "ctx: unexpected error");
+    }
 }

@@ -21,6 +21,8 @@ else()
 endif()
 
 target_link_libraries(LightweightTest PRIVATE ${TEST_LIBRARIES})
+# ProfilesLibraryTests.cpp exercises the private detail::Guarded helper directly.
+target_include_directories(LightweightTest PRIVATE ${PROJECT_SOURCE_DIR}/src/tools)
 
 # AsynchronousTests.cpp includes stdexec headers directly. Link the shared compat target (root
 # CMakeLists) so its SYSTEM includes, /Zc:preprocessor, /external:W0 and -Wno-error demotions apply
