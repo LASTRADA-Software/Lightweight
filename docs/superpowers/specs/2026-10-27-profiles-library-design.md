@@ -163,7 +163,27 @@ Changes from the issue text, all following from the layered lookup: `startDirect
   deliberately differs from `ProfileStore::Default()`, which falls back to the first profile — an
   arbitrary application must not silently connect to whichever database is listed first. A legacy
   single-profile file (loaded as profile `default`) is resolved only if `defaultProfile` names it or
-  the caller passes its name (*Claude's call*, follows from the rule).
+  the caller passes its name. Note `ProfileStore::Parse` sets `defaultProfile = "default"` for a
+  legacy file (`ProfileStore.cpp:284-292`), so an empty name *does* resolve it when that layer is the
+  nearest one setting a default. `SaveProfile` targeting a legacy-format layer fails because
+  `AddProfileText` refuses legacy files (`ProfileFileEditor.cpp:346`) — tested and documented.
+- **Resolve, more edge cases:** a profile with neither `dsn` nor `connectionString`
+  (`Profile::HasConnection()` false) is an error. A relative `startDirectory` is made absolute
+  against the working directory; a non-existent one is not an error, it simply finds no layers there.
+- **Secret resolver** registers env + file backends only — as dbtool-gui does (`AppController.cpp:164`),
+  not dbtool, which also registers `stdin:`.
+- **`ListProfiles` never returns a password, including one inside a connection string.** A
+  hand-written `connectionString: "...;PWD=x"` is valid (`ProfileStore.cpp:204-218`). The summary's
+  `connectionString` is passed through `SqlConnectionString::SanitizePwd` as dbtool's
+  `list-profiles` does (`dbtool/main.cpp:1255-1261`), and `hasPassword` is true when a PWD was
+  present. `ResolveProfileConnection` returns the connection string unsanitised (it is meant for
+  connecting).
+- **No exceptions cross the DLL boundary.** Every exported function catches everything and returns
+  `std::unexpected` with a secret-free message (`FileBackend` throws for a group/world-readable
+  secret file, `FileBackend.cpp:60-77`; `path.string()` can throw on Windows for non-ANSI paths).
+  Prefer `u8string()`-based formatting of paths in messages. `IsEncryptedPassword` is `noexcept`.
+- **Ordering:** `AddProfileText` inserts new *and replaced* profiles as the first entry of their
+  layer, so a replaced profile moves to the top; mention in docs.
 - **Encrypt/Decrypt/IsEncrypted:** thin wrappers over `ProfileCipher::Builtin()`; same `enc:`
   format and key-id handling as dbtool.
 
@@ -174,7 +194,17 @@ Changes from the issue text, all following from the layered lookup: `startDirect
 place (open existing file for writing, truncate, write). Rationale: an installation may grant users
 modify rights on `dbtool.yml` only, not on its directory. This also fixes `dbtool add-profile` and
 dbtool-gui saves in that situation. All other failure behaviour unchanged (file untouched when the
-transform fails or the file itself is not writable). The fallback loses atomicity; that is accepted.
+transform fails or the file itself is not writable). The fallback loses atomicity; that is accepted,
+with these guards:
+
+- Trigger only when creating the temporary file failed with a permission error (`EACCES`/`EPERM`,
+  or `std::errc::permission_denied` from the filesystem API), not on any failure.
+- The original bytes are already in memory (`ProfileFileEditor.cpp:514-526`): if the in-place write
+  fails part-way, best-effort rewrite the original and report the error, so a disk-full or I/O error
+  does not leave a truncated file that has lost every other profile's password.
+- Document: the in-place path writes *through* a symlink while rename replaces it; on Windows the
+  existing `owner_write` check reflects only the read-only attribute, not ACLs (the ACL case —
+  file: Modify, directory: no write — is exactly what the fallback fixes).
 
 ## Build & packaging (decided)
 
@@ -188,9 +218,28 @@ transform fails or the file itself is not writable). The fallback loses atomicit
   consumers must use the same compiler/standard library and, on MSVC, a matching Debug/Release
   runtime. Documented, not engineered around (no pimpl / C ABI) (*Claude's call*). Ship Debug and
   Release binaries the way the core library is shipped.
-- Installed into the `Lightweight-targets` export set (or a sibling export file included
-  conditionally by `Lightweight-config.cmake.in`), plus its header and, on Windows, PDB as the core
-  library does.
+- **Only `Lightweight::Profiles::` symbols are exported.** Visibility is per object file, and neither
+  `tools_shared` nor (with `LIGHTWEIGHT_BUILD_SHARED=OFF`, the non-Windows default) core
+  `Lightweight` compiles hidden, so on Linux/macOS the key ring (`Secrets::BuiltinKeyRing()`),
+  `ProfileCipher`, every `Config::*` symbol and a static yaml-cpp would land in the `.so`'s export
+  table. Required: `CXX_VISIBILITY_PRESET hidden` + `VISIBILITY_INLINES_HIDDEN ON` on `tools_shared`
+  as well as `LightweightProfiles`, `-Wl,--exclude-libs,ALL` for GNU ld/lld, and a test asserting the
+  dynamic export list (`nm -D` / `dumpbin /exports`) contains only `Lightweight::Profiles::` symbols.
+  Windows needs nothing extra (static libs export nothing without `__declspec`).
+- **Runtime dependencies** (to document per platform): with `LIGHTWEIGHT_BUILD_SHARED=ON` the DLL
+  imports `Lightweight.dll`; yaml-cpp is a DLL/so under a dynamic vcpkg triplet; Linux also needs
+  `libcrypto`. With `LIGHTWEIGHT_BUILD_SHARED=OFF` the library embeds a private copy of static
+  Lightweight — harmless once its symbols are hidden, but its statics (logger, pools) are separate
+  from the consumer's. Bundle runtime deps the way dbtool does (`RUNTIME_DEPENDENCY_SET`,
+  `src/tools/dbtool/CMakeLists.txt:31-50`).
+- Installed into the `Lightweight-targets` export set (PRIVATE deps of a SHARED target are not
+  exported, so `tools_shared` need not be), or a sibling export file pulled in by
+  `Lightweight-config.cmake.in` via `include(... OPTIONAL)` guarded by `NOT TARGET
+  Lightweight::Profiles`. Plus its header and, on Windows, PDB as the core library does. An install
+  built without tools must still yield a working package without `Lightweight::Profiles`.
+- Security note for the docs: the installed library decrypts any `enc:` value for anyone who can
+  load it — the same model as the dbtool binary (`Secrets/KeyRing.hpp:13-15`). The encryption
+  protects against reading the file, not against code running as the user.
 
 ## Tests (decided scope)
 
@@ -205,7 +254,17 @@ Catch2, in the existing suite (`src/tests/`), alongside `ProfileAddTests.cpp` et
 - No secret in any error string (assert the plaintext does not occur in the error text).
 - Empty profile name: resolves `defaultProfile` when set; errors when unset or dangling (no fallback).
 - Replacing a profile drops `schema`/`pluginsDir`/`secretRef` (pins the documented `--force` behaviour).
-- Per-user file redirected via the existing `LIGHTWEIGHT_DBTOOL_USER_CONFIG_DIR`.
+- Per-user file redirected via the existing `LIGHTWEIGHT_DBTOOL_USER_CONFIG_DIR` (`ScopedEnvironmentVariable`).
+- `ListProfiles` with a hand-written `connectionString` containing `PWD=`: summary is sanitised,
+  `hasPassword` true.
+- POSIX: `secretRef: file:` pointing at a 0644 file returns an error instead of throwing.
+- Profile without dsn/connection string errors; legacy-format layer resolves via `default` and
+  refuses `SaveProfile`.
+- In-place fallback: triggers only on a permission error; a failed in-place write restores the
+  original bytes.
+- Export-list test (Linux/macOS): only `Lightweight::Profiles::` symbols exported.
+- The consumer test builds against the *installed* package (CI already installs and runs from the
+  install tree, `.github/workflows/build.yml:188, 303, 319`).
 - `EditConfigFile` in-place fallback (temporary file cannot be created, target exists).
 - A small consumer test target linking **only** `Lightweight::Profiles` (proves the public header is
   self-contained and nothing private leaks).
@@ -215,9 +274,11 @@ normal full-suite run.
 
 ## Left to the builder
 
-- Source location (e.g. `src/tools/profiles/` vs `src/Lightweight/Profiles/`). Constraint: the header
-  must **not** be installed when tools are off (note `src/Lightweight/CMakeLists.txt` installs every
-  `*.hpp` under `src/Lightweight/` unconditionally).
+- Source location. Recommended: `src/tools/profiles/` with the header at
+  `src/tools/profiles/include/Lightweight/Profiles/ProfileConnection.hpp`, so in-tree and installed
+  include paths match, installed by an `install(DIRECTORY include/ …)` scoped to this target.
+  Constraint: the header must **not** be installed when tools are off (`src/Lightweight/CMakeLists.txt`
+  installs every `*.hpp` under `src/Lightweight/` unconditionally, so do not put it there).
 - Ordering of `ProfileList::profiles` (follow whatever `list-profiles` in dbtool shows).
 - Docs: a section in `docs/dbtool.md` (or a new page) on using the profiles from another
   application, and the in-place fallback note.
