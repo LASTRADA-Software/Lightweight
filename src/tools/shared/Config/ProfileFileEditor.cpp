@@ -610,8 +610,8 @@ namespace
         auto const written = ops.overwriteInPlace(path, edited);
         if (written)
             return {};
-        auto const outcome = ops.overwriteInPlace(path, original) ? "the original content was restored"
-                                                                  : "the original content could not be restored";
+        auto const* const outcome = ops.overwriteInPlace(path, original) ? "the original content was restored"
+                                                                         : "the original content could not be restored";
         return std::unexpected(
             std::format("cannot write {}: {}; {}", Utf8FromPath(path), written.error().message(), outcome));
     }
