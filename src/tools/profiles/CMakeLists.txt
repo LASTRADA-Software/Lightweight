@@ -4,7 +4,10 @@
 
 add_library(LightweightProfiles SHARED
     Guarded.hpp
+    ListProfiles.cpp
     Passwords.cpp
+    ProfileLookup.cpp
+    ProfileLookup.hpp
     include/Lightweight/Profiles/Api.hpp
     include/Lightweight/Profiles/ProfileConnection.hpp
 )
