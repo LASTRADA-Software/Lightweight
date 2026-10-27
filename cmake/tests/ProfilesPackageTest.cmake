@@ -4,11 +4,15 @@
 # standalone project linking only that target must build and run. Run with:
 #   cmake -DBUILD_DIR=<build tree> -DSOURCE_DIR=<repo root> [-DGENERATOR=..] [-DTOOLCHAIN_FILE=..]
 #         [-DTARGET_TRIPLET=..] [-DPREFIX_PATH=a|b] [-DBUILD_TYPE=..] [-DCXX_COMPILER=..]
-#         [-DMAKE_PROGRAM=..] -P cmake/tests/ProfilesPackageTest.cmake
+#         [-DMAKE_PROGRAM=..] [-DLIBDIR=..] -P cmake/tests/ProfilesPackageTest.cmake
 # Registered as the `ProfilesPackageTest` CTest; the toolchain settings are forwarded from the
 # parent build so the consumer is configured exactly like the library was.
 
 cmake_minimum_required(VERSION 3.25)
+
+if(NOT LIBDIR)
+    set(LIBDIR lib)
+endif()
 
 foreach(_required BUILD_DIR SOURCE_DIR)
     if(NOT DEFINED ${_required})
@@ -77,10 +81,10 @@ if(WIN32)
     set(_runtime_dir "${_prefix}/bin")
 elseif(APPLE)
     set(_runtime_var DYLD_LIBRARY_PATH)
-    set(_runtime_dir "${_prefix}/lib")
+    set(_runtime_dir "${_prefix}/${LIBDIR}")
 else()
     set(_runtime_var LD_LIBRARY_PATH)
-    set(_runtime_dir "${_prefix}/lib")
+    set(_runtime_dir "${_prefix}/${LIBDIR}")
 endif()
 set(ENV{LIGHTWEIGHT_DBTOOL_USER_CONFIG_DIR} "${_user_config}")
 set(_search_path "${_runtime_dir}")

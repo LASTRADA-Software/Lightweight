@@ -244,7 +244,8 @@ add_test(NAME ProfilesPackageTest
         "-DTOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}"
         "-DTARGET_TRIPLET=${VCPKG_TARGET_TRIPLET}"
         "-DPREFIX_PATH=${_profiles_pkg_prefix_path}"
-        "-DBUILD_TYPE=${CMAKE_BUILD_TYPE}"
+        "-DBUILD_TYPE=$<CONFIG>"
+        "-DLIBDIR=${CMAKE_INSTALL_LIBDIR}"
         "-DCXX_COMPILER=${CMAKE_CXX_COMPILER}"
         -P ${PROJECT_SOURCE_DIR}/cmake/tests/ProfilesPackageTest.cmake
 )

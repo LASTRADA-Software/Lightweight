@@ -29,6 +29,10 @@ target_link_libraries(my_app PRIVATE Lightweight::Profiles)
 
 The header is self-contained and needs only C++23.
 
+A Lightweight build that fetched `reflection-cpp` at configure time (rather than through a package
+manager) does not install it, yet the package references it; in that case your project must provide
+`reflection-cpp` itself (a pre-existing limitation of the core package).
+
 ## The six functions
 
 All live in `Lightweight::Profiles`. The three that touch profiles take
@@ -117,7 +121,8 @@ auto const sameFile = [](std::filesystem::path const& a, std::filesystem::path c
   appended as the last layer. A relative path is made absolute against the working directory.
 - **`std::nullopt`:** only the per-user file is consulted: `~/.config/dbtool/dbtool.yml`
   (honouring `$XDG_CONFIG_HOME`) or `%APPDATA%\dbtool\dbtool.yml`, or `dbtool.yml` inside
-  `LIGHTWEIGHT_DBTOOL_USER_CONFIG_DIR` when that variable names an absolute directory.
+  `LIGHTWEIGHT_DBTOOL_USER_CONFIG_DIR` when that variable is set (a relative value resolves against
+  the working directory).
 - The layers are merged as dbtool merges them: the nearest file wins per profile name and per
   file-wide value, and a profile from a nearer file replaces a same-named one from a farther file as
   a whole. See [Where dbtool finds `dbtool.yml`](dbtool.md#where-dbtool-finds-dbtoolyml).
@@ -181,7 +186,7 @@ The installed library needs, next to or on the loader search path of your applic
 | Platform | Needed |
 |----------|--------|
 | Windows | `LightweightProfiles.dll`, plus `Lightweight.dll` (when built with `LIGHTWEIGHT_BUILD_SHARED=ON`), the yaml-cpp DLL under a dynamic vcpkg triplet, and the VC++ runtime. The install step bundles these next to the DLL unless `LIGHTWEIGHT_INSTALL_RUNTIME_DEPENDENCIES=OFF` (do that under a package manager that installs them itself). Put the install `bin` directory on `PATH` or next to your executable. |
-| Linux | `libLightweightProfiles.so` (with its SONAME links) in the install `lib` directory, plus `libcrypto` and yaml-cpp when they are shared libraries. Use an RPATH or `LD_LIBRARY_PATH`. |
+| Linux | `libLightweightProfiles.so` (with its SONAME links) in the install `lib` directory, plus `libLightweight.so` when built with `LIGHTWEIGHT_BUILD_SHARED=ON`, and `libcrypto` and yaml-cpp when they are shared libraries. Use an RPATH or `LD_LIBRARY_PATH`. |
 | macOS | `libLightweightProfiles.dylib`, plus yaml-cpp when shared. Use an RPATH or `DYLD_LIBRARY_PATH`. |
 
 When Lightweight is built with `LIGHTWEIGHT_BUILD_SHARED=OFF` (the non-Windows default), the library

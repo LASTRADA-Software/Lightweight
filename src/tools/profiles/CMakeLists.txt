@@ -32,9 +32,10 @@ target_compile_definitions(LightweightProfiles PRIVATE BUILD_LIGHTWEIGHT_PROFILE
 target_compile_features(LightweightProfiles PUBLIC cxx_std_23)
 target_link_libraries(LightweightProfiles PRIVATE tools_shared)
 
-# tools_shared and core Lightweight are static here, and libstdc++ template instantiations pulled in
-# by this library's own objects have default visibility: restrict the export table to the
-# Lightweight::Profiles namespace with a linker-level filter (ELF version script / Mach-O symbol list).
+# On POSIX, tools_shared is linked in statically (and so is core Lightweight unless
+# LIGHTWEIGHT_BUILD_SHARED=ON), and libstdc++ template instantiations pulled in by this library's
+# own objects have default visibility: restrict the export table to the Lightweight::Profiles
+# namespace with a linker-level filter (ELF version script / Mach-O symbol list).
 if(APPLE)
     # _ZN11Lightweight8Profiles* covers functions; typeinfo/vtable use _ZTI/_ZTS/_ZTV prefixes.
     target_link_options(LightweightProfiles PRIVATE
@@ -105,7 +106,7 @@ endif()
 if(WIN32 AND LIGHTWEIGHT_INSTALL_RUNTIME_DEPENDENCIES)
     install(RUNTIME_DEPENDENCY_SET profiles_deps
         PRE_EXCLUDE_REGEXES  "api-ms-.*" "ext-ms-.*"
-        POST_EXCLUDE_REGEXES ".*[Ss]ystem32[/\\].*\.dll"
+        POST_EXCLUDE_REGEXES ".*[Ss]ystem32[/\\\\].*\\.dll"
         DIRECTORIES "$<TARGET_FILE_DIR:LightweightProfiles>"
         DESTINATION ${CMAKE_INSTALL_BINDIR}
         COMPONENT Runtime

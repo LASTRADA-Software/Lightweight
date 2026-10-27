@@ -31,15 +31,15 @@ Bundled tools (in `src/tools/`): `dbtool` (general DB CLI), `ddl2cpp` (schema �
 | `src/Lightweight/SqlAdvisoryLock.hpp`     | Dialect-handler interface for the advisory lock; one impl per backend |
 | `src/Lightweight/SqlBackup/` (+ `.hpp`)   | Schema/data backup framework |
 | `src/Lightweight/Tools/`                  | Shared internal tools/utilities used by `src/tools/` binaries |
-| `src/tools/profiles/`                     | `Lightweight::Profiles` shared library: read/write `dbtool.yml` profiles from applications (`docs/profiles-library.md`) |
 | `src/Lightweight/Zip/`                    | libzip wrapper used by backup |
 | `src/Lightweight/Lightweight.cppm`        | C++20 module export aggregator (when `LIGHTWEIGHT_BUILD_MODULES=ON`) |
 | `src/tests/`                              | Catch2 test suite (built as `LightweightTest`); `.test-env.yml` consumed via `--test-env=<name>` |
 | `src/tools/`                              | `dbtool/`, `ddl2cpp.cpp`, `large-db-generator/`, `test_chinook.sh` |
+| `src/tools/profiles/`                     | `Lightweight::Profiles` shared library: read/write `dbtool.yml` profiles from applications (`docs/profiles-library.md`) |
 | `src/examples/`                           | Compilable usage samples + Chinook integration; `todo/` shows the async API driven through stdexec senders (`Async::AsSender`) |
 | `src/benchmark/`                          | Performance benchmarks |
 | `cmake/`                                  | `ClangTidy.cmake`, `Coverage.cmake`, `CoreCpp.cmake` (core-cpp for `dbtool`'s terminal output, fetched only with `LIGHTWEIGHT_BUILD_TOOLS`), `PedanticCompiler.cmake`, `Sanitizers.cmake`, `Version.cmake`, `Lightweight-config.cmake.in` |
-| `docs/`                                   | User-facing documentation (`data-binder.md`, `dbtool.md`, `how-to.md`, `sql-migrations.md`, `sqlquery.md`, `usage.md`, `best-practices.md`, `sql-backup-format.md`) |
+| `docs/`                                   | User-facing documentation (`data-binder.md`, `dbtool.md`, `profiles-library.md`, `how-to.md`, `sql-migrations.md`, `sqlquery.md`, `usage.md`, `best-practices.md`, `sql-backup-format.md`) |
 | `scripts/tests/docker-databases.py`       | Docker harness for MSSQL/Postgres test containers |
 | `.github/workflows/build.yml`             | Authoritative CI matrix (presets × databases × sanitizers) |
 | `.agent/`                                 | Agent deep-dives (architecture, databases, testing, C++ patterns) |
