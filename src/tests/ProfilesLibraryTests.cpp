@@ -210,39 +210,39 @@ TEST_CASE("ListProfiles returns an empty list when no file exists", "[profiles-l
 TEST_CASE("ListProfiles merges layers nearest first and appends the per-user file", "[profiles-lib]")
 {
     auto const fixture = ProfilesFixture {};
-    WriteFile(fixture.ConfigIn(fixture.App()), "profiles:\n  p1:\n    dsn: D1\n");
+    WriteFile(ProfilesFixture::ConfigIn(fixture.App()), "profiles:\n  p1:\n    dsn: D1\n");
     WriteFile(fixture.UserFile(), "profiles:\n  p1:\n    dsn: U1\n  p2:\n    dsn: U2\n");
 
     auto const list = Profiles::ListProfiles(fixture.Sub());
 
     REQUIRE(list.has_value());
-    CHECK(list->configFiles == std::vector<fs::path> { fixture.ConfigIn(fixture.App()), fixture.UserFile() });
+    CHECK(list->configFiles == std::vector<fs::path> { ProfilesFixture::ConfigIn(fixture.App()), fixture.UserFile() });
     REQUIRE(list->profiles.size() == 2);
     auto const byName = [&](std::string_view name) -> Profiles::ProfileSummary const& {
         return *std::ranges::find(list->profiles, name, &Profiles::ProfileSummary::name);
     };
     CHECK(byName("p1").dsn == "D1");
-    CHECK(byName("p1").configFile == fixture.ConfigIn(fixture.App()));
+    CHECK(byName("p1").configFile == ProfilesFixture::ConfigIn(fixture.App()));
     CHECK(byName("p2").configFile == fixture.UserFile());
 }
 
 TEST_CASE("ListProfiles never reads past a root layer", "[profiles-lib]")
 {
     auto const fixture = ProfilesFixture {};
-    WriteFile(fixture.ConfigIn(fixture.App()), "root: true\nprofiles:\n  p1:\n    dsn: D1\n");
+    WriteFile(ProfilesFixture::ConfigIn(fixture.App()), "root: true\nprofiles:\n  p1:\n    dsn: D1\n");
     WriteFile(fixture.UserFile(), "{{{ not yaml");
 
     auto const list = Profiles::ListProfiles(fixture.Sub());
 
     REQUIRE(list.has_value());
-    CHECK(list->configFiles == std::vector<fs::path> { fixture.ConfigIn(fixture.App()) });
-    CHECK(list->newProfileTarget == fixture.ConfigIn(fixture.App()));
+    CHECK(list->configFiles == std::vector<fs::path> { ProfilesFixture::ConfigIn(fixture.App()) });
+    CHECK(list->newProfileTarget == ProfilesFixture::ConfigIn(fixture.App()));
 }
 
 TEST_CASE("ListProfiles with no start directory reads only the per-user file", "[profiles-lib]")
 {
     auto const fixture = ProfilesFixture {};
-    WriteFile(fixture.ConfigIn(fixture.App()), "profiles:\n  appOnly:\n    dsn: D1\n");
+    WriteFile(ProfilesFixture::ConfigIn(fixture.App()), "profiles:\n  appOnly:\n    dsn: D1\n");
     WriteFile(fixture.UserFile(), "profiles:\n  userOnly:\n    dsn: U1\n");
 
     auto const list = Profiles::ListProfiles(std::nullopt);
@@ -255,7 +255,7 @@ TEST_CASE("ListProfiles with no start directory reads only the per-user file", "
 TEST_CASE("ListProfiles ignores LIGHTWEIGHT_DBTOOL_CONFIG_SEARCH_DIR", "[profiles-lib]")
 {
     auto const fixture = ProfilesFixture {};
-    WriteFile(fixture.ConfigIn(fixture.App()), "profiles:\n  appOnly:\n    dsn: D1\n");
+    WriteFile(ProfilesFixture::ConfigIn(fixture.App()), "profiles:\n  appOnly:\n    dsn: D1\n");
     WriteFile(fixture.UserFile(), "profiles:\n  userOnly:\n    dsn: U1\n");
     auto const searchDirectory =
         ScopedEnvironmentVariable { "LIGHTWEIGHT_DBTOOL_CONFIG_SEARCH_DIR", fixture.App().string() };
@@ -281,8 +281,9 @@ TEST_CASE("ListProfiles never returns a password", "[profiles-lib]")
 
     REQUIRE(list.has_value());
     REQUIRE(list->profiles.size() == 4);
-    auto const hasPassword =
-        list->profiles | std::views::transform(&Profiles::ProfileSummary::hasPassword) | std::ranges::to<std::vector>();
+    auto hasPassword = std::vector<bool> {};
+    for (auto const& summary: list->profiles)
+        hasPassword.push_back(summary.hasPassword);
     CHECK(hasPassword == std::vector<bool> { true, true, true, false });
     for (auto const& summary: list->profiles)
     {
@@ -300,7 +301,7 @@ TEST_CASE("ListProfiles never returns a password", "[profiles-lib]")
 TEST_CASE("ListProfiles reports defaultProfile", "[profiles-lib]")
 {
     auto const fixture = ProfilesFixture {};
-    WriteFile(fixture.ConfigIn(fixture.App()), "defaultProfile: p2\nprofiles:\n  p1:\n    dsn: D1\n");
+    WriteFile(ProfilesFixture::ConfigIn(fixture.App()), "defaultProfile: p2\nprofiles:\n  p1:\n    dsn: D1\n");
     WriteFile(fixture.UserFile(), "defaultProfile: p1\nprofiles:\n  p2:\n    dsn: U2\n");
 
     auto const list = Profiles::ListProfiles(fixture.Sub());
@@ -312,7 +313,7 @@ TEST_CASE("ListProfiles reports defaultProfile", "[profiles-lib]")
 TEST_CASE("ListProfiles reports an unparsable file by name", "[profiles-lib]")
 {
     auto const fixture = ProfilesFixture {};
-    WriteFile(fixture.ConfigIn(fixture.App()), "{{{");
+    WriteFile(ProfilesFixture::ConfigIn(fixture.App()), "{{{");
 
     auto const list = Profiles::ListProfiles(fixture.Sub());
 
@@ -324,14 +325,14 @@ TEST_CASE("ListProfiles handles a non-ASCII start directory", "[profiles-lib]")
 {
     auto const fixture = ProfilesFixture {};
     auto const startDirectory = fixture.Root() / fs::path(u8"Ämter-数据");
-    WriteFile(fixture.ConfigIn(startDirectory), "profiles:\n  p1:\n    dsn: D1\n");
+    WriteFile(ProfilesFixture::ConfigIn(startDirectory), "profiles:\n  p1:\n    dsn: D1\n");
 
     auto const list = Profiles::ListProfiles(startDirectory);
 
     REQUIRE(list.has_value());
     REQUIRE(list->profiles.size() == 1);
     CHECK(list->profiles.front().name == "p1");
-    CHECK(list->profiles.front().configFile == fixture.ConfigIn(startDirectory));
+    CHECK(list->profiles.front().configFile == ProfilesFixture::ConfigIn(startDirectory));
 }
 
 TEST_CASE("ListProfiles accepts a relative or missing start directory", "[profiles-lib]")
@@ -378,7 +379,7 @@ void AddDsnProfile(fs::path const& file,
 std::string ReadFileBytes(fs::path const& path)
 {
     auto input = std::ifstream(path, std::ios::binary);
-    return std::string(std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>());
+    return { std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>() };
 }
 
 } // namespace
@@ -626,25 +627,25 @@ TEST_CASE("SaveProfile then ListProfiles and ResolveProfileConnection see the pr
 TEST_CASE("SaveProfile writes a new profile into the root layer", "[profiles-lib]")
 {
     auto const fixture = ProfilesFixture {};
-    WriteFile(fixture.ConfigIn(fixture.App()), "root: true\nprofiles:\n  other:\n    dsn: O\n");
+    WriteFile(ProfilesFixture::ConfigIn(fixture.App()), "root: true\nprofiles:\n  other:\n    dsn: O\n");
 
     auto const saved = Profiles::SaveProfile(fixture.Sub(), Define("n", "D", "", "", ""));
 
     REQUIRE(saved.has_value());
-    CHECK(*saved == fixture.ConfigIn(fixture.App()));
+    CHECK(*saved == ProfilesFixture::ConfigIn(fixture.App()));
 }
 
 TEST_CASE("SaveProfile replaces a shadowing profile in its own layer only", "[profiles-lib]")
 {
     auto const fixture = ProfilesFixture {};
-    WriteFile(fixture.ConfigIn(fixture.App()), "profiles:\n  p1:\n    dsn: AppOld\n");
+    WriteFile(ProfilesFixture::ConfigIn(fixture.App()), "profiles:\n  p1:\n    dsn: AppOld\n");
     WriteFile(fixture.UserFile(), "profiles:\n  p1:\n    dsn: UserOld\n");
     auto const userBefore = ReadFile(fixture.UserFile());
 
     auto const saved = Profiles::SaveProfile(fixture.Sub(), Define("p1", "New", "", "", ""));
 
     REQUIRE(saved.has_value());
-    CHECK(*saved == fixture.ConfigIn(fixture.App()));
+    CHECK(*saved == ProfilesFixture::ConfigIn(fixture.App()));
     CHECK(ReadFile(fixture.UserFile()) == userBefore);
     auto const resolved = Profiles::ResolveProfileConnection(fixture.Sub(), "p1");
     REQUIRE(resolved.has_value());

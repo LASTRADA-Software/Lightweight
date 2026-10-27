@@ -38,7 +38,7 @@ std::expected<std::filesystem::path, std::string> SaveProfile(std::optional<std:
                                             Config::ReplaceExisting::Yes,
                                             Config::MakeDefault::No,
                                             Secrets::ProfileCipher::Builtin())
-                .transform([&] { return target; });
+                .transform([&] { return std::filesystem::path(target); });
         });
     });
 }

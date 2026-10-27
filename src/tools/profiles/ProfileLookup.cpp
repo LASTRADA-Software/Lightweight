@@ -37,7 +37,7 @@ std::string DisplayPath(std::filesystem::path const& path)
     try
     {
         auto const utf8 = path.u8string();
-        return std::string(reinterpret_cast<char const*>(utf8.data()), utf8.size());
+        return { reinterpret_cast<char const*>(utf8.data()), utf8.size() };
     }
     catch (...)
     {

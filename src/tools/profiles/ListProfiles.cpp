@@ -9,7 +9,6 @@
 #include <expected>
 #include <filesystem>
 #include <optional>
-#include <ranges>
 #include <string>
 
 namespace Lightweight::Profiles
