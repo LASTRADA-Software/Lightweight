@@ -103,11 +103,16 @@ namespace detail
         static constexpr auto value = SqlColumnTypeDefinitions::Bigint {};
     };
 
-    template <typename T>
-        requires(detail::OneOf<T, float, double>)
-    struct SqlColumnTypeDefinitionOf<T>
+    template <>
+    struct SqlColumnTypeDefinitionOf<float>
     {
-        static constexpr auto value = SqlColumnTypeDefinitions::Real {};
+        static constexpr auto value = SqlColumnTypeDefinitions::Real { .precision = 24 };
+    };
+
+    template <>
+    struct SqlColumnTypeDefinitionOf<double>
+    {
+        static constexpr auto value = SqlColumnTypeDefinitions::Real { .precision = 53 };
     };
 
     template <size_t N, typename CharT>

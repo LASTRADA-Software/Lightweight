@@ -2913,6 +2913,10 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder: construct string out of query
     }
 }
 
+// A C++ float maps to a 32-bit column, a double to a 64-bit one.
+static_assert(detail::SqlColumnTypeDefinitionOf<float>::value == SqlColumnTypeDefinitions::Real { .precision = 24 });
+static_assert(detail::SqlColumnTypeDefinitionOf<double>::value == SqlColumnTypeDefinitions::Real { .precision = 53 });
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryFormatter.ColumnType per dialect", "[SqlQueryFormatter]")
 {
     using namespace SqlColumnTypeDefinitions;
@@ -2946,6 +2950,8 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryFormatter.ColumnType per dialect", "[S
         ColumnTypeExpectation {
             .type = NVarchar { 0 }, .sqlite = "NVARCHAR(0)", .postgres = "TEXT", .sqlServer = "NVARCHAR(MAX)" },
         ColumnTypeExpectation { .type = Real {}, .sqlite = "REAL", .postgres = "REAL", .sqlServer = "REAL" },
+        ColumnTypeExpectation {
+            .type = Real { .precision = 24 }, .sqlite = "REAL", .postgres = "REAL", .sqlServer = "REAL" },
         ColumnTypeExpectation {
             .type = Real { .precision = 53 }, .sqlite = "REAL", .postgres = "DOUBLE PRECISION", .sqlServer = "FLOAT(53)" },
         ColumnTypeExpectation { .type = Smallint {}, .sqlite = "SMALLINT", .postgres = "SMALLINT", .sqlServer = "SMALLINT" },

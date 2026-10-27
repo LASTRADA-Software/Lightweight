@@ -360,6 +360,7 @@ auto const SampleDateTime =
 // 2.5 is a dyadic rational, so it is exact in both 4- and 8-byte floating point and cannot be
 // perturbed by a driver that routes the value through a text intermediate representation.
 constexpr auto SampleDouble = 2.5;
+constexpr auto SampleFloat = 2.5F;
 
 // Exactly the declared width of the fixed-width character columns, so CHAR(n) padding — which the
 // backends apply inconsistently — never enters the value comparison.
@@ -416,6 +417,31 @@ std::vector<TypeRoundTripCase> const& RoundTripCases()
           .recoveredType = { .base = Exactly(SqlColumnTypeDefinition { Real { .precision = 53 } }) },
           .cxxType = { .base = Exactly(std::string { "double" }) },
           .sample = SampleOf(SampleDouble) },
+
+        { .columnName = "floatCol",
+          .declaredType = Real { .precision = 24 },
+          .recoveredType = { .base = Exactly(SqlColumnTypeDefinition { Real { .precision = 24 } }),
+                             .deviations = { { .serverType = SqlServerType::SQLITE,
+                                               .requirement = Exactly(SqlColumnTypeDefinition { Real { .precision = 53 } }),
+                                               .reason = "SQLite stores every REAL in 8 bytes" } } },
+          .cxxType = { .base = Exactly(std::string { "float" }),
+                       .deviations = { { .serverType = SqlServerType::SQLITE,
+                                         .requirement = Exactly(std::string { "double" }),
+                                         .reason = "SQLite stores every REAL in 8 bytes" } } },
+          .sample = SampleOf(SampleFloat) },
+
+        // A Real without a precision is created as the 4-byte REAL.
+        { .columnName = "unsizedRealCol",
+          .declaredType = Real {},
+          .recoveredType = { .base = Exactly(SqlColumnTypeDefinition { Real { .precision = 24 } }),
+                             .deviations = { { .serverType = SqlServerType::SQLITE,
+                                               .requirement = Exactly(SqlColumnTypeDefinition { Real { .precision = 53 } }),
+                                               .reason = "SQLite stores every REAL in 8 bytes" } } },
+          .cxxType = { .base = Exactly(std::string { "float" }),
+                       .deviations = { { .serverType = SqlServerType::SQLITE,
+                                         .requirement = Exactly(std::string { "double" }),
+                                         .reason = "SQLite stores every REAL in 8 bytes" } } },
+          .sample = SampleOf(SampleFloat) },
 
         // -------------------------------------------------------------------------------- boolean
         { .columnName = "boolCol",

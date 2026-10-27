@@ -403,9 +403,12 @@ TEST_CASE("MakeColumnTypeFromMssqlSysType maps numeric types", "[schema-mapping]
     CHECK(Map("money", 8, 19, 4) == SqlColumnTypeDefinition { Decimal { .precision = 19, .scale = 4 } });
     // smallmoney: precision 10, scale 4.
     CHECK(Map("smallmoney", 4, 10, 4) == SqlColumnTypeDefinition { Decimal { .precision = 10, .scale = 4 } });
-    // float/real both collapse to Real{53} (matches the legacy MSSQL float fixup).
+    // float/real report their true sys.columns width.
     CHECK(Map("float", 8, 53, 0) == SqlColumnTypeDefinition { Real { .precision = 53 } });
-    CHECK(Map("real", 4, 24, 0) == SqlColumnTypeDefinition { Real { .precision = 53 } });
+    CHECK(Map("real", 4, 24, 0) == SqlColumnTypeDefinition { Real { .precision = 24 } });
+    CHECK(Map("float", 4, 24, 0) == SqlColumnTypeDefinition { Real { .precision = 24 } });
+    // An unknown precision must never narrow the column.
+    CHECK(Map("float", 8, 0, 0) == SqlColumnTypeDefinition { Real { .precision = 53 } });
 }
 
 TEST_CASE("MakeColumnTypeFromMssqlSysType maps non-Unicode character types", "[schema-mapping]")
@@ -680,6 +683,47 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadAllTables resolves MS SQL Serve
     (void) stmt.ExecuteDirect(R"(DROP TABLE "AliasProbe")");
     (void) stmt.ExecuteDirect(R"(DROP TYPE IF EXISTS "LightweightAliasNVarchar")");
     (void) stmt.ExecuteDirect(R"(DROP TYPE IF EXISTS "LightweightAliasVarchar")");
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlSchema reports the true width of MS SQL Server float columns", "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::SQLITE);
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::POSTGRESQL);
+
+    // float(1..24) is stored as the 4-byte real, float(25..53) as the 8-byte float.
+    (void) stmt.ExecuteDirect(R"(DROP TABLE IF EXISTS "FloatWidthProbe")"); // may survive a failed run
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "FloatWidthProbe" ("realColumn" real NULL,
+                                                                 "float10Column" float(10) NULL,
+                                                                 "float24Column" float(24) NULL,
+                                                                 "float25Column" float(25) NULL,
+                                                                 "floatColumn" float NULL))");
+
+    using Lightweight::SqlColumnTypeDefinitions::Real;
+    auto const expectedTypes = std::vector<SqlColumnTypeDefinition> {
+        Real { .precision = 24 }, Real { .precision = 24 }, Real { .precision = 24 },
+        Real { .precision = 53 }, Real { .precision = 53 },
+    };
+    auto const columnTypes = [](SqlSchema::Table const& table) {
+        auto types = std::vector<SqlColumnTypeDefinition> {};
+        for (auto const& column: table.columns)
+            types.push_back(column.type);
+        return types;
+    };
+
+    // ReadAllTables takes the batched sys.columns path, ReadTable the per-table SQLColumns path.
+    auto const database = stmt.Connection().DatabaseName();
+    auto const tables = SqlSchema::ReadAllTables(stmt, database, /*schema=*/"");
+    auto const fromAll = std::ranges::find(tables, "FloatWidthProbe", &SqlSchema::Table::name);
+    REQUIRE(fromAll != tables.end());
+    CHECK(columnTypes(*fromAll) == expectedTypes);
+
+    auto const single = SqlSchema::ReadTable(
+        stmt, SqlSchema::FullyQualifiedTableName { .catalog = database, .schema = "", .table = "FloatWidthProbe" });
+    REQUIRE(single.has_value());
+    CHECK(columnTypes(single.value_or(SqlSchema::Table {})) == expectedTypes);
+
+    (void) stmt.ExecuteDirect(R"(DROP TABLE "FloatWidthProbe")");
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlSchema does not carry a foreign key onto the columns that follow it", "[SqlSchema]")
