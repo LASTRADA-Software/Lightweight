@@ -10,7 +10,7 @@ target_compile_definitions(LightweightTest PRIVATE BUILD_TESTS)
 # The `zip` target is resolved once in the root CMakeLists.txt for every platform (find_package
 # first, CPM fallback if not found — #543); re-resolving libzip here would hard-fail a build that
 # reached the target only via the CPM fallback.
-set(TEST_LIBRARIES Catch2::Catch2 Lightweight::Lightweight Lightweight::Tools yaml-cpp::yaml-cpp dbtool_lib zip nlohmann_json::nlohmann_json)
+set(TEST_LIBRARIES Catch2::Catch2 Lightweight::Lightweight Lightweight::Tools yaml-cpp::yaml-cpp dbtool_lib Lightweight::Profiles zip nlohmann_json::nlohmann_json)
 if(MSVC)
     # clang-cl does not support /MP
     if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -57,6 +57,7 @@ set(SOURCE_FILES
     ProfileFileEditorTests.cpp
     ProfilePasswordTests.cpp
     ProfileCipherTests.cpp
+    ProfilesLibraryTests.cpp
     PreMigrateStepTests.cpp
     ProgressTaskTests.cpp
     UnicodeUpgradeProgressTests.cpp
@@ -228,3 +229,11 @@ add_test(NAME DbtoolKeyRingConfigTest
     COMMAND ${CMAKE_COMMAND} -P ${PROJECT_SOURCE_DIR}/cmake/tests/DbtoolKeyRingTest.cmake
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# The Lightweight::Profiles shared library must export nothing but its own namespace (POSIX only:
+# Windows exports nothing without __declspec).
+if(UNIX)
+    add_test(NAME ProfilesExportsTest
+        COMMAND ${CMAKE_COMMAND} -DLIB=$<TARGET_FILE:LightweightProfiles> -P ${PROJECT_SOURCE_DIR}/cmake/tests/ProfilesExportsTest.cmake
+    )
+endif()

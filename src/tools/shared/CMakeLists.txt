@@ -59,6 +59,10 @@ add_library(tools_shared STATIC
 
 target_compile_features(tools_shared PUBLIC cxx_std_23)
 
+# Hidden so that the Lightweight::Profiles shared library, which embeds this archive, does not
+# re-export the key ring, ProfileCipher or Config::* on ELF/Mach-O.
+set_target_properties(tools_shared PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON)
+
 # The version `ToolVersion` stamps into schema_backups records.
 target_compile_definitions(tools_shared PRIVATE LIGHTWEIGHT_TOOLS_VERSION="${LIGHTWEIGHT_VERSION_STRING}")
 
