@@ -232,6 +232,23 @@ add_test(NAME DbtoolKeyRingConfigTest
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+# The installed package must provide Lightweight::Profiles to a standalone consumer. The toolchain
+# settings of this build are forwarded so the consumer is configured exactly like the library was.
+string(REPLACE ";" "|" _profiles_pkg_prefix_path "${CMAKE_PREFIX_PATH}")
+add_test(NAME ProfilesPackageTest
+    COMMAND ${CMAKE_COMMAND}
+        -DBUILD_DIR=${CMAKE_BINARY_DIR}
+        -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+        "-DGENERATOR=${CMAKE_GENERATOR}"
+        "-DMAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}"
+        "-DTOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}"
+        "-DTARGET_TRIPLET=${VCPKG_TARGET_TRIPLET}"
+        "-DPREFIX_PATH=${_profiles_pkg_prefix_path}"
+        "-DBUILD_TYPE=${CMAKE_BUILD_TYPE}"
+        "-DCXX_COMPILER=${CMAKE_CXX_COMPILER}"
+        -P ${PROJECT_SOURCE_DIR}/cmake/tests/ProfilesPackageTest.cmake
+)
+
 # The Lightweight::Profiles shared library must export nothing but its own namespace (POSIX only:
 # Windows exports nothing without __declspec).
 if(UNIX)

@@ -55,3 +55,59 @@ if(CLANG_TIDY_EXE)
 endif()
 
 enable_coverage_for_target(LightweightProfiles)
+
+# ==================================================================================================
+# Install: same component split and package as core Lightweight (Lightweight-config.cmake pulls in
+# LightweightProfiles-targets.cmake when it was installed). Only built with LIGHTWEIGHT_BUILD_TOOLS,
+# so a package installed without tools simply has no Lightweight::Profiles.
+
+include(GNUInstallDirs)
+
+if(NOT WIN32)
+    set_target_properties(LightweightProfiles PROPERTIES
+        VERSION "${CMAKE_PROJECT_VERSION}"
+        SOVERSION "${CMAKE_PROJECT_VERSION_MAJOR}"
+    )
+endif()
+
+install(TARGETS LightweightProfiles
+    EXPORT LightweightProfiles-targets
+    RUNTIME_DEPENDENCY_SET profiles_deps
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}     COMPONENT Runtime      # DLL on Windows
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}     COMPONENT Runtime      # .so / .dylib and SONAME links
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}     COMPONENT Development  # Windows import library
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+install(DIRECTORY include/
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    COMPONENT Development
+    FILES_MATCHING PATTERN "*.hpp"
+)
+
+install(EXPORT LightweightProfiles-targets
+    NAMESPACE Lightweight::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Lightweight
+    COMPONENT Development
+)
+
+if(WIN32)
+    install(FILES $<TARGET_PDB_FILE:LightweightProfiles>
+        DESTINATION ${CMAKE_INSTALL_BINDIR}
+        CONFIGURATIONS Debug RelWithDebInfo
+        COMPONENT DebugSymbols
+        OPTIONAL
+    )
+endif()
+
+# Bundle the transitive runtime DLLs (Lightweight.dll, yaml-cpp, VC++ runtime, ...) the way dbtool
+# does; off under a package manager that installs them from their own packages.
+if(WIN32 AND LIGHTWEIGHT_INSTALL_RUNTIME_DEPENDENCIES)
+    install(RUNTIME_DEPENDENCY_SET profiles_deps
+        PRE_EXCLUDE_REGEXES  "api-ms-.*" "ext-ms-.*"
+        POST_EXCLUDE_REGEXES ".*[Ss]ystem32[/\\].*\.dll"
+        DIRECTORIES "$<TARGET_FILE_DIR:LightweightProfiles>"
+        DESTINATION ${CMAKE_INSTALL_BINDIR}
+        COMPONENT Runtime
+    )
+endif()

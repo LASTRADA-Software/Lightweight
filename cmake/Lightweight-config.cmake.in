@@ -5,4 +5,10 @@ if(NOT TARGET Lightweight::Lightweight)
     include(${CMAKE_CURRENT_LIST_DIR}/Lightweight-targets.cmake)
 endif()
 
+# Lightweight::Profiles exists only when the package was installed from a build with
+# LIGHTWEIGHT_BUILD_TOOLS=ON; without it this file is absent and the package is still valid.
+if(NOT TARGET Lightweight::Profiles)
+    include("${CMAKE_CURRENT_LIST_DIR}/LightweightProfiles-targets.cmake" OPTIONAL)
+endif()
+
 message(STATUS "Found @PROJECT_NAME@, with version: ${@PROJECT_NAME@_VERSION}")

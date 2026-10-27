@@ -31,6 +31,7 @@ Bundled tools (in `src/tools/`): `dbtool` (general DB CLI), `ddl2cpp` (schema â†
 | `src/Lightweight/SqlAdvisoryLock.hpp`     | Dialect-handler interface for the advisory lock; one impl per backend |
 | `src/Lightweight/SqlBackup/` (+ `.hpp`)   | Schema/data backup framework |
 | `src/Lightweight/Tools/`                  | Shared internal tools/utilities used by `src/tools/` binaries |
+| `src/tools/profiles/`                     | `Lightweight::Profiles` shared library: read/write `dbtool.yml` profiles from applications (`docs/profiles-library.md`) |
 | `src/Lightweight/Zip/`                    | libzip wrapper used by backup |
 | `src/Lightweight/Lightweight.cppm`        | C++20 module export aggregator (when `LIGHTWEIGHT_BUILD_MODULES=ON`) |
 | `src/tests/`                              | Catch2 test suite (built as `LightweightTest`); `.test-env.yml` consumed via `--test-env=<name>` |
