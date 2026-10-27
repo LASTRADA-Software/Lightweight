@@ -12,7 +12,9 @@
 #include <algorithm>
 #include <expected>
 #include <filesystem>
+#include <format>
 #include <fstream>
+#include <iterator>
 #include <optional>
 #include <ranges>
 #include <stdexcept>
@@ -21,6 +23,7 @@
 #include <vector>
 
 #include <Config/ConfigDiscovery.hpp>
+#include <Config/ProfileAdd.hpp>
 #include <Config/ProfileStore.hpp>
 #include <Secrets/ProfileCipher.hpp>
 #include <profiles/Guarded.hpp>
@@ -343,4 +346,197 @@ TEST_CASE("ListProfiles accepts a relative or missing start directory", "[profil
         REQUIRE(list.has_value());
         CHECK(!list->profiles.empty());
     }
+}
+
+namespace
+{
+
+/// Adds a DSN profile with a plaintext @p password (encrypted on write) to @p file.
+void AddDsnProfile(fs::path const& file,
+                   std::string name,
+                   std::string password = {},
+                   Config::MakeDefault makeDefault = Config::MakeDefault::No)
+{
+    auto request = Config::ProfileRequest {};
+    request.name = std::move(name);
+    request.dsn = "DSN1";
+    request.uid = "u";
+    request.password = std::move(password);
+    auto const added =
+        Config::AddProfileToFile(file, request, Config::ReplaceExisting::No, makeDefault, Secrets::ProfileCipher::Builtin());
+    REQUIRE(added.has_value());
+}
+
+/// The raw bytes of @p path.
+std::string ReadFileBytes(fs::path const& path)
+{
+    auto input = std::ifstream(path, std::ios::binary);
+    return std::string(std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>());
+}
+
+} // namespace
+
+TEST_CASE("ResolveProfileConnection decrypts an encrypted password", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+    AddDsnProfile(fixture.UserFile(), "p1", "pw-\xC3\x84");
+
+    auto const result = Profiles::ResolveProfileConnection(fixture.Sub(), "p1");
+
+    REQUIRE(result.has_value());
+    CHECK(result->name == "p1");
+    CHECK(result->dsn == "DSN1");
+    CHECK(result->uid == "u");
+    CHECK(result->password == "pw-\xC3\x84");
+    CHECK(result->configFile == fixture.UserFile());
+}
+
+TEST_CASE("ResolveProfileConnection returns a plaintext password unchanged and leaves the file untouched", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+    WriteFile(fixture.UserFile(), "profiles:\n  p1:\n    dsn: D\n    password: \"plain-pw\"\n");
+    auto const before = ReadFileBytes(fixture.UserFile());
+
+    auto const result = Profiles::ResolveProfileConnection(fixture.Sub(), "p1");
+
+    REQUIRE(result.has_value());
+    CHECK(result->password == "plain-pw");
+    CHECK(ReadFileBytes(fixture.UserFile()) == before);
+}
+
+TEST_CASE("ResolveProfileConnection resolves secretRef from the environment", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+    WriteFile(fixture.UserFile(), "profiles:\n  p1:\n    dsn: D\n    secretRef: \"env:LW_PROFILES_TEST_PWD\"\n");
+    auto const password = ScopedEnvironmentVariable { "LW_PROFILES_TEST_PWD", "from-env" };
+
+    auto const result = Profiles::ResolveProfileConnection(fixture.Sub(), "p1");
+
+    REQUIRE(result.has_value());
+    CHECK(result->password == "from-env");
+}
+
+TEST_CASE("ResolveProfileConnection uses defaultProfile for an empty name", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+    AddDsnProfile(fixture.UserFile(), "p1");
+    AddDsnProfile(fixture.UserFile(), "p2", {}, Config::MakeDefault::Yes);
+
+    auto const result = Profiles::ResolveProfileConnection(fixture.Sub(), "");
+
+    REQUIRE(result.has_value());
+    CHECK(result->name == "p2");
+}
+
+TEST_CASE("ResolveProfileConnection errors when no default is set", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+    AddDsnProfile(fixture.UserFile(), "p1");
+    AddDsnProfile(fixture.UserFile(), "p2");
+
+    auto const result = Profiles::ResolveProfileConnection(fixture.Sub(), "");
+
+    REQUIRE(!result.has_value());
+    CHECK(result.error().find("defaultProfile") != std::string::npos);
+    CHECK(result.error().find("dbtool.yml") != std::string::npos);
+}
+
+TEST_CASE("ResolveProfileConnection errors when defaultProfile names a missing profile", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+    WriteFile(fixture.UserFile(), "defaultProfile: gone\nprofiles:\n  p1:\n    dsn: D\n  p2:\n    dsn: D\n");
+
+    auto const result = Profiles::ResolveProfileConnection(fixture.Sub(), "");
+
+    REQUIRE(!result.has_value());
+    CHECK(result.error().find("gone") != std::string::npos);
+}
+
+TEST_CASE("ResolveProfileConnection resolves a legacy single-profile file by default", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+    WriteFile(fixture.UserFile(), "ConnectionString: \"DSN=Legacy\"\nPassword: \"legacy-pw\"\n");
+
+    auto const result = Profiles::ResolveProfileConnection(fixture.Sub(), "");
+
+    REQUIRE(result.has_value());
+    CHECK(result->name == "default");
+    CHECK(result->connectionString == "DSN=Legacy");
+    CHECK(result->password == "legacy-pw");
+}
+
+TEST_CASE("ResolveProfileConnection errors for an unknown profile", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+
+    SECTION("with a file")
+    {
+        AddDsnProfile(fixture.UserFile(), "p1");
+        auto const result = Profiles::ResolveProfileConnection(fixture.Sub(), "nope");
+        REQUIRE(!result.has_value());
+        CHECK(result.error().find("nope") != std::string::npos);
+        CHECK(result.error().find("dbtool.yml") != std::string::npos);
+    }
+
+    SECTION("without any file the per-user path is named")
+    {
+        auto const result = Profiles::ResolveProfileConnection(fixture.Sub(), "nope");
+        REQUIRE(!result.has_value());
+        CHECK(result.error().find("nope") != std::string::npos);
+        CHECK(result.error().find("(not found)") != std::string::npos);
+        CHECK(result.error().find("dbtool.yml") != std::string::npos);
+    }
+}
+
+TEST_CASE("ResolveProfileConnection errors for a profile without dsn or connection string", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+    WriteFile(fixture.UserFile(), "profiles:\n  p1:\n    uid: u\n");
+
+    auto const result = Profiles::ResolveProfileConnection(fixture.Sub(), "p1");
+
+    REQUIRE(!result.has_value());
+    CHECK(result.error().find("p1") != std::string::npos);
+}
+
+TEST_CASE("ResolveProfileConnection reports an unknown key id without the secret", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+    constexpr auto Payload = "U0VDUkVUUEFZTE9BREJZVEVTMDEyMzQ1Njc4OWFiY2RlZg"sv;
+    WriteFile(fixture.UserFile(), std::format("profiles:\n  p1:\n    dsn: D\n    password: \"enc:zz:{}\"\n", Payload));
+
+    auto const result = Profiles::ResolveProfileConnection(fixture.Sub(), "p1");
+
+    REQUIRE(!result.has_value());
+    CHECK(result.error().find("p1") != std::string::npos);
+    CHECK(result.error().find(Payload) == std::string::npos);
+}
+
+#if !defined(_WIN32)
+TEST_CASE("ResolveProfileConnection returns an error instead of throwing for a world-readable secret file", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+    auto const credentials = fixture.Root() / "xdg" / "Lightweight" / "credentials";
+    WriteFile(credentials, "p1:u:file-secret\n");
+    fs::permissions(credentials,
+                    fs::perms::owner_read | fs::perms::owner_write | fs::perms::group_read | fs::perms::others_read);
+    auto const configHome = ScopedEnvironmentVariable { "XDG_CONFIG_HOME", (fixture.Root() / "xdg").string() };
+    WriteFile(fixture.UserFile(), "profiles:\n  p1:\n    dsn: D\n    secretRef: \"file:p1\"\n");
+
+    auto const result = Profiles::ResolveProfileConnection(fixture.Sub(), "p1");
+
+    REQUIRE(!result.has_value());
+    CHECK(result.error().find("file-secret") == std::string::npos);
+}
+#endif
+
+TEST_CASE("ResolveProfileConnection returns the connection string unsanitised", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+    WriteFile(fixture.UserFile(), "profiles:\n  p1:\n    connectionString: \"DRIVER=x;UID=u;PWD=cs-secret\"\n");
+
+    auto const result = Profiles::ResolveProfileConnection(fixture.Sub(), "p1");
+
+    REQUIRE(result.has_value());
+    CHECK(result->connectionString == "DRIVER=x;UID=u;PWD=cs-secret");
 }
