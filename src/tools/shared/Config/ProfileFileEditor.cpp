@@ -6,9 +6,11 @@
 #include <array>
 #include <cerrno>
 #include <chrono>
+#include <cstdint>
 #include <format>
 #include <fstream>
 #include <iterator>
+#include <memory>
 #include <optional>
 #include <random>
 #include <ranges>
@@ -527,29 +529,71 @@ namespace
         return std::string { text.begin(), text.end() };
     }
 
-    /// The error of the stream open that just failed, as an `std::error_code`.
-    std::error_code LastOpenError() noexcept
+    /// How a write treats an existing target.
+    enum class WriteMode : std::uint8_t
     {
+        /// Fail if the file exists (the temporary sibling).
+        CreateNew,
+        /// Truncate the existing file (the in-place fallback).
+        TruncateExisting,
+    };
+
 #if defined(_WIN32)
-        if (::GetLastError() == ERROR_ACCESS_DENIED)
+    /// Closes a Win32 file handle.
+    struct HandleCloser
+    {
+        void operator()(void* handle) const noexcept
+        {
+            ::CloseHandle(handle);
+        }
+    };
+
+    /// Maps a Win32 error to an error code; access denied is the permission error the fallback keys on.
+    std::error_code ErrorCodeFromWin32(DWORD error) noexcept
+    {
+        if (error == ERROR_ACCESS_DENIED)
             return std::make_error_code(std::errc::permission_denied);
-        return std::make_error_code(std::errc::io_error);
-#else
-        return std::error_code(errno != 0 ? errno : EIO, std::generic_category());
-#endif
+        return std::error_code(static_cast<int>(error), std::system_category());
     }
 
-    /// Writes `bytes` into `path`, truncating it; `path` is created if absent.
-    std::expected<void, std::error_code> WriteTruncating(std::filesystem::path const& path, std::string_view bytes)
+    /// Writes `bytes` into `path` with the native API, so the failure's Win32 error is read
+    /// immediately at the failing call instead of after unrelated library code has run.
+    std::expected<void, std::error_code> WriteFileBytes(std::filesystem::path const& path,
+                                                        std::string_view bytes,
+                                                        WriteMode mode)
+    {
+        auto const disposition = mode == WriteMode::CreateNew ? CREATE_NEW : TRUNCATE_EXISTING;
+        auto const handle = ::CreateFileW(
+            path.c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, disposition, FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (handle == INVALID_HANDLE_VALUE)
+            return std::unexpected(ErrorCodeFromWin32(::GetLastError()));
+        auto const owner = std::unique_ptr<void, HandleCloser> { handle };
+
+        while (!bytes.empty())
+        {
+            auto const chunk = static_cast<DWORD>(std::min<std::size_t>(bytes.size(), 1U << 20));
+            auto written = DWORD { 0 };
+            if (!::WriteFile(handle, bytes.data(), chunk, &written, nullptr))
+                return std::unexpected(ErrorCodeFromWin32(::GetLastError()));
+            bytes.remove_prefix(written);
+        }
+        return {};
+    }
+#else
+    /// Writes `bytes` into `path`; the failing open's errno is read right after the open.
+    std::expected<void, std::error_code> WriteFileBytes(std::filesystem::path const& path,
+                                                        std::string_view bytes,
+                                                        WriteMode /*mode*/)
     {
         auto out = std::ofstream(path, std::ios::binary | std::ios::trunc);
         if (!out)
-            return std::unexpected(LastOpenError());
+            return std::unexpected(std::error_code(errno != 0 ? errno : EIO, std::generic_category()));
         out.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
         if (!out.flush())
             return std::unexpected(std::make_error_code(std::errc::io_error));
         return {};
     }
+#endif
 
     /// Whether `ec` means the directory (not the file) refused the write.
     bool IsPermissionError(std::error_code const& ec) noexcept
@@ -566,16 +610,22 @@ namespace
         auto const written = ops.overwriteInPlace(path, edited);
         if (written)
             return {};
-        (void) ops.overwriteInPlace(path, original);
-        return std::unexpected(std::format(
-            "cannot write {}: {}; the original content was restored", Utf8FromPath(path), written.error().message()));
+        auto const outcome = ops.overwriteInPlace(path, original) ? "the original content was restored"
+                                                                  : "the original content could not be restored";
+        return std::unexpected(
+            std::format("cannot write {}: {}; {}", Utf8FromPath(path), written.error().message(), outcome));
     }
 
 } // namespace
 
 ConfigFileOps DefaultConfigFileOps()
 {
-    return ConfigFileOps { .writeNewFile = WriteTruncating, .overwriteInPlace = WriteTruncating };
+    return ConfigFileOps {
+        .writeNewFile = [](std::filesystem::path const& path,
+                           std::string_view bytes) { return WriteFileBytes(path, bytes, WriteMode::CreateNew); },
+        .overwriteInPlace = [](std::filesystem::path const& path,
+                               std::string_view bytes) { return WriteFileBytes(path, bytes, WriteMode::TruncateExisting); },
+    };
 }
 
 std::expected<void, std::string> EditConfigFile(std::filesystem::path const& path,

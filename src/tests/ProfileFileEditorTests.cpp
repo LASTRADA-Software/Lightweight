@@ -410,6 +410,36 @@ TEST_CASE("ProfileFileEditor — EditConfigFile restores the original bytes when
     CHECK(writtenBytes == std::vector<std::string> { "a: 1\nb: 2\n", "a: 1\n" });
 }
 
+TEST_CASE("ProfileFileEditor — EditConfigFile reports when the original content could not be restored",
+          "[ProfileFileEditor]")
+{
+    TempFile const file("a: 1\n");
+    auto ops = FailingNewFile(std::errc::permission_denied);
+    ops.overwriteInPlace = [](fs::path const&, std::string_view) -> std::expected<void, std::error_code> {
+        return std::unexpected(std::make_error_code(std::errc::no_space_on_device));
+    };
+    auto const result = Cfg::EditConfigFile(file.Path(), AppendSecondKey, ops);
+    REQUIRE_FALSE(result.has_value());
+    CHECK(result.error().contains("the original content could not be restored"));
+    CHECK_FALSE(result.error().contains("was restored"));
+}
+
+#ifdef _WIN32
+TEST_CASE("ProfileFileEditor — default file writes report access denied as a permission error", "[ProfileFileEditor]")
+{
+    // CreateFileW on a directory fails with ERROR_ACCESS_DENIED, the error the in-place fallback keys on.
+    TempFile const file("a: 1\n");
+    auto const ops = Cfg::DefaultConfigFileOps();
+    auto const result = ops.overwriteInPlace(file.Path().parent_path(), "x");
+    REQUIRE_FALSE(result.has_value());
+    CHECK(result.error() == std::errc::permission_denied);
+
+    auto const existing = ops.writeNewFile(file.Path(), "x");
+    REQUIRE_FALSE(existing.has_value());
+    CHECK(file.Read() == "a: 1\n");
+}
+#endif
+
 #if !defined(_WIN32)
 /// Makes a directory non-writable for the owner; the write permission returns on scope exit.
 class ReadOnlyDirectory

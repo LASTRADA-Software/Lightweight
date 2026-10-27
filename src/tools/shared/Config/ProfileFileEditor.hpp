@@ -120,13 +120,19 @@ struct ConfigFileOps
 
 /// Reads `path` (an absent file reads as empty), applies `transform` and writes
 /// the result atomically (temporary file in the same directory, then rename),
-/// creating parent directories as needed. The file is untouched on any failure.
+/// creating parent directories as needed. The file is untouched on any failure,
+/// except a failed in-place write (see below).
 ///
 /// When the temporary file cannot be created because the directory is not
 /// writable (permission denied / operation not permitted) but `path` itself
-/// exists, the result is instead written into `path` in place. That fallback is
-/// not atomic and writes through symlinks; if it fails midway the original
-/// bytes are written back. A missing file never takes the fallback.
+/// exists, the result is instead written into `path` in place. That fallback:
+///  - is not atomic; if the write fails midway the original bytes are written
+///    back, and the error says whether that restore succeeded;
+///  - writes *through* a symlink, whereas the rename path replaces the link itself;
+///  - is what handles a file that is modifiable while its directory is not. On
+///    Windows the up-front read-only check only sees the read-only attribute,
+///    not ACLs, so such files reach the fallback.
+/// A missing file never takes the fallback.
 /// @param path Configuration file.
 /// @param transform Edit to apply.
 /// @param ops File writes to use; tests inject failing ones.
