@@ -39,6 +39,12 @@ using namespace std::string_view_literals;
 namespace
 {
 
+/// A secret that cannot occur by chance in base64 ciphertext or in a path: long and containing
+/// characters outside the base64 alphabet. Use it wherever a test asserts a secret is absent.
+constexpr auto DistinctSecret = "pw-NOT-IN-FILE_7#"sv;
+/// A second distinct secret, for tests needing two different ones.
+constexpr auto OtherDistinctSecret = "cs-NOT-IN-FILE_8#"sv;
+
 /// Writes @p text to @p path, creating missing parent directories.
 void WriteFile(fs::path const& path, std::string_view text)
 {
@@ -118,24 +124,24 @@ class ProfilesFixture
 
 TEST_CASE("EncryptPassword and DecryptPassword round-trip", "[profiles-lib]")
 {
-    auto const encrypted = Profiles::EncryptPassword("s3cr3t-\xC3\x84");
+    auto const encrypted = Profiles::EncryptPassword("pw-NOT-IN-FILE_7#-\xC3\x84");
     REQUIRE(encrypted.has_value());
     REQUIRE(Profiles::IsEncryptedPassword(*encrypted));
-    CHECK(encrypted->find("s3cr3t") == std::string::npos);
+    CHECK(encrypted->find("pw-NOT-IN-FILE_7#") == std::string::npos);
 
     auto const decrypted = Profiles::DecryptPassword(*encrypted);
     REQUIRE(decrypted.has_value());
-    CHECK(*decrypted == "s3cr3t-\xC3\x84");
+    CHECK(*decrypted == "pw-NOT-IN-FILE_7#-\xC3\x84");
 }
 
 TEST_CASE("DecryptPassword of a plaintext or garbled value is an error without the input", "[profiles-lib]")
 {
-    for (auto const input: { "plain"sv, "enc:dev:@@@"sv })
+    for (auto const input: { DistinctSecret, "enc:dev:@@@"sv })
     {
         auto const result = Profiles::DecryptPassword(input);
         REQUIRE(!result.has_value());
         CHECK(result.error().find("@@@") == std::string::npos);
-        CHECK(result.error().find("plain") == std::string::npos);
+        CHECK(result.error().find(DistinctSecret) == std::string::npos);
     }
 }
 
@@ -266,8 +272,8 @@ TEST_CASE("ListProfiles never returns a password", "[profiles-lib]")
     auto const fixture = ProfilesFixture {};
     WriteFile(fixture.UserFile(),
               "profiles:\n"
-              "  plain:\n    dsn: D\n    password: \"plain-secret\"\n"
-              "  inlined:\n    connectionString: \"DRIVER=x;UID=u;PWD=cs-secret\"\n"
+              "  plain:\n    dsn: D\n    password: \"pw-NOT-IN-FILE_7#\"\n"
+              "  inlined:\n    connectionString: \"DRIVER=x;UID=u;PWD=cs-NOT-IN-FILE_8#\"\n"
               "  referenced:\n    dsn: D\n    secretRef: \"env:X\"\n"
               "  none:\n    dsn: D\n");
 
@@ -282,8 +288,8 @@ TEST_CASE("ListProfiles never returns a password", "[profiles-lib]")
     {
         for (auto const& field: { summary.name, summary.dsn, summary.connectionString, summary.uid })
         {
-            CHECK(field.find("plain-secret") == std::string::npos);
-            CHECK(field.find("cs-secret") == std::string::npos);
+            CHECK(field.find(DistinctSecret) == std::string::npos);
+            CHECK(field.find(OtherDistinctSecret) == std::string::npos);
         }
     }
     auto const inlined = std::ranges::find(list->profiles, "inlined"sv, &Profiles::ProfileSummary::name);
@@ -534,12 +540,12 @@ TEST_CASE("ResolveProfileConnection returns an error instead of throwing for a w
 TEST_CASE("ResolveProfileConnection returns the connection string unsanitised", "[profiles-lib]")
 {
     auto const fixture = ProfilesFixture {};
-    WriteFile(fixture.UserFile(), "profiles:\n  p1:\n    connectionString: \"DRIVER=x;UID=u;PWD=cs-secret\"\n");
+    WriteFile(fixture.UserFile(), "profiles:\n  p1:\n    connectionString: \"DRIVER=x;UID=u;PWD=cs-NOT-IN-FILE_8#\"\n");
 
     auto const result = Profiles::ResolveProfileConnection(fixture.Sub(), "p1");
 
     REQUIRE(result.has_value());
-    CHECK(result->connectionString == "DRIVER=x;UID=u;PWD=cs-secret");
+    CHECK(result->connectionString == "DRIVER=x;UID=u;PWD=cs-NOT-IN-FILE_8#");
 }
 
 namespace
@@ -598,7 +604,7 @@ TEST_CASE("SaveProfile then ListProfiles and ResolveProfileConnection see the pr
 {
     auto const fixture = ProfilesFixture {};
 
-    auto const saved = Profiles::SaveProfile(fixture.Sub(), Define("n", "D", "", "u", "pw"));
+    auto const saved = Profiles::SaveProfile(fixture.Sub(), Define("n", "D", "", "u", std::string(DistinctSecret)));
 
     REQUIRE(saved.has_value());
     CHECK(*saved == fixture.UserFile());
@@ -612,9 +618,9 @@ TEST_CASE("SaveProfile then ListProfiles and ResolveProfileConnection see the pr
 
     auto const resolved = Profiles::ResolveProfileConnection(fixture.Sub(), "n");
     REQUIRE(resolved.has_value());
-    CHECK(resolved->password == "pw");
+    CHECK(resolved->password == DistinctSecret);
 
-    CHECK(ReadFile(fixture.UserFile()).find("pw") == std::string::npos);
+    CHECK(ReadFile(fixture.UserFile()).find(DistinctSecret) == std::string::npos);
 }
 
 TEST_CASE("SaveProfile writes a new profile into the root layer", "[profiles-lib]")
@@ -650,7 +656,7 @@ TEST_CASE("SaveProfile replaces wholesale like add-profile --force", "[profiles-
     auto const fixture = ProfilesFixture {};
     WriteFile(fixture.UserFile(),
               "profiles:\n  p1:\n    dsn: Old\n    schema: s\n    pluginsDir: /pl\n    backupDir: /bk\n"
-              "    password: plain\n");
+              "    password: pw-NOT-IN-FILE_7#\n");
 
     auto const saved = Profiles::SaveProfile(fixture.Sub(), Define("p1", "New", "", "", ""));
 
@@ -659,7 +665,7 @@ TEST_CASE("SaveProfile replaces wholesale like add-profile --force", "[profiles-
     CHECK(text.find("schema") == std::string::npos);
     CHECK(text.find("pluginsDir") == std::string::npos);
     CHECK(text.find("backupDir") == std::string::npos);
-    CHECK(text.find("plain") == std::string::npos);
+    CHECK(text.find(DistinctSecret) == std::string::npos);
     auto const list = Profiles::ListProfiles(fixture.Sub());
     REQUIRE(list.has_value());
     auto const* const summary = FindProfile(*list, "p1");
@@ -689,24 +695,28 @@ TEST_CASE("SaveProfile moves a password out of the connection string", "[profile
 
     SECTION("inline password")
     {
-        auto const saved = Profiles::SaveProfile(fixture.Sub(), Define("n", "", "DRIVER=x;PWD=cs", "", ""));
+        auto const saved =
+            Profiles::SaveProfile(fixture.Sub(), Define("n", "", std::format("DRIVER=x;PWD={}", OtherDistinctSecret)));
         REQUIRE(saved.has_value());
 
         auto const text = ReadFile(fixture.UserFile());
-        CHECK(text.find("PWD") == std::string::npos);
+        CHECK(text.find(OtherDistinctSecret) == std::string::npos);
+        CHECK(text.find("PWD=") == std::string::npos);
         auto const resolved = Profiles::ResolveProfileConnection(fixture.Sub(), "n");
         REQUIRE(resolved.has_value());
-        CHECK(resolved->password == "cs");
+        CHECK(resolved->password == OtherDistinctSecret);
     }
 
     SECTION("explicit password wins")
     {
-        auto const saved = Profiles::SaveProfile(fixture.Sub(), Define("n", "", "DRIVER=x;PWD=cs", "", "ex"));
+        auto const saved = Profiles::SaveProfile(
+            fixture.Sub(),
+            Define("n", "", std::format("DRIVER=x;PWD={}", OtherDistinctSecret), "", std::string(DistinctSecret)));
         REQUIRE(saved.has_value());
 
         auto const resolved = Profiles::ResolveProfileConnection(fixture.Sub(), "n");
         REQUIRE(resolved.has_value());
-        CHECK(resolved->password == "ex");
+        CHECK(resolved->password == DistinctSecret);
     }
 }
 
@@ -786,9 +796,9 @@ TEST_CASE("SaveProfile error does not contain the password", "[profiles-lib]")
                     fs::perms::owner_write | fs::perms::group_write | fs::perms::others_write,
                     fs::perm_options::remove);
 
-    auto const saved = Profiles::SaveProfile(fixture.Sub(), Define("n", "D", "", "", "leak-me"));
+    auto const saved = Profiles::SaveProfile(fixture.Sub(), Define("n", "D", "", "", std::string(DistinctSecret)));
 
     if (saved.has_value())
         SKIP("the read-only target was still writable (e.g. running as root)");
-    CHECK(saved.error().find("leak-me") == std::string::npos);
+    CHECK(saved.error().find(DistinctSecret) == std::string::npos);
 }
