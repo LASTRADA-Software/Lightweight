@@ -9,6 +9,7 @@ add_library(LightweightProfiles SHARED
     ProfileLookup.cpp
     ProfileLookup.hpp
     ResolveProfileConnection.cpp
+    SaveProfile.cpp
     include/Lightweight/Profiles/Api.hpp
     include/Lightweight/Profiles/ProfileConnection.hpp
 )

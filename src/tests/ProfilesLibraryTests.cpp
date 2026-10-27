@@ -20,6 +20,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include <Config/ConfigDiscovery.hpp>
@@ -539,4 +540,255 @@ TEST_CASE("ResolveProfileConnection returns the connection string unsanitised", 
 
     REQUIRE(result.has_value());
     CHECK(result->connectionString == "DRIVER=x;UID=u;PWD=cs-secret");
+}
+
+namespace
+{
+
+/// Reads the whole file at @p path.
+std::string ReadFile(fs::path const& path)
+{
+    auto stream = std::ifstream(path, std::ios::binary);
+    return { std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>() };
+}
+
+/// Builds a ProfileDefinition with every field spelled out.
+Profiles::ProfileDefinition Define(
+    std::string name, std::string dsn, std::string connectionString = {}, std::string uid = {}, std::string password = {})
+{
+    return Profiles::ProfileDefinition { .name = std::move(name),
+                                         .dsn = std::move(dsn),
+                                         .connectionString = std::move(connectionString),
+                                         .uid = std::move(uid),
+                                         .password = std::move(password) };
+}
+
+/// Finds @p name in @p list.
+Profiles::ProfileSummary const* FindProfile(Profiles::ProfileList const& list, std::string_view name)
+{
+    auto const found = std::ranges::find(list.profiles, name, &Profiles::ProfileSummary::name);
+    return found != list.profiles.end() ? &*found : nullptr;
+}
+
+/// Restores write permission on a file when destroyed.
+class WritePermissionRestorer
+{
+  public:
+    explicit WritePermissionRestorer(fs::path path):
+        _path { std::move(path) }
+    {
+    }
+    WritePermissionRestorer(WritePermissionRestorer const&) = delete;
+    WritePermissionRestorer(WritePermissionRestorer&&) = delete;
+    WritePermissionRestorer& operator=(WritePermissionRestorer const&) = delete;
+    WritePermissionRestorer& operator=(WritePermissionRestorer&&) = delete;
+    ~WritePermissionRestorer()
+    {
+        auto errorCode = std::error_code {};
+        fs::permissions(_path, fs::perms::owner_write, fs::perm_options::add, errorCode);
+    }
+
+  private:
+    fs::path _path;
+};
+
+} // namespace
+
+TEST_CASE("SaveProfile then ListProfiles and ResolveProfileConnection see the profile", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+
+    auto const saved = Profiles::SaveProfile(fixture.Sub(), Define("n", "D", "", "u", "pw"));
+
+    REQUIRE(saved.has_value());
+    CHECK(*saved == fixture.UserFile());
+
+    auto const list = Profiles::ListProfiles(fixture.Sub());
+    REQUIRE(list.has_value());
+    auto const* const summary = FindProfile(*list, "n");
+    REQUIRE(summary != nullptr);
+    CHECK(summary->dsn == "D");
+    CHECK(summary->hasPassword);
+
+    auto const resolved = Profiles::ResolveProfileConnection(fixture.Sub(), "n");
+    REQUIRE(resolved.has_value());
+    CHECK(resolved->password == "pw");
+
+    CHECK(ReadFile(fixture.UserFile()).find("pw") == std::string::npos);
+}
+
+TEST_CASE("SaveProfile writes a new profile into the root layer", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+    WriteFile(fixture.ConfigIn(fixture.App()), "root: true\nprofiles:\n  other:\n    dsn: O\n");
+
+    auto const saved = Profiles::SaveProfile(fixture.Sub(), Define("n", "D", "", "", ""));
+
+    REQUIRE(saved.has_value());
+    CHECK(*saved == fixture.ConfigIn(fixture.App()));
+}
+
+TEST_CASE("SaveProfile replaces a shadowing profile in its own layer only", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+    WriteFile(fixture.ConfigIn(fixture.App()), "profiles:\n  p1:\n    dsn: AppOld\n");
+    WriteFile(fixture.UserFile(), "profiles:\n  p1:\n    dsn: UserOld\n");
+    auto const userBefore = ReadFile(fixture.UserFile());
+
+    auto const saved = Profiles::SaveProfile(fixture.Sub(), Define("p1", "New", "", "", ""));
+
+    REQUIRE(saved.has_value());
+    CHECK(*saved == fixture.ConfigIn(fixture.App()));
+    CHECK(ReadFile(fixture.UserFile()) == userBefore);
+    auto const resolved = Profiles::ResolveProfileConnection(fixture.Sub(), "p1");
+    REQUIRE(resolved.has_value());
+    CHECK(resolved->dsn == "New");
+}
+
+TEST_CASE("SaveProfile replaces wholesale like add-profile --force", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+    WriteFile(fixture.UserFile(),
+              "profiles:\n  p1:\n    dsn: Old\n    schema: s\n    pluginsDir: /pl\n    backupDir: /bk\n"
+              "    password: plain\n");
+
+    auto const saved = Profiles::SaveProfile(fixture.Sub(), Define("p1", "New", "", "", ""));
+
+    REQUIRE(saved.has_value());
+    auto const text = ReadFile(fixture.UserFile());
+    CHECK(text.find("schema") == std::string::npos);
+    CHECK(text.find("pluginsDir") == std::string::npos);
+    CHECK(text.find("backupDir") == std::string::npos);
+    CHECK(text.find("plain") == std::string::npos);
+    auto const list = Profiles::ListProfiles(fixture.Sub());
+    REQUIRE(list.has_value());
+    auto const* const summary = FindProfile(*list, "p1");
+    REQUIRE(summary != nullptr);
+    CHECK(summary->dsn == "New");
+    CHECK_FALSE(summary->hasPassword);
+}
+
+TEST_CASE("SaveProfile keeps comments and other profiles byte for byte", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+    constexpr auto Comment = "# keep this comment\n"sv;
+    constexpr auto OtherBlock = "  p2:\n    dsn: Two   # trailing\n    uid: bob\n"sv;
+    WriteFile(fixture.UserFile(), std::format("{}profiles:\n{}", Comment, OtherBlock));
+
+    auto const saved = Profiles::SaveProfile(fixture.Sub(), Define("p1", "One", "", "", ""));
+
+    REQUIRE(saved.has_value());
+    auto const text = ReadFile(fixture.UserFile());
+    CHECK(text.find(Comment) != std::string::npos);
+    CHECK(text.find(OtherBlock) != std::string::npos);
+}
+
+TEST_CASE("SaveProfile moves a password out of the connection string", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+
+    SECTION("inline password")
+    {
+        auto const saved = Profiles::SaveProfile(fixture.Sub(), Define("n", "", "DRIVER=x;PWD=cs", "", ""));
+        REQUIRE(saved.has_value());
+
+        auto const text = ReadFile(fixture.UserFile());
+        CHECK(text.find("PWD") == std::string::npos);
+        auto const resolved = Profiles::ResolveProfileConnection(fixture.Sub(), "n");
+        REQUIRE(resolved.has_value());
+        CHECK(resolved->password == "cs");
+    }
+
+    SECTION("explicit password wins")
+    {
+        auto const saved = Profiles::SaveProfile(fixture.Sub(), Define("n", "", "DRIVER=x;PWD=cs", "", "ex"));
+        REQUIRE(saved.has_value());
+
+        auto const resolved = Profiles::ResolveProfileConnection(fixture.Sub(), "n");
+        REQUIRE(resolved.has_value());
+        CHECK(resolved->password == "ex");
+    }
+}
+
+TEST_CASE("SaveProfile rejects both or neither of dsn and connection string, and an empty name", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+
+    for (auto const& definition: {
+             Define("n", "D", "DRIVER=x", "", ""),
+             Define("n", "", "", "", ""),
+             Define("", "D", "", "", ""),
+         })
+    {
+        auto const saved = Profiles::SaveProfile(fixture.Sub(), definition);
+        CHECK_FALSE(saved.has_value());
+        CHECK_FALSE(fs::exists(fixture.UserFile()));
+    }
+}
+
+TEST_CASE("SaveProfile refuses a legacy-format target file", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+    constexpr auto Legacy = "ConnectionString: \"DRIVER=SQLite3;Database=legacy.db\"\n"sv;
+    WriteFile(fixture.UserFile(), Legacy);
+
+    auto const saved = Profiles::SaveProfile(fixture.Sub(), Define("n", "D", "", "", ""));
+
+    CHECK_FALSE(saved.has_value());
+    CHECK(ReadFile(fixture.UserFile()) == Legacy);
+}
+
+TEST_CASE("SaveProfile with no start directory writes the per-user file", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+
+    auto const saved = Profiles::SaveProfile(std::nullopt, Define("n", "D", "", "", ""));
+
+    REQUIRE(saved.has_value());
+    CHECK(*saved == fixture.UserFile());
+    auto const list = Profiles::ListProfiles(std::nullopt);
+    REQUIRE(list.has_value());
+    CHECK(FindProfile(*list, "n") != nullptr);
+}
+
+TEST_CASE("SaveProfile round-trips a name with YAML-special characters or fails cleanly", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+
+    for (auto const name: { "a:b"sv, "q\"uote"sv, " lead"sv })
+    {
+        INFO("name: [" << name << "]");
+        auto const saved = Profiles::SaveProfile(fixture.Sub(), Define(std::string(name), "D", "", "", ""));
+
+        auto const list = Profiles::ListProfiles(fixture.Sub());
+        REQUIRE(list.has_value());
+        if (saved.has_value())
+        {
+            auto const* const summary = FindProfile(*list, name);
+            REQUIRE(summary != nullptr);
+            CHECK(summary->dsn == "D");
+        }
+        else
+        {
+            CHECK_FALSE(saved.error().empty());
+            CHECK(FindProfile(*list, name) == nullptr);
+        }
+        WARN("outcome for [" << name << "]: " << (saved.has_value() ? "round-trips" : saved.error()));
+    }
+}
+
+TEST_CASE("SaveProfile error does not contain the password", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+    WriteFile(fixture.UserFile(), "profiles:\n  p2:\n    dsn: Two\n");
+    auto const restorer = WritePermissionRestorer { fixture.UserFile() };
+    fs::permissions(fixture.UserFile(),
+                    fs::perms::owner_write | fs::perms::group_write | fs::perms::others_write,
+                    fs::perm_options::remove);
+
+    auto const saved = Profiles::SaveProfile(fixture.Sub(), Define("n", "D", "", "", "leak-me"));
+
+    if (saved.has_value())
+        SKIP("the read-only target was still writable (e.g. running as root)");
+    CHECK(saved.error().find("leak-me") == std::string::npos);
 }
