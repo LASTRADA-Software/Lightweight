@@ -36,7 +36,8 @@ var searchData=
   ['use_20transactions_20with_20care_33',['Use Transactions with Care',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-transactions-with-care',1,'']]],
   ['username_34',['username',['../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae5c6b2a8de16cb5c82d6d82040f9de37',1,'Lightweight::SqlConnectionDataSource::username'],['../da/da8/classLightweight_1_1SqlConnection.html#aeec33c5e9d65fdecd317bdbcff6accd3',1,'Lightweight::SqlConnection::UserName()']]],
   ['using_20c_2026_20reflection_20support_35',['Compile using C++26 reflection support',['../index.html#compile-using-c26-reflection-support',1,'']]],
-  ['using_20sqlite_20for_20testing_20on_20windows_20operating_20system_36',['Using SQLite for testing on Windows operating system',['../index.html#using-sqlite-for-testing-on-windows-operating-system',1,'']]],
-  ['using_20the_20lightweight_5fsql_5fmigration_20macro_37',['Using the LIGHTWEIGHT_SQL_MIGRATION Macro',['../d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#using-the-lightweight_sql_migration-macro',1,'']]],
-  ['using_20the_20migration_20class_38',['Using the Migration Class',['../d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#using-the-migration-class',1,'']]]
+  ['using_20it_20from_20cmake_36',['Using it from CMake',['../d6/d2f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2profiles-library.html#using-it-from-cmake',1,'']]],
+  ['using_20sqlite_20for_20testing_20on_20windows_20operating_20system_37',['Using SQLite for testing on Windows operating system',['../index.html#using-sqlite-for-testing-on-windows-operating-system',1,'']]],
+  ['using_20the_20lightweight_5fsql_5fmigration_20macro_38',['Using the LIGHTWEIGHT_SQL_MIGRATION Macro',['../d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#using-the-lightweight_sql_migration-macro',1,'']]],
+  ['using_20the_20migration_20class_39',['Using the Migration Class',['../d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#using-the-migration-class',1,'']]]
 ];

@@ -257,6 +257,18 @@ var NAVTREE =
       ] ],
       [ "See Also", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#see-also-2", null ]
     ] ],
+    [ "Lightweight::Profiles - reading and writing dbtool profiles from your application", "d6/d2f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2profiles-library.html", [
+      [ "Using it from CMake", "d6/d2f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2profiles-library.html#using-it-from-cmake", null ],
+      [ "The six functions", "d6/d2f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2profiles-library.html#the-six-functions", null ],
+      [ "Lookup rules", "d6/d2f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2profiles-library.html#lookup-rules", null ],
+      [ "Saving profiles", "d6/d2f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2profiles-library.html#saving-profiles", [
+        [ "Writing when the directory is read-only", "d6/d2f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2profiles-library.html#writing-when-the-directory-is-read-only", null ]
+      ] ],
+      [ "No secrets leak", "d6/d2f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2profiles-library.html#no-secrets-leak", null ],
+      [ "Same build as dbtool, same toolchain", "d6/d2f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2profiles-library.html#same-build-as-dbtool-same-toolchain", null ],
+      [ "Runtime dependencies", "d6/d2f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2profiles-library.html#runtime-dependencies", null ],
+      [ "Security note", "d6/d2f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2profiles-library.html#security-note", null ]
+    ] ],
     [ "SQL Migrations", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html", [
       [ "Introduction", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#introduction-1", null ],
       [ "Creating Migrations", "d7/d9a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-migrations.html#creating-migrations", [
@@ -414,13 +426,13 @@ var NAVTREEINDEX =
 "annotated.html",
 "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#adc492c8b63e8e44fd4f72b251f908c89",
 "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a7611c88a34f8863aae59392f4d13c7d3",
-"d6/daa/group__QueryBuilder.html#gaf5129886f9f25ac627e908d6ce38406b",
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#a02be3f28ff302516bb8a6690464820f7",
-"d9/d43/Employee_8hpp_source.html",
-"da/da6/structLightweight_1_1SqlPoolStatistics.html#a43aef722357d7f81387c413979240312",
-"db/dfd/classLightweight_1_1SqlLogger.html#ae1c85dd1cbc748a950f23637fb202555",
-"de/d61/classLightweight_1_1DataMapper.html#a12eb981abeb0a4754aafb1e3050db3d9",
-"df/d49/classLightweight_1_1SqlRetryPolicy.html#a2a80d65d64c65e6329f2263f2d2c88f9"
+"d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae5c6b2a8de16cb5c82d6d82040f9de37",
+"d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#several-foreign-keys-into-the-same-table",
+"d9/d0c/classLightweight_1_1Async_1_1AsyncSqlTransaction.html#a41a3c4e5b59b0ff26818fb183e562fab",
+"da/d7e/structLightweight_1_1SqlRawColumn.html",
+"db/dfd/classLightweight_1_1SqlLogger.html#a9fa72e1dc66122e2b611a6806e77063b",
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#size-suffixes",
+"df/d3f/structLightweight_1_1SqlVariant.html#acaf1b2edb45bd58883cdffc667c29578"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

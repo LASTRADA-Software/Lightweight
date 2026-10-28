@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['—_20design_0',['Composite key support — design',['../d2/d3a/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2composite-keys-design.html',1,'']]]
+  ['your_20application_0',['Lightweight::Profiles - reading and writing dbtool profiles from your application',['../d6/d2f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2profiles-library.html',1,'']]]
 ];
