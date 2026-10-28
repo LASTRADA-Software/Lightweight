@@ -235,6 +235,15 @@ add_test(NAME DbtoolKeyRingConfigTest
 # The installed package must provide Lightweight::Profiles to a standalone consumer. The toolchain
 # settings of this build are forwarded so the consumer is configured exactly like the library was.
 string(REPLACE ";" "|" _profiles_pkg_prefix_path "${CMAKE_PREFIX_PATH}")
+# The consumer links the (possibly instrumented) installed library, so it must be built with the
+# parent's sanitizer / coverage flags too, or the link or the run would fail.
+set(_profiles_pkg_compile_flags ${SANITIZER_COMPILE_OPTIONS})
+set(_profiles_pkg_link_flags ${SANITIZER_LINK_OPTIONS})
+if(ENABLE_COVERAGE)
+    list(APPEND _profiles_pkg_link_flags --coverage)
+endif()
+list(JOIN _profiles_pkg_compile_flags " " _profiles_pkg_compile_flags)
+list(JOIN _profiles_pkg_link_flags " " _profiles_pkg_link_flags)
 add_test(NAME ProfilesPackageTest
     COMMAND ${CMAKE_COMMAND}
         -DBUILD_DIR=${CMAKE_BINARY_DIR}
@@ -247,6 +256,8 @@ add_test(NAME ProfilesPackageTest
         "-DBUILD_TYPE=$<CONFIG>"
         "-DLIBDIR=${CMAKE_INSTALL_LIBDIR}"
         "-DCXX_COMPILER=${CMAKE_CXX_COMPILER}"
+        "-DCOMPILE_FLAGS=${_profiles_pkg_compile_flags}"
+        "-DLINK_FLAGS=${_profiles_pkg_link_flags}"
         -P ${PROJECT_SOURCE_DIR}/cmake/tests/ProfilesPackageTest.cmake
 )
 

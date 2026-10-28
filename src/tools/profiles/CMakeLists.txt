@@ -58,7 +58,7 @@ endif()
 enable_coverage_for_target(LightweightProfiles)
 
 # ==================================================================================================
-# Install: same component split and package as core Lightweight (Lightweight-config.cmake pulls in
+# Install: same component split and package as core Lightweight (LightweightConfig.cmake pulls in
 # LightweightProfiles-targets.cmake when it was installed). Only built with LIGHTWEIGHT_BUILD_TOOLS,
 # so a package installed without tools simply has no Lightweight::Profiles.
 
@@ -69,6 +69,12 @@ if(NOT WIN32)
         VERSION "${CMAKE_PROJECT_VERSION}"
         SOVERSION "${CMAKE_PROJECT_VERSION_MAJOR}"
     )
+    # Let the installed library find its sibling libLightweight.so (LIGHTWEIGHT_BUILD_SHARED=ON).
+    if(APPLE)
+        set_target_properties(LightweightProfiles PROPERTIES INSTALL_RPATH "@loader_path")
+    else()
+        set_target_properties(LightweightProfiles PROPERTIES INSTALL_RPATH "$ORIGIN")
+    endif()
 endif()
 
 install(TARGETS LightweightProfiles
@@ -77,7 +83,6 @@ install(TARGETS LightweightProfiles
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}     COMPONENT Runtime      # DLL on Windows
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}     COMPONENT Runtime      # .so / .dylib and SONAME links
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}     COMPONENT Development  # Windows import library
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 install(DIRECTORY include/

@@ -4,7 +4,7 @@
 # standalone project linking only that target must build and run. Run with:
 #   cmake -DBUILD_DIR=<build tree> -DSOURCE_DIR=<repo root> [-DGENERATOR=..] [-DTOOLCHAIN_FILE=..]
 #         [-DTARGET_TRIPLET=..] [-DPREFIX_PATH=a|b] [-DBUILD_TYPE=..] [-DCXX_COMPILER=..]
-#         [-DMAKE_PROGRAM=..] [-DLIBDIR=..] -P cmake/tests/ProfilesPackageTest.cmake
+#         [-DMAKE_PROGRAM=..] [-DLIBDIR=..] [-DCOMPILE_FLAGS=..] [-DLINK_FLAGS=..] -P cmake/tests/ProfilesPackageTest.cmake
 # Registered as the `ProfilesPackageTest` CTest; the toolchain settings are forwarded from the
 # parent build so the consumer is configured exactly like the library was.
 
@@ -64,6 +64,14 @@ foreach(_pair CMAKE_TOOLCHAIN_FILE:TOOLCHAIN_FILE VCPKG_TARGET_TRIPLET:TARGET_TR
         list(APPEND _forward "-D${_name}=${${_var}}")
     endif()
 endforeach()
+# Sanitizer / coverage flags of the parent build (space separated): an instrumented library needs
+# an equally instrumented consumer.
+if(COMPILE_FLAGS)
+    list(APPEND _forward "-DCMAKE_CXX_FLAGS=${COMPILE_FLAGS}")
+endif()
+if(LINK_FLAGS)
+    list(APPEND _forward "-DCMAKE_EXE_LINKER_FLAGS=${LINK_FLAGS}")
+endif()
 if(GENERATOR)
     list(APPEND _forward -G "${GENERATOR}")
     # A multi-config consumer would otherwise generate every configuration, but only BUILD_TYPE
@@ -73,6 +81,7 @@ if(GENERATOR)
     endif()
 endif()
 
+message(STATUS "ProfilesPackageTest: consumer configure arguments: ${_forward}")
 run_step("consumer configure"
     "${CMAKE_COMMAND}" -S "${SOURCE_DIR}/src/tests/profiles_consumer" -B "${_consumer_build}" ${_forward})
 run_step("consumer build"
