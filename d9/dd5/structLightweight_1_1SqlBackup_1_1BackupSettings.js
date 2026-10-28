@@ -6,6 +6,5 @@ var structLightweight_1_1SqlBackup_1_1BackupSettings =
     [ "rowsPerChunk", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#ae10e3a3fa9942cd75572e2a1815708a6", null ],
     [ "workerArchiveBytes", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#a11b8c4dc97bf4360601e9834bf6db463", null ],
     [ "schemaOnly", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#adec7c645281b65b2f005190ed3a3e5f7", null ],
-    [ "forceMssqlConcurrency", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#a3ea1463fd4e65e3fecd5d78642b224e9", null ],
-    [ "attachments", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#a77ff7a63c08d14ce5648e06865fc705f", null ]
+    [ "forceMssqlConcurrency", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#a3ea1463fd4e65e3fecd5d78642b224e9", null ]
 ];

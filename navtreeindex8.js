@@ -1,10 +1,5 @@
 var NAVTREEINDEX8 =
 {
-"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#rollback-timestamp":[9,3,6],
-"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#rollback-to-release-version":[9,3,9],
-"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#rollback-to-timestamp":[9,3,7],
-"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#security-model":[9,2,3,0],
-"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#see-also-2":[9,9],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#size-suffixes":[9,5,0],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#skipped-rows":[9,3,0,1],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#status":[9,3,4],
@@ -249,5 +244,10 @@ var NAVTREEINDEX8 =
 "df/d3f/structLightweight_1_1SqlVariant.html#a85d63925ea745ef33eb62b182563b1d7":[20,1,12,12],
 "df/d3f/structLightweight_1_1SqlVariant.html#a8ab06b8e1024a734ee68ab1a4e737bbf":[20,1,12,39],
 "df/d3f/structLightweight_1_1SqlVariant.html#a9a77d3cabe4f40396af1803e41c6b021":[20,1,12,18],
-"df/d3f/structLightweight_1_1SqlVariant.html#a9d315a730b44cf9db2840803e2bbb8ca":[20,1,12,35]
+"df/d3f/structLightweight_1_1SqlVariant.html#a9d315a730b44cf9db2840803e2bbb8ca":[20,1,12,35],
+"df/d3f/structLightweight_1_1SqlVariant.html#aa8eb8b271e456514198f64d2b5cc2da6":[20,1,12,9],
+"df/d3f/structLightweight_1_1SqlVariant.html#ab4b919a8e1ae022435d908bdab2684a0":[20,1,12,17],
+"df/d3f/structLightweight_1_1SqlVariant.html#ac56a0ae596c54d4a501ae1e849835654":[20,1,12,33],
+"df/d3f/structLightweight_1_1SqlVariant.html#ac5c1e9628e855853ed821e1d864830fc":[20,1,12,32],
+"df/d3f/structLightweight_1_1SqlVariant.html#ac6bdc0e439922f4def84ce33fa34f74c":[20,1,12,24]
 };

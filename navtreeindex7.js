@@ -1,10 +1,5 @@
 var NAVTREEINDEX7 =
 {
-"db/dfd/classLightweight_1_1SqlLogger.html#a7eb165999b176c3be5fef997d15f852e":[20,6,5,16],
-"db/dfd/classLightweight_1_1SqlLogger.html#a85df1dd0e63ccaa6c8b89874907205ce":[20,6,5,18],
-"db/dfd/classLightweight_1_1SqlLogger.html#a89a7b4c6fd89c71bfdab6e81b7f15f35":[20,6,5,22],
-"db/dfd/classLightweight_1_1SqlLogger.html#a8f14312f2f4bf2436d124947d9150716":[20,6,5,19],
-"db/dfd/classLightweight_1_1SqlLogger.html#a9942ff8ad180974cbc0a0b161dbf662d":[20,6,5,3],
 "db/dfd/classLightweight_1_1SqlLogger.html#a9fa72e1dc66122e2b611a6806e77063b":[20,6,5,0],
 "db/dfd/classLightweight_1_1SqlLogger.html#aa4a431f0941273837878750619925192":[20,6,5,14],
 "db/dfd/classLightweight_1_1SqlLogger.html#aa5d6a0226e5ec98b1a23bfa55b3228a9":[20,6,5,24],
@@ -65,11 +60,11 @@ var NAVTREEINDEX7 =
 "dc/dc9/classLightweight_1_1CompositeForeignKey.html#aea0753865e30f9428c90ce6e3a5497f5":[20,3,8,10],
 "dc/dc9/classLightweight_1_1CompositeForeignKey.html#afdbe7152a76b6ab03d96af8e6329d8e2":[20,3,8,12],
 "dc/dcc/SqlQuery_8hpp_source.html":[23,0,1,28],
-"dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html":[20,5,7],
-"dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#a2a35c526922042dcece928d84c7caac1":[20,5,7,2],
-"dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#a33a69b26419eed12fa5726e3a76ea3e1":[20,5,7,3],
-"dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#a9d666c263d9e7ea0cccc45ae71365837":[20,5,7,1],
-"dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#ae02440293597aaf830d7ce2dc4ef6a26":[20,5,7,0],
+"dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html":[20,5,6],
+"dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#a2a35c526922042dcece928d84c7caac1":[20,5,6,2],
+"dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#a33a69b26419eed12fa5726e3a76ea3e1":[20,5,6,3],
+"dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#a9d666c263d9e7ea0cccc45ae71365837":[20,5,6,1],
+"dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#ae02440293597aaf830d7ce2dc4ef6a26":[20,5,6,0],
 "dd/d27/structLightweight_1_1HasMany_1_1Loader.html":[20,3,12,0],
 "dd/d27/structLightweight_1_1HasMany_1_1Loader.html#a0d597628213e2b9f84a1ec69e477524c":[20,3,12,0,0],
 "dd/d27/structLightweight_1_1HasMany_1_1Loader.html#a828c208745939b09132570ee08cca7e1":[20,3,12,0,3],
@@ -249,5 +244,10 @@ var NAVTREEINDEX7 =
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#releases":[9,3,10],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#resolve-secret-ref":[9,3,17],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#restore":[9,4,1],
-"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#rewrite-checksums":[9,3,11]
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#rewrite-checksums":[9,3,11],
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#rollback-timestamp":[9,3,6],
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#rollback-to-release-version":[9,3,9],
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#rollback-to-timestamp":[9,3,7],
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#security-model":[9,2,3,0],
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#see-also-2":[9,9]
 };

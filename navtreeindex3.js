@@ -1,6 +1,5 @@
 var NAVTREEINDEX3 =
 {
-"d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae17b13fef2ebddad615a9bae6d942709":[20,6,1,4],
 "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae5c6b2a8de16cb5c82d6d82040f9de37":[20,6,1,3],
 "d6/d8f/Sha256_8hpp_source.html":[23,0,1,4,7],
 "d6/daa/group__QueryBuilder.html":[20,8],
@@ -249,5 +248,6 @@ var NAVTREEINDEX3 =
 "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#see-also":[4,11],
 "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#select":[4,1],
 "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#select-all-rows":[4,1,0],
-"d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#select-specific-columns":[4,1,1]
+"d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#select-specific-columns":[4,1,1],
+"d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#self-referential-relationships":[4,6,0,2]
 };

@@ -1,10 +1,5 @@
 var NAVTREEINDEX9 =
 {
-"df/d3f/structLightweight_1_1SqlVariant.html#aa8eb8b271e456514198f64d2b5cc2da6":[20,1,12,9],
-"df/d3f/structLightweight_1_1SqlVariant.html#ab4b919a8e1ae022435d908bdab2684a0":[20,1,12,17],
-"df/d3f/structLightweight_1_1SqlVariant.html#ac56a0ae596c54d4a501ae1e849835654":[20,1,12,33],
-"df/d3f/structLightweight_1_1SqlVariant.html#ac5c1e9628e855853ed821e1d864830fc":[20,1,12,32],
-"df/d3f/structLightweight_1_1SqlVariant.html#ac6bdc0e439922f4def84ce33fa34f74c":[20,1,12,24],
 "df/d3f/structLightweight_1_1SqlVariant.html#acaf1b2edb45bd58883cdffc667c29578":[20,1,12,25],
 "df/d3f/structLightweight_1_1SqlVariant.html#ad4df6e7ae555895c331c2675ed9e6ab8":[20,1,12,22],
 "df/d3f/structLightweight_1_1SqlVariant.html#adf3c49cf96b4f0dca466e6a2d56088ff":[20,1,12,4],
@@ -90,9 +85,9 @@ var NAVTREEINDEX9 =
 "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html#adabe124eab18853596c5feeb6bdb3111":[22,0,0,4,3,10],
 "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html#adaf530d21f5ca78f77d0269e1cbd925c":[22,0,0,4,3,8],
 "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html#af2329bf6d2266dd4309b1b0e55a1116a":[22,0,0,4,3,2],
-"df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html":[20,5,5],
-"df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#a522f8b5d94a8744bdf7c9b6cc1c01fa8":[20,5,5,1],
-"df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#aaaac5355924f8867dac6c7b106cc44fb":[20,5,5,0],
+"df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html":[20,5,4],
+"df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#a522f8b5d94a8744bdf7c9b6cc1c01fa8":[20,5,4,1],
+"df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#aaaac5355924f8867dac6c7b106cc44fb":[20,5,4,0],
 "df/db1/classLightweight_1_1Async_1_1IResumeScheduler.html":[20,0,4],
 "df/db1/classLightweight_1_1Async_1_1IResumeScheduler.html#a61affb71e9dfa363e87514d23d32d5bf":[20,0,4,0],
 "df/db7/QueryBuilders_8hpp_source.html":[23,0,1,2,10],
