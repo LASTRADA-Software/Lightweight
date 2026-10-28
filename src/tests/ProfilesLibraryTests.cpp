@@ -672,6 +672,80 @@ TEST_CASE("SaveProfile writes a new profile into the root layer", "[profiles-lib
     CHECK(*saved == ProfilesFixture::ConfigIn(fixture.App()));
 }
 
+TEST_CASE("SaveProfile writes a new profile into the nearest non-root file, not the per-user file", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+    WriteFile(ProfilesFixture::ConfigIn(fixture.App()), "profiles:\n  other:\n    dsn: O\n");
+    WriteFile(fixture.UserFile(), "profiles:\n  userOnly:\n    dsn: U\n");
+    auto const userBefore = ReadFile(fixture.UserFile());
+
+    auto const saved = Profiles::SaveProfile(fixture.Sub(), Define("n", "D", "", "", ""));
+
+    REQUIRE(saved.has_value());
+    CHECK(fs::equivalent(*saved, ProfilesFixture::ConfigIn(fixture.App())));
+    CHECK(ReadFile(fixture.UserFile()) == userBefore);
+    auto const list = Profiles::ListProfiles(fixture.Sub());
+    REQUIRE(list.has_value());
+    CHECK(fs::equivalent(list->newProfileTarget, ProfilesFixture::ConfigIn(fixture.App())));
+    auto const* const summary = FindProfile(*list, "n");
+    REQUIRE(summary != nullptr);
+    CHECK(fs::equivalent(summary->configFile, ProfilesFixture::ConfigIn(fixture.App())));
+}
+
+TEST_CASE("SaveProfile writes to the nearest of several walked layers", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+    WriteFile(ProfilesFixture::ConfigIn(fixture.Sub()), "profiles:\n  nearOne:\n    dsn: N\n");
+    WriteFile(ProfilesFixture::ConfigIn(fixture.App()), "profiles:\n  farOne:\n    dsn: F\n");
+    auto const appBefore = ReadFile(ProfilesFixture::ConfigIn(fixture.App()));
+
+    auto const saved = Profiles::SaveProfile(fixture.Sub(), Define("n", "D", "", "", ""));
+
+    REQUIRE(saved.has_value());
+    CHECK(fs::equivalent(*saved, ProfilesFixture::ConfigIn(fixture.Sub())));
+    CHECK(ReadFile(ProfilesFixture::ConfigIn(fixture.App())) == appBefore);
+    auto const list = Profiles::ListProfiles(fixture.Sub());
+    REQUIRE(list.has_value());
+    CHECK(fs::equivalent(list->newProfileTarget, ProfilesFixture::ConfigIn(fixture.Sub())));
+}
+
+TEST_CASE("SaveProfile writes a new profile to the per-user file when the walk finds no file", "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+    WriteFile(fixture.UserFile(), "profiles:\n  userOnly:\n    dsn: U\n");
+
+    auto const saved = Profiles::SaveProfile(fixture.Sub(), Define("n", "D", "", "", ""));
+
+    REQUIRE(saved.has_value());
+    CHECK(fs::equivalent(*saved, fixture.UserFile()));
+    auto const list = Profiles::ListProfiles(fixture.Sub());
+    REQUIRE(list.has_value());
+    CHECK(fs::equivalent(list->newProfileTarget, fixture.UserFile()));
+}
+
+TEST_CASE("SaveProfile of a profile living only in the per-user file writes the nearest file and shadows it",
+          "[profiles-lib]")
+{
+    auto const fixture = ProfilesFixture {};
+    WriteFile(ProfilesFixture::ConfigIn(fixture.App()), "profiles:\n  other:\n    dsn: O\n");
+    WriteFile(fixture.UserFile(), "profiles:\n  p1:\n    dsn: UserOld\n");
+    auto const userBefore = ReadFile(fixture.UserFile());
+
+    auto const saved = Profiles::SaveProfile(fixture.Sub(), Define("p1", "New", "", "", ""));
+
+    REQUIRE(saved.has_value());
+    CHECK(fs::equivalent(*saved, ProfilesFixture::ConfigIn(fixture.App())));
+    CHECK(ReadFile(fixture.UserFile()) == userBefore);
+    auto const resolved = Profiles::ResolveProfileConnection(fixture.Sub(), "p1");
+    REQUIRE(resolved.has_value());
+    CHECK(resolved->dsn == "New");
+    auto const list = Profiles::ListProfiles(fixture.Sub());
+    REQUIRE(list.has_value());
+    auto const* const summary = FindProfile(*list, "p1");
+    REQUIRE(summary != nullptr);
+    CHECK(fs::equivalent(summary->configFile, ProfilesFixture::ConfigIn(fixture.App())));
+}
+
 TEST_CASE("SaveProfile replaces a shadowing profile in its own layer only", "[profiles-lib]")
 {
     auto const fixture = ProfilesFixture {};

@@ -2,6 +2,7 @@
 
 #include "ProfileLookup.hpp"
 
+#include <algorithm>
 #include <system_error>
 
 #include <Config/ConfigDiscovery.hpp>
@@ -30,6 +31,14 @@ std::expected<Config::LayeredProfileStore, std::string> LoadLayers(
 
     return Config::FindConfigCandidates(inputs).and_then(
         [](auto const& candidates) { return Config::LayeredProfileStore::Load(candidates); });
+}
+
+std::filesystem::path SaveTarget(Config::LayeredProfileStore const& store)
+{
+    auto const layers = store.Layers();
+    auto const nearestWalked =
+        std::ranges::find(layers, Config::ConfigSource::ExecutableDirectory, &Config::ConfigLayer::source);
+    return nearestWalked != layers.end() ? nearestWalked->path : Config::ProfileStore::DefaultPath();
 }
 
 std::string DisplayPath(std::filesystem::path const& path)

@@ -26,6 +26,14 @@ namespace Lightweight::Profiles::detail
 [[nodiscard]] std::expected<Config::LayeredProfileStore, std::string> LoadLayers(
     std::optional<std::filesystem::path> const& startDirectory);
 
+/// The file `SaveProfile` writes to: the nearest `dbtool.yml` found by the upward walk, else the
+/// per-user file. Shared by `SaveProfile` and `ListProfiles` so they cannot diverge.
+///
+/// @param store The layers returned by `LoadLayers`.
+/// @return Path of the nearest walked layer (nearest first in `store.Layers()`), or
+///         `Config::ProfileStore::DefaultPath()` when the walk found none.
+[[nodiscard]] std::filesystem::path SaveTarget(Config::LayeredProfileStore const& store);
+
 /// UTF-8 rendering of a path for error messages; never throws.
 /// @param path The path to render.
 /// @return The path as UTF-8 text, or a placeholder if it cannot be rendered.

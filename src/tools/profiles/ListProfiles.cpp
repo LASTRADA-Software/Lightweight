@@ -21,7 +21,7 @@ std::expected<ProfileList, std::string> ListProfiles(std::optional<std::filesyst
             auto list = ProfileList {};
             for (auto const& layer: store.Layers())
                 list.configFiles.push_back(layer.path);
-            list.newProfileTarget = store.NewProfileTarget(Config::ProfileStore::DefaultPath());
+            list.newProfileTarget = detail::SaveTarget(store);
             list.defaultProfile = store.Merged().DefaultProfileName();
 
             for (auto const& profile: store.Merged().Profiles())

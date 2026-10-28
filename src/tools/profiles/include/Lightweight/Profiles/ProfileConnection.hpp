@@ -80,7 +80,7 @@ struct ProfileList
 {
     /// Layers loaded, nearest first; may be empty.
     std::vector<std::filesystem::path> configFiles;
-    /// The file `SaveProfile` writes a *new* profile to.
+    /// The file `SaveProfile` writes: the nearest `dbtool.yml`, else the per-user file.
     std::filesystem::path newProfileTarget;
     /// The merged `defaultProfile`; may be empty.
     std::string defaultProfile;
@@ -124,8 +124,12 @@ struct ProfileDefinition
 /// dropped, and an empty `password` leaves the profile without one. The profile moves to the top
 /// of its layer. The rest of the file is preserved byte for byte.
 ///
-/// An existing profile is replaced in the layer it came from; a new one is written to the
-/// `root: true` layer if any, else to the per-user file (see `ProfileList::newProfileTarget`).
+/// The profile is always written to the nearest `dbtool.yml` found by the upward walk from
+/// @p startDirectory, whether it is new or replaces an existing one, and to the per-user file only
+/// when the walk found none (see `ProfileList::newProfileTarget`). Replacing a profile that lives
+/// in a farther layer therefore writes the new definition into the nearest file, which then shadows
+/// the farther one; the farther file is left untouched. This differs from `dbtool add-profile`,
+/// which writes new profiles to a `root: true` file, else the per-user file.
 /// The password is encrypted with the same key ring as dbtool. Saving into a legacy-format
 /// (single-profile) layer fails. Errors never contain secrets.
 ///

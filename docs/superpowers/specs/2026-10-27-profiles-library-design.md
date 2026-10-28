@@ -109,7 +109,7 @@ struct ProfileSummary
 struct ProfileList
 {
     std::vector<std::filesystem::path> configFiles; // layers loaded, nearest first (may be empty)
-    std::filesystem::path newProfileTarget;         // where SaveProfile writes a *new* profile
+    std::filesystem::path newProfileTarget;         // the file SaveProfile writes: nearest dbtool.yml, else per-user
     std::string defaultProfile;                     // merged value, may be empty
     std::vector<ProfileSummary> profiles;           // merged view, see ordering note below
 };
@@ -148,10 +148,16 @@ Changes from the issue text, all following from the layered lookup: `startDirect
   is; the library does **not** upgrade it in place (*Claude's call* — the library has not proven the
   password works by connecting).
 - **Save:** delegates to `Config::AddProfileToFile` with `ReplaceExisting::Yes`, `MakeDefault::No`,
-  `ProfileCipher::Builtin()`. Target file is `LayeredProfileStore::WriteTargetFor(name, {},
-  ProfileStore::DefaultPath())`: an existing profile is replaced in the layer it came from, a new one
-  goes to the `root: true` layer if any, else the per-user file. The rest of that file is preserved
-  byte for byte. Validation (missing name, both/neither of dsn and connection string) comes from
+  `ProfileCipher::Builtin()`. Target file is the **nearest `dbtool.yml` found by the upward
+  walk** (the first layer with `ConfigSource::ExecutableDirectory`) for new and replaced profiles
+  alike, else the per-user file (`detail::SaveTarget`, shared with `ListProfiles`). The rest of that
+  file is preserved byte for byte. *Changed 2026-10-28 at the requester's need:* this was
+  `LayeredProfileStore::WriteTargetFor(name, {}, DefaultPath())` (existing profile replaced in its own
+  layer, new one to the `root: true` layer else the per-user file). An installation's `dbtool.yml`
+  does not declare `root: true`, so that rule sent every profile the application saves to the
+  per-user file. Consequence: replacing a profile that lives in a farther layer writes the new
+  definition into the nearest file, which shadows the farther one; the farther file is untouched.
+  This differs from `dbtool add-profile` on purpose. Validation (missing name, both/neither of dsn and connection string) comes from
   `AddProfileToFile`.
 - **Replacing is wholesale, exactly like `add-profile --force` (decided).** The old entry is removed
   and the new one written; fields `ProfileDefinition` cannot express (`schema`, `pluginsDir`,

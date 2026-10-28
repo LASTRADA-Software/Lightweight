@@ -100,7 +100,7 @@ resolved through the environment and file backends (there is no interactive prom
 backend).
 
 `ListProfiles` returns `configFiles` (the layers loaded, nearest first), `newProfileTarget` (the file
-a *new* profile would be saved to), the merged `defaultProfile` and the profiles. Connection strings
+`SaveProfile` writes: the nearest `dbtool.yml`, else the per-user file), the merged `defaultProfile` and the profiles. Connection strings
 have any `PWD=` / `Password=` value masked as `***` (connect via `ResolveProfileConnection`, not with the
 listed string); `hasPassword` only says whether a password, a `secretRef` or a `PWD=`
 is set. The paths in `configFiles` and `ProfileSummary::configFile` come back in the form discovery
@@ -143,9 +143,16 @@ auto const sameFile = [](std::filesystem::path const& a, std::filesystem::path c
   `secretRef`. An empty `password` leaves the profile without one. The profile **moves to the top**
   of its layer; the rest of the file (comments, formatting, other profiles) is preserved byte for
   byte.
-- An existing profile is replaced in the layer it came from. A new profile goes to the `root: true`
-  layer if there is one, otherwise to the per-user file, created if missing
-  (`ProfileList::newProfileTarget` tells you which in advance).
+- **Write target.** The profile, new or replacing an existing one, is written to the **nearest
+  `dbtool.yml` found by the upward walk** from `startDirectory`; only when the walk finds none (or
+  `startDirectory` is `std::nullopt`) does it go to the per-user file, created if missing.
+  `ProfileList::newProfileTarget` tells you which in advance. Replacing a profile that currently
+  lives in a farther layer (for example the per-user file) writes the new definition into the
+  nearest file, which then shadows the farther one; the farther file is left untouched.
+  This deliberately differs from `dbtool add-profile`, which writes new profiles to a `root: true`
+  file, else to the per-user file: an installation's `dbtool.yml` does not declare `root: true`, so
+  that rule would send every profile an application saves to the per-user file instead of next to
+  the application.
 - Saving into a legacy-format (single-profile) layer fails.
 - The profile name must not be empty.
 

@@ -22,7 +22,7 @@ std::expected<std::filesystem::path, std::string> SaveProfile(std::optional<std:
 {
     return detail::Guarded("cannot save profile", [&]() -> std::expected<std::filesystem::path, std::string> {
         return detail::LoadLayers(startDirectory).and_then([&](Config::LayeredProfileStore const& store) {
-            auto const target = store.WriteTargetFor(definition.name, {}, Config::ProfileStore::DefaultPath());
+            auto const target = detail::SaveTarget(store);
             auto const request = Config::ProfileRequest {
                 .name = definition.name,
                 .connectionString = definition.connectionString,
