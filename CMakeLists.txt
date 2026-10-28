@@ -117,6 +117,14 @@ else()
         EXCLUDE_FROM_ALL YES
         SYSTEM YES
     )
+    # EXCLUDE_FROM_ALL drops reflection-cpp's install rules too, but the installed Lightweight package
+    # needs it (find_dependency in Lightweight-config.cmake), so install it with the SDK component.
+    install(CODE "
+        set(_lightweight_install_component \"\${CMAKE_INSTALL_COMPONENT}\")
+        set(CMAKE_INSTALL_COMPONENT Unspecified)
+        include(\"${reflection-cpp_BINARY_DIR}/cmake_install.cmake\")
+        set(CMAKE_INSTALL_COMPONENT \"\${_lightweight_install_component}\")
+    " COMPONENT Development)
 endif()
 
 # Detect clang-cl (needed by the stdexec compat shim below, which must not pass cl-only flags to it).
