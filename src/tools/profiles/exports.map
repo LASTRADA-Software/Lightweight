@@ -1,0 +1,15 @@
+/* Linker version script: export only the Lightweight::Profiles namespace.
+   Libstdc++ and static dependencies would otherwise leak template instantiations.
+   Patterns are unquoted so that '*' and '?' act as wildcards ('?' stands for the blanks in
+   "typeinfo for ..."). */
+{
+  global:
+    extern "C++" {
+      Lightweight::Profiles::*;
+      typeinfo?for?Lightweight::Profiles::*;
+      typeinfo?name?for?Lightweight::Profiles::*;
+      vtable?for?Lightweight::Profiles::*;
+    };
+  local:
+    *;
+};

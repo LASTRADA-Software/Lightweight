@@ -10,7 +10,7 @@ target_compile_definitions(LightweightTest PRIVATE BUILD_TESTS)
 # The `zip` target is resolved once in the root CMakeLists.txt for every platform (find_package
 # first, CPM fallback if not found — #543); re-resolving libzip here would hard-fail a build that
 # reached the target only via the CPM fallback.
-set(TEST_LIBRARIES Catch2::Catch2 Lightweight::Lightweight Lightweight::Tools yaml-cpp::yaml-cpp dbtool_lib zip nlohmann_json::nlohmann_json)
+set(TEST_LIBRARIES Catch2::Catch2 Lightweight::Lightweight Lightweight::Tools yaml-cpp::yaml-cpp dbtool_lib Lightweight::Profiles zip nlohmann_json::nlohmann_json)
 if(MSVC)
     # clang-cl does not support /MP
     if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -21,6 +21,8 @@ else()
 endif()
 
 target_link_libraries(LightweightTest PRIVATE ${TEST_LIBRARIES})
+# ProfilesLibraryTests.cpp exercises the private detail::Guarded helper directly.
+target_include_directories(LightweightTest PRIVATE ${PROJECT_SOURCE_DIR}/src/tools)
 
 # AsynchronousTests.cpp includes stdexec headers directly. Link the shared compat target (root
 # CMakeLists) so its SYSTEM includes, /Zc:preprocessor, /external:W0 and -Wno-error demotions apply
@@ -57,6 +59,7 @@ set(SOURCE_FILES
     ProfileFileEditorTests.cpp
     ProfilePasswordTests.cpp
     ProfileCipherTests.cpp
+    ProfilesLibraryTests.cpp
     PreMigrateStepTests.cpp
     ProgressTaskTests.cpp
     UnicodeUpgradeProgressTests.cpp
@@ -228,3 +231,40 @@ add_test(NAME DbtoolKeyRingConfigTest
     COMMAND ${CMAKE_COMMAND} -P ${PROJECT_SOURCE_DIR}/cmake/tests/DbtoolKeyRingTest.cmake
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# The installed package must provide Lightweight::Profiles to a standalone consumer. The toolchain
+# settings of this build are forwarded so the consumer is configured exactly like the library was.
+string(REPLACE ";" "|" _profiles_pkg_prefix_path "${CMAKE_PREFIX_PATH}")
+# The consumer links the (possibly instrumented) installed library, so it must be built with the
+# parent's sanitizer / coverage flags too, or the link or the run would fail.
+set(_profiles_pkg_compile_flags ${SANITIZER_COMPILE_OPTIONS})
+set(_profiles_pkg_link_flags ${SANITIZER_LINK_OPTIONS})
+if(ENABLE_COVERAGE)
+    list(APPEND _profiles_pkg_link_flags --coverage)
+endif()
+list(JOIN _profiles_pkg_compile_flags " " _profiles_pkg_compile_flags)
+list(JOIN _profiles_pkg_link_flags " " _profiles_pkg_link_flags)
+add_test(NAME ProfilesPackageTest
+    COMMAND ${CMAKE_COMMAND}
+        -DBUILD_DIR=${CMAKE_BINARY_DIR}
+        -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+        "-DGENERATOR=${CMAKE_GENERATOR}"
+        "-DMAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}"
+        "-DTOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}"
+        "-DTARGET_TRIPLET=${VCPKG_TARGET_TRIPLET}"
+        "-DPREFIX_PATH=${_profiles_pkg_prefix_path}"
+        "-DBUILD_TYPE=$<CONFIG>"
+        "-DLIBDIR=${CMAKE_INSTALL_LIBDIR}"
+        "-DCXX_COMPILER=${CMAKE_CXX_COMPILER}"
+        "-DCOMPILE_FLAGS=${_profiles_pkg_compile_flags}"
+        "-DLINK_FLAGS=${_profiles_pkg_link_flags}"
+        -P ${PROJECT_SOURCE_DIR}/cmake/tests/ProfilesPackageTest.cmake
+)
+
+# The Lightweight::Profiles shared library must export nothing but its own namespace (POSIX only:
+# Windows exports nothing without __declspec).
+if(UNIX)
+    add_test(NAME ProfilesExportsTest
+        COMMAND ${CMAKE_COMMAND} -DLIB=$<TARGET_FILE:LightweightProfiles> -P ${PROJECT_SOURCE_DIR}/cmake/tests/ProfilesExportsTest.cmake
+    )
+endif()

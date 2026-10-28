@@ -195,6 +195,11 @@ relative value of either resolves against the working directory.
 came from; `--verbose` prints the files for every other command. `dbtool-gui` uses the same
 lookup unless a profile-store path is set in its Settings.
 
+An application can read and write the same profiles through the installed `Lightweight::Profiles`
+library; see [profiles-library.md](profiles-library.md). Its writes use the same in-place fallback as
+`add-profile`: when `dbtool.yml` is writable but its directory is not, the file is rewritten in place
+(not atomically, and through a symlink) instead of failing.
+
 ### Configuration File Format
 
 Legacy single-profile shape (still supported):

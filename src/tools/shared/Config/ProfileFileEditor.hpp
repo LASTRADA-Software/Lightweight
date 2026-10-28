@@ -18,6 +18,7 @@
 #include <functional>
 #include <string>
 #include <string_view>
+#include <system_error>
 
 namespace Lightweight::Config
 {
@@ -101,13 +102,62 @@ struct PasswordEdit
 /// Transformation applied by `EditConfigFile`.
 using ConfigTextTransform = std::function<std::expected<std::string, std::string>(std::string_view)>;
 
+/// How far a failed in-place write got.
+enum class WriteFailure : std::uint8_t
+{
+    /// The file could not be opened for writing; nothing was written and the file is unchanged.
+    NotOpened,
+    /// The file was opened (and truncated) but writing into it failed part-way.
+    PartiallyWritten,
+};
+
+/// Why an in-place write failed.
+struct ConfigWriteError
+{
+    /// Whether the file was touched.
+    WriteFailure failure = WriteFailure::NotOpened;
+    /// The operating-system error.
+    std::error_code code;
+};
+
+/// File writes `EditConfigFile` performs, injected so tests can simulate failures.
+struct ConfigFileOps
+{
+    /// Writes `bytes` to a new file `path` (the temporary sibling). Fails with the OS error.
+    std::function<std::expected<void, std::error_code>(std::filesystem::path const& path, std::string_view bytes)>
+        writeNewFile;
+
+    /// Truncates the existing `path` and writes `bytes` into it. The error says whether the file was touched.
+    std::function<std::expected<void, ConfigWriteError>(std::filesystem::path const& path, std::string_view bytes)>
+        overwriteInPlace;
+};
+
+/// The operating-system backed file writes.
+/// @return Ops that write through binary, truncating file streams (native file handles on Windows).
+[[nodiscard]] ConfigFileOps DefaultConfigFileOps();
+
 /// Reads `path` (an absent file reads as empty), applies `transform` and writes
 /// the result atomically (temporary file in the same directory, then rename),
-/// creating parent directories as needed. The file is untouched on any failure.
+/// creating parent directories as needed. The file is untouched on any failure,
+/// except a failed in-place write (see below).
+///
+/// When the temporary file cannot be created because the directory is not
+/// writable (permission denied / operation not permitted) but `path` itself
+/// exists, the result is instead written into `path` in place. That fallback:
+///  - is not atomic; if the write fails midway the original bytes are written
+///    back, and the error says whether that restore succeeded (when the file
+///    cannot even be opened it is untouched, and the error says so);
+///  - writes *through* a symlink, whereas the rename path replaces the link itself;
+///  - is what handles a file that is modifiable while its directory is not. On
+///    Windows the up-front read-only check only sees the read-only attribute,
+///    not ACLs, so such files reach the fallback.
+/// A missing file never takes the fallback.
 /// @param path Configuration file.
 /// @param transform Edit to apply.
+/// @param ops File writes to use; tests inject failing ones.
 /// @return Nothing on success, or the transform's / an I/O error (e.g. read-only file).
 [[nodiscard]] std::expected<void, std::string> EditConfigFile(std::filesystem::path const& path,
-                                                              ConfigTextTransform const& transform);
+                                                              ConfigTextTransform const& transform,
+                                                              ConfigFileOps const& ops = DefaultConfigFileOps());
 
 } // namespace Lightweight::Config
