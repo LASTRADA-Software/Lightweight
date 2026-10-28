@@ -15,13 +15,13 @@ endif()
 if(APPLE)
     find_program(NM_EXE nm REQUIRED)
     find_program(CXXFILT_EXE c++filt REQUIRED)
-    execute_process(COMMAND "${NM_EXE}" -gU "${LIB}" OUTPUT_VARIABLE _raw RESULT_VARIABLE _rc ERROR_VARIABLE _err)
-    if(NOT _rc EQUAL 0)
-        message(FATAL_ERROR "ProfilesExportsTest: nm failed: ${_err}")
-    endif()
-    execute_process(COMMAND "${CXXFILT_EXE}" INPUT_VARIABLE _raw OUTPUT_VARIABLE _symbols RESULT_VARIABLE _rc)
-    if(NOT _rc EQUAL 0)
-        message(FATAL_ERROR "ProfilesExportsTest: c++filt failed")
+    # Pipe nm straight into c++filt (execute_process chains multiple COMMANDs through a pipe).
+    execute_process(
+        COMMAND "${NM_EXE}" -gU "${LIB}"
+        COMMAND "${CXXFILT_EXE}"
+        OUTPUT_VARIABLE _symbols RESULTS_VARIABLE _rcs ERROR_VARIABLE _err)
+    if(_rcs MATCHES "[^0;]")
+        message(FATAL_ERROR "ProfilesExportsTest: nm | c++filt failed (${_rcs}): ${_err}")
     endif()
 else()
     find_program(NM_EXE nm REQUIRED)

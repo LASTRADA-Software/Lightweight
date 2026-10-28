@@ -401,8 +401,8 @@ TEST_CASE("ProfileFileEditor — EditConfigFile restores the original bytes when
     ops.overwriteInPlace = [&](fs::path const&, std::string_view bytes) -> std::expected<void, Cfg::ConfigWriteError> {
         writtenBytes.emplace_back(bytes);
         if (writtenBytes.size() == 1)
-            return std::unexpected(Cfg::ConfigWriteError { Cfg::WriteFailure::PartiallyWritten,
-                                                           std::make_error_code(std::errc::no_space_on_device) });
+            return std::unexpected(Cfg::ConfigWriteError { .failure = Cfg::WriteFailure::PartiallyWritten,
+                                                           .code = std::make_error_code(std::errc::no_space_on_device) });
         return {};
     };
     auto const result = Cfg::EditConfigFile(file.Path(), AppendSecondKey, ops);
@@ -417,8 +417,8 @@ TEST_CASE("ProfileFileEditor — EditConfigFile reports when the original conten
     TempFile const file("a: 1\n");
     auto ops = FailingNewFile(std::errc::permission_denied);
     ops.overwriteInPlace = [](fs::path const&, std::string_view) -> std::expected<void, Cfg::ConfigWriteError> {
-        return std::unexpected(Cfg::ConfigWriteError { Cfg::WriteFailure::PartiallyWritten,
-                                                       std::make_error_code(std::errc::no_space_on_device) });
+        return std::unexpected(Cfg::ConfigWriteError { .failure = Cfg::WriteFailure::PartiallyWritten,
+                                                       .code = std::make_error_code(std::errc::no_space_on_device) });
     };
     auto const result = Cfg::EditConfigFile(file.Path(), AppendSecondKey, ops);
     REQUIRE_FALSE(result.has_value());
@@ -433,8 +433,8 @@ TEST_CASE("ProfileFileEditor — EditConfigFile leaves the file unchanged when t
     auto ops = FailingNewFile(std::errc::permission_denied);
     ops.overwriteInPlace = [&](fs::path const&, std::string_view) -> std::expected<void, Cfg::ConfigWriteError> {
         ++inPlaceCalls;
-        return std::unexpected(
-            Cfg::ConfigWriteError { Cfg::WriteFailure::NotOpened, std::make_error_code(std::errc::permission_denied) });
+        return std::unexpected(Cfg::ConfigWriteError { .failure = Cfg::WriteFailure::NotOpened,
+                                                       .code = std::make_error_code(std::errc::permission_denied) });
     };
     auto const result = Cfg::EditConfigFile(file.Path(), AppendSecondKey, ops);
     REQUIRE_FALSE(result.has_value());

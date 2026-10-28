@@ -127,7 +127,7 @@ TEST_CASE("EncryptPassword and DecryptPassword round-trip", "[profiles-lib]")
     auto const encrypted = Profiles::EncryptPassword("pw-NOT-IN-FILE_7#-\xC3\x84");
     REQUIRE(encrypted.has_value());
     REQUIRE(Profiles::IsEncryptedPassword(*encrypted));
-    CHECK(encrypted->find("pw-NOT-IN-FILE_7#") == std::string::npos);
+    CHECK(!encrypted->contains("pw-NOT-IN-FILE_7#"));
 
     auto const decrypted = Profiles::DecryptPassword(*encrypted);
     REQUIRE(decrypted.has_value());
@@ -140,8 +140,8 @@ TEST_CASE("DecryptPassword of a plaintext or garbled value is an error without t
     {
         auto const result = Profiles::DecryptPassword(input);
         REQUIRE(!result.has_value());
-        CHECK(result.error().find("@@@") == std::string::npos);
-        CHECK(result.error().find(DistinctSecret) == std::string::npos);
+        CHECK(!result.error().contains("@@@"));
+        CHECK(!result.error().contains(DistinctSecret));
     }
 }
 
@@ -289,13 +289,13 @@ TEST_CASE("ListProfiles never returns a password", "[profiles-lib]")
     {
         for (auto const& field: { summary.name, summary.dsn, summary.connectionString, summary.uid })
         {
-            CHECK(field.find(DistinctSecret) == std::string::npos);
-            CHECK(field.find(OtherDistinctSecret) == std::string::npos);
+            CHECK(!field.contains(DistinctSecret));
+            CHECK(!field.contains(OtherDistinctSecret));
         }
     }
     auto const inlined = std::ranges::find(list->profiles, "inlined"sv, &Profiles::ProfileSummary::name);
     REQUIRE(inlined != list->profiles.end());
-    CHECK(inlined->connectionString.find("DRIVER=x") != std::string::npos);
+    CHECK(inlined->connectionString.contains("DRIVER=x"));
 }
 
 TEST_CASE("ListProfiles reports defaultProfile", "[profiles-lib]")
@@ -318,7 +318,7 @@ TEST_CASE("ListProfiles reports an unparsable file by name", "[profiles-lib]")
     auto const list = Profiles::ListProfiles(fixture.Sub());
 
     REQUIRE(!list.has_value());
-    CHECK(list.error().find("dbtool.yml") != std::string::npos);
+    CHECK(list.error().contains("dbtool.yml"));
 }
 
 TEST_CASE("ListProfiles handles a non-ASCII start directory", "[profiles-lib]")
@@ -481,8 +481,8 @@ TEST_CASE("ResolveProfileConnection errors when no default is set", "[profiles-l
     auto const result = Profiles::ResolveProfileConnection(fixture.Sub(), "");
 
     REQUIRE(!result.has_value());
-    CHECK(result.error().find("defaultProfile") != std::string::npos);
-    CHECK(result.error().find("dbtool.yml") != std::string::npos);
+    CHECK(result.error().contains("defaultProfile"));
+    CHECK(result.error().contains("dbtool.yml"));
 }
 
 TEST_CASE("ResolveProfileConnection errors when defaultProfile names a missing profile", "[profiles-lib]")
@@ -493,7 +493,7 @@ TEST_CASE("ResolveProfileConnection errors when defaultProfile names a missing p
     auto const result = Profiles::ResolveProfileConnection(fixture.Sub(), "");
 
     REQUIRE(!result.has_value());
-    CHECK(result.error().find("gone") != std::string::npos);
+    CHECK(result.error().contains("gone"));
 }
 
 TEST_CASE("ResolveProfileConnection resolves a legacy single-profile file by default", "[profiles-lib]")
@@ -518,18 +518,18 @@ TEST_CASE("ResolveProfileConnection errors for an unknown profile", "[profiles-l
         AddDsnProfile(fixture.UserFile(), "p1");
         auto const result = Profiles::ResolveProfileConnection(fixture.Sub(), "nope");
         REQUIRE(!result.has_value());
-        CHECK(result.error().find("nope") != std::string::npos);
-        CHECK(result.error().find("dbtool.yml") != std::string::npos);
+        CHECK(result.error().contains("nope"));
+        CHECK(result.error().contains("dbtool.yml"));
     }
 
     SECTION("without any file the per-user path is named")
     {
         auto const result = Profiles::ResolveProfileConnection(fixture.Sub(), "nope");
         REQUIRE(!result.has_value());
-        CHECK(result.error().find("nope") != std::string::npos);
-        CHECK(result.error().find("(not found") != std::string::npos);
-        CHECK(result.error().find("dbtool.yml") != std::string::npos);
-        CHECK(result.error().find(fixture.Root().filename().string()) != std::string::npos);
+        CHECK(result.error().contains("nope"));
+        CHECK(result.error().contains("(not found"));
+        CHECK(result.error().contains("dbtool.yml"));
+        CHECK(result.error().contains(fixture.Root().filename().string()));
     }
 }
 
@@ -541,7 +541,7 @@ TEST_CASE("ResolveProfileConnection errors for a profile without dsn or connecti
     auto const result = Profiles::ResolveProfileConnection(fixture.Sub(), "p1");
 
     REQUIRE(!result.has_value());
-    CHECK(result.error().find("p1") != std::string::npos);
+    CHECK(result.error().contains("p1"));
 }
 
 TEST_CASE("ResolveProfileConnection reports an unknown key id without the secret", "[profiles-lib]")
@@ -553,8 +553,8 @@ TEST_CASE("ResolveProfileConnection reports an unknown key id without the secret
     auto const result = Profiles::ResolveProfileConnection(fixture.Sub(), "p1");
 
     REQUIRE(!result.has_value());
-    CHECK(result.error().find("p1") != std::string::npos);
-    CHECK(result.error().find(Payload) == std::string::npos);
+    CHECK(result.error().contains("p1"));
+    CHECK(!result.error().contains(Payload));
 }
 
 #if !defined(_WIN32)
@@ -571,7 +571,7 @@ TEST_CASE("ResolveProfileConnection returns an error instead of throwing for a w
     auto const result = Profiles::ResolveProfileConnection(fixture.Sub(), "p1");
 
     REQUIRE(!result.has_value());
-    CHECK(result.error().find("file-secret") == std::string::npos);
+    CHECK(!result.error().contains("file-secret"));
 }
 #endif
 
@@ -658,7 +658,7 @@ TEST_CASE("SaveProfile then ListProfiles and ResolveProfileConnection see the pr
     REQUIRE(resolved.has_value());
     CHECK(resolved->password == DistinctSecret);
 
-    CHECK(ReadFile(fixture.UserFile()).find(DistinctSecret) == std::string::npos);
+    CHECK(!ReadFile(fixture.UserFile()).contains(DistinctSecret));
 }
 
 TEST_CASE("SaveProfile writes a new profile into the root layer", "[profiles-lib]")
@@ -700,10 +700,10 @@ TEST_CASE("SaveProfile replaces wholesale like add-profile --force", "[profiles-
 
     REQUIRE(saved.has_value());
     auto const text = ReadFile(fixture.UserFile());
-    CHECK(text.find("schema") == std::string::npos);
-    CHECK(text.find("pluginsDir") == std::string::npos);
-    CHECK(text.find("backupDir") == std::string::npos);
-    CHECK(text.find(DistinctSecret) == std::string::npos);
+    CHECK(!text.contains("schema"));
+    CHECK(!text.contains("pluginsDir"));
+    CHECK(!text.contains("backupDir"));
+    CHECK(!text.contains(DistinctSecret));
     auto const list = Profiles::ListProfiles(fixture.Sub());
     REQUIRE(list.has_value());
     auto const* const summary = FindProfile(*list, "p1");
@@ -723,8 +723,8 @@ TEST_CASE("SaveProfile keeps comments and other profiles byte for byte", "[profi
 
     REQUIRE(saved.has_value());
     auto const text = ReadFile(fixture.UserFile());
-    CHECK(text.find(Comment) != std::string::npos);
-    CHECK(text.find(OtherBlock) != std::string::npos);
+    CHECK(text.contains(Comment));
+    CHECK(text.contains(OtherBlock));
 }
 
 TEST_CASE("SaveProfile moves a password out of the connection string", "[profiles-lib]")
@@ -738,8 +738,8 @@ TEST_CASE("SaveProfile moves a password out of the connection string", "[profile
         REQUIRE(saved.has_value());
 
         auto const text = ReadFile(fixture.UserFile());
-        CHECK(text.find(OtherDistinctSecret) == std::string::npos);
-        CHECK(text.find("PWD=") == std::string::npos);
+        CHECK(!text.contains(OtherDistinctSecret));
+        CHECK(!text.contains("PWD="));
         auto const resolved = Profiles::ResolveProfileConnection(fixture.Sub(), "n");
         REQUIRE(resolved.has_value());
         CHECK(resolved->password == OtherDistinctSecret);
@@ -838,5 +838,5 @@ TEST_CASE("SaveProfile error does not contain the password", "[profiles-lib]")
 
     if (saved.has_value())
         SKIP("the read-only target was still writable (e.g. running as root)");
-    CHECK(saved.error().find(DistinctSecret) == std::string::npos);
+    CHECK(!saved.error().contains(DistinctSecret));
 }

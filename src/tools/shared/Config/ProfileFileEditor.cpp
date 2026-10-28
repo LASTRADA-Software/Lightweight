@@ -566,7 +566,8 @@ namespace
         auto const handle = ::CreateFileW(
             path.c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, disposition, FILE_ATTRIBUTE_NORMAL, nullptr);
         if (handle == INVALID_HANDLE_VALUE)
-            return std::unexpected(ConfigWriteError { WriteFailure::NotOpened, ErrorCodeFromWin32(::GetLastError()) });
+            return std::unexpected(
+                ConfigWriteError { .failure = WriteFailure::NotOpened, .code = ErrorCodeFromWin32(::GetLastError()) });
         auto const owner = std::unique_ptr<void, HandleCloser> { handle };
 
         while (!bytes.empty())
@@ -574,8 +575,8 @@ namespace
             auto const chunk = static_cast<DWORD>(std::min<std::size_t>(bytes.size(), 1U << 20));
             auto written = DWORD { 0 };
             if (!::WriteFile(handle, bytes.data(), chunk, &written, nullptr))
-                return std::unexpected(
-                    ConfigWriteError { WriteFailure::PartiallyWritten, ErrorCodeFromWin32(::GetLastError()) });
+                return std::unexpected(ConfigWriteError { .failure = WriteFailure::PartiallyWritten,
+                                                          .code = ErrorCodeFromWin32(::GetLastError()) });
             bytes.remove_prefix(written);
         }
         return {};
@@ -588,12 +589,13 @@ namespace
     {
         auto out = std::ofstream(path, std::ios::binary | std::ios::trunc);
         if (!out)
-            return std::unexpected(ConfigWriteError { WriteFailure::NotOpened,
-                                                      std::error_code(errno != 0 ? errno : EIO, std::generic_category()) });
+            return std::unexpected(
+                ConfigWriteError { .failure = WriteFailure::NotOpened,
+                                   .code = std::error_code(errno != 0 ? errno : EIO, std::generic_category()) });
         out.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
         if (!out.flush())
-            return std::unexpected(
-                ConfigWriteError { WriteFailure::PartiallyWritten, std::make_error_code(std::errc::io_error) });
+            return std::unexpected(ConfigWriteError { .failure = WriteFailure::PartiallyWritten,
+                                                      .code = std::make_error_code(std::errc::io_error) });
         return {};
     }
 #endif
