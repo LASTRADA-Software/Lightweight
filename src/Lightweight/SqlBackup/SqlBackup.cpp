@@ -26,6 +26,7 @@
 #include <atomic>
 #include <cctype>
 #include <chrono>
+#include <cstddef>
 #include <deque>
 #include <expected>
 #include <format>
@@ -35,6 +36,8 @@
 #include <mutex>
 #include <ranges>
 #include <set>
+#include <span>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -283,6 +286,35 @@ namespace
         ProgressManager* _inner;
         std::atomic<size_t> _errors { 0 };
     };
+
+    /// Adds @p content to @p zip as the entry @p entryName, compressed as @p backupSettings asks.
+    /// libzip reads the bytes only during zip_close, so @p content must stay alive until then.
+    void AddBufferEntry(zip_t* zip,
+                        std::string const& entryName,
+                        std::span<std::byte const> content,
+                        BackupSettings const& backupSettings)
+    {
+        zip_source_t* source = zip_source_buffer(zip, content.data(), content.size(), 0);
+        if (!source)
+            throw std::runtime_error(std::format("Failed to create the zip source of {}: {}", entryName, zip_strerror(zip)));
+        zip_int64_t const index = zip_file_add(zip, entryName.c_str(), source, ZIP_FL_OVERWRITE | ZIP_FL_ENC_UTF_8);
+        if (index < 0)
+        {
+            zip_source_free(source);
+            throw std::runtime_error(std::format("Failed to add {} to zip: {}", entryName, zip_strerror(zip)));
+        }
+        zip_set_file_compression(
+            zip, static_cast<zip_uint64_t>(index), static_cast<zip_int32_t>(backupSettings.method), backupSettings.level);
+    }
+
+    /// Builds checksums.json from the SHA-256 (lowercase hex) of each listed entry.
+    std::string CreateChecksumsJson(std::map<std::string, std::string> const& checksums)
+    {
+        auto checksumsJson = nlohmann::json { { "algorithm", "sha256" }, { "files", nlohmann::json::object() } };
+        for (auto const& [entryName, hash]: checksums)
+            checksumsJson["files"][entryName] = hash;
+        return checksumsJson.dump();
+    }
 } // namespace
 
 /// Builds metadata.json; @p schemaNames with two or more entries makes it a multi-schema archive.
@@ -502,6 +534,17 @@ void BackupSchemas(std::filesystem::path const& outputFile,
     ZoneScopedN("SqlBackup::Backup");
     // Counts the table errors, which make the archive partial.
     auto progress = ErrorCountingProgress { outerProgress };
+    auto const attachmentNameView = backupSettings.attachments | std::views::transform(&BackupAttachment::name);
+    auto const attachmentNames = std::vector<std::string>(attachmentNameView.begin(), attachmentNameView.end());
+    if (auto const valid = detail::ValidateAttachmentNames(attachmentNames); !valid)
+    {
+        progress.Update({ .state = Progress::State::Error,
+                          .tableName = "",
+                          .currentRows = 0,
+                          .totalRows = 0,
+                          .message = "Backup failed: " + valid.error() });
+        return;
+    }
     {
         auto const sanitized = SqlConnectionString::SanitizePwd(connectionString.value);
         ZoneTextObject(sanitized);
@@ -860,85 +903,23 @@ void BackupSchemas(std::filesystem::path const& outputFile,
         auto const completeness = filter.MatchesAll() && !backupSettings.schemaOnly && progress.ReportedErrors() == 0
                                       ? ArchiveCompleteness::Complete
                                       : ArchiveCompleteness::Partial;
+        // The buffers added below (metadata, checksums, attachments) stay alive until zip_close reads them.
         auto const metadataJson =
             CreateArchiveMetadata(connectionString, completedTables, schema, schemaNames, completeness);
+        AddBufferEntry(zip, "metadata.json", std::as_bytes(std::span { metadataJson }), backupSettings);
 
-        // Add metadata.json to ZIP
-        // Use malloc for metadata to ensure consistent memory management with chunks.
-        // We transfer ownership to libzip (freep=1).
-        // zip_source_buffer takes ownership when freeData=1, and zip_file_add takes ownership of source on success.
-        // NOLINTNEXTLINE(cppcoreguidelines-no-malloc,cppcoreguidelines-owning-memory,clang-analyzer-unix.Malloc)
-        void* persistentMeta = std::malloc(metadataJson.size());
-        if (!persistentMeta)
-            throw std::bad_alloc();
-        // NOLINTNEXTLINE(bugprone-not-null-terminated-result)
-        std::memcpy(persistentMeta, metadataJson.data(), metadataJson.size());
-
-        zip_source_t* metaSource = zip_source_buffer(zip, persistentMeta, metadataJson.size(), 1);
-        if (!metaSource)
+        for (auto const& attachment: backupSettings.attachments)
         {
-            std::free(persistentMeta); // NOLINT(cppcoreguidelines-no-malloc,cppcoreguidelines-owning-memory)
-            throw std::bad_alloc();
+            auto entryName = std::format("{}{}", detail::AttachmentsPrefix, attachment.name);
+            AddBufferEntry(zip, entryName, std::as_bytes(std::span { attachment.content }), backupSettings);
+            checksums.insert_or_assign(std::move(entryName),
+                                       Sha256::Hash(attachment.content.data(), attachment.content.size()));
         }
 
-        // NOLINTNEXTLINE(clang-analyzer-unix.Malloc) - libzip takes ownership via zip_source_buffer(freeData=1)
-        zip_int64_t const metaIndex = zip_file_add(zip, "metadata.json", metaSource, ZIP_FL_OVERWRITE | ZIP_FL_ENC_UTF_8);
-        if (metaIndex < 0)
-        {
-            zip_source_free(metaSource);
-            throw std::runtime_error("Failed to add metadata.json to zip");
-        }
-
-        // Apply compression to metadata.json
-        zip_set_file_compression(zip,
-                                 static_cast<zip_uint64_t>(metaIndex),
-                                 static_cast<zip_int32_t>(backupSettings.method),
-                                 backupSettings.level);
-
-        // Write checksums.json only if we have data
-        if (!backupSettings.schemaOnly)
-        {
-            nlohmann::json checksumsJson;
-            checksumsJson["algorithm"] = "sha256";
-            checksumsJson["files"] = nlohmann::json::object();
-            for (auto const& [entryName, hash]: checksums)
-                checksumsJson["files"][entryName] = hash;
-
-            std::string const checksumsStr = checksumsJson.dump();
-
-            // zip_source_buffer takes ownership when freeData=1, and zip_file_add takes ownership of source on success.
-            // NOLINTNEXTLINE(cppcoreguidelines-no-malloc,cppcoreguidelines-owning-memory,clang-analyzer-unix.Malloc)
-            void* persistentChecksums = std::malloc(checksumsStr.size());
-            if (!persistentChecksums)
-                throw std::bad_alloc();
-            // NOLINTNEXTLINE(bugprone-not-null-terminated-result)
-            std::memcpy(persistentChecksums, checksumsStr.data(), checksumsStr.size());
-
-            zip_source_t* checksumSource = zip_source_buffer(zip, persistentChecksums, checksumsStr.size(), 1);
-            if (!checksumSource)
-            {
-                std::free(persistentChecksums); // NOLINT(cppcoreguidelines-no-malloc,cppcoreguidelines-owning-memory)
-                throw std::bad_alloc();
-            }
-
-            // libzip takes ownership via zip_source_buffer(freeData=1), so no leak
-            zip_int64_t const checksumIndex = zip_file_add( // NOLINT(clang-analyzer-unix.Malloc)
-                zip,
-                "checksums.json",
-                checksumSource,
-                ZIP_FL_OVERWRITE | ZIP_FL_ENC_UTF_8);
-            if (checksumIndex < 0)
-            {
-                zip_source_free(checksumSource);
-                throw std::runtime_error("Failed to add checksums.json to zip");
-            }
-
-            // Apply compression to checksums.json
-            zip_set_file_compression(zip,
-                                     static_cast<zip_uint64_t>(checksumIndex),
-                                     static_cast<zip_int32_t>(backupSettings.method),
-                                     backupSettings.level);
-        }
+        // A schema-only backup without attachments has nothing to checksum.
+        auto const checksumsJson = CreateChecksumsJson(checksums);
+        if (!backupSettings.schemaOnly || !backupSettings.attachments.empty())
+            AddBufferEntry(zip, "checksums.json", std::as_bytes(std::span { checksumsJson }), backupSettings);
 
         int zipCloseResult = 0;
         {
@@ -1169,6 +1150,14 @@ namespace
 {
     using ChecksumList = std::map<std::string, std::string>;
 
+    /// Opens a backup archive for reading; @return the archive, or a message naming the file.
+    std::expected<Zip::ZipArchive, std::string> OpenBackupArchive(std::filesystem::path const& archiveFile)
+    {
+        return Zip::ZipArchive::Open(archiveFile).transform_error([&archiveFile](Zip::ZipError const& error) {
+            return std::format("Failed to open backup archive {}: {}", Zip::ZipPathUtf8(archiveFile), error.message);
+        });
+    }
+
     /// The entries `checksums.json` lists with their hashes; empty when the archive has none.
     /// `metadata.json`'s `complete`; true when the key is missing (archives of older versions).
     std::expected<bool, std::string> ReadArchiveCompleteness(Zip::ZipArchive const& archive)
@@ -1250,28 +1239,47 @@ namespace
 
 namespace
 {
+    /// Whether @p entryName is an attachment: an entry below `attachments/` that is no folder entry.
+    bool IsAttachmentEntry(std::string_view entryName)
+    {
+        return entryName.starts_with(detail::AttachmentsPrefix) && !entryName.ends_with('/');
+    }
+
+    /// Runs @p read and turns an exception it throws (e.g. allocating a corrupt entry size) into a message.
+    template <typename Read>
+    auto Guarded(std::filesystem::path const& archiveFile, std::string_view action, Read const& read) -> decltype(read())
+    {
+        try
+        {
+            return read();
+        }
+        catch (std::exception const& exception)
+        {
+            return std::unexpected { std::format(
+                "Failed to {} backup archive {}: {}", action, Zip::ZipPathUtf8(archiveFile), exception.what()) };
+        }
+    }
+
     std::expected<ArchiveVerification, std::string> VerifyArchiveUnguarded(std::filesystem::path const& archiveFile)
     {
-        auto const archive = Zip::ZipArchive::Open(archiveFile);
+        auto const archive = OpenBackupArchive(archiveFile);
         if (!archive)
-            return std::unexpected { std::format(
-                "Failed to open backup archive {}: {}", Zip::ZipPathUtf8(archiveFile), archive.error().message) };
+            return std::unexpected { archive.error() };
 
         if (!archive->LocateEntry("metadata.json"))
             return std::unexpected { "metadata.json not found in archive" };
 
-        auto const entries = archive->GetAllEntries();
-        auto dataEntries = std::vector<std::string> {};
-        for (auto const& entry: entries)
-            if (entry.name.starts_with("data/"))
-                dataEntries.push_back(entry.name);
+        auto checksummedEntries = std::vector<std::string> {};
+        for (auto const& entry: archive->GetAllEntries())
+            if (entry.name.starts_with("data/") || IsAttachmentEntry(entry.name))
+                checksummedEntries.push_back(entry.name);
 
         auto const listed = ReadListedChecksums(*archive);
         if (!listed)
             return std::unexpected { listed.error() };
-        if (listed->empty() && !dataEntries.empty() && !archive->LocateEntry("checksums.json"))
+        if (listed->empty() && !checksummedEntries.empty() && !archive->LocateEntry("checksums.json"))
             return std::unexpected { "checksums.json not found in archive" };
-        for (auto const& entryName: dataEntries)
+        for (auto const& entryName: checksummedEntries)
             if (!listed->contains(entryName))
                 return std::unexpected { std::format("{} is not listed in checksums.json", entryName) };
 
@@ -1288,19 +1296,68 @@ namespace
             return std::unexpected { archiveSha256.error() };
         return ArchiveVerification { .archiveSha256 = *archiveSha256, .verifiedEntries = *verified, .complete = *complete };
     }
+
+    std::expected<std::vector<std::string>, std::string> ListArchiveAttachmentsUnguarded(
+        std::filesystem::path const& archiveFile)
+    {
+        auto const archive = OpenBackupArchive(archiveFile);
+        if (!archive)
+            return std::unexpected { archive.error() };
+
+        auto names = std::vector<std::string> {};
+        for (auto const& entry: archive->GetAllEntries())
+            if (IsAttachmentEntry(entry.name))
+                names.push_back(entry.name.substr(detail::AttachmentsPrefix.size()));
+        std::ranges::sort(names);
+        if (auto const valid = detail::ValidateAttachmentNames(names); !valid)
+            return std::unexpected { std::format(
+                "Backup archive {} holds an invalid attachment: {}", Zip::ZipPathUtf8(archiveFile), valid.error()) };
+        return names;
+    }
+
+    std::expected<std::vector<std::uint8_t>, std::string> ReadArchiveAttachmentUnguarded(
+        std::filesystem::path const& archiveFile, std::string_view name)
+    {
+        auto const archive = OpenBackupArchive(archiveFile);
+        if (!archive)
+            return std::unexpected { archive.error() };
+
+        auto const entryName = std::format("{}{}", detail::AttachmentsPrefix, name);
+        auto const index = archive->LocateEntry(entryName);
+        if (!index)
+            return std::unexpected { std::format(
+                "Attachment {} not found in backup archive {}", name, Zip::ZipPathUtf8(archiveFile)) };
+
+        auto const listed = ReadListedChecksums(*archive);
+        if (!listed)
+            return std::unexpected { listed.error() };
+        auto const expectedHash = listed->find(entryName);
+        if (expectedHash == listed->end())
+            return std::unexpected { std::format("{} is not listed in checksums.json", entryName) };
+
+        auto content = archive->ReadEntry(*index);
+        if (!content)
+            return std::unexpected { std::format("Failed to read attachment {}: {}", name, content.error().message) };
+        if (Sha256::Hash(content->data(), content->size()) != expectedHash->second)
+            return std::unexpected { std::format("checksum mismatch in {}", entryName) };
+        return std::move(*content);
+    }
 } // namespace
 
 std::expected<ArchiveVerification, std::string> VerifyArchive(std::filesystem::path const& archiveFile)
 {
-    try
-    {
-        return VerifyArchiveUnguarded(archiveFile);
-    }
-    catch (std::exception const& exception)
-    {
-        return std::unexpected { std::format(
-            "Failed to verify backup archive {}: {}", Zip::ZipPathUtf8(archiveFile), exception.what()) };
-    }
+    return Guarded(archiveFile, "verify", [&archiveFile] { return VerifyArchiveUnguarded(archiveFile); });
+}
+
+std::expected<std::vector<std::string>, std::string> ListArchiveAttachments(std::filesystem::path const& archiveFile)
+{
+    return Guarded(archiveFile, "read", [&archiveFile] { return ListArchiveAttachmentsUnguarded(archiveFile); });
+}
+
+std::expected<std::vector<std::uint8_t>, std::string> ReadArchiveAttachment(std::filesystem::path const& archiveFile,
+                                                                            std::string_view name)
+{
+    return Guarded(archiveFile, "read", [&archiveFile, name] { return ReadArchiveAttachmentUnguarded(archiveFile, name); });
 }
 
 std::string DefaultRestoreSchema(std::filesystem::path const& archiveFile,

@@ -43,6 +43,22 @@ enum class CompressionMethod : std::int32_t
 };
 
 /// @ingroup Backup
+/// A caller-supplied file that a backup stores in its archive next to the table data.
+///
+/// The archive holds it as `attachments/<name>` and lists it in `checksums.json`; restore ignores it.
+struct BackupAttachment
+{
+    /// The relative path within `attachments/` as UTF-8, with `/` separating folders (e.g. `notes/readme.txt`).
+    /// It must be well-formed UTF-8 without control characters, must not be empty, start or end with `/`,
+    /// contain a backslash or a colon, or have an empty, `.` or `..` path segment. Ignoring ASCII letter case,
+    /// it must differ from every other attachment's name and must not be the folder of another one.
+    std::string name {};
+
+    /// The bytes the archive stores for this attachment.
+    std::vector<std::uint8_t> content {};
+};
+
+/// @ingroup Backup
 /// Configuration for backup operations including compression and chunking.
 struct BackupSettings
 {
@@ -79,6 +95,10 @@ struct BackupSettings
     /// been removed (all databases now back up multi-threaded), so this flag no longer has any
     /// effect. Retained temporarily to avoid an API/ABI break; pending removal.
     bool forceMssqlConcurrency = false;
+
+    /// Files to store in the archive, compressed with `method` and `level`, also by a schema-only
+    /// backup. An invalid or duplicate name fails the backup before it connects to the database.
+    std::vector<BackupAttachment> attachments {};
 };
 
 /// @ingroup Backup
@@ -364,13 +384,36 @@ struct ArchiveVerification
 };
 
 /// Checks that a backup archive is complete: it holds `metadata.json`, `checksums.json` lists every data
-/// entry (`data/...`), and every listed entry's SHA-256 matches. An archive without data entries (schema
-/// only) needs no `checksums.json`. Also hashes the whole file.
+/// entry (`data/...`) and every attachment (`attachments/...`, folder entries aside), and every listed
+/// entry's SHA-256 matches. An archive with neither data entries nor attachments (schema only) needs no
+/// `checksums.json`. Also hashes the whole file.
 ///
 /// @param archiveFile The archive.
 /// @return The verification, or a message naming what is wrong.
 [[nodiscard]] LIGHTWEIGHT_API std::expected<ArchiveVerification, std::string> VerifyArchive(
     std::filesystem::path const& archiveFile);
+
+/// Lists the attachments a backup archive holds (see @ref BackupAttachment).
+///
+/// The names are checked against the rules of @ref BackupAttachment::name, the ones a backup enforces, so
+/// a caller can use each name as a relative path, e.g. to extract the attachments below one folder.
+///
+/// @param archiveFile The archive.
+/// @return The attachment names without the `attachments/` prefix, sorted, or a message saying why the
+///         archive cannot be read or naming the first name that breaks those rules.
+[[nodiscard]] LIGHTWEIGHT_API std::expected<std::vector<std::string>, std::string> ListArchiveAttachments(
+    std::filesystem::path const& archiveFile);
+
+/// Reads one attachment of a backup archive (see @ref BackupAttachment).
+///
+/// `checksums.json` must list the attachment, with the SHA-256 of the bytes the archive holds.
+///
+/// @param archiveFile The archive.
+/// @param name The attachment's name, without the `attachments/` prefix.
+/// @return The attachment's bytes, or a message naming the attachment when it is missing, unreadable, not
+///         listed in `checksums.json` or does not match its checksum.
+[[nodiscard]] LIGHTWEIGHT_API std::expected<std::vector<std::uint8_t>, std::string> ReadArchiveAttachment(
+    std::filesystem::path const& archiveFile, std::string_view name);
 
 /// Decides what a schema that the caller did not ask for, but took from a default (a profile), means
 /// for restoring @p archiveFile.

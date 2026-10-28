@@ -4,13 +4,20 @@
 #include "Common.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <chrono>
+#include <cstddef>
+#include <expected>
 #include <format>
+#include <initializer_list>
 #include <map>
 #include <optional>
+#include <ranges>
 #include <set>
+#include <span>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 
@@ -126,6 +133,155 @@ std::optional<std::string_view> ChunkDirectoryOf(std::string_view entryName)
     if (lastSlash <= DataPrefix.size())
         return std::nullopt;
     return entryName.substr(DataPrefix.size(), lastSlash - DataPrefix.size());
+}
+
+namespace
+{
+    /// Whether @p byte is an ASCII control character (0x00-0x1F or 0x7F).
+    constexpr bool IsControlByte(char byte) noexcept
+    {
+        auto const value = static_cast<unsigned char>(byte);
+        return value < 0x20 || value == 0x7F;
+    }
+
+    /// The lead bytes of one kind of well-formed UTF-8 sequence, the range of its second byte, and its length.
+    struct Utf8SequenceKind
+    {
+        unsigned char leadLow;
+        unsigned char leadHigh;
+        unsigned char secondLow;
+        unsigned char secondHigh;
+        std::size_t length;
+    };
+
+    /// The well-formed UTF-8 sequences of the Unicode standard (table 3-7), which leave out overlong forms,
+    /// surrogates and code points above U+10FFFF; later bytes of a sequence lie in 0x80-0xBF.
+    constexpr auto Utf8SequenceKinds = std::array {
+        Utf8SequenceKind { .leadLow = 0x00, .leadHigh = 0x7F, .secondLow = 0x80, .secondHigh = 0xBF, .length = 1 },
+        Utf8SequenceKind { .leadLow = 0xC2, .leadHigh = 0xDF, .secondLow = 0x80, .secondHigh = 0xBF, .length = 2 },
+        Utf8SequenceKind { .leadLow = 0xE0, .leadHigh = 0xE0, .secondLow = 0xA0, .secondHigh = 0xBF, .length = 3 },
+        Utf8SequenceKind { .leadLow = 0xE1, .leadHigh = 0xEC, .secondLow = 0x80, .secondHigh = 0xBF, .length = 3 },
+        Utf8SequenceKind { .leadLow = 0xED, .leadHigh = 0xED, .secondLow = 0x80, .secondHigh = 0x9F, .length = 3 },
+        Utf8SequenceKind { .leadLow = 0xEE, .leadHigh = 0xEF, .secondLow = 0x80, .secondHigh = 0xBF, .length = 3 },
+        Utf8SequenceKind { .leadLow = 0xF0, .leadHigh = 0xF0, .secondLow = 0x90, .secondHigh = 0xBF, .length = 4 },
+        Utf8SequenceKind { .leadLow = 0xF1, .leadHigh = 0xF3, .secondLow = 0x80, .secondHigh = 0xBF, .length = 4 },
+        Utf8SequenceKind { .leadLow = 0xF4, .leadHigh = 0xF4, .secondLow = 0x80, .secondHigh = 0x8F, .length = 4 },
+    };
+
+    /// Whether @p byte lies in [@p low, @p high].
+    constexpr bool IsByteInRange(char byte, unsigned char low, unsigned char high) noexcept
+    {
+        auto const value = static_cast<unsigned char>(byte);
+        return value >= low && value <= high;
+    }
+
+    /// The kind of UTF-8 sequence that @p lead starts, or std::nullopt when no well-formed sequence starts with it.
+    std::optional<Utf8SequenceKind> FindUtf8SequenceKind(char lead) noexcept
+    {
+        for (auto const& kind: Utf8SequenceKinds)
+            if (IsByteInRange(lead, kind.leadLow, kind.leadHigh))
+                return kind;
+        return std::nullopt;
+    }
+
+    /// Whether @p text is well-formed UTF-8.
+    bool IsWellFormedUtf8(std::string_view text) noexcept
+    {
+        while (!text.empty())
+        {
+            auto const kind = FindUtf8SequenceKind(text.front());
+            if (!kind || text.size() < kind->length)
+                return false;
+            auto const followers = text.substr(1, kind->length - 1);
+            if (!followers.empty() && !IsByteInRange(followers.front(), kind->secondLow, kind->secondHigh))
+                return false;
+            if (!std::ranges::all_of(followers | std::views::drop(1),
+                                     [](char byte) { return IsByteInRange(byte, 0x80, 0xBF); }))
+                return false;
+            text.remove_prefix(kind->length);
+        }
+        return true;
+    }
+
+    /// @p name in double quotes for a message. Control bytes, and every byte above 0x7F of a name that is no
+    /// well-formed UTF-8, are written as `\xHH`.
+    std::string QuotedName(std::string_view name)
+    {
+        auto const escapeHighBytes = !IsWellFormedUtf8(name);
+        auto quoted = std::string { '"' };
+        for (char const byte: name)
+        {
+            auto const value = static_cast<unsigned char>(byte);
+            if (IsControlByte(byte) || (escapeHighBytes && value > 0x7F))
+                quoted += std::format("\\x{:02X}", value);
+            else
+                quoted += byte;
+        }
+        quoted += '"';
+        return quoted;
+    }
+
+    /// Whether one of the `/`-separated segments of @p name is one of @p segments.
+    bool HasPathSegment(std::string_view name, std::initializer_list<std::string_view> segments)
+    {
+        return std::ranges::any_of(std::views::split(name, '/'), [segments](auto const& part) {
+            return std::ranges::contains(segments, std::string_view { part.begin(), part.end() });
+        });
+    }
+
+    /// A rule every attachment name must keep, with the message part that describes a violation.
+    struct AttachmentNameRule
+    {
+        bool (*isViolatedBy)(std::string_view name);
+        std::string_view problem;
+    };
+
+    constexpr auto AttachmentNameRules = std::array {
+        AttachmentNameRule { .isViolatedBy = [](std::string_view name) { return name.empty(); }, .problem = "is empty" },
+        AttachmentNameRule { .isViolatedBy = [](std::string_view name) { return std::ranges::any_of(name, IsControlByte); },
+                             .problem = "contains a control character" },
+        AttachmentNameRule { .isViolatedBy = [](std::string_view name) { return !IsWellFormedUtf8(name); },
+                             .problem = "is not well-formed UTF-8" },
+        AttachmentNameRule { .isViolatedBy = [](std::string_view name) { return name.starts_with('/'); },
+                             .problem = "starts with '/'" },
+        AttachmentNameRule { .isViolatedBy = [](std::string_view name) { return name.contains('\\'); },
+                             .problem = "contains '\\'" },
+        AttachmentNameRule { .isViolatedBy = [](std::string_view name) { return name.contains(':'); },
+                             .problem = "contains ':'" },
+        AttachmentNameRule { .isViolatedBy = [](std::string_view name) { return name.ends_with('/'); },
+                             .problem = "ends with '/'" },
+        AttachmentNameRule { .isViolatedBy = [](std::string_view name) { return HasPathSegment(name, { "" }); },
+                             .problem = "has an empty path segment" },
+        AttachmentNameRule { .isViolatedBy = [](std::string_view name) { return HasPathSegment(name, { ".", ".." }); },
+                             .problem = "has a '.' or '..' path segment" },
+    };
+} // namespace
+
+std::expected<void, std::string> ValidateAttachmentNames(std::span<std::string const> names)
+{
+    auto namesByLowerCase = std::map<std::string, std::string_view> {};
+    for (auto const& name: names)
+    {
+        for (auto const& rule: AttachmentNameRules)
+            if (rule.isViolatedBy(name))
+                return std::unexpected { std::format("attachment name {} {}", QuotedName(name), rule.problem) };
+
+        auto const [existing, inserted] = namesByLowerCase.emplace(ToLowerAscii(name), name);
+        if (!inserted)
+            return std::unexpected { std::format(
+                "attachment name {} duplicates {}, ignoring letter case", QuotedName(name), QuotedName(existing->second)) };
+    }
+
+    // A file cannot be extracted next to a folder of the same name.
+    for (auto const& name: names)
+    {
+        auto const folder = ToLowerAscii(name) + '/';
+        if (auto const inside = namesByLowerCase.lower_bound(folder);
+            inside != namesByLowerCase.end() && inside->first.starts_with(folder))
+            return std::unexpected { std::format(
+                "attachment name {} is also the folder of {}", QuotedName(name), QuotedName(inside->second)) };
+    }
+    return {};
 }
 
 std::string JoinNames(std::vector<std::string> const& names)

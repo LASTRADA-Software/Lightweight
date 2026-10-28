@@ -356,6 +356,7 @@ namespace SqlBackup
 {
     using Lightweight::SqlBackup::ArchiveVerification;
     using Lightweight::SqlBackup::Backup;
+    using Lightweight::SqlBackup::BackupAttachment;
     using Lightweight::SqlBackup::BackupSchemas;
     using Lightweight::SqlBackup::BackupSettings;
     using Lightweight::SqlBackup::BackupValue;
@@ -374,10 +375,12 @@ namespace SqlBackup
     using Lightweight::SqlBackup::GetAvailableSystemMemory;
     using Lightweight::SqlBackup::GetSupportedCompressionMethods;
     using Lightweight::SqlBackup::IsCompressionMethodSupported;
+    using Lightweight::SqlBackup::ListArchiveAttachments;
     using Lightweight::SqlBackup::NullProgressManager;
     using Lightweight::SqlBackup::ParseSchema;
     using Lightweight::SqlBackup::Progress;
     using Lightweight::SqlBackup::ProgressManager;
+    using Lightweight::SqlBackup::ReadArchiveAttachment;
     using Lightweight::SqlBackup::ReadArchiveSchemas;
     using Lightweight::SqlBackup::Restore;
     using Lightweight::SqlBackup::RestoreSettings;

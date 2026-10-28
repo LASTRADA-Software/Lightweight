@@ -9,8 +9,10 @@
 
 #include <chrono>
 #include <cstdint>
+#include <expected>
 #include <format>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -197,6 +199,19 @@ LIGHTWEIGHT_API std::string ChunkDirectory(std::string_view schema, std::string_
 /// @param entryName The ZIP entry name.
 /// @return The folder (see @ref ChunkDirectory), or `std::nullopt` if @p entryName is no chunk entry.
 LIGHTWEIGHT_API std::optional<std::string_view> ChunkDirectoryOf(std::string_view entryName);
+
+/// The archive folder that holds the caller-supplied attachments (see @ref BackupAttachment).
+inline constexpr std::string_view AttachmentsPrefix = "attachments/";
+
+/// Checks that attachment names can be extracted below `attachments/` (see @ref BackupAttachment::name).
+///
+/// Each name must be a relative, `/`-separated path of well-formed UTF-8 without control characters. Names
+/// are compared ignoring ASCII letter case, since archives get extracted on case-insensitive file systems: no
+/// two may be equal, and none may also be the folder of another.
+///
+/// @param names The attachment names, without the `attachments/` prefix.
+/// @return Nothing when all names are valid, otherwise a message naming the first offending name.
+[[nodiscard]] LIGHTWEIGHT_API std::expected<void, std::string> ValidateAttachmentNames(std::span<std::string const> names);
 
 /// Joins @p names with ", ", for messages.
 ///
