@@ -22,7 +22,8 @@ namespace Lightweight::Profiles::detail
 /// @param context Prefix for the error message, e.g. the name of the operation.
 /// @param body Callable returning a `std::expected<T, std::string>`.
 /// @return The result of @p body, or `"<context>: <what>"` (`"<context>: unexpected error"` for
-///         non-standard exceptions) as an error.
+///         non-standard exceptions) as an error. If even building that message fails (out of
+///         memory), the error string is empty.
 template <typename Body>
 [[nodiscard]] auto Guarded(std::string_view context, Body&& body) noexcept -> std::invoke_result_t<Body>
 {

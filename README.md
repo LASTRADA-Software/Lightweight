@@ -29,6 +29,7 @@ Documentation is available at [https://lastrada-software.github.io/Lightweight/]
 | **Custom data types** | `SqlDataBinder<T>` specialization for your own types, with Unicode support | [data-binder.md](docs/data-binder.md) |
 | **`dbtool` CLI** | Migrations, backup/restore, backup diffing, schema inspection — ~20 commands | [dbtool.md](docs/dbtool.md) |
 | **`dbtool-gui`** | Qt/QML desktop app for migrations, backup and ad-hoc queries | [dbtool.md](docs/dbtool.md) |
+| **Profiles library** | `Lightweight::Profiles`: read and write the `dbtool.yml` connection profiles from your own application | [profiles-library.md](docs/profiles-library.md) |
 | **`ddl2cpp`** | Generates C++ records from an existing schema, inferring relations automatically | [ddl2cpp-relation-generation.md](docs/ddl2cpp-relation-generation.md) |
 
 Coming from SQL? [sql-to-lightweight.md](docs/sql-to-lightweight.md) is a side-by-side cookbook that

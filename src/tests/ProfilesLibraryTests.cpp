@@ -335,6 +335,36 @@ TEST_CASE("ListProfiles handles a non-ASCII start directory", "[profiles-lib]")
     CHECK(list->profiles.front().configFile == ProfilesFixture::ConfigIn(startDirectory));
 }
 
+namespace
+{
+
+/// Makes a directory the process working directory and restores the previous one when destroyed.
+class WorkingDirectoryGuard
+{
+  public:
+    explicit WorkingDirectoryGuard(fs::path const& directory):
+        _previous { fs::current_path() }
+    {
+        fs::current_path(directory);
+    }
+
+    WorkingDirectoryGuard(WorkingDirectoryGuard const&) = delete;
+    WorkingDirectoryGuard(WorkingDirectoryGuard&&) = delete;
+    WorkingDirectoryGuard& operator=(WorkingDirectoryGuard const&) = delete;
+    WorkingDirectoryGuard& operator=(WorkingDirectoryGuard&&) = delete;
+
+    ~WorkingDirectoryGuard()
+    {
+        auto errorCode = std::error_code {};
+        fs::current_path(_previous, errorCode);
+    }
+
+  private:
+    fs::path _previous;
+};
+
+} // namespace
+
 TEST_CASE("ListProfiles accepts a relative or missing start directory", "[profiles-lib]")
 {
     auto const fixture = ProfilesFixture {};
@@ -350,9 +380,15 @@ TEST_CASE("ListProfiles accepts a relative or missing start directory", "[profil
 
     SECTION("relative")
     {
-        auto const list = Profiles::ListProfiles(fs::path("no-such-relative-directory"));
+        WriteFile(ProfilesFixture::ConfigIn(fixture.App()), "profiles:\n  appProfile:\n    dsn: A1\n");
+        auto const workingDirectory = WorkingDirectoryGuard { fixture.Root() };
+
+        auto const list = Profiles::ListProfiles(fs::path("app") / "sub");
+
         REQUIRE(list.has_value());
-        CHECK(!list->profiles.empty());
+        REQUIRE(list->configFiles.size() == 2);
+        CHECK(fs::equivalent(list->configFiles.front(), ProfilesFixture::ConfigIn(fixture.App())));
+        CHECK(std::ranges::any_of(list->profiles, [](auto const& summary) { return summary.name == "appProfile"; }));
     }
 }
 
@@ -491,8 +527,9 @@ TEST_CASE("ResolveProfileConnection errors for an unknown profile", "[profiles-l
         auto const result = Profiles::ResolveProfileConnection(fixture.Sub(), "nope");
         REQUIRE(!result.has_value());
         CHECK(result.error().find("nope") != std::string::npos);
-        CHECK(result.error().find("(not found)") != std::string::npos);
+        CHECK(result.error().find("(not found") != std::string::npos);
         CHECK(result.error().find("dbtool.yml") != std::string::npos);
+        CHECK(result.error().find(fixture.Root().filename().string()) != std::string::npos);
     }
 }
 
@@ -784,7 +821,7 @@ TEST_CASE("SaveProfile round-trips a name with YAML-special characters or fails 
             CHECK_FALSE(saved.error().empty());
             CHECK(FindProfile(*list, name) == nullptr);
         }
-        WARN("outcome for [" << name << "]: " << (saved.has_value() ? "round-trips" : saved.error()));
+        INFO("outcome for [" << name << "]: " << (saved.has_value() ? "round-trips" : saved.error()));
     }
 }
 

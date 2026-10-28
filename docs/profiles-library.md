@@ -101,7 +101,8 @@ backend).
 
 `ListProfiles` returns `configFiles` (the layers loaded, nearest first), `newProfileTarget` (the file
 a *new* profile would be saved to), the merged `defaultProfile` and the profiles. Connection strings
-have any `PWD=` value removed; `hasPassword` only says whether a password, a `secretRef` or a `PWD=`
+have any `PWD=` / `Password=` value masked as `***` (connect via `ResolveProfileConnection`, not with the
+listed string); `hasPassword` only says whether a password, a `secretRef` or a `PWD=`
 is set. The paths in `configFiles` and `ProfileSummary::configFile` come back in the form discovery
 produced them (the directories walked are canonical). Compare them with
 `std::filesystem::equivalent`, not with string equality:
@@ -186,8 +187,8 @@ The installed library needs, next to or on the loader search path of your applic
 | Platform | Needed |
 |----------|--------|
 | Windows | `LightweightProfiles.dll`, plus `Lightweight.dll` (when built with `LIGHTWEIGHT_BUILD_SHARED=ON`), the yaml-cpp DLL under a dynamic vcpkg triplet, and the VC++ runtime. The install step bundles these next to the DLL unless `LIGHTWEIGHT_INSTALL_RUNTIME_DEPENDENCIES=OFF` (do that under a package manager that installs them itself). Put the install `bin` directory on `PATH` or next to your executable. |
-| Linux | `libLightweightProfiles.so` (with its SONAME links) in the install `lib` directory, plus `libLightweight.so` when built with `LIGHTWEIGHT_BUILD_SHARED=ON`, and `libcrypto` and yaml-cpp when they are shared libraries. Use an RPATH or `LD_LIBRARY_PATH`. |
-| macOS | `libLightweightProfiles.dylib`, plus yaml-cpp when shared. Use an RPATH or `DYLD_LIBRARY_PATH`. |
+| Linux | `libLightweightProfiles.so` (with its SONAME links) in the install `lib` directory, plus `libLightweight.so` when built with `LIGHTWEIGHT_BUILD_SHARED=ON`, and `libcrypto` and yaml-cpp when they are shared libraries. The library carries `RUNPATH=$ORIGIN`, so `libLightweight.so` is found next to it; an application still needs an RPATH or `LD_LIBRARY_PATH` to find `libLightweightProfiles.so` itself. |
+| macOS | `libLightweightProfiles.dylib`, plus yaml-cpp when shared. The library carries an `@loader_path` rpath for its siblings; an application still needs an rpath or `DYLD_LIBRARY_PATH` to find the library itself. |
 
 When Lightweight is built with `LIGHTWEIGHT_BUILD_SHARED=OFF` (the non-Windows default), the library
 embeds a private copy of Lightweight. Its symbols are hidden, but its statics (logger, connection

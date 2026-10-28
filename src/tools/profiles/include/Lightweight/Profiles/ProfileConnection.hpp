@@ -3,6 +3,7 @@
 // Public API of the `Lightweight::Profiles` library: read and write the connection profiles of
 // dbtool.yml exactly as dbtool sees them. Only standard-library types cross the boundary, so
 // consumers must use the same compiler, standard library and (on MSVC) runtime as the library.
+// All functions are safe to call concurrently from multiple threads.
 
 #pragma once
 
@@ -62,7 +63,8 @@ struct ProfileSummary
     std::string name;
     /// ODBC data source name; empty if the profile uses a connection string.
     std::string dsn;
-    /// Connection string with any `PWD=` value removed.
+    /// Connection string with any `PWD=` / `Password=` value masked as `***`; connect via
+    /// `ResolveProfileConnection`, not with this string.
     std::string connectionString;
     /// User id; may be empty.
     std::string uid;
@@ -89,9 +91,8 @@ struct ProfileList
 
 /// Lists the profiles of the merged view of all dbtool.yml layers.
 ///
-/// Never returns a password: connection strings are `PWD=`-sanitised and `hasPassword` only tells
-/// whether one is set. No config file at all yields an empty list, not an error. Errors never
-/// contain secrets.
+/// Never returns a password: connection strings have `PWD=` / `Password=` values masked as `***` and `hasPassword` only
+/// tells whether one is set. No config file at all yields an empty list, not an error. Errors never contain secrets.
 ///
 /// @param startDirectory Directory where the layered lookup starts; relative paths are made
 ///                       absolute against the working directory. `std::nullopt` consults only the
