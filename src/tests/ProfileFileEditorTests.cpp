@@ -374,7 +374,7 @@ TEST_CASE("ProfileFileEditor — EditConfigFile does not fall back on a non-perm
     TempFile const file("a: 1\n");
     auto inPlaceCalls = 0;
     auto ops = FailingNewFile(std::errc::io_error);
-    ops.overwriteInPlace = [&](fs::path const&, std::string_view) -> std::expected<void, std::error_code> {
+    ops.overwriteInPlace = [&](fs::path const&, std::string_view) -> std::expected<void, Cfg::ConfigWriteError> {
         ++inPlaceCalls;
         return {};
     };
@@ -398,10 +398,11 @@ TEST_CASE("ProfileFileEditor — EditConfigFile restores the original bytes when
     TempFile const file("a: 1\n");
     auto writtenBytes = std::vector<std::string> {};
     auto ops = FailingNewFile(std::errc::permission_denied);
-    ops.overwriteInPlace = [&](fs::path const&, std::string_view bytes) -> std::expected<void, std::error_code> {
+    ops.overwriteInPlace = [&](fs::path const&, std::string_view bytes) -> std::expected<void, Cfg::ConfigWriteError> {
         writtenBytes.emplace_back(bytes);
         if (writtenBytes.size() == 1)
-            return std::unexpected(std::make_error_code(std::errc::no_space_on_device));
+            return std::unexpected(Cfg::ConfigWriteError { Cfg::WriteFailure::PartiallyWritten,
+                                                           std::make_error_code(std::errc::no_space_on_device) });
         return {};
     };
     auto const result = Cfg::EditConfigFile(file.Path(), AppendSecondKey, ops);
@@ -415,13 +416,32 @@ TEST_CASE("ProfileFileEditor — EditConfigFile reports when the original conten
 {
     TempFile const file("a: 1\n");
     auto ops = FailingNewFile(std::errc::permission_denied);
-    ops.overwriteInPlace = [](fs::path const&, std::string_view) -> std::expected<void, std::error_code> {
-        return std::unexpected(std::make_error_code(std::errc::no_space_on_device));
+    ops.overwriteInPlace = [](fs::path const&, std::string_view) -> std::expected<void, Cfg::ConfigWriteError> {
+        return std::unexpected(Cfg::ConfigWriteError { Cfg::WriteFailure::PartiallyWritten,
+                                                       std::make_error_code(std::errc::no_space_on_device) });
     };
     auto const result = Cfg::EditConfigFile(file.Path(), AppendSecondKey, ops);
     REQUIRE_FALSE(result.has_value());
     CHECK(result.error().contains("the original content could not be restored"));
     CHECK_FALSE(result.error().contains("was restored"));
+}
+
+TEST_CASE("ProfileFileEditor — EditConfigFile leaves the file unchanged when the in-place open fails", "[ProfileFileEditor]")
+{
+    TempFile const file("a: 1\n");
+    auto inPlaceCalls = 0;
+    auto ops = FailingNewFile(std::errc::permission_denied);
+    ops.overwriteInPlace = [&](fs::path const&, std::string_view) -> std::expected<void, Cfg::ConfigWriteError> {
+        ++inPlaceCalls;
+        return std::unexpected(
+            Cfg::ConfigWriteError { Cfg::WriteFailure::NotOpened, std::make_error_code(std::errc::permission_denied) });
+    };
+    auto const result = Cfg::EditConfigFile(file.Path(), AppendSecondKey, ops);
+    REQUIRE_FALSE(result.has_value());
+    CHECK(inPlaceCalls == 1);
+    CHECK(result.error().contains("the file was left unchanged"));
+    CHECK_FALSE(result.error().contains("restored"));
+    CHECK(file.Read() == "a: 1\n");
 }
 
 #ifdef _WIN32
@@ -432,7 +452,8 @@ TEST_CASE("ProfileFileEditor — default file writes report access denied as a p
     auto const ops = Cfg::DefaultConfigFileOps();
     auto const result = ops.overwriteInPlace(file.Path().parent_path(), "x");
     REQUIRE_FALSE(result.has_value());
-    CHECK(result.error() == std::errc::permission_denied);
+    CHECK(result.error().code == std::errc::permission_denied);
+    CHECK(result.error().failure == Cfg::WriteFailure::NotOpened);
 
     auto const existing = ops.writeNewFile(file.Path(), "x");
     REQUIRE_FALSE(existing.has_value());

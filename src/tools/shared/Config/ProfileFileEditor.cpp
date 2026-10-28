@@ -558,15 +558,15 @@ namespace
 
     /// Writes `bytes` into `path` with the native API, so the failure's Win32 error is read
     /// immediately at the failing call instead of after unrelated library code has run.
-    std::expected<void, std::error_code> WriteFileBytes(std::filesystem::path const& path,
-                                                        std::string_view bytes,
-                                                        WriteMode mode)
+    std::expected<void, ConfigWriteError> WriteFileBytes(std::filesystem::path const& path,
+                                                         std::string_view bytes,
+                                                         WriteMode mode)
     {
         auto const disposition = mode == WriteMode::CreateNew ? CREATE_NEW : TRUNCATE_EXISTING;
         auto const handle = ::CreateFileW(
             path.c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, disposition, FILE_ATTRIBUTE_NORMAL, nullptr);
         if (handle == INVALID_HANDLE_VALUE)
-            return std::unexpected(ErrorCodeFromWin32(::GetLastError()));
+            return std::unexpected(ConfigWriteError { WriteFailure::NotOpened, ErrorCodeFromWin32(::GetLastError()) });
         auto const owner = std::unique_ptr<void, HandleCloser> { handle };
 
         while (!bytes.empty())
@@ -574,23 +574,26 @@ namespace
             auto const chunk = static_cast<DWORD>(std::min<std::size_t>(bytes.size(), 1U << 20));
             auto written = DWORD { 0 };
             if (!::WriteFile(handle, bytes.data(), chunk, &written, nullptr))
-                return std::unexpected(ErrorCodeFromWin32(::GetLastError()));
+                return std::unexpected(
+                    ConfigWriteError { WriteFailure::PartiallyWritten, ErrorCodeFromWin32(::GetLastError()) });
             bytes.remove_prefix(written);
         }
         return {};
     }
 #else
     /// Writes `bytes` into `path`; the failing open's errno is read right after the open.
-    std::expected<void, std::error_code> WriteFileBytes(std::filesystem::path const& path,
-                                                        std::string_view bytes,
-                                                        WriteMode /*mode*/)
+    std::expected<void, ConfigWriteError> WriteFileBytes(std::filesystem::path const& path,
+                                                         std::string_view bytes,
+                                                         WriteMode /*mode*/)
     {
         auto out = std::ofstream(path, std::ios::binary | std::ios::trunc);
         if (!out)
-            return std::unexpected(std::error_code(errno != 0 ? errno : EIO, std::generic_category()));
+            return std::unexpected(ConfigWriteError { WriteFailure::NotOpened,
+                                                      std::error_code(errno != 0 ? errno : EIO, std::generic_category()) });
         out.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
         if (!out.flush())
-            return std::unexpected(std::make_error_code(std::errc::io_error));
+            return std::unexpected(
+                ConfigWriteError { WriteFailure::PartiallyWritten, std::make_error_code(std::errc::io_error) });
         return {};
     }
 #endif
@@ -610,10 +613,12 @@ namespace
         auto const written = ops.overwriteInPlace(path, edited);
         if (written)
             return {};
-        auto const* const outcome = ops.overwriteInPlace(path, original) ? "the original content was restored"
-                                                                         : "the original content could not be restored";
+        auto const* outcome = "the file was left unchanged";
+        if (written.error().failure == WriteFailure::PartiallyWritten)
+            outcome = ops.overwriteInPlace(path, original) ? "the original content was restored"
+                                                           : "the original content could not be restored";
         return std::unexpected(
-            std::format("cannot write {}: {}; {}", Utf8FromPath(path), written.error().message(), outcome));
+            std::format("cannot write {}: {}; {}", Utf8FromPath(path), written.error().code.message(), outcome));
     }
 
 } // namespace
@@ -622,7 +627,11 @@ ConfigFileOps DefaultConfigFileOps()
 {
     return ConfigFileOps {
         .writeNewFile = [](std::filesystem::path const& path,
-                           std::string_view bytes) { return WriteFileBytes(path, bytes, WriteMode::CreateNew); },
+                           std::string_view bytes) -> std::expected<void, std::error_code> {
+            return WriteFileBytes(path, bytes, WriteMode::CreateNew).transform_error([](ConfigWriteError const& error) {
+                return error.code;
+            });
+        },
         .overwriteInPlace = [](std::filesystem::path const& path,
                                std::string_view bytes) { return WriteFileBytes(path, bytes, WriteMode::TruncateExisting); },
     };
