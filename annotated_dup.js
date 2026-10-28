@@ -21,6 +21,7 @@ var annotated_dup =
       ] ],
       [ "SqlBackup", null, [
         [ "ArchiveVerification", "df/d1e/structLightweight_1_1SqlBackup_1_1ArchiveVerification.html", "df/d1e/structLightweight_1_1SqlBackup_1_1ArchiveVerification" ],
+        [ "BackupAttachment", "da/d97/structLightweight_1_1SqlBackup_1_1BackupAttachment.html", "da/d97/structLightweight_1_1SqlBackup_1_1BackupAttachment" ],
         [ "BackupSettings", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings" ],
         [ "ChunkReader", "d2/d99/structLightweight_1_1SqlBackup_1_1ChunkReader.html", "d2/d99/structLightweight_1_1SqlBackup_1_1ChunkReader" ],
         [ "ChunkWriter", "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html", "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter" ],

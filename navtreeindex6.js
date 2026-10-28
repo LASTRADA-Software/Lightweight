@@ -1,11 +1,16 @@
 var NAVTREEINDEX6 =
 {
+"da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html#ab35f526bdaf9d9ae761de98d3ae66d95":[22,0,0,4,1,2],
+"da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html#ac4fab43b4ddee4e6218412da3d9c4986":[22,0,0,4,1,3],
 "da/d7e/structLightweight_1_1SqlRawColumn.html":[22,0,0,77],
 "da/d7e/structLightweight_1_1SqlRawColumn.html#a46be282ffe105f3df50dd090c0419d68":[22,0,0,77,0],
 "da/d7e/structLightweight_1_1SqlRawColumn.html#a9125efddb4978d91a258ef9525c0ea3d":[22,0,0,77,2],
 "da/d7e/structLightweight_1_1SqlRawColumn.html#abafa148d105f4f791595f95b1e68a162":[22,0,0,77,1],
 "da/d96/structLightweight_1_1SqlNullType.html":[20,1,8],
 "da/d96/structLightweight_1_1SqlNullType.html#abf2ca1881d4960c791dbe1d7a437c444":[20,1,8,0],
+"da/d97/structLightweight_1_1SqlBackup_1_1BackupAttachment.html":[20,5,0],
+"da/d97/structLightweight_1_1SqlBackup_1_1BackupAttachment.html#a0a49f104800bc043e81f6656cc6a7bb7":[20,5,0,0],
+"da/d97/structLightweight_1_1SqlBackup_1_1BackupAttachment.html#ab77a735073f334ec6cf0d6bf811c4f19":[20,5,0,1],
 "da/da3/SqlOdbcPrelude_8hpp_source.html":[23,0,1,25],
 "da/da6/structLightweight_1_1SqlPoolStatistics.html":[20,6,14],
 "da/da6/structLightweight_1_1SqlPoolStatistics.html#a18c2c21391e5400271d03e1676e75a45":[20,6,14,5],
@@ -244,10 +249,5 @@ var NAVTREEINDEX6 =
 "db/dfd/classLightweight_1_1SqlLogger.html#a5ecff57c48215be1497e9cf25b79cee8":[20,6,5,6],
 "db/dfd/classLightweight_1_1SqlLogger.html#a72208bb0ca09fe2b35837b60b9902fbb":[20,6,5,10],
 "db/dfd/classLightweight_1_1SqlLogger.html#a77db8e52d519c4f915b0bc66644560db":[20,6,5,7],
-"db/dfd/classLightweight_1_1SqlLogger.html#a7d32ec109f6a93e7680a8ac63c92f2de":[20,6,5,20],
-"db/dfd/classLightweight_1_1SqlLogger.html#a7eb165999b176c3be5fef997d15f852e":[20,6,5,16],
-"db/dfd/classLightweight_1_1SqlLogger.html#a85df1dd0e63ccaa6c8b89874907205ce":[20,6,5,18],
-"db/dfd/classLightweight_1_1SqlLogger.html#a89a7b4c6fd89c71bfdab6e81b7f15f35":[20,6,5,22],
-"db/dfd/classLightweight_1_1SqlLogger.html#a8f14312f2f4bf2436d124947d9150716":[20,6,5,19],
-"db/dfd/classLightweight_1_1SqlLogger.html#a9942ff8ad180974cbc0a0b161dbf662d":[20,6,5,3]
+"db/dfd/classLightweight_1_1SqlLogger.html#a7d32ec109f6a93e7680a8ac63c92f2de":[20,6,5,20]
 };

@@ -10,6 +10,7 @@ var searchData=
   ['appliedcount_7',['appliedCount',['../d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html#a1ac8a6b73ea294f3a7bee66b97feb2c1',1,'Lightweight::SqlMigration::MigrationStatus']]],
   ['archivefilename_8',['archiveFileName',['../de/dd2/structLightweight_1_1SqlMigration_1_1BackupRecord.html#aab4e0687ea7fafaed530194b5cccc5c5',1,'Lightweight::SqlMigration::BackupRecord']]],
   ['archivesha256_9',['archivesha256',['../df/d1e/structLightweight_1_1SqlBackup_1_1ArchiveVerification.html#a09042c884cc6e48f3cd3cb8b8ee5a740',1,'Lightweight::SqlBackup::ArchiveVerification::archiveSha256'],['../de/dd2/structLightweight_1_1SqlMigration_1_1BackupRecord.html#ababa26b69ab95eb63248715e89f296bb',1,'Lightweight::SqlMigration::BackupRecord::archiveSha256']]],
-  ['author_10',['author',['../dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#ab52a61034e07facd43a641d9c40f9b62',1,'Lightweight::SqlMigration::MigrationMetadata']]],
-  ['autodetectrelation_11',['AutoDetectRelation',['../d7/d2f/group__DataMapper.html#gaa5bfaacd1c94e825fbd19612b0f80d2a',1,'Lightweight']]]
+  ['attachments_10',['attachments',['../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#a77ff7a63c08d14ce5648e06865fc705f',1,'Lightweight::SqlBackup::BackupSettings']]],
+  ['author_11',['author',['../dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#ab52a61034e07facd43a641d9c40f9b62',1,'Lightweight::SqlMigration::MigrationMetadata']]],
+  ['autodetectrelation_12',['AutoDetectRelation',['../d7/d2f/group__DataMapper.html#gaa5bfaacd1c94e825fbd19612b0f80d2a',1,'Lightweight']]]
 ];
