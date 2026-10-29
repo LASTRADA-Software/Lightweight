@@ -11,6 +11,9 @@ The backup file is a ZIP archive with the following internal structure:
 ```text
 /
 ├── metadata.json           # Global manifest and schema definition
+├── checksums.json          # SHA-256 of every data chunk and attachment
+├── attachments/            # Optional caller-supplied files (see section 7)
+│   └── <Name>
 └── data/                   # Data directory
     └── <TableName>/        # One folder per table
         ├── 0001.msgpack    # Data chunks (MsgPack)
@@ -19,6 +22,9 @@ The backup file is a ZIP archive with the following internal structure:
 ```
 
 - **`metadata.json`**: Located at the root. Contains backup metadata and the full database schema.
+- **`checksums.json`**: Located at the root. Maps each data chunk and attachment entry name to its SHA-256 (`{"algorithm": "sha256", "files": {...}}`).
+  A schema-only backup without attachments has none.
+- **`attachments/<Name>`**: Files the caller stored with the backup, see [section 7](#7-attachments).
 - **`data/<TableName>/`**: Contains the actual row data for the table, split into multiple chunks associated with the table.
   A multi-schema archive (format version `2.0`, see [section 6](#6-multi-schema-archives)) uses `data/<SchemaName>/<TableName>/` instead.
   Dots in either name are written as underscores.
@@ -203,3 +209,27 @@ Restoring a version `2.0` archive:
 - Refuses a target schema (`dbtool restore --schema`).
 - Into a database without schemas (SQLite), succeeds only if every table name is unique across the schemas (case-insensitively), and then drops the schemas. Otherwise it is refused.
 - `backup-diff` keys a table of a version `2.0` archive as `<SchemaName>/<TableName>`, the data folder below `data/`.
+
+## 7. Attachments
+
+A backup can store files the caller supplies (`BackupSettings::attachments`) next to the table data, for example a
+`manifest.json` that describes where the backup came from. Each one is an entry `attachments/<Name>`, compressed like
+the rest of the archive.
+
+- **Names** are relative paths in UTF-8 with `/` separating folders, such as `manifest.json` or `notes/readme.txt`.
+  A backup is refused before it connects to the database when a name is not well-formed UTF-8, contains a control
+  character (0x00-0x1F, 0x7F), is empty, starts or ends with `/`, contains a backslash or a colon, or has an empty, `.`
+  or `..` path segment. Ignoring ASCII letter case, since archives get extracted on case-insensitive file systems, a
+  name must also differ from every other one and must not be the folder of another (`notes` next to
+  `notes/readme.txt`).
+- **Integrity:** `checksums.json` lists every attachment with its SHA-256, also in a schema-only backup, which then
+  writes `checksums.json` for its attachments alone. `VerifyArchive` verifies them like data chunks and refuses an
+  `attachments/` entry that `checksums.json` does not list; folder entries (names ending in `/`) are no attachments.
+- **Reading:** `ListArchiveAttachments` returns the names without the `attachments/` prefix, sorted, and refuses an
+  archive holding a name that breaks the rules above, so each name is safe to use as a relative path.
+  `ReadArchiveAttachment` returns one attachment's bytes and refuses one that `checksums.json` does not list or whose
+  SHA-256 does not match.
+- **Restore and `backup-diff`** take table data only from the entries below `data/`, so they ignore attachments.
+
+Attachments leave `format_version` unchanged: readers that predate them consume only `metadata.json`,
+`checksums.json` and the entries below `data/`, so they ignore the attachments.
