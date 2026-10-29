@@ -182,7 +182,8 @@ var NAVTREE =
         [ "5.3 Runtime Availability", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md53-runtime-availability", null ],
         [ "5.4 Restoration Compatibility", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md54-restoration-compatibility", null ]
       ] ],
-      [ "6. Multi-schema Archives", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md6-multi-schema-archives", null ]
+      [ "6. Multi-schema Archives", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md6-multi-schema-archives", null ],
+      [ "7. Attachments", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md7-attachments", null ]
     ] ],
     [ "dbtool - Database Management CLI", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html", [
       [ "Overview", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#overview-1", null ],
@@ -425,14 +426,14 @@ var NAVTREEINDEX =
 [
 "annotated.html",
 "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#adc492c8b63e8e44fd4f72b251f908c89",
-"d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a7611c88a34f8863aae59392f4d13c7d3",
-"d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae5c6b2a8de16cb5c82d6d82040f9de37",
-"d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#several-foreign-keys-into-the-same-table",
-"d9/d0c/classLightweight_1_1Async_1_1AsyncSqlTransaction.html#a41a3c4e5b59b0ff26818fb183e562fab",
-"da/d7e/structLightweight_1_1SqlRawColumn.html",
-"db/dfd/classLightweight_1_1SqlLogger.html#a9fa72e1dc66122e2b611a6806e77063b",
-"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#size-suffixes",
-"df/d3f/structLightweight_1_1SqlVariant.html#acaf1b2edb45bd58883cdffc667c29578"
+"d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a7070cc2a770793a129ce2199a95e51a9",
+"d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae17b13fef2ebddad615a9bae6d942709",
+"d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#self-referential-relationships",
+"d9/d0c/classLightweight_1_1Async_1_1AsyncSqlTransaction.html#a34eaa45b7dd0244663721e1f7ec6362f",
+"da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html#ab35f526bdaf9d9ae761de98d3ae66d95",
+"db/dfd/classLightweight_1_1SqlLogger.html#a7eb165999b176c3be5fef997d15f852e",
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#rollback-timestamp",
+"df/d3f/structLightweight_1_1SqlVariant.html#aa8eb8b271e456514198f64d2b5cc2da6"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

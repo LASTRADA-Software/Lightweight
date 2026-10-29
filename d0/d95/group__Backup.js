@@ -1,5 +1,9 @@
 var group__Backup =
 [
+    [ "Lightweight::SqlBackup::BackupAttachment", "da/d97/structLightweight_1_1SqlBackup_1_1BackupAttachment.html", [
+      [ "name", "da/d97/structLightweight_1_1SqlBackup_1_1BackupAttachment.html#a0a49f104800bc043e81f6656cc6a7bb7", null ],
+      [ "content", "da/d97/structLightweight_1_1SqlBackup_1_1BackupAttachment.html#ab77a735073f334ec6cf0d6bf811c4f19", null ]
+    ] ],
     [ "Lightweight::SqlBackup::BackupSettings", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html", [
       [ "method", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#a24b981baad3240eee5b41c2654c2ccd3", null ],
       [ "level", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#a433db0c5f6bf8d24dc11eec160e262b5", null ],
@@ -7,7 +11,8 @@ var group__Backup =
       [ "rowsPerChunk", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#ae10e3a3fa9942cd75572e2a1815708a6", null ],
       [ "workerArchiveBytes", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#a11b8c4dc97bf4360601e9834bf6db463", null ],
       [ "schemaOnly", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#adec7c645281b65b2f005190ed3a3e5f7", null ],
-      [ "forceMssqlConcurrency", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#a3ea1463fd4e65e3fecd5d78642b224e9", null ]
+      [ "forceMssqlConcurrency", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#a3ea1463fd4e65e3fecd5d78642b224e9", null ],
+      [ "attachments", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#a77ff7a63c08d14ce5648e06865fc705f", null ]
     ] ],
     [ "Lightweight::SqlBackup::RestoreSettings", "da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html", [
       [ "batchSize", "da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#a537031b2f22d3a8b8372965543208aee", null ],

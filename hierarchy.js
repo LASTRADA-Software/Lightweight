@@ -89,6 +89,7 @@ var hierarchy =
     [ "Lightweight::SqlAlterTablePlan", "dd/d75/structLightweight_1_1SqlAlterTablePlan.html", null ],
     [ "Lightweight::SqlAlterTableQueryBuilder", "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html", null ],
     [ "Lightweight::SqlBackup::ArchiveVerification", "df/d1e/structLightweight_1_1SqlBackup_1_1ArchiveVerification.html", null ],
+    [ "Lightweight::SqlBackup::BackupAttachment", "da/d97/structLightweight_1_1SqlBackup_1_1BackupAttachment.html", null ],
     [ "Lightweight::SqlBackup::BackupSettings", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html", null ],
     [ "Lightweight::SqlBackup::ChunkReader", "d2/d99/structLightweight_1_1SqlBackup_1_1ChunkReader.html", null ],
     [ "Lightweight::SqlBackup::ChunkWriter", "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html", null ],

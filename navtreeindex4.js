@@ -1,5 +1,6 @@
 var NAVTREEINDEX4 =
 {
+"d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#self-referential-relationships":[4,6,0,2],
 "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#several-foreign-keys-into-the-same-table":[4,6,0],
 "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#the-example-schema":[4,0],
 "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#transactions":[4,8],
@@ -248,6 +249,5 @@ var NAVTREEINDEX4 =
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#af7b245464e7f0324ccbe281451c1399f":[22,0,0,76,9],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#afe75e53c7277af2f7009a16ac827ad90":[22,0,0,76,23],
 "d9/d02/SqlError_8hpp_source.html":[23,0,1,21],
-"d9/d0c/classLightweight_1_1Async_1_1AsyncSqlTransaction.html":[20,0,0],
-"d9/d0c/classLightweight_1_1Async_1_1AsyncSqlTransaction.html#a34eaa45b7dd0244663721e1f7ec6362f":[20,0,0,4]
+"d9/d0c/classLightweight_1_1Async_1_1AsyncSqlTransaction.html":[20,0,0]
 };
