@@ -11,6 +11,8 @@ option(ENABLE_SANITIZER_ADDRESS "Enable AddressSanitizer" OFF)
 option(ENABLE_SANITIZER_UNDEFINED "Enable UndefinedBehaviorSanitizer" OFF)
 option(ENABLE_SANITIZER_THREAD "Enable ThreadSanitizer" OFF)
 
+# Plain (non-cache) variables: they are visible to every subdirectory, and a cache entry of the same
+# name would be hidden by them anyway (policy CMP0126), so the flags would never be applied.
 set(SANITIZER_COMPILE_OPTIONS "")
 set(SANITIZER_LINK_OPTIONS "")
 
@@ -40,12 +42,8 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
             -fsanitize=${SANITIZER_FLAGS_STR}
             -fno-omit-frame-pointer
             -fno-optimize-sibling-calls
-            CACHE INTERNAL "Sanitizer compile options"
         )
-        set(SANITIZER_LINK_OPTIONS
-            -fsanitize=${SANITIZER_FLAGS_STR}
-            CACHE INTERNAL "Sanitizer link options"
-        )
+        set(SANITIZER_LINK_OPTIONS -fsanitize=${SANITIZER_FLAGS_STR})
 
         if(ENABLE_SANITIZER_UNDEFINED)
             list(APPEND SANITIZER_COMPILE_OPTIONS -fno-sanitize-recover=undefined)
