@@ -29,6 +29,13 @@ namespace
         std::size_t rowCount {};
         /// Set when the item is a single row the driver already reported as failed with this error.
         std::optional<SqlErrorInfo> knownFailure;
+        /// For the right half of a bisected item: the error of that item. Set while the left half is
+        /// pending; once the left half is inserted, the right half holds the failing row for sure.
+        std::optional<SqlErrorInfo> bisectedFailure {};
+        /// Whether the item is the left half of a bisected item, whose right half lies below it.
+        bool leftHalf = false;
+        /// Set on a right half once its left half is inserted: it fails, so it is split untried.
+        bool failsForSure = false;
 
         [[nodiscard]] std::size_t EndRow() const noexcept
         {
@@ -58,8 +65,10 @@ namespace
             auto const leftCount = item.rowCount / 2;
             stack.push_back(WorkItem { .firstRow = item.firstRow + leftCount,
                                        .rowCount = item.rowCount - leftCount,
-                                       .knownFailure = std::nullopt });
-            stack.push_back(WorkItem { .firstRow = item.firstRow, .rowCount = leftCount, .knownFailure = std::nullopt });
+                                       .knownFailure = std::nullopt,
+                                       .bisectedFailure = failure.error });
+            stack.push_back(WorkItem {
+                .firstRow = item.firstRow, .rowCount = leftCount, .knownFailure = std::nullopt, .leftHalf = true });
             return;
         }
 
@@ -102,10 +111,22 @@ namespace
                 continue;
             }
 
+            // The rows of the bisected item that failed are all in this half: splitting it right away
+            // saves an insert that fails. A single row is still tried, so that it is never reported
+            // failed without a failure of its own.
+            if (item.failsForSure && item.rowCount > 1)
+            {
+                Split(item, BatchInsertError { .error = *item.bisectedFailure, .reportedFailedRows = {} }, stack);
+                continue;
+            }
+
             auto result = tryInsert(item.firstRow, item.rowCount);
             if (result)
             {
                 onSettled(item.EndRow());
+                // Nothing was pushed since, so the right half is on top of the stack.
+                if (item.leftHalf && !stack.empty() && stack.back().bisectedFailure)
+                    stack.back().failsForSure = true;
                 continue;
             }
 

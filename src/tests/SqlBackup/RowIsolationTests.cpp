@@ -279,6 +279,29 @@ TEST_CASE("RowIsolation: one bad row in a large batch needs logarithmic calls", 
     table.CheckEveryGoodRowInsertedOnce(std::vector<bool>(N, false));
 }
 
+TEST_CASE("RowIsolation: the right half after an inserted left half is split untried", "[RowIsolation]")
+{
+    constexpr std::size_t N = 16;
+    auto table = FakeTable(N, { 12 });
+    table.Run();
+
+    // (0,16) fails and (0,8) goes in, so (8,16) must fail; likewise (12,16) after (8,12).
+    using Call = std::pair<std::size_t, std::size_t>;
+    CHECK(table.calls == std::vector<Call> { { 0, 16 }, { 0, 8 }, { 8, 4 }, { 12, 2 }, { 12, 1 }, { 13, 1 }, { 14, 2 } });
+    CHECK(table.failedRows == std::vector<std::size_t> { 12 });
+    table.CheckEveryGoodRowInsertedOnce(std::vector<bool>(N, false));
+}
+
+TEST_CASE("RowIsolation: a single row is tried even when its left neighbour went in", "[RowIsolation]")
+{
+    // The whole run fails, (0,1) goes in, and (1,1) is the only row left: it is tried, not assumed.
+    auto table = FakeTable(2, { 1 });
+    table.Run();
+    using Call = std::pair<std::size_t, std::size_t>;
+    CHECK(table.calls == std::vector<Call> { { 0, 2 }, { 0, 1 }, { 1, 1 } });
+    CHECK(table.failedRows == std::vector<std::size_t> { 1 });
+}
+
 TEST_CASE("RowIsolation: settled watermark is ordered and gap-free", "[RowIsolation]")
 {
     constexpr std::size_t N = 10;
