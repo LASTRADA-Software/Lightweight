@@ -356,7 +356,8 @@ std::optional<bool> ReadBatchedBool(RowArrayCursor const& cursor, std::size_t ro
 BackupValue DecodeSingleRowColumn(SqlResultCursor& cursor,
                                   SqlSchema::Column const& colDef,
                                   SQLUSMALLINT columnIndex,
-                                  SqlServerType serverType)
+                                  SqlServerType serverType,
+                                  bool guidStoredAsText)
 {
     using namespace SqlColumnTypeDefinitions;
     auto const i = columnIndex;
@@ -384,7 +385,13 @@ BackupValue DecodeSingleRowColumn(SqlResultCursor& cursor,
         return orNull(cursor.GetNullableColumn<std::u16string>(i),
                       [](auto const& v) -> BackupValue { return Utf16ToBackupUtf8(v); });
     if (std::holds_alternative<Guid>(colDef.type))
+    {
+        // A database without a native GUID type stores the column as free text (possibly braced, possibly
+        // not a GUID at all); archive that text untouched instead of canonicalising it through SqlGuid.
+        if (guidStoredAsText)
+            return orNull(cursor.GetNullableColumn<std::string>(i), [](auto const& v) -> BackupValue { return v; });
         return orNull(cursor.GetNullableColumn<SqlGuid>(i), [](auto const& v) -> BackupValue { return to_string(v); });
+    }
     if (std::holds_alternative<Decimal>(colDef.type))
         // Read Decimal as string to preserve full precision (double would lose digits beyond ~15-17).
         return orNull(cursor.GetNullableColumn<std::string>(i), [](auto const& v) -> BackupValue { return v; });
@@ -416,6 +423,35 @@ BackupValue DecodeSingleRowColumn(SqlResultCursor& cursor,
     }
     // Fallback for any unhandled type: read as string.
     return orNull(cursor.GetNullableColumn<std::string>(i), [](auto const& v) -> BackupValue { return v; });
+}
+
+// Tells, per column of @p table, whether it is declared as a GUID but the result set describes it as
+// something other than SQL_GUID (SQLite: free text), so its cells must be archived verbatim.
+// Decided from the driver's result-set metadata (SQLDescribeCol), not from the server type. Must be
+// called after the SELECT of @p stmt has been executed, with its select list in column order.
+std::vector<bool> DescribeGuidStoredAsText(SQLHSTMT hStmt, SqlSchema::Table const& table)
+{
+    auto result = std::vector<bool>(table.columns.size(), false);
+    for (auto const index: std::views::iota(std::size_t { 0 }, table.columns.size()))
+    {
+        if (!std::holds_alternative<SqlColumnTypeDefinitions::Guid>(table.columns[index].type))
+            continue;
+        auto sqlType = SQLSMALLINT {};
+        auto columnSize = SQLULEN {};
+        auto decimalDigits = SQLSMALLINT {};
+        auto nullable = SQLSMALLINT {};
+        auto const rc = SQLDescribeColW(hStmt,
+                                        static_cast<SQLUSMALLINT>(index + 1),
+                                        nullptr,
+                                        0,
+                                        nullptr,
+                                        &sqlType,
+                                        &columnSize,
+                                        &decimalDigits,
+                                        &nullable);
+        result[index] = SQL_SUCCEEDED(rc) && sqlType != SQL_GUID;
+    }
+    return result;
 }
 
 // Decodes one column cell of row @p rowInBatch from the bulk RowArrayCursor path into BackupValue.
@@ -476,6 +512,7 @@ void DecodeRowSingle(SqlResultCursor& cursor,
                      SqlSchema::Table const& table,
                      SqlServerType serverType,
                      std::string_view tableName,
+                     std::vector<bool> const& guidStoredAsText,
                      std::vector<BackupValue>& row)
 {
     ZoneScopedN("Backup::DecodeRow");
@@ -488,7 +525,7 @@ void DecodeRowSingle(SqlResultCursor& cursor,
         {
             if constexpr (DebugBackupWorker)
                 std::println(stderr, "DEBUG: Processing col {} ({}) type index: {}", i, colDef.name, colDef.type.index());
-            row.emplace_back(DecodeSingleRowColumn(cursor, colDef, i, serverType));
+            row.emplace_back(DecodeSingleRowColumn(cursor, colDef, i, serverType, guidStoredAsText[i - 1]));
         }
         catch ([[maybe_unused]] std::exception const& e)
         {
@@ -630,6 +667,8 @@ void ProcessChunkBackup(BackupContext& ctx, SqlConnection& conn, detail::Chunk c
             return stmt.ExecuteDirect(selectQuery);
         }();
 
+        auto const guidStoredAsText = DescribeGuidStoredAsText(stmt.NativeHandle(), table);
+
         while (true)
         {
             bool hasRow = false;
@@ -642,7 +681,7 @@ void ProcessChunkBackup(BackupContext& ctx, SqlConnection& conn, detail::Chunk c
 
             if constexpr (DebugBackupWorker)
                 std::println(stderr, "DEBUG: FetchRow returned true for {}", tableName);
-            DecodeRowSingle(cursor, table, conn.ServerType(), tableName, row);
+            DecodeRowSingle(cursor, table, conn.ServerType(), tableName, guidStoredAsText, row);
 
             try
             {

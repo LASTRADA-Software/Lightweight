@@ -16,6 +16,7 @@
 #include <iterator>
 #include <limits>
 #include <ranges>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -804,6 +805,33 @@ TEST_CASE("BatchManager: GUID column", "[SqlBackup]")
     auto expected = SqlGuid::UnsafeParse("12345678-1234-1234-1234-123456789ABC");
     SwapGuidWireByteOrder(expected.data);
     CHECK(std::ranges::equal(capturedFirstGuid, expected.data));
+}
+
+TEST_CASE("BatchManager: a braced GUID binds as the same bytes as the unbraced one", "[SqlBackup][SqlGuid]")
+{
+    std::vector<SqlColumnDeclaration> cols = { { .name = "id", .type = SqlColumnTypeDefinitions::Guid {} } };
+
+    for (auto const serverType: { SqlServerType::MICROSOFT_SQL, SqlServerType::POSTGRESQL })
+    {
+        std::vector<uint8_t> captured;
+        BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+            auto const* bytes = reinterpret_cast<uint8_t const*>(rawCols[0].data.data());
+            captured.assign(bytes, bytes + count * sizeof(SqlGuid));
+        };
+
+        RunBatchManagerTest(executor,
+                            cols,
+                            { { std::string("6f9619ff-8b86-d011-b42d-00c04fc964ff") },
+                              { std::string("{6f9619ff-8b86-d011-b42d-00c04fc964ff}") },
+                              { std::string("{6F9619FF-8B86-D011-B42D-00C04FC964FF}") } },
+                            10,
+                            serverType);
+
+        REQUIRE(captured.size() == 3 * sizeof(SqlGuid));
+        auto const first = std::span(captured).first(sizeof(SqlGuid));
+        CHECK(std::ranges::equal(first, std::span(captured).subspan(sizeof(SqlGuid), sizeof(SqlGuid))));
+        CHECK(std::ranges::equal(first, std::span(captured).subspan(2 * sizeof(SqlGuid), sizeof(SqlGuid))));
+    }
 }
 
 TEST_CASE("BatchManager: GUID PushFromBatch", "[SqlBackup]")

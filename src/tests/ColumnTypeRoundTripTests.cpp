@@ -485,16 +485,8 @@ std::vector<TypeRoundTripCase> const& RoundTripCases()
         // ------------------------------------------------------------------------------ the GUID
         { .columnName = "guidCol",
           .declaredType = Guid {},
-          .recoveredType = { .base = Exactly(SqlColumnTypeDefinition { Guid {} }),
-                             .deviations = { { .serverType = SqlServerType::SQLITE,
-                                               .requirement = TextOfWidth(0),
-                                               .reason = "SQLite has no GUID type; the declared GUID is an "
-                                                         "unrecognised type name reported back as unsized text" } } },
-          .cxxType = { .base = Exactly(std::string { "Light::SqlGuid" }),
-                       .deviations = { { .serverType = SqlServerType::SQLITE,
-                                         .requirement = Exactly(std::string { SqliteText(
-                                             "Light::SqlDynamicAnsiString<0>", "Light::SqlDynamicUtf16String<0>") }),
-                                         .reason = "SQLite has no GUID type" } } },
+          .recoveredType = { .base = Exactly(SqlColumnTypeDefinition { Guid {} }) },
+          .cxxType = { .base = Exactly(std::string { "Light::SqlGuid" }) },
           .sample = SampleOf(SqlGuid::UnsafeParse("1E772AED-3E73-4C72-8684-5DFFAA17330E")) },
 
         // -------------------------------------------------------------------------- non-Unicode text

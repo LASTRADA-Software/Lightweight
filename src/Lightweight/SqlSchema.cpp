@@ -85,6 +85,13 @@ namespace
         FloatTypeNameMapping { .dialectTypeName = "float8"sv, .odbcType = SQL_DOUBLE },
     };
 
+    /// Dialect type names that denote a GUID although the driver reports them as something else.
+    ///
+    /// SQLite has no GUID type: the formatter declares such columns as `GUID`, which SQLite's type
+    /// affinity rules accept as an arbitrary name and sqlite3odbc reports as an unsized `SQL_VARCHAR`.
+    /// MS SQL Server (`uniqueidentifier`) and PostgreSQL (`uuid`) report `SQL_GUID` truthfully.
+    constexpr auto GuidTypeNames = std::array { "GUID"sv, "guid"sv };
+
     /// Maps the precision of an MS SQL Server `float(n)` column onto the width it is stored with.
     ///
     /// @param declaredPrecision The precision `n`, as reported by `sys.columns` or `SQLColumns`.
@@ -1513,6 +1520,10 @@ namespace detail
                 else if (auto const floatType = LookupFloatColumnType(column.dialectDependantTypeString))
                 {
                     column.type = *floatType;
+                }
+                else if (std::ranges::contains(GuidTypeNames, std::string_view { column.dialectDependantTypeString }))
+                {
+                    column.type = SqlColumnTypeDefinitions::Guid {};
                 }
                 // PostgreSQL ODBC driver reports BOOLEAN as VARCHAR - handle it specially
                 else if (column.dialectDependantTypeString == "bool")

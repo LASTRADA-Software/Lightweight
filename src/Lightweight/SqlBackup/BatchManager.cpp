@@ -1579,7 +1579,8 @@ struct GuidBatchColumn: BatchColumn
     }
 
     /// Appends the GUID @p text, or NULL for a NULL text. Any well-formed GUID is accepted, whatever
-    /// its version nibble, and keeps its text's bytes.
+    /// its version nibble, and keeps its text's bytes. The braced form `{...}` is accepted too, as
+    /// text-typed GUID columns (SQLite) hold it and archive it verbatim.
     /// @throws UnconvertibleValueError if @p text is no GUID.
     void PushText(std::string_view text)
     {
@@ -1588,7 +1589,9 @@ struct GuidBatchColumn: BatchColumn
             PushNull();
             return;
         }
-        auto const guid = SqlGuid::TryParse(text);
+        auto const unbraced =
+            text.size() >= 2 && text.front() == '{' && text.back() == '}' ? text.substr(1, text.size() - 2) : text;
+        auto const guid = SqlGuid::TryParse(unbraced);
         if (!guid)
             RejectValue(text, "GUID");
         PushGuid(*guid);
