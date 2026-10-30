@@ -23,6 +23,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
@@ -206,6 +207,14 @@ struct FinalRowsProgressManager: RecordingProgressManager
             auto const lock = std::scoped_lock(mutex);
             finalRows[progress.tableName] = progress.currentRows;
         }
+    }
+
+    /// The sum of the counts reported via OnItemsProcessed().
+    std::atomic<std::size_t> itemsProcessed = 0;
+
+    void OnItemsProcessed(std::size_t count) override
+    {
+        itemsProcessed += count;
     }
 };
 
@@ -479,6 +488,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK_FALSE(report.HasFailures());
     // The rows of the rolled-back attempt are not counted twice.
     CHECK(progress.finalRows["rfi_replay"] == 6);
+    CHECK(progress.itemsProcessed == 6);
 }
 
 TEST_CASE_METHOD(SqlTestFixture,
@@ -573,6 +583,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK(ReadIds("rfi_replay_transient") == std::vector<int64_t> { 1, 2, 3, 4, 5, 6 });
     CHECK_FALSE(report.HasFailures());
     CHECK(progress.finalRows["rfi_replay_transient"] == 6);
+    CHECK(progress.itemsProcessed == 6);
 }
 
 TEST_CASE_METHOD(SqlTestFixture,

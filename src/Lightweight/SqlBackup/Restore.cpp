@@ -171,6 +171,9 @@ namespace
         /// The leading rows of the chunk counted into the table's progress. Each attempt first
         /// brings it to `settledRows`, so that rows are counted once however often they are retried.
         std::size_t countedRows = 0;
+        /// The leading rows of the chunk reported via ProgressManager::OnItemsProcessed(); unlike
+        /// `countedRows` never taken back, so that a replayed row is reported once.
+        std::size_t reportedItems = 0;
         /// How the next attempt commits; switches to IsolateFailures for good once a row failed.
         ChunkInsertMode mode = ChunkInsertMode::SingleTransaction;
         /// Whether a row of the chunk failed or a value of it was set to NULL.
@@ -467,7 +470,7 @@ namespace
             }
 
             auto const newRows = batch.rowCount - skipRows;
-            state.countedRows = rowsReadBefore;
+            state.countedRows = std::max(state.countedRows, rowsReadBefore);
             size_t const currentTotal = tableProgress.fetch_add(newRows) + newRows;
             ctx.progress.Update({ .state = Progress::State::InProgress,
                                   .tableName = tableName,
@@ -475,8 +478,12 @@ namespace
                                   .totalRows = chunk.displayTotal,
                                   .message = "Restoring chunk " + chunk.chunkPath });
 
-            // Report items processed for ETA calculation
-            ctx.progress.OnItemsProcessed(newRows);
+            // Report items processed for ETA calculation, each row once however often it is replayed.
+            if (rowsReadBefore > state.reportedItems)
+            {
+                ctx.progress.OnItemsProcessed(rowsReadBefore - state.reportedItems);
+                state.reportedItems = rowsReadBefore;
+            }
         }
 
         {
