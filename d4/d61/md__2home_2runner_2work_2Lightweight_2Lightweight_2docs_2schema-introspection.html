@@ -114,7 +114,14 @@ Reading every table</h1>
 <div class="line">        std::println(<span class="stringliteral">&quot;[{}/{}] {}&quot;</span>, current, total, tableName);</div>
 <div class="line">    });</div>
 </div><!-- fragment --><p>Two further optional parameters follow: a <code>TableReadyCallback</code>, invoked as soon as one table's schema is complete so you can stream results instead of waiting for the whole database, and a <code>TableFilterPredicate</code>, which skips reading columns and constraints for tables you do not care about. Filtering at that level is much cheaper than reading everything and discarding it.</p>
-<h1><a class="anchor" id="what-you-get-back"></a>
+<h1><a class="anchor" id="reading-one-table"></a>
+Reading one table</h1>
+<p><code>ReadTable</code> describes a single table and returns <code>std::nullopt</code> when it does not exist. It asks the catalog for that one table (a filtered lookup, not a full listing) and describes only it:</p>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> table = SqlSchema::ReadTable(</div>
+<div class="line">    stmt, SqlSchema::FullyQualifiedTableName { .catalog = database, .schema = <span class="stringliteral">&quot;&quot;</span>, .table = <span class="stringliteral">&quot;Orders&quot;</span> });</div>
+</div><!-- fragment --><p>If you only need columns and the primary key, pass <code>TableReadScope::ColumnsAndPrimaryKey</code>. That skips the two foreign-key reads, the index read and the foreign-key target casing lookups; <code>foreignKeys</code>, <code>externalForeignKeys</code> and <code>indexes</code> come back empty. Because the foreign keys are not read, each column's <code>isForeignKey</code> stays <code>false</code> and its <code>foreignKeyConstraint</code> stays empty. The column names and types, <code>isUnique</code>, <code>isAutoIncrement</code>, <code>isPrimaryKey</code> and <code>primaryKeys</code> are the same as in the default <code>TableReadScope::Full</code>.</p>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> table = SqlSchema::ReadTable(stmt, name, SqlSchema::TableReadScope::ColumnsAndPrimaryKey);</div>
+</div><!-- fragment --><h1><a class="anchor" id="what-you-get-back"></a>
 What you get back</h1>
 <p><code>Table</code> describes one table:</p>
 <table class="markdownTable">

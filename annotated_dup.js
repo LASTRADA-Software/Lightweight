@@ -26,13 +26,18 @@ var annotated_dup =
         [ "ChunkReader", "d2/d99/structLightweight_1_1SqlBackup_1_1ChunkReader.html", "d2/d99/structLightweight_1_1SqlBackup_1_1ChunkReader" ],
         [ "ChunkWriter", "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html", "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter" ],
         [ "ColumnBatch", "d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html", "d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch" ],
+        [ "ColumnValueFailures", "d7/d10/structLightweight_1_1SqlBackup_1_1ColumnValueFailures.html", "d7/d10/structLightweight_1_1SqlBackup_1_1ColumnValueFailures" ],
         [ "ErrorTrackingProgressManager", "df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html", "df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager" ],
+        [ "FailedRowRange", "d5/d96/structLightweight_1_1SqlBackup_1_1FailedRowRange.html", "d5/d96/structLightweight_1_1SqlBackup_1_1FailedRowRange" ],
+        [ "FailureReason", "de/d87/structLightweight_1_1SqlBackup_1_1FailureReason.html", "de/d87/structLightweight_1_1SqlBackup_1_1FailureReason" ],
         [ "Progress", "d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html", "d5/db5/structLightweight_1_1SqlBackup_1_1Progress" ],
         [ "ProgressManager", "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html", "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager" ],
+        [ "RestoreReport", "d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html", "d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport" ],
         [ "RestoreSettings", "da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html", "da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings" ],
         [ "Sha256", "d2/d43/classLightweight_1_1SqlBackup_1_1Sha256.html", "d2/d43/classLightweight_1_1SqlBackup_1_1Sha256" ],
         [ "TableFilter", "d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html", "d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter" ],
-        [ "TableInfo", "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html", "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo" ]
+        [ "TableInfo", "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html", "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo" ],
+        [ "TableRestoreReport", "d7/d37/structLightweight_1_1SqlBackup_1_1TableRestoreReport.html", "d7/d37/structLightweight_1_1SqlBackup_1_1TableRestoreReport" ]
       ] ],
       [ "SqlMigration", null, [
         [ "BackupRecord", "de/dd2/structLightweight_1_1SqlMigration_1_1BackupRecord.html", "de/dd2/structLightweight_1_1SqlMigration_1_1BackupRecord" ],

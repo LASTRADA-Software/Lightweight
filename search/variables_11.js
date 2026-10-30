@@ -1,7 +1,7 @@
 var searchData=
 [
   ['reason_0',['reason',['../d4/d09/structLightweight_1_1SqlRetryDecision.html#ab734c7ed1c4085aeedb3ab4f245374b8',1,'Lightweight::SqlRetryDecision::reason'],['../d6/d3b/structLightweight_1_1SqlLockError.html#a042768d16ff0fe8d8e52e4a03b465680',1,'Lightweight::SqlLockError::reason']]],
-  ['reasons_1',['reasons',['../dc/d94/structLightweight_1_1SqlMigration_1_1BackupRequirement.html#a40b247c975461c6b7ca153a1365e239a',1,'Lightweight::SqlMigration::BackupRequirement']]],
+  ['reasons_1',['reasons',['../d7/d37/structLightweight_1_1SqlBackup_1_1TableRestoreReport.html#a1735aaedaf8d7f7502ae677850408be5',1,'Lightweight::SqlBackup::TableRestoreReport::reasons'],['../dc/d94/structLightweight_1_1SqlMigration_1_1BackupRequirement.html#a40b247c975461c6b7ca153a1365e239a',1,'Lightweight::SqlMigration::BackupRequirement::reasons']]],
   ['rebuiltforeignkeys_2',['rebuiltForeignKeys',['../d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#ae1b60503143ebed45d9317789e47a684',1,'Lightweight::SqlMigration::MigrationManager::UnicodeUpgradeResult']]],
   ['rebuiltobjects_3',['rebuiltObjects',['../d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#ad2f1668e51bb59d1a7feea5cb49d1f64',1,'Lightweight::SqlMigration::MigrationManager::UnicodeUpgradeResult']]],
   ['recordcolumncount_4',['RecordColumnCount',['../d7/d2f/group__DataMapper.html#gaf1b5baa8cd89f93da2a5cfb28d0c334c',1,'Lightweight']]],
@@ -27,6 +27,7 @@ var searchData=
   ['reused_24',['reused',['../da/da6/structLightweight_1_1SqlPoolStatistics.html#ab94ec8b9865e5d838d4942cdbc45700a',1,'Lightweight::SqlPoolStatistics']]],
   ['revertedtimestamps_25',['revertedTimestamps',['../d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html#a14223384e1e346debcb57e6c4383154f',1,'Lightweight::SqlMigration::RevertResult']]],
   ['rowcount_26',['rowcount',['../d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a92351f3189fe1adade98ccec8d21a6b2',1,'Lightweight::SqlBackup::TableInfo::rowCount'],['../d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html#aa96489eada966b8294d4cc0e950cdbc3',1,'Lightweight::SqlBackup::ColumnBatch::rowCount']]],
-  ['rowsfetched_27',['rowsFetched',['../df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html#ac92cee860cb6d2eac2a8fc9ad0cf7940',1,'Lightweight::SqlStatisticsSnapshot']]],
-  ['rowsperchunk_28',['rowsPerChunk',['../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#ae10e3a3fa9942cd75572e2a1815708a6',1,'Lightweight::SqlBackup::BackupSettings']]]
+  ['rowsbeyondrangecap_27',['rowsBeyondRangeCap',['../d7/d37/structLightweight_1_1SqlBackup_1_1TableRestoreReport.html#a66c4898b6b3bdcf0662cfb3206ff81b9',1,'Lightweight::SqlBackup::TableRestoreReport']]],
+  ['rowsfetched_28',['rowsFetched',['../df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html#ac92cee860cb6d2eac2a8fc9ad0cf7940',1,'Lightweight::SqlStatisticsSnapshot']]],
+  ['rowsperchunk_29',['rowsPerChunk',['../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#ae10e3a3fa9942cd75572e2a1815708a6',1,'Lightweight::SqlBackup::BackupSettings']]]
 ];
