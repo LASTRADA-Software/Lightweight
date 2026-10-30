@@ -1617,6 +1617,23 @@ void Restore(std::filesystem::path const& inputFile,
                 filteredTableMap[name] = info;
         }
 
+        // A table that could not be created makes the schema partial; constraining it would only
+        // produce misleading foreign-key errors naming the referencing tables.
+        if (failedTables > 0)
+        {
+            progress.Update({ .state = Progress::State::Error,
+                              .tableName = "",
+                              .currentRows = 0,
+                              .totalRows = std::nullopt,
+                              .message = std::format("Restore incomplete: {} of {} tables could not be created; "
+                                                     "foreign key constraints and indexes were not applied",
+                                                     failedTables,
+                                                     tableMap.size()) });
+            zip_close(zip);
+            progress.AllDone();
+            return;
+        }
+
         detail::ApplyDatabaseConstraints(connectionString, effectiveSchema, filteredTableMap, progress);
         detail::RestoreIndexes(connectionString, effectiveSchema, filteredTableMap, progress);
 
@@ -1673,6 +1690,9 @@ void Restore(std::filesystem::path const& inputFile,
         {
             tableProgress[name] = std::make_shared<std::atomic<size_t>>(0);
             chunksProcessed[name] = std::make_shared<std::atomic<size_t>>(0);
+            // A created table has no chunks until the archive scan above counted them; keeping a
+            // zero entry makes every created table visible to FindIncompleteTables().
+            totalChunksPerTable.try_emplace(name);
             totalRows += info.rowCount;
         }
     }
@@ -1751,15 +1771,44 @@ void Restore(std::filesystem::path const& inputFile,
     for (auto& t: threads)
         t.join();
 
-    // A worker stops on a database error; once all have stopped, chunks may be left unrestored.
-    for (auto const& [tableName, processed]: chunksProcessed)
+    // A worker stops only when its connection becomes unusable; a stopped worker can leave chunks
+    // queued. Check every table before finishing, because a table the queue never reached has no
+    // error of its own and would otherwise look complete. A table that could not be created is as
+    // incomplete as one whose data did not arrive, and constraining a partial schema produces the
+    // same misleading foreign-key errors.
+    auto const incompleteTables = detail::FindIncompleteTables(ctx);
+    if (!incompleteTables.empty() || failedTables > 0)
     {
-        if (processed->load() < totalChunksPerTable[tableName])
+        for (auto const& table: incompleteTables)
+        {
+            // A table whose last chunk was attempted already reported its error when that chunk was
+            // counted; only a table the queue never reached is still silent.
+            if (table.chunksProcessed >= table.totalChunks)
+                continue;
+
             progress.Update({ .state = Progress::State::Error,
-                              .tableName = tableName,
-                              .currentRows = tableProgress.at(tableName)->load(),
+                              .tableName = table.tableName,
+                              .currentRows = tableProgress.at(table.tableName)->load(),
                               .totalRows = std::nullopt,
-                              .message = "Not fully restored: the restore stopped after an earlier error" });
+                              .message = std::format("Restore incomplete: {} of {} chunks were not processed",
+                                                     table.totalChunks - table.chunksProcessed,
+                                                     table.totalChunks) });
+        }
+
+        progress.Update({ .state = Progress::State::Error,
+                          .tableName = "",
+                          .currentRows = 0,
+                          .totalRows = std::nullopt,
+                          .message = std::format("Restore incomplete: {} of {} tables did not restore completely; "
+                                                 "foreign key constraints and indexes were not applied",
+                                                 incompleteTables.size() + failedTables,
+                                                 tableMap.size()) });
+
+        // Constraining a database that is missing rows only produces misleading errors naming the
+        // referencing tables, so leave the schema unfinished and let the caller rerun the restore.
+        zip_close(zip);
+        progress.AllDone();
+        return;
     }
 
     detail::ApplyDatabaseConstraints(connectionString, effectiveSchema, filteredTableMap, progress);

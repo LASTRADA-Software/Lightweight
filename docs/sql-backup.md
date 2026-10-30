@@ -87,6 +87,13 @@ automatically when the backup finishes (also on failure).
   rewritten in place (`ZIP_FL_OVERWRITE`), so retries are idempotent.
 - **Hard errors** fail the affected table (reported through the progress callback);
   other tables continue.
+- **Restore failures** behave the same way: a failed chunk fails only its table (on SQLite, rows
+  committed within it before the failure stay), while the worker keeps draining the queue so
+  chunks of other tables are still restored. Once all workers have finished, every table that did
+  not receive all of its chunks is reported as an error, the run does not claim success, and
+  foreign key constraints and indexes are not applied — `dbtool restore` exits non-zero. This
+  keeps a database with missing rows from being constrained, which otherwise only produces
+  misleading `AddForeignKey failed` errors naming the referencing tables.
 - **Re-running a backup** to the same output is always safe — every entry is
   overwritten, never appended.
 - **Integrity:** every chunk is SHA-256-hashed into `checksums.json` and verified on

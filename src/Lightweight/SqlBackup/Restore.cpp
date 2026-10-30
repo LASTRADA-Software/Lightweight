@@ -81,6 +81,44 @@ void IncrementChunkCounter(RestoreContext& ctx, std::string const& tableName, bo
     }
 }
 
+namespace
+{
+
+    /// Records a chunk's outcome against its table.
+    ///
+    /// A failed chunk marks its table failed before the chunk is counted, so a later successful chunk
+    /// cannot report the table as finished.
+    ///
+    /// @param ctx The restore context.
+    /// @param tableName The table the chunk belongs to.
+    /// @param restored Whether the chunk was restored.
+    void RecordChunkOutcome(RestoreContext& ctx, std::string const& tableName, bool restored)
+    {
+        if (!restored)
+            ctx.failedTables.Add(tableName);
+        IncrementChunkCounter(ctx, tableName, restored);
+    }
+
+} // namespace
+
+std::vector<IncompleteTable> FindIncompleteTables(RestoreContext const& ctx)
+{
+    // No worker can touch the set any more, so take one snapshot instead of locking per table.
+    auto const failedTables = ctx.failedTables.Snapshot();
+
+    std::vector<IncompleteTable> incompleteTables;
+    for (auto const& [tableName, chunkCounter]: ctx.chunksProcessed)
+    {
+        size_t const totalChunks = ctx.totalChunks.at(tableName);
+        size_t const chunksProcessed = chunkCounter->load();
+
+        if (chunksProcessed < totalChunks || failedTables.contains(tableName))
+            incompleteTables.push_back(
+                { .tableName = tableName, .chunksProcessed = chunksProcessed, .totalChunks = totalChunks });
+    }
+    return incompleteTables;
+}
+
 std::expected<RestoreChunkInfo, FetchChunkError> FetchNextRestoreChunk(RestoreContext& ctx)
 {
     ZoneScopedN("Restore::FetchChunk");
@@ -98,17 +136,12 @@ std::expected<RestoreChunkInfo, FetchChunkError> FetchNextRestoreChunk(RestoreCo
         ctx.dataQueue.pop_front();
     }
 
-    std::vector<uint8_t> content;
-    {
-        ZoneScopedN("Restore::UnzipChunk");
-        auto const lock = std::scoped_lock(ctx.fileMutex);
-        if (!entryInfo.valid)
-            return std::unexpected(
-                FetchChunkError { .tableName = "", .message = std::format("Invalid zip entry: {}", entryInfo.name) });
-        content = ReadZipEntry<std::vector<uint8_t>>(ctx.zip, entryInfo.index, entryInfo.size);
-    }
+    if (!entryInfo.valid)
+        return std::unexpected(
+            FetchChunkError { .tableName = "", .message = std::format("Invalid zip entry: {}", entryInfo.name) });
 
-    // Parse path FIRST to get tableName for chunk-based completion tracking.
+    // Parse the path before reading the chunk: a chunk of a table that already failed is counted
+    // as failed without being read or hashed.
     // Path format: data/<folder>/chunk_ID.msgpack, where <folder> is the table's ChunkDirectory.
     std::string const path = entryInfo.name;
     auto const directory = ChunkDirectoryOf(path);
@@ -121,6 +154,26 @@ std::expected<RestoreChunkInfo, FetchChunkError> FetchNextRestoreChunk(RestoreCo
         return std::unexpected(
             FetchChunkError { .tableName = "", .message = std::format("Unknown table in backup: {}", *directory) });
     std::string const& tableName = table->second;
+
+    auto const& tableInfo = ctx.tableMap.at(tableName);
+    std::optional<size_t> const displayTotal = tableInfo.rowCount > 0 ? std::optional { tableInfo.rowCount } : std::nullopt;
+
+    if (ctx.failedTables.Contains(tableName))
+        return RestoreChunkInfo {
+            .tableName = tableName,
+            .chunkPath = path,
+            .content = {},
+            .tableInfo = &tableInfo,
+            .displayTotal = displayTotal,
+            .skipForFailedTable = true,
+        };
+
+    std::vector<uint8_t> content;
+    {
+        ZoneScopedN("Restore::UnzipChunk");
+        auto const lock = std::scoped_lock(ctx.fileMutex);
+        content = ReadZipEntry<std::vector<uint8_t>>(ctx.zip, entryInfo.index, entryInfo.size);
+    }
 
     // Verify checksum if available
     if (ctx.checksums)
@@ -139,9 +192,6 @@ std::expected<RestoreChunkInfo, FetchChunkError> FetchNextRestoreChunk(RestoreCo
             }
         }
     }
-
-    auto const& tableInfo = ctx.tableMap.at(tableName);
-    std::optional<size_t> const displayTotal = tableInfo.rowCount > 0 ? std::optional { tableInfo.rowCount } : std::nullopt;
 
     return RestoreChunkInfo {
         .tableName = tableName,
@@ -175,10 +225,23 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
                           .totalRows = chunk.displayTotal,
                           .message = "Restoring chunk " + path });
 
+    // Rows this chunk has already reported to OnItemsProcessed. A retry re-reads the chunk from
+    // the start, so only rows beyond this mark are new work.
+    size_t rowsReportedForChunk = 0;
+
+    // Takes back the rows an attempt added to the table's progress but did not leave in the table.
+    // A failed attempt's transaction rolls back; SQLite may already have committed part of it.
+    auto const rollBackUncommittedRows = [&](size_t uncommittedRows) {
+        if (uncommittedRows > 0)
+            (void) ctx.tableProgress.at(tableName)->fetch_sub(uncommittedRows);
+    };
+
     // Retry loop for chunk processing
     unsigned retryCount = 0;
     while (retryCount <= ctx.retrySettings.maxRetries)
     {
+        size_t rowsThisAttempt = 0;
+        size_t rowsCommittedThisAttempt = 0;
         try
         {
             // Use zero-copy reader directly from buffer (eliminates 2 memory copies)
@@ -251,6 +314,7 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
                         batchManager.PushBatch(batch);
                     }
                     rowsSinceCommit += batch.rowCount;
+                    rowsThisAttempt += batch.rowCount;
 
                     // Intermediate commit for SQLite to reduce WAL memory accumulation
                     if (isSQLite && maxRowsPerCommit > 0 && rowsSinceCommit >= maxRowsPerCommit)
@@ -259,6 +323,7 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
                         transaction.Commit();
                         transaction = SqlTransaction(workerConn, SqlTransactionMode::ROLLBACK);
                         rowsSinceCommit = 0;
+                        rowsCommittedThisAttempt = rowsThisAttempt;
                     }
 
                     auto& atomicCounter = *ctx.tableProgress.at(tableName);
@@ -271,8 +336,13 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
                                           .totalRows = chunk.displayTotal,
                                           .message = "Restoring chunk " + path });
 
-                    // Report items processed for ETA calculation
-                    ctx.progress.OnItemsProcessed(batch.rowCount);
+                    // Report items processed for ETA calculation, counting each row of the chunk
+                    // once even when a retry re-reads it.
+                    if (rowsThisAttempt > rowsReportedForChunk)
+                    {
+                        ctx.progress.OnItemsProcessed(rowsThisAttempt - rowsReportedForChunk);
+                        rowsReportedForChunk = rowsThisAttempt;
+                    }
                 }
 
                 {
@@ -288,6 +358,7 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
         }
         catch (SqlException const& e)
         {
+            rollBackUncommittedRows(rowsThisAttempt - rowsCommittedThisAttempt);
             if (ClassifyRetryOutcome(e.info(), retryCount, ctx.retrySettings) == RetryAction::GiveUp)
             {
                 ctx.progress.Update({ .state = Progress::State::Error,
@@ -295,7 +366,13 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
                                       .currentRows = 0,
                                       .totalRows = 0,
                                       .message = "Insert failed: "s + e.what() });
-                return ChunkRestoreOutcome::WorkerFailed; // Non-transient or max retries exceeded
+
+                // Stop this worker rather than fail every remaining table on a dead handle. A
+                // non-transient error usually means the data was rejected and the connection is
+                // still usable, but a server-side termination is reported as non-transient too.
+                if (!workerConn.IsAlive())
+                    return ChunkRestoreOutcome::WorkerAborted;
+                return ChunkRestoreOutcome::TableFailed;
             }
 
             ++retryCount;
@@ -318,7 +395,7 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
                                       .currentRows = 0,
                                       .totalRows = 0,
                                       .message = "Failed to reconnect after transient error" });
-                return ChunkRestoreOutcome::WorkerFailed;
+                return ChunkRestoreOutcome::WorkerAborted;
             }
 
             // Re-apply SQLite optimizations after reconnect
@@ -338,6 +415,7 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
         }
         catch (::Lightweight::detail::BackupValueConversionError const& e)
         {
+            rollBackUncommittedRows(rowsThisAttempt - rowsCommittedThisAttempt);
             ctx.progress.Update({ .state = Progress::State::Error,
                                   .tableName = tableName,
                                   .currentRows = 0,
@@ -347,15 +425,16 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
         }
         catch (std::exception const& e)
         {
+            rollBackUncommittedRows(rowsThisAttempt - rowsCommittedThisAttempt);
             ctx.progress.Update({ .state = Progress::State::Error,
                                   .tableName = tableName,
                                   .currentRows = 0,
                                   .totalRows = 0,
                                   .message = "Insert failed: "s + e.what() });
-            return ChunkRestoreOutcome::WorkerFailed;
+            return ChunkRestoreOutcome::TableFailed;
         }
     }
-    return ChunkRestoreOutcome::WorkerFailed;
+    return ChunkRestoreOutcome::WorkerAborted;
 }
 
 void RestoreWorker(RestoreContext ctx, SqlConnection& workerConn)
@@ -395,8 +474,8 @@ void RestoreWorker(RestoreContext ctx, SqlConnection& workerConn)
                                       .totalRows = std::nullopt,
                                       .message = error.message });
                 if (!error.tableName.empty())
-                    IncrementChunkCounter(ctx, error.tableName, false);
-                return; // Abort worker on fetch error to ensure consistent restoration
+                    RecordChunkOutcome(ctx, error.tableName, false);
+                continue; // The remaining chunks are independent of this one.
             }
 
             auto const& chunk = *fetchResult;
@@ -405,19 +484,21 @@ void RestoreWorker(RestoreContext ctx, SqlConnection& workerConn)
             if (chunk.isEndOfStream)
                 return; // Queue empty, worker done
 
-            if (ctx.failedTables.Contains(chunk.tableName))
+            if (chunk.skipForFailedTable || ctx.failedTables.Contains(chunk.tableName))
             {
                 IncrementChunkCounter(ctx, chunk.tableName, false); // the table already failed
                 continue;
             }
 
             auto const outcome = RestoreChunkData(ctx, workerConn, chunk, batchCapacity);
-            if (outcome != ChunkRestoreOutcome::Restored)
-                ctx.failedTables.Add(chunk.tableName);
-            IncrementChunkCounter(ctx, chunk.tableName, outcome == ChunkRestoreOutcome::Restored);
+            RecordChunkOutcome(ctx, chunk.tableName, outcome == ChunkRestoreOutcome::Restored);
 
-            if (outcome == ChunkRestoreOutcome::WorkerFailed)
-                return; // Abort worker on a database error to ensure consistent restoration
+            if (outcome == ChunkRestoreOutcome::WorkerAborted)
+            {
+                // The connection is gone; this worker cannot do useful work any more. The chunks
+                // it leaves queued are reported after all workers have finished.
+                return;
+            }
         }
     }
     catch (std::exception const& e)
