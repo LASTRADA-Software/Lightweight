@@ -48,6 +48,13 @@ class LIGHTWEIGHT_API RestoreFailureLog
     /// @param rowCount Number of rows lost, added to the failed row count.
     void RecordTableFailure(std::string_view table, std::string_view reason, std::uint64_t rowCount);
 
+    /// Sets the failed row count of a table that failed as a whole to @p missingRows, the rows of the
+    /// table that did not reach the target. That replaces the count of its individually failed rows,
+    /// which are among them. Does nothing for a table without a table failure.
+    /// @param table Table name.
+    /// @param missingRows The table's rows that are not in the target.
+    void SetFailedTableRowCount(std::string_view table, std::uint64_t missingRows);
+
     /// Records a chunk that could not be read.
     /// @param table Table the chunk belongs to; empty if unknown.
     void RecordUnreadableChunk(std::string_view table);

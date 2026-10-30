@@ -520,3 +520,82 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK(SqlBackup::detail::ClassifyRetryDecision(connection, error("08S01"), settings.maxRetries, settings).reason
           == SqlRetryGiveUpReason::RetriesExhausted);
 }
+
+TEST_CASE_METHOD(SqlTestFixture, "a table failed by several workers counts its rows once", "[SqlBackup][RestoreFailures]")
+{
+    std::filesystem::path const backupFile = "rfi_bind_concurrent_backup.zip";
+    auto const backupFileCleaner = ScopedFileRemoved { backupFile };
+
+    CreateTableWithRows("rfi_bind_concurrent", 16);
+    BackupTo(backupFile, 4);
+    DropTables({ "rfi_bind_concurrent" });
+    REQUIRE(ChunkNames(backupFile, "rfi_bind_concurrent").size() == 4);
+
+    // Every batch fails with a bind-class error, so each worker in a chunk of the table fails it.
+    auto source = ScriptedFaultSource {
+        SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "HYC00", .message = "Driver does not support this parameter" },
+        1000,
+        "ExecuteBatch"
+    };
+    auto report = SqlBackup::RestoreReport {};
+    RecordingProgressManager progress;
+    {
+        ScopedFaultSource const installed { &source };
+        report = SqlBackup::Restore(backupFile, GetConnectionString(), 4, progress);
+    }
+
+    CHECK(CountRows("rfi_bind_concurrent") == 0);
+    auto const tableReport = TableReportOf(report, "rfi_bind_concurrent");
+    REQUIRE(tableReport.tableFailure.has_value());
+    CHECK(tableReport.tableFailure->starts_with("HYC00"));
+    CHECK(tableReport.failedRowCount == 16);
+    CHECK(report.totalFailedRows == 16);
+    CHECK(std::ranges::count_if(progress.ErrorsOf("rfi_bind_concurrent"),
+                                [](std::string const& message) { return message.starts_with("Table failed:"); })
+          == 1);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "a table failing after a committed chunk counts only its missing rows",
+                 "[SqlBackup][RestoreFailures]")
+{
+    std::filesystem::path const backupFile = "rfi_late_failure_backup.zip";
+    auto const backupFileCleaner = ScopedFileRemoved { backupFile };
+
+    CreateTableWithRows("rfi_late_failure", 9);
+    BackupTo(backupFile, 3);
+    DropTables({ "rfi_late_failure" });
+    REQUIRE(ChunkNames(backupFile, "rfi_late_failure").size() == 3);
+
+    // Measure the checked calls of one clean chunk (one batch), then fail the second chunk's batch.
+    auto counter = ScriptedFaultSource { SqlErrorInfo {}, 0, "ExecuteBatch" };
+    {
+        ScopedFaultSource const installed { &counter };
+        SqlBackup::NullProgressManager progress;
+        CHECK_FALSE(SqlBackup::Restore(backupFile, GetConnectionString(), 1, progress).HasFailures());
+    }
+    REQUIRE(CountRows("rfi_late_failure") == 9);
+    REQUIRE(counter.ConsultCount() % 3 == 0);
+    auto const checksPerChunk = counter.ConsultCount() / 3;
+
+    auto source = ScriptedFaultSource {
+        SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "HYC00", .message = "Driver does not support this parameter" },
+        1,
+        "ExecuteBatch",
+        checksPerChunk,
+    };
+    auto report = SqlBackup::RestoreReport {};
+    {
+        ScopedFaultSource const installed { &source };
+        RecordingProgressManager progress;
+        report = SqlBackup::Restore(backupFile, GetConnectionString(), 1, progress);
+    }
+
+    CHECK(source.RemainingFailures() == 0);
+    auto const inTarget = CountRows("rfi_late_failure");
+    CHECK(inTarget == 3);
+    auto const tableReport = TableReportOf(report, "rfi_late_failure");
+    REQUIRE(tableReport.tableFailure.has_value());
+    CHECK(tableReport.failedRowCount == static_cast<std::uint64_t>(9 - inTarget));
+    CHECK(report.totalFailedRows == static_cast<std::uint64_t>(9 - inTarget));
+}

@@ -111,6 +111,15 @@ void RestoreFailureLog::RecordTableFailure(std::string_view table, std::string_v
     report.failedRowCount += rowCount;
 }
 
+void RestoreFailureLog::SetFailedTableRowCount(std::string_view table, std::uint64_t missingRows)
+{
+    auto const lock = std::scoped_lock { _mutex };
+    auto const it = _tables.find(table);
+    if (it == _tables.end() || !it->second.report.tableFailure.has_value())
+        return;
+    it->second.report.failedRowCount = missingRows;
+}
+
 void RestoreFailureLog::RecordUnreadableChunk(std::string_view table)
 {
     auto const lock = std::scoped_lock { _mutex };

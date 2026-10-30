@@ -1682,6 +1682,7 @@ RestoreReport Restore(std::filesystem::path const& inputFile,
 
     std::map<std::string, std::shared_ptr<std::atomic<size_t>>> tableProgress;
     std::map<std::string, std::shared_ptr<std::atomic<size_t>>> chunksProcessed;
+    std::map<std::string, std::shared_ptr<std::atomic<std::uint64_t>>> committedRows;
     size_t totalRows = 0;
     for (auto const& [name, info]: tableMap)
     {
@@ -1690,6 +1691,7 @@ RestoreReport Restore(std::filesystem::path const& inputFile,
         {
             tableProgress[name] = std::make_shared<std::atomic<size_t>>(0);
             chunksProcessed[name] = std::make_shared<std::atomic<size_t>>(0);
+            committedRows[name] = std::make_shared<std::atomic<std::uint64_t>>(0);
             totalRows += info.rowCount;
         }
     }
@@ -1733,6 +1735,7 @@ RestoreReport Restore(std::filesystem::path const& inputFile,
         .tableProgress = tableProgress,
         .chunksProcessed = chunksProcessed,
         .totalChunks = totalChunksPerTable,
+        .committedRows = committedRows,
         .checksums = checksums.empty() ? nullptr : &checksums,
         .retrySettings = retrySettings,
         .restoreSettings = effectiveSettings,
@@ -1771,6 +1774,9 @@ RestoreReport Restore(std::filesystem::path const& inputFile,
     for (auto& t: threads)
         t.join();
 
+    // A failed table whose chunks a stopped worker left unprocessed is settled here.
+    for (auto const& tableName: chunksProcessed | std::views::keys)
+        detail::SettleFailedTableRows(ctx, tableName);
     auto report = failureLog.Snapshot();
 
     // A worker stops on a lost connection; once all have stopped, chunks may be left unrestored.

@@ -203,6 +203,7 @@ namespace
         }
 
         std::vector<SQLUSMALLINT> paramStatus;
+        auto& committedRows = *ctx.committedRows.at(tableName);
         // Without a trustworthy status array the failing rows of a batch are found by bisection.
         auto const trustsParamStatus = workerConn.QueryFormatter().ParameterStatusIdentifiesFailedRows();
         auto hooks = ::Lightweight::detail::BatchManagerHooks {
@@ -223,6 +224,7 @@ namespace
                             .error = SqlErrorInfo::FromConnectionHandle(workerConn.NativeHandle()),
                             .reportedFailedRows = {},
                         });
+                    committedRows.fetch_add(rowCount);
                     return {};
                 }
                 catch (SqlException const& e)
@@ -304,14 +306,18 @@ namespace
         return unreadable;
     }
 
-    /// Records that @p chunk's table fails as a whole, for @p reason.
+    /// Records that @p chunk's table fails as a whole, for @p reason, unless it already failed.
     /// @param ctx The restore context.
     /// @param chunk The chunk the table failed on.
     /// @param reason Why it failed.
     /// @return ChunkRestoreOutcome::TableFailed.
     ChunkRestoreOutcome FailTable(RestoreContext& ctx, RestoreChunkInfo const& chunk, std::string const& reason)
     {
-        ctx.failureLog.RecordTableFailure(chunk.tableName, reason, chunk.tableInfo->rowCount);
+        // Workers in other chunks of the table may fail it at the same time: only the first records it.
+        // Its failed row count is settled once its chunks are processed (SettleFailedTableRows()).
+        if (!ctx.failedTables.Add(chunk.tableName))
+            return ChunkRestoreOutcome::TableFailed;
+        ctx.failureLog.RecordTableFailure(chunk.tableName, reason, 0);
         ctx.progress.Update({ .state = Progress::State::Error,
                               .tableName = chunk.tableName,
                               .currentRows = 0,
@@ -327,6 +333,15 @@ bool IsBindClassError(SqlErrorInfo const& error) noexcept
     return std::ranges::contains(BindClassStates, std::string_view { error.sqlState });
 }
 
+void SettleFailedTableRows(RestoreContext& ctx, std::string const& tableName)
+{
+    if (!ctx.failedTables.Contains(tableName))
+        return;
+    auto const archived = std::uint64_t { ctx.tableMap.at(tableName).rowCount };
+    auto const committed = ctx.committedRows.at(tableName)->load();
+    ctx.failureLog.SetFailedTableRowCount(tableName, archived > committed ? archived - committed : 0);
+}
+
 void IncrementChunkCounter(RestoreContext& ctx, std::string const& tableName)
 {
     auto& chunkCounter = *ctx.chunksProcessed.at(tableName);
@@ -334,6 +349,7 @@ void IncrementChunkCounter(RestoreContext& ctx, std::string const& tableName)
     if (processedChunks < ctx.totalChunks.at(tableName))
         return;
 
+    SettleFailedTableRows(ctx, tableName);
     size_t const actualRowCount = ctx.tableProgress.at(tableName)->load();
     auto const failures = ctx.failureLog.TableSnapshot(tableName);
     auto const failed = failures.HasFailures();
@@ -554,8 +570,6 @@ void RestoreWorker(RestoreContext ctx, SqlConnection& workerConn)
             // The connection is gone: stop, leaving the chunk uncounted so that its table shows as incomplete.
             if (outcome == ChunkRestoreOutcome::WorkerFailed)
                 return;
-            if (outcome == ChunkRestoreOutcome::TableFailed)
-                ctx.failedTables.Add(chunk.tableName);
             IncrementChunkCounter(ctx, chunk.tableName);
         }
     }

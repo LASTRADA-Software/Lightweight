@@ -102,6 +102,22 @@ TEST_CASE("RestoreFailureLog: table failure", "[RestoreFailureLog]")
     CHECK(report.failedRowCount == 1005);
 }
 
+TEST_CASE("RestoreFailureLog: a failed table's count becomes its missing rows", "[RestoreFailureLog]")
+{
+    RestoreFailureLog log;
+    log.RecordRowFailure("T", "data/T/chunk_1.msgpack", 2, "23000", "duplicate", "2");
+    log.RecordTableFailure("T", "HYC00 not supported", 0);
+    log.SetFailedTableRowCount("T", 7);
+    log.SetFailedTableRowCount("T", 7); // idempotent
+    CHECK(log.TableSnapshot("T").failedRowCount == 7);
+    CHECK(log.Snapshot().totalFailedRows == 7);
+
+    // A table that did not fail as a whole keeps the count of its failed rows.
+    log.RecordRowFailure("U", "data/U/chunk_1.msgpack", 1, "23000", "duplicate", "1");
+    log.SetFailedTableRowCount("U", 50);
+    CHECK(log.TableSnapshot("U").failedRowCount == 1);
+}
+
 TEST_CASE("RestoreFailureLog: concurrent recording", "[RestoreFailureLog]")
 {
     RestoreFailureLog log;

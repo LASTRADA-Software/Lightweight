@@ -54,10 +54,11 @@ struct FailedTables
 {
     /// Records @p tableName as failed.
     /// @param tableName The table.
-    void Add(std::string const& tableName)
+    /// @return `true` if the table was not failed before, i.e. for exactly one caller per table.
+    bool Add(std::string const& tableName)
     {
         auto const lock = std::scoped_lock(_mutex);
-        _names.insert(tableName);
+        return _names.insert(tableName).second;
     }
 
     /// Tests whether @p tableName has failed.
@@ -130,6 +131,8 @@ struct RestoreContext
     std::map<std::string, std::shared_ptr<std::atomic<size_t>>> tableProgress;
     std::map<std::string, std::shared_ptr<std::atomic<size_t>>> chunksProcessed; // Per-table processed chunk count
     std::map<std::string, size_t> totalChunks;                                   // Per-table total chunk count
+    /// Per table: the rows committed to the target, which a failed table's failed row count excludes.
+    std::map<std::string, std::shared_ptr<std::atomic<std::uint64_t>>> committedRows;
     std::map<std::string, std::string> const* checksums; // entryName -> expected SHA-256 hash (optional)
     RetrySettings const& retrySettings;
     RestoreSettings restoreSettings;
@@ -151,6 +154,14 @@ struct RestoreContext
 /// @param ctx The restore context.
 /// @param tableName The name of the table being restored.
 void IncrementChunkCounter(RestoreContext& ctx, std::string const& tableName);
+
+/// Sets the failed row count of @p tableName, if it failed as a whole, to its rows that are not in
+/// the target: its archived row count minus the rows committed for it. Idempotent; called once the
+/// table's chunks are processed, or once the workers stopped.
+///
+/// @param ctx The restore context.
+/// @param tableName The table.
+void SettleFailedTableRows(RestoreContext& ctx, std::string const& tableName);
 
 /// Fetches the next chunk from the restore queue.
 ///
