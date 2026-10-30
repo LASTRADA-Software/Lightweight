@@ -74,7 +74,7 @@ std::filesystem::path ExecutablePath()
 /// @return The plugin path, or an empty path if neither location holds the plugin.
 std::filesystem::path FindPostMigratePlugin()
 {
-    auto const buildTreePath = std::filesystem::path { LIGHTWEIGHT_TEST_POST_MIGRATE_PLUGIN };
+    auto buildTreePath = std::filesystem::path { LIGHTWEIGHT_TEST_POST_MIGRATE_PLUGIN };
     if (std::filesystem::exists(buildTreePath))
         return buildTreePath;
 
