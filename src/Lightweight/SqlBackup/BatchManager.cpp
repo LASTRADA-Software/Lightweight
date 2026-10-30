@@ -1564,6 +1564,15 @@ struct GuidTextBatchColumn final: StringBatchColumn
         else
             RejectBackupValue(val, "GUID");
     }
+
+    SqlRawColumn ToRaw() override
+    {
+        // A GUID declares no column size, and a VARCHAR bound with ColumnSize 0 is an invalid
+        // precision (HY104) to strict drivers: the size covers a canonical GUID and every text bound.
+        auto raw = StringBatchColumn::ToRaw();
+        raw.metadata.size = std::max<SQLULEN>(36, raw.metadata.bufferLength);
+        return raw;
+    }
 };
 
 /// A batch column for GUID values using proper SQL_GUID binding.

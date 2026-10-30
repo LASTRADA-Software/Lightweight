@@ -897,6 +897,7 @@ struct CapturedTextColumn
 {
     SQLSMALLINT cType = 0;
     SQLSMALLINT sqlType = 0;
+    SQLULEN columnSize = 0;
     std::vector<std::string> texts;
     std::vector<SQLLEN> indicators;
 };
@@ -912,6 +913,7 @@ CapturedTextColumn CaptureGuidColumn(std::vector<SqlBackup::BackupValue> const& 
         auto const& col = rawCols[0];
         captured.cType = col.metadata.cType;
         captured.sqlType = col.metadata.sqlType;
+        captured.columnSize = col.metadata.size;
         for (auto const row: std::views::iota(size_t { 0 }, count))
         {
             captured.indicators.push_back(col.indicators[row]);
@@ -934,6 +936,8 @@ TEST_CASE("BatchManager binds GUID as text on SQLite", "[SqlBackup][BatchManager
 
     CHECK(captured.cType == SQL_C_CHAR);
     CHECK(captured.sqlType == SQL_VARCHAR);
+    // A VARCHAR bound with ColumnSize 0 is an invalid precision to strict drivers.
+    CHECK(captured.columnSize >= 36);
     REQUIRE(captured.indicators.size() == 2);
     CHECK(captured.texts[0] == "6F9619FF-8B86-D011-B42D-00C04FC964FF");
     CHECK(captured.indicators[1] == SQL_NULL_DATA);
@@ -947,6 +951,8 @@ TEST_CASE("BatchManager keeps non-canonical GUID text on SQLite", "[SqlBackup][B
                                      SqlServerType::SQLITE));
 
     REQUIRE(captured.texts.size() == 2);
+    // The ColumnSize covers the longest text, not just a canonical GUID.
+    CHECK(captured.columnSize >= 38);
     CHECK(captured.texts[0] == "{6f9619ff-8b86-d011-b42d-00c04fc964ff}");
     CHECK(captured.texts[1] == "not-a-guid");
 }
