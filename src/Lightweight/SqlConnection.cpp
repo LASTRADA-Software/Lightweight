@@ -961,22 +961,9 @@ bool SqlConnection::ConnectWithRetry(Attempt const& attempt) noexcept
 
 void SqlConnection::DetectServer()
 {
-    auto const mappings = std::array {
-        std::pair { "Microsoft SQL Server"sv, SqlServerType::MICROSOFT_SQL },
-        std::pair { "PostgreSQL"sv, SqlServerType::POSTGRESQL },
-        std::pair { "SQLite"sv, SqlServerType::SQLITE },
-        std::pair { "MySQL"sv, SqlServerType::MYSQL },
-    };
-
-    auto const serverName = ServerName();
-    for (auto const& [name, type]: mappings)
-    {
-        if (serverName.contains(name))
-        {
-            m_serverType = type;
-            break;
-        }
-    }
+    // Keeps the previous type when the name is unrecognized.
+    if (auto const type = ServerTypeFromServerName(ServerName()); type != SqlServerType::UNKNOWN)
+        m_serverType = type;
 
     m_queryFormatter = SqlQueryFormatter::Get(m_serverType);
 

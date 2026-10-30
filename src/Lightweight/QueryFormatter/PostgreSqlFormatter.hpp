@@ -6,7 +6,10 @@
 
 #include <reflection-cpp/reflection.hpp>
 
+#include <algorithm>
 #include <format>
+#include <string>
+#include <string_view>
 
 namespace Lightweight
 {
@@ -24,6 +27,24 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
     [[nodiscard]] bool IdentifiersAreCaseInsensitive() const noexcept override
     {
         return false;
+    }
+
+    [[nodiscard]] bool HasNativeGuidType() const noexcept override
+    {
+        return true;
+    }
+
+    [[nodiscard]] bool ComparesFixedCharWithPadSemantics() const noexcept override
+    {
+        return true;
+    }
+
+    [[nodiscard]] std::string FoldUnquotedIdentifier(std::string_view identifier) const override
+    {
+        auto folded = std::string(identifier);
+        std::ranges::transform(
+            folded, folded.begin(), [](char c) { return (c >= 'A' && c <= 'Z') ? static_cast<char>(c - 'A' + 'a') : c; });
+        return folded;
     }
 
     [[nodiscard]] bool SupportsSchemas() const noexcept override

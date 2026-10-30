@@ -262,6 +262,7 @@ using Lightweight::SqlSentinelIterator;
 using Lightweight::SqlServerQueryFormatter;
 using Lightweight::SqlServerRetryOps;
 using Lightweight::SqlServerType;
+using Lightweight::ServerTypeFromServerName;
 using Lightweight::SqlSimpleDataBinder;
 using Lightweight::SqlStatement;
 using Lightweight::SqlStatistics;

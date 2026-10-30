@@ -390,6 +390,38 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
         return {};
     }
 
+    /// @brief Whether the dialect has a native GUID/UUID column type (as opposed to storing GUIDs as text).
+    ///
+    /// Defaults to `false`. SQL Server (`UNIQUEIDENTIFIER`) and PostgreSQL (`UUID`) return `true`.
+    ///
+    /// @return `true` if GUID columns are stored in a dedicated binary type.
+    [[nodiscard]] virtual bool HasNativeGuidType() const noexcept
+    {
+        return false;
+    }
+
+    /// @brief Whether comparing a fixed-width CHAR(n) column pads the shorter operand with spaces.
+    ///
+    /// Defaults to `true`. SQLite returns `false`: it stores CHAR(n) as plain text and compares it verbatim.
+    ///
+    /// @return `true` if trailing spaces of CHAR(n) values are insignificant in comparisons.
+    [[nodiscard]] virtual bool ComparesFixedCharWithPadSemantics() const noexcept
+    {
+        return true;
+    }
+
+    /// @brief Returns the name under which the dialect stores an unquoted identifier.
+    ///
+    /// Defaults to returning @p identifier unchanged. PostgreSQL folds unquoted identifiers to
+    /// lower case and returns the ASCII-lower-cased name.
+    ///
+    /// @param identifier The identifier as written without quotes.
+    /// @return The identifier as the catalog stores it.
+    [[nodiscard]] virtual std::string FoldUnquotedIdentifier(std::string_view identifier) const
+    {
+        return std::string(identifier);
+    }
+
   protected:
     /// Formats a table name with optional schema prefix.
     static std::string FormatTableName(std::string_view schema, std::string_view table);
