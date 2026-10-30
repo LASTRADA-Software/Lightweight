@@ -845,15 +845,15 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadTable resolves a differently ca
         auto const described = SqlSchema::ReadTable(
             stmt, SqlSchema::FullyQualifiedTableName { .catalog = database, .schema = "", .table = requested });
         REQUIRE(described.has_value());
-        CHECK(described->name == "ReadTableCase");
+        CHECK(UnwrapOptional(described).name == "ReadTableCase");
     }
 
     // A request in the catalog's own spelling is found by the first, exact lookup on every DBMS.
     auto const resolved = SqlSchema::detail::ResolveTable(
         stmt, SqlSchema::FullyQualifiedTableName { .catalog = database, .schema = "", .table = "ReadTableCase" });
     REQUIRE(resolved.has_value());
-    CHECK(resolved->table.name == "ReadTableCase");
-    CHECK(resolved->step == SqlSchema::detail::TableResolutionStep::Exact);
+    CHECK(UnwrapOptional(resolved).table.name == "ReadTableCase");
+    CHECK(UnwrapOptional(resolved).step == SqlSchema::detail::TableResolutionStep::Exact);
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::detail::FindTablesNamed treats _ literally", "[SqlSchema]")
@@ -868,8 +868,8 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::detail::FindTablesNamed treats _ li
     // would hide a lookup that let `_` match any character.
     auto const found = SqlSchema::detail::FindTablesNamed(stmt, stmt.Connection().DatabaseName(), "", "RT_X");
     REQUIRE(found.has_value());
-    REQUIRE(found->size() == 1);
-    CHECK(found->front().name == "RT_X");
+    REQUIRE(UnwrapOptional(found).size() == 1);
+    CHECK(UnwrapOptional(found).front().name == "RT_X");
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadTable keeps FK target casing", "[SqlSchema]")
@@ -889,16 +889,16 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadTable keeps FK target casing", 
     auto const child = SqlSchema::ReadTable(
         stmt, SqlSchema::FullyQualifiedTableName { .catalog = database, .schema = "", .table = "RtChild" });
     REQUIRE(child.has_value());
-    REQUIRE(child->foreignKeys.size() == 1);
-    CHECK(child->foreignKeys[0].primaryKey.table.table == "RtParent");
-    CHECK(child->foreignKeys[0].foreignKey.table.table == "RtChild");
+    REQUIRE(UnwrapOptional(child).foreignKeys.size() == 1);
+    CHECK(UnwrapOptional(child).foreignKeys[0].primaryKey.table.table == "RtParent");
+    CHECK(UnwrapOptional(child).foreignKeys[0].foreignKey.table.table == "RtChild");
 
     auto const parent = SqlSchema::ReadTable(
         stmt, SqlSchema::FullyQualifiedTableName { .catalog = database, .schema = "", .table = "RtParent" });
     REQUIRE(parent.has_value());
-    REQUIRE(parent->externalForeignKeys.size() == 1);
-    CHECK(parent->externalForeignKeys[0].primaryKey.table.table == "RtParent");
-    CHECK(parent->externalForeignKeys[0].foreignKey.table.table == "RtChild");
+    REQUIRE(UnwrapOptional(parent).externalForeignKeys.size() == 1);
+    CHECK(UnwrapOptional(parent).externalForeignKeys[0].primaryKey.table.table == "RtParent");
+    CHECK(UnwrapOptional(parent).externalForeignKeys[0].foreignKey.table.table == "RtChild");
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "ReadTable ColumnsAndPrimaryKey skips FKs and indexes", "[SqlSchema]")
@@ -926,13 +926,13 @@ TEST_CASE_METHOD(SqlTestFixture, "ReadTable ColumnsAndPrimaryKey skips FKs and i
     REQUIRE(full.has_value());
     REQUIRE(light.has_value());
 
-    CHECK(light->name == full->name);
-    CHECK(light->primaryKeys == full->primaryKeys);
-    REQUIRE(light->columns.size() == full->columns.size());
-    for (auto const index: std::views::iota(size_t { 0 }, full->columns.size()))
+    CHECK(UnwrapOptional(light).name == UnwrapOptional(full).name);
+    CHECK(UnwrapOptional(light).primaryKeys == UnwrapOptional(full).primaryKeys);
+    REQUIRE(UnwrapOptional(light).columns.size() == UnwrapOptional(full).columns.size());
+    for (auto const index: std::views::iota(size_t { 0 }, UnwrapOptional(full).columns.size()))
     {
-        auto const& a = light->columns[index];
-        auto const& b = full->columns[index];
+        auto const& a = UnwrapOptional(light).columns[index];
+        auto const& b = UnwrapOptional(full).columns[index];
         INFO("column " << b.name);
         CHECK(a.name == b.name);
         CHECK(a.type == b.type);
@@ -946,21 +946,21 @@ TEST_CASE_METHOD(SqlTestFixture, "ReadTable ColumnsAndPrimaryKey skips FKs and i
         REQUIRE(it != t.columns.end());
         return it->isForeignKey;
     };
-    CHECK(isParentIdFk(*full));
-    CHECK(!isParentIdFk(*light));
+    CHECK(isParentIdFk(UnwrapOptional(full)));
+    CHECK(!isParentIdFk(UnwrapOptional(light)));
 
-    CHECK(!full->foreignKeys.empty());
-    CHECK(!full->indexes.empty());
-    CHECK(light->foreignKeys.empty());
-    CHECK(light->externalForeignKeys.empty());
-    CHECK(light->indexes.empty());
+    CHECK(!UnwrapOptional(full).foreignKeys.empty());
+    CHECK(!UnwrapOptional(full).indexes.empty());
+    CHECK(UnwrapOptional(light).foreignKeys.empty());
+    CHECK(UnwrapOptional(light).externalForeignKeys.empty());
+    CHECK(UnwrapOptional(light).indexes.empty());
 
     auto const parentLight = SqlSchema::ReadTable(
         stmt,
         SqlSchema::FullyQualifiedTableName { .catalog = database, .schema = "", .table = "RtLightParent" },
         SqlSchema::TableReadScope::ColumnsAndPrimaryKey);
     REQUIRE(parentLight.has_value());
-    CHECK(parentLight->externalForeignKeys.empty());
+    CHECK(UnwrapOptional(parentLight).externalForeignKeys.empty());
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadTable fixes cross-schema FK target casing", "[SqlSchema]")
@@ -988,9 +988,9 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadTable fixes cross-schema FK tar
                              SqlSchema::FullyQualifiedTableName {
                                  .catalog = stmt.Connection().DatabaseName(), .schema = "rt_s1", .table = "RtXChild" });
     REQUIRE(child.has_value());
-    REQUIRE(child->foreignKeys.size() == 1);
-    CHECK(child->foreignKeys[0].primaryKey.table.schema == "rt_s2");
-    CHECK(child->foreignKeys[0].primaryKey.table.table == "RtXParent");
+    REQUIRE(UnwrapOptional(child).foreignKeys.size() == 1);
+    CHECK(UnwrapOptional(child).foreignKeys[0].primaryKey.table.schema == "rt_s2");
+    CHECK(UnwrapOptional(child).foreignKeys[0].primaryKey.table.table == "RtXParent");
 }
 
 TEST_CASE_METHOD(SqlTestFixture,
@@ -1008,6 +1008,6 @@ TEST_CASE_METHOD(SqlTestFixture,
         SqlSchema::FullyQualifiedTableName {
             .catalog = stmt.Connection().DatabaseName(), .schema = "", .table = "RT_Orders" });
     REQUIRE(resolved.has_value());
-    CHECK(resolved->table.name == "rt_orders");
-    CHECK(resolved->step == SqlSchema::detail::TableResolutionStep::Folded);
+    CHECK(UnwrapOptional(resolved).table.name == "rt_orders");
+    CHECK(UnwrapOptional(resolved).step == SqlSchema::detail::TableResolutionStep::Folded);
 }

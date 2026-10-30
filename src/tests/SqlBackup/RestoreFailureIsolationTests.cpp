@@ -327,7 +327,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     REQUIRE(aFailed != bFailed);
     auto const& failed = aFailed ? reportA : reportB;
     auto const restoredName = std::string { aFailed ? "rfi_bind_b" : "rfi_bind_a" };
-    CHECK(failed.tableFailure->starts_with("HYC00"));
+    CHECK(failed.tableFailure.value_or("").starts_with("HYC00"));
     CHECK(CountRows(failed.tableName) == 0);
     CHECK(CountRows(restoredName) == (aFailed ? 4 : 3));
     CHECK_FALSE(TableReportOf(report, restoredName).HasFailures());
@@ -552,7 +552,7 @@ TEST_CASE_METHOD(SqlTestFixture, "a table failed by several workers counts its r
     CHECK(CountRows("rfi_bind_concurrent") == 0);
     auto const tableReport = TableReportOf(report, "rfi_bind_concurrent");
     REQUIRE(tableReport.tableFailure.has_value());
-    CHECK(tableReport.tableFailure->starts_with("HYC00"));
+    CHECK(tableReport.tableFailure.value_or("").starts_with("HYC00"));
     CHECK(tableReport.failedRowCount == 16);
     CHECK(report.totalFailedRows == 16);
     CHECK(std::ranges::count_if(progress.ErrorsOf("rfi_bind_concurrent"),
@@ -601,6 +601,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK(inTarget == 3);
     auto const tableReport = TableReportOf(report, "rfi_late_failure");
     REQUIRE(tableReport.tableFailure.has_value());
-    CHECK(tableReport.failedRowCount == static_cast<std::uint64_t>(9 - inTarget));
-    CHECK(report.totalFailedRows == static_cast<std::uint64_t>(9 - inTarget));
+    auto const missingRows = static_cast<std::uint64_t>(9 - inTarget);
+    CHECK(tableReport.failedRowCount == missingRows);
+    CHECK(report.totalFailedRows == missingRows);
 }

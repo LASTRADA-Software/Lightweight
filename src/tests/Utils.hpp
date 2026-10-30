@@ -31,6 +31,7 @@
 #include <ostream>
 #include <ranges>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -115,6 +116,21 @@ ostream& operator<<(ostream& os, WideStringT const& str)
 inline ostream& operator<<(ostream& os, Lightweight::SqlGuid const& guid)
 {
     return os << format("SqlGuid({})", guid);
+}
+
+/// Unwraps an optional that a preceding REQUIRE has already established to be engaged.
+///
+/// Static analysis does not see through Catch2's REQUIRE, so the check is repeated here and reported as a
+/// test failure (via the exception) should it ever be violated.
+///
+/// @param value The optional to unwrap.
+/// @return The contained value.
+template <typename T>
+[[nodiscard]] T const& UnwrapOptional(std::optional<T> const& value)
+{
+    if (!value.has_value())
+        throw std::logic_error("UnwrapOptional: the optional holds no value");
+    return *value;
 }
 
 inline std::string EscapedBinaryText(std::string_view binary)

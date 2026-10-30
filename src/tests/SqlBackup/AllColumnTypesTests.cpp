@@ -205,7 +205,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: a restored GUID column is still a G
     REQUIRE(guid.has_value());
     if (!guid.has_value())
         return;
-    (void) stmt.Prepare(R"(INSERT INTO "guid_column_rt" ("id", "guid_v") VALUES (?, ?))");
+    stmt.Prepare(R"(INSERT INTO "guid_column_rt" ("id", "guid_v") VALUES (?, ?))");
     (void) stmt.Execute(1, *guid);
 
     auto const guidColumnType = [&] {

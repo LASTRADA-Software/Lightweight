@@ -112,8 +112,7 @@ TEST_CASE("RawColumnSlice: binary column", "[RawColumnSlice]")
     CHECK(cells[2] == "NULL");
     // 32 bytes are shown, the rest is cut and marked.
     std::string expected = "0x";
-    for (auto const _: std::views::iota(0, 32))
-        expected += "0F";
+    std::ranges::for_each(std::views::iota(0, 32), [&](int) { expected += "0F"; });
     CHECK(cells[3] == expected + "\xE2\x80\xA6");
 }
 

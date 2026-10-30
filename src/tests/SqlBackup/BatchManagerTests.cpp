@@ -835,7 +835,7 @@ TEST_CASE("BatchManager: a braced GUID binds as the same bytes as the unbraced o
         std::vector<uint8_t> captured;
         BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
             auto const* bytes = reinterpret_cast<uint8_t const*>(rawCols[0].data.data());
-            captured.assign(bytes, bytes + count * sizeof(SqlGuid));
+            captured.assign(bytes, bytes + (count * sizeof(SqlGuid)));
         };
 
         RunBatchManagerTest(executor,
@@ -924,6 +924,7 @@ CapturedTextColumn CaptureGuidColumn(std::vector<SqlBackup::BackupValue> const& 
         }
     };
     std::vector<std::vector<SqlBackup::BackupValue>> rowVectors;
+    rowVectors.reserve(rows.size());
     for (auto const& row: rows)
         rowVectors.push_back({ row });
     RunBatchManagerTest(executor, cols, rowVectors, 10, serverType);
@@ -1575,7 +1576,7 @@ std::string ReportedConversionFailure(SqlColumnDeclaration const& column,
                 },
                 .classify = {},
                 .onRowFailed =
-                    [&](size_t row, std::string_view, std::string_view message, std::string) {
+                    [&](size_t row, std::string_view, std::string_view message, std::string const&) {
                         failures.push_back(std::format("row {}: {}", row, message));
                     },
                 .onCellNulled = [&](std::string_view, std::string_view reason) { nulledReasons.emplace_back(reason); },

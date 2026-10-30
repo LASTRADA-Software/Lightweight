@@ -44,7 +44,7 @@ TEST_CASE("RestoreFailureLog: row ranges are capped", "[RestoreFailureLog]")
 {
     RestoreFailureLog log;
     for (std::uint64_t row = 0; row < 250; ++row)
-        log.RecordRowFailure("T", "A", row * 2 + 1, "23000", "boom", "k");
+        log.RecordRowFailure("T", "A", (row * 2) + 1, "23000", "boom", "k");
     auto const report = log.TableSnapshot("T");
     CHECK(report.failedRowRanges.size() == MaxReportedRowRanges);
     CHECK(report.rowsBeyondRangeCap == 150);
@@ -64,14 +64,14 @@ TEST_CASE("RestoreFailureLog: reasons are deduplicated and capped", "[RestoreFai
 
     RestoreFailureLog many;
     for (std::uint64_t i = 0; i < 25; ++i)
-        many.RecordRowFailure("T", "A", i * 2 + 1, "23000", "distinct message " + std::string(i + 1, 'x'), "k");
+        many.RecordRowFailure("T", "A", (i * 2) + 1, "23000", "distinct message " + std::string(i + 1, 'x'), "k");
     auto const report = many.TableSnapshot("T");
     CHECK(report.reasons.size() == MaxReportedReasons);
     CHECK(report.occurrencesBeyondReasonCap == 5);
 
     RestoreFailureLog samples;
     for (std::uint64_t i = 0; i < 10; ++i)
-        samples.RecordRowFailure("T", "A", i * 2 + 1, "23000", "same", "key" + std::to_string(i));
+        samples.RecordRowFailure("T", "A", (i * 2) + 1, "23000", "same", "key" + std::to_string(i));
     auto const sampled = samples.TableSnapshot("T");
     REQUIRE(sampled.reasons.size() == 1);
     CHECK(sampled.reasons[0].sampleKeys.size() == MaxSampleKeysPerReason);
@@ -98,7 +98,7 @@ TEST_CASE("RestoreFailureLog: table failure", "[RestoreFailureLog]")
     log.RecordTableFailure("T", "later", 5);
     auto const report = log.TableSnapshot("T");
     REQUIRE(report.tableFailure.has_value());
-    CHECK(*report.tableFailure == "HYC00 not supported");
+    CHECK(report.tableFailure == "HYC00 not supported");
     CHECK(report.failedRowCount == 1005);
 }
 
@@ -122,6 +122,7 @@ TEST_CASE("RestoreFailureLog: concurrent recording", "[RestoreFailureLog]")
 {
     RestoreFailureLog log;
     std::vector<std::thread> threads;
+    threads.reserve(8);
     for (std::uint64_t t = 0; t < 8; ++t)
         threads.emplace_back([&log, t] {
             for (std::uint64_t i = 0; i < 10'000; ++i)

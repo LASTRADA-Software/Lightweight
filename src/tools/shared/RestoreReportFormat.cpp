@@ -86,7 +86,8 @@ std::vector<std::string> DescribeRestoreReport(SqlBackup::RestoreReport const& r
         nulledCells += CountNulledCells(table);
     }
     if (report.workerStopped)
-        lines.push_back("  A restore worker stopped early after losing its connection; the rest of its work was not done.");
+        lines.emplace_back(
+            "  A restore worker stopped early after losing its connection; the rest of its work was not done.");
     for (auto const& table: report.incompleteTables)
         lines.push_back(std::format("  incomplete: {}", table));
     if (report.unattributedChunkErrors > 0)
