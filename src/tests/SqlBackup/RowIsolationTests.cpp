@@ -73,15 +73,16 @@ struct FakeTable
             calls.emplace_back(firstRow, count);
             if (transientOnCall && calls.size() == *transientOnCall)
                 return std::unexpected(BatchInsertError { .error = TransientError(), .reportedFailedRows = {} });
-            auto const range = std::views::iota(firstRow, firstRow + count);
-            auto const failing = range | std::views::filter([&](std::size_t row) { return bad.contains(row); })
-                                 | std::ranges::to<std::vector>();
+            std::vector<std::size_t> failing;
+            for (auto const row: std::views::iota(firstRow, firstRow + count))
+                if (bad.contains(row))
+                    failing.push_back(row);
             if (!failing.empty())
                 return std::unexpected(BatchInsertError {
                     .error = ConstraintError(),
                     .reportedFailedRows = reportFailedRows ? failing : std::vector<std::size_t> {},
                 });
-            for (auto const row: range)
+            for (auto const row: std::views::iota(firstRow, firstRow + count))
                 ++insertCount[row];
             return {};
         };
@@ -159,7 +160,8 @@ TEST_CASE("RowIsolation: no bad rows inserts everything in one call", "[RowIsola
 TEST_CASE("RowIsolation: bad rows are isolated and reported exactly", "[RowIsolation]")
 {
     constexpr std::size_t N = 16;
-    auto const allRows = std::views::iota(std::size_t { 0 }, N) | std::ranges::to<std::set>();
+    auto const allRowsView = std::views::iota(std::size_t { 0 }, N);
+    auto const allRows = std::set<std::size_t>(allRowsView.begin(), allRowsView.end());
     auto const badSet =
         GENERATE_COPY(std::set<std::size_t> { 0 }, std::set<std::size_t> { N - 1 }, std::set<std::size_t> { 5, 6 }, allRows);
     auto table = FakeTable(N, badSet);

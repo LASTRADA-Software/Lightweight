@@ -2044,10 +2044,10 @@ void BatchManager::Flush()
         }
 
         auto const insertRange = [&](size_t firstRow, size_t count) {
-            auto const slices =
-                rawCols
-                | std::views::transform([&](SqlRawColumn const& column) { return SliceRows(column, firstRow, count); })
-                | std::ranges::to<std::vector>();
+            std::vector<SqlRawColumn> slices;
+            slices.reserve(rawCols.size());
+            for (auto const& column: rawCols)
+                slices.push_back(SliceRows(column, firstRow, count));
             return hooks.tryInsert(slices, count).transform_error([firstRow](BatchInsertError error) {
                 for (auto& row: error.reportedFailedRows)
                     row += firstRow;
@@ -2169,10 +2169,20 @@ std::string BatchManager::DescribeRowKey(std::vector<SqlRawColumn> const& rawCol
     auto const describe = [&](size_t columnIndex) {
         return DescribeRawCell(rawColumns[columnIndex], row);
     };
-    auto const cells = keyColumns.empty() ? std::views::iota(size_t { 0 }, rawColumns.size())
-                                                | std::views::transform(describe) | std::ranges::to<std::vector>()
-                                          : keyColumns | std::views::transform(describe) | std::ranges::to<std::vector>();
-    auto key = cells | std::views::join_with(std::string_view { ", " }) | std::ranges::to<std::string>();
+    // A plain loop: libc++ lacks views::join_with, and Clang 19 cannot compile the `| ranges::to` pipe.
+    std::string key;
+    bool firstCell = true;
+    auto const appendCell = [&](size_t columnIndex) {
+        if (!std::exchange(firstCell, false))
+            key += ", ";
+        key += describe(columnIndex);
+    };
+    if (keyColumns.empty())
+        for (auto const columnIndex: std::views::iota(size_t { 0 }, rawColumns.size()))
+            appendCell(columnIndex);
+    else
+        for (auto const columnIndex: keyColumns)
+            appendCell(columnIndex);
     if (key.size() > MaxKeyLength)
     {
         // Never cut inside a UTF-8 sequence.

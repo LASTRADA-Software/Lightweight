@@ -833,10 +833,10 @@ void SqlStatement::BindRawBatchColumns(std::span<SqlRawColumn const> columns,
     RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_OPERATION_PTR, SQL_PARAM_PROCEED, 0), sourceLocation);
     // clang-format on
 
-    for (auto const& [index, column]: std::views::enumerate(columns))
-        RequireSuccess(
-            SqlDataBinder<SqlRawColumn>::InputParameter(m_hStmt, static_cast<SQLUSMALLINT>(index + 1), column, *this),
-            sourceLocation);
+    for (auto const index: std::views::iota(size_t { 0 }, columns.size()))
+        RequireSuccess(SqlDataBinder<SqlRawColumn>::InputParameter(
+                           m_hStmt, static_cast<SQLUSMALLINT>(index + 1), columns[index], *this),
+                       sourceLocation);
 }
 
 SqlResultCursor SqlStatement::ExecuteBatch(std::span<SqlRawColumn const> columns, size_t rowCount)

@@ -97,7 +97,7 @@ enum class ChunkRestoreOutcome : std::uint8_t
 /// @return True for SQLSTATE `HYC00` (optional feature not implemented), `HY003` (invalid application
 ///         buffer type), `HY004` (invalid SQL data type) and `07006` (restricted data type attribute
 ///         violation).
-[[nodiscard]] bool IsBindClassError(SqlErrorInfo const& error) noexcept;
+[[nodiscard]] LIGHTWEIGHT_API bool IsBindClassError(SqlErrorInfo const& error) noexcept;
 
 /// Returns the schema a table is restored into: the one the archive records for it, else @p defaultSchema.
 /// @param info The table.

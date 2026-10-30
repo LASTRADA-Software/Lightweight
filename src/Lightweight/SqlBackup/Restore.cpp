@@ -110,9 +110,11 @@ namespace
     /// @return The zero-based indices of the failed rows.
     std::vector<std::size_t> RowsWithParamError(std::span<SQLUSMALLINT const> status)
     {
-        return std::views::iota(std::size_t { 0 }, status.size())
-               | std::views::filter([&](std::size_t row) { return status[row] == SQL_PARAM_ERROR; })
-               | std::ranges::to<std::vector>();
+        std::vector<std::size_t> rows;
+        for (auto const row: std::views::iota(std::size_t { 0 }, status.size()))
+            if (status[row] == SQL_PARAM_ERROR)
+                rows.push_back(row);
+        return rows;
     }
 
     /// Renders @p error as `"<sqlState> <message>"`, the form a table failure is reported in.

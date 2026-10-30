@@ -96,8 +96,11 @@ void DropTables(std::vector<std::string> const& tableNames)
 /// The `(ID, V)` rows with the given IDs, as a backup of CreateTableWithRows() holds them.
 std::vector<Row> IdValueRows(std::vector<int64_t> const& ids)
 {
-    return ids | std::views::transform([](int64_t id) { return Row { id, std::format("row {}", id) }; })
-           | std::ranges::to<std::vector>();
+    std::vector<Row> rows;
+    rows.reserve(ids.size());
+    for (auto const id: ids)
+        rows.push_back(Row { id, std::format("row {}", id) });
+    return rows;
 }
 
 /// Encodes @p rows as one MsgPack data chunk.
@@ -115,9 +118,10 @@ std::vector<std::string> ChunkNames(std::filesystem::path const& archive, std::s
     auto const zip = Zip::ZipArchive::Open(archive);
     REQUIRE(zip.has_value());
     auto const prefix = std::format("data/{}/", tableName);
-    auto names = zip->GetAllEntries() | std::views::transform([](Zip::EntryInfo const& entry) { return entry.name; })
-                 | std::views::filter([&](std::string const& name) { return name.starts_with(prefix); })
-                 | std::ranges::to<std::vector>();
+    std::vector<std::string> names;
+    for (auto const& entry: zip->GetAllEntries())
+        if (entry.name.starts_with(prefix))
+            names.push_back(entry.name);
     std::ranges::sort(names);
     return names;
 }
@@ -393,8 +397,9 @@ TEST_CASE_METHOD(SqlTestFixture, "concurrent workers aggregate failures exactly"
     auto const chunks = ChunkNames(backupFile, "rfi_concurrent");
     REQUIRE(chunks.size() == 8);
     auto replacements = std::map<std::string, std::string> {};
-    for (auto const& [index, chunk]: std::views::enumerate(chunks))
+    for (auto const index: std::views::iota(size_t { 0 }, chunks.size()))
     {
+        auto const& chunk = chunks[index];
         auto const first = static_cast<int64_t>((index * 3) + 1);
         replacements.emplace(chunk, MakeChunk(IdValueRows({ first, first + 1, first })));
     }

@@ -34,6 +34,18 @@ using namespace Lightweight::detail;
 using namespace Lightweight::SqlBackup; // For BackupValue
 using namespace Lightweight::SqlBackup::Tests;
 
+namespace
+{
+/// The consecutive values `[first, last)`.
+std::vector<int64_t> IotaVector(int64_t first, int64_t last)
+{
+    std::vector<int64_t> values;
+    for (auto const value: std::views::iota(first, last))
+        values.push_back(value);
+    return values;
+}
+} // namespace
+
 TEST_CASE("BatchManager: Basic Flow", "[SqlBackup]")
 {
     std::vector<SqlColumnDeclaration> cols = { { .name = "id", .type = SqlColumnTypeDefinitions::Integer {} },
@@ -2241,7 +2253,7 @@ TEST_CASE("BatchManager: PushBatch skips rows but counts them", "[SqlBackup][Bat
     // Capacity 4: rows 5-8 are flushed as one batch, rows 9-10 as another.
     BatchManager manager(target.Hooks(), IdAndTinyint(false), 4, SqlServerType::SQLITE);
 
-    auto const ids = std::views::iota(int64_t { 1 }, int64_t { 11 }) | std::ranges::to<std::vector>();
+    auto const ids = IotaVector(1, 11);
     manager.PushBatch(IdAndValueBatch(ids, ids), 4);
     manager.Flush();
 
@@ -2277,7 +2289,7 @@ TEST_CASE("BatchManager: SettledRows is the gap-free prefix when an insert error
             return std::unexpected { InsertError("08S01") };
         };
         BatchManager manager(target.Hooks(), IdAndTinyint(true), 100, SqlServerType::SQLITE);
-        auto const ids = std::views::iota(int64_t { 1 }, int64_t { 11 }) | std::ranges::to<std::vector>();
+        auto const ids = IotaVector(1, 11);
         auto values = ids;
         values.back() = 300;
         manager.PushBatch(IdAndValueBatch(ids, values));
@@ -2306,7 +2318,7 @@ TEST_CASE("BatchManager: SettledRows is the gap-free prefix when an insert error
             }
         };
         BatchManager manager(target.Hooks(), IdAndTinyint(true), 100, SqlServerType::SQLITE);
-        auto const ids = std::views::iota(int64_t { 1 }, int64_t { 12 }) | std::ranges::to<std::vector>();
+        auto const ids = IotaVector(1, 12);
         auto values = ids;
         values.back() = 300;
         manager.PushBatch(IdAndValueBatch(ids, values));
