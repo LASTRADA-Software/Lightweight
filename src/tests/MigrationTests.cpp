@@ -4039,6 +4039,46 @@ TEST_CASE("fk-match-referenced-text: single-column and ALTER TABLE foreign keys 
     }
 }
 
+TEST_CASE("fk-match-referenced-text: an existing FK column is retyped with ALTER COLUMN, keeping nullability (#677)",
+          "[SqlMigration][compat][fk-text]")
+{
+    using namespace SqlColumnTypeDefinitions;
+    auto const ordersKey = [](std::string column) {
+        return MigrationRenderContext::ColumnKey { .schema = "", .table = "fk_orders", .column = std::move(column) };
+    };
+    auto const addFk = [](SqlMigrationQueryBuilder& plan) {
+        plan.AlterTable("fk_orders").AddForeignKey({ "USER_NAME" }, "fk_users", { "NAME" });
+    };
+
+    for (auto const nullable: { SqlNullable::NotNull, SqlNullable::Null })
+    {
+        auto context = FkTextContext(NVarchar { 30 });
+        context.lookupAttempted.insert(MigrationRenderContext::TableKey { .schema = "", .table = "fk_orders" });
+        context.textColumnTypes[ordersKey("USER_NAME")] = Varchar { 30 };
+        context.columnNullability[ordersKey("USER_NAME")] = nullable;
+
+        auto const sql = RenderWithContext(SqlQueryFormatter::SqlServer(), context, addFk);
+        CAPTURE(sql);
+        auto const alterAt = sql.find("ALTER COLUMN");
+        REQUIRE(alterAt != std::string::npos);
+        CHECK(sql.contains("NVARCHAR(30)"));
+        CHECK(sql.contains(nullable == SqlNullable::NotNull ? "NVARCHAR(30) NOT NULL" : "NVARCHAR(30) NULL"));
+        CHECK(alterAt < sql.find("FOREIGN KEY"));
+        // The retyped column is remembered, so a second FK step doesn't alter it again.
+        CHECK(std::get<NVarchar>(context.textColumnTypes.at(ordersKey("USER_NAME"))).size == 30);
+        CHECK_FALSE(RenderWithContext(SqlQueryFormatter::SqlServer(), context, addFk).contains("ALTER COLUMN"));
+    }
+
+    // Unknown or already matching columns, and other backends, are left alone.
+    auto unknown = FkTextContext(NVarchar { 30 });
+    unknown.lookupAttempted.insert(MigrationRenderContext::TableKey { .schema = "", .table = "fk_orders" });
+    CHECK_FALSE(RenderWithContext(SqlQueryFormatter::SqlServer(), unknown, addFk).contains("ALTER COLUMN"));
+
+    auto sqlite = FkTextContext(NVarchar { 30 });
+    sqlite.textColumnTypes[ordersKey("USER_NAME")] = Varchar { 30 };
+    CHECK_FALSE(RenderWithContext(SqlQueryFormatter::Sqlite(), sqlite, addFk).contains("ALTER COLUMN"));
+}
+
 TEST_CASE("fk-match-referenced-text: nothing changes without the flag, on other backends, or on a length mismatch",
           "[SqlMigration][compat][fk-text]")
 {
