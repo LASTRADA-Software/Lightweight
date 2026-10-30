@@ -902,7 +902,7 @@ struct CapturedTextColumn
 };
 
 /// Pushes @p rows into a single-GUID-column BatchManager for @p serverType and captures the first
-/// flush's bound column, reading the data as fixed-stride text.
+/// flush's bound column, each cell as DescribeRawCell() renders it.
 CapturedTextColumn CaptureGuidColumn(std::vector<SqlBackup::BackupValue> const& rows, SqlServerType serverType)
 {
     std::vector<SqlColumnDeclaration> const cols = { { .name = "id", .type = SqlColumnTypeDefinitions::Guid {} } };
@@ -912,15 +912,10 @@ CapturedTextColumn CaptureGuidColumn(std::vector<SqlBackup::BackupValue> const& 
         auto const& col = rawCols[0];
         captured.cType = col.metadata.cType;
         captured.sqlType = col.metadata.sqlType;
-        auto const stride = col.metadata.bufferLength;
-        auto const* bytes = reinterpret_cast<char const*>(col.data.data());
-        for (size_t i = 0; i < count; ++i)
+        for (auto const row: std::views::iota(size_t { 0 }, count))
         {
-            captured.indicators.push_back(col.indicators[i]);
-            if (col.metadata.cType == SQL_C_CHAR && col.indicators[i] != SQL_NULL_DATA)
-                captured.texts.emplace_back(bytes + (i * stride), static_cast<size_t>(col.indicators[i]));
-            else
-                captured.texts.emplace_back();
+            captured.indicators.push_back(col.indicators[row]);
+            captured.texts.push_back(DescribeRawCell(col, row));
         }
     };
     std::vector<std::vector<SqlBackup::BackupValue>> rowVectors;

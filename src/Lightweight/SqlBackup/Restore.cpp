@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "../SqlErrorDetection.hpp"
 #include "../SqlQueryFormatter.hpp"
 #include "../SqlStatement.hpp"
 #include "../SqlTransaction.hpp"
@@ -11,7 +12,6 @@
 #include "Sha256.hpp"
 
 #include <algorithm>
-#include <array>
 #include <atomic>
 #include <cstdint>
 #include <expected>
@@ -212,8 +212,7 @@ namespace
         using ::Lightweight::detail::FailureDisposition;
         if (IsBindClassError(error))
             return FailureDisposition::FailTable;
-        if (ClassifyRetryDecision(target.workerConn, error, target.retryCount, target.ctx.retrySettings).reason
-            == SqlRetryGiveUpReason::NotTransient)
+        if (IsPermanentError(target.workerConn, error, target.retryCount, target.ctx.retrySettings))
             return FailureDisposition::IsolateRows;
         return FailureDisposition::Propagate;
     }
@@ -514,12 +513,6 @@ namespace
     }
 } // namespace
 
-bool IsBindClassError(SqlErrorInfo const& error) noexcept
-{
-    static constexpr auto BindClassStates = std::array<std::string_view, 4> { "HYC00", "HY003", "HY004", "07006" };
-    return std::ranges::contains(BindClassStates, std::string_view { error.sqlState });
-}
-
 void SettleFailedTableRows(RestoreContext& ctx, std::string const& tableName)
 {
     if (!ctx.failedTables.Contains(tableName))
@@ -665,12 +658,11 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
         }
         catch (SqlException const& e)
         {
-            auto const decision = ClassifyRetryDecision(workerConn, e.info(), retryCount, ctx.retrySettings);
             // Not about the connection, and not raised by an insert (e.g. the table cannot be prepared).
-            if (decision.reason == SqlRetryGiveUpReason::NotTransient)
+            if (IsPermanentError(workerConn, e.info(), retryCount, ctx.retrySettings))
                 return FailTable(ctx, chunk, DescribeError(e.info()));
 
-            if (decision.action == SqlRetryAction::GiveUp)
+            if (ClassifyRetryDecision(workerConn, e.info(), retryCount, ctx.retrySettings).action == SqlRetryAction::GiveUp)
             {
                 ctx.progress.Update({ .state = Progress::State::Error,
                                       .tableName = tableName,

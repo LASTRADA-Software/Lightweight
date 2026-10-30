@@ -18,10 +18,12 @@
 #include <array>
 #include <cerrno>
 #include <charconv>
+#include <cstddef>
 #include <cstdlib>
 #include <optional>
 #include <ranges>
 #include <source_location>
+#include <span>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -54,6 +56,21 @@ namespace detail
 
     template <typename T, typename... Comps>
     concept OneOf = (std::same_as<T, Comps> || ...);
+
+    /// Appends @p bytes to @p text as upper-case hex digits, two per byte.
+    /// @param text Receives the digits.
+    /// @param bytes The bytes to spell out.
+    inline void AppendUpperHex(std::string& text, std::span<std::byte const> bytes)
+    {
+        constexpr auto Digits = std::string_view { "0123456789ABCDEF" };
+        text.reserve(text.size() + (2 * bytes.size()));
+        for (auto const byte: bytes)
+        {
+            auto const value = std::to_integer<unsigned>(byte);
+            text += Digits[value >> 4U];
+            text += Digits[value & 0x0FU];
+        }
+    }
 
     template <typename T>
     constexpr auto AlwaysFalse = std::false_type::value;

@@ -493,8 +493,9 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     LIGHTWEIGHT_API void BindRawBatchColumns(std::span<SqlRawColumn const> columns,
                                              std::size_t rowCount,
                                              std::source_location sourceLocation);
-    /// Restores single-row, column-bound parameter binding (the ODBC default). @c noexcept so it can run
-    /// from a scope guard on the native-batch exception path.
+    /// Restores single-row, column-bound parameter binding (the ODBC default) and unbinds the parameter
+    /// status and processed-count pointers. @c noexcept so it can run from a scope guard on the
+    /// native-batch exception path.
     LIGHTWEIGHT_API void ResetParameterArrayBinding() noexcept;
     /// Throws unless @p result is a success code or @c SQL_NO_DATA (a searched UPDATE/DELETE that matched
     /// no rows). Mirrors @c Execute() so the batch execute paths tolerate zero-row updates.
@@ -732,6 +733,13 @@ class [[nodiscard]] SqlResultCursor
     {
         return m_stmt->NumColumnsAffected();
     }
+
+    /// @brief The SQL data type the driver reports for a result column (the @c SQL_* value from
+    /// @c SQLDescribeCol), like @ref RowArrayCursor::ColumnSqlType.
+    /// @param column 1-based result column index.
+    /// @return The reported @c SQL_* type code, or the error (`07009` for a column the result set does
+    ///         not have) if the column cannot be described.
+    [[nodiscard]] LIGHTWEIGHT_API std::expected<SQLSMALLINT, SqlErrorInfo> ColumnSqlType(SQLUSMALLINT column) const;
 
     /// @copydoc SqlStatement::ConsumePendingResults
     LIGHTWEIGHT_FORCE_INLINE void ConsumePendingResults(std::source_location location = std::source_location::current())

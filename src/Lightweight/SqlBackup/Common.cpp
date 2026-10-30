@@ -57,6 +57,14 @@ SqlRetryDecision ClassifyRetryDecision(SqlConnection const& conn,
     return SqlRetryPolicy::For(conn, settings).Decide(error, SqlRetryState { .retriesSoFar = attemptsSoFar });
 }
 
+bool IsPermanentError(SqlConnection const& conn,
+                      SqlErrorInfo const& error,
+                      unsigned attemptsSoFar,
+                      RetrySettings const& settings)
+{
+    return ClassifyRetryDecision(conn, error, attemptsSoFar, settings).reason == SqlRetryGiveUpReason::NotTransient;
+}
+
 bool ConnectWithRetry(SqlConnection& conn,
                       SqlConnectionString const& connectionString,
                       RetrySettings const& settings,

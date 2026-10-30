@@ -2,6 +2,9 @@
 
 #include <Lightweight/SqlBackup.hpp>
 #include <Lightweight/SqlBackup/BatchManager.hpp>
+#include <Lightweight/SqlBackup/MsgPackChunkFormats.hpp>
+#include <Lightweight/SqlBackup/Sha256.hpp>
+#include <Lightweight/SqlStatement.hpp>
 #include <Lightweight/Zip/ZipArchive.hpp>
 
 #if defined(__clang__)
@@ -15,11 +18,13 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <expected>
 #include <filesystem>
 #include <format>
 #include <functional>
 #include <iostream>
+#include <map>
 #include <mutex>
 #include <optional>
 #include <ranges>
@@ -29,6 +34,8 @@
 #include <string_view>
 #include <utility>
 #include <vector>
+
+#include <nlohmann/json.hpp>
 
 namespace Lightweight::SqlBackup::Tests
 {
@@ -144,6 +151,88 @@ inline void RewriteArchive(std::filesystem::path const& source,
     }
     if (!output->Close())
         throw std::runtime_error("cannot close the rewritten archive");
+}
+
+/// Returns the row count of @p tableName, or -1 if it cannot be read.
+inline int64_t CountRows(std::string_view tableName)
+{
+    return SqlStatement {}.ExecuteDirectScalar<int64_t>(std::format(R"(SELECT COUNT(*) FROM "{}")", tableName)).value_or(-1);
+}
+
+/// Returns the sorted `ID`s of @p tableName.
+inline std::vector<int64_t> ReadIds(std::string_view tableName)
+{
+    auto stmt = SqlStatement {};
+    auto cursor = stmt.ExecuteDirect(std::format(R"(SELECT "ID" FROM "{}" ORDER BY "ID")", tableName));
+    std::vector<int64_t> ids;
+    while (cursor.FetchRow())
+        ids.push_back(cursor.GetColumn<int64_t>(1));
+    return ids;
+}
+
+/// Drops @p tableNames.
+inline void DropTables(std::vector<std::string> const& tableNames)
+{
+    SqlStatement {}.MigrateDirect([&](SqlMigrationQueryBuilder& migration) {
+        for (auto const& name: tableNames)
+            migration.DropTable(name);
+    });
+}
+
+/// Encodes @p rows as one MsgPack data chunk.
+inline std::string MakeChunk(std::vector<std::vector<BackupValue>> const& rows)
+{
+    auto writer = CreateMsgPackChunkWriter();
+    for (auto const& row: rows)
+        writer->WriteRow(row);
+    return writer->Flush();
+}
+
+/// Returns the sorted names of the data chunks of @p tableName in @p archive.
+/// @throws std::runtime_error if @p archive cannot be opened.
+inline std::vector<std::string> ChunkNames(std::filesystem::path const& archive, std::string_view tableName)
+{
+    auto const zip = Zip::ZipArchive::Open(archive);
+    if (!zip)
+        throw std::runtime_error("cannot open " + zip.error().message);
+    auto const prefix = std::format("data/{}/", tableName);
+    std::vector<std::string> names;
+    for (auto const& entry: zip->GetAllEntries())
+        if (entry.name.starts_with(prefix))
+            names.push_back(entry.name);
+    std::ranges::sort(names);
+    return names;
+}
+
+/// Whether RewriteChunks() updates `checksums.json` for the chunks it replaces.
+enum class ChecksumUpdate : std::uint8_t
+{
+    /// The replaced chunks keep their old checksum, so the restore detects them as corrupt.
+    Keep,
+    /// The replaced chunks get a valid checksum, so the restore reads their content.
+    Recompute,
+};
+
+/// Copies @p source to @p target, replacing the content of the entries named in @p replacements.
+inline void RewriteChunks(std::filesystem::path const& source,
+                          std::filesystem::path const& target,
+                          std::map<std::string, std::string> const& replacements,
+                          ChecksumUpdate checksums = ChecksumUpdate::Recompute)
+{
+    RewriteArchive(source,
+                   target,
+                   [&](std::string const& name, std::string content) -> std::optional<std::pair<std::string, std::string>> {
+                       if (auto const replacement = replacements.find(name); replacement != replacements.end())
+                           return std::pair { name, replacement->second };
+                       if (name == "checksums.json" && checksums == ChecksumUpdate::Recompute)
+                       {
+                           auto json = nlohmann::json::parse(content);
+                           for (auto const& [entry, replacementContent]: replacements)
+                               json["files"][entry] = Sha256::Hash(replacementContent);
+                           return std::pair { name, json.dump() };
+                       }
+                       return std::pair { name, std::move(content) };
+                   });
 }
 
 struct ScopedFileRemoved

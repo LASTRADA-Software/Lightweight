@@ -7,6 +7,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <format>
@@ -679,6 +680,39 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlResultCursor named access rejects an empty 
 
     REQUIRE(cursor.FetchRow());
     CHECK_THROWS_AS(cursor.GetColumn<int>(""), std::invalid_argument);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlResultCursor::ColumnSqlType reports the described column types", "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    CreateEmployeesTable(stmt);
+    FillEmployeesTable(stmt);
+
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "FirstName", "Salary" FROM "Employees")");
+
+    auto const firstName = cursor.ColumnSqlType(1);
+    REQUIRE(firstName.has_value());
+    constexpr auto TextTypes = std::array<SQLSMALLINT, 4> { SQL_VARCHAR, SQL_WVARCHAR, SQL_LONGVARCHAR, SQL_WLONGVARCHAR };
+    CHECK(std::ranges::contains(TextTypes, *firstName));
+    auto const salary = cursor.ColumnSqlType(2);
+    REQUIRE(salary.has_value());
+    CHECK((*salary == SQL_INTEGER || *salary == SQL_BIGINT));
+    // A column the result set does not have is reported as an error, not a type.
+    CHECK_FALSE(cursor.ColumnSqlType(3).has_value());
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlResultCursor::ColumnSqlType tells a native GUID column", "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("ColumnSqlTypeGuid").PrimaryKey("ID", SqlColumnTypeDefinitions::Guid {});
+    });
+
+    // The backup archives a GUID column verbatim exactly where the driver does not describe it as SQL_GUID.
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "ID" FROM "ColumnSqlTypeGuid")");
+    auto const sqlType = cursor.ColumnSqlType(1);
+    REQUIRE(sqlType.has_value());
+    CHECK((*sqlType == SQL_GUID) == stmt.Connection().QueryFormatter().HasNativeGuidType());
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlStatement::ConsumePendingResults", "[SqlStatement]")

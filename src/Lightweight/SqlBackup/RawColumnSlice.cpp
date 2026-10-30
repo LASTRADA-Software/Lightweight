@@ -2,6 +2,7 @@
 
 #include "../DataBinder/SqlGuid.hpp"
 #include "../DataBinder/UnicodeConverter.hpp"
+#include "../Utils.hpp"
 #include "RawColumnSlice.hpp"
 
 #include <algorithm>
@@ -33,8 +34,7 @@ namespace
     std::string DescribeBinary(std::span<std::byte const> cell)
     {
         std::string text = "0x";
-        for (auto const byte: cell.first(std::min(cell.size(), MaxDescribedBinaryBytes)))
-            text += std::format("{:02X}", std::to_integer<unsigned>(byte));
+        AppendUpperHex(text, cell.first(std::min(cell.size(), MaxDescribedBinaryBytes)));
         if (cell.size() > MaxDescribedBinaryBytes)
             text += "\xE2\x80\xA6"; // U+2026 HORIZONTAL ELLIPSIS
         return text;

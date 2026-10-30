@@ -92,6 +92,7 @@ using Lightweight::IsHasMany;
 using Lightweight::IsHasManyThrough;
 using Lightweight::IsHasOneThrough;
 using Lightweight::IsOptionalBelongsTo;
+using Lightweight::IsBindClassError;
 using Lightweight::IsPrimaryKey;
 using Lightweight::IsSpecializationOf;
 using Lightweight::IsSqlDynamicBinary;

@@ -428,30 +428,28 @@ BackupValue DecodeSingleRowColumn(SqlResultCursor& cursor,
 // Tells, per column of @p table, whether it is declared as a GUID but the result set describes it as
 // something other than SQL_GUID (SQLite: free text), so its cells must be archived verbatim.
 // Decided from the driver's result-set metadata (SQLDescribeCol), not from the server type. Must be
-// called after the SELECT of @p stmt has been executed, with its select list in column order.
-std::vector<bool> DescribeGuidStoredAsText(SQLHSTMT hStmt, SqlSchema::Table const& table)
+// called on the executed SELECT of @p table's columns, in column order. Empty for a table without a
+// GUID column (see IsGuidStoredAsText()).
+std::vector<bool> DescribeGuidStoredAsText(SqlResultCursor const& cursor, SqlSchema::Table const& table)
 {
+    auto const isGuid = [](SqlSchema::Column const& column) {
+        return std::holds_alternative<SqlColumnTypeDefinitions::Guid>(column.type);
+    };
+    if (std::ranges::none_of(table.columns, isGuid))
+        return {};
     auto result = std::vector<bool>(table.columns.size(), false);
     for (auto const index: std::views::iota(std::size_t { 0 }, table.columns.size()))
-    {
-        if (!std::holds_alternative<SqlColumnTypeDefinitions::Guid>(table.columns[index].type))
-            continue;
-        auto sqlType = SQLSMALLINT {};
-        auto columnSize = SQLULEN {};
-        auto decimalDigits = SQLSMALLINT {};
-        auto nullable = SQLSMALLINT {};
-        auto const rc = SQLDescribeColW(hStmt,
-                                        static_cast<SQLUSMALLINT>(index + 1),
-                                        nullptr,
-                                        0,
-                                        nullptr,
-                                        &sqlType,
-                                        &columnSize,
-                                        &decimalDigits,
-                                        &nullable);
-        result[index] = SQL_SUCCEEDED(rc) && sqlType != SQL_GUID;
-    }
+        if (isGuid(table.columns[index]))
+            result[index] = cursor.ColumnSqlType(static_cast<SQLUSMALLINT>(index + 1))
+                                .transform([](SQLSMALLINT sqlType) { return sqlType != SQL_GUID; })
+                                .value_or(false);
     return result;
+}
+
+// Looks up column @p index (0-based) in what DescribeGuidStoredAsText() returned.
+bool IsGuidStoredAsText(std::vector<bool> const& guidStoredAsText, std::size_t index)
+{
+    return index < guidStoredAsText.size() && guidStoredAsText[index];
 }
 
 // Decodes one column cell of row @p rowInBatch from the bulk RowArrayCursor path into BackupValue.
@@ -525,7 +523,8 @@ void DecodeRowSingle(SqlResultCursor& cursor,
         {
             if constexpr (DebugBackupWorker)
                 std::println(stderr, "DEBUG: Processing col {} ({}) type index: {}", i, colDef.name, colDef.type.index());
-            row.emplace_back(DecodeSingleRowColumn(cursor, colDef, i, serverType, guidStoredAsText[i - 1]));
+            row.emplace_back(
+                DecodeSingleRowColumn(cursor, colDef, i, serverType, IsGuidStoredAsText(guidStoredAsText, i - 1)));
         }
         catch ([[maybe_unused]] std::exception const& e)
         {
@@ -667,7 +666,7 @@ void ProcessChunkBackup(BackupContext& ctx, SqlConnection& conn, detail::Chunk c
             return stmt.ExecuteDirect(selectQuery);
         }();
 
-        auto const guidStoredAsText = DescribeGuidStoredAsText(stmt.NativeHandle(), table);
+        auto const guidStoredAsText = DescribeGuidStoredAsText(cursor, table);
 
         while (true)
         {

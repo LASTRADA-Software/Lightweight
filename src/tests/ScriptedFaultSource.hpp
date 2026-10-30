@@ -5,6 +5,7 @@
 #include <Lightweight/SqlError.hpp>
 #include <Lightweight/Utils.hpp>
 
+#include <map>
 #include <optional>
 #include <source_location>
 #include <string>
@@ -52,6 +53,19 @@ class ScriptedFaultSource: public SqlFaultSource
     {
     }
 
+    /// Scripts failures by position: the matching check with zero-based index `n` among them fails
+    /// with the error @p script holds for `n`, if any.
+    ///
+    /// @param script The error to inject per matching check index.
+    /// @param locationFilter The substring of the file or function name a check must contain to match.
+    explicit ScriptedFaultSource(std::map<int, SqlErrorInfo> script, std::string_view locationFilter):
+        _remaining { 0 },
+        _skip { 0 },
+        _script { std::move(script) },
+        _locationFilter { locationFilter }
+    {
+    }
+
     [[nodiscard]] std::optional<SqlErrorInfo> NextFailure(SQLHSTMT /*hStmt*/,
                                                           std::source_location const& sourceLocation) override
     {
@@ -73,7 +87,7 @@ class ScriptedFaultSource: public SqlFaultSource
     /// @return The number of scripted failures not injected yet.
     [[nodiscard]] int RemainingFailures() const noexcept
     {
-        return _remaining;
+        return _remaining + static_cast<int>(_script.size());
     }
 
   private:
@@ -84,7 +98,8 @@ class ScriptedFaultSource: public SqlFaultSource
         if (!file.contains(_locationFilter) && !function.contains(_locationFilter))
             return std::nullopt;
 
-        ++_consultCount;
+        if (auto node = _script.extract(_consultCount++); !node.empty())
+            return std::move(node.mapped());
         if (_skip > 0)
         {
             --_skip;
@@ -97,9 +112,11 @@ class ScriptedFaultSource: public SqlFaultSource
         return _error;
     }
 
-    SqlErrorInfo _error;
+    SqlErrorInfo _error {};
     int _remaining;
     int _skip;
+    /// Per matching check index: the error injected there.
+    std::map<int, SqlErrorInfo> _script;
     int _consultCount = 0;
     std::string _locationFilter;
 };

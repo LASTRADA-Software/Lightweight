@@ -28,6 +28,7 @@
 #include <nlohmann/json.hpp>
 
 using namespace Lightweight;
+using Lightweight::SqlBackup::Tests::CountRows;
 using Lightweight::SqlBackup::Tests::LambdaProgressManager;
 using Lightweight::SqlBackup::Tests::RecordingProgressManager;
 using Lightweight::SqlBackup::Tests::RewriteArchiveMetadata;
@@ -72,12 +73,6 @@ std::vector<std::string> ReadGuidRows(std::string_view tableName)
     }
     std::ranges::sort(rows);
     return rows;
-}
-
-/// Returns the row count of @p tableName.
-int64_t CountRows(std::string_view tableName)
-{
-    return SqlStatement {}.ExecuteDirectScalar<int64_t>(std::format(R"(SELECT COUNT(*) FROM "{}")", tableName)).value_or(-1);
 }
 
 /// Copies @p source to @p target, declaring column @p columnName of table @p tableName a GUID column

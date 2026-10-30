@@ -10,15 +10,13 @@
 
 #include <Lightweight/SqlBackup.hpp>
 #include <Lightweight/SqlBackup/Common.hpp>
-#include <Lightweight/SqlBackup/MsgPackChunkFormats.hpp>
 #include <Lightweight/SqlBackup/Restore.hpp>
-#include <Lightweight/SqlBackup/Sha256.hpp>
 #include <Lightweight/SqlColumnTypeDefinitions.hpp>
 #include <Lightweight/SqlConnection.hpp>
+#include <Lightweight/SqlErrorDetection.hpp>
 #include <Lightweight/SqlQueryFormatter.hpp>
 #include <Lightweight/SqlRetryPolicy.hpp>
 #include <Lightweight/SqlStatement.hpp>
-#include <Lightweight/Zip/ZipArchive.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -32,17 +30,19 @@
 #include <mutex>
 #include <optional>
 #include <ranges>
-#include <source_location>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 
-#include <nlohmann/json.hpp>
-
 using namespace Lightweight;
+using Lightweight::SqlBackup::Tests::ChecksumUpdate;
+using Lightweight::SqlBackup::Tests::ChunkNames;
+using Lightweight::SqlBackup::Tests::CountRows;
+using Lightweight::SqlBackup::Tests::DropTables;
+using Lightweight::SqlBackup::Tests::MakeChunk;
+using Lightweight::SqlBackup::Tests::ReadIds;
 using Lightweight::SqlBackup::Tests::RecordingProgressManager;
-using Lightweight::SqlBackup::Tests::RewriteArchive;
+using Lightweight::SqlBackup::Tests::RewriteChunks;
 using Lightweight::SqlBackup::Tests::ScopedFileRemoved;
 using Lightweight::SqlBackup::Tests::TableReportOf;
 using Lightweight::Tests::ScopedFaultSource;
@@ -58,23 +58,6 @@ SqlConnectionString const& GetConnectionString()
     return SqlConnection::DefaultConnectionString();
 }
 
-/// Returns the row count of @p tableName.
-int64_t CountRows(std::string_view tableName)
-{
-    return SqlStatement {}.ExecuteDirectScalar<int64_t>(std::format(R"(SELECT COUNT(*) FROM "{}")", tableName)).value_or(-1);
-}
-
-/// Returns the sorted `ID`s of @p tableName.
-std::vector<int64_t> ReadIds(std::string_view tableName)
-{
-    auto stmt = SqlStatement {};
-    auto cursor = stmt.ExecuteDirect(std::format(R"(SELECT "ID" FROM "{}" ORDER BY "ID")", tableName));
-    std::vector<int64_t> ids;
-    while (cursor.FetchRow())
-        ids.push_back(cursor.GetColumn<int64_t>(1));
-    return ids;
-}
-
 /// Creates `<tableName>(ID INTEGER PRIMARY KEY, V VARCHAR(20))` holding rows 1..@p rowCount.
 void CreateTableWithRows(std::string const& tableName, int rowCount)
 {
@@ -87,15 +70,6 @@ void CreateTableWithRows(std::string const& tableName, int rowCount)
         (void) stmt.ExecuteDirect(std::format(R"(INSERT INTO "{0}" ("ID", "V") VALUES ({1}, 'row {1}'))", tableName, id));
 }
 
-/// Drops @p tableNames.
-void DropTables(std::vector<std::string> const& tableNames)
-{
-    SqlStatement {}.MigrateDirect([&](SqlMigrationQueryBuilder& migration) {
-        for (auto const& name: tableNames)
-            migration.DropTable(name);
-    });
-}
-
 /// The `(ID, V)` rows with the given IDs, as a backup of CreateTableWithRows() holds them.
 std::vector<Row> IdValueRows(std::vector<int64_t> const& ids)
 {
@@ -105,93 +79,6 @@ std::vector<Row> IdValueRows(std::vector<int64_t> const& ids)
         rows.push_back(Row { id, std::format("row {}", id) });
     return rows;
 }
-
-/// Encodes @p rows as one MsgPack data chunk.
-std::string MakeChunk(std::vector<Row> const& rows)
-{
-    auto writer = SqlBackup::CreateMsgPackChunkWriter();
-    for (auto const& row: rows)
-        writer->WriteRow(row);
-    return writer->Flush();
-}
-
-/// Returns the sorted names of the data chunks of @p tableName in @p archive.
-std::vector<std::string> ChunkNames(std::filesystem::path const& archive, std::string_view tableName)
-{
-    auto const zip = Zip::ZipArchive::Open(archive);
-    REQUIRE(zip.has_value());
-    auto const prefix = std::format("data/{}/", tableName);
-    std::vector<std::string> names;
-    for (auto const& entry: zip->GetAllEntries())
-        if (entry.name.starts_with(prefix))
-            names.push_back(entry.name);
-    std::ranges::sort(names);
-    return names;
-}
-
-/// Whether RewriteChunks() updates `checksums.json` for the chunks it replaces.
-enum class ChecksumUpdate : std::uint8_t
-{
-    /// The replaced chunks keep their old checksum, so the restore detects them as corrupt.
-    Keep,
-    /// The replaced chunks get a valid checksum, so the restore reads their content.
-    Recompute,
-};
-
-/// Copies @p source to @p target, replacing the content of the entries named in @p replacements.
-void RewriteChunks(std::filesystem::path const& source,
-                   std::filesystem::path const& target,
-                   std::map<std::string, std::string> const& replacements,
-                   ChecksumUpdate checksums = ChecksumUpdate::Recompute)
-{
-    RewriteArchive(source,
-                   target,
-                   [&](std::string const& name, std::string content) -> std::optional<std::pair<std::string, std::string>> {
-                       if (auto const replacement = replacements.find(name); replacement != replacements.end())
-                           return std::pair { name, replacement->second };
-                       if (name == "checksums.json" && checksums == ChecksumUpdate::Recompute)
-                       {
-                           auto json = nlohmann::json::parse(content);
-                           for (auto const& [entry, replacementContent]: replacements)
-                               json["files"][entry] = SqlBackup::Sha256::Hash(replacementContent);
-                           return std::pair { name, json.dump() };
-                       }
-                       return std::pair { name, std::move(content) };
-                   });
-}
-
-/// Injects scripted errors into the checks of `ExecuteBatch` by their position: the check with
-/// zero-based index `n` among them fails with the error scripted for `n`, if any.
-class SequencedFaultSource: public SqlFaultSource
-{
-  public:
-    /// @param errors The error to inject per check index.
-    explicit SequencedFaultSource(std::map<int, SqlErrorInfo> errors):
-        _errors { std::move(errors) }
-    {
-    }
-
-    [[nodiscard]] std::optional<SqlErrorInfo> NextFailure(SQLHSTMT /*hStmt*/,
-                                                          std::source_location const& sourceLocation) override
-    {
-        if (!std::string_view { sourceLocation.function_name() }.contains("ExecuteBatch"))
-            return std::nullopt;
-        auto const node = _errors.extract(_consultCount++);
-        if (node.empty())
-            return std::nullopt;
-        return node.mapped();
-    }
-
-    /// @return The number of scripted errors not injected yet.
-    [[nodiscard]] std::size_t RemainingFailures() const noexcept
-    {
-        return _errors.size();
-    }
-
-  private:
-    std::map<int, SqlErrorInfo> _errors;
-    int _consultCount = 0;
-};
 
 /// Remembers the row count each table finished with.
 struct FinalRowsProgressManager: RecordingProgressManager
@@ -473,9 +360,12 @@ TEST_CASE_METHOD(SqlTestFixture,
 
     // The second batch of the chunk transaction fails with a row-level error, after the first one
     // went in. Unless the chunk transaction is rolled back, the replay finds those rows duplicated.
-    auto source = SequencedFaultSource { {
-        { checksPerBatch, SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "23000", .message = "injected row error" } },
-    } };
+    auto source = ScriptedFaultSource {
+        std::map<int, SqlErrorInfo> {
+            { checksPerBatch, SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "23000", .message = "injected row error" } },
+        },
+        "ExecuteBatch"
+    };
     auto report = SqlBackup::RestoreReport {};
     FinalRowsProgressManager progress;
     {
@@ -567,11 +457,14 @@ TEST_CASE_METHOD(SqlTestFixture,
     // batch-by-batch replay, whose second batch then loses the connection after its first committed.
     // The retry must resume after that committed batch: from the chunk start, it would find its rows
     // duplicated and report them failed.
-    auto source = SequencedFaultSource { {
-        { checksPerBatch, SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "23000", .message = "injected row error" } },
-        { 3 * checksPerBatch,
-          SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "08S01", .message = "Communication link failure" } },
-    } };
+    auto source = ScriptedFaultSource {
+        std::map<int, SqlErrorInfo> {
+            { checksPerBatch, SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "23000", .message = "injected row error" } },
+            { 3 * checksPerBatch,
+              SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "08S01", .message = "Communication link failure" } },
+        },
+        "ExecuteBatch"
+    };
     auto report = SqlBackup::RestoreReport {};
     FinalRowsProgressManager progress;
     {
@@ -629,10 +522,13 @@ TEST_CASE_METHOD(SqlTestFixture,
 
     // The last check, in the last batch, loses the connection: the retry must resume after what
     // the replay committed, so that no failure is reported twice and no row is lost.
-    auto source = SequencedFaultSource { {
-        { counter.ConsultCount() - 1,
-          SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "08S01", .message = "Communication link failure" } },
-    } };
+    auto source = ScriptedFaultSource {
+        std::map<int, SqlErrorInfo> {
+            { counter.ConsultCount() - 1,
+              SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "08S01", .message = "Communication link failure" } },
+        },
+        "ExecuteBatch"
+    };
     auto report = SqlBackup::RestoreReport {};
     {
         ScopedFaultSource const installed { &source };
@@ -752,8 +648,7 @@ TEST_CASE_METHOD(SqlTestFixture, "undecodable chunk content is reported, not a w
 TEST_CASE("bind-class errors are exactly the four SQLSTATEs that fail every row", "[SqlBackup][RestoreFailures]")
 {
     auto const isBindClass = [](std::string sqlState) {
-        return SqlBackup::detail::IsBindClassError(
-            SqlErrorInfo { .nativeErrorCode = 0, .sqlState = std::move(sqlState), .message = {} });
+        return IsBindClassError(SqlErrorInfo { .nativeErrorCode = 0, .sqlState = std::move(sqlState), .message = {} });
     };
     for (auto const* const sqlState: { "HYC00", "HY003", "HY004", "07006" })
     {
@@ -788,6 +683,10 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK(SqlBackup::detail::ClassifyRetryDecision(connection, error("08S01"), 0, settings).action == SqlRetryAction::Retry);
     CHECK(SqlBackup::detail::ClassifyRetryDecision(connection, error("08S01"), settings.maxRetries, settings).reason
           == SqlRetryGiveUpReason::RetriesExhausted);
+
+    CHECK(SqlBackup::detail::IsPermanentError(connection, error("23000"), 0, settings));
+    CHECK_FALSE(SqlBackup::detail::IsPermanentError(connection, error("08S01"), 0, settings));
+    CHECK_FALSE(SqlBackup::detail::IsPermanentError(connection, error("08S01"), settings.maxRetries, settings));
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "a table failed by several workers counts its rows once", "[SqlBackup][RestoreFailures]")
