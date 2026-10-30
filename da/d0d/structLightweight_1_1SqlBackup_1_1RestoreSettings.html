@@ -117,7 +117,7 @@ Public Attributes</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Configuration for restore operations including memory management. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00107">107</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00106">106</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="a537031b2f22d3a8b8372965543208aee" name="a537031b2f22d3a8b8372965543208aee"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a537031b2f22d3a8b8372965543208aee">&#9670;&#160;</a></span>batchSize</h2>
@@ -132,7 +132,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Batch size for insert operations (rows per batch). Default: 0 (auto-calculated based on available memory). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00111">111</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00110">110</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>
@@ -147,7 +147,7 @@ Public Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>No longer used: every insert batch commits on its own, so <code>batchSize</code> bounds the rows per commit. Kept for source compatibility. </p>
+<p>Maximum rows before an intermediate commit within a chunk. Helps reduce transaction log / WAL memory accumulation. Default: 10000. Set to 0 to disable intermediate commits. </p>
 
 <p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00115">115</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 

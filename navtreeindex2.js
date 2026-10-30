@@ -156,10 +156,6 @@ var NAVTREEINDEX2 =
 "d5/d8f/structLightweight_1_1SqlForeignKeyReferenceDefinition.html#a7337bbb0615e5f6eab7908828880f346":[20,8,13,0],
 "d5/d8f/structLightweight_1_1SqlForeignKeyReferenceDefinition.html#ae356043d421b3718e00c5c44a95b8b0c":[20,8,13,1],
 "d5/d92/Playlisttrack_8hpp_source.html":[23,0,0,0,0,9],
-"d5/d96/structLightweight_1_1SqlBackup_1_1FailedRowRange.html":[22,0,0,2,8],
-"d5/d96/structLightweight_1_1SqlBackup_1_1FailedRowRange.html#a6ba8e756840e791398f88be162894287":[22,0,0,2,8,2],
-"d5/d96/structLightweight_1_1SqlBackup_1_1FailedRowRange.html#a930519e7462009fdeb5099e2cf19d889":[22,0,0,2,8,0],
-"d5/d96/structLightweight_1_1SqlBackup_1_1FailedRowRange.html#a9d7ca44f76fa9e9fd25b8ebb9360e61c":[22,0,0,2,8,1],
 "d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html":[20,5,3],
 "d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#a046a438ceff7f45eb0c912bc32df12eb":[20,5,3,3],
 "d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#a7532c06b2575869bb04450eeb733ec24":[20,5,3,1],
@@ -249,5 +245,9 @@ var NAVTREEINDEX2 =
 "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html":[20,6,1],
 "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a04fd31415705ccc61b63eec99a7bf1f3":[20,6,1,6],
 "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a1f03a5faa280b0ae0ee688e3b9f40208":[20,6,1,1],
-"d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a294bef751b01e0f8e110c989afff2814":[20,6,1,0]
+"d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a294bef751b01e0f8e110c989afff2814":[20,6,1,0],
+"d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a3e8f610544a01c1fde5de73f85573377":[20,6,1,7],
+"d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a64c66e360673f2ea824486894447835e":[20,6,1,8],
+"d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a80dd0177d9c6605cb7eb2922c78a7d0a":[20,6,1,2],
+"d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a98557607d1540f9e9a00233caf666eca":[20,6,1,5]
 };

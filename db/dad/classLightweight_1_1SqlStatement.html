@@ -185,22 +185,16 @@ LIGHTWEIGHT_API <a class="el" href="../../db/dad/classLightweight_1_1SqlStatemen
 <tr class="memitem:a9d2ca0ca6a074744e63c36623a7e2d2b" id="r_a9d2ca0ca6a074744e63c36623a7e2d2b"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a9d2ca0ca6a074744e63c36623a7e2d2b">SetPreparedStatementCaching</a> (<a class="el" href="../../d9/d8a/group__CoreApi.html#ga826d0a33e14c546691afe196b566b77d">SqlPreparedStatementCaching</a> caching) noexcept</td></tr>
 <tr class="memdesc:a9d2ca0ca6a074744e63c36623a7e2d2b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Opts this statement in or out of its connection's prepared-statement cache.  <br /></td></tr>
 <tr class="separator:a9d2ca0ca6a074744e63c36623a7e2d2b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9267f1c1591f6d3a6d20a0a541ff9b0d" id="r_a9267f1c1591f6d3a6d20a0a541ff9b0d"><td class="memTemplParams" colspan="2">template&lt;SqlInputParameterBinder Arg&gt; </td></tr>
-<tr class="memitem:a9267f1c1591f6d3a6d20a0a541ff9b0d"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a9267f1c1591f6d3a6d20a0a541ff9b0d">BindInputParameter</a> (SQLSMALLINT columnIndex, Arg const &amp;arg)</td></tr>
-<tr class="separator:a9267f1c1591f6d3a6d20a0a541ff9b0d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a789b8fc2cdfe67697cd6720a167e5b78" id="r_a789b8fc2cdfe67697cd6720a167e5b78"><td class="memTemplParams" colspan="2">template&lt;SqlInputParameterBinder Arg, typename ColumnName &gt; </td></tr>
-<tr class="memitem:a789b8fc2cdfe67697cd6720a167e5b78"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a789b8fc2cdfe67697cd6720a167e5b78">BindInputParameter</a> (SQLSMALLINT columnIndex, Arg const &amp;arg, ColumnName &amp;&amp;columnNameHint)</td></tr>
-<tr class="separator:a789b8fc2cdfe67697cd6720a167e5b78"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acaeacb45bb1f297e5978bf0e474f708b" id="r_acaeacb45bb1f297e5978bf0e474f708b"><td class="memTemplParams" colspan="2"><a id="acaeacb45bb1f297e5978bf0e474f708b" name="acaeacb45bb1f297e5978bf0e474f708b"></a>
+<tr class="memitem:a9267f1c1591f6d3a6d20a0a541ff9b0d" id="r_a9267f1c1591f6d3a6d20a0a541ff9b0d"><td class="memTemplParams" colspan="2"><a id="a9267f1c1591f6d3a6d20a0a541ff9b0d" name="a9267f1c1591f6d3a6d20a0a541ff9b0d"></a>
 template&lt;SqlInputParameterBinder Arg&gt; </td></tr>
-<tr class="memitem:acaeacb45bb1f297e5978bf0e474f708b"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><b>BindInputParameter</b> (SQLSMALLINT columnIndex, Arg const &amp;&amp;arg)=delete</td></tr>
-<tr class="memdesc:acaeacb45bb1f297e5978bf0e474f708b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deleted: a temporary would be destroyed before the driver reads it at <code><a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a40cd014b7b6251e3a22e6a45a73a64e1" title="SQLExecute of a prepared statement.">Execute()</a></code> time. <br /></td></tr>
-<tr class="separator:acaeacb45bb1f297e5978bf0e474f708b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af86e1a5ea750245ac769af55f2b124d5" id="r_af86e1a5ea750245ac769af55f2b124d5"><td class="memTemplParams" colspan="2"><a id="af86e1a5ea750245ac769af55f2b124d5" name="af86e1a5ea750245ac769af55f2b124d5"></a>
+<tr class="memitem:a9267f1c1591f6d3a6d20a0a541ff9b0d"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><b>BindInputParameter</b> (SQLSMALLINT columnIndex, Arg const &amp;arg)</td></tr>
+<tr class="memdesc:a9267f1c1591f6d3a6d20a0a541ff9b0d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Binds an input parameter to the prepared statement at the given column index. <br /></td></tr>
+<tr class="separator:a9267f1c1591f6d3a6d20a0a541ff9b0d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a789b8fc2cdfe67697cd6720a167e5b78" id="r_a789b8fc2cdfe67697cd6720a167e5b78"><td class="memTemplParams" colspan="2"><a id="a789b8fc2cdfe67697cd6720a167e5b78" name="a789b8fc2cdfe67697cd6720a167e5b78"></a>
 template&lt;SqlInputParameterBinder Arg, typename ColumnName &gt; </td></tr>
-<tr class="memitem:af86e1a5ea750245ac769af55f2b124d5"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><b>BindInputParameter</b> (SQLSMALLINT columnIndex, Arg const &amp;&amp;arg, ColumnName &amp;&amp;columnNameHint)=delete</td></tr>
-<tr class="memdesc:af86e1a5ea750245ac769af55f2b124d5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deleted: a temporary would be destroyed before the driver reads it at <code><a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a40cd014b7b6251e3a22e6a45a73a64e1" title="SQLExecute of a prepared statement.">Execute()</a></code> time. <br /></td></tr>
-<tr class="separator:af86e1a5ea750245ac769af55f2b124d5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a789b8fc2cdfe67697cd6720a167e5b78"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><b>BindInputParameter</b> (SQLSMALLINT columnIndex, Arg const &amp;arg, ColumnName &amp;&amp;columnNameHint)</td></tr>
+<tr class="memdesc:a789b8fc2cdfe67697cd6720a167e5b78"><td class="mdescLeft">&#160;</td><td class="mdescRight">Binds an input parameter to the prepared statement at the given column index with a column name hint. <br /></td></tr>
+<tr class="separator:a789b8fc2cdfe67697cd6720a167e5b78"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5428626df850d1cd2a6390e1758d4698" id="r_a5428626df850d1cd2a6390e1758d4698"><td class="memTemplParams" colspan="2">template&lt;SqlInputParameterBinder... Args&gt; </td></tr>
 <tr class="memitem:a5428626df850d1cd2a6390e1758d4698"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a5428626df850d1cd2a6390e1758d4698">Execute</a> (Args const &amp;... args)</td></tr>
 <tr class="memdesc:a5428626df850d1cd2a6390e1758d4698"><td class="mdescLeft">&#160;</td><td class="mdescRight">Binds the given arguments to the prepared statement and executes it.  <br /></td></tr>
@@ -220,8 +214,6 @@ LIGHTWEIGHT_API <a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCu
 <tr class="separator:a5976ca6716ffd13c9eb4977da4d171c8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abe60fdd5ccc0a2c07cf183eac8d83cd2" id="r_abe60fdd5ccc0a2c07cf183eac8d83cd2"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#abe60fdd5ccc0a2c07cf183eac8d83cd2">ExecuteBatch</a> (std::span&lt; <a class="el" href="../../da/d7e/structLightweight_1_1SqlRawColumn.html">SqlRawColumn</a> const &gt; columns, size_t rowCount)</td></tr>
 <tr class="separator:abe60fdd5ccc0a2c07cf183eac8d83cd2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abad0858c1d8904405879ee69b559742e" id="r_abad0858c1d8904405879ee69b559742e"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#abad0858c1d8904405879ee69b559742e">ExecuteBatch</a> (std::span&lt; <a class="el" href="../../da/d7e/structLightweight_1_1SqlRawColumn.html">SqlRawColumn</a> const &gt; columns, std::size_t rowCount, std::span&lt; SQLUSMALLINT &gt; paramStatus, SQLULEN &amp;paramsProcessed)</td></tr>
-<tr class="separator:abad0858c1d8904405879ee69b559742e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac394d28a45e9b10a2edb1cdf0037281e" id="r_ac394d28a45e9b10a2edb1cdf0037281e"><td class="memTemplParams" colspan="2">template&lt;std::ranges::contiguous_range Rows, typename... ColumnAccessors&gt; <br />
 requires (sizeof...(ColumnAccessors) &gt;= 1 &amp;&amp; (std::invocable&lt;ColumnAccessors const&amp;, std::ranges::range_value_t&lt;Rows&gt; const&amp;&gt; &amp;&amp; ...))</td></tr>
 <tr class="memitem:ac394d28a45e9b10a2edb1cdf0037281e"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#ac394d28a45e9b10a2edb1cdf0037281e">ExecuteBatch</a> (Rows const &amp;rows, ColumnAccessors const &amp;... accessors)</td></tr>
@@ -275,9 +267,11 @@ LIGHTWEIGHT_API size_t&#160;</td><td class="memItemRight" valign="bottom"><b>Las
 <tr class="separator:a29cec4857dff71c1d19a1c023fce84ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1c1302b59a4e88fae7cb709df44699ea" id="r_a1c1302b59a4e88fae7cb709df44699ea"><td class="memTemplParams" colspan="2">template&lt;SqlInputParameterBinder Arg&gt; </td></tr>
 <tr class="memitem:a1c1302b59a4e88fae7cb709df44699ea"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a1c1302b59a4e88fae7cb709df44699ea">BindInputParameter</a> (SQLSMALLINT columnIndex, Arg const &amp;arg)</td></tr>
+<tr class="memdesc:a1c1302b59a4e88fae7cb709df44699ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Binds an input parameter to the prepared statement at the given column index.    <br /></td></tr>
 <tr class="separator:a1c1302b59a4e88fae7cb709df44699ea"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aca574aabad03fc30adc6f52bb935cf2c" id="r_aca574aabad03fc30adc6f52bb935cf2c"><td class="memTemplParams" colspan="2">template&lt;SqlInputParameterBinder Arg, typename ColumnName &gt; </td></tr>
 <tr class="memitem:aca574aabad03fc30adc6f52bb935cf2c"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#aca574aabad03fc30adc6f52bb935cf2c">BindInputParameter</a> (SQLSMALLINT columnIndex, Arg const &amp;arg, ColumnName &amp;&amp;columnNameHint)</td></tr>
+<tr class="memdesc:aca574aabad03fc30adc6f52bb935cf2c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Binds an input parameter to the prepared statement at the given column index with a column name hint.    <br /></td></tr>
 <tr class="separator:aca574aabad03fc30adc6f52bb935cf2c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9cf433624157f588443d42e5071ee288" id="r_a9cf433624157f588443d42e5071ee288"><td class="memTemplParams" colspan="2">template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range... MoreColumnBatches&gt; </td></tr>
 <tr class="memitem:a9cf433624157f588443d42e5071ee288"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a9cf433624157f588443d42e5071ee288">ExecuteBatch</a> (FirstColumnBatch const &amp;firstColumnBatch, MoreColumnBatches const &amp;... moreColumnBatches)</td></tr>
@@ -341,7 +335,7 @@ LIGHTWEIGHT_API size_t&#160;</td><td class="memItemRight" valign="bottom"><b>Las
 
 <p>Checks whether the statement's connection is alive and the statement handle is valid. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01314">1314</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01263">1263</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a3c238ed531289bd1efff63f44ec1bb70">Lightweight::SqlConnection::IsAlive()</a>.</p>
 
@@ -372,7 +366,7 @@ LIGHTWEIGHT_API size_t&#160;</td><td class="memItemRight" valign="bottom"><b>Las
 
 <p>Checks whether the statement has been prepared. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01319">1319</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01268">1268</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -401,9 +395,9 @@ LIGHTWEIGHT_API size_t&#160;</td><td class="memItemRight" valign="bottom"><b>Las
 
 <p>Retrieves the connection associated with this statement. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01324">1324</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01273">1273</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l02354">MigrateDirect()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02832">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02917">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02774">Lightweight::DataMapper::Query()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02678">Lightweight::DataMapper::QuerySingle()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l02303">MigrateDirect()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02832">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02917">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02774">Lightweight::DataMapper::Query()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02678">Lightweight::DataMapper::QuerySingle()</a>.</p>
 
 </div>
 </div>
@@ -432,7 +426,7 @@ LIGHTWEIGHT_API size_t&#160;</td><td class="memItemRight" valign="bottom"><b>Las
 
 <p>Retrieves the connection associated with this statement. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01329">1329</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01278">1278</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -461,7 +455,7 @@ LIGHTWEIGHT_API size_t&#160;</td><td class="memItemRight" valign="bottom"><b>Las
 
 <p>Retrieves the last error information with respect to this SQL statement handle. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01334">1334</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01283">1283</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -490,7 +484,7 @@ LIGHTWEIGHT_API size_t&#160;</td><td class="memItemRight" valign="bottom"><b>Las
 
 <p>Retrieves the native handle of the statement. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01339">1339</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01288">1288</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -512,7 +506,7 @@ LIGHTWEIGHT_API size_t&#160;</td><td class="memItemRight" valign="bottom"><b>Las
 <p>Prepares the statement for execution.</p>
 <dl class="section note"><dt>Note</dt><dd>When preparing a new SQL statement the previously executed statement, yielding a result set, must have been closed. </dd></dl>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l03841">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02622">Lightweight::DataMapper::Delete()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01369">Prepare()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02832">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02917">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02774">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02678">Lightweight::DataMapper::QuerySingle()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02467">Lightweight::DataMapper::Update()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l03841">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02622">Lightweight::DataMapper::Delete()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01318">Prepare()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02832">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02917">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02774">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02678">Lightweight::DataMapper::QuerySingle()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02467">Lightweight::DataMapper::Update()</a>.</p>
 
 </div>
 </div>
@@ -542,7 +536,7 @@ LIGHTWEIGHT_API size_t&#160;</td><td class="memItemRight" valign="bottom"><b>Las
 <p>Prepares the statement for execution.</p>
 <dl class="section note"><dt>Note</dt><dd>When preparing a new SQL statement the previously executed statement, yielding a result set, must have been closed. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01362">1362</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01311">1311</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102af8199556cf6a62ca9268aa50c99b34a1">Prepare</a>.</p>
 
@@ -574,7 +568,7 @@ LIGHTWEIGHT_API size_t&#160;</td><td class="memItemRight" valign="bottom"><b>Las
 
 <p>Prepares the statement from a query object on an rvalue reference and returns the statement. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01369">1369</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01318">1318</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a0123c0f721c9374f8992e7c454294721">Prepare()</a>.</p>
 
@@ -605,7 +599,7 @@ LIGHTWEIGHT_API size_t&#160;</td><td class="memItemRight" valign="bottom"><b>Las
 
 <p>Retrieves the last prepared query string. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01376">1376</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01325">1325</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -635,7 +629,7 @@ LIGHTWEIGHT_API size_t&#160;</td><td class="memItemRight" valign="bottom"><b>Las
 <p>Whether this statement takes part in its connection's prepared-statement cache. </p>
 <dl class="section return"><dt>Returns</dt><dd>The configured participation mode (<code><a class="el" href="../../d9/d8a/group__CoreApi.html#gga826d0a33e14c546691afe196b566b77da00d23a76e43b46dae9ec7aa9dcbebb32" title="Reuse a pooled handle when one matches, and hand the handle back to the pool afterwards.">SqlPreparedStatementCaching::Enabled</a></code> by default). </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00677">677</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00626">626</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -675,92 +669,6 @@ LIGHTWEIGHT_API size_t&#160;</td><td class="memItemRight" valign="bottom"><b>Las
 
 </div>
 </div>
-<a id="a9267f1c1591f6d3a6d20a0a541ff9b0d" name="a9267f1c1591f6d3a6d20a0a541ff9b0d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9267f1c1591f6d3a6d20a0a541ff9b0d">&#9670;&#160;</a></span>BindInputParameter() <span class="overload">[1/4]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;SqlInputParameterBinder Arg&gt; </div>
-      <table class="memname">
-        <tr>
-          <td class="memname">void Lightweight::SqlStatement::BindInputParameter </td>
-          <td>(</td>
-          <td class="paramtype">SQLSMALLINT&#160;</td>
-          <td class="paramname"><em>columnIndex</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">Arg const &amp;&#160;</td>
-          <td class="paramname"><em>arg</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Binds an input parameter to the prepared statement at the given column index.</p>
-<p>The value is bound by address: the driver reads it only at the next <code><a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a40cd014b7b6251e3a22e6a45a73a64e1" title="SQLExecute of a prepared statement.">Execute()</a></code>, so <code>arg</code> must stay alive until then. Temporaries are therefore rejected at compile time.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">columnIndex</td><td>The 1-based parameter index. </td></tr>
-    <tr><td class="paramname">arg</td><td>The value to bind; it must outlive the next <code><a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a40cd014b7b6251e3a22e6a45a73a64e1" title="SQLExecute of a prepared statement.">Execute()</a></code>. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02622">Lightweight::DataMapper::Delete()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02467">Lightweight::DataMapper::Update()</a>.</p>
-
-</div>
-</div>
-<a id="a789b8fc2cdfe67697cd6720a167e5b78" name="a789b8fc2cdfe67697cd6720a167e5b78"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a789b8fc2cdfe67697cd6720a167e5b78">&#9670;&#160;</a></span>BindInputParameter() <span class="overload">[2/4]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;SqlInputParameterBinder Arg, typename ColumnName &gt; </div>
-      <table class="memname">
-        <tr>
-          <td class="memname">void Lightweight::SqlStatement::BindInputParameter </td>
-          <td>(</td>
-          <td class="paramtype">SQLSMALLINT&#160;</td>
-          <td class="paramname"><em>columnIndex</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">Arg const &amp;&#160;</td>
-          <td class="paramname"><em>arg</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">ColumnName &amp;&amp;&#160;</td>
-          <td class="paramname"><em>columnNameHint</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Binds an input parameter to the prepared statement at the given column index with a column name hint.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">columnIndex</td><td>The 1-based parameter index. </td></tr>
-    <tr><td class="paramname">arg</td><td>The value to bind; it must outlive the next <code><a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a40cd014b7b6251e3a22e6a45a73a64e1" title="SQLExecute of a prepared statement.">Execute()</a></code>. </td></tr>
-    <tr><td class="paramname">columnNameHint</td><td>The column name, reported to the SQL logger. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
 <a id="a5428626df850d1cd2a6390e1758d4698" name="a5428626df850d1cd2a6390e1758d4698"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a5428626df850d1cd2a6390e1758d4698">&#9670;&#160;</a></span>Execute()</h2>
 
@@ -781,7 +689,7 @@ template&lt;SqlInputParameterBinder... Args&gt; </div>
 
 <p>Binds the given arguments to the prepared statement and executes it. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01476">1476</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01425">1425</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a40cd014b7b6251e3a22e6a45a73a64e1">Execute</a>.</p>
 
@@ -820,7 +728,7 @@ template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::contiguo
 <p>Each parameter represents a column, to be bound as input parameter. The element types of each column container must be explicitly supported.</p>
 <p>In order to support column value types, their underlying storage must be contiguous. Also the input range itself must be contiguous. If any of these conditions are not met, the function will not compile - use <a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a22bf72f446ee535304bb79155891eb15" title="SQLExecute with a bound parameter array (batch insert/update).">ExecuteBatch()</a> instead. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01584">1584</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01533">1533</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a22bf72f446ee535304bb79155891eb15">ExecuteBatch</a>.</p>
 
@@ -857,12 +765,12 @@ template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range...
 <p>Each parameter represents a column, to be bound as input parameter, and the number of elements in these bound column containers will mandate how many executions will happen.</p>
 <p>This function will bind and execute each row separately, which is less efficient than <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#abf5a451e1dbe5fca332cb2cd30e95631">ExecuteBatchNative()</a>, but works non-contiguous input ranges. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01639">1639</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01588">1588</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
 <a id="a5976ca6716ffd13c9eb4977da4d171c8" name="a5976ca6716ffd13c9eb4977da4d171c8"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5976ca6716ffd13c9eb4977da4d171c8">&#9670;&#160;</a></span>ExecuteBatch() <span class="overload">[1/5]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a5976ca6716ffd13c9eb4977da4d171c8">&#9670;&#160;</a></span>ExecuteBatch() <span class="overload">[1/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -894,7 +802,7 @@ template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range...
 </div>
 </div>
 <a id="abe60fdd5ccc0a2c07cf183eac8d83cd2" name="abe60fdd5ccc0a2c07cf183eac8d83cd2"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#abe60fdd5ccc0a2c07cf183eac8d83cd2">&#9670;&#160;</a></span>ExecuteBatch() <span class="overload">[2/5]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#abe60fdd5ccc0a2c07cf183eac8d83cd2">&#9670;&#160;</a></span>ExecuteBatch() <span class="overload">[2/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -929,67 +837,8 @@ template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range...
 
 </div>
 </div>
-<a id="abad0858c1d8904405879ee69b559742e" name="abad0858c1d8904405879ee69b559742e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#abad0858c1d8904405879ee69b559742e">&#9670;&#160;</a></span>ExecuteBatch() <span class="overload">[3/5]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> Lightweight::SqlStatement::ExecuteBatch </td>
-          <td>(</td>
-          <td class="paramtype">std::span&lt; <a class="el" href="../../da/d7e/structLightweight_1_1SqlRawColumn.html">SqlRawColumn</a> const &gt;&#160;</td>
-          <td class="paramname"><em>columns</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::size_t&#160;</td>
-          <td class="paramname"><em>rowCount</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::span&lt; SQLUSMALLINT &gt;&#160;</td>
-          <td class="paramname"><em>paramStatus</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">SQLULEN &amp;&#160;</td>
-          <td class="paramname"><em>paramsProcessed</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Executes the prepared statement on a batch of SqlRawColumn-prepared data, reporting the outcome of each row (parameter set).</p>
-<p>Unlike the overload without a status array, this one does not accept a partial success: a driver that continues past a failing parameter set (SQL Server does) returns <code>SQL_SUCCESS_WITH_INFO</code>, which only the status array tells apart from a full success. The status and processed pointers are bound for this execution only, and reset on every exit.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">columns</td><td>The columns to bind as input parameters. </td></tr>
-    <tr><td class="paramname">rowCount</td><td>The number of rows to execute. </td></tr>
-    <tr><td class="paramname">paramStatus</td><td>Receives one status per row (<code>SQL_PARAM_SUCCESS</code>, <code>SQL_PARAM_ERROR</code>, ...); at least <code>rowCount</code> entries. Entries the driver does not fill read <code>SQL_PARAM_UNUSED</code>; a driver that stops at the first failing row leaves the rows after it that way. </td></tr>
-    <tr><td class="paramname">paramsProcessed</td><td>Receives the number of rows the driver processed; <code>rowCount</code> if the driver does not report it. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>The cursor of the execution. </dd></dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">SqlException</td><td>if the execution fails, if any row reports <code>SQL_PARAM_ERROR</code> (carrying the first diagnostic record), or if the driver processed fewer than <code>rowCount</code> rows. <code>paramStatus</code> and <code>paramsProcessed</code> hold what the driver reported either way. </td></tr>
-    <tr><td class="paramname">std::invalid_argument</td><td>if the column count does not match the prepared statement or <code>paramStatus</code> holds fewer than <code>rowCount</code> entries. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
 <a id="ac394d28a45e9b10a2edb1cdf0037281e" name="ac394d28a45e9b10a2edb1cdf0037281e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac394d28a45e9b10a2edb1cdf0037281e">&#9670;&#160;</a></span>ExecuteBatch() <span class="overload">[4/5]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#ac394d28a45e9b10a2edb1cdf0037281e">&#9670;&#160;</a></span>ExecuteBatch() <span class="overload">[3/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1028,7 +877,7 @@ requires (sizeof...(ColumnAccessors) &gt;= 1 &amp;&amp; (std::invocable&lt;Colum
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A result cursor for the executed batch (empty when <code>rows</code> is empty). </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01676">1676</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01625">1625</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -1068,7 +917,7 @@ requires (sizeof...(ColumnAccessors) &gt;= 1 &amp;&amp; (std::invocable&lt;Colum
 
 <p>Executes the given query directly. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l02343">2343</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l02292">2292</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a85990d18cace92b043008dc0ef0c1b93">ExecuteDirect</a>.</p>
 
@@ -1143,9 +992,9 @@ requires std::invocable&lt;Callable, <a class="el" href="../../d8/d65/classLight
 
 <p>Executes an SQL migration query, as created b the callback. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l02354">2354</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l02303">2303</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a5fc4cc43a9872a2f817213f630fd603b">Lightweight::SqlConnection::ClearPreparedStatementCache()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01324">Connection()</a>, <a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a85990d18cace92b043008dc0ef0c1b93">ExecuteDirect</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00734">Lightweight::SqlConnection::QueryFormatter()</a>.</p>
+<p class="reference">References <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a5fc4cc43a9872a2f817213f630fd603b">Lightweight::SqlConnection::ClearPreparedStatementCache()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01273">Connection()</a>, <a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a85990d18cace92b043008dc0ef0c1b93">ExecuteDirect</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00734">Lightweight::SqlConnection::QueryFormatter()</a>.</p>
 
 </div>
 </div>
@@ -1187,7 +1036,7 @@ requires (!std::same_as&lt;T, <a class="el" href="../../df/d3f/structLightweight
 </div><div class="memdoc">
 <p>Executes the given query, assuming that only one result row and column is affected, that one will be returned. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l02395">2395</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l02344">2344</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a85990d18cace92b043008dc0ef0c1b93">ExecuteDirect</a>.</p>
 
@@ -1234,7 +1083,7 @@ requires (std::same_as&lt;T, <a class="el" href="../../df/d3f/structLightweight_
 
 <p>Executes the given query and returns the single result as an <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html" title="Represents a value that can be any of the supported SQL data types.">SqlVariant</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l02404">2404</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l02353">2353</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a85990d18cace92b043008dc0ef0c1b93">ExecuteDirect</a>, and <a class="el" href="../../d3/de6/SqlNullValue_8hpp_source.html#l00022">Lightweight::SqlNullValue</a>.</p>
 
@@ -1278,7 +1127,7 @@ requires (!std::same_as&lt;T, <a class="el" href="../../df/d3f/structLightweight
 </div><div class="memdoc">
 <p>Executes the given query, assuming that only one result row and column is affected, that one will be returned. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l02415">2415</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l02364">2364</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -1321,7 +1170,7 @@ requires (std::same_as&lt;T, <a class="el" href="../../df/d3f/structLightweight_
 
 <p>Executes the given query object and returns the single result as an <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html" title="Represents a value that can be any of the supported SQL data types.">SqlVariant</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l02422">2422</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l02371">2371</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -1386,7 +1235,7 @@ template&lt;SqlOutputColumnBinder... Args&gt; </div>
 
 <p>Out-of-line definition of <code>SqlStatement::BindOutputColumns</code>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01383">1383</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01332">1332</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -1428,12 +1277,12 @@ template&lt;SqlOutputColumnBinder T&gt; </div>
 
 <p>Out-of-line definition of <code>SqlStatement::BindOutputColumn</code>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01441">1441</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01390">1390</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
 <a id="a1c1302b59a4e88fae7cb709df44699ea" name="a1c1302b59a4e88fae7cb709df44699ea"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1c1302b59a4e88fae7cb709df44699ea">&#9670;&#160;</a></span>BindInputParameter() <span class="overload">[3/4]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a1c1302b59a4e88fae7cb709df44699ea">&#9670;&#160;</a></span>BindInputParameter() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1468,23 +1317,14 @@ template&lt;SqlInputParameterBinder Arg&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p></p>
-<p>Binds an input parameter to the prepared statement at the given column index.</p>
-<p>The value is bound by address: the driver reads it only at the next <code><a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a40cd014b7b6251e3a22e6a45a73a64e1" title="SQLExecute of a prepared statement.">Execute()</a></code>, so <code>arg</code> must stay alive until then. Temporaries are therefore rejected at compile time.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">columnIndex</td><td>The 1-based parameter index. </td></tr>
-    <tr><td class="paramname">arg</td><td>The value to bind; it must outlive the next <code><a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a40cd014b7b6251e3a22e6a45a73a64e1" title="SQLExecute of a prepared statement.">Execute()</a></code>.   </td></tr>
-  </table>
-  </dd>
-</dl>
+<p>Binds an input parameter to the prepared statement at the given column index.   </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01458">1458</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01407">1407</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
 <a id="aca574aabad03fc30adc6f52bb935cf2c" name="aca574aabad03fc30adc6f52bb935cf2c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aca574aabad03fc30adc6f52bb935cf2c">&#9670;&#160;</a></span>BindInputParameter() <span class="overload">[4/4]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#aca574aabad03fc30adc6f52bb935cf2c">&#9670;&#160;</a></span>BindInputParameter() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1525,23 +1365,14 @@ template&lt;SqlInputParameterBinder Arg, typename ColumnName &gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p></p>
-<p>Binds an input parameter to the prepared statement at the given column index with a column name hint.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">columnIndex</td><td>The 1-based parameter index. </td></tr>
-    <tr><td class="paramname">arg</td><td>The value to bind; it must outlive the next <code><a class="el" href="../../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a40cd014b7b6251e3a22e6a45a73a64e1" title="SQLExecute of a prepared statement.">Execute()</a></code>. </td></tr>
-    <tr><td class="paramname">columnNameHint</td><td>The column name, reported to the SQL logger.   </td></tr>
-  </table>
-  </dd>
-</dl>
+<p>Binds an input parameter to the prepared statement at the given column index with a column name hint.   </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01467">1467</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01416">1416</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
 <a id="a9cf433624157f588443d42e5071ee288" name="a9cf433624157f588443d42e5071ee288"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9cf433624157f588443d42e5071ee288">&#9670;&#160;</a></span>ExecuteBatch() <span class="overload">[5/5]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a9cf433624157f588443d42e5071ee288">&#9670;&#160;</a></span>ExecuteBatch() <span class="overload">[4/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1580,7 +1411,7 @@ template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range...
 <p>Executes the prepared statement on a batch of data.</p>
 <p>Each parameter represents a column, to be bound as input parameter, and the number of elements in these bound column containers will mandate how many executions will happen.   </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01627">1627</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01576">1576</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
