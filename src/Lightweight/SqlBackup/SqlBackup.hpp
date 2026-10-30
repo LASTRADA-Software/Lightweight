@@ -13,6 +13,7 @@
 #include <expected>
 #include <filesystem>
 #include <map>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -501,5 +502,98 @@ LIGHTWEIGHT_API std::string CreateMetadata(SqlConnectionString const& connection
 /// @param metadataJson content of the metadata.json file.
 LIGHTWEIGHT_API std::map<std::string, TableInfo> ParseSchema(std::string_view metadataJson,
                                                              ProgressManager* progress = nullptr);
+
+/// Maximum number of failed-row ranges reported per table; further failing rows are only counted.
+inline constexpr std::size_t MaxReportedRowRanges = 100;
+/// Maximum number of distinct failure reasons reported per table; further occurrences are only counted.
+inline constexpr std::size_t MaxReportedReasons = 20;
+/// Maximum number of sample row keys kept per failure reason.
+inline constexpr std::size_t MaxSampleKeysPerReason = 3;
+
+/// A contiguous run of rows that failed to restore within one chunk.
+struct FailedRowRange
+{
+    /// Archive path of the chunk the rows belong to.
+    std::string chunkPath;
+    /// First failed row (1-based, within the chunk).
+    std::uint64_t firstRow {};
+    /// Last failed row (1-based, within the chunk, inclusive).
+    std::uint64_t lastRow {};
+};
+
+/// One distinct failure cause of a table, with its occurrence count.
+struct FailureReason
+{
+    /// SQLSTATE reported by the driver (may be empty).
+    std::string sqlState;
+    /// Message of the first occurrence.
+    std::string message;
+    /// Number of failures sharing this reason.
+    std::uint64_t occurrences {};
+    /// A few example row keys (at most MaxSampleKeysPerReason).
+    std::vector<std::string> sampleKeys;
+};
+
+/// Cells of one column that were restored as NULL because their value could not be converted.
+struct ColumnValueFailures
+{
+    /// Column name.
+    std::string column;
+    /// Number of cells set to NULL.
+    std::uint64_t cellsSetToNull {};
+    /// Reason of the first occurrence.
+    std::string sampleReason;
+};
+
+/// Bounded failure report for one table.
+struct TableRestoreReport
+{
+    /// Name of the table.
+    std::string tableName;
+    /// Total number of rows that failed to restore.
+    std::uint64_t failedRowCount {};
+    /// Ranges of failed rows, capped at MaxReportedRowRanges.
+    std::vector<FailedRowRange> failedRowRanges;
+    /// Failed rows not represented in failedRowRanges because the cap was reached.
+    std::uint64_t rowsBeyondRangeCap {};
+    /// Distinct failure reasons, capped at MaxReportedReasons.
+    std::vector<FailureReason> reasons;
+    /// Failures not represented in reasons because the cap was reached.
+    std::uint64_t occurrencesBeyondReasonCap {};
+    /// Per-column value conversion failures.
+    std::vector<ColumnValueFailures> valueFailures;
+    /// Set if the whole table failed; holds the first reason.
+    std::optional<std::string> tableFailure;
+    /// Number of chunks of this table that could not be read.
+    std::uint64_t unreadableChunks {};
+
+    /// @return true if anything failed for this table.
+    [[nodiscard]] bool HasFailures() const noexcept
+    {
+        return failedRowCount != 0 || !failedRowRanges.empty() || !valueFailures.empty() || tableFailure.has_value()
+               || unreadableChunks != 0;
+    }
+};
+
+/// Bounded failure report of a whole restore.
+struct RestoreReport
+{
+    /// Only tables with failures, sorted by tableName.
+    std::vector<TableRestoreReport> tables;
+    /// Sum of failedRowCount over all tables.
+    std::uint64_t totalFailedRows {};
+    /// True if a worker stopped early.
+    bool workerStopped {};
+    /// Chunks left unprocessed by a stopped worker.
+    std::vector<std::string> incompleteTables;
+    /// Unreadable archive entries no table could be named for.
+    std::uint64_t unattributedChunkErrors {};
+
+    /// @return true if anything failed during the restore.
+    [[nodiscard]] bool HasFailures() const noexcept
+    {
+        return !tables.empty() || workerStopped || !incompleteTables.empty() || unattributedChunkErrors != 0;
+    }
+};
 
 } // namespace Lightweight::SqlBackup
