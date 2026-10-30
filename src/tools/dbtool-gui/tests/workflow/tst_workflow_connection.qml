@@ -41,6 +41,13 @@ WorkflowTestCase {
         tryCompare(AppController, "busy", false, 15000)
     }
 
+    /// Picks the connection mode @p mode and waits for the plugin reload the switch requests: the Connect
+    /// button stays disabled while the application is busy, so a click before the reload ends misses it.
+    function chooseMode(mode) {
+        clickControl(`connectionModeControl_${mode}`)
+        waitForIdle()
+    }
+
     function connectAndWait() {
         clickControl("connectButton")
         tryCompare(AppController, "connected", true, 15000)
@@ -81,7 +88,7 @@ WorkflowTestCase {
     function test_dsn_mode_uses_dsn_user_password_and_schema_fields() {
         prepare()
         verify(WorkflowFixture.addUserDsn("dbtool-gui-workflow", databaseQ), "the user DSN must register")
-        clickControl("connectionModeControl_dsn")
+        chooseMode("dsn")
         compare(AppController.connectionMode, "dsn")
         clickControl("refreshDsnButton")
         tryVerify(() => AppController.odbcDataSources.rowCount() > 0
@@ -110,7 +117,7 @@ WorkflowTestCase {
     function test_custom_mode_connects_with_the_typed_string_and_schema() {
         prepare()
         const connectionString = WorkflowFixture.newSqliteDatabase()
-        clickControl("connectionModeControl_custom")
+        chooseMode("custom")
         compare(AppController.connectionMode, "custom")
         compare(findRequired("connectButton").enabled, false)
         typeInto("customConnectionStringField", connectionString)
@@ -128,7 +135,7 @@ WorkflowTestCase {
 
     function test_odbc_list_refresh_lists_a_new_dsn() {
         prepare()
-        clickControl("connectionModeControl_dsn")
+        chooseMode("dsn")
         clickControl("refreshDsnButton")
         tryCompare(AppController, "odbcRefreshing", false, 15000)
         const before = AppController.odbcDataSources.rowCount()
@@ -145,7 +152,7 @@ WorkflowTestCase {
     function test_a_connect_failure_is_shown() {
         prepare()
         const unknownDataSource = "DSN=dbtool-gui-workflow-no-such-dsn"
-        clickControl("connectionModeControl_custom")
+        chooseMode("custom")
         typeInto("customConnectionStringField", unknownDataSource)
         clickControl("connectButton")
         tryVerify(() => findRequired("connectionError").visible, 15000, "the failure must show")
@@ -161,7 +168,7 @@ WorkflowTestCase {
     function test_save_as_profile_adds_the_open_connection() {
         prepare()
         const connectionString = WorkflowFixture.newSqliteDatabase()
-        clickControl("connectionModeControl_custom")
+        chooseMode("custom")
         typeInto("customConnectionStringField", connectionString)
         connectAndWait()
 
@@ -179,7 +186,7 @@ WorkflowTestCase {
                 connectionString)
         compare(AppController.profiles.rowCount(), 3)
         verify(rowNamed(AppController.profiles, "saved-custom") >= 0)
-        clickControl("connectionModeControl_profile")
+        chooseMode("profile")
         compare(findRequired("profileCombo").count, 3)
     }
 
