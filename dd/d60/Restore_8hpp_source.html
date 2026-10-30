@@ -274,82 +274,85 @@ $(document).ready(function(){initNavTree('dd/d60/Restore_8hpp_source.html','../.
 <div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span><span class="comment"></span> </div>
 <div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span><span class="comment">/// Restores chunk data to the database with retry logic.</span></div>
 <div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span><span class="comment">///</span></div>
-<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span><span class="comment">/// Each batch commits on its own. A batch the database rejects is rolled back and its failing rows</span></div>
-<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span><span class="comment">/// are isolated (see InsertIsolatingFailures()) and recorded in the failure log; the other rows are</span></div>
-<div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span><span class="comment">/// inserted. After a transient error the worker reconnects and resumes after the rows already</span></div>
-<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span><span class="comment">/// settled, so no row is inserted twice. Also handles MSSQL identity inserts and progress tracking.</span></div>
-<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span><span class="comment">///</span></div>
-<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span><span class="comment">/// @param ctx The restore context.</span></div>
-<div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span><span class="comment">/// @param workerConn The database connection.</span></div>
-<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span><span class="comment">/// @param chunk The chunk data to restore.</span></div>
-<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span><span class="comment">/// @param batchCapacity The batch size for bulk inserts.</span></div>
-<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span><span class="comment">/// @return How the chunk ended; see ChunkRestoreOutcome.</span></div>
-<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span><span class="comment"></span>ChunkRestoreOutcome RestoreChunkData(RestoreContext&amp; ctx,</div>
-<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>                                     SqlConnection&amp; workerConn,</div>
-<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span>                                     RestoreChunkInfo <span class="keyword">const</span>&amp; chunk,</div>
-<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span>                                     <span class="keywordtype">size_t</span> batchCapacity);</div>
-<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span><span class="comment"></span> </div>
-<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span><span class="comment">/// Worker function that processes chunks from the restore queue.</span></div>
-<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span><span class="comment">///</span></div>
-<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span><span class="comment">/// This function processes restore chunks from the shared queue, using the helper functions</span></div>
-<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span><span class="comment">/// FetchNextRestoreChunk() for I/O operations and RestoreChunkData() for database operations.</span></div>
-<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span><span class="comment">/// Once a table fails, its remaining chunks are skipped. A chunk that cannot be fetched (e.g. a</span></div>
-<div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span><span class="comment">/// checksum mismatch) is recorded as unreadable and skipped. Only ChunkRestoreOutcome::WorkerFailed</span></div>
-<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span><span class="comment">/// stops this worker; the chunk it failed on is not counted as processed, so its table shows as</span></div>
-<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span><span class="comment">/// incomplete.</span></div>
-<div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span><span class="comment">///</span></div>
-<div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span><span class="comment">/// @param ctx The restore context containing queue, progress tracking, and settings.</span></div>
-<div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span><span class="comment">/// @param workerConn The database connection for this worker.</span></div>
-<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span><span class="comment"></span><span class="keywordtype">void</span> RestoreWorker(RestoreContext ctx, SqlConnection&amp; workerConn);</div>
-<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span><span class="comment"></span> </div>
-<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span><span class="comment">/// Restores indexes for all tables after data has been restored.</span></div>
-<div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span><span class="comment">///</span></div>
-<div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span><span class="comment">/// This function creates indexes that were backed up in the metadata.</span></div>
-<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span><span class="comment">/// It is called after FK constraints are restored to ensure indexes are created</span></div>
-<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span><span class="comment">/// on the final table structure.</span></div>
-<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span><span class="comment">///</span></div>
-<div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span><span class="comment">/// @param connectionString The connection string to use.</span></div>
-<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span><span class="comment">/// @param schema The schema name.</span></div>
-<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span><span class="comment">/// @param tableMap Map of table names to their metadata including indexes.</span></div>
-<div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span><span class="comment">/// @param progress Progress manager for reporting status.</span></div>
-<div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span><span class="comment"></span>LIGHTWEIGHT_API <span class="keywordtype">void</span> RestoreIndexes(SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
-<div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span>                                    std::string <span class="keyword">const</span>&amp; schema,</div>
-<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span>                                    std::map&lt;std::string, TableInfo&gt; <span class="keyword">const</span>&amp; tableMap,</div>
-<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span>                                    ProgressManager&amp; progress);</div>
-<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span><span class="comment"></span> </div>
-<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span><span class="comment">/// Applies foreign key constraints to all tables after data has been restored.</span></div>
-<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span><span class="comment">///</span></div>
-<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span><span class="comment">/// This function is called after data restoration to add FK constraints that</span></div>
-<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span><span class="comment">/// were not included in the initial CREATE TABLE statements.</span></div>
+<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span><span class="comment">/// The chunk is first inserted in one transaction, committed after its last batch. A row the</span></div>
+<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span><span class="comment">/// database rejects, or a value that does not convert, rolls that transaction back; the chunk is then</span></div>
+<div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span><span class="comment">/// replayed with each batch committing on its own. There, a batch the database rejects is rolled back</span></div>
+<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span><span class="comment">/// and its failing rows are isolated (see InsertIsolatingFailures()) and recorded in the failure log;</span></div>
+<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span><span class="comment">/// the other rows are inserted. After a transient error the worker reconnects and resumes after the</span></div>
+<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span><span class="comment">/// rows already committed, so no row is inserted twice. Also handles MSSQL identity inserts and</span></div>
+<div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span><span class="comment">/// progress tracking.</span></div>
+<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span><span class="comment">///</span></div>
+<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span><span class="comment">/// @param ctx The restore context.</span></div>
+<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span><span class="comment">/// @param workerConn The database connection.</span></div>
+<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span><span class="comment">/// @param chunk The chunk data to restore.</span></div>
+<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span><span class="comment">/// @param batchCapacity The batch size for bulk inserts.</span></div>
+<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span><span class="comment">/// @return How the chunk ended; see ChunkRestoreOutcome.</span></div>
+<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span><span class="comment"></span>ChunkRestoreOutcome RestoreChunkData(RestoreContext&amp; ctx,</div>
+<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span>                                     SqlConnection&amp; workerConn,</div>
+<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>                                     RestoreChunkInfo <span class="keyword">const</span>&amp; chunk,</div>
+<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>                                     <span class="keywordtype">size_t</span> batchCapacity);</div>
+<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span><span class="comment"></span> </div>
+<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span><span class="comment">/// Worker function that processes chunks from the restore queue.</span></div>
+<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span><span class="comment">///</span></div>
+<div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span><span class="comment">/// This function processes restore chunks from the shared queue, using the helper functions</span></div>
+<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span><span class="comment">/// FetchNextRestoreChunk() for I/O operations and RestoreChunkData() for database operations.</span></div>
+<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span><span class="comment">/// Once a table fails, its remaining chunks are skipped. A chunk that cannot be fetched (e.g. a</span></div>
+<div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span><span class="comment">/// checksum mismatch) is recorded as unreadable and skipped. Only ChunkRestoreOutcome::WorkerFailed</span></div>
+<div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span><span class="comment">/// stops this worker; the chunk it failed on is not counted as processed, so its table shows as</span></div>
+<div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span><span class="comment">/// incomplete.</span></div>
+<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span><span class="comment">///</span></div>
+<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span><span class="comment">/// @param ctx The restore context containing queue, progress tracking, and settings.</span></div>
+<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span><span class="comment">/// @param workerConn The database connection for this worker.</span></div>
+<div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span><span class="comment"></span><span class="keywordtype">void</span> RestoreWorker(RestoreContext ctx, SqlConnection&amp; workerConn);</div>
+<div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span><span class="comment"></span> </div>
+<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span><span class="comment">/// Restores indexes for all tables after data has been restored.</span></div>
+<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span><span class="comment">///</span></div>
+<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span><span class="comment">/// This function creates indexes that were backed up in the metadata.</span></div>
+<div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span><span class="comment">/// It is called after FK constraints are restored to ensure indexes are created</span></div>
+<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span><span class="comment">/// on the final table structure.</span></div>
+<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span><span class="comment">///</span></div>
+<div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span><span class="comment">/// @param connectionString The connection string to use.</span></div>
+<div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span><span class="comment">/// @param schema The schema name.</span></div>
+<div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span><span class="comment">/// @param tableMap Map of table names to their metadata including indexes.</span></div>
+<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span><span class="comment">/// @param progress Progress manager for reporting status.</span></div>
+<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span><span class="comment"></span>LIGHTWEIGHT_API <span class="keywordtype">void</span> RestoreIndexes(SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
+<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>                                    std::string <span class="keyword">const</span>&amp; schema,</div>
+<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>                                    std::map&lt;std::string, TableInfo&gt; <span class="keyword">const</span>&amp; tableMap,</div>
+<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>                                    ProgressManager&amp; progress);</div>
+<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span><span class="comment"></span> </div>
+<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span><span class="comment">/// Applies foreign key constraints to all tables after data has been restored.</span></div>
 <div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span><span class="comment">///</span></div>
-<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span><span class="comment">/// @param connectionString The connection string to use.</span></div>
-<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span><span class="comment">/// @param schema The schema name.</span></div>
-<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span><span class="comment">/// @param tableMap Map of table names to their metadata including foreign keys.</span></div>
-<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span><span class="comment">/// @param progress Progress manager for reporting status.</span></div>
-<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span><span class="comment"></span>LIGHTWEIGHT_API <span class="keywordtype">void</span> ApplyDatabaseConstraints(SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
-<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span>                                              std::string <span class="keyword">const</span>&amp; schema,</div>
-<div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span>                                              std::map&lt;std::string, TableInfo&gt; <span class="keyword">const</span>&amp; tableMap,</div>
-<div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span>                                              ProgressManager&amp; progress);</div>
-<div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span><span class="comment"></span> </div>
-<div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span><span class="comment">/// Recreates the database schema by dropping and creating tables from the backup metadata.</span></div>
-<div class="line"><a id="l00235" name="l00235"></a><span class="lineno">  235</span><span class="comment">///</span></div>
-<div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span><span class="comment">/// This function creates tables in dependency order for SQLite (to satisfy FK constraints on CREATE),</span></div>
-<div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span><span class="comment">/// or alphabetically for other databases (where FKs are added via ALTER TABLE later). The schemas</span></div>
-<div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span><span class="comment">/// that a multi-schema archive records are created first unless they exist.</span></div>
-<div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span><span class="comment">///</span></div>
-<div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span><span class="comment">/// @param connectionString The connection string for the target database.</span></div>
-<div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span><span class="comment">/// @param schema The database schema name to create tables in.</span></div>
-<div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span><span class="comment">/// @param tableMap Map of table names to their metadata from the backup.</span></div>
-<div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span><span class="comment">/// @param progress Progress manager for reporting errors and status updates.</span></div>
-<div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span><span class="comment">/// @return Set of table names that were successfully created. Tables that fail to create</span></div>
-<div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span><span class="comment">///         (e.g., due to type incompatibilities) are excluded from the returned set,</span></div>
-<div class="line"><a id="l00246" name="l00246"></a><span class="lineno">  246</span><span class="comment">///         allowing the caller to skip data restoration for those tables.</span></div>
-<div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span><span class="comment"></span>LIGHTWEIGHT_API std::set&lt;std::string&gt; RecreateDatabaseSchema(SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
-<div class="line"><a id="l00248" name="l00248"></a><span class="lineno">  248</span>                                                             std::string <span class="keyword">const</span>&amp; schema,</div>
-<div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span>                                                             std::map&lt;std::string, TableInfo&gt; <span class="keyword">const</span>&amp; tableMap,</div>
-<div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span>                                                             ProgressManager&amp; progress);</div>
-<div class="line"><a id="l00251" name="l00251"></a><span class="lineno">  251</span> </div>
-<div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span>} <span class="comment">// namespace Lightweight::SqlBackup::detail</span></div>
+<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span><span class="comment">/// This function is called after data restoration to add FK constraints that</span></div>
+<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span><span class="comment">/// were not included in the initial CREATE TABLE statements.</span></div>
+<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span><span class="comment">///</span></div>
+<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span><span class="comment">/// @param connectionString The connection string to use.</span></div>
+<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span><span class="comment">/// @param schema The schema name.</span></div>
+<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span><span class="comment">/// @param tableMap Map of table names to their metadata including foreign keys.</span></div>
+<div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span><span class="comment">/// @param progress Progress manager for reporting status.</span></div>
+<div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span><span class="comment"></span>LIGHTWEIGHT_API <span class="keywordtype">void</span> ApplyDatabaseConstraints(SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
+<div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span>                                              std::string <span class="keyword">const</span>&amp; schema,</div>
+<div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span>                                              std::map&lt;std::string, TableInfo&gt; <span class="keyword">const</span>&amp; tableMap,</div>
+<div class="line"><a id="l00235" name="l00235"></a><span class="lineno">  235</span>                                              ProgressManager&amp; progress);</div>
+<div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span><span class="comment"></span> </div>
+<div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span><span class="comment">/// Recreates the database schema by dropping and creating tables from the backup metadata.</span></div>
+<div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span><span class="comment">///</span></div>
+<div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span><span class="comment">/// This function creates tables in dependency order for SQLite (to satisfy FK constraints on CREATE),</span></div>
+<div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span><span class="comment">/// or alphabetically for other databases (where FKs are added via ALTER TABLE later). The schemas</span></div>
+<div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span><span class="comment">/// that a multi-schema archive records are created first unless they exist.</span></div>
+<div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span><span class="comment">///</span></div>
+<div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span><span class="comment">/// @param connectionString The connection string for the target database.</span></div>
+<div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span><span class="comment">/// @param schema The database schema name to create tables in.</span></div>
+<div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span><span class="comment">/// @param tableMap Map of table names to their metadata from the backup.</span></div>
+<div class="line"><a id="l00246" name="l00246"></a><span class="lineno">  246</span><span class="comment">/// @param progress Progress manager for reporting errors and status updates.</span></div>
+<div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span><span class="comment">/// @return Set of table names that were successfully created. Tables that fail to create</span></div>
+<div class="line"><a id="l00248" name="l00248"></a><span class="lineno">  248</span><span class="comment">///         (e.g., due to type incompatibilities) are excluded from the returned set,</span></div>
+<div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span><span class="comment">///         allowing the caller to skip data restoration for those tables.</span></div>
+<div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span><span class="comment"></span>LIGHTWEIGHT_API std::set&lt;std::string&gt; RecreateDatabaseSchema(SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
+<div class="line"><a id="l00251" name="l00251"></a><span class="lineno">  251</span>                                                             std::string <span class="keyword">const</span>&amp; schema,</div>
+<div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span>                                                             std::map&lt;std::string, TableInfo&gt; <span class="keyword">const</span>&amp; tableMap,</div>
+<div class="line"><a id="l00253" name="l00253"></a><span class="lineno">  253</span>                                                             ProgressManager&amp; progress);</div>
+<div class="line"><a id="l00254" name="l00254"></a><span class="lineno">  254</span> </div>
+<div class="line"><a id="l00255" name="l00255"></a><span class="lineno">  255</span>} <span class="comment">// namespace Lightweight::SqlBackup::detail</span></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
