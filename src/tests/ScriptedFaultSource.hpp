@@ -6,6 +6,7 @@
 #include <Lightweight/Utils.hpp>
 
 #include <map>
+#include <mutex>
 #include <optional>
 #include <source_location>
 #include <string>
@@ -79,14 +80,16 @@ class ScriptedFaultSource: public SqlFaultSource
     }
 
     /// @return The number of checks that matched the filter so far, skipped and failed ones included.
-    [[nodiscard]] int ConsultCount() const noexcept
+    [[nodiscard]] int ConsultCount() const
     {
+        auto const lock = std::scoped_lock { _mutex };
         return _consultCount;
     }
 
     /// @return The number of scripted failures not injected yet.
-    [[nodiscard]] int RemainingFailures() const noexcept
+    [[nodiscard]] int RemainingFailures() const
     {
+        auto const lock = std::scoped_lock { _mutex };
         return _remaining + static_cast<int>(_script.size());
     }
 
@@ -98,6 +101,8 @@ class ScriptedFaultSource: public SqlFaultSource
         if (!file.contains(_locationFilter) && !function.contains(_locationFilter))
             return std::nullopt;
 
+        // Restore worker threads consult the installed source concurrently.
+        auto const lock = std::scoped_lock { _mutex };
         if (auto node = _script.extract(_consultCount++); !node.empty())
             return std::move(node.mapped());
         if (_skip > 0)
@@ -112,6 +117,7 @@ class ScriptedFaultSource: public SqlFaultSource
         return _error;
     }
 
+    mutable std::mutex _mutex;
     SqlErrorInfo _error {};
     int _remaining;
     int _skip;
