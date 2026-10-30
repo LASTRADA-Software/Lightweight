@@ -30,9 +30,13 @@ std::vector<std::string> DescribeTableRestoreFailures(SqlBackup::TableRestoreRep
                             ? std::format("{} row {}", range.chunkPath, range.firstRow)
                             : std::format("{} rows {}–{}", range.chunkPath, range.firstRow, range.lastRow));
     if (report.failedRowRanges.size() > MaxListedRowRanges)
-        lines.push_back(std::format("... and {} more row ranges", report.failedRowRanges.size() - MaxListedRowRanges));
+        lines.push_back(
+            "... and "
+            + SqlBackup::CountOf(report.failedRowRanges.size() - MaxListedRowRanges, "more row range", "more row ranges"));
     if (report.rowsBeyondRangeCap > 0)
-        lines.push_back(std::format("... and {} more failed rows not listed", report.rowsBeyondRangeCap));
+        lines.push_back(
+            "... and "
+            + SqlBackup::CountOf(report.rowsBeyondRangeCap, "more failed row not listed", "more failed rows not listed"));
 
     for (auto const& reason: report.reasons)
     {
@@ -43,16 +47,21 @@ std::vector<std::string> DescribeTableRestoreFailures(SqlBackup::TableRestoreRep
         lines.push_back(std::move(line));
     }
     if (report.occurrencesBeyondReasonCap > 0)
-        lines.push_back(std::format("... and {} more failures with other reasons", report.occurrencesBeyondReasonCap));
+        lines.push_back("... and "
+                        + SqlBackup::CountOf(report.occurrencesBeyondReasonCap,
+                                             "more failure with other reasons",
+                                             "more failures with other reasons"));
 
     for (auto const& column: report.valueFailures)
-        lines.push_back(
-            std::format("column {}: {} cells set to NULL ({})", column.column, column.cellsSetToNull, column.sampleReason));
+        lines.push_back(std::format("column {}: {} set to NULL ({})",
+                                    column.column,
+                                    SqlBackup::CountOf(column.cellsSetToNull, "cell", "cells"),
+                                    column.sampleReason));
 
     if (report.tableFailure)
         lines.push_back(std::format("table failed: {}", *report.tableFailure));
     if (report.unreadableChunks > 0)
-        lines.push_back(std::format("{} chunks unreadable", report.unreadableChunks));
+        lines.push_back(std::format("{} unreadable", SqlBackup::CountOf(report.unreadableChunks, "chunk", "chunks")));
     return lines;
 }
 
@@ -75,11 +84,13 @@ std::vector<std::string> DescribeRestoreReport(SqlBackup::RestoreReport const& r
         lines.push_back(std::format("  incomplete: {}", table));
     if (report.unattributedChunkErrors > 0)
         lines.push_back(
-            std::format("  {} unreadable archive entries belong to no known table", report.unattributedChunkErrors));
-    lines.push_back(std::format("Total: {} rows failed in {} tables, {} cells set to NULL",
-                                report.TotalFailedRows(),
-                                report.tables.size(),
-                                report.NulledCellCount()));
+            report.unattributedChunkErrors == 1
+                ? std::string { "  1 unreadable archive entry belongs to no known table" }
+                : std::format("  {} unreadable archive entries belong to no known table", report.unattributedChunkErrors));
+    lines.push_back(std::format("Total: {} failed in {}, {} set to NULL",
+                                SqlBackup::CountOf(report.TotalFailedRows(), "row", "rows"),
+                                SqlBackup::CountOf(report.tables.size(), "table", "tables"),
+                                SqlBackup::CountOf(report.NulledCellCount(), "cell", "cells")));
     return lines;
 }
 

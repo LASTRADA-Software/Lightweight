@@ -49,7 +49,7 @@ TEST_CASE("RestoreReportFormat: table details list at most five ranges and say h
     CHECK(Contains(lines, "... and 4 more failed rows not listed"));
     CHECK(Contains(lines, "12 x 23000 duplicate key (e.g. key 1, 2)"));
     CHECK(Contains(lines, "column Note: 3 cells set to NULL (bad text)"));
-    CHECK(Contains(lines, "1 chunks unreadable"));
+    CHECK(Contains(lines, "1 chunk unreadable"));
 }
 
 TEST_CASE("RestoreReportFormat: a single failed row reads as a row, not a range", "[RestoreReportFormat]")
@@ -75,6 +75,39 @@ TEST_CASE("RestoreReportFormat: summary counts rows and nulled cells", "[Restore
     CHECK(report.FailureSummary() == "12 rows failed, 5 cells set to NULL");
 }
 
+TEST_CASE("RestoreReportFormat: a count of one reads in the singular", "[RestoreReportFormat]")
+{
+    auto table = TableRestoreReport {};
+    table.tableName = "T";
+    table.failedRowCount = 1;
+    for (auto const first: { 1U, 10U, 20U, 30U, 40U, 50U })
+        table.failedRowRanges.push_back({ .chunkPath = "c", .firstRow = first, .lastRow = first });
+    table.rowsBeyondRangeCap = 1;
+    table.occurrencesBeyondReasonCap = 1;
+    table.valueFailures.push_back({ .column = "Note", .cellsSetToNull = 1, .sampleReason = "bad text" });
+    table.unreadableChunks = 1;
+    CHECK(table.FailureSummary() == "1 row failed, 1 cell set to NULL");
+
+    auto const details = Tools::DescribeTableRestoreFailures(table);
+    CHECK(Contains(details, "... and 1 more row range"));
+    CHECK_FALSE(Contains(details, "row ranges"));
+    CHECK(Contains(details, "... and 1 more failed row not listed"));
+    CHECK(Contains(details, "... and 1 more failure with other reasons"));
+    CHECK(Contains(details, "column Note: 1 cell set to NULL (bad text)"));
+    CHECK(Contains(details, "1 chunk unreadable"));
+
+    auto report = RestoreReport {};
+    report.tables = { table };
+    report.unattributedChunkErrors = 1;
+    auto const lines = Tools::DescribeRestoreReport(report);
+    CHECK(Contains(lines, "T: 1 row failed, 1 cell set to NULL"));
+    CHECK(Contains(lines, "1 unreadable archive entry belongs to no known table"));
+    CHECK(lines.back() == "Total: 1 row failed in 1 table, 1 cell set to NULL");
+
+    CHECK(SqlBackup::CountOf(0, "row", "rows") == "0 rows");
+    CHECK(SqlBackup::CountOf(2, "row", "rows") == "2 rows");
+}
+
 TEST_CASE("RestoreReportFormat: a clean report renders nothing", "[RestoreReportFormat]")
 {
     CHECK(Tools::DescribeRestoreReport({}).empty());
@@ -94,7 +127,7 @@ TEST_CASE("RestoreReportFormat: the restore block names tables, run-level proble
     CHECK(Contains(lines, "worker stopped early"));
     CHECK(Contains(lines, "incomplete: Lines"));
     CHECK(Contains(lines, "2 unreadable archive entries"));
-    CHECK(lines.back() == "Total: 12 rows failed in 1 tables, 5 cells set to NULL");
+    CHECK(lines.back() == "Total: 12 rows failed in 1 table, 5 cells set to NULL");
 
     // The totals derive from the tables, the stopped worker from the incomplete tables.
     CHECK(report.TotalFailedRows() == 12);
@@ -104,7 +137,7 @@ TEST_CASE("RestoreReportFormat: the restore block names tables, run-level proble
 
     auto const text = Tools::JoinedReportText(report);
     CHECK(text.starts_with("Restore failures:\n"));
-    CHECK(text.ends_with("\nTotal: 12 rows failed in 1 tables, 5 cells set to NULL"));
+    CHECK(text.ends_with("\nTotal: 12 rows failed in 1 table, 5 cells set to NULL"));
     CHECK(std::ranges::count(text, '\n') + 1 == static_cast<std::ptrdiff_t>(lines.size()));
     CHECK(Tools::JoinedReportText({}).empty());
 }

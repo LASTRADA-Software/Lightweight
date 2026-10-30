@@ -226,7 +226,7 @@ TEST_CASE_METHOD(SqlTestFixture, "nullable unconvertible value is restored as NU
     REQUIRE(tableReport.valueFailures.size() == 1);
     CHECK(tableReport.valueFailures[0].column == "T");
     CHECK(tableReport.valueFailures[0].cellsSetToNull == 1);
-    CHECK(progress.ErrorsOf("rfi_nullable") == std::vector<std::string> { "0 rows failed, 1 cells set to NULL" });
+    CHECK(progress.ErrorsOf("rfi_nullable") == std::vector<std::string> { "0 rows failed, 1 cell set to NULL" });
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "NOT NULL unconvertible value fails only its row", "[SqlBackup][RestoreFailures]")

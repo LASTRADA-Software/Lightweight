@@ -1147,7 +1147,7 @@ def test_restore_failure_report(dbtool, plugins_dir, connection_string):
                     target.writestr(item.filename, data)
 
             result = run_command(base_cmd + ["restore", "--input", duplicated], check=False)
-            expect_exit(result, 1, "Restore failures:", f"{table}: 1 rows failed", "Total: 1 rows failed in 1 tables")
+            expect_exit(result, 1, "Restore failures:", f"{table}: 1 row failed", "Total: 1 row failed in 1 table")
             restored = int(run_command(base_cmd + ["exec", f'SELECT COUNT(*) FROM "{table}"']).stdout.strip())
             if restored != 2:
                 print(f"expected the 2 rows that do not collide to be restored, found {restored}")

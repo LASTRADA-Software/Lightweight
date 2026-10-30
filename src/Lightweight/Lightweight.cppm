@@ -369,6 +369,7 @@ namespace SqlBackup
     using Lightweight::SqlBackup::ColumnValueFailures;
     using Lightweight::SqlBackup::CompressionMethod;
     using Lightweight::SqlBackup::CompressionMethodName;
+    using Lightweight::SqlBackup::CountOf;
     using Lightweight::SqlBackup::CreateMetadata;
     using Lightweight::SqlBackup::CreateMsgPackChunkReader;
     using Lightweight::SqlBackup::CreateMsgPackChunkReaderFromBuffer;

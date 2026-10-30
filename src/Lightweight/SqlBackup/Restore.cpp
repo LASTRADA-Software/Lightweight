@@ -135,7 +135,7 @@ namespace
         if (report.tableFailure)
             message += std::format(", table failed: {}", *report.tableFailure);
         if (report.unreadableChunks > 0)
-            message += std::format(", {} chunks unreadable", report.unreadableChunks);
+            message += std::format(", {} unreadable", CountOf(report.unreadableChunks, "chunk", "chunks"));
         return message;
     }
 

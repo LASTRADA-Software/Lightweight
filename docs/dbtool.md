@@ -982,7 +982,7 @@ Restore failures:
     data/ORDERS/0002_00.msgpack rows 4–5
     2 x 23000 duplicate key (e.g. key 7)
     column NOTE: 3 cells set to NULL (not a valid number)
-Total: 2 rows failed in 1 tables, 3 cells set to NULL
+Total: 2 rows failed in 1 table, 3 cells set to NULL
 ```
 
 The block is bounded: at most 100 row ranges and 20 reasons are kept per table, and failures beyond

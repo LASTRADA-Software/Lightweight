@@ -441,6 +441,16 @@ inline constexpr std::size_t MaxReportedReasons = 20;
 /// Maximum number of sample row keys kept per failure reason.
 inline constexpr std::size_t MaxSampleKeysPerReason = 3;
 
+/// Renders @p count with the noun that agrees with it.
+/// @param count The count.
+/// @param singular The noun for a count of 1, e.g. `"row"`.
+/// @param plural The noun for any other count, e.g. `"rows"`.
+/// @return `"<count> <singular>"` for a count of 1, `"<count> <plural>"` otherwise.
+[[nodiscard]] inline std::string CountOf(std::uint64_t count, std::string_view singular, std::string_view plural)
+{
+    return std::format("{} {}", count, count == 1 ? singular : plural);
+}
+
 /// A contiguous run of rows that failed to restore within one chunk.
 struct FailedRowRange
 {
@@ -516,10 +526,13 @@ struct TableRestoreReport
         return count;
     }
 
-    /// @return The one-line summary of this table's failures, `"<n> rows failed, <m> cells set to NULL"`.
+    /// @return The one-line summary of this table's failures, `"<n> rows failed, <m> cells set to NULL"`
+    ///         (`"1 row failed"`, `"1 cell set to NULL"` for a count of 1).
     [[nodiscard]] std::string FailureSummary() const
     {
-        return std::format("{} rows failed, {} cells set to NULL", failedRowCount, NulledCellCount());
+        return std::format("{} failed, {} set to NULL",
+                           CountOf(failedRowCount, "row", "rows"),
+                           CountOf(NulledCellCount(), "cell", "cells"));
     }
 };
 

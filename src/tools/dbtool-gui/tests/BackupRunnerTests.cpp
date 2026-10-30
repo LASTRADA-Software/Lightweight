@@ -162,7 +162,7 @@ TEST_CASE("BackupRunner shows the failed rows and nulled cells of a restore once
         progress.SetTotalTables(2);
         Copied(progress, "invoices", 20);
         Failed(progress, "orders", "Unreadable chunk data/orders/0001_00.msgpack: truncated");
-        Failed(progress, "orders", "2 rows failed, 3 cells set to NULL, 1 chunks unreadable");
+        Failed(progress, "orders", "2 rows failed, 3 cells set to NULL, 1 chunk unreadable");
 
         auto orders = Lightweight::SqlBackup::TableRestoreReport {};
         orders.tableName = "orders";
