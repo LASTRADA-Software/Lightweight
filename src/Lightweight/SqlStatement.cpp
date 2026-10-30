@@ -1680,7 +1680,7 @@ std::expected<SQLSMALLINT, SqlErrorInfo> SqlResultCursor::ColumnSqlType(SQLUSMAL
     // psqlODBC fails the call (HY001) without a name buffer; a truncated name is fine.
     auto nameBuffer = std::array<SQLWCHAR, 256> {};
     auto nameLength = SQLSMALLINT {};
-    auto const hStmt = m_stmt->NativeHandle();
+    auto* const hStmt = m_stmt->NativeHandle();
     if (!SQL_SUCCEEDED(SQLDescribeColW(hStmt,
                                        column,
                                        nameBuffer.data(),

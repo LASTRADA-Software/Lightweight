@@ -114,7 +114,7 @@ namespace
             // The rows of the bisected item that failed are all in this half: splitting it right away
             // saves an insert that fails. A single row is still tried, so that it is never reported
             // failed without a failure of its own.
-            if (item.failsForSure && item.rowCount > 1)
+            if (item.failsForSure && item.bisectedFailure && item.rowCount > 1)
             {
                 Split(item, BatchInsertError { .error = std::move(*item.bisectedFailure), .reportedFailedRows = {} }, stack);
                 continue;

@@ -238,15 +238,16 @@ namespace
         throw IsolationRequired {};
     }
 
-    /// Commits the chunk transaction of a ChunkInsertMode::SingleTransaction attempt, whose rows up
-    /// to @p settledRows are each inserted, and advances the resume watermark to them.
+    /// Commits @p transaction, the chunk transaction of a ChunkInsertMode::SingleTransaction attempt
+    /// whose rows up to @p settledRows are each inserted, and advances the resume watermark to them.
     /// @param target The chunk attempt.
+    /// @param transaction The chunk transaction.
     /// @param settledRows The settled rows of the attempt's BatchManager.
     /// @throws as ThrowForSingleTransaction() if the commit fails.
-    void CommitChunkTransaction(ChunkInsertTarget& target, std::size_t settledRows)
+    void CommitChunkTransaction(ChunkInsertTarget& target, SqlTransaction& transaction, std::size_t settledRows)
     {
         ZoneScopedN("Restore::Commit");
-        if (!target.chunkTransaction->TryCommit())
+        if (!transaction.TryCommit())
             ThrowForSingleTransaction(target, SqlErrorInfo::FromConnectionHandle(target.workerConn.NativeHandle()));
         target.committedRows.fetch_add(settledRows - target.state.settledRows);
         target.state.settledRows = settledRows;
@@ -286,9 +287,10 @@ namespace
             .onCellNulled = throwIsolationRequired,
             .onSettled =
                 [&target](std::size_t settledRows) {
-                    if (target.rowsPerCommit == 0 || settledRows - target.state.settledRows < target.rowsPerCommit)
+                    if (!target.chunkTransaction || target.rowsPerCommit == 0
+                        || settledRows - target.state.settledRows < target.rowsPerCommit)
                         return;
-                    CommitChunkTransaction(target, settledRows);
+                    CommitChunkTransaction(target, *target.chunkTransaction, settledRows);
                     target.chunkTransaction.emplace(target.workerConn, SqlTransactionMode::ROLLBACK);
                 },
         };
@@ -488,7 +490,7 @@ namespace
 
         // Nothing failed, so every row up to the watermark is inserted.
         if (chunkTransaction)
-            CommitChunkTransaction(target, batchManager.SettledRows());
+            CommitChunkTransaction(target, *chunkTransaction, batchManager.SettledRows());
         return unreadable;
     }
 
