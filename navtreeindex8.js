@@ -1,6 +1,5 @@
 var NAVTREEINDEX8 =
 {
-"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#rewrite-checksums":[9,3,11],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#rollback-timestamp":[9,3,6],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#rollback-to-release-version":[9,3,9],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#rollback-to-timestamp":[9,3,7],
@@ -249,5 +248,6 @@ var NAVTREEINDEX8 =
 "df/d3f/structLightweight_1_1SqlVariant.html#a80480b203ee9b980bac598dd88f78f2d":[20,1,12,26],
 "df/d3f/structLightweight_1_1SqlVariant.html#a85d63925ea745ef33eb62b182563b1d7":[20,1,12,12],
 "df/d3f/structLightweight_1_1SqlVariant.html#a8ab06b8e1024a734ee68ab1a4e737bbf":[20,1,12,39],
-"df/d3f/structLightweight_1_1SqlVariant.html#a9a77d3cabe4f40396af1803e41c6b021":[20,1,12,18]
+"df/d3f/structLightweight_1_1SqlVariant.html#a9a77d3cabe4f40396af1803e41c6b021":[20,1,12,18],
+"df/d3f/structLightweight_1_1SqlVariant.html#a9d315a730b44cf9db2840803e2bbb8ca":[20,1,12,35]
 };

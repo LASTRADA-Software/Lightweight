@@ -1,6 +1,5 @@
 var NAVTREEINDEX6 =
 {
-"da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html#aafd4dee4c0385d502e5cd97d2e1c7927":[22,0,0,4,1,1],
 "da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html#ab35f526bdaf9d9ae761de98d3ae66d95":[22,0,0,4,1,2],
 "da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html#ac4fab43b4ddee4e6218412da3d9c4986":[22,0,0,4,1,3],
 "da/d7e/structLightweight_1_1SqlRawColumn.html":[22,0,0,77],
@@ -249,5 +248,6 @@ var NAVTREEINDEX6 =
 "db/dfd/classLightweight_1_1SqlLogger.html#a531204f908c6870f7e7e589ac0e20c2f":[20,6,5,25],
 "db/dfd/classLightweight_1_1SqlLogger.html#a5ecff57c48215be1497e9cf25b79cee8":[20,6,5,6],
 "db/dfd/classLightweight_1_1SqlLogger.html#a72208bb0ca09fe2b35837b60b9902fbb":[20,6,5,10],
-"db/dfd/classLightweight_1_1SqlLogger.html#a77db8e52d519c4f915b0bc66644560db":[20,6,5,7]
+"db/dfd/classLightweight_1_1SqlLogger.html#a77db8e52d519c4f915b0bc66644560db":[20,6,5,7],
+"db/dfd/classLightweight_1_1SqlLogger.html#a7d32ec109f6a93e7680a8ac63c92f2de":[20,6,5,20]
 };

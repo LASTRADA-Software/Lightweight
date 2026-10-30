@@ -1,6 +1,5 @@
 var NAVTREEINDEX7 =
 {
-"db/dfd/classLightweight_1_1SqlLogger.html#a7d32ec109f6a93e7680a8ac63c92f2de":[20,6,5,20],
 "db/dfd/classLightweight_1_1SqlLogger.html#a7eb165999b176c3be5fef997d15f852e":[20,6,5,16],
 "db/dfd/classLightweight_1_1SqlLogger.html#a85df1dd0e63ccaa6c8b89874907205ce":[20,6,5,18],
 "db/dfd/classLightweight_1_1SqlLogger.html#a89a7b4c6fd89c71bfdab6e81b7f15f35":[20,6,5,22],
@@ -249,5 +248,6 @@ var NAVTREEINDEX7 =
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#providing-the-master-key-at-build-time":[9,2,3,1],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#releases":[9,3,10],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#resolve-secret-ref":[9,3,17],
-"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#restore":[9,4,1]
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#restore":[9,4,1],
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#rewrite-checksums":[9,3,11]
 };

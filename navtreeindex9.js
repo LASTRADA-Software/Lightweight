@@ -1,6 +1,5 @@
 var NAVTREEINDEX9 =
 {
-"df/d3f/structLightweight_1_1SqlVariant.html#a9d315a730b44cf9db2840803e2bbb8ca":[20,1,12,35],
 "df/d3f/structLightweight_1_1SqlVariant.html#aa8eb8b271e456514198f64d2b5cc2da6":[20,1,12,9],
 "df/d3f/structLightweight_1_1SqlVariant.html#ab4b919a8e1ae022435d908bdab2684a0":[20,1,12,17],
 "df/d3f/structLightweight_1_1SqlVariant.html#ac56a0ae596c54d4a501ae1e849835654":[20,1,12,33],
@@ -196,8 +195,8 @@ var NAVTREEINDEX9 =
 "functions_z.html":[22,2,0,25],
 "functions_~.html":[22,2,0,26],
 "hierarchy.html":[22,1],
-"index.html":[],
 "index.html":[0],
+"index.html":[],
 "index.html#asynchronous-api":[0,9],
 "index.html#backup-and-restore":[0,8],
 "index.html#building-with-c20-modules":[0,13],
