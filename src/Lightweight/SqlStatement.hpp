@@ -163,12 +163,30 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     LIGHTWEIGHT_API void SetPreparedStatementCaching(SqlPreparedStatementCaching caching) noexcept;
 
     /// Binds an input parameter to the prepared statement at the given column index.
+    ///
+    /// The value is bound by address: the driver reads it only at the next @c Execute(), so @p arg
+    /// must stay alive until then. Temporaries are therefore rejected at compile time.
+    ///
+    /// @param columnIndex The 1-based parameter index.
+    /// @param arg The value to bind; it must outlive the next @c Execute().
     template <SqlInputParameterBinder Arg>
     void BindInputParameter(SQLSMALLINT columnIndex, Arg const& arg);
 
     /// Binds an input parameter to the prepared statement at the given column index with a column name hint.
+    ///
+    /// @param columnIndex The 1-based parameter index.
+    /// @param arg The value to bind; it must outlive the next @c Execute().
+    /// @param columnNameHint The column name, reported to the SQL logger.
     template <SqlInputParameterBinder Arg, typename ColumnName>
     void BindInputParameter(SQLSMALLINT columnIndex, Arg const& arg, ColumnName&& columnNameHint);
+
+    /// Deleted: a temporary would be destroyed before the driver reads it at @c Execute() time.
+    template <SqlInputParameterBinder Arg>
+    void BindInputParameter(SQLSMALLINT columnIndex, Arg const&& arg) = delete;
+
+    /// Deleted: a temporary would be destroyed before the driver reads it at @c Execute() time.
+    template <SqlInputParameterBinder Arg, typename ColumnName>
+    void BindInputParameter(SQLSMALLINT columnIndex, Arg const&& arg, ColumnName&& columnNameHint) = delete;
 
     /// Binds the given arguments to the prepared statement and executes it.
     template <SqlInputParameterBinder... Args>
