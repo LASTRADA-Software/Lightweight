@@ -102,6 +102,18 @@ automatically when the backup finishes (also on failure).
 - **Completeness:** `metadata.json`'s `complete` is false for a filtered or schema-only backup and for
   one in which a table failed; `VerifyArchive` reports it. Archives without the key count as complete.
 
+## CHAR(n) padding across databases
+
+SQL Server and PostgreSQL pad a `CHAR(n)`/`NCHAR(n)` value to `n` characters and ignore the pad when
+comparing; SQLite does not pad and compares exactly. A `CHAR(5)` holding `q` therefore comes out of a
+SQL Server backup as `q    `, and restored verbatim into SQLite, `WHERE Code = 'q'` would find nothing.
+When a restore crosses from a padding database into a non-padding one, the trailing spaces (U+0020 only)
+of `CHAR`/`NCHAR` values are stripped (an all-space value becomes empty; `NULL` stays `NULL`; `VARCHAR`
+and `NVARCHAR` are never touched). The source is the `server.name` in the archive's `metadata.json`; if
+it is missing or names no known database, nothing is stripped. A restore into the same kind of database
+as the backup, or into a padding one, keeps every value as archived. Whether a database pads is the
+`SqlQueryFormatter::ComparesFixedCharWithPadSemantics()` knob.
+
 ## Consistency caveats (online backup)
 
 The backup runs online, without a global snapshot or table locks. If the database is

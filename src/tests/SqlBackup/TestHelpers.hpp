@@ -114,9 +114,10 @@ void RunBatchManagerTest(Executor&& executor,
                          std::vector<SqlColumnDeclaration> const& cols,
                          std::vector<std::vector<SqlBackup::BackupValue>> const& rows,
                          size_t capacity,
-                         SqlServerType serverType = SqlServerType::UNKNOWN)
+                         SqlServerType serverType = SqlServerType::UNKNOWN,
+                         SqlServerType sourceServerType = SqlServerType::UNKNOWN)
 {
-    Lightweight::detail::BatchManager bm(std::forward<Executor>(executor), cols, capacity, serverType);
+    Lightweight::detail::BatchManager bm(std::forward<Executor>(executor), cols, capacity, serverType, {}, sourceServerType);
     for (auto const& row: rows)
         bm.PushRow(row);
     bm.Flush();
@@ -127,9 +128,10 @@ void RunBatchManagerBatchTest(Executor&& executor,
                               std::vector<SqlColumnDeclaration> const& cols,
                               std::vector<SqlBackup::ColumnBatch> const& batches,
                               size_t capacity,
-                              SqlServerType serverType = SqlServerType::UNKNOWN)
+                              SqlServerType serverType = SqlServerType::UNKNOWN,
+                              SqlServerType sourceServerType = SqlServerType::UNKNOWN)
 {
-    Lightweight::detail::BatchManager bm(std::forward<Executor>(executor), cols, capacity, serverType);
+    Lightweight::detail::BatchManager bm(std::forward<Executor>(executor), cols, capacity, serverType, {}, sourceServerType);
     for (auto const& batch: batches)
         bm.PushBatch(batch);
     bm.Flush();

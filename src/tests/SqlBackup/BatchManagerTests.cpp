@@ -15,6 +15,7 @@
 #include <fstream>
 #include <iterator>
 #include <limits>
+#include <optional>
 #include <ranges>
 #include <span>
 #include <stdexcept>
@@ -1856,4 +1857,150 @@ TEST_CASE("BatchManager: the error escapes control characters and never cuts a U
     CHECK(PushRowsError(GuidColumn, { value }, NativeGuidServer)
           == std::format("table 'ORDERS', column 'TOKEN', row 1: '{}...' (75 bytes) is not a valid GUID",
                          std::string(63, 'x')));
+}
+
+namespace
+{
+
+/// Pushes @p values (as rows, and again as one batch) through a BatchManager for the single column
+/// @p column and returns the text each flushed row binds, `std::nullopt` for NULL.
+/// Both the row path and the batch path must agree, so the result of the two is concatenated.
+std::vector<std::optional<std::string>> BoundCharTexts(SqlColumnDeclaration const& column,
+                                                       std::vector<std::optional<std::string>> const& values,
+                                                       SqlServerType target,
+                                                       SqlServerType source)
+{
+    std::vector<std::optional<std::string>> bound;
+    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+        auto const& raw = rawCols.at(0);
+        auto const wide = raw.metadata.cType == SQL_C_WCHAR;
+        auto const stride = raw.metadata.bufferLength;
+        for (auto const row: std::views::iota(size_t { 0 }, count))
+        {
+            if (raw.indicators[row] == SQL_NULL_DATA)
+            {
+                bound.emplace_back(std::nullopt);
+                continue;
+            }
+            auto const* const base = reinterpret_cast<char const*>(raw.data.data()) + (row * stride);
+            if (!wide)
+            {
+                bound.emplace_back(std::string(base, static_cast<size_t>(raw.indicators[row])));
+                continue;
+            }
+            std::string text;
+            for (auto const index: std::views::iota(size_t { 0 }, static_cast<size_t>(raw.indicators[row]) / 2))
+            {
+                char16_t unit {};
+                std::memcpy(&unit, base + (index * sizeof(char16_t)), sizeof(char16_t));
+                text.push_back(static_cast<char>(unit)); // the test values are ASCII
+            }
+            bound.emplace_back(std::move(text));
+        }
+    };
+
+    std::vector<std::vector<BackupValue>> rows;
+    ColumnBatch batch;
+    batch.rowCount = values.size();
+    std::vector<std::string> texts;
+    std::vector<bool> nulls;
+    for (auto const& value: values)
+    {
+        rows.push_back({ value ? BackupValue { *value } : BackupValue { std::monostate {} } });
+        texts.push_back(value.value_or(""));
+        nulls.push_back(!value.has_value());
+    }
+    batch.columns.emplace_back(std::move(texts));
+    batch.nullIndicators.push_back(std::move(nulls));
+
+    RunBatchManagerTest(executor, { column }, rows, 10, target, source);
+    auto const rowPathCount = bound.size();
+    RunBatchManagerBatchTest(executor, { column }, { batch }, 10, target, source);
+    REQUIRE(bound.size() == 2 * rowPathCount);
+    CHECK(std::vector(bound.begin(), bound.begin() + static_cast<std::ptrdiff_t>(rowPathCount))
+          == std::vector(bound.begin() + static_cast<std::ptrdiff_t>(rowPathCount), bound.end()));
+    bound.resize(rowPathCount);
+    return bound;
+}
+
+using Texts = std::vector<std::optional<std::string>>;
+
+} // namespace
+
+TEST_CASE("BatchManager: CHAR padding is trimmed from a padding source into a non-padding target", "[SqlBackup]")
+{
+    using namespace SqlColumnTypeDefinitions;
+    Texts const padded { "q    ", "     ", std::nullopt, "a b  ", " x" };
+
+    SECTION("CHAR, MSSQL -> SQLite")
+    {
+        CHECK(BoundCharTexts(
+                  { .name = "C", .type = Char { .size = 5 } }, padded, SqlServerType::SQLITE, SqlServerType::MICROSOFT_SQL)
+              == Texts { "q", "", std::nullopt, "a b", " x" });
+    }
+
+    SECTION("NCHAR, MSSQL -> SQLite")
+    {
+        CHECK(BoundCharTexts(
+                  { .name = "C", .type = NChar { .size = 5 } }, padded, SqlServerType::SQLITE, SqlServerType::MICROSOFT_SQL)
+              == Texts { "q", "", std::nullopt, "a b", " x" });
+    }
+
+    SECTION("CHAR, PostgreSQL -> SQLite")
+    {
+        CHECK(BoundCharTexts(
+                  { .name = "C", .type = Char { .size = 5 } }, padded, SqlServerType::SQLITE, SqlServerType::POSTGRESQL)
+              == Texts { "q", "", std::nullopt, "a b", " x" });
+    }
+}
+
+TEST_CASE("BatchManager: CHAR padding is kept unless a padding source meets a non-padding target", "[SqlBackup]")
+{
+    using namespace SqlColumnTypeDefinitions;
+    Texts const padded { "q    ", "     ", std::nullopt };
+
+    SECTION("same DBMS (SQLite -> SQLite)")
+    {
+        CHECK(
+            BoundCharTexts({ .name = "C", .type = Char { .size = 5 } }, padded, SqlServerType::SQLITE, SqlServerType::SQLITE)
+            == padded);
+    }
+
+    SECTION("unknown source")
+    {
+        CHECK(BoundCharTexts(
+                  { .name = "C", .type = Char { .size = 5 } }, padded, SqlServerType::SQLITE, SqlServerType::UNKNOWN)
+              == padded);
+    }
+
+    SECTION("unknown target")
+    {
+        CHECK(BoundCharTexts(
+                  { .name = "C", .type = Char { .size = 5 } }, padded, SqlServerType::UNKNOWN, SqlServerType::MICROSOFT_SQL)
+              == padded);
+    }
+
+    SECTION("padding target (MSSQL -> PostgreSQL)")
+    {
+        CHECK(
+            BoundCharTexts(
+                { .name = "C", .type = Char { .size = 5 } }, padded, SqlServerType::POSTGRESQL, SqlServerType::MICROSOFT_SQL)
+            == padded);
+    }
+
+    SECTION("VARCHAR is never trimmed")
+    {
+        CHECK(
+            BoundCharTexts(
+                { .name = "C", .type = Varchar { .size = 5 } }, padded, SqlServerType::SQLITE, SqlServerType::MICROSOFT_SQL)
+            == padded);
+    }
+
+    SECTION("NVARCHAR is never trimmed")
+    {
+        CHECK(
+            BoundCharTexts(
+                { .name = "C", .type = NVarchar { .size = 5 } }, padded, SqlServerType::SQLITE, SqlServerType::MICROSOFT_SQL)
+            == padded);
+    }
 }

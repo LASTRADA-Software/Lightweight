@@ -121,6 +121,8 @@ struct RestoreContext
     RestoreSettings restoreSettings;
     /// Tables whose remaining chunks are skipped because one of their chunks failed.
     FailedTables& failedTables;
+    /// The DBMS the archive was taken from (`server.name` in its metadata); UNKNOWN if not recorded.
+    SqlServerType sourceServerType = SqlServerType::UNKNOWN;
 };
 
 /// Increments the chunk counter and reports completion status.

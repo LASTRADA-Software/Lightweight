@@ -43,11 +43,14 @@ struct LIGHTWEIGHT_API BatchManager
     /// @param capacity The capacity of the batch manager.
     /// @param serverType The server type for database-specific bindings.
     /// @param tableName The table being restored, named in the error for a value that does not convert.
+    /// @param sourceServerType The DBMS the data was backed up from. When it pads CHAR(n) values and
+    ///        @p serverType does not, the trailing pad of CHAR/NCHAR values is stripped.
     explicit BatchManager(BatchExecutor executor,
                           std::vector<SqlColumnDeclaration> const& colDecls,
                           size_t capacity,
                           SqlServerType serverType = SqlServerType::UNKNOWN,
-                          std::string tableName = {});
+                          std::string tableName = {},
+                          SqlServerType sourceServerType = SqlServerType::UNKNOWN);
 
     ~BatchManager();
 
@@ -74,6 +77,11 @@ struct LIGHTWEIGHT_API BatchManager
     // private:
     [[nodiscard]] std::unique_ptr<BatchColumn> CreateColumn(SqlColumnDeclaration const& col) const;
 
+    /// Tells whether CHAR/NCHAR values lose their trailing pad: the source DBMS pads them and the
+    /// target does not, so the pad would otherwise stay in the data and break comparisons.
+    /// @return True if the pad is stripped; false if either DBMS is unknown.
+    [[nodiscard]] bool TrimsFixedCharPadding() const;
+
     /// Clears every column of the rows not yet flushed.
     void DiscardPendingRows();
 
@@ -90,6 +98,8 @@ struct LIGHTWEIGHT_API BatchManager
     BatchExecutor executor;
     std::vector<std::unique_ptr<BatchColumn>> columns;
     SqlServerType serverType = SqlServerType::UNKNOWN;
+    /// The DBMS the backup was taken from; UNKNOWN when the archive does not name a known one.
+    SqlServerType sourceServerType = SqlServerType::UNKNOWN;
     /// The table being restored, for error messages; may be empty.
     std::string tableName;
     /// The column names, parallel to `columns`, for error messages.

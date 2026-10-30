@@ -954,6 +954,10 @@ archive that fails verification still restores: the restore warns that it is not
 satisfy a migration backup requirement, and exits `0`. A `schema_backups` that cannot be written
 only warns, too.
 
+**`CHAR(n)` padding.** Restoring a SQL Server or PostgreSQL archive into SQLite strips the trailing
+spaces of `CHAR`/`NCHAR` values, which SQLite would keep and compare exactly; restores into the same kind
+of database, or into a padding one, keep them. See [SQL Backup](sql-backup.md#charn-padding-across-databases).
+
 **Restoring into PostgreSQL.** Tables are created in the schema the restore targets: the archive's
 `schema_name`, or `--schema`. A single-schema archive from SQL Server records `dbo`, which a
 PostgreSQL database usually lacks, so restore it with `--schema public` (or another existing schema).

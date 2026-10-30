@@ -954,6 +954,21 @@ void BackupSchemas(std::filesystem::path const& outputFile,
     // LCOV_EXCL_STOP
 }
 
+namespace
+{
+    /// Reads the DBMS an archive was taken from.
+    /// @param metadataJson The archive's metadata.json text.
+    /// @return The type named by `server.name`, or UNKNOWN if absent or unrecognized.
+    SqlServerType ParseSourceServerType(std::string_view metadataJson)
+    {
+        auto const metadata = nlohmann::json::parse(metadataJson, nullptr, false);
+        if (!metadata.is_object() || !metadata.contains("server") || !metadata["server"].is_object())
+            return SqlServerType::UNKNOWN;
+        auto const& name = metadata["server"].value("name", nlohmann::json {});
+        return name.is_string() ? ServerTypeFromServerName(name.get<std::string>()) : SqlServerType::UNKNOWN;
+    }
+} // namespace
+
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 std::map<std::string, TableInfo> ParseSchema(std::string_view metadataJson, ProgressManager* progress)
 {
@@ -1520,6 +1535,7 @@ void Restore(std::filesystem::path const& inputFile,
     }
 
     std::map<std::string, TableInfo> tableMap = ParseSchema(metadataStr, &progress);
+    auto const sourceServerType = ParseSourceServerType(metadataStr);
 
     // Older archives may hold bookkeeping tables; the live ones stay as they are.
     std::erase_if(tableMap, [](auto const& pair) {
@@ -1719,6 +1735,7 @@ void Restore(std::filesystem::path const& inputFile,
         .retrySettings = retrySettings,
         .restoreSettings = effectiveSettings,
         .failedTables = failedDataTables,
+        .sourceServerType = sourceServerType,
     };
 
     // All databases restore multi-threaded. (Historically MS SQL Server was clamped to a single

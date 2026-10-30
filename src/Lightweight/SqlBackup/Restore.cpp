@@ -215,7 +215,8 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
                     tableInfo.columns,
                     batchCapacity,
                     workerConn.ServerType(),
-                    tableName);
+                    tableName,
+                    ctx.sourceServerType);
 
                 // Use a transaction for the entire chunk to improve performance significantly.
                 // We default to ROLLBACK on destruction to ensure atomic application of the chunk.

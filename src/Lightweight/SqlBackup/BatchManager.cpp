@@ -1059,6 +1059,15 @@ struct MsTimeBatchColumn: BatchColumn
 };
 #endif
 
+/// Strips the trailing U+0020 characters of @p text.
+/// @param text The text value.
+/// @return @p text without its trailing spaces; empty if it held nothing else.
+constexpr std::string_view TrimTrailingSpaces(std::string_view text) noexcept
+{
+    auto const last = text.find_last_not_of(' ');
+    return last == std::string_view::npos ? std::string_view {} : text.substr(0, last + 1);
+}
+
 struct StringBatchColumn: BatchColumn
 {
     SqlRawColumnMetadata metadata;
@@ -1066,6 +1075,8 @@ struct StringBatchColumn: BatchColumn
     std::vector<char> buffer;        // ToRaw() staging (stride x rows), rebuilt per flush
     std::vector<SQLLEN> indicators;
     size_t maxActual = 0; // largest value in this batch -> the ToRaw() stride
+    /// Strips the trailing spaces of every pushed value (a CHAR(n) pad that the target does not keep).
+    bool trimTrailingSpaces = false;
 
     StringBatchColumn(SqlRawColumnMetadata meta, size_t declaredLen):
         metadata(meta)
@@ -1151,6 +1162,8 @@ struct StringBatchColumn: BatchColumn
 
     void PushString(std::string_view s)
     {
+        if (trimTrailingSpaces)
+            s = TrimTrailingSpaces(s);
         // Stored variable-length (no truncation; the old fixed stride silently cut long
         // VARCHAR(MAX)/TEXT values); the fixed-stride buffer is laid out at flush time.
         maxActual = std::max(maxActual, s.size());
@@ -1208,6 +1221,8 @@ struct WideStringBatchColumn: BatchColumn
     std::vector<char16_t> buffer;       // ToRaw() staging (stride x rows), rebuilt per flush
     std::vector<SQLLEN> indicators;
     size_t maxActualChars = 0; // largest value (in UTF-16 units) -> the ToRaw() stride
+    /// Strips the trailing spaces of every pushed value (an NCHAR(n) pad that the target does not keep).
+    bool trimTrailingSpaces = false;
 
     WideStringBatchColumn(SqlRawColumnMetadata meta, size_t declaredLen):
         metadata(meta)
@@ -1308,6 +1323,8 @@ struct WideStringBatchColumn: BatchColumn
 
     void PushString(std::string_view s)
     {
+        if (trimTrailingSpaces)
+            s = TrimTrailingSpaces(s);
         // Stored variable-length (no truncation; the old fixed stride silently cut long
         // NVARCHAR(MAX) values); the fixed-stride buffer is laid out at flush time.
         auto ws = ToUtf16(std::u8string_view(reinterpret_cast<char8_t const*>(s.data()), s.size()));
@@ -1713,9 +1730,11 @@ BatchManager::BatchManager(BatchExecutor executor,
                            std::vector<SqlColumnDeclaration> const& colDecls,
                            size_t capacity,
                            SqlServerType serverType,
-                           std::string tableName):
+                           std::string tableName,
+                           SqlServerType sourceServerType):
     executor(std::move(executor)),
     serverType(serverType),
+    sourceServerType(sourceServerType),
     tableName(std::move(tableName))
 {
     // logic to create columns based on type
@@ -1762,6 +1781,14 @@ BatchManager::~BatchManager() = default;
 BatchManager::BatchManager(BatchManager&&) noexcept = default;
 
 BatchManager& BatchManager::operator=(BatchManager&&) noexcept = default;
+
+bool BatchManager::TrimsFixedCharPadding() const
+{
+    auto const* const source = SqlQueryFormatter::Get(sourceServerType);
+    auto const* const target = SqlQueryFormatter::Get(serverType);
+    return source != nullptr && target != nullptr && source->ComparesFixedCharWithPadSemantics()
+           && !target->ComparesFixedCharWithPadSemantics();
+}
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 std::unique_ptr<BatchColumn> BatchManager::CreateColumn(SqlColumnDeclaration const& col) const
@@ -1899,7 +1926,10 @@ std::unique_ptr<BatchColumn> BatchManager::CreateColumn(SqlColumnDeclaration con
         }
 
         meta.decimalDigits = 0;
-        return std::make_unique<StringBatchColumn>(meta, size);
+        auto column = std::make_unique<StringBatchColumn>(meta, size);
+        column->trimTrailingSpaces =
+            std::holds_alternative<SqlColumnTypeDefinitions::Char>(col.type) && TrimsFixedCharPadding();
+        return column;
     }
 
     if (std::holds_alternative<SqlColumnTypeDefinitions::NVarchar>(col.type)
@@ -1923,7 +1953,10 @@ std::unique_ptr<BatchColumn> BatchManager::CreateColumn(SqlColumnDeclaration con
         }
 
         meta.decimalDigits = 0;
-        return std::make_unique<WideStringBatchColumn>(meta, size);
+        auto column = std::make_unique<WideStringBatchColumn>(meta, size);
+        column->trimTrailingSpaces =
+            std::holds_alternative<SqlColumnTypeDefinitions::NChar>(col.type) && TrimsFixedCharPadding();
+        return column;
     }
 
     if (std::holds_alternative<SqlColumnTypeDefinitions::VarBinary>(col.type)
