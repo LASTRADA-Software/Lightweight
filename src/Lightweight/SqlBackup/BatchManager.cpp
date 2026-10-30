@@ -1785,30 +1785,6 @@ BatchManager::BatchManager(BatchManagerHooks hooks,
     this->capacity = std::max(this->capacity, size_t { 1 });
 }
 
-BatchManager::BatchManager(BatchExecutor executor,
-                           std::vector<SqlColumnDeclaration> const& colDecls,
-                           size_t capacity,
-                           SqlServerType serverType,
-                           SqlServerType sourceServerType):
-    BatchManager(
-        BatchManagerHooks {
-            .tryInsert = [executor = std::move(executor)](std::span<SqlRawColumn const> slice,
-                                                          std::size_t rowCount) -> std::expected<void, BatchInsertError> {
-                executor(std::vector<SqlRawColumn>(slice.begin(), slice.end()), rowCount);
-                return {};
-            },
-            .classify = {},
-            .onRowFailed = {},
-            .onCellNulled = {},
-            .onSettled = {},
-        },
-        colDecls,
-        capacity,
-        serverType,
-        sourceServerType)
-{
-}
-
 BatchManager::~BatchManager() = default;
 
 BatchManager::BatchManager(BatchManager&&) noexcept = default;
@@ -2029,9 +2005,7 @@ void BatchManager::Flush()
     ZoneScopedN("Restore::BatchFlush");
     ZoneValue(rowCount);
 
-    // Rows settled here extend the watermark only if every row before them is settled already.
     auto const base = firstPendingRow;
-    auto const extendsWatermark = settledRows == base;
 
     try
     {
@@ -2084,11 +2058,7 @@ void BatchManager::Flush()
             [&](size_t row) { reportRow(row, {}, exclusionReasons[row].value_or(std::string {})); },
             [&](size_t settledPrefix) {
                 reportNulledCells(settledPrefix);
-                if (!extendsWatermark)
-                    return;
-                settledRows = base + settledPrefix;
-                if (hooks.onSettled)
-                    hooks.onSettled(settledRows);
+                ExtendWatermark(base, base + settledPrefix);
             });
     }
     catch (...)
@@ -2199,11 +2169,16 @@ void BatchManager::SkipRows(size_t count)
     if (count == 0)
         return;
     Flush();
-    auto const extendsWatermark = settledRows == firstPendingRow;
     firstPendingRow += count;
-    if (!extendsWatermark)
+    ExtendWatermark(firstPendingRow - count, firstPendingRow);
+}
+
+void BatchManager::ExtendWatermark(size_t firstRow, size_t settledEnd)
+{
+    // Rows settled from firstRow on extend the watermark only if every row before them is settled.
+    if (settledRows < firstRow)
         return;
-    settledRows = firstPendingRow;
+    settledRows = settledEnd;
     if (hooks.onSettled)
         hooks.onSettled(settledRows);
 }

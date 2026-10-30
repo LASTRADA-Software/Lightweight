@@ -36,7 +36,7 @@ std::vector<std::string> DescribeAndSlice(SqlColumnTypeDefinition const& type,
     std::vector<SqlColumnDeclaration> const cols = { { .name = "c", .type = type } };
     std::vector<std::string> all;
     bool executed = false;
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         executed = true;
         REQUIRE(rawCols.size() == 1);
         REQUIRE(count == rows.size());
@@ -164,7 +164,7 @@ TEST_CASE("RawColumnSlice: date, time and timestamp columns", "[RawColumnSlice]"
 TEST_CASE("RawColumnSlice: SliceRows addresses rows by stride", "[RawColumnSlice]")
 {
     std::vector<SqlColumnDeclaration> const cols = { { .name = "c", .type = SqlColumnTypeDefinitions::Varchar { 20 } } };
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t) {
         auto const& full = rawCols[0];
         auto const slice = SliceRows(full, 2, 1);
         CHECK(slice.data.data() == full.data.data() + (2 * full.metadata.bufferLength));

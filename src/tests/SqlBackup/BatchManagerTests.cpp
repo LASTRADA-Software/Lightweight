@@ -55,7 +55,7 @@ TEST_CASE("BatchManager: Basic Flow", "[SqlBackup]")
     size_t lastRowCount = 0;
     std::vector<std::vector<BackupValue>> receivedRows;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         flushCount++;
         lastRowCount = count;
         // Verify we got 2 columns
@@ -63,7 +63,7 @@ TEST_CASE("BatchManager: Basic Flow", "[SqlBackup]")
     };
 
     // Capacity 3
-    BatchManager bm(executor, cols, 3);
+    BatchManager bm(MakeHooks(executor), cols, 3);
 
     bm.PushRow({ 1, "one" });
     REQUIRE(bm.rowCount == 1);
@@ -96,13 +96,13 @@ TEST_CASE("BatchManager: PushBatch splitting", "[SqlBackup]")
     int flushCount = 0;
     std::vector<size_t> flushedSizes;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& /*rawCols*/, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& /*rawCols*/, size_t count) {
         flushCount++;
         flushedSizes.push_back(count);
     };
 
     // Capacity 2
-    BatchManager bm(executor, cols, 2);
+    BatchManager bm(MakeHooks(executor), cols, 2);
 
     // Create a dummy batch with 5 items
     ColumnBatch sourceBatch;
@@ -138,11 +138,11 @@ TEST_CASE("BatchManager: small rows fill batches to capacity (no spurious byte-b
                                                { .name = "name", .type = SqlColumnTypeDefinitions::Varchar { 255 } } };
 
     std::vector<size_t> flushedSizes;
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& /*rawCols*/, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& /*rawCols*/, size_t count) {
         flushedSizes.push_back(count);
     };
 
-    BatchManager bm(executor, cols, 4000);
+    BatchManager bm(MakeHooks(executor), cols, 4000);
 
     constexpr size_t RowCount = 20'000;
     ColumnBatch sourceBatch;
@@ -170,7 +170,7 @@ TEST_CASE("BatchManager: oversize binary values are not truncated", "[SqlBackup]
 
     std::vector<size_t> receivedSizes;
     std::vector<uint8_t> firstValue;
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         REQUIRE(rawCols.size() == 1);
         auto const& col = rawCols[0];
         for (size_t r = 0; r < count; ++r)
@@ -185,7 +185,7 @@ TEST_CASE("BatchManager: oversize binary values are not truncated", "[SqlBackup]
         }
     };
 
-    BatchManager bm(executor, cols, 4000);
+    BatchManager bm(MakeHooks(executor), cols, 4000);
 
     // 200'000 bytes - far beyond the old 64 KB fixed stride that silently truncated.
     std::vector<uint8_t> big(200'000);
@@ -207,7 +207,7 @@ TEST_CASE("BatchManager: String Content", "[SqlBackup]")
     std::vector<std::string> capturedStrings;
     std::vector<SQLLEN> capturedIndicators;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         REQUIRE(rawCols.size() == 1);
         auto const& col = rawCols[0];
         // Decode raw buffer (SQL_C_BINARY)
@@ -226,7 +226,7 @@ TEST_CASE("BatchManager: String Content", "[SqlBackup]")
         }
     };
 
-    detail::BatchManager bm(executor, cols, 3);
+    detail::BatchManager bm(MakeHooks(executor), cols, 3);
 
     bm.PushRow({ "Hello" });
     bm.PushRow({ "World" });
@@ -259,7 +259,7 @@ TEST_CASE("BatchManager: Smallint column", "[SqlBackup]")
     std::vector<int16_t> capturedValues;
     std::vector<SQLLEN> capturedIndicators;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         REQUIRE(rawCols.size() == 1);
         auto const& col = rawCols[0];
         REQUIRE(col.metadata.cType == SQL_C_SHORT);
@@ -288,7 +288,7 @@ TEST_CASE("BatchManager: Tinyint column on SQL Server binds unsigned 0..255", "[
     std::vector<uint8_t> capturedValues;
     std::vector<SQLLEN> capturedIndicators;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         REQUIRE(rawCols.size() == 1);
         auto const& col = rawCols[0];
         REQUIRE(col.metadata.cType == SQL_C_UTINYINT);
@@ -324,7 +324,7 @@ TEST_CASE("BatchManager: Tinyint column elsewhere binds a short holding -128..25
     {
         INFO(std::format("server type {}", static_cast<int>(serverType)));
         std::vector<int16_t> capturedValues;
-        BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+        BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
             REQUIRE(rawCols[0].metadata.cType == SQL_C_SSHORT);
             REQUIRE(rawCols[0].metadata.sqlType == SQL_TINYINT);
             auto const* data = reinterpret_cast<int16_t const*>(rawCols[0].data.data());
@@ -347,7 +347,7 @@ TEST_CASE("BatchManager: Real/Double column", "[SqlBackup]")
 
     std::vector<double> capturedValues;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         REQUIRE(rawCols.size() == 1);
         auto const& col = rawCols[0];
         REQUIRE(col.metadata.cType == SQL_C_DOUBLE);
@@ -371,7 +371,7 @@ TEST_CASE("BatchManager: Bool column", "[SqlBackup]")
 
     std::vector<int8_t> capturedValues;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         REQUIRE(rawCols.size() == 1);
         auto const& col = rawCols[0];
         REQUIRE(col.metadata.cType == SQL_C_BIT);
@@ -398,7 +398,7 @@ TEST_CASE("BatchManager: DateTime column with fractional seconds", "[SqlBackup]"
 
     std::vector<SQL_TIMESTAMP_STRUCT> capturedValues;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         REQUIRE(rawCols.size() == 1);
         auto const& col = rawCols[0];
         REQUIRE(col.metadata.cType == SQL_C_TYPE_TIMESTAMP);
@@ -445,7 +445,7 @@ TEST_CASE("BatchManager: DateTime PushFromBatch", "[SqlBackup]")
 
     std::vector<SQLLEN> capturedIndicators;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         auto const& col = rawCols[0];
         for (size_t i = 0; i < count; ++i)
             capturedIndicators.push_back(col.indicators[i]);
@@ -478,7 +478,7 @@ TEST_CASE("BatchManager: Date column", "[SqlBackup]")
     std::vector<SQL_DATE_STRUCT> capturedValues;
     std::vector<SQLLEN> capturedIndicators;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         REQUIRE(rawCols.size() == 1);
         auto const& col = rawCols[0];
         REQUIRE(col.metadata.cType == SQL_C_TYPE_DATE);
@@ -516,7 +516,7 @@ TEST_CASE("BatchManager: Date PushFromBatch", "[SqlBackup]")
 
     std::vector<SQLLEN> capturedIndicators;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         auto const& col = rawCols[0];
         for (size_t i = 0; i < count; ++i)
             capturedIndicators.push_back(col.indicators[i]);
@@ -548,7 +548,7 @@ TEST_CASE("BatchManager: StringTime column (for MSSQL/PostgreSQL/SQLite)", "[Sql
     std::vector<std::string> capturedValues;
     std::vector<SQLLEN> capturedIndicators;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         REQUIRE(rawCols.size() == 1);
         auto const& col = rawCols[0];
         REQUIRE(col.metadata.cType == SQL_C_CHAR);
@@ -591,7 +591,7 @@ TEST_CASE("BatchManager: StringTime PushFromBatch", "[SqlBackup]")
 
     std::vector<SQLLEN> capturedIndicators;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         auto const& col = rawCols[0];
         for (size_t i = 0; i < count; ++i)
             capturedIndicators.push_back(col.indicators[i]);
@@ -619,7 +619,7 @@ TEST_CASE("BatchManager: TimeBatchColumn (for MySQL/UNKNOWN)", "[SqlBackup]")
     std::vector<SQL_TIME_STRUCT> capturedTimes;
     std::vector<SQLLEN> capturedIndicators;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         REQUIRE(rawCols.size() == 1);
         auto const& col = rawCols[0];
         REQUIRE(col.metadata.cType == SQL_C_TYPE_TIME);
@@ -672,7 +672,7 @@ TEST_CASE("BatchManager: TimeBatchColumn PushFromBatch", "[SqlBackup]")
     std::vector<SQL_TIME_STRUCT> capturedTimes;
     std::vector<SQLLEN> capturedIndicators;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         auto const& col = rawCols[0];
         auto const* data = reinterpret_cast<SQL_TIME_STRUCT const*>(col.data.data());
         for (size_t i = 0; i < count; ++i)
@@ -721,7 +721,7 @@ TEST_CASE("BatchManager: TimeBatchColumn ParseTime edge cases", "[SqlBackup]")
     std::vector<SQL_TIME_STRUCT> capturedTimes;
     std::vector<SQLLEN> capturedIndicators;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         auto const& col = rawCols[0];
         auto const* data = reinterpret_cast<SQL_TIME_STRUCT const*>(col.data.data());
         for (size_t i = 0; i < count; ++i)
@@ -760,7 +760,7 @@ TEST_CASE("BatchManager: TimeBatchColumn with monostate batch data", "[SqlBackup
 
     std::vector<SQLLEN> capturedIndicators;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         auto const& col = rawCols[0];
         for (size_t i = 0; i < count; ++i)
             capturedIndicators.push_back(col.indicators[i]);
@@ -791,7 +791,7 @@ TEST_CASE("BatchManager: GUID column", "[SqlBackup]")
     std::vector<SQLLEN> capturedIndicators;
     std::vector<uint8_t> capturedFirstGuid;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         REQUIRE(rawCols.size() == 1);
         auto const& col = rawCols[0];
         REQUIRE(col.metadata.cType == SQL_C_GUID);
@@ -833,7 +833,7 @@ TEST_CASE("BatchManager: a braced GUID binds as the same bytes as the unbraced o
     for (auto const serverType: { SqlServerType::MICROSOFT_SQL, SqlServerType::POSTGRESQL })
     {
         std::vector<uint8_t> captured;
-        BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+        BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
             auto const* bytes = reinterpret_cast<uint8_t const*>(rawCols[0].data.data());
             captured.assign(bytes, bytes + (count * sizeof(SqlGuid)));
         };
@@ -860,7 +860,7 @@ TEST_CASE("BatchManager: GUID PushFromBatch", "[SqlBackup]")
     std::vector<SQLLEN> capturedIndicators;
     std::vector<uint8_t> capturedFirstGuid;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         auto const& col = rawCols[0];
         auto const* bytes = reinterpret_cast<uint8_t const*>(col.data.data());
         capturedFirstGuid.assign(bytes, bytes + sizeof(SqlGuid));
@@ -907,7 +907,7 @@ CapturedTextColumn CaptureGuidColumn(std::vector<SqlBackup::BackupValue> const& 
 {
     std::vector<SqlColumnDeclaration> const cols = { { .name = "id", .type = SqlColumnTypeDefinitions::Guid {} } };
     CapturedTextColumn captured;
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         REQUIRE(rawCols.size() == 1);
         auto const& col = rawCols[0];
         captured.cType = col.metadata.cType;
@@ -977,7 +977,7 @@ TEST_CASE("BatchManager: NVarchar column", "[SqlBackup]")
 
     std::vector<SQLLEN> capturedIndicators;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         REQUIRE(rawCols.size() == 1);
         auto const& col = rawCols[0];
         REQUIRE(col.metadata.cType == SQL_C_WCHAR);
@@ -1001,7 +1001,7 @@ TEST_CASE("BatchManager: NChar column", "[SqlBackup]")
 
     std::vector<SQLLEN> capturedIndicators;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         REQUIRE(rawCols.size() == 1);
         auto const& col = rawCols[0];
         REQUIRE(col.metadata.cType == SQL_C_WCHAR);
@@ -1024,7 +1024,7 @@ TEST_CASE("BatchManager: NVarchar PushFromBatch with various types", "[SqlBackup
 
     std::vector<SQLLEN> capturedIndicators;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         auto const& col = rawCols[0];
         for (size_t i = 0; i < count; ++i)
             capturedIndicators.push_back(col.indicators[i]);
@@ -1053,7 +1053,7 @@ TEST_CASE("BatchManager: NVarchar PushFromBatch with bools", "[SqlBackup]")
 
     std::vector<SQLLEN> capturedIndicators;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         auto const& col = rawCols[0];
         for (size_t i = 0; i < count; ++i)
             capturedIndicators.push_back(col.indicators[i]);
@@ -1085,7 +1085,7 @@ TEST_CASE("BatchManager: Binary column Push", "[SqlBackup]")
     std::vector<SQLLEN> capturedIndicators;
     std::vector<std::vector<uint8_t>> capturedData;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         REQUIRE(rawCols.size() == 1);
         auto const& col = rawCols[0];
         REQUIRE(col.metadata.cType == SQL_C_BINARY);
@@ -1126,7 +1126,7 @@ TEST_CASE("BatchManager: Binary PushFromBatch with binary data", "[SqlBackup]")
 
     std::vector<SQLLEN> capturedIndicators;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         auto const& col = rawCols[0];
         for (size_t i = 0; i < count; ++i)
             capturedIndicators.push_back(col.indicators[i]);
@@ -1155,7 +1155,7 @@ TEST_CASE("BatchManager: Binary PushFromBatch with hex strings", "[SqlBackup]")
     std::vector<SQLLEN> capturedIndicators;
     std::vector<std::vector<uint8_t>> capturedData;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         auto const& col = rawCols[0];
         auto const* data = reinterpret_cast<uint8_t const*>(col.data.data());
         size_t stride = col.metadata.bufferLength;
@@ -1205,7 +1205,7 @@ TEST_CASE("BatchManager: Varchar column", "[SqlBackup]")
 
     std::vector<SQLLEN> capturedIndicators;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         auto const& col = rawCols[0];
         REQUIRE(col.metadata.cType == SQL_C_CHAR);
 
@@ -1236,7 +1236,7 @@ TEST_CASE("BatchManager: Char column", "[SqlBackup]")
 
     std::vector<SQLLEN> capturedIndicators;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         auto const& col = rawCols[0];
         REQUIRE(col.metadata.cType == SQL_C_CHAR);
 
@@ -1259,7 +1259,7 @@ TEST_CASE("BatchManager: Decimal column as string", "[SqlBackup]")
 
     std::vector<SQLLEN> capturedIndicators;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         auto const& col = rawCols[0];
         REQUIRE(col.metadata.cType == SQL_C_CHAR);
 
@@ -1285,7 +1285,7 @@ TEST_CASE("BatchManager: String PushFromBatch with int64", "[SqlBackup]")
 
     std::vector<SQLLEN> capturedIndicators;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         auto const& col = rawCols[0];
         for (size_t i = 0; i < count; ++i)
             capturedIndicators.push_back(col.indicators[i]);
@@ -1312,7 +1312,7 @@ TEST_CASE("BatchManager: String PushFromBatch with bools", "[SqlBackup]")
 
     std::vector<std::string> capturedValues;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         auto const& col = rawCols[0];
         auto const* data = reinterpret_cast<char const*>(col.data.data());
         size_t stride = col.metadata.bufferLength;
@@ -1349,7 +1349,7 @@ TEST_CASE("BatchManager: Integer PushFromBatch with string conversion", "[SqlBac
     std::vector<int32_t> capturedValues;
     std::vector<SQLLEN> capturedIndicators;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         auto const& col = rawCols[0];
         auto const* data = reinterpret_cast<int32_t const*>(col.data.data());
         for (size_t i = 0; i < count; ++i)
@@ -1381,7 +1381,7 @@ TEST_CASE("BatchManager: Integer PushFromBatch with bools", "[SqlBackup]")
 
     std::vector<int32_t> capturedValues;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         auto const& col = rawCols[0];
         auto const* data = reinterpret_cast<int32_t const*>(col.data.data());
         for (size_t i = 0; i < count; ++i)
@@ -1411,11 +1411,11 @@ TEST_CASE("BatchManager: Empty PushBatch does nothing", "[SqlBackup]")
     std::vector<SqlColumnDeclaration> cols = { { .name = "val", .type = SqlColumnTypeDefinitions::Integer {} } };
 
     int flushCount = 0;
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const&, size_t) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const&, size_t) {
         flushCount++;
     };
 
-    BatchManager bm(executor, cols, 10);
+    BatchManager bm(MakeHooks(executor), cols, 10);
 
     ColumnBatch emptyBatch;
     emptyBatch.rowCount = 0;
@@ -1430,11 +1430,11 @@ TEST_CASE("BatchManager: Mismatched row size does nothing", "[SqlBackup]")
     std::vector<SqlColumnDeclaration> cols = { { .name = "val", .type = SqlColumnTypeDefinitions::Integer {} } };
 
     int flushCount = 0;
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const&, size_t) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const&, size_t) {
         flushCount++;
     };
 
-    BatchManager bm(executor, cols, 10);
+    BatchManager bm(MakeHooks(executor), cols, 10);
 
     // Push row with wrong number of columns (2 instead of 1)
     bm.PushRow({ 1, 2 });
@@ -1456,12 +1456,12 @@ TEST_CASE("BatchManager: Flush exception clears state", "[SqlBackup]")
     std::vector<SqlColumnDeclaration> cols = { { .name = "val", .type = SqlColumnTypeDefinitions::Integer {} } };
 
     int flushCount = 0;
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const&, size_t) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const&, size_t) {
         flushCount++;
         throw std::runtime_error("Simulated error");
     };
 
-    BatchManager bm(executor, cols, 10);
+    BatchManager bm(MakeHooks(executor), cols, 10);
     bm.PushRow({ 1 });
     bm.PushRow({ 2 });
 
@@ -1479,11 +1479,11 @@ TEST_CASE("BatchManager: Empty Flush does nothing", "[SqlBackup]")
     std::vector<SqlColumnDeclaration> cols = { { .name = "val", .type = SqlColumnTypeDefinitions::Integer {} } };
 
     int flushCount = 0;
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const&, size_t) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const&, size_t) {
         flushCount++;
     };
 
-    BatchManager bm(executor, cols, 10);
+    BatchManager bm(MakeHooks(executor), cols, 10);
     bm.Flush(); // Nothing to flush
 
     REQUIRE(flushCount == 0);
@@ -1495,7 +1495,7 @@ TEST_CASE("BatchManager: Numeric Push with string 'NULL'", "[SqlBackup]")
 
     std::vector<SQLLEN> capturedIndicators;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         auto const& col = rawCols[0];
         for (size_t i = 0; i < count; ++i)
             capturedIndicators.push_back(col.indicators[i]);
@@ -1517,7 +1517,7 @@ TEST_CASE("BatchManager: Large NVarchar triggers LONGVARCHAR", "[SqlBackup]")
     std::vector<SqlColumnDeclaration> cols = { { .name = "txt",
                                                  .type = SqlColumnTypeDefinitions::NVarchar { .size = 5000 } } };
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t) {
         auto const& col = rawCols[0];
         // Large size should trigger SQL_WLONGVARCHAR
         REQUIRE((col.metadata.sqlType == SQL_WLONGVARCHAR || col.metadata.sqlType == SQL_WVARCHAR));
@@ -1532,7 +1532,7 @@ TEST_CASE("BatchManager: MAX Binary column", "[SqlBackup]")
         { .name = "bin", .type = SqlColumnTypeDefinitions::VarBinary { .size = 0 } } // 0 = MAX
     };
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t) {
         auto const& col = rawCols[0];
         REQUIRE(col.metadata.sqlType == SQL_LONGVARBINARY);
     };
@@ -1647,7 +1647,7 @@ TEST_CASE("BatchManager: GUID column accepts a GUID whose version nibble is outs
 
     std::vector<SQLLEN> capturedIndicators;
     std::vector<std::vector<uint8_t>> capturedGuids;
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         auto const* bytes = reinterpret_cast<uint8_t const*>(rawCols[0].data.data());
         for (auto const row: std::views::iota(size_t { 0 }, count))
         {
@@ -1729,7 +1729,7 @@ TEST_CASE("BatchManager: numeric text that does not parse fails instead of becom
 TEST_CASE("BatchManager: Bool column reads the true/false text a mixed-type column is archived as", "[SqlBackup]")
 {
     std::vector<int8_t> capturedValues;
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         auto const* data = reinterpret_cast<int8_t const*>(rawCols[0].data.data());
         capturedValues.insert(capturedValues.end(), data, data + count);
     };
@@ -1746,7 +1746,7 @@ TEST_CASE("BatchManager: Bool column reads the true/false text a mixed-type colu
 TEST_CASE("BatchManager: Push treats an empty numeric text as NULL, as PushBatch does", "[SqlBackup]")
 {
     std::vector<SQLLEN> capturedIndicators;
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         std::ranges::copy(rawCols[0].indicators.first(count), std::back_inserter(capturedIndicators));
     };
 
@@ -1849,7 +1849,7 @@ TEST_CASE("BatchManager: a native number outside the column type's range fails i
 TEST_CASE("BatchManager: a double that is exactly the integer type's minimum converts", "[SqlBackup]")
 {
     std::vector<int64_t> capturedValues;
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         auto const* data = reinterpret_cast<int64_t const*>(rawCols[0].data.data());
         capturedValues.insert(capturedValues.end(), data, data + count);
     };
@@ -1891,7 +1891,7 @@ std::vector<std::optional<std::string>> BoundCharTexts(SqlColumnDeclaration cons
                                                        SqlServerType source)
 {
     std::vector<std::optional<std::string>> bound;
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         auto const& raw = rawCols.at(0);
         auto const wide = raw.metadata.cType == SQL_C_WCHAR;
         auto const stride = raw.metadata.bufferLength;
@@ -2376,12 +2376,13 @@ TEST_CASE("BatchManager: a row without a primary key is named by all its columns
     CHECK(target.failures[1].sampleKey == std::string(200, 'x'));
 }
 
-TEST_CASE("BatchManager: the executor constructor propagates the executor's exception", "[SqlBackup][BatchManager]")
+TEST_CASE("BatchManager: an exception of tryInsert propagates from Flush", "[SqlBackup][BatchManager]")
 {
-    BatchManager manager([](std::vector<SqlRawColumn> const&, size_t) { throw std::logic_error("executor failed"); },
-                         IdAndTinyint(false),
-                         10,
-                         SqlServerType::SQLITE);
+    BatchManager manager(
+        MakeHooks([](std::vector<SqlRawColumn> const&, size_t) { throw std::logic_error("executor failed"); }),
+        IdAndTinyint(false),
+        10,
+        SqlServerType::SQLITE);
     manager.PushRow({ int64_t { 1 }, int64_t { 5 } });
     CHECK_THROWS_AS(manager.Flush(), std::logic_error);
     CHECK(manager.rowCount == 0);

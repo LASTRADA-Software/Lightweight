@@ -47,11 +47,6 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         return true;
     }
 
-    [[nodiscard]] bool HasNativeGuidType() const noexcept override
-    {
-        return false;
-    }
-
     [[nodiscard]] bool ComparesFixedCharWithPadSemantics() const noexcept override
     {
         return false;

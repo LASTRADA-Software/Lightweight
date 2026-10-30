@@ -62,8 +62,6 @@ struct BatchManagerHooks
 /// A batch manager that manages multiple batch columns for a statement.
 struct LIGHTWEIGHT_API BatchManager
 {
-    using BatchExecutor = std::function<void(std::vector<SqlRawColumn> const&, size_t)>;
-
     /// Create a new BatchManager that inserts and reports through @p hooks.
     ///
     /// @param hooks The callbacks that insert rows and receive what could not be inserted.
@@ -73,23 +71,6 @@ struct LIGHTWEIGHT_API BatchManager
     /// @param sourceServerType The DBMS the data was backed up from. When it pads CHAR(n) values and
     ///        @p serverType does not, the trailing pad of CHAR/NCHAR values is stripped.
     explicit BatchManager(BatchManagerHooks hooks,
-                          std::vector<SqlColumnDeclaration> const& colDecls,
-                          size_t capacity,
-                          SqlServerType serverType = SqlServerType::UNKNOWN,
-                          SqlServerType sourceServerType = SqlServerType::UNKNOWN);
-
-    /// Create a new BatchManager for the given statement and column declarations.
-    ///
-    /// The rows are passed to @p executor in one call per flush, or one per run between rows excluded
-    /// for a value that does not convert; its exceptions propagate from Flush().
-    ///
-    /// @param executor The callback to execute the batch.
-    /// @param colDecls The column declarations for the statement.
-    /// @param capacity The capacity of the batch manager.
-    /// @param serverType The server type for database-specific bindings.
-    /// @param sourceServerType The DBMS the data was backed up from. When it pads CHAR(n) values and
-    ///        @p serverType does not, the trailing pad of CHAR/NCHAR values is stripped.
-    explicit BatchManager(BatchExecutor executor,
                           std::vector<SqlColumnDeclaration> const& colDecls,
                           size_t capacity,
                           SqlServerType serverType = SqlServerType::UNKNOWN,
@@ -168,6 +149,13 @@ struct LIGHTWEIGHT_API BatchManager
     /// Settles @p count rows that directly follow the pending ones without inserting them.
     /// @param count The number of rows to skip.
     void SkipRows(size_t count);
+
+    /// Advances the watermark to @p settledEnd, given that the rows [@p firstRow, @p settledEnd) are
+    /// settled, provided every row before @p firstRow is settled already; reports it via
+    /// BatchManagerHooks::onSettled.
+    /// @param firstRow The first of the newly settled rows, counted as SettledRows() counts.
+    /// @param settledEnd The row after the last of them.
+    void ExtendWatermark(size_t firstRow, size_t settledEnd);
 
     size_t rowCount = 0;
     /// Rows given to the manager before the pending ones (flushed, failed or skipped).

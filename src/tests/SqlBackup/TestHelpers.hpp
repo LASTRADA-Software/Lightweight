@@ -14,6 +14,8 @@
 #endif
 
 #include <algorithm>
+#include <cstddef>
+#include <expected>
 #include <filesystem>
 #include <format>
 #include <functional>
@@ -21,6 +23,7 @@
 #include <mutex>
 #include <optional>
 #include <ranges>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -171,29 +174,49 @@ struct ScopedFileRemoved
     ScopedFileRemoved& operator=(ScopedFileRemoved&&) = delete;
 };
 
-template <typename Executor>
-void RunBatchManagerTest(Executor&& executor,
-                         std::vector<SqlColumnDeclaration> const& cols,
-                         std::vector<std::vector<SqlBackup::BackupValue>> const& rows,
-                         size_t capacity,
-                         SqlServerType serverType = SqlServerType::UNKNOWN,
-                         SqlServerType sourceServerType = SqlServerType::UNKNOWN)
+/// Receives the rows a BatchManager inserts: the raw columns of a range and its row count.
+using BatchExecutor = std::function<void(std::vector<SqlRawColumn> const& rawColumns, std::size_t rowCount)>;
+
+/// Hooks that insert every range by passing it to @p executor, whose exceptions propagate from
+/// BatchManager::Flush().
+/// @param executor Receives each inserted range.
+/// @return The hooks.
+inline Lightweight::detail::BatchManagerHooks MakeHooks(BatchExecutor executor)
 {
-    Lightweight::detail::BatchManager bm(std::forward<Executor>(executor), cols, capacity, serverType, sourceServerType);
+    return Lightweight::detail::BatchManagerHooks {
+        .tryInsert = [executor = std::move(executor)](std::span<SqlRawColumn const> slice, std::size_t rowCount)
+            -> std::expected<void, Lightweight::detail::BatchInsertError> {
+            executor(std::vector<SqlRawColumn>(slice.begin(), slice.end()), rowCount);
+            return {};
+        },
+        .classify = {},
+        .onRowFailed = {},
+        .onCellNulled = {},
+        .onSettled = {},
+    };
+}
+
+inline void RunBatchManagerTest(BatchExecutor executor,
+                                std::vector<SqlColumnDeclaration> const& cols,
+                                std::vector<std::vector<SqlBackup::BackupValue>> const& rows,
+                                size_t capacity,
+                                SqlServerType serverType = SqlServerType::UNKNOWN,
+                                SqlServerType sourceServerType = SqlServerType::UNKNOWN)
+{
+    Lightweight::detail::BatchManager bm(MakeHooks(std::move(executor)), cols, capacity, serverType, sourceServerType);
     for (auto const& row: rows)
         bm.PushRow(row);
     bm.Flush();
 }
 
-template <typename Executor>
-void RunBatchManagerBatchTest(Executor&& executor,
-                              std::vector<SqlColumnDeclaration> const& cols,
-                              std::vector<SqlBackup::ColumnBatch> const& batches,
-                              size_t capacity,
-                              SqlServerType serverType = SqlServerType::UNKNOWN,
-                              SqlServerType sourceServerType = SqlServerType::UNKNOWN)
+inline void RunBatchManagerBatchTest(BatchExecutor executor,
+                                     std::vector<SqlColumnDeclaration> const& cols,
+                                     std::vector<SqlBackup::ColumnBatch> const& batches,
+                                     size_t capacity,
+                                     SqlServerType serverType = SqlServerType::UNKNOWN,
+                                     SqlServerType sourceServerType = SqlServerType::UNKNOWN)
 {
-    Lightweight::detail::BatchManager bm(std::forward<Executor>(executor), cols, capacity, serverType, sourceServerType);
+    Lightweight::detail::BatchManager bm(MakeHooks(std::move(executor)), cols, capacity, serverType, sourceServerType);
     for (auto const& batch: batches)
         bm.PushBatch(batch);
     bm.Flush();
