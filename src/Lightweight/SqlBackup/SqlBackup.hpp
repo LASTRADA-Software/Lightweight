@@ -481,7 +481,9 @@ struct TableRestoreReport
 {
     /// Name of the table.
     std::string tableName;
-    /// Total number of rows that failed to restore.
+    /// Total number of rows that failed to restore. For a table that failed as a whole, the rows of
+    /// the archive that did not reach the target; that is 0 if the archive does not know the table's
+    /// row count, while tableFailure is still set.
     std::uint64_t failedRowCount {};
     /// Ranges of failed rows, capped at MaxReportedRowRanges.
     std::vector<FailedRowRange> failedRowRanges;
