@@ -658,10 +658,38 @@ EXEC sp_executesql @sql;)",
                                            actualCommand.nullable == SqlNullable::NotNull ? "NOT NULL" : "NULL");
                     },
                     [schemaName, tableName](RenameColumn const& actualCommand) -> std::string {
-                        return std::format(R"(ALTER TABLE {} RENAME COLUMN "{}" TO "{}";)",
-                                           FormatTableName(schemaName, tableName),
-                                           actualCommand.oldColumnName,
-                                           actualCommand.newColumnName);
+                        // SQL Server has no `ALTER TABLE ... RENAME COLUMN`; `sp_rename` takes a
+                        // bracket-quoted object name, with `]` doubled inside identifiers.
+                        auto const bracket = [](std::string_view name) {
+                            auto quoted = std::string { "[" };
+                            for (char const ch: name)
+                            {
+                                quoted += ch;
+                                if (ch == ']')
+                                    quoted += ']';
+                            }
+                            quoted += ']';
+                            return quoted;
+                        };
+                        auto objectName = std::string {};
+                        if (!schemaName.empty())
+                            objectName += bracket(schemaName) + '.';
+                        objectName += bracket(tableName) + '.' + bracket(actualCommand.oldColumnName);
+                        auto newName = std::string {};
+                        for (char const ch: actualCommand.newColumnName)
+                        {
+                            newName += ch;
+                            if (ch == '\'')
+                                newName += '\'';
+                        }
+                        auto escapedObject = std::string {};
+                        for (char const ch: objectName)
+                        {
+                            escapedObject += ch;
+                            if (ch == '\'')
+                                escapedObject += '\'';
+                        }
+                        return std::format("EXEC sp_rename N'{}', N'{}', N'COLUMN';", escapedObject, newName);
                     },
                     [schemaName, tableName](DropColumn const& actualCommand) -> std::string {
                         return std::format(R"(ALTER TABLE {} DROP COLUMN "{}";)",

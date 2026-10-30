@@ -2517,8 +2517,14 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable RenameColumn", "[SqlQueryBuilder][M
             migration.AlterTable("Table").RenameColumn("old", "new");
             return migration.GetPlan();
         },
-        QueryExpectations::All(R"sql(ALTER TABLE "Table" RENAME COLUMN "old" TO "new";
-                               )sql"));
+        QueryExpectations {
+            .sqlite = R"sql(ALTER TABLE "Table" RENAME COLUMN "old" TO "new";
+                               )sql",
+            .postgres = R"sql(ALTER TABLE "Table" RENAME COLUMN "old" TO "new";
+                               )sql",
+            .sqlServer = R"sql(EXEC sp_rename N'[Table].[old]', N'new', N'COLUMN';
+                               )sql",
+        });
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "AlterTable RenameTo", "[SqlQueryBuilder][Migration]")
