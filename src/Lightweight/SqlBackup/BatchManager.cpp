@@ -1741,6 +1741,13 @@ BatchManager::BatchManager(BatchManagerHooks hooks,
             return FailureDisposition::Propagate;
         };
 
+    // A nullptr formatter (UNKNOWN, MySQL) neither pads CHAR values nor has a native GUID type.
+    auto const* const source = SqlQueryFormatter::Get(sourceServerType);
+    auto const* const target = SqlQueryFormatter::Get(serverType);
+    trimsFixedCharPadding = source != nullptr && target != nullptr && source->ComparesFixedCharWithPadSemantics()
+                            && !target->ComparesFixedCharWithPadSemantics();
+    hasNativeGuidType = target != nullptr && target->HasNativeGuidType();
+
     // logic to create columns based on type
     for (auto const& col: colDecls)
     {
@@ -1790,14 +1797,6 @@ BatchManager::~BatchManager() = default;
 BatchManager::BatchManager(BatchManager&&) noexcept = default;
 
 BatchManager& BatchManager::operator=(BatchManager&&) noexcept = default;
-
-bool BatchManager::TrimsFixedCharPadding() const
-{
-    auto const* const source = SqlQueryFormatter::Get(sourceServerType);
-    auto const* const target = SqlQueryFormatter::Get(serverType);
-    return source != nullptr && target != nullptr && source->ComparesFixedCharWithPadSemantics()
-           && !target->ComparesFixedCharWithPadSemantics();
-}
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 std::unique_ptr<BatchColumn> BatchManager::CreateColumn(SqlColumnDeclaration const& col) const
@@ -1862,9 +1861,7 @@ std::unique_ptr<BatchColumn> BatchManager::CreateColumn(SqlColumnDeclaration con
 
     if (std::holds_alternative<SqlColumnTypeDefinitions::Guid>(col.type))
     {
-        // A nullptr formatter (UNKNOWN, MySQL) has no native GUID type either.
-        auto const* const formatter = SqlQueryFormatter::Get(serverType);
-        if (formatter == nullptr || !formatter->HasNativeGuidType())
+        if (!hasNativeGuidType)
             return std::make_unique<GuidTextBatchColumn>(meta);
         return std::make_unique<GuidBatchColumn>(meta);
     }
@@ -1937,7 +1934,7 @@ std::unique_ptr<BatchColumn> BatchManager::CreateColumn(SqlColumnDeclaration con
         meta.decimalDigits = 0;
         auto column = std::make_unique<StringBatchColumn>(meta, size);
         column->trimTrailingSpaces =
-            std::holds_alternative<SqlColumnTypeDefinitions::Char>(col.type) && TrimsFixedCharPadding();
+            std::holds_alternative<SqlColumnTypeDefinitions::Char>(col.type) && trimsFixedCharPadding;
         return column;
     }
 
@@ -1964,7 +1961,7 @@ std::unique_ptr<BatchColumn> BatchManager::CreateColumn(SqlColumnDeclaration con
         meta.decimalDigits = 0;
         auto column = std::make_unique<WideStringBatchColumn>(meta, size);
         column->trimTrailingSpaces =
-            std::holds_alternative<SqlColumnTypeDefinitions::NChar>(col.type) && TrimsFixedCharPadding();
+            std::holds_alternative<SqlColumnTypeDefinitions::NChar>(col.type) && trimsFixedCharPadding;
         return column;
     }
 
@@ -2017,7 +2014,10 @@ void BatchManager::Flush()
                 rawCols.push_back(c->ToRaw());
         }
 
-        auto const insertRange = [&](size_t firstRow, size_t count) {
+        auto const insertRange = [&](size_t firstRow, size_t count) -> std::expected<void, BatchInsertError> {
+            // The whole batch needs no slicing (nor its reported rows any shift).
+            if (count == rowCount)
+                return hooks.tryInsert(rawCols, count);
             std::vector<SqlRawColumn> slices;
             slices.reserve(rawCols.size());
             for (auto const& column: rawCols)
@@ -2028,9 +2028,11 @@ void BatchManager::Flush()
                 return error;
             });
         };
-        // Rows not inserted, so that their nulled cells are not reported.
-        auto notInserted = std::vector<bool>(rowCount);
+        // Rows not inserted, so that their nulled cells are not reported. Sized on the first failure.
+        auto notInserted = std::vector<bool> {};
         auto const reportRow = [&](size_t row, std::string_view sqlState, std::string_view message) {
+            if (notInserted.empty())
+                notInserted.resize(rowCount);
             notInserted[row] = true;
             if (hooks.onRowFailed)
                 hooks.onRowFailed(base + row + 1, sqlState, message, DescribeRowKey(rawCols, row));
@@ -2038,13 +2040,16 @@ void BatchManager::Flush()
 
         // Rows settle in ascending order, so the nulled cells are reported in row order as their
         // rows settle.
-        std::ranges::stable_sort(nulledCells, {}, &NulledCell::pendingRow);
+        if (!nulledCells.empty())
+            std::ranges::stable_sort(nulledCells, {}, &NulledCell::pendingRow);
         auto nextNulledCell = nulledCells.begin();
         auto const reportNulledCells = [&](size_t settledPrefix) {
+            if (nextNulledCell == nulledCells.end())
+                return;
             auto const settledEnd = std::ranges::find_if(
                 nextNulledCell, nulledCells.end(), [&](NulledCell const& cell) { return cell.pendingRow >= settledPrefix; });
             for (auto const& cell: std::ranges::subrange(nextNulledCell, settledEnd))
-                if (!notInserted[cell.pendingRow] && hooks.onCellNulled)
+                if ((notInserted.empty() || !notInserted[cell.pendingRow]) && hooks.onCellNulled)
                     hooks.onCellNulled(columnNames[cell.columnIndex], cell.reason);
             nextNulledCell = settledEnd;
         };
@@ -2143,6 +2148,9 @@ std::string BatchManager::DescribeRowKey(std::vector<SqlRawColumn> const& rawCol
     std::string key;
     bool firstCell = true;
     auto const appendCell = [&](size_t columnIndex) {
+        // The cells past the cap would only be cut off again.
+        if (key.size() > MaxKeyLength)
+            return;
         if (!std::exchange(firstCell, false))
             key += ", ";
         key += describe(columnIndex);

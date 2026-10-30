@@ -57,16 +57,16 @@ namespace
     ///
     /// With driver-reported failed rows, the run splits into those rows (already known to fail) and
     /// the sub-runs between them. Without, it is bisected.
-    void Split(WorkItem const& item, BatchInsertError const& failure, std::vector<WorkItem>& stack)
+    void Split(WorkItem const& item, BatchInsertError failure, std::vector<WorkItem>& stack)
     {
-        auto const reported = ReportedRowsWithin(failure.reportedFailedRows, item.firstRow, item.EndRow());
+        auto const reported = ReportedRowsWithin(std::move(failure.reportedFailedRows), item.firstRow, item.EndRow());
         if (reported.empty())
         {
             auto const leftCount = item.rowCount / 2;
             stack.push_back(WorkItem { .firstRow = item.firstRow + leftCount,
                                        .rowCount = item.rowCount - leftCount,
                                        .knownFailure = std::nullopt,
-                                       .bisectedFailure = failure.error });
+                                       .bisectedFailure = std::move(failure.error) });
             stack.push_back(WorkItem {
                 .firstRow = item.firstRow, .rowCount = leftCount, .knownFailure = std::nullopt, .leftHalf = true });
             return;
@@ -101,7 +101,7 @@ namespace
         };
         while (!stack.empty())
         {
-            auto const item = stack.back();
+            auto item = std::move(stack.back());
             stack.pop_back();
 
             if (item.knownFailure)
@@ -116,7 +116,7 @@ namespace
             // failed without a failure of its own.
             if (item.failsForSure && item.rowCount > 1)
             {
-                Split(item, BatchInsertError { .error = *item.bisectedFailure, .reportedFailedRows = {} }, stack);
+                Split(item, BatchInsertError { .error = std::move(*item.bisectedFailure), .reportedFailedRows = {} }, stack);
                 continue;
             }
 
@@ -146,7 +146,7 @@ namespace
                 onSettled(item.EndRow());
             }
             else
-                Split(item, result.error(), stack);
+                Split(item, std::move(result.error()), stack);
         }
     }
 } // namespace

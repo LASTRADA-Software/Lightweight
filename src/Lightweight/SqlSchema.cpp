@@ -1747,45 +1747,70 @@ namespace detail
         return result;
     }
 
+    namespace
+    {
+        /// @ref FindTablesNamed with the driver's search-pattern escape already queried.
+        /// @param escape The driver's @c SQL_SEARCH_PATTERN_ESCAPE string.
+        std::optional<std::vector<TableWithSchema>> FindTablesNamedWithEscape(SqlStatement& stmt,
+                                                                              std::string_view database,
+                                                                              std::string_view schema,
+                                                                              std::string_view name,
+                                                                              std::string_view escape)
+        {
+            // Deliberately not SQL_ATTR_METADATA_ID: none of the supported drivers honours it usefully.
+            // The SQLite driver ignores it (still matching a pattern), the SQL Server driver returns no
+            // rows unless a schema is given and none for a quoted name, and psqlodbc returns no rows at
+            // all — and none of them reports an error that a fallback could act on.
+            return EscapeSearchPattern(name, escape).transform([&](std::string const& pattern) {
+                return AllTables(stmt, database, schema, pattern);
+            });
+        }
+
+        /// @ref ResolveTable with the driver's search-pattern escape already queried.
+        /// @param escape The driver's @c SQL_SEARCH_PATTERN_ESCAPE string.
+        std::optional<ResolvedTable> ResolveTableWithEscape(SqlStatement& stmt,
+                                                            FullyQualifiedTableName const& table,
+                                                            std::string_view escape)
+        {
+            auto const requestedName = ToLowerCaseIdentifier(table.table);
+            auto const pick = [&](std::vector<TableWithSchema> const& candidates,
+                                  TableResolutionStep step) -> std::optional<ResolvedTable> {
+                auto const entry = std::ranges::find_if(candidates, [&](TableWithSchema const& candidate) {
+                    return ToLowerCaseIdentifier(candidate.name) == requestedName;
+                });
+                if (entry == candidates.end())
+                    return std::nullopt;
+                return ResolvedTable { .table = *entry, .step = step };
+            };
+            auto const lookUp = [&](std::string_view name, TableResolutionStep step) {
+                return FindTablesNamedWithEscape(stmt, table.catalog, table.schema, name, escape)
+                    .and_then([&](std::vector<TableWithSchema> const& candidates) { return pick(candidates, step); });
+            };
+
+            if (auto resolved = lookUp(table.table, TableResolutionStep::Exact))
+                return resolved;
+
+            auto const folded = stmt.Connection().QueryFormatter().FoldUnquotedIdentifier(table.table);
+            if (folded != table.table)
+                if (auto resolved = lookUp(folded, TableResolutionStep::Folded))
+                    return resolved;
+
+            return pick(AllTables(stmt, table.catalog, table.schema), TableResolutionStep::FullListing);
+        }
+    } // namespace
+
     std::optional<std::vector<TableWithSchema>> FindTablesNamed(SqlStatement& stmt,
                                                                 std::string_view database,
                                                                 std::string_view schema,
                                                                 std::string_view name)
     {
-        // Deliberately not SQL_ATTR_METADATA_ID: none of the supported drivers honours it usefully.
-        // The SQLite driver ignores it (still matching a pattern), the SQL Server driver returns no rows
-        // unless a schema is given and none for a quoted name, and psqlodbc returns no rows at all — and
-        // none of them reports an error that a fallback could act on.
-        return EscapeSearchPattern(name, ConnectionInfoString(stmt, SQL_SEARCH_PATTERN_ESCAPE))
-            .transform([&](std::string const& pattern) { return AllTables(stmt, database, schema, pattern); });
+        return FindTablesNamedWithEscape(
+            stmt, database, schema, name, ConnectionInfoString(stmt, SQL_SEARCH_PATTERN_ESCAPE));
     }
 
     std::optional<ResolvedTable> ResolveTable(SqlStatement& stmt, FullyQualifiedTableName const& table)
     {
-        auto const requestedName = ToLowerCaseIdentifier(table.table);
-        auto const pick = [&](std::vector<TableWithSchema> const& candidates,
-                              TableResolutionStep step) -> std::optional<ResolvedTable> {
-            auto const entry = std::ranges::find_if(candidates, [&](TableWithSchema const& candidate) {
-                return ToLowerCaseIdentifier(candidate.name) == requestedName;
-            });
-            if (entry == candidates.end())
-                return std::nullopt;
-            return ResolvedTable { .table = *entry, .step = step };
-        };
-        auto const lookUp = [&](std::string_view name, TableResolutionStep step) {
-            return FindTablesNamed(stmt, table.catalog, table.schema, name)
-                .and_then([&](std::vector<TableWithSchema> const& candidates) { return pick(candidates, step); });
-        };
-
-        if (auto resolved = lookUp(table.table, TableResolutionStep::Exact))
-            return resolved;
-
-        auto const folded = stmt.Connection().QueryFormatter().FoldUnquotedIdentifier(table.table);
-        if (folded != table.table)
-            if (auto resolved = lookUp(folded, TableResolutionStep::Folded))
-                return resolved;
-
-        return pick(AllTables(stmt, table.catalog, table.schema), TableResolutionStep::FullListing);
+        return ResolveTableWithEscape(stmt, table, ConnectionInfoString(stmt, SQL_SEARCH_PATTERN_ESCAPE));
     }
 
 } // namespace detail
@@ -1817,10 +1842,12 @@ namespace
     /// @param stmt The statement to run the catalog calls on.
     /// @param catalog The catalog @p table was read from.
     /// @param requestedSchema The schema @p table was requested in.
+    /// @param escape The driver's @c SQL_SEARCH_PATTERN_ESCAPE string.
     /// @param table The table description to rewrite in place; its own name is already the catalog's.
     void RestoreReferencedTableCasing(SqlStatement& stmt,
                                       std::string_view catalog,
                                       std::string_view requestedSchema,
+                                      std::string_view escape,
                                       Table& table)
     {
         // (schema, lower-cased name) -> the catalog's spelling, or nullopt if the catalog has none.
@@ -1834,10 +1861,11 @@ namespace
             auto const [entry, inserted] =
                 spellings.try_emplace(SpellingKey { schema, detail::ToLowerCaseIdentifier(reference.table) });
             if (inserted)
-                entry->second = detail::ResolveTable(stmt,
-                                                     FullyQualifiedTableName { .catalog = std::string(catalog),
-                                                                               .schema = std::move(schema),
-                                                                               .table = reference.table })
+                entry->second = detail::ResolveTableWithEscape(stmt,
+                                                               FullyQualifiedTableName { .catalog = std::string(catalog),
+                                                                                         .schema = std::move(schema),
+                                                                                         .table = reference.table },
+                                                               escape)
                                     .transform([](detail::ResolvedTable const& resolved) { return resolved.table.name; });
             if (entry->second)
                 reference.table = *entry->second;
@@ -2061,7 +2089,9 @@ std::optional<Table> ReadTable(SqlStatement& stmt, FullyQualifiedTableName const
     // so an absent table is distinguished from one whose column metadata cannot be read — and
     // reports the schema and name spelling the catalog actually holds rather than echoing the
     // caller's (whose schema is empty when it means "the connection default").
-    auto const resolved = detail::ResolveTable(stmt, table);
+    // Queried once for every catalog lookup of this table and the tables its foreign keys name.
+    auto const escape = ConnectionInfoString(stmt, SQL_SEARCH_PATTERN_ESCAPE);
+    auto const resolved = detail::ResolveTableWithEscape(stmt, table, escape);
     if (!resolved)
         return std::nullopt;
     auto const& entry = resolved->table;
@@ -2073,7 +2103,7 @@ std::optional<Table> ReadTable(SqlStatement& stmt, FullyQualifiedTableName const
     detail::ReadOneTableLegacy(stmt, table.catalog, handler.table.schema, entry.name, handler, scope);
 
     if (scope == TableReadScope::Full)
-        RestoreReferencedTableCasing(stmt, table.catalog, table.schema, handler.table);
+        RestoreReferencedTableCasing(stmt, table.catalog, table.schema, escape, handler.table);
 
     return std::move(handler.table);
 }

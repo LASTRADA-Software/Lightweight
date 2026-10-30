@@ -958,11 +958,10 @@ void BackupSchemas(std::filesystem::path const& outputFile,
 namespace
 {
     /// Reads the DBMS an archive was taken from.
-    /// @param metadataJson The archive's metadata.json text.
+    /// @param metadata The archive's parsed metadata.json.
     /// @return The type named by `server.name`, or UNKNOWN if absent or unrecognized.
-    SqlServerType ParseSourceServerType(std::string_view metadataJson)
+    SqlServerType ParseSourceServerType(nlohmann::json const& metadata)
     {
-        auto const metadata = nlohmann::json::parse(metadataJson, nullptr, false);
         if (!metadata.is_object() || !metadata.contains("server") || !metadata["server"].is_object())
             return SqlServerType::UNKNOWN;
         auto const& name = metadata["server"].value("name", nlohmann::json {});
@@ -1536,7 +1535,7 @@ RestoreReport Restore(std::filesystem::path const& inputFile,
     }
 
     std::map<std::string, TableInfo> tableMap = ParseSchema(metadataStr, &progress);
-    auto const sourceServerType = ParseSourceServerType(metadataStr);
+    auto const sourceServerType = ParseSourceServerType(metadata);
 
     // Older archives may hold bookkeeping tables; the live ones stay as they are.
     std::erase_if(tableMap, [](auto const& pair) {

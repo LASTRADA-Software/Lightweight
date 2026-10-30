@@ -116,11 +116,6 @@ struct LIGHTWEIGHT_API BatchManager
     // private:
     [[nodiscard]] std::unique_ptr<BatchColumn> CreateColumn(SqlColumnDeclaration const& col) const;
 
-    /// Tells whether CHAR/NCHAR values lose their trailing pad: the source DBMS pads them and the
-    /// target does not, so the pad would otherwise stay in the data and break comparisons.
-    /// @return True if the pad is stripped; false if either DBMS is unknown.
-    [[nodiscard]] bool TrimsFixedCharPadding() const;
-
     /// Clears every column of the rows not yet flushed.
     void DiscardPendingRows();
 
@@ -191,6 +186,12 @@ struct LIGHTWEIGHT_API BatchManager
     SqlServerType serverType = SqlServerType::UNKNOWN;
     /// The DBMS the backup was taken from; UNKNOWN when the archive does not name a known one.
     SqlServerType sourceServerType = SqlServerType::UNKNOWN;
+    /// Whether CHAR/NCHAR values lose their trailing pad: the source DBMS pads them and the target
+    /// does not, so the pad would otherwise stay in the data and break comparisons. False if either
+    /// DBMS is unknown.
+    bool trimsFixedCharPadding = false;
+    /// Whether the target stores GUID columns in a native GUID type rather than as text.
+    bool hasNativeGuidType = false;
     /// The column names, parallel to `columns`, for failure reports.
     std::vector<std::string> columnNames;
 };
