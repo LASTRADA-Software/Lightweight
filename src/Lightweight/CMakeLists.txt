@@ -129,6 +129,7 @@ set(SOURCE_FILES
     SqlBackup/RawColumnSlice.cpp
     SqlBackup/Restore.cpp
     SqlBackup/RestoreFailureLog.cpp
+    SqlBackup/RowIsolation.cpp
     SqlBackup/SqlBackup.cpp
     SqlBackup/TableFilter.cpp
     SqlBackup/WorkerChunkArchive.cpp

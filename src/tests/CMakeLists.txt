@@ -134,6 +134,7 @@ set(SOURCE_FILES
     SqlBackup/ProgressManagerTests.cpp
     SqlBackup/RestoreFailureLogTests.cpp
     SqlBackup/RestoreFaultTests.cpp
+    SqlBackup/RowIsolationTests.cpp
     SqlBackup/BatchManagerTests.cpp
     SqlBackup/MsgPackChunkFormatsTests.cpp
     SqlBackup/BatchManagerIntegrationTests.cpp
