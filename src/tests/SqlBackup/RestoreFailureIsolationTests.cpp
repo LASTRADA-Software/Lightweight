@@ -40,6 +40,7 @@ using Lightweight::SqlBackup::Tests::ChunkNames;
 using Lightweight::SqlBackup::Tests::CountRows;
 using Lightweight::SqlBackup::Tests::DropTables;
 using Lightweight::SqlBackup::Tests::MakeChunk;
+using Lightweight::SqlBackup::Tests::MakeMultiBatchChunk;
 using Lightweight::SqlBackup::Tests::ReadIds;
 using Lightweight::SqlBackup::Tests::RecordingProgressManager;
 using Lightweight::SqlBackup::Tests::RewriteChunks;
@@ -476,6 +477,58 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK(ReadIds("rfi_replay_transient") == std::vector<int64_t> { 1, 2, 3, 4, 5, 6 });
     CHECK_FALSE(report.HasFailures());
     CHECK(progress.finalRows["rfi_replay_transient"] == 6);
+    CHECK(progress.itemsProcessed == 6);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "transient error after an intermediate commit resumes after it across the chunk's batches",
+                 "[SqlBackup][RestoreFailures]")
+{
+    std::filesystem::path const backupFile = "rfi_resume_batches_backup.zip";
+    std::filesystem::path const splitFile = "rfi_resume_batches_split.zip";
+    auto const backupFileCleaner = ScopedFileRemoved { backupFile };
+    auto const splitFileCleaner = ScopedFileRemoved { splitFile };
+
+    CreateTableWithRows("rfi_resume_batches", 6);
+    BackupTo(backupFile);
+    DropTables({ "rfi_resume_batches" });
+    auto const chunks = ChunkNames(backupFile, "rfi_resume_batches");
+    REQUIRE(chunks.size() == 1);
+    // The chunk's first MsgPack batch holds fewer rows than an intermediate commit settles, so the
+    // retry's skip of the committed rows spans that whole batch and ends inside the next one.
+    RewriteChunks(backupFile,
+                  splitFile,
+                  { { chunks.front(), MakeMultiBatchChunk({ IdValueRows({ 1 }), IdValueRows({ 2, 3, 4, 5, 6 }) }) } });
+
+    // memoryLimitBytes > 0, or Restore() replaces these settings and batches ~4000 rows.
+    auto const settings =
+        SqlBackup::RestoreSettings { .batchSize = 2, .maxRowsPerCommit = 2, .memoryLimitBytes = std::size_t { 1 } << 30U };
+    auto const restore = [&](SqlBackup::ProgressManager& progress) {
+        return SqlBackup::Restore(splitFile, GetConnectionString(), 1, progress, {}, "*", FastRetry(), settings);
+    };
+    auto const checksPerBatch = CountChecksPerBatch(restore);
+    REQUIRE(CountRows("rfi_resume_batches") == 6);
+
+    // The connection is lost in the second batch, after the first one (rows 1 and 2) was committed.
+    // Were the watermark moved back to the end of the first MsgPack batch, row 2 would be inserted
+    // again and fail as a duplicate.
+    auto source = ScriptedFaultSource {
+        SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "08S01", .message = "Communication link failure" },
+        1,
+        "ExecuteBatch",
+        checksPerBatch,
+    };
+    auto report = SqlBackup::RestoreReport {};
+    FinalRowsProgressManager progress;
+    {
+        ScopedFaultSource const installed { &source };
+        report = restore(progress);
+    }
+
+    CHECK(source.RemainingFailures() == 0);
+    CHECK(ReadIds("rfi_resume_batches") == std::vector<int64_t> { 1, 2, 3, 4, 5, 6 });
+    CHECK_FALSE(report.HasFailures());
+    CHECK(progress.finalRows["rfi_resume_batches"] == 6);
     CHECK(progress.itemsProcessed == 6);
 }
 

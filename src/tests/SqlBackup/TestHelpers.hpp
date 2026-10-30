@@ -188,6 +188,15 @@ inline std::string MakeChunk(std::vector<std::vector<BackupValue>> const& rows)
     return writer->Flush();
 }
 
+/// Encodes @p batches as one MsgPack data chunk holding one batch per element, in order.
+inline std::string MakeMultiBatchChunk(std::vector<std::vector<std::vector<BackupValue>>> const& batches)
+{
+    auto chunk = std::string {};
+    for (auto const& rows: batches)
+        chunk += MakeChunk(rows);
+    return chunk;
+}
+
 /// Returns the sorted names of the data chunks of @p tableName in @p archive.
 /// @throws std::runtime_error if @p archive cannot be opened.
 inline std::vector<std::string> ChunkNames(std::filesystem::path const& archive, std::string_view tableName)

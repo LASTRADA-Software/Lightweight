@@ -240,6 +240,7 @@ namespace
 
     /// Commits @p transaction, the chunk transaction of a ChunkInsertMode::SingleTransaction attempt
     /// whose rows up to @p settledRows are each inserted, and advances the resume watermark to them.
+    /// A watermark already past @p settledRows (an earlier attempt committed further) stays where it is.
     /// @param target The chunk attempt.
     /// @param transaction The chunk transaction.
     /// @param settledRows The settled rows of the attempt's BatchManager.
@@ -249,6 +250,8 @@ namespace
         ZoneScopedN("Restore::Commit");
         if (!transaction.TryCommit())
             ThrowForSingleTransaction(target, SqlErrorInfo::FromConnectionHandle(target.workerConn.NativeHandle()));
+        if (settledRows <= target.state.settledRows)
+            return;
         target.committedRows.fetch_add(settledRows - target.state.settledRows);
         target.state.settledRows = settledRows;
     }
@@ -287,7 +290,9 @@ namespace
             .onCellNulled = throwIsolationRequired,
             .onSettled =
                 [&target](std::size_t settledRows) {
-                    if (!target.chunkTransaction || target.rowsPerCommit == 0
+                    // A retry skipping the rows an earlier attempt committed settles them again, in
+                    // steps that may end before the watermark: those have nothing to commit.
+                    if (!target.chunkTransaction || target.rowsPerCommit == 0 || settledRows <= target.state.settledRows
                         || settledRows - target.state.settledRows < target.rowsPerCommit)
                         return;
                     CommitChunkTransaction(target, *target.chunkTransaction, settledRows);
