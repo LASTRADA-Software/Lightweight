@@ -9,6 +9,12 @@ import re
 import shutil
 import tempfile
 import zipfile
+
+# Captured tool output contains non-ASCII glyphs; never let printing it crash the
+# harness on a non-UTF-8 console (e.g. cp1252 on Windows runners).
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
 from pathlib import Path
 
 try:
