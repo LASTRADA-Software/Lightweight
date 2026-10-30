@@ -16,6 +16,7 @@
 #include "Common.hpp"
 #include "ConnectionPool.hpp"
 #include "Restore.hpp"
+#include "RestoreFailureLog.hpp"
 #include "Sha256.hpp"
 #include "SqlBackup.hpp"
 #include "SqlBackupFormats.hpp"
@@ -1392,14 +1393,14 @@ std::string DefaultRestoreSchema(std::filesystem::path const& archiveFile,
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-void Restore(std::filesystem::path const& inputFile,
-             SqlConnectionString const& connectionString,
-             unsigned concurrency,
-             ProgressManager& progress,
-             std::string const& schema,
-             std::string const& tableFilter,
-             RetrySettings const& retrySettings,
-             RestoreSettings const& restoreSettings)
+RestoreReport Restore(std::filesystem::path const& inputFile,
+                      SqlConnectionString const& connectionString,
+                      unsigned concurrency,
+                      ProgressManager& progress,
+                      std::string const& schema,
+                      std::string const& tableFilter,
+                      RetrySettings const& retrySettings,
+                      RestoreSettings const& restoreSettings)
 {
     ZoneScopedN("SqlBackup::Restore");
     {
@@ -1417,7 +1418,7 @@ void Restore(std::filesystem::path const& inputFile,
                           .currentRows = 0,
                           .totalRows = 0,
                           .message = "Input file does not exist" });
-        return;
+        return {};
     }
 
     int err = 0;
@@ -1434,7 +1435,7 @@ void Restore(std::filesystem::path const& inputFile,
                           .currentRows = 0,
                           .totalRows = 0,
                           .message = "Failed to open ZIP archive: " + errMsg });
-        return;
+        return {};
     }
     // LCOV_EXCL_STOP
 
@@ -1448,7 +1449,7 @@ void Restore(std::filesystem::path const& inputFile,
                           .totalRows = 0,
                           .message = "metadata.json not found in archive" });
         zip_close(zip);
-        return;
+        return {};
     }
     // LCOV_EXCL_STOP
 
@@ -1462,7 +1463,7 @@ void Restore(std::filesystem::path const& inputFile,
                           .totalRows = 0,
                           .message = "Failed to stat metadata.json" });
         zip_close(zip);
-        return;
+        return {};
     }
     // LCOV_EXCL_STOP
 
@@ -1482,7 +1483,7 @@ void Restore(std::filesystem::path const& inputFile,
                                                  SingleSchemaFormatVersion,
                                                  MultiSchemaFormatVersion) });
         zip_close(zip);
-        return;
+        return {};
     }
 
     bool const multiSchema = formatVersion == MultiSchemaFormatVersion;
@@ -1498,7 +1499,7 @@ void Restore(std::filesystem::path const& inputFile,
                                      detail::JoinNames(metadata.value("schema_names", std::vector<std::string> {})),
                                      schema) });
         zip_close(zip);
-        return;
+        return {};
     }
 
     std::string const effectiveSchema = !schema.empty() ? schema : metadata.value("schema_name", "");
@@ -1569,7 +1570,7 @@ void Restore(std::filesystem::path const& inputFile,
                               .totalRows = std::nullopt,
                               .message = "Failed to connect to the target database: " + probe.LastError().message });
             zip_close(zip);
-            return;
+            return {};
         }
         if (!probe.QueryFormatter().SupportsSchemas())
         {
@@ -1584,7 +1585,7 @@ void Restore(std::filesystem::path const& inputFile,
                                                          "these tables exist in more than one schema of the archive: {}",
                                                          detail::JoinNames(flattened.error())) });
                 zip_close(zip);
-                return;
+                return {};
             }
             for (auto& [directory, key]: chunkTables)
                 key = tableMap.at(key).name;
@@ -1619,7 +1620,7 @@ void Restore(std::filesystem::path const& inputFile,
                           .message = "Restore aborted: No tables could be created" });
         zip_close(zip);
         progress.AllDone();
-        return;
+        return {};
     }
 
     // Schema-only mode: create schema and apply constraints/indexes, then exit early
@@ -1643,7 +1644,7 @@ void Restore(std::filesystem::path const& inputFile,
                           .totalRows = std::nullopt,
                           .message = "Schema-only restore complete" });
         progress.AllDone();
-        return;
+        return {};
     }
 
     std::deque<detail::ZipEntryInfo> dataQueue;
@@ -1718,6 +1719,7 @@ void Restore(std::filesystem::path const& inputFile,
                                                   : CalculateRestoreSettings(GetAvailableSystemMemory(), concurrency);
 
     detail::FailedTables failedDataTables;
+    detail::RestoreFailureLog failureLog;
     detail::RestoreContext ctx {
         .connectionString = connectionString,
         .schema = effectiveSchema,
@@ -1735,6 +1737,7 @@ void Restore(std::filesystem::path const& inputFile,
         .retrySettings = retrySettings,
         .restoreSettings = effectiveSettings,
         .failedTables = failedDataTables,
+        .failureLog = failureLog,
         .sourceServerType = sourceServerType,
     };
 
@@ -1768,16 +1771,21 @@ void Restore(std::filesystem::path const& inputFile,
     for (auto& t: threads)
         t.join();
 
-    // A worker stops on a database error; once all have stopped, chunks may be left unrestored.
+    auto report = failureLog.Snapshot();
+
+    // A worker stops on a lost connection; once all have stopped, chunks may be left unrestored.
     for (auto const& [tableName, processed]: chunksProcessed)
     {
-        if (processed->load() < totalChunksPerTable[tableName])
-            progress.Update({ .state = Progress::State::Error,
-                              .tableName = tableName,
-                              .currentRows = tableProgress.at(tableName)->load(),
-                              .totalRows = std::nullopt,
-                              .message = "Not fully restored: the restore stopped after an earlier error" });
+        if (processed->load() >= totalChunksPerTable[tableName])
+            continue;
+        report.incompleteTables.push_back(tableName);
+        progress.Update({ .state = Progress::State::Error,
+                          .tableName = tableName,
+                          .currentRows = tableProgress.at(tableName)->load(),
+                          .totalRows = std::nullopt,
+                          .message = "Not fully restored: the restore stopped after an earlier error" });
     }
+    report.workerStopped = !report.incompleteTables.empty();
 
     detail::ApplyDatabaseConstraints(connectionString, effectiveSchema, filteredTableMap, progress);
     detail::RestoreIndexes(connectionString, effectiveSchema, filteredTableMap, progress);
@@ -1789,18 +1797,20 @@ void Restore(std::filesystem::path const& inputFile,
                       .totalRows = std::nullopt,
                       .message = "Restore complete" });
     progress.AllDone();
+    return report;
 }
 
-void Restore(std::filesystem::path const& inputFile,
-             SqlConnectionString const& connectionString,
-             unsigned concurrency,
-             ProgressManager& progress,
-             std::string const& schema,
-             std::string const& tableFilter,
-             RetrySettings const& retrySettings)
+RestoreReport Restore(std::filesystem::path const& inputFile,
+                      SqlConnectionString const& connectionString,
+                      unsigned concurrency,
+                      ProgressManager& progress,
+                      std::string const& schema,
+                      std::string const& tableFilter,
+                      RetrySettings const& retrySettings)
 {
     // Forward to the main implementation with default RestoreSettings
-    Restore(inputFile, connectionString, concurrency, progress, schema, tableFilter, retrySettings, RestoreSettings {});
+    return Restore(
+        inputFile, connectionString, concurrency, progress, schema, tableFilter, retrySettings, RestoreSettings {});
 }
 
 } // namespace Lightweight::SqlBackup

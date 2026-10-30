@@ -422,6 +422,20 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
         return std::string(identifier);
     }
 
+    /// @brief Whether the driver's parameter status array names exactly the parameter sets that
+    /// failed when a batch (parameter array) execution fails.
+    ///
+    /// Defaults to `false`. SQL Server returns `true`: ODBC Driver 18 executes every parameter set and
+    /// marks only the failing ones `SQL_PARAM_ERROR`. PostgreSQL's psqlodbc marks every parameter set
+    /// of a failed array `SQL_PARAM_ERROR`, and the SQLite ODBC driver does not fill the array at all,
+    /// so their failing rows are found by bisection instead.
+    ///
+    /// @return `true` if the rows marked `SQL_PARAM_ERROR` may be trusted to be the failing ones.
+    [[nodiscard]] virtual bool ParameterStatusIdentifiesFailedRows() const noexcept
+    {
+        return false;
+    }
+
   protected:
     /// Formats a table name with optional schema prefix.
     static std::string FormatTableName(std::string_view schema, std::string_view table);

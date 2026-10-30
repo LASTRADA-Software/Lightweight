@@ -1,0 +1,522 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// A value or row that fails to restore never aborts the restore: the row is isolated and reported,
+// the rest of its chunk, its table and the other tables are restored, and Restore() returns a
+// bounded failure report. Only a lost connection stops a worker.
+
+#include "../ScriptedFaultSource.hpp"
+#include "../Utils.hpp"
+#include "TestHelpers.hpp"
+
+#include <Lightweight/SqlBackup.hpp>
+#include <Lightweight/SqlBackup/Common.hpp>
+#include <Lightweight/SqlBackup/MsgPackChunkFormats.hpp>
+#include <Lightweight/SqlBackup/Restore.hpp>
+#include <Lightweight/SqlBackup/Sha256.hpp>
+#include <Lightweight/SqlColumnTypeDefinitions.hpp>
+#include <Lightweight/SqlConnection.hpp>
+#include <Lightweight/SqlQueryFormatter.hpp>
+#include <Lightweight/SqlRetryPolicy.hpp>
+#include <Lightweight/SqlStatement.hpp>
+#include <Lightweight/Zip/ZipArchive.hpp>
+
+#include <catch2/catch_test_macros.hpp>
+
+#include <algorithm>
+#include <chrono>
+#include <cstdint>
+#include <filesystem>
+#include <format>
+#include <map>
+#include <optional>
+#include <ranges>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+
+#include <nlohmann/json.hpp>
+
+using namespace Lightweight;
+using Lightweight::SqlBackup::Tests::RecordingProgressManager;
+using Lightweight::SqlBackup::Tests::RewriteArchive;
+using Lightweight::SqlBackup::Tests::ScopedFileRemoved;
+using Lightweight::SqlBackup::Tests::TableReportOf;
+using Lightweight::Tests::ScopedFaultSource;
+using Lightweight::Tests::ScriptedFaultSource;
+
+namespace
+{
+
+using Row = std::vector<SqlBackup::BackupValue>;
+
+SqlConnectionString const& GetConnectionString()
+{
+    return SqlConnection::DefaultConnectionString();
+}
+
+/// Returns the row count of @p tableName.
+int64_t CountRows(std::string_view tableName)
+{
+    return SqlStatement {}.ExecuteDirectScalar<int64_t>(std::format(R"(SELECT COUNT(*) FROM "{}")", tableName)).value_or(-1);
+}
+
+/// Returns the sorted `ID`s of @p tableName.
+std::vector<int64_t> ReadIds(std::string_view tableName)
+{
+    auto stmt = SqlStatement {};
+    auto cursor = stmt.ExecuteDirect(std::format(R"(SELECT "ID" FROM "{}" ORDER BY "ID")", tableName));
+    std::vector<int64_t> ids;
+    while (cursor.FetchRow())
+        ids.push_back(cursor.GetColumn<int64_t>(1));
+    return ids;
+}
+
+/// Creates `<tableName>(ID INTEGER PRIMARY KEY, V VARCHAR(20))` holding rows 1..@p rowCount.
+void CreateTableWithRows(std::string const& tableName, int rowCount)
+{
+    using namespace SqlColumnTypeDefinitions;
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([&](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable(tableName).PrimaryKey("ID", Integer {}).Column("V", Varchar { 20 });
+    });
+    for (auto const id: std::views::iota(1, rowCount + 1))
+        (void) stmt.ExecuteDirect(std::format(R"(INSERT INTO "{0}" ("ID", "V") VALUES ({1}, 'row {1}'))", tableName, id));
+}
+
+/// Drops @p tableNames.
+void DropTables(std::vector<std::string> const& tableNames)
+{
+    SqlStatement {}.MigrateDirect([&](SqlMigrationQueryBuilder& migration) {
+        for (auto const& name: tableNames)
+            migration.DropTable(name);
+    });
+}
+
+/// The `(ID, V)` rows with the given IDs, as a backup of CreateTableWithRows() holds them.
+std::vector<Row> IdValueRows(std::vector<int64_t> const& ids)
+{
+    return ids | std::views::transform([](int64_t id) { return Row { id, std::format("row {}", id) }; })
+           | std::ranges::to<std::vector>();
+}
+
+/// Encodes @p rows as one MsgPack data chunk.
+std::string MakeChunk(std::vector<Row> const& rows)
+{
+    auto writer = SqlBackup::CreateMsgPackChunkWriter();
+    for (auto const& row: rows)
+        writer->WriteRow(row);
+    return writer->Flush();
+}
+
+/// Returns the sorted names of the data chunks of @p tableName in @p archive.
+std::vector<std::string> ChunkNames(std::filesystem::path const& archive, std::string_view tableName)
+{
+    auto const zip = Zip::ZipArchive::Open(archive);
+    REQUIRE(zip.has_value());
+    auto const prefix = std::format("data/{}/", tableName);
+    auto names = zip->GetAllEntries() | std::views::transform([](Zip::EntryInfo const& entry) { return entry.name; })
+                 | std::views::filter([&](std::string const& name) { return name.starts_with(prefix); })
+                 | std::ranges::to<std::vector>();
+    std::ranges::sort(names);
+    return names;
+}
+
+/// Whether RewriteChunks() updates `checksums.json` for the chunks it replaces.
+enum class ChecksumUpdate : std::uint8_t
+{
+    /// The replaced chunks keep their old checksum, so the restore detects them as corrupt.
+    Keep,
+    /// The replaced chunks get a valid checksum, so the restore reads their content.
+    Recompute,
+};
+
+/// Copies @p source to @p target, replacing the content of the entries named in @p replacements.
+void RewriteChunks(std::filesystem::path const& source,
+                   std::filesystem::path const& target,
+                   std::map<std::string, std::string> const& replacements,
+                   ChecksumUpdate checksums = ChecksumUpdate::Recompute)
+{
+    RewriteArchive(source,
+                   target,
+                   [&](std::string const& name, std::string content) -> std::optional<std::pair<std::string, std::string>> {
+                       if (auto const replacement = replacements.find(name); replacement != replacements.end())
+                           return std::pair { name, replacement->second };
+                       if (name == "checksums.json" && checksums == ChecksumUpdate::Recompute)
+                       {
+                           auto json = nlohmann::json::parse(content);
+                           for (auto const& [entry, replacementContent]: replacements)
+                               json["files"][entry] = SqlBackup::Sha256::Hash(replacementContent);
+                           return std::pair { name, json.dump() };
+                       }
+                       return std::pair { name, std::move(content) };
+                   });
+}
+
+/// Retry settings that retry quickly.
+SqlBackup::RetrySettings FastRetry()
+{
+    return SqlBackup::RetrySettings {
+        .maxRetries = 3,
+        .initialDelay = std::chrono::milliseconds { 1 },
+        .backoffMultiplier = 1.0,
+        .maxDelay = std::chrono::milliseconds { 1 },
+    };
+}
+
+/// Backs up the database with @p rowsPerChunk rows per chunk.
+void BackupTo(std::filesystem::path const& archive, std::size_t rowsPerChunk = 0)
+{
+    SqlBackup::NullProgressManager progress;
+    auto settings = SqlBackup::BackupSettings {};
+    if (rowsPerChunk > 0)
+        settings.rowsPerChunk = rowsPerChunk;
+    REQUIRE_NOTHROW(SqlBackup::Backup(archive, GetConnectionString(), 1, progress, {}, "*", {}, settings));
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "duplicate primary keys fail only the duplicate rows", "[SqlBackup][RestoreFailures]")
+{
+    std::filesystem::path const backupFile = "rfi_duplicates_backup.zip";
+    std::filesystem::path const brokenFile = "rfi_duplicates_broken.zip";
+    auto const backupFileCleaner = ScopedFileRemoved { backupFile };
+    auto const brokenFileCleaner = ScopedFileRemoved { brokenFile };
+
+    CreateTableWithRows("rfi_dup_a", 10);
+    CreateTableWithRows("rfi_dup_b", 5);
+    BackupTo(backupFile);
+    DropTables({ "rfi_dup_a", "rfi_dup_b" });
+
+    auto const chunks = ChunkNames(backupFile, "rfi_dup_a");
+    REQUIRE(chunks.size() == 1);
+    auto const& chunk = chunks.front();
+    // Rows 4 and 9 duplicate row 1's ID.
+    RewriteChunks(backupFile, brokenFile, { { chunk, MakeChunk(IdValueRows({ 1, 2, 3, 1, 5, 6, 7, 8, 1, 10 })) } });
+
+    RecordingProgressManager progress;
+    auto const report = SqlBackup::Restore(brokenFile, GetConnectionString(), 1, progress);
+
+    // Rows after the failures in the same chunk, on the same worker connection, are present: the
+    // failed batches were rolled back cleanly (on PostgreSQL that is the 25P02 guard).
+    CHECK(ReadIds("rfi_dup_a") == std::vector<int64_t> { 1, 2, 3, 5, 6, 7, 8, 10 });
+    CHECK(CountRows("rfi_dup_b") == 5);
+
+    CHECK(report.HasFailures());
+    CHECK(report.totalFailedRows == 2);
+    CHECK_FALSE(report.workerStopped);
+    CHECK(report.incompleteTables.empty());
+    auto const tableReport = TableReportOf(report, "rfi_dup_a");
+    CHECK(tableReport.failedRowCount == 2);
+    REQUIRE(tableReport.failedRowRanges.size() == 2);
+    CHECK(tableReport.failedRowRanges[0].chunkPath == chunk);
+    CHECK(tableReport.failedRowRanges[0].firstRow == 4);
+    CHECK(tableReport.failedRowRanges[0].lastRow == 4);
+    CHECK(tableReport.failedRowRanges[1].chunkPath == chunk);
+    CHECK(tableReport.failedRowRanges[1].firstRow == 9);
+    CHECK(tableReport.failedRowRanges[1].lastRow == 9);
+    REQUIRE(tableReport.reasons.size() == 1);
+    CHECK(tableReport.reasons[0].occurrences == 2);
+    CHECK(std::ranges::contains(tableReport.reasons[0].sampleKeys, std::string { "1" }));
+    CHECK_FALSE(TableReportOf(report, "rfi_dup_b").HasFailures());
+
+    // dbtool exits non-zero; the table's single terminal update names the failures.
+    CHECK(progress.ErrorCount() > 0);
+    auto const errors = progress.ErrorsOf("rfi_dup_a");
+    CHECK(std::ranges::count(errors, std::string { "2 rows failed, 0 cells set to NULL" }) == 1);
+    CHECK(progress.ErrorsOf("rfi_dup_b").empty());
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "nullable unconvertible value is restored as NULL", "[SqlBackup][RestoreFailures]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    // Only SQLite stores 300 in a TINYINT column (SQL Server refuses it; PostgreSQL has no TINYINT).
+    auto stmt = SqlStatement {};
+    if (stmt.Connection().ServerType() != SqlServerType::SQLITE)
+        return;
+
+    std::filesystem::path const backupFile = "rfi_nullable_backup.zip";
+    auto const backupFileCleaner = ScopedFileRemoved { backupFile };
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("rfi_nullable").PrimaryKey("ID", Integer {}).Column("T", Tinyint {});
+    });
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "rfi_nullable" ("ID", "T") VALUES (1, 300))");
+    BackupTo(backupFile);
+    DropTables({ "rfi_nullable" });
+
+    RecordingProgressManager progress;
+    auto const report = SqlBackup::Restore(backupFile, GetConnectionString(), 1, progress);
+
+    CHECK(CountRows("rfi_nullable") == 1);
+    CHECK(SqlStatement {}.ExecuteDirectScalar<int64_t>(R"(SELECT "T" FROM "rfi_nullable")") == std::nullopt);
+    auto const tableReport = TableReportOf(report, "rfi_nullable");
+    CHECK(tableReport.failedRowCount == 0);
+    REQUIRE(tableReport.valueFailures.size() == 1);
+    CHECK(tableReport.valueFailures[0].column == "T");
+    CHECK(tableReport.valueFailures[0].cellsSetToNull == 1);
+    CHECK(progress.ErrorsOf("rfi_nullable") == std::vector<std::string> { "0 rows failed, 1 cells set to NULL" });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "NOT NULL unconvertible value fails only its row", "[SqlBackup][RestoreFailures]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto stmt = SqlStatement {};
+    if (stmt.Connection().ServerType() != SqlServerType::SQLITE)
+        return;
+
+    std::filesystem::path const backupFile = "rfi_required_backup.zip";
+    auto const backupFileCleaner = ScopedFileRemoved { backupFile };
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("rfi_required").PrimaryKey("ID", Integer {}).RequiredColumn("T", Tinyint {});
+    });
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "rfi_required" ("ID", "T") VALUES (1, 5), (2, 300), (3, 7))");
+    BackupTo(backupFile);
+    DropTables({ "rfi_required" });
+    auto const chunks = ChunkNames(backupFile, "rfi_required");
+    REQUIRE(chunks.size() == 1);
+
+    RecordingProgressManager progress;
+    auto const report = SqlBackup::Restore(backupFile, GetConnectionString(), 1, progress);
+
+    CHECK(ReadIds("rfi_required") == std::vector<int64_t> { 1, 3 });
+    auto const tableReport = TableReportOf(report, "rfi_required");
+    CHECK(tableReport.failedRowCount == 1);
+    REQUIRE(tableReport.failedRowRanges.size() == 1);
+    CHECK(tableReport.failedRowRanges[0].chunkPath == chunks.front());
+    CHECK(tableReport.failedRowRanges[0].firstRow == 2);
+    CHECK(tableReport.failedRowRanges[0].lastRow == 2);
+    CHECK(tableReport.valueFailures.empty());
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "bind-class error fails the table and the restore continues",
+                 "[SqlBackup][RestoreFailures]")
+{
+    std::filesystem::path const backupFile = "rfi_bind_backup.zip";
+    auto const backupFileCleaner = ScopedFileRemoved { backupFile };
+
+    CreateTableWithRows("rfi_bind_a", 3);
+    CreateTableWithRows("rfi_bind_b", 4);
+    BackupTo(backupFile);
+    DropTables({ "rfi_bind_a", "rfi_bind_b" });
+
+    auto source = ScriptedFaultSource {
+        SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "HYC00", .message = "Driver does not support this parameter" },
+        1,
+        "ExecuteBatch"
+    };
+    auto report = SqlBackup::RestoreReport {};
+    RecordingProgressManager progress;
+    {
+        ScopedFaultSource const installed { &source };
+        report = SqlBackup::Restore(backupFile, GetConnectionString(), 1, progress);
+    }
+
+    // One injection, and no retry of it: a retry would have succeeded and inserted rows.
+    CHECK(source.RemainingFailures() == 0);
+    auto const reportA = TableReportOf(report, "rfi_bind_a");
+    auto const reportB = TableReportOf(report, "rfi_bind_b");
+    auto const aFailed = reportA.tableFailure.has_value();
+    auto const bFailed = reportB.tableFailure.has_value();
+    REQUIRE(aFailed != bFailed);
+    auto const& failed = aFailed ? reportA : reportB;
+    auto const restoredName = std::string { aFailed ? "rfi_bind_b" : "rfi_bind_a" };
+    CHECK(failed.tableFailure->starts_with("HYC00"));
+    CHECK(CountRows(failed.tableName) == 0);
+    CHECK(CountRows(restoredName) == (aFailed ? 4 : 3));
+    CHECK_FALSE(TableReportOf(report, restoredName).HasFailures());
+    CHECK_FALSE(report.workerStopped);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "transient error after a committed batch does not duplicate rows",
+                 "[SqlBackup][RestoreFailures]")
+{
+    std::filesystem::path const backupFile = "rfi_transient_backup.zip";
+    auto const backupFileCleaner = ScopedFileRemoved { backupFile };
+
+    CreateTableWithRows("rfi_transient", 6);
+    BackupTo(backupFile);
+    DropTables({ "rfi_transient" });
+
+    // memoryLimitBytes > 0, or Restore() replaces these settings and batches ~4000 rows.
+    auto const settings = SqlBackup::RestoreSettings { .batchSize = 2, .memoryLimitBytes = std::size_t { 1 } << 30U };
+    auto const restore = [&](SqlBackup::ProgressManager& progress) {
+        return SqlBackup::Restore(backupFile, GetConnectionString(), 1, progress, {}, "*", FastRetry(), settings);
+    };
+
+    // Measure how many checked calls one batch makes: a clean restore runs three batches of two rows.
+    auto counter = ScriptedFaultSource { SqlErrorInfo {}, 0, "ExecuteBatch" };
+    {
+        ScopedFaultSource const installed { &counter };
+        SqlBackup::NullProgressManager progress;
+        CHECK_FALSE(restore(progress).HasFailures());
+    }
+    REQUIRE(CountRows("rfi_transient") == 6);
+    REQUIRE(counter.ConsultCount() % 3 == 0);
+    auto const checksPerBatch = counter.ConsultCount() / 3;
+    REQUIRE(checksPerBatch > 0);
+
+    // The second batch hits a lost connection after the first one committed.
+    auto source = ScriptedFaultSource {
+        SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "08S01", .message = "Communication link failure" },
+        1,
+        "ExecuteBatch",
+        checksPerBatch,
+    };
+    auto report = SqlBackup::RestoreReport {};
+    {
+        ScopedFaultSource const installed { &source };
+        RecordingProgressManager progress;
+        report = restore(progress);
+    }
+
+    CHECK(source.RemainingFailures() == 0);
+    CHECK(ReadIds("rfi_transient") == std::vector<int64_t> { 1, 2, 3, 4, 5, 6 });
+    CHECK_FALSE(report.HasFailures());
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "concurrent workers aggregate failures exactly", "[SqlBackup][RestoreFailures]")
+{
+    std::filesystem::path const backupFile = "rfi_concurrent_backup.zip";
+    std::filesystem::path const brokenFile = "rfi_concurrent_broken.zip";
+    auto const backupFileCleaner = ScopedFileRemoved { backupFile };
+    auto const brokenFileCleaner = ScopedFileRemoved { brokenFile };
+
+    CreateTableWithRows("rfi_concurrent", 24);
+    BackupTo(backupFile, 3);
+    DropTables({ "rfi_concurrent" });
+
+    // In every chunk, the third row duplicates the first one's ID.
+    auto const chunks = ChunkNames(backupFile, "rfi_concurrent");
+    REQUIRE(chunks.size() == 8);
+    auto replacements = std::map<std::string, std::string> {};
+    for (auto const& [index, chunk]: std::views::enumerate(chunks))
+    {
+        auto const first = static_cast<int64_t>((index * 3) + 1);
+        replacements.emplace(chunk, MakeChunk(IdValueRows({ first, first + 1, first })));
+    }
+    RewriteChunks(backupFile, brokenFile, replacements);
+
+    RecordingProgressManager progress;
+    auto const report = SqlBackup::Restore(brokenFile, GetConnectionString(), 4, progress);
+
+    CHECK(CountRows("rfi_concurrent") == 16);
+    auto const tableReport = TableReportOf(report, "rfi_concurrent");
+    CHECK(tableReport.failedRowCount == chunks.size());
+    CHECK(report.totalFailedRows == chunks.size());
+    CHECK(tableReport.failedRowRanges.size() == chunks.size());
+    CHECK(std::ranges::all_of(tableReport.failedRowRanges,
+                              [](auto const& range) { return range.firstRow == 3 && range.lastRow == 3; }));
+    CHECK(std::ranges::count(progress.ErrorsOf("rfi_concurrent"), std::string { "8 rows failed, 0 cells set to NULL" })
+          == 1);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "corrupt chunk is skipped and the restore continues", "[SqlBackup][RestoreFailures]")
+{
+    std::filesystem::path const backupFile = "rfi_corrupt_backup.zip";
+    std::filesystem::path const brokenFile = "rfi_corrupt_broken.zip";
+    auto const backupFileCleaner = ScopedFileRemoved { backupFile };
+    auto const brokenFileCleaner = ScopedFileRemoved { brokenFile };
+
+    CreateTableWithRows("rfi_corrupt_a", 4);
+    CreateTableWithRows("rfi_corrupt_b", 3);
+    BackupTo(backupFile, 2);
+    DropTables({ "rfi_corrupt_a", "rfi_corrupt_b" });
+    auto const chunks = ChunkNames(backupFile, "rfi_corrupt_a");
+    REQUIRE(chunks.size() == 2);
+
+    auto checksums = ChecksumUpdate::Keep;
+    SECTION("its checksum does not match")
+    {
+        checksums = ChecksumUpdate::Keep;
+    }
+    SECTION("its checksum matches, its content is not MsgPack")
+    {
+        checksums = ChecksumUpdate::Recompute;
+    }
+    RewriteChunks(backupFile, brokenFile, { { chunks.front(), "this is not a data chunk" } }, checksums);
+
+    RecordingProgressManager progress;
+    auto const report = SqlBackup::Restore(brokenFile, GetConnectionString(), 1, progress);
+
+    CHECK(ReadIds("rfi_corrupt_a") == std::vector<int64_t> { 3, 4 });
+    CHECK(CountRows("rfi_corrupt_b") == 3);
+    CHECK(TableReportOf(report, "rfi_corrupt_a").unreadableChunks == 1);
+    CHECK_FALSE(TableReportOf(report, "rfi_corrupt_b").HasFailures());
+    CHECK_FALSE(report.workerStopped);
+    CHECK(report.incompleteTables.empty());
+    CHECK(progress.ErrorCount() > 0);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "undecodable chunk content is reported, not a worker stop", "[SqlBackup][RestoreFailures]")
+{
+    std::filesystem::path const backupFile = "rfi_undecodable_backup.zip";
+    std::filesystem::path const brokenFile = "rfi_undecodable_broken.zip";
+    auto const backupFileCleaner = ScopedFileRemoved { backupFile };
+    auto const brokenFileCleaner = ScopedFileRemoved { brokenFile };
+
+    CreateTableWithRows("rfi_undecodable_a", 3);
+    CreateTableWithRows("rfi_undecodable_b", 3);
+    BackupTo(backupFile);
+    DropTables({ "rfi_undecodable_a", "rfi_undecodable_b" });
+    auto const chunks = ChunkNames(backupFile, "rfi_undecodable_a");
+    REQUIRE(chunks.size() == 1);
+
+    // A validly checksummed chunk whose rows lack the V column.
+    RewriteChunks(
+        backupFile, brokenFile, { { chunks.front(), MakeChunk({ Row { int64_t { 1 } }, Row { int64_t { 2 } } }) } });
+
+    RecordingProgressManager progress;
+    auto const report = SqlBackup::Restore(brokenFile, GetConnectionString(), 1, progress);
+
+    CHECK(CountRows("rfi_undecodable_a") == 0);
+    CHECK(CountRows("rfi_undecodable_b") == 3);
+    CHECK(TableReportOf(report, "rfi_undecodable_a").unreadableChunks == 1);
+    CHECK_FALSE(TableReportOf(report, "rfi_undecodable_b").HasFailures());
+    CHECK_FALSE(report.workerStopped);
+    CHECK(report.incompleteTables.empty());
+}
+
+TEST_CASE("bind-class errors are exactly the four SQLSTATEs that fail every row", "[SqlBackup][RestoreFailures]")
+{
+    auto const isBindClass = [](std::string sqlState) {
+        return SqlBackup::detail::IsBindClassError(
+            SqlErrorInfo { .nativeErrorCode = 0, .sqlState = std::move(sqlState), .message = {} });
+    };
+    for (auto const* const sqlState: { "HYC00", "HY003", "HY004", "07006" })
+    {
+        CAPTURE(sqlState);
+        CHECK(isBindClass(sqlState));
+    }
+    for (auto const* const sqlState: { "23000", "23505", "22003", "HY000", "08S01", "" })
+    {
+        CAPTURE(sqlState);
+        CHECK_FALSE(isBindClass(sqlState));
+    }
+}
+
+TEST_CASE("only SQL Server's parameter status array names the failing rows", "[SqlBackup][RestoreFailures]")
+{
+    CHECK(SqlQueryFormatter::Get(SqlServerType::MICROSOFT_SQL)->ParameterStatusIdentifiesFailedRows());
+    CHECK_FALSE(SqlQueryFormatter::Get(SqlServerType::POSTGRESQL)->ParameterStatusIdentifiesFailedRows());
+    CHECK_FALSE(SqlQueryFormatter::Get(SqlServerType::SQLITE)->ParameterStatusIdentifiesFailedRows());
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "ClassifyRetryDecision tells a permanent error from a spent retry budget",
+                 "[SqlBackup][RestoreFailures]")
+{
+    auto const connection = SqlConnection {};
+    auto const settings = FastRetry();
+    auto const error = [](std::string sqlState) {
+        return SqlErrorInfo { .nativeErrorCode = 0, .sqlState = std::move(sqlState), .message = {} };
+    };
+    CHECK(SqlBackup::detail::ClassifyRetryDecision(connection, error("23000"), 0, settings).reason
+          == SqlRetryGiveUpReason::NotTransient);
+    CHECK(SqlBackup::detail::ClassifyRetryDecision(connection, error("08S01"), 0, settings).action == SqlRetryAction::Retry);
+    CHECK(SqlBackup::detail::ClassifyRetryDecision(connection, error("08S01"), settings.maxRetries, settings).reason
+          == SqlRetryGiveUpReason::RetriesExhausted);
+}

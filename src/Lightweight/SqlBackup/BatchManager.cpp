@@ -1731,12 +1731,10 @@ BatchManager::BatchManager(BatchManagerHooks hooks,
                            std::vector<SqlColumnDeclaration> const& colDecls,
                            size_t capacity,
                            SqlServerType serverType,
-                           std::string tableName,
                            SqlServerType sourceServerType):
     hooks(std::move(hooks)),
     serverType(serverType),
-    sourceServerType(sourceServerType),
-    tableName(std::move(tableName))
+    sourceServerType(sourceServerType)
 {
     if (!this->hooks.classify)
         this->hooks.classify = [](SqlErrorInfo const&) {
@@ -1791,7 +1789,6 @@ BatchManager::BatchManager(BatchExecutor executor,
                            std::vector<SqlColumnDeclaration> const& colDecls,
                            size_t capacity,
                            SqlServerType serverType,
-                           std::string tableName,
                            SqlServerType sourceServerType):
     BatchManager(
         BatchManagerHooks {
@@ -1808,7 +1805,6 @@ BatchManager::BatchManager(BatchExecutor executor,
         colDecls,
         capacity,
         serverType,
-        std::move(tableName),
         sourceServerType)
 {
 }

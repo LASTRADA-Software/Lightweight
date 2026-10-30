@@ -2,12 +2,16 @@
 
 #include "Utils.hpp"
 
+#include <Lightweight/DataBinder/SqlRawColumn.hpp>
 #include <Lightweight/Lightweight.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <array>
+#include <cstdint>
 #include <format>
 #include <optional>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -735,4 +739,83 @@ TEST_CASE_METHOD(SqlTestFixture,
         message = failure.info().message;
     }
     CHECK(message.contains("Café_absent"));
+}
+
+// ================================================================================================
+// SqlStatement::ExecuteBatch (raw columns) with a parameter status array
+// ================================================================================================
+
+namespace
+{
+
+/// A non-nullable INTEGER parameter column over @p values, with @p indicators sized alike.
+SqlRawColumn RawIntegerColumn(std::span<int32_t const> values, std::span<SQLLEN const> indicators)
+{
+    return SqlRawColumn {
+        .metadata = { .cType = SQL_C_SLONG,
+                      .sqlType = SQL_INTEGER,
+                      .size = 0,
+                      .decimalDigits = 0,
+                      .nullable = SQL_NO_NULLS,
+                      .bufferLength = sizeof(int32_t) },
+        .data = std::as_bytes(values),
+        .indicators = indicators,
+    };
+}
+
+/// Renders a parameter status array for diagnostics, e.g. "0 0 5 7 7".
+std::string DescribeParamStatus(std::span<SQLUSMALLINT const> status)
+{
+    auto text = std::string {};
+    for (auto const value: status)
+        text += std::format("{} ", value);
+    return text;
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "raw ExecuteBatch reports per-row status", "[SqlStatement]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("raw_batch_status").PrimaryKey("ID", Integer {}).Column("V", Integer {});
+    });
+    stmt.Prepare(R"(INSERT INTO "raw_batch_status" ("ID", "V") VALUES (?, ?))");
+
+    {
+        // Row 3 duplicates row 1's primary key.
+        auto const ids = std::array<int32_t, 5> { 1, 2, 1, 4, 5 };
+        auto const values = std::array<int32_t, 5> { 10, 20, 30, 40, 50 };
+        auto const indicators = std::array<SQLLEN, 5> { 4, 4, 4, 4, 4 };
+        auto const columns = std::array { RawIntegerColumn(ids, indicators), RawIntegerColumn(values, indicators) };
+
+        // Scoped, so that a status pointer the statement kept would dangle (and trip ASan) below.
+        auto status = std::array<SQLUSMALLINT, 5> {};
+        auto processed = SQLULEN { 0 };
+        auto threw = false;
+        try
+        {
+            (void) stmt.ExecuteBatch(columns, ids.size(), status, processed);
+        }
+        catch (SqlException const&)
+        {
+            threw = true;
+        }
+        INFO("param status: " << DescribeParamStatus(status) << "processed: " << processed);
+        CHECK((threw || status[2] == SQL_PARAM_ERROR));
+        // The duplicate is never reported as inserted, whatever the driver did with later rows.
+        CHECK(status[2] != SQL_PARAM_SUCCESS);
+        CHECK(status[2] != SQL_PARAM_SUCCESS_WITH_INFO);
+    }
+
+    // The status and processed pointers are reset: a plain batch on the same statement works.
+    auto const ids = std::array<int32_t, 2> { 10, 11 };
+    auto const values = std::array<int32_t, 2> { 100, 110 };
+    auto const indicators = std::array<SQLLEN, 2> { 4, 4 };
+    auto const columns = std::array { RawIntegerColumn(ids, indicators), RawIntegerColumn(values, indicators) };
+    CHECK_NOTHROW((void) stmt.ExecuteBatch(columns, ids.size()));
+    CHECK(SqlStatement {}.ExecuteDirectScalar<int64_t>(R"(SELECT COUNT(*) FROM "raw_batch_status" WHERE "ID" >= 10)")
+          == std::optional<int64_t> { 2 });
 }

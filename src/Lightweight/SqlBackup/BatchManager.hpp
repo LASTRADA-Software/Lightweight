@@ -14,7 +14,6 @@
 #include <memory>
 #include <optional>
 #include <span>
-#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -23,13 +22,6 @@ namespace Lightweight::detail
 {
 
 struct BatchColumn;
-
-/// Formerly thrown by BatchManager for a non-NULL backup value that cannot be converted to its
-/// column's type; BatchManager now reports such values through BatchManagerHooks instead.
-struct BackupValueConversionError: std::runtime_error
-{
-    using std::runtime_error::runtime_error;
-};
 
 /// Executes and commits @p rowCount rows given as @p slice (one slice per column, each holding
 /// exactly those rows), or rolls them back and returns the error. The rows of
@@ -78,14 +70,12 @@ struct LIGHTWEIGHT_API BatchManager
     /// @param colDecls The column declarations for the statement.
     /// @param capacity The capacity of the batch manager.
     /// @param serverType The server type for database-specific bindings.
-    /// @param tableName The table being restored; may be empty.
     /// @param sourceServerType The DBMS the data was backed up from. When it pads CHAR(n) values and
     ///        @p serverType does not, the trailing pad of CHAR/NCHAR values is stripped.
     explicit BatchManager(BatchManagerHooks hooks,
                           std::vector<SqlColumnDeclaration> const& colDecls,
                           size_t capacity,
                           SqlServerType serverType = SqlServerType::UNKNOWN,
-                          std::string tableName = {},
                           SqlServerType sourceServerType = SqlServerType::UNKNOWN);
 
     /// Create a new BatchManager for the given statement and column declarations.
@@ -97,14 +87,12 @@ struct LIGHTWEIGHT_API BatchManager
     /// @param colDecls The column declarations for the statement.
     /// @param capacity The capacity of the batch manager.
     /// @param serverType The server type for database-specific bindings.
-    /// @param tableName The table being restored; may be empty.
     /// @param sourceServerType The DBMS the data was backed up from. When it pads CHAR(n) values and
     ///        @p serverType does not, the trailing pad of CHAR/NCHAR values is stripped.
     explicit BatchManager(BatchExecutor executor,
                           std::vector<SqlColumnDeclaration> const& colDecls,
                           size_t capacity,
                           SqlServerType serverType = SqlServerType::UNKNOWN,
-                          std::string tableName = {},
                           SqlServerType sourceServerType = SqlServerType::UNKNOWN);
 
     ~BatchManager();
@@ -215,8 +203,6 @@ struct LIGHTWEIGHT_API BatchManager
     SqlServerType serverType = SqlServerType::UNKNOWN;
     /// The DBMS the backup was taken from; UNKNOWN when the archive does not name a known one.
     SqlServerType sourceServerType = SqlServerType::UNKNOWN;
-    /// The table being restored; may be empty.
-    std::string tableName;
     /// The column names, parallel to `columns`, for failure reports.
     std::vector<std::string> columnNames;
 };

@@ -97,6 +97,23 @@ using RetryAction = SqlRetryAction;
                                                                unsigned attemptsSoFar,
                                                                RetrySettings const& settings);
 
+/// @brief Decides whether and why a failed attempt on @p conn is retried, with the classifier of
+///        the connection's DBMS (@ref Lightweight::SqlRetryPolicy::For()).
+///
+/// Unlike @ref ClassifyRetryOutcome, the decision says why the policy gives up, so a caller can tell
+/// an error that is not transient (@ref SqlRetryGiveUpReason::NotTransient) from a retry budget
+/// that ran out.
+///
+/// @param conn The connection the attempt ran on; selects the DBMS-specific classifier.
+/// @param error The error reported by the failed attempt.
+/// @param attemptsSoFar How many retries have already been consumed.
+/// @param settings The retry configuration supplying the budget.
+/// @return The decision, with its give-up reason.
+[[nodiscard]] LIGHTWEIGHT_API SqlRetryDecision ClassifyRetryDecision(SqlConnection const& conn,
+                                                                     SqlErrorInfo const& error,
+                                                                     unsigned attemptsSoFar,
+                                                                     RetrySettings const& settings);
+
 /// Connects to the database with retry logic for transient errors.
 ///
 /// @param conn The connection object to use.

@@ -110,9 +110,8 @@ struct RestoreSettings
     /// Default: 0 (auto-calculated based on available memory).
     std::size_t batchSize = 0;
 
-    /// Maximum rows before an intermediate commit within a chunk.
-    /// Helps reduce transaction log / WAL memory accumulation.
-    /// Default: 10000. Set to 0 to disable intermediate commits.
+    /// No longer used: every insert batch commits on its own, so `batchSize` bounds the rows per commit.
+    /// Kept for source compatibility.
     std::size_t maxRowsPerCommit = 10000;
 
     /// Database page cache size in KB (used for SQLite PRAGMA cache_size,
@@ -432,77 +431,6 @@ struct ArchiveVerification
                                                                std::string const& defaultSchema,
                                                                bool caseInsensitive);
 
-/// Restores the database from a file.
-///
-/// A multi-schema archive restores every table into the schema it records, creating missing
-/// schemas; it refuses a target @p schema, and on a database without schemas (SQLite) it is
-/// refused unless every table name is unique across the schemas.
-///
-/// @param inputFile the input file.
-/// @param connectionString the connection string used to connect to the database.
-/// @param concurrency the number of concurrent jobs.
-/// @param progress the progress manager to use for progress updates.
-/// @param schema the database schema to restore into (optional, overrides backup metadata).
-/// @param tableFilter comma-separated table filter patterns (default: "*" for all tables).
-///        Supports glob wildcards (* and ?) and schema.table notation.
-///        Examples: "Users,Products", "*_log", "dbo.Users", "sales.*"
-/// @param retrySettings configuration for retry behavior on transient errors.
-LIGHTWEIGHT_API void Restore(std::filesystem::path const& inputFile,
-                             SqlConnectionString const& connectionString,
-                             unsigned concurrency,
-                             ProgressManager& progress,
-                             std::string const& schema = {},
-                             std::string const& tableFilter = "*",
-                             RetrySettings const& retrySettings = {});
-
-/// Restores the database from a file with explicit memory management settings.
-///
-/// @param inputFile the input file.
-/// @param connectionString the connection string used to connect to the database.
-/// @param concurrency the number of concurrent jobs.
-/// @param progress the progress manager to use for progress updates.
-/// @param schema the database schema to restore into (optional, overrides backup metadata).
-/// @param tableFilter comma-separated table filter patterns (default: "*" for all tables).
-/// @param retrySettings configuration for retry behavior on transient errors.
-/// @param restoreSettings configuration for memory management during restore.
-LIGHTWEIGHT_API void Restore(std::filesystem::path const& inputFile,
-                             SqlConnectionString const& connectionString,
-                             unsigned concurrency,
-                             ProgressManager& progress,
-                             std::string const& schema,
-                             std::string const& tableFilter,
-                             RetrySettings const& retrySettings,
-                             RestoreSettings const& restoreSettings);
-
-/// Returns a copy of `connectionString` with the values of `PWD=` and
-/// `Password=` attributes replaced by `***`.
-///
-/// Same as @ref SqlConnectionString::SanitizePwd, which defines the quoting
-/// and key-matching rules and is also what dbtool's `list-profiles` applies.
-/// Applied by CreateMetadata() so a secretRef-resolved plaintext password
-/// never lands in an archive's metadata.json.
-///
-/// @param connectionString Raw ODBC connection string.
-/// @return The connection string with password values masked.
-[[nodiscard]] LIGHTWEIGHT_API std::string RedactConnectionStringSecrets(std::string_view connectionString);
-
-/// Creates the metadata JSON content.
-///
-/// @param connectionString the connection string used to connect to the database.
-/// @param tables the list of tables to backup.
-/// @param schema the database schema used for these tables (optional).
-LIGHTWEIGHT_API std::string CreateMetadata(SqlConnectionString const& connectionString,
-                                           SqlSchema::TableList const& tables,
-                                           std::string const& schema = {});
-
-/// Parses the metadata JSON content and returns a map of table info.
-///
-/// A single-schema archive keys each table by its name, a multi-schema archive by `schema.name`.
-///
-/// @param metadataJson content of the metadata.json file.
-LIGHTWEIGHT_API std::map<std::string, TableInfo> ParseSchema(std::string_view metadataJson,
-                                                             ProgressManager* progress = nullptr);
-
 /// Maximum number of failed-row ranges reported per table; further failing rows are only counted.
 inline constexpr std::size_t MaxReportedRowRanges = 100;
 /// Maximum number of distinct failure reasons reported per table; further occurrences are only counted.
@@ -595,5 +523,87 @@ struct RestoreReport
         return !tables.empty() || workerStopped || !incompleteTables.empty() || unattributedChunkErrors != 0;
     }
 };
+
+/// Restores the database from a file.
+///
+/// A multi-schema archive restores every table into the schema it records, creating missing
+/// schemas; it refuses a target @p schema, and on a database without schemas (SQLite) it is
+/// refused unless every table name is unique across the schemas.
+///
+/// A value or row that fails to restore does not abort the restore: a value that does not convert
+/// to its nullable column becomes NULL, a row the database rejects (or whose NOT NULL value does not
+/// convert) is left out, and every other row is restored. A table fails as a whole only on an error
+/// that affects every row (e.g. the driver cannot bind a column type); its remaining chunks are
+/// skipped. A chunk that cannot be read is skipped. Only a lost connection that does not come back
+/// within @p retrySettings stops a worker. Errors are also reported through @p progress, at most one
+/// terminal update per table.
+///
+/// @param inputFile the input file.
+/// @param connectionString the connection string used to connect to the database.
+/// @param concurrency the number of concurrent jobs.
+/// @param progress the progress manager to use for progress updates.
+/// @param schema the database schema to restore into (optional, overrides backup metadata).
+/// @param tableFilter comma-separated table filter patterns (default: "*" for all tables).
+///        Supports glob wildcards (* and ?) and schema.table notation.
+///        Examples: "Users,Products", "*_log", "dbo.Users", "sales.*"
+/// @param retrySettings configuration for retry behavior on transient errors.
+/// @return The bounded report of what failed to restore; empty when everything was restored, and
+///         when the restore failed before restoring data (which @p progress reports).
+LIGHTWEIGHT_API RestoreReport Restore(std::filesystem::path const& inputFile,
+                                      SqlConnectionString const& connectionString,
+                                      unsigned concurrency,
+                                      ProgressManager& progress,
+                                      std::string const& schema = {},
+                                      std::string const& tableFilter = "*",
+                                      RetrySettings const& retrySettings = {});
+
+/// Restores the database from a file with explicit memory management settings.
+///
+/// @param inputFile the input file.
+/// @param connectionString the connection string used to connect to the database.
+/// @param concurrency the number of concurrent jobs.
+/// @param progress the progress manager to use for progress updates.
+/// @param schema the database schema to restore into (optional, overrides backup metadata).
+/// @param tableFilter comma-separated table filter patterns (default: "*" for all tables).
+/// @param retrySettings configuration for retry behavior on transient errors.
+/// @param restoreSettings configuration for memory management during restore.
+/// @return The bounded report of what failed to restore, as by the overload without @p restoreSettings.
+LIGHTWEIGHT_API RestoreReport Restore(std::filesystem::path const& inputFile,
+                                      SqlConnectionString const& connectionString,
+                                      unsigned concurrency,
+                                      ProgressManager& progress,
+                                      std::string const& schema,
+                                      std::string const& tableFilter,
+                                      RetrySettings const& retrySettings,
+                                      RestoreSettings const& restoreSettings);
+
+/// Returns a copy of `connectionString` with the values of `PWD=` and
+/// `Password=` attributes replaced by `***`.
+///
+/// Same as @ref SqlConnectionString::SanitizePwd, which defines the quoting
+/// and key-matching rules and is also what dbtool's `list-profiles` applies.
+/// Applied by CreateMetadata() so a secretRef-resolved plaintext password
+/// never lands in an archive's metadata.json.
+///
+/// @param connectionString Raw ODBC connection string.
+/// @return The connection string with password values masked.
+[[nodiscard]] LIGHTWEIGHT_API std::string RedactConnectionStringSecrets(std::string_view connectionString);
+
+/// Creates the metadata JSON content.
+///
+/// @param connectionString the connection string used to connect to the database.
+/// @param tables the list of tables to backup.
+/// @param schema the database schema used for these tables (optional).
+LIGHTWEIGHT_API std::string CreateMetadata(SqlConnectionString const& connectionString,
+                                           SqlSchema::TableList const& tables,
+                                           std::string const& schema = {});
+
+/// Parses the metadata JSON content and returns a map of table info.
+///
+/// A single-schema archive keys each table by its name, a multi-schema archive by `schema.name`.
+///
+/// @param metadataJson content of the metadata.json file.
+LIGHTWEIGHT_API std::map<std::string, TableInfo> ParseSchema(std::string_view metadataJson,
+                                                             ProgressManager* progress = nullptr);
 
 } // namespace Lightweight::SqlBackup

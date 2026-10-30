@@ -1534,9 +1534,6 @@ TEST_CASE("BatchManager: MAX Binary column", "[SqlBackup]")
 namespace
 {
 
-/// The table name the conversion-failure tests hand to BatchManager.
-constexpr auto ConversionTestTable = "ORDERS";
-
 /// Pushes rows into a one-column BatchManager via @p push and returns the one failure it reports,
 /// as "row <n>: <message>".
 ///
@@ -1574,8 +1571,7 @@ std::string ReportedConversionFailure(SqlColumnDeclaration const& column,
             },
             { declaration },
             10,
-            serverType,
-            ConversionTestTable);
+            serverType);
         push(manager);
         manager.Flush();
         CHECK(manager.SettledRows() == rowCount);
@@ -2126,7 +2122,7 @@ ColumnBatch IdAndValueBatch(std::vector<int64_t> ids, std::vector<int64_t> value
 TEST_CASE("BatchManager: an unconvertible value in a nullable column becomes NULL", "[SqlBackup][BatchManager]")
 {
     FakeRestoreTarget target;
-    BatchManager manager(target.Hooks(), IdAndTinyint(false), 10, SqlServerType::SQLITE, "ORDERS");
+    BatchManager manager(target.Hooks(), IdAndTinyint(false), 10, SqlServerType::SQLITE);
 
     manager.PushRow({ int64_t { 1 }, int64_t { 5 } });
     manager.PushRow({ int64_t { 2 }, int64_t { 300 } });
@@ -2142,7 +2138,7 @@ TEST_CASE("BatchManager: an unconvertible value in a nullable column becomes NUL
 TEST_CASE("BatchManager: an unconvertible value in a NOT NULL column fails only its row", "[SqlBackup][BatchManager]")
 {
     FakeRestoreTarget target;
-    BatchManager manager(target.Hooks(), IdAndTinyint(true), 10, SqlServerType::SQLITE, "ORDERS");
+    BatchManager manager(target.Hooks(), IdAndTinyint(true), 10, SqlServerType::SQLITE);
 
     SECTION("PushRow")
     {
@@ -2170,7 +2166,7 @@ TEST_CASE("BatchManager: every row of a NOT NULL column unconvertible inserts no
           "[SqlBackup][BatchManager]")
 {
     FakeRestoreTarget target;
-    BatchManager manager(target.Hooks(), IdAndTinyint(true), 10, SqlServerType::SQLITE, "ORDERS");
+    BatchManager manager(target.Hooks(), IdAndTinyint(true), 10, SqlServerType::SQLITE);
 
     REQUIRE_NOTHROW(manager.PushBatch(IdAndValueBatch({ 1, 2, 3 }, { 300, 301, 302 })));
     REQUIRE_NOTHROW(manager.Flush());
@@ -2194,7 +2190,7 @@ TEST_CASE("BatchManager: a row the database rejects is isolated; the others are 
             return std::unexpected { InsertError("23000") };
         return {};
     };
-    BatchManager manager(target.Hooks(), IdAndTinyint(false), 10, SqlServerType::SQLITE, "ORDERS");
+    BatchManager manager(target.Hooks(), IdAndTinyint(false), 10, SqlServerType::SQLITE);
 
     manager.PushBatch(IdAndValueBatch({ 1, 2, 3 }, { 5, 6, 7 }));
     manager.Flush();
@@ -2218,7 +2214,7 @@ TEST_CASE("BatchManager: driver-reported failed rows are relative to the slice",
             return {};
         return std::unexpected { InsertError("23000", { static_cast<std::size_t>(failing - rows.begin()) }) };
     };
-    BatchManager manager(target.Hooks(), IdAndTinyint(true), 10, SqlServerType::SQLITE, "ORDERS");
+    BatchManager manager(target.Hooks(), IdAndTinyint(true), 10, SqlServerType::SQLITE);
 
     manager.PushBatch(IdAndValueBatch({ 1, 2, 3, 4, 5 }, { 300, 2, 3, 4, 5 }));
     manager.Flush();
@@ -2243,7 +2239,7 @@ TEST_CASE("BatchManager: PushBatch skips rows but counts them", "[SqlBackup][Bat
         return {};
     };
     // Capacity 4: rows 5-8 are flushed as one batch, rows 9-10 as another.
-    BatchManager manager(target.Hooks(), IdAndTinyint(false), 4, SqlServerType::SQLITE, "ORDERS");
+    BatchManager manager(target.Hooks(), IdAndTinyint(false), 4, SqlServerType::SQLITE);
 
     auto const ids = std::views::iota(int64_t { 1 }, int64_t { 11 }) | std::ranges::to<std::vector>();
     manager.PushBatch(IdAndValueBatch(ids, ids), 4);
@@ -2260,7 +2256,7 @@ TEST_CASE("BatchManager: PushBatch skips rows but counts them", "[SqlBackup][Bat
 TEST_CASE("BatchManager: skipping every row of a batch settles them", "[SqlBackup][BatchManager]")
 {
     FakeRestoreTarget target;
-    BatchManager manager(target.Hooks(), IdAndTinyint(false), 10, SqlServerType::SQLITE, "ORDERS");
+    BatchManager manager(target.Hooks(), IdAndTinyint(false), 10, SqlServerType::SQLITE);
 
     manager.PushBatch(IdAndValueBatch({ 1, 2 }, { 1, 2 }), 5);
     manager.PushBatch(IdAndValueBatch({ 3, 4 }, { 3, 4 }), 1);
@@ -2280,7 +2276,7 @@ TEST_CASE("BatchManager: SettledRows is the gap-free prefix when an insert error
         target.failInsert = [](std::vector<RenderedRow> const&, std::size_t) -> std::expected<void, BatchInsertError> {
             return std::unexpected { InsertError("08S01") };
         };
-        BatchManager manager(target.Hooks(), IdAndTinyint(true), 100, SqlServerType::SQLITE, "ORDERS");
+        BatchManager manager(target.Hooks(), IdAndTinyint(true), 100, SqlServerType::SQLITE);
         auto const ids = std::views::iota(int64_t { 1 }, int64_t { 11 }) | std::ranges::to<std::vector>();
         auto values = ids;
         values.back() = 300;
@@ -2309,7 +2305,7 @@ TEST_CASE("BatchManager: SettledRows is the gap-free prefix when an insert error
                     return std::unexpected { InsertError("08S01") };
             }
         };
-        BatchManager manager(target.Hooks(), IdAndTinyint(true), 100, SqlServerType::SQLITE, "ORDERS");
+        BatchManager manager(target.Hooks(), IdAndTinyint(true), 100, SqlServerType::SQLITE);
         auto const ids = std::views::iota(int64_t { 1 }, int64_t { 12 }) | std::ranges::to<std::vector>();
         auto values = ids;
         values.back() = 300;
@@ -2333,7 +2329,7 @@ TEST_CASE("BatchManager: rows pushed after a failed flush keep their row numbers
             return std::unexpected { InsertError("08S01") };
         return {};
     };
-    BatchManager manager(target.Hooks(), IdAndTinyint(true), 100, SqlServerType::SQLITE, "ORDERS");
+    BatchManager manager(target.Hooks(), IdAndTinyint(true), 100, SqlServerType::SQLITE);
     manager.PushBatch(IdAndValueBatch({ 1, 2 }, { 1, 2 }));
     CHECK_THROWS_AS(manager.Flush(), SqlException);
 
@@ -2355,8 +2351,7 @@ TEST_CASE("BatchManager: a row without a primary key is named by all its columns
         target.Hooks(),
         { { .name = "NAME", .type = Varchar { .size = 300 } }, { .name = "T", .type = Tinyint {}, .required = true } },
         10,
-        SqlServerType::SQLITE,
-        "ORDERS");
+        SqlServerType::SQLITE);
 
     manager.PushRow({ std::string("alice"), int64_t { 300 } });
     manager.PushRow({ std::string(250, 'x'), int64_t { 301 } });
@@ -2390,8 +2385,7 @@ TEST_CASE("BatchManager: a nulled cell of a row excluded for a NOT NULL value is
                            { .name = "N", .type = Tinyint {} },
                            { .name = "R", .type = Tinyint {}, .required = true } },
                          10,
-                         SqlServerType::SQLITE,
-                         "ORDERS");
+                         SqlServerType::SQLITE);
 
     manager.PushRow({ int64_t { 1 }, int64_t { 300 }, int64_t { 301 } });
     manager.Flush();
@@ -2411,7 +2405,7 @@ TEST_CASE("BatchManager: a nulled cell of a row the database rejects is not repo
             return std::unexpected { InsertError("23000") };
         return {};
     };
-    BatchManager manager(target.Hooks(), IdAndTinyint(false), 10, SqlServerType::SQLITE, "ORDERS");
+    BatchManager manager(target.Hooks(), IdAndTinyint(false), 10, SqlServerType::SQLITE);
 
     manager.PushBatch(IdAndValueBatch({ 1, 2, 3 }, { 300, 301, 7 }));
     manager.Flush();
@@ -2436,7 +2430,7 @@ TEST_CASE("BatchManager: a nulled cell is reported once across a retry from Sett
 
     auto settled = std::size_t { 0 };
     {
-        BatchManager manager(target.Hooks(), IdAndTinyint(false), 10, SqlServerType::SQLITE, "ORDERS");
+        BatchManager manager(target.Hooks(), IdAndTinyint(false), 10, SqlServerType::SQLITE);
         manager.PushBatch(batch);
         CHECK_THROWS_AS(manager.Flush(), SqlException);
         settled = manager.SettledRows();
@@ -2444,7 +2438,7 @@ TEST_CASE("BatchManager: a nulled cell is reported once across a retry from Sett
     CHECK(settled == 0);
     CHECK(target.nulledCells.empty());
 
-    BatchManager retry(target.Hooks(), IdAndTinyint(false), 10, SqlServerType::SQLITE, "ORDERS");
+    BatchManager retry(target.Hooks(), IdAndTinyint(false), 10, SqlServerType::SQLITE);
     retry.PushBatch(batch, settled);
     retry.Flush();
 
@@ -2461,8 +2455,7 @@ TEST_CASE("BatchManager: a row with two bad NOT NULL values is reported once, wi
                            { .name = "A", .type = Tinyint {}, .required = true },
                            { .name = "B", .type = Tinyint {}, .required = true } },
                          10,
-                         SqlServerType::SQLITE,
-                         "ORDERS");
+                         SqlServerType::SQLITE);
 
     manager.PushRow({ int64_t { 1 }, int64_t { 300 }, int64_t { 301 } });
     manager.PushRow({ int64_t { 2 }, int64_t { 3 }, int64_t { 4 } });
@@ -2481,7 +2474,7 @@ TEST_CASE("BatchManager: a bad value in a later capacity piece of one PushBatch 
     SECTION("NOT NULL: the row is excluded")
     {
         FakeRestoreTarget target;
-        BatchManager manager(target.Hooks(), IdAndTinyint(true), 2, SqlServerType::SQLITE, "ORDERS");
+        BatchManager manager(target.Hooks(), IdAndTinyint(true), 2, SqlServerType::SQLITE);
         manager.PushBatch(IdAndValueBatch({ 1, 2, 3, 4, 5 }, { 1, 2, 3, 300, 5 }));
         manager.Flush();
 
@@ -2494,7 +2487,7 @@ TEST_CASE("BatchManager: a bad value in a later capacity piece of one PushBatch 
     SECTION("nullable: the cell is NULL")
     {
         FakeRestoreTarget target;
-        BatchManager manager(target.Hooks(), IdAndTinyint(false), 2, SqlServerType::SQLITE, "ORDERS");
+        BatchManager manager(target.Hooks(), IdAndTinyint(false), 2, SqlServerType::SQLITE);
         manager.PushBatch(IdAndValueBatch({ 1, 2, 3, 4, 5 }, { 1, 2, 3, 300, 5 }));
         manager.Flush();
 

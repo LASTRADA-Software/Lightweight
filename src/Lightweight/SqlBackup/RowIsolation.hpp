@@ -30,8 +30,13 @@ struct BatchInsertError
 {
     /// The diagnostics of the failure.
     SqlErrorInfo error;
-    /// Absolute row indices the driver reported as failed (from a parameter status array);
-    /// empty if the driver did not tell which rows failed.
+    /// Row indices the driver reported as failed, in the inserter's coordinates (absolute for a
+    /// @ref RangeInserter); empty if the driver did not tell which rows failed.
+    ///
+    /// Row isolation trusts this list: a row in it is reported failed without another attempt.
+    /// It may therefore only hold rows whose parameter status is exactly `SQL_PARAM_ERROR` —
+    /// never `SQL_PARAM_UNUSED` (a driver that stops at the first error leaves later rows so),
+    /// `SQL_PARAM_DIAG_UNAVAILABLE` or `SQL_PARAM_SUCCESS_WITH_INFO`.
     std::vector<std::size_t> reportedFailedRows;
 };
 

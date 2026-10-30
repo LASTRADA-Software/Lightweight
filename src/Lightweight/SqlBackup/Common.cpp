@@ -49,6 +49,14 @@ RetryAction ClassifyRetryOutcome(SqlErrorInfo const& error, unsigned attemptsSoF
     return SqlRetryPolicy { settings }.Decide(error, SqlRetryState { .retriesSoFar = attemptsSoFar }).action;
 }
 
+SqlRetryDecision ClassifyRetryDecision(SqlConnection const& conn,
+                                       SqlErrorInfo const& error,
+                                       unsigned attemptsSoFar,
+                                       RetrySettings const& settings)
+{
+    return SqlRetryPolicy::For(conn, settings).Decide(error, SqlRetryState { .retriesSoFar = attemptsSoFar });
+}
+
 bool ConnectWithRetry(SqlConnection& conn,
                       SqlConnectionString const& connectionString,
                       RetrySettings const& settings,

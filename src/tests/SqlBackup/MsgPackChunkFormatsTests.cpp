@@ -781,6 +781,14 @@ TEST_CASE("MsgPack: Reader second ReadBatch returns false", "[SqlBackup][MsgPack
     REQUIRE_FALSE(reader->ReadBatch(batch)); // No more data
 }
 
+TEST_CASE("MsgPack: Reader rejects data that does not start a batch", "[SqlBackup][MsgPack]")
+{
+    std::stringstream ss("this is not a data chunk");
+    auto reader = CreateMsgPackChunkReader(ss);
+    ColumnBatch batch;
+    CHECK_THROWS_AS(reader->ReadBatch(batch), std::runtime_error);
+}
+
 // =============================================================================
 // Packed Data Tests (int64/double arrays)
 // =============================================================================

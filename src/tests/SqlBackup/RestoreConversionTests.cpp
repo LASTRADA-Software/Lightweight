@@ -29,8 +29,10 @@
 
 using namespace Lightweight;
 using Lightweight::SqlBackup::Tests::LambdaProgressManager;
+using Lightweight::SqlBackup::Tests::RecordingProgressManager;
 using Lightweight::SqlBackup::Tests::RewriteArchiveMetadata;
 using Lightweight::SqlBackup::Tests::ScopedFileRemoved;
+using Lightweight::SqlBackup::Tests::TableReportOf;
 
 namespace
 {
@@ -116,34 +118,6 @@ size_t CountChunks(std::filesystem::path const& archive, std::string_view tableN
         zip->GetAllEntries(), [&](Zip::EntryInfo const& entry) { return entry.name.starts_with(prefix); }));
 }
 
-/// Records the error updates of a restore, per table, and counts them as dbtool does for its exit code.
-struct RecordingProgressManager: SqlBackup::ErrorTrackingProgressManager
-{
-    std::mutex mutex;
-    std::vector<std::pair<std::string, std::string>> errors; // (table, message)
-
-    void Update(SqlBackup::Progress const& progress) override
-    {
-        auto const lock = std::scoped_lock(mutex);
-        ErrorTrackingProgressManager::Update(progress);
-        if (progress.state == SqlBackup::Progress::State::Error)
-            errors.emplace_back(progress.tableName, progress.message);
-    }
-
-    void AllDone() override {}
-
-    /// Returns the messages of the errors reported for @p tableName.
-    std::vector<std::string> ErrorsOf(std::string_view tableName)
-    {
-        auto const lock = std::scoped_lock(mutex);
-        std::vector<std::string> messages;
-        for (auto const& [table, message]: errors)
-            if (table == tableName)
-                messages.push_back(message);
-        return messages;
-    }
-};
-
 } // namespace
 
 TEST_CASE_METHOD(SqlTestFixture,
@@ -218,11 +192,13 @@ TEST_CASE_METHOD(SqlTestFixture,
     CopyArchiveDeclaringGuidColumn(backupFile, guidBackupFile, "guid_restore_invalid", "TOKEN");
 
     RecordingProgressManager restoreProgress;
-    REQUIRE_NOTHROW(SqlBackup::Restore(guidBackupFile, GetConnectionString(), 1, restoreProgress));
+    auto report = SqlBackup::RestoreReport {};
+    REQUIRE_NOTHROW(report = SqlBackup::Restore(guidBackupFile, GetConnectionString(), 1, restoreProgress));
 
     if (!TargetHasNativeGuidType())
     {
         // No native GUID type: the archived text passes through unchanged, so nothing fails.
+        CHECK_FALSE(report.HasFailures());
         CHECK(restoreProgress.ErrorCount() == 0);
         CHECK(CountRows("guid_restore_invalid") == 1);
         CHECK(SqlStatement {}.ExecuteDirectScalar<std::string>(R"(SELECT "TOKEN" FROM "guid_restore_invalid")")
@@ -230,9 +206,13 @@ TEST_CASE_METHOD(SqlTestFixture,
         return;
     }
 
-    // The row is restored with the value that does not convert set to NULL.
-    // TODO(Task 8): assert the failure report names the nulled cell.
+    // The row is restored with the value that does not convert set to NULL, and the report names the cell.
     CHECK(CountRows("guid_restore_invalid") == 1);
+    auto const tableReport = TableReportOf(report, "guid_restore_invalid");
+    CHECK(tableReport.failedRowCount == 0);
+    REQUIRE(tableReport.valueFailures.size() == 1);
+    CHECK(tableReport.valueFailures[0].column == "TOKEN");
+    CHECK(tableReport.valueFailures[0].cellsSetToNull == 1);
     CHECK(SqlStatement {}.ExecuteDirectScalar<std::string>(R"(SELECT "TOKEN" FROM "guid_restore_invalid")") == std::nullopt);
 }
 
@@ -275,11 +255,13 @@ TEST_CASE_METHOD(SqlTestFixture,
     REQUIRE(CountChunks(guidBackupFile, "restore_bad_value") > 1);
 
     RecordingProgressManager restoreProgress;
-    REQUIRE_NOTHROW(SqlBackup::Restore(guidBackupFile, GetConnectionString(), 1, restoreProgress));
+    auto report = SqlBackup::RestoreReport {};
+    REQUIRE_NOTHROW(report = SqlBackup::Restore(guidBackupFile, GetConnectionString(), 1, restoreProgress));
 
     if (!TargetHasNativeGuidType())
     {
         // No native GUID type: the archived text passes through unchanged, so both tables are restored.
+        CHECK_FALSE(report.HasFailures());
         CHECK(restoreProgress.ErrorCount() == 0);
         CHECK(CountRows("restore_good_rows") == 3);
         CHECK(CountRows("restore_bad_value") == 6);
@@ -289,8 +271,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     }
 
     // Both tables are restored in full, every chunk of the bad one included; the nullable TOKEN cell
-    // that does not convert becomes NULL.
-    // TODO(Task 8): assert the failure report names the nulled cell and dbtool's non-zero exit.
+    // that does not convert becomes NULL. The report names that cell, and dbtool exits non-zero.
     CHECK(CountRows("restore_good_rows") == 3);
     CHECK(restoreProgress.ErrorsOf("restore_good_rows").empty());
     CHECK(CountRows("restore_bad_value") == 6);
@@ -299,6 +280,14 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK(std::ranges::count(restoreProgress.ErrorsOf("restore_bad_value"),
                              std::string { "Restore incomplete: errors occurred" })
           == 0);
+    auto const tableReport = TableReportOf(report, "restore_bad_value");
+    CHECK(tableReport.failedRowCount == 0);
+    CHECK(tableReport.unreadableChunks == 0);
+    REQUIRE(tableReport.valueFailures.size() == 1);
+    CHECK(tableReport.valueFailures[0].column == "TOKEN");
+    CHECK(tableReport.valueFailures[0].cellsSetToNull == 1);
+    CHECK_FALSE(TableReportOf(report, "restore_good_rows").HasFailures());
+    CHECK(restoreProgress.ErrorCount() > 0);
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: restores the TINYINT values the target backend holds", "[SqlBackup]")
@@ -358,10 +347,15 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: a TINYINT value above 255 is restor
     stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) { migration.DropTable("restore_tinyint_300"); });
 
     RecordingProgressManager restoreProgress;
-    REQUIRE_NOTHROW(SqlBackup::Restore(backupFile, GetConnectionString(), 1, restoreProgress));
+    auto report = SqlBackup::RestoreReport {};
+    REQUIRE_NOTHROW(report = SqlBackup::Restore(backupFile, GetConnectionString(), 1, restoreProgress));
 
-    // The row is restored with the nullable T set to NULL.
-    // TODO(Task 8): assert the failure report names the nulled cell.
+    // The row is restored with the nullable T set to NULL, and the report names the cell.
     CHECK(CountRows("restore_tinyint_300") == 1);
     CHECK(SqlStatement {}.ExecuteDirectScalar<int64_t>(R"(SELECT "T" FROM "restore_tinyint_300")") == std::nullopt);
+    auto const tableReport = TableReportOf(report, "restore_tinyint_300");
+    CHECK(tableReport.failedRowCount == 0);
+    REQUIRE(tableReport.valueFailures.size() == 1);
+    CHECK(tableReport.valueFailures[0].column == "T");
+    CHECK(tableReport.valueFailures[0].cellsSetToNull == 1);
 }

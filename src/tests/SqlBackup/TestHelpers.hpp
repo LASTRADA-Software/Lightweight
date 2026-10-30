@@ -53,6 +53,68 @@ struct LambdaProgressManager: SqlBackup::ProgressManager
     }
 };
 
+/// Records every progress update of a backup or restore, and counts the errors as dbtool does
+/// for its exit code. Safe to update from several restore workers at once.
+struct RecordingProgressManager: SqlBackup::ErrorTrackingProgressManager
+{
+    mutable std::mutex mutex;
+    /// The message of each update, in order.
+    std::vector<std::string> messages;
+    /// The state of each update, parallel to `messages`.
+    std::vector<SqlBackup::Progress::State> states;
+    /// The table of each update, parallel to `messages`.
+    std::vector<std::string> tables;
+
+    void Update(SqlBackup::Progress const& progress) override
+    {
+        auto const lock = std::scoped_lock(mutex);
+        ErrorTrackingProgressManager::Update(progress);
+        messages.emplace_back(progress.message);
+        states.emplace_back(progress.state);
+        tables.emplace_back(progress.tableName);
+    }
+
+    void AllDone() override {}
+
+    /// Tests whether an error update's message contains @p needle.
+    /// @param needle The text to look for.
+    /// @return True if some error update's message contains @p needle.
+    [[nodiscard]] bool HasErrorContaining(std::string_view needle) const
+    {
+        auto const lock = std::scoped_lock(mutex);
+        return std::ranges::any_of(std::views::iota(size_t { 0 }, messages.size()), [&](size_t index) {
+            return states[index] == SqlBackup::Progress::State::Error && messages[index].contains(needle);
+        });
+    }
+
+    /// Returns the messages of the errors reported for @p tableName.
+    /// @param tableName The table.
+    /// @return The messages, in order.
+    [[nodiscard]] std::vector<std::string> ErrorsOf(std::string_view tableName) const
+    {
+        auto const lock = std::scoped_lock(mutex);
+        std::vector<std::string> result;
+        for (auto const index: std::views::iota(size_t { 0 }, messages.size()))
+            if (states[index] == SqlBackup::Progress::State::Error && tables[index] == tableName)
+                result.push_back(messages[index]);
+        return result;
+    }
+};
+
+/// Returns the failure report of @p tableName in @p report.
+/// @param report The report a restore returned.
+/// @param tableName The table.
+/// @return The table's report, or an empty one if the table has no failures.
+inline TableRestoreReport TableReportOf(RestoreReport const& report, std::string_view tableName)
+{
+    auto const table = std::ranges::find(report.tables, tableName, &TableRestoreReport::tableName);
+    if (table != report.tables.end())
+        return *table;
+    auto empty = TableRestoreReport {};
+    empty.tableName = tableName;
+    return empty;
+}
+
 /// What `RewriteArchive` makes of one entry: its new name and content, or std::nullopt to drop it.
 using ArchiveEntryRewrite =
     std::function<std::optional<std::pair<std::string, std::string>>(std::string const& name, std::string content)>;
@@ -117,7 +179,7 @@ void RunBatchManagerTest(Executor&& executor,
                          SqlServerType serverType = SqlServerType::UNKNOWN,
                          SqlServerType sourceServerType = SqlServerType::UNKNOWN)
 {
-    Lightweight::detail::BatchManager bm(std::forward<Executor>(executor), cols, capacity, serverType, {}, sourceServerType);
+    Lightweight::detail::BatchManager bm(std::forward<Executor>(executor), cols, capacity, serverType, sourceServerType);
     for (auto const& row: rows)
         bm.PushRow(row);
     bm.Flush();
@@ -131,7 +193,7 @@ void RunBatchManagerBatchTest(Executor&& executor,
                               SqlServerType serverType = SqlServerType::UNKNOWN,
                               SqlServerType sourceServerType = SqlServerType::UNKNOWN)
 {
-    Lightweight::detail::BatchManager bm(std::forward<Executor>(executor), cols, capacity, serverType, {}, sourceServerType);
+    Lightweight::detail::BatchManager bm(std::forward<Executor>(executor), cols, capacity, serverType, sourceServerType);
     for (auto const& batch: batches)
         bm.PushBatch(batch);
     bm.Flush();

@@ -234,6 +234,32 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// @param rowCount The number of rows to execute.
     [[nodiscard]] LIGHTWEIGHT_API SqlResultCursor ExecuteBatch(std::span<SqlRawColumn const> columns, size_t rowCount);
 
+    /// Executes the prepared statement on a batch of SqlRawColumn-prepared data, reporting the
+    /// outcome of each row (parameter set).
+    ///
+    /// Unlike the overload without a status array, this one does not accept a partial success: a
+    /// driver that continues past a failing parameter set (SQL Server does) returns
+    /// `SQL_SUCCESS_WITH_INFO`, which only the status array tells apart from a full success.
+    /// The status and processed pointers are bound for this execution only, and reset on every exit.
+    ///
+    /// @param columns The columns to bind as input parameters.
+    /// @param rowCount The number of rows to execute.
+    /// @param paramStatus Receives one status per row (`SQL_PARAM_SUCCESS`, `SQL_PARAM_ERROR`, ...);
+    ///        at least @p rowCount entries. Entries the driver does not fill read `SQL_PARAM_UNUSED`;
+    ///        a driver that stops at the first failing row leaves the rows after it that way.
+    /// @param paramsProcessed Receives the number of rows the driver processed; @p rowCount if the
+    ///        driver does not report it.
+    /// @return The cursor of the execution.
+    /// @throws SqlException if the execution fails, if any row reports `SQL_PARAM_ERROR` (carrying
+    ///         the first diagnostic record), or if the driver processed fewer than @p rowCount rows.
+    ///         @p paramStatus and @p paramsProcessed hold what the driver reported either way.
+    /// @throws std::invalid_argument if the column count does not match the prepared statement or
+    ///         @p paramStatus holds fewer than @p rowCount entries.
+    [[nodiscard]] LIGHTWEIGHT_API SqlResultCursor ExecuteBatch(std::span<SqlRawColumn const> columns,
+                                                               std::size_t rowCount,
+                                                               std::span<SQLUSMALLINT> paramStatus,
+                                                               SQLULEN& paramsProcessed);
+
     /// Executes the prepared statement once per row of a *row-major* batch, preferring native ODBC
     /// row-wise array binding (a single zero-copy @c SQLExecute) and transparently falling back to a
     /// prepare-once + per-row execute when native binding is not possible.
@@ -460,6 +486,13 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     [[nodiscard]] LIGHTWEIGHT_API std::optional<SQLSMALLINT> DescribeInputParameterType(
         SQLUSMALLINT column) noexcept override;
     LIGHTWEIGHT_API void ClearBatchIndicators();
+    /// Sets up column-wise array binding of @p rowCount rows and binds @p columns as input parameters.
+    /// @param columns The columns to bind.
+    /// @param rowCount The number of rows (parameter sets).
+    /// @param sourceLocation The caller, which every check reports as its location.
+    LIGHTWEIGHT_API void BindRawBatchColumns(std::span<SqlRawColumn const> columns,
+                                             std::size_t rowCount,
+                                             std::source_location sourceLocation);
     /// Restores single-row, column-bound parameter binding (the ODBC default). @c noexcept so it can run
     /// from a scope guard on the native-batch exception path.
     LIGHTWEIGHT_API void ResetParameterArrayBinding() noexcept;
