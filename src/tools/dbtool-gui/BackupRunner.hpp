@@ -17,7 +17,6 @@
 
 #include "LogLevel.hpp"
 #include "Models/BackupTableListModel.hpp"
-#include "ReportingOperation.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -39,7 +38,8 @@ struct SqlConnectionString;
 namespace SqlBackup
 {
     struct ProgressManager;
-}
+    struct RestoreReport;
+} // namespace SqlBackup
 namespace SqlMigration
 {
     struct BackupRecord;
@@ -85,10 +85,11 @@ class BackupRunner: public QObject
                                             std::string const& connectionString,
                                             Lightweight::SqlBackup::ProgressManager& progress)>;
 
-    /// The operation `runRestore` executes: like RunOperation, but it may return the restore's
-    /// failure report (a callable returning void stands for "no failures").
+    /// The operation `runRestore` executes: like RunOperation, but it returns the restore's failure report.
     using RestoreOperation =
-        ReportingOperation<std::filesystem::path const&, std::string const&, Lightweight::SqlBackup::ProgressManager&>;
+        std::function<Lightweight::SqlBackup::RestoreReport(std::filesystem::path const& archive,
+                                                            std::string const& connectionString,
+                                                            Lightweight::SqlBackup::ProgressManager& progress)>;
 
     /// Writes the `schema_backups` record of a finished run, so a backup can satisfy a migration
     /// backup requirement. Both members run on the worker thread; the defaults connect their own

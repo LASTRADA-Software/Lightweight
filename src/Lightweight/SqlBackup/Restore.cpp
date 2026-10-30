@@ -131,11 +131,7 @@ namespace
     ///         number of unreadable chunks, if any.
     std::string DescribeTableFailures(TableRestoreReport const& report)
     {
-        auto const nulledCells = std::ranges::fold_left(
-            report.valueFailures, std::uint64_t { 0 }, [](std::uint64_t sum, ColumnValueFailures const& column) {
-                return sum + column.cellsSetToNull;
-            });
-        auto message = std::format("{} rows failed, {} cells set to NULL", report.failedRowCount, nulledCells);
+        auto message = report.FailureSummary();
         if (report.tableFailure)
             message += std::format(", table failed: {}", *report.tableFailure);
         if (report.unreadableChunks > 0)
@@ -508,7 +504,7 @@ namespace
         // Its failed row count is settled once its chunks are processed (SettleFailedTableRows()).
         if (!ctx.failedTables.Add(chunk.tableName))
             return ChunkRestoreOutcome::TableFailed;
-        ctx.failureLog.RecordTableFailure(chunk.tableName, reason, 0);
+        ctx.failureLog.RecordTableFailure(chunk.tableName, reason);
         ctx.progress.Update({ .state = Progress::State::Error,
                               .tableName = chunk.tableName,
                               .currentRows = 0,

@@ -186,9 +186,9 @@ namespace
                 // A table reports an error per unreadable chunk plus a terminal one: it counts once.
                 // An error naming no table counts once per distinct message.
                 if (p.tableName.empty() || p.tableName == "Unknown")
-                    _failedKeys.insert(std::string { '\0' } + std::string { p.message });
+                    _unnamedErrors.emplace(p.message);
                 else
-                    _failedKeys.insert(std::string { p.tableName });
+                    _failedTables.emplace(p.tableName);
             }
 
             auto const table = QString::fromStdString(std::string { p.tableName });
@@ -244,25 +244,25 @@ namespace
         /// @return Distinct failed tables plus distinct errors that name no table.
         [[nodiscard]] std::size_t FailureCount(Lightweight::SqlBackup::RestoreReport const& report) const
         {
-            auto keys = [&] {
-                std::scoped_lock const lock(_failedMutex);
-                return _failedKeys;
-            }();
+            auto const lock = std::scoped_lock { _failedMutex };
+            auto tables = _failedTables;
+            for (auto const& table: report.tables)
+                tables.insert(table.tableName);
+            tables.insert(report.incompleteTables.begin(), report.incompleteTables.end());
             // The report counts errors that name no table itself (unattributedChunkErrors); only
             // without a report, such as after an early exit, do their messages stand in for it.
-            if (report.HasFailures())
-                std::erase_if(keys, [](std::string const& key) { return !key.empty() && key.front() == '\0'; });
-            for (auto const& table: report.tables)
-                keys.insert(table.tableName);
-            keys.insert(report.incompleteTables.begin(), report.incompleteTables.end());
-            return keys.size() + report.unattributedChunkErrors;
+            auto const unnamedErrors = report.HasFailures() ? std::size_t { 0 } : _unnamedErrors.size();
+            return tables.size() + unnamedErrors + report.unattributedChunkErrors;
         }
 
       private:
         QObject* _target;
         QString _profileName;
         mutable std::mutex _failedMutex;
-        std::unordered_set<std::string> _failedKeys;
+        /// The tables an error update named.
+        std::unordered_set<std::string> _failedTables;
+        /// The distinct messages of the error updates that named no table.
+        std::unordered_set<std::string> _unnamedErrors;
     };
 
     /// Worker-thread count for SqlBackup (same policy as BackupRunner).
@@ -438,7 +438,7 @@ bool ManagedBackupController::WaitForDone(std::chrono::milliseconds timeout)
 ManagedBackupController::ManagedBackupController(QObject* parent):
     QObject(parent),
     _backupOperation(&RunSqlBackup),
-    _restoreOperation(RestoreOperation { &RunSqlRestore }),
+    _restoreOperation(&RunSqlRestore),
     _recorder(DefaultBackupRecorder()),
     _connectionProbe(&ProbeConnection),
     _backupFolder(QSettings().value(QString::fromLatin1(kKeyBackupFolder)).toString())

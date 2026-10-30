@@ -11,7 +11,6 @@
 #include "LogLevel.hpp"
 #include "ManagedBackupCore.hpp"
 #include "Models/BackupStatusListModel.hpp"
-#include "ReportingOperation.hpp"
 #include "SerialWorker.hpp"
 
 #include <atomic>
@@ -34,7 +33,8 @@
 namespace Lightweight::SqlBackup
 {
 struct ProgressManager;
-}
+struct RestoreReport;
+} // namespace Lightweight::SqlBackup
 
 namespace DbtoolGui
 {
@@ -89,10 +89,12 @@ class ManagedBackupController: public QObject
     /// @param schema Schema override ("" = server default).
     /// @param progress Progress sink. Table-level failures are reported
     ///        through it as `Progress::State::Error`, not thrown.
-    using RestoreOperation = ReportingOperation<std::filesystem::path const&,
-                                                std::string const&,
-                                                std::string const&,
-                                                Lightweight::SqlBackup::ProgressManager&>;
+    /// @return What failed to restore.
+    using RestoreOperation =
+        std::function<Lightweight::SqlBackup::RestoreReport(std::filesystem::path const& archiveFile,
+                                                            std::string const& connectionString,
+                                                            std::string const& schema,
+                                                            Lightweight::SqlBackup::ProgressManager& progress)>;
 
     /// Called on the GUI thread with a profile whose plaintext password a backup or restore has just
     /// connected with, so that the caller can store it encrypted. Same rule as the interactive connect:

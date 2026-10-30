@@ -2,9 +2,7 @@
 
 #include "RestoreReportFormat.hpp"
 
-#include <algorithm>
 #include <format>
-#include <numeric>
 #include <ranges>
 
 namespace Lightweight::Tools
@@ -22,14 +20,6 @@ namespace
         return joined;
     }
 } // namespace
-
-std::uint64_t CountNulledCells(SqlBackup::TableRestoreReport const& report)
-{
-    return std::ranges::fold_left(
-        report.valueFailures, std::uint64_t { 0 }, [](std::uint64_t sum, SqlBackup::ColumnValueFailures const& column) {
-            return sum + column.cellsSetToNull;
-        });
-}
 
 std::vector<std::string> DescribeTableRestoreFailures(SqlBackup::TableRestoreReport const& report)
 {
@@ -66,26 +56,19 @@ std::vector<std::string> DescribeTableRestoreFailures(SqlBackup::TableRestoreRep
     return lines;
 }
 
-std::string SummarizeTableRestoreFailures(SqlBackup::TableRestoreReport const& report)
-{
-    return std::format("{} rows failed, {} cells set to NULL", report.failedRowCount, CountNulledCells(report));
-}
-
 std::vector<std::string> DescribeRestoreReport(SqlBackup::RestoreReport const& report)
 {
     if (!report.HasFailures())
         return {};
 
     auto lines = std::vector<std::string> { "Restore failures:" };
-    auto nulledCells = std::uint64_t { 0 };
     for (auto const& table: report.tables)
     {
-        lines.push_back(std::format("  {}: {}", table.tableName, SummarizeTableRestoreFailures(table)));
+        lines.push_back(std::format("  {}: {}", table.tableName, table.FailureSummary()));
         for (auto const& detail: DescribeTableRestoreFailures(table))
             lines.push_back(std::format("    {}", detail));
-        nulledCells += CountNulledCells(table);
     }
-    if (report.workerStopped)
+    if (report.WorkerStopped())
         lines.emplace_back(
             "  A restore worker stopped early after losing its connection; the rest of its work was not done.");
     for (auto const& table: report.incompleteTables)
@@ -94,10 +77,18 @@ std::vector<std::string> DescribeRestoreReport(SqlBackup::RestoreReport const& r
         lines.push_back(
             std::format("  {} unreadable archive entries belong to no known table", report.unattributedChunkErrors));
     lines.push_back(std::format("Total: {} rows failed in {} tables, {} cells set to NULL",
-                                report.totalFailedRows,
+                                report.TotalFailedRows(),
                                 report.tables.size(),
-                                nulledCells));
+                                report.NulledCellCount()));
     return lines;
+}
+
+std::string JoinedReportText(SqlBackup::RestoreReport const& report)
+{
+    auto text = std::string {};
+    for (auto const& line: DescribeRestoreReport(report))
+        text += (text.empty() ? "" : "\n") + line;
+    return text;
 }
 
 } // namespace Lightweight::Tools

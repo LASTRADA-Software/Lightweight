@@ -11,7 +11,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cstdint>
 #include <exception>
 #include <filesystem>
 #include <mutex>
@@ -71,25 +70,6 @@ namespace
     [[nodiscard]] bool NamesATable(std::string const& tableName) noexcept
     {
         return !tableName.empty() && tableName != "Unknown";
-    }
-
-    /// @param report What a restore reported as failed.
-    /// @return The cells the restore set to NULL, over all tables.
-    [[nodiscard]] std::uint64_t NulledCells(Lightweight::SqlBackup::RestoreReport const& report)
-    {
-        return std::ranges::fold_left(report.tables, std::uint64_t { 0 }, [](std::uint64_t sum, auto const& table) {
-            return sum + Lightweight::Tools::CountNulledCells(table);
-        });
-    }
-
-    /// @param report What a restore reported as failed.
-    /// @return The "Restore failures" block as text; empty when nothing failed.
-    [[nodiscard]] QString ReportText(Lightweight::SqlBackup::RestoreReport const& report)
-    {
-        auto lines = QStringList {};
-        for (auto const& line: Lightweight::Tools::DescribeRestoreReport(report))
-            lines.push_back(QString::fromStdString(line));
-        return lines.join(QLatin1Char('\n'));
     }
 
     /// What one finished run amounts to, computed on the worker thread.
@@ -291,8 +271,7 @@ namespace
                     for (auto const& line: Lightweight::Tools::DescribeTableRestoreFailures(*it))
                         details.push_back(QString::fromStdString(line));
                     entry.insert(QStringLiteral("failedRows"), static_cast<qulonglong>(it->failedRowCount));
-                    entry.insert(QStringLiteral("nulledCells"),
-                                 static_cast<qulonglong>(Lightweight::Tools::CountNulledCells(*it)));
+                    entry.insert(QStringLiteral("nulledCells"), static_cast<qulonglong>(it->NulledCellCount()));
                     entry.insert(QStringLiteral("details"), details.join(QLatin1Char('\n')));
                 }
                 failedTables.push_back(std::move(entry));
@@ -312,9 +291,9 @@ namespace
                 { QStringLiteral("otherErrors"), other },
                 { QStringLiteral("failedTables"), failedTables },
                 { QStringLiteral("rows"), static_cast<qulonglong>(_rows) },
-                { QStringLiteral("failedRows"), static_cast<qulonglong>(report.totalFailedRows) },
-                { QStringLiteral("nulledCells"), static_cast<qulonglong>(NulledCells(report)) },
-                { QStringLiteral("reportText"), ReportText(report) },
+                { QStringLiteral("failedRows"), static_cast<qulonglong>(report.TotalFailedRows()) },
+                { QStringLiteral("nulledCells"), static_cast<qulonglong>(report.NulledCellCount()) },
+                { QStringLiteral("reportText"), QString::fromStdString(Lightweight::Tools::JoinedReportText(report)) },
                 { QStringLiteral("durationMs"), durationMs },
             };
             return { std::move(summary), std::move(result), ok };
@@ -451,7 +430,7 @@ BackupRunner::BackupRunner(QObject* parent):
     QObject(parent),
     _tables(this),
     _backupOperation(&RunSqlBackup),
-    _restoreOperation(RestoreOperation { &RunSqlRestore }),
+    _restoreOperation(&RunSqlRestore),
     _recorder { DefaultBackupRecorder() }
 {
     // Serialise GUI-initiated backup / restore operations so the progress
@@ -537,7 +516,14 @@ bool BackupRunner::CanStartRun(char const* what)
 void BackupRunner::runBackup(QString const& outputFile)
 {
     if (CanStartRun("Backup"))
-        Run(Operation::Backup, outputFile, RestoreOperation { _backupOperation });
+        Run(Operation::Backup,
+            outputFile,
+            [backup = _backupOperation](std::filesystem::path const& archive,
+                                        std::string const& connectionString,
+                                        Lightweight::SqlBackup::ProgressManager& progress) {
+                backup(archive, connectionString, progress);
+                return Lightweight::SqlBackup::RestoreReport {}; // A backup reports no restore failures.
+            });
 }
 
 void BackupRunner::runRestore(QString const& inputFile)

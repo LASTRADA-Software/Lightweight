@@ -42,11 +42,10 @@ class LIGHTWEIGHT_API RestoreFailureLog
     /// @param reason Why the value was dropped.
     void RecordNulledCell(std::string_view table, std::string_view column, std::string_view reason);
 
-    /// Records that a whole table failed.
+    /// Records that a whole table failed. Its failed row count is settled by SetFailedTableRowCount().
     /// @param table Table name.
     /// @param reason Failure reason (the first one wins).
-    /// @param rowCount Number of rows lost, added to the failed row count.
-    void RecordTableFailure(std::string_view table, std::string_view reason, std::uint64_t rowCount);
+    void RecordTableFailure(std::string_view table, std::string_view reason);
 
     /// Sets the failed row count of a table that failed as a whole to @p missingRows, the rows of the
     /// table that did not reach the target. That replaces the count of its individually failed rows,
@@ -63,7 +62,7 @@ class LIGHTWEIGHT_API RestoreFailureLog
     /// @return Snapshot of the table's report; an empty report if nothing failed.
     [[nodiscard]] TableRestoreReport TableSnapshot(std::string_view table) const;
 
-    /// @return Snapshot of all failures; workerStopped and incompleteTables are left for the caller to set.
+    /// @return Snapshot of all failures; incompleteTables is left for the caller to set.
     [[nodiscard]] RestoreReport Snapshot() const;
 
   private:

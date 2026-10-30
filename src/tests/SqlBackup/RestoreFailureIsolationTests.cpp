@@ -286,8 +286,8 @@ TEST_CASE_METHOD(SqlTestFixture, "duplicate primary keys fail only the duplicate
     CHECK(CountRows("rfi_dup_b") == 5);
 
     CHECK(report.HasFailures());
-    CHECK(report.totalFailedRows == 2);
-    CHECK_FALSE(report.workerStopped);
+    CHECK(report.TotalFailedRows() == 2);
+    CHECK_FALSE(report.WorkerStopped());
     CHECK(report.incompleteTables.empty());
     auto const tableReport = TableReportOf(report, "rfi_dup_a");
     CHECK(tableReport.failedRowCount == 2);
@@ -410,7 +410,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK(CountRows(failed.tableName) == 0);
     CHECK(CountRows(restoredName) == (aFailed ? 4 : 3));
     CHECK_FALSE(TableReportOf(report, restoredName).HasFailures());
-    CHECK_FALSE(report.workerStopped);
+    CHECK_FALSE(report.WorkerStopped());
 }
 
 TEST_CASE_METHOD(SqlTestFixture,
@@ -643,7 +643,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK(source.RemainingFailures() == 0);
     CHECK(ReadIds("rfi_many") == expectedIds);
     CHECK(TableReportOf(report, "rfi_many").failedRowCount == 10);
-    CHECK(report.totalFailedRows == 10);
+    CHECK(report.TotalFailedRows() == 10);
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "concurrent workers aggregate failures exactly", "[SqlBackup][RestoreFailures]")
@@ -675,7 +675,7 @@ TEST_CASE_METHOD(SqlTestFixture, "concurrent workers aggregate failures exactly"
     CHECK(CountRows("rfi_concurrent") == 16);
     auto const tableReport = TableReportOf(report, "rfi_concurrent");
     CHECK(tableReport.failedRowCount == chunks.size());
-    CHECK(report.totalFailedRows == chunks.size());
+    CHECK(report.TotalFailedRows() == chunks.size());
     CHECK(tableReport.failedRowRanges.size() == chunks.size());
     CHECK(std::ranges::all_of(tableReport.failedRowRanges,
                               [](auto const& range) { return range.firstRow == 3 && range.lastRow == 3; }));
@@ -715,7 +715,7 @@ TEST_CASE_METHOD(SqlTestFixture, "corrupt chunk is skipped and the restore conti
     CHECK(CountRows("rfi_corrupt_b") == 3);
     CHECK(TableReportOf(report, "rfi_corrupt_a").unreadableChunks == 1);
     CHECK_FALSE(TableReportOf(report, "rfi_corrupt_b").HasFailures());
-    CHECK_FALSE(report.workerStopped);
+    CHECK_FALSE(report.WorkerStopped());
     CHECK(report.incompleteTables.empty());
     CHECK(progress.ErrorCount() > 0);
 }
@@ -745,7 +745,7 @@ TEST_CASE_METHOD(SqlTestFixture, "undecodable chunk content is reported, not a w
     CHECK(CountRows("rfi_undecodable_b") == 3);
     CHECK(TableReportOf(report, "rfi_undecodable_a").unreadableChunks == 1);
     CHECK_FALSE(TableReportOf(report, "rfi_undecodable_b").HasFailures());
-    CHECK_FALSE(report.workerStopped);
+    CHECK_FALSE(report.WorkerStopped());
     CHECK(report.incompleteTables.empty());
 }
 
@@ -818,7 +818,7 @@ TEST_CASE_METHOD(SqlTestFixture, "a table failed by several workers counts its r
     REQUIRE(tableReport.tableFailure.has_value());
     CHECK(tableReport.tableFailure.value_or("").starts_with("HYC00"));
     CHECK(tableReport.failedRowCount == 16);
-    CHECK(report.totalFailedRows == 16);
+    CHECK(report.TotalFailedRows() == 16);
     CHECK(std::ranges::count_if(progress.ErrorsOf("rfi_bind_concurrent"),
                                 [](std::string const& message) { return message.starts_with("Table failed:"); })
           == 1);
@@ -867,5 +867,5 @@ TEST_CASE_METHOD(SqlTestFixture,
     REQUIRE(tableReport.tableFailure.has_value());
     auto const missingRows = static_cast<std::uint64_t>(9 - inTarget);
     CHECK(tableReport.failedRowCount == missingRows);
-    CHECK(report.totalFailedRows == missingRows);
+    CHECK(report.TotalFailedRows() == missingRows);
 }

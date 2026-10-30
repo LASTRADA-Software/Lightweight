@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <expected>
 #include <filesystem>
+#include <format>
 #include <map>
 #include <optional>
 #include <string>
@@ -503,6 +504,21 @@ struct TableRestoreReport
         return failedRowCount != 0 || !failedRowRanges.empty() || !valueFailures.empty() || tableFailure.has_value()
                || unreadableChunks != 0;
     }
+
+    /// @return The number of cells of this table restored as NULL, over all columns.
+    [[nodiscard]] std::uint64_t NulledCellCount() const noexcept
+    {
+        auto count = std::uint64_t { 0 };
+        for (auto const& column: valueFailures)
+            count += column.cellsSetToNull;
+        return count;
+    }
+
+    /// @return The one-line summary of this table's failures, `"<n> rows failed, <m> cells set to NULL"`.
+    [[nodiscard]] std::string FailureSummary() const
+    {
+        return std::format("{} rows failed, {} cells set to NULL", failedRowCount, NulledCellCount());
+    }
 };
 
 /// Bounded failure report of a whole restore.
@@ -510,19 +526,39 @@ struct RestoreReport
 {
     /// Only tables with failures, sorted by tableName.
     std::vector<TableRestoreReport> tables;
-    /// Sum of failedRowCount over all tables.
-    std::uint64_t totalFailedRows {};
-    /// True if a worker stopped early.
-    bool workerStopped {};
-    /// Chunks left unprocessed by a stopped worker.
+    /// Tables with chunks left unprocessed by a stopped worker.
     std::vector<std::string> incompleteTables;
     /// Unreadable archive entries no table could be named for.
     std::uint64_t unattributedChunkErrors {};
 
+    /// @return The sum of TableRestoreReport::failedRowCount over all tables.
+    [[nodiscard]] std::uint64_t TotalFailedRows() const noexcept
+    {
+        auto count = std::uint64_t { 0 };
+        for (auto const& table: tables)
+            count += table.failedRowCount;
+        return count;
+    }
+
+    /// @return The sum of TableRestoreReport::NulledCellCount() over all tables.
+    [[nodiscard]] std::uint64_t NulledCellCount() const noexcept
+    {
+        auto count = std::uint64_t { 0 };
+        for (auto const& table: tables)
+            count += table.NulledCellCount();
+        return count;
+    }
+
+    /// @return true if a worker stopped early, leaving tables incomplete.
+    [[nodiscard]] bool WorkerStopped() const noexcept
+    {
+        return !incompleteTables.empty();
+    }
+
     /// @return true if anything failed during the restore.
     [[nodiscard]] bool HasFailures() const noexcept
     {
-        return !tables.empty() || workerStopped || !incompleteTables.empty() || unattributedChunkErrors != 0;
+        return !tables.empty() || !incompleteTables.empty() || unattributedChunkErrors != 0;
     }
 };
 

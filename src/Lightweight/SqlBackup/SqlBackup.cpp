@@ -1791,7 +1791,6 @@ RestoreReport Restore(std::filesystem::path const& inputFile,
                           .totalRows = std::nullopt,
                           .message = "Not fully restored: the restore stopped after an earlier error" });
     }
-    report.workerStopped = !report.incompleteTables.empty();
 
     detail::ApplyDatabaseConstraints(connectionString, effectiveSchema, filteredTableMap, progress);
     detail::RestoreIndexes(connectionString, effectiveSchema, filteredTableMap, progress);

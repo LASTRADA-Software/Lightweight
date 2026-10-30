@@ -119,15 +119,15 @@ ignore it compile unchanged):
   fails its table: the table's remaining chunks are skipped and the other tables continue.
 - **An unreadable chunk** is skipped and counted; the rows read before it stay.
 - **A lost connection** that does not come back within `RetrySettings` stops the worker that hit it;
-  the report lists the tables it left incomplete (`workerStopped`, `incompleteTables`).
+  the report lists the tables it left incomplete (`incompleteTables`; `WorkerStopped()`).
 
 Each table gets at most one terminal update through the `ProgressManager` (`Error` if anything failed
 for it, with a message such as `2 rows failed, 3 cells set to NULL`; `Finished` otherwise). A table
 that failed as a whole or had an unreadable chunk may report additional `Error` updates before it, so a
 consumer that tallies failed tables must count a table once.
 
-`RestoreReport` holds only tables with failures (`tables`, sorted by name), `totalFailedRows`, and the
-run-level problems. Its memory and the progress traffic do not grow with the number of failed rows:
+`RestoreReport` holds only tables with failures (`tables`, sorted by name; `TotalFailedRows()` and
+`NulledCellCount()` sum them up), and the run-level problems. Its memory and the progress traffic do not grow with the number of failed rows:
 per table, at most `MaxReportedRowRanges` (100) row ranges (`FailedRowRange`: chunk, first and last
 row) and `MaxReportedReasons` (20) distinct `FailureReason`s with `MaxSampleKeysPerReason` (3) sample
 keys each are kept; the rest is counted in `rowsBeyondRangeCap` and `occurrencesBeyondReasonCap`.

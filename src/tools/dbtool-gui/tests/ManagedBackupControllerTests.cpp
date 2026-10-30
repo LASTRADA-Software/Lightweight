@@ -807,13 +807,14 @@ namespace
 /// @param count Number of Error events to report.
 /// @param writeOutput Whether to create the output file first (a backup writes
 ///        its temporary archive before any table is processed).
-/// @return An operation usable as both BackupOperation and RestoreOperation.
+/// @return An operation usable as both BackupOperation and RestoreOperation; it reports no
+///         failures in its RestoreReport.
 [[nodiscard]] auto FailingOperation(std::size_t count, bool writeOutput)
 {
     return [count, writeOutput](std::filesystem::path const& file,
                                 std::string const& /*connectionString*/,
                                 std::string const& /*schema*/,
-                                Lightweight::SqlBackup::ProgressManager& progress) {
+                                Lightweight::SqlBackup::ProgressManager& progress) -> Lightweight::SqlBackup::RestoreReport {
         if (writeOutput)
             std::ofstream(file) << "partial archive";
         for (std::size_t i = 0; i < count; ++i)
@@ -822,6 +823,7 @@ namespace
                               .currentRows = 0,
                               .totalRows = 0,
                               .message = "Backup failed: table is locked" });
+        return {};
     };
 }
 
@@ -969,7 +971,6 @@ TEST_CASE("a managed restore counts failed tables from its report, not error upd
         lines.failedRowCount = 1;
         auto report = Lightweight::SqlBackup::RestoreReport {};
         report.tables = { items, lines };
-        report.totalFailedRows = 3;
         return report;
     });
     QSignalSpy restoreDone(&controller, &ManagedBackupController::finished);
@@ -1074,11 +1075,13 @@ void WriteArchiveOperation(std::filesystem::path const& file,
 }
 
 /// A restore operation that succeeds without touching any database.
-void NoOpRestoreOperation(std::filesystem::path const& /*archiveFile*/,
-                          std::string const& /*connectionString*/,
-                          std::string const& /*schema*/,
-                          Lightweight::SqlBackup::ProgressManager& /*progress*/)
+/// @return An empty report.
+Lightweight::SqlBackup::RestoreReport NoOpRestoreOperation(std::filesystem::path const& /*archiveFile*/,
+                                                           std::string const& /*connectionString*/,
+                                                           std::string const& /*schema*/,
+                                                           Lightweight::SqlBackup::ProgressManager& /*progress*/)
 {
+    return {};
 }
 
 } // namespace
@@ -1244,6 +1247,7 @@ TEST_CASE("a managed restore in flight blocks closing and is named as a restore"
                                                         Lightweight::SqlBackup::ProgressManager& /*progress*/) {
         started.set_value();
         released.wait();
+        return Lightweight::SqlBackup::RestoreReport {};
     });
 
     auto const runner = DbtoolGui::MigrationRunner {};
@@ -1317,11 +1321,13 @@ TEST_CASE("a multi-schema archive drops only a profile schema it holds; a typed 
             throw std::runtime_error("cannot write the multi-schema test archive");
     });
     auto restoredSchemas = std::vector<std::string> {};
-    controller.setRestoreOperation(
-        [&restoredSchemas](std::filesystem::path const& /*archiveFile*/,
-                           std::string const& /*connectionString*/,
-                           std::string const& schema,
-                           Lightweight::SqlBackup::ProgressManager& /*progress*/) { restoredSchemas.push_back(schema); });
+    controller.setRestoreOperation([&restoredSchemas](std::filesystem::path const& /*archiveFile*/,
+                                                      std::string const& /*connectionString*/,
+                                                      std::string const& schema,
+                                                      Lightweight::SqlBackup::ProgressManager& /*progress*/) {
+        restoredSchemas.push_back(schema);
+        return Lightweight::SqlBackup::RestoreReport {};
+    });
 
     QSignalSpy backupDone(&controller, &ManagedBackupController::finished);
     controller.backupProfile("source");

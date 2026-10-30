@@ -94,23 +94,23 @@ TEST_CASE("RestoreFailureLog: nulled cells aggregate per column", "[RestoreFailu
 TEST_CASE("RestoreFailureLog: table failure", "[RestoreFailureLog]")
 {
     RestoreFailureLog log;
-    log.RecordTableFailure("T", "HYC00 not supported", 1000);
-    log.RecordTableFailure("T", "later", 5);
+    log.RecordTableFailure("T", "HYC00 not supported");
+    log.RecordTableFailure("T", "later");
     auto const report = log.TableSnapshot("T");
     REQUIRE(report.tableFailure.has_value());
     CHECK(report.tableFailure == "HYC00 not supported");
-    CHECK(report.failedRowCount == 1005);
+    CHECK(report.failedRowCount == 0);
 }
 
 TEST_CASE("RestoreFailureLog: a failed table's count becomes its missing rows", "[RestoreFailureLog]")
 {
     RestoreFailureLog log;
     log.RecordRowFailure("T", "data/T/chunk_1.msgpack", 2, "23000", "duplicate", "2");
-    log.RecordTableFailure("T", "HYC00 not supported", 0);
+    log.RecordTableFailure("T", "HYC00 not supported");
     log.SetFailedTableRowCount("T", 7);
     log.SetFailedTableRowCount("T", 7); // idempotent
     CHECK(log.TableSnapshot("T").failedRowCount == 7);
-    CHECK(log.Snapshot().totalFailedRows == 7);
+    CHECK(log.Snapshot().TotalFailedRows() == 7);
 
     // A table that did not fail as a whole keeps the count of its failed rows.
     log.RecordRowFailure("U", "data/U/chunk_1.msgpack", 1, "23000", "duplicate", "1");
@@ -145,7 +145,7 @@ TEST_CASE("RestoreFailureLog: snapshot is sorted and totals", "[RestoreFailureLo
     REQUIRE(report.tables.size() == 2);
     CHECK(report.tables[0].tableName == "Alpha");
     CHECK(report.tables[1].tableName == "Zed");
-    CHECK(report.totalFailedRows == 3);
+    CHECK(report.TotalFailedRows() == 3);
     CHECK(report.HasFailures());
 }
 

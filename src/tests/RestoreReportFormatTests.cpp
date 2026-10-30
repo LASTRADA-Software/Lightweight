@@ -5,6 +5,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <cstddef>
 #include <string>
 
 using namespace Lightweight;
@@ -70,8 +71,8 @@ TEST_CASE("RestoreReportFormat: a table failure is reported", "[RestoreReportFor
 TEST_CASE("RestoreReportFormat: summary counts rows and nulled cells", "[RestoreReportFormat]")
 {
     auto const report = MakeTableReport();
-    CHECK(Tools::CountNulledCells(report) == 5);
-    CHECK(Tools::SummarizeTableRestoreFailures(report) == "12 rows failed, 5 cells set to NULL");
+    CHECK(report.NulledCellCount() == 5);
+    CHECK(report.FailureSummary() == "12 rows failed, 5 cells set to NULL");
 }
 
 TEST_CASE("RestoreReportFormat: a clean report renders nothing", "[RestoreReportFormat]")
@@ -83,8 +84,6 @@ TEST_CASE("RestoreReportFormat: the restore block names tables, run-level proble
 {
     auto report = RestoreReport {};
     report.tables = { MakeTableReport() };
-    report.totalFailedRows = 12;
-    report.workerStopped = true;
     report.incompleteTables = { "Lines" };
     report.unattributedChunkErrors = 2;
     auto const lines = Tools::DescribeRestoreReport(report);
@@ -96,4 +95,16 @@ TEST_CASE("RestoreReportFormat: the restore block names tables, run-level proble
     CHECK(Contains(lines, "incomplete: Lines"));
     CHECK(Contains(lines, "2 unreadable archive entries"));
     CHECK(lines.back() == "Total: 12 rows failed in 1 tables, 5 cells set to NULL");
+
+    // The totals derive from the tables, the stopped worker from the incomplete tables.
+    CHECK(report.TotalFailedRows() == 12);
+    CHECK(report.NulledCellCount() == 5);
+    CHECK(report.WorkerStopped());
+    CHECK_FALSE(RestoreReport {}.WorkerStopped());
+
+    auto const text = Tools::JoinedReportText(report);
+    CHECK(text.starts_with("Restore failures:\n"));
+    CHECK(text.ends_with("\nTotal: 12 rows failed in 1 tables, 5 cells set to NULL"));
+    CHECK(std::ranges::count(text, '\n') + 1 == static_cast<std::ptrdiff_t>(lines.size()));
+    CHECK(Tools::JoinedReportText({}).empty());
 }

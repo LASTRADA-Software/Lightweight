@@ -102,13 +102,12 @@ void RestoreFailureLog::RecordNulledCell(std::string_view table, std::string_vie
         ColumnValueFailures { .column = std::string(column), .cellsSetToNull = 1, .sampleReason = std::string(reason) });
 }
 
-void RestoreFailureLog::RecordTableFailure(std::string_view table, std::string_view reason, std::uint64_t rowCount)
+void RestoreFailureLog::RecordTableFailure(std::string_view table, std::string_view reason)
 {
     auto const lock = std::scoped_lock { _mutex };
     auto& report = StateFor(table).report;
     if (!report.tableFailure.has_value())
         report.tableFailure = std::string(reason);
-    report.failedRowCount += rowCount;
 }
 
 void RestoreFailureLog::SetFailedTableRowCount(std::string_view table, std::uint64_t missingRows)
@@ -152,7 +151,6 @@ RestoreReport RestoreFailureLog::Snapshot() const
     {
         if (!state.report.HasFailures())
             continue;
-        result.totalFailedRows += state.report.failedRowCount;
         result.tables.push_back(state.report);
     }
     return result;
