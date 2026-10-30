@@ -457,7 +457,7 @@ struct FailureReason
 {
     /// SQLSTATE reported by the driver (may be empty).
     std::string sqlState;
-    /// Message of the first occurrence.
+    /// Message of the first occurrence, cut to at most 200 bytes (at a UTF-8 character boundary).
     std::string message;
     /// Number of failures sharing this reason.
     std::uint64_t occurrences {};
@@ -472,7 +472,7 @@ struct ColumnValueFailures
     std::string column;
     /// Number of cells set to NULL.
     std::uint64_t cellsSetToNull {};
-    /// Reason of the first occurrence.
+    /// Reason of the first occurrence, cut to at most 200 bytes (at a UTF-8 character boundary).
     std::string sampleReason;
 };
 

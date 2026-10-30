@@ -123,6 +123,29 @@ TEST_CASE("RestoreFailureLog: nulled cells aggregate per column", "[RestoreFailu
     CHECK(report.HasFailures());
 }
 
+TEST_CASE("RestoreFailureLog: reported messages are bounded at a UTF-8 boundary", "[RestoreFailureLog]")
+{
+    // 199 ASCII bytes, then a 2-byte character that byte 200 would cut in half.
+    auto const longText = std::string(199, 'm') + "\xC3\xA9" + std::string(300, 'z');
+    RestoreFailureLog log;
+    log.RecordRowFailure("T", "A", 1, "23000", longText, "k");
+    log.RecordNulledCell("T", "c", longText);
+
+    auto const report = log.TableSnapshot("T");
+    REQUIRE(report.reasons.size() == 1);
+    CHECK(report.reasons[0].message == std::string(199, 'm'));
+    REQUIRE(report.valueFailures.size() == 1);
+    CHECK(report.valueFailures[0].sampleReason == std::string(199, 'm'));
+
+    // A message of exactly 200 bytes is kept whole, and grouping still uses the full message.
+    log.RecordRowFailure("T", "A", 3, "23000", longText, "k");
+    log.RecordRowFailure("T", "A", 5, "23000", std::string(198, 'm') + "\xC3\xA9", "k");
+    auto const grouped = log.TableSnapshot("T");
+    REQUIRE(grouped.reasons.size() == 2);
+    CHECK(grouped.reasons[0].occurrences == 2);
+    CHECK(grouped.reasons[1].message == std::string(198, 'm') + "\xC3\xA9");
+}
+
 TEST_CASE("RestoreFailureLog: table failure", "[RestoreFailureLog]")
 {
     RestoreFailureLog log;

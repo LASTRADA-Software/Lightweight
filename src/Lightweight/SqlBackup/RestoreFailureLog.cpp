@@ -11,6 +11,20 @@ namespace Lightweight::SqlBackup::detail
 
 namespace
 {
+    /// The most bytes of a failure message a report keeps, as of a sample row key.
+    constexpr std::size_t MaxReportedTextLength = 200;
+
+    /// Returns @p text cut to at most MaxReportedTextLength bytes, never inside a UTF-8 sequence.
+    std::string BoundedText(std::string_view text)
+    {
+        if (text.size() <= MaxReportedTextLength)
+            return std::string(text);
+        auto length = MaxReportedTextLength;
+        while (length > 0 && (static_cast<unsigned char>(text[length]) & 0xC0U) == 0x80U)
+            --length;
+        return std::string(text.substr(0, length));
+    }
+
     /// Passes each character of @p message with every run of digits collapsed into a single '#' to
     /// @p emit, which returns false to stop.
     /// @return false if @p emit stopped.
@@ -110,7 +124,7 @@ void RestoreFailureLog::RecordRowFailure(std::string_view table,
         state.reasonKeys.push_back(CollapseDigitRuns(message));
         report.reasons.push_back(FailureReason {
             .sqlState = std::string(sqlState),
-            .message = std::string(message),
+            .message = BoundedText(message),
             .occurrences = 1,
             .sampleKeys = { std::move(sampleKey) },
         });
@@ -131,7 +145,7 @@ void RestoreFailureLog::RecordNulledCell(std::string_view table, std::string_vie
     }
     state.columnIndex.emplace(std::string(column), state.report.valueFailures.size());
     state.report.valueFailures.push_back(
-        ColumnValueFailures { .column = std::string(column), .cellsSetToNull = 1, .sampleReason = std::string(reason) });
+        ColumnValueFailures { .column = std::string(column), .cellsSetToNull = 1, .sampleReason = BoundedText(reason) });
 }
 
 void RestoreFailureLog::RecordTableFailure(std::string_view table, std::string_view reason)
