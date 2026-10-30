@@ -62,6 +62,8 @@ static_assert(RenamedFirstCreatedAtField::IsCreatedAtTimestamp
               && RenamedFirstCreatedAtField::ColumnNameOverride == "created_at");
 static_assert(Field<SqlDateTime>::TimestampKind == FieldTimestamp::None && !Field<SqlDateTime>::IsAutoTimestamp);
 static_assert(Field<SqlGuid, PrimaryKey::AutoAssign>::TimestampKind == FieldTimestamp::None);
+// Regression (#664): a PrimaryKey / SqlRealName parameter must never be picked as the timestamp kind.
+static_assert(Field<SqlGuid, PrimaryKey::AutoAssign, SqlRealName { "ID" }>::TimestampKind == FieldTimestamp::None);
 static_assert(FieldTimestampOf<RenamedUpdatedAtField> == FieldTimestamp::UpdatedAt);
 static_assert(FieldTimestampOf<int> == FieldTimestamp::None);
 static_assert(IsAutoTimestampField<CreatedAtField const&>);
