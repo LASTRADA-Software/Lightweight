@@ -35,6 +35,7 @@
 #include <nlohmann/json.hpp>
 
 using namespace Lightweight;
+using Lightweight::SqlBackup::Tests::MakeChunk;
 using Lightweight::SqlBackup::Tests::ScopedFileRemoved;
 
 namespace
@@ -101,15 +102,6 @@ void WriteArchive(std::filesystem::path const& archive, std::map<std::string, st
     for (auto const& [name, content]: entries)
         REQUIRE(zip->AddString(name, content).has_value());
     REQUIRE(zip->Close().has_value());
-}
-
-/// Encodes @p rows as one MsgPack data chunk.
-std::string MakeChunk(std::vector<std::vector<SqlBackup::BackupValue>> const& rows)
-{
-    auto writer = SqlBackup::CreateMsgPackChunkWriter();
-    for (auto const& row: rows)
-        writer->WriteRow(row);
-    return writer->Flush();
 }
 
 /// Returns the metadata JSON of a table with an integer primary key `id` and a second column.

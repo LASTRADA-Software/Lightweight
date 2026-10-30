@@ -163,12 +163,30 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     LIGHTWEIGHT_API void SetPreparedStatementCaching(SqlPreparedStatementCaching caching) noexcept;
 
     /// Binds an input parameter to the prepared statement at the given column index.
+    ///
+    /// The value is bound by address: the driver reads it only at the next @c Execute(), so @p arg
+    /// must stay alive until then. Temporaries are therefore rejected at compile time.
+    ///
+    /// @param columnIndex The 1-based parameter index.
+    /// @param arg The value to bind; it must outlive the next @c Execute().
     template <SqlInputParameterBinder Arg>
     void BindInputParameter(SQLSMALLINT columnIndex, Arg const& arg);
 
     /// Binds an input parameter to the prepared statement at the given column index with a column name hint.
+    ///
+    /// @param columnIndex The 1-based parameter index.
+    /// @param arg The value to bind; it must outlive the next @c Execute().
+    /// @param columnNameHint The column name, reported to the SQL logger.
     template <SqlInputParameterBinder Arg, typename ColumnName>
     void BindInputParameter(SQLSMALLINT columnIndex, Arg const& arg, ColumnName&& columnNameHint);
+
+    /// Deleted: a temporary would be destroyed before the driver reads it at @c Execute() time.
+    template <SqlInputParameterBinder Arg>
+    void BindInputParameter(SQLSMALLINT columnIndex, Arg const&& arg) = delete;
+
+    /// Deleted: a temporary would be destroyed before the driver reads it at @c Execute() time.
+    template <SqlInputParameterBinder Arg, typename ColumnName>
+    void BindInputParameter(SQLSMALLINT columnIndex, Arg const&& arg, ColumnName&& columnNameHint) = delete;
 
     /// Binds the given arguments to the prepared statement and executes it.
     template <SqlInputParameterBinder... Args>
@@ -215,6 +233,32 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// @param columns The columns to bind as input parameters.
     /// @param rowCount The number of rows to execute.
     [[nodiscard]] LIGHTWEIGHT_API SqlResultCursor ExecuteBatch(std::span<SqlRawColumn const> columns, size_t rowCount);
+
+    /// Executes the prepared statement on a batch of SqlRawColumn-prepared data, reporting the
+    /// outcome of each row (parameter set).
+    ///
+    /// Unlike the overload without a status array, this one does not accept a partial success: a
+    /// driver that continues past a failing parameter set (SQL Server does) returns
+    /// `SQL_SUCCESS_WITH_INFO`, which only the status array tells apart from a full success.
+    /// The status and processed pointers are bound for this execution only, and reset on every exit.
+    ///
+    /// @param columns The columns to bind as input parameters.
+    /// @param rowCount The number of rows to execute.
+    /// @param paramStatus Receives one status per row (`SQL_PARAM_SUCCESS`, `SQL_PARAM_ERROR`, ...);
+    ///        at least @p rowCount entries. Entries the driver does not fill read `SQL_PARAM_UNUSED`;
+    ///        a driver that stops at the first failing row leaves the rows after it that way.
+    /// @param paramsProcessed Receives the number of rows the driver processed; @p rowCount if the
+    ///        driver does not report it.
+    /// @return The cursor of the execution.
+    /// @throws SqlException if the execution fails, if any row reports `SQL_PARAM_ERROR` (carrying
+    ///         the first diagnostic record), or if the driver processed fewer than @p rowCount rows.
+    ///         @p paramStatus and @p paramsProcessed hold what the driver reported either way.
+    /// @throws std::invalid_argument if the column count does not match the prepared statement or
+    ///         @p paramStatus holds fewer than @p rowCount entries.
+    [[nodiscard]] LIGHTWEIGHT_API SqlResultCursor ExecuteBatch(std::span<SqlRawColumn const> columns,
+                                                               std::size_t rowCount,
+                                                               std::span<SQLUSMALLINT> paramStatus,
+                                                               SQLULEN& paramsProcessed);
 
     /// Executes the prepared statement once per row of a *row-major* batch, preferring native ODBC
     /// row-wise array binding (a single zero-copy @c SQLExecute) and transparently falling back to a
@@ -442,8 +486,16 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     [[nodiscard]] LIGHTWEIGHT_API std::optional<SQLSMALLINT> DescribeInputParameterType(
         SQLUSMALLINT column) noexcept override;
     LIGHTWEIGHT_API void ClearBatchIndicators();
-    /// Restores single-row, column-bound parameter binding (the ODBC default). @c noexcept so it can run
-    /// from a scope guard on the native-batch exception path.
+    /// Sets up column-wise array binding of @p rowCount rows and binds @p columns as input parameters.
+    /// @param columns The columns to bind.
+    /// @param rowCount The number of rows (parameter sets).
+    /// @param sourceLocation The caller, which every check reports as its location.
+    LIGHTWEIGHT_API void BindRawBatchColumns(std::span<SqlRawColumn const> columns,
+                                             std::size_t rowCount,
+                                             std::source_location sourceLocation);
+    /// Restores single-row, column-bound parameter binding (the ODBC default) and unbinds the parameter
+    /// status and processed-count pointers. @c noexcept so it can run from a scope guard on the
+    /// native-batch exception path.
     LIGHTWEIGHT_API void ResetParameterArrayBinding() noexcept;
     /// Throws unless @p result is a success code or @c SQL_NO_DATA (a searched UPDATE/DELETE that matched
     /// no rows). Mirrors @c Execute() so the batch execute paths tolerate zero-row updates.
@@ -681,6 +733,13 @@ class [[nodiscard]] SqlResultCursor
     {
         return m_stmt->NumColumnsAffected();
     }
+
+    /// @brief The SQL data type the driver reports for a result column (the @c SQL_* value from
+    /// @c SQLDescribeCol), like @ref RowArrayCursor::ColumnSqlType.
+    /// @param column 1-based result column index.
+    /// @return The reported @c SQL_* type code, or the error (`07009` for a column the result set does
+    ///         not have) if the column cannot be described.
+    [[nodiscard]] LIGHTWEIGHT_API std::expected<SQLSMALLINT, SqlErrorInfo> ColumnSqlType(SQLUSMALLINT column) const;
 
     /// @copydoc SqlStatement::ConsumePendingResults
     LIGHTWEIGHT_FORCE_INLINE void ConsumePendingResults(std::source_location location = std::source_location::current())

@@ -12,7 +12,9 @@
 #include <cstdint>
 #include <expected>
 #include <filesystem>
+#include <format>
 #include <map>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -109,9 +111,10 @@ struct RestoreSettings
     /// Default: 0 (auto-calculated based on available memory).
     std::size_t batchSize = 0;
 
-    /// Maximum rows before an intermediate commit within a chunk.
-    /// Helps reduce transaction log / WAL memory accumulation.
-    /// Default: 10000. Set to 0 to disable intermediate commits.
+    /// The rows after which a chunk's transaction is committed and a new one begun, on a database
+    /// whose formatter bounds bulk-load transactions (SQLite, whose write-ahead log grows with the
+    /// open transaction); elsewhere a chunk commits as one transaction. 0 commits once per chunk.
+    /// Once a row of a chunk failed, the chunk commits batch by batch instead.
     std::size_t maxRowsPerCommit = 10000;
 
     /// Database page cache size in KB (used for SQLite PRAGMA cache_size,
@@ -431,11 +434,162 @@ struct ArchiveVerification
                                                                std::string const& defaultSchema,
                                                                bool caseInsensitive);
 
+/// Maximum number of failed-row ranges reported per table; further failing rows are only counted.
+inline constexpr std::size_t MaxReportedRowRanges = 100;
+/// Maximum number of distinct failure reasons reported per table; further occurrences are only counted.
+inline constexpr std::size_t MaxReportedReasons = 20;
+/// Maximum number of sample row keys kept per failure reason.
+inline constexpr std::size_t MaxSampleKeysPerReason = 3;
+
+/// Renders @p count with the noun that agrees with it.
+/// @param count The count.
+/// @param singular The noun for a count of 1, e.g. `"row"`.
+/// @param plural The noun for any other count, e.g. `"rows"`.
+/// @return `"<count> <singular>"` for a count of 1, `"<count> <plural>"` otherwise.
+[[nodiscard]] inline std::string CountOf(std::uint64_t count, std::string_view singular, std::string_view plural)
+{
+    return std::format("{} {}", count, count == 1 ? singular : plural);
+}
+
+/// A contiguous run of rows that failed to restore within one chunk.
+struct FailedRowRange
+{
+    /// Archive path of the chunk the rows belong to.
+    std::string chunkPath;
+    /// First failed row (1-based, within the chunk).
+    std::uint64_t firstRow {};
+    /// Last failed row (1-based, within the chunk, inclusive).
+    std::uint64_t lastRow {};
+};
+
+/// One distinct failure cause of a table, with its occurrence count.
+struct FailureReason
+{
+    /// SQLSTATE reported by the driver (may be empty).
+    std::string sqlState;
+    /// Message of the first occurrence, cut to at most 200 bytes (at a UTF-8 character boundary).
+    std::string message;
+    /// Number of failures sharing this reason.
+    std::uint64_t occurrences {};
+    /// A few example row keys (at most MaxSampleKeysPerReason).
+    std::vector<std::string> sampleKeys;
+};
+
+/// Cells of one column that were restored as NULL because their value could not be converted.
+struct ColumnValueFailures
+{
+    /// Column name.
+    std::string column;
+    /// Number of cells set to NULL.
+    std::uint64_t cellsSetToNull {};
+    /// Reason of the first occurrence, cut to at most 200 bytes (at a UTF-8 character boundary).
+    std::string sampleReason;
+};
+
+/// Bounded failure report for one table.
+struct TableRestoreReport
+{
+    /// Name of the table.
+    std::string tableName;
+    /// Total number of rows that failed to restore. For a table that failed as a whole, the rows of
+    /// the archive that did not reach the target; that is 0 if the archive does not know the table's
+    /// row count, while tableFailure is still set.
+    std::uint64_t failedRowCount {};
+    /// Ranges of failed rows, capped at MaxReportedRowRanges.
+    std::vector<FailedRowRange> failedRowRanges;
+    /// Failed rows not represented in failedRowRanges because the cap was reached.
+    std::uint64_t rowsBeyondRangeCap {};
+    /// Distinct failure reasons, capped at MaxReportedReasons.
+    std::vector<FailureReason> reasons;
+    /// Failures not represented in reasons because the cap was reached.
+    std::uint64_t occurrencesBeyondReasonCap {};
+    /// Per-column value conversion failures.
+    std::vector<ColumnValueFailures> valueFailures;
+    /// Set if the whole table failed; holds the first reason.
+    std::optional<std::string> tableFailure;
+    /// Number of chunks of this table that could not be read.
+    std::uint64_t unreadableChunks {};
+
+    /// @return true if anything failed for this table.
+    [[nodiscard]] bool HasFailures() const noexcept
+    {
+        return failedRowCount != 0 || !failedRowRanges.empty() || !valueFailures.empty() || tableFailure.has_value()
+               || unreadableChunks != 0;
+    }
+
+    /// @return The number of cells of this table restored as NULL, over all columns.
+    [[nodiscard]] std::uint64_t NulledCellCount() const noexcept
+    {
+        auto count = std::uint64_t { 0 };
+        for (auto const& column: valueFailures)
+            count += column.cellsSetToNull;
+        return count;
+    }
+
+    /// @return The one-line summary of this table's failures, `"<n> rows failed, <m> cells set to NULL"`
+    ///         (`"1 row failed"`, `"1 cell set to NULL"` for a count of 1).
+    [[nodiscard]] std::string FailureSummary() const
+    {
+        return std::format("{} failed, {} set to NULL",
+                           CountOf(failedRowCount, "row", "rows"),
+                           CountOf(NulledCellCount(), "cell", "cells"));
+    }
+};
+
+/// Bounded failure report of a whole restore.
+struct RestoreReport
+{
+    /// Only tables with failures, sorted by tableName.
+    std::vector<TableRestoreReport> tables;
+    /// Tables with chunks left unprocessed by a stopped worker.
+    std::vector<std::string> incompleteTables;
+    /// Unreadable archive entries no table could be named for.
+    std::uint64_t unattributedChunkErrors {};
+
+    /// @return The sum of TableRestoreReport::failedRowCount over all tables.
+    [[nodiscard]] std::uint64_t TotalFailedRows() const noexcept
+    {
+        auto count = std::uint64_t { 0 };
+        for (auto const& table: tables)
+            count += table.failedRowCount;
+        return count;
+    }
+
+    /// @return The sum of TableRestoreReport::NulledCellCount() over all tables.
+    [[nodiscard]] std::uint64_t NulledCellCount() const noexcept
+    {
+        auto count = std::uint64_t { 0 };
+        for (auto const& table: tables)
+            count += table.NulledCellCount();
+        return count;
+    }
+
+    /// @return true if a worker stopped early, leaving tables incomplete.
+    [[nodiscard]] bool WorkerStopped() const noexcept
+    {
+        return !incompleteTables.empty();
+    }
+
+    /// @return true if anything failed during the restore.
+    [[nodiscard]] bool HasFailures() const noexcept
+    {
+        return !tables.empty() || !incompleteTables.empty() || unattributedChunkErrors != 0;
+    }
+};
+
 /// Restores the database from a file.
 ///
 /// A multi-schema archive restores every table into the schema it records, creating missing
 /// schemas; it refuses a target @p schema, and on a database without schemas (SQLite) it is
 /// refused unless every table name is unique across the schemas.
+///
+/// A value or row that fails to restore does not abort the restore: a value that does not convert
+/// to its nullable column becomes NULL, a row the database rejects (or whose NOT NULL value does not
+/// convert) is left out, and every other row is restored. A table fails as a whole only on an error
+/// that affects every row (e.g. the driver cannot bind a column type); its remaining chunks are
+/// skipped. A chunk that cannot be read is skipped. Only a lost connection that does not come back
+/// within @p retrySettings stops a worker. Errors are also reported through @p progress, at most one
+/// terminal update per table.
 ///
 /// @param inputFile the input file.
 /// @param connectionString the connection string used to connect to the database.
@@ -446,13 +600,15 @@ struct ArchiveVerification
 ///        Supports glob wildcards (* and ?) and schema.table notation.
 ///        Examples: "Users,Products", "*_log", "dbo.Users", "sales.*"
 /// @param retrySettings configuration for retry behavior on transient errors.
-LIGHTWEIGHT_API void Restore(std::filesystem::path const& inputFile,
-                             SqlConnectionString const& connectionString,
-                             unsigned concurrency,
-                             ProgressManager& progress,
-                             std::string const& schema = {},
-                             std::string const& tableFilter = "*",
-                             RetrySettings const& retrySettings = {});
+/// @return The bounded report of what failed to restore; empty when everything was restored, and
+///         when the restore failed before restoring data (which @p progress reports).
+LIGHTWEIGHT_API RestoreReport Restore(std::filesystem::path const& inputFile,
+                                      SqlConnectionString const& connectionString,
+                                      unsigned concurrency,
+                                      ProgressManager& progress,
+                                      std::string const& schema = {},
+                                      std::string const& tableFilter = "*",
+                                      RetrySettings const& retrySettings = {});
 
 /// Restores the database from a file with explicit memory management settings.
 ///
@@ -464,14 +620,15 @@ LIGHTWEIGHT_API void Restore(std::filesystem::path const& inputFile,
 /// @param tableFilter comma-separated table filter patterns (default: "*" for all tables).
 /// @param retrySettings configuration for retry behavior on transient errors.
 /// @param restoreSettings configuration for memory management during restore.
-LIGHTWEIGHT_API void Restore(std::filesystem::path const& inputFile,
-                             SqlConnectionString const& connectionString,
-                             unsigned concurrency,
-                             ProgressManager& progress,
-                             std::string const& schema,
-                             std::string const& tableFilter,
-                             RetrySettings const& retrySettings,
-                             RestoreSettings const& restoreSettings);
+/// @return The bounded report of what failed to restore, as by the overload without @p restoreSettings.
+LIGHTWEIGHT_API RestoreReport Restore(std::filesystem::path const& inputFile,
+                                      SqlConnectionString const& connectionString,
+                                      unsigned concurrency,
+                                      ProgressManager& progress,
+                                      std::string const& schema,
+                                      std::string const& tableFilter,
+                                      RetrySettings const& retrySettings,
+                                      RestoreSettings const& restoreSettings);
 
 /// Returns a copy of `connectionString` with the values of `PWD=` and
 /// `Password=` attributes replaced by `***`.

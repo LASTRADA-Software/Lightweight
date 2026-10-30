@@ -10,6 +10,9 @@ add_library(tools_shared STATIC
     BackupRecording.cpp
     BackupRecording.hpp
 
+    RestoreReportFormat.cpp
+    RestoreReportFormat.hpp
+
     Config/BackupOutput.cpp
     Config/BackupOutput.hpp
     Config/ConfigDiscovery.cpp

@@ -207,6 +207,25 @@ void SqlStatement::ClearBatchIndicators()
     m_data->batchStagingBuffers.shrink_to_fit();
 }
 
+namespace
+{
+    /// The error of a batch execution the driver did not apply to every parameter set.
+    /// @param processedCount The parameter sets the driver reports processed.
+    /// @param expectedCount The parameter sets of the batch.
+    /// @return The error.
+    SqlErrorInfo MakeShortBatchError(SQLULEN processedCount, SQLULEN expectedCount)
+    {
+        return SqlErrorInfo {
+            .nativeErrorCode = 0,
+            .sqlState = "HY000",
+            .message = std::format("Batch processed {} of {} parameter sets; the ODBC driver did not honour the full "
+                                   "parameter array.",
+                                   processedCount,
+                                   expectedCount),
+        };
+    }
+} // namespace
+
 void SqlStatement::ResetParameterArrayBinding() noexcept
 {
     // Restore single-row, column-bound parameter binding (the ODBC default). Invoked from Prepare() and,
@@ -219,6 +238,7 @@ void SqlStatement::ResetParameterArrayBinding() noexcept
     SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN, 0);
     SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_OFFSET_PTR, nullptr, 0);
     SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAMS_PROCESSED_PTR, nullptr, 0);
+    SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_STATUS_PTR, nullptr, 0);
     // clang-format on
 }
 
@@ -241,16 +261,7 @@ void SqlStatement::RequireSuccessfulBatchExecute(SQLRETURN result,
     // initialises processedCount to expectedCount, so a driver that ignores SQL_ATTR_PARAMS_PROCESSED_PTR
     // never trips this; only one that reports a short count does.
     if (SQL_SUCCEEDED(result) && processedCount != expectedCount)
-        throw SqlException(
-            SqlErrorInfo {
-                .nativeErrorCode = 0,
-                .sqlState = "HY000",
-                .message = std::format("Native row-wise batch processed {} of {} parameter sets; the ODBC "
-                                       "driver did not honour the full parameter array.",
-                                       processedCount,
-                                       expectedCount),
-            },
-            sourceLocation);
+        throw SqlException(MakeShortBatchError(processedCount, expectedCount), sourceLocation);
 }
 
 void SqlStatement::PlanPostExecuteCallback(std::function<void()>&& cb)
@@ -817,6 +828,28 @@ SqlResultCursor SqlStatement::ExecuteWithVariants(std::vector<SqlVariant> const&
     return SqlResultCursor { *this };
 }
 
+void SqlStatement::BindRawBatchColumns(std::span<SqlRawColumn const> columns,
+                                       std::size_t rowCount,
+                                       std::source_location sourceLocation)
+{
+    if (m_expectedParameterCount != static_cast<SQLSMALLINT>(columns.size()))
+        throw std::invalid_argument { "Invalid number of columns" };
+
+    static SQLLEN ZeroOffset = 0;
+    // clang-format off
+    // NOLINTNEXTLINE(performance-no-int-to-ptr)
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER) rowCount, 0), sourceLocation);
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_OFFSET_PTR, &ZeroOffset, 0), sourceLocation);
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN, 0), sourceLocation);
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_OPERATION_PTR, SQL_PARAM_PROCEED, 0), sourceLocation);
+    // clang-format on
+
+    for (auto const index: std::views::iota(size_t { 0 }, columns.size()))
+        RequireSuccess(SqlDataBinder<SqlRawColumn>::InputParameter(
+                           m_hStmt, static_cast<SQLUSMALLINT>(index + 1), columns[index], *this),
+                       sourceLocation);
+}
+
 SqlResultCursor SqlStatement::ExecuteBatch(std::span<SqlRawColumn const> columns, size_t rowCount)
 {
     ZoneScopedN("SqlStatement::ExecuteBatch");
@@ -824,23 +857,7 @@ SqlResultCursor SqlStatement::ExecuteBatch(std::span<SqlRawColumn const> columns
     ZoneValue(rowCount);
     SqlLogger::GetLogger().OnExecute(m_preparedQuery);
 
-    if (m_expectedParameterCount != static_cast<SQLSMALLINT>(columns.size()))
-        throw std::invalid_argument { "Invalid number of columns" };
-
-    static SQLLEN ZeroOffset = 0;
-    // clang-format off
-    // NOLINTNEXTLINE(performance-no-int-to-ptr)
-    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER) rowCount, 0));
-    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_OFFSET_PTR, &ZeroOffset, 0));
-    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN, 0));
-    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_OPERATION_PTR, SQL_PARAM_PROCEED, 0));
-    // clang-format on
-
-    SQLUSMALLINT column = 1;
-    for (auto const& col: columns)
-    {
-        RequireSuccess(SqlDataBinder<SqlRawColumn>::InputParameter(m_hStmt, column++, col, *this));
-    }
+    BindRawBatchColumns(columns, rowCount, std::source_location::current());
 
     {
         LIGHTWEIGHT_STATS_SCOPE(::Lightweight::SqlStatisticsOperation::ExecuteBatch);
@@ -848,6 +865,49 @@ SqlResultCursor SqlStatement::ExecuteBatch(std::span<SqlRawColumn const> columns
     }
     ProcessPostExecuteCallbacks();
     ClearBatchIndicators();
+    return SqlResultCursor { *this };
+}
+
+SqlResultCursor SqlStatement::ExecuteBatch(std::span<SqlRawColumn const> columns,
+                                           std::size_t rowCount,
+                                           std::span<SQLUSMALLINT> paramStatus,
+                                           SQLULEN& paramsProcessed)
+{
+    ZoneScopedN("SqlStatement::ExecuteBatch(status)");
+    ZoneTextObject(m_preparedQuery);
+    ZoneValue(rowCount);
+    SqlLogger::GetLogger().OnExecute(m_preparedQuery);
+
+    if (paramStatus.size() < rowCount)
+        throw std::invalid_argument { "The parameter status array is smaller than the batch" };
+
+    // A driver that ignores either pointer leaves these values, so the checks below never false-trip on it.
+    std::ranges::fill(paramStatus.first(rowCount), static_cast<SQLUSMALLINT>(SQL_PARAM_UNUSED));
+    paramsProcessed = rowCount;
+
+    // Unbind the caller's status and processed storage on EVERY exit, so that a later execution on this
+    // handle can never write through them after they went out of scope.
+    auto const unbindStatus = detail::Finally([this] {
+        ResetParameterArrayBinding();
+        ClearBatchIndicators();
+    });
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_STATUS_PTR, paramStatus.data(), 0));
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAMS_PROCESSED_PTR, &paramsProcessed, 0));
+    BindRawBatchColumns(columns, rowCount, std::source_location::current());
+
+    {
+        LIGHTWEIGHT_STATS_SCOPE(::Lightweight::SqlStatisticsOperation::ExecuteBatch);
+        RequireSuccess(SQLExecute(m_hStmt));
+    }
+
+    // SQL_SUCCESS_WITH_INFO may hide failed rows: only their status tells. The diagnostics are taken
+    // before anything else runs on the handle, which would clear them.
+    if (std::ranges::contains(paramStatus.first(rowCount), static_cast<SQLUSMALLINT>(SQL_PARAM_ERROR)))
+        throw SqlException(SqlErrorInfo::FromStatementHandle(m_hStmt));
+    if (paramsProcessed < rowCount)
+        throw SqlException(MakeShortBatchError(paramsProcessed, rowCount));
+
+    ProcessPostExecuteCallbacks();
     return SqlResultCursor { *this };
 }
 
@@ -1602,6 +1662,36 @@ std::size_t RowArrayCursor::ColumnCount() const noexcept
 RowArrayCursor::BoundType RowArrayCursor::ColumnBoundType(SQLUSMALLINT column) const
 {
     return m_columns.at(column - 1).type;
+}
+
+std::expected<SQLSMALLINT, SqlErrorInfo> SqlResultCursor::ColumnSqlType(SQLUSMALLINT column) const
+{
+    // Not left to the driver: unixODBC reads the name buffer back even when the SQLite driver fails the call.
+    if (column == 0 || column > m_stmt->NumColumnsAffected())
+        return std::unexpected(SqlErrorInfo {
+            .nativeErrorCode = 0,
+            .sqlState = "07009",
+            .message = std::format("Invalid descriptor index: the result set has no column {}", column),
+        });
+    auto sqlType = SQLSMALLINT {};
+    auto columnSize = SQLULEN {};
+    auto decimalDigits = SQLSMALLINT {};
+    auto nullable = SQLSMALLINT {};
+    // psqlODBC fails the call (HY001) without a name buffer; a truncated name is fine.
+    auto nameBuffer = std::array<SQLWCHAR, 256> {};
+    auto nameLength = SQLSMALLINT {};
+    auto* const hStmt = m_stmt->NativeHandle();
+    if (!SQL_SUCCEEDED(SQLDescribeColW(hStmt,
+                                       column,
+                                       nameBuffer.data(),
+                                       static_cast<SQLSMALLINT>(nameBuffer.size()),
+                                       &nameLength,
+                                       &sqlType,
+                                       &columnSize,
+                                       &decimalDigits,
+                                       &nullable)))
+        return std::unexpected(SqlErrorInfo::FromStatementHandle(hStmt));
+    return sqlType;
 }
 
 SQLSMALLINT RowArrayCursor::ColumnSqlType(SQLUSMALLINT column) const

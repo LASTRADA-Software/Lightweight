@@ -85,6 +85,7 @@ using Lightweight::InverseBelongsToIndexOf;
 using Lightweight::IsAutoIncrementPrimaryKey;
 using Lightweight::IsAutoTimestampField;
 using Lightweight::IsBelongsTo;
+using Lightweight::IsBindClassError;
 using Lightweight::IsCompositeForeignKey;
 using Lightweight::IsField;
 using Lightweight::IsForeignKeyViolation;
@@ -133,6 +134,7 @@ using Lightweight::RelationError;
 using Lightweight::RelationResult;
 using Lightweight::RelationSelector;
 using Lightweight::RequireSuccess;
+using Lightweight::ServerTypeFromServerName;
 using Lightweight::SetDiagnosticSource;
 using Lightweight::SetFaultSource;
 using Lightweight::SqlAdvisoryLockHandler;
@@ -364,18 +366,25 @@ namespace SqlBackup
     using Lightweight::SqlBackup::ChunkReader;
     using Lightweight::SqlBackup::ChunkWriter;
     using Lightweight::SqlBackup::ColumnBatch;
+    using Lightweight::SqlBackup::ColumnValueFailures;
     using Lightweight::SqlBackup::CompressionMethod;
     using Lightweight::SqlBackup::CompressionMethodName;
+    using Lightweight::SqlBackup::CountOf;
     using Lightweight::SqlBackup::CreateMetadata;
     using Lightweight::SqlBackup::CreateMsgPackChunkReader;
     using Lightweight::SqlBackup::CreateMsgPackChunkReaderFromBuffer;
     using Lightweight::SqlBackup::CreateMsgPackChunkWriter;
     using Lightweight::SqlBackup::DefaultRestoreSchema;
     using Lightweight::SqlBackup::ErrorTrackingProgressManager;
+    using Lightweight::SqlBackup::FailedRowRange;
+    using Lightweight::SqlBackup::FailureReason;
     using Lightweight::SqlBackup::GetAvailableSystemMemory;
     using Lightweight::SqlBackup::GetSupportedCompressionMethods;
     using Lightweight::SqlBackup::IsCompressionMethodSupported;
     using Lightweight::SqlBackup::ListArchiveAttachments;
+    using Lightweight::SqlBackup::MaxReportedReasons;
+    using Lightweight::SqlBackup::MaxReportedRowRanges;
+    using Lightweight::SqlBackup::MaxSampleKeysPerReason;
     using Lightweight::SqlBackup::NullProgressManager;
     using Lightweight::SqlBackup::ParseSchema;
     using Lightweight::SqlBackup::Progress;
@@ -383,11 +392,13 @@ namespace SqlBackup
     using Lightweight::SqlBackup::ReadArchiveAttachment;
     using Lightweight::SqlBackup::ReadArchiveSchemas;
     using Lightweight::SqlBackup::Restore;
+    using Lightweight::SqlBackup::RestoreReport;
     using Lightweight::SqlBackup::RestoreSettings;
     using Lightweight::SqlBackup::RetrySettings;
     using Lightweight::SqlBackup::Sha256;
     using Lightweight::SqlBackup::TableFilter;
     using Lightweight::SqlBackup::TableInfo;
+    using Lightweight::SqlBackup::TableRestoreReport;
     using Lightweight::SqlBackup::VerifyArchive;
 } // namespace SqlBackup
 
@@ -461,9 +472,11 @@ namespace SqlSchema
     using Lightweight::SqlSchema::MakeCreateTablePlan;
     using Lightweight::SqlSchema::ReadAllTables;
     using Lightweight::SqlSchema::ReadAllTablesCallback;
+    using Lightweight::SqlSchema::ReadTable;
     using Lightweight::SqlSchema::Table;
     using Lightweight::SqlSchema::TableFilterPredicate;
     using Lightweight::SqlSchema::TableList;
+    using Lightweight::SqlSchema::TableReadScope;
     using Lightweight::SqlSchema::TableReadyCallback;
 
     using Lightweight::SqlSchema::operator<;

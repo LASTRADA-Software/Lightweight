@@ -816,3 +816,198 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadTable describes a table with no
     CHECK(referencing.front().foreignKey.table.table == "Ångström");
     CHECK(referencing.front().foreignKey.columns == std::vector<std::string> { "Crème" });
 }
+
+// ================================================================================================
+// ReadTable — resolving the requested table through a filtered catalog lookup
+// ================================================================================================
+
+TEST_CASE("SqlSchema::detail::EscapeSearchPattern escapes wildcards", "[SqlSchema]")
+{
+    using SqlSchema::detail::EscapeSearchPattern;
+    CHECK(EscapeSearchPattern("A_B", "\\") == "A\\_B");
+    CHECK(EscapeSearchPattern("50%", "\\") == "50\\%");
+    CHECK(EscapeSearchPattern("a\\b", "\\") == "a\\\\b");
+    CHECK(EscapeSearchPattern("Plain", "\\") == "Plain");
+    CHECK(EscapeSearchPattern("A_B", "") == std::nullopt);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadTable resolves a differently cased name", "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("ReadTableCase").PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {});
+    });
+
+    auto const database = stmt.Connection().DatabaseName();
+    for (auto const* requested: { "ReadTableCase", "readtablecase", "READTABLECASE" })
+    {
+        INFO("requested: " << requested);
+        auto const described = SqlSchema::ReadTable(
+            stmt, SqlSchema::FullyQualifiedTableName { .catalog = database, .schema = "", .table = requested });
+        REQUIRE(described.has_value());
+        CHECK(UnwrapOptional(described).name == "ReadTableCase");
+    }
+
+    // A request in the catalog's own spelling is found by the first, exact lookup on every DBMS.
+    auto const resolved = SqlSchema::detail::ResolveTable(
+        stmt, SqlSchema::FullyQualifiedTableName { .catalog = database, .schema = "", .table = "ReadTableCase" });
+    REQUIRE(resolved.has_value());
+    CHECK(UnwrapOptional(resolved).table.name == "ReadTableCase");
+    CHECK(UnwrapOptional(resolved).step == SqlSchema::detail::TableResolutionStep::Exact);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::detail::FindTablesNamed treats _ literally", "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect(
+        [](auto& migration) { migration.CreateTable("RT_X").PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {}); });
+    stmt.MigrateDirect(
+        [](auto& migration) { migration.CreateTable("RTaX").PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {}); });
+
+    // Asserted on the catalog call itself: ReadTable compares the names again afterwards, so it
+    // would hide a lookup that let `_` match any character.
+    auto const found = SqlSchema::detail::FindTablesNamed(stmt, stmt.Connection().DatabaseName(), "", "RT_X");
+    REQUIRE(found.has_value());
+    REQUIRE(UnwrapOptional(found).size() == 1);
+    CHECK(UnwrapOptional(found).front().name == "RT_X");
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadTable keeps FK target casing", "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect(
+        [](auto& migration) { migration.CreateTable("RtParent").PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {}); });
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("RtChild")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .ForeignKey("ParentId",
+                        SqlColumnTypeDefinitions::Integer {},
+                        SqlForeignKeyReferenceDefinition { .tableName = "RtParent", .columnName = "Id" });
+    });
+
+    auto const database = stmt.Connection().DatabaseName();
+    auto const child = SqlSchema::ReadTable(
+        stmt, SqlSchema::FullyQualifiedTableName { .catalog = database, .schema = "", .table = "RtChild" });
+    REQUIRE(child.has_value());
+    REQUIRE(UnwrapOptional(child).foreignKeys.size() == 1);
+    CHECK(UnwrapOptional(child).foreignKeys[0].primaryKey.table.table == "RtParent");
+    CHECK(UnwrapOptional(child).foreignKeys[0].foreignKey.table.table == "RtChild");
+
+    auto const parent = SqlSchema::ReadTable(
+        stmt, SqlSchema::FullyQualifiedTableName { .catalog = database, .schema = "", .table = "RtParent" });
+    REQUIRE(parent.has_value());
+    REQUIRE(UnwrapOptional(parent).externalForeignKeys.size() == 1);
+    CHECK(UnwrapOptional(parent).externalForeignKeys[0].primaryKey.table.table == "RtParent");
+    CHECK(UnwrapOptional(parent).externalForeignKeys[0].foreignKey.table.table == "RtChild");
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "ReadTable ColumnsAndPrimaryKey skips FKs and indexes", "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("RtLightParent").PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {});
+    });
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("RtLightChild")
+            .PrimaryKeyWithAutoIncrement("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Code", SqlColumnTypeDefinitions::Varchar { 32 })
+            .Unique()
+            .Column("Tag", SqlColumnTypeDefinitions::Integer {})
+            .Index()
+            .ForeignKey("ParentId",
+                        SqlColumnTypeDefinitions::Integer {},
+                        SqlForeignKeyReferenceDefinition { .tableName = "RtLightParent", .columnName = "Id" });
+    });
+
+    auto const database = stmt.Connection().DatabaseName();
+    auto const name = SqlSchema::FullyQualifiedTableName { .catalog = database, .schema = "", .table = "RtLightChild" };
+    auto const full = SqlSchema::ReadTable(stmt, name);
+    auto const light = SqlSchema::ReadTable(stmt, name, SqlSchema::TableReadScope::ColumnsAndPrimaryKey);
+    REQUIRE(full.has_value());
+    REQUIRE(light.has_value());
+
+    CHECK(UnwrapOptional(light).name == UnwrapOptional(full).name);
+    CHECK(UnwrapOptional(light).primaryKeys == UnwrapOptional(full).primaryKeys);
+    REQUIRE(UnwrapOptional(light).columns.size() == UnwrapOptional(full).columns.size());
+    for (auto const index: std::views::iota(size_t { 0 }, UnwrapOptional(full).columns.size()))
+    {
+        auto const& a = UnwrapOptional(light).columns[index];
+        auto const& b = UnwrapOptional(full).columns[index];
+        INFO("column " << b.name);
+        CHECK(a.name == b.name);
+        CHECK(a.type == b.type);
+        CHECK(a.isUnique == b.isUnique);
+        CHECK(a.isAutoIncrement == b.isAutoIncrement);
+        CHECK(a.isPrimaryKey == b.isPrimaryKey);
+    }
+
+    auto const isParentIdFk = [](SqlSchema::Table const& t) {
+        auto const it = std::ranges::find_if(t.columns, [](auto const& c) { return c.name == "ParentId"; });
+        REQUIRE(it != t.columns.end());
+        return it->isForeignKey;
+    };
+    CHECK(isParentIdFk(UnwrapOptional(full)));
+    CHECK(!isParentIdFk(UnwrapOptional(light)));
+
+    CHECK(!UnwrapOptional(full).foreignKeys.empty());
+    CHECK(!UnwrapOptional(full).indexes.empty());
+    CHECK(UnwrapOptional(light).foreignKeys.empty());
+    CHECK(UnwrapOptional(light).externalForeignKeys.empty());
+    CHECK(UnwrapOptional(light).indexes.empty());
+
+    auto const parentLight = SqlSchema::ReadTable(
+        stmt,
+        SqlSchema::FullyQualifiedTableName { .catalog = database, .schema = "", .table = "RtLightParent" },
+        SqlSchema::TableReadScope::ColumnsAndPrimaryKey);
+    REQUIRE(parentLight.has_value());
+    CHECK(UnwrapOptional(parentLight).externalForeignKeys.empty());
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadTable fixes cross-schema FK target casing", "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+    if (!stmt.Connection().QueryFormatter().SupportsSchemas())
+        SKIP("the DBMS has no schemas");
+
+    auto const dropFixture = [&] {
+        (void) stmt.ExecuteDirect(R"(DROP TABLE IF EXISTS "rt_s1"."RtXChild")");
+        (void) stmt.ExecuteDirect(R"(DROP TABLE IF EXISTS "rt_s2"."RtXParent")");
+        (void) stmt.ExecuteDirect(R"(DROP SCHEMA IF EXISTS "rt_s1")");
+        (void) stmt.ExecuteDirect(R"(DROP SCHEMA IF EXISTS "rt_s2")");
+    };
+    dropFixture();
+    auto const cleanup = detail::Finally(dropFixture);
+    (void) stmt.ExecuteDirect(R"(CREATE SCHEMA "rt_s1")");
+    (void) stmt.ExecuteDirect(R"(CREATE SCHEMA "rt_s2")");
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "rt_s2"."RtXParent" ("Id" INT NOT NULL PRIMARY KEY))");
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "rt_s1"."RtXChild" ("Id" INT NOT NULL PRIMARY KEY, )"
+                              R"("ParentId" INT REFERENCES "rt_s2"."RtXParent" ("Id")))");
+
+    auto const child =
+        SqlSchema::ReadTable(stmt,
+                             SqlSchema::FullyQualifiedTableName {
+                                 .catalog = stmt.Connection().DatabaseName(), .schema = "rt_s1", .table = "RtXChild" });
+    REQUIRE(child.has_value());
+    REQUIRE(UnwrapOptional(child).foreignKeys.size() == 1);
+    CHECK(UnwrapOptional(child).foreignKeys[0].primaryKey.table.schema == "rt_s2");
+    CHECK(UnwrapOptional(child).foreignKeys[0].primaryKey.table.table == "RtXParent");
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlSchema::ReadTable on PostgreSQL resolves a mixed-case request without a full listing",
+                 "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+    if (stmt.Connection().ServerType() != SqlServerType::POSTGRESQL)
+        SKIP("only PostgreSQL folds unquoted identifiers to lower case");
+
+    (void) stmt.ExecuteDirect("CREATE TABLE rt_orders (id INT NOT NULL PRIMARY KEY)");
+
+    auto const resolved = SqlSchema::detail::ResolveTable(
+        stmt,
+        SqlSchema::FullyQualifiedTableName {
+            .catalog = stmt.Connection().DatabaseName(), .schema = "", .table = "RT_Orders" });
+    REQUIRE(resolved.has_value());
+    CHECK(UnwrapOptional(resolved).table.name == "rt_orders");
+    CHECK(UnwrapOptional(resolved).step == SqlSchema::detail::TableResolutionStep::Folded);
+}

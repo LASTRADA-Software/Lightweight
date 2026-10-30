@@ -434,7 +434,7 @@ void WorkflowFixture::executeSql(QString const& connectionString, QString const&
         OffGuiThread([&] {
             auto connection = Lightweight::SqlConnection { ToConnectionString(connectionString) };
             auto statement = Lightweight::SqlStatement { connection };
-            statement.ExecuteDirect(sql.toStdString());
+            (void) statement.ExecuteDirect(sql.toStdString());
             return 0;
         });
     }

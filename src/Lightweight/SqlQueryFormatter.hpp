@@ -390,6 +390,64 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
         return {};
     }
 
+    /// @brief Whether the dialect has a native GUID/UUID column type (as opposed to storing GUIDs as text).
+    ///
+    /// Defaults to `false`. SQL Server (`UNIQUEIDENTIFIER`) and PostgreSQL (`UUID`) return `true`.
+    ///
+    /// @return `true` if GUID columns are stored in a dedicated binary type.
+    [[nodiscard]] virtual bool HasNativeGuidType() const noexcept
+    {
+        return false;
+    }
+
+    /// @brief Whether comparing a fixed-width CHAR(n) column pads the shorter operand with spaces.
+    ///
+    /// Defaults to `true`. SQLite returns `false`: it stores CHAR(n) as plain text and compares it verbatim.
+    ///
+    /// @return `true` if trailing spaces of CHAR(n) values are insignificant in comparisons.
+    [[nodiscard]] virtual bool ComparesFixedCharWithPadSemantics() const noexcept
+    {
+        return true;
+    }
+
+    /// @brief Returns the name under which the dialect stores an unquoted identifier.
+    ///
+    /// Defaults to returning @p identifier unchanged. PostgreSQL folds unquoted identifiers to
+    /// lower case and returns the ASCII-lower-cased name.
+    ///
+    /// @param identifier The identifier as written without quotes.
+    /// @return The identifier as the catalog stores it.
+    [[nodiscard]] virtual std::string FoldUnquotedIdentifier(std::string_view identifier) const
+    {
+        return std::string(identifier);
+    }
+
+    /// @brief Whether the driver's parameter status array names exactly the parameter sets that
+    /// failed when a batch (parameter array) execution fails.
+    ///
+    /// Defaults to `false`. SQL Server returns `true`: ODBC Driver 18 executes every parameter set and
+    /// marks only the failing ones `SQL_PARAM_ERROR`. PostgreSQL's psqlodbc marks every parameter set
+    /// of a failed array `SQL_PARAM_ERROR`, and the SQLite ODBC driver does not fill the array at all,
+    /// so their failing rows are found by bisection instead.
+    ///
+    /// @return `true` if the rows marked `SQL_PARAM_ERROR` may be trusted to be the failing ones.
+    [[nodiscard]] virtual bool ParameterStatusIdentifiesFailedRows() const noexcept
+    {
+        return false;
+    }
+
+    /// @brief Whether a bulk load should commit periodically rather than hold all its rows in one
+    /// transaction.
+    ///
+    /// Defaults to `false`. SQLite returns `true`: its write-ahead log grows with the open
+    /// transaction, so a restore commits every `RestoreSettings::maxRowsPerCommit` rows of a chunk.
+    ///
+    /// @return `true` if a bulk load bounds the rows per transaction.
+    [[nodiscard]] virtual bool BoundsBulkLoadTransactionSize() const noexcept
+    {
+        return false;
+    }
+
   protected:
     /// Formats a table name with optional schema prefix.
     static std::string FormatTableName(std::string_view schema, std::string_view table);

@@ -4,6 +4,7 @@
 
 #include "../SqlConnection.hpp"
 #include "Common.hpp"
+#include "RestoreFailureLog.hpp"
 #include "SqlBackup.hpp"
 
 #include <atomic>
@@ -53,10 +54,11 @@ struct FailedTables
 {
     /// Records @p tableName as failed.
     /// @param tableName The table.
-    void Add(std::string const& tableName)
+    /// @return `true` if the table was not failed before, i.e. for exactly one caller per table.
+    bool Add(std::string const& tableName)
     {
         auto const lock = std::scoped_lock(_mutex);
-        _names.insert(tableName);
+        return _names.insert(tableName).second;
     }
 
     /// Tests whether @p tableName has failed.
@@ -76,11 +78,15 @@ struct FailedTables
 /// The result of restoring one chunk.
 enum class ChunkRestoreOutcome : std::uint8_t
 {
-    /// The chunk was restored.
+    /// Every row of the chunk was restored as it is.
     Restored,
-    /// A value of the chunk does not convert to its column's type: the table fails, the worker goes on.
+    /// The chunk was processed, but some of its rows failed, some of its values were set to NULL, or
+    /// (part of) its content could not be read; the failures are in the restore's failure log.
+    RestoredWithFailures,
+    /// An error that affects every row (e.g. the driver cannot bind a column) fails the table: its
+    /// remaining chunks are skipped, the worker goes on.
     TableFailed,
-    /// The chunk failed in a way that stops the worker (a database error, a lost connection).
+    /// The connection was lost and could not be re-established within the retry budget: the worker stops.
     WorkerFailed,
 };
 
@@ -116,19 +122,37 @@ struct RestoreContext
     std::map<std::string, std::shared_ptr<std::atomic<size_t>>> tableProgress;
     std::map<std::string, std::shared_ptr<std::atomic<size_t>>> chunksProcessed; // Per-table processed chunk count
     std::map<std::string, size_t> totalChunks;                                   // Per-table total chunk count
+    /// Per table: the rows committed to the target, which a failed table's failed row count excludes.
+    std::map<std::string, std::shared_ptr<std::atomic<std::uint64_t>>> committedRows;
     std::map<std::string, std::string> const* checksums; // entryName -> expected SHA-256 hash (optional)
     RetrySettings const& retrySettings;
     RestoreSettings restoreSettings;
     /// Tables whose remaining chunks are skipped because one of their chunks failed.
     FailedTables& failedTables;
+    /// Collects what fails to restore, shared by all restore workers.
+    RestoreFailureLog& failureLog;
+    /// The DBMS the archive was taken from (`server.name` in its metadata); UNKNOWN if not recorded.
+    SqlServerType sourceServerType = SqlServerType::UNKNOWN;
 };
 
-/// Increments the chunk counter and reports completion status.
+/// Counts one more chunk of @p tableName as processed; once all are, reports the table's single
+/// terminal progress update.
+///
+/// The update is `Finished`, or `Error` naming the counts (`"<n> rows failed, <m> cells set to
+/// NULL"`, followed by the table failure and unreadable chunks, if any) when the failure log holds
+/// failures of the table. Every failure of the table's chunks must be recorded before this is called.
 ///
 /// @param ctx The restore context.
 /// @param tableName The name of the table being restored.
-/// @param success Whether the chunk was restored successfully.
-void IncrementChunkCounter(RestoreContext& ctx, std::string const& tableName, bool success);
+void IncrementChunkCounter(RestoreContext& ctx, std::string const& tableName);
+
+/// Sets the failed row count of @p tableName, if it failed as a whole, to its rows that are not in
+/// the target: its archived row count minus the rows committed for it. Idempotent; called once the
+/// table's chunks are processed, or once the workers stopped.
+///
+/// @param ctx The restore context.
+/// @param tableName The table.
+void SettleFailedTableRows(RestoreContext& ctx, std::string const& tableName);
 
 /// Fetches the next chunk from the restore queue.
 ///
@@ -141,14 +165,19 @@ std::expected<RestoreChunkInfo, FetchChunkError> FetchNextRestoreChunk(RestoreCo
 
 /// Restores chunk data to the database with retry logic.
 ///
-/// Handles MSSQL identity insert handling, batch insertion with transaction management,
-/// SQLite intermediate commits, retry logic for transient errors, and progress tracking.
+/// The chunk is first inserted in one transaction, committed after its last batch. A row the
+/// database rejects, or a value that does not convert, rolls that transaction back; the chunk is then
+/// replayed with each batch committing on its own. There, a batch the database rejects is rolled back
+/// and its failing rows are isolated (see InsertIsolatingFailures()) and recorded in the failure log;
+/// the other rows are inserted. After a transient error the worker reconnects and resumes after the
+/// rows already committed, so no row is inserted twice. Also handles MSSQL identity inserts and
+/// progress tracking.
 ///
 /// @param ctx The restore context.
 /// @param workerConn The database connection.
 /// @param chunk The chunk data to restore.
 /// @param batchCapacity The batch size for bulk inserts.
-/// @return Whether the chunk was restored, failed only its table, or failed the worker.
+/// @return How the chunk ended; see ChunkRestoreOutcome.
 ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
                                      SqlConnection& workerConn,
                                      RestoreChunkInfo const& chunk,
@@ -158,8 +187,10 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
 ///
 /// This function processes restore chunks from the shared queue, using the helper functions
 /// FetchNextRestoreChunk() for I/O operations and RestoreChunkData() for database operations.
-/// Once a chunk of a table fails, the remaining chunks of that table are skipped. A value that does
-/// not convert fails only its table; any other chunk failure also stops this worker.
+/// Once a table fails, its remaining chunks are skipped. A chunk that cannot be fetched (e.g. a
+/// checksum mismatch) is recorded as unreadable and skipped. Only ChunkRestoreOutcome::WorkerFailed
+/// stops this worker; the chunk it failed on is not counted as processed, so its table shows as
+/// incomplete.
 ///
 /// @param ctx The restore context containing queue, progress tracking, and settings.
 /// @param workerConn The database connection for this worker.

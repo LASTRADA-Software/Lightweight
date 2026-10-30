@@ -102,6 +102,54 @@ automatically when the backup finishes (also on failure).
 - **Completeness:** `metadata.json`'s `complete` is false for a filtered or schema-only backup and for
   one in which a table failed; `VerifyArchive` reports it. Archives without the key count as complete.
 
+## Restore failures
+
+`SqlBackup::Restore()` does not abort on a bad value or row; it restores everything it can and
+returns a bounded `RestoreReport` of the rest (it is not `[[nodiscard]]`, so existing callers that
+ignore it compile unchanged):
+
+- **A value that does not convert** to its column's type becomes NULL, but only in a nullable
+  column. A NOT NULL column is never set to NULL and no value is invented: the row is left out
+  instead.
+- **A row the database rejects** (duplicate key, constraint violation, a NOT NULL value that does not
+  convert) is isolated: the failing batch is bisected until the failing rows are known, every other
+  row is inserted, and the failed rows are reported. On a same-DBMS round trip the data that is
+  restored is never changed.
+- **A column the driver cannot bind** (for example an unsupported type) affects every row, so it
+  fails its table: the table's remaining chunks are skipped and the other tables continue.
+- **An unreadable chunk** is skipped and counted; the rows read before it stay.
+- **A lost connection** that does not come back within `RetrySettings` stops the worker that hit it;
+  the report lists the tables it left incomplete (`incompleteTables`; `WorkerStopped()`).
+
+Each table gets at most one terminal update through the `ProgressManager` (`Error` if anything failed
+for it, with a message such as `2 rows failed, 3 cells set to NULL`; `Finished` otherwise). A table
+that failed as a whole or had an unreadable chunk may report additional `Error` updates before it, so a
+consumer that tallies failed tables must count a table once.
+
+`RestoreReport` holds only tables with failures (`tables`, sorted by name; `TotalFailedRows()` and
+`NulledCellCount()` sum them up), and the run-level problems. Its memory and the progress traffic do not grow with the number of failed rows:
+per table, at most `MaxReportedRowRanges` (100) row ranges (`FailedRowRange`: chunk, first and last
+row) and `MaxReportedReasons` (20) distinct `FailureReason`s with `MaxSampleKeysPerReason` (3) sample
+keys each are kept; the rest is counted in `rowsBeyondRangeCap` and `occurrencesBeyondReasonCap`.
+`ColumnValueFailures` counts the NULLed cells per column. `report.HasFailures()` is the verdict.
+
+A restore that is refused before it moves any data (an unsupported archive, a refused target schema)
+returns an empty report and reports the error through the `ProgressManager`; check both
+(`progress.ErrorCount()` and `report.HasFailures()`), as `dbtool restore` does for its exit code.
+See [dbtool](dbtool.md#restore) for the command-line output.
+
+## CHAR(n) padding across databases
+
+SQL Server and PostgreSQL pad a `CHAR(n)`/`NCHAR(n)` value to `n` characters and ignore the pad when
+comparing; SQLite does not pad and compares exactly. A `CHAR(5)` holding `q` therefore comes out of a
+SQL Server backup as `q    `, and restored verbatim into SQLite, `WHERE Code = 'q'` would find nothing.
+When a restore crosses from a padding database into a non-padding one, the trailing spaces (U+0020 only)
+of `CHAR`/`NCHAR` values are stripped (an all-space value becomes empty; `NULL` stays `NULL`; `VARCHAR`
+and `NVARCHAR` are never touched). The source is the `server.name` in the archive's `metadata.json`; if
+it is missing or names no known database, nothing is stripped. A restore into the same kind of database
+as the backup, or into a padding one, keeps every value as archived. Whether a database pads is the
+`SqlQueryFormatter::ComparesFixedCharWithPadSemantics()` knob.
+
 ## Consistency caveats (online backup)
 
 The backup runs online, without a global snapshot or table locks. If the database is

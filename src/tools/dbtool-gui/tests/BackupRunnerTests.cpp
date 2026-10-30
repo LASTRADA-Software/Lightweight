@@ -38,6 +38,7 @@ using DbtoolGui::Tests::LoggedAt;
 using DbtoolGui::Tests::SqliteConnectionString;
 using Lightweight::SqlBackup::Progress;
 using Lightweight::SqlBackup::ProgressManager;
+using Lightweight::SqlBackup::RestoreReport;
 
 namespace
 {
@@ -117,13 +118,15 @@ TEST_CASE("BackupRunner treats a restore that lost tables as failed and lists th
     // The library does not throw for a failing table, it only reports it: a
     // runner that looked at exceptions alone would call this a success.
     BackupRunner runner;
-    runner.setRestoreOperation([](std::filesystem::path const&, std::string const&, ProgressManager& progress) {
-        progress.SetTotalTables(4);
-        Copied(progress, "orders", 10);
-        Failed(progress, "KUNDE", "FOREIGN KEY constraint failed (547)");
-        Failed(progress, "LAB_ITEM", "filegroup PRIMARY is full");
-        Copied(progress, "invoices", 20);
-    });
+    runner.setRestoreOperation(
+        [](std::filesystem::path const&, std::string const&, ProgressManager& progress) -> RestoreReport {
+            progress.SetTotalTables(4);
+            Copied(progress, "orders", 10);
+            Failed(progress, "KUNDE", "FOREIGN KEY constraint failed (547)");
+            Failed(progress, "LAB_ITEM", "filegroup PRIMARY is full");
+            Copied(progress, "invoices", 20);
+            return {};
+        });
     QSignalSpy done(&runner, &BackupRunner::finished);
 
     runner.runRestore(QStringLiteral("DK_PROD_LATEST.zip"));
@@ -151,6 +154,52 @@ TEST_CASE("BackupRunner treats a restore that lost tables as failed and lists th
     CHECK(done.first().at(1).toString() == summary);
 }
 
+TEST_CASE("BackupRunner shows the failed rows and nulled cells of a restore once per table", "[dbtool-gui][backup-runner]")
+{
+    // A table that fails reports an error per skipped chunk and then one terminal error: it still counts once.
+    BackupRunner runner;
+    runner.setRestoreOperation([](std::filesystem::path const&, std::string const&, ProgressManager& progress) {
+        progress.SetTotalTables(2);
+        Copied(progress, "invoices", 20);
+        Failed(progress, "orders", "Unreadable chunk data/orders/0001_00.msgpack: truncated");
+        Failed(progress, "orders", "2 rows failed, 3 cells set to NULL, 1 chunk unreadable");
+
+        auto orders = Lightweight::SqlBackup::TableRestoreReport {};
+        orders.tableName = "orders";
+        orders.failedRowCount = 2;
+        orders.failedRowRanges.push_back({ .chunkPath = "data/orders/0002_00.msgpack", .firstRow = 4, .lastRow = 5 });
+        orders.reasons.push_back(
+            { .sqlState = "23000", .message = "duplicate key", .occurrences = 2, .sampleKeys = { "7" } });
+        orders.valueFailures.push_back({ .column = "Note", .cellsSetToNull = 3, .sampleReason = "bad text" });
+        orders.unreadableChunks = 1;
+        auto report = Lightweight::SqlBackup::RestoreReport {};
+        report.tables = { orders };
+        return report;
+    });
+    QSignalSpy done(&runner, &BackupRunner::finished);
+
+    runner.runRestore(QStringLiteral("a.zip"));
+    REQUIRE(WaitFor(done));
+
+    CHECK_FALSE(done.first().at(0).toBool());
+    auto const& result = runner.lastResult();
+    CHECK(result.value("failedCount").toInt() == 1);
+    CHECK(result.value("failedRows").toULongLong() == 2);
+    CHECK(result.value("nulledCells").toULongLong() == 3);
+    CHECK(Text(result, "reportText").contains("Restore failures:"));
+
+    auto const failed = result.value("failedTables").toList();
+    REQUIRE(failed.size() == 1);
+    auto const table = failed.at(0).toMap();
+    CHECK(table.value("table").toString() == "orders");
+    CHECK(table.value("failedRows").toULongLong() == 2);
+    CHECK(table.value("nulledCells").toULongLong() == 3);
+    auto const details = table.value("details").toString();
+    CHECK(details.contains("data/orders/0002_00.msgpack rows 4\u20135"));
+    CHECK(details.contains("2 x 23000 duplicate key"));
+    CHECK(details.contains("column Note: 3 cells set to NULL"));
+}
+
 TEST_CASE("BackupRunner words a partial backup differently from a partial restore", "[dbtool-gui][backup-runner]")
 {
     BackupRunner runner;
@@ -173,7 +222,7 @@ TEST_CASE("BackupRunner words a partial backup differently from a partial restor
 TEST_CASE("BackupRunner reports an aborted run with the exception text", "[dbtool-gui][backup-runner]")
 {
     BackupRunner runner;
-    runner.setRestoreOperation([](std::filesystem::path const&, std::string const&, ProgressManager&) {
+    runner.setRestoreOperation([](std::filesystem::path const&, std::string const&, ProgressManager&) -> RestoreReport {
         throw std::runtime_error("cannot open archive");
     });
     QSignalSpy done(&runner, &BackupRunner::finished);
@@ -190,11 +239,13 @@ TEST_CASE("BackupRunner reports an aborted run with the exception text", "[dbtoo
 TEST_CASE("BackupRunner counts every failure but keeps the listed ones bounded", "[dbtool-gui][backup-runner]")
 {
     BackupRunner runner;
-    runner.setRestoreOperation([](std::filesystem::path const&, std::string const&, ProgressManager& progress) {
-        progress.SetTotalTables(200);
-        for (int i = 0; i < 120; ++i)
-            Failed(progress, "T" + std::to_string(i), "boom");
-    });
+    runner.setRestoreOperation(
+        [](std::filesystem::path const&, std::string const&, ProgressManager& progress) -> RestoreReport {
+            progress.SetTotalTables(200);
+            for (int i = 0; i < 120; ++i)
+                Failed(progress, "T" + std::to_string(i), "boom");
+            return {};
+        });
     QSignalSpy done(&runner, &BackupRunner::finished);
 
     runner.runRestore(QStringLiteral("big.zip"));
@@ -221,12 +272,14 @@ TEST_CASE("BackupRunner exposes live progress and clears the last outcome when a
     // The second run holds after its first table, so the in-flight state can be inspected.
     std::promise<void> release;
     auto gate = release.get_future().share();
-    runner.setRestoreOperation([gate](std::filesystem::path const&, std::string const&, ProgressManager& progress) {
-        progress.SetTotalTables(4);
-        Copied(progress, "orders", 7);
-        gate.wait();
-        Copied(progress, "invoices", 9);
-    });
+    runner.setRestoreOperation(
+        [gate](std::filesystem::path const&, std::string const&, ProgressManager& progress) -> RestoreReport {
+            progress.SetTotalTables(4);
+            Copied(progress, "orders", 7);
+            gate.wait();
+            Copied(progress, "invoices", 9);
+            return {};
+        });
     QSignalSpy progress(&runner, &BackupRunner::progressChanged);
     QSignalSpy secondDone(&runner, &BackupRunner::finished);
 
@@ -312,14 +365,16 @@ TEST_CASE("BackupRunner counts a table that fails repeatedly once", "[dbtool-gui
 {
     // One Error per failed chunk: three events, one table.
     BackupRunner runner;
-    runner.setRestoreOperation([](std::filesystem::path const&, std::string const&, ProgressManager& progress) {
-        progress.SetTotalTables(3);
-        Copied(progress, "orders", 1);
-        Failed(progress, "KUNDE", "chunk 1 failed");
-        Failed(progress, "KUNDE", "chunk 2 failed");
-        Failed(progress, "KUNDE", "chunk 3 failed");
-        Copied(progress, "invoices", 1);
-    });
+    runner.setRestoreOperation(
+        [](std::filesystem::path const&, std::string const&, ProgressManager& progress) -> RestoreReport {
+            progress.SetTotalTables(3);
+            Copied(progress, "orders", 1);
+            Failed(progress, "KUNDE", "chunk 1 failed");
+            Failed(progress, "KUNDE", "chunk 2 failed");
+            Failed(progress, "KUNDE", "chunk 3 failed");
+            Copied(progress, "invoices", 1);
+            return {};
+        });
     QSignalSpy done(&runner, &BackupRunner::finished);
 
     runner.runRestore(QStringLiteral("a.zip"));
@@ -336,9 +391,11 @@ TEST_CASE("BackupRunner fails a run on an error that names no table", "[dbtool-g
     // "Restore aborted: No tables could be created" returns normally and names
     // no table. It must still be a failed run, and be shown rather than lost.
     BackupRunner runner;
-    runner.setRestoreOperation([](std::filesystem::path const&, std::string const&, ProgressManager& progress) {
-        Failed(progress, "", "Restore aborted: No tables could be created");
-    });
+    runner.setRestoreOperation(
+        [](std::filesystem::path const&, std::string const&, ProgressManager& progress) -> RestoreReport {
+            Failed(progress, "", "Restore aborted: No tables could be created");
+            return {};
+        });
     QSignalSpy done(&runner, &BackupRunner::finished);
 
     runner.runRestore(QStringLiteral("a.zip"));
@@ -361,23 +418,25 @@ TEST_CASE("BackupRunner fails a run on an error that names no table", "[dbtool-g
 TEST_CASE("BackupRunner fills the per-table model the detail panel shows", "[dbtool-gui][backup-runner]")
 {
     BackupRunner runner;
-    runner.setRestoreOperation([](std::filesystem::path const&, std::string const&, ProgressManager& progress) {
-        progress.Update(Progress { .state = Progress::State::Finished,
-                                   .tableName = "Scanning schema",
-                                   .currentRows = 2,
-                                   .totalRows = 2,
-                                   .message = {} });
-        progress.SetTotalTables(3);
-        Copied(progress, "orders", 10);
-        Failed(progress, "KUNDE", "FOREIGN KEY constraint failed (547)");
-        Copied(progress, "invoices", 20);
-        Failed(progress, "", "Failed to connect for index restoration");
-        progress.Update(Progress { .state = Progress::State::Finished,
-                                   .tableName = "",
-                                   .currentRows = 0,
-                                   .totalRows = std::nullopt,
-                                   .message = "Restore complete" });
-    });
+    runner.setRestoreOperation(
+        [](std::filesystem::path const&, std::string const&, ProgressManager& progress) -> RestoreReport {
+            progress.Update(Progress { .state = Progress::State::Finished,
+                                       .tableName = "Scanning schema",
+                                       .currentRows = 2,
+                                       .totalRows = 2,
+                                       .message = {} });
+            progress.SetTotalTables(3);
+            Copied(progress, "orders", 10);
+            Failed(progress, "KUNDE", "FOREIGN KEY constraint failed (547)");
+            Copied(progress, "invoices", 20);
+            Failed(progress, "", "Failed to connect for index restoration");
+            progress.Update(Progress { .state = Progress::State::Finished,
+                                       .tableName = "",
+                                       .currentRows = 0,
+                                       .totalRows = std::nullopt,
+                                       .message = "Restore complete" });
+            return {};
+        });
     QSignalSpy done(&runner, &BackupRunner::finished);
 
     runner.runRestore(QStringLiteral("a.zip"));
@@ -552,7 +611,10 @@ namespace
 /// A record as the recorder fakes return it.
 [[nodiscard]] Lightweight::SqlMigration::BackupRecord FakeRecord()
 {
-    return Lightweight::SqlMigration::BackupRecord { .id = 1, .archiveFileName = "archive.zip" };
+    auto record = Lightweight::SqlMigration::BackupRecord {};
+    record.id = 1;
+    record.archiveFileName = "archive.zip";
+    return record;
 }
 
 /// The result type of `BackupRunner::Recorder::record`.
@@ -565,12 +627,13 @@ using RecordResult = std::expected<Lightweight::SqlMigration::BackupRecord, Ligh
 }
 
 /// A backup operation that copies one table.
-void CopyOneTable(std::filesystem::path const& /*archive*/,
-                  std::string const& /*connectionString*/,
-                  ProgressManager& progress)
+RestoreReport CopyOneTable(std::filesystem::path const& /*archive*/,
+                           std::string const& /*connectionString*/,
+                           ProgressManager& progress)
 {
     progress.SetTotalTables(1);
     Copied(progress, "orders", 1);
+    return {};
 }
 
 } // namespace

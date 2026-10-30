@@ -40,6 +40,27 @@ schema is complete so you can stream results instead of waiting for the whole da
 `TableFilterPredicate`, which skips reading columns and constraints for tables you do not care
 about. Filtering at that level is much cheaper than reading everything and discarding it.
 
+## Reading one table
+
+`ReadTable` describes a single table and returns `std::nullopt` when it does not exist. It asks the
+catalog for that one table (a filtered lookup, not a full listing) and describes only it:
+
+```cpp
+auto const table = SqlSchema::ReadTable(
+    stmt, SqlSchema::FullyQualifiedTableName { .catalog = database, .schema = "", .table = "Orders" });
+```
+
+If you only need columns and the primary key, pass `TableReadScope::ColumnsAndPrimaryKey`. That skips
+the two foreign-key reads, the index read and the foreign-key target casing lookups; `foreignKeys`,
+`externalForeignKeys` and `indexes` come back empty. Because the foreign keys are not read, each
+column's `isForeignKey` stays `false` and its `foreignKeyConstraint` stays empty. The column names and
+types, `isUnique`, `isAutoIncrement`, `isPrimaryKey` and `primaryKeys` are the same as in the default
+`TableReadScope::Full`.
+
+```cpp
+auto const table = SqlSchema::ReadTable(stmt, name, SqlSchema::TableReadScope::ColumnsAndPrimaryKey);
+```
+
 ## What you get back
 
 `Table` describes one table:

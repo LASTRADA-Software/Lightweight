@@ -283,3 +283,41 @@ TEST_CASE("TableRowCountEstimateQuery reads the catalog on SQL Server and Postgr
     CHECK(SqlQueryFormatter::PostgrSQL().TableRowCountEstimateQuery().contains("reltuples"));
     CHECK(SqlQueryFormatter::Sqlite().TableRowCountEstimateQuery().empty());
 }
+
+TEST_CASE("SqlQueryFormatter knobs: native GUID type", "[SqlQueryFormatter]")
+{
+    CHECK(SqlQueryFormatter::SqlServer().HasNativeGuidType());
+    CHECK(SqlQueryFormatter::PostgrSQL().HasNativeGuidType());
+    CHECK_FALSE(SqlQueryFormatter::Sqlite().HasNativeGuidType());
+}
+
+TEST_CASE("SqlQueryFormatter knobs: CHAR pad semantics", "[SqlQueryFormatter]")
+{
+    CHECK(SqlQueryFormatter::SqlServer().ComparesFixedCharWithPadSemantics());
+    CHECK(SqlQueryFormatter::PostgrSQL().ComparesFixedCharWithPadSemantics());
+    CHECK_FALSE(SqlQueryFormatter::Sqlite().ComparesFixedCharWithPadSemantics());
+}
+
+TEST_CASE("SqlQueryFormatter knobs: bounded bulk-load transactions", "[SqlQueryFormatter]")
+{
+    CHECK_FALSE(SqlQueryFormatter::SqlServer().BoundsBulkLoadTransactionSize());
+    CHECK_FALSE(SqlQueryFormatter::PostgrSQL().BoundsBulkLoadTransactionSize());
+    CHECK(SqlQueryFormatter::Sqlite().BoundsBulkLoadTransactionSize());
+}
+
+TEST_CASE("SqlQueryFormatter knobs: unquoted identifier folding", "[SqlQueryFormatter]")
+{
+    CHECK(SqlQueryFormatter::PostgrSQL().FoldUnquotedIdentifier("Orders") == "orders");
+    CHECK(SqlQueryFormatter::SqlServer().FoldUnquotedIdentifier("Orders") == "Orders");
+    CHECK(SqlQueryFormatter::Sqlite().FoldUnquotedIdentifier("Orders") == "Orders");
+}
+
+TEST_CASE("ServerTypeFromServerName maps known names", "[SqlQueryFormatter]")
+{
+    CHECK(ServerTypeFromServerName("Microsoft SQL Server") == SqlServerType::MICROSOFT_SQL);
+    CHECK(ServerTypeFromServerName("PostgreSQL") == SqlServerType::POSTGRESQL);
+    CHECK(ServerTypeFromServerName("SQLite") == SqlServerType::SQLITE);
+    CHECK(ServerTypeFromServerName("MySQL") == SqlServerType::MYSQL);
+    CHECK(ServerTypeFromServerName("Oracle") == SqlServerType::UNKNOWN);
+    CHECK(ServerTypeFromServerName("") == SqlServerType::UNKNOWN);
+}

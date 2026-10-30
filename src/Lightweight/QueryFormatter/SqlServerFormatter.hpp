@@ -46,6 +46,26 @@ class SqlServerQueryFormatter final: public SQLiteQueryFormatter
         return true;
     }
 
+    [[nodiscard]] bool HasNativeGuidType() const noexcept override
+    {
+        return true;
+    }
+
+    [[nodiscard]] bool ParameterStatusIdentifiesFailedRows() const noexcept override
+    {
+        return true;
+    }
+
+    [[nodiscard]] bool ComparesFixedCharWithPadSemantics() const noexcept override
+    {
+        return true;
+    }
+
+    [[nodiscard]] bool BoundsBulkLoadTransactionSize() const noexcept override
+    {
+        return false;
+    }
+
     [[nodiscard]] bool SupportsSchemas() const noexcept override
     {
         return true;

@@ -16,6 +16,7 @@
 #include "Common.hpp"
 #include "ConnectionPool.hpp"
 #include "Restore.hpp"
+#include "RestoreFailureLog.hpp"
 #include "Sha256.hpp"
 #include "SqlBackup.hpp"
 #include "SqlBackupFormats.hpp"
@@ -954,6 +955,20 @@ void BackupSchemas(std::filesystem::path const& outputFile,
     // LCOV_EXCL_STOP
 }
 
+namespace
+{
+    /// Reads the DBMS an archive was taken from.
+    /// @param metadata The archive's parsed metadata.json.
+    /// @return The type named by `server.name`, or UNKNOWN if absent or unrecognized.
+    SqlServerType ParseSourceServerType(nlohmann::json const& metadata)
+    {
+        if (!metadata.is_object() || !metadata.contains("server") || !metadata["server"].is_object())
+            return SqlServerType::UNKNOWN;
+        auto const& name = metadata["server"].value("name", nlohmann::json {});
+        return name.is_string() ? ServerTypeFromServerName(name.get<std::string>()) : SqlServerType::UNKNOWN;
+    }
+} // namespace
+
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 std::map<std::string, TableInfo> ParseSchema(std::string_view metadataJson, ProgressManager* progress)
 {
@@ -1377,14 +1392,14 @@ std::string DefaultRestoreSchema(std::filesystem::path const& archiveFile,
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-void Restore(std::filesystem::path const& inputFile,
-             SqlConnectionString const& connectionString,
-             unsigned concurrency,
-             ProgressManager& progress,
-             std::string const& schema,
-             std::string const& tableFilter,
-             RetrySettings const& retrySettings,
-             RestoreSettings const& restoreSettings)
+RestoreReport Restore(std::filesystem::path const& inputFile,
+                      SqlConnectionString const& connectionString,
+                      unsigned concurrency,
+                      ProgressManager& progress,
+                      std::string const& schema,
+                      std::string const& tableFilter,
+                      RetrySettings const& retrySettings,
+                      RestoreSettings const& restoreSettings)
 {
     ZoneScopedN("SqlBackup::Restore");
     {
@@ -1402,7 +1417,7 @@ void Restore(std::filesystem::path const& inputFile,
                           .currentRows = 0,
                           .totalRows = 0,
                           .message = "Input file does not exist" });
-        return;
+        return {};
     }
 
     int err = 0;
@@ -1419,7 +1434,7 @@ void Restore(std::filesystem::path const& inputFile,
                           .currentRows = 0,
                           .totalRows = 0,
                           .message = "Failed to open ZIP archive: " + errMsg });
-        return;
+        return {};
     }
     // LCOV_EXCL_STOP
 
@@ -1433,7 +1448,7 @@ void Restore(std::filesystem::path const& inputFile,
                           .totalRows = 0,
                           .message = "metadata.json not found in archive" });
         zip_close(zip);
-        return;
+        return {};
     }
     // LCOV_EXCL_STOP
 
@@ -1447,7 +1462,7 @@ void Restore(std::filesystem::path const& inputFile,
                           .totalRows = 0,
                           .message = "Failed to stat metadata.json" });
         zip_close(zip);
-        return;
+        return {};
     }
     // LCOV_EXCL_STOP
 
@@ -1467,7 +1482,7 @@ void Restore(std::filesystem::path const& inputFile,
                                                  SingleSchemaFormatVersion,
                                                  MultiSchemaFormatVersion) });
         zip_close(zip);
-        return;
+        return {};
     }
 
     bool const multiSchema = formatVersion == MultiSchemaFormatVersion;
@@ -1483,7 +1498,7 @@ void Restore(std::filesystem::path const& inputFile,
                                      detail::JoinNames(metadata.value("schema_names", std::vector<std::string> {})),
                                      schema) });
         zip_close(zip);
-        return;
+        return {};
     }
 
     std::string const effectiveSchema = !schema.empty() ? schema : metadata.value("schema_name", "");
@@ -1520,6 +1535,7 @@ void Restore(std::filesystem::path const& inputFile,
     }
 
     std::map<std::string, TableInfo> tableMap = ParseSchema(metadataStr, &progress);
+    auto const sourceServerType = ParseSourceServerType(metadata);
 
     // Older archives may hold bookkeeping tables; the live ones stay as they are.
     std::erase_if(tableMap, [](auto const& pair) {
@@ -1553,7 +1569,7 @@ void Restore(std::filesystem::path const& inputFile,
                               .totalRows = std::nullopt,
                               .message = "Failed to connect to the target database: " + probe.LastError().message });
             zip_close(zip);
-            return;
+            return {};
         }
         if (!probe.QueryFormatter().SupportsSchemas())
         {
@@ -1568,7 +1584,7 @@ void Restore(std::filesystem::path const& inputFile,
                                                          "these tables exist in more than one schema of the archive: {}",
                                                          detail::JoinNames(flattened.error())) });
                 zip_close(zip);
-                return;
+                return {};
             }
             for (auto& [directory, key]: chunkTables)
                 key = tableMap.at(key).name;
@@ -1603,7 +1619,7 @@ void Restore(std::filesystem::path const& inputFile,
                           .message = "Restore aborted: No tables could be created" });
         zip_close(zip);
         progress.AllDone();
-        return;
+        return {};
     }
 
     // Schema-only mode: create schema and apply constraints/indexes, then exit early
@@ -1627,7 +1643,7 @@ void Restore(std::filesystem::path const& inputFile,
                           .totalRows = std::nullopt,
                           .message = "Schema-only restore complete" });
         progress.AllDone();
-        return;
+        return {};
     }
 
     std::deque<detail::ZipEntryInfo> dataQueue;
@@ -1665,6 +1681,7 @@ void Restore(std::filesystem::path const& inputFile,
 
     std::map<std::string, std::shared_ptr<std::atomic<size_t>>> tableProgress;
     std::map<std::string, std::shared_ptr<std::atomic<size_t>>> chunksProcessed;
+    std::map<std::string, std::shared_ptr<std::atomic<std::uint64_t>>> committedRows;
     size_t totalRows = 0;
     for (auto const& [name, info]: tableMap)
     {
@@ -1673,6 +1690,7 @@ void Restore(std::filesystem::path const& inputFile,
         {
             tableProgress[name] = std::make_shared<std::atomic<size_t>>(0);
             chunksProcessed[name] = std::make_shared<std::atomic<size_t>>(0);
+            committedRows[name] = std::make_shared<std::atomic<std::uint64_t>>(0);
             totalRows += info.rowCount;
         }
     }
@@ -1702,6 +1720,7 @@ void Restore(std::filesystem::path const& inputFile,
                                                   : CalculateRestoreSettings(GetAvailableSystemMemory(), concurrency);
 
     detail::FailedTables failedDataTables;
+    detail::RestoreFailureLog failureLog;
     detail::RestoreContext ctx {
         .connectionString = connectionString,
         .schema = effectiveSchema,
@@ -1715,10 +1734,13 @@ void Restore(std::filesystem::path const& inputFile,
         .tableProgress = tableProgress,
         .chunksProcessed = chunksProcessed,
         .totalChunks = totalChunksPerTable,
+        .committedRows = committedRows,
         .checksums = checksums.empty() ? nullptr : &checksums,
         .retrySettings = retrySettings,
         .restoreSettings = effectiveSettings,
         .failedTables = failedDataTables,
+        .failureLog = failureLog,
+        .sourceServerType = sourceServerType,
     };
 
     // All databases restore multi-threaded. (Historically MS SQL Server was clamped to a single
@@ -1751,15 +1773,22 @@ void Restore(std::filesystem::path const& inputFile,
     for (auto& t: threads)
         t.join();
 
-    // A worker stops on a database error; once all have stopped, chunks may be left unrestored.
+    // A failed table whose chunks a stopped worker left unprocessed is settled here.
+    for (auto const& tableName: chunksProcessed | std::views::keys)
+        detail::SettleFailedTableRows(ctx, tableName);
+    auto report = failureLog.Snapshot();
+
+    // A worker stops on a lost connection; once all have stopped, chunks may be left unrestored.
     for (auto const& [tableName, processed]: chunksProcessed)
     {
-        if (processed->load() < totalChunksPerTable[tableName])
-            progress.Update({ .state = Progress::State::Error,
-                              .tableName = tableName,
-                              .currentRows = tableProgress.at(tableName)->load(),
-                              .totalRows = std::nullopt,
-                              .message = "Not fully restored: the restore stopped after an earlier error" });
+        if (processed->load() >= totalChunksPerTable[tableName])
+            continue;
+        report.incompleteTables.push_back(tableName);
+        progress.Update({ .state = Progress::State::Error,
+                          .tableName = tableName,
+                          .currentRows = tableProgress.at(tableName)->load(),
+                          .totalRows = std::nullopt,
+                          .message = "Not fully restored: the restore stopped after an earlier error" });
     }
 
     detail::ApplyDatabaseConstraints(connectionString, effectiveSchema, filteredTableMap, progress);
@@ -1772,18 +1801,20 @@ void Restore(std::filesystem::path const& inputFile,
                       .totalRows = std::nullopt,
                       .message = "Restore complete" });
     progress.AllDone();
+    return report;
 }
 
-void Restore(std::filesystem::path const& inputFile,
-             SqlConnectionString const& connectionString,
-             unsigned concurrency,
-             ProgressManager& progress,
-             std::string const& schema,
-             std::string const& tableFilter,
-             RetrySettings const& retrySettings)
+RestoreReport Restore(std::filesystem::path const& inputFile,
+                      SqlConnectionString const& connectionString,
+                      unsigned concurrency,
+                      ProgressManager& progress,
+                      std::string const& schema,
+                      std::string const& tableFilter,
+                      RetrySettings const& retrySettings)
 {
     // Forward to the main implementation with default RestoreSettings
-    Restore(inputFile, connectionString, concurrency, progress, schema, tableFilter, retrySettings, RestoreSettings {});
+    return Restore(
+        inputFile, connectionString, concurrency, progress, schema, tableFilter, retrySettings, RestoreSettings {});
 }
 
 } // namespace Lightweight::SqlBackup

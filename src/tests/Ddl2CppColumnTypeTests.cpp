@@ -543,17 +543,7 @@ TEST_CASE_METHOD(SqlTestFixture, "ddl2cpp: a GUID primary key maps to SqlGuid", 
     CheckPrimaryKeyColumnType(
         stmt,
         "ColumnTypeTest2",
-        // SQLite has no GUID type at all: the declared `GUID` is an unrecognised type name that the
-        // driver reports back as a VARCHAR of unknown length, so the generated member degenerates
-        // to an unsized dynamic string rather than SqlGuid.
-        ColumnTypeCase { .columnName = "guidPK",
-                         .declaredType = Guid {},
-                         .expectedCxxType = "Light::SqlGuid",
-                         .dialectExceptions = {
-                             { .serverType = SqlServerType::SQLITE,
-                               .cxxType = SqliteText("Light::SqlDynamicAnsiString<0>", "Light::SqlDynamicUtf16String<0>"),
-                               .reason = "SQLite has no GUID type; the column reads back as an "
-                                         "unsized VARCHAR" } } });
+        ColumnTypeCase { .columnName = "guidPK", .declaredType = Guid {}, .expectedCxxType = "Light::SqlGuid" });
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "ddl2cpp: a VARCHAR primary key keeps its declared length", "[ddl2cpp][SqlSchema]")
