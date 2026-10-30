@@ -522,6 +522,66 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK(progress.finalRows["rfi_replay_transient"] == 6);
 }
 
+TEST_CASE_METHOD(SqlTestFixture,
+                 "transient error late in a replayed chunk neither repeats nor loses its failure reports",
+                 "[SqlBackup][RestoreFailures]")
+{
+    std::filesystem::path const backupFile = "rfi_many_backup.zip";
+    std::filesystem::path const brokenFile = "rfi_many_broken.zip";
+    auto const backupFileCleaner = ScopedFileRemoved { backupFile };
+    auto const brokenFileCleaner = ScopedFileRemoved { brokenFile };
+
+    CreateTableWithRows("rfi_many", 1);
+    BackupTo(backupFile);
+    DropTables({ "rfi_many" });
+
+    // IDs 1..10 each twice in a row, then 11..15: 10 failing rows, reported before the chunk ends.
+    auto ids = std::vector<int64_t> {};
+    for (auto const id: std::views::iota(int64_t { 1 }, int64_t { 11 }))
+        ids.insert(ids.end(), { id, id });
+    for (auto const id: std::views::iota(int64_t { 11 }, int64_t { 16 }))
+        ids.push_back(id);
+    auto const chunks = ChunkNames(backupFile, "rfi_many");
+    REQUIRE(chunks.size() == 1);
+    RewriteChunks(backupFile, brokenFile, { { chunks.front(), MakeChunk(IdValueRows(ids)) } });
+
+    auto const settings = SqlBackup::RestoreSettings { .batchSize = 2, .memoryLimitBytes = std::size_t { 1 } << 30U };
+    auto const restore = [&](SqlBackup::ProgressManager& progress) {
+        return SqlBackup::Restore(brokenFile, GetConnectionString(), 1, progress, {}, "*", FastRetry(), settings);
+    };
+    auto expectedIds = std::vector<int64_t> {};
+    for (auto const id: std::views::iota(int64_t { 1 }, int64_t { 16 }))
+        expectedIds.push_back(id);
+
+    // Count the checks of the whole restore.
+    auto counter = ScriptedFaultSource { SqlErrorInfo {}, 0, "ExecuteBatch" };
+    {
+        ScopedFaultSource const installed { &counter };
+        SqlBackup::NullProgressManager progress;
+        CHECK(TableReportOf(restore(progress), "rfi_many").failedRowCount == 10);
+    }
+    REQUIRE(ReadIds("rfi_many") == expectedIds);
+    REQUIRE(counter.ConsultCount() > 0);
+
+    // The last check, in the last batch, loses the connection: the retry must resume after what
+    // the replay committed, so that no failure is reported twice and no row is lost.
+    auto source = SequencedFaultSource { {
+        { counter.ConsultCount() - 1,
+          SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "08S01", .message = "Communication link failure" } },
+    } };
+    auto report = SqlBackup::RestoreReport {};
+    {
+        ScopedFaultSource const installed { &source };
+        SqlBackup::NullProgressManager progress;
+        report = restore(progress);
+    }
+
+    CHECK(source.RemainingFailures() == 0);
+    CHECK(ReadIds("rfi_many") == expectedIds);
+    CHECK(TableReportOf(report, "rfi_many").failedRowCount == 10);
+    CHECK(report.totalFailedRows == 10);
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "concurrent workers aggregate failures exactly", "[SqlBackup][RestoreFailures]")
 {
     std::filesystem::path const backupFile = "rfi_concurrent_backup.zip";
