@@ -31,6 +31,7 @@
 #include <QtCore/QRunnable>
 #include <QtCore/QSettings>
 #include <QtCore/QStandardPaths>
+#include <RestoreReportFormat.hpp>
 #include <Secrets/ProfileCipher.hpp>
 #include <Secrets/SecretResolver.hpp>
 
@@ -380,12 +381,12 @@ namespace
     }
 
     /// Default `RestoreOperation`: the real `SqlBackup::Restore` call.
-    void RunSqlRestore(std::filesystem::path const& archiveFile,
-                       std::string const& connectionString,
-                       std::string const& schema,
-                       Lightweight::SqlBackup::ProgressManager& progress)
+    Lightweight::SqlBackup::RestoreReport RunSqlRestore(std::filesystem::path const& archiveFile,
+                                                        std::string const& connectionString,
+                                                        std::string const& schema,
+                                                        Lightweight::SqlBackup::ProgressManager& progress)
     {
-        Lightweight::SqlBackup::Restore(
+        return Lightweight::SqlBackup::Restore(
             archiveFile, Lightweight::SqlConnectionString { connectionString }, BackupConcurrency(), progress, schema);
     }
 } // namespace
@@ -403,7 +404,7 @@ bool ManagedBackupController::WaitForDone(std::chrono::milliseconds timeout)
 ManagedBackupController::ManagedBackupController(QObject* parent):
     QObject(parent),
     _backupOperation(&RunSqlBackup),
-    _restoreOperation(&RunSqlRestore),
+    _restoreOperation(RestoreOperation { &RunSqlRestore }),
     _recorder(DefaultBackupRecorder()),
     _connectionProbe(&ProbeConnection),
     _backupFolder(QSettings().value(QString::fromLatin1(kKeyBackupFolder)).toString())
@@ -957,17 +958,24 @@ void ManagedBackupController::RunRestore(QString const& archiveProfile,
         {
             EmittingProgressManager pm(self, archiveName);
             auto const restoreSchema = RestoreSchemaFor(archivePath, cs, schemaStd, targetProfile.has_value());
-            restoreOperation(archivePath, cs, restoreSchema, pm);
+            auto const report = restoreOperation(archivePath, cs, restoreSchema, pm);
             // Like Backup(), Restore() reports a table it could not
             // recreate as a `Progress::State::Error` and carries on — see
             // `CreateTablesInOrder`, which drops the archived table first
             // and only then tries to create it. Without this check a
             // restore that dropped tables it never recreated would be
             // reported as a success.
-            if (auto const errorCount = pm.ErrorCount(); errorCount > 0)
+            if (auto const errorCount = pm.ErrorCount(); errorCount > 0 || report.HasFailures())
             {
                 ok = false;
-                summary = PartialRestoreMessage(errorCount);
+                summary = PartialRestoreMessage(errorCount > 0 ? errorCount : report.tables.size());
+                // Which rows and cells failed, beside the per-table error lines already logged.
+                for (auto const& line: Lightweight::Tools::DescribeRestoreReport(report))
+                    QMetaObject::invokeMethod(self,
+                                              "logLine",
+                                              Qt::QueuedConnection,
+                                              Q_ARG(QString, QString::fromStdString(line)),
+                                              Q_ARG(DbtoolGui::LogLevel, LogLevel::Error));
             }
             else
             {

@@ -37,6 +37,7 @@ endif()
 set(SOURCE_FILES
     BackupRecordingTests.cpp
     BackupRequirementTests.cpp
+    RestoreReportFormatTests.cpp
     ConfigDiscoveryTests.cpp
     ConfigBackupOutputTests.cpp
     ConfigConnectionTargetTests.cpp

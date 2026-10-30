@@ -1114,6 +1114,54 @@ def expect_exit(result, returncode, *fragments):
         sys.exit(1)
 
 
+def test_restore_failure_report(dbtool, plugins_dir, connection_string):
+    """A restore whose archive holds rows the database rejects keeps going, prints a "Restore failures"
+    block naming the table, its failed rows and the reason, and exits non-zero."""
+    print("--- 19. restore reports failed rows and exits non-zero ---")
+    base_cmd = [dbtool, "--plugins-dir", plugins_dir, "--connection-string", connection_string]
+    table = "l7cli_dup"
+
+    def drop():
+        run_command(base_cmd + ["exec", f'DROP TABLE IF EXISTS "{table}"'], check=False)
+
+    drop()
+    try:
+        run_command(base_cmd + ["exec", f'CREATE TABLE "{table}" ("id" INTEGER NOT NULL, "name" VARCHAR(20))'])
+        run_command(base_cmd + ["exec", f"INSERT INTO \"{table}\" (\"id\", \"name\") VALUES (1, 'a'), (1, 'b'), (2, 'c')"])
+        with tempfile.TemporaryDirectory() as tmpdir:
+            plain = os.path.join(tmpdir, "plain.zip")
+            duplicated = os.path.join(tmpdir, "duplicated.zip")
+            run_command(base_cmd + ["backup", "--output", plain, "--filter-tables", table])
+
+            # The archive claims "id" is the primary key although it holds id 1 twice: the restored
+            # table rejects the second row, every other row is restored.
+            with zipfile.ZipFile(plain) as source, zipfile.ZipFile(duplicated, "w") as target:
+                for item in source.infolist():
+                    data = source.read(item.filename)
+                    if item.filename == "metadata.json":
+                        metadata = json.loads(data)
+                        archived = metadata["schema"][0]
+                        archived["columns"][0]["is_primary_key"] = True
+                        archived["primary_keys"] = ["id"]
+                        data = json.dumps(metadata).encode()
+                    target.writestr(item.filename, data)
+
+            result = run_command(base_cmd + ["restore", "--input", duplicated], check=False)
+            expect_exit(result, 1, "Restore failures:", f"{table}: 1 rows failed", "Total: 1 rows failed in 1 tables")
+            restored = int(run_command(base_cmd + ["exec", f'SELECT COUNT(*) FROM "{table}"']).stdout.strip())
+            if restored != 2:
+                print(f"expected the 2 rows that do not collide to be restored, found {restored}")
+                sys.exit(1)
+
+            # A clean archive prints no failure block and exits 0.
+            clean = run_command(base_cmd + ["restore", "--input", plain])
+            if "Restore failures:" in clean.stdout:
+                print(f"a clean restore printed a failure block:\n{clean.stdout}")
+                sys.exit(1)
+    finally:
+        drop()
+
+
 def test_backup_requirement(dbtool, plugins_dir, connection_string):
     """A release that requires a backup makes migrate refuse (exit 3) until a backup taken after the
     last migration exists; backup, restore and migrate --backup-to record one; a dry run reports and
@@ -1877,6 +1925,8 @@ def main():
     test_skipped_seed_rows(base_cmd, args.dbtool, args.plugins_dir, connection_string)
 
     test_backup_requirement(args.dbtool, args.plugins_dir, connection_string)
+
+    test_restore_failure_report(args.dbtool, args.plugins_dir, connection_string)
 
     if is_sqlite:
         test_unwritable_backup_records(args.dbtool, args.plugins_dir, connection_string)

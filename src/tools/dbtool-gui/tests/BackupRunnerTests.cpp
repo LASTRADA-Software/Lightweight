@@ -151,6 +151,53 @@ TEST_CASE("BackupRunner treats a restore that lost tables as failed and lists th
     CHECK(done.first().at(1).toString() == summary);
 }
 
+TEST_CASE("BackupRunner shows the failed rows and nulled cells of a restore once per table", "[dbtool-gui][backup-runner]")
+{
+    // A table that fails reports an error per skipped chunk and then one terminal error: it still counts once.
+    BackupRunner runner;
+    runner.setRestoreOperation([](std::filesystem::path const&, std::string const&, ProgressManager& progress) {
+        progress.SetTotalTables(2);
+        Copied(progress, "invoices", 20);
+        Failed(progress, "orders", "Unreadable chunk data/orders/0001_00.msgpack: truncated");
+        Failed(progress, "orders", "2 rows failed, 3 cells set to NULL, 1 chunks unreadable");
+
+        auto orders = Lightweight::SqlBackup::TableRestoreReport {};
+        orders.tableName = "orders";
+        orders.failedRowCount = 2;
+        orders.failedRowRanges.push_back({ .chunkPath = "data/orders/0002_00.msgpack", .firstRow = 4, .lastRow = 5 });
+        orders.reasons.push_back(
+            { .sqlState = "23000", .message = "duplicate key", .occurrences = 2, .sampleKeys = { "7" } });
+        orders.valueFailures.push_back({ .column = "Note", .cellsSetToNull = 3, .sampleReason = "bad text" });
+        orders.unreadableChunks = 1;
+        auto report = Lightweight::SqlBackup::RestoreReport {};
+        report.tables = { orders };
+        report.totalFailedRows = 2;
+        return report;
+    });
+    QSignalSpy done(&runner, &BackupRunner::finished);
+
+    runner.runRestore(QStringLiteral("a.zip"));
+    REQUIRE(WaitFor(done));
+
+    CHECK_FALSE(done.first().at(0).toBool());
+    auto const& result = runner.lastResult();
+    CHECK(result.value("failedCount").toInt() == 1);
+    CHECK(result.value("failedRows").toULongLong() == 2);
+    CHECK(result.value("nulledCells").toULongLong() == 3);
+    CHECK(Text(result, "reportText").contains("Restore failures:"));
+
+    auto const failed = result.value("failedTables").toList();
+    REQUIRE(failed.size() == 1);
+    auto const table = failed.at(0).toMap();
+    CHECK(table.value("table").toString() == "orders");
+    CHECK(table.value("failedRows").toULongLong() == 2);
+    CHECK(table.value("nulledCells").toULongLong() == 3);
+    auto const details = table.value("details").toString();
+    CHECK(details.contains("data/orders/0002_00.msgpack rows 4\u20135"));
+    CHECK(details.contains("2 x 23000 duplicate key"));
+    CHECK(details.contains("column Note: 3 cells set to NULL"));
+}
+
 TEST_CASE("BackupRunner words a partial backup differently from a partial restore", "[dbtool-gui][backup-runner]")
 {
     BackupRunner runner;

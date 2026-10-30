@@ -194,6 +194,21 @@ TestCase {
         verify(list.implicitHeight < 50 * 20)
     }
 
+    function test_a_failed_table_shows_its_failed_rows_and_nulled_cells() {
+        const result = failedRestore(1, 1)
+        result.failedTables[0].failedRows = 12
+        result.failedTables[0].nulledCells = 1
+        result.failedTables[0].details = "chunk_0 rows 4\u20135"
+        result.reportText = "Restore failures:\n  T0: 12 rows failed, 1 cells set to NULL"
+        const outcome = createTemporaryObject(outcomeComponent, root, { result: result })
+        verify(outcome !== null)
+        tryVerify(() => findChild(outcome, "runOutcomeLoss") !== null)
+        compare(findChild(outcome, "runOutcomeLoss").text, "12 rows failed, 1 cell set to NULL")
+        compare(findChild(outcome, "runOutcomeDetails").text, "chunk_0 rows 4\u20135")
+        verify(outcome.details().indexOf("Restore failures:") >= 0)
+        compare(outcome.lossSummary({ failedRows: 0, nulledCells: 0 }), "")
+    }
+
     function test_dismiss_and_show_in_folder_are_forwarded() {
         const outcome = createTemporaryObject(outcomeComponent, root, { result: okRestore() })
         dismissSpy.target = outcome

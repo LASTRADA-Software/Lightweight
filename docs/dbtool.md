@@ -962,23 +962,39 @@ of database, or into a padding one, keep them. See [SQL Backup](sql-backup.md#ch
 `schema_name`, or `--schema`. A single-schema archive from SQL Server records `dbo`, which a
 PostgreSQL database usually lacks, so restore it with `--schema public` (or another existing schema).
 
-**Values that do not fit their column fail the table.** A GUID column takes any well-formed
-`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` value, whatever its version digit, and restores the same
+**A restore keeps going past values and rows that do not restore.** A GUID column takes any
+well-formed `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` value, whatever its version digit, and restores the same
 bytes. A value that does not convert to its column's type (a malformed GUID, number, date or time,
-a number outside the column's range, or a binary value in a text column) is never replaced by NULL
-or zero. Instead, the table fails with an error that names the table, the column, the row within
-the chunk and the value, for example:
+a number outside the column's range, or a binary value in a text column) is restored as NULL when the
+column is nullable. A row the database rejects (a duplicate key, a violated constraint) or whose NOT
+NULL value does not convert is left out, and every other row is restored. Only a column the driver
+cannot bind at all fails its table, and only a lost connection that does not come back stops a worker.
+The full rules are in [SQL Backup](sql-backup.md#restore-failures).
+
+After the progress output `dbtool restore` prints what failed, per table: the number of failed rows
+and of cells restored as NULL, up to five ranges of failed rows (`<chunk> rows a–b`), the failure
+reasons with their occurrence counts and a few sample keys, the NULLed cells per column, the table
+failure and the number of unreadable chunks, followed by totals:
 
 ```
-table 'ORDERS', column 'TOKEN', row 1: 'not-a-guid' is not a valid GUID (chunk data/ORDERS/0001_00.msgpack)
+Restore failures:
+  ORDERS: 2 rows failed, 3 cells set to NULL
+    data/ORDERS/0002_00.msgpack rows 4–5
+    2 x 23000 duplicate key (e.g. key 7)
+    column NOTE: 3 cells set to NULL (not a valid number)
+Total: 2 rows failed in 1 tables, 3 cells set to NULL
 ```
 
-The table's remaining chunks are skipped, the other tables are restored, and `dbtool restore`
-exits non-zero. The failed table may be left partly restored: each chunk is its own transaction,
-so chunks of the table that were restored before the failing one (or, with `--jobs` above 1, at
-the same time by other workers) stay, and on SQLite so do the rows committed within the failing
-chunk, which commits every 5,000 to 10,000 rows. A database error on insert still stops the worker
-that hit it; every table left not fully restored is reported as an error.
+The block is bounded: at most 100 row ranges and 20 reasons are kept per table, and failures beyond
+that are only counted ("... and N more"). It is absent when everything was restored.
+
+**Exit code.** `dbtool restore` exits non-zero when anything failed: a failed row, a value restored
+as NULL, a failed table, an unreadable chunk, a stopped worker, or a restore refused before it moved
+any data (which prints its error but no failure block). A failed table may be left partly restored:
+each chunk is its own transaction, so chunks of the table that were restored before the failing one
+(or, with `--jobs` above 1, at the same time by other workers) stay, and on SQLite so do the rows
+committed within the failing chunk, which commits every 5,000 to 10,000 rows. No `restore` record is
+written to `schema_backups` for a restore that failed.
 
 ### backup-diff
 
