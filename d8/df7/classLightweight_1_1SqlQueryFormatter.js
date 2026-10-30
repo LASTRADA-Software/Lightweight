@@ -39,5 +39,9 @@ var classLightweight_1_1SqlQueryFormatter =
     [ "SupportsSchemas", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a378d45364a1eca876043be27c31bd3e1", null ],
     [ "CreateSchemaIfNotExists", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1d973789fe4e659b30eb414dea1d6941", null ],
     [ "ReportRowCountsStatement", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a21a962ad99398b3b0e882a11a38a7e9f", null ],
-    [ "TableRowCountEstimateQuery", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#af6c9a232a03e7fa7e9a1e50287f1e53b", null ]
+    [ "TableRowCountEstimateQuery", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#af6c9a232a03e7fa7e9a1e50287f1e53b", null ],
+    [ "HasNativeGuidType", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#ac4f270e7cf43e618714be9d812aa2fd9", null ],
+    [ "ComparesFixedCharWithPadSemantics", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#afc290a0d92f83f5125f2d738f9c7b5f9", null ],
+    [ "FoldUnquotedIdentifier", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#afb75f0c0a2d379bdc2ee9711cad748ec", null ],
+    [ "ParameterStatusIdentifiesFailedRows", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#ac31747a66913dd0df3a4cbfc35997fcd", null ]
 ];
