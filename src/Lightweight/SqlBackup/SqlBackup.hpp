@@ -110,7 +110,7 @@ struct RestoreSettings
     /// Default: 0 (auto-calculated based on available memory).
     std::size_t batchSize = 0;
 
-    /// No longer used: every insert batch commits on its own, so `batchSize` bounds the rows per commit.
+    /// No longer used: a chunk commits as one transaction, or, once a row of it failed, batch by batch.
     /// Kept for source compatibility.
     std::size_t maxRowsPerCommit = 10000;
 

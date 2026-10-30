@@ -992,8 +992,9 @@ that are only counted ("... and N more"). It is absent when everything was resto
 as NULL, a failed table, an unreadable chunk, a stopped worker, or a restore refused before it moved
 any data (which prints its error but no failure block). A failed table may be left partly restored:
 each chunk is its own transaction, so chunks of the table that were restored before the failing one
-(or, with `--jobs` above 1, at the same time by other workers) stay, and on SQLite so do the rows
-committed within the failing chunk, which commits every 5,000 to 10,000 rows. No `restore` record is
+(or, with `--jobs` above 1, at the same time by other workers) stay. A chunk in which a row failed is
+rolled back and replayed batch by batch, each batch committing on its own, so the batches of the
+failing chunk committed before the table failed stay too. No `restore` record is
 written to `schema_backups` for a restore that failed.
 
 ### backup-diff

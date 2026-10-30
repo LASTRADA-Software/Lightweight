@@ -28,8 +28,10 @@
 #include <filesystem>
 #include <format>
 #include <map>
+#include <mutex>
 #include <optional>
 #include <ranges>
+#include <source_location>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -155,6 +157,74 @@ void RewriteChunks(std::filesystem::path const& source,
                        }
                        return std::pair { name, std::move(content) };
                    });
+}
+
+/// Injects scripted errors into the checks of `ExecuteBatch` by their position: the check with
+/// zero-based index `n` among them fails with the error scripted for `n`, if any.
+class SequencedFaultSource: public SqlFaultSource
+{
+  public:
+    /// @param errors The error to inject per check index.
+    explicit SequencedFaultSource(std::map<int, SqlErrorInfo> errors):
+        _errors { std::move(errors) }
+    {
+    }
+
+    [[nodiscard]] std::optional<SqlErrorInfo> NextFailure(SQLHSTMT /*hStmt*/,
+                                                          std::source_location const& sourceLocation) override
+    {
+        if (!std::string_view { sourceLocation.function_name() }.contains("ExecuteBatch"))
+            return std::nullopt;
+        auto const node = _errors.extract(_consultCount++);
+        if (node.empty())
+            return std::nullopt;
+        return node.mapped();
+    }
+
+    /// @return The number of scripted errors not injected yet.
+    [[nodiscard]] std::size_t RemainingFailures() const noexcept
+    {
+        return _errors.size();
+    }
+
+  private:
+    std::map<int, SqlErrorInfo> _errors;
+    int _consultCount = 0;
+};
+
+/// Remembers the row count each table finished with.
+struct FinalRowsProgressManager: RecordingProgressManager
+{
+    /// The `currentRows` of the last finishing update, per table.
+    std::map<std::string, std::size_t> finalRows;
+
+    void Update(SqlBackup::Progress const& progress) override
+    {
+        RecordingProgressManager::Update(progress);
+        if (progress.state == SqlBackup::Progress::State::Finished && !progress.tableName.empty())
+        {
+            auto const lock = std::scoped_lock(mutex);
+            finalRows[progress.tableName] = progress.currentRows;
+        }
+    }
+};
+
+/// The number of checks one `ExecuteBatch` of a clean restore of @p restore makes, found by
+/// counting them during a restore of three batches.
+/// @param restore Restores the archive into an empty table.
+/// @return The number of checks per batch.
+template <typename RestoreFn>
+int CountChecksPerBatch(RestoreFn const& restore)
+{
+    auto counter = ScriptedFaultSource { SqlErrorInfo {}, 0, "ExecuteBatch" };
+    {
+        ScopedFaultSource const installed { &counter };
+        SqlBackup::NullProgressManager progress;
+        CHECK_FALSE(restore(progress).HasFailures());
+    }
+    REQUIRE(counter.ConsultCount() % 3 == 0);
+    REQUIRE(counter.ConsultCount() > 0);
+    return counter.ConsultCount() / 3;
 }
 
 /// Retry settings that retry quickly.
@@ -335,7 +405,7 @@ TEST_CASE_METHOD(SqlTestFixture,
 }
 
 TEST_CASE_METHOD(SqlTestFixture,
-                 "transient error after a committed batch does not duplicate rows",
+                 "transient error in the chunk transaction does not duplicate rows",
                  "[SqlBackup][RestoreFailures]")
 {
     std::filesystem::path const backupFile = "rfi_transient_backup.zip";
@@ -351,19 +421,10 @@ TEST_CASE_METHOD(SqlTestFixture,
         return SqlBackup::Restore(backupFile, GetConnectionString(), 1, progress, {}, "*", FastRetry(), settings);
     };
 
-    // Measure how many checked calls one batch makes: a clean restore runs three batches of two rows.
-    auto counter = ScriptedFaultSource { SqlErrorInfo {}, 0, "ExecuteBatch" };
-    {
-        ScopedFaultSource const installed { &counter };
-        SqlBackup::NullProgressManager progress;
-        CHECK_FALSE(restore(progress).HasFailures());
-    }
+    auto const checksPerBatch = CountChecksPerBatch(restore);
     REQUIRE(CountRows("rfi_transient") == 6);
-    REQUIRE(counter.ConsultCount() % 3 == 0);
-    auto const checksPerBatch = counter.ConsultCount() / 3;
-    REQUIRE(checksPerBatch > 0);
 
-    // The second batch hits a lost connection after the first one committed.
+    // The second batch hits a lost connection after the first one went into the chunk transaction.
     auto source = ScriptedFaultSource {
         SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "08S01", .message = "Communication link failure" },
         1,
@@ -380,6 +441,85 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK(source.RemainingFailures() == 0);
     CHECK(ReadIds("rfi_transient") == std::vector<int64_t> { 1, 2, 3, 4, 5, 6 });
     CHECK_FALSE(report.HasFailures());
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "a row error in the chunk transaction rolls the chunk back and replays it exactly once",
+                 "[SqlBackup][RestoreFailures]")
+{
+    std::filesystem::path const backupFile = "rfi_replay_backup.zip";
+    auto const backupFileCleaner = ScopedFileRemoved { backupFile };
+
+    CreateTableWithRows("rfi_replay", 6);
+    BackupTo(backupFile);
+    DropTables({ "rfi_replay" });
+
+    // memoryLimitBytes > 0, or Restore() replaces these settings and batches ~4000 rows.
+    auto const settings = SqlBackup::RestoreSettings { .batchSize = 2, .memoryLimitBytes = std::size_t { 1 } << 30U };
+    auto const restore = [&](SqlBackup::ProgressManager& progress) {
+        return SqlBackup::Restore(backupFile, GetConnectionString(), 1, progress, {}, "*", FastRetry(), settings);
+    };
+    auto const checksPerBatch = CountChecksPerBatch(restore);
+    REQUIRE(CountRows("rfi_replay") == 6);
+
+    // The second batch of the chunk transaction fails with a row-level error, after the first one
+    // went in. Unless the chunk transaction is rolled back, the replay finds those rows duplicated.
+    auto source = SequencedFaultSource { {
+        { checksPerBatch, SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "23000", .message = "injected row error" } },
+    } };
+    auto report = SqlBackup::RestoreReport {};
+    FinalRowsProgressManager progress;
+    {
+        ScopedFaultSource const installed { &source };
+        report = restore(progress);
+    }
+
+    CHECK(source.RemainingFailures() == 0);
+    CHECK(ReadIds("rfi_replay") == std::vector<int64_t> { 1, 2, 3, 4, 5, 6 });
+    CHECK_FALSE(report.HasFailures());
+    // The rows of the rolled-back attempt are not counted twice.
+    CHECK(progress.finalRows["rfi_replay"] == 6);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "transient error while replaying a chunk resumes after its committed batches",
+                 "[SqlBackup][RestoreFailures]")
+{
+    std::filesystem::path const backupFile = "rfi_replay_transient_backup.zip";
+    auto const backupFileCleaner = ScopedFileRemoved { backupFile };
+
+    CreateTableWithRows("rfi_replay_transient", 6);
+    BackupTo(backupFile);
+    DropTables({ "rfi_replay_transient" });
+
+    // memoryLimitBytes > 0, or Restore() replaces these settings and batches ~4000 rows.
+    auto const settings = SqlBackup::RestoreSettings { .batchSize = 2, .memoryLimitBytes = std::size_t { 1 } << 30U };
+    auto const restore = [&](SqlBackup::ProgressManager& progress) {
+        return SqlBackup::Restore(backupFile, GetConnectionString(), 1, progress, {}, "*", FastRetry(), settings);
+    };
+    auto const checksPerBatch = CountChecksPerBatch(restore);
+    REQUIRE(CountRows("rfi_replay_transient") == 6);
+
+    // A row-level error in the chunk transaction's second batch hands the chunk over to the
+    // batch-by-batch replay, whose second batch then loses the connection after its first committed.
+    // The retry must resume after that committed batch: from the chunk start, it would find its rows
+    // duplicated and report them failed.
+    auto source = SequencedFaultSource { {
+        { checksPerBatch, SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "23000", .message = "injected row error" } },
+        { 3 * checksPerBatch,
+          SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "08S01", .message = "Communication link failure" } },
+    } };
+    auto report = SqlBackup::RestoreReport {};
+    FinalRowsProgressManager progress;
+    {
+        ScopedFaultSource const installed { &source };
+        report = restore(progress);
+    }
+
+    CHECK(source.RemainingFailures() == 0);
+    CHECK(ReadIds("rfi_replay_transient") == std::vector<int64_t> { 1, 2, 3, 4, 5, 6 });
+    CHECK_FALSE(report.HasFailures());
+    CHECK(progress.finalRows["rfi_replay_transient"] == 6);
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "concurrent workers aggregate failures exactly", "[SqlBackup][RestoreFailures]")

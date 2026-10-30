@@ -143,16 +143,190 @@ namespace
         return message;
     }
 
+    /// How an attempt at a chunk commits its rows.
+    enum class ChunkInsertMode : std::uint8_t
+    {
+        /// The whole chunk is one transaction, committed after its last batch. The first row the
+        /// database rejects, or the first value that does not convert, rolls it back and throws
+        /// IsolationRequired. Nothing is reported, so a clean chunk costs one commit.
+        SingleTransaction,
+        /// Each batch commits on its own; failing rows are isolated and reported.
+        IsolateFailures,
+    };
+
+    /// Thrown by a ChunkInsertMode::SingleTransaction attempt that met a row or value it cannot
+    /// insert as is. The attempt's transaction is rolled back; the chunk is then replayed with
+    /// ChunkInsertMode::IsolateFailures.
+    struct IsolationRequired
+    {
+    };
+
     /// What one chunk's restore attempts share across retries.
     struct ChunkRestoreState
     {
-        /// The leading rows of the chunk that are inserted or reported; a retry skips them.
+        /// The leading rows of the chunk that are committed or reported; a retry skips them.
         std::size_t settledRows = 0;
+        /// The leading rows of the chunk counted into the table's progress. Each attempt first
+        /// brings it to `settledRows`, so that rows are counted once however often they are retried.
+        std::size_t countedRows = 0;
+        /// How the next attempt commits; switches to IsolateFailures for good once a row failed.
+        ChunkInsertMode mode = ChunkInsertMode::SingleTransaction;
         /// Whether a row of the chunk failed or a value of it was set to NULL.
         bool hadFailures = false;
     };
 
-    /// Inserts the rows of @p chunk that @p state does not mark settled, one committed batch at a time.
+    /// What the inserts of one attempt at a chunk share.
+    struct ChunkInsertTarget
+    {
+        /// The restore context.
+        RestoreContext& ctx;
+        /// The worker connection.
+        SqlConnection& workerConn;
+        /// The chunk.
+        RestoreChunkInfo const& chunk;
+        /// The retries consumed so far, for classifying insert errors.
+        unsigned retryCount;
+        /// Updated as rows settle and fail.
+        ChunkRestoreState& state;
+        /// The prepared INSERT.
+        SqlStatement& stmt;
+        /// The table's committed row count.
+        std::atomic<std::uint64_t>& committedRows;
+        /// The parameter status array of the last batch.
+        std::vector<SQLUSMALLINT> paramStatus;
+    };
+
+    /// Classifies a failed insert of @p target's chunk.
+    /// @param target The chunk attempt.
+    /// @param error The error.
+    /// @return FailTable for a bind-class error, IsolateRows for any other error that is not about
+    ///         the connection, Propagate otherwise.
+    ::Lightweight::detail::FailureDisposition ClassifyInsertError(ChunkInsertTarget const& target, SqlErrorInfo const& error)
+    {
+        using ::Lightweight::detail::FailureDisposition;
+        if (IsBindClassError(error))
+            return FailureDisposition::FailTable;
+        if (ClassifyRetryDecision(target.workerConn, error, target.retryCount, target.ctx.retrySettings).reason
+            == SqlRetryGiveUpReason::NotTransient)
+            return FailureDisposition::IsolateRows;
+        return FailureDisposition::Propagate;
+    }
+
+    /// Ends a ChunkInsertMode::SingleTransaction attempt that failed with @p error: a row-level error
+    /// hands the chunk over to ChunkInsertMode::IsolateFailures, the others are thrown as there.
+    /// @param target The chunk attempt.
+    /// @param error The error.
+    /// @throws IsolationRequired for a row-level error.
+    /// @throws SqlException for an error that is not about the data.
+    /// @throws TableRestoreFailure for an error that fails the table.
+    [[noreturn]] void ThrowForSingleTransaction(ChunkInsertTarget const& target, SqlErrorInfo const& error)
+    {
+        switch (ClassifyInsertError(target, error))
+        {
+            case ::Lightweight::detail::FailureDisposition::Propagate:
+                throw SqlException(SqlErrorInfo { error });
+            case ::Lightweight::detail::FailureDisposition::FailTable:
+                throw ::Lightweight::detail::TableRestoreFailure(error);
+            case ::Lightweight::detail::FailureDisposition::IsolateRows:
+                break;
+        }
+        throw IsolationRequired {};
+    }
+
+    /// The hooks of a ChunkInsertMode::SingleTransaction attempt: every batch executes within the
+    /// chunk transaction, and anything that would be reported throws IsolationRequired instead.
+    /// @param target The chunk attempt; must outlive the hooks.
+    /// @return The hooks.
+    ::Lightweight::detail::BatchManagerHooks SingleTransactionHooks(ChunkInsertTarget& target)
+    {
+        auto const throwIsolationRequired = [](auto&&...) {
+            throw IsolationRequired {};
+        };
+        return ::Lightweight::detail::BatchManagerHooks {
+            // The status array still tells a partial success (SQL_SUCCESS_WITH_INFO) from a full one.
+            .tryInsert = [&target](std::span<SqlRawColumn const> slice,
+                                   std::size_t rowCount) -> std::expected<void, ::Lightweight::detail::BatchInsertError> {
+                ZoneScopedN("Restore::ExecuteBatch");
+                ZoneValue(rowCount);
+                target.paramStatus.resize(rowCount);
+                auto processed = SQLULEN { 0 };
+                try
+                {
+                    (void) target.stmt.ExecuteBatch(slice, rowCount, target.paramStatus, processed);
+                }
+                catch (SqlException const& e)
+                {
+                    ThrowForSingleTransaction(target, e.info());
+                }
+                return {};
+            },
+            .classify = {},
+            .onRowFailed = throwIsolationRequired,
+            .onCellNulled = throwIsolationRequired,
+            .onSettled = {},
+        };
+    }
+
+    /// The hooks of a ChunkInsertMode::IsolateFailures attempt.
+    /// @param target The chunk attempt; must outlive the hooks.
+    /// @return The hooks.
+    ::Lightweight::detail::BatchManagerHooks IsolatingHooks(ChunkInsertTarget& target)
+    {
+        // Without a trustworthy status array the failing rows of a batch are found by bisection.
+        auto const trustsParamStatus = target.workerConn.QueryFormatter().ParameterStatusIdentifiesFailedRows();
+        return ::Lightweight::detail::BatchManagerHooks {
+            // Each batch is its own transaction: committed when every row went in, rolled back otherwise,
+            // which leaves the connection ready for the next attempt (on PostgreSQL, out of 25P02).
+            .tryInsert = [&target, trustsParamStatus](std::span<SqlRawColumn const> slice, std::size_t rowCount)
+                -> std::expected<void, ::Lightweight::detail::BatchInsertError> {
+                ZoneScopedN("Restore::ExecuteBatch");
+                ZoneValue(rowCount);
+                target.paramStatus.assign(rowCount, SQL_PARAM_UNUSED);
+                auto processed = SQLULEN { 0 };
+                try
+                {
+                    auto transaction = SqlTransaction { target.workerConn, SqlTransactionMode::ROLLBACK };
+                    (void) target.stmt.ExecuteBatch(slice, rowCount, target.paramStatus, processed);
+                    if (!transaction.TryCommit())
+                        return std::unexpected(::Lightweight::detail::BatchInsertError {
+                            .error = SqlErrorInfo::FromConnectionHandle(target.workerConn.NativeHandle()),
+                            .reportedFailedRows = {},
+                        });
+                    target.committedRows.fetch_add(rowCount);
+                    return {};
+                }
+                catch (SqlException const& e)
+                {
+                    return std::unexpected(::Lightweight::detail::BatchInsertError {
+                        .error = e.info(),
+                        .reportedFailedRows =
+                            trustsParamStatus ? RowsWithParamError(target.paramStatus) : std::vector<std::size_t> {},
+                    });
+                }
+            },
+            .classify = [&target](SqlErrorInfo const& error) { return ClassifyInsertError(target, error); },
+            .onRowFailed =
+                [&target](
+                    std::size_t rowInChunk, std::string_view sqlState, std::string_view message, std::string sampleKey) {
+                    target.state.hadFailures = true;
+                    target.ctx.failureLog.RecordRowFailure(
+                        target.chunk.tableName, target.chunk.chunkPath, rowInChunk, sqlState, message, std::move(sampleKey));
+                },
+            .onCellNulled =
+                [&target](std::string_view column, std::string_view reason) {
+                    target.state.hadFailures = true;
+                    target.ctx.failureLog.RecordNulledCell(target.chunk.tableName, column, reason);
+                },
+            .onSettled =
+                [&target](std::size_t settledRows) {
+                    target.state.settledRows = std::max(target.state.settledRows, settledRows);
+                },
+        };
+    }
+
+    /// Inserts the rows of @p chunk that @p state does not mark settled, as `state.mode` says: in one
+    /// transaction, or one committed batch at a time. The watermark `state.settledRows` advances only
+    /// with a commit.
     ///
     /// @param ctx The restore context.
     /// @param workerConn The worker connection.
@@ -163,6 +337,8 @@ namespace
     /// @return Why the chunk's content (from some row on) cannot be read; std::nullopt if it was read in full.
     /// @throws SqlException for an insert error that is not about the data (e.g. a lost connection).
     /// @throws TableRestoreFailure for an insert error that fails the table.
+    /// @throws IsolationRequired for a row or value that a ChunkInsertMode::SingleTransaction attempt
+    ///         cannot insert; nothing of the attempt is committed.
     std::optional<std::string> InsertChunkRows(RestoreContext& ctx,
                                                SqlConnection& workerConn,
                                                RestoreChunkInfo const& chunk,
@@ -194,6 +370,11 @@ namespace
                                    [](auto const& col) { return col.primaryKey == SqlPrimaryKeyType::AUTO_INCREMENT; }))
             identityInsert.emplace(workerConn, FormatTableName(targetSchema, targetTableName));
 
+        // SingleTransaction: rolled back on every exit but the commit at the end.
+        std::optional<SqlTransaction> chunkTransaction;
+        if (state.mode == ChunkInsertMode::SingleTransaction)
+            chunkTransaction.emplace(workerConn, SqlTransactionMode::ROLLBACK);
+
         SqlStatement stmt { workerConn };
         auto const placeholders = std::ranges::fold_left(
             std::views::iota(0UZ, tableInfo.columns.size()), std::string {}, [](std::string const& acc, size_t) {
@@ -204,65 +385,29 @@ namespace
             stmt.Prepare(workerConn.QueryFormatter().Insert(targetSchema, targetTableName, tableInfo.fields, placeholders));
         }
 
-        std::vector<SQLUSMALLINT> paramStatus;
-        auto& committedRows = *ctx.committedRows.at(tableName);
-        // Without a trustworthy status array the failing rows of a batch are found by bisection.
-        auto const trustsParamStatus = workerConn.QueryFormatter().ParameterStatusIdentifiesFailedRows();
-        auto hooks = ::Lightweight::detail::BatchManagerHooks {
-            // Each batch is its own transaction: committed when every row went in, rolled back otherwise,
-            // which leaves the connection ready for the next attempt (on PostgreSQL, out of 25P02).
-            .tryInsert = [&](std::span<SqlRawColumn const> slice,
-                             std::size_t rowCount) -> std::expected<void, ::Lightweight::detail::BatchInsertError> {
-                ZoneScopedN("Restore::ExecuteBatch");
-                ZoneValue(rowCount);
-                paramStatus.assign(rowCount, SQL_PARAM_UNUSED);
-                auto processed = SQLULEN { 0 };
-                try
-                {
-                    auto transaction = SqlTransaction { workerConn, SqlTransactionMode::ROLLBACK };
-                    (void) stmt.ExecuteBatch(slice, rowCount, paramStatus, processed);
-                    if (!transaction.TryCommit())
-                        return std::unexpected(::Lightweight::detail::BatchInsertError {
-                            .error = SqlErrorInfo::FromConnectionHandle(workerConn.NativeHandle()),
-                            .reportedFailedRows = {},
-                        });
-                    committedRows.fetch_add(rowCount);
-                    return {};
-                }
-                catch (SqlException const& e)
-                {
-                    return std::unexpected(::Lightweight::detail::BatchInsertError {
-                        .error = e.info(),
-                        .reportedFailedRows =
-                            trustsParamStatus ? RowsWithParamError(paramStatus) : std::vector<std::size_t> {},
-                    });
-                }
-            },
-            .classify =
-                [&](SqlErrorInfo const& error) {
-                    using ::Lightweight::detail::FailureDisposition;
-                    if (IsBindClassError(error))
-                        return FailureDisposition::FailTable;
-                    if (ClassifyRetryDecision(workerConn, error, retryCount, ctx.retrySettings).reason
-                        == SqlRetryGiveUpReason::NotTransient)
-                        return FailureDisposition::IsolateRows;
-                    return FailureDisposition::Propagate;
-                },
-            .onRowFailed =
-                [&](std::size_t rowInChunk, std::string_view sqlState, std::string_view message, std::string sampleKey) {
-                    state.hadFailures = true;
-                    ctx.failureLog.RecordRowFailure(
-                        tableName, chunk.chunkPath, rowInChunk, sqlState, message, std::move(sampleKey));
-                },
-            .onCellNulled =
-                [&](std::string_view column, std::string_view reason) {
-                    state.hadFailures = true;
-                    ctx.failureLog.RecordNulledCell(tableName, column, reason);
-                },
-            .onSettled = [&](std::size_t settledRows) { state.settledRows = std::max(state.settledRows, settledRows); },
+        auto target = ChunkInsertTarget {
+            .ctx = ctx,
+            .workerConn = workerConn,
+            .chunk = chunk,
+            .retryCount = retryCount,
+            .state = state,
+            .stmt = stmt,
+            .committedRows = *ctx.committedRows.at(tableName),
+            .paramStatus = {},
         };
+        auto hooks =
+            state.mode == ChunkInsertMode::SingleTransaction ? SingleTransactionHooks(target) : IsolatingHooks(target);
         ::Lightweight::detail::BatchManager batchManager(
             std::move(hooks), tableInfo.columns, batchCapacity, workerConn.ServerType(), ctx.sourceServerType);
+
+        // This attempt counts the rows after the settled ones: those an earlier attempt counted are
+        // uncounted, and the settled ones it did not count (it failed before counting them) counted.
+        auto& tableProgress = *ctx.tableProgress.at(tableName);
+        if (state.countedRows > state.settledRows)
+            tableProgress.fetch_sub(state.countedRows - state.settledRows);
+        else
+            tableProgress.fetch_add(state.settledRows - state.countedRows);
+        state.countedRows = state.settledRows;
 
         std::optional<std::string> unreadable;
         std::size_t rowsReadBefore = 0;
@@ -290,7 +435,8 @@ namespace
             }
 
             auto const newRows = batch.rowCount - skipRows;
-            size_t const currentTotal = ctx.tableProgress.at(tableName)->fetch_add(newRows) + newRows;
+            state.countedRows = rowsReadBefore;
+            size_t const currentTotal = tableProgress.fetch_add(newRows) + newRows;
             ctx.progress.Update({ .state = Progress::State::InProgress,
                                   .tableName = tableName,
                                   .currentRows = currentTotal,
@@ -304,6 +450,17 @@ namespace
         {
             ZoneScopedN("Restore::Flush");
             batchManager.Flush();
+        }
+
+        if (chunkTransaction)
+        {
+            ZoneScopedN("Restore::Commit");
+            if (!chunkTransaction->TryCommit())
+                ThrowForSingleTransaction(target, SqlErrorInfo::FromConnectionHandle(workerConn.NativeHandle()));
+            // Nothing failed, so every row up to the watermark is inserted.
+            auto const settled = batchManager.SettledRows();
+            target.committedRows.fetch_add(settled - state.settledRows);
+            state.settledRows = settled;
         }
         return unreadable;
     }
@@ -468,6 +625,11 @@ ChunkRestoreOutcome RestoreChunkData(RestoreContext& ctx,
                 return ChunkRestoreOutcome::RestoredWithFailures;
             }
             return state.hadFailures ? ChunkRestoreOutcome::RestoredWithFailures : ChunkRestoreOutcome::Restored;
+        }
+        catch (IsolationRequired const&)
+        {
+            // The chunk transaction is rolled back: replay the chunk, committing batch by batch.
+            state.mode = ChunkInsertMode::IsolateFailures;
         }
         catch (::Lightweight::detail::TableRestoreFailure const& e)
         {

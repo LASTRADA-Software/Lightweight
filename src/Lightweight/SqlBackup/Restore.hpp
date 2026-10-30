@@ -174,10 +174,13 @@ std::expected<RestoreChunkInfo, FetchChunkError> FetchNextRestoreChunk(RestoreCo
 
 /// Restores chunk data to the database with retry logic.
 ///
-/// Each batch commits on its own. A batch the database rejects is rolled back and its failing rows
-/// are isolated (see InsertIsolatingFailures()) and recorded in the failure log; the other rows are
-/// inserted. After a transient error the worker reconnects and resumes after the rows already
-/// settled, so no row is inserted twice. Also handles MSSQL identity inserts and progress tracking.
+/// The chunk is first inserted in one transaction, committed after its last batch. A row the
+/// database rejects, or a value that does not convert, rolls that transaction back; the chunk is then
+/// replayed with each batch committing on its own. There, a batch the database rejects is rolled back
+/// and its failing rows are isolated (see InsertIsolatingFailures()) and recorded in the failure log;
+/// the other rows are inserted. After a transient error the worker reconnects and resumes after the
+/// rows already committed, so no row is inserted twice. Also handles MSSQL identity inserts and
+/// progress tracking.
 ///
 /// @param ctx The restore context.
 /// @param workerConn The database connection.
