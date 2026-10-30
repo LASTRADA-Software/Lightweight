@@ -17,11 +17,13 @@
 #include <filesystem>
 #include <format>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <ranges>
 #include <stdexcept>
 #include <system_error>
 #include <thread>
+#include <unordered_set>
 #include <utility>
 
 #include <QtCore/QDateTime>
@@ -178,6 +180,16 @@ namespace
         void Update(Lightweight::SqlBackup::Progress const& p) override
         {
             Lightweight::SqlBackup::ErrorTrackingProgressManager::Update(p);
+            if (p.state == Lightweight::SqlBackup::Progress::State::Error)
+            {
+                std::scoped_lock const lock(_failedMutex);
+                // A table reports an error per unreadable chunk plus a terminal one: it counts once.
+                // An error naming no table counts once per distinct message.
+                if (p.tableName.empty() || p.tableName == "Unknown")
+                    _failedKeys.insert(std::string { '\0' } + std::string { p.message });
+                else
+                    _failedKeys.insert(std::string { p.tableName });
+            }
 
             auto const table = QString::fromStdString(std::string { p.tableName });
             auto const msg = QStringLiteral("[%1] %2 rows: %3")
@@ -226,9 +238,27 @@ namespace
                                       Q_ARG(int, static_cast<int>(totalTables)));
         }
 
+        /// Counts what failed, once per table rather than once per error update.
+        /// @param report What the restore reported as failed; tables it names count even if no
+        ///        error update named them.
+        /// @return Distinct failed tables plus distinct errors that name no table.
+        [[nodiscard]] std::size_t FailureCount(Lightweight::SqlBackup::RestoreReport const& report) const
+        {
+            auto keys = [&] {
+                std::scoped_lock const lock(_failedMutex);
+                return _failedKeys;
+            }();
+            for (auto const& table: report.tables)
+                keys.insert(table.tableName);
+            keys.insert(report.incompleteTables.begin(), report.incompleteTables.end());
+            return keys.size() + report.unattributedChunkErrors;
+        }
+
       private:
         QObject* _target;
         QString _profileName;
+        mutable std::mutex _failedMutex;
+        std::unordered_set<std::string> _failedKeys;
     };
 
     /// Worker-thread count for SqlBackup (same policy as BackupRunner).
@@ -968,7 +998,7 @@ void ManagedBackupController::RunRestore(QString const& archiveProfile,
             if (auto const errorCount = pm.ErrorCount(); errorCount > 0 || report.HasFailures())
             {
                 ok = false;
-                summary = PartialRestoreMessage(errorCount > 0 ? errorCount : report.tables.size());
+                summary = PartialRestoreMessage(pm.FailureCount(report));
                 // Which rows and cells failed, beside the per-table error lines already logged.
                 for (auto const& line: Lightweight::Tools::DescribeRestoreReport(report))
                     QMetaObject::invokeMethod(self,

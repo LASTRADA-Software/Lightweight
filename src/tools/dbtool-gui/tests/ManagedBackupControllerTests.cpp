@@ -922,7 +922,8 @@ TEST_CASE("a restore whose tables failed is reported as failed and warns about t
 
     CHECK_FALSE(restoreDone.first().at(0).toBool());
     auto const summary = restoreDone.first().at(1).toString();
-    CHECK(summary.contains("3 table(s)"));
+    // Three errors of the same table are one failed table.
+    CHECK(summary.contains("1 table(s)"));
     // A restore is not transactional: tables are dropped and recreated one at a
     // time, so a failed run must tell the user the target is not usable.
     CHECK(summary.contains("INCOMPLETE"));
@@ -930,6 +931,53 @@ TEST_CASE("a restore whose tables failed is reported as failed and warns about t
     // The failure also reaches the log panel, not just the return value.
     REQUIRE(logs.count() >= 1);
     CHECK(logs.last().at(0).toString().contains("INCOMPLETE"));
+
+    controller.setBackupFolder(QString {});
+}
+
+TEST_CASE("a managed restore counts failed tables from its report, not error updates",
+          "[dbtool-gui][managed-backup-controller][run]")
+{
+    QTemporaryDir dir;
+    ManagedBackupController controller;
+    controller.setBackupFolder(dir.path() + "/backups");
+    auto const alpha = SqliteProfile(dir, "alpha");
+    SeedDatabase(alpha);
+    controller.setProfiles({ alpha });
+
+    QSignalSpy backupDone(&controller, &ManagedBackupController::finished);
+    controller.backupAll();
+    REQUIRE(WaitFor(backupDone));
+    REQUIRE(backupDone.first().at(0).toBool());
+
+    // "items" reports two unreadable chunks and its terminal error; "lines" fails without any error update.
+    controller.setRestoreOperation([](std::filesystem::path const&,
+                                      std::string const&,
+                                      std::string const&,
+                                      Lightweight::SqlBackup::ProgressManager& progress) {
+        for (auto const* message: { "Unreadable chunk a", "Unreadable chunk b", "2 rows failed, 0 cells set to NULL" })
+            progress.Update({ .state = Lightweight::SqlBackup::Progress::State::Error,
+                              .tableName = "items",
+                              .currentRows = 0,
+                              .totalRows = 0,
+                              .message = message });
+        auto items = Lightweight::SqlBackup::TableRestoreReport {};
+        items.tableName = "items";
+        items.failedRowCount = 2;
+        auto lines = Lightweight::SqlBackup::TableRestoreReport {};
+        lines.tableName = "lines";
+        lines.failedRowCount = 1;
+        auto report = Lightweight::SqlBackup::RestoreReport {};
+        report.tables = { items, lines };
+        report.totalFailedRows = 3;
+        return report;
+    });
+    QSignalSpy restoreDone(&controller, &ManagedBackupController::finished);
+    controller.restoreArchive("alpha", "alpha");
+    REQUIRE(WaitFor(restoreDone));
+
+    CHECK_FALSE(restoreDone.first().at(0).toBool());
+    CHECK(restoreDone.first().at(1).toString().contains("2 table(s)"));
 
     controller.setBackupFolder(QString {});
 }
