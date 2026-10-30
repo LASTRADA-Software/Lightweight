@@ -901,6 +901,68 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadTable keeps FK target casing", 
     CHECK(parent->externalForeignKeys[0].foreignKey.table.table == "RtChild");
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "ReadTable ColumnsAndPrimaryKey skips FKs and indexes", "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("RtLightParent").PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {});
+    });
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("RtLightChild")
+            .PrimaryKeyWithAutoIncrement("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Code", SqlColumnTypeDefinitions::Varchar { 32 })
+            .Unique()
+            .Column("Tag", SqlColumnTypeDefinitions::Integer {})
+            .Index()
+            .ForeignKey("ParentId",
+                        SqlColumnTypeDefinitions::Integer {},
+                        SqlForeignKeyReferenceDefinition { .tableName = "RtLightParent", .columnName = "Id" });
+    });
+
+    auto const database = stmt.Connection().DatabaseName();
+    auto const name = SqlSchema::FullyQualifiedTableName { .catalog = database, .schema = "", .table = "RtLightChild" };
+    auto const full = SqlSchema::ReadTable(stmt, name);
+    auto const light = SqlSchema::ReadTable(stmt, name, SqlSchema::TableReadScope::ColumnsAndPrimaryKey);
+    REQUIRE(full.has_value());
+    REQUIRE(light.has_value());
+
+    CHECK(light->name == full->name);
+    CHECK(light->primaryKeys == full->primaryKeys);
+    REQUIRE(light->columns.size() == full->columns.size());
+    for (auto const index: std::views::iota(size_t { 0 }, full->columns.size()))
+    {
+        auto const& a = light->columns[index];
+        auto const& b = full->columns[index];
+        INFO("column " << b.name);
+        CHECK(a.name == b.name);
+        CHECK(a.type == b.type);
+        CHECK(a.isUnique == b.isUnique);
+        CHECK(a.isAutoIncrement == b.isAutoIncrement);
+        CHECK(a.isPrimaryKey == b.isPrimaryKey);
+    }
+
+    auto const isParentIdFk = [](SqlSchema::Table const& t) {
+        auto const it = std::ranges::find_if(t.columns, [](auto const& c) { return c.name == "ParentId"; });
+        REQUIRE(it != t.columns.end());
+        return it->isForeignKey;
+    };
+    CHECK(isParentIdFk(*full));
+    CHECK(!isParentIdFk(*light));
+
+    CHECK(!full->foreignKeys.empty());
+    CHECK(!full->indexes.empty());
+    CHECK(light->foreignKeys.empty());
+    CHECK(light->externalForeignKeys.empty());
+    CHECK(light->indexes.empty());
+
+    auto const parentLight = SqlSchema::ReadTable(
+        stmt,
+        SqlSchema::FullyQualifiedTableName { .catalog = database, .schema = "", .table = "RtLightParent" },
+        SqlSchema::TableReadScope::ColumnsAndPrimaryKey);
+    REQUIRE(parentLight.has_value());
+    CHECK(parentLight->externalForeignKeys.empty());
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadTable fixes cross-schema FK target casing", "[SqlSchema]")
 {
     auto stmt = SqlStatement {};

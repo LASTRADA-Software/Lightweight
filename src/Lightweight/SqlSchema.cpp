@@ -1405,12 +1405,15 @@ namespace detail
     /// @param tableSchema Schema the table belongs to; may be empty.
     /// @param tableName Table to describe.
     /// @param eventHandler Receives the primary keys, foreign keys, indexes and columns.
+    /// @param scope With @ref TableReadScope::ColumnsAndPrimaryKey the foreign-key and index
+    ///              queries are skipped and no foreign-key or index event is raised.
     // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     void ReadOneTableLegacy(SqlStatement& stmt,
                             std::string_view database,
                             std::string const& tableSchema,
                             std::string const& tableName,
-                            EventHandler& eventHandler)
+                            EventHandler& eventHandler,
+                            TableReadScope scope)
     {
         auto const fullyQualifiedTableName = FullyQualifiedTableName {
             .catalog = std::string(database),
@@ -1424,17 +1427,22 @@ namespace detail
         auto const uniqueColumns = AllUniqueColumns(stmt, fullyQualifiedTableName);
         auto const identityColumns = AllIdentityColumns(stmt, fullyQualifiedTableName);
 
-        std::vector<ForeignKeyConstraint> const foreignKeys = AllForeignKeysFrom(stmt, fullyQualifiedTableName);
-        std::vector<ForeignKeyConstraint> const incomingForeignKeys = AllForeignKeysTo(stmt, fullyQualifiedTableName);
+        // Declared outside the scope check: the column loop below marks foreign-key columns from it.
+        std::vector<ForeignKeyConstraint> foreignKeys;
+        if (scope == TableReadScope::Full)
+        {
+            foreignKeys = AllForeignKeysFrom(stmt, fullyQualifiedTableName);
+            std::vector<ForeignKeyConstraint> const incomingForeignKeys = AllForeignKeysTo(stmt, fullyQualifiedTableName);
 
-        for (auto const& foreignKey: foreignKeys)
-            eventHandler.OnForeignKey(foreignKey);
+            for (auto const& foreignKey: foreignKeys)
+                eventHandler.OnForeignKey(foreignKey);
 
-        for (auto const& foreignKey: incomingForeignKeys)
-            eventHandler.OnExternalForeignKey(foreignKey);
+            for (auto const& foreignKey: incomingForeignKeys)
+                eventHandler.OnExternalForeignKey(foreignKey);
 
-        auto const indexes = AllIndexes(stmt, fullyQualifiedTableName, primaryKeys);
-        eventHandler.OnIndexes(indexes);
+            auto const indexes = AllIndexes(stmt, fullyQualifiedTableName, primaryKeys);
+            eventHandler.OnIndexes(indexes);
+        }
 
         auto columnStmt = SqlStatement { stmt.Connection() };
         auto const sqlResult = CallWithOdbcText(
@@ -1667,7 +1675,7 @@ namespace detail
             if (!eventHandler.OnTable(tableSchema, tableName))
                 continue;
 
-            ReadOneTableLegacy(stmt, database, tableSchema, tableName, eventHandler);
+            ReadOneTableLegacy(stmt, database, tableSchema, tableName, eventHandler, TableReadScope::Full);
         }
     }
 
@@ -2006,7 +2014,7 @@ TableList ReadAllTables(SqlStatement& stmt,
     return tables;
 }
 
-std::optional<Table> ReadTable(SqlStatement& stmt, FullyQualifiedTableName const& table)
+std::optional<Table> ReadTable(SqlStatement& stmt, FullyQualifiedTableName const& table, TableReadScope scope)
 {
     ZoneScopedN("SqlSchema::ReadTable");
     ZoneTextObject(table.table);
@@ -2062,9 +2070,10 @@ std::optional<Table> ReadTable(SqlStatement& stmt, FullyQualifiedTableName const
     handler.table.schema = entry.schema.empty() ? std::string(table.schema) : entry.schema;
     handler.table.name = entry.name;
 
-    detail::ReadOneTableLegacy(stmt, table.catalog, handler.table.schema, entry.name, handler);
+    detail::ReadOneTableLegacy(stmt, table.catalog, handler.table.schema, entry.name, handler, scope);
 
-    RestoreReferencedTableCasing(stmt, table.catalog, table.schema, handler.table);
+    if (scope == TableReadScope::Full)
+        RestoreReferencedTableCasing(stmt, table.catalog, table.schema, handler.table);
 
     return std::move(handler.table);
 }

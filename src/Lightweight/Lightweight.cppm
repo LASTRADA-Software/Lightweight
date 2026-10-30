@@ -470,9 +470,11 @@ namespace SqlSchema
     using Lightweight::SqlSchema::MakeCreateTablePlan;
     using Lightweight::SqlSchema::ReadAllTables;
     using Lightweight::SqlSchema::ReadAllTablesCallback;
+    using Lightweight::SqlSchema::ReadTable;
     using Lightweight::SqlSchema::Table;
     using Lightweight::SqlSchema::TableFilterPredicate;
     using Lightweight::SqlSchema::TableList;
+    using Lightweight::SqlSchema::TableReadScope;
     using Lightweight::SqlSchema::TableReadyCallback;
 
     using Lightweight::SqlSchema::operator<;

@@ -390,6 +390,19 @@ namespace SqlSchema
     /// @return The schema names.
     [[nodiscard]] LIGHTWEIGHT_API std::vector<std::string> AllUserSchemas(SqlStatement& stmt, std::string_view database);
 
+    /// How much of a table's description @ref ReadTable gathers.
+    enum class TableReadScope : std::uint8_t
+    {
+        /// Columns, primary key, foreign keys in both directions, and indexes.
+        Full,
+        /// Columns (with their unique, identity and primary-key flags) and the primary key only.
+        /// Foreign keys, external foreign keys and indexes are left empty, and the foreign-key
+        /// target casing lookups are skipped with them. Because the foreign keys are not read, the
+        /// per-column @c Column::isForeignKey (false) and @c Column::foreignKeyConstraint (empty)
+        /// are not populated either.
+        ColumnsAndPrimaryKey,
+    };
+
     /// Reads the schema of a single table.
     ///
     /// Use this instead of @ref ReadAllTables when only one table is of interest: it *describes* only
@@ -406,10 +419,16 @@ namespace SqlSchema
     /// @param stmt The SQL statement to use for reading.
     /// @param table The fully qualified name of the table to describe. An empty catalog or schema
     ///              means "the connection's default", exactly as in @ref ReadAllTables.
+    /// @param scope How much to read. @ref TableReadScope::ColumnsAndPrimaryKey skips the foreign-key
+    ///              and index queries for callers that only need columns and the primary key; in
+    ///              that mode @c Column::isForeignKey and @c Column::foreignKeyConstraint are not
+    ///              populated on any column.
     /// @retval std::nullopt No table of that name exists in the given catalog and schema.
     /// @throws SqlException The catalog could not be read. Absence is not an error and is reported
     ///         as @c std::nullopt; anything arriving as an exception is a genuine SQL failure.
-    [[nodiscard]] LIGHTWEIGHT_API std::optional<Table> ReadTable(SqlStatement& stmt, FullyQualifiedTableName const& table);
+    [[nodiscard]] LIGHTWEIGHT_API std::optional<Table> ReadTable(SqlStatement& stmt,
+                                                                 FullyQualifiedTableName const& table,
+                                                                 TableReadScope scope = TableReadScope::Full);
 
     /// Retrieves all tables in the given database and schema that have a foreign key to the given table.
     LIGHTWEIGHT_API std::vector<ForeignKeyConstraint> AllForeignKeysTo(SqlStatement& stmt,
