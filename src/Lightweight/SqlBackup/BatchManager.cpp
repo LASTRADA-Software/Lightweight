@@ -8,6 +8,7 @@
 #include "../TracyProfiler.hpp"
 #include "../Utils.hpp"
 #include "BatchManager.hpp"
+#include "RawColumnSlice.hpp"
 
 #include <algorithm>
 #include <array>
@@ -30,8 +31,8 @@ namespace Lightweight::detail
 
 using namespace SqlBackup;
 
-/// Thrown by a batch column for a non-NULL backup value it cannot convert to the column's type.
-/// BatchManager rethrows it as a std::runtime_error naming the table and the column.
+/// Thrown by a batch column for a non-NULL backup value it cannot convert to the column's type,
+/// before anything of that value is appended. BatchManager appends NULL instead and reports it.
 struct UnconvertibleValueError: std::runtime_error
 {
     using std::runtime_error::runtime_error;
@@ -1726,22 +1727,32 @@ namespace
     }
 } // namespace
 
-BatchManager::BatchManager(BatchExecutor executor,
+BatchManager::BatchManager(BatchManagerHooks hooks,
                            std::vector<SqlColumnDeclaration> const& colDecls,
                            size_t capacity,
                            SqlServerType serverType,
                            std::string tableName,
                            SqlServerType sourceServerType):
-    executor(std::move(executor)),
+    hooks(std::move(hooks)),
     serverType(serverType),
     sourceServerType(sourceServerType),
     tableName(std::move(tableName))
 {
+    if (!this->hooks.classify)
+        this->hooks.classify = [](SqlErrorInfo const&) {
+            return FailureDisposition::Propagate;
+        };
+
     // logic to create columns based on type
     for (auto const& col: colDecls)
     {
+        // A primary key column is NOT NULL even where the declaration does not say so.
+        auto const isKey = col.primaryKey != SqlPrimaryKeyType::NONE;
+        if (isKey)
+            keyColumns.push_back(columns.size());
         columns.push_back(CreateColumn(col));
         columnNames.push_back(col.name);
+        columnRequired.push_back(col.required || isKey);
     }
 
     // Calculate memory-aware capacity
@@ -1774,6 +1785,32 @@ BatchManager::BatchManager(BatchExecutor executor,
 
     // Ensure at least 1 row capacity
     this->capacity = std::max(this->capacity, size_t { 1 });
+}
+
+BatchManager::BatchManager(BatchExecutor executor,
+                           std::vector<SqlColumnDeclaration> const& colDecls,
+                           size_t capacity,
+                           SqlServerType serverType,
+                           std::string tableName,
+                           SqlServerType sourceServerType):
+    BatchManager(
+        BatchManagerHooks {
+            .tryInsert = [executor = std::move(executor)](std::span<SqlRawColumn const> slice,
+                                                          std::size_t rowCount) -> std::expected<void, BatchInsertError> {
+                executor(std::vector<SqlRawColumn>(slice.begin(), slice.end()), rowCount);
+                return {};
+            },
+            .classify = {},
+            .onRowFailed = {},
+            .onCellNulled = {},
+            .onSettled = {},
+        },
+        colDecls,
+        capacity,
+        serverType,
+        std::move(tableName),
+        sourceServerType)
+{
 }
 
 BatchManager::~BatchManager() = default;
@@ -1996,6 +2033,10 @@ void BatchManager::Flush()
     ZoneScopedN("Restore::BatchFlush");
     ZoneValue(rowCount);
 
+    // Rows settled here extend the watermark only if every row before them is settled already.
+    auto const base = firstPendingRow;
+    auto const extendsWatermark = settledRows == base;
+
     try
     {
         std::vector<SqlRawColumn> rawCols;
@@ -2006,16 +2047,68 @@ void BatchManager::Flush()
                 rawCols.push_back(c->ToRaw());
         }
 
-        executor(rawCols, rowCount);
+        auto const insertRange = [&](size_t firstRow, size_t count) {
+            auto const slices =
+                rawCols
+                | std::views::transform([&](SqlRawColumn const& column) { return SliceRows(column, firstRow, count); })
+                | std::ranges::to<std::vector>();
+            return hooks.tryInsert(slices, count).transform_error([firstRow](BatchInsertError error) {
+                for (auto& row: error.reportedFailedRows)
+                    row += firstRow;
+                return error;
+            });
+        };
+        // Rows not inserted, so that their nulled cells are not reported.
+        auto notInserted = std::vector<bool>(rowCount);
+        auto const reportRow = [&](size_t row, std::string_view sqlState, std::string_view message) {
+            notInserted[row] = true;
+            if (hooks.onRowFailed)
+                hooks.onRowFailed(base + row + 1, sqlState, message, DescribeRowKey(rawCols, row));
+        };
+
+        // Rows settle in ascending order, so the nulled cells are reported in row order as their
+        // rows settle.
+        std::ranges::stable_sort(nulledCells, {}, &NulledCell::pendingRow);
+        auto nextNulledCell = nulledCells.begin();
+        auto const reportNulledCells = [&](size_t settledPrefix) {
+            auto const settledEnd = std::ranges::find_if(
+                nextNulledCell, nulledCells.end(), [&](NulledCell const& cell) { return cell.pendingRow >= settledPrefix; });
+            for (auto const& cell: std::ranges::subrange(nextNulledCell, settledEnd))
+                if (!notInserted[cell.pendingRow] && hooks.onCellNulled)
+                    hooks.onCellNulled(columnNames[cell.columnIndex], cell.reason);
+            nextNulledCell = settledEnd;
+        };
+
+        InsertIsolatingFailures(
+            rowCount,
+            excludedRows,
+            insertRange,
+            hooks.classify,
+            [&](size_t row, SqlErrorInfo const& error) { reportRow(row, error.sqlState, error.message); },
+            [&](size_t row) { reportRow(row, {}, exclusionReasons[row].value_or(std::string {})); },
+            [&](size_t settledPrefix) {
+                reportNulledCells(settledPrefix);
+                if (!extendsWatermark)
+                    return;
+                settledRows = base + settledPrefix;
+                if (hooks.onSettled)
+                    hooks.onSettled(settledRows);
+            });
     }
     catch (...)
     {
+        firstPendingRow += rowCount;
         DiscardPendingRows();
         throw;
     }
 
-    rowsFlushed += rowCount;
+    firstPendingRow += rowCount;
     DiscardPendingRows();
+}
+
+std::size_t BatchManager::SettledRows() const noexcept
+{
+    return settledRows;
 }
 
 void BatchManager::DiscardPendingRows()
@@ -2023,25 +2116,90 @@ void BatchManager::DiscardPendingRows()
     for (auto& c: columns)
         c->Clear();
     rowCount = 0;
+    excludedRows.clear();
+    exclusionReasons.clear();
+    nulledCells.clear();
 }
 
-void BatchManager::PushIntoColumn(size_t columnIndex, std::function<void(BatchColumn&)> const& push)
+void BatchManager::PushIntoColumn(size_t columnIndex,
+                                  size_t cellCount,
+                                  std::function<void(BatchColumn& column, size_t first, size_t count)> const& push)
 {
-    try
+    auto& column = *columns[columnIndex];
+    auto const firstPendingCell = column.PendingRows();
+    auto nextCell = size_t { 0 };
+    while (nextCell < cellCount)
     {
-        push(*columns[columnIndex]);
+        try
+        {
+            push(column, nextCell, cellCount - nextCell);
+            return;
+        }
+        catch (UnconvertibleValueError const& error)
+        {
+            // The column holds the cells before the rejected one, so this is the rejected cell.
+            auto const failedCell = column.PendingRows() - firstPendingCell;
+            column.PushNull();
+            RecordValueFailure(columnIndex, firstPendingCell + failedCell, error.what());
+            nextCell = failedCell + 1;
+        }
     }
-    catch (UnconvertibleValueError const& error)
+}
+
+void BatchManager::RecordValueFailure(size_t columnIndex, size_t pendingRow, std::string_view reason)
+{
+    if (!columnRequired[columnIndex])
     {
-        // The column holds the values before the rejected one, so this is the rejected row.
-        auto const row = rowsFlushed + columns[columnIndex]->PendingRows() + 1;
-        DiscardPendingRows();
-        auto const& columnName = columnNames[columnIndex];
-        throw BackupValueConversionError(
-            tableName.empty()
-                ? std::format("column '{}', row {}: {}", columnName, row, error.what())
-                : std::format("table '{}', column '{}', row {}: {}", tableName, columnName, row, error.what()));
+        nulledCells.push_back(
+            NulledCell { .pendingRow = pendingRow, .columnIndex = columnIndex, .reason = std::string(reason) });
+        return;
     }
+
+    if (excludedRows.size() <= pendingRow)
+    {
+        excludedRows.resize(pendingRow + 1);
+        exclusionReasons.resize(pendingRow + 1);
+    }
+    excludedRows[pendingRow] = true;
+    // A row with several bad values is reported with the first.
+    if (!exclusionReasons[pendingRow])
+        exclusionReasons[pendingRow] = std::format("column '{}': {}", columnNames[columnIndex], reason);
+}
+
+std::string BatchManager::DescribeRowKey(std::vector<SqlRawColumn> const& rawColumns, size_t row) const
+{
+    constexpr size_t MaxKeyLength = 200;
+
+    auto const describe = [&](size_t columnIndex) {
+        return DescribeRawCell(rawColumns[columnIndex], row);
+    };
+    auto const cells = keyColumns.empty() ? std::views::iota(size_t { 0 }, rawColumns.size())
+                                                | std::views::transform(describe) | std::ranges::to<std::vector>()
+                                          : keyColumns | std::views::transform(describe) | std::ranges::to<std::vector>();
+    auto key = cells | std::views::join_with(std::string_view { ", " }) | std::ranges::to<std::string>();
+    if (key.size() > MaxKeyLength)
+    {
+        // Never cut inside a UTF-8 sequence.
+        auto length = MaxKeyLength;
+        while (length > 0 && (static_cast<unsigned char>(key[length]) & 0xC0U) == 0x80U)
+            --length;
+        key.resize(length);
+    }
+    return key;
+}
+
+void BatchManager::SkipRows(size_t count)
+{
+    if (count == 0)
+        return;
+    Flush();
+    auto const extendsWatermark = settledRows == firstPendingRow;
+    firstPendingRow += count;
+    if (!extendsWatermark)
+        return;
+    settledRows = firstPendingRow;
+    if (hooks.onSettled)
+        hooks.onSettled(settledRows);
 }
 
 namespace
@@ -2065,7 +2223,9 @@ void BatchManager::PushRow(std::vector<BackupValue> const& row)
     if (row.size() != columns.size())
         return;
     for (auto const columnIndex: std::views::iota(size_t { 0 }, row.size()))
-        PushIntoColumn(columnIndex, [&row, columnIndex](BatchColumn& column) { column.Push(row[columnIndex]); });
+        PushIntoColumn(columnIndex, 1, [&row, columnIndex](BatchColumn& column, size_t /*first*/, size_t /*count*/) {
+            column.Push(row[columnIndex]);
+        });
     rowCount++;
     if (rowCount >= capacity || ExceedsByteBudget(columns))
         Flush();
@@ -2073,13 +2233,21 @@ void BatchManager::PushRow(std::vector<BackupValue> const& row)
 
 void BatchManager::PushBatch(ColumnBatch const& batch)
 {
+    PushBatch(batch, 0);
+}
+
+void BatchManager::PushBatch(ColumnBatch const& batch, std::size_t skipRows)
+{
     if (batch.rowCount == 0)
         return;
     if (batch.columns.size() != columns.size())
         return;
 
-    size_t remaining = batch.rowCount;
-    size_t offset = 0;
+    auto const skipped = std::min(skipRows, batch.rowCount);
+    SkipRows(skipped);
+
+    size_t remaining = batch.rowCount - skipped;
+    size_t offset = skipped;
 
     while (remaining > 0)
     {
@@ -2093,8 +2261,8 @@ void BatchManager::PushBatch(ColumnBatch const& batch)
         size_t const chunk = std::min(remaining, space);
         for (auto const columnIndex: std::views::iota(size_t { 0 }, columns.size()))
         {
-            PushIntoColumn(columnIndex, [&](BatchColumn& column) {
-                column.PushFromBatch(batch.columns[columnIndex], batch.nullIndicators[columnIndex], offset, chunk);
+            PushIntoColumn(columnIndex, chunk, [&](BatchColumn& column, size_t first, size_t count) {
+                column.PushFromBatch(batch.columns[columnIndex], batch.nullIndicators[columnIndex], offset + first, count);
             });
         }
 

@@ -4,15 +4,20 @@
 
 #include <Lightweight/SqlBackup/BatchManager.hpp>
 #include <Lightweight/SqlBackup/MsgPackChunkFormats.hpp>
+#include <Lightweight/SqlBackup/RawColumnSlice.hpp>
+#include <Lightweight/SqlBackup/RowIsolation.hpp>
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <cstddef>
 #include <cstring>
+#include <expected>
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <functional>
 #include <iterator>
 #include <limits>
 #include <optional>
@@ -21,6 +26,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 using namespace Lightweight;
@@ -1531,65 +1537,90 @@ namespace
 /// The table name the conversion-failure tests hand to BatchManager.
 constexpr auto ConversionTestTable = "ORDERS";
 
-/// Pushes the rows of @p rows (one value each) into a one-column BatchManager and returns the
-/// message of the error the last push throws. Fails the test if no push throws, if any row was
-/// flushed, or if rows remain pending after the error.
+/// Pushes rows into a one-column BatchManager via @p push and returns the one failure it reports,
+/// as "row <n>: <message>".
+///
+/// The column is pushed NOT NULL first: the test fails unless exactly one row is reported failed and
+/// every other row is inserted. It is pushed again as nullable: then every row must be inserted and
+/// the bad value set to NULL with the same reason.
+/// @param column The column declaration.
+/// @param rowCount The number of rows @p push pushes.
+/// @param serverType The target server type.
+/// @param push Pushes the rows.
+std::string ReportedConversionFailure(SqlColumnDeclaration const& column,
+                                      size_t rowCount,
+                                      SqlServerType serverType,
+                                      std::function<void(BatchManager&)> const& push)
+{
+    size_t insertedRows = 0;
+    std::vector<std::string> failures;
+    std::vector<std::string> nulledReasons;
+    auto const run = [&](bool required) {
+        auto declaration = column;
+        declaration.required = required;
+        BatchManager manager(
+            BatchManagerHooks {
+                .tryInsert = [&](std::span<SqlRawColumn const>, size_t count) -> std::expected<void, BatchInsertError> {
+                    insertedRows += count;
+                    return {};
+                },
+                .classify = {},
+                .onRowFailed =
+                    [&](size_t row, std::string_view, std::string_view message, std::string) {
+                        failures.push_back(std::format("row {}: {}", row, message));
+                    },
+                .onCellNulled = [&](std::string_view, std::string_view reason) { nulledReasons.emplace_back(reason); },
+                .onSettled = {},
+            },
+            { declaration },
+            10,
+            serverType,
+            ConversionTestTable);
+        push(manager);
+        manager.Flush();
+        CHECK(manager.SettledRows() == rowCount);
+    };
+
+    run(true);
+    CHECK(insertedRows == rowCount - 1);
+    CHECK(nulledReasons.empty());
+
+    insertedRows = 0;
+    run(false);
+    CHECK(insertedRows == rowCount);
+
+    if (failures.size() != 1 || nulledReasons.size() != 1)
+    {
+        FAIL_CHECK(
+            std::format("{} failed rows and {} nulled cells instead of one each", failures.size(), nulledReasons.size()));
+        return {};
+    }
+    CHECK(failures[0].ends_with(std::format("column '{}': {}", column.name, nulledReasons[0])));
+    return failures[0];
+}
+
+/// Pushes the rows of @p rows (one value each) via PushRow; see ReportedConversionFailure().
 std::string PushRowsError(SqlColumnDeclaration const& column,
                           std::vector<BackupValue> const& rows,
                           SqlServerType serverType = SqlServerType::UNKNOWN)
 {
-    size_t flushedRows = 0;
-    BatchManager manager([&](std::vector<SqlRawColumn> const&, size_t count) { flushedRows += count; },
-                         { column },
-                         10,
-                         serverType,
-                         ConversionTestTable);
-    std::string message;
-    try
-    {
+    return ReportedConversionFailure(column, rows.size(), serverType, [&](BatchManager& manager) {
         for (auto const& value: rows)
             manager.PushRow({ value });
-    }
-    catch (std::runtime_error const& error)
-    {
-        message = error.what();
-    }
-    CHECK(manager.rowCount == 0);
-    manager.Flush();
-    CHECK(flushedRows == 0);
-    return message;
+    });
 }
 
-/// Pushes @p data as one column batch (no NULLs) into a one-column BatchManager and returns the
-/// message of the error PushBatch throws; fails the test like PushRowsError().
+/// Pushes @p data as one column batch (no NULLs) via PushBatch; see ReportedConversionFailure().
 std::string PushBatchError(SqlColumnDeclaration const& column,
                            ColumnBatch::ColumnData data,
                            size_t rowCount,
                            SqlServerType serverType = SqlServerType::UNKNOWN)
 {
-    size_t flushedRows = 0;
-    BatchManager manager([&](std::vector<SqlRawColumn> const&, size_t count) { flushedRows += count; },
-                         { column },
-                         10,
-                         serverType,
-                         ConversionTestTable);
     ColumnBatch batch;
     batch.rowCount = rowCount;
     batch.columns.push_back(std::move(data));
     batch.nullIndicators.emplace_back(rowCount, false);
-    std::string message;
-    try
-    {
-        manager.PushBatch(batch);
-    }
-    catch (std::runtime_error const& error)
-    {
-        message = error.what();
-    }
-    CHECK(manager.rowCount == 0);
-    manager.Flush();
-    CHECK(flushedRows == 0);
-    return message;
+    return ReportedConversionFailure(column, rowCount, serverType, [&](BatchManager& manager) { manager.PushBatch(batch); });
 }
 
 /// The server type the GUID conversion tests run as: one with a native GUID type, which parses GUIDs.
@@ -1632,45 +1663,32 @@ TEST_CASE("BatchManager: GUID column accepts a GUID whose version nibble is outs
     CHECK(std::ranges::equal(capturedGuids[1], expected.data));
 }
 
-TEST_CASE("BatchManager: a GUID that does not parse fails, naming table, column and value", "[SqlBackup]")
+TEST_CASE("BatchManager: a GUID that does not parse is reported, naming row, column and value", "[SqlBackup]")
 {
-    // Rows pushed before the bad one are discarded with it, not flushed; the row number counts them.
+    // The rows around the bad one are inserted; the row number counts them.
     CHECK(PushRowsError(
               GuidColumn,
               { std::string("12345678-1234-1234-1234-123456789ABC"), std::monostate {}, std::string("INVALID-GUID") },
               NativeGuidServer)
-          == "table 'ORDERS', column 'TOKEN', row 3: 'INVALID-GUID' is not a valid GUID");
+          == "row 3: column 'TOKEN': 'INVALID-GUID' is not a valid GUID");
     CHECK(PushBatchError(GuidColumn,
                          std::vector<std::string> { "12345678-1234-1234-1234-123456789ABC", "INVALID-GUID" },
                          2,
                          NativeGuidServer)
-          == "table 'ORDERS', column 'TOKEN', row 2: 'INVALID-GUID' is not a valid GUID");
+          == "row 2: column 'TOKEN': 'INVALID-GUID' is not a valid GUID");
 
     // A value of another kind is no GUID either.
     CHECK(PushRowsError(GuidColumn, { int64_t { 42 } }, NativeGuidServer)
-          == "table 'ORDERS', column 'TOKEN', row 1: 42 is not a valid GUID");
+          == "row 1: column 'TOKEN': 42 is not a valid GUID");
     CHECK(PushBatchError(GuidColumn, std::vector<std::vector<uint8_t>> { { 0x01, 0x02, 0x03 } }, 1, NativeGuidServer)
-          == "table 'ORDERS', column 'TOKEN', row 1: a 3-byte binary value is not a valid GUID");
-
-    // Without a table name, the message names the column alone.
-    BatchManager anonymous([](std::vector<SqlRawColumn> const&, size_t) {}, { GuidColumn }, 10, NativeGuidServer);
-    try
-    {
-        anonymous.PushRow({ std::string("INVALID-GUID") });
-        FAIL("PushRow accepted an invalid GUID");
-    }
-    catch (std::runtime_error const& error)
-    {
-        CHECK(std::string_view(error.what()) == "column 'TOKEN', row 1: 'INVALID-GUID' is not a valid GUID");
-    }
+          == "row 1: column 'TOKEN': a 3-byte binary value is not a valid GUID");
 }
 
-TEST_CASE("BatchManager: a long unconvertible value is shortened in the error", "[SqlBackup]")
+TEST_CASE("BatchManager: a long unconvertible value is shortened in the report", "[SqlBackup]")
 {
     auto const longValue = std::string(100, 'x');
     CHECK(PushRowsError(GuidColumn, { longValue }, NativeGuidServer)
-          == std::format("table 'ORDERS', column 'TOKEN', row 1: '{}...' (100 bytes) is not a valid GUID",
-                         std::string(64, 'x')));
+          == std::format("row 1: column 'TOKEN': '{}...' (100 bytes) is not a valid GUID", std::string(64, 'x')));
 }
 
 TEST_CASE("BatchManager: numeric text that does not parse fails instead of becoming 0", "[SqlBackup]")
@@ -1678,27 +1696,25 @@ TEST_CASE("BatchManager: numeric text that does not parse fails instead of becom
     using namespace SqlColumnTypeDefinitions;
     SqlColumnDeclaration const integer { .name = "AMOUNT", .type = Integer {} };
 
-    CHECK(PushRowsError(integer, { std::string("abc") })
-          == "table 'ORDERS', column 'AMOUNT', row 1: 'abc' is not a valid integer");
-    CHECK(PushRowsError(integer, { std::string("12abc") })
-          == "table 'ORDERS', column 'AMOUNT', row 1: '12abc' is not a valid integer");
+    CHECK(PushRowsError(integer, { std::string("abc") }) == "row 1: column 'AMOUNT': 'abc' is not a valid integer");
+    CHECK(PushRowsError(integer, { std::string("12abc") }) == "row 1: column 'AMOUNT': '12abc' is not a valid integer");
     CHECK(PushBatchError(integer, std::vector<std::string> { "12", "abc" }, 2)
-          == "table 'ORDERS', column 'AMOUNT', row 2: 'abc' is not a valid integer");
+          == "row 2: column 'AMOUNT': 'abc' is not a valid integer");
     CHECK(PushRowsError(integer, { std::vector<uint8_t> { 0x01 } })
-          == "table 'ORDERS', column 'AMOUNT', row 1: a 1-byte binary value is not a valid integer");
+          == "row 1: column 'AMOUNT': a 1-byte binary value is not a valid integer");
     CHECK(PushBatchError(integer, std::vector<std::vector<uint8_t>> { { 0x01 } }, 1)
-          == "table 'ORDERS', column 'AMOUNT', row 1: a 1-byte binary value is not a valid integer");
+          == "row 1: column 'AMOUNT': a 1-byte binary value is not a valid integer");
 
     CHECK(PushRowsError({ .name = "TINY", .type = Tinyint {} }, { std::string("300") })
-          == "table 'ORDERS', column 'TINY', row 1: '300' is not a valid tinyint");
+          == "row 1: column 'TINY': '300' is not a valid tinyint");
     CHECK(PushRowsError({ .name = "BIG", .type = Bigint {} }, { std::string("1.5") })
-          == "table 'ORDERS', column 'BIG', row 1: '1.5' is not a valid bigint");
+          == "row 1: column 'BIG': '1.5' is not a valid bigint");
     CHECK(PushBatchError({ .name = "SMALL", .type = Smallint {} }, std::vector<std::string> { "x" }, 1)
-          == "table 'ORDERS', column 'SMALL', row 1: 'x' is not a valid smallint");
+          == "row 1: column 'SMALL': 'x' is not a valid smallint");
     CHECK(PushRowsError({ .name = "RATIO", .type = Real {} }, { std::string("1.5x") })
-          == "table 'ORDERS', column 'RATIO', row 1: '1.5x' is not a valid real");
+          == "row 1: column 'RATIO': '1.5x' is not a valid real");
     CHECK(PushRowsError({ .name = "FLAG", .type = Bool {} }, { std::string("yes") })
-          == "table 'ORDERS', column 'FLAG', row 1: 'yes' is not a valid bool");
+          == "row 1: column 'FLAG': 'yes' is not a valid bool");
 }
 
 TEST_CASE("BatchManager: Bool column reads the true/false text a mixed-type column is archived as", "[SqlBackup]")
@@ -1739,33 +1755,30 @@ TEST_CASE("BatchManager: a malformed date or time fails instead of becoming zero
     SqlColumnDeclaration const time { .name = "AT", .type = Time {} };
 
     CHECK(PushRowsError(dateTime, { std::string("garbage") })
-          == "table 'ORDERS', column 'CREATED', row 1: 'garbage' is not a valid datetime");
+          == "row 1: column 'CREATED': 'garbage' is not a valid datetime");
     CHECK(PushRowsError(dateTime, { std::string("2024-0x-02T03:04:05.000") })
-          == "table 'ORDERS', column 'CREATED', row 1: '2024-0x-02T03:04:05.000' is not a valid datetime");
+          == "row 1: column 'CREATED': '2024-0x-02T03:04:05.000' is not a valid datetime");
     CHECK(PushBatchError(dateTime, std::vector<std::string> { "2024-01-02T03:04:05.0x0" }, 1)
-          == "table 'ORDERS', column 'CREATED', row 1: '2024-01-02T03:04:05.0x0' is not a valid datetime");
-    CHECK(PushRowsError(dateTime, { int64_t { 20240102 } })
-          == "table 'ORDERS', column 'CREATED', row 1: 20240102 is not a valid datetime");
+          == "row 1: column 'CREATED': '2024-01-02T03:04:05.0x0' is not a valid datetime");
+    CHECK(PushRowsError(dateTime, { int64_t { 20240102 } }) == "row 1: column 'CREATED': 20240102 is not a valid datetime");
 
-    CHECK(PushRowsError(date, { std::string("2024-1-2") })
-          == "table 'ORDERS', column 'DAY', row 1: '2024-1-2' is not a valid date");
+    CHECK(PushRowsError(date, { std::string("2024-1-2") }) == "row 1: column 'DAY': '2024-1-2' is not a valid date");
     CHECK(PushBatchError(date, std::vector<std::string> { "20AB-01-02" }, 1)
-          == "table 'ORDERS', column 'DAY', row 1: '20AB-01-02' is not a valid date");
-    CHECK(PushBatchError(date, std::vector<double> { 1.5 }, 1)
-          == "table 'ORDERS', column 'DAY', row 1: 1.5 is not a valid date");
+          == "row 1: column 'DAY': '20AB-01-02' is not a valid date");
+    CHECK(PushBatchError(date, std::vector<double> { 1.5 }, 1) == "row 1: column 'DAY': 1.5 is not a valid date");
 
     // SQL_TIME_STRUCT binding (MySQL / unknown servers).
     CHECK(PushRowsError(time, { std::string("short") }, SqlServerType::MYSQL)
-          == "table 'ORDERS', column 'AT', row 1: 'short' is not a valid time");
+          == "row 1: column 'AT': 'short' is not a valid time");
     CHECK(PushBatchError(time, std::vector<std::string> { "1a:02:03" }, 1, SqlServerType::MYSQL)
-          == "table 'ORDERS', column 'AT', row 1: '1a:02:03' is not a valid time");
+          == "row 1: column 'AT': '1a:02:03' is not a valid time");
     CHECK(PushRowsError(time, { int64_t { 12345 } }, SqlServerType::MYSQL)
-          == "table 'ORDERS', column 'AT', row 1: 12345 is not a valid time");
+          == "row 1: column 'AT': 12345 is not a valid time");
     // Text binding (MSSQL / PostgreSQL / SQLite): the server parses the text, but a number is no time.
     CHECK(PushRowsError(time, { int64_t { 7 } }, SqlServerType::MICROSOFT_SQL)
-          == "table 'ORDERS', column 'AT', row 1: 7 is not a valid time");
+          == "row 1: column 'AT': 7 is not a valid time");
     CHECK(PushBatchError(time, std::vector<bool> { true }, 1, SqlServerType::MICROSOFT_SQL)
-          == "table 'ORDERS', column 'AT', row 1: true is not a valid time");
+          == "row 1: column 'AT': true is not a valid time");
 }
 
 TEST_CASE("BatchManager: a value of the wrong kind for a text or binary column fails", "[SqlBackup]")
@@ -1776,21 +1789,20 @@ TEST_CASE("BatchManager: a value of the wrong kind for a text or binary column f
     SqlColumnDeclaration const binary { .name = "BLOB", .type = VarBinary { .size = 50 } };
 
     CHECK(PushRowsError(narrow, { std::vector<uint8_t> { 0x01, 0x02 } })
-          == "table 'ORDERS', column 'NAME', row 1: a 2-byte binary value is not a valid text");
+          == "row 1: column 'NAME': a 2-byte binary value is not a valid text");
     CHECK(PushBatchError(narrow, std::vector<std::vector<uint8_t>> { { 0x01 } }, 1)
-          == "table 'ORDERS', column 'NAME', row 1: a 1-byte binary value is not a valid text");
+          == "row 1: column 'NAME': a 1-byte binary value is not a valid text");
     CHECK(PushRowsError(wide, { std::vector<uint8_t> { 0x01 } })
-          == "table 'ORDERS', column 'WNAME', row 1: a 1-byte binary value is not a valid text");
+          == "row 1: column 'WNAME': a 1-byte binary value is not a valid text");
     CHECK(PushBatchError(wide, std::vector<std::vector<uint8_t>> { { 0x01 } }, 1)
-          == "table 'ORDERS', column 'WNAME', row 1: a 1-byte binary value is not a valid text");
+          == "row 1: column 'WNAME': a 1-byte binary value is not a valid text");
 
-    CHECK(PushRowsError(binary, { int64_t { 5 } }) == "table 'ORDERS', column 'BLOB', row 1: 5 is not a valid binary");
-    CHECK(PushBatchError(binary, std::vector<int64_t> { 5 }, 1)
-          == "table 'ORDERS', column 'BLOB', row 1: 5 is not a valid binary");
+    CHECK(PushRowsError(binary, { int64_t { 5 } }) == "row 1: column 'BLOB': 5 is not a valid binary");
+    CHECK(PushBatchError(binary, std::vector<int64_t> { 5 }, 1) == "row 1: column 'BLOB': 5 is not a valid binary");
     CHECK(PushBatchError(binary, std::vector<std::string> { "ABZZ" }, 1)
-          == "table 'ORDERS', column 'BLOB', row 1: 'ABZZ' is not a valid binary");
+          == "row 1: column 'BLOB': 'ABZZ' is not a valid binary");
     CHECK(PushBatchError(binary, std::vector<std::string> { "ABC" }, 1)
-          == "table 'ORDERS', column 'BLOB', row 1: 'ABC' is not a valid binary");
+          == "row 1: column 'BLOB': 'ABC' is not a valid binary");
 }
 
 TEST_CASE("BatchManager: a native number outside the column type's range fails instead of wrapping", "[SqlBackup]")
@@ -1806,23 +1818,23 @@ TEST_CASE("BatchManager: a native number outside the column type's range fails i
     {
         INFO(std::format("server type {}", static_cast<int>(serverType)));
         CHECK(PushRowsError({ .name = "TINY", .type = Tinyint {} }, { int64_t { 300 } }, serverType)
-              == "table 'ORDERS', column 'TINY', row 1: 300 is not a valid tinyint");
+              == "row 1: column 'TINY': 300 is not a valid tinyint");
         CHECK(PushRowsError({ .name = "TINY", .type = Tinyint {} }, { std::string("300") }, serverType)
-              == "table 'ORDERS', column 'TINY', row 1: '300' is not a valid tinyint");
+              == "row 1: column 'TINY': '300' is not a valid tinyint");
         CHECK(PushRowsError({ .name = "TINY", .type = Tinyint {} }, { int64_t { 256 } }, serverType)
-              == "table 'ORDERS', column 'TINY', row 1: 256 is not a valid tinyint");
+              == "row 1: column 'TINY': 256 is not a valid tinyint");
     }
     CHECK(PushBatchError(
               { .name = "TINY", .type = Tinyint {} }, std::vector<int64_t> { 1, -1 }, 2, SqlServerType::MICROSOFT_SQL)
-          == "table 'ORDERS', column 'TINY', row 2: -1 is not a valid tinyint");
+          == "row 2: column 'TINY': -1 is not a valid tinyint");
     CHECK(PushBatchError({ .name = "TINY", .type = Tinyint {} }, std::vector<int64_t> { 1, -129 }, 2, SqlServerType::SQLITE)
-          == "table 'ORDERS', column 'TINY', row 2: -129 is not a valid tinyint");
+          == "row 2: column 'TINY': -129 is not a valid tinyint");
     CHECK(PushRowsError({ .name = "SMALL", .type = Smallint {} }, { int64_t { 40000 } })
-          == "table 'ORDERS', column 'SMALL', row 1: 40000 is not a valid smallint");
+          == "row 1: column 'SMALL': 40000 is not a valid smallint");
     CHECK(PushRowsError({ .name = "AMOUNT", .type = Integer {} }, { 1e20 })
-          == "table 'ORDERS', column 'AMOUNT', row 1: 1e+20 is not a valid integer");
+          == "row 1: column 'AMOUNT': 1e+20 is not a valid integer");
     CHECK(PushBatchError({ .name = "BIG", .type = Bigint {} }, std::vector<double> { 9223372036854775808.0 }, 1)
-          == "table 'ORDERS', column 'BIG', row 1: 9223372036854775808 is not a valid bigint");
+          == "row 1: column 'BIG': 9223372036854775808 is not a valid bigint");
 }
 
 TEST_CASE("BatchManager: a double that is exactly the integer type's minimum converts", "[SqlBackup]")
@@ -1842,21 +1854,20 @@ TEST_CASE("BatchManager: a date or time field with a sign fails", "[SqlBackup]")
     using namespace SqlColumnTypeDefinitions;
 
     CHECK(PushRowsError({ .name = "DAY", .type = Date {} }, { std::string("2024--1-02") })
-          == "table 'ORDERS', column 'DAY', row 1: '2024--1-02' is not a valid date");
+          == "row 1: column 'DAY': '2024--1-02' is not a valid date");
     CHECK(PushRowsError({ .name = "CREATED", .type = DateTime {} }, { std::string("+024-01-02T03:04:05.000") })
-          == "table 'ORDERS', column 'CREATED', row 1: '+024-01-02T03:04:05.000' is not a valid datetime");
+          == "row 1: column 'CREATED': '+024-01-02T03:04:05.000' is not a valid datetime");
 }
 
-TEST_CASE("BatchManager: the error escapes control characters and never cuts a UTF-8 sequence", "[SqlBackup]")
+TEST_CASE("BatchManager: the report escapes control characters and never cuts a UTF-8 sequence", "[SqlBackup]")
 {
     CHECK(PushRowsError(GuidColumn, { std::string("bad\n\tguid") }, NativeGuidServer)
-          == "table 'ORDERS', column 'TOKEN', row 1: 'bad\\x0A\\x09guid' is not a valid GUID");
+          == "row 1: column 'TOKEN': 'bad\\x0A\\x09guid' is not a valid GUID");
 
     // 63 ASCII bytes, then a two-byte sequence across the 64-byte limit: the sequence is left out whole.
     auto const value = std::string(63, 'x') + "\xC3\xA9" + std::string(10, 'y');
     CHECK(PushRowsError(GuidColumn, { value }, NativeGuidServer)
-          == std::format("table 'ORDERS', column 'TOKEN', row 1: '{}...' (75 bytes) is not a valid GUID",
-                         std::string(63, 'x')));
+          == std::format("row 1: column 'TOKEN': '{}...' (75 bytes) is not a valid GUID", std::string(63, 'x')));
 }
 
 namespace
@@ -2002,5 +2013,493 @@ TEST_CASE("BatchManager: CHAR padding is kept unless a padding source meets a no
             BoundCharTexts(
                 { .name = "C", .type = NVarchar { .size = 5 } }, padded, SqlServerType::SQLITE, SqlServerType::MICROSOFT_SQL)
             == padded);
+    }
+}
+
+// =============================================================================
+// Value failures, row isolation and the resume watermark (BatchManagerHooks)
+// =============================================================================
+
+namespace
+{
+
+/// One row as a slice passed to `tryInsert` carried it, each cell rendered by DescribeRawCell().
+using RenderedRow = std::vector<std::string>;
+
+/// One `onRowFailed` call.
+struct ReportedRowFailure
+{
+    std::size_t rowInManager {};
+    std::string sqlState;
+    std::string message;
+    std::string sampleKey;
+
+    bool operator==(ReportedRowFailure const&) const = default;
+};
+
+/// A fake restore target: records what BatchManager inserts and reports, and fails the inserts
+/// `failInsert` asks it to.
+struct FakeRestoreTarget
+{
+    /// Decides the outcome of the `callIndex`-th (0-based) `tryInsert` call for @p rows.
+    std::function<std::expected<void, BatchInsertError>(std::vector<RenderedRow> const& rows, std::size_t callIndex)>
+        failInsert = [](std::vector<RenderedRow> const&, std::size_t) -> std::expected<void, BatchInsertError> {
+        return {};
+    };
+    FailureClassifier classify;
+
+    std::size_t insertCalls = 0;
+    std::vector<RenderedRow> inserted;
+    std::vector<ReportedRowFailure> failures;
+    std::vector<std::pair<std::string, std::string>> nulledCells;
+    std::optional<std::size_t> lastSettled;
+
+    [[nodiscard]] BatchManagerHooks Hooks()
+    {
+        return BatchManagerHooks {
+            .tryInsert = [this](std::span<SqlRawColumn const> slice,
+                                std::size_t rowCount) -> std::expected<void, BatchInsertError> {
+                auto rows = std::vector<RenderedRow> {};
+                for (auto const row: std::views::iota(std::size_t { 0 }, rowCount))
+                {
+                    auto& rendered = rows.emplace_back();
+                    for (auto const& column: slice)
+                        rendered.push_back(DescribeRawCell(column, row));
+                }
+                auto result = failInsert(rows, insertCalls++);
+                if (result)
+                    inserted.insert(inserted.end(), rows.begin(), rows.end());
+                return result;
+            },
+            .classify = classify,
+            .onRowFailed =
+                [this](std::size_t row, std::string_view sqlState, std::string_view message, std::string sampleKey) {
+                    failures.push_back(ReportedRowFailure { .rowInManager = row,
+                                                            .sqlState = std::string(sqlState),
+                                                            .message = std::string(message),
+                                                            .sampleKey = std::move(sampleKey) });
+                },
+            .onCellNulled = [this](std::string_view column,
+                                   std::string_view reason) { nulledCells.emplace_back(column, reason); },
+            .onSettled = [this](std::size_t settled) { lastSettled = settled; },
+        };
+    }
+};
+
+/// An insert error with the given SQLSTATE.
+BatchInsertError InsertError(std::string sqlState, std::vector<std::size_t> reportedFailedRows = {})
+{
+    return BatchInsertError {
+        .error = SqlErrorInfo { .nativeErrorCode = 0, .sqlState = std::move(sqlState), .message = "simulated failure" },
+        .reportedFailedRows = std::move(reportedFailedRows)
+    };
+}
+
+/// Classifies SQLSTATE 23000 (a constraint violation) as row-isolatable, everything else as Propagate.
+FailureDisposition ClassifyConstraintViolations(SqlErrorInfo const& error)
+{
+    return error.sqlState == "23000" ? FailureDisposition::IsolateRows : FailureDisposition::Propagate;
+}
+
+/// `ID INTEGER PRIMARY KEY, T TINYINT [NOT NULL]`.
+std::vector<SqlColumnDeclaration> IdAndTinyint(bool tinyintRequired)
+{
+    using namespace SqlColumnTypeDefinitions;
+    return { { .name = "ID", .type = Integer {}, .primaryKey = SqlPrimaryKeyType::MANUAL, .required = true },
+             { .name = "T", .type = Tinyint {}, .required = tinyintRequired } };
+}
+
+/// A two-column batch (ID, T) of @p ids and @p values.
+ColumnBatch IdAndValueBatch(std::vector<int64_t> ids, std::vector<int64_t> values)
+{
+    ColumnBatch batch;
+    batch.rowCount = ids.size();
+    batch.columns.emplace_back(std::move(ids));
+    batch.columns.emplace_back(std::move(values));
+    batch.nullIndicators.emplace_back(batch.rowCount, false);
+    batch.nullIndicators.emplace_back(batch.rowCount, false);
+    return batch;
+}
+
+} // namespace
+
+TEST_CASE("BatchManager: an unconvertible value in a nullable column becomes NULL", "[SqlBackup][BatchManager]")
+{
+    FakeRestoreTarget target;
+    BatchManager manager(target.Hooks(), IdAndTinyint(false), 10, SqlServerType::SQLITE, "ORDERS");
+
+    manager.PushRow({ int64_t { 1 }, int64_t { 5 } });
+    manager.PushRow({ int64_t { 2 }, int64_t { 300 } });
+    manager.PushRow({ int64_t { 3 }, int64_t { 7 } });
+    manager.Flush();
+
+    CHECK(target.inserted == std::vector<RenderedRow> { { "1", "5" }, { "2", "NULL" }, { "3", "7" } });
+    CHECK(target.nulledCells == std::vector<std::pair<std::string, std::string>> { { "T", "300 is not a valid tinyint" } });
+    CHECK(target.failures.empty());
+    CHECK(manager.SettledRows() == 3);
+}
+
+TEST_CASE("BatchManager: an unconvertible value in a NOT NULL column fails only its row", "[SqlBackup][BatchManager]")
+{
+    FakeRestoreTarget target;
+    BatchManager manager(target.Hooks(), IdAndTinyint(true), 10, SqlServerType::SQLITE, "ORDERS");
+
+    SECTION("PushRow")
+    {
+        manager.PushRow({ int64_t { 1 }, int64_t { 5 } });
+        manager.PushRow({ int64_t { 2 }, int64_t { 300 } });
+        manager.PushRow({ int64_t { 3 }, int64_t { 7 } });
+    }
+    SECTION("PushBatch")
+    {
+        manager.PushBatch(IdAndValueBatch({ 1, 2, 3 }, { 5, 300, 7 }));
+    }
+    manager.Flush();
+
+    // Row 2 never reaches the database.
+    CHECK(target.inserted == std::vector<RenderedRow> { { "1", "5" }, { "3", "7" } });
+    CHECK(
+        target.failures
+        == std::vector<ReportedRowFailure> {
+            { .rowInManager = 2, .sqlState = "", .message = "column 'T': 300 is not a valid tinyint", .sampleKey = "2" } });
+    CHECK(target.nulledCells.empty());
+    CHECK(manager.SettledRows() == 3);
+}
+
+TEST_CASE("BatchManager: every row of a NOT NULL column unconvertible inserts nothing and throws nothing",
+          "[SqlBackup][BatchManager]")
+{
+    FakeRestoreTarget target;
+    BatchManager manager(target.Hooks(), IdAndTinyint(true), 10, SqlServerType::SQLITE, "ORDERS");
+
+    REQUIRE_NOTHROW(manager.PushBatch(IdAndValueBatch({ 1, 2, 3 }, { 300, 301, 302 })));
+    REQUIRE_NOTHROW(manager.Flush());
+
+    CHECK(target.insertCalls == 0);
+    REQUIRE(target.failures.size() == 3);
+    CHECK(target.failures[0].rowInManager == 1);
+    CHECK(target.failures[1].rowInManager == 2);
+    CHECK(target.failures[2].rowInManager == 3);
+    CHECK(target.failures[2].message == "column 'T': 302 is not a valid tinyint");
+    CHECK(manager.SettledRows() == 3);
+    CHECK(manager.rowCount == 0);
+}
+
+TEST_CASE("BatchManager: a row the database rejects is isolated; the others are inserted", "[SqlBackup][BatchManager]")
+{
+    FakeRestoreTarget target;
+    target.classify = ClassifyConstraintViolations;
+    target.failInsert = [](std::vector<RenderedRow> const& rows, std::size_t) -> std::expected<void, BatchInsertError> {
+        if (std::ranges::any_of(rows, [](RenderedRow const& row) { return row[0] == "2"; }))
+            return std::unexpected { InsertError("23000") };
+        return {};
+    };
+    BatchManager manager(target.Hooks(), IdAndTinyint(false), 10, SqlServerType::SQLITE, "ORDERS");
+
+    manager.PushBatch(IdAndValueBatch({ 1, 2, 3 }, { 5, 6, 7 }));
+    manager.Flush();
+
+    CHECK(target.inserted == std::vector<RenderedRow> { { "1", "5" }, { "3", "7" } });
+    CHECK(target.failures
+          == std::vector<ReportedRowFailure> {
+              { .rowInManager = 2, .sqlState = "23000", .message = "simulated failure", .sampleKey = "2" } });
+    CHECK(manager.SettledRows() == 3);
+}
+
+TEST_CASE("BatchManager: driver-reported failed rows are relative to the slice", "[SqlBackup][BatchManager]")
+{
+    // Row 1 is excluded up front, so the run [2, 5] starts at slice offset 1; the fake reports the
+    // failing ID 4 by its index within the slice it was given.
+    FakeRestoreTarget target;
+    target.classify = ClassifyConstraintViolations;
+    target.failInsert = [](std::vector<RenderedRow> const& rows, std::size_t) -> std::expected<void, BatchInsertError> {
+        auto const failing = std::ranges::find_if(rows, [](RenderedRow const& row) { return row[0] == "4"; });
+        if (failing == rows.end())
+            return {};
+        return std::unexpected { InsertError("23000", { static_cast<std::size_t>(failing - rows.begin()) }) };
+    };
+    BatchManager manager(target.Hooks(), IdAndTinyint(true), 10, SqlServerType::SQLITE, "ORDERS");
+
+    manager.PushBatch(IdAndValueBatch({ 1, 2, 3, 4, 5 }, { 300, 2, 3, 4, 5 }));
+    manager.Flush();
+
+    CHECK(target.inserted == std::vector<RenderedRow> { { "2", "2" }, { "3", "3" }, { "5", "5" } });
+    REQUIRE(target.failures.size() == 2);
+    CHECK(target.failures[0].rowInManager == 1);
+    CHECK(
+        target.failures[1]
+        == ReportedRowFailure { .rowInManager = 4, .sqlState = "23000", .message = "simulated failure", .sampleKey = "4" });
+    // Row 4 was reported by the driver, so no bisection: one failed call and the two runs around it.
+    CHECK(target.insertCalls == 3);
+}
+
+TEST_CASE("BatchManager: PushBatch skips rows but counts them", "[SqlBackup][BatchManager]")
+{
+    FakeRestoreTarget target;
+    target.classify = ClassifyConstraintViolations;
+    target.failInsert = [](std::vector<RenderedRow> const& rows, std::size_t) -> std::expected<void, BatchInsertError> {
+        if (std::ranges::any_of(rows, [](RenderedRow const& row) { return row[0] == "7"; }))
+            return std::unexpected { InsertError("23000") };
+        return {};
+    };
+    // Capacity 4: rows 5-8 are flushed as one batch, rows 9-10 as another.
+    BatchManager manager(target.Hooks(), IdAndTinyint(false), 4, SqlServerType::SQLITE, "ORDERS");
+
+    auto const ids = std::views::iota(int64_t { 1 }, int64_t { 11 }) | std::ranges::to<std::vector>();
+    manager.PushBatch(IdAndValueBatch(ids, ids), 4);
+    manager.Flush();
+
+    CHECK(target.inserted
+          == std::vector<RenderedRow> { { "5", "5" }, { "6", "6" }, { "8", "8" }, { "9", "9" }, { "10", "10" } });
+    REQUIRE(target.failures.size() == 1);
+    CHECK(target.failures[0].rowInManager == 7);
+    CHECK(manager.SettledRows() == 10);
+    CHECK(target.lastSettled == 10);
+}
+
+TEST_CASE("BatchManager: skipping every row of a batch settles them", "[SqlBackup][BatchManager]")
+{
+    FakeRestoreTarget target;
+    BatchManager manager(target.Hooks(), IdAndTinyint(false), 10, SqlServerType::SQLITE, "ORDERS");
+
+    manager.PushBatch(IdAndValueBatch({ 1, 2 }, { 1, 2 }), 5);
+    manager.PushBatch(IdAndValueBatch({ 3, 4 }, { 3, 4 }), 1);
+    manager.Flush();
+
+    CHECK(target.inserted == std::vector<RenderedRow> { { "4", "4" } });
+    CHECK(manager.SettledRows() == 4);
+}
+
+TEST_CASE("BatchManager: SettledRows is the gap-free prefix when an insert error propagates", "[SqlBackup][BatchManager]")
+{
+    FakeRestoreTarget target;
+    target.classify = ClassifyConstraintViolations;
+
+    SECTION("the first insert fails: nothing is settled, not even the excluded last row")
+    {
+        target.failInsert = [](std::vector<RenderedRow> const&, std::size_t) -> std::expected<void, BatchInsertError> {
+            return std::unexpected { InsertError("08S01") };
+        };
+        BatchManager manager(target.Hooks(), IdAndTinyint(true), 100, SqlServerType::SQLITE, "ORDERS");
+        auto const ids = std::views::iota(int64_t { 1 }, int64_t { 11 }) | std::ranges::to<std::vector>();
+        auto values = ids;
+        values.back() = 300;
+        manager.PushBatch(IdAndValueBatch(ids, values));
+
+        CHECK_THROWS_AS(manager.Flush(), SqlException);
+        CHECK(manager.SettledRows() == 0);
+        CHECK(target.lastSettled == std::nullopt);
+        CHECK(target.inserted.empty());
+        CHECK(manager.rowCount == 0);
+    }
+
+    SECTION("a later insert fails after rows 1-5 were committed")
+    {
+        // Rows 1-10 fail as a whole (isolatable), are bisected into 1-5 (committed) and 6-10, which
+        // then fails with a connection error. Row 11 is excluded but lies behind the gap.
+        target.failInsert = [](std::vector<RenderedRow> const&,
+                               std::size_t callIndex) -> std::expected<void, BatchInsertError> {
+            switch (callIndex)
+            {
+                case 0:
+                    return std::unexpected { InsertError("23000") };
+                case 1:
+                    return {};
+                default:
+                    return std::unexpected { InsertError("08S01") };
+            }
+        };
+        BatchManager manager(target.Hooks(), IdAndTinyint(true), 100, SqlServerType::SQLITE, "ORDERS");
+        auto const ids = std::views::iota(int64_t { 1 }, int64_t { 12 }) | std::ranges::to<std::vector>();
+        auto values = ids;
+        values.back() = 300;
+        manager.PushBatch(IdAndValueBatch(ids, values));
+
+        CHECK_THROWS_AS(manager.Flush(), SqlException);
+        CHECK(manager.SettledRows() == 5);
+        CHECK(target.lastSettled == 5);
+        CHECK(target.inserted.size() == 5);
+        CHECK(target.failures.empty());
+    }
+}
+
+TEST_CASE("BatchManager: rows pushed after a failed flush keep their row numbers but not the watermark",
+          "[SqlBackup][BatchManager]")
+{
+    FakeRestoreTarget target;
+    target.classify = ClassifyConstraintViolations;
+    target.failInsert = [](std::vector<RenderedRow> const&, std::size_t callIndex) -> std::expected<void, BatchInsertError> {
+        if (callIndex == 0)
+            return std::unexpected { InsertError("08S01") };
+        return {};
+    };
+    BatchManager manager(target.Hooks(), IdAndTinyint(true), 100, SqlServerType::SQLITE, "ORDERS");
+    manager.PushBatch(IdAndValueBatch({ 1, 2 }, { 1, 2 }));
+    CHECK_THROWS_AS(manager.Flush(), SqlException);
+
+    manager.PushBatch(IdAndValueBatch({ 3, 4 }, { 300, 4 }));
+    manager.Flush();
+
+    REQUIRE(target.failures.size() == 1);
+    CHECK(target.failures[0].rowInManager == 3);
+    CHECK(target.inserted == std::vector<RenderedRow> { { "4", "4" } });
+    // Rows 1 and 2 were never settled, so the watermark cannot pass them.
+    CHECK(manager.SettledRows() == 0);
+}
+
+TEST_CASE("BatchManager: a row without a primary key is named by all its columns", "[SqlBackup][BatchManager]")
+{
+    using namespace SqlColumnTypeDefinitions;
+    FakeRestoreTarget target;
+    BatchManager manager(
+        target.Hooks(),
+        { { .name = "NAME", .type = Varchar { .size = 300 } }, { .name = "T", .type = Tinyint {}, .required = true } },
+        10,
+        SqlServerType::SQLITE,
+        "ORDERS");
+
+    manager.PushRow({ std::string("alice"), int64_t { 300 } });
+    manager.PushRow({ std::string(250, 'x'), int64_t { 301 } });
+    manager.Flush();
+
+    REQUIRE(target.failures.size() == 2);
+    CHECK(target.failures[0].sampleKey == "alice, NULL");
+    // Cut to 200 characters.
+    CHECK(target.failures[1].sampleKey == std::string(200, 'x'));
+}
+
+TEST_CASE("BatchManager: the executor constructor propagates the executor's exception", "[SqlBackup][BatchManager]")
+{
+    BatchManager manager([](std::vector<SqlRawColumn> const&, size_t) { throw std::logic_error("executor failed"); },
+                         IdAndTinyint(false),
+                         10,
+                         SqlServerType::SQLITE);
+    manager.PushRow({ int64_t { 1 }, int64_t { 5 } });
+    CHECK_THROWS_AS(manager.Flush(), std::logic_error);
+    CHECK(manager.rowCount == 0);
+    CHECK(manager.SettledRows() == 0);
+}
+
+TEST_CASE("BatchManager: a nulled cell of a row excluded for a NOT NULL value is not reported as nulled",
+          "[SqlBackup][BatchManager]")
+{
+    using namespace SqlColumnTypeDefinitions;
+    FakeRestoreTarget target;
+    BatchManager manager(target.Hooks(),
+                         { { .name = "ID", .type = Integer {}, .primaryKey = SqlPrimaryKeyType::MANUAL, .required = true },
+                           { .name = "N", .type = Tinyint {} },
+                           { .name = "R", .type = Tinyint {}, .required = true } },
+                         10,
+                         SqlServerType::SQLITE,
+                         "ORDERS");
+
+    manager.PushRow({ int64_t { 1 }, int64_t { 300 }, int64_t { 301 } });
+    manager.Flush();
+
+    CHECK(target.nulledCells.empty());
+    REQUIRE(target.failures.size() == 1);
+    CHECK(target.failures[0].message == "column 'R': 301 is not a valid tinyint");
+    CHECK(target.inserted.empty());
+}
+
+TEST_CASE("BatchManager: a nulled cell of a row the database rejects is not reported as nulled", "[SqlBackup][BatchManager]")
+{
+    FakeRestoreTarget target;
+    target.classify = ClassifyConstraintViolations;
+    target.failInsert = [](std::vector<RenderedRow> const& rows, std::size_t) -> std::expected<void, BatchInsertError> {
+        if (std::ranges::any_of(rows, [](RenderedRow const& row) { return row[0] == "2"; }))
+            return std::unexpected { InsertError("23000") };
+        return {};
+    };
+    BatchManager manager(target.Hooks(), IdAndTinyint(false), 10, SqlServerType::SQLITE, "ORDERS");
+
+    manager.PushBatch(IdAndValueBatch({ 1, 2, 3 }, { 300, 301, 7 }));
+    manager.Flush();
+
+    CHECK(target.inserted == std::vector<RenderedRow> { { "1", "NULL" }, { "3", "7" } });
+    // Only row 1's cell reached the database as NULL.
+    CHECK(target.nulledCells == std::vector<std::pair<std::string, std::string>> { { "T", "300 is not a valid tinyint" } });
+    REQUIRE(target.failures.size() == 1);
+    CHECK(target.failures[0].rowInManager == 2);
+}
+
+TEST_CASE("BatchManager: a nulled cell is reported once across a retry from SettledRows", "[SqlBackup][BatchManager]")
+{
+    FakeRestoreTarget target;
+    target.classify = ClassifyConstraintViolations;
+    target.failInsert = [](std::vector<RenderedRow> const&, std::size_t callIndex) -> std::expected<void, BatchInsertError> {
+        if (callIndex == 0)
+            return std::unexpected { InsertError("08S01") };
+        return {};
+    };
+    auto const batch = IdAndValueBatch({ 1, 2, 3 }, { 5, 300, 7 });
+
+    auto settled = std::size_t { 0 };
+    {
+        BatchManager manager(target.Hooks(), IdAndTinyint(false), 10, SqlServerType::SQLITE, "ORDERS");
+        manager.PushBatch(batch);
+        CHECK_THROWS_AS(manager.Flush(), SqlException);
+        settled = manager.SettledRows();
+    }
+    CHECK(settled == 0);
+    CHECK(target.nulledCells.empty());
+
+    BatchManager retry(target.Hooks(), IdAndTinyint(false), 10, SqlServerType::SQLITE, "ORDERS");
+    retry.PushBatch(batch, settled);
+    retry.Flush();
+
+    CHECK(target.inserted == std::vector<RenderedRow> { { "1", "5" }, { "2", "NULL" }, { "3", "7" } });
+    CHECK(target.nulledCells == std::vector<std::pair<std::string, std::string>> { { "T", "300 is not a valid tinyint" } });
+}
+
+TEST_CASE("BatchManager: a row with two bad NOT NULL values is reported once, with the first", "[SqlBackup][BatchManager]")
+{
+    using namespace SqlColumnTypeDefinitions;
+    FakeRestoreTarget target;
+    BatchManager manager(target.Hooks(),
+                         { { .name = "ID", .type = Integer {}, .primaryKey = SqlPrimaryKeyType::MANUAL, .required = true },
+                           { .name = "A", .type = Tinyint {}, .required = true },
+                           { .name = "B", .type = Tinyint {}, .required = true } },
+                         10,
+                         SqlServerType::SQLITE,
+                         "ORDERS");
+
+    manager.PushRow({ int64_t { 1 }, int64_t { 300 }, int64_t { 301 } });
+    manager.PushRow({ int64_t { 2 }, int64_t { 3 }, int64_t { 4 } });
+    manager.Flush();
+
+    CHECK(
+        target.failures
+        == std::vector<ReportedRowFailure> {
+            { .rowInManager = 1, .sqlState = "", .message = "column 'A': 300 is not a valid tinyint", .sampleKey = "1" } });
+    CHECK(target.inserted == std::vector<RenderedRow> { { "2", "3", "4" } });
+}
+
+TEST_CASE("BatchManager: a bad value in a later capacity piece of one PushBatch lands in its own row",
+          "[SqlBackup][BatchManager]")
+{
+    SECTION("NOT NULL: the row is excluded")
+    {
+        FakeRestoreTarget target;
+        BatchManager manager(target.Hooks(), IdAndTinyint(true), 2, SqlServerType::SQLITE, "ORDERS");
+        manager.PushBatch(IdAndValueBatch({ 1, 2, 3, 4, 5 }, { 1, 2, 3, 300, 5 }));
+        manager.Flush();
+
+        CHECK(target.inserted == std::vector<RenderedRow> { { "1", "1" }, { "2", "2" }, { "3", "3" }, { "5", "5" } });
+        REQUIRE(target.failures.size() == 1);
+        CHECK(target.failures[0].rowInManager == 4);
+        CHECK(target.failures[0].sampleKey == "4");
+        CHECK(manager.SettledRows() == 5);
+    }
+    SECTION("nullable: the cell is NULL")
+    {
+        FakeRestoreTarget target;
+        BatchManager manager(target.Hooks(), IdAndTinyint(false), 2, SqlServerType::SQLITE, "ORDERS");
+        manager.PushBatch(IdAndValueBatch({ 1, 2, 3, 4, 5 }, { 1, 2, 3, 300, 5 }));
+        manager.Flush();
+
+        CHECK(target.inserted
+              == std::vector<RenderedRow> { { "1", "1" }, { "2", "2" }, { "3", "3" }, { "4", "NULL" }, { "5", "5" } });
+        CHECK(target.nulledCells.size() == 1);
     }
 }
