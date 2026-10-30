@@ -147,6 +147,7 @@ set(SOURCE_FILES
     SqlBackup/SqlBackupCompositeFKTests.cpp
     SqlBackup/SqlBackupIndexTests.cpp
     SqlBackup/ProductionReadinessTests.cpp
+    SqlBackup/BoolColumnTests.cpp
     dbtool/StandardProgressManagerTests.cpp
     dbtool/BackupDiffTests.cpp
     dbtool/BackupRequirementReportTests.cpp

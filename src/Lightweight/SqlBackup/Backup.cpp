@@ -17,14 +17,18 @@
 #include "SqlBackupFormats.hpp"
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cstring>
 #include <format>
 #include <fstream>
 #include <limits>
+#include <optional>
 #include <print>
 #include <ranges>
 #include <stdexcept>
+#include <string_view>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -319,6 +323,31 @@ std::optional<std::pair<int64_t, int64_t>> QueryPkBounds(SqlStatement& stmt,
     return std::string { reinterpret_cast<char const*>(utf8.data()), utf8.size() };
 }
 
+// Reads a Bool cell from the bulk RowArrayCursor path however the driver described the column.
+// Drivers that report BOOLEAN/BIT as SQL_BIT get it bound as int64 (0/1). psqlODBC with its default
+// BoolsAsChar=1 reports BOOLEAN as SQL_VARCHAR instead, so the cell is bound as text holding the
+// driver's character rendering of the value. Both decode to the bool the single-row SQL_C_BIT read
+// produces; text that is not a known boolean spelling is rejected rather than guessed at.
+std::optional<bool> ReadBatchedBool(RowArrayCursor const& cursor, std::size_t rowInBatch, SQLUSMALLINT column)
+{
+    if (cursor.ColumnBoundType(column) == RowArrayCursor::BoundType::Int64)
+        return cursor.GetI64(rowInBatch, column).transform([](int64_t v) { return v != 0; });
+
+    // psqlODBC renders booleans as "1"/"0" ("-1" for true with TrueIsMinus1=1); the remaining
+    // spellings are PostgreSQL's own text output for the type.
+    using Spelling = std::pair<std::string_view, bool>;
+    static constexpr auto BoolSpellings = std::array {
+        Spelling { "1", true },  Spelling { "-1", true }, Spelling { "t", true },      Spelling { "true", true },
+        Spelling { "0", false }, Spelling { "f", false }, Spelling { "false", false },
+    };
+    return cursor.GetString(rowInBatch, column).transform([](std::string const& text) {
+        for (auto const& [spelling, value]: BoolSpellings)
+            if (spelling == text)
+                return value;
+        throw std::runtime_error(std::format("Bool column holds the non-boolean text '{}'", text));
+    });
+}
+
 // Decodes one column cell of the current row from the single-row (SqlResultCursor) path into the
 // BackupValue variant. Extracted from ProcessChunkBackup's per-row lambda so that decode ladder is
 // not inlined into the lambda (keeping the lambda's cognitive complexity bounded). The branch order
@@ -408,9 +437,9 @@ BackupValue DecodeBatchedColumn(RowArrayCursor& cursor,
     };
 
     if (std::holds_alternative<Bool>(colDef.type))
-        // The array cursor binds Bool as int64 (0/1); cast to bool so the variant alternative (and
-        // thus the serialized bytes) matches the single-row path.
-        return orNull(cursor.GetI64(r, i), [](int64_t v) -> BackupValue { return static_cast<bool>(v); });
+        // Decode to bool so the variant alternative (and thus the serialized bytes) matches the
+        // single-row path, whether the driver bound the column as int64 or as text.
+        return orNull(ReadBatchedBool(cursor, r, i), [](bool v) -> BackupValue { return v; });
     if (std::holds_alternative<Integer>(colDef.type) || std::holds_alternative<Bigint>(colDef.type)
         || std::holds_alternative<Smallint>(colDef.type) || std::holds_alternative<Tinyint>(colDef.type))
         return orNull(cursor.GetI64(r, i), [](int64_t v) -> BackupValue { return v; });
