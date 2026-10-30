@@ -254,6 +254,9 @@ virtual <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.h
 <tr class="memitem:ac31747a66913dd0df3a4cbfc35997fcd" id="r_ac31747a66913dd0df3a4cbfc35997fcd"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ac31747a66913dd0df3a4cbfc35997fcd">ParameterStatusIdentifiesFailedRows</a> () const noexcept</td></tr>
 <tr class="memdesc:ac31747a66913dd0df3a4cbfc35997fcd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether the driver's parameter status array names exactly the parameter sets that failed when a batch (parameter array) execution fails.  <br /></td></tr>
 <tr class="separator:ac31747a66913dd0df3a4cbfc35997fcd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a71e6c5911a51109f735fe766680ff410" id="r_a71e6c5911a51109f735fe766680ff410"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a71e6c5911a51109f735fe766680ff410">BoundsBulkLoadTransactionSize</a> () const noexcept</td></tr>
+<tr class="memdesc:a71e6c5911a51109f735fe766680ff410"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether a bulk load should commit periodically rather than hold all its rows in one transaction.  <br /></td></tr>
+<tr class="separator:a71e6c5911a51109f735fe766680ff410"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -1319,6 +1322,37 @@ template&lt;typename Range &gt; </div>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if the rows marked <code>SQL_PARAM_ERROR</code> may be trusted to be the failing ones. </dd></dl>
 
 <p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00434">434</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a71e6c5911a51109f735fe766680ff410" name="a71e6c5911a51109f735fe766680ff410"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a71e6c5911a51109f735fe766680ff410">&#9670;&#160;</a></span>BoundsBulkLoadTransactionSize()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual bool Lightweight::SqlQueryFormatter::BoundsBulkLoadTransactionSize </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Whether a bulk load should commit periodically rather than hold all its rows in one transaction. </p>
+<p>Defaults to <code>false</code>. SQLite returns <code>true</code>: its write-ahead log grows with the open transaction, so a restore commits every <code>RestoreSettings::maxRowsPerCommit</code> rows of a chunk.</p>
+<dl class="section return"><dt>Returns</dt><dd><code>true</code> if a bulk load bounds the rows per transaction. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00446">446</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>

@@ -105,6 +105,12 @@ $(document).ready(function(){initNavTree('d7/d8f/structLightweight_1_1SqlBackup_
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
+<tr class="memitem:a422627996645b60439cf9d156b24b753" id="r_a422627996645b60439cf9d156b24b753"><td class="memItemLeft" align="right" valign="top">std::uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html#a422627996645b60439cf9d156b24b753">TotalFailedRows</a> () const noexcept</td></tr>
+<tr class="separator:a422627996645b60439cf9d156b24b753"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a53b7165da3018d404c84fa19cab55d80" id="r_a53b7165da3018d404c84fa19cab55d80"><td class="memItemLeft" align="right" valign="top">std::uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html#a53b7165da3018d404c84fa19cab55d80">NulledCellCount</a> () const noexcept</td></tr>
+<tr class="separator:a53b7165da3018d404c84fa19cab55d80"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae796e20258b1a97854151211d71cc52c" id="r_ae796e20258b1a97854151211d71cc52c"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html#ae796e20258b1a97854151211d71cc52c">WorkerStopped</a> () const noexcept</td></tr>
+<tr class="separator:ae796e20258b1a97854151211d71cc52c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac3cede377b176e4b088fbd86006943e6" id="r_ac3cede377b176e4b088fbd86006943e6"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html#ac3cede377b176e4b088fbd86006943e6">HasFailures</a> () const noexcept</td></tr>
 <tr class="separator:ac3cede377b176e4b088fbd86006943e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -113,14 +119,8 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:ab175ec8891edf5da543ec67ec6bd78ad" id="r_ab175ec8891edf5da543ec67ec6bd78ad"><td class="memItemLeft" align="right" valign="top">std::vector&lt; <a class="el" href="../../d7/d37/structLightweight_1_1SqlBackup_1_1TableRestoreReport.html">TableRestoreReport</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html#ab175ec8891edf5da543ec67ec6bd78ad">tables</a></td></tr>
 <tr class="memdesc:ab175ec8891edf5da543ec67ec6bd78ad"><td class="mdescLeft">&#160;</td><td class="mdescRight">Only tables with failures, sorted by tableName.  <br /></td></tr>
 <tr class="separator:ab175ec8891edf5da543ec67ec6bd78ad"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a52d9a2f7bc137d60329341075025e3da" id="r_a52d9a2f7bc137d60329341075025e3da"><td class="memItemLeft" align="right" valign="top">std::uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html#a52d9a2f7bc137d60329341075025e3da">totalFailedRows</a> {}</td></tr>
-<tr class="memdesc:a52d9a2f7bc137d60329341075025e3da"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sum of failedRowCount over all tables.  <br /></td></tr>
-<tr class="separator:a52d9a2f7bc137d60329341075025e3da"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a49c790857267f97ab6da3c97f2219ecd" id="r_a49c790857267f97ab6da3c97f2219ecd"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html#a49c790857267f97ab6da3c97f2219ecd">workerStopped</a> {}</td></tr>
-<tr class="memdesc:a49c790857267f97ab6da3c97f2219ecd"><td class="mdescLeft">&#160;</td><td class="mdescRight">True if a worker stopped early.  <br /></td></tr>
-<tr class="separator:a49c790857267f97ab6da3c97f2219ecd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3f72469fb9e727496021899d870ac37d" id="r_a3f72469fb9e727496021899d870ac37d"><td class="memItemLeft" align="right" valign="top">std::vector&lt; std::string &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html#a3f72469fb9e727496021899d870ac37d">incompleteTables</a></td></tr>
-<tr class="memdesc:a3f72469fb9e727496021899d870ac37d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Chunks left unprocessed by a stopped worker.  <br /></td></tr>
+<tr class="memdesc:a3f72469fb9e727496021899d870ac37d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Tables with chunks left unprocessed by a stopped worker.  <br /></td></tr>
 <tr class="separator:a3f72469fb9e727496021899d870ac37d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4698dffd993e3ecbe48d8383bba08067" id="r_a4698dffd993e3ecbe48d8383bba08067"><td class="memItemLeft" align="right" valign="top">std::uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html#a4698dffd993e3ecbe48d8383bba08067">unattributedChunkErrors</a> {}</td></tr>
 <tr class="memdesc:a4698dffd993e3ecbe48d8383bba08067"><td class="mdescLeft">&#160;</td><td class="mdescRight">Unreadable archive entries no table could be named for.  <br /></td></tr>
@@ -129,8 +129,98 @@ Public Attributes</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Bounded failure report of a whole restore. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00507">507</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00540">540</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
+<a id="a422627996645b60439cf9d156b24b753" name="a422627996645b60439cf9d156b24b753"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a422627996645b60439cf9d156b24b753">&#9670;&#160;</a></span>TotalFailedRows()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::uint64_t Lightweight::SqlBackup::RestoreReport::TotalFailedRows </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<dl class="section return"><dt>Returns</dt><dd>The sum of <a class="el" href="../../d7/d37/structLightweight_1_1SqlBackup_1_1TableRestoreReport.html#a4596d9f80ca2455d7a1818a9d7c943bc">TableRestoreReport::failedRowCount</a> over all tables. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00550">550</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+
+<p class="reference">References <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00543">tables</a>.</p>
+
+</div>
+</div>
+<a id="a53b7165da3018d404c84fa19cab55d80" name="a53b7165da3018d404c84fa19cab55d80"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a53b7165da3018d404c84fa19cab55d80">&#9670;&#160;</a></span>NulledCellCount()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::uint64_t Lightweight::SqlBackup::RestoreReport::NulledCellCount </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<dl class="section return"><dt>Returns</dt><dd>The sum of <a class="el" href="../../d7/d37/structLightweight_1_1SqlBackup_1_1TableRestoreReport.html#a86d758d3682c372e0868e019f4890dbb">TableRestoreReport::NulledCellCount()</a> over all tables. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00559">559</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+
+<p class="reference">References <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00543">tables</a>.</p>
+
+</div>
+</div>
+<a id="ae796e20258b1a97854151211d71cc52c" name="ae796e20258b1a97854151211d71cc52c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae796e20258b1a97854151211d71cc52c">&#9670;&#160;</a></span>WorkerStopped()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool Lightweight::SqlBackup::RestoreReport::WorkerStopped </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<dl class="section return"><dt>Returns</dt><dd>true if a worker stopped early, leaving tables incomplete. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00568">568</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+
+<p class="reference">References <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00545">incompleteTables</a>.</p>
+
+</div>
+</div>
 <a id="ac3cede377b176e4b088fbd86006943e6" name="ac3cede377b176e4b088fbd86006943e6"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ac3cede377b176e4b088fbd86006943e6">&#9670;&#160;</a></span>HasFailures()</h2>
 
@@ -155,9 +245,9 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <dl class="section return"><dt>Returns</dt><dd>true if anything failed during the restore. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00521">521</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00574">574</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00516">incompleteTables</a>, <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00510">tables</a>, <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00518">unattributedChunkErrors</a>, and <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00514">workerStopped</a>.</p>
+<p class="reference">References <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00545">incompleteTables</a>, <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00543">tables</a>, and <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00547">unattributedChunkErrors</a>.</p>
 
 </div>
 </div>
@@ -176,47 +266,9 @@ Public Attributes</h2></td></tr>
 
 <p>Only tables with failures, sorted by tableName. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00510">510</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00543">543</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00521">HasFailures()</a>.</p>
-
-</div>
-</div>
-<a id="a52d9a2f7bc137d60329341075025e3da" name="a52d9a2f7bc137d60329341075025e3da"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a52d9a2f7bc137d60329341075025e3da">&#9670;&#160;</a></span>totalFailedRows</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">std::uint64_t Lightweight::SqlBackup::RestoreReport::totalFailedRows {}</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Sum of failedRowCount over all tables. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00512">512</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
-
-</div>
-</div>
-<a id="a49c790857267f97ab6da3c97f2219ecd" name="a49c790857267f97ab6da3c97f2219ecd"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a49c790857267f97ab6da3c97f2219ecd">&#9670;&#160;</a></span>workerStopped</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">bool Lightweight::SqlBackup::RestoreReport::workerStopped {}</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>True if a worker stopped early. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00514">514</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
-
-<p class="reference">Referenced by <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00521">HasFailures()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00574">HasFailures()</a>, <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00559">NulledCellCount()</a>, and <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00550">TotalFailedRows()</a>.</p>
 
 </div>
 </div>
@@ -232,11 +284,11 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Chunks left unprocessed by a stopped worker. </p>
+<p>Tables with chunks left unprocessed by a stopped worker. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00516">516</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00545">545</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00521">HasFailures()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00574">HasFailures()</a>, and <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00568">WorkerStopped()</a>.</p>
 
 </div>
 </div>
@@ -254,9 +306,9 @@ Public Attributes</h2></td></tr>
 
 <p>Unreadable archive entries no table could be named for. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00518">518</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00547">547</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00521">HasFailures()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00574">HasFailures()</a>.</p>
 
 </div>
 </div>

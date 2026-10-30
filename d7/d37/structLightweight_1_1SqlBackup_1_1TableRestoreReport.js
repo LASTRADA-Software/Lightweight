@@ -1,6 +1,8 @@
 var structLightweight_1_1SqlBackup_1_1TableRestoreReport =
 [
     [ "HasFailures", "d7/d37/structLightweight_1_1SqlBackup_1_1TableRestoreReport.html#a8a4532783b7f2533ee0abbff7f804020", null ],
+    [ "NulledCellCount", "d7/d37/structLightweight_1_1SqlBackup_1_1TableRestoreReport.html#a86d758d3682c372e0868e019f4890dbb", null ],
+    [ "FailureSummary", "d7/d37/structLightweight_1_1SqlBackup_1_1TableRestoreReport.html#a1b5eeeb1042d9c0ce8bd66bc989229bd", null ],
     [ "tableName", "d7/d37/structLightweight_1_1SqlBackup_1_1TableRestoreReport.html#a356a2c81e9b00919efb139a42aee6c81", null ],
     [ "failedRowCount", "d7/d37/structLightweight_1_1SqlBackup_1_1TableRestoreReport.html#a4596d9f80ca2455d7a1818a9d7c943bc", null ],
     [ "failedRowRanges", "d7/d37/structLightweight_1_1SqlBackup_1_1TableRestoreReport.html#a827c02cf82dbd9acbd8b06482e871245", null ],

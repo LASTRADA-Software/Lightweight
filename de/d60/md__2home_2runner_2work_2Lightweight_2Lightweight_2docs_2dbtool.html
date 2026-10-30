@@ -552,7 +552,7 @@ restore</h2>
 <div class="line">    data/ORDERS/0002_00.msgpack rows 4–5</div>
 <div class="line">    2 x 23000 duplicate key (e.g. key 7)</div>
 <div class="line">    column NOTE: 3 cells set to NULL (not a valid number)</div>
-<div class="line">Total: 2 rows failed in 1 tables, 3 cells set to NULL</div>
+<div class="line">Total: 2 rows failed in 1 table, 3 cells set to NULL</div>
 </div><!-- fragment --><p>The block is bounded: at most 100 row ranges and 20 reasons are kept per table, and failures beyond that are only counted ("... and N more"). It is absent when everything was restored.</p>
 <p><b>Exit code.</b> <code>dbtool restore</code> exits non-zero when anything failed: a failed row, a value restored as NULL, a failed table, an unreadable chunk, a stopped worker, or a restore refused before it moved any data (which prints its error but no failure block). A failed table may be left partly restored: each chunk is its own transaction, so chunks of the table that were restored before the failing one (or, with <code>--jobs</code> above 1, at the same time by other workers) stay. A chunk in which a row failed is rolled back and replayed batch by batch, each batch committing on its own, so the batches of the failing chunk committed before the table failed stay too. No <code>restore</code> record is written to <code>schema_backups</code> for a restore that failed.</p>
 <h2><a class="anchor" id="backup-diff"></a>

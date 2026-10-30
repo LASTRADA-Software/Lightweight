@@ -1,5 +1,10 @@
 var NAVTREEINDEX10 =
 {
+"index.html#features":[0,0],
+"index.html#foreign-keys-relation":[0,6,1],
+"index.html#generate-example-for-the-existing-database":[0,11],
+"index.html#high-level-api":[0,6],
+"index.html#known-limitations":[0,4],
 "index.html#mapping-query-results-to-a-simple-struct":[0,6,2],
 "index.html#mapping-query-to-multiple-struct":[0,6,3],
 "index.html#namespace":[0,5],

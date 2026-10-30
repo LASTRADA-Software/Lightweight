@@ -108,7 +108,7 @@ Public Attributes</h2></td></tr>
 <tr class="memdesc:a2699fee0b473cfd93b19c21ffa720444"><td class="mdescLeft">&#160;</td><td class="mdescRight">SQLSTATE reported by the driver (may be empty).  <br /></td></tr>
 <tr class="separator:a2699fee0b473cfd93b19c21ffa720444"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a87a52ecaa3fd91aec37a9eb61b035fdb" id="r_a87a52ecaa3fd91aec37a9eb61b035fdb"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d87/structLightweight_1_1SqlBackup_1_1FailureReason.html#a87a52ecaa3fd91aec37a9eb61b035fdb">message</a></td></tr>
-<tr class="memdesc:a87a52ecaa3fd91aec37a9eb61b035fdb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Message of the first occurrence.  <br /></td></tr>
+<tr class="memdesc:a87a52ecaa3fd91aec37a9eb61b035fdb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Message of the first occurrence, cut to at most 200 bytes (at a UTF-8 character boundary).  <br /></td></tr>
 <tr class="separator:a87a52ecaa3fd91aec37a9eb61b035fdb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9cafee3b39b4d0169fce446c4c2ec338" id="r_a9cafee3b39b4d0169fce446c4c2ec338"><td class="memItemLeft" align="right" valign="top">std::uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d87/structLightweight_1_1SqlBackup_1_1FailureReason.html#a9cafee3b39b4d0169fce446c4c2ec338">occurrences</a> {}</td></tr>
 <tr class="memdesc:a9cafee3b39b4d0169fce446c4c2ec338"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of failures sharing this reason.  <br /></td></tr>
@@ -120,7 +120,7 @@ Public Attributes</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>One distinct failure cause of a table, with its occurrence count. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00453">453</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00466">466</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="a2699fee0b473cfd93b19c21ffa720444" name="a2699fee0b473cfd93b19c21ffa720444"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a2699fee0b473cfd93b19c21ffa720444">&#9670;&#160;</a></span>sqlState</h2>
@@ -136,7 +136,7 @@ Public Attributes</h2></td></tr>
 
 <p>SQLSTATE reported by the driver (may be empty). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00456">456</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00469">469</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>
@@ -152,9 +152,9 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Message of the first occurrence. </p>
+<p>Message of the first occurrence, cut to at most 200 bytes (at a UTF-8 character boundary). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00458">458</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00471">471</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>
@@ -172,7 +172,7 @@ Public Attributes</h2></td></tr>
 
 <p>Number of failures sharing this reason. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00460">460</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00473">473</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>
@@ -190,7 +190,7 @@ Public Attributes</h2></td></tr>
 
 <p>A few example row keys (at most MaxSampleKeysPerReason). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00462">462</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00475">475</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>

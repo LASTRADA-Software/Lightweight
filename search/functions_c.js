@@ -9,7 +9,8 @@ var searchData=
   ['not_6',['Not',['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a70eca9201efb0d7311b20cef6ef4db34',1,'Lightweight::SqlWhereClauseBuilder']]],
   ['now_7',['Now',['../d6/dfa/structLightweight_1_1SqlDateTime.html#a1fda36e61fa3eed7869cda1f456ee27a',1,'Lightweight::SqlDateTime']]],
   ['nowutc_8',['NowUTC',['../d6/dfa/structLightweight_1_1SqlDateTime.html#ab39a3e35e5b4cbffe0dfb0c377bd287d',1,'Lightweight::SqlDateTime']]],
-  ['nulllogger_9',['NullLogger',['../db/dfd/classLightweight_1_1SqlLogger.html#a2bf0dba43c73124eba0f6b0a01ce82b5',1,'Lightweight::SqlLogger']]],
-  ['numcolumnsaffected_10',['NumColumnsAffected',['../d8/d63/classLightweight_1_1SqlResultCursor.html#ab38c77d3ca09d4546ea738da8e859d8c',1,'Lightweight::SqlResultCursor']]],
-  ['numrowsaffected_11',['NumRowsAffected',['../d8/d63/classLightweight_1_1SqlResultCursor.html#ac429ba6642b47cb29ff6cdab7d5a3586',1,'Lightweight::SqlResultCursor']]]
+  ['nulledcellcount_9',['nulledcellcount',['../d7/d37/structLightweight_1_1SqlBackup_1_1TableRestoreReport.html#a86d758d3682c372e0868e019f4890dbb',1,'Lightweight::SqlBackup::TableRestoreReport::NulledCellCount()'],['../d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html#a53b7165da3018d404c84fa19cab55d80',1,'Lightweight::SqlBackup::RestoreReport::NulledCellCount()']]],
+  ['nulllogger_10',['NullLogger',['../db/dfd/classLightweight_1_1SqlLogger.html#a2bf0dba43c73124eba0f6b0a01ce82b5',1,'Lightweight::SqlLogger']]],
+  ['numcolumnsaffected_11',['NumColumnsAffected',['../d8/d63/classLightweight_1_1SqlResultCursor.html#ab38c77d3ca09d4546ea738da8e859d8c',1,'Lightweight::SqlResultCursor']]],
+  ['numrowsaffected_12',['NumRowsAffected',['../d8/d63/classLightweight_1_1SqlResultCursor.html#ac429ba6642b47cb29ff6cdab7d5a3586',1,'Lightweight::SqlResultCursor']]]
 ];

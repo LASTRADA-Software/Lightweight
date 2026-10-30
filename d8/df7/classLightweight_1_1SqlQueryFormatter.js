@@ -43,5 +43,6 @@ var classLightweight_1_1SqlQueryFormatter =
     [ "HasNativeGuidType", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#ac4f270e7cf43e618714be9d812aa2fd9", null ],
     [ "ComparesFixedCharWithPadSemantics", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#afc290a0d92f83f5125f2d738f9c7b5f9", null ],
     [ "FoldUnquotedIdentifier", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#afb75f0c0a2d379bdc2ee9711cad748ec", null ],
-    [ "ParameterStatusIdentifiesFailedRows", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#ac31747a66913dd0df3a4cbfc35997fcd", null ]
+    [ "ParameterStatusIdentifiesFailedRows", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#ac31747a66913dd0df3a4cbfc35997fcd", null ],
+    [ "BoundsBulkLoadTransactionSize", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a71e6c5911a51109f735fe766680ff410", null ]
 ];

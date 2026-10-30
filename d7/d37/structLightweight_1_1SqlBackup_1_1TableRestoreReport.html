@@ -107,6 +107,10 @@ $(document).ready(function(){initNavTree('d7/d37/structLightweight_1_1SqlBackup_
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a8a4532783b7f2533ee0abbff7f804020" id="r_a8a4532783b7f2533ee0abbff7f804020"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d37/structLightweight_1_1SqlBackup_1_1TableRestoreReport.html#a8a4532783b7f2533ee0abbff7f804020">HasFailures</a> () const noexcept</td></tr>
 <tr class="separator:a8a4532783b7f2533ee0abbff7f804020"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a86d758d3682c372e0868e019f4890dbb" id="r_a86d758d3682c372e0868e019f4890dbb"><td class="memItemLeft" align="right" valign="top">std::uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d37/structLightweight_1_1SqlBackup_1_1TableRestoreReport.html#a86d758d3682c372e0868e019f4890dbb">NulledCellCount</a> () const noexcept</td></tr>
+<tr class="separator:a86d758d3682c372e0868e019f4890dbb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1b5eeeb1042d9c0ce8bd66bc989229bd" id="r_a1b5eeeb1042d9c0ce8bd66bc989229bd"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d37/structLightweight_1_1SqlBackup_1_1TableRestoreReport.html#a1b5eeeb1042d9c0ce8bd66bc989229bd">FailureSummary</a> () const</td></tr>
+<tr class="separator:a1b5eeeb1042d9c0ce8bd66bc989229bd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
@@ -114,7 +118,6 @@ Public Attributes</h2></td></tr>
 <tr class="memdesc:a356a2c81e9b00919efb139a42aee6c81"><td class="mdescLeft">&#160;</td><td class="mdescRight">Name of the table.  <br /></td></tr>
 <tr class="separator:a356a2c81e9b00919efb139a42aee6c81"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4596d9f80ca2455d7a1818a9d7c943bc" id="r_a4596d9f80ca2455d7a1818a9d7c943bc"><td class="memItemLeft" align="right" valign="top">std::uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d37/structLightweight_1_1SqlBackup_1_1TableRestoreReport.html#a4596d9f80ca2455d7a1818a9d7c943bc">failedRowCount</a> {}</td></tr>
-<tr class="memdesc:a4596d9f80ca2455d7a1818a9d7c943bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Total number of rows that failed to restore.  <br /></td></tr>
 <tr class="separator:a4596d9f80ca2455d7a1818a9d7c943bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a827c02cf82dbd9acbd8b06482e871245" id="r_a827c02cf82dbd9acbd8b06482e871245"><td class="memItemLeft" align="right" valign="top">std::vector&lt; <a class="el" href="../../d5/d96/structLightweight_1_1SqlBackup_1_1FailedRowRange.html">FailedRowRange</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d37/structLightweight_1_1SqlBackup_1_1TableRestoreReport.html#a827c02cf82dbd9acbd8b06482e871245">failedRowRanges</a></td></tr>
 <tr class="memdesc:a827c02cf82dbd9acbd8b06482e871245"><td class="mdescLeft">&#160;</td><td class="mdescRight">Ranges of failed rows, capped at MaxReportedRowRanges.  <br /></td></tr>
@@ -141,7 +144,7 @@ Public Attributes</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Bounded failure report for one table. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00477">477</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00490">490</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="a8a4532783b7f2533ee0abbff7f804020" name="a8a4532783b7f2533ee0abbff7f804020"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a8a4532783b7f2533ee0abbff7f804020">&#9670;&#160;</a></span>HasFailures()</h2>
@@ -167,9 +170,71 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <dl class="section return"><dt>Returns</dt><dd>true if anything failed for this table. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00499">499</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00514">514</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00482">failedRowCount</a>, <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00484">failedRowRanges</a>, <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00494">tableFailure</a>, <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00496">unreadableChunks</a>, and <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00492">valueFailures</a>.</p>
+<p class="reference">References <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00497">failedRowCount</a>, <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00499">failedRowRanges</a>, <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00509">tableFailure</a>, <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00511">unreadableChunks</a>, and <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00507">valueFailures</a>.</p>
+
+</div>
+</div>
+<a id="a86d758d3682c372e0868e019f4890dbb" name="a86d758d3682c372e0868e019f4890dbb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a86d758d3682c372e0868e019f4890dbb">&#9670;&#160;</a></span>NulledCellCount()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::uint64_t Lightweight::SqlBackup::TableRestoreReport::NulledCellCount </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<dl class="section return"><dt>Returns</dt><dd>The number of cells of this table restored as NULL, over all columns. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00521">521</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+
+<p class="reference">References <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00507">valueFailures</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00531">FailureSummary()</a>.</p>
+
+</div>
+</div>
+<a id="a1b5eeeb1042d9c0ce8bd66bc989229bd" name="a1b5eeeb1042d9c0ce8bd66bc989229bd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1b5eeeb1042d9c0ce8bd66bc989229bd">&#9670;&#160;</a></span>FailureSummary()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::string Lightweight::SqlBackup::TableRestoreReport::FailureSummary </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<dl class="section return"><dt>Returns</dt><dd>The one-line summary of this table's failures, <code>"&lt;n&gt; rows failed, &lt;m&gt; cells set to NULL"</code> (<code>"1 row failed"</code>, <code>"1 cell set to NULL"</code> for a count of 1). </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00531">531</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+
+<p class="reference">References <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00497">failedRowCount</a>, and <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00521">NulledCellCount()</a>.</p>
 
 </div>
 </div>
@@ -188,7 +253,7 @@ Public Attributes</h2></td></tr>
 
 <p>Name of the table. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00480">480</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00493">493</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>
@@ -203,12 +268,11 @@ Public Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Total number of rows that failed to restore. For a table that failed as a whole, the rows of the archive that did not reach the target; that is 0 if the archive does not know the table's row count, while tableFailure is still set. </p>
 
-<p>Total number of rows that failed to restore. </p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00497">497</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00482">482</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
-
-<p class="reference">Referenced by <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00499">HasFailures()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00531">FailureSummary()</a>, and <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00514">HasFailures()</a>.</p>
 
 </div>
 </div>
@@ -226,9 +290,9 @@ Public Attributes</h2></td></tr>
 
 <p>Ranges of failed rows, capped at MaxReportedRowRanges. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00484">484</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00499">499</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00499">HasFailures()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00514">HasFailures()</a>.</p>
 
 </div>
 </div>
@@ -246,7 +310,7 @@ Public Attributes</h2></td></tr>
 
 <p>Failed rows not represented in failedRowRanges because the cap was reached. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00486">486</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00501">501</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>
@@ -264,7 +328,7 @@ Public Attributes</h2></td></tr>
 
 <p>Distinct failure reasons, capped at MaxReportedReasons. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00488">488</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00503">503</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>
@@ -282,7 +346,7 @@ Public Attributes</h2></td></tr>
 
 <p>Failures not represented in reasons because the cap was reached. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00490">490</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00505">505</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>
@@ -300,9 +364,9 @@ Public Attributes</h2></td></tr>
 
 <p>Per-column value conversion failures. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00492">492</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00507">507</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00499">HasFailures()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00514">HasFailures()</a>, and <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00521">NulledCellCount()</a>.</p>
 
 </div>
 </div>
@@ -320,9 +384,9 @@ Public Attributes</h2></td></tr>
 
 <p>Set if the whole table failed; holds the first reason. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00494">494</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00509">509</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00499">HasFailures()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00514">HasFailures()</a>.</p>
 
 </div>
 </div>
@@ -340,9 +404,9 @@ Public Attributes</h2></td></tr>
 
 <p>Number of chunks of this table that could not be read. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00496">496</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00511">511</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00499">HasFailures()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00514">HasFailures()</a>.</p>
 
 </div>
 </div>

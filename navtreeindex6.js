@@ -1,5 +1,10 @@
 var NAVTREEINDEX6 =
 {
+"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#aa932d4c41c5524d2f96555968ef13a7d":[20,3,15,6],
+"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#aaebf198c4d7c903a2828d1bd74178f03":[20,3,15,0],
+"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#adcb7950729dbb1030a0a6341927f9c40":[20,3,15,10],
+"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#ae399be8931ae0508e99ee56454c37c6b":[20,3,15,5],
+"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#afe4a9fffda6367ec3984a9eb02885985":[20,3,15,13],
 "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#afeada867ced7fdbb1a152542928d8b78":[20,3,15,12],
 "da/d53/structLightweight_1_1SqlMigration_1_1PreMigrateStepInfo.html":[20,7,12],
 "da/d53/structLightweight_1_1SqlMigration_1_1PreMigrateStepInfo.html#a8917560bb735621bf0064d006f0d3750":[20,7,12,0],
@@ -244,10 +249,5 @@ var NAVTREEINDEX6 =
 "db/db6/classLightweight_1_1SqlBinary.html":[20,1,0],
 "db/db6/classLightweight_1_1SqlBinary.html#a85d83b4f584d4399449c1e58dfa75c76":[20,1,0,0],
 "db/db6/classLightweight_1_1SqlBinary.html#ae3e161b581dfc33b2bdfae68fc299df9":[20,1,0,1],
-"db/dca/classLightweight_1_1Async_1_1InlineExecutor.html":[20,0,5],
-"db/dca/classLightweight_1_1Async_1_1InlineExecutor.html#a263d2c5fd37ef7c07feccdeddf315fb3":[20,0,5,0],
-"db/dca/classLightweight_1_1Async_1_1InlineExecutor.html#a6090956e5d57a975246e070f0a5c0c70":[20,0,5,1],
-"db/dd1/SqlBackup_8hpp_source.html":[23,0,1,16],
-"db/df6/group__SqlMigration.html":[20,7],
-"db/df6/group__SqlMigration.html#ga1035792e18e9c01e4d09f2ff9a19f7f6":[20,7,19]
+"db/dca/classLightweight_1_1Async_1_1InlineExecutor.html":[20,0,5]
 };
