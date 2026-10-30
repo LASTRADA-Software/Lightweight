@@ -126,6 +126,7 @@ set(SOURCE_FILES
     SqlBackup/Common.cpp
     SqlBackup/ConnectionPool.cpp
     SqlBackup/MsgPackChunkFormats.cpp
+    SqlBackup/RawColumnSlice.cpp
     SqlBackup/Restore.cpp
     SqlBackup/RestoreFailureLog.cpp
     SqlBackup/SqlBackup.cpp
