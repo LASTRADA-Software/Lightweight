@@ -298,6 +298,13 @@ TEST_CASE("SqlQueryFormatter knobs: CHAR pad semantics", "[SqlQueryFormatter]")
     CHECK_FALSE(SqlQueryFormatter::Sqlite().ComparesFixedCharWithPadSemantics());
 }
 
+TEST_CASE("SqlQueryFormatter knobs: bounded bulk-load transactions", "[SqlQueryFormatter]")
+{
+    CHECK_FALSE(SqlQueryFormatter::SqlServer().BoundsBulkLoadTransactionSize());
+    CHECK_FALSE(SqlQueryFormatter::PostgrSQL().BoundsBulkLoadTransactionSize());
+    CHECK(SqlQueryFormatter::Sqlite().BoundsBulkLoadTransactionSize());
+}
+
 TEST_CASE("SqlQueryFormatter knobs: unquoted identifier folding", "[SqlQueryFormatter]")
 {
     CHECK(SqlQueryFormatter::PostgrSQL().FoldUnquotedIdentifier("Orders") == "orders");

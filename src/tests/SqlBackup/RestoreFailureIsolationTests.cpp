@@ -482,6 +482,59 @@ TEST_CASE_METHOD(SqlTestFixture,
 }
 
 TEST_CASE_METHOD(SqlTestFixture,
+                 "a row error after an intermediate commit replays only the rows since that commit",
+                 "[SqlBackup][RestoreFailures]")
+{
+    std::filesystem::path const backupFile = "rfi_bounded_backup.zip";
+    std::filesystem::path const brokenFile = "rfi_bounded_broken.zip";
+    auto const backupFileCleaner = ScopedFileRemoved { backupFile };
+    auto const brokenFileCleaner = ScopedFileRemoved { brokenFile };
+
+    CreateTableWithRows("rfi_bounded", 1);
+    BackupTo(backupFile);
+    DropTables({ "rfi_bounded" });
+    auto const chunks = ChunkNames(backupFile, "rfi_bounded");
+    REQUIRE(chunks.size() == 1);
+    // Row 7 duplicates row 1, which an intermediate commit after row 4 has committed. Were the rows
+    // up to that commit replayed, they would fail as duplicates too.
+    RewriteChunks(backupFile, brokenFile, { { chunks.front(), MakeChunk(IdValueRows({ 1, 2, 3, 4, 5, 6, 1, 8 })) } });
+
+    struct Outcome
+    {
+        SqlBackup::RestoreReport report;
+        int checks = 0;
+    };
+    // memoryLimitBytes > 0, or Restore() replaces these settings and batches ~4000 rows.
+    auto const restore = [&](std::size_t maxRowsPerCommit) {
+        auto const settings = SqlBackup::RestoreSettings { .batchSize = 2,
+                                                           .maxRowsPerCommit = maxRowsPerCommit,
+                                                           .memoryLimitBytes = std::size_t { 1 } << 30U };
+        auto counter = ScriptedFaultSource { SqlErrorInfo {}, 0, "ExecuteBatch" };
+        SqlBackup::NullProgressManager progress;
+        auto outcome = Outcome {};
+        {
+            ScopedFaultSource const installed { &counter };
+            outcome.report =
+                SqlBackup::Restore(brokenFile, GetConnectionString(), 1, progress, {}, "*", FastRetry(), settings);
+        }
+        outcome.checks = counter.ConsultCount();
+        return outcome;
+    };
+
+    auto const singleCommit = restore(0);
+    auto const bounded = restore(4);
+
+    CHECK(ReadIds("rfi_bounded") == std::vector<int64_t> { 1, 2, 3, 4, 5, 6, 8 });
+    CHECK(TableReportOf(bounded.report, "rfi_bounded").failedRowCount == 1);
+    CHECK(TableReportOf(singleCommit.report, "rfi_bounded").failedRowCount == 1);
+    // Where the dialect commits every maxRowsPerCommit rows, the replay starts after row 4.
+    if (SqlStatement {}.Connection().QueryFormatter().BoundsBulkLoadTransactionSize())
+        CHECK(bounded.checks < singleCommit.checks);
+    else
+        CHECK(bounded.checks == singleCommit.checks);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
                  "transient error while replaying a chunk resumes after its committed batches",
                  "[SqlBackup][RestoreFailures]")
 {

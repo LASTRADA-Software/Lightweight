@@ -39,6 +39,11 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
         return true;
     }
 
+    [[nodiscard]] bool BoundsBulkLoadTransactionSize() const noexcept override
+    {
+        return false;
+    }
+
     [[nodiscard]] std::string FoldUnquotedIdentifier(std::string_view identifier) const override
     {
         auto folded = std::string(identifier);

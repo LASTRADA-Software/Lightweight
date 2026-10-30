@@ -61,6 +61,11 @@ class SqlServerQueryFormatter final: public SQLiteQueryFormatter
         return true;
     }
 
+    [[nodiscard]] bool BoundsBulkLoadTransactionSize() const noexcept override
+    {
+        return false;
+    }
+
     [[nodiscard]] bool SupportsSchemas() const noexcept override
     {
         return true;

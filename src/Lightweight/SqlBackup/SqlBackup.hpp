@@ -110,8 +110,10 @@ struct RestoreSettings
     /// Default: 0 (auto-calculated based on available memory).
     std::size_t batchSize = 0;
 
-    /// No longer used: a chunk commits as one transaction, or, once a row of it failed, batch by batch.
-    /// Kept for source compatibility.
+    /// The rows after which a chunk's transaction is committed and a new one begun, on a database
+    /// whose formatter bounds bulk-load transactions (SQLite, whose write-ahead log grows with the
+    /// open transaction); elsewhere a chunk commits as one transaction. 0 commits once per chunk.
+    /// Once a row of a chunk failed, the chunk commits batch by batch instead.
     std::size_t maxRowsPerCommit = 10000;
 
     /// Database page cache size in KB (used for SQLite PRAGMA cache_size,

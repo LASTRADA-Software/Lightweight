@@ -436,6 +436,18 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
         return false;
     }
 
+    /// @brief Whether a bulk load should commit periodically rather than hold all its rows in one
+    /// transaction.
+    ///
+    /// Defaults to `false`. SQLite returns `true`: its write-ahead log grows with the open
+    /// transaction, so a restore commits every `RestoreSettings::maxRowsPerCommit` rows of a chunk.
+    ///
+    /// @return `true` if a bulk load bounds the rows per transaction.
+    [[nodiscard]] virtual bool BoundsBulkLoadTransactionSize() const noexcept
+    {
+        return false;
+    }
+
   protected:
     /// Formats a table name with optional schema prefix.
     static std::string FormatTableName(std::string_view schema, std::string_view table);

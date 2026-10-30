@@ -146,9 +146,11 @@ namespace
     /// How an attempt at a chunk commits its rows.
     enum class ChunkInsertMode : std::uint8_t
     {
-        /// The whole chunk is one transaction, committed after its last batch. The first row the
-        /// database rejects, or the first value that does not convert, rolls it back and throws
-        /// IsolationRequired. Nothing is reported, so a clean chunk costs one commit.
+        /// The whole chunk is one transaction, committed after its last batch (and, where the dialect
+        /// bounds bulk-load transactions, every RestoreSettings::maxRowsPerCommit rows). The first row
+        /// the database rejects, or the first value that does not convert, rolls back the rows since
+        /// the last commit and throws IsolationRequired. Nothing is reported, so a clean chunk costs
+        /// one commit.
         SingleTransaction,
         /// Each batch commits on its own; failing rows are isolated and reported.
         IsolateFailures,
@@ -192,6 +194,11 @@ namespace
         SqlStatement& stmt;
         /// The table's committed row count.
         std::atomic<std::uint64_t>& committedRows;
+        /// The chunk transaction of a ChunkInsertMode::SingleTransaction attempt; empty otherwise.
+        std::optional<SqlTransaction>& chunkTransaction;
+        /// The settled rows after which a ChunkInsertMode::SingleTransaction attempt commits and
+        /// begins a new chunk transaction; 0 commits only after the last batch.
+        std::size_t rowsPerCommit;
         /// The parameter status array of the last batch.
         std::vector<SQLUSMALLINT> paramStatus;
     };
@@ -233,8 +240,24 @@ namespace
         throw IsolationRequired {};
     }
 
+    /// Commits the chunk transaction of a ChunkInsertMode::SingleTransaction attempt, whose rows up
+    /// to @p settledRows are each inserted, and advances the resume watermark to them.
+    /// @param target The chunk attempt.
+    /// @param settledRows The settled rows of the attempt's BatchManager.
+    /// @throws as ThrowForSingleTransaction() if the commit fails.
+    void CommitChunkTransaction(ChunkInsertTarget& target, std::size_t settledRows)
+    {
+        ZoneScopedN("Restore::Commit");
+        if (!target.chunkTransaction->TryCommit())
+            ThrowForSingleTransaction(target, SqlErrorInfo::FromConnectionHandle(target.workerConn.NativeHandle()));
+        target.committedRows.fetch_add(settledRows - target.state.settledRows);
+        target.state.settledRows = settledRows;
+    }
+
     /// The hooks of a ChunkInsertMode::SingleTransaction attempt: every batch executes within the
-    /// chunk transaction, and anything that would be reported throws IsolationRequired instead.
+    /// chunk transaction, and anything that would be reported throws IsolationRequired instead. Every
+    /// `target.rowsPerCommit` settled rows, the chunk transaction is committed and a new one begun,
+    /// so that a later failure rolls back only the rows after that commit.
     /// @param target The chunk attempt; must outlive the hooks.
     /// @return The hooks.
     ::Lightweight::detail::BatchManagerHooks SingleTransactionHooks(ChunkInsertTarget& target)
@@ -263,7 +286,13 @@ namespace
             .classify = {},
             .onRowFailed = throwIsolationRequired,
             .onCellNulled = throwIsolationRequired,
-            .onSettled = {},
+            .onSettled =
+                [&target](std::size_t settledRows) {
+                    if (target.rowsPerCommit == 0 || settledRows - target.state.settledRows < target.rowsPerCommit)
+                        return;
+                    CommitChunkTransaction(target, settledRows);
+                    target.chunkTransaction.emplace(target.workerConn, SqlTransactionMode::ROLLBACK);
+                },
         };
     }
 
@@ -393,6 +422,9 @@ namespace
             .state = state,
             .stmt = stmt,
             .committedRows = *ctx.committedRows.at(tableName),
+            .chunkTransaction = chunkTransaction,
+            .rowsPerCommit =
+                workerConn.QueryFormatter().BoundsBulkLoadTransactionSize() ? ctx.restoreSettings.maxRowsPerCommit : 0,
             .paramStatus = {},
         };
         auto hooks =
@@ -452,16 +484,9 @@ namespace
             batchManager.Flush();
         }
 
+        // Nothing failed, so every row up to the watermark is inserted.
         if (chunkTransaction)
-        {
-            ZoneScopedN("Restore::Commit");
-            if (!chunkTransaction->TryCommit())
-                ThrowForSingleTransaction(target, SqlErrorInfo::FromConnectionHandle(workerConn.NativeHandle()));
-            // Nothing failed, so every row up to the watermark is inserted.
-            auto const settled = batchManager.SettledRows();
-            target.committedRows.fetch_add(settled - state.settledRows);
-            state.settledRows = settled;
-        }
+            CommitChunkTransaction(target, batchManager.SettledRows());
         return unreadable;
     }
 
