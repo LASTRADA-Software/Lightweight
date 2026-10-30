@@ -22,6 +22,12 @@
 
 #include <PluginLoader.hpp>
 
+#if defined(_WIN32)
+    #include <windows.h>
+#elif defined(__APPLE__)
+    #include <mach-o/dyld.h>
+#endif
+
 using namespace Lightweight;
 
 namespace
@@ -39,12 +45,58 @@ void RecordHookError(void* context, char const* message) noexcept
     *static_cast<std::string*>(context) = message != nullptr ? message : "(no message)";
 }
 
+/// @return The path of the running test executable, or an empty path if it cannot be determined.
+std::filesystem::path ExecutablePath()
+{
+    auto error = std::error_code {};
+#if defined(_WIN32)
+    auto buffer = std::wstring(32768, L'\0');
+    auto const length = GetModuleFileNameW(nullptr, buffer.data(), static_cast<DWORD>(buffer.size()));
+    return std::filesystem::path { buffer.substr(0, length) };
+#elif defined(__APPLE__)
+    auto size = uint32_t { 0 };
+    _NSGetExecutablePath(nullptr, &size);
+    auto buffer = std::string(size, '\0');
+    if (_NSGetExecutablePath(buffer.data(), &size) != 0)
+        return {};
+    return std::filesystem::weakly_canonical(buffer.c_str(), error);
+#else
+    return std::filesystem::read_symlink("/proc/self/exe", error);
+#endif
+}
+
+/// Finds the post-migrate fixture plugin.
+///
+/// The build tree path baked in at compile time is used when it exists. The CI database legs run an
+/// installed package instead of the build tree; there the plugin lives in `share/Lightweight/tests/plugins`
+/// next to the `bin` directory holding the test executable.
+///
+/// @return The plugin path, or an empty path if neither location holds the plugin.
+std::filesystem::path FindPostMigratePlugin()
+{
+    auto const buildTreePath = std::filesystem::path { LIGHTWEIGHT_TEST_POST_MIGRATE_PLUGIN };
+    if (std::filesystem::exists(buildTreePath))
+        return buildTreePath;
+
+    auto const executable = ExecutablePath();
+    if (executable.empty())
+        return {};
+    auto const installed =
+        executable.parent_path().parent_path() / "share" / "Lightweight" / "tests" / "plugins" / buildTreePath.filename();
+    return std::filesystem::exists(installed) ? installed : std::filesystem::path {};
+}
+
 } // namespace
 
 TEST_CASE_METHOD(SqlTestFixture,
                  "Plugin unload frees what the plugin's copy of the library cached on connect",
                  "[PluginUnload]")
 {
+    auto const pluginPath = FindPostMigratePlugin();
+    if (pluginPath.empty())
+        SKIP(std::format("post-migrate fixture plugin not found at {} or in the installed share/ layout",
+                         LIGHTWEIGHT_TEST_POST_MIGRATE_PLUGIN));
+
     auto const logPath =
         std::filesystem::temp_directory_path()
         / std::format("lightweight-plugin-unload-{}.log", std::chrono::steady_clock::now().time_since_epoch().count());
@@ -57,7 +109,7 @@ TEST_CASE_METHOD(SqlTestFixture,
 
     auto hookError = std::string {};
     {
-        auto const plugin = Tools::PluginLoader { LIGHTWEIGHT_TEST_POST_MIGRATE_PLUGIN };
+        auto const plugin = Tools::PluginLoader { pluginPath };
         auto* const hook = plugin.GetFunction<PostMigrateHook>("LightweightMigrationPluginPostMigrate");
         auto connection = SqlConnection {};
         CHECK(hook(connection, central, &RecordHookError, &hookError));
