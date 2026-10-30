@@ -11,9 +11,15 @@ void BackupProfileFilterModel::setFilterText(QString const& text)
     auto const trimmed = text.trimmed();
     if (trimmed == _filterText)
         return;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
+    beginFilterChange();
     _filterText = trimmed;
-    emit filterTextChanged();
+    endFilterChange();
+#else
+    _filterText = trimmed;
     invalidateFilter();
+#endif
+    emit filterTextChanged();
 }
 
 bool BackupProfileFilterModel::filterAcceptsRow(int sourceRow, QModelIndex const& sourceParent) const

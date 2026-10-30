@@ -77,9 +77,9 @@ class BackupStatusListModel: public QAbstractListModel
         QString name;
         bool archiveExists = false;
         qulonglong archiveSize = 0;
-        QDateTime archiveMtime;
+        QDateTime archiveMtime = {};
         QString runState = QStringLiteral("idle");
-        QString errorText;
+        QString errorText = {};
         BackupTableListModel* tables = nullptr; // parented to this model
     };
 

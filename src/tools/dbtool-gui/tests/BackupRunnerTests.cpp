@@ -552,7 +552,10 @@ namespace
 /// A record as the recorder fakes return it.
 [[nodiscard]] Lightweight::SqlMigration::BackupRecord FakeRecord()
 {
-    return Lightweight::SqlMigration::BackupRecord { .id = 1, .archiveFileName = "archive.zip" };
+    auto record = Lightweight::SqlMigration::BackupRecord {};
+    record.id = 1;
+    record.archiveFileName = "archive.zip";
+    return record;
 }
 
 /// The result type of `BackupRunner::Recorder::record`.
