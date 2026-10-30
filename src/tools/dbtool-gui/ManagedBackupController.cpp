@@ -248,6 +248,10 @@ namespace
                 std::scoped_lock const lock(_failedMutex);
                 return _failedKeys;
             }();
+            // The report counts errors that name no table itself (unattributedChunkErrors); only
+            // without a report, such as after an early exit, do their messages stand in for it.
+            if (report.HasFailures())
+                std::erase_if(keys, [](std::string const& key) { return !key.empty() && key.front() == '\0'; });
             for (auto const& table: report.tables)
                 keys.insert(table.tableName);
             keys.insert(report.incompleteTables.begin(), report.incompleteTables.end());

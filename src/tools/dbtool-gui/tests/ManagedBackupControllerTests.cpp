@@ -982,6 +982,44 @@ TEST_CASE("a managed restore counts failed tables from its report, not error upd
     controller.setBackupFolder(QString {});
 }
 
+TEST_CASE("a managed restore counts an unattributed unreadable chunk once", "[dbtool-gui][managed-backup-controller][run]")
+{
+    QTemporaryDir dir;
+    ManagedBackupController controller;
+    controller.setBackupFolder(dir.path() + "/backups");
+    auto const alpha = SqliteProfile(dir, "alpha");
+    SeedDatabase(alpha);
+    controller.setProfiles({ alpha });
+
+    QSignalSpy backupDone(&controller, &ManagedBackupController::finished);
+    controller.backupAll();
+    REQUIRE(WaitFor(backupDone));
+    REQUIRE(backupDone.first().at(0).toBool());
+
+    // The library reports the chunk as an Error update without a table and counts it in the report.
+    controller.setRestoreOperation([](std::filesystem::path const&,
+                                      std::string const&,
+                                      std::string const&,
+                                      Lightweight::SqlBackup::ProgressManager& progress) {
+        progress.Update({ .state = Lightweight::SqlBackup::Progress::State::Error,
+                          .tableName = "",
+                          .currentRows = 0,
+                          .totalRows = 0,
+                          .message = "Unreadable chunk data/ghost/0001_00.msgpack" });
+        auto report = Lightweight::SqlBackup::RestoreReport {};
+        report.unattributedChunkErrors = 1;
+        return report;
+    });
+    QSignalSpy restoreDone(&controller, &ManagedBackupController::finished);
+    controller.restoreArchive("alpha", "alpha");
+    REQUIRE(WaitFor(restoreDone));
+
+    CHECK_FALSE(restoreDone.first().at(0).toBool());
+    CHECK(restoreDone.first().at(1).toString().contains("1 table(s)"));
+
+    controller.setBackupFolder(QString {});
+}
+
 TEST_CASE("a clean injected run still commits and reports success", "[dbtool-gui][managed-backup-controller][run]")
 {
     // Counterpart to the failure cases above: the ErrorCount() gate must not
