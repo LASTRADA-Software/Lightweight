@@ -11,18 +11,48 @@ namespace Lightweight::SqlBackup::detail
 
 namespace
 {
+    /// Passes each character of @p message with every run of digits collapsed into a single '#' to
+    /// @p emit, which returns false to stop.
+    /// @return false if @p emit stopped.
+    template <typename Emit>
+    bool ForEachCollapsedChar(std::string_view message, Emit emit)
+    {
+        auto last = char { 0 };
+        for (auto const c: message)
+        {
+            auto const isDigit = std::isdigit(static_cast<unsigned char>(c)) != 0;
+            if (isDigit && last == '#')
+                continue;
+            last = isDigit ? '#' : c;
+            if (!emit(last))
+                return false;
+        }
+        return true;
+    }
+
     /// Collapses every run of digits in @p message into a single '#'.
     std::string CollapseDigitRuns(std::string_view message)
     {
         std::string result;
         result.reserve(message.size());
-        for (auto const c: message)
-        {
-            auto const isDigit = std::isdigit(static_cast<unsigned char>(c)) != 0;
-            if (!isDigit || result.empty() || result.back() != '#')
-                result.push_back(isDigit ? '#' : c);
-        }
+        ForEachCollapsedChar(message, [&](char c) {
+            result.push_back(c);
+            return true;
+        });
         return result;
+    }
+
+    /// Tests, without allocating, whether @p message collapses (CollapseDigitRuns()) to @p collapsed.
+    bool CollapsesTo(std::string_view message, std::string_view collapsed)
+    {
+        auto matched = std::size_t { 0 };
+        auto const matches = ForEachCollapsedChar(message, [&](char c) {
+            if (matched == collapsed.size() || collapsed[matched] != c)
+                return false;
+            ++matched;
+            return true;
+        });
+        return matches && matched == collapsed.size();
     }
 } // namespace
 
@@ -44,8 +74,6 @@ void RestoreFailureLog::RecordRowFailure(std::string_view table,
                                          std::string_view message,
                                          std::string sampleKey)
 {
-    auto const reasonKey = std::pair { std::string(sqlState), CollapseDigitRuns(message) };
-
     auto const lock = std::scoped_lock { _mutex };
     auto& state = StateFor(table);
     auto& report = state.report;
@@ -64,18 +92,22 @@ void RestoreFailureLog::RecordRowFailure(std::string_view table,
     else
         ++report.rowsBeyondRangeCap;
 
-    // Reasons.
-    auto const reasonIt = state.reasonIndex.find(reasonKey);
-    if (reasonIt != state.reasonIndex.end())
+    // Reasons: matched against the few known ones in place, so that a row allocates no reason key
+    // unless it opens a new reason.
+    auto const reasonIndices = std::views::iota(std::size_t { 0 }, report.reasons.size());
+    auto const known = std::ranges::find_if(reasonIndices, [&](std::size_t index) {
+        return report.reasons[index].sqlState == sqlState && CollapsesTo(message, state.reasonKeys[index]);
+    });
+    if (known != reasonIndices.end())
     {
-        auto& reason = report.reasons[reasonIt->second];
+        auto& reason = report.reasons[*known];
         ++reason.occurrences;
         if (reason.sampleKeys.size() < MaxSampleKeysPerReason)
             reason.sampleKeys.push_back(std::move(sampleKey));
     }
     else if (report.reasons.size() < MaxReportedReasons)
     {
-        state.reasonIndex.emplace(reasonKey, report.reasons.size());
+        state.reasonKeys.push_back(CollapseDigitRuns(message));
         report.reasons.push_back(FailureReason {
             .sqlState = std::string(sqlState),
             .message = std::string(message),

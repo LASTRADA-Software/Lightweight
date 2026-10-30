@@ -10,7 +10,7 @@
 #include <mutex>
 #include <string>
 #include <string_view>
-#include <utility>
+#include <vector>
 
 namespace Lightweight::SqlBackup::detail
 {
@@ -71,7 +71,8 @@ class LIGHTWEIGHT_API RestoreFailureLog
         TableRestoreReport report;
         /// Index into report.failedRowRanges of each chunk's most recent range.
         std::map<std::string, std::size_t, std::less<>> lastRangeOfChunk;
-        std::map<std::pair<std::string, std::string>, std::size_t> reasonIndex;
+        /// The message of each of report.reasons with its digit runs collapsed, by which it groups rows.
+        std::vector<std::string> reasonKeys;
         std::map<std::string, std::size_t, std::less<>> columnIndex;
     };
 

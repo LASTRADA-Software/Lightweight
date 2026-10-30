@@ -78,6 +78,38 @@ TEST_CASE("RestoreFailureLog: reasons are deduplicated and capped", "[RestoreFai
     CHECK(sampled.reasons[0].occurrences == 10);
 }
 
+TEST_CASE("RestoreFailureLog: a known reason is counted exactly past the reason cap", "[RestoreFailureLog]")
+{
+    RestoreFailureLog log;
+    for (std::uint64_t i = 0; i < MaxReportedReasons; ++i)
+        log.RecordRowFailure("T", "A", (i * 2) + 1, "23000", "distinct message " + std::string(i + 1, 'x'), "k");
+    // Past the cap: a known reason with other digits, the same text with another SQLSTATE, and a
+    // text that is a prefix of a known one.
+    log.RecordRowFailure("T", "A", 101, "23000", "distinct message x", "k");
+    log.RecordRowFailure("T", "A", 103, "22001", "distinct message x", "k");
+    log.RecordRowFailure("T", "A", 105, "23000", "distinct message", "k");
+    log.RecordRowFailure("T", "A", 107, "23000", "distinct message xx 42", "k");
+    log.RecordRowFailure("T", "A", 109, "23000", "distinct message xx 7", "k");
+
+    auto const report = log.TableSnapshot("T");
+    REQUIRE(report.reasons.size() == MaxReportedReasons);
+    CHECK(report.reasons[0].occurrences == 2);
+    CHECK(report.occurrencesBeyondReasonCap == 4);
+    CHECK(report.failedRowCount == MaxReportedReasons + 5);
+}
+
+TEST_CASE("RestoreFailureLog: digit runs group reasons as before", "[RestoreFailureLog]")
+{
+    RestoreFailureLog log;
+    log.RecordRowFailure("T", "A", 1, "23000", "key #12 at 3", "k");
+    log.RecordRowFailure("T", "A", 3, "23000", "key # at 45", "k");
+    log.RecordRowFailure("T", "A", 5, "23000", "key #1 at 4x", "k");
+    auto const report = log.TableSnapshot("T");
+    REQUIRE(report.reasons.size() == 2);
+    CHECK(report.reasons[0].occurrences == 2);
+    CHECK(report.reasons[1].message == "key #1 at 4x");
+}
+
 TEST_CASE("RestoreFailureLog: nulled cells aggregate per column", "[RestoreFailureLog]")
 {
     RestoreFailureLog log;
