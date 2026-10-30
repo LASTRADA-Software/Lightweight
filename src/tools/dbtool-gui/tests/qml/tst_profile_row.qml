@@ -30,8 +30,32 @@ TestCase {
 
     // A realistic long name: ~50 chars, no spaces (so word-boundary wrapping
     // alone cannot break it), and distinguished only by its tail.
-    readonly property string longNameA: "chinook-production-replica-eu-west-1-readonly-01"
-    readonly property string longNameB: "chinook-production-replica-eu-west-1-readonly-02"
+    readonly property string longNameA: longNameFor(380, "01")
+    readonly property string longNameB: longNameFor(380, "02")
+
+    // Measures names with the same font the row's name Label uses, so the
+    // fixtures below are "wider than the row" on any host rather than on the
+    // one whose fonts the original character count happened to be tuned for.
+    TextMetrics {
+        id: nameMetrics
+        font.pixelSize: Theme.sizeBody
+        font.weight: Font.DemiBold
+    }
+
+    /// Builds a hyphenated, space-free name that is ~1.5x `rowWidth` wide in
+    /// the name font (so it wraps to two lines, never reaching the 3-line cap)
+    /// and differs from its siblings only in `tail`.
+    /// @param rowWidth Width of the row the name will be laid out in.
+    /// @param tail Distinguishing suffix.
+    function longNameFor(rowWidth, tail) {
+        let name = "chinook-production-replica-eu-west-1-readonly-"
+        nameMetrics.text = name
+        while (nameMetrics.advanceWidth < rowWidth * 1.5) {
+            name += "replica-"
+            nameMetrics.text = name
+        }
+        return name + tail
+    }
     readonly property string shortName: "sqlite-dev"
 
     Component {
