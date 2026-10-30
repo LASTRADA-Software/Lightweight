@@ -110,7 +110,7 @@ struct SampleTablesFixture: SqlTestFixture
 
         auto stmt = SqlStatement {};
         stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
-            migration.CreateTable("AttachmentCustomers").PrimaryKey("id", Integer {}).Column("name", Varchar { 32 });
+            migration.CreateTable("AttachmentCustomers").PrimaryKey("id", Integer {}).Column("name", Varchar { .size = 32 });
             migration.CreateTable("AttachmentOrders").PrimaryKey("id", Integer {}).Column("customer_id", Integer {});
         });
         stmt.Prepare(R"(INSERT INTO "AttachmentCustomers" ("id", "name") VALUES (?, ?))");

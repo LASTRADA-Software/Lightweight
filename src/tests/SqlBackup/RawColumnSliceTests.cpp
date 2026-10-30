@@ -80,14 +80,14 @@ TEST_CASE("RawColumnSlice: integer, smallint, bool and real columns", "[RawColum
 TEST_CASE("RawColumnSlice: string column", "[RawColumnSlice]")
 {
     auto const cells = DescribeAndSlice(
-        SqlColumnTypeDefinitions::Varchar { 20 },
+        SqlColumnTypeDefinitions::Varchar { .size = 20 },
         { { std::string("abc") }, { std::string("a much longer value") }, { std::monostate {} }, { std::string("x") } });
     CHECK(cells == std::vector<std::string> { "abc", "a much longer value", "NULL", "x" });
 }
 
 TEST_CASE("RawColumnSlice: wide string column", "[RawColumnSlice]")
 {
-    auto const cells = DescribeAndSlice(SqlColumnTypeDefinitions::NVarchar { 20 },
+    auto const cells = DescribeAndSlice(SqlColumnTypeDefinitions::NVarchar { .size = 20 },
                                         { { std::string("abc") },
                                           { std::string("gr\xC3\xBC\xC3\x9F"
                                                         "e \xE2\x82\xAC") },
@@ -102,7 +102,7 @@ TEST_CASE("RawColumnSlice: wide string column", "[RawColumnSlice]")
 
 TEST_CASE("RawColumnSlice: binary column", "[RawColumnSlice]")
 {
-    auto const cells = DescribeAndSlice(SqlColumnTypeDefinitions::VarBinary { 64 },
+    auto const cells = DescribeAndSlice(SqlColumnTypeDefinitions::VarBinary { .size = 64 },
                                         { { std::vector<uint8_t> { 0x01, 0xAB } },
                                           { std::vector<uint8_t> { 0xDE, 0xAD, 0xBE, 0xEF, 0x00 } },
                                           { std::monostate {} },
@@ -163,7 +163,8 @@ TEST_CASE("RawColumnSlice: date, time and timestamp columns", "[RawColumnSlice]"
 
 TEST_CASE("RawColumnSlice: SliceRows addresses rows by stride", "[RawColumnSlice]")
 {
-    std::vector<SqlColumnDeclaration> const cols = { { .name = "c", .type = SqlColumnTypeDefinitions::Varchar { 20 } } };
+    std::vector<SqlColumnDeclaration> const cols = { { .name = "c",
+                                                       .type = SqlColumnTypeDefinitions::Varchar { .size = 20 } } };
     BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t) {
         auto const& full = rawCols[0];
         auto const slice = SliceRows(full, 2, 1);

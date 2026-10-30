@@ -135,7 +135,8 @@ TEST_CASE("BatchManager: PushBatch splitting", "[SqlBackup]")
 TEST_CASE("BatchManager: small rows fill batches to capacity (no spurious byte-budget flushes)", "[SqlBackup]")
 {
     std::vector<SqlColumnDeclaration> cols = { { .name = "id", .type = SqlColumnTypeDefinitions::Integer {} },
-                                               { .name = "name", .type = SqlColumnTypeDefinitions::Varchar { 255 } } };
+                                               { .name = "name",
+                                                 .type = SqlColumnTypeDefinitions::Varchar { .size = 255 } } };
 
     std::vector<size_t> flushedSizes;
     BatchExecutor executor = [&](std::vector<SqlRawColumn> const& /*rawCols*/, size_t count) {
@@ -166,7 +167,8 @@ TEST_CASE("BatchManager: small rows fill batches to capacity (no spurious byte-b
 
 TEST_CASE("BatchManager: oversize binary values are not truncated", "[SqlBackup]")
 {
-    std::vector<SqlColumnDeclaration> cols = { { .name = "blob", .type = SqlColumnTypeDefinitions::VarBinary { 0 } } };
+    std::vector<SqlColumnDeclaration> cols = { { .name = "blob",
+                                                 .type = SqlColumnTypeDefinitions::VarBinary { .size = 0 } } };
 
     std::vector<size_t> receivedSizes;
     std::vector<uint8_t> firstValue;

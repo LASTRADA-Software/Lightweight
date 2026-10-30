@@ -119,7 +119,7 @@ TEST_CASE("CxxModelPrinter: simple table with default settings", "[CxxModelPrint
             },
             Lightweight::SqlSchema::Column {
                 .name = "name",
-                .type = Lightweight::SqlColumnTypeDefinitions::Varchar { 64 },
+                .type = Lightweight::SqlColumnTypeDefinitions::Varchar { .size = 64 },
             },
         },
     });
@@ -524,16 +524,17 @@ TEST_CASE("CxxModelPrinter::MakeType: Varchar small vs large", "[CxxModelPrinter
 {
     using namespace Lightweight::SqlColumnTypeDefinitions;
     // Within sqlFixedStringMaxSize → Light::SqlAnsiString<N>.
-    CHECK(CxxTypeName({ .name = "x", .type = Varchar { 64 }, .isNullable = false }) == "Light::SqlAnsiString<64>");
+    CHECK(CxxTypeName({ .name = "x", .type = Varchar { .size = 64 }, .isNullable = false }) == "Light::SqlAnsiString<64>");
     // Larger than sqlFixedStringMaxSize → Light::SqlDynamicAnsiString<N>.
-    CHECK(CxxTypeName({ .name = "x", .type = Varchar { 100000 }, .isNullable = false })
+    CHECK(CxxTypeName({ .name = "x", .type = Varchar { .size = 100000 }, .isNullable = false })
           == "Light::SqlDynamicAnsiString<100000>");
 }
 
 TEST_CASE("CxxModelPrinter::MakeType: NVarchar always dynamic UTF-16", "[CxxModelPrinter],[MakeType]")
 {
     using namespace Lightweight::SqlColumnTypeDefinitions;
-    CHECK(CxxTypeName({ .name = "x", .type = NVarchar { 64 }, .isNullable = false }) == "Light::SqlDynamicUtf16String<64>");
+    CHECK(CxxTypeName({ .name = "x", .type = NVarchar { .size = 64 }, .isNullable = false })
+          == "Light::SqlDynamicUtf16String<64>");
 }
 
 TEST_CASE("CxxModelPrinter::MakeType: Text", "[CxxModelPrinter],[MakeType]")
@@ -557,8 +558,9 @@ TEST_CASE("CxxModelPrinter::MakeType: forceUnicodeTextColumn flips Char/Varchar/
     CHECK(force({ .name = "x", .type = Char { .size = 1 }, .isNullable = false }) == "wchar_t");
     CHECK(force({ .name = "x", .type = Char { .size = 16 }, .isNullable = false })
           == "Light::SqlTrimmedFixedString<16, wchar_t>");
-    CHECK(force({ .name = "x", .type = Varchar { 64 }, .isNullable = false }) == "Light::SqlWideString<64>");
-    CHECK(force({ .name = "x", .type = Varchar { 100000 }, .isNullable = false }) == "Light::SqlDynamicWideString<100000>");
+    CHECK(force({ .name = "x", .type = Varchar { .size = 64 }, .isNullable = false }) == "Light::SqlWideString<64>");
+    CHECK(force({ .name = "x", .type = Varchar { .size = 100000 }, .isNullable = false })
+          == "Light::SqlDynamicWideString<100000>");
     CHECK(force({ .name = "x", .type = Text { .size = 1024 }, .isNullable = false }) == "Light::SqlDynamicWideString<1024>");
 }
 
@@ -569,7 +571,7 @@ TEST_CASE("CxxModelPrinter::MakeType: per-column unicode override", "[CxxModelPr
     overrides["TestTable"].insert("name");
 
     auto const result = CxxModelPrinter::MakeType(
-        Lightweight::SqlSchema::Column { .name = "name", .type = Varchar { 32 }, .isNullable = false },
+        Lightweight::SqlSchema::Column { .name = "name", .type = Varchar { .size = 32 }, .isNullable = false },
         "TestTable",
         false,
         overrides,
@@ -578,7 +580,7 @@ TEST_CASE("CxxModelPrinter::MakeType: per-column unicode override", "[CxxModelPr
 
     // A different column on the same table is unaffected — falls through to ANSI.
     auto const ansi = CxxModelPrinter::MakeType(
-        Lightweight::SqlSchema::Column { .name = "other", .type = Varchar { 32 }, .isNullable = false },
+        Lightweight::SqlSchema::Column { .name = "other", .type = Varchar { .size = 32 }, .isNullable = false },
         "TestTable",
         false,
         overrides,
@@ -622,7 +624,7 @@ TEST_CASE("CxxModelPrinter: table with primary key and several columns", "[CxxMo
         .name = "users",
         .columns = {
             Lightweight::SqlSchema::Column { .name = "id", .type = Integer {}, .isNullable = false, .isPrimaryKey = true },
-            Lightweight::SqlSchema::Column { .name = "name", .type = Varchar { 50 }, .isNullable = false },
+            Lightweight::SqlSchema::Column { .name = "name", .type = Varchar { .size = 50 }, .isNullable = false },
             Lightweight::SqlSchema::Column { .name = "balance", .type = Decimal { .precision = 10, .scale = 2 } },
         },
         .primaryKeys = { "id" },

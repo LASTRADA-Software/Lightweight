@@ -109,7 +109,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches integer / text / NULL colum
     stmt.MigrateDirect([](auto& migration) {
         migration.CreateTable("Mixed")
             .RequiredColumn("id", SqlColumnTypeDefinitions::Integer {})
-            .Column("note", SqlColumnTypeDefinitions::Varchar { 100 });
+            .Column("note", SqlColumnTypeDefinitions::Varchar { .size = 100 });
     });
 
     stmt.Prepare(R"(INSERT INTO "Mixed" ("id", "note") VALUES (?, ?))");
@@ -249,7 +249,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches BINARY/VARBINARY as SqlBina
     auto stmt = SqlStatement {};
     UNSUPPORTED_DATABASE(stmt, SqlServerType::SQLITE); // sqlite reports binary as BLOB; check below
     stmt.MigrateDirect([](auto& migration) {
-        migration.CreateTable("Blobs").RequiredColumn("payload", SqlColumnTypeDefinitions::VarBinary { 64 });
+        migration.CreateTable("Blobs").RequiredColumn("payload", SqlColumnTypeDefinitions::VarBinary { .size = 64 });
     });
 
     auto const bytes = SqlBinary { 0x01, 0x02, 0x03, 0xFE, 0xFF };
@@ -281,7 +281,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant round-trips a binary column back in
     auto stmt = SqlStatement {};
     UNSUPPORTED_DATABASE(stmt, SqlServerType::SQLITE); // sqlite reports binary as BLOB
     stmt.MigrateDirect([](auto& migration) {
-        migration.CreateTable("BlobRoundTrip").RequiredColumn("payload", SqlColumnTypeDefinitions::VarBinary { 64 });
+        migration.CreateTable("BlobRoundTrip").RequiredColumn("payload", SqlColumnTypeDefinitions::VarBinary { .size = 64 });
     });
 
     // Embedded NUL and high bytes: writing these back as SQL_C_CHAR would truncate or re-encode them.
@@ -320,7 +320,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant fetches NVARCHAR (wide) columns", "
 {
     auto stmt = SqlStatement {};
     stmt.MigrateDirect([](auto& migration) {
-        migration.CreateTable("WideText").RequiredColumn("note", SqlColumnTypeDefinitions::NVarchar { 100 });
+        migration.CreateTable("WideText").RequiredColumn("note", SqlColumnTypeDefinitions::NVarchar { .size = 100 });
     });
 
     // Use UTF-8 input via std::u8string_view to force the wide-string path on insert.

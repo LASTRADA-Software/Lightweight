@@ -318,7 +318,7 @@ TEST_CASE_METHOD(SqlTestFixture,
         migration.CreateTable("Test")
             .Column("Id", SqlColumnTypeDefinitions::Integer {})
             .Column("NativeGuid", SqlColumnTypeDefinitions::Guid {})
-            .Column("BlobPayload", SqlColumnTypeDefinitions::VarBinary { 64 });
+            .Column("BlobPayload", SqlColumnTypeDefinitions::VarBinary { .size = 64 });
     });
 
     constexpr auto text = "1E772AED-3E73-4C72-8684-5DFFAA17330E"sv;
@@ -434,8 +434,9 @@ TEST_CASE_METHOD(SqlTestFixture, "GetColumn at the exact internal buffer boundar
     // the NUL terminator), so the continuation fetch must run for indicator == buffer size —
     // a strict '>' comparison silently loses the last character.
     auto stmt = SqlStatement {};
-    stmt.MigrateDirect(
-        [](auto& migration) { migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::NVarchar { 300 }); });
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::NVarchar { .size = 300 });
+    });
 
     for (auto const length: { std::size_t { 254 }, std::size_t { 255 }, std::size_t { 256 } })
     {
@@ -974,7 +975,7 @@ template <>
 struct TestTypeTraits<SqlTrimmedWideFixedString<20>>
 {
     using ValueType = SqlTrimmedWideFixedString<20>;
-    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { 20 };
+    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { .size = 20 };
     static constexpr auto inputValue = ValueType { L"Hello" };
     static constexpr auto expectedOutputValue = ValueType { L"Hello" };
 };
@@ -984,7 +985,7 @@ template <>
 struct TestTypeTraits<SqlAnsiString<20>>
 {
     using ValueType = SqlAnsiString<20>;
-    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::Varchar { 20 };
+    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::Varchar { .size = 20 };
     static constexpr auto inputValue = ValueType { "Hello" };
     static constexpr auto expectedOutputValue = ValueType { "Hello" };
 };
@@ -993,7 +994,7 @@ template <>
 struct TestTypeTraits<SqlUtf16String<20>>
 {
     using ValueType = SqlUtf16String<20>;
-    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { 20 };
+    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { .size = 20 };
     static constexpr auto inputValue = ValueType { u"Hello" };
     static constexpr auto expectedOutputValue = ValueType { u"Hello" };
 };
@@ -1002,7 +1003,7 @@ template <>
 struct TestTypeTraits<SqlUtf32String<20>>
 {
     using ValueType = SqlUtf32String<20>;
-    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { 20 };
+    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { .size = 20 };
     static constexpr auto inputValue = ValueType { U"Hello" };
     static constexpr auto expectedOutputValue = ValueType { U"Hello" };
 };
@@ -1011,7 +1012,7 @@ template <>
 struct TestTypeTraits<SqlWideString<20>>
 {
     using ValueType = SqlWideString<20>;
-    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { 20 };
+    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { .size = 20 };
     static constexpr auto inputValue = ValueType { L"Hello" };
     static constexpr auto expectedOutputValue = ValueType { L"Hello" };
 };
@@ -1100,7 +1101,7 @@ T MakeStringOuputInitializer(SqlServerType serverType)
 template <>
 struct TestTypeTraits<std::string>
 {
-    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::Varchar { 50 };
+    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::Varchar { .size = 50 };
     static auto const inline inputValue = std::string { "Alice" };
     static auto const inline expectedOutputValue = std::string { "Alice" };
     static auto const inline outputInitializer = &MakeStringOuputInitializer<std::string>;
@@ -1109,7 +1110,7 @@ struct TestTypeTraits<std::string>
 template <>
 struct TestTypeTraits<std::string_view>
 {
-    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::Varchar { 50 };
+    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::Varchar { .size = 50 };
     static auto const inline inputValue = std::string_view { "Alice" };
     static auto const inline expectedOutputValue = std::string_view { "Alice" };
     static auto const inline outputInitializer = &MakeStringOuputInitializer<std::string>;
@@ -1119,7 +1120,7 @@ struct TestTypeTraits<std::string_view>
 template <>
 struct TestTypeTraits<std::u8string>
 {
-    static auto constexpr sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { 50 };
+    static auto constexpr sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { .size = 50 };
     static auto const inline inputValue = u8"Hell\u00F6"s;
     static auto const inline expectedOutputValue = u8"Hell\u00F6"s;
     static auto const inline outputInitializer = &MakeStringOuputInitializer<std::u8string>;
@@ -1128,7 +1129,7 @@ struct TestTypeTraits<std::u8string>
 template <>
 struct TestTypeTraits<std::u8string_view>
 {
-    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { 50 };
+    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { .size = 50 };
     static auto const inline inputValue = std::u8string_view { u8"Hell\u00F6" };
     static auto const inline expectedOutputValue = std::u8string_view { u8"Hell\u00F6" };
     static auto const inline outputInitializer = &MakeStringOuputInitializer<std::u8string>;
@@ -1138,7 +1139,7 @@ struct TestTypeTraits<std::u8string_view>
 template <>
 struct TestTypeTraits<std::u16string>
 {
-    static auto constexpr sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { 50 };
+    static auto constexpr sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { .size = 50 };
     static auto const inline inputValue = u"Alice"s;
     static auto const inline expectedOutputValue = u"Alice"s;
     static auto const inline outputInitializer = &MakeStringOuputInitializer<std::u16string>;
@@ -1147,7 +1148,7 @@ struct TestTypeTraits<std::u16string>
 template <>
 struct TestTypeTraits<std::u16string_view>
 {
-    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { 50 };
+    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { .size = 50 };
     static auto const inline inputValue = std::u16string_view { u"Alice" };
     static auto const inline expectedOutputValue = std::u16string_view { u"Alice" };
     static auto const inline outputInitializer = &MakeStringOuputInitializer<std::u16string>;
@@ -1157,7 +1158,7 @@ struct TestTypeTraits<std::u16string_view>
 template <>
 struct TestTypeTraits<std::u32string>
 {
-    static auto constexpr sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { 50 };
+    static auto constexpr sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { .size = 50 };
     static auto const inline inputValue = U"Alice"s;
     static auto const inline expectedOutputValue = U"Alice"s;
     static auto const inline outputInitializer = &MakeStringOuputInitializer<std::u32string>;
@@ -1166,7 +1167,7 @@ struct TestTypeTraits<std::u32string>
 template <>
 struct TestTypeTraits<std::u32string_view>
 {
-    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { 50 };
+    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { .size = 50 };
     static auto const inline inputValue = std::u32string_view { U"Alice" };
     static auto const inline expectedOutputValue = std::u32string_view { U"Alice" };
     static auto const inline outputInitializer = &MakeStringOuputInitializer<std::u32string>;
@@ -1176,7 +1177,7 @@ struct TestTypeTraits<std::u32string_view>
 template <>
 struct TestTypeTraits<std::wstring>
 {
-    static auto constexpr sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { 50 };
+    static auto constexpr sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { .size = 50 };
     static auto const inline inputValue = L"Alice"s;
     static auto const inline expectedOutputValue = L"Alice"s;
     static auto const inline outputInitializer = &MakeStringOuputInitializer<std::wstring>;
@@ -1185,7 +1186,7 @@ struct TestTypeTraits<std::wstring>
 template <>
 struct TestTypeTraits<std::wstring_view>
 {
-    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { 50 };
+    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { .size = 50 };
     static auto const inline inputValue = std::wstring_view { L"Alice" };
     static auto const inline expectedOutputValue = std::wstring_view { L"Alice" };
     static auto const inline outputInitializer = &MakeStringOuputInitializer<std::wstring>;
@@ -1203,7 +1204,7 @@ struct TestTypeTraits<SqlBinary>
 template <>
 struct TestTypeTraits<SqlDynamicBinary<8>>
 {
-    static auto constexpr sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::VarBinary { 50 };
+    static auto constexpr sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::VarBinary { .size = 50 };
     static auto const inline inputValue = SqlDynamicBinary<8> {{ 0x00, 0x02, 0x03, 0x00, 0x05, 0x06 }};
     static auto const inline expectedOutputValue = SqlDynamicBinary<8> {{ 0x00, 0x02, 0x03, 0x00, 0x05, 0x06 }};
 };
@@ -1392,7 +1393,8 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlWideString read from VARCHAR column", "[Sql
 
     // Create a table with a VARCHAR(100) column (narrow/ANSI, not wide/Unicode NVarchar).
     stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
-        migration.CreateTable("WideStringFromVarcharTest").Column("value", SqlColumnTypeDefinitions::Varchar { 100 });
+        migration.CreateTable("WideStringFromVarcharTest")
+            .Column("value", SqlColumnTypeDefinitions::Varchar { .size = 100 });
     });
 
     stmt.Prepare(stmt.Query("WideStringFromVarcharTest").Insert().Set("value", SqlWildcard));
@@ -1643,7 +1645,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Unicode round-trip across binders", "[SqlDataB
 {
     auto stmt = SqlStatement {};
     stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
-        migration.CreateTable("UnicodeRoundTrip").Column("value", SqlColumnTypeDefinitions::NVarchar { 64 });
+        migration.CreateTable("UnicodeRoundTrip").Column("value", SqlColumnTypeDefinitions::NVarchar { .size = 64 });
     });
 
     SECTION("std::u8string with single non-ASCII char")
@@ -1838,7 +1840,7 @@ TEST_CASE_METHOD(SqlTestFixture, "GetRawColumnArrayData: long Unicode round-trip
 {
     auto stmt = SqlStatement {};
     stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
-        migration.CreateTable("LongUnicode").Column("value", SqlColumnTypeDefinitions::NVarchar { 0 });
+        migration.CreateTable("LongUnicode").Column("value", SqlColumnTypeDefinitions::NVarchar { .size = 0 });
     });
 
     SECTION("4 KiB std::u16string ASCII forces the truncation path")
@@ -2584,7 +2586,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicAnsiString: round-trip (binder)", "[
 {
     SECTION("ASCII value")
     {
-        RoundTripStringValue(SqlDynamicAnsiString<64> { "Hello" }, SqlColumnTypeDefinitions::Varchar { 64 });
+        RoundTripStringValue(SqlDynamicAnsiString<64> { "Hello" }, SqlColumnTypeDefinitions::Varchar { .size = 64 });
     }
 
     SECTION("empty value")
@@ -2618,13 +2620,13 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicUtf16String: round-trip (binder)", "
 {
     SECTION("BMP value")
     {
-        RoundTripStringValue(SqlDynamicUtf16String<64> { u"Hello" }, SqlColumnTypeDefinitions::NVarchar { 64 });
+        RoundTripStringValue(SqlDynamicUtf16String<64> { u"Hello" }, SqlColumnTypeDefinitions::NVarchar { .size = 64 });
     }
 
     SECTION("supplementary-plane value")
     {
         auto const expected = SqlDynamicUtf16String<64> { u"\U0001F601 Hello" };
-        RoundTripStringValue(expected, SqlColumnTypeDefinitions::NVarchar { 64 });
+        RoundTripStringValue(expected, SqlColumnTypeDefinitions::NVarchar { .size = 64 });
     }
 
     SECTION("BindOutputColumns")
@@ -2632,7 +2634,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicUtf16String: round-trip (binder)", "
         auto stmt = SqlStatement {};
         (void) stmt.ExecuteDirect(
             std::format("CREATE TABLE Test (Value {} NULL)",
-                        stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { 64 })));
+                        stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { .size = 64 })));
         stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
         std::ignore = stmt.Execute(SqlDynamicUtf16String<64> { u"OutBound" });
 
@@ -2647,12 +2649,14 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicUtf16String: round-trip (binder)", "
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicUtf32String: round-trip (binder)", "[SqlDynamicString][SqlDataBinder][Unicode]")
 {
-    RoundTripStringValue(SqlDynamicUtf32String<64> { U"Hello \U0001F601" }, SqlColumnTypeDefinitions::NVarchar { 64 });
+    RoundTripStringValue(SqlDynamicUtf32String<64> { U"Hello \U0001F601" },
+                         SqlColumnTypeDefinitions::NVarchar { .size = 64 });
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicWideString: round-trip (binder)", "[SqlDynamicString][SqlDataBinder][Unicode]")
 {
-    RoundTripStringValue(SqlDynamicWideString<64> { L"Hello \U0001F601" }, SqlColumnTypeDefinitions::NVarchar { 64 });
+    RoundTripStringValue(SqlDynamicWideString<64> { L"Hello \U0001F601" },
+                         SqlColumnTypeDefinitions::NVarchar { .size = 64 });
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString FIXED_SIZE mode round-trip", "[SqlFixedString][SqlDataBinder]")
@@ -2689,17 +2693,17 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlString<N, T> alias round-trip", "[SqlFixedS
     // resolves through the same binder paths as the explicit SqlAnsiString / SqlWideString aliases.
     SECTION("char specialization")
     {
-        RoundTripStringValue(SqlString<32, char> { "Alias" }, SqlColumnTypeDefinitions::Varchar { 32 });
+        RoundTripStringValue(SqlString<32, char> { "Alias" }, SqlColumnTypeDefinitions::Varchar { .size = 32 });
     }
 
     SECTION("default char specialization")
     {
-        RoundTripStringValue(SqlString<32> { "DefaultAlias" }, SqlColumnTypeDefinitions::Varchar { 32 });
+        RoundTripStringValue(SqlString<32> { "DefaultAlias" }, SqlColumnTypeDefinitions::Varchar { .size = 32 });
     }
 
     SECTION("wchar_t specialization")
     {
-        RoundTripStringValue(SqlString<32, wchar_t> { L"WideAlias" }, SqlColumnTypeDefinitions::NVarchar { 32 });
+        RoundTripStringValue(SqlString<32, wchar_t> { L"WideAlias" }, SqlColumnTypeDefinitions::NVarchar { .size = 32 });
     }
 }
 
@@ -2850,7 +2854,8 @@ TEST_CASE_METHOD(SqlTestFixture, "C-array string literal: wchar_t[N] InputParame
     // wchar_t is 4 bytes and StringLiteral.hpp does not specialize for it; the
     // Linux equivalent is the std::wstring path covered in the binder matrix above.
     auto stmt = SqlStatement {};
-    auto const sqlColumnType = stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { 32 });
+    auto const sqlColumnType =
+        stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { .size = 32 });
     (void) stmt.ExecuteDirect(std::format("CREATE TABLE Test (Value {} NULL)", sqlColumnType));
 
     wchar_t const literal[] = L"WideLit";
@@ -2866,7 +2871,8 @@ TEST_CASE_METHOD(SqlTestFixture, "C-array string literal: wchar_t[N] InputParame
 TEST_CASE_METHOD(SqlTestFixture, "C-array string literal: char16_t[N] InputParameter", "[SqlDataBinder][Unicode]")
 {
     auto stmt = SqlStatement {};
-    auto const sqlColumnType = stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { 32 });
+    auto const sqlColumnType =
+        stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { .size = 32 });
     (void) stmt.ExecuteDirect(std::format("CREATE TABLE Test (Value {} NULL)", sqlColumnType));
 
     char16_t const literal[] = u"u16Lit";
@@ -2885,7 +2891,8 @@ TEST_CASE_METHOD(SqlTestFixture, "C-array string literal: char16_t[N] InputParam
 TEST_CASE_METHOD(SqlTestFixture, "Empty string round-trip across string types", "[SqlDataBinder][Unicode]")
 {
     auto stmt = SqlStatement {};
-    auto const sqlColumnType = stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { 32 });
+    auto const sqlColumnType =
+        stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { .size = 32 });
     (void) stmt.ExecuteDirect(std::format("CREATE TABLE Test (Value {} NULL)", sqlColumnType));
 
     stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
@@ -2957,7 +2964,8 @@ TEST_CASE_METHOD(SqlTestFixture, "Max-capacity ASCII round-trip", "[SqlDataBinde
     // `AnsiStringType::Capacity` as the SQLGetData buffer length — which the driver
     // treats as `bytes-including-null-terminator`, capping the readable payload at N-1.
     auto stmt = SqlStatement {};
-    auto const sqlColumnType = stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::Varchar { 32 });
+    auto const sqlColumnType =
+        stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::Varchar { .size = 32 });
     (void) stmt.ExecuteDirect(std::format("CREATE TABLE Test (Value {} NULL)", sqlColumnType));
 
     auto const payload = std::string(32, 'A');
@@ -2986,7 +2994,8 @@ TEST_CASE_METHOD(SqlTestFixture, "Max-capacity ASCII round-trip", "[SqlDataBinde
 TEST_CASE_METHOD(SqlTestFixture, "Max-capacity wide round-trip", "[SqlDataBinder][Unicode]")
 {
     auto stmt = SqlStatement {};
-    auto const sqlColumnType = stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { 32 });
+    auto const sqlColumnType =
+        stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { .size = 32 });
     (void) stmt.ExecuteDirect(std::format("CREATE TABLE Test (Value {} NULL)", sqlColumnType));
 
     auto const payload = std::wstring(32, L'X');
@@ -3020,7 +3029,8 @@ TEST_CASE_METHOD(SqlTestFixture, "ASCII round-trip across all writable string ty
     // a regression here would mean one of the encoding paths corrupted bytes
     // that should be passthrough.
     auto stmt = SqlStatement {};
-    auto const sqlColumnType = stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { 64 });
+    auto const sqlColumnType =
+        stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { .size = 64 });
     (void) stmt.ExecuteDirect(std::format("CREATE TABLE Test (Value {} NULL)", sqlColumnType));
 
     constexpr std::string_view payloadAscii = "ASCII Round Trip 0123456789";
@@ -3075,7 +3085,8 @@ TEST_CASE_METHOD(SqlTestFixture, "Unicode insert via std::string_view, retrieve 
     // Same value, multiple retrieval encodings: pins that a single non-ASCII payload
     // arrives intact regardless of whether the caller asks for u8/u16/u32/wstring.
     auto stmt = SqlStatement {};
-    auto const sqlColumnType = stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { 32 });
+    auto const sqlColumnType =
+        stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { .size = 32 });
     (void) stmt.ExecuteDirect(std::format("CREATE TABLE Test (Value {} NULL)", sqlColumnType));
 
     stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
@@ -3435,7 +3446,8 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: GetColumn for NVARCHAR columns", "
     if (stmt.Connection().ServerType() == SqlServerType::SQLITE)
         (void) stmt.ExecuteDirect("PRAGMA encoding = 'UTF-16'");
 
-    auto const sqlColumnType = stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { 64 });
+    auto const sqlColumnType =
+        stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { .size = 64 });
     (void) stmt.ExecuteDirect(std::format("CREATE TABLE Test (Value {} NULL)", sqlColumnType));
     stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
     (void) stmt.Execute(std::u16string { u"Hello" });
@@ -3957,7 +3969,8 @@ TEST_CASE_METHOD(SqlTestFixture, "Single-character string round-trip", "[SqlData
     // Min-size boundary: one ASCII char and one non-BMP codepoint. The single-codepoint
     // case probes the indicator-handling path where the reported length is sizeof(CharType).
     auto stmt = SqlStatement {};
-    auto const sqlColumnType = stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { 8 });
+    auto const sqlColumnType =
+        stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { .size = 8 });
     (void) stmt.ExecuteDirect(std::format("CREATE TABLE Test (Value {} NULL)", sqlColumnType));
 
     SECTION("single ASCII char")

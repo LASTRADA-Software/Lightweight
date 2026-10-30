@@ -865,7 +865,7 @@ auto migration = dm.Connection().Migration();
 migration.CreateTable("Appointment")
     .PrimaryKeyWithAutoIncrement("id")
     .RequiredColumn("date", DateTime {})
-    .Column("comment", Varchar { 80 })
+    .Column("comment", Varchar { .size = 80 })
     .ForeignKey(
         "physician_id", Guid {}, SqlForeignKeyReferenceDefinition { .tableName = "Physician", .columnName = "id" })
     .ForeignKey(

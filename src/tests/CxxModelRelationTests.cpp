@@ -578,7 +578,7 @@ TEST_CASE("CxxModelPrinter: relation members do not collide with column members"
     auto const tables = std::vector<Lightweight::SqlSchema::Table> {
         { .schema = "",
           .name = "author",
-          .columns = { IdColumn(), { .name = "book", .type = Varchar { 20 } } }, // collides with the relation
+          .columns = { IdColumn(), { .name = "book", .type = Varchar { .size = 20 } } }, // collides with the relation
           .primaryKeys = { "id" } },
         { .schema = "",
           .name = "book",

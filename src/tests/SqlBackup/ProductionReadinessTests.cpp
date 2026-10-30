@@ -91,7 +91,7 @@ void SetupTestTable()
 
     stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
         migration.DropTableIfExists("prod_test_table");
-        migration.CreateTable("prod_test_table").PrimaryKey("id", Integer {}).Column("name", Varchar { 100 });
+        migration.CreateTable("prod_test_table").PrimaryKey("id", Integer {}).Column("name", Varchar { .size = 100 });
     });
 
     stmt.Prepare("INSERT INTO prod_test_table (id, name) VALUES (?, ?)");
@@ -230,8 +230,8 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Filter tables in restore", "[SqlBac
             migration.DropTableIfExists("products_table");
             migration.DropTableIfExists("orders_table");
 
-            migration.CreateTable("users_table").PrimaryKey("id", Integer {}).Column("name", Varchar { 100 });
-            migration.CreateTable("products_table").PrimaryKey("id", Integer {}).Column("name", Varchar { 100 });
+            migration.CreateTable("users_table").PrimaryKey("id", Integer {}).Column("name", Varchar { .size = 100 });
+            migration.CreateTable("products_table").PrimaryKey("id", Integer {}).Column("name", Varchar { .size = 100 });
             migration.CreateTable("orders_table").PrimaryKey("id", Integer {}).Column("amount", Integer {});
         });
 

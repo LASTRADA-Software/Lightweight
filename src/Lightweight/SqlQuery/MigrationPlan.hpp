@@ -119,14 +119,14 @@ namespace detail
         requires(detail::OneOf<CharT, char>)
     struct SqlColumnTypeDefinitionOf<SqlFixedString<N, CharT, SqlFixedStringMode::VARIABLE_SIZE>>
     {
-        static constexpr auto value = SqlColumnTypeDefinitions::Varchar { N };
+        static constexpr auto value = SqlColumnTypeDefinitions::Varchar { .size = N };
     };
 
     template <size_t N, typename CharT>
         requires(detail::OneOf<CharT, char16_t, char32_t, wchar_t>)
     struct SqlColumnTypeDefinitionOf<SqlFixedString<N, CharT, SqlFixedStringMode::VARIABLE_SIZE>>
     {
-        static constexpr auto value = SqlColumnTypeDefinitions::NVarchar { N };
+        static constexpr auto value = SqlColumnTypeDefinitions::NVarchar { .size = N };
     };
 
     template <size_t N, typename CharT>
@@ -160,14 +160,14 @@ namespace detail
         requires(detail::OneOf<CharT, char>)
     struct SqlColumnTypeDefinitionOf<SqlDynamicString<N, CharT>>
     {
-        static constexpr auto value = SqlColumnTypeDefinitions::Varchar { N };
+        static constexpr auto value = SqlColumnTypeDefinitions::Varchar { .size = N };
     };
 
     template <size_t N, typename CharT>
         requires(detail::OneOf<CharT, char8_t, char16_t, char32_t, wchar_t>)
     struct SqlColumnTypeDefinitionOf<SqlDynamicString<N, CharT>>
     {
-        static constexpr auto value = SqlColumnTypeDefinitions::NVarchar { N };
+        static constexpr auto value = SqlColumnTypeDefinitions::NVarchar { .size = N };
     };
 
     template <typename T>
@@ -185,7 +185,7 @@ namespace detail
     template <size_t N>
     struct SqlColumnTypeDefinitionOf<SqlDynamicBinary<N>>
     {
-        static constexpr auto value = SqlColumnTypeDefinitions::VarBinary { N };
+        static constexpr auto value = SqlColumnTypeDefinitions::VarBinary { .size = N };
     };
 
 } // namespace detail

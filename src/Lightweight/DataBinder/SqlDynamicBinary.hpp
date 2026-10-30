@@ -42,7 +42,7 @@ class SqlDynamicBinary final
 #endif
 
     /// The SQL column type definition for this binary type.
-    static constexpr auto ColumnType = SqlColumnTypeDefinitions::VarBinary { N };
+    static constexpr auto ColumnType = SqlColumnTypeDefinitions::VarBinary { .size = N };
 
     /// The maximum size of the underlying data storage.
     static constexpr std::size_t DynamicCapacity = N;
@@ -234,7 +234,7 @@ struct SqlDataBinder<SqlDynamicBinary<N>>
 {
     using ValueType = SqlDynamicBinary<N>;
 
-    static constexpr auto ColumnType = SqlColumnTypeDefinitions::VarBinary { N };
+    static constexpr auto ColumnType = SqlColumnTypeDefinitions::VarBinary { .size = N };
 
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,
                                                              SQLUSMALLINT column,

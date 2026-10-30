@@ -71,7 +71,7 @@ TEST_CASE_METHOD(SqlTestFixture, "BackupDiff: identical archives compare equal w
         SqlStatement stmt {};
         stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
             migration.DropTableIfExists("BackupDiffSubject");
-            migration.CreateTable("BackupDiffSubject").PrimaryKey("id", Integer {}).Column("v", Varchar { 32 });
+            migration.CreateTable("BackupDiffSubject").PrimaryKey("id", Integer {}).Column("v", Varchar { .size = 32 });
         });
         stmt.Prepare(R"(INSERT INTO "BackupDiffSubject" ("id", "v") VALUES (?, ?))");
         (void) stmt.Execute(1, std::string { "alpha" });
@@ -109,7 +109,7 @@ TEST_CASE_METHOD(SqlTestFixture,
         SqlStatement stmt {};
         stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
             migration.DropTableIfExists("BackupDiffSubject");
-            migration.CreateTable("BackupDiffSubject").PrimaryKey("id", Integer {}).Column("v", Varchar { 32 });
+            migration.CreateTable("BackupDiffSubject").PrimaryKey("id", Integer {}).Column("v", Varchar { .size = 32 });
         });
         stmt.Prepare(R"(INSERT INTO "BackupDiffSubject" ("id", "v") VALUES (?, ?))");
         (void) stmt.Execute(1, std::string { "alpha" });
@@ -180,7 +180,7 @@ TEST_CASE_METHOD(SqlTestFixture,
         SqlStatement stmt {};
         stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
             migration.DropTableIfExists("BackupDiffSubject");
-            migration.CreateTable("BackupDiffSubject").PrimaryKey("id", Integer {}).Column("v", Varchar { 32 });
+            migration.CreateTable("BackupDiffSubject").PrimaryKey("id", Integer {}).Column("v", Varchar { .size = 32 });
         });
     }
     BackupSingleTable(fileA, "BackupDiffSubject");
@@ -218,7 +218,7 @@ TEST_CASE_METHOD(SqlTestFixture,
         SqlStatement stmt {};
         stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
             migration.DropTableIfExists("records_stand_in");
-            migration.CreateTable("records_stand_in").PrimaryKey("id", Integer {}).Column("kind", Varchar { 16 });
+            migration.CreateTable("records_stand_in").PrimaryKey("id", Integer {}).Column("kind", Varchar { .size = 16 });
         });
         stmt.Prepare(R"(INSERT INTO "records_stand_in" ("id", "kind") VALUES (?, ?))");
         (void) stmt.Execute(1, std::string { "backup" });

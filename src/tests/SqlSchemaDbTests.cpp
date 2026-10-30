@@ -22,7 +22,7 @@ void CreateOrdersAndItemsSchema(SqlStatement& stmt)
 {
     stmt.MigrateDirect([](auto& migration) {
         migration.CreateTable("Orders").PrimaryKeyWithAutoIncrement("OrderID").RequiredColumn(
-            "Description", SqlColumnTypeDefinitions::Varchar { 100 });
+            "Description", SqlColumnTypeDefinitions::Varchar { .size = 100 });
     });
     stmt.MigrateDirect([](auto& migration) {
         // FK column type must match the referenced PK type. PrimaryKeyWithAutoIncrement
@@ -345,7 +345,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     stmt.MigrateDirect([](auto& migration) {
         migration.CreateTable("WideKeyed")
             .PrimaryKeyWithAutoIncrement("id", Bigint {})
-            .RequiredColumn("name", Varchar { 32 });
+            .RequiredColumn("name", Varchar { .size = 32 });
     });
 
     CheckIsSixtyFourBitKey(stmt.Connection().ServerType(), LiveColumnType(stmt, "WideKeyed", "id"));
@@ -745,7 +745,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlSchema does not carry a foreign key onto th
             .ForeignKey("customer_id",
                         SqlColumnTypeDefinitions::Integer {},
                         SqlForeignKeyReferenceDefinition { .tableName = "FkCustomer", .columnName = "id" })
-            .Column("note", SqlColumnTypeDefinitions::Varchar { 50 });
+            .Column("note", SqlColumnTypeDefinitions::Varchar { .size = 50 });
     });
 
     auto const assertNoPhantomForeignKey = [](SqlSchema::Table const& table) {
@@ -910,7 +910,7 @@ TEST_CASE_METHOD(SqlTestFixture, "ReadTable ColumnsAndPrimaryKey skips FKs and i
     stmt.MigrateDirect([](auto& migration) {
         migration.CreateTable("RtLightChild")
             .PrimaryKeyWithAutoIncrement("Id", SqlColumnTypeDefinitions::Integer {})
-            .RequiredColumn("Code", SqlColumnTypeDefinitions::Varchar { 32 })
+            .RequiredColumn("Code", SqlColumnTypeDefinitions::Varchar { .size = 32 })
             .Unique()
             .Column("Tag", SqlColumnTypeDefinitions::Integer {})
             .Index()

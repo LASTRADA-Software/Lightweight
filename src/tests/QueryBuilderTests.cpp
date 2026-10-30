@@ -2141,7 +2141,7 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable with Column", "[SqlQueryBuilder][M
     CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             auto migration = q.Migration();
-            migration.CreateTable("Test").Column("column", Varchar { 255 });
+            migration.CreateTable("Test").Column("column", Varchar { .size = 255 });
             return migration.GetPlan();
         },
         QueryExpectations::All(R"sql(CREATE TABLE "Test" (
@@ -2156,7 +2156,7 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable with RequiredColumn", "[SqlQueryBu
     CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             auto migration = q.Migration();
-            migration.CreateTable("Test").RequiredColumn("column", Varchar { 255 });
+            migration.CreateTable("Test").RequiredColumn("column", Varchar { .size = 255 });
             return migration.GetPlan();
         },
         QueryExpectations::All(R"sql(CREATE TABLE "Test" (
@@ -2347,9 +2347,9 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable complex demo", "[SqlQueryBuilder][
             auto migration = q.Migration();
             migration.CreateTable("Test")
                 .PrimaryKeyWithAutoIncrement("a", Bigint {})
-                .RequiredColumn("b", Varchar { 32 }).Unique()
+                .RequiredColumn("b", Varchar { .size = 32 }).Unique()
                 .Column("c", DateTime {}).Index()
-                .Column("d", Varchar { 255 }).UniqueIndex();;
+                .Column("d", Varchar { .size = 255 }).UniqueIndex();;
             return migration.GetPlan();
             // clang-format on
         },
@@ -2472,7 +2472,7 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable AlterColumn SQL", "[SqlQueryBuilder
         CheckSqlQueryBuilder(
             [](SqlQueryBuilder& q) {
                 auto migration = q.Migration();
-                migration.AlterTable("Table").AlterColumn("column", Varchar { 200 }, SqlNullable::NotNull);
+                migration.AlterTable("Table").AlterColumn("column", Varchar { .size = 200 }, SqlNullable::NotNull);
                 return migration.GetPlan();
             },
             QueryExpectations {
@@ -2493,7 +2493,7 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable multiple AddColumn calls", "[SqlQue
     CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             auto migration = q.Migration();
-            migration.AlterTable("Table").AddColumn("column", Bigint {}).AddColumn("column2", Varchar { 255 });
+            migration.AlterTable("Table").AddColumn("column", Bigint {}).AddColumn("column2", Varchar { .size = 255 });
             return migration.GetPlan();
         },
         QueryExpectations {
@@ -2951,10 +2951,12 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryFormatter.ColumnType per dialect", "[S
         ColumnTypeExpectation { .type = Guid {}, .sqlite = "GUID", .postgres = "UUID", .sqlServer = "UNIQUEIDENTIFIER" },
         ColumnTypeExpectation { .type = Integer {}, .sqlite = "INTEGER", .postgres = "INTEGER", .sqlServer = "INTEGER" },
         ColumnTypeExpectation { .type = NChar { 5 }, .sqlite = "NCHAR(5)", .postgres = "CHAR(5)", .sqlServer = "NCHAR(5)" },
+        ColumnTypeExpectation { .type = NVarchar { .size = 50 },
+                                .sqlite = "NVARCHAR(50)",
+                                .postgres = "VARCHAR(50)",
+                                .sqlServer = "NVARCHAR(50)" },
         ColumnTypeExpectation {
-            .type = NVarchar { 50 }, .sqlite = "NVARCHAR(50)", .postgres = "VARCHAR(50)", .sqlServer = "NVARCHAR(50)" },
-        ColumnTypeExpectation {
-            .type = NVarchar { 0 }, .sqlite = "NVARCHAR(0)", .postgres = "TEXT", .sqlServer = "NVARCHAR(MAX)" },
+            .type = NVarchar { .size = 0 }, .sqlite = "NVARCHAR(0)", .postgres = "TEXT", .sqlServer = "NVARCHAR(MAX)" },
         ColumnTypeExpectation { .type = Real {}, .sqlite = "REAL", .postgres = "REAL", .sqlServer = "REAL" },
         ColumnTypeExpectation {
             .type = Real { .precision = 24 }, .sqlite = "REAL", .postgres = "REAL", .sqlServer = "REAL" },
@@ -2966,12 +2968,27 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryFormatter.ColumnType per dialect", "[S
         ColumnTypeExpectation {
             .type = Timestamp {}, .sqlite = "TIMESTAMP", .postgres = "TIMESTAMP", .sqlServer = "DATETIME2" },
         ColumnTypeExpectation { .type = Tinyint {}, .sqlite = "TINYINT", .postgres = "SMALLINT", .sqlServer = "TINYINT" },
+        ColumnTypeExpectation { .type = VarBinary { .size = 100 },
+                                .sqlite = "VARBINARY(100)",
+                                .postgres = "BYTEA",
+                                .sqlServer = "VARBINARY(100)" },
         ColumnTypeExpectation {
-            .type = VarBinary { 100 }, .sqlite = "VARBINARY(100)", .postgres = "BYTEA", .sqlServer = "VARBINARY(100)" },
+            .type = Varchar { .size = 80 }, .sqlite = "VARCHAR(80)", .postgres = "VARCHAR(80)", .sqlServer = "VARCHAR(80)" },
         ColumnTypeExpectation {
-            .type = Varchar { 80 }, .sqlite = "VARCHAR(80)", .postgres = "VARCHAR(80)", .sqlServer = "VARCHAR(80)" },
-        ColumnTypeExpectation {
-            .type = Varchar { 0 }, .sqlite = "VARCHAR(0)", .postgres = "TEXT", .sqlServer = "VARCHAR(MAX)" },
+            .type = Varchar { .size = 0 }, .sqlite = "VARCHAR(0)", .postgres = "TEXT", .sqlServer = "VARCHAR(MAX)" },
+        // Legacy LOB flag only affects SQL Server.
+        ColumnTypeExpectation { .type = Varchar { .size = 0, .legacyLob = true },
+                                .sqlite = "VARCHAR(0)",
+                                .postgres = "TEXT",
+                                .sqlServer = "TEXT" },
+        ColumnTypeExpectation { .type = NVarchar { .size = 0, .legacyLob = true },
+                                .sqlite = "NVARCHAR(0)",
+                                .postgres = "TEXT",
+                                .sqlServer = "NTEXT" },
+        ColumnTypeExpectation { .type = VarBinary { .size = 0, .legacyLob = true },
+                                .sqlite = "VARBINARY(0)",
+                                .postgres = "BYTEA",
+                                .sqlServer = "IMAGE" },
     };
 
     for (auto const& expectation: expectations)
@@ -3042,7 +3059,9 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable foreign keys and IfExists guards SQ
         CheckSqlQueryBuilder(
             [](SqlQueryBuilder& q) {
                 auto migration = q.Migration();
-                migration.AlterTable("Orders").AddColumnIfNotExists("note", Varchar { 50 }).DropColumnIfExists("legacy");
+                migration.AlterTable("Orders")
+                    .AddColumnIfNotExists("note", Varchar { .size = 50 })
+                    .DropColumnIfExists("legacy");
                 return migration.GetPlan();
             },
             QueryExpectations {

@@ -66,7 +66,7 @@ void SetupDatabase()
         migration.DropTableIfExists("test_table");
         migration.DropTableIfExists("Test");
 
-        migration.CreateTable("test_table").PrimaryKey("id", Integer {}).Column("content", Varchar { 100 });
+        migration.CreateTable("test_table").PrimaryKey("id", Integer {}).Column("content", Varchar { .size = 100 });
     });
 
     // Insert data with explicit IDs
@@ -202,7 +202,7 @@ TEST_CASE("SqlBackup: multi-window PK-range table backs up in parallel and resto
             migration.DropTableIfExists("multi_chunk");
             migration.CreateTable("multi_chunk")
                 .PrimaryKey("id", SqlColumnTypeDefinitions::Integer {})
-                .Column("content", SqlColumnTypeDefinitions::Varchar { 64 });
+                .Column("content", SqlColumnTypeDefinitions::Varchar { .size = 64 });
         });
         stmt.Prepare("INSERT INTO multi_chunk (id, content) VALUES (?, ?)");
         for (int i = 1; i <= 25; ++i)
@@ -286,9 +286,9 @@ void SetupComplexDatabase()
         migration.CreateTable("complex_table")
             .PrimaryKey("id", Integer {})
             .Column("b", Binary {}) // BLOB/VARBINARY(MAX)/BYTEA
-            .Column("c", Varchar { 10 })
-            .Column("vc", Varchar { 50 })
-            .Column("content", NVarchar { 0 }); // NVARCHAR(MAX) for Unicode support
+            .Column("c", Varchar { .size = 10 })
+            .Column("vc", Varchar { .size = 50 })
+            .Column("content", NVarchar { .size = 0 }); // NVARCHAR(MAX) for Unicode support
     });
 
     // Insert binary data with null bytes
@@ -457,7 +457,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Corner Cases", "[SqlBackup]")
         stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
             migration.DropTableIfExists("corner_cases");
 
-            migration.CreateTable("corner_cases").PrimaryKey("id", Integer {}).Column("txt", Varchar { 100 });
+            migration.CreateTable("corner_cases").PrimaryKey("id", Integer {}).Column("txt", Varchar { .size = 100 });
         });
 
         // Single quote
@@ -530,7 +530,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Concurrent Restore", "[SqlBackup]")
             migration.DropTableIfExists("large_table");
             migration.DropTableIfExists("Test");
 
-            migration.CreateTable("large_table").PrimaryKey("id", Integer {}).Column("data", Varchar { 100 });
+            migration.CreateTable("large_table").PrimaryKey("id", Integer {}).Column("data", Varchar { .size = 100 });
         });
 
         (void) stmt.ExecuteDirect("BEGIN TRANSACTION");
@@ -627,7 +627,9 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Table With Spaces", "[SqlBackup]")
         stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
             migration.DropTableIfExists("Order Details");
 
-            migration.CreateTable("Order Details").PrimaryKey("id", Integer {}).Column("product_name", Varchar { 100 });
+            migration.CreateTable("Order Details")
+                .PrimaryKey("id", Integer {})
+                .Column("product_name", Varchar { .size = 100 });
         });
 
         (void) stmt.ExecuteDirect(R"(INSERT INTO "Order Details" ("id", "product_name") VALUES (1, 'Tofu'))");
@@ -693,7 +695,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: DateTime Columns", "[SqlBackup]")
 
             migration.CreateTable("datetime_backup_test")
                 .PrimaryKey("id", Integer {})
-                .Column("name", Varchar { 50 })
+                .Column("name", Varchar { .size = 50 })
                 .Column("created_at", DateTime {});
         });
 
@@ -800,7 +802,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Date Columns", "[SqlBackup]")
 
             migration.CreateTable("date_backup_test")
                 .PrimaryKey("id", Integer {})
-                .Column("name", Varchar { 50 })
+                .Column("name", Varchar { .size = 50 })
                 .Column("birth_date", Date {});
         });
 
@@ -900,7 +902,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Time Columns", "[SqlBackup]")
 
             migration.CreateTable("time_backup_test")
                 .PrimaryKey("id", Integer {})
-                .Column("name", Varchar { 50 })
+                .Column("name", Varchar { .size = 50 })
                 .Column("event_time", Time {});
         });
 
@@ -1077,7 +1079,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Decimal Precision", "[SqlBackup]")
 
             migration.CreateTable("decimal_backup_test")
                 .PrimaryKey("id", Integer {})
-                .Column("name", Varchar { 50 })
+                .Column("name", Varchar { .size = 50 })
                 .Column("amount", Decimal { .precision = 28, .scale = 10 }); // High precision decimal
         });
 
@@ -1280,7 +1282,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Backup with Custom Compression", "[
 
         stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
             migration.DropTableIfExists("compression_test");
-            migration.CreateTable("compression_test").PrimaryKey("id", Integer {}).Column("data", Varchar { 100 });
+            migration.CreateTable("compression_test").PrimaryKey("id", Integer {}).Column("data", Varchar { .size = 100 });
         });
 
         stmt.Prepare("INSERT INTO compression_test (id, data) VALUES (?, ?)");
@@ -1334,9 +1336,9 @@ TEST_CASE("SqlBackup: Backup with Table Filter", "[SqlBackup]")
             migration.DropTableIfExists("filter_table_b");
             migration.DropTableIfExists("other_table");
 
-            migration.CreateTable("filter_table_a").PrimaryKey("id", Integer {}).Column("data", Varchar { 50 });
-            migration.CreateTable("filter_table_b").PrimaryKey("id", Integer {}).Column("data", Varchar { 50 });
-            migration.CreateTable("other_table").PrimaryKey("id", Integer {}).Column("data", Varchar { 50 });
+            migration.CreateTable("filter_table_a").PrimaryKey("id", Integer {}).Column("data", Varchar { .size = 50 });
+            migration.CreateTable("filter_table_b").PrimaryKey("id", Integer {}).Column("data", Varchar { .size = 50 });
+            migration.CreateTable("other_table").PrimaryKey("id", Integer {}).Column("data", Varchar { .size = 50 });
         });
 
         (void) stmt.ExecuteDirect("INSERT INTO filter_table_a (id, data) VALUES (1, 'A1')");
@@ -1865,7 +1867,7 @@ TEST_CASE("SqlBackup: PK-range windows fall back to single-row path for non-arra
             migration.CreateTable("pk_fallback")
                 .PrimaryKey("id", Integer {})
                 .Column("payload", Binary {})
-                .Column("content", Varchar { 64 });
+                .Column("content", Varchar { .size = 64 });
         });
         uint8_t const rawBinary[] = { 0x01, 0x00, 0xFF, 0x10 };
         SqlDynamicBinary<1024> const binaryData { rawBinary };
