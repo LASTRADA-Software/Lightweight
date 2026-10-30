@@ -7,6 +7,7 @@
 #include <Lightweight/SqlBackup.hpp>
 #include <Lightweight/SqlColumnTypeDefinitions.hpp>
 #include <Lightweight/SqlConnection.hpp>
+#include <Lightweight/SqlQueryFormatter.hpp>
 #include <Lightweight/SqlStatement.hpp>
 #include <Lightweight/Zip/ZipArchive.hpp>
 
@@ -37,6 +38,14 @@ namespace
 SqlConnectionString const& GetConnectionString()
 {
     return SqlConnection::DefaultConnectionString();
+}
+
+/// Tests whether the test database stores GUIDs natively; if not, restore keeps GUID text unchanged.
+bool TargetHasNativeGuidType()
+{
+    auto const connection = SqlConnection {};
+    auto const* const formatter = SqlQueryFormatter::Get(connection.ServerType());
+    return formatter != nullptr && formatter->HasNativeGuidType();
 }
 
 /// Returns @p guid as upper-case text, or `NULL`.
@@ -211,6 +220,16 @@ TEST_CASE_METHOD(SqlTestFixture,
     RecordingProgressManager restoreProgress;
     REQUIRE_NOTHROW(SqlBackup::Restore(guidBackupFile, GetConnectionString(), 1, restoreProgress));
 
+    if (!TargetHasNativeGuidType())
+    {
+        // No native GUID type: the archived text passes through unchanged, so nothing fails.
+        CHECK(restoreProgress.ErrorCount() == 0);
+        CHECK(CountRows("guid_restore_invalid") == 1);
+        CHECK(SqlStatement {}.ExecuteDirectScalar<std::string>(R"(SELECT "TOKEN" FROM "guid_restore_invalid")")
+              == std::optional<std::string> { "not-a-guid" });
+        return;
+    }
+
     auto const errors = restoreProgress.ErrorsOf("guid_restore_invalid");
     CAPTURE(errors);
     CHECK(std::ranges::any_of(errors, [](std::string const& message) {
@@ -261,6 +280,17 @@ TEST_CASE_METHOD(SqlTestFixture,
 
     RecordingProgressManager restoreProgress;
     REQUIRE_NOTHROW(SqlBackup::Restore(guidBackupFile, GetConnectionString(), 1, restoreProgress));
+
+    if (!TargetHasNativeGuidType())
+    {
+        // No native GUID type: the archived text passes through unchanged, so both tables are restored.
+        CHECK(restoreProgress.ErrorCount() == 0);
+        CHECK(CountRows("restore_good_rows") == 3);
+        CHECK(CountRows("restore_bad_value") == 6);
+        CHECK(SqlStatement {}.ExecuteDirectScalar<std::string>(R"(SELECT "TOKEN" FROM "restore_bad_value" WHERE "ID" = 1)")
+              == std::optional<std::string> { "not-a-guid" });
+        return;
+    }
 
     // The good table is restored in full; the bad one is reported, and none of its chunks is restored.
     CHECK(CountRows("restore_good_rows") == 3);

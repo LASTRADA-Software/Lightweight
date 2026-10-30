@@ -789,7 +789,8 @@ TEST_CASE("BatchManager: GUID column", "[SqlBackup]")
                           { std::monostate {} },
                           { std::string("") },
                           { std::string("NULL") } },
-                        10);
+                        10,
+                        SqlServerType::MICROSOFT_SQL);
 
     REQUIRE(capturedIndicators.size() == 4);
     REQUIRE(capturedIndicators[0] == sizeof(SqlGuid));
@@ -829,7 +830,7 @@ TEST_CASE("BatchManager: GUID PushFromBatch", "[SqlBackup]")
                                                   "",
                                                   "NULL" };
 
-    RunBatchManagerBatchTest(executor, cols, { batch }, 10);
+    RunBatchManagerBatchTest(executor, cols, { batch }, 10, SqlServerType::MICROSOFT_SQL);
 
     REQUIRE(capturedIndicators.size() == 3);
     REQUIRE(capturedIndicators[0] == sizeof(SqlGuid));
@@ -841,6 +842,80 @@ TEST_CASE("BatchManager: GUID PushFromBatch", "[SqlBackup]")
     auto expected = SqlGuid::UnsafeParse("AAAAAAAA-BBBB-4CCC-DDDD-EEEEEEEEEEEE");
     SwapGuidWireByteOrder(expected.data);
     CHECK(std::ranges::equal(capturedFirstGuid, expected.data));
+}
+
+namespace
+{
+struct CapturedTextColumn
+{
+    SQLSMALLINT cType = 0;
+    SQLSMALLINT sqlType = 0;
+    std::vector<std::string> texts;
+    std::vector<SQLLEN> indicators;
+};
+
+/// Pushes @p rows into a single-GUID-column BatchManager for @p serverType and captures the first
+/// flush's bound column, reading the data as fixed-stride text.
+CapturedTextColumn CaptureGuidColumn(std::vector<SqlBackup::BackupValue> const& rows, SqlServerType serverType)
+{
+    std::vector<SqlColumnDeclaration> const cols = { { .name = "id", .type = SqlColumnTypeDefinitions::Guid {} } };
+    CapturedTextColumn captured;
+    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+        REQUIRE(rawCols.size() == 1);
+        auto const& col = rawCols[0];
+        captured.cType = col.metadata.cType;
+        captured.sqlType = col.metadata.sqlType;
+        auto const stride = col.metadata.bufferLength;
+        auto const* bytes = reinterpret_cast<char const*>(col.data.data());
+        for (size_t i = 0; i < count; ++i)
+        {
+            captured.indicators.push_back(col.indicators[i]);
+            if (col.metadata.cType == SQL_C_CHAR && col.indicators[i] != SQL_NULL_DATA)
+                captured.texts.emplace_back(bytes + (i * stride), static_cast<size_t>(col.indicators[i]));
+            else
+                captured.texts.emplace_back();
+        }
+    };
+    std::vector<std::vector<SqlBackup::BackupValue>> rowVectors;
+    for (auto const& row: rows)
+        rowVectors.push_back({ row });
+    RunBatchManagerTest(executor, cols, rowVectors, 10, serverType);
+    return captured;
+}
+} // namespace
+
+TEST_CASE("BatchManager binds GUID as text on SQLite", "[SqlBackup][BatchManager]")
+{
+    auto const captured =
+        CaptureGuidColumn({ std::string("6F9619FF-8B86-D011-B42D-00C04FC964FF"), std::monostate {} }, SqlServerType::SQLITE);
+
+    CHECK(captured.cType == SQL_C_CHAR);
+    CHECK(captured.sqlType == SQL_VARCHAR);
+    REQUIRE(captured.indicators.size() == 2);
+    CHECK(captured.texts[0] == "6F9619FF-8B86-D011-B42D-00C04FC964FF");
+    CHECK(captured.indicators[1] == SQL_NULL_DATA);
+}
+
+TEST_CASE("BatchManager keeps non-canonical GUID text on SQLite", "[SqlBackup][BatchManager]")
+{
+    CapturedTextColumn captured;
+    REQUIRE_NOTHROW(
+        captured = CaptureGuidColumn({ std::string("{6f9619ff-8b86-d011-b42d-00c04fc964ff}"), std::string("not-a-guid") },
+                                     SqlServerType::SQLITE));
+
+    REQUIRE(captured.texts.size() == 2);
+    CHECK(captured.texts[0] == "{6f9619ff-8b86-d011-b42d-00c04fc964ff}");
+    CHECK(captured.texts[1] == "not-a-guid");
+}
+
+TEST_CASE("BatchManager binds GUID natively on MSSQL and PostgreSQL", "[SqlBackup][BatchManager]")
+{
+    for (auto const serverType: { SqlServerType::MICROSOFT_SQL, SqlServerType::POSTGRESQL })
+    {
+        CAPTURE(serverType);
+        auto const captured = CaptureGuidColumn({ std::string("6F9619FF-8B86-D011-B42D-00C04FC964FF") }, serverType);
+        CHECK(captured.cType == SQL_C_GUID);
+    }
 }
 
 // =============================================================================
@@ -1488,6 +1563,10 @@ std::string PushBatchError(SqlColumnDeclaration const& column,
     return message;
 }
 
+/// The server type the GUID conversion tests run as: one with a native GUID type, which parses GUIDs.
+/// (Targets without one bind GUID text unchanged and never fail a value.)
+constexpr auto NativeGuidServer = SqlServerType::MICROSOFT_SQL;
+
 SqlColumnDeclaration const GuidColumn { .name = "TOKEN", .type = SqlColumnTypeDefinitions::Guid {} };
 
 } // namespace
@@ -1508,13 +1587,13 @@ TEST_CASE("BatchManager: GUID column accepts a GUID whose version nibble is outs
         }
     };
 
-    RunBatchManagerTest(executor, { GuidColumn }, { { std::string(text) } }, 10);
+    RunBatchManagerTest(executor, { GuidColumn }, { { std::string(text) } }, 10, NativeGuidServer);
 
     ColumnBatch batch;
     batch.rowCount = 1;
     batch.columns.emplace_back(std::vector<std::string> { std::string(text) });
     batch.nullIndicators.emplace_back(1, false);
-    RunBatchManagerBatchTest(executor, { GuidColumn }, { batch }, 10);
+    RunBatchManagerBatchTest(executor, { GuidColumn }, { batch }, 10, NativeGuidServer);
 
     // The text's bytes, unchanged, in the SQL_C_GUID wire order the raw array bind expects.
     auto expected = SqlGuid::UnsafeParse(text);
@@ -1529,18 +1608,23 @@ TEST_CASE("BatchManager: a GUID that does not parse fails, naming table, column 
     // Rows pushed before the bad one are discarded with it, not flushed; the row number counts them.
     CHECK(PushRowsError(
               GuidColumn,
-              { std::string("12345678-1234-1234-1234-123456789ABC"), std::monostate {}, std::string("INVALID-GUID") })
+              { std::string("12345678-1234-1234-1234-123456789ABC"), std::monostate {}, std::string("INVALID-GUID") },
+              NativeGuidServer)
           == "table 'ORDERS', column 'TOKEN', row 3: 'INVALID-GUID' is not a valid GUID");
-    CHECK(PushBatchError(GuidColumn, std::vector<std::string> { "12345678-1234-1234-1234-123456789ABC", "INVALID-GUID" }, 2)
+    CHECK(PushBatchError(GuidColumn,
+                         std::vector<std::string> { "12345678-1234-1234-1234-123456789ABC", "INVALID-GUID" },
+                         2,
+                         NativeGuidServer)
           == "table 'ORDERS', column 'TOKEN', row 2: 'INVALID-GUID' is not a valid GUID");
 
     // A value of another kind is no GUID either.
-    CHECK(PushRowsError(GuidColumn, { int64_t { 42 } }) == "table 'ORDERS', column 'TOKEN', row 1: 42 is not a valid GUID");
-    CHECK(PushBatchError(GuidColumn, std::vector<std::vector<uint8_t>> { { 0x01, 0x02, 0x03 } }, 1)
+    CHECK(PushRowsError(GuidColumn, { int64_t { 42 } }, NativeGuidServer)
+          == "table 'ORDERS', column 'TOKEN', row 1: 42 is not a valid GUID");
+    CHECK(PushBatchError(GuidColumn, std::vector<std::vector<uint8_t>> { { 0x01, 0x02, 0x03 } }, 1, NativeGuidServer)
           == "table 'ORDERS', column 'TOKEN', row 1: a 3-byte binary value is not a valid GUID");
 
     // Without a table name, the message names the column alone.
-    BatchManager anonymous([](std::vector<SqlRawColumn> const&, size_t) {}, { GuidColumn }, 10);
+    BatchManager anonymous([](std::vector<SqlRawColumn> const&, size_t) {}, { GuidColumn }, 10, NativeGuidServer);
     try
     {
         anonymous.PushRow({ std::string("INVALID-GUID") });
@@ -1555,7 +1639,7 @@ TEST_CASE("BatchManager: a GUID that does not parse fails, naming table, column 
 TEST_CASE("BatchManager: a long unconvertible value is shortened in the error", "[SqlBackup]")
 {
     auto const longValue = std::string(100, 'x');
-    CHECK(PushRowsError(GuidColumn, { longValue })
+    CHECK(PushRowsError(GuidColumn, { longValue }, NativeGuidServer)
           == std::format("table 'ORDERS', column 'TOKEN', row 1: '{}...' (100 bytes) is not a valid GUID",
                          std::string(64, 'x')));
 }
@@ -1736,12 +1820,12 @@ TEST_CASE("BatchManager: a date or time field with a sign fails", "[SqlBackup]")
 
 TEST_CASE("BatchManager: the error escapes control characters and never cuts a UTF-8 sequence", "[SqlBackup]")
 {
-    CHECK(PushRowsError(GuidColumn, { std::string("bad\n\tguid") })
+    CHECK(PushRowsError(GuidColumn, { std::string("bad\n\tguid") }, NativeGuidServer)
           == "table 'ORDERS', column 'TOKEN', row 1: 'bad\\x0A\\x09guid' is not a valid GUID");
 
     // 63 ASCII bytes, then a two-byte sequence across the 64-byte limit: the sequence is left out whole.
     auto const value = std::string(63, 'x') + "\xC3\xA9" + std::string(10, 'y');
-    CHECK(PushRowsError(GuidColumn, { value })
+    CHECK(PushRowsError(GuidColumn, { value }, NativeGuidServer)
           == std::format("table 'ORDERS', column 'TOKEN', row 1: '{}...' (75 bytes) is not a valid GUID",
                          std::string(63, 'x')));
 }

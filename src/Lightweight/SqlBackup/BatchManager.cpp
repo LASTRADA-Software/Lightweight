@@ -4,6 +4,7 @@
 #include "../DataBinder/SqlGuid.hpp"
 #include "../DataBinder/SqlTime.hpp"
 #include "../SqlColumnTypeDefinitions.hpp"
+#include "../SqlQueryFormatter.hpp"
 #include "../TracyProfiler.hpp"
 #include "../Utils.hpp"
 #include "BatchManager.hpp"
@@ -1500,6 +1501,53 @@ struct BinaryBatchColumn: BatchColumn
                               .indicators = std::span<SQLLEN const> { indicators.data(), indicators.size() } };
     }
 };
+/// A batch column for GUID values on targets without a native GUID type, bound as SQL_C_CHAR text.
+///
+/// Archived GUIDs are `to_string(SqlGuid)` text, which is what SqlDataBinder<SqlGuid> stores on such
+/// targets, so the text passes through unchanged: it is neither parsed nor normalized, and thus never
+/// a value failure. Any non-text archived value is rejected.
+struct GuidTextBatchColumn final: StringBatchColumn
+{
+    explicit GuidTextBatchColumn(SqlRawColumnMetadata meta):
+        StringBatchColumn(meta, 36)
+    {
+        metadata.sqlType = SQL_VARCHAR;
+    }
+
+    void PushFromBatch(ColumnBatch::ColumnData const& colData,
+                       std::vector<bool> const& nulls,
+                       size_t offset,
+                       size_t count) override
+    {
+        std::visit(
+            [&](auto const& inVec) {
+                using VecT = std::decay_t<decltype(inVec)>;
+                for (auto const idx: std::views::iota(offset, offset + count))
+                {
+                    if constexpr (std::is_same_v<VecT, std::monostate>)
+                        PushNull();
+                    else if ((idx < nulls.size() && nulls[idx]) || idx >= inVec.size())
+                        PushNull();
+                    else if constexpr (std::is_same_v<VecT, std::vector<std::string>>)
+                        PushString(inVec[idx]);
+                    else
+                        RejectValue(inVec[idx], "GUID");
+                }
+            },
+            colData);
+    }
+
+    void Push(BackupValue const& val) override
+    {
+        if (std::holds_alternative<std::monostate>(val))
+            PushNull();
+        else if (auto const* text = std::get_if<std::string>(&val))
+            PushString(*text);
+        else
+            RejectBackupValue(val, "GUID");
+    }
+};
+
 /// A batch column for GUID values using proper SQL_GUID binding.
 struct GuidBatchColumn: BatchColumn
 {
@@ -1775,6 +1823,10 @@ std::unique_ptr<BatchColumn> BatchManager::CreateColumn(SqlColumnDeclaration con
 
     if (std::holds_alternative<SqlColumnTypeDefinitions::Guid>(col.type))
     {
+        // A nullptr formatter (UNKNOWN, MySQL) has no native GUID type either.
+        auto const* const formatter = SqlQueryFormatter::Get(serverType);
+        if (formatter == nullptr || !formatter->HasNativeGuidType())
+            return std::make_unique<GuidTextBatchColumn>(meta);
         return std::make_unique<GuidBatchColumn>(meta);
     }
 
