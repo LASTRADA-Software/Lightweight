@@ -55,6 +55,7 @@ set(SOURCE_FILES
     PluginDiscoveryTests.cpp
     NoErrorDialogsTests.cpp
     PluginIngestionTests.cpp
+    PluginUnloadTests.cpp
     ProfileAddTests.cpp
     ProfileFileEditorTests.cpp
     ProfilePasswordTests.cpp
@@ -199,6 +200,9 @@ install(FILES test_dbtool.py DESTINATION ${CMAKE_INSTALL_DATADIR}/Lightweight/te
 add_subdirectory(dummy_migration_plugin)
 add_subdirectory(dummy_migration_plugin_2)
 add_subdirectory(post_migrate_plugin)
+# PluginUnloadTests.cpp loads the post-migrate fixture plugin in-process.
+target_compile_definitions(LightweightTest PRIVATE LIGHTWEIGHT_TEST_POST_MIGRATE_PLUGIN="$<TARGET_FILE:post_migrate_plugin>")
+add_dependencies(LightweightTest post_migrate_plugin)
 add_subdirectory(compat_policy_plugin)
 add_subdirectory(seed_row_fixture)
 add_subdirectory(gui_workflow_fixtures)

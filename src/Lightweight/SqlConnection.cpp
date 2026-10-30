@@ -2,7 +2,6 @@
 
 #include "Async/ThreadOffloadBackend.hpp"
 #include "DataBinder/UnicodeConverter.hpp"
-#include "ImmortalInstance.hpp"
 #include "SqlConnection.hpp"
 #include "SqlOdbcWide.hpp"
 #include "SqlPreparedStatementCache.hpp"
@@ -96,17 +95,38 @@ namespace
         Ansi,
     };
 
+    /// Set once the KnownDrivers() cache is destroyed. Constant-initialized and trivially destructible,
+    /// so connections owned by other statics can still read it during static destruction.
+    constinit std::atomic<bool> knownDriversDestroyed { false };
+
     /// Whether drivers an earlier connection of this process reached accept wide text, by DriverKey().
     struct KnownDriverTextEntries
     {
         std::mutex mutex;
         std::map<std::string, bool> acceptsWideText;
+
+        KnownDriverTextEntries() = default;
+        KnownDriverTextEntries(KnownDriverTextEntries const&) = delete;
+        KnownDriverTextEntries(KnownDriverTextEntries&&) = delete;
+        KnownDriverTextEntries& operator=(KnownDriverTextEntries const&) = delete;
+        KnownDriverTextEntries& operator=(KnownDriverTextEntries&&) = delete;
+
+        ~KnownDriverTextEntries()
+        {
+            knownDriversDestroyed.store(true, std::memory_order_relaxed);
+        }
     };
 
-    /// Never destroyed, as connections owned by other statics may still connect during static destruction.
-    KnownDriverTextEntries& KnownDrivers() noexcept
+    /// The process-wide cache, or nullptr once static destruction destroyed it.
+    ///
+    /// Destroyed like any static, so a plugin that links this library statically frees its copy's entries
+    /// when it is unloaded. Connections owned by statics destroyed later only lose the cached decision.
+    KnownDriverTextEntries* KnownDrivers() noexcept
     {
-        return detail::ImmortalInstance<KnownDriverTextEntries>();
+        if (knownDriversDestroyed.load(std::memory_order_relaxed))
+            return nullptr;
+        static auto instance = KnownDriverTextEntries {};
+        return &instance;
     }
 
     /// True where the driver manager hands wide text to an ANSI-only driver narrowed one code unit to one
@@ -136,9 +156,11 @@ namespace
             return; // Names no driver, so it cannot tell drivers apart either.
         try
         {
-            auto& known = KnownDrivers();
-            auto const lock = std::scoped_lock { known.mutex };
-            known.acceptsWideText.insert_or_assign(driverKey, acceptsWideText);
+            auto* const known = KnownDrivers();
+            if (known == nullptr)
+                return;
+            auto const lock = std::scoped_lock { known->mutex };
+            known->acceptsWideText.insert_or_assign(driverKey, acceptsWideText);
         }
         catch (...) // NOLINT(bugprone-empty-catch)
         {
@@ -149,11 +171,11 @@ namespace
     /// accepts wide text, or nothing when no connection reached it yet.
     [[nodiscard]] std::optional<bool> KnownDriverTextEntry(std::string const& driverKey)
     {
-        if (driverKey.empty())
+        auto* const known = driverKey.empty() ? nullptr : KnownDrivers();
+        if (known == nullptr)
             return std::nullopt;
-        auto& known = KnownDrivers();
-        auto const lock = std::scoped_lock { known.mutex };
-        if (auto const entry = known.acceptsWideText.find(driverKey); entry != known.acceptsWideText.end())
+        auto const lock = std::scoped_lock { known->mutex };
+        if (auto const entry = known->acceptsWideText.find(driverKey); entry != known->acceptsWideText.end())
             return entry->second;
         return std::nullopt;
     }
