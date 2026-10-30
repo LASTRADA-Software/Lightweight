@@ -386,6 +386,8 @@ EXEC sp_executesql @sql;)",
                               [](Integer const&) -> std::string { return "INTEGER"; },
                               [](NChar const& type) -> std::string { return std::format("NCHAR({})", type.size); },
                               [](NVarchar const& type) -> std::string {
+                                  if (type.legacyLob)
+                                      return "NTEXT";
                                   if (type.size == 0 || type.size > SqlOptimalMaxColumnSize)
                                       return "NVARCHAR(MAX)";
                                   else
@@ -407,12 +409,16 @@ EXEC sp_executesql @sql;)",
                               [](Timestamp const&) -> std::string { return "DATETIME2"; },
                               [](Tinyint const&) -> std::string { return "TINYINT"; },
                               [](VarBinary const& type) -> std::string {
+                                  if (type.legacyLob)
+                                      return "IMAGE";
                                   if (type.size == 0 || type.size > 8000)
                                       return "VARBINARY(MAX)";
                                   else
                                       return std::format("VARBINARY({})", type.size);
                               },
                               [](Varchar const& type) -> std::string {
+                                  if (type.legacyLob)
+                                      return "TEXT";
                                   if (type.size == 0 || type.size > SqlOptimalMaxColumnSize)
                                       return "VARCHAR(MAX)";
                                   else

@@ -419,11 +419,15 @@ static std::string CreateArchiveMetadata(SqlConnectionString const& connectionSt
             {
                 c["type"] = "varchar";
                 c["size"] = std::get<SqlColumnTypeDefinitions::Varchar>(type).size;
+                if (std::get<SqlColumnTypeDefinitions::Varchar>(type).legacyLob)
+                    c["legacyLob"] = true;
             }
             else if (std::holds_alternative<SqlColumnTypeDefinitions::NVarchar>(type))
             {
                 c["type"] = "nvarchar";
                 c["size"] = std::get<SqlColumnTypeDefinitions::NVarchar>(type).size;
+                if (std::get<SqlColumnTypeDefinitions::NVarchar>(type).legacyLob)
+                    c["legacyLob"] = true;
             }
             else if (std::holds_alternative<SqlColumnTypeDefinitions::Char>(type))
             {
@@ -446,6 +450,8 @@ static std::string CreateArchiveMetadata(SqlConnectionString const& connectionSt
             {
                 c["type"] = "varbinary";
                 c["size"] = std::get<SqlColumnTypeDefinitions::VarBinary>(type).size;
+                if (std::get<SqlColumnTypeDefinitions::VarBinary>(type).legacyLob)
+                    c["legacyLob"] = true;
             }
             else if (std::holds_alternative<SqlColumnTypeDefinitions::Date>(type))
                 c["type"] = "date";
@@ -1004,9 +1010,9 @@ std::map<std::string, TableInfo> ParseSchema(std::string_view metadataJson, Prog
             else if (typeStr == "text")
                 col.type = SqlColumnTypeDefinitions::Text {};
             else if (typeStr == "varchar")
-                col.type = SqlColumnTypeDefinitions::Varchar { .size = colJson.value<size_t>("size", 8192) };
+                col.type = SqlColumnTypeDefinitions::Varchar { .size = colJson.value<size_t>("size", 8192), .legacyLob = colJson.value("legacyLob", false) };
             else if (typeStr == "nvarchar")
-                col.type = SqlColumnTypeDefinitions::NVarchar { .size = colJson.value<size_t>("size", 8192) };
+                col.type = SqlColumnTypeDefinitions::NVarchar { .size = colJson.value<size_t>("size", 8192), .legacyLob = colJson.value("legacyLob", false) };
             else if (typeStr == "char")
                 col.type = SqlColumnTypeDefinitions::Char { .size = colJson.value<size_t>("size", 255) };
             else if (typeStr == "nchar")
@@ -1021,7 +1027,7 @@ std::map<std::string, TableInfo> ParseSchema(std::string_view metadataJson, Prog
             else if (typeStr == "varbinary")
             {
                 auto s = colJson.value<size_t>("size", 8192);
-                col.type = SqlColumnTypeDefinitions::VarBinary { .size = s ? s : 65535 };
+                col.type = SqlColumnTypeDefinitions::VarBinary { .size = s ? s : 65535, .legacyLob = colJson.value("legacyLob", false) };
             }
             else if (typeStr == "date")
                 col.type = SqlColumnTypeDefinitions::Date {};
