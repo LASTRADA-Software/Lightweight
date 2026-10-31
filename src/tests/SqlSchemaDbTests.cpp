@@ -1011,3 +1011,80 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK(UnwrapOptional(resolved).table.name == "rt_orders");
     CHECK(UnwrapOptional(resolved).step == SqlSchema::detail::TableResolutionStep::Folded);
 }
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlSchema::ReadTable names a foreign-key target as the catalog spells it, not as REFERENCES wrote it",
+                 "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+    if (stmt.Connection().ServerType() == SqlServerType::POSTGRESQL)
+        SKIP("PostgreSQL folds the unquoted REFERENCES name to a table that does not exist");
+
+    (void) stmt.ExecuteDirect(R"(CREATE TABLE "RtSpelledParent" ("Id" INT NOT NULL PRIMARY KEY))");
+    (void) stmt.ExecuteDirect(
+        R"(CREATE TABLE "RtSpelledChild" ("Id" INT NOT NULL PRIMARY KEY, "ParentId" INT REFERENCES rtspelledparent ("Id")))");
+
+    auto const child =
+        SqlSchema::ReadTable(stmt,
+                             SqlSchema::FullyQualifiedTableName {
+                                 .catalog = stmt.Connection().DatabaseName(), .schema = "", .table = "RtSpelledChild" });
+    REQUIRE(child.has_value());
+    REQUIRE(UnwrapOptional(child).foreignKeys.size() == 1);
+    CHECK(UnwrapOptional(child).foreignKeys[0].primaryKey.table.table == "RtSpelledParent");
+    CHECK(UnwrapOptional(child).foreignKeys[0].foreignKey.table.table == "RtSpelledChild");
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlSchema::ReadTable on SQL Server reads the identity and indexes of a name with a quote",
+                 "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("the identity and index catalog queries are specific to SQL Server");
+
+    (void) stmt.ExecuteDirect(
+        R"(CREATE TABLE "Rt'Quoted" ("Id" INT IDENTITY(1, 1) NOT NULL PRIMARY KEY, "Code" INT NOT NULL))");
+    (void) stmt.ExecuteDirect(R"(CREATE INDEX "IX_RtQuoted_Code" ON "Rt'Quoted" ("Code"))");
+
+    auto const table =
+        SqlSchema::ReadTable(stmt,
+                             SqlSchema::FullyQualifiedTableName {
+                                 .catalog = stmt.Connection().DatabaseName(), .schema = "", .table = "Rt'Quoted" });
+    REQUIRE(table.has_value());
+    auto const& columns = UnwrapOptional(table).columns;
+    auto const identity = std::ranges::find(columns, std::string("Id"), &SqlSchema::Column::name);
+    REQUIRE(identity != columns.end());
+    CHECK(identity->isAutoIncrement);
+    REQUIRE(UnwrapOptional(table).indexes.size() == 1);
+    CHECK(UnwrapOptional(table).indexes[0].name == "IX_RtQuoted_Code");
+    CHECK(UnwrapOptional(table).indexes[0].columns == std::vector<std::string> { "Code" });
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlSchema::ReadTable keeps the identity column when one statement reads two tables in light scope",
+                 "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("ReadTable reports identity columns on SQL Server only");
+
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("RtFirstIdentity").PrimaryKeyWithAutoIncrement("Id", SqlColumnTypeDefinitions::Integer {});
+    });
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("RtSecondIdentity").PrimaryKeyWithAutoIncrement("Id", SqlColumnTypeDefinitions::Integer {});
+    });
+
+    auto const database = stmt.Connection().DatabaseName();
+    for (auto const* const tableName: { "RtFirstIdentity", "RtSecondIdentity" })
+    {
+        INFO("table " << tableName);
+        auto const table = SqlSchema::ReadTable(
+            stmt,
+            SqlSchema::FullyQualifiedTableName { .catalog = database, .schema = "", .table = tableName },
+            SqlSchema::TableReadScope::ColumnsAndPrimaryKey);
+        REQUIRE(table.has_value());
+        REQUIRE(UnwrapOptional(table).columns.size() == 1);
+        CHECK(UnwrapOptional(table).columns[0].isAutoIncrement);
+    }
+}
