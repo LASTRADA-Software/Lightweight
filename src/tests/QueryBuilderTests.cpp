@@ -2972,6 +2972,12 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryFormatter.ColumnType per dialect", "[S
             .type = Varchar { 80 }, .sqlite = "VARCHAR(80)", .postgres = "VARCHAR(80)", .sqlServer = "VARCHAR(80)" },
         ColumnTypeExpectation {
             .type = Varchar { 0 }, .sqlite = "VARCHAR(0)", .postgres = "TEXT", .sqlServer = "VARCHAR(MAX)" },
+        // Legacy LOB flag only affects SQL Server.
+        ColumnTypeExpectation {
+            .type = Varchar { 0, true }, .sqlite = "VARCHAR(0)", .postgres = "TEXT", .sqlServer = "TEXT" },
+        ColumnTypeExpectation {
+            .type = NVarchar { 0, true }, .sqlite = "NVARCHAR(0)", .postgres = "TEXT", .sqlServer = "NTEXT" },
+        ColumnTypeExpectation { .type = VarBinary { 0, true }, .sqlite = "VARBINARY(0)", .postgres = "BYTEA", .sqlServer = "IMAGE" },
     };
 
     for (auto const& expectation: expectations)
