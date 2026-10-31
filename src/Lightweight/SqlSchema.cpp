@@ -18,6 +18,7 @@
 #include <format>
 #include <map>
 #include <optional>
+#include <ranges>
 #include <set>
 #include <string>
 #include <string_view>
@@ -38,6 +39,7 @@ using ::Lightweight::detail::CallWithOdbcText;
 using ::Lightweight::detail::GetNullableTextColumn;
 using ::Lightweight::detail::GetTextColumn;
 using ::Lightweight::detail::OdbcEntryPoint;
+using ::Lightweight::detail::OdbcUtf8ToUtf16;
 
 namespace
 {
@@ -507,6 +509,52 @@ namespace
         return uniqueColumns;
     }
 
+    /// Executes @p query on @p stmt with @p names bound, in order, as @c NVARCHAR(128) parameters.
+    ///
+    /// Bound rather than inlined, and at the full width of @c sysname rather than at each name's
+    /// length: SQL Server keys its plan cache on the query text and the parameter declarations, so
+    /// the catalog query is compiled once instead of once for every table it is asked about.
+    ///
+    /// @param stmt  A statement that runs only this query. @c Prepare() skips @c SQLPrepare for a
+    ///              handle it believes still holds the text, but a catalog function run on the handle
+    ///              in between (@c SQLTables, @c SQLPrimaryKeys, ...) unprepares it behind its back.
+    /// @param names UTF-8 names; bound as UTF-16, so the driver does no code-page conversion.
+    [[nodiscard]] SqlResultCursor ExecuteWithSysnameParameters(SqlStatement& stmt,
+                                                               std::string_view query,
+                                                               std::vector<std::string_view> const& names)
+    {
+        constexpr SQLULEN SysnameLength = 128;
+
+        auto texts = std::vector<std::u16string> {};
+        texts.reserve(names.size());
+        for (auto const name: names)
+            texts.emplace_back(OdbcUtf8ToUtf16(name));
+        auto lengths = std::vector<SQLLEN>(texts.size());
+
+        stmt.Prepare(query);
+        // The buffers die with this frame, on the throw path too; the parameters are sent by then.
+        auto const resetParameters =
+            ::Lightweight::detail::Finally([&stmt] { SQLFreeStmt(stmt.NativeHandle(), SQL_RESET_PARAMS); });
+        for (auto const index: std::views::iota(std::size_t { 0 }, texts.size()))
+        {
+            lengths[index] = static_cast<SQLLEN>(texts[index].size() * sizeof(char16_t));
+            SqlErrorInfo::RequireStatementSuccess(SQLBindParameter(stmt.NativeHandle(),
+                                                                   static_cast<SQLUSMALLINT>(index + 1),
+                                                                   SQL_PARAM_INPUT,
+                                                                   SQL_C_WCHAR,
+                                                                   SQL_WVARCHAR,
+                                                                   SysnameLength,
+                                                                   0,
+                                                                   texts[index].data(),
+                                                                   lengths[index],
+                                                                   &lengths[index]),
+                                                  stmt.NativeHandle(),
+                                                  "SQLBindParameter");
+        }
+        SqlErrorInfo::RequireStatementSuccess(SQLExecute(stmt.NativeHandle()), stmt.NativeHandle(), "SQLExecute");
+        return SqlResultCursor(stmt);
+    }
+
     /// Retrieves all non-primary key indexes for a table using ODBC SQLStatistics.
     ///
     /// @param stmt The SQL statement to use for reading.
@@ -521,10 +569,8 @@ namespace
                                                                FullyQualifiedTableName const& table,
                                                                std::vector<std::string> const& primaryKeys)
     {
-        auto sql = std::string {};
-        auto const schemaFilter =
-            !table.schema.empty() ? std::format("AND SCHEMA_NAME(t.schema_id) = '{}'", table.schema) : std::string {};
-        sql = std::format(R"(SELECT i.name AS index_name,
+        auto const schemaFilter = !table.schema.empty() ? "AND SCHEMA_NAME(t.schema_id) = ?"sv : ""sv;
+        auto const sql = std::format(R"(SELECT i.name AS index_name,
                                     i.is_unique AS is_unique,
                                     c.name AS column_name,
                                     ic.key_ordinal AS key_ordinal
@@ -532,16 +578,19 @@ namespace
                              INNER JOIN sys.tables t ON i.object_id = t.object_id
                              INNER JOIN sys.index_columns ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id
                              INNER JOIN sys.columns c ON c.object_id = ic.object_id AND c.column_id = ic.column_id
-                             WHERE t.name = '{}' {}
+                             WHERE t.name = ? {}
                                AND i.is_primary_key = 0
                                AND i.is_unique_constraint = 0
                                AND i.type > 0
                                AND ic.is_included_column = 0
                              ORDER BY i.name, ic.key_ordinal)",
-                          table.table,
-                          schemaFilter);
+                                     schemaFilter);
 
-        auto cursor = stmt.ExecuteDirect(sql);
+        auto names = std::vector<std::string_view> { table.table };
+        if (!table.schema.empty())
+            names.emplace_back(table.schema);
+        auto indexStmt = SqlStatement { stmt.Connection() };
+        auto cursor = ExecuteWithSysnameParameters(indexStmt, sql, names);
         struct Info
         {
             bool isUnique = false;
@@ -721,29 +770,22 @@ namespace
     {
         if (stmt.Connection().ServerType() == SqlServerType::MICROSOFT_SQL)
         {
-            std::string schemaPart;
-            if (!table.schema.empty())
-            {
-                schemaPart = std::format("AND s.name = '{}'", table.schema);
-            }
-
+            auto const schemaPart = !table.schema.empty() ? "AND s.name = ?"sv : ""sv;
             auto const sql = std::format(R"(SELECT c.name
                                             FROM sys.identity_columns c
                                             INNER JOIN sys.tables t ON c.object_id = t.object_id
                                             INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
-                                            WHERE t.name = '{}' {}
+                                            WHERE t.name = ? {}
                                          )",
-                                         table.table,
                                          schemaPart);
 
             try
             {
-                // Verify we are not interrupting an existing fetch if stmt is reused incorrectly,
-                // but AllIdentityColumns is called sequentially in ReadAllTables.
-                // However, we should use a fresh statement to be safe if stmt is active?
-                // ReadAllTables loop reuses stmt for PrimaryKeys etc. It should be fine.
-                // Actually AllUniqueColumns etc use stmt.
-                auto identityCursor = stmt.ExecuteDirect(sql);
+                auto names = std::vector<std::string_view> { table.table };
+                if (!table.schema.empty())
+                    names.emplace_back(table.schema);
+                auto identityStmt = SqlStatement { stmt.Connection() };
+                auto identityCursor = ExecuteWithSysnameParameters(identityStmt, sql, names);
                 std::vector<std::string> identityCols;
                 while (identityCursor.FetchRow())
                 {
@@ -751,8 +793,10 @@ namespace
                 }
                 return identityCols;
             }
-            catch (std::exception const&)
+            catch (std::exception const& error)
             {
+                SqlLogger::GetLogger().OnWarning(std::format(
+                    "Reading the identity columns of {} failed; none are reported: {}", table.table, error.what()));
                 return {};
             }
         }
@@ -2102,7 +2146,9 @@ std::optional<Table> ReadTable(SqlStatement& stmt, FullyQualifiedTableName const
 
     detail::ReadOneTableLegacy(stmt, table.catalog, handler.table.schema, entry.name, handler, scope);
 
-    if (scope == TableReadScope::Full)
+    // SQL Server's catalog functions name every table as its catalog spells it; a driver such as
+    // SQLite's reports a foreign-key target as its REFERENCES clause wrote it, so only those need the lookups.
+    if (scope == TableReadScope::Full && stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
         RestoreReferencedTableCasing(stmt, table.catalog, table.schema, escape, handler.table);
 
     return std::move(handler.table);
