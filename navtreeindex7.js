@@ -1,6 +1,5 @@
 var NAVTREEINDEX7 =
 {
-"db/dca/classLightweight_1_1Async_1_1InlineExecutor.html":[20,0,5],
 "db/dca/classLightweight_1_1Async_1_1InlineExecutor.html#a263d2c5fd37ef7c07feccdeddf315fb3":[20,0,5,0],
 "db/dca/classLightweight_1_1Async_1_1InlineExecutor.html#a6090956e5d57a975246e070f0a5c0c70":[20,0,5,1],
 "db/dd1/SqlBackup_8hpp_source.html":[23,0,1,16],
@@ -249,5 +248,6 @@ var NAVTREEINDEX7 =
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#add-profile":[9,3,16],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#apply-timestamp":[9,3,5],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup":[9,4,0],
-"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup--restore":[9,4]
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup--restore":[9,4],
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup-before-migration":[9,7,1]
 };

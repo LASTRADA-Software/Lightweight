@@ -541,14 +541,14 @@ $(document).ready(function(){initNavTree('d1/dfb/SqlFixedString_8hpp_source.html
 <div class="line"><a id="l00393" name="l00393"></a><span class="lineno">  393</span>        <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (std::same_as&lt;CharType, char&gt;)</div>
 <div class="line"><a id="l00394" name="l00394"></a><span class="lineno">  394</span>        {</div>
 <div class="line"><a id="l00395" name="l00395"></a><span class="lineno">  395</span>            <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (Mode == SqlFixedStringMode::VARIABLE_SIZE)</div>
-<div class="line"><a id="l00396" name="l00396"></a><span class="lineno">  396</span>                <span class="keywordflow">return</span> SqlColumnTypeDefinitions::Varchar { N };</div>
+<div class="line"><a id="l00396" name="l00396"></a><span class="lineno">  396</span>                <span class="keywordflow">return</span> SqlColumnTypeDefinitions::Varchar { .<a class="code hl_function" href="../../de/dae/classLightweight_1_1SqlFixedString.html#ae4c67c20f26da7a5cc4c8a676f8733bb">size</a> = N };</div>
 <div class="line"><a id="l00397" name="l00397"></a><span class="lineno">  397</span>            <span class="keywordflow">else</span></div>
 <div class="line"><a id="l00398" name="l00398"></a><span class="lineno">  398</span>                <span class="keywordflow">return</span> SqlColumnTypeDefinitions::Char { N };</div>
 <div class="line"><a id="l00399" name="l00399"></a><span class="lineno">  399</span>        }</div>
 <div class="line"><a id="l00400" name="l00400"></a><span class="lineno">  400</span>        <span class="keywordflow">else</span></div>
 <div class="line"><a id="l00401" name="l00401"></a><span class="lineno">  401</span>        {</div>
 <div class="line"><a id="l00402" name="l00402"></a><span class="lineno">  402</span>            <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (Mode == SqlFixedStringMode::VARIABLE_SIZE)</div>
-<div class="line"><a id="l00403" name="l00403"></a><span class="lineno">  403</span>                <span class="keywordflow">return</span> SqlColumnTypeDefinitions::NVarchar { N };</div>
+<div class="line"><a id="l00403" name="l00403"></a><span class="lineno">  403</span>                <span class="keywordflow">return</span> SqlColumnTypeDefinitions::NVarchar { .size = N };</div>
 <div class="line"><a id="l00404" name="l00404"></a><span class="lineno">  404</span>            <span class="keywordflow">else</span></div>
 <div class="line"><a id="l00405" name="l00405"></a><span class="lineno">  405</span>                <span class="keywordflow">return</span> SqlColumnTypeDefinitions::NChar { N };</div>
 <div class="line"><a id="l00406" name="l00406"></a><span class="lineno">  406</span>        }</div>
@@ -556,7 +556,7 @@ $(document).ready(function(){initNavTree('d1/dfb/SqlFixedString_8hpp_source.html
 <div class="line"><a id="l00408" name="l00408"></a><span class="lineno">  408</span> </div>
 <div class="line"><a id="l00409" name="l00409"></a><span class="lineno">  409</span>    <span class="keyword">static</span> CharType <span class="keyword">const</span>* Data(ValueType <span class="keyword">const</span>* str) <span class="keyword">noexcept</span></div>
 <div class="line"><a id="l00410" name="l00410"></a><span class="lineno">  410</span>    {</div>
-<div class="line"><a id="l00411" name="l00411"></a><span class="lineno">  411</span>        <span class="keywordflow">return</span> str-&gt;<a class="code hl_function" href="../../de/dae/classLightweight_1_1SqlFixedString.html#af78f46d25e7a1007c7ddb6ccc90cd50b">data</a>();</div>
+<div class="line"><a id="l00411" name="l00411"></a><span class="lineno">  411</span>        <span class="keywordflow">return</span> str-&gt;data();</div>
 <div class="line"><a id="l00412" name="l00412"></a><span class="lineno">  412</span>    }</div>
 <div class="line"><a id="l00413" name="l00413"></a><span class="lineno">  413</span> </div>
 <div class="line"><a id="l00414" name="l00414"></a><span class="lineno">  414</span>    <span class="keyword">static</span> CharType* Data(ValueType* str) <span class="keyword">noexcept</span></div>

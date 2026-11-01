@@ -10,7 +10,6 @@ var structLightweight_1_1MigrationRenderContext =
     [ "fkMatchReferencedText", "d4/d23/structLightweight_1_1MigrationRenderContext.html#a78e7ff6355e5aeb9be02826d0860ca45", null ],
     [ "columnWidths", "d4/d23/structLightweight_1_1MigrationRenderContext.html#a154ed00a23db3b1d47ba38e3f81c49a6", null ],
     [ "textColumnTypes", "d4/d23/structLightweight_1_1MigrationRenderContext.html#a516e9a2dcd8b0d21addd70212d63f8f0", null ],
-    [ "columnNullability", "d4/d23/structLightweight_1_1MigrationRenderContext.html#a2d4c012c7fd1c53106cb8cfe43f5ff98", null ],
     [ "widthLookup", "d4/d23/structLightweight_1_1MigrationRenderContext.html#a72202fddb710d0fd35f5135ddcf97c7b", null ],
     [ "lookupAttempted", "d4/d23/structLightweight_1_1MigrationRenderContext.html#a7d5c90cf0a765b640b1de1ed07a24f28", null ],
     [ "activeMigrationTitle", "d4/d23/structLightweight_1_1MigrationRenderContext.html#a11788fb09cb998464573d4a57ede7607", null ],

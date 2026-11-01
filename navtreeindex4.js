@@ -1,6 +1,5 @@
 var NAVTREEINDEX4 =
 {
-"d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html#a422627996645b60439cf9d156b24b753":[22,0,0,2,12,0],
 "d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html#a4698dffd993e3ecbe48d8383bba08067":[22,0,0,2,12,6],
 "d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html#a53b7165da3018d404c84fa19cab55d80":[22,0,0,2,12,1],
 "d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html#ab175ec8891edf5da543ec67ec6bd78ad":[22,0,0,2,12,4],
@@ -249,5 +248,6 @@ var NAVTREEINDEX4 =
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1dcb7e54bfcc84b7995643cd35a43c53":[22,0,0,76,3],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a21a962ad99398b3b0e882a11a38a7e9f":[22,0,0,76,38],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a28840705a0b4cc329d082cf327f486f3":[22,0,0,76,18],
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a28d630a4ecd3bb5946d20de498d95176":[22,0,0,76,11]
+"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a28d630a4ecd3bb5946d20de498d95176":[22,0,0,76,11],
+"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2a8b5bd4208f5b50cb9e4e4e8cbc3922":[22,0,0,76,1]
 };
