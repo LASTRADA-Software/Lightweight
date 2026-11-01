@@ -10,8 +10,11 @@
 #include <functional>
 #include <optional>
 #include <ranges>
+#include <set>
 #include <stdexcept>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 namespace Lightweight
 {
@@ -286,21 +289,31 @@ namespace
     /// its character width (for `lup-truncate`) and its text type (for `fkMatchReferencedText`).
     void RememberColumn(MigrationRenderContext& context,
                         MigrationRenderContext::ColumnKey const& key,
-                        SqlColumnTypeDefinition const& type)
+                        SqlColumnTypeDefinition const& type,
+                        SqlNullable nullable)
     {
         if (auto const width = DeclaredCharWidth(type); width.value > 0)
             context.columnWidths[key] = width;
         if (IsTrackedTextType(type))
+        {
             context.textColumnTypes[key] = type;
+            context.columnNullability[key] = nullable;
+        }
         else
+        {
             context.textColumnTypes.erase(key);
+            context.columnNullability.erase(key);
+        }
     }
 
     /// @brief Populates the render context's column caches from a `CreateTable` step.
     void RememberColumnWidths(MigrationRenderContext& context, SqlCreateTablePlan const& step)
     {
         for (auto const& col: step.columns)
-            RememberColumn(context, MakeColumnKey(step.schemaName, step.tableName, col.name), col.type);
+            RememberColumn(context,
+                           MakeColumnKey(step.schemaName, step.tableName, col.name),
+                           col.type,
+                           col.required ? SqlNullable::NotNull : SqlNullable::Null);
     }
 
     /// @brief Reacts to an `ALTER TABLE` step by updating the column caches for the columns
@@ -312,15 +325,18 @@ namespace
             std::visit(
                 detail::overloaded {
                     [&](SqlAlterTableCommands::AddColumn const& c) {
-                        RememberColumn(context, MakeColumnKey(step.schemaName, step.tableName, c.columnName), c.columnType);
+                        RememberColumn(
+                            context, MakeColumnKey(step.schemaName, step.tableName, c.columnName), c.columnType, c.nullable);
                     },
                     [&](SqlAlterTableCommands::AlterColumn const& c) {
-                        RememberColumn(context, MakeColumnKey(step.schemaName, step.tableName, c.columnName), c.columnType);
+                        RememberColumn(
+                            context, MakeColumnKey(step.schemaName, step.tableName, c.columnName), c.columnType, c.nullable);
                     },
                     [&](SqlAlterTableCommands::DropColumn const& c) {
                         auto const key = MakeColumnKey(step.schemaName, step.tableName, c.columnName);
                         context.columnWidths.erase(key);
                         context.textColumnTypes.erase(key);
+                        context.columnNullability.erase(key);
                     },
                     [](auto const&) {}, // other commands don't change the column types we track
                 },
@@ -342,6 +358,7 @@ namespace
     {
         ForgetTableColumns(context.columnWidths, schemaName, tableName);
         ForgetTableColumns(context.textColumnTypes, schemaName, tableName);
+        ForgetTableColumns(context.columnNullability, schemaName, tableName);
     }
 
     /// @brief The narrow/wide counterpart of `declared` that `referenced` requires, if the
@@ -458,13 +475,78 @@ namespace
                                         it->type);
     }
 
-    /// @brief `AlterTable`: adapts columns added by this same step that a foreign key in the
-    /// step references. Columns that already exist in the database are left alone — changing
-    /// them would need an `ALTER COLUMN` (see `MigrationManager::UnicodeUpgradeTables`).
+    /// @brief Computes the `ALTER COLUMN` that gives the existing column @p columnName of
+    /// @p step the referenced column's narrow/wide text kind, or nullopt when nothing applies.
+    /// Logs the change when one is produced.
+    /// @param formatter The formatter used to render type names in the log message.
+    /// @param context The render context providing referenced types and nullability.
+    /// @param step The alter-table step owning the column.
+    /// @param columnName The existing foreign-key column.
+    /// @param referencedTable The table the foreign key references.
+    /// @param referencedColumn The column the foreign key references.
+    /// @return The `AlterColumn` command to insert ahead of the foreign-key command, if any.
+    std::optional<SqlAlterTableCommands::AlterColumn> RetypeExistingColumn(SqlQueryFormatter const& formatter,
+                                                                           MigrationRenderContext& context,
+                                                                           SqlAlterTablePlan const& step,
+                                                                           std::string_view columnName,
+                                                                           std::string_view referencedTable,
+                                                                           std::string_view referencedColumn)
+    {
+        auto const referencedType = ReferencedTextType(context, step.schemaName, referencedTable, referencedColumn);
+        auto const existingType = ReferencedTextType(context, step.schemaName, step.tableName, columnName);
+        if (!referencedType || !existingType)
+            return std::nullopt;
+        auto const counterpart = NarrowWideCounterpart(*existingType, *referencedType);
+        if (!counterpart)
+            return std::nullopt;
+
+        auto nullable = SqlNullable::Null;
+        if (auto const it = context.columnNullability.find(MakeColumnKey(step.schemaName, step.tableName, columnName));
+            it != context.columnNullability.end())
+            nullable = it->second;
+
+        SqlLogger::GetLogger().OnWarning(std::format(
+            "{}: migration {} ({}): existing column {}.{} is {} but references {}.{} of type {}; altering it to {}",
+            CompatFlagFkMatchReferencedTextName,
+            context.activeMigrationTimestamp,
+            context.activeMigrationTitle,
+            step.tableName,
+            columnName,
+            formatter.ColumnType(*existingType),
+            referencedTable,
+            referencedColumn,
+            formatter.ColumnType(*referencedType),
+            formatter.ColumnType(*counterpart)));
+        return SqlAlterTableCommands::AlterColumn { .columnName = std::string(columnName),
+                                                    .columnType = *counterpart,
+                                                    .nullable = nullable };
+    }
+
+    /// @brief `AlterTable`: adapts foreign-key columns to the referenced column's narrow/wide
+    /// text kind. A column added by this same step is retyped in place; a column that already
+    /// exists in the database gets an `ALTER COLUMN` (keeping its nullability) inserted ahead
+    /// of the foreign-key command.
     void MatchReferencedText(SqlQueryFormatter const& formatter, MigrationRenderContext& context, SqlAlterTablePlan& step)
     {
-        auto const adapt =
-            [&](std::string_view columnName, std::string_view referencedTable, std::string_view referencedColumn) {
+        auto const declaredInStep = [&](std::string_view columnName) {
+            return std::ranges::any_of(step.commands, [&](auto const& command) {
+                if (auto const* add = std::get_if<SqlAlterTableCommands::AddColumn>(&command))
+                    return add->columnName == columnName;
+                if (auto const* alter = std::get_if<SqlAlterTableCommands::AlterColumn>(&command))
+                    return alter->columnName == columnName;
+                return false;
+            });
+        };
+
+        auto retypedExisting = std::set<std::string> {};
+        auto retypes = std::vector<std::pair<std::size_t, SqlAlterTableCommands::AlterColumn>> {};
+
+        auto const adapt = [&](std::size_t commandIndex,
+                               std::string_view columnName,
+                               std::string_view referencedTable,
+                               std::string_view referencedColumn) {
+            if (declaredInStep(columnName))
+            {
                 for (auto& command: step.commands)
                     if (auto* add = std::get_if<SqlAlterTableCommands::AddColumn>(&command);
                         add && add->columnName == columnName)
@@ -476,16 +558,32 @@ namespace
                                               .referencedTable = referencedTable,
                                               .referencedColumn = referencedColumn },
                                             add->columnType);
-            };
-        for (auto const& command: step.commands)
+                return;
+            }
+
+            if (retypedExisting.contains(std::string(columnName)))
+                return;
+            auto retype = RetypeExistingColumn(formatter, context, step, columnName, referencedTable, referencedColumn);
+            if (!retype)
+                return;
+            retypedExisting.insert(std::string(columnName));
+            retypes.emplace_back(commandIndex, std::move(*retype));
+        };
+
+        for (auto const index: std::views::iota(std::size_t { 0 }, step.commands.size()))
         {
+            auto const& command = step.commands[index];
             if (auto const* fk = std::get_if<SqlAlterTableCommands::AddForeignKey>(&command))
-                adapt(fk->columnName, fk->referencedColumn.tableName, fk->referencedColumn.columnName);
+                adapt(index, fk->columnName, fk->referencedColumn.tableName, fk->referencedColumn.columnName);
             else if (auto const* composite = std::get_if<SqlAlterTableCommands::AddCompositeForeignKey>(&command))
                 for (auto const& [columnName, referencedColumn]:
                      std::views::zip(composite->columns, composite->referencedColumns))
-                    adapt(columnName, composite->referencedTableName, referencedColumn);
+                    adapt(index, columnName, composite->referencedTableName, referencedColumn);
         }
+
+        // Insert back to front so earlier indices stay valid.
+        for (auto const& [index, alter]: retypes | std::views::reverse)
+            step.commands.insert(step.commands.begin() + static_cast<std::ptrdiff_t>(index), alter);
     }
 
     /// @brief Applies `fkMatchReferencedText` to a schema step. Returns the step to render
