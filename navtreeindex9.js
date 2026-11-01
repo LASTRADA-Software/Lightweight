@@ -1,5 +1,6 @@
 var NAVTREEINDEX9 =
 {
+"de/dfe/structLightweight_1_1SqlText.html#acb96ee68a3cc936ac16a50cb90d587d5":[20,1,10,0],
 "de/dfe/structLightweight_1_1SqlText.html#af5030d1caea50f2ac9251206e039201a":[20,1,10,1],
 "df/d0f/Pool_8hpp_source.html":[23,0,1,2,9],
 "df/d13/SqlQueryFormatter_8hpp_source.html":[23,0,1,29],
@@ -248,6 +249,5 @@ var NAVTREEINDEX9 =
 "index.html":[0],
 "index.html#asynchronous-api":[0,9],
 "index.html#backup-and-restore":[0,8],
-"index.html#building-with-c20-modules":[0,13],
-"index.html#compile-using-c26-reflection-support":[0,12]
+"index.html#building-with-c20-modules":[0,13]
 };
