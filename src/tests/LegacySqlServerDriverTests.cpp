@@ -12,6 +12,9 @@
 #include <format>
 #include <optional>
 #include <span>
+#include <string_view>
+#include <tuple>
+#include <vector>
 
 using namespace std::chrono_literals;
 using namespace Lightweight;
@@ -202,5 +205,52 @@ TEST_CASE_METHOD(SqlTestFixture, "DateTime batch insert", "[LegacySqlServerDrive
         CHECK(stmt.ExecuteDirectScalar<int>(R"(SELECT COUNT(*) FROM "BatchInsert" WHERE "at" IS NULL)").value_or(-1) == 1);
         (void) stmt.ExecuteDirect(R"(DELETE FROM "BatchInsert" WHERE "at" IS NULL)");
         CheckRowsReadBack(stmt, "BatchInsert", std::array { rows[0], rows[2] });
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "A parameter the driver rejects raises instead of executing", "[LegacySqlServerDriver]")
+{
+    auto stmt = SqlStatement {};
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL || stmt.Connection().DriverName() != "SQLSRV32.DLL")
+        return;
+
+    CreateDateTimeTable(stmt, "RejectedParameter");
+    InsertThreeMonths(stmt, "RejectedParameter");
+
+    stmt.Prepare(R"(SELECT COUNT(*) FROM "RejectedParameter" WHERE "id" > ? AND ? IS NOT NULL)");
+    auto const arguments = std::vector<SqlVariant> { SqlVariant { 0 }, SqlVariant { SqlTime { 12h, 30min, 0s } } };
+    try
+    {
+        std::ignore = stmt.ExecuteWithVariants(arguments);
+        FAIL("ExecuteWithVariants must throw when a parameter cannot be bound");
+    }
+    catch (SqlException const& exception)
+    {
+        CHECK(std::string_view { exception.what() }.contains("HYC00"));
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "A batch parameter the driver rejects raises instead of executing",
+                 "[LegacySqlServerDriver]")
+{
+    auto stmt = SqlStatement {};
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL || stmt.Connection().DriverName() != "SQLSRV32.DLL")
+        return;
+
+    CreateDateTimeTable(stmt, "RejectedBatchParameter");
+
+    stmt.Prepare(R"(INSERT INTO "RejectedBatchParameter" ("id") SELECT ? WHERE ? IS NOT NULL)");
+    auto const ids = std::array { 1, 2 };
+    auto const times = std::array { SqlTime { 12h, 30min, 0s }, SqlTime { 13h, 0min, 0s } };
+    try
+    {
+        std::ignore = stmt.ExecuteBatchSoft(ids, times);
+        FAIL("ExecuteBatchSoft must throw when a parameter cannot be bound");
+    }
+    catch (SqlException const& exception)
+    {
+        INFO(exception.what());
+        CHECK(std::string_view { exception.what() }.contains("HYC00"));
     }
 }

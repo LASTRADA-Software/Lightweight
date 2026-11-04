@@ -1663,7 +1663,9 @@ SqlResultCursor SqlStatement::ExecuteBatchSoft(FirstColumnBatch const& firstColu
         std::apply(
             [&]<SqlInputParameterBinder... ColumnValues>(ColumnValues const&... columnsInRow) {
                 SQLUSMALLINT column = 0;
-                ((++column, SqlDataBinder<ColumnValues>::InputParameter(m_hStmt, column, columnsInRow, *this)), ...);
+                ((++column,
+                  RequireSuccess(SqlDataBinder<ColumnValues>::InputParameter(m_hStmt, column, columnsInRow, *this))),
+                 ...);
                 {
                     LIGHTWEIGHT_STATS_SCOPE(::Lightweight::SqlStatisticsOperation::ExecuteBatch);
                     RequireSuccess(SQLExecute(m_hStmt));

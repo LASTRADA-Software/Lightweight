@@ -810,7 +810,7 @@ SqlResultCursor SqlStatement::ExecuteWithVariants(std::vector<SqlVariant> const&
     for (auto const& [i, arg]: args | std::views::enumerate)
     {
 #endif
-        SqlDataBinder<SqlVariant>::InputParameter(m_hStmt, static_cast<SQLUSMALLINT>(1 + i), arg, *this);
+        RequireSuccess(SqlDataBinder<SqlVariant>::InputParameter(m_hStmt, static_cast<SQLUSMALLINT>(1 + i), arg, *this));
     }
 
     {

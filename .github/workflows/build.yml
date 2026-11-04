@@ -378,6 +378,11 @@ jobs:
             test_env: "mssql_odbc18"
             driver_name: "ODBC Driver 18 for SQL Server"
             extra: ";TrustServerCertificate=Yes"
+          - label: "SQL Server (legacy)"
+            test_env: "mssql_legacy"
+            driver_name: "SQL Server"
+            extra: ""
+            test_filter: "[LegacySqlServerDriver]"
     steps:
       - name: "Download unit test binaries"
         uses: actions/download-artifact@v4
@@ -447,8 +452,12 @@ jobs:
             ${{ matrix.driver.test_env }}: "Driver={${{ matrix.driver.driver_name }}};Server=localhost,1433;Database=LightweightTest;Uid=SA;Pwd=Lightweight!Test42${{ matrix.driver.extra }}"
           "@ | Out-File -FilePath .test-env.yml -Encoding utf8
       - name: "Run SQL tests"
-        run: ./install/bin/LightweightTest.exe --test-env=${{ matrix.driver.test_env }}
+        # The legacy in-box driver runs only its own tag; the full suite is not expected to pass on it.
+        shell: bash
+        run: ./install/bin/LightweightTest.exe --test-env=${{ matrix.driver.test_env }} ${{ matrix.driver.test_filter && format('"{0}"', matrix.driver.test_filter) || '' }}
       - name: "Run dbtool tests"
+        # The legacy leg runs only its own tag; dbtool is not expected to work on the in-box driver.
+        if: ${{ matrix.driver.test_filter == '' }}
         shell: bash
         env:
           PYTHONUNBUFFERED: "1"
