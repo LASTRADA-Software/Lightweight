@@ -7,8 +7,15 @@
 #include "SqlDate.hpp"
 #include "SqlTime.hpp"
 
+#include <algorithm>
 #include <chrono>
+#include <cstddef>
+#include <cstring>
 #include <format>
+#include <memory>
+#include <ranges>
+#include <string_view>
+#include <vector>
 
 #include <sql.h>
 #include <sqlext.h>
@@ -325,6 +332,95 @@ struct SqlDataBinder<SqlDateTime::native_type>
     }
 };
 
+namespace detail
+{
+    /// Whether the statement runs on the legacy in-box SQL Server ODBC driver (SQLSRV32.DLL).
+    ///
+    /// That driver predates `datetime2`: it rejects the 27/7 timestamp binding with HY104, and it cannot
+    /// describe a parameter once another one is bound, so date-times bind there as `datetime` (23/3).
+    [[nodiscard]] inline bool IsLegacySqlServerDriver(SqlDataBinderCallback const& cb) noexcept
+    {
+        using namespace std::string_view_literals;
+        return cb.ServerType() == SqlServerType::MICROSOFT_SQL && cb.DriverName() == "SQLSRV32.DLL"sv;
+    }
+
+    /// The layout of the parameter array that is being bound.
+    struct SqlParameterArrayLayout
+    {
+        /// The byte distance from one row's value to the next.
+        std::size_t rowStride {};
+        /// The number of rows.
+        std::size_t rowCount {};
+    };
+
+    /// Reads the layout of the parameter array the statement is bound with.
+    ///
+    /// @param stmt The statement whose parameters are being bound.
+    /// @param valueSize The size of one value, which is the stride of a column-wise array.
+    /// @param columnWiseRowCount The row count of a column-wise (or single-row) binding.
+    /// @return The row size and parameter set size of a row-wise binding, otherwise the column-wise layout.
+    [[nodiscard]] inline SqlParameterArrayLayout CurrentParameterArrayLayout(SQLHSTMT stmt,
+                                                                             std::size_t valueSize,
+                                                                             std::size_t columnWiseRowCount) noexcept
+    {
+        auto bindType = SQLULEN { SQL_PARAM_BIND_BY_COLUMN };
+        if (!SQL_SUCCEEDED(SQLGetStmtAttr(stmt, SQL_ATTR_PARAM_BIND_TYPE, &bindType, 0, nullptr))
+            || bindType == SQL_PARAM_BIND_BY_COLUMN)
+            return { .rowStride = valueSize, .rowCount = columnWiseRowCount };
+
+        auto parameterSetSize = SQLULEN { 1 };
+        if (!SQL_SUCCEEDED(SQLGetStmtAttr(stmt, SQL_ATTR_PARAMSET_SIZE, &parameterSetSize, 0, nullptr)))
+            parameterSetSize = 1;
+        return { .rowStride = static_cast<std::size_t>(bindType), .rowCount = static_cast<std::size_t>(parameterSetSize) };
+    }
+
+    /// Binds the timestamps at @p first as `datetime` (23/3) for the legacy in-box SQL Server ODBC driver.
+    ///
+    /// The driver rejects fractions finer than the bound scale, so this binds a copy truncated to whole
+    /// milliseconds, laid out like the source and kept alive until the statement has executed.
+    ///
+    /// @param stmt The statement to bind to.
+    /// @param column The 1-based parameter index.
+    /// @param first The first row's timestamp.
+    /// @param layout The stride and row count of the timestamps starting at @p first.
+    /// @param cb The data binder callback that keeps the copy alive.
+    /// @param indicators The NULL indicators, or @c nullptr when no value is NULL.
+    /// @return The ODBC return code of the bind.
+    [[nodiscard]] inline SQLRETURN BindLegacySqlServerDateTimes(SQLHSTMT stmt,
+                                                                SQLUSMALLINT column,
+                                                                SQL_TIMESTAMP_STRUCT const* first,
+                                                                SqlParameterArrayLayout const& layout,
+                                                                SqlDataBinderCallback& cb,
+                                                                SQLLEN* indicators) noexcept
+    {
+        constexpr auto NanosecondsPerMillisecond = SQLUINTEGER { 1'000'000 };
+        auto const rowCount = (std::max) (layout.rowCount, std::size_t { 1 });
+        auto const staged =
+            std::make_shared<std::vector<std::byte>>(((rowCount - 1) * layout.rowStride) + sizeof(SQL_TIMESTAMP_STRUCT));
+        auto const* sourceBytes = reinterpret_cast<std::byte const*>(first);
+        for (auto const row: std::views::iota(std::size_t { 0 }, rowCount))
+        {
+            // Copied bytewise, since the NULL row of an optional holds no value to read through.
+            auto value = SQL_TIMESTAMP_STRUCT {};
+            std::memcpy(&value, sourceBytes + (row * layout.rowStride), sizeof(value));
+            value.fraction -= value.fraction % NanosecondsPerMillisecond;
+            std::memcpy(staged->data() + (row * layout.rowStride), &value, sizeof(value));
+        }
+        cb.PlanPostExecuteCallback([staged]() {});
+
+        return SQLBindParameter(stmt,
+                                column,
+                                SQL_PARAM_INPUT,
+                                SQL_C_TIMESTAMP,
+                                SQL_TYPE_TIMESTAMP,
+                                23,
+                                3,
+                                static_cast<SQLPOINTER>(staged->data()),
+                                sizeof(SQL_TIMESTAMP_STRUCT),
+                                indicators);
+    }
+} // namespace detail
+
 template <>
 struct LIGHTWEIGHT_API SqlDataBinder<SqlDateTime>
 {
@@ -333,38 +429,12 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlDateTime>
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,
                                                              SQLUSMALLINT column,
                                                              SqlDateTime const& value,
-                                                             [[maybe_unused]] SqlDataBinderCallback const& cb) noexcept
+                                                             SqlDataBinderCallback& cb) noexcept
     {
-#if defined(_WIN32) || defined(_WIN64)
-        // Microsoft Windows also chips with SQLSRV32.DLL, which is legacy, but seems to be used sometimes.
-        // See: https://learn.microsoft.com/en-us/sql/connect/connect-history
-        using namespace std::string_view_literals;
-        if (cb.ServerType() == SqlServerType::MICROSOFT_SQL && cb.DriverName() == "SQLSRV32.DLL"sv)
-        {
-            struct
-            {
-                SQLSMALLINT sqlType { SQL_TYPE_TIMESTAMP };
-                SQLULEN paramSize { 23 };
-                SQLSMALLINT decimalDigits { 3 };
-                SQLSMALLINT nullable {};
-            } hints;
-            auto const sqlDescribeParamResult =
-                SQLDescribeParam(stmt, column, &hints.sqlType, &hints.paramSize, &hints.decimalDigits, &hints.nullable);
-            if (SQL_SUCCEEDED(sqlDescribeParamResult))
-            {
-                return SQLBindParameter(stmt,
-                                        column,
-                                        SQL_PARAM_INPUT,
-                                        SQL_C_TIMESTAMP,
-                                        hints.sqlType,
-                                        hints.paramSize,
-                                        hints.decimalDigits,
-                                        (SQLPOINTER) &value.sqlValue,
-                                        sizeof(value),
-                                        nullptr);
-            }
-        }
-#endif
+        // A row-wise batch binds row 0 through here, so the layout comes from the statement.
+        if (detail::IsLegacySqlServerDriver(cb))
+            return detail::BindLegacySqlServerDateTimes(
+                stmt, column, &value.sqlValue, detail::CurrentParameterArrayLayout(stmt, sizeof(value), 1), cb, nullptr);
 
         return SQLBindParameter(stmt,
                                 column,
@@ -384,38 +454,18 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlDateTime>
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN BatchInputParameter(SQLHSTMT stmt,
                                                                   SQLUSMALLINT column,
                                                                   SqlDateTime const* values,
-                                                                  size_t /*rowCount*/,
-                                                                  [[maybe_unused]] SqlDataBinderCallback& cb,
+                                                                  size_t rowCount,
+                                                                  SqlDataBinderCallback& cb,
                                                                   SQLLEN* indicators = nullptr) noexcept
     {
-#if defined(_WIN32) || defined(_WIN64)
-        using namespace std::string_view_literals;
-        if (cb.ServerType() == SqlServerType::MICROSOFT_SQL && cb.DriverName() == "SQLSRV32.DLL"sv)
+        if (detail::IsLegacySqlServerDriver(cb))
         {
-            struct
-            {
-                SQLSMALLINT sqlType { SQL_TYPE_TIMESTAMP };
-                SQLULEN paramSize { 23 };
-                SQLSMALLINT decimalDigits { 3 };
-                SQLSMALLINT nullable {};
-            } hints;
-            auto const sqlDescribeParamResult =
-                SQLDescribeParam(stmt, column, &hints.sqlType, &hints.paramSize, &hints.decimalDigits, &hints.nullable);
-            if (SQL_SUCCEEDED(sqlDescribeParamResult))
-            {
-                return SQLBindParameter(stmt,
-                                        column,
-                                        SQL_PARAM_INPUT,
-                                        SQL_C_TIMESTAMP,
-                                        hints.sqlType,
-                                        hints.paramSize,
-                                        hints.decimalDigits,
-                                        (SQLPOINTER) &values->sqlValue,
-                                        sizeof(*values),
-                                        indicators);
-            }
+            auto const layout = detail::SqlParameterArrayLayout {
+                .rowStride = detail::CurrentParameterArrayLayout(stmt, sizeof(*values), rowCount).rowStride,
+                .rowCount = rowCount,
+            };
+            return detail::BindLegacySqlServerDateTimes(stmt, column, &values->sqlValue, layout, cb, indicators);
         }
-#endif
 
         return SQLBindParameter(stmt,
                                 column,
