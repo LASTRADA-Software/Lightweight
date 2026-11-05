@@ -969,6 +969,8 @@ a number outside the column's range, or a binary value in a text column) is rest
 column is nullable. A row the database rejects (a duplicate key, a violated constraint) or whose NOT
 NULL value does not convert is left out, and every other row is restored. Only a column the driver
 cannot bind at all fails its table, and only a lost connection that does not come back stops a worker.
+If a table failed, was left unfinished by a stopped worker, or could not be created, the restore does
+not apply foreign key constraints and indexes, and `dbtool restore` exits non-zero.
 The full rules are in [SQL Backup](sql-backup.md#restore-failures).
 
 After the progress output `dbtool restore` prints what failed, per table: the number of failed rows
