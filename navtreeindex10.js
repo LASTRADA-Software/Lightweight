@@ -1,5 +1,7 @@
 var NAVTREEINDEX10 =
 {
+"index.html#backup-and-restore":[0,8],
+"index.html#building-with-c20-modules":[0,13],
 "index.html#compile-using-c26-reflection-support":[0,12],
 "index.html#embedding-lightweight-from-source":[0,14],
 "index.html#features":[0,0],

@@ -111,6 +111,8 @@ var group__CoreApi =
       [ "OnFetchRow", "db/dfd/classLightweight_1_1SqlLogger.html#af7c5638382912daeb780c763c5711ee2", null ],
       [ "OnFetchBlock", "db/dfd/classLightweight_1_1SqlLogger.html#aa5d6a0226e5ec98b1a23bfa55b3228a9", null ],
       [ "OnFetchEnd", "db/dfd/classLightweight_1_1SqlLogger.html#a531204f908c6870f7e7e589ac0e20c2f", null ],
+      [ "OnStatementError", "db/dfd/classLightweight_1_1SqlLogger.html#a81a256d4a5c86a69c6f1e0da71117772", null ],
+      [ "OnExecuteNativeBatch", "db/dfd/classLightweight_1_1SqlLogger.html#af9a623042885ac2430a19f13da8c8ea3", null ],
       [ "_messageWriter", "db/dfd/classLightweight_1_1SqlLogger.html#a02804ba49a0fb98fe967aae9ae089fac", null ]
     ] ],
     [ "Lightweight::SqlPreparedStatementCache", "d3/d0f/classLightweight_1_1SqlPreparedStatementCache.html", [
