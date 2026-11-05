@@ -85,6 +85,23 @@ void CheckRowsReadBack(SqlStatement& stmt, std::string_view tableName, std::span
     CHECK_FALSE(cursor.FetchRow());
 }
 
+/// Reads the record with the given primary key, failing the test when it is missing.
+template <typename Record, typename PrimaryKey>
+Record ReadRecord(DataMapper& dm, PrimaryKey const& primaryKey)
+{
+    auto const found = dm.QuerySingle<Record>(primaryKey);
+    REQUIRE(found.has_value());
+    return *found;
+}
+
+/// Unwraps an optional that the test expects to be engaged.
+template <typename Value>
+Value const& RequireValue(std::optional<Value> const& optionalValue)
+{
+    REQUIRE(optionalValue.has_value());
+    return *optionalValue;
+}
+
 } // namespace
 
 TEST_CASE_METHOD(SqlTestFixture, "DateTime parameter after another parameter", "[LegacySqlServerDriver]")
@@ -317,13 +334,13 @@ TEST_CASE_METHOD(SqlTestFixture, "DataMapper writes a date-time that follows an 
     dm.CreateTable<LegacyDateTimeRecord>();
     auto record = LegacyDateTimeRecord { .id = 1, .amount = 42, .at = MakeTimeWithSubMilliseconds() };
     REQUIRE_NOTHROW(dm.Create(record));
-    CheckSameSecond(dm.QuerySingle<LegacyDateTimeRecord>(1).value().at.Value(), MakeTimeWithSubMilliseconds());
+    CheckSameSecond(ReadRecord<LegacyDateTimeRecord>(dm, 1).at.Value(), MakeTimeWithSubMilliseconds());
 
     SECTION("Update")
     {
         record.at = MakeDay2026(7, 1);
         REQUIRE_NOTHROW(dm.Update(record));
-        CheckSameSecond(dm.QuerySingle<LegacyDateTimeRecord>(1).value().at.Value(), MakeDay2026(7, 1));
+        CheckSameSecond(ReadRecord<LegacyDateTimeRecord>(dm, 1).at.Value(), MakeDay2026(7, 1));
     }
 
     SECTION("CreateAll and UpdateAll")
@@ -333,14 +350,14 @@ TEST_CASE_METHOD(SqlTestFixture, "DataMapper writes a date-time that follows an 
             LegacyDateTimeRecord { .id = 3, .amount = 2, .at = MakeTimeWithSubMilliseconds() },
         };
         REQUIRE_NOTHROW(dm.CreateAll(records));
-        CheckSameSecond(dm.QuerySingle<LegacyDateTimeRecord>(2).value().at.Value(), MakeDay2026(8, 1));
-        CheckSameSecond(dm.QuerySingle<LegacyDateTimeRecord>(3).value().at.Value(), MakeTimeWithSubMilliseconds());
+        CheckSameSecond(ReadRecord<LegacyDateTimeRecord>(dm, 2).at.Value(), MakeDay2026(8, 1));
+        CheckSameSecond(ReadRecord<LegacyDateTimeRecord>(dm, 3).at.Value(), MakeTimeWithSubMilliseconds());
 
         records[0].at = MakeDay2026(9, 1);
         records[1].at = MakeDay2026(10, 1);
         REQUIRE_NOTHROW(dm.UpdateAll(records));
-        CheckSameSecond(dm.QuerySingle<LegacyDateTimeRecord>(2).value().at.Value(), MakeDay2026(9, 1));
-        CheckSameSecond(dm.QuerySingle<LegacyDateTimeRecord>(3).value().at.Value(), MakeDay2026(10, 1));
+        CheckSameSecond(ReadRecord<LegacyDateTimeRecord>(dm, 2).at.Value(), MakeDay2026(9, 1));
+        CheckSameSecond(ReadRecord<LegacyDateTimeRecord>(dm, 3).at.Value(), MakeDay2026(10, 1));
     }
 }
 
@@ -358,10 +375,10 @@ TEST_CASE_METHOD(SqlTestFixture,
     REQUIRE_NOTHROW(dm.Create(engaged));
     REQUIRE_NOTHROW(dm.Create(disengaged));
 
-    auto const readEngaged = dm.QuerySingle<LegacyOptionalDateTimeRecord>(1).value().at.Value();
+    auto const readEngaged = ReadRecord<LegacyOptionalDateTimeRecord>(dm, 1).at.Value();
     REQUIRE(readEngaged.has_value());
     CheckSameSecond(*readEngaged, MakeTimeWithSubMilliseconds());
-    CHECK(!dm.QuerySingle<LegacyOptionalDateTimeRecord>(2).value().at.Value().has_value());
+    CHECK(!ReadRecord<LegacyOptionalDateTimeRecord>(dm, 2).at.Value().has_value());
 
     SECTION("Update")
     {
@@ -369,8 +386,8 @@ TEST_CASE_METHOD(SqlTestFixture,
         disengaged.at = MakeDay2026(7, 1);
         REQUIRE_NOTHROW(dm.Update(engaged));
         REQUIRE_NOTHROW(dm.Update(disengaged));
-        CHECK(!dm.QuerySingle<LegacyOptionalDateTimeRecord>(1).value().at.Value().has_value());
-        auto const readDisengaged = dm.QuerySingle<LegacyOptionalDateTimeRecord>(2).value().at.Value();
+        CHECK(!ReadRecord<LegacyOptionalDateTimeRecord>(dm, 1).at.Value().has_value());
+        auto const readDisengaged = ReadRecord<LegacyOptionalDateTimeRecord>(dm, 2).at.Value();
         REQUIRE(readDisengaged.has_value());
         CheckSameSecond(*readDisengaged, MakeDay2026(7, 1));
     }
@@ -382,14 +399,14 @@ TEST_CASE_METHOD(SqlTestFixture,
             LegacyOptionalDateTimeRecord { .id = 4, .amount = 2, .at = std::nullopt },
         };
         REQUIRE_NOTHROW(dm.CreateAll(records));
-        CheckSameSecond(dm.QuerySingle<LegacyOptionalDateTimeRecord>(3).value().at.Value().value(), MakeDay2026(8, 1));
-        CHECK(!dm.QuerySingle<LegacyOptionalDateTimeRecord>(4).value().at.Value().has_value());
+        CheckSameSecond(RequireValue(ReadRecord<LegacyOptionalDateTimeRecord>(dm, 3).at.Value()), MakeDay2026(8, 1));
+        CHECK(!ReadRecord<LegacyOptionalDateTimeRecord>(dm, 4).at.Value().has_value());
 
         records[0].at = std::nullopt;
         records[1].at = MakeDay2026(9, 1);
         REQUIRE_NOTHROW(dm.UpdateAll(records));
-        CHECK(!dm.QuerySingle<LegacyOptionalDateTimeRecord>(3).value().at.Value().has_value());
-        CheckSameSecond(dm.QuerySingle<LegacyOptionalDateTimeRecord>(4).value().at.Value().value(), MakeDay2026(9, 1));
+        CHECK(!ReadRecord<LegacyOptionalDateTimeRecord>(dm, 3).at.Value().has_value());
+        CheckSameSecond(RequireValue(ReadRecord<LegacyOptionalDateTimeRecord>(dm, 4).at.Value()), MakeDay2026(9, 1));
     }
 }
 
@@ -412,7 +429,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     record.after = 2.5;
     auto const primaryKey = dm.Create(record);
 
-    auto const stored = dm.QuerySingle<LegacyMixedColumnsRecord>(primaryKey).value();
+    auto const stored = ReadRecord<LegacyMixedColumnsRecord>(dm, primaryKey);
     REQUIRE(stored.occurredAt.Value().has_value());
     CheckSameSecond(*stored.occurredAt.Value(), MakeTimeWithSubMilliseconds());
     CHECK(stored.after.Value() == 2.5);
@@ -422,7 +439,7 @@ TEST_CASE_METHOD(SqlTestFixture,
         record.occurredAt = MakeDay2026(7, 1);
         record.after = std::nullopt;
         REQUIRE_NOTHROW(dm.Update(record));
-        auto const updated = dm.QuerySingle<LegacyMixedColumnsRecord>(primaryKey).value();
+        auto const updated = ReadRecord<LegacyMixedColumnsRecord>(dm, primaryKey);
         REQUIRE(updated.occurredAt.Value().has_value());
         CheckSameSecond(*updated.occurredAt.Value(), MakeDay2026(7, 1));
         CHECK(!updated.after.Value().has_value());
