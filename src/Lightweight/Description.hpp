@@ -6,7 +6,6 @@
 
 #include <concepts>
 #include <cstddef>
-#include <tuple>
 #include <type_traits>
 #include <utility>
 
@@ -17,6 +16,53 @@ namespace detail
 {
     template <typename MemberPointer>
     struct MemberPointee;
+
+    // Pack indexing without std::tuple. The pack is instantiated once, as the bases of one class, and
+    // each lookup is one overload resolution, so the cost does not depend on how the standard library
+    // implements std::tuple, which can recurse once per element for every index.
+    template <std::size_t I, auto Value>
+    struct IndexedValue
+    {
+        static constexpr auto value = Value;
+    };
+
+    template <typename Sequence, auto... Values>
+    struct IndexedValues;
+
+    template <std::size_t... Is, auto... Values>
+    struct IndexedValues<std::index_sequence<Is...>, Values...>: IndexedValue<Is, Values>...
+    {
+    };
+
+    template <std::size_t I, auto Value>
+    IndexedValue<I, Value> SelectIndexedValue(IndexedValue<I, Value> const&);
+
+    template <std::size_t I, typename T>
+    struct IndexedType
+    {
+        using type = T;
+    };
+
+    template <typename Sequence, typename... Types>
+    struct IndexedTypes;
+
+    template <std::size_t... Is, typename... Types>
+    struct IndexedTypes<std::index_sequence<Is...>, Types...>: IndexedType<Is, Types>...
+    {
+    };
+
+    template <std::size_t I, typename T>
+    IndexedType<I, T> SelectIndexedType(IndexedType<I, T> const&);
+
+    /// The type at index @p I of the pack @p Types.
+    template <std::size_t I, typename... Types>
+    using NthType = typename decltype(SelectIndexedType<I>(
+        std::declval<IndexedTypes<std::make_index_sequence<sizeof...(Types)>, Types...>>()))::type;
+
+    /// The value at index @p I of the pack @p Values.
+    template <std::size_t I, auto... Values>
+    inline constexpr auto NthValue =
+        decltype(SelectIndexedValue<I>(IndexedValues<std::make_index_sequence<sizeof...(Values)>, Values...> {}))::value;
 
     template <typename Class, typename Member>
     struct MemberPointee<Member Class::*>
@@ -42,11 +88,11 @@ struct RecordMemberList
 
     /// The (unwrapped) type of the member at index @p I.
     ///
-    /// Indexes the pointer-to-member pack via `std::tuple_element_t` rather than the
+    /// Indexes the pointer-to-member pack via `detail::NthType` rather than the
     /// `__type_pack_element` builtin: the latter is a Clang/GCC extension that MSVC does not
     /// accept as a type (it parses the bare identifier as a function template — error C7568).
     template <std::size_t I>
-    using TypeAt = detail::MemberPointee<std::tuple_element_t<I, std::tuple<decltype(MemberPointers)...>>>::type;
+    using TypeAt = detail::MemberPointee<detail::NthType<I, decltype(MemberPointers)...>>::type;
 
     /// Invokes `callable<I>(record.member_I)` for every member, in order.
     ///
@@ -91,9 +137,7 @@ struct RecordMemberList
     template <std::size_t I, typename Record>
     static constexpr decltype(auto) MemberAt(Record& record)
     {
-        // std::tie builds the reference tuple only at this call site (rare), so the descriptor
-        // itself stays free of any std::tuple instantiation.
-        return std::get<I>(std::tie(record.*MemberPointers...));
+        return (record.*(detail::NthValue<I, MemberPointers...>) );
     }
 };
 
