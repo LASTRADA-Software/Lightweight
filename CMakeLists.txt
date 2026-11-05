@@ -13,6 +13,20 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_COLOR_DIAGNOSTICS ON)
 
+# These developer switches have generic names a host project may use for its own build. Embedded,
+# they are shadowed as OFF in this directory, so a host's value cannot instrument Lightweight's
+# targets or add its coverage targets, and option() below leaves no cache entry in the host.
+if(NOT PROJECT_IS_TOP_LEVEL)
+    foreach(_lightweight_developer_option
+            ENABLE_TIDY
+            PEDANTIC_COMPILER PEDANTIC_COMPILER_WERROR
+            ENABLE_SANITIZER_ADDRESS ENABLE_SANITIZER_UNDEFINED ENABLE_SANITIZER_THREAD
+            ENABLE_COVERAGE)
+        set(${_lightweight_developer_option} OFF)
+    endforeach()
+    unset(_lightweight_developer_option)
+endif()
+
 include(ClangTidy)
 include(PedanticCompiler)
 include(Sanitizers)
