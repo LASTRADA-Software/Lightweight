@@ -13,6 +13,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <array>
 #include <chrono>
 #include <filesystem>
 #include <format>
@@ -65,25 +66,34 @@ std::filesystem::path ExecutablePath()
 #endif
 }
 
-/// Finds the post-migrate fixture plugin.
+/// Finds the post-migrate fixture plugin relative to the running test executable.
 ///
-/// The build tree path baked in at compile time is used when it exists. The CI database legs run an
-/// installed package instead of the build tree; there the plugin lives in `share/Lightweight/tests/plugins`
-/// next to the `bin` directory holding the test executable.
+/// The fixture plugins build into `<build>/tests/plugins`, so where that is seen from the executable
+/// depends on the layout. The CI database legs run an installed package instead of the build tree; there
+/// the plugin lives in `share/Lightweight/tests/plugins` next to the `bin` directory holding the executable.
 ///
-/// @return The plugin path, or an empty path if neither location holds the plugin.
+/// @return The plugin path, or an empty path if no known location holds the plugin.
 std::filesystem::path FindPostMigratePlugin()
 {
-    auto buildTreePath = std::filesystem::path { LIGHTWEIGHT_TEST_POST_MIGRATE_PLUGIN };
-    if (std::filesystem::exists(buildTreePath))
-        return buildTreePath;
-
     auto const executable = ExecutablePath();
     if (executable.empty())
         return {};
-    auto const installed =
-        executable.parent_path().parent_path() / "share" / "Lightweight" / "tests" / "plugins" / buildTreePath.filename();
-    return std::filesystem::exists(installed) ? installed : std::filesystem::path {};
+
+    auto const pluginName = std::filesystem::path { LIGHTWEIGHT_TEST_POST_MIGRATE_PLUGIN };
+    auto const binDir = executable.parent_path();
+    auto const candidates = std::array {
+        binDir.parent_path().parent_path() / "tests" / "plugins" / pluginName, // <build>/src/tests/
+        binDir.parent_path() / "tests" / "plugins" / pluginName,               // <build>/target/ (Windows, single-config)
+        binDir.parent_path().parent_path() / "tests" / "plugins" / binDir.filename()
+            / pluginName, // <build>/target/<config>/ (Windows, multi-config)
+        binDir.parent_path() / "share" / "Lightweight" / "tests" / "plugins" / pluginName, // <prefix>/bin/ (installed)
+    };
+    for (auto const& candidate: candidates)
+    {
+        if (std::filesystem::exists(candidate))
+            return candidate;
+    }
+    return {};
 }
 
 } // namespace
@@ -94,7 +104,7 @@ TEST_CASE_METHOD(SqlTestFixture,
 {
     auto const pluginPath = FindPostMigratePlugin();
     if (pluginPath.empty())
-        SKIP(std::format("post-migrate fixture plugin not found at {} or in the installed share/ layout",
+        SKIP(std::format("post-migrate fixture plugin {} not found in the build tree or the installed share/ layout",
                          LIGHTWEIGHT_TEST_POST_MIGRATE_PLUGIN));
 
     auto const logPath =
