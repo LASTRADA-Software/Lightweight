@@ -19,6 +19,8 @@
 using namespace std::chrono_literals;
 using namespace Lightweight;
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access) - every access is guarded by a preceding REQUIRE
+
 // Runs on every SQL Server driver; the legacy in-box driver (SQLSRV32.DLL) is the one these cases guard.
 
 namespace
@@ -445,3 +447,5 @@ TEST_CASE_METHOD(SqlTestFixture,
         CHECK(!updated.after.Value().has_value());
     }
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)
