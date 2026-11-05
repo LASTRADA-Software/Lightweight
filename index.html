@@ -437,17 +437,28 @@ Embedding Lightweight from source</h1>
 <p>Besides <code>find_package(Lightweight CONFIG)</code> against an installed package, Lightweight can be built as part of another CMake project, from a source checkout or through FetchContent:</p>
 <div class="fragment"><div class="line">add_subdirectory(external/Lightweight lightweight EXCLUDE_FROM_ALL)</div>
 <div class="line"># or</div>
-<div class="line">FetchContent_Declare(Lightweight GIT_REPOSITORY https://github.com/LASTRADA-Software/Lightweight.git GIT_TAG &lt;tag&gt;)</div>
+<div class="line">FetchContent_Declare(Lightweight</div>
+<div class="line">    GIT_REPOSITORY https://github.com/LASTRADA-Software/Lightweight.git</div>
+<div class="line">    GIT_TAG &lt;tag&gt;</div>
+<div class="line">    EXCLUDE_FROM_ALL) # CMake 3.28+</div>
 <div class="line">FetchContent_MakeAvailable(Lightweight)</div>
 <div class="line"> </div>
 <div class="line">target_link_libraries(my_app PRIVATE Lightweight::Lightweight)</div>
-</div><!-- fragment --><p>Set <code>LIGHTWEIGHT_BUILD_TESTS</code>, <code>LIGHTWEIGHT_BUILD_TOOLS</code> and <code>LIGHTWEIGHT_BUILD_EXAMPLES</code> to <code>OFF</code> before adding it unless you want those targets too. The dependencies are resolved as in a standalone build: Catch2 and yaml-cpp through <code>find_package</code> (so they must be findable, e.g. through a vcpkg manifest), reflection-cpp, stdexec and optionally Tracy through <code>find_package</code> with a CPM download as fallback.</p>
+</div><!-- fragment --><p><code>EXCLUDE_FROM_ALL</code> in <code>FetchContent_Declare</code> needs CMake 3.28 or newer; with an older CMake, call <code>FetchContent_Populate</code> and <code>add_subdirectory(... EXCLUDE_FROM_ALL)</code> yourself.</p>
+<p>Set <code>LIGHTWEIGHT_BUILD_TESTS</code>, <code>LIGHTWEIGHT_BUILD_TOOLS</code> and <code>LIGHTWEIGHT_BUILD_EXAMPLES</code> to <code>OFF</code> before adding it unless you want those targets too. The dependencies are resolved as in a standalone build:</p>
+<ul>
+<li>Catch2 and yaml-cpp through <code>find_package</code>, so they must be findable (e.g. through a vcpkg manifest). Both are currently required even with tests and tools turned off; this is a known limitation.</li>
+<li>reflection-cpp, stdexec and, with <code>LIGHTWEIGHT_ENABLE_TRACY</code>, Tracy through <code>find_package</code>, else a CPM download.</li>
+<li>libzip through <code>find_package</code> on Windows and pkg-config elsewhere, else a CPM download.</li>
+<li>core-cpp through CPM, only when the tools are built.</li>
+</ul>
+<p>The version comes from <code>version.txt</code> in Lightweight's source directory, else from its git tags. A copy of the sources without a <code>.git</code> directory therefore needs a <code>version.txt</code> (e.g. <code>0.20261031.0</code>).</p>
 <p>What stays under the host project's control when Lightweight is embedded:</p>
 <table class="markdownTable">
 <tr class="markdownTableHead">
 <th class="markdownTableHeadNone">Setting   </th><th class="markdownTableHeadNone">Behavior when embedded    </th></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>CMAKE_RUNTIME_OUTPUT_DIRECTORY</code>, <code>CMAKE_LIBRARY_OUTPUT_DIRECTORY</code>   </td><td class="markdownTableBodyNone">Used as the host set them. Only a top-level build puts its DLLs and executables into <code>&lt;build&gt;/target</code>, and Lightweight never writes these to the cache.    </td></tr>
+<td class="markdownTableBodyNone"><code>CMAKE_RUNTIME_OUTPUT_DIRECTORY</code>, <code>CMAKE_LIBRARY_OUTPUT_DIRECTORY</code>   </td><td class="markdownTableBodyNone">Used as the host set them. On Windows, when the host sets neither, Lightweight's own DLLs and executables go to <code>target/</code> under Lightweight's binary directory. Lightweight writes these to the cache only as a top-level build.    </td></tr>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone">Compiler launcher   </td><td class="markdownTableBodyNone">Left to the host. Lightweight selects a compiler cache (<code>cmake/CompileCache.cmake</code>) only as the top-level project.    </td></tr>
 <tr class="markdownTableRowOdd">
@@ -455,8 +466,10 @@ Embedding Lightweight from source</h1>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone">MSVC charset options   </td><td class="markdownTableBodyNone">Lightweight's own tree is always compiled with <code>/utf-8</code>. Inherited <code>/source-charset</code>, <code>/execution-charset</code> and <code>/utf-8</code> options are dropped inside Lightweight's directory, so a host using a different execution charset does not hit cl error D8016; the host's own targets keep their options.    </td></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">Packaging   </td><td class="markdownTableBodyNone">CPack is configured only by a top-level build.    </td></tr>
+<td class="markdownTableBodyNone"><code>ENABLE_TIDY</code>, <code>PEDANTIC_COMPILER(_WERROR)</code>, <code>ENABLE_SANITIZER_*</code>, <code>ENABLE_COVERAGE</code>   </td><td class="markdownTableBodyNone">Lightweight's developer switches apply only to a top-level build. A host option of the same name does not reach Lightweight's targets, and the <code>coverage</code> targets are not created.    </td></tr>
 <tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">Packaging   </td><td class="markdownTableBodyNone">CPack is configured only by a top-level build.    </td></tr>
+<tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone">Install rules   </td><td class="markdownTableBodyNone">Lightweight's install rules (including those for a CPM-fetched reflection-cpp) behave like any subproject's: adding it with <code>EXCLUDE_FROM_ALL</code> drops them.   </td></tr>
 </table>
 <p>On Windows, Lightweight is a shared library by default (<code>LIGHTWEIGHT_BUILD_SHARED</code>), so the host has to place <code>Lightweight.dll</code> next to its executables, for example by setting <code>CMAKE_RUNTIME_OUTPUT_DIRECTORY</code> before adding Lightweight. </p>
