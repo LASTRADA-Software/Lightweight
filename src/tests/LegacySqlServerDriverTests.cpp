@@ -254,3 +254,177 @@ TEST_CASE_METHOD(SqlTestFixture,
         CHECK(std::string_view { exception.what() }.contains("HYC00"));
     }
 }
+
+// Records stay outside the anonymous namespace: reflection needs them to have external linkage.
+/// A record whose date-time follows a plain integer column.
+struct LegacyDateTimeRecord
+{
+    Field<int, PrimaryKey::Manual> id;
+    Field<int> amount;
+    Field<SqlDateTime> at;
+};
+
+/// A record whose nullable date-time follows a plain integer column.
+struct LegacyOptionalDateTimeRecord
+{
+    Field<int, PrimaryKey::Manual> id;
+    Field<int> amount;
+    Field<std::optional<SqlDateTime>> at;
+};
+
+/// A record shaped like a typical legacy table: an auto-assigned key, then nullable numbers around a date-time.
+struct LegacyMixedColumnsRecord
+{
+    static constexpr std::string_view TableName = "LegacyMixedColumns";
+
+    Field<int32_t, PrimaryKey::AutoAssign, SqlRealName { "id" }> id;
+    Field<std::optional<double>, SqlRealName { "before_value" }> before;
+    Field<std::optional<int32_t>, SqlRealName { "parent_id" }> parentId;
+    Field<std::optional<SqlDateTime>, SqlRealName { "occurred_at" }> occurredAt;
+    Field<std::optional<double>, SqlRealName { "after_value" }> after;
+};
+
+namespace
+{
+
+/// Checks that @p actual equals @p expected to the second.
+void CheckSameSecond(SqlDateTime const& actual, SqlDateTime const& expected)
+{
+    CHECK(actual.sqlValue.year == expected.sqlValue.year);
+    CHECK(actual.sqlValue.month == expected.sqlValue.month);
+    CHECK(actual.sqlValue.day == expected.sqlValue.day);
+    CHECK(actual.sqlValue.hour == expected.sqlValue.hour);
+    CHECK(actual.sqlValue.minute == expected.sqlValue.minute);
+    CHECK(actual.sqlValue.second == expected.sqlValue.second);
+}
+
+/// Returns 2026-05-06 07:08:09 with a sub-millisecond fraction.
+SqlDateTime MakeTimeWithSubMilliseconds()
+{
+    auto value = SqlDateTime { std::chrono::year { 2026 }, std::chrono::month { 5 }, std::chrono::day { 6 }, 7h, 8min, 9s };
+    value.sqlValue.fraction = 123'456'700;
+    return value;
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "DataMapper writes a date-time that follows an integer field", "[LegacySqlServerDriver]")
+{
+    auto dm = DataMapper {};
+    if (dm.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        return;
+
+    dm.CreateTable<LegacyDateTimeRecord>();
+    auto record = LegacyDateTimeRecord { .id = 1, .amount = 42, .at = MakeTimeWithSubMilliseconds() };
+    REQUIRE_NOTHROW(dm.Create(record));
+    CheckSameSecond(dm.QuerySingle<LegacyDateTimeRecord>(1).value().at.Value(), MakeTimeWithSubMilliseconds());
+
+    SECTION("Update")
+    {
+        record.at = MakeDay2026(7, 1);
+        REQUIRE_NOTHROW(dm.Update(record));
+        CheckSameSecond(dm.QuerySingle<LegacyDateTimeRecord>(1).value().at.Value(), MakeDay2026(7, 1));
+    }
+
+    SECTION("CreateAll and UpdateAll")
+    {
+        auto records = std::vector {
+            LegacyDateTimeRecord { .id = 2, .amount = 1, .at = MakeDay2026(8, 1) },
+            LegacyDateTimeRecord { .id = 3, .amount = 2, .at = MakeTimeWithSubMilliseconds() },
+        };
+        REQUIRE_NOTHROW(dm.CreateAll(records));
+        CheckSameSecond(dm.QuerySingle<LegacyDateTimeRecord>(2).value().at.Value(), MakeDay2026(8, 1));
+        CheckSameSecond(dm.QuerySingle<LegacyDateTimeRecord>(3).value().at.Value(), MakeTimeWithSubMilliseconds());
+
+        records[0].at = MakeDay2026(9, 1);
+        records[1].at = MakeDay2026(10, 1);
+        REQUIRE_NOTHROW(dm.UpdateAll(records));
+        CheckSameSecond(dm.QuerySingle<LegacyDateTimeRecord>(2).value().at.Value(), MakeDay2026(9, 1));
+        CheckSameSecond(dm.QuerySingle<LegacyDateTimeRecord>(3).value().at.Value(), MakeDay2026(10, 1));
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "DataMapper writes a nullable date-time that follows an integer field",
+                 "[LegacySqlServerDriver]")
+{
+    auto dm = DataMapper {};
+    if (dm.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        return;
+
+    dm.CreateTable<LegacyOptionalDateTimeRecord>();
+    auto engaged = LegacyOptionalDateTimeRecord { .id = 1, .amount = 42, .at = MakeTimeWithSubMilliseconds() };
+    auto disengaged = LegacyOptionalDateTimeRecord { .id = 2, .amount = 43, .at = std::nullopt };
+    REQUIRE_NOTHROW(dm.Create(engaged));
+    REQUIRE_NOTHROW(dm.Create(disengaged));
+
+    auto const readEngaged = dm.QuerySingle<LegacyOptionalDateTimeRecord>(1).value().at.Value();
+    REQUIRE(readEngaged.has_value());
+    CheckSameSecond(*readEngaged, MakeTimeWithSubMilliseconds());
+    CHECK(!dm.QuerySingle<LegacyOptionalDateTimeRecord>(2).value().at.Value().has_value());
+
+    SECTION("Update")
+    {
+        engaged.at = std::nullopt;
+        disengaged.at = MakeDay2026(7, 1);
+        REQUIRE_NOTHROW(dm.Update(engaged));
+        REQUIRE_NOTHROW(dm.Update(disengaged));
+        CHECK(!dm.QuerySingle<LegacyOptionalDateTimeRecord>(1).value().at.Value().has_value());
+        auto const readDisengaged = dm.QuerySingle<LegacyOptionalDateTimeRecord>(2).value().at.Value();
+        REQUIRE(readDisengaged.has_value());
+        CheckSameSecond(*readDisengaged, MakeDay2026(7, 1));
+    }
+
+    SECTION("CreateAll and UpdateAll")
+    {
+        auto records = std::vector {
+            LegacyOptionalDateTimeRecord { .id = 3, .amount = 1, .at = MakeDay2026(8, 1) },
+            LegacyOptionalDateTimeRecord { .id = 4, .amount = 2, .at = std::nullopt },
+        };
+        REQUIRE_NOTHROW(dm.CreateAll(records));
+        CheckSameSecond(dm.QuerySingle<LegacyOptionalDateTimeRecord>(3).value().at.Value().value(), MakeDay2026(8, 1));
+        CHECK(!dm.QuerySingle<LegacyOptionalDateTimeRecord>(4).value().at.Value().has_value());
+
+        records[0].at = std::nullopt;
+        records[1].at = MakeDay2026(9, 1);
+        REQUIRE_NOTHROW(dm.UpdateAll(records));
+        CHECK(!dm.QuerySingle<LegacyOptionalDateTimeRecord>(3).value().at.Value().has_value());
+        CheckSameSecond(dm.QuerySingle<LegacyOptionalDateTimeRecord>(4).value().at.Value().value(), MakeDay2026(9, 1));
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "DataMapper writes a date-time between nullable numbers into a DATETIME column",
+                 "[LegacySqlServerDriver]")
+{
+    auto dm = DataMapper {};
+    if (dm.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        return;
+
+    (void) SqlStatement { dm.Connection() }.ExecuteDirect(
+        R"(CREATE TABLE "LegacyMixedColumns" ("id" INT NOT NULL PRIMARY KEY, "before_value" FLOAT NULL, )"
+        R"("parent_id" INT NULL, "occurred_at" DATETIME NULL, "after_value" FLOAT NULL))");
+
+    auto record = LegacyMixedColumnsRecord {};
+    record.before = 1.5;
+    record.parentId = 1;
+    record.occurredAt = MakeTimeWithSubMilliseconds();
+    record.after = 2.5;
+    auto const primaryKey = dm.Create(record);
+
+    auto const stored = dm.QuerySingle<LegacyMixedColumnsRecord>(primaryKey).value();
+    REQUIRE(stored.occurredAt.Value().has_value());
+    CheckSameSecond(*stored.occurredAt.Value(), MakeTimeWithSubMilliseconds());
+    CHECK(stored.after.Value() == 2.5);
+
+    SECTION("Update")
+    {
+        record.occurredAt = MakeDay2026(7, 1);
+        record.after = std::nullopt;
+        REQUIRE_NOTHROW(dm.Update(record));
+        auto const updated = dm.QuerySingle<LegacyMixedColumnsRecord>(primaryKey).value();
+        REQUIRE(updated.occurredAt.Value().has_value());
+        CheckSameSecond(*updated.occurredAt.Value(), MakeDay2026(7, 1));
+        CHECK(!updated.after.Value().has_value());
+    }
+}
