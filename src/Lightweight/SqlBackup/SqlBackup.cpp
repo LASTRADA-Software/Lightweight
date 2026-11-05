@@ -1375,6 +1375,17 @@ namespace
         return tables.size();
     }
 
+    /// Words the error of a table a stopped worker left unfinished, in the rows a user knows about.
+    /// @param restoredRows The rows of the table committed to the target.
+    /// @param archivedRows The rows the archive holds for the table; 0 if it does not know.
+    /// @return The message.
+    [[nodiscard]] std::string DescribeUnfinishedTable(std::uint64_t restoredRows, std::size_t archivedRows)
+    {
+        auto const restored = archivedRows > 0 ? std::format("{} of {} rows", restoredRows, archivedRows)
+                                               : std::format("{} rows", restoredRows);
+        return std::format("Not fully restored: {} restored, the restore stopped after an earlier error", restored);
+    }
+
     /// Reports that an incomplete restore leaves foreign key constraints and indexes unapplied.
     /// @param progress The progress manager.
     /// @param unrestoredTables The number of tables that did not restore.
@@ -1827,11 +1838,12 @@ RestoreReport Restore(std::filesystem::path const& inputFile,
         if (processed->load() >= totalChunksPerTable[tableName])
             continue;
         report.incompleteTables.push_back(tableName);
-        progress.Update({ .state = Progress::State::Error,
-                          .tableName = tableName,
-                          .currentRows = tableProgress.at(tableName)->load(),
-                          .totalRows = std::nullopt,
-                          .message = "Not fully restored: the restore stopped after an earlier error" });
+        progress.Update(
+            { .state = Progress::State::Error,
+              .tableName = tableName,
+              .currentRows = tableProgress.at(tableName)->load(),
+              .totalRows = std::nullopt,
+              .message = DescribeUnfinishedTable(committedRows.at(tableName)->load(), tableMap.at(tableName).rowCount) });
     }
 
     // A table that failed as a whole, that a stopped worker left unfinished, or that could not be

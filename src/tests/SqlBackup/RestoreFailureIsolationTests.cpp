@@ -933,6 +933,9 @@ TEST_CASE_METHOD(SqlTestFixture, "a stopped worker leaves the restore incomplete
 
     CHECK(report.WorkerStopped());
     CHECK(report.incompleteTables.size() == 2);
+    // The user is told about rows: neither table got any of the rows the archive holds for it.
+    CHECK(progress.HasErrorContaining("Not fully restored: 0 of 3 rows restored"));
+    CHECK(progress.HasErrorContaining("Not fully restored: 0 of 4 rows restored"));
     CHECK(progress.HasErrorContaining(std::format("2 of 2 tables did not restore; {}", ConstraintsSkipped)));
     CHECK_FALSE(UniqueIndexIsApplied("rfi_gate_stopped_a"));
     CHECK_FALSE(UniqueIndexIsApplied("rfi_gate_stopped_b"));
