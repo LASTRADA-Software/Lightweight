@@ -47,6 +47,7 @@ var NAVTREE =
           [ "As network latency grows", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#as-network-latency-grows", null ]
         ] ]
       ] ],
+      [ "Query timeouts", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#query-timeouts", null ],
       [ "SQL Query Builder", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sql-query-builder", null ],
       [ "High level Data Mapping", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#high-level-data-mapping", [
         [ "Batched insert and update", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#batched-insert-and-update", null ],
@@ -87,8 +88,7 @@ var NAVTREE =
         [ "OFFSET / LIMIT (pagination)", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#offset--limit-pagination", null ],
         [ "DISTINCT", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#distinct", null ],
         [ "COUNT and aggregates", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#count-and-aggregates", null ],
-        [ "GROUP BY", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#group-by", null ],
-        [ "HAVING", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#having", null ]
+        [ "GROUP BY", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#group-by", null ]
       ] ],
       [ "JOIN", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#join", [
         [ "INNER JOIN", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#inner-join", null ],
@@ -432,13 +432,13 @@ var NAVTREEINDEX =
 "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#adc492c8b63e8e44fd4f72b251f908c89",
 "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a70539241ba2c17c1ce40ce89ec177f55",
 "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a1f03a5faa280b0ae0ee688e3b9f40208",
-"d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html",
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1d973789fe4e659b30eb414dea1d6941",
-"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a3c38e58abdc7f00d611b073b68572837",
-"db/dad/classLightweight_1_1SqlStatement.html#af86e1a5ea750245ac769af55f2b124d5",
-"de/d36/structLightweight_1_1SqlWhereClauseBuilder_1_1PendingConnective.html",
-"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a8ee0594832c46d4679a3db0a139b77b9",
-"functions_z.html"
+"d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html#a422627996645b60439cf9d156b24b753",
+"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2a8b5bd4208f5b50cb9e4e4e8cbc3922",
+"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a74ee9fc64ccfb7ab7a03c8dd50e9b296",
+"db/db6/classLightweight_1_1SqlBinary.html",
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#apply-timestamp",
+"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#af20606723a905996e482b453ed376886",
+"index.html#asynchronous-api"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

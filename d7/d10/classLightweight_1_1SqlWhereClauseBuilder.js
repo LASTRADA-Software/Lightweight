@@ -1,6 +1,5 @@
 var classLightweight_1_1SqlWhereClauseBuilder =
 [
-    [ "PendingConnective", "de/d36/structLightweight_1_1SqlWhereClauseBuilder_1_1PendingConnective.html", "de/d36/structLightweight_1_1SqlWhereClauseBuilder_1_1PendingConnective" ],
     [ "And", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ac165a8f3c78ea465d7488b41e7af6ee7", null ],
     [ "Or", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ad63ee3002c9921bfb053c5b611d6511b", null ],
     [ "Not", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a70eca9201efb0d7311b20cef6ef4db34", null ],
@@ -35,8 +34,6 @@ var classLightweight_1_1SqlWhereClauseBuilder =
     [ "FullOuterJoin", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a0bf7afcef92e29f0a8b9af5009f96279", null ],
     [ "FullOuterJoin", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a60cea347007213ebfad757cc0198f366", null ],
     [ "FullOuterJoin", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a3af15963e88633d1965e258ab74ef9ba", null ],
-    [ "TakePendingConnective", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a3eaf06010cae9201367f081a69365c23", null ],
-    [ "DerivedFormatter", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#af817f8ac6fc3623cba582a574067de67", null ],
     [ "Where", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ab31fe6eb54cec3b3db5060438a0c9937", null ],
     [ "OrWhere", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#aef8145ff34166c3f3789adb8dc20bb5b", null ],
     [ "OrWhere", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a0c0683c2cb74a81cfa9444447be7dd3e", null ],

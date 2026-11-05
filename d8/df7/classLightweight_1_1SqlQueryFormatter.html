@@ -167,7 +167,9 @@ virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>Insert
 virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>QueryLastInsertId</b> (std::string_view tableName) const =0</td></tr>
 <tr class="memdesc:ae5c1899d98fac7ec8340f1cd0cfeae1a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the last insert ID of the given table. <br /></td></tr>
 <tr class="separator:ae5c1899d98fac7ec8340f1cd0cfeae1a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af0395f9fa984ef77525d2a3749f6ab1f" id="r_af0395f9fa984ef77525d2a3749f6ab1f"><td class="memItemLeft" align="right" valign="top">virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#af0395f9fa984ef77525d2a3749f6ab1f">SelectAll</a> (bool distinct, std::string_view fields, std::string_view fromTable, std::string_view fromTableAlias, std::string_view tableJoins, std::string_view whereCondition, std::string_view orderBy, std::string_view groupBy) const =0</td></tr>
+<tr class="memitem:af0395f9fa984ef77525d2a3749f6ab1f" id="r_af0395f9fa984ef77525d2a3749f6ab1f"><td class="memItemLeft" align="right" valign="top"><a id="af0395f9fa984ef77525d2a3749f6ab1f" name="af0395f9fa984ef77525d2a3749f6ab1f"></a>
+virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>SelectAll</b> (bool distinct, std::string_view fields, std::string_view fromTable, std::string_view fromTableAlias, std::string_view tableJoins, std::string_view whereCondition, std::string_view orderBy, std::string_view groupBy) const =0</td></tr>
+<tr class="memdesc:af0395f9fa984ef77525d2a3749f6ab1f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an SQL SELECT query for all rows. <br /></td></tr>
 <tr class="separator:af0395f9fa984ef77525d2a3749f6ab1f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4c6237040c577506c6f405d15e84eec9" id="r_a4c6237040c577506c6f405d15e84eec9"><td class="memItemLeft" align="right" valign="top">virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a4c6237040c577506c6f405d15e84eec9">SelectFirst</a> (bool distinct, std::string_view fields, std::string_view fromTable, std::string_view fromTableAlias, std::string_view tableJoins, std::string_view whereCondition, std::string_view orderBy, std::string_view groupBy, size_t count) const =0</td></tr>
 <tr class="separator:a4c6237040c577506c6f405d15e84eec9"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -307,7 +309,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 
 <p>Alias for a list of SQL statement strings. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00139">139</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00136">136</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -407,80 +409,6 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 <p>The fields and values must be in the same order. </p>
 
 <p class="reference">Referenced by <a class="el" href="../../d6/db4/Insert_8hpp_source.html#l00124">Lightweight::SqlInsertQueryBuilder::ToSql()</a>.</p>
-
-</div>
-</div>
-<a id="af0395f9fa984ef77525d2a3749f6ab1f" name="af0395f9fa984ef77525d2a3749f6ab1f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af0395f9fa984ef77525d2a3749f6ab1f">&#9670;&#160;</a></span>SelectAll()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">virtual std::string Lightweight::SqlQueryFormatter::SelectAll </td>
-          <td>(</td>
-          <td class="paramtype">bool&#160;</td>
-          <td class="paramname"><em>distinct</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>fields</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>fromTable</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>fromTableAlias</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>tableJoins</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>whereCondition</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>orderBy</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>groupBy</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>Constructs an SQL SELECT query for all rows.</p>
-<p>In all Select* functions <code>groupBy</code> is the GROUP BY clause followed by the HAVING clause, if the query has one, and has to be emitted as one piece between the WHERE and the ORDER BY clause. </p>
 
 </div>
 </div>
@@ -806,7 +734,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 <p>Whether the dialect must rebuild a table to apply an <code>ALTER TABLE</code> schema change that it cannot express in place — adding/dropping a foreign-key constraint, or altering a column's type/nullability (<code>ALTER TABLE … ADD/DROP CONSTRAINT</code> / <code>… ALTER COLUMN</code>). </p>
 <p>SQLite returns <code>true</code>; every other backend defaults to <code>false</code>. The migration executor consults this (via <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#ad03129b17daf9ea6829425473db12877">SqlConnection::RequiresTableRebuildForSchemaChange</a>) to decide whether to take the table-rebuild path for the <code>-- LIGHTWEIGHT_SQLITE_GUARD:</code> sentinels these dialects emit. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00200">200</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00197">197</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -838,7 +766,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 <p>Defaults to an empty string, meaning the dialect has no per-table hint and renders the statement unchanged. SQL Server returns <code>" WITH (READUNCOMMITTED)"</code>.</p>
 <dl class="section return"><dt>Returns</dt><dd>The hint text including its leading space, or an empty string. The text must stay valid for as long as the formatter does. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00216">216</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00213">213</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -869,7 +797,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 <p>Defaults to <code>false</code>, meaning the generic per-table catalog reader is used. SQL Server returns <code>true</code>: it can answer the entire schema with a handful of <code>sys.*</code> queries, collapsing thousands of per-table round-trips into a few. The batched path must produce byte-identical schema metadata to the legacy path.</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if the dialect supports the batched fast path, <code>false</code> otherwise. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00231">231</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00228">228</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -900,7 +828,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 <p>Defaults to <code>false</code> (PostgreSQL and SQLite store both the same way). SQL Server returns <code>true</code>.</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if narrow and wide text are distinct types in this dialect. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00245">245</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00242">242</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -931,7 +859,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 <p>The batched relation loading behind <code>Query&lt;Record&gt;().With&lt;&amp;Record::relation&gt;()</code> resolves a whole result set through <code>IN</code> predicates over the collected keys. Those keys are rendered as literals, so a large batch would otherwise produce one enormous expression — SQL Server raises "an expression services limit has been reached", and SQLite has its own parser limits. Splitting the batch into chunks of this size keeps every generated statement inside what the dialect accepts; the cost is one extra round-trip per chunk, still a constant number of queries per relation instead of one per record.</p>
 <dl class="section return"><dt>Returns</dt><dd>The maximum number of values per <code>IN</code> predicate. Defaults to 1000 for every dialect. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00262">262</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00259">259</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -975,7 +903,7 @@ template&lt;typename Range &gt; </div>
 <p>Produces <code>FK_&lt;table&gt;_&lt;col1&gt;[_&lt;col2&gt;…]</code>. A single-column FK collapses to <code>FK_&lt;table&gt;_&lt;col&gt;</code>; a composite FK includes every column so that a composite FK whose first column matches an existing single-column FK doesn't collide on the constraint name (which MSSQL enforces as globally unique per DB).</p>
 <p>Consumers include the SQL Server, PostgreSQL and SQLite formatters — centralising the convention here keeps CREATE/ALTER emission in sync with DROP CONSTRAINT lookup (e.g. <code>SQLiteRebuildDropForeignKey</code>). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00278">278</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00275">275</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1007,7 +935,7 @@ template&lt;typename Range &gt; </div>
 <p>Returns an empty string when the DBMS has no session-level concept of a default schema (SQL Server, SQLite). Callers must skip emission for empty results. PostgreSQL implements this via <code>SET search_path TO ...</code>.</p>
 <p>The <code>schema</code> value is interpolated into the statement; callers must validate it (e.g. whitelist <code>[A-Za-z0-9_]</code>) before invoking. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00299">299</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00296">296</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1045,7 +973,7 @@ template&lt;typename Range &gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The statements to execute, in order; empty when there is nothing to apply. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00312">312</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00309">309</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1132,7 +1060,7 @@ template&lt;typename Range &gt; </div>
 <p>New hooks are appended at the end of the class: that keeps the slots of the earlier ones for callers, but a subclass outside this library must still be rebuilt.</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if identifiers differing only in ASCII letter case name the same object. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00347">347</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00344">344</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1163,7 +1091,7 @@ template&lt;typename Range &gt; </div>
 <p>Defaults to <code>true</code>. SQLite returns <code>false</code>: it has no schemas, only attached databases.</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if a table can be created in a named schema. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00357">357</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00354">354</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1201,7 +1129,7 @@ template&lt;typename Range &gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The statement to execute, or an empty string when there is nothing to execute. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00368">368</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00365">365</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1232,7 +1160,7 @@ template&lt;typename Range &gt; </div>
 <p>Defaults to an empty string, meaning the dialect always reports them. SQL Server returns <code>SET NOCOUNT OFF</code>: under <code>NOCOUNT ON</code> the driver may report 0 rows for a statement that changed rows. The setting stays in effect for the session after the statement ran.</p>
 <dl class="section return"><dt>Returns</dt><dd>The statement to execute, or an empty string when there is nothing to execute. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00381">381</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00378">378</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1262,7 +1190,7 @@ template&lt;typename Range &gt; </div>
 <p>A query estimating a table's row count from the catalog's statistics, without reading the table. It takes two parameters, the schema name and then the table name, and yields one integer. </p>
 <dl class="section return"><dt>Returns</dt><dd>The query, or empty when the dialect keeps no such statistics; callers then count with <code>SELECT COUNT(*)</code>, which reads the whole table. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00391">391</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00388">388</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1293,7 +1221,7 @@ template&lt;typename Range &gt; </div>
 <p>Defaults to <code>false</code>. SQL Server (<code>UNIQUEIDENTIFIER</code>) and PostgreSQL (<code>UUID</code>) return <code>true</code>.</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if GUID columns are stored in a dedicated binary type. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00401">401</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00398">398</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1324,7 +1252,7 @@ template&lt;typename Range &gt; </div>
 <p>Defaults to <code>true</code>. SQLite returns <code>false</code>: it stores CHAR(n) as plain text and compares it verbatim.</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if trailing spaces of CHAR(n) values are insignificant in comparisons. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00411">411</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00408">408</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1362,7 +1290,7 @@ template&lt;typename Range &gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The identifier as the catalog stores it. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00423">423</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00420">420</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1393,7 +1321,7 @@ template&lt;typename Range &gt; </div>
 <p>Defaults to <code>false</code>. SQL Server returns <code>true</code>: ODBC Driver 18 executes every parameter set and marks only the failing ones <code>SQL_PARAM_ERROR</code>. PostgreSQL's psqlodbc marks every parameter set of a failed array <code>SQL_PARAM_ERROR</code>, and the SQLite ODBC driver does not fill the array at all, so their failing rows are found by bisection instead.</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if the rows marked <code>SQL_PARAM_ERROR</code> may be trusted to be the failing ones. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00437">437</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00434">434</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1424,7 +1352,7 @@ template&lt;typename Range &gt; </div>
 <p>Defaults to <code>false</code>. SQLite returns <code>true</code>: its write-ahead log grows with the open transaction, so a restore commits every <code>RestoreSettings::maxRowsPerCommit</code> rows of a chunk.</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if a bulk load bounds the rows per transaction. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00449">449</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00446">446</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>

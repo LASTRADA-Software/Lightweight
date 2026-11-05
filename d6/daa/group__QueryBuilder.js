@@ -32,10 +32,6 @@ var group__QueryBuilder =
       [ "OrOnGroup", "dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#aaf27033f8050b36e4b9a518e79591dc5", null ]
     ] ],
     [ "Lightweight::SqlWhereClauseBuilder< Derived >", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html", [
-      [ "PendingConnective", "de/d36/structLightweight_1_1SqlWhereClauseBuilder_1_1PendingConnective.html", [
-        [ "isOr", "de/d36/structLightweight_1_1SqlWhereClauseBuilder_1_1PendingConnective.html#a1be797b92a50bf9b1cc65650acf76015", null ],
-        [ "isNot", "de/d36/structLightweight_1_1SqlWhereClauseBuilder_1_1PendingConnective.html#a060febbf2d04822f563cfcb73d23203d", null ]
-      ] ],
       [ "And", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ac165a8f3c78ea465d7488b41e7af6ee7", null ],
       [ "Or", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ad63ee3002c9921bfb053c5b611d6511b", null ],
       [ "Not", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a70eca9201efb0d7311b20cef6ef4db34", null ],
@@ -70,8 +66,6 @@ var group__QueryBuilder =
       [ "FullOuterJoin", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a0bf7afcef92e29f0a8b9af5009f96279", null ],
       [ "FullOuterJoin", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a60cea347007213ebfad757cc0198f366", null ],
       [ "FullOuterJoin", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a3af15963e88633d1965e258ab74ef9ba", null ],
-      [ "TakePendingConnective", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a3eaf06010cae9201367f081a69365c23", null ],
-      [ "DerivedFormatter", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#af817f8ac6fc3623cba582a574067de67", null ],
       [ "Where", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ab31fe6eb54cec3b3db5060438a0c9937", null ],
       [ "OrWhere", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#aef8145ff34166c3f3789adb8dc20bb5b", null ],
       [ "OrWhere", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a0c0683c2cb74a81cfa9444447be7dd3e", null ],
@@ -93,9 +87,6 @@ var group__QueryBuilder =
       [ "AppendLiteralValue", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a8e6c126aafc9b8261118bea5977f272f", null ],
       [ "PopulateLiteralValueInto", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ab37dadea0850fbda74e2efe467118c87", null ],
       [ "Join", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a8e7fe33501cc9bd570959f7e2ed5d0b0", null ]
-    ] ],
-    [ "Lightweight::SqlFieldExpression", "d8/dd2/structLightweight_1_1SqlFieldExpression.html", [
-      [ "expression", "d8/dd2/structLightweight_1_1SqlFieldExpression.html#afe87625542faab00a7af2b26a45849f5", null ]
     ] ],
     [ "Lightweight::SqlDeleteQueryBuilder", "d1/d57/classLightweight_1_1SqlDeleteQueryBuilder.html", [
       [ "SqlDeleteQueryBuilder", "d1/d57/classLightweight_1_1SqlDeleteQueryBuilder.html#aadbc1401950ba9d59f94dca2a55384af", null ],
