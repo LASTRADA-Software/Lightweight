@@ -18,7 +18,9 @@ function(GetVersionInformation VersionTripleVar VersionStringVar)
         set(THE_VERSION ${CMAKE_MATCH_1})
         set(THE_VERSION_STRING "${version_text}")
         set(THE_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/version.txt")
-    elseif(GIT_FOUND)
+    elseif(GIT_FOUND AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
+        # Only inside Lightweight's own checkout: in a copy without .git, git would walk up into
+        # an enclosing repository and report that repository's tag.
         # Try to get the latest annotated tag (e.g., v1.2.34)
         # --tags: prefers tags
         # --abbrev=0: only show the tag name, not the commit hash
