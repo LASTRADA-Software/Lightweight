@@ -108,9 +108,6 @@ Use the DataMapper API</h2>
 Keep Data Model and Business Logic Separate</h2>
 <p>Keep the data model and business logic separate to improve the maintainability and scalability of your application.</p>
 <p>Remember to also keep frontend (e.g., GUI) and backend (e.g., API) separate.</p>
-<h2><a class="anchor" id="let-the-record-type-mirror-the-schema"></a>
-Let the Record Type Mirror the Schema</h2>
-<p>Declare a column as <code>Field&lt;T&gt;</code> only when it is <code>NOT NULL</code>, and as <code>Field&lt;std::optional&lt;T&gt;&gt;</code> when it is nullable. A <code>NOT NULL</code> column that has no default member initializer is a <a href="../../usage.md#required-fields">required field</a>: the compiler rejects every place that creates the record without it, so adding such a column to a table points you at all the code that has to supply it. Reach for a default member initializer only when the default is a real business value, not to make the error go away.</p>
 <h2><a class="anchor" id="use-transactions-with-care"></a>
 Use Transactions with Care</h2>
 <p>Use transactions to group multiple database operations into a single unit of work. <br  />
@@ -126,8 +123,8 @@ Binding Output Parameters</h2>
 <div class="fragment"><div class="line"><span class="keyword">struct </span>MixedNullRow</div>
 <div class="line">{</div>
 <div class="line">    Field&lt;SqlGuid, PrimaryKey::AutoAssign&gt; <span class="keywordtype">id</span> {};</div>
-<div class="line">    Field&lt;std::optional&lt;SqlAnsiString&lt;30&gt;&gt;&gt; name {};</div>
-<div class="line">    Field&lt;std::optional&lt;int&gt;&gt; age {};</div>
+<div class="line">    Field&lt;std::optional&lt;SqlAnsiString&lt;30&gt;&gt;&gt; name;</div>
+<div class="line">    Field&lt;std::optional&lt;int&gt;&gt; age;</div>
 <div class="line">};</div>
 <div class="line"> </div>
 <div class="line"><span class="keywordtype">void</span> ForEachData(SqlStatement&amp; stmt, <span class="keyword">auto</span>&amp;&amp; onRow)</div>

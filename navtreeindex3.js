@@ -1,12 +1,5 @@
 var NAVTREEINDEX3 =
 {
-"d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a5fc0d383bcfa36cd657ee2bb8b88fd18":[22,0,0,5,2,4],
-"d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a7628d304d8e4d1d9c0633d621a20e900":[22,0,0,5,2,3],
-"d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#ab5a73064ca40ed4c2945bb06c3830bf2":[22,0,0,5,2,0],
-"d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#afce5dff787fe9ac9d9ce51feba461cdf":[22,0,0,5,2,2],
-"d6/d4a/SqlScopedTraceLogger_8hpp_source.html":[23,0,1,35],
-"d6/d8d/structLightweight_1_1SqlConnectionDataSource.html":[20,6,1],
-"d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a04fd31415705ccc61b63eec99a7bf1f3":[20,6,1,6],
 "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a1f03a5faa280b0ae0ee688e3b9f40208":[20,6,1,1],
 "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a294bef751b01e0f8e110c989afff2814":[20,6,1,0],
 "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a3e8f610544a01c1fde5de73f85573377":[20,6,1,7],
@@ -249,5 +242,12 @@ var NAVTREEINDEX3 =
 "d7/d53/structLightweight_1_1SqlTime.html#a9b72124521fa13dbc3b084e948cec1e5":[20,1,11,10],
 "d7/d53/structLightweight_1_1SqlTime.html#aa3a8628bcc0afb2df5a174ed754d74df":[20,1,11,12],
 "d7/d53/structLightweight_1_1SqlTime.html#aad1328d9dbf6a77a3d7a632528376652":[20,1,11,8],
-"d7/d53/structLightweight_1_1SqlTime.html#ab3be70c906d47b15e6b0bb2c3b8af75a":[20,1,11,5]
+"d7/d53/structLightweight_1_1SqlTime.html#ab3be70c906d47b15e6b0bb2c3b8af75a":[20,1,11,5],
+"d7/d53/structLightweight_1_1SqlTime.html#ad2fa6d376c7fd1ca95119d08e0e6b814":[20,1,11,9],
+"d7/d53/structLightweight_1_1SqlTime.html#aeac9fe591411b84af0285ea3f4152892":[20,1,11,6],
+"d7/d6d/ChunkPlanner_8hpp_source.html":[23,0,1,4,2],
+"d7/d76/SyncWait_8hpp_source.html":[23,0,1,0,11],
+"d7/d79/UnicodeUpgradeProgress_8hpp_source.html":[23,0,1,43],
+"d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html":[22,0,0,2,12],
+"d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html#a3f72469fb9e727496021899d870ac37d":[22,0,0,2,12,5]
 };

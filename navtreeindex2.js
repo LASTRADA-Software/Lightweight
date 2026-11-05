@@ -1,12 +1,5 @@
 var NAVTREEINDEX2 =
 {
-"d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a500e17dc06f73a877dc7e7a99342feaa":[20,7,14,44],
-"d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a53933c029c1d92dfc61c2301f6d1aa81":[20,7,14,41],
-"d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a56194b41fc9b404256d379bd51f5002d":[20,7,14,12],
-"d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a599a131dcadf355c1a79db6c29c4e6e6":[20,7,14,17],
-"d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a5a912fc331a43ab4819ee153f73e89e4":[20,7,14,40],
-"d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a63ce9461c4cd37394364f25f4e9f0cc8":[20,7,14,50],
-"d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a68b4434898a6ebceb06025065af79ec0":[20,7,14,58],
 "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a70539241ba2c17c1ce40ce89ec177f55":[20,7,14,47],
 "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a7070cc2a770793a129ce2199a95e51a9":[20,7,14,38],
 "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a7611c88a34f8863aae59392f4d13c7d3":[20,7,14,13],
@@ -249,5 +242,12 @@ var NAVTREEINDEX2 =
 "d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html":[22,0,0,5,2],
 "d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a210b66a08504827ce69e7dec9cf2a8b6":[22,0,0,5,2,6],
 "d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a2299e18f28f3ace1f4f16512a58dcc7d":[22,0,0,5,2,1],
-"d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a5d201bcfee8b32a1b40be54646a00387":[22,0,0,5,2,5]
+"d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a5d201bcfee8b32a1b40be54646a00387":[22,0,0,5,2,5],
+"d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a5fc0d383bcfa36cd657ee2bb8b88fd18":[22,0,0,5,2,4],
+"d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a7628d304d8e4d1d9c0633d621a20e900":[22,0,0,5,2,3],
+"d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#ab5a73064ca40ed4c2945bb06c3830bf2":[22,0,0,5,2,0],
+"d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#afce5dff787fe9ac9d9ce51feba461cdf":[22,0,0,5,2,2],
+"d6/d4a/SqlScopedTraceLogger_8hpp_source.html":[23,0,1,35],
+"d6/d8d/structLightweight_1_1SqlConnectionDataSource.html":[20,6,1],
+"d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a04fd31415705ccc61b63eec99a7bf1f3":[20,6,1,6]
 };
