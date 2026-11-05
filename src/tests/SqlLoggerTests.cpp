@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "Utils.hpp"
+
 #include <Lightweight/SqlColumnTypeDefinitions.hpp>
 #include <Lightweight/SqlError.hpp>
 #include <Lightweight/SqlLogger.hpp>
@@ -9,6 +11,7 @@
 #include <algorithm>
 #include <ranges>
 #include <source_location>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <variant>
@@ -471,4 +474,88 @@ TEST_CASE("MakeColumnTypeFromNative maps GUID and yields nullopt for unsupported
 TEST_CASE("SqlNullable enumerators", "[SqlColumnTypeDefinitions]")
 {
     CHECK(static_cast<int>(SqlNullable::NotNull) != static_cast<int>(SqlNullable::Null));
+}
+
+// ================================================================================================
+// Which query the trace logger names (#81)
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlLogger::TraceLogger names the query of the statement concerned", "[SqlLogger]")
+{
+    auto setup = SqlStatement {};
+    (void) setup.ExecuteDirect(R"(CREATE TABLE "TraceQueryNames" ("id" INT NOT NULL PRIMARY KEY))");
+    (void) setup.ExecuteDirect(R"(INSERT INTO "TraceQueryNames" ("id") VALUES (1))");
+
+    auto captured = std::vector<std::string> {};
+    auto& trace = SqlLogger::TraceLogger();
+    auto* const previous = &SqlLogger::GetLogger();
+    trace.SetLoggingSink([&](std::string message) { captured.push_back(std::move(message)); });
+    SqlLogger::SetLogger(trace);
+    auto const restore = detail::Finally([&] {
+        SqlLogger::SetLogger(*previous);
+        trace.SetLoggingSink({});
+    });
+    auto const logged = [&](std::string_view needle) {
+        return std::ranges::any_of(captured, [&](std::string const& message) { return message.contains(needle); });
+    };
+
+    // Only ever prepared: all this statement does is be the last one the process-wide logger heard of.
+    auto bystander = SqlStatement {};
+    constexpr auto BystanderQuery = R"(DELETE FROM "TraceQueryNames" WHERE "id" = 999)";
+
+    SECTION("a failed fetch reports the fetching statement's query")
+    {
+        auto select = SqlStatement {};
+        select.Prepare(R"(SELECT "id" FROM "TraceQueryNames")");
+        auto cursor = select.Execute();
+        bystander.Prepare(BystanderQuery);
+
+        // Closing the cursor behind the wrapper's back makes the driver manager reject the fetch with
+        // HY010 on every driver, which is a real failure at the point this is about.
+        REQUIRE(SQL_SUCCEEDED(SQLFreeStmt(select.NativeHandle(), SQL_CLOSE)));
+        CHECK_THROWS((void) cursor.FetchRow());
+
+        CHECK(logged(R"(Query: SELECT "id" FROM "TraceQueryNames")"));
+        CHECK_FALSE(logged("DELETE"));
+    }
+
+    SECTION("a native batch announces the batch's own query")
+    {
+        struct Row
+        {
+            int id;
+        };
+        auto insert = SqlStatement {};
+        insert.Prepare(R"(INSERT INTO "TraceQueryNames" ("id") VALUES (?))");
+        bystander.Prepare(BystanderQuery);
+
+        auto const rows = std::vector<Row> { { .id = 1 }, { .id = 1 } };
+        CHECK_THROWS((void) insert.ExecuteBatch(std::span { rows }, [](Row const& row) -> auto const& { return row.id; }));
+
+        CHECK(logged(R"(ExecuteBatch: INSERT INTO "TraceQueryNames")"));
+        CHECK_FALSE(logged("DELETE"));
+    }
+
+    SECTION("an error no statement can be blamed for does not pass the last query off as the failed one")
+    {
+        bystander.Prepare(BystanderQuery);
+        CHECK_THROWS(bystander.Connection().RequireSuccess(SQL_ERROR));
+
+        CHECK_FALSE(logged("Query: DELETE"));
+        CHECK(logged("Last logged query (not necessarily the failed one): DELETE"));
+    }
+}
+
+TEST_CASE("SqlLogger: the statement-aware hooks reach a logger that overrides only the older ones", "[SqlLogger]")
+{
+    auto logger = CapturingLogger {};
+    SqlLogger& base = logger;
+
+    SqlErrorInfo const info { .nativeErrorCode = 7, .sqlState = "HY010", .message = "sequence" };
+    base.OnStatementError(info, "SELECT 1", std::source_location::current());
+    REQUIRE(logger.errorInfos.size() == 1);
+    CHECK(logger.errorInfos.front().sqlState == "HY010");
+
+    base.OnExecuteNativeBatch("INSERT INTO T VALUES (?)");
+    CHECK(logger.batchExecuted == 1);
 }

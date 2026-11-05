@@ -125,6 +125,32 @@ class SqlLogger
     /// Invoked when fetching is done.
     virtual void OnFetchEnd() = 0;
 
+    /// @brief Invoked when an operation on a statement failed, naming that statement's own query.
+    ///
+    /// Non-pure so existing loggers need no change: the default forwards to @ref OnError. Unlike a query
+    /// remembered from @ref OnPrepare or @ref OnExecute, which may belong to any statement of the process,
+    /// @p query is the one the failure belongs to.
+    ///
+    /// @param errorInfo The diagnostics of the failure.
+    /// @param query The statement's prepared query; empty if it has none, as after a direct execution.
+    /// @param sourceLocation Where the failure was reported from.
+    virtual void OnStatementError(SqlErrorInfo const& errorInfo,
+                                  [[maybe_unused]] std::string_view query,
+                                  std::source_location sourceLocation)
+    {
+        OnError(errorInfo, sourceLocation);
+    }
+
+    /// @brief Invoked when a prepared query is executed as one native row-wise batch.
+    ///
+    /// Non-pure so existing loggers need no change: the default forwards to @ref OnExecuteBatch.
+    ///
+    /// @param query The query being executed.
+    virtual void OnExecuteNativeBatch([[maybe_unused]] std::string_view query)
+    {
+        OnExecuteBatch();
+    }
+
     class Null;
 
     /// Retrieves a null logger that does nothing.

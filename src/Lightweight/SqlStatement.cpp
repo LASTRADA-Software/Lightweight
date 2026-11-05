@@ -66,9 +66,9 @@ struct SqlStatement::Data
 
 SqlStatement::Data const SqlStatement::Data::NoData {};
 
-static auto MakeUnexpected(SqlErrorInfo info, std::source_location location)
+static auto MakeUnexpected(SqlErrorInfo info, std::string_view query, std::source_location location)
 {
-    SqlLogger::GetLogger().OnError(info, location);
+    SqlLogger::GetLogger().OnStatementError(info, query, location);
     return std::unexpected { std::move(info) };
 }
 
@@ -1264,11 +1264,11 @@ std::expected<bool, SqlErrorInfo> SqlStatement::FetchRowPrefetched() noexcept
         }
         catch (SqlException const& error)
         {
-            return MakeUnexpected(error.info(), std::source_location::current());
+            return MakeUnexpected(error.info(), m_preparedQuery, std::source_location::current());
         }
         catch (...)
         {
-            return MakeUnexpected(LastError(), std::source_location::current());
+            return MakeUnexpected(LastError(), m_preparedQuery, std::source_location::current());
         }
         SqlLogger::GetLogger().OnFetchBlock(m_data->prefetchBlockRows);
         // The whole block is accounted for here, once per round-trip — the per-row hand-outs below must
@@ -1307,11 +1307,11 @@ std::expected<bool, SqlErrorInfo> SqlStatement::FetchRowPrefetched() noexcept
     }
     catch (SqlException const& error)
     {
-        return MakeUnexpected(error.info(), std::source_location::current());
+        return MakeUnexpected(error.info(), m_preparedQuery, std::source_location::current());
     }
     catch (...)
     {
-        return MakeUnexpected(LastError(), std::source_location::current());
+        return MakeUnexpected(LastError(), m_preparedQuery, std::source_location::current());
     }
     SqlLogger::GetLogger().OnFetchRow();
     // No LIGHTWEIGHT_STATS_ROWS here: this row was already counted as part of its block above.
@@ -1342,11 +1342,11 @@ std::expected<bool, SqlErrorInfo> SqlStatement::TryFetchRow(std::source_location
         }
         catch (SqlException const& error)
         {
-            return MakeUnexpected(error.info(), location);
+            return MakeUnexpected(error.info(), m_preparedQuery, location);
         }
         catch (...)
         {
-            return MakeUnexpected(LastError(), location);
+            return MakeUnexpected(LastError(), m_preparedQuery, location);
         }
     }
 
@@ -1360,7 +1360,7 @@ std::expected<bool, SqlErrorInfo> SqlStatement::TryFetchRow(std::source_location
             return false;
         default:
             if (!SQL_SUCCEEDED(sqlResult))
-                return MakeUnexpected(LastError(), location);
+                return MakeUnexpected(LastError(), m_preparedQuery, location);
 
             // post-process the output columns, if needed
             for (auto const& postProcess: m_data->postProcessOutputColumnCallbacks)
