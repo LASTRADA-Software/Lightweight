@@ -106,9 +106,13 @@ concept FieldElementType = SqlInputParameterBinder<T> && SqlOutputColumnBinder<T
     template <typename TargetType, typename P1, typename P2>
     consteval auto Choose(TargetType defaultValue, P1 p1, P2 p2) noexcept
     {
-        if constexpr (!std::same_as<P1, std::nullopt_t> && requires { TargetType { p1 }; })
+        // An enum parameter is only ever the target itself: some compilers (MSVC) wrongly accept
+        // `TargetType { p }` for a different scoped enum, which would mis-select the parameter.
+        if constexpr (!std::same_as<P1, std::nullopt_t> && (!std::is_enum_v<P1> || std::same_as<P1, TargetType>)
+                      && requires { TargetType { p1 }; })
             return p1;
-        else if constexpr (!std::same_as<P2, std::nullopt_t> && requires { TargetType { p2 }; })
+        else if constexpr (!std::same_as<P2, std::nullopt_t> && (!std::is_enum_v<P2> || std::same_as<P2, TargetType>)
+                           && requires { TargetType { p2 }; })
             return p2;
         else
             return defaultValue;

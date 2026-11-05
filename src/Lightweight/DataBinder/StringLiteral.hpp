@@ -18,8 +18,16 @@ struct SqlDataBinder<char[N]>
                                                              char const* value,
                                                              SqlDataBinderCallback& /*cb*/) noexcept
     {
-        return SQLBindParameter(
-            stmt, column, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, N - 1, 0, (SQLPOINTER) value, 0, nullptr);
+        return SQLBindParameter(stmt,
+                                column,
+                                SQL_PARAM_INPUT,
+                                SQL_C_CHAR,
+                                SQL_VARCHAR,
+                                detail::NonZeroColumnSize(N - 1),
+                                0,
+                                (SQLPOINTER) value,
+                                0,
+                                nullptr);
     }
 
     static LIGHTWEIGHT_FORCE_INLINE std::string_view Inspect(char const* value) noexcept
@@ -42,7 +50,7 @@ struct SqlDataBinder<T[N]>
                                 SQL_PARAM_INPUT,
                                 SQL_C_WCHAR,
                                 SQL_WVARCHAR,
-                                (N - 1) * sizeof(T),
+                                detail::NonZeroColumnSize((N - 1) * sizeof(T)),
                                 0,
                                 (SQLPOINTER) value,
                                 0,

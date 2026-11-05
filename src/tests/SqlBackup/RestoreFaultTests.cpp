@@ -14,6 +14,7 @@
 // genuine class-08/HYT00 error and are covered separately.
 
 #include "../Utils.hpp"
+#include "TestHelpers.hpp"
 
 #include <Lightweight/SqlBackup/Restore.hpp>
 #include <Lightweight/SqlBackup/SqlBackup.hpp>
@@ -30,33 +31,10 @@
 using Lightweight::SqlConnectionString;
 using Lightweight::SqlBackup::TableInfo;
 namespace detail = Lightweight::SqlBackup::detail;
+using Lightweight::SqlBackup::Tests::RecordingProgressManager;
 
 namespace
 {
-
-/// Records progress updates so a test can assert on what the failure path reported.
-class RecordingProgressManager: public Lightweight::SqlBackup::ProgressManager
-{
-  public:
-    void Update(Lightweight::SqlBackup::Progress const& p) override
-    {
-        messages.emplace_back(p.message);
-        states.emplace_back(p.state);
-    }
-
-    void AllDone() override {}
-
-    [[nodiscard]] bool HasErrorContaining(std::string_view needle) const
-    {
-        for (auto i = size_t { 0 }; i < messages.size(); ++i)
-            if (states[i] == Lightweight::SqlBackup::Progress::State::Error && messages[i].contains(needle))
-                return true;
-        return false;
-    }
-
-    std::vector<std::string> messages;
-    std::vector<Lightweight::SqlBackup::Progress::State> states;
-};
 
 /// A connection string naming a driver the ODBC driver manager cannot resolve, so Connect() fails
 /// for real rather than being simulated.

@@ -9,6 +9,7 @@
 #include <optional>
 #include <span>
 #include <sstream>
+#include <stdexcept>
 
 #if defined(__GNUC__) || defined(__clang__)
     #pragma GCC diagnostic push
@@ -536,9 +537,11 @@ namespace
 
             batch.Clear();
 
+            // Bytes are left, so they must start the next batch: anything else is a damaged chunk,
+            // which must not pass for its end (its rows would be lost without a trace).
             uint32_t len = 0;
             if (!ReadArrayHeader(len))
-                return false;
+                throw std::runtime_error("Malformed data chunk: a batch does not start with a MsgPack array");
 
             // Iterate columns
             batch.columns.resize(len);

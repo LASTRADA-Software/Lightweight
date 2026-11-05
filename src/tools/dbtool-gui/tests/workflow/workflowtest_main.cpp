@@ -53,7 +53,7 @@ int main(int argc, char** argv)
         // unixODBC reads user DSNs from $ODBCINI: keep the user's own file out of every enumeration.
         QTemporaryDir const odbcDirectory;
         auto const odbcIni = odbcDirectory.filePath(QStringLiteral("odbc.ini"));
-        QFile { odbcIni }.open(QIODevice::WriteOnly);
+        (void) QFile { odbcIni }.open(QIODevice::WriteOnly);
         qputenv("ODBCINI", QFile::encodeName(odbcIni));
 #endif
         DbtoolGui::Tests::WorkflowSetup setup;

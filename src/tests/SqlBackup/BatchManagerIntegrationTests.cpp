@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "TestHelpers.hpp"
+
 #include <Lightweight/SqlBackup/BatchManager.hpp>
 #include <Lightweight/SqlConnection.hpp>
 #include <Lightweight/SqlStatement.hpp>
@@ -12,6 +14,7 @@
 using namespace Lightweight;
 using namespace Lightweight::detail;
 using namespace Lightweight::SqlBackup;
+using namespace Lightweight::SqlBackup::Tests;
 
 TEST_CASE("BatchManager: Integration with SQLite", "[SqlBackup][Integration]")
 {
@@ -27,13 +30,13 @@ TEST_CASE("BatchManager: Integration with SQLite", "[SqlBackup][Integration]")
                                                { .name = "txt", .type = SqlColumnTypeDefinitions::Text { .size = 255 } } };
 
     // Actual Executor
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t rowCount) {
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t rowCount) {
         std::string sql = "INSERT INTO test_batch (id, txt) VALUES (?, ?)";
         stmt.Prepare(sql);
         (void) stmt.ExecuteBatch(rawCols, rowCount);
     };
 
-    BatchManager bm(executor, cols, 10);
+    BatchManager bm(MakeHooks(executor), cols, 10);
 
     bm.PushRow({ 1, "Hello" });
     bm.PushRow({ 2, "World" });

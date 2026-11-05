@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "TestHelpers.hpp"
+
 #include <Lightweight/SqlBackup/Common.hpp>
 #include <Lightweight/SqlBackup/SqlBackup.hpp>
 #include <Lightweight/SqlConnectInfo.hpp>
@@ -19,6 +21,7 @@
 using Lightweight::SqlErrorInfo;
 using Lightweight::SqlBackup::RetrySettings;
 namespace detail = Lightweight::SqlBackup::detail;
+using Lightweight::SqlBackup::Tests::RecordingProgressManager;
 
 namespace
 {
@@ -31,22 +34,6 @@ SqlErrorInfo MakeError(std::string sqlState, std::string message = {})
         .message = std::move(message),
     };
 }
-
-/// Records what the retry loops report, so a test can assert on the messages they emit.
-class RecordingProgressManager: public Lightweight::SqlBackup::ProgressManager
-{
-  public:
-    void Update(Lightweight::SqlBackup::Progress const& p) override
-    {
-        messages.emplace_back(p.message);
-        states.emplace_back(p.state);
-    }
-
-    void AllDone() override {}
-
-    std::vector<std::string> messages;
-    std::vector<Lightweight::SqlBackup::Progress::State> states;
-};
 
 /// Retry settings with the backoff collapsed to near-zero so the tests stay fast; the delay
 /// arithmetic itself is covered separately by the CalculateRetryDelay cases below.

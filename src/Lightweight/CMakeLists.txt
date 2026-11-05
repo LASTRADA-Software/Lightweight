@@ -126,7 +126,10 @@ set(SOURCE_FILES
     SqlBackup/Common.cpp
     SqlBackup/ConnectionPool.cpp
     SqlBackup/MsgPackChunkFormats.cpp
+    SqlBackup/RawColumnSlice.cpp
     SqlBackup/Restore.cpp
+    SqlBackup/RestoreFailureLog.cpp
+    SqlBackup/RowIsolation.cpp
     SqlBackup/SqlBackup.cpp
     SqlBackup/TableFilter.cpp
     SqlBackup/WorkerChunkArchive.cpp
@@ -372,22 +375,22 @@ endif()
 include(CMakePackageConfigHelpers)
 
 write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/Lightweight-config-version.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/LightweightConfigVersion.cmake"
     VERSION ${CMAKE_PROJECT_VERSION}
     COMPATIBILITY AnyNewerVersion
 )
 
 configure_package_config_file(
     "${PROJECT_SOURCE_DIR}/cmake/Lightweight-config.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/Lightweight-config.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/LightweightConfig.cmake"
     INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Lightweight" # Standard location
     PATH_VARS CMAKE_INSTALL_INCLUDEDIR CMAKE_INSTALL_LIBDIR # Variables to make absolute in config file
 )
 
 install(
     FILES
-        "${CMAKE_CURRENT_BINARY_DIR}/Lightweight-config.cmake"
-        "${CMAKE_CURRENT_BINARY_DIR}/Lightweight-config-version.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/LightweightConfig.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/LightweightConfigVersion.cmake"
     DESTINATION
         "${CMAKE_INSTALL_LIBDIR}/cmake/Lightweight"
     COMPONENT Development

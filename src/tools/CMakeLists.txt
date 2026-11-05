@@ -6,6 +6,7 @@ install(TARGETS ddl2cpp DESTINATION bin)
 # shared between dbtool, dbtool-gui, and the test suite. Must be declared
 # before the tools that link against it.
 add_subdirectory(shared)
+add_subdirectory(profiles)
 
 add_subdirectory(dbtool)
 add_subdirectory(large-db-generator)

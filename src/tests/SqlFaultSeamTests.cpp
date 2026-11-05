@@ -12,6 +12,7 @@
 // as successful, so a test can make any SQLSTATE appear at the point the library checks a
 // statement handle.
 
+#include "ScriptedFaultSource.hpp"
 #include "Utils.hpp"
 
 #include <Lightweight/SqlBackup/Common.hpp>
@@ -33,77 +34,11 @@
 #include <vector>
 
 using namespace Lightweight;
+using Lightweight::Tests::ScopedFaultSource;
+using Lightweight::Tests::ScriptedFaultSource;
 
 namespace
 {
-
-/// Fails the first @c failureCount checks with a scripted diagnostic, then lets calls through.
-/// Mirrors how a transient outage behaves: a burst of failures followed by recovery.
-///
-/// Narrows which call site it reacts to via a substring match against the reported
-/// @c std::source_location, so an injected fault cannot disturb unrelated library work happening on
-/// the same connection. The default, "SqlFaultSeamTests", matches an execution requested from this
-/// file (SqlStatement::ExecuteDirect defaults its `location` parameter to the caller's
-/// source_location and forwards it); a call passed explicitly narrows to one specific internal call
-/// site instead (e.g. "RetryStalePreparedStatement" or "Connect"), which is needed for checks the
-/// library performs internally and reports its own file/function for.
-///
-/// This narrowing is a convenience, not a safety requirement: the seam itself skips injection while
-/// the handle is still null, so the half-constructed/half-destroyed-object hazard is closed in the
-/// library rather than by this filter.
-class ScriptedFaultSource: public SqlFaultSource
-{
-  public:
-    // Deliberately not noexcept: _locationFilter is a std::string built from a string_view, so
-    // construction allocates and can throw. Declaring it noexcept would turn a bad_alloc into a
-    // std::terminate.
-    explicit ScriptedFaultSource(SqlErrorInfo error,
-                                 int failureCount,
-                                 std::string_view locationFilter = "SqlFaultSeamTests"):
-        _error { std::move(error) },
-        _remaining { failureCount },
-        _locationFilter { locationFilter }
-    {
-    }
-
-    [[nodiscard]] std::optional<SqlErrorInfo> NextFailure(SQLHSTMT /*hStmt*/,
-                                                          std::source_location const& sourceLocation) override
-    {
-        return Consult(sourceLocation);
-    }
-
-    [[nodiscard]] std::optional<SqlErrorInfo> NextConnectionFailure(SQLHDBC /*hDbc*/,
-                                                                    std::source_location const& sourceLocation) override
-    {
-        return Consult(sourceLocation);
-    }
-
-    [[nodiscard]] int ConsultCount() const noexcept
-    {
-        return _consultCount;
-    }
-
-  private:
-    [[nodiscard]] std::optional<SqlErrorInfo> Consult(std::source_location const& sourceLocation)
-    {
-        auto const file = std::string_view { sourceLocation.file_name() };
-        auto const function = std::string_view { sourceLocation.function_name() };
-        if (!file.contains(_locationFilter) && !function.contains(_locationFilter))
-            return std::nullopt;
-
-        ++_consultCount;
-        if (_remaining <= 0)
-            return std::nullopt;
-
-        --_remaining;
-        return _error;
-    }
-
-    SqlErrorInfo _error;
-    int _remaining;
-    int _consultCount = 0;
-    std::string _locationFilter;
-};
 
 SqlErrorInfo MakeError(std::string sqlState, std::string message = {})
 {
@@ -180,27 +115,6 @@ class CapturingWarningLogger: public SqlLogger::Null
     SqlLogger* _previous;
     std::vector<std::string> _warnings;
     std::vector<SqlErrorInfo> _errors;
-};
-
-/// Installs a fault source for the duration of a scope and clears it again, so a failing
-/// assertion cannot leak the override into later tests.
-class ScopedFaultSource
-{
-  public:
-    explicit ScopedFaultSource(SqlFaultSource* source) noexcept
-    {
-        SetFaultSource(source);
-    }
-
-    ScopedFaultSource(ScopedFaultSource const&) = delete;
-    ScopedFaultSource& operator=(ScopedFaultSource const&) = delete;
-    ScopedFaultSource(ScopedFaultSource&&) = delete;
-    ScopedFaultSource& operator=(ScopedFaultSource&&) = delete;
-
-    ~ScopedFaultSource()
-    {
-        SetFaultSource(nullptr);
-    }
 };
 
 } // namespace

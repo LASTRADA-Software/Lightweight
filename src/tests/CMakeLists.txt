@@ -10,7 +10,7 @@ target_compile_definitions(LightweightTest PRIVATE BUILD_TESTS)
 # The `zip` target is resolved once in the root CMakeLists.txt for every platform (find_package
 # first, CPM fallback if not found — #543); re-resolving libzip here would hard-fail a build that
 # reached the target only via the CPM fallback.
-set(TEST_LIBRARIES Catch2::Catch2 Lightweight::Lightweight Lightweight::Tools yaml-cpp::yaml-cpp dbtool_lib zip nlohmann_json::nlohmann_json)
+set(TEST_LIBRARIES Catch2::Catch2 Lightweight::Lightweight Lightweight::Tools yaml-cpp::yaml-cpp dbtool_lib Lightweight::Profiles zip nlohmann_json::nlohmann_json)
 if(MSVC)
     # clang-cl does not support /MP
     if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -21,6 +21,8 @@ else()
 endif()
 
 target_link_libraries(LightweightTest PRIVATE ${TEST_LIBRARIES})
+# ProfilesLibraryTests.cpp exercises the private detail::Guarded helper directly.
+target_include_directories(LightweightTest PRIVATE ${PROJECT_SOURCE_DIR}/src/tools)
 
 # AsynchronousTests.cpp includes stdexec headers directly. Link the shared compat target (root
 # CMakeLists) so its SYSTEM includes, /Zc:preprocessor, /external:W0 and -Wno-error demotions apply
@@ -35,6 +37,7 @@ endif()
 set(SOURCE_FILES
     BackupRecordingTests.cpp
     BackupRequirementTests.cpp
+    RestoreReportFormatTests.cpp
     ConfigDiscoveryTests.cpp
     ConfigBackupOutputTests.cpp
     ConfigConnectionTargetTests.cpp
@@ -53,10 +56,12 @@ set(SOURCE_FILES
     PluginDiscoveryTests.cpp
     NoErrorDialogsTests.cpp
     PluginIngestionTests.cpp
+    PluginUnloadTests.cpp
     ProfileAddTests.cpp
     ProfileFileEditorTests.cpp
     ProfilePasswordTests.cpp
     ProfileCipherTests.cpp
+    ProfilesLibraryTests.cpp
     PreMigrateStepTests.cpp
     ProgressTaskTests.cpp
     UnicodeUpgradeProgressTests.cpp
@@ -84,6 +89,7 @@ set(SOURCE_FILES
     Int128Tests.cpp
     LargeTestDatabase/DataGenerator.cpp
     LargeTestDatabase/LargeTestDatabaseTests.cpp
+    LegacySqlServerDriverTests.cpp
     MigrationTests.cpp
     MigrationReflectionTests.cpp
     QueryBuilderTests.cpp
@@ -116,16 +122,22 @@ set(SOURCE_FILES
     SqlVariantDbTests.cpp
     SqlBackup/ArchivePathTests.cpp
     SqlBackup/ArchiveVerificationTests.cpp
+    SqlBackup/AttachmentsTests.cpp
     SqlBackup/AllColumnTypesTests.cpp
     SqlBackup/EncodingRoundTripTests.cpp
+    SqlBackup/RawColumnSliceTests.cpp
+    SqlBackup/RestoreCharPaddingTests.cpp
     SqlBackup/RestoreConversionTests.cpp
+    SqlBackup/RestoreGuidTextTests.cpp
     SqlBackup/BatchManagerIntegrationTests.cpp
     SqlBackup/ChunkPlannerTests.cpp
     SqlBackup/CommonHelpersTests.cpp
     SqlBackup/ConnectionPoolTests.cpp
     SqlBackup/ProgressManagerTests.cpp
-    SqlBackup/RestoreCompletenessTests.cpp
+    SqlBackup/RestoreFailureIsolationTests.cpp
+    SqlBackup/RestoreFailureLogTests.cpp
     SqlBackup/RestoreFaultTests.cpp
+    SqlBackup/RowIsolationTests.cpp
     SqlBackup/BatchManagerTests.cpp
     SqlBackup/MsgPackChunkFormatsTests.cpp
     SqlBackup/BatchManagerIntegrationTests.cpp
@@ -144,6 +156,7 @@ set(SOURCE_FILES
     SqlBackup/SqlBackupCompositeFKTests.cpp
     SqlBackup/SqlBackupIndexTests.cpp
     SqlBackup/ProductionReadinessTests.cpp
+    SqlBackup/BoolColumnTests.cpp
     dbtool/StandardProgressManagerTests.cpp
     dbtool/BackupDiffTests.cpp
     dbtool/BackupRequirementReportTests.cpp
@@ -195,6 +208,9 @@ install(FILES test_dbtool.py DESTINATION ${CMAKE_INSTALL_DATADIR}/Lightweight/te
 add_subdirectory(dummy_migration_plugin)
 add_subdirectory(dummy_migration_plugin_2)
 add_subdirectory(post_migrate_plugin)
+# PluginUnloadTests.cpp loads the post-migrate fixture plugin in-process.
+target_compile_definitions(LightweightTest PRIVATE LIGHTWEIGHT_TEST_POST_MIGRATE_PLUGIN="$<TARGET_FILE:post_migrate_plugin>")
+add_dependencies(LightweightTest post_migrate_plugin)
 add_subdirectory(compat_policy_plugin)
 add_subdirectory(seed_row_fixture)
 add_subdirectory(gui_workflow_fixtures)
@@ -229,3 +245,40 @@ add_test(NAME DbtoolKeyRingConfigTest
     COMMAND ${CMAKE_COMMAND} -P ${PROJECT_SOURCE_DIR}/cmake/tests/DbtoolKeyRingTest.cmake
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# The installed package must provide Lightweight::Profiles to a standalone consumer. The toolchain
+# settings of this build are forwarded so the consumer is configured exactly like the library was.
+string(REPLACE ";" "|" _profiles_pkg_prefix_path "${CMAKE_PREFIX_PATH}")
+# The consumer links the (possibly instrumented) installed library, so it must be built with the
+# parent's sanitizer / coverage flags too, or the link or the run would fail.
+set(_profiles_pkg_compile_flags ${SANITIZER_COMPILE_OPTIONS})
+set(_profiles_pkg_link_flags ${SANITIZER_LINK_OPTIONS})
+if(ENABLE_COVERAGE)
+    list(APPEND _profiles_pkg_link_flags --coverage)
+endif()
+list(JOIN _profiles_pkg_compile_flags " " _profiles_pkg_compile_flags)
+list(JOIN _profiles_pkg_link_flags " " _profiles_pkg_link_flags)
+add_test(NAME ProfilesPackageTest
+    COMMAND ${CMAKE_COMMAND}
+        -DBUILD_DIR=${CMAKE_BINARY_DIR}
+        -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+        "-DGENERATOR=${CMAKE_GENERATOR}"
+        "-DMAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}"
+        "-DTOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}"
+        "-DTARGET_TRIPLET=${VCPKG_TARGET_TRIPLET}"
+        "-DPREFIX_PATH=${_profiles_pkg_prefix_path}"
+        "-DBUILD_TYPE=$<CONFIG>"
+        "-DLIBDIR=${CMAKE_INSTALL_LIBDIR}"
+        "-DCXX_COMPILER=${CMAKE_CXX_COMPILER}"
+        "-DCOMPILE_FLAGS=${_profiles_pkg_compile_flags}"
+        "-DLINK_FLAGS=${_profiles_pkg_link_flags}"
+        -P ${PROJECT_SOURCE_DIR}/cmake/tests/ProfilesPackageTest.cmake
+)
+
+# The Lightweight::Profiles shared library must export nothing but its own namespace (POSIX only:
+# Windows exports nothing without __declspec).
+if(UNIX)
+    add_test(NAME ProfilesExportsTest
+        COMMAND ${CMAKE_COMMAND} -DLIB=$<TARGET_FILE:LightweightProfiles> -P ${PROJECT_SOURCE_DIR}/cmake/tests/ProfilesExportsTest.cmake
+    )
+endif()

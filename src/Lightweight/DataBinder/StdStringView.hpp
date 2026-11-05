@@ -12,6 +12,17 @@
 namespace Lightweight
 {
 
+namespace detail
+{
+    /// @brief Returns @p text's data, or an empty string's when the view has none (ODBC rejects a null value pointer).
+    template <typename CharT>
+    [[nodiscard]] constexpr CharT const* NonNullTextData(std::basic_string_view<CharT> text) noexcept
+    {
+        static constexpr CharT emptyText {};
+        return text.data() != nullptr ? text.data() : &emptyText;
+    }
+} // namespace detail
+
 template <>
 struct SqlDataBinder<std::basic_string_view<char>>
 {
@@ -21,10 +32,20 @@ struct SqlDataBinder<std::basic_string_view<char>>
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,
                                                              SQLUSMALLINT column,
                                                              std::basic_string_view<char> value,
-                                                             SqlDataBinderCallback& /*cb*/) noexcept
+                                                             SqlDataBinderCallback& cb) noexcept
     {
-        return SQLBindParameter(
-            stmt, column, SQL_PARAM_INPUT, CType, SqlType, value.size(), 0, (SQLPOINTER) value.data(), 0, nullptr);
+        SQLLEN* indicator = cb.ProvideInputIndicator();
+        *indicator = static_cast<SQLLEN>(value.size());
+        return SQLBindParameter(stmt,
+                                column,
+                                SQL_PARAM_INPUT,
+                                CType,
+                                SqlType,
+                                detail::NonZeroColumnSize(value.size()),
+                                0,
+                                (SQLPOINTER) detail::NonNullTextData(value),
+                                0,
+                                indicator);
     }
 
     static LIGHTWEIGHT_FORCE_INLINE std::string_view Inspect(std::basic_string_view<char> value) noexcept
@@ -43,10 +64,21 @@ struct SqlDataBinder<std::basic_string_view<Char16Type>>
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,
                                                              SQLUSMALLINT column,
                                                              std::basic_string_view<Char16Type> value,
-                                                             SqlDataBinderCallback& /*cb*/) noexcept
+                                                             SqlDataBinderCallback& cb) noexcept
     {
-        return SQLBindParameter(
-            stmt, column, SQL_PARAM_INPUT, CType, SqlType, value.size(), 0, (SQLPOINTER) value.data(), 0, nullptr);
+        auto const sizeInBytes = static_cast<SQLLEN>(value.size() * sizeof(Char16Type));
+        SQLLEN* indicator = cb.ProvideInputIndicator();
+        *indicator = sizeInBytes;
+        return SQLBindParameter(stmt,
+                                column,
+                                SQL_PARAM_INPUT,
+                                CType,
+                                SqlType,
+                                detail::NonZeroColumnSize(value.size()),
+                                0,
+                                (SQLPOINTER) detail::NonNullTextData(value),
+                                sizeInBytes,
+                                indicator);
     }
 
     static LIGHTWEIGHT_FORCE_INLINE std::string Inspect(std::basic_string_view<Char16Type> value) noexcept
@@ -72,8 +104,16 @@ struct SqlDataBinder<std::basic_string_view<Char32Type>>
         cb.PlanPostExecuteCallback([u16String = u16String]() {}); // Keep the string alive
         auto const* data = u16String->data();
         auto const sizeInBytes = u16String->size() * sizeof(Char32Type);
-        return SQLBindParameter(
-            stmt, column, SQL_PARAM_INPUT, CType, SqlType, sizeInBytes, 0, (SQLPOINTER) data, 0, nullptr);
+        return SQLBindParameter(stmt,
+                                column,
+                                SQL_PARAM_INPUT,
+                                CType,
+                                SqlType,
+                                detail::NonZeroColumnSize(sizeInBytes),
+                                0,
+                                (SQLPOINTER) data,
+                                0,
+                                nullptr);
     }
 
     static LIGHTWEIGHT_FORCE_INLINE std::string Inspect(std::basic_string_view<Char32Type> value) noexcept
@@ -98,8 +138,16 @@ struct SqlDataBinder<std::u8string_view>
         cb.PlanPostExecuteCallback([u16String = u16String]() {}); // Keep the string alive
         auto const* data = u16String->data();
         auto const sizeInBytes = u16String->size() * sizeof(char8_t);
-        return SQLBindParameter(
-            stmt, column, SQL_PARAM_INPUT, CType, SqlType, sizeInBytes, 0, (SQLPOINTER) data, 0, nullptr);
+        return SQLBindParameter(stmt,
+                                column,
+                                SQL_PARAM_INPUT,
+                                CType,
+                                SqlType,
+                                detail::NonZeroColumnSize(sizeInBytes),
+                                0,
+                                (SQLPOINTER) data,
+                                0,
+                                nullptr);
     }
 
     static LIGHTWEIGHT_FORCE_INLINE std::string Inspect(std::basic_string_view<char8_t> value) noexcept

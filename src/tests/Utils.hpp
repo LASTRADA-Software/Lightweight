@@ -21,6 +21,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
@@ -30,8 +31,10 @@
 #include <ostream>
 #include <ranges>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <tuple>
 #include <utility>
 #include <variant>
@@ -115,6 +118,21 @@ inline ostream& operator<<(ostream& os, Lightweight::SqlGuid const& guid)
     return os << format("SqlGuid({})", guid);
 }
 
+/// Unwraps an optional that a preceding REQUIRE has already established to be engaged.
+///
+/// Static analysis does not see through Catch2's REQUIRE, so the check is repeated here and reported as a
+/// test failure (via the exception) should it ever be violated.
+///
+/// @param value The optional to unwrap.
+/// @return The contained value.
+template <typename T>
+[[nodiscard]] T const& UnwrapOptional(std::optional<T> const& value)
+{
+    if (!value.has_value())
+        throw std::logic_error("UnwrapOptional: the optional holds no value");
+    return *value;
+}
+
 inline std::string EscapedBinaryText(std::string_view binary)
 {
     std::string hexEncodedString;
@@ -179,7 +197,22 @@ class TestSuiteSqlLogger: public Lightweight::SqlLogger::Null
     mutable std::mutex m_mutex;
     std::string m_lastPreparedQuery;
 
+    /// Thread running the current test case. Catch2's message macros are not thread-safe, so only this
+    /// thread may forward to them; all other threads fall back to a serialized write to stderr.
+    static inline std::atomic<std::thread::id> m_testThread {};
+
+    /// Returns true if the calling thread is the one running the current test case.
+    [[nodiscard]] static bool IsTestThread() noexcept
+    {
+        return m_testThread.load() == std::this_thread::get_id();
+    }
+
+    /// Writes a message to stderr, serialized across threads.
+    /// @param message The message to write.
+    static void WriteToStderr(std::string_view message);
+
     void WriteRawInfo(std::string_view message);
+    static void WriteRawWarning(std::string_view message);
 
     template <typename... Args>
     void WriteInfo(std::format_string<Args...> const& fmt, Args&&... args)
@@ -192,10 +225,16 @@ class TestSuiteSqlLogger: public Lightweight::SqlLogger::Null
     template <typename... Args>
     void WriteWarning(std::format_string<Args...> const& fmt, Args&&... args)
     {
-        WARN(std::format(fmt, std::forward<Args>(args)...));
+        WriteRawWarning(std::format(fmt, std::forward<Args>(args)...));
     }
 
   public:
+    /// Marks the calling thread as the one that may forward log messages to Catch2.
+    static void BindToCurrentThread() noexcept
+    {
+        m_testThread.store(std::this_thread::get_id());
+    }
+
     static TestSuiteSqlLogger& GetLogger() noexcept
     {
         static TestSuiteSqlLogger theLogger;
@@ -589,6 +628,7 @@ class SqlTestFixture
     SqlTestFixture()
     {
         running = true;
+        TestSuiteSqlLogger::BindToCurrentThread();
         auto stmt = Lightweight::SqlStatement();
         REQUIRE(stmt.IsAlive());
 

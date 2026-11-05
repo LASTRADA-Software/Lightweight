@@ -244,7 +244,7 @@ struct SqlDataBinder<SqlDynamicBinary<N>>
         value._indicator = static_cast<SQLLEN>(value.size());
 
         auto const sqlType = static_cast<SQLSMALLINT>(value.size() > 8000 ? SQL_LONGVARBINARY : SQL_VARBINARY);
-        auto const bufferSize = static_cast<SQLULEN>(value.size());
+        auto const bufferSize = detail::NonZeroColumnSize(value.size());
         auto* const ptr = (SQLPOINTER) value.data();
 
         return SQLBindParameter(

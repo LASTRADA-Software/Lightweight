@@ -7,6 +7,7 @@
 #include "../SqlOdbcPrelude.hpp"
 #include "../SqlServerType.hpp"
 
+#include <algorithm>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
@@ -128,6 +129,15 @@ struct SqlBasicStringOperations;
 
 namespace detail
 {
+
+    /// @brief Column size to declare for a variable-length parameter of @p length characters or bytes.
+    ///
+    /// ODBC defines a column size of 0 as invalid; strict drivers reject it with HY104 when an empty
+    /// string or binary is bound, so the declared size never drops below 1. The bound data length is unaffected.
+    [[nodiscard]] constexpr SQLULEN NonZeroColumnSize(std::size_t length) noexcept
+    {
+        return std::max<SQLULEN>(static_cast<SQLULEN>(length), 1);
+    }
 
     /// @brief Satisfied when @p T is the same type as at least one of @p Us.
     ///

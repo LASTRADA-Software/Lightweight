@@ -267,22 +267,16 @@ std::vector<ColumnTypeCase> const& ColumnTypeCases()
           .expectedCxxType = "Light::SqlNumeric<10, 2>",
           .sample = SampleOf(SqlNumeric<10, 2> { 1234.56 }) },
 
-        // A 4-byte REAL comes back as `double` on SQLite and MS SQL Server: the schema reader
-        // deliberately collapses every column whose dialect type name is `float` or `real` to
-        // Real{53} (see the fixup in SqlSchema.cpp), which widens rather than loses data.
-        // PostgreSQL names its 4-byte type `float4`, which that fixup does not match, so the true
-        // width survives there — PostgreSQL is the accurate one here.
+        // A 4-byte REAL keeps its true width everywhere except SQLite, whose REAL is always 8 bytes.
         { .columnName = "realColumn",
           .declaredType = Real { .precision = 24 },
-          .expectedCxxType = "double",
+          .expectedCxxType = "float",
           .sample = SampleOf(SampleReal),
-          .dialectExceptions = { { .serverType = SqlServerType::POSTGRESQL,
-                                   .cxxType = "float",
-                                   .reason = "PostgreSQL reports float4 with its true 4-byte width" } } },
+          .dialectExceptions = { { .serverType = SqlServerType::SQLITE,
+                                   .cxxType = "double",
+                                   .reason = "SQLite stores every REAL in 8 bytes" } } },
 
-        // The same fixup is what makes an 8-byte column correct on SQLite and MS SQL Server. On
-        // PostgreSQL the dialect type name is `float8`; the reader's float fixup recognizes that
-        // name too, so all three databases agree that `double precision` round-trips as `double`.
+        // An 8-byte column reports its true width on every database, so it round-trips as `double`.
         { .columnName = "doubleColumn",
           .declaredType = Real { .precision = 53 },
           .expectedCxxType = "double",
@@ -549,17 +543,7 @@ TEST_CASE_METHOD(SqlTestFixture, "ddl2cpp: a GUID primary key maps to SqlGuid", 
     CheckPrimaryKeyColumnType(
         stmt,
         "ColumnTypeTest2",
-        // SQLite has no GUID type at all: the declared `GUID` is an unrecognised type name that the
-        // driver reports back as a VARCHAR of unknown length, so the generated member degenerates
-        // to an unsized dynamic string rather than SqlGuid.
-        ColumnTypeCase { .columnName = "guidPK",
-                         .declaredType = Guid {},
-                         .expectedCxxType = "Light::SqlGuid",
-                         .dialectExceptions = {
-                             { .serverType = SqlServerType::SQLITE,
-                               .cxxType = SqliteText("Light::SqlDynamicAnsiString<0>", "Light::SqlDynamicUtf16String<0>"),
-                               .reason = "SQLite has no GUID type; the column reads back as an "
-                                         "unsized VARCHAR" } } });
+        ColumnTypeCase { .columnName = "guidPK", .declaredType = Guid {}, .expectedCxxType = "Light::SqlGuid" });
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "ddl2cpp: a VARCHAR primary key keeps its declared length", "[ddl2cpp][SqlSchema]")

@@ -11,6 +11,24 @@
 namespace Lightweight::Tools
 {
 
+std::string FormatEta(double etaSeconds)
+{
+    constexpr double MaxShownSeconds = 100.0 * 3600.0;
+
+    // Negated comparison so that NaN lands in the "unbounded" branch as well.
+    if (!(etaSeconds < MaxShownSeconds))
+        return "> 99:59:59";
+    if (etaSeconds < 1.0)
+        return "< 1s";
+    if (etaSeconds < 60.0)
+        return std::format("{:.0f}s", etaSeconds);
+
+    auto const total = static_cast<std::int64_t>(etaSeconds); // < 360000, cannot overflow
+    if (total < 3600)
+        return std::format("{:02}:{:02}", total / 60, total % 60);
+    return std::format("{:02}:{:02}:{:02}", total / 3600, (total % 3600) / 60, total % 60);
+}
+
 StandardProgressManager::StandardProgressManager(bool useUnicode, std::ostream& out):
     StandardProgressManager(useUnicode, out, DestinationOf(out))
 {
@@ -493,27 +511,7 @@ void StandardProgressManager::PrintSummaryLine()
         size_t const remaining = total - processed;
         double const etaSec = static_cast<double>(remaining) / _smoothedRate;
 
-        if (etaSec < 1.0)
-        {
-            etaStr = "< 1s";
-        }
-        else if (etaSec < 60.0)
-        {
-            etaStr = std::format("{:.0f}s", etaSec);
-        }
-        else if (etaSec < 3600.0)
-        {
-            int const mins = static_cast<int>(etaSec) / 60;
-            int const secs = static_cast<int>(etaSec) % 60;
-            etaStr = std::format("{:02}:{:02}", mins, secs);
-        }
-        else
-        {
-            int const hours = static_cast<int>(etaSec) / 3600;
-            int const mins = (static_cast<int>(etaSec) % 3600) / 60;
-            int const secs = static_cast<int>(etaSec) % 60;
-            etaStr = std::format("{:02}:{:02}:{:02}", hours, mins, secs);
-        }
+        etaStr = FormatEta(etaSec);
     }
     else
     {

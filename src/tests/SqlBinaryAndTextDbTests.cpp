@@ -11,6 +11,7 @@
 
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <ranges>
 #include <stdexcept>
 #include <string>
@@ -252,6 +253,20 @@ std::size_t CountNullPayloads(SqlStatement& stmt)
     return stmt.ExecuteDirectScalar<std::size_t>(R"(SELECT COUNT(*) FROM "NullBin" WHERE "payload" IS NULL)").value_or(0);
 }
 
+/// Whether @c SqlStatement::BindInputParameter() accepts a temporary of type @p T.
+template <typename T>
+concept BindsTemporary = requires(SqlStatement& stmt) { stmt.BindInputParameter(SQLSMALLINT { 1 }, T {}); };
+
+/// Whether @c SqlStatement::BindInputParameter() accepts an lvalue of type @p T.
+template <typename T>
+concept BindsLvalue = requires(SqlStatement& stmt, T const& value) { stmt.BindInputParameter(SQLSMALLINT { 1 }, value); };
+
+// The driver reads a bound parameter at Execute() time, after a temporary would already be gone.
+static_assert(!BindsTemporary<int>);
+static_assert(!BindsTemporary<std::optional<SqlBinary>>);
+static_assert(BindsLvalue<int>);
+static_assert(BindsLvalue<std::optional<SqlBinary>>);
+
 } // namespace
 
 TEST_CASE_METHOD(SqlTestFixture,
@@ -290,9 +305,12 @@ TEST_CASE_METHOD(SqlTestFixture,
     auto stmt = SqlStatement {};
     CreateNullableBinaryTable(stmt);
 
+    // Bound by address and read at Execute() time, so both values must outlive that call.
+    auto const id = 1;
+    auto const payload = std::optional<SqlBinary> {};
     stmt.Prepare(R"(INSERT INTO "NullBin" ("id", "payload") VALUES (?, ?))");
-    stmt.BindInputParameter(1, 1);
-    stmt.BindInputParameter(2, std::optional<SqlBinary> {});
+    stmt.BindInputParameter(1, id);
+    stmt.BindInputParameter(2, payload);
     REQUIRE_NOTHROW((void) stmt.Execute());
 
     CHECK(CountNullPayloads(stmt) == 1);

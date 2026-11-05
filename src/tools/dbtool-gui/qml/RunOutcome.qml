@@ -33,6 +33,16 @@ ColumnLayout {
     /// Emitted by "Dismiss".
     signal dismissed()
 
+    /// "N rows failed, M cells set to NULL" for a failed table; empty when it lost neither.
+    function lossSummary(failure) {
+        const parts = []
+        if (failure.failedRows > 0)
+            parts.push(failure.failedRows === 1 ? qsTr("1 row failed") : qsTr("%1 rows failed").arg(failure.failedRows))
+        if (failure.nulledCells > 0)
+            parts.push(failure.nulledCells === 1 ? qsTr("1 cell set to NULL") : qsTr("%1 cells set to NULL").arg(failure.nulledCells))
+        return parts.join(", ")
+    }
+
     /// Failed tables listed before the rest are summarised as "and N more".
     readonly property int maxListedFailures: 8
 
@@ -105,6 +115,8 @@ ColumnLayout {
             lines.push(root.result.error)
         for (const f of root._failures)
             lines.push(f.table !== "" ? f.table + ": " + f.reason : f.reason)
+        if (root.result.reportText)
+            lines.push(root.result.reportText)
         if (root._failedCount > root._failures.length)
             lines.push(qsTr("… and %1 more").arg(root._failedCount - root._failures.length))
         return lines.join("\n")
@@ -154,7 +166,7 @@ ColumnLayout {
                 delegate: Item {
                     required property var modelData
                     width: failureColumn.width
-                    implicitHeight: reason.implicitHeight + 14
+                    implicitHeight: textColumn.implicitHeight + 14
                     height: implicitHeight
 
                     RowLayout {
@@ -172,14 +184,38 @@ ColumnLayout {
                             font: Theme.monoFont(11)
                             elide: Text.ElideRight
                         }
-                        Label {
-                            id: reason
+                        ColumnLayout {
+                            id: textColumn
                             Layout.fillWidth: true
                             Layout.topMargin: 7
-                            text: modelData.reason
-                            color: Theme.clrError
-                            font.pixelSize: Theme.sizeBodySm
-                            wrapMode: Text.Wrap
+                            spacing: 2
+
+                            Label {
+                                id: reason
+                                Layout.fillWidth: true
+                                text: modelData.reason
+                                color: Theme.clrError
+                                font.pixelSize: Theme.sizeBodySm
+                                wrapMode: Text.Wrap
+                            }
+                            Label {
+                                objectName: "runOutcomeLoss"
+                                Layout.fillWidth: true
+                                visible: text !== ""
+                                text: root.lossSummary(modelData)
+                                color: Theme.clrOnSurface
+                                font.pixelSize: Theme.sizeBodySm
+                                wrapMode: Text.Wrap
+                            }
+                            Label {
+                                objectName: "runOutcomeDetails"
+                                Layout.fillWidth: true
+                                visible: text !== ""
+                                text: modelData.details || ""
+                                color: Theme.clrOnSurfaceSubtle
+                                font: Theme.monoFont(10)
+                                wrapMode: Text.Wrap
+                            }
                         }
                     }
                     Rectangle {

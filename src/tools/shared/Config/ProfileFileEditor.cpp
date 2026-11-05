@@ -4,10 +4,13 @@
 
 #include <algorithm>
 #include <array>
+#include <cerrno>
 #include <chrono>
+#include <cstdint>
 #include <format>
 #include <fstream>
 #include <iterator>
+#include <memory>
 #include <optional>
 #include <random>
 #include <ranges>
@@ -15,6 +18,16 @@
 #include <utility>
 
 #include <yaml-cpp/yaml.h>
+
+#if defined(_WIN32)
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN
+    #endif
+    #include <windows.h>
+#endif
 
 namespace Lightweight::Config
 {
@@ -506,7 +519,129 @@ std::expected<std::string, std::string> SetDefaultProfileText(std::string_view y
         [&](YAML::Node& document) { document["defaultProfile"] = std::string { profileName }; });
 }
 
-std::expected<void, std::string> EditConfigFile(std::filesystem::path const& path, ConfigTextTransform const& transform)
+namespace
+{
+
+    /// The UTF-8 spelling of `path`, for messages.
+    std::string Utf8FromPath(std::filesystem::path const& path)
+    {
+        auto const text = path.u8string();
+        return std::string { text.begin(), text.end() };
+    }
+
+    /// How a write treats an existing target.
+    enum class WriteMode : std::uint8_t
+    {
+        /// Fail if the file exists (the temporary sibling).
+        CreateNew,
+        /// Truncate the existing file (the in-place fallback).
+        TruncateExisting,
+    };
+
+#if defined(_WIN32)
+    /// Closes a Win32 file handle.
+    struct HandleCloser
+    {
+        void operator()(void* handle) const noexcept
+        {
+            ::CloseHandle(handle);
+        }
+    };
+
+    /// Maps a Win32 error to an error code; access denied is the permission error the fallback keys on.
+    std::error_code ErrorCodeFromWin32(DWORD error) noexcept
+    {
+        if (error == ERROR_ACCESS_DENIED)
+            return std::make_error_code(std::errc::permission_denied);
+        return std::error_code(static_cast<int>(error), std::system_category());
+    }
+
+    /// Writes `bytes` into `path` with the native API, so the failure's Win32 error is read
+    /// immediately at the failing call instead of after unrelated library code has run.
+    std::expected<void, ConfigWriteError> WriteFileBytes(std::filesystem::path const& path,
+                                                         std::string_view bytes,
+                                                         WriteMode mode)
+    {
+        auto const disposition = mode == WriteMode::CreateNew ? CREATE_NEW : TRUNCATE_EXISTING;
+        auto const handle = ::CreateFileW(
+            path.c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, disposition, FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (handle == INVALID_HANDLE_VALUE)
+            return std::unexpected(
+                ConfigWriteError { .failure = WriteFailure::NotOpened, .code = ErrorCodeFromWin32(::GetLastError()) });
+        auto const owner = std::unique_ptr<void, HandleCloser> { handle };
+
+        while (!bytes.empty())
+        {
+            auto const chunk = static_cast<DWORD>(std::min<std::size_t>(bytes.size(), 1U << 20));
+            auto written = DWORD { 0 };
+            if (!::WriteFile(handle, bytes.data(), chunk, &written, nullptr))
+                return std::unexpected(ConfigWriteError { .failure = WriteFailure::PartiallyWritten,
+                                                          .code = ErrorCodeFromWin32(::GetLastError()) });
+            bytes.remove_prefix(written);
+        }
+        return {};
+    }
+#else
+    /// Writes `bytes` into `path`; the failing open's errno is read right after the open.
+    std::expected<void, ConfigWriteError> WriteFileBytes(std::filesystem::path const& path,
+                                                         std::string_view bytes,
+                                                         WriteMode /*mode*/)
+    {
+        auto out = std::ofstream(path, std::ios::binary | std::ios::trunc);
+        if (!out)
+            return std::unexpected(
+                ConfigWriteError { .failure = WriteFailure::NotOpened,
+                                   .code = std::error_code(errno != 0 ? errno : EIO, std::generic_category()) });
+        out.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+        if (!out.flush())
+            return std::unexpected(ConfigWriteError { .failure = WriteFailure::PartiallyWritten,
+                                                      .code = std::make_error_code(std::errc::io_error) });
+        return {};
+    }
+#endif
+
+    /// Whether `ec` means the directory (not the file) refused the write.
+    bool IsPermissionError(std::error_code const& ec) noexcept
+    {
+        return ec == std::errc::permission_denied || ec == std::errc::operation_not_permitted;
+    }
+
+    /// Writes `edited` into the existing `path` in place, restoring `original` if that fails.
+    std::expected<void, std::string> WriteInPlace(std::filesystem::path const& path,
+                                                  ConfigFileOps const& ops,
+                                                  std::string_view original,
+                                                  std::string_view edited)
+    {
+        auto const written = ops.overwriteInPlace(path, edited);
+        if (written)
+            return {};
+        auto const* outcome = "the file was left unchanged";
+        if (written.error().failure == WriteFailure::PartiallyWritten)
+            outcome = ops.overwriteInPlace(path, original) ? "the original content was restored"
+                                                           : "the original content could not be restored";
+        return std::unexpected(
+            std::format("cannot write {}: {}; {}", Utf8FromPath(path), written.error().code.message(), outcome));
+    }
+
+} // namespace
+
+ConfigFileOps DefaultConfigFileOps()
+{
+    return ConfigFileOps {
+        .writeNewFile = [](std::filesystem::path const& path,
+                           std::string_view bytes) -> std::expected<void, std::error_code> {
+            return WriteFileBytes(path, bytes, WriteMode::CreateNew).transform_error([](ConfigWriteError const& error) {
+                return error.code;
+            });
+        },
+        .overwriteInPlace = [](std::filesystem::path const& path,
+                               std::string_view bytes) { return WriteFileBytes(path, bytes, WriteMode::TruncateExisting); },
+    };
+}
+
+std::expected<void, std::string> EditConfigFile(std::filesystem::path const& path,
+                                                ConfigTextTransform const& transform,
+                                                ConfigFileOps const& ops)
 {
     namespace fs = std::filesystem;
     std::error_code ec;
@@ -516,12 +651,12 @@ std::expected<void, std::string> EditConfigFile(std::filesystem::path const& pat
     if (exists)
     {
         if (!fs::is_regular_file(path, ec))
-            return std::unexpected(std::format("{} is not a regular file", path.string()));
+            return std::unexpected(std::format("{} is not a regular file", Utf8FromPath(path)));
         if ((fs::status(path, ec).permissions() & fs::perms::owner_write) == fs::perms::none)
-            return std::unexpected(std::format("{} is read-only", path.string()));
+            return std::unexpected(std::format("{} is read-only", Utf8FromPath(path)));
         auto in = std::ifstream(path, std::ios::binary);
         if (!in)
-            return std::unexpected(std::format("cannot read {}", path.string()));
+            return std::unexpected(std::format("cannot read {}", Utf8FromPath(path)));
         original.assign(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
     }
 
@@ -533,22 +668,17 @@ std::expected<void, std::string> EditConfigFile(std::filesystem::path const& pat
     {
         fs::create_directories(path.parent_path(), ec);
         if (ec)
-            return std::unexpected(std::format("cannot create {}: {}", path.parent_path().string(), ec.message()));
+            return std::unexpected(std::format("cannot create {}: {}", Utf8FromPath(path.parent_path()), ec.message()));
     }
 
     auto temp = path;
     temp += std::format(".tmp-{:08x}", std::random_device {}());
+    if (auto const written = ops.writeNewFile(temp, *edited); !written)
     {
-        auto out = std::ofstream(temp, std::ios::binary | std::ios::trunc);
-        if (!out)
-            return std::unexpected(std::format("cannot write {}", temp.string()));
-        out << *edited;
-        if (!out.flush())
-        {
-            out.close();
-            fs::remove(temp, ec);
-            return std::unexpected(std::format("cannot write {}", temp.string()));
-        }
+        fs::remove(temp, ec);
+        if (exists && IsPermissionError(written.error()))
+            return WriteInPlace(path, ops, original, *edited);
+        return std::unexpected(std::format("cannot write {}: {}", Utf8FromPath(temp), written.error().message()));
     }
     if (exists)
         fs::permissions(temp, fs::status(path, ec).permissions(), ec);
@@ -567,7 +697,7 @@ std::expected<void, std::string> EditConfigFile(std::filesystem::path const& pat
     {
         auto const message = ec.message();
         fs::remove(temp, ec);
-        return std::unexpected(std::format("cannot replace {}: {}", path.string(), message));
+        return std::unexpected(std::format("cannot replace {}: {}", Utf8FromPath(path), message));
     }
     return {};
 }

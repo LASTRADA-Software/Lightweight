@@ -9,8 +9,10 @@
 
 #include <chrono>
 #include <cstdint>
+#include <expected>
 #include <format>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -94,6 +96,36 @@ using RetryAction = SqlRetryAction;
 [[nodiscard]] LIGHTWEIGHT_API RetryAction ClassifyRetryOutcome(SqlErrorInfo const& error,
                                                                unsigned attemptsSoFar,
                                                                RetrySettings const& settings);
+
+/// @brief Decides whether and why a failed attempt on @p conn is retried, with the classifier of
+///        the connection's DBMS (@ref Lightweight::SqlRetryPolicy::For()).
+///
+/// Unlike @ref ClassifyRetryOutcome, the decision says why the policy gives up, so a caller can tell
+/// an error that is not transient (@ref SqlRetryGiveUpReason::NotTransient) from a retry budget
+/// that ran out.
+///
+/// @param conn The connection the attempt ran on; selects the DBMS-specific classifier.
+/// @param error The error reported by the failed attempt.
+/// @param attemptsSoFar How many retries have already been consumed.
+/// @param settings The retry configuration supplying the budget.
+/// @return The decision, with its give-up reason.
+[[nodiscard]] LIGHTWEIGHT_API SqlRetryDecision ClassifyRetryDecision(SqlConnection const& conn,
+                                                                     SqlErrorInfo const& error,
+                                                                     unsigned attemptsSoFar,
+                                                                     RetrySettings const& settings);
+
+/// @brief Tests whether the retry policy of @p conn's DBMS gives up on @p error as not transient: the
+///        error is about the data or the statement, not about the connection.
+///
+/// @param conn The connection the attempt ran on; selects the DBMS-specific classifier.
+/// @param error The error reported by the failed attempt.
+/// @param attemptsSoFar How many retries have already been consumed.
+/// @param settings The retry configuration supplying the budget.
+/// @return true if ClassifyRetryDecision() gives up with @ref SqlRetryGiveUpReason::NotTransient.
+[[nodiscard]] LIGHTWEIGHT_API bool IsPermanentError(SqlConnection const& conn,
+                                                    SqlErrorInfo const& error,
+                                                    unsigned attemptsSoFar,
+                                                    RetrySettings const& settings);
 
 /// Connects to the database with retry logic for transient errors.
 ///
@@ -197,6 +229,19 @@ LIGHTWEIGHT_API std::string ChunkDirectory(std::string_view schema, std::string_
 /// @param entryName The ZIP entry name.
 /// @return The folder (see @ref ChunkDirectory), or `std::nullopt` if @p entryName is no chunk entry.
 LIGHTWEIGHT_API std::optional<std::string_view> ChunkDirectoryOf(std::string_view entryName);
+
+/// The archive folder that holds the caller-supplied attachments (see @ref BackupAttachment).
+inline constexpr std::string_view AttachmentsPrefix = "attachments/";
+
+/// Checks that attachment names can be extracted below `attachments/` (see @ref BackupAttachment::name).
+///
+/// Each name must be a relative, `/`-separated path of well-formed UTF-8 without control characters. Names
+/// are compared ignoring ASCII letter case, since archives get extracted on case-insensitive file systems: no
+/// two may be equal, and none may also be the folder of another.
+///
+/// @param names The attachment names, without the `attachments/` prefix.
+/// @return Nothing when all names are valid, otherwise a message naming the first offending name.
+[[nodiscard]] LIGHTWEIGHT_API std::expected<void, std::string> ValidateAttachmentNames(std::span<std::string const> names);
 
 /// Joins @p names with ", ", for messages.
 ///

@@ -43,6 +43,11 @@ enum class ProgressDestination : std::uint8_t
     Terminal,
 };
 
+/// Formats an estimated remaining time without ever overflowing, whatever the estimate.
+/// @param etaSeconds Estimated seconds remaining; may be huge (a near-zero rate), infinite or NaN.
+/// @return `< 1s`, `Ns`, `MM:SS`, `HH:MM:SS`, or `> 99:59:59` when the estimate is beyond that or not finite.
+[[nodiscard]] std::string FormatEta(double etaSeconds);
+
 class OStreamTerminalOutput;
 
 class StandardProgressManager: public Lightweight::SqlBackup::ErrorTrackingProgressManager

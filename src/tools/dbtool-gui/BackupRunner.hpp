@@ -38,7 +38,8 @@ struct SqlConnectionString;
 namespace SqlBackup
 {
     struct ProgressManager;
-}
+    struct RestoreReport;
+} // namespace SqlBackup
 namespace SqlMigration
 {
     struct BackupRecord;
@@ -83,6 +84,12 @@ class BackupRunner: public QObject
     using RunOperation = std::function<void(std::filesystem::path const& archive,
                                             std::string const& connectionString,
                                             Lightweight::SqlBackup::ProgressManager& progress)>;
+
+    /// The operation `runRestore` executes: like RunOperation, but it returns the restore's failure report.
+    using RestoreOperation =
+        std::function<Lightweight::SqlBackup::RestoreReport(std::filesystem::path const& archive,
+                                                            std::string const& connectionString,
+                                                            Lightweight::SqlBackup::ProgressManager& progress)>;
 
     /// Writes the `schema_backups` record of a finished run, so a backup can satisfy a migration
     /// backup requirement. Both members run on the worker thread; the defaults connect their own
@@ -179,7 +186,7 @@ class BackupRunner: public QObject
 
     /// Replaces the operation `runRestore` executes (tests).
     /// @param operation The replacement; empty restores the default.
-    void setRestoreOperation(RunOperation operation);
+    void setRestoreOperation(RestoreOperation operation);
 
     /// Replaces how runs are recorded in `schema_backups` (tests).
     /// @param recorder The replacement; an empty member restores its default.
@@ -264,7 +271,7 @@ class BackupRunner: public QObject
     void tableTotalKnown(int totalTables);
 
   private:
-    void Run(Operation operation, QString const& archiveFile, RunOperation const& operationFn);
+    void Run(Operation operation, QString const& archiveFile, RestoreOperation const& operationFn);
 
     /// Entry guard shared by runBackup()/runRestore(): refuses when a run is
     /// already in flight or the busy probe vetoes (logging a warning in the
@@ -287,7 +294,7 @@ class BackupRunner: public QObject
     QString _targetLabel;
     std::function<bool()> _busyProbe;
     RunOperation _backupOperation;
-    RunOperation _restoreOperation;
+    RestoreOperation _restoreOperation;
     Recorder _recorder;
     std::string _recordSchema;
 };

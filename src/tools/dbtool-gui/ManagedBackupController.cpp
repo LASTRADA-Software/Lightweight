@@ -17,11 +17,13 @@
 #include <filesystem>
 #include <format>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <ranges>
 #include <stdexcept>
 #include <system_error>
 #include <thread>
+#include <unordered_set>
 #include <utility>
 
 #include <QtCore/QDateTime>
@@ -31,6 +33,7 @@
 #include <QtCore/QRunnable>
 #include <QtCore/QSettings>
 #include <QtCore/QStandardPaths>
+#include <RestoreReportFormat.hpp>
 #include <Secrets/ProfileCipher.hpp>
 #include <Secrets/SecretResolver.hpp>
 
@@ -177,6 +180,16 @@ namespace
         void Update(Lightweight::SqlBackup::Progress const& p) override
         {
             Lightweight::SqlBackup::ErrorTrackingProgressManager::Update(p);
+            if (p.state == Lightweight::SqlBackup::Progress::State::Error)
+            {
+                std::scoped_lock const lock(_failedMutex);
+                // A table reports an error per unreadable chunk plus a terminal one: it counts once.
+                // An error naming no table counts once per distinct message.
+                if (p.tableName.empty() || p.tableName == "Unknown")
+                    _unnamedErrors.emplace(p.message);
+                else
+                    _failedTables.emplace(p.tableName);
+            }
 
             auto const table = QString::fromStdString(std::string { p.tableName });
             auto const msg = QStringLiteral("[%1] %2 rows: %3")
@@ -225,9 +238,31 @@ namespace
                                       Q_ARG(int, static_cast<int>(totalTables)));
         }
 
+        /// Counts what failed, once per table rather than once per error update.
+        /// @param report What the restore reported as failed; tables it names count even if no
+        ///        error update named them.
+        /// @return Distinct failed tables plus distinct errors that name no table.
+        [[nodiscard]] std::size_t FailureCount(Lightweight::SqlBackup::RestoreReport const& report) const
+        {
+            auto const lock = std::scoped_lock { _failedMutex };
+            auto tables = _failedTables;
+            for (auto const& table: report.tables)
+                tables.insert(table.tableName);
+            tables.insert(report.incompleteTables.begin(), report.incompleteTables.end());
+            // The report counts errors that name no table itself (unattributedChunkErrors); only
+            // without a report, such as after an early exit, do their messages stand in for it.
+            auto const unnamedErrors = report.HasFailures() ? std::size_t { 0 } : _unnamedErrors.size();
+            return tables.size() + unnamedErrors + report.unattributedChunkErrors;
+        }
+
       private:
         QObject* _target;
         QString _profileName;
+        mutable std::mutex _failedMutex;
+        /// The tables an error update named.
+        std::unordered_set<std::string> _failedTables;
+        /// The distinct messages of the error updates that named no table.
+        std::unordered_set<std::string> _unnamedErrors;
     };
 
     /// Worker-thread count for SqlBackup (same policy as BackupRunner).
@@ -380,12 +415,12 @@ namespace
     }
 
     /// Default `RestoreOperation`: the real `SqlBackup::Restore` call.
-    void RunSqlRestore(std::filesystem::path const& archiveFile,
-                       std::string const& connectionString,
-                       std::string const& schema,
-                       Lightweight::SqlBackup::ProgressManager& progress)
+    Lightweight::SqlBackup::RestoreReport RunSqlRestore(std::filesystem::path const& archiveFile,
+                                                        std::string const& connectionString,
+                                                        std::string const& schema,
+                                                        Lightweight::SqlBackup::ProgressManager& progress)
     {
-        Lightweight::SqlBackup::Restore(
+        return Lightweight::SqlBackup::Restore(
             archiveFile, Lightweight::SqlConnectionString { connectionString }, BackupConcurrency(), progress, schema);
     }
 } // namespace
@@ -957,17 +992,24 @@ void ManagedBackupController::RunRestore(QString const& archiveProfile,
         {
             EmittingProgressManager pm(self, archiveName);
             auto const restoreSchema = RestoreSchemaFor(archivePath, cs, schemaStd, targetProfile.has_value());
-            restoreOperation(archivePath, cs, restoreSchema, pm);
+            auto const report = restoreOperation(archivePath, cs, restoreSchema, pm);
             // Like Backup(), Restore() reports a table it could not
             // recreate as a `Progress::State::Error` and carries on — see
             // `CreateTablesInOrder`, which drops the archived table first
             // and only then tries to create it. Without this check a
             // restore that dropped tables it never recreated would be
             // reported as a success.
-            if (auto const errorCount = pm.ErrorCount(); errorCount > 0)
+            if (auto const errorCount = pm.ErrorCount(); errorCount > 0 || report.HasFailures())
             {
                 ok = false;
-                summary = PartialRestoreMessage(errorCount);
+                summary = PartialRestoreMessage(pm.FailureCount(report));
+                // Which rows and cells failed, beside the per-table error lines already logged.
+                for (auto const& line: Lightweight::Tools::DescribeRestoreReport(report))
+                    QMetaObject::invokeMethod(self,
+                                              "logLine",
+                                              Qt::QueuedConnection,
+                                              Q_ARG(QString, QString::fromStdString(line)),
+                                              Q_ARG(DbtoolGui::LogLevel, LogLevel::Error));
             }
             else
             {

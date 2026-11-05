@@ -5,6 +5,8 @@
 #include "SqlError.hpp"
 #include "SqlServerType.hpp"
 
+#include <algorithm>
+#include <array>
 #include <string_view>
 
 namespace Lightweight
@@ -67,6 +69,19 @@ namespace Lightweight
             return error.message.contains("not found") || error.message.contains("no such")
                    || error.message.contains("does not exist");
     }
+}
+
+/// Detects if an error is bind-class: the driver cannot bind or convert a parameter of the statement,
+/// which fails every row of a batch alike, so retrying or isolating rows would only repeat it.
+///
+/// @param error The SQL error info
+/// @return true for SQLSTATE `HYC00` (optional feature not implemented), `HY003` (invalid application
+///         buffer type), `HY004` (invalid SQL data type) and `07006` (restricted data type attribute
+///         violation)
+[[nodiscard]] inline bool IsBindClassError(SqlErrorInfo const& error) noexcept
+{
+    constexpr auto BindClassStates = std::array<std::string_view, 4> { "HYC00", "HY003", "HY004", "07006" };
+    return std::ranges::contains(BindClassStates, std::string_view { error.sqlState });
 }
 
 /// Detects if an error is transient (retryable).

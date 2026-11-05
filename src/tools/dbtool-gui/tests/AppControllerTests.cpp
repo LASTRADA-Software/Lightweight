@@ -67,12 +67,11 @@ using DbtoolGui::Tests::WaitForIdle;
 namespace
 {
 
-/// Absolute path to the test-fixtures directory next to this source file.
-/// `__FILE__` resolves at compile time so the lookup works regardless of
-/// where the binary is invoked from (build tree, install tree, IDE).
+/// Absolute path to the test-fixtures directory, baked in by CMake. `__FILE__` is not usable for
+/// this: compilers spell it relative to the build directory in some layouts.
 [[nodiscard]] std::filesystem::path FixturesDir()
 {
-    return std::filesystem::path(__FILE__).parent_path() / "fixtures";
+    return std::filesystem::path(DBTOOL_GUI_TESTS_FIXTURES_DIR);
 }
 
 /// Concatenates every captured `logLine` payload into a single newline-

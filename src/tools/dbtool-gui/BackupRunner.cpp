@@ -25,7 +25,9 @@
 #include <QtCore/QDebug>
 #include <QtCore/QMetaObject>
 #include <QtCore/QRunnable>
+#include <QtCore/QStringList>
 #include <QtCore/QVariantList>
+#include <RestoreReportFormat.hpp>
 
 namespace DbtoolGui
 {
@@ -211,11 +213,13 @@ namespace
         /// @param archive The archive file written or read.
         /// @param error Text of the exception that aborted the run, empty when it returned normally.
         /// @param durationMs Wall-clock duration of the run.
+        /// @param report What a restore reported as failed; empty for a backup.
         /// @return The summary line, the `lastResult` map (minus `finishedAt`) and the verdict.
         [[nodiscard]] RunSummary Summarize(BackupRunner::Operation operation,
                                            QString const& archive,
                                            QString const& error,
-                                           qint64 durationMs) const
+                                           qint64 durationMs,
+                                           Lightweight::SqlBackup::RestoreReport const& report = {}) const
         {
             std::scoped_lock const lock(_mutex);
             auto const isBackup = operation == BackupRunner::Operation::Backup;
@@ -251,12 +255,31 @@ namespace
 
             auto failedTables = QVariantList {};
             for (auto const& failure: _failures)
-                failedTables.push_back(QVariantMap { { QStringLiteral("table"), failure.table },
-                                                     { QStringLiteral("reason"), failure.reason } });
+            {
+                auto entry = QVariantMap { { QStringLiteral("table"), failure.table },
+                                           { QStringLiteral("reason"), failure.reason },
+                                           { QStringLiteral("failedRows"), qulonglong { 0 } },
+                                           { QStringLiteral("nulledCells"), qulonglong { 0 } },
+                                           { QStringLiteral("details"), QString {} } };
+                // The tally counts a table once however many errors it reported; the report
+                // adds what failed in it.
+                if (auto const it = std::ranges::find(
+                        report.tables, failure.table.toStdString(), &Lightweight::SqlBackup::TableRestoreReport::tableName);
+                    it != report.tables.end())
+                {
+                    auto details = QStringList {};
+                    for (auto const& line: Lightweight::Tools::DescribeTableRestoreFailures(*it))
+                        details.push_back(QString::fromStdString(line));
+                    entry.insert(QStringLiteral("failedRows"), static_cast<qulonglong>(it->failedRowCount));
+                    entry.insert(QStringLiteral("nulledCells"), static_cast<qulonglong>(it->NulledCellCount()));
+                    entry.insert(QStringLiteral("details"), details.join(QLatin1Char('\n')));
+                }
+                failedTables.push_back(std::move(entry));
+            }
 
             // `ErrorCount()` is the library-wide verdict: it also covers errors this tally
             // has no row for, so a run is only ok when it saw none at all.
-            auto ok = error.isEmpty() && ErrorCount() == 0;
+            auto ok = error.isEmpty() && ErrorCount() == 0 && !report.HasFailures();
             auto result = QVariantMap {
                 { QStringLiteral("operation"), isBackup ? QStringLiteral("backup") : QStringLiteral("restore") },
                 { QStringLiteral("ok"), ok },
@@ -268,6 +291,9 @@ namespace
                 { QStringLiteral("otherErrors"), other },
                 { QStringLiteral("failedTables"), failedTables },
                 { QStringLiteral("rows"), static_cast<qulonglong>(_rows) },
+                { QStringLiteral("failedRows"), static_cast<qulonglong>(report.TotalFailedRows()) },
+                { QStringLiteral("nulledCells"), static_cast<qulonglong>(report.NulledCellCount()) },
+                { QStringLiteral("reportText"), QString::fromStdString(Lightweight::Tools::JoinedReportText(report)) },
                 { QStringLiteral("durationMs"), durationMs },
             };
             return { std::move(summary), std::move(result), ok };
@@ -341,11 +367,11 @@ namespace
     }
 
     /// Default restore operation: the real `SqlBackup::Restore` call.
-    void RunSqlRestore(std::filesystem::path const& archive,
-                       std::string const& connectionString,
-                       Lightweight::SqlBackup::ProgressManager& progress)
+    Lightweight::SqlBackup::RestoreReport RunSqlRestore(std::filesystem::path const& archive,
+                                                        std::string const& connectionString,
+                                                        Lightweight::SqlBackup::ProgressManager& progress)
     {
-        Lightweight::SqlBackup::Restore(
+        return Lightweight::SqlBackup::Restore(
             archive, Lightweight::SqlConnectionString { connectionString }, BackupConcurrency(), progress);
     }
 
@@ -452,9 +478,9 @@ void BackupRunner::setBackupOperation(RunOperation operation)
     _backupOperation = operation ? std::move(operation) : RunOperation { &RunSqlBackup };
 }
 
-void BackupRunner::setRestoreOperation(RunOperation operation)
+void BackupRunner::setRestoreOperation(RestoreOperation operation)
 {
-    _restoreOperation = operation ? std::move(operation) : RunOperation { &RunSqlRestore };
+    _restoreOperation = operation ? std::move(operation) : RestoreOperation { &RunSqlRestore };
 }
 
 void BackupRunner::setRecorder(Recorder recorder)
@@ -490,7 +516,14 @@ bool BackupRunner::CanStartRun(char const* what)
 void BackupRunner::runBackup(QString const& outputFile)
 {
     if (CanStartRun("Backup"))
-        Run(Operation::Backup, outputFile, _backupOperation);
+        Run(Operation::Backup,
+            outputFile,
+            [backup = _backupOperation](std::filesystem::path const& archive,
+                                        std::string const& connectionString,
+                                        Lightweight::SqlBackup::ProgressManager& progress) {
+                backup(archive, connectionString, progress);
+                return Lightweight::SqlBackup::RestoreReport {}; // A backup reports no restore failures.
+            });
 }
 
 void BackupRunner::runRestore(QString const& inputFile)
@@ -499,7 +532,7 @@ void BackupRunner::runRestore(QString const& inputFile)
         Run(Operation::Restore, inputFile, _restoreOperation);
 }
 
-void BackupRunner::Run(Operation operation, QString const& archiveFile, RunOperation const& operationFn)
+void BackupRunner::Run(Operation operation, QString const& archiveFile, RestoreOperation const& operationFn)
 {
     _operation = operation;
     _startedAt = QDateTime::currentDateTime();
@@ -544,10 +577,11 @@ void BackupRunner::Run(Operation operation, QString const& archiveFile, RunOpera
             }
 
             auto error = QString {};
+            auto report = Lightweight::SqlBackup::RestoreReport {};
             EmittingProgressManager pm(runner);
             try
             {
-                operationFn(archive, cs, pm);
+                report = operationFn(archive, cs, pm);
             }
             catch (std::exception const& e)
             {
@@ -555,7 +589,7 @@ void BackupRunner::Run(Operation operation, QString const& archiveFile, RunOpera
             }
             auto const durationMs =
                 std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - started).count();
-            auto outcome = pm.Summarize(operation, archiveFile, error, static_cast<qint64>(durationMs));
+            auto outcome = pm.Summarize(operation, archiveFile, error, static_cast<qint64>(durationMs), report);
             outcome.result.insert(QStringLiteral("target"), target);
 
             // Only a clean run is recorded; a failed one already says why in its summary.

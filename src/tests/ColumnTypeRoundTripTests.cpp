@@ -360,6 +360,7 @@ auto const SampleDateTime =
 // 2.5 is a dyadic rational, so it is exact in both 4- and 8-byte floating point and cannot be
 // perturbed by a driver that routes the value through a text intermediate representation.
 constexpr auto SampleDouble = 2.5;
+constexpr auto SampleFloat = 2.5F;
 
 // Exactly the declared width of the fixed-width character columns, so CHAR(n) padding — which the
 // backends apply inconsistently — never enters the value comparison.
@@ -417,6 +418,31 @@ std::vector<TypeRoundTripCase> const& RoundTripCases()
           .cxxType = { .base = Exactly(std::string { "double" }) },
           .sample = SampleOf(SampleDouble) },
 
+        { .columnName = "floatCol",
+          .declaredType = Real { .precision = 24 },
+          .recoveredType = { .base = Exactly(SqlColumnTypeDefinition { Real { .precision = 24 } }),
+                             .deviations = { { .serverType = SqlServerType::SQLITE,
+                                               .requirement = Exactly(SqlColumnTypeDefinition { Real { .precision = 53 } }),
+                                               .reason = "SQLite stores every REAL in 8 bytes" } } },
+          .cxxType = { .base = Exactly(std::string { "float" }),
+                       .deviations = { { .serverType = SqlServerType::SQLITE,
+                                         .requirement = Exactly(std::string { "double" }),
+                                         .reason = "SQLite stores every REAL in 8 bytes" } } },
+          .sample = SampleOf(SampleFloat) },
+
+        // A Real without a precision is created as the 4-byte REAL.
+        { .columnName = "unsizedRealCol",
+          .declaredType = Real {},
+          .recoveredType = { .base = Exactly(SqlColumnTypeDefinition { Real { .precision = 24 } }),
+                             .deviations = { { .serverType = SqlServerType::SQLITE,
+                                               .requirement = Exactly(SqlColumnTypeDefinition { Real { .precision = 53 } }),
+                                               .reason = "SQLite stores every REAL in 8 bytes" } } },
+          .cxxType = { .base = Exactly(std::string { "float" }),
+                       .deviations = { { .serverType = SqlServerType::SQLITE,
+                                         .requirement = Exactly(std::string { "double" }),
+                                         .reason = "SQLite stores every REAL in 8 bytes" } } },
+          .sample = SampleOf(SampleFloat) },
+
         // -------------------------------------------------------------------------------- boolean
         { .columnName = "boolCol",
           .declaredType = Bool {},
@@ -459,16 +485,8 @@ std::vector<TypeRoundTripCase> const& RoundTripCases()
         // ------------------------------------------------------------------------------ the GUID
         { .columnName = "guidCol",
           .declaredType = Guid {},
-          .recoveredType = { .base = Exactly(SqlColumnTypeDefinition { Guid {} }),
-                             .deviations = { { .serverType = SqlServerType::SQLITE,
-                                               .requirement = TextOfWidth(0),
-                                               .reason = "SQLite has no GUID type; the declared GUID is an "
-                                                         "unrecognised type name reported back as unsized text" } } },
-          .cxxType = { .base = Exactly(std::string { "Light::SqlGuid" }),
-                       .deviations = { { .serverType = SqlServerType::SQLITE,
-                                         .requirement = Exactly(std::string { SqliteText(
-                                             "Light::SqlDynamicAnsiString<0>", "Light::SqlDynamicUtf16String<0>") }),
-                                         .reason = "SQLite has no GUID type" } } },
+          .recoveredType = { .base = Exactly(SqlColumnTypeDefinition { Guid {} }) },
+          .cxxType = { .base = Exactly(std::string { "Light::SqlGuid" }) },
           .sample = SampleOf(SqlGuid::UnsafeParse("1E772AED-3E73-4C72-8684-5DFFAA17330E")) },
 
         // -------------------------------------------------------------------------- non-Unicode text

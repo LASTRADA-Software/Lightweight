@@ -210,7 +210,7 @@ Rectangle {
                         // own width back into itself (recursive rearrange).
                         Layout.fillWidth: true
                         Layout.minimumWidth: 0
-                        Layout.maximumWidth: implicitWidth
+                        Layout.maximumWidth: Math.ceil(implicitWidth)
                         text: root.name
                         color: Theme.clrOnSurface
                         font.pixelSize: Theme.sizeBody

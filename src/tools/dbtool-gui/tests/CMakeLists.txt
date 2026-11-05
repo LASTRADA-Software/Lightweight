@@ -49,6 +49,8 @@ target_link_libraries(dbtool-gui-tests PRIVATE
 # Fixture plugins from src/tests: the compat-policy one, which the plugin-reload test loads, and
 # the backup-required one, which the backup-requirement tests load.
 target_compile_definitions(dbtool-gui-tests PRIVATE
+    # Absolute, independent of how the compiler spells `__FILE__` (relative in some build layouts).
+    DBTOOL_GUI_TESTS_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
     DBTOOL_GUI_TESTS_COMPAT_POLICY_FIXTURE="$<TARGET_FILE:compat_policy_fixture>"
     DBTOOL_GUI_TESTS_BACKUP_REQUIRED_FIXTURE="$<TARGET_FILE:backup_required_release_fixture>"
 )

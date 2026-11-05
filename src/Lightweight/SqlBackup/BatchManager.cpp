@@ -4,9 +4,11 @@
 #include "../DataBinder/SqlGuid.hpp"
 #include "../DataBinder/SqlTime.hpp"
 #include "../SqlColumnTypeDefinitions.hpp"
+#include "../SqlQueryFormatter.hpp"
 #include "../TracyProfiler.hpp"
 #include "../Utils.hpp"
 #include "BatchManager.hpp"
+#include "RawColumnSlice.hpp"
 
 #include <algorithm>
 #include <array>
@@ -29,8 +31,8 @@ namespace Lightweight::detail
 
 using namespace SqlBackup;
 
-/// Thrown by a batch column for a non-NULL backup value it cannot convert to the column's type.
-/// BatchManager rethrows it as a std::runtime_error naming the table and the column.
+/// Thrown by a batch column for a non-NULL backup value it cannot convert to the column's type,
+/// before anything of that value is appended. BatchManager appends NULL instead and reports it.
 struct UnconvertibleValueError: std::runtime_error
 {
     using std::runtime_error::runtime_error;
@@ -1058,6 +1060,15 @@ struct MsTimeBatchColumn: BatchColumn
 };
 #endif
 
+/// Strips the trailing U+0020 characters of @p text.
+/// @param text The text value.
+/// @return @p text without its trailing spaces; empty if it held nothing else.
+constexpr std::string_view TrimTrailingSpaces(std::string_view text) noexcept
+{
+    auto const last = text.find_last_not_of(' ');
+    return last == std::string_view::npos ? std::string_view {} : text.substr(0, last + 1);
+}
+
 struct StringBatchColumn: BatchColumn
 {
     SqlRawColumnMetadata metadata;
@@ -1065,6 +1076,8 @@ struct StringBatchColumn: BatchColumn
     std::vector<char> buffer;        // ToRaw() staging (stride x rows), rebuilt per flush
     std::vector<SQLLEN> indicators;
     size_t maxActual = 0; // largest value in this batch -> the ToRaw() stride
+    /// Strips the trailing spaces of every pushed value (a CHAR(n) pad that the target does not keep).
+    bool trimTrailingSpaces = false;
 
     StringBatchColumn(SqlRawColumnMetadata meta, size_t declaredLen):
         metadata(meta)
@@ -1150,6 +1163,8 @@ struct StringBatchColumn: BatchColumn
 
     void PushString(std::string_view s)
     {
+        if (trimTrailingSpaces)
+            s = TrimTrailingSpaces(s);
         // Stored variable-length (no truncation; the old fixed stride silently cut long
         // VARCHAR(MAX)/TEXT values); the fixed-stride buffer is laid out at flush time.
         maxActual = std::max(maxActual, s.size());
@@ -1207,6 +1222,8 @@ struct WideStringBatchColumn: BatchColumn
     std::vector<char16_t> buffer;       // ToRaw() staging (stride x rows), rebuilt per flush
     std::vector<SQLLEN> indicators;
     size_t maxActualChars = 0; // largest value (in UTF-16 units) -> the ToRaw() stride
+    /// Strips the trailing spaces of every pushed value (an NCHAR(n) pad that the target does not keep).
+    bool trimTrailingSpaces = false;
 
     WideStringBatchColumn(SqlRawColumnMetadata meta, size_t declaredLen):
         metadata(meta)
@@ -1307,6 +1324,8 @@ struct WideStringBatchColumn: BatchColumn
 
     void PushString(std::string_view s)
     {
+        if (trimTrailingSpaces)
+            s = TrimTrailingSpaces(s);
         // Stored variable-length (no truncation; the old fixed stride silently cut long
         // NVARCHAR(MAX) values); the fixed-stride buffer is laid out at flush time.
         auto ws = ToUtf16(std::u8string_view(reinterpret_cast<char8_t const*>(s.data()), s.size()));
@@ -1500,6 +1519,62 @@ struct BinaryBatchColumn: BatchColumn
                               .indicators = std::span<SQLLEN const> { indicators.data(), indicators.size() } };
     }
 };
+/// A batch column for GUID values on targets without a native GUID type, bound as SQL_C_CHAR text.
+///
+/// Archived GUIDs are `to_string(SqlGuid)` text, which is what SqlDataBinder<SqlGuid> stores on such
+/// targets, so the text passes through unchanged: it is neither parsed nor normalized, and thus never
+/// a value failure. Any non-text archived value is rejected.
+struct GuidTextBatchColumn final: StringBatchColumn
+{
+    explicit GuidTextBatchColumn(SqlRawColumnMetadata meta):
+        StringBatchColumn(meta, 36)
+    {
+        metadata.sqlType = SQL_VARCHAR;
+    }
+
+    void PushFromBatch(ColumnBatch::ColumnData const& colData,
+                       std::vector<bool> const& nulls,
+                       size_t offset,
+                       size_t count) override
+    {
+        std::visit(
+            [&](auto const& inVec) {
+                using VecT = std::decay_t<decltype(inVec)>;
+                for (auto const idx: std::views::iota(offset, offset + count))
+                {
+                    if constexpr (std::is_same_v<VecT, std::monostate>)
+                        PushNull();
+                    else if ((idx < nulls.size() && nulls[idx]) || idx >= inVec.size())
+                        PushNull();
+                    else if constexpr (std::is_same_v<VecT, std::vector<std::string>>)
+                        PushString(inVec[idx]);
+                    else
+                        RejectValue(inVec[idx], "GUID");
+                }
+            },
+            colData);
+    }
+
+    void Push(BackupValue const& val) override
+    {
+        if (std::holds_alternative<std::monostate>(val))
+            PushNull();
+        else if (auto const* text = std::get_if<std::string>(&val))
+            PushString(*text);
+        else
+            RejectBackupValue(val, "GUID");
+    }
+
+    SqlRawColumn ToRaw() override
+    {
+        // A GUID declares no column size, and a VARCHAR bound with ColumnSize 0 is an invalid
+        // precision (HY104) to strict drivers: the size covers a canonical GUID and every text bound.
+        auto raw = StringBatchColumn::ToRaw();
+        raw.metadata.size = std::max<SQLULEN>(36, raw.metadata.bufferLength);
+        return raw;
+    }
+};
+
 /// A batch column for GUID values using proper SQL_GUID binding.
 struct GuidBatchColumn: BatchColumn
 {
@@ -1531,7 +1606,8 @@ struct GuidBatchColumn: BatchColumn
     }
 
     /// Appends the GUID @p text, or NULL for a NULL text. Any well-formed GUID is accepted, whatever
-    /// its version nibble, and keeps its text's bytes.
+    /// its version nibble, and keeps its text's bytes. The braced form `{...}` is accepted too, as
+    /// text-typed GUID columns (SQLite) hold it and archive it verbatim.
     /// @throws UnconvertibleValueError if @p text is no GUID.
     void PushText(std::string_view text)
     {
@@ -1540,7 +1616,9 @@ struct GuidBatchColumn: BatchColumn
             PushNull();
             return;
         }
-        auto const guid = SqlGuid::TryParse(text);
+        auto const unbraced =
+            text.size() >= 2 && text.front() == '{' && text.back() == '}' ? text.substr(1, text.size() - 2) : text;
+        auto const guid = SqlGuid::TryParse(unbraced);
         if (!guid)
             RejectValue(text, "GUID");
         PushGuid(*guid);
@@ -1658,20 +1736,37 @@ namespace
     }
 } // namespace
 
-BatchManager::BatchManager(BatchExecutor executor,
+BatchManager::BatchManager(BatchManagerHooks hooks,
                            std::vector<SqlColumnDeclaration> const& colDecls,
                            size_t capacity,
                            SqlServerType serverType,
-                           std::string tableName):
-    executor(std::move(executor)),
+                           SqlServerType sourceServerType):
+    hooks(std::move(hooks)),
     serverType(serverType),
-    tableName(std::move(tableName))
+    sourceServerType(sourceServerType)
 {
+    if (!this->hooks.classify)
+        this->hooks.classify = [](SqlErrorInfo const&) {
+            return FailureDisposition::Propagate;
+        };
+
+    // A nullptr formatter (UNKNOWN, MySQL) neither pads CHAR values nor has a native GUID type.
+    auto const* const source = SqlQueryFormatter::Get(sourceServerType);
+    auto const* const target = SqlQueryFormatter::Get(serverType);
+    trimsFixedCharPadding = source != nullptr && target != nullptr && source->ComparesFixedCharWithPadSemantics()
+                            && !target->ComparesFixedCharWithPadSemantics();
+    hasNativeGuidType = target != nullptr && target->HasNativeGuidType();
+
     // logic to create columns based on type
     for (auto const& col: colDecls)
     {
+        // A primary key column is NOT NULL even where the declaration does not say so.
+        auto const isKey = col.primaryKey != SqlPrimaryKeyType::NONE;
+        if (isKey)
+            keyColumns.push_back(columns.size());
         columns.push_back(CreateColumn(col));
         columnNames.push_back(col.name);
+        columnRequired.push_back(col.required || isKey);
     }
 
     // Calculate memory-aware capacity
@@ -1775,6 +1870,8 @@ std::unique_ptr<BatchColumn> BatchManager::CreateColumn(SqlColumnDeclaration con
 
     if (std::holds_alternative<SqlColumnTypeDefinitions::Guid>(col.type))
     {
+        if (!hasNativeGuidType)
+            return std::make_unique<GuidTextBatchColumn>(meta);
         return std::make_unique<GuidBatchColumn>(meta);
     }
 
@@ -1844,7 +1941,10 @@ std::unique_ptr<BatchColumn> BatchManager::CreateColumn(SqlColumnDeclaration con
         }
 
         meta.decimalDigits = 0;
-        return std::make_unique<StringBatchColumn>(meta, size);
+        auto column = std::make_unique<StringBatchColumn>(meta, size);
+        column->trimTrailingSpaces =
+            std::holds_alternative<SqlColumnTypeDefinitions::Char>(col.type) && trimsFixedCharPadding;
+        return column;
     }
 
     if (std::holds_alternative<SqlColumnTypeDefinitions::NVarchar>(col.type)
@@ -1868,7 +1968,10 @@ std::unique_ptr<BatchColumn> BatchManager::CreateColumn(SqlColumnDeclaration con
         }
 
         meta.decimalDigits = 0;
-        return std::make_unique<WideStringBatchColumn>(meta, size);
+        auto column = std::make_unique<WideStringBatchColumn>(meta, size);
+        column->trimTrailingSpaces =
+            std::holds_alternative<SqlColumnTypeDefinitions::NChar>(col.type) && trimsFixedCharPadding;
+        return column;
     }
 
     if (std::holds_alternative<SqlColumnTypeDefinitions::VarBinary>(col.type)
@@ -1908,6 +2011,8 @@ void BatchManager::Flush()
     ZoneScopedN("Restore::BatchFlush");
     ZoneValue(rowCount);
 
+    auto const base = firstPendingRow;
+
     try
     {
         std::vector<SqlRawColumn> rawCols;
@@ -1918,16 +2023,72 @@ void BatchManager::Flush()
                 rawCols.push_back(c->ToRaw());
         }
 
-        executor(rawCols, rowCount);
+        auto const insertRange = [&](size_t firstRow, size_t count) -> std::expected<void, BatchInsertError> {
+            // The whole batch needs no slicing (nor its reported rows any shift).
+            if (count == rowCount)
+                return hooks.tryInsert(rawCols, count);
+            std::vector<SqlRawColumn> slices;
+            slices.reserve(rawCols.size());
+            for (auto const& column: rawCols)
+                slices.push_back(SliceRows(column, firstRow, count));
+            return hooks.tryInsert(slices, count).transform_error([firstRow](BatchInsertError error) {
+                for (auto& row: error.reportedFailedRows)
+                    row += firstRow;
+                return error;
+            });
+        };
+        // Rows not inserted, so that their nulled cells are not reported. Sized on the first failure.
+        auto notInserted = std::vector<bool> {};
+        auto const reportRow = [&](size_t row, std::string_view sqlState, std::string_view message) {
+            if (notInserted.empty())
+                notInserted.resize(rowCount);
+            notInserted[row] = true;
+            if (hooks.onRowFailed)
+                hooks.onRowFailed(base + row + 1, sqlState, message, DescribeRowKey(rawCols, row));
+        };
+
+        // Rows settle in ascending order, so the nulled cells are reported in row order as their
+        // rows settle.
+        if (!nulledCells.empty())
+            std::ranges::stable_sort(nulledCells, {}, &NulledCell::pendingRow);
+        auto nextNulledCell = nulledCells.begin();
+        auto const reportNulledCells = [&](size_t settledPrefix) {
+            if (nextNulledCell == nulledCells.end())
+                return;
+            auto const settledEnd = std::ranges::find_if(
+                nextNulledCell, nulledCells.end(), [&](NulledCell const& cell) { return cell.pendingRow >= settledPrefix; });
+            for (auto const& cell: std::ranges::subrange(nextNulledCell, settledEnd))
+                if ((notInserted.empty() || !notInserted[cell.pendingRow]) && hooks.onCellNulled)
+                    hooks.onCellNulled(columnNames[cell.columnIndex], cell.reason);
+            nextNulledCell = settledEnd;
+        };
+
+        InsertIsolatingFailures(
+            rowCount,
+            excludedRows,
+            insertRange,
+            hooks.classify,
+            [&](size_t row, SqlErrorInfo const& error) { reportRow(row, error.sqlState, error.message); },
+            [&](size_t row) { reportRow(row, {}, exclusionReasons[row].value_or(std::string {})); },
+            [&](size_t settledPrefix) {
+                reportNulledCells(settledPrefix);
+                ExtendWatermark(base, base + settledPrefix);
+            });
     }
     catch (...)
     {
+        firstPendingRow += rowCount;
         DiscardPendingRows();
         throw;
     }
 
-    rowsFlushed += rowCount;
+    firstPendingRow += rowCount;
     DiscardPendingRows();
+}
+
+std::size_t BatchManager::SettledRows() const noexcept
+{
+    return settledRows;
 }
 
 void BatchManager::DiscardPendingRows()
@@ -1935,25 +2096,108 @@ void BatchManager::DiscardPendingRows()
     for (auto& c: columns)
         c->Clear();
     rowCount = 0;
+    excludedRows.clear();
+    exclusionReasons.clear();
+    nulledCells.clear();
 }
 
-void BatchManager::PushIntoColumn(size_t columnIndex, std::function<void(BatchColumn&)> const& push)
+void BatchManager::PushIntoColumn(size_t columnIndex,
+                                  size_t cellCount,
+                                  std::function<void(BatchColumn& column, size_t first, size_t count)> const& push)
 {
-    try
+    auto& column = *columns[columnIndex];
+    auto const firstPendingCell = column.PendingRows();
+    auto nextCell = size_t { 0 };
+    while (nextCell < cellCount)
     {
-        push(*columns[columnIndex]);
+        try
+        {
+            push(column, nextCell, cellCount - nextCell);
+            return;
+        }
+        catch (UnconvertibleValueError const& error)
+        {
+            // The column holds the cells before the rejected one, so this is the rejected cell.
+            auto const failedCell = column.PendingRows() - firstPendingCell;
+            column.PushNull();
+            RecordValueFailure(columnIndex, firstPendingCell + failedCell, error.what());
+            nextCell = failedCell + 1;
+        }
     }
-    catch (UnconvertibleValueError const& error)
+}
+
+void BatchManager::RecordValueFailure(size_t columnIndex, size_t pendingRow, std::string_view reason)
+{
+    if (!columnRequired[columnIndex])
     {
-        // The column holds the values before the rejected one, so this is the rejected row.
-        auto const row = rowsFlushed + columns[columnIndex]->PendingRows() + 1;
-        DiscardPendingRows();
-        auto const& columnName = columnNames[columnIndex];
-        throw BackupValueConversionError(
-            tableName.empty()
-                ? std::format("column '{}', row {}: {}", columnName, row, error.what())
-                : std::format("table '{}', column '{}', row {}: {}", tableName, columnName, row, error.what()));
+        nulledCells.push_back(
+            NulledCell { .pendingRow = pendingRow, .columnIndex = columnIndex, .reason = std::string(reason) });
+        return;
     }
+
+    if (excludedRows.size() <= pendingRow)
+    {
+        excludedRows.resize(pendingRow + 1);
+        exclusionReasons.resize(pendingRow + 1);
+    }
+    excludedRows[pendingRow] = true;
+    // A row with several bad values is reported with the first.
+    if (!exclusionReasons[pendingRow])
+        exclusionReasons[pendingRow] = std::format("column '{}': {}", columnNames[columnIndex], reason);
+}
+
+std::string BatchManager::DescribeRowKey(std::vector<SqlRawColumn> const& rawColumns, size_t row) const
+{
+    constexpr size_t MaxKeyLength = 200;
+
+    auto const describe = [&](size_t columnIndex) {
+        return DescribeRawCell(rawColumns[columnIndex], row);
+    };
+    // A plain loop: libc++ lacks views::join_with, and Clang 19 cannot compile the `| ranges::to` pipe.
+    std::string key;
+    bool firstCell = true;
+    auto const appendCell = [&](size_t columnIndex) {
+        // The cells past the cap would only be cut off again.
+        if (key.size() > MaxKeyLength)
+            return;
+        if (!std::exchange(firstCell, false))
+            key += ", ";
+        key += describe(columnIndex);
+    };
+    if (keyColumns.empty())
+        for (auto const columnIndex: std::views::iota(size_t { 0 }, rawColumns.size()))
+            appendCell(columnIndex);
+    else
+        for (auto const columnIndex: keyColumns)
+            appendCell(columnIndex);
+    if (key.size() > MaxKeyLength)
+    {
+        // Never cut inside a UTF-8 sequence.
+        auto length = MaxKeyLength;
+        while (length > 0 && (static_cast<unsigned char>(key[length]) & 0xC0U) == 0x80U)
+            --length;
+        key.resize(length);
+    }
+    return key;
+}
+
+void BatchManager::SkipRows(size_t count)
+{
+    if (count == 0)
+        return;
+    Flush();
+    firstPendingRow += count;
+    ExtendWatermark(firstPendingRow - count, firstPendingRow);
+}
+
+void BatchManager::ExtendWatermark(size_t firstRow, size_t settledEnd)
+{
+    // Rows settled from firstRow on extend the watermark only if every row before them is settled.
+    if (settledRows < firstRow)
+        return;
+    settledRows = settledEnd;
+    if (hooks.onSettled)
+        hooks.onSettled(settledRows);
 }
 
 namespace
@@ -1977,7 +2221,9 @@ void BatchManager::PushRow(std::vector<BackupValue> const& row)
     if (row.size() != columns.size())
         return;
     for (auto const columnIndex: std::views::iota(size_t { 0 }, row.size()))
-        PushIntoColumn(columnIndex, [&row, columnIndex](BatchColumn& column) { column.Push(row[columnIndex]); });
+        PushIntoColumn(columnIndex, 1, [&row, columnIndex](BatchColumn& column, size_t /*first*/, size_t /*count*/) {
+            column.Push(row[columnIndex]);
+        });
     rowCount++;
     if (rowCount >= capacity || ExceedsByteBudget(columns))
         Flush();
@@ -1985,13 +2231,21 @@ void BatchManager::PushRow(std::vector<BackupValue> const& row)
 
 void BatchManager::PushBatch(ColumnBatch const& batch)
 {
+    PushBatch(batch, 0);
+}
+
+void BatchManager::PushBatch(ColumnBatch const& batch, std::size_t skipRows)
+{
     if (batch.rowCount == 0)
         return;
     if (batch.columns.size() != columns.size())
         return;
 
-    size_t remaining = batch.rowCount;
-    size_t offset = 0;
+    auto const skipped = std::min(skipRows, batch.rowCount);
+    SkipRows(skipped);
+
+    size_t remaining = batch.rowCount - skipped;
+    size_t offset = skipped;
 
     while (remaining > 0)
     {
@@ -2005,8 +2259,8 @@ void BatchManager::PushBatch(ColumnBatch const& batch)
         size_t const chunk = std::min(remaining, space);
         for (auto const columnIndex: std::views::iota(size_t { 0 }, columns.size()))
         {
-            PushIntoColumn(columnIndex, [&](BatchColumn& column) {
-                column.PushFromBatch(batch.columns[columnIndex], batch.nullIndicators[columnIndex], offset, chunk);
+            PushIntoColumn(columnIndex, chunk, [&](BatchColumn& column, size_t first, size_t count) {
+                column.PushFromBatch(batch.columns[columnIndex], batch.nullIndicators[columnIndex], offset + first, count);
             });
         }
 

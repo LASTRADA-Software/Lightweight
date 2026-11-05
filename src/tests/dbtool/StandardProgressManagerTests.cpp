@@ -5,6 +5,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <chrono>
+#include <limits>
 #include <sstream>
 #include <thread>
 
@@ -229,4 +230,19 @@ TEST_CASE("Synchronized output brackets each frame on a terminal", "[dbtool][Sta
     CHECK(output.contains("\x1b[?2026h"));
     CHECK(output.contains("\x1b[?2026l"));
     CHECK(output.ends_with("\x1b[?2026l"));
+}
+
+TEST_CASE("FormatEta survives estimates that do not fit an int", "[dbtool][StandardProgressManager]")
+{
+    // A near-zero rate over many remaining rows yields an estimate far beyond INT_MAX seconds;
+    // converting that to int used to be undefined behaviour (caught by UBSan).
+    CHECK(FormatEta(1e15) == "> 99:59:59");
+    CHECK(FormatEta(std::numeric_limits<double>::infinity()) == "> 99:59:59");
+    CHECK(FormatEta(std::numeric_limits<double>::quiet_NaN()) == "> 99:59:59");
+
+    CHECK(FormatEta(0.5) == "< 1s");
+    CHECK(FormatEta(42.0) == "42s");
+    CHECK(FormatEta(125.0) == "02:05");
+    CHECK(FormatEta(3725.0) == "01:02:05");
+    CHECK(FormatEta(359999.0) == "99:59:59");
 }

@@ -1758,6 +1758,8 @@ QString AppController::addProfile(QVariantMap const& fields)
         .pluginsDir = {},
         // Not trimmed: a password may legitimately start or end with a space.
         .password = fields.value(QStringLiteral("password")).toString().toStdString(),
+        // The page keeps every profile's archive in one folder, so a profile added here has no per-profile backupDir.
+        .backupDir = {},
     };
     if (request.password.empty() && fields.value(QStringLiteral("useOpenConnectionPassword")).toBool())
         request.password = OpenConnectionPassword();

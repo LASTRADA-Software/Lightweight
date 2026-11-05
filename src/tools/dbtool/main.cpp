@@ -58,6 +58,7 @@
 #include <PluginDiscovery.hpp>
 #include <PluginIngestion.hpp>
 #include <PluginLoader.hpp>
+#include <RestoreReportFormat.hpp>
 #include <Secrets/ProfileCipher.hpp>
 #include <Secrets/SecretResolver.hpp>
 #include <Secrets/backends/StdinBackend.hpp>
@@ -3344,16 +3345,17 @@ int Restore(Options const& options)
         return EXIT_FAILURE;
     }
 
+    auto report = Lightweight::SqlBackup::RestoreReport {};
     try
     {
-        Lightweight::SqlBackup::Restore(options.inputFile,
-                                        options.connectionString,
-                                        options.jobs,
-                                        *pm,
-                                        schema,
-                                        options.filterTables,
-                                        retrySettings,
-                                        restoreSettingsResult.value());
+        report = Lightweight::SqlBackup::Restore(options.inputFile,
+                                                 options.connectionString,
+                                                 options.jobs,
+                                                 *pm,
+                                                 schema,
+                                                 options.filterTables,
+                                                 retrySettings,
+                                                 restoreSettingsResult.value());
     }
     catch (SqlException const& e)
     {
@@ -3371,7 +3373,11 @@ int Restore(Options const& options)
         return EXIT_FAILURE;
     }
 
-    if (pm->ErrorCount() > 0)
+    // A restore refused before any data moved returns an empty report and only reports the error
+    // through the progress manager, so the error count stays part of the verdict.
+    for (auto const& line: Tools::DescribeRestoreReport(report))
+        std::println("{}", line);
+    if (pm->ErrorCount() > 0 || report.HasFailures())
         return EXIT_FAILURE;
 
     // The record keeps the migration history the restore left.

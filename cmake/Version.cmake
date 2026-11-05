@@ -2,7 +2,7 @@
 # CMake function to extract version triple and full version string from the source code repository.
 #
 # The following locations are checked in order:
-# 1.) /version.txt file
+# 1.) version.txt in the calling directory
 # 2.) /.git directory with the output of `git describe ...`)
 # 3.) /metainfo.xml with the first line's version number and optional (suffix) string
 #
@@ -10,15 +10,17 @@ function(GetVersionInformation VersionTripleVar VersionStringVar)
     # Check if Git is available
     find_package(Git QUIET)
 
-    if(EXISTS "${CMAKE_SOURCE_DIR}/version.txt")
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/version.txt")
         # 1.) /version.txt file
-        file(READ "${CMAKE_SOURCE_DIR}/version.txt" version_text)
+        file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" version_text)
         string(STRIP "${version_text}" version_text)
         string(REGEX MATCH "^v?([0-9]*\\.[0-9]+\\.[0-9]+).*$" _ ${version_text})
         set(THE_VERSION ${CMAKE_MATCH_1})
         set(THE_VERSION_STRING "${version_text}")
-        set(THE_SOURCE "${CMAKE_SOURCE_DIR}/version.txt")
-    elseif(GIT_FOUND)
+        set(THE_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/version.txt")
+    elseif(GIT_FOUND AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
+        # Only inside Lightweight's own checkout: in a copy without .git, git would walk up into
+        # an enclosing repository and report that repository's tag.
         # Try to get the latest annotated tag (e.g., v1.2.34)
         # --tags: prefers tags
         # --abbrev=0: only show the tag name, not the commit hash
@@ -41,11 +43,11 @@ function(GetVersionInformation VersionTripleVar VersionStringVar)
         else()
             message(STATUS "Info: No suitable Git tag (e.g., 'v1.2.34') found.")
         endif()
-    elseif(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+    elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
         # 2.) .git directory with the output of `git describe ...`)
         execute_process(COMMAND git describe --all
             OUTPUT_VARIABLE git_branch
-            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
             OUTPUT_STRIP_TRAILING_WHITESPACE)
         string(REGEX MATCH "^(.*)\\/(.*)$$" _ "${git_branch}")
         set(THE_GIT_BRANCH "${CMAKE_MATCH_2}")
@@ -53,13 +55,13 @@ function(GetVersionInformation VersionTripleVar VersionStringVar)
 
         execute_process(COMMAND git rev-parse --short HEAD
             OUTPUT_VARIABLE git_sha_short
-            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
             OUTPUT_STRIP_TRAILING_WHITESPACE)
         set(THE_GIT_SHA_SHORT "${git_sha_short}")
         message(STATUS "[Version] Git SHA: ${THE_GIT_SHA_SHORT}")
-    elseif(EXISTS "${CMAKE_SOURCE_DIR}/metainfo.xml")
+    elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/metainfo.xml")
         # 3.) /metainfo.xml with the first line's version number and optional (suffix) string
-        file(READ "${CMAKE_SOURCE_DIR}/metainfo.xml" changelog_contents)
+        file(READ "${CMAKE_CURRENT_SOURCE_DIR}/metainfo.xml" changelog_contents)
         # extract and construct version triple
         string(REGEX MATCH "<release version=\"([0-9]*\\.[0-9]+\\.[0-9]+)\".*$" _ "${changelog_contents}")
         set(THE_VERSION ${CMAKE_MATCH_1})
@@ -70,7 +72,7 @@ function(GetVersionInformation VersionTripleVar VersionStringVar)
         endif()
 
         set(THE_VERSION_STRING "${THE_VERSION}")
-        set(THE_SOURCE "${CMAKE_SOURCE_DIR}/metainfo.xml")
+        set(THE_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/metainfo.xml")
     endif()
 
     if("${THE_VERSION}" STREQUAL "" OR "${THE_VERSION_STRING}" STREQUAL "")

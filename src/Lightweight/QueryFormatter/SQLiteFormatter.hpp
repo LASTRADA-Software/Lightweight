@@ -47,6 +47,16 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         return true;
     }
 
+    [[nodiscard]] bool ComparesFixedCharWithPadSemantics() const noexcept override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool BoundsBulkLoadTransactionSize() const noexcept override
+    {
+        return true;
+    }
+
     [[nodiscard]] bool SupportsSchemas() const noexcept override
     {
         return false;

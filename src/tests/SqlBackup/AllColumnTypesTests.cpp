@@ -6,10 +6,12 @@
 #include <Lightweight/SqlBackup.hpp>
 #include <Lightweight/SqlColumnTypeDefinitions.hpp>
 #include <Lightweight/SqlConnection.hpp>
+#include <Lightweight/SqlSchema.hpp>
 #include <Lightweight/SqlStatement.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <filesystem>
 
 using namespace Lightweight;
@@ -175,4 +177,98 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: round-trip every supported column t
         // ignore cleanup failure — the test body has already finished.
         WARN("Cleanup DropTableIfExists threw: " << cleanupError.what());
     }
+}
+
+// A GUID column must come back from a same-DBMS backup/restore as a GUID column, not as whatever
+// the driver loosely reports for the declared type name (SQLite reported VARCHAR(0)).
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: a restored GUID column is still a GUID column", "[SqlBackup][SqlSchema][Guid]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto const backupFileCleaner = ScopedFileRemoved { "guid_column_backup.zip" };
+
+    SqlConnection conn;
+    REQUIRE(conn.Connect(GetConnectionString()));
+    if (conn.ServerType() == SqlServerType::MICROSOFT_SQL)
+    {
+        WARN("Skipped on MSSQL: Backup worker connection sometimes doesn't see a fresh table.");
+        return;
+    }
+    SqlStatement stmt { conn };
+
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.DropTableIfExists("guid_column_rt");
+        migration.CreateTable("guid_column_rt").PrimaryKey("id", Integer {}).Column("guid_v", Guid {});
+    });
+
+    auto const guid = SqlGuid::TryParse("11111111-2222-3333-8444-555555555555");
+    REQUIRE(guid.has_value());
+    if (!guid.has_value())
+        return;
+    stmt.Prepare(R"(INSERT INTO "guid_column_rt" ("id", "guid_v") VALUES (?, ?))");
+    (void) stmt.Execute(1, *guid);
+
+    auto const guidColumnType = [&] {
+        auto const table =
+            SqlSchema::ReadTable(stmt, { .catalog = conn.DatabaseName(), .schema = {}, .table = "guid_column_rt" });
+        REQUIRE(table.has_value());
+        auto const column = std::ranges::find_if(table->columns, [](auto const& c) { return c.name == "guid_v"; });
+        REQUIRE(column != table->columns.end());
+        return column->type;
+    };
+    CHECK(guidColumnType() == SqlColumnTypeDefinition { Guid {} });
+
+    LambdaProgressManager pm { [](SqlBackup::Progress const& p) {
+        if (p.state == SqlBackup::Progress::State::Error)
+            FAIL_CHECK("Backup/Restore error: " << p.message);
+    } };
+    REQUIRE_NOTHROW(SqlBackup::Backup("guid_column_backup.zip", GetConnectionString(), 1, pm));
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) { migration.DropTable("guid_column_rt"); });
+    REQUIRE_NOTHROW(SqlBackup::Restore("guid_column_backup.zip", GetConnectionString(), 1, pm));
+
+    CHECK(guidColumnType() == SqlColumnTypeDefinition { Guid {} });
+    auto const restored = stmt.ExecuteDirectScalar<SqlGuid>(R"(SELECT "guid_v" FROM "guid_column_rt")");
+    REQUIRE(restored.has_value());
+    if (restored.has_value())
+        CHECK(*restored == *guid);
+
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) { migration.DropTableIfExists("guid_column_rt"); });
+}
+
+// SQLite stores a GUID column as free text. Backup must archive that text verbatim: re-reading it as
+// a SqlGuid would canonicalise '{...}' and lose anything that is not a GUID at all. (MSSQL and
+// PostgreSQL hand back native GUIDs, whose `to_string(SqlGuid)` archive form
+// "SqlBackup: round-trip every supported column type" and BatchManagerTests.cpp already pin.)
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: SQLite GUID column text is archived verbatim", "[SqlBackup][SqlSchema][Guid]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto stmt = SqlStatement {};
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::MICROSOFT_SQL);
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::POSTGRESQL);
+
+    auto const backupFileCleaner = ScopedFileRemoved { "guid_verbatim_backup.zip" };
+
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.DropTableIfExists("guid_verbatim");
+        migration.CreateTable("guid_verbatim").PrimaryKey("id", Integer {}).Column("g", Guid {});
+    });
+    constexpr auto braced = "{6f9619ff-8b86-d011-b42d-00c04fc964ff}";
+    (void) stmt.ExecuteDirect(std::format(R"(INSERT INTO "guid_verbatim" ("id", "g") VALUES (1, '{}'))", braced));
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "guid_verbatim" ("id", "g") VALUES (2, 'not-a-guid'))");
+
+    LambdaProgressManager pm { [](SqlBackup::Progress const& p) {
+        if (p.state == SqlBackup::Progress::State::Error)
+            FAIL_CHECK("Backup/Restore error: " << p.message);
+    } };
+    REQUIRE_NOTHROW(SqlBackup::Backup("guid_verbatim_backup.zip", GetConnectionString(), 1, pm));
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) { migration.DropTable("guid_verbatim"); });
+    REQUIRE_NOTHROW(SqlBackup::Restore("guid_verbatim_backup.zip", GetConnectionString(), 1, pm));
+
+    CHECK(stmt.ExecuteDirectScalar<std::string>(R"(SELECT "g" FROM "guid_verbatim" WHERE "id" = 1)")
+          == std::optional<std::string> { braced });
+    CHECK(stmt.ExecuteDirectScalar<std::string>(R"(SELECT "g" FROM "guid_verbatim" WHERE "id" = 2)")
+          == std::optional<std::string> { "not-a-guid" });
+
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) { migration.DropTableIfExists("guid_verbatim"); });
 }

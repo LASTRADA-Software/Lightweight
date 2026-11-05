@@ -11,9 +11,16 @@ consistency guarantees you can (and cannot) expect. For the on-disk archive layo
 A backup is a single zip archive containing:
 
 - `metadata.json` — schema description (tables, columns, types, row counts),
-- `checksums.json` — SHA-256 per data chunk,
+- `checksums.json` — SHA-256 per data chunk and attachment,
 - `data/<table>/NNNN_SS.msgpack` — the table data, split into self-contained msgpack
-  chunks (`NNNN` = window index, `SS` = sub-chunk within the window).
+  chunks (`NNNN` = window index, `SS` = sub-chunk within the window),
+- `attachments/<name>` — optional files the caller supplied through
+  `BackupSettings::attachments`, which restore ignores.
+
+`SqlBackup::ListArchiveAttachments(file)` lists an archive's attachments, refusing a name a backup
+would refuse, and `SqlBackup::ReadArchiveAttachment(file, name)` reads one, refusing it unless
+`checksums.json` lists it with a matching SHA-256 (see
+[sql-backup-format.md](sql-backup-format.md#7-attachments)).
 
 `SqlBackup::BackupSchemas` backs up several schemas into one archive. It then stores the
 data under `data/<schema>/<table>/` and records each table's schema and each foreign
@@ -80,26 +87,68 @@ automatically when the backup finishes (also on failure).
   rewritten in place (`ZIP_FL_OVERWRITE`), so retries are idempotent.
 - **Hard errors** fail the affected table (reported through the progress callback);
   other tables continue.
-- **Restore failures** behave the same way: a failed chunk fails only its table (on SQLite, rows
-  committed within it before the failure stay), while the worker keeps draining the queue so
-  chunks of other tables are still restored. Once all workers have finished, every table that did
-  not receive all of its chunks is reported as an error, the run does not claim success, and
-  foreign key constraints and indexes are not applied — `dbtool restore` exits non-zero. This
-  keeps a database with missing rows from being constrained, which otherwise only produces
-  misleading `AddForeignKey failed` errors naming the referencing tables.
 - **Re-running a backup** to the same output is always safe — every entry is
   overwritten, never appended.
 - **Integrity:** every chunk is SHA-256-hashed into `checksums.json` and verified on
   restore. `SqlBackup::VerifyArchive(file)` checks a finished archive the same way without a
-  database: it needs `metadata.json`, every `data/` entry listed in `checksums.json` with a matching
-  SHA-256, and returns the SHA-256 of the whole file. A schema-only archive has no data entries and
-  needs no `checksums.json`. A failure names the entry at fault.
+  database: it needs `metadata.json`, every `data/` entry and every attachment listed in
+  `checksums.json` with a matching SHA-256, and returns the SHA-256 of the whole file. A schema-only
+  archive without attachments has no such entries and needs no `checksums.json`. A failure names the
+  entry at fault.
 - **Bookkeeping tables are left out:** `schema_backups` and the tables the advisory-lock handlers
   keep (`_lightweight_locks` on SQLite, which holds a row while the migration lock is taken) are never
   backed up, and a restore skips them in archives that still hold them. The live tables stay as they
   are: a restore never brings back old backup records or a held lock.
 - **Completeness:** `metadata.json`'s `complete` is false for a filtered or schema-only backup and for
   one in which a table failed; `VerifyArchive` reports it. Archives without the key count as complete.
+
+## Restore failures
+
+`SqlBackup::Restore()` does not abort on a bad value or row; it restores everything it can and
+returns a bounded `RestoreReport` of the rest (it is not `[[nodiscard]]`, so existing callers that
+ignore it compile unchanged):
+
+- **A value that does not convert** to its column's type becomes NULL, but only in a nullable
+  column. A NOT NULL column is never set to NULL and no value is invented: the row is left out
+  instead.
+- **A row the database rejects** (duplicate key, constraint violation, a NOT NULL value that does not
+  convert) is isolated: the failing batch is bisected until the failing rows are known, every other
+  row is inserted, and the failed rows are reported. On a same-DBMS round trip the data that is
+  restored is never changed.
+- **A column the driver cannot bind** (for example an unsupported type) affects every row, so it
+  fails its table: the table's remaining chunks are skipped and the other tables continue.
+- **An unreadable chunk** is skipped and counted; the rows read before it stay.
+- **A lost connection** that does not come back within `RetrySettings` stops the worker that hit it;
+  the report lists the tables it left incomplete (`incompleteTables`; `WorkerStopped()`).
+
+Each table gets at most one terminal update through the `ProgressManager` (`Error` if anything failed
+for it, with a message such as `2 rows failed, 3 cells set to NULL`; `Finished` otherwise). A table
+that failed as a whole or had an unreadable chunk may report additional `Error` updates before it, so a
+consumer that tallies failed tables must count a table once.
+
+`RestoreReport` holds only tables with failures (`tables`, sorted by name; `TotalFailedRows()` and
+`NulledCellCount()` sum them up), and the run-level problems. Its memory and the progress traffic do not grow with the number of failed rows:
+per table, at most `MaxReportedRowRanges` (100) row ranges (`FailedRowRange`: chunk, first and last
+row) and `MaxReportedReasons` (20) distinct `FailureReason`s with `MaxSampleKeysPerReason` (3) sample
+keys each are kept; the rest is counted in `rowsBeyondRangeCap` and `occurrencesBeyondReasonCap`.
+`ColumnValueFailures` counts the NULLed cells per column. `report.HasFailures()` is the verdict.
+
+A restore that is refused before it moves any data (an unsupported archive, a refused target schema)
+returns an empty report and reports the error through the `ProgressManager`; check both
+(`progress.ErrorCount()` and `report.HasFailures()`), as `dbtool restore` does for its exit code.
+See [dbtool](dbtool.md#restore) for the command-line output.
+
+## CHAR(n) padding across databases
+
+SQL Server and PostgreSQL pad a `CHAR(n)`/`NCHAR(n)` value to `n` characters and ignore the pad when
+comparing; SQLite does not pad and compares exactly. A `CHAR(5)` holding `q` therefore comes out of a
+SQL Server backup as `q    `, and restored verbatim into SQLite, `WHERE Code = 'q'` would find nothing.
+When a restore crosses from a padding database into a non-padding one, the trailing spaces (U+0020 only)
+of `CHAR`/`NCHAR` values are stripped (an all-space value becomes empty; `NULL` stays `NULL`; `VARCHAR`
+and `NVARCHAR` are never touched). The source is the `server.name` in the archive's `metadata.json`; if
+it is missing or names no known database, nothing is stripped. A restore into the same kind of database
+as the backup, or into a padding one, keeps every value as archived. Whether a database pads is the
+`SqlQueryFormatter::ComparesFixedCharWithPadSemantics()` knob.
 
 ## Consistency caveats (online backup)
 

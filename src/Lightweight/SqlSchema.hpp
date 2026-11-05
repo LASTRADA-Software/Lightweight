@@ -5,9 +5,11 @@
 #include "Api.hpp"
 #include "SqlQuery/MigrationPlan.hpp"
 
+#include <cstdint>
 #include <format>
 #include <functional>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <tuple>
 #include <vector>
@@ -81,6 +83,79 @@ namespace SqlSchema
             return std::tie(catalog, schema, table) < std::tie(other.catalog, other.schema, other.table);
         }
     };
+
+    namespace detail
+    {
+        /// A table as the catalog (@c SQLTables) spells it.
+        struct TableWithSchema
+        {
+            /// The schema the catalog reports the table in; empty where the DBMS has none.
+            std::string schema;
+            /// The table name in the catalog's own spelling.
+            std::string name;
+        };
+
+        /// Which step of @ref ResolveTable found the table.
+        enum class TableResolutionStep : std::uint8_t
+        {
+            /// A catalog lookup of the name exactly as requested.
+            Exact,
+            /// A catalog lookup of the name folded the way the DBMS folds unquoted identifiers.
+            Folded,
+            /// A case-insensitive scan of every table in the catalog and schema.
+            FullListing,
+        };
+
+        /// A table found by @ref ResolveTable.
+        struct ResolvedTable
+        {
+            /// The table in the catalog's own spelling.
+            TableWithSchema table;
+            /// The resolution step that found it.
+            TableResolutionStep step = TableResolutionStep::Exact;
+        };
+
+        /// Escapes the search-pattern wildcards @c _ and @c % (and @p escape itself) in @p name, so
+        /// that an ODBC catalog function taking a pattern argument matches @p name literally.
+        ///
+        /// @param name The literal name.
+        /// @param escape The driver's @c SQL_SEARCH_PATTERN_ESCAPE string.
+        /// @return The escaped pattern, or @c std::nullopt when @p escape is empty, i.e. the driver
+        ///         cannot escape wildcards.
+        [[nodiscard]] LIGHTWEIGHT_API std::optional<std::string> EscapeSearchPattern(std::string_view name,
+                                                                                     std::string_view escape);
+
+        /// Asks the catalog for the tables named @p name, rather than listing every table.
+        ///
+        /// The name is passed to @c SQLTables as a search pattern with its wildcards escaped (see
+        /// @ref EscapeSearchPattern), so @c _ and @c % match only themselves. The DBMS's own name
+        /// comparison applies: a case-insensitive collation also returns other spellings, while
+        /// PostgreSQL matches the spelling exactly.
+        ///
+        /// @param stmt The statement to run the catalog call on.
+        /// @param database The catalog; empty for the connection's default.
+        /// @param schema The schema; empty for any schema.
+        /// @param name The literal table name.
+        /// @return The matching tables, or @c std::nullopt when the driver reports no search-pattern
+        ///         escape, so the name cannot be matched literally.
+        [[nodiscard]] LIGHTWEIGHT_API std::optional<std::vector<TableWithSchema>> FindTablesNamed(SqlStatement& stmt,
+                                                                                                  std::string_view database,
+                                                                                                  std::string_view schema,
+                                                                                                  std::string_view name);
+
+        /// Finds @p table in the catalog, matching its name case-insensitively.
+        ///
+        /// Tries, in order and stopping at the first hit: a catalog lookup of the name as given; one
+        /// of the name folded as the DBMS folds unquoted identifiers (when that differs); and a scan
+        /// of every table in the catalog and schema.
+        ///
+        /// @param stmt The statement to run the catalog calls on.
+        /// @param table The table to find. An empty catalog or schema means the connection's default.
+        /// @return The table as the catalog spells it, with the step that found it, or
+        ///         @c std::nullopt when no such table exists.
+        [[nodiscard]] LIGHTWEIGHT_API std::optional<ResolvedTable> ResolveTable(SqlStatement& stmt,
+                                                                                FullyQualifiedTableName const& table);
+    } // namespace detail
 
     /// Identifies a single column within a schema (catalog.schema.table.column).
     ///
@@ -315,6 +390,19 @@ namespace SqlSchema
     /// @return The schema names.
     [[nodiscard]] LIGHTWEIGHT_API std::vector<std::string> AllUserSchemas(SqlStatement& stmt, std::string_view database);
 
+    /// How much of a table's description @ref ReadTable gathers.
+    enum class TableReadScope : std::uint8_t
+    {
+        /// Columns, primary key, foreign keys in both directions, and indexes.
+        Full,
+        /// Columns (with their unique, identity and primary-key flags) and the primary key only.
+        /// Foreign keys, external foreign keys and indexes are left empty, and the foreign-key
+        /// target casing lookups are skipped with them. Because the foreign keys are not read, the
+        /// per-column @c Column::isForeignKey (false) and @c Column::foreignKeyConstraint (empty)
+        /// are not populated either.
+        ColumnsAndPrimaryKey,
+    };
+
     /// Reads the schema of a single table.
     ///
     /// Use this instead of @ref ReadAllTables when only one table is of interest: it *describes* only
@@ -331,10 +419,16 @@ namespace SqlSchema
     /// @param stmt The SQL statement to use for reading.
     /// @param table The fully qualified name of the table to describe. An empty catalog or schema
     ///              means "the connection's default", exactly as in @ref ReadAllTables.
+    /// @param scope How much to read. @ref TableReadScope::ColumnsAndPrimaryKey skips the foreign-key
+    ///              and index queries for callers that only need columns and the primary key; in
+    ///              that mode @c Column::isForeignKey and @c Column::foreignKeyConstraint are not
+    ///              populated on any column.
     /// @retval std::nullopt No table of that name exists in the given catalog and schema.
     /// @throws SqlException The catalog could not be read. Absence is not an error and is reported
     ///         as @c std::nullopt; anything arriving as an exception is a genuine SQL failure.
-    [[nodiscard]] LIGHTWEIGHT_API std::optional<Table> ReadTable(SqlStatement& stmt, FullyQualifiedTableName const& table);
+    [[nodiscard]] LIGHTWEIGHT_API std::optional<Table> ReadTable(SqlStatement& stmt,
+                                                                 FullyQualifiedTableName const& table,
+                                                                 TableReadScope scope = TableReadScope::Full);
 
     /// Retrieves all tables in the given database and schema that have a foreign key to the given table.
     LIGHTWEIGHT_API std::vector<ForeignKeyConstraint> AllForeignKeysTo(SqlStatement& stmt,
