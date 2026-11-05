@@ -36,7 +36,7 @@ var searchData=
   ['use_20prepared_20statements_33',['Use Prepared Statements',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-prepared-statements',1,'']]],
   ['use_20the_20datamapper_20api_34',['Use the DataMapper API',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-the-datamapper-api',1,'']]],
   ['use_20transactions_20with_20care_35',['Use Transactions with Care',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-transactions-with-care',1,'']]],
-  ['username_36',['username',['../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae5c6b2a8de16cb5c82d6d82040f9de37',1,'Lightweight::SqlConnectionDataSource::username'],['../da/da8/classLightweight_1_1SqlConnection.html#aeec33c5e9d65fdecd317bdbcff6accd3',1,'Lightweight::SqlConnection::UserName()']]],
+  ['username_36',['username',['../da/da8/classLightweight_1_1SqlConnection.html#aeec33c5e9d65fdecd317bdbcff6accd3',1,'Lightweight::SqlConnection::UserName()'],['../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae5c6b2a8de16cb5c82d6d82040f9de37',1,'Lightweight::SqlConnectionDataSource::username']]],
   ['using_20c_2026_20reflection_20support_37',['Compile using C++26 reflection support',['../index.html#compile-using-c26-reflection-support',1,'']]],
   ['using_20it_20from_20cmake_38',['Using it from CMake',['../d6/d2f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2profiles-library.html#using-it-from-cmake',1,'']]],
   ['using_20sqlite_20for_20testing_20on_20windows_20operating_20system_39',['Using SQLite for testing on Windows operating system',['../index.html#using-sqlite-for-testing-on-windows-operating-system',1,'']]],
