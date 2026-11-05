@@ -214,6 +214,14 @@ Select elements</h1>
 <li>(optional) Order and Group<ul>
 <li><code>OrderBy</code></li>
 <li><code>GroupBy</code></li>
+<li><code>Having</code>, after the last <code>GroupBy</code>; calling it without one, or <code>GroupBy</code> after it, throws <code>std::logic_error</code><ul>
+<li><code>Having(Aggregate::Count(), "&gt;", 1)</code> compares an aggregate from the <code>Aggregate</code> namespace (<code>Count</code>, <code>Sum</code>, <code>Avg</code>, <code>Min</code>, <code>Max</code>) against a value, translated into <code>HAVING COUNT(*) &gt; 1</code>. Like a <code>Where</code> value, the value is bound when the query collects bindings, and the bindings stay in statement order (<code>ON</code>, <code>WHERE</code>, <code>HAVING</code>) in whichever order the calls are made</li>
+<li><code>Having("COUNT(*) &gt; 1")</code> writes a raw condition into the statement as given, so it must not contain untrusted input</li>
+<li><code>Having([](auto&amp; group) { return group.Having(...).OrHaving(...); })</code> adds a parenthesized group</li>
+<li><code>OrHaving(...)</code> takes the same arguments and joins the term with <code>OR</code>; <code>And()</code>, <code>Or()</code> and <code>Not()</code> apply to the next term of either clause</li>
+<li>It is honored by <code>All</code>, <code>First</code>, <code>Range</code> and <code>Count</code>. <code>Count</code> then yields one row per surviving group, as it does for <code>GroupBy</code>. <code>DataMapper</code>'s <code>Delete()</code> throws <code>std::logic_error</code> on a query with <code>Having</code>, because a <code>DELETE</code> statement cannot express it</li>
+</ul>
+</li>
 </ul>
 </li>
 <li>(optional) Additional option to build WHERE clause. See documentation for <code>SqlWhereClauseBuilder</code><ul>

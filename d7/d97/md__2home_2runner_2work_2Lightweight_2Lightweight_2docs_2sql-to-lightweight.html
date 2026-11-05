@@ -310,6 +310,34 @@ GROUP BY</h2>
 <div class="line">                 .As(<span class="stringliteral">&quot;headcount&quot;</span>)</div>
 <div class="line">                 .GroupBy(<span class="stringliteral">&quot;department_id&quot;</span>)</div>
 <div class="line">                 .All();</div>
+</div><!-- fragment --><h2><a class="anchor" id="having"></a>
+HAVING</h2>
+<div class="fragment"><div class="line"><span class="keyword">SELECT</span> <span class="stringliteral">&quot;department_id&quot;</span>, COUNT(*) <span class="keyword">AS</span> <span class="stringliteral">&quot;headcount&quot;</span> <span class="keyword">FROM</span> <span class="stringliteral">&quot;Employees&quot;</span></div>
+<div class="line">  <span class="keyword">GROUP</span> <span class="keyword">BY</span> <span class="stringliteral">&quot;department_id&quot;</span></div>
+<div class="line">  <span class="keyword">HAVING</span> COUNT(*) &gt; <span class="stringliteral">2</span>;</div>
+</div><!-- fragment --><div class="fragment"><div class="line"><span class="keyword">auto</span> query = dm.FromTable(<span class="stringliteral">&quot;Employees&quot;</span>)</div>
+<div class="line">                 .Select()</div>
+<div class="line">                 .Field(<span class="stringliteral">&quot;department_id&quot;</span>)</div>
+<div class="line">                 .Field(Aggregate::Count(<span class="stringliteral">&quot;*&quot;</span>))</div>
+<div class="line">                 .As(<span class="stringliteral">&quot;headcount&quot;</span>)</div>
+<div class="line">                 .GroupBy(<span class="stringliteral">&quot;department_id&quot;</span>)</div>
+<div class="line">                 .Having(Aggregate::Count(), <span class="stringliteral">&quot;&gt;&quot;</span>, 2)</div>
+<div class="line">                 .All();</div>
+</div><!-- fragment --><div class="fragment"><div class="line"><span class="keyword">SELECT</span> <span class="stringliteral">&quot;department_id&quot;</span> <span class="keyword">FROM</span> <span class="stringliteral">&quot;Employees&quot;</span></div>
+<div class="line">  <span class="keyword">WHERE</span> <span class="stringliteral">&quot;salary&quot;</span> &gt; ?</div>
+<div class="line">  <span class="keyword">GROUP</span> <span class="keyword">BY</span> <span class="stringliteral">&quot;department_id&quot;</span></div>
+<div class="line">  <span class="keyword">HAVING</span> SUM(<span class="stringliteral">&quot;salary&quot;</span>) &gt;= ?;</div>
+</div><!-- fragment --><div class="fragment"><div class="line"><span class="comment">// WHERE values are bound ahead of HAVING values, whichever is called first.</span></div>
+<div class="line"><span class="keyword">auto</span> stmt = <a class="code hl_class" href="../../db/dad/classLightweight_1_1SqlStatement.html">SqlStatement</a> { dm.<a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#a34d2659a84a934d2c67c6b31f64a7d4a">Connection</a>() };</div>
+<div class="line">std::vector&lt;SqlVariant&gt; bound;</div>
+<div class="line">stmt.Prepare(dm.FromTable(<span class="stringliteral">&quot;Employees&quot;</span>)</div>
+<div class="line">                 .Select(&amp;bound)</div>
+<div class="line">                 .Field(<span class="stringliteral">&quot;department_id&quot;</span>)</div>
+<div class="line">                 .Where(<span class="stringliteral">&quot;salary&quot;</span>, <span class="stringliteral">&quot;&gt;&quot;</span>, 50&#39;000)</div>
+<div class="line">                 .GroupBy(<span class="stringliteral">&quot;department_id&quot;</span>)</div>
+<div class="line">                 .Having(Aggregate::Sum(<span class="stringliteral">&quot;salary&quot;</span>), <span class="stringliteral">&quot;&gt;=&quot;</span>, 100&#39;000)</div>
+<div class="line">                 .All());</div>
+<div class="line"><span class="keyword">auto</span> cursor = stmt.ExecuteWithVariants(bound);</div>
 </div><!-- fragment --><hr  />
 <h1><a class="anchor" id="join"></a>
 JOIN</h1>
@@ -356,8 +384,8 @@ Multi-condition / aliased joins</h2>
 <div class="line">                                    .On(<span class="stringliteral">&quot;that_foo&quot;</span>, { .tableName = <span class="stringliteral">&quot;Table_A&quot;</span>, .columnName = <span class="stringliteral">&quot;foo&quot;</span> });</div>
 <div class="line">                            })</div>
 <div class="line">                 .All();</div>
-<div class="ttc" id="aclassLightweight_1_1SqlJoinConditionBuilder_html"><div class="ttname"><a href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">Lightweight::SqlJoinConditionBuilder</a></div><div class="ttdoc">Query builder for building JOIN conditions.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00190">Core.hpp:191</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1SqlJoinConditionBuilder_html_a07b8c6e89aa7cbfd31eed3997d5dbf4f"><div class="ttname"><a href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#a07b8c6e89aa7cbfd31eed3997d5dbf4f">Lightweight::SqlJoinConditionBuilder::On</a></div><div class="ttdeci">SqlJoinConditionBuilder &amp; On(std::string_view joinColumnName, SqlQualifiedTableColumnName onOtherColumn)</div><div class="ttdoc">Adds an AND join condition.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00209">Core.hpp:209</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlJoinConditionBuilder_html"><div class="ttname"><a href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">Lightweight::SqlJoinConditionBuilder</a></div><div class="ttdoc">Query builder for building JOIN conditions.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00212">Core.hpp:213</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlJoinConditionBuilder_html_a07b8c6e89aa7cbfd31eed3997d5dbf4f"><div class="ttname"><a href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#a07b8c6e89aa7cbfd31eed3997d5dbf4f">Lightweight::SqlJoinConditionBuilder::On</a></div><div class="ttdeci">SqlJoinConditionBuilder &amp; On(std::string_view joinColumnName, SqlQualifiedTableColumnName onOtherColumn)</div><div class="ttdoc">Adds an AND join condition.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00231">Core.hpp:231</a></div></div>
 </div><!-- fragment --><p>Use <code>AliasedTableName { .tableName = "Departments", .alias = "D" }</code> as the join target (and <code>FromTableAs("Employees", "E")</code>) for self-joins or when the same table appears more than once.</p>
 <hr  />
 <h1><a class="anchor" id="insert"></a>

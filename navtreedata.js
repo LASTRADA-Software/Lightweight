@@ -87,7 +87,8 @@ var NAVTREE =
         [ "OFFSET / LIMIT (pagination)", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#offset--limit-pagination", null ],
         [ "DISTINCT", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#distinct", null ],
         [ "COUNT and aggregates", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#count-and-aggregates", null ],
-        [ "GROUP BY", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#group-by", null ]
+        [ "GROUP BY", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#group-by", null ],
+        [ "HAVING", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#having", null ]
       ] ],
       [ "JOIN", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#join", [
         [ "INNER JOIN", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#inner-join", null ],
@@ -208,7 +209,6 @@ var NAVTREE =
         [ "Database-Specific Connection Strings", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#database-specific-connection-strings", null ]
       ] ],
       [ "Migration Commands", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#migration-commands", [
-        [ "new-migration <TITLE>", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#new-migration-title", null ],
         [ "migrate", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#migrate", [
           [ "Backup requirement", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup-requirement", null ],
           [ "Skipped rows", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#skipped-rows", null ],
@@ -432,13 +432,13 @@ var NAVTREEINDEX =
 "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#adc492c8b63e8e44fd4f72b251f908c89",
 "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a70539241ba2c17c1ce40ce89ec177f55",
 "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a1f03a5faa280b0ae0ee688e3b9f40208",
-"d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html#a422627996645b60439cf9d156b24b753",
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2a8b5bd4208f5b50cb9e4e4e8cbc3922",
-"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a8aa3299f2941edf3cf1cdbdd383d980f",
-"db/dca/classLightweight_1_1Async_1_1InlineExecutor.html",
-"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup-before-migration",
-"de/dfe/structLightweight_1_1SqlText.html#a2626f10893b8f4a96e2a6d895a7dd0df",
-"index.html#building-with-c20-modules"
+"d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html",
+"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1d973789fe4e659b30eb414dea1d6941",
+"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a3c38e58abdc7f00d611b073b68572837",
+"db/dad/classLightweight_1_1SqlStatement.html#af86e1a5ea750245ac769af55f2b124d5",
+"de/d36/structLightweight_1_1SqlWhereClauseBuilder_1_1PendingConnective.html",
+"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a8ee0594832c46d4679a3db0a139b77b9",
+"functions_z.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

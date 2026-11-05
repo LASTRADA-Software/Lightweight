@@ -289,30 +289,6 @@ Database-Specific Connection Strings</h2>
 </div><!-- fragment --><p><b>PostgreSQL:</b> </p><div class="fragment"><div class="line">DRIVER={PostgreSQL Unicode};Server=localhost;Port=5432;Database=mydb;Uid=postgres;Pwd=password</div>
 </div><!-- fragment --><h1><a class="anchor" id="migration-commands"></a>
 Migration Commands</h1>
-<h2><a class="anchor" id="new-migration-title"></a>
-new-migration &lt;TITLE&gt;</h2>
-<p>Creates an empty migration source file, with its timestamp filled in, and prints its path. It needs no database and no profile:</p>
-<div class="fragment"><div class="line">dbtool new-migration &quot;Add users table&quot; --output-dir migrations</div>
-<div class="line"># migrations/20261105213000_add_users_table.cpp</div>
-</div><!-- fragment --><div class="fragment"><div class="line"><span class="preprocessor">#include &lt;Lightweight/SqlMigration.hpp&gt;</span></div>
-<div class="line"> </div>
-<div class="line"><span class="keyword">using namespace </span>Lightweight::SqlColumnTypeDefinitions;</div>
-<div class="line"> </div>
-<div class="line"><a class="code hl_define" href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a>(20261105213000, <span class="stringliteral">&quot;Add users table&quot;</span>)</div>
-<div class="line">{</div>
-<div class="line">    <span class="comment">// Describe the schema change on `plan`, for example:</span></div>
-<div class="line">    <span class="comment">//     plan.CreateTable(&quot;users&quot;).PrimaryKeyWithAutoIncrement(&quot;id&quot;).RequiredColumn(&quot;email&quot;, Varchar(255));</span></div>
-<div class="line">    <span class="comment">// Remove the line below once `plan` is used. See docs/sql-migrations.md.</span></div>
-<div class="line">    <span class="keyword">static_cast&lt;</span><span class="keywordtype">void</span><span class="keyword">&gt;</span>(plan);</div>
-<div class="line">}</div>
-<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01606">SqlMigration.hpp:1606</a></div></div>
-</div><!-- fragment --><ul>
-<li>The timestamp is the current time in <b>UTC</b>, so developers in different time zones sort consistently. When a file in the target directory already starts with that timestamp or a later one, the new timestamp is one second after the latest of them: timestamps stay unique and increasing there.</li>
-<li>The file goes into the current directory, or into <code>--output-dir</code>, which must exist. It is a plain source file: add it to your plugin's build yourself, and keep <code><a class="el" href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN()</a></code> in exactly one source file of the plugin (see <a class="el" href="../../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#plugin-system">Plugin System</a>).</li>
-<li>The file name holds the title's ASCII letters and digits, lowercased, joined by <code>_</code> and cut at 64 characters. The title itself is kept in full in the source.</li>
-<li>A blank title and a title with control characters are refused. Nothing is overwritten.</li>
-</ul>
-<p>This is a scaffold: it does not compare your records with the database, and writes no schema change for you.</p>
 <h2><a class="anchor" id="migrate"></a>
 migrate</h2>
 <p>Apply all pending migrations:</p>
@@ -608,58 +584,56 @@ Command-Line Options Reference</h1>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--plugins-dir &lt;DIR&gt;</code>   </td><td class="markdownTableBodyNone">Directory to scan for migration plugins   </td><td class="markdownTableBodyNone"><code>.</code> (current directory)    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>--output-dir &lt;DIR&gt;</code>   </td><td class="markdownTableBodyNone">Directory <code>new-migration</code> creates its file in. It must exist   </td><td class="markdownTableBodyNone"><code>.</code> (current directory)    </td></tr>
-<tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--output &lt;FILE&gt;</code>   </td><td class="markdownTableBodyNone">Output file for backup. A bare file name, or no <code>--output</code>, goes into the profile's <code>backupDir</code> / <code>defaultBackupDir</code> when one is configured   </td><td class="markdownTableBodyNone"></td></tr>
-<tr class="markdownTableRowEven">
+<tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--input &lt;FILE&gt;</code>   </td><td class="markdownTableBodyNone">Input file for restore   </td><td class="markdownTableBodyNone"></td></tr>
-<tr class="markdownTableRowOdd">
+<tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>--left &lt;FILE&gt;</code>   </td><td class="markdownTableBodyNone">First (baseline) backup archive for <code>backup-diff</code>   </td><td class="markdownTableBodyNone"></td></tr>
-<tr class="markdownTableRowEven">
+<tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--right &lt;FILE&gt;</code>   </td><td class="markdownTableBodyNone">Second (candidate) backup archive for <code>backup-diff</code>   </td><td class="markdownTableBodyNone"></td></tr>
-<tr class="markdownTableRowOdd">
+<tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>--filter-tables &lt;PATTERN&gt;</code>   </td><td class="markdownTableBodyNone">Table filter (wildcards supported)   </td><td class="markdownTableBodyNone"><code>*</code> (all tables)    </td></tr>
-<tr class="markdownTableRowEven">
+<tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--jobs &lt;N&gt;</code>   </td><td class="markdownTableBodyNone">Number of concurrent jobs   </td><td class="markdownTableBodyNone"><code>1</code>    </td></tr>
-<tr class="markdownTableRowOdd">
+<tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>--compression &lt;METHOD&gt;</code>   </td><td class="markdownTableBodyNone">Compression method for backup   </td><td class="markdownTableBodyNone"><code>deflate</code>    </td></tr>
-<tr class="markdownTableRowEven">
+<tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--compression-level &lt;N&gt;</code>   </td><td class="markdownTableBodyNone">Compression level (0-9)   </td><td class="markdownTableBodyNone"><code>6</code>    </td></tr>
-<tr class="markdownTableRowOdd">
+<tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>--chunk-size &lt;SIZE&gt;</code>   </td><td class="markdownTableBodyNone">Chunk size for backup data   </td><td class="markdownTableBodyNone"><code>10M</code>    </td></tr>
-<tr class="markdownTableRowEven">
+<tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--progress &lt;TYPE&gt;</code>   </td><td class="markdownTableBodyNone">Progress output: <code>unicode</code>, <code>ascii</code>, <code>logline</code>   </td><td class="markdownTableBodyNone"><code>unicode</code>    </td></tr>
-<tr class="markdownTableRowOdd">
+<tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>--quiet</code>, <code>-q</code>   </td><td class="markdownTableBodyNone">Suppress progress output   </td><td class="markdownTableBodyNone"></td></tr>
-<tr class="markdownTableRowEven">
+<tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--dry-run</code>, <code>-n</code>   </td><td class="markdownTableBodyNone">Preview without executing; <code>apply</code> rejects it   </td><td class="markdownTableBodyNone"></td></tr>
-<tr class="markdownTableRowOdd">
+<tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>--no-lock</code>   </td><td class="markdownTableBodyNone">Skip migration locking   </td><td class="markdownTableBodyNone"></td></tr>
-<tr class="markdownTableRowEven">
+<tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--backup-to &lt;FILE&gt;</code>   </td><td class="markdownTableBodyNone">For <code>migrate</code>, <code>apply</code>, <code>migrate-to-release</code>: back up, verify and record the database first (as <code>backup --output</code>), under the migration lock. Not with <code>--schema-only</code> or <code>--filter-tables</code>   </td><td class="markdownTableBodyNone"></td></tr>
-<tr class="markdownTableRowOdd">
+<tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>--without-backup</code>   </td><td class="markdownTableBodyNone">For <code>migrate</code>, <code>apply</code>, <code>migrate-to-release</code>: run although a required backup is missing; warns and records a <code>waived</code> row. Not with <code>--backup-to</code>   </td><td class="markdownTableBodyNone"></td></tr>
-<tr class="markdownTableRowEven">
+<tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--schema-only</code>   </td><td class="markdownTableBodyNone">For backup/restore: skip data, transferring schema only   </td><td class="markdownTableBodyNone"></td></tr>
-<tr class="markdownTableRowOdd">
+<tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>--memory-limit &lt;SIZE&gt;</code>   </td><td class="markdownTableBodyNone">Memory limit for restore (accepts the size suffixes below)   </td><td class="markdownTableBodyNone"></td></tr>
-<tr class="markdownTableRowEven">
+<tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--batch-size &lt;N&gt;</code>   </td><td class="markdownTableBodyNone">Rows per batch for restore   </td><td class="markdownTableBodyNone"></td></tr>
-<tr class="markdownTableRowOdd">
+<tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>--ignore-table &lt;NAME&gt;</code>   </td><td class="markdownTableBodyNone">For <code>backup-diff</code>: report differences in this table but do not fail. Repeatable. In a multi-schema archive a table is <code>&lt;schema&gt;/&lt;table&gt;</code> or <code>&lt;schema&gt;.&lt;table&gt;</code> (dots in names written as <code>_</code>); a bare table name also matches when only one schema holds it, and is refused as ambiguous otherwise. A name that matches no table is reported as a warning   </td><td class="markdownTableBodyNone"></td></tr>
-<tr class="markdownTableRowEven">
+<tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--profile &lt;NAME&gt;</code>   </td><td class="markdownTableBodyNone">Named profile from the configuration file   </td><td class="markdownTableBodyNone">store default    </td></tr>
-<tr class="markdownTableRowOdd">
+<tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>--up-to &lt;TIMESTAMP&gt;</code>   </td><td class="markdownTableBodyNone">Upper bound for migration commands   </td><td class="markdownTableBodyNone">no bound    </td></tr>
-<tr class="markdownTableRowEven">
+<tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--max-retries &lt;N&gt;</code>   </td><td class="markdownTableBodyNone">Maximum retry attempts for transient errors   </td><td class="markdownTableBodyNone"><code>3</code>    </td></tr>
-<tr class="markdownTableRowOdd">
+<tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>--verbose</code>, <code>-v</code>   </td><td class="markdownTableBodyNone">Emit extra informational output (e.g. shadowed plugins)   </td><td class="markdownTableBodyNone"></td></tr>
-<tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>--yes</code>, <code>-y</code>   </td><td class="markdownTableBodyNone">Confirm destructive actions without prompting   </td><td class="markdownTableBodyNone"></td></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>--show-examples</code>   </td><td class="markdownTableBodyNone">Print usage examples and exit   </td><td class="markdownTableBodyNone"></td></tr>
+<td class="markdownTableBodyNone"><code>--yes</code>, <code>-y</code>   </td><td class="markdownTableBodyNone">Confirm destructive actions without prompting   </td><td class="markdownTableBodyNone"></td></tr>
 <tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>--show-examples</code>   </td><td class="markdownTableBodyNone">Print usage examples and exit   </td><td class="markdownTableBodyNone"></td></tr>
+<tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--help</code>   </td><td class="markdownTableBodyNone">Show help message   </td><td class="markdownTableBodyNone"></td></tr>
 </table>
 <h2><a class="anchor" id="size-suffixes"></a>
@@ -692,6 +666,7 @@ Creating a Migration Plugin</h2>
 <div class="line">        .RequiredColumn(<span class="stringliteral">&quot;email&quot;</span>, Varchar(255))</div>
 <div class="line">        .Timestamps();</div>
 <div class="line">}</div>
+<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01606">SqlMigration.hpp:1606</a></div></div>
 <div class="ttc" id="agroup__SqlMigration_html_gaef227c1f2230d962d19572a234ceaa73"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN()</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01192">SqlMigration.hpp:1192</a></div></div>
 </div><!-- fragment --><h2><a class="anchor" id="loading-plugins"></a>
 Loading Plugins</h2>
