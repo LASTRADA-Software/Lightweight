@@ -456,3 +456,37 @@ import Lightweight;
 **Note:** C++20 module support requires:
 - CMake 3.28 or higher, with a system like Ninja
 - A compiler with full C++20 module support (e.g., GCC 14+, Clang 19+, MSVC 19.36+)
+
+## Embedding Lightweight from source
+
+Besides `find_package(Lightweight CONFIG)` against an installed package, Lightweight can be built as part of
+another CMake project, from a source checkout or through FetchContent:
+
+```cmake
+add_subdirectory(external/Lightweight lightweight EXCLUDE_FROM_ALL)
+# or
+FetchContent_Declare(Lightweight GIT_REPOSITORY https://github.com/LASTRADA-Software/Lightweight.git GIT_TAG <tag>)
+FetchContent_MakeAvailable(Lightweight)
+
+target_link_libraries(my_app PRIVATE Lightweight::Lightweight)
+```
+
+Set `LIGHTWEIGHT_BUILD_TESTS`, `LIGHTWEIGHT_BUILD_TOOLS` and `LIGHTWEIGHT_BUILD_EXAMPLES` to `OFF` before adding it
+unless you want those targets too. The dependencies are resolved as in a standalone build: Catch2 and yaml-cpp
+through `find_package` (so they must be findable, e.g. through a vcpkg manifest), reflection-cpp, stdexec and
+optionally Tracy through `find_package` with a CPM download as fallback.
+
+What stays under the host project's control when Lightweight is embedded:
+
+| Setting | Behavior when embedded |
+|---|---|
+| `CMAKE_RUNTIME_OUTPUT_DIRECTORY`, `CMAKE_LIBRARY_OUTPUT_DIRECTORY` | Used as the host set them. Only a top-level build puts its DLLs and executables into `<build>/target`, and Lightweight never writes these to the cache. |
+| Compiler launcher | Left to the host. Lightweight selects a compiler cache (`cmake/CompileCache.cmake`) only as the top-level project. |
+| `STDEXEC_*`, `TRACY_ENABLE`, `TRACY_ON_DEMAND` | Lightweight sets them only when the host has not. |
+| MSVC charset options | Lightweight's own tree is always compiled with `/utf-8`. Inherited `/source-charset`, `/execution-charset` and `/utf-8` options are dropped inside Lightweight's directory, so a host using a different execution charset does not hit cl error D8016; the host's own targets keep their options. |
+| Packaging | CPack is configured only by a top-level build. |
+| Install rules | Lightweight's install rules (including those for a CPM-fetched reflection-cpp) behave like any subproject's: adding it with `EXCLUDE_FROM_ALL` drops them. |
+
+On Windows, Lightweight is a shared library by default (`LIGHTWEIGHT_BUILD_SHARED`), so the host has to place
+`Lightweight.dll` next to its executables, for example by setting `CMAKE_RUNTIME_OUTPUT_DIRECTORY` before adding
+Lightweight.
