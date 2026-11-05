@@ -465,25 +465,39 @@ another CMake project, from a source checkout or through FetchContent:
 ```cmake
 add_subdirectory(external/Lightweight lightweight EXCLUDE_FROM_ALL)
 # or
-FetchContent_Declare(Lightweight GIT_REPOSITORY https://github.com/LASTRADA-Software/Lightweight.git GIT_TAG <tag>)
+FetchContent_Declare(Lightweight
+    GIT_REPOSITORY https://github.com/LASTRADA-Software/Lightweight.git
+    GIT_TAG <tag>
+    EXCLUDE_FROM_ALL) # CMake 3.28+
 FetchContent_MakeAvailable(Lightweight)
 
 target_link_libraries(my_app PRIVATE Lightweight::Lightweight)
 ```
 
+`EXCLUDE_FROM_ALL` in `FetchContent_Declare` needs CMake 3.28 or newer; with an older CMake, call
+`FetchContent_Populate` and `add_subdirectory(... EXCLUDE_FROM_ALL)` yourself.
+
 Set `LIGHTWEIGHT_BUILD_TESTS`, `LIGHTWEIGHT_BUILD_TOOLS` and `LIGHTWEIGHT_BUILD_EXAMPLES` to `OFF` before adding it
-unless you want those targets too. The dependencies are resolved as in a standalone build: Catch2 and yaml-cpp
-through `find_package` (so they must be findable, e.g. through a vcpkg manifest), reflection-cpp, stdexec and
-optionally Tracy through `find_package` with a CPM download as fallback.
+unless you want those targets too. The dependencies are resolved as in a standalone build:
+
+- Catch2 and yaml-cpp through `find_package`, so they must be findable (e.g. through a vcpkg manifest). Both are
+  currently required even with tests and tools turned off; this is a known limitation.
+- reflection-cpp, stdexec and, with `LIGHTWEIGHT_ENABLE_TRACY`, Tracy through `find_package`, else a CPM download.
+- libzip through `find_package` on Windows and pkg-config elsewhere, else a CPM download.
+- core-cpp through CPM, only when the tools are built.
+
+The version comes from `version.txt` in Lightweight's source directory, else from its git tags. A copy of the
+sources without a `.git` directory therefore needs a `version.txt` (e.g. `0.20261031.0`).
 
 What stays under the host project's control when Lightweight is embedded:
 
 | Setting | Behavior when embedded |
 |---|---|
-| `CMAKE_RUNTIME_OUTPUT_DIRECTORY`, `CMAKE_LIBRARY_OUTPUT_DIRECTORY` | Used as the host set them. Only a top-level build puts its DLLs and executables into `<build>/target`, and Lightweight never writes these to the cache. |
+| `CMAKE_RUNTIME_OUTPUT_DIRECTORY`, `CMAKE_LIBRARY_OUTPUT_DIRECTORY` | Used as the host set them. On Windows, when the host sets neither, Lightweight's own DLLs and executables go to `target/` under Lightweight's binary directory. Lightweight writes these to the cache only as a top-level build. |
 | Compiler launcher | Left to the host. Lightweight selects a compiler cache (`cmake/CompileCache.cmake`) only as the top-level project. |
 | `STDEXEC_*`, `TRACY_ENABLE`, `TRACY_ON_DEMAND` | Lightweight sets them only when the host has not. |
 | MSVC charset options | Lightweight's own tree is always compiled with `/utf-8`. Inherited `/source-charset`, `/execution-charset` and `/utf-8` options are dropped inside Lightweight's directory, so a host using a different execution charset does not hit cl error D8016; the host's own targets keep their options. |
+| `ENABLE_TIDY`, `PEDANTIC_COMPILER(_WERROR)`, `ENABLE_SANITIZER_*`, `ENABLE_COVERAGE` | Lightweight's developer switches apply only to a top-level build. A host option of the same name does not reach Lightweight's targets, and the `coverage` targets are not created. |
 | Packaging | CPack is configured only by a top-level build. |
 | Install rules | Lightweight's install rules (including those for a CPM-fetched reflection-cpp) behave like any subproject's: adding it with `EXCLUDE_FROM_ALL` drops them. |
 
