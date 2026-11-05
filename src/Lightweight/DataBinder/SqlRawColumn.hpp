@@ -26,7 +26,7 @@ struct SqlRawColumnMetadata
 /// A non-owning reference to a raw column data for batch processing.
 struct SqlRawColumn
 {
-    SqlRawColumnMetadata metadata;      //!< Metadata of the column
+    SqlRawColumnMetadata metadata {};   //!< Metadata of the column
     std::span<std::byte const> data;    //!< Raw data of the column
     std::span<SQLLEN const> indicators; //!< Indicators of the column (SQL_NULL_DATA, SQL_DATA_AT_EXEC, etc.)
 };
@@ -54,6 +54,7 @@ struct SqlDataBinder<SqlRawColumn>
         {
             columnSize = value.metadata.bufferLength;
         }
+        columnSize = detail::NonZeroColumnSize(columnSize);
 
         return SQLBindParameter(stmt,
                                 column,
