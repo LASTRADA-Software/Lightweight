@@ -130,6 +130,60 @@ TEST_CASE_METHOD(SqlTestFixture, "Query", "[DataMapper]")
         CHECK(groupedCount == 2);
     }
 
+    SECTION("Having")
+    {
+        auto const isActive = FieldNameOf<Member(Person::is_active)>;
+        auto const age = FieldNameOf<Member(Person::age)>;
+
+        // Age > 30 leaves two active persons and one inactive person, so that exactly one group
+        // survives each of the HAVING conditions below. Swapping the bound values would ask for
+        // Age > 2 with a group size of 30, which selects nothing.
+        SECTION("Count()")
+        {
+            auto const whereFirst =
+                dm.Query<Person>().Where(age, ">", 30).GroupBy(isActive).Having(Aggregate::Count(), "=", 2).Count();
+            CHECK(whereFirst == 2);
+
+            auto const whereLast =
+                dm.Query<Person>().GroupBy(isActive).Having(Aggregate::Count(), "=", 2).Where(age, ">", 30).Count();
+            CHECK(whereLast == 2);
+
+            auto const noGroupLeft = dm.Query<Person>().GroupBy(isActive).Having(Aggregate::Count(), ">", 5).Count();
+            CHECK(noGroupLeft == 0);
+        }
+
+        SECTION("All() with one field")
+        {
+            // Age < 60 removes 69, and of the remaining 24, 36 and 42 only 42 passes HAVING. Swapped,
+            // the statement asks for Age < 40 and MAX(Age) > 60, which selects nothing.
+            auto const records = dm.Query<Person>()
+                                     .GroupBy(age)
+                                     .Having(Aggregate::Max(age), ">", 40)
+                                     .Where(age, "<", 60)
+                                     .All<Member(Person::age)>();
+            REQUIRE(records.size() == 1);
+            CHECK(records[0] == 42);
+        }
+
+        SECTION("First() with one field")
+        {
+            auto const record = dm.Query<Person>()
+                                    .Where(age, ">", 30)
+                                    .GroupBy(isActive)
+                                    .Having(Aggregate::Count(), "=", 2)
+                                    .First<Member(Person::is_active)>();
+            REQUIRE(record.has_value());
+            if (record.has_value())
+                CHECK(*record == true);
+        }
+
+        SECTION("Delete() refuses a HAVING it cannot honor")
+        {
+            CHECK_THROWS_AS(dm.Query<Person>().GroupBy(isActive).Having("COUNT(*) > 5").Delete(), std::logic_error);
+            CHECK(dm.Query<Person>().Count() == 4);
+        }
+    }
+
     SECTION("Exist()")
     {
         auto const existSome = dm.Query<Person>().Where(FieldNameOf<Member(Person::is_active)>, "=", true).Exist();
