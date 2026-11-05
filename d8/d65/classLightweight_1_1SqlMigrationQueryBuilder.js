@@ -20,7 +20,6 @@ var classLightweight_1_1SqlMigrationQueryBuilder =
     [ "Insert", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a864f9b5e3f759b096b505b66b999c887", null ],
     [ "Update", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a6f66ef03096fe468348719335050a313", null ],
     [ "Delete", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a2afef3a2429014aad1ec6d45b09f1a4b", null ],
-    [ "Native", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#adc8632d9a895fa48313ea74e4270494b", null ],
     [ "BeginTransaction", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#aa7662bd7885424c8970e4f11703a03a7", null ],
     [ "CommitTransaction", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a2110a679ca1c212fac36117cecd7bdfe", null ],
     [ "GetPlan", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a52eaec0c096b8f29fce67268c22cf433", null ],

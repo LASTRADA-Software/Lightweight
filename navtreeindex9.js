@@ -1,9 +1,5 @@
 var NAVTREEINDEX9 =
 {
-"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#af20606723a905996e482b453ed376886":[20,7,15,3],
-"de/dfe/structLightweight_1_1SqlText.html":[20,1,10],
-"de/dfe/structLightweight_1_1SqlText.html#a2626f10893b8f4a96e2a6d895a7dd0df":[20,1,10,2],
-"de/dfe/structLightweight_1_1SqlText.html#acb96ee68a3cc936ac16a50cb90d587d5":[20,1,10,0],
 "de/dfe/structLightweight_1_1SqlText.html#af5030d1caea50f2ac9251206e039201a":[20,1,10,1],
 "df/d0f/Pool_8hpp_source.html":[23,0,1,2,9],
 "df/d13/SqlQueryFormatter_8hpp_source.html":[23,0,1,29],
@@ -249,5 +245,9 @@ var NAVTREEINDEX9 =
 "functions_~.html":[22,2,0,26],
 "hierarchy.html":[22,1],
 "index.html":[0],
-"index.html":[]
+"index.html":[],
+"index.html#asynchronous-api":[0,9],
+"index.html#backup-and-restore":[0,8],
+"index.html#building-with-c20-modules":[0,13],
+"index.html#compile-using-c26-reflection-support":[0,12]
 };

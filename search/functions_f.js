@@ -8,6 +8,5 @@ var searchData=
   ['querylastinsertid_5',['QueryLastInsertId',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ae5c1899d98fac7ec8340f1cd0cfeae1a',1,'Lightweight::SqlQueryFormatter']]],
   ['queryserverversion_6',['QueryServerVersion',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a8513eaca58ba6015cecfd88973c18d4b',1,'Lightweight::SqlQueryFormatter']]],
   ['querysingle_7',['QuerySingle',['../de/d61/classLightweight_1_1DataMapper.html#a8a3bba1c99cbcff0f62611141fd1c219',1,'Lightweight::DataMapper']]],
-  ['querysingleasync_8',['QuerySingleAsync',['../de/d61/classLightweight_1_1DataMapper.html#a491f414bc1e2179dd7bad850142a2c89',1,'Lightweight::DataMapper']]],
-  ['querytimeout_9',['QueryTimeout',['../db/dad/classLightweight_1_1SqlStatement.html#a92acae8f6ca99259600b45172a3f975b',1,'Lightweight::SqlStatement']]]
+  ['querysingleasync_8',['QuerySingleAsync',['../de/d61/classLightweight_1_1DataMapper.html#a491f414bc1e2179dd7bad850142a2c89',1,'Lightweight::DataMapper']]]
 ];
