@@ -208,6 +208,7 @@ var NAVTREE =
         [ "Database-Specific Connection Strings", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#database-specific-connection-strings", null ]
       ] ],
       [ "Migration Commands", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#migration-commands", [
+        [ "new-migration <TITLE>", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#new-migration-title", null ],
         [ "migrate", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#migrate", [
           [ "Backup requirement", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup-requirement", null ],
           [ "Skipped rows", "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#skipped-rows", null ],
@@ -432,12 +433,12 @@ var NAVTREEINDEX =
 "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a70539241ba2c17c1ce40ce89ec177f55",
 "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a1f03a5faa280b0ae0ee688e3b9f40208",
 "d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html#a422627996645b60439cf9d156b24b753",
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2ec073a60fd4242445ce990a1840ccfe",
-"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#aa932d4c41c5524d2f96555968ef13a7d",
-"db/dca/classLightweight_1_1Async_1_1InlineExecutor.html#a263d2c5fd37ef7c07feccdeddf315fb3",
-"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup-diff",
-"de/dfe/structLightweight_1_1SqlText.html#af5030d1caea50f2ac9251206e039201a",
-"index.html#embedding-lightweight-from-source"
+"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2a8b5bd4208f5b50cb9e4e4e8cbc3922",
+"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a8aa3299f2941edf3cf1cdbdd383d980f",
+"db/dca/classLightweight_1_1Async_1_1InlineExecutor.html",
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup-before-migration",
+"de/dfe/structLightweight_1_1SqlText.html#a2626f10893b8f4a96e2a6d895a7dd0df",
+"index.html#building-with-c20-modules"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
