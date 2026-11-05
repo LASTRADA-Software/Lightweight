@@ -10,6 +10,11 @@
 namespace Lightweight::Async
 {
 
+#if defined(_MSC_VER)
+    #pragma warning(push)
+    #pragma warning(disable : 4251) // STL types in DLL interface
+#endif
+
 /// @ingroup Async
 /// Serializes work over an underlying executor (an Asio-style "strand").
 ///
@@ -61,5 +66,9 @@ class LIGHTWEIGHT_API StrandExecutor final: public IExecutor, public IResumeSche
 
     std::shared_ptr<State> _state;
 };
+
+#if defined(_MSC_VER)
+    #pragma warning(pop)
+#endif
 
 } // namespace Lightweight::Async

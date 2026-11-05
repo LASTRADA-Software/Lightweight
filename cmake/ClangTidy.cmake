@@ -4,7 +4,7 @@ option(ENABLE_TIDY "Enable clang-tidy [default: OFF]" OFF)
 # Report findings in this project's own headers only. Anchored to the source root rather than a
 # path shape, so neither the checkout's name nor a `src/` further up the path decides what is
 # analysed, and fetched dependencies under the build tree never match.
-set(LIGHTWEIGHT_CLANG_TIDY_HEADER_FILTER "--header-filter=^${CMAKE_SOURCE_DIR}/src/")
+set(LIGHTWEIGHT_CLANG_TIDY_HEADER_FILTER "--header-filter=^${PROJECT_SOURCE_DIR}/src/")
 if(ENABLE_TIDY)
     find_program(CLANG_TIDY_EXE
         NAMES clang-tidy

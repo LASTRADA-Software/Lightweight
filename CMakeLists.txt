@@ -4,7 +4,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(Version)
 GetVersionInformation(LIGHTWEIGHT_VERSION LIGHTWEIGHT_VERSION_STRING)
-file(WRITE "${CMAKE_BINARY_DIR}/version.txt" "${LIGHTWEIGHT_VERSION_STRING}")
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/version.txt" "${LIGHTWEIGHT_VERSION_STRING}")
 project(Lightweight VERSION "${LIGHTWEIGHT_VERSION}" LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -12,6 +12,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_COLOR_DIAGNOSTICS ON)
+
+# These developer switches have generic names a host project may use for its own build. Embedded,
+# they are shadowed as OFF in this directory, so a host's value cannot instrument Lightweight's
+# targets or add its coverage targets, and option() below leaves no cache entry in the host.
+if(NOT PROJECT_IS_TOP_LEVEL)
+    foreach(_lightweight_developer_option
+            ENABLE_TIDY
+            PEDANTIC_COMPILER PEDANTIC_COMPILER_WERROR
+            ENABLE_SANITIZER_ADDRESS ENABLE_SANITIZER_UNDEFINED ENABLE_SANITIZER_THREAD
+            ENABLE_COVERAGE)
+        set(${_lightweight_developer_option} OFF)
+    endforeach()
+    unset(_lightweight_developer_option)
+endif()
 
 include(ClangTidy)
 include(PedanticCompiler)
@@ -23,8 +37,12 @@ include(GNUInstallDirs)
 # -> ccache -> none; sccache only with -DALLOW_SCCACHE_FALLBACK=ON. Included
 # before any fetched dependency (the CPMAddPackage calls below) so those get
 # cached too. See cmake/CompileCache.cmake for the full selection logic; it
-# declares its own USE_COMPILER_CACHE/PACE_ADDR options.
-include(CompileCache)
+# declares its own USE_COMPILER_CACHE/PACE_ADDR options. Only for a top-level
+# build: when Lightweight is embedded, the compiler launcher, its cache options
+# and the path maps rooted at the source tree are the host project's to choose.
+if(PROJECT_IS_TOP_LEVEL)
+    include(CompileCache)
+endif()
 
 find_package(reflection-cpp 0.4.0 QUIET)
 find_package(Catch2 CONFIG REQUIRED)
@@ -119,6 +137,8 @@ else()
     )
     # EXCLUDE_FROM_ALL drops reflection-cpp's install rules too, but the installed Lightweight package
     # needs it (find_dependency in Lightweight-config.cmake), so install it with the SDK component.
+    # Embedded, this rule belongs to Lightweight's install rules like any other and is dropped with
+    # them when the host adds Lightweight with EXCLUDE_FROM_ALL.
     install(CODE "
         set(_lightweight_install_component \"\${CMAKE_INSTALL_COMPONENT}\")
         set(CMAKE_INSTALL_COMPONENT Unspecified)
@@ -159,9 +179,13 @@ set(LIGHTWEIGHT_STDEXEC_GIT_TAG "nvhpc-26.05" CACHE STRING
 set(LIGHTWEIGHT_STDEXEC_MIN_VERSION "0.9.0" CACHE STRING
     "Minimum stdexec version accepted from find_package (older has a broken static_thread_pool domain on MSVC)")
 
-set(STDEXEC_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
-set(STDEXEC_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(STDEXEC_ENABLE_TBB     OFF CACHE BOOL "" FORCE)
+# Defaults for a CPM-fetched stdexec; a value the host project already set is left alone.
+foreach(_lightweight_stdexec_option STDEXEC_BUILD_TESTS STDEXEC_BUILD_EXAMPLES STDEXEC_ENABLE_TBB)
+    if(NOT DEFINED ${_lightweight_stdexec_option})
+        set(${_lightweight_stdexec_option} OFF CACHE BOOL "")
+    endif()
+endforeach()
+unset(_lightweight_stdexec_option)
 
 find_package(stdexec CONFIG QUIET)
 if(stdexec_FOUND AND stdexec_VERSION VERSION_LESS LIGHTWEIGHT_STDEXEC_MIN_VERSION)
@@ -282,8 +306,13 @@ if(LIGHTWEIGHT_ENABLE_TRACY)
         message(STATUS "Tracy profiler found via find_package")
     else()
         message(STATUS "Tracy not found via find_package - downloading via CPM")
-        set(TRACY_ENABLE ON CACHE BOOL "" FORCE)
-        set(TRACY_ON_DEMAND ON CACHE BOOL "" FORCE)
+        # Defaults only; a host project that configures Tracy itself keeps its settings.
+        if(NOT DEFINED TRACY_ENABLE)
+            set(TRACY_ENABLE ON CACHE BOOL "")
+        endif()
+        if(NOT DEFINED TRACY_ON_DEMAND)
+            set(TRACY_ON_DEMAND ON CACHE BOOL "")
+        endif()
         CPMAddPackage(
             NAME tracy
             GITHUB_REPOSITORY wolfpld/tracy
@@ -364,14 +393,32 @@ endif()
 if(DEFINED MSVC)
     add_definitions(-D_USE_MATH_DEFINES)
     add_definitions(-DNOMINMAX)
+    # Lightweight's sources are UTF-8. Charset options a host project passes down through
+    # add_subdirectory would clash with /utf-8 (cl D8016), so they do not apply to this tree.
+    get_directory_property(_lightweightCompileOptions COMPILE_OPTIONS)
+    list(FILTER _lightweightCompileOptions EXCLUDE REGEX "[-/](source-charset|execution-charset|utf-8)")
+    set_directory_properties(PROPERTIES COMPILE_OPTIONS "${_lightweightCompileOptions}")
+    unset(_lightweightCompileOptions)
+    string(REGEX REPLACE "[-/](source-charset|execution-charset):[^ ]*|[-/]utf-8" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
     add_compile_options(/utf-8)
     add_compile_options(/nologo)
 endif()
 
 if(WIN32)
     # For Windows platform, we make sure that DLLs and EXEs are placed into the same directory.
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/target CACHE STRING "")
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/target CACHE STRING "")
+    # Embedded, the host project's output directories win, and Lightweight's own default stays
+    # a plain variable of this directory so it never lands in the host's cache.
+    if(PROJECT_IS_TOP_LEVEL)
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/target CACHE STRING "")
+        set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/target CACHE STRING "")
+    else()
+        if(NOT DEFINED CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+            set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/target)
+        endif()
+        if(NOT DEFINED CMAKE_LIBRARY_OUTPUT_DIRECTORY)
+            set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/target)
+        endif()
+    endif()
 endif()
 
 enable_testing()
