@@ -82,6 +82,22 @@ namespace detail
     template <typename LiteralType, typename TargetType>
     void AppendLiteralValueInto(LiteralType const& value, TargetType& target, SqlQueryFormatter const& formatter);
 
+    /// @brief Writes the value of a WHERE or HAVING term, as a bound parameter where one is possible.
+    ///
+    /// @param value          The value to write. Column names, NULL, wildcards and raw conditions have
+    ///                       no parameter form and are always written into @p target.
+    /// @param target         The fragment to append to.
+    /// @param inputBindings  Receives the value if not null, in which case @p target receives a marker.
+    /// @param bindingsBehind How many bindings belong to markers further along in the statement than
+    ///                       this one; the value is inserted ahead of them.
+    /// @param formatter      Supplies the dialect's spelling of a boolean literal.
+    template <typename LiteralType>
+    void AppendConditionValue(LiteralType const& value,
+                              std::string& target,
+                              std::vector<SqlVariant>* inputBindings,
+                              std::size_t bindingsBehind,
+                              SqlQueryFormatter const& formatter);
+
 } // namespace detail
 
 /// @brief Helper function to create a SqlQualifiedTableColumnName from string_view
@@ -170,6 +186,12 @@ struct [[nodiscard]] SqlSearchCondition
     /// inserted ahead of the WHERE values rather than appended. Tracking the count is what keeps
     /// the vector in statement order however the caller interleaves joins and WHERE terms.
     std::size_t joinBindingCount = 0;
+
+    /// How many of @c inputBindings were contributed by the HAVING clause.
+    ///
+    /// HAVING follows the WHERE clause in the statement, so a WHERE value bound after a HAVING value
+    /// is inserted ahead of it rather than appended, which keeps the vector in statement order.
+    std::size_t havingBindingCount = 0;
 
     /// The table hint rendered after the FROM table (and its alias) and after each joined table (and
     /// its alias), such as SQL Server's `" WITH (READUNCOMMITTED)"`; empty for none.
@@ -629,12 +651,29 @@ class [[nodiscard]] SqlWhereClauseBuilder
         requires std::invocable<OnChainCallable, SqlJoinConditionBuilder>
     [[nodiscard]] Derived& FullOuterJoin(TableName auto joinTable, OnChainCallable const& onClauseBuilder);
 
-  private:
-    /// The search condition of the derived builder, which SqlWhereClauseBuilder does not own itself.
-    [[nodiscard]] SqlSearchCondition& DerivedSearchCondition() noexcept;
+  protected:
+    /// What And(), Or() and Not() asked of the next condition.
+    struct PendingConnective
+    {
+        /// Whether Or() was called; AND is the default otherwise.
+        bool isOr = false;
+        /// Whether Not() was called.
+        bool isNot = false;
+    };
+
+    /// Hands a pending And(), Or() or Not() over to a term of the HAVING clause.
+    ///
+    /// They are called on the shared builder, so they cannot tell which clause they are for. Leaving
+    /// them behind would make the next Where() begin with AND or OR rather than WHERE.
+    /// @return The connective requested; the WHERE clause continues as though it had not been asked.
+    [[nodiscard]] PendingConnective TakePendingConnective() noexcept;
 
     /// The formatter of the derived builder, which SqlWhereClauseBuilder does not own itself.
     [[nodiscard]] SqlQueryFormatter const& DerivedFormatter() const noexcept;
+
+  private:
+    /// The search condition of the derived builder, which SqlWhereClauseBuilder does not own itself.
+    [[nodiscard]] SqlSearchCondition& DerivedSearchCondition() noexcept;
 
     enum class WhereJunctor : uint8_t
     {
@@ -734,6 +773,11 @@ namespace detail
         bool projectionHasWildcard = false;
 
         std::string orderBy;
+
+        /// @brief The GROUP BY clause, followed by the HAVING clause if there is one.
+        ///
+        /// HAVING directly follows GROUP BY in every dialect, so they travel as one fragment and every
+        /// formatter and every finalizer that honors GROUP BY honors HAVING with it.
         std::string groupBy;
 
         size_t offset = 0;
@@ -757,6 +801,18 @@ namespace detail
     };
 } // namespace detail
 
+/// @brief A SQL expression usable as a projection or as the left side of a HAVING term.
+///
+/// The factories in the @c Aggregate namespace create the common ones. The text is written into the
+/// statement verbatim, so it must not contain untrusted input.
+///
+/// @ingroup QueryBuilder
+struct [[nodiscard]] SqlFieldExpression final
+{
+    /// The SQL text of the expression.
+    std::string expression;
+};
+
 template <typename Derived>
 class [[nodiscard]] SqlBasicSelectQueryBuilder: public SqlWhereClauseBuilder<Derived>
 {
@@ -772,18 +828,111 @@ class [[nodiscard]] SqlBasicSelectQueryBuilder: public SqlWhereClauseBuilder<Der
     Derived& OrderBy(std::string_view columnName, SqlResultOrdering ordering = SqlResultOrdering::ASCENDING);
 
     /// Constructs or extends a GROUP BY clause.
+    ///
+    /// @throws std::logic_error if Having() was already called, since the columns must precede it.
     Derived& GroupBy(std::string_view columnName);
 
     /// Constructs or extends a GROUP BY clause with a qualified column name.
+    ///
+    /// @throws std::logic_error if Having() was already called, since the columns must precede it.
     Derived& GroupBy(SqlQualifiedTableColumnName const& columnName);
+
+    /// Constructs or extends a HAVING clause, comparing an aggregate against a value.
+    ///
+    /// Terms are AND-ed unless Or() precedes them; And(), Or() and Not() apply to the next term of
+    /// either clause. Like a Where() value, @p value is bound when the query was given a bindings
+    /// vector and written into the statement text otherwise; the bindings stay in statement order
+    /// (ON, WHERE, HAVING) however the calls are interleaved.
+    ///
+    /// @tparam T The value's type.
+    /// @param aggregate The left side, such as `Aggregate::Count()` or `Aggregate::Sum("amount")`.
+    /// @param binaryOp  The SQL comparison operator, written verbatim, as in Where().
+    /// @param value     The value to compare against.
+    /// @return The query builder, for chaining.
+    /// @throws std::logic_error if no GroupBy() precedes it.
+    template <typename T>
+    [[nodiscard]] Derived& Having(SqlFieldExpression const& aggregate, std::string_view binaryOp, T const& value);
+
+    /// @copydoc Having(SqlFieldExpression const&, std::string_view, T const&)
+    template <std::size_t N>
+    [[nodiscard]] Derived& Having(SqlFieldExpression const& aggregate, std::string_view binaryOp, char const (&value)[N]);
+
+    /// Constructs or extends a HAVING clause with a raw SQL condition, written verbatim.
+    ///
+    /// @param rawSqlCondition The condition. It must not contain untrusted input.
+    /// @return The query builder, for chaining.
+    /// @throws std::logic_error if no GroupBy() precedes it.
+    [[nodiscard]] Derived& Having(std::string_view rawSqlCondition);
+
+    /// Constructs or extends a HAVING clause with a parenthesized group of terms.
+    ///
+    /// A group that adds no term adds nothing to the statement.
+    ///
+    /// @param group Called with this builder to add the terms of the group.
+    /// @return The query builder, for chaining.
+    /// @throws std::logic_error if no GroupBy() precedes it.
+    template <typename Callable>
+        requires std::invocable<Callable, Derived&>
+    [[nodiscard]] Derived& Having(Callable const& group);
+
+    /// Like Having(SqlFieldExpression const&, std::string_view, T const&), but OR-ed with the previous term.
+    ///
+    /// @tparam T The value's type.
+    /// @param aggregate The left side, such as `Aggregate::Count()` or `Aggregate::Sum("amount")`.
+    /// @param binaryOp  The SQL comparison operator, written verbatim, as in Where().
+    /// @param value     The value to compare against.
+    /// @return The query builder, for chaining.
+    /// @throws std::logic_error if no GroupBy() precedes it.
+    template <typename T>
+    [[nodiscard]] Derived& OrHaving(SqlFieldExpression const& aggregate, std::string_view binaryOp, T const& value);
+
+    /// Like Having(std::string_view), but OR-ed with the previous term.
+    ///
+    /// @param rawSqlCondition The condition. It must not contain untrusted input.
+    /// @return The query builder, for chaining.
+    /// @throws std::logic_error if no GroupBy() precedes it.
+    [[nodiscard]] Derived& OrHaving(std::string_view rawSqlCondition);
+
+    /// Like Having(Callable const&), but OR-ed with the previous term.
+    ///
+    /// @param group Called with this builder to add the terms of the group.
+    /// @return The query builder, for chaining.
+    /// @throws std::logic_error if no GroupBy() precedes it.
+    template <typename Callable>
+        requires std::invocable<Callable, Derived&>
+    [[nodiscard]] Derived& OrHaving(Callable const& group);
 
     using ComposedQuery = detail::ComposedQuery;
 
   protected:
+    /// Whether the query has a HAVING term, for finalizers that cannot honor one.
+    /// @return True once Having() or OrHaving() added a term.
+    [[nodiscard]] bool HasHavingClause() const noexcept
+    {
+        return _nextHavingTerm != NextHavingTerm::OpensClause;
+    }
+
     // mutable so const finalizers / projection-helpers can delegate to the
     // non-const implementations via const_cast (idiomatic builder pattern —
     // the observable const-state is the produced SQL, not the accumulator).
     mutable ComposedQuery _query {}; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes)
+
+  private:
+    /// What has to precede the next term of the HAVING clause.
+    enum class NextHavingTerm : std::uint8_t
+    {
+        OpensClause,
+        OpensGroup,
+        Continues,
+    };
+
+    /// Starts a GROUP BY column: the clause keyword or a comma.
+    void AppendGroupBySeparator();
+
+    /// Starts a HAVING term: the clause keyword or a junctor, plus NOT if requested.
+    void AppendHavingJunctor();
+
+    NextHavingTerm _nextHavingTerm = NextHavingTerm::OpensClause;
 };
 
 template <typename Derived>
@@ -840,10 +989,7 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlBasicSelectQueryBuilder<Derived>::Or
 template <typename Derived>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlBasicSelectQueryBuilder<Derived>::GroupBy(std::string_view columnName)
 {
-    if (_query.groupBy.empty())
-        _query.groupBy += "\n GROUP BY ";
-    else
-        _query.groupBy += ", ";
+    AppendGroupBySeparator();
 
     _query.groupBy += '"';
     _query.groupBy += columnName;
@@ -856,10 +1002,7 @@ template <typename Derived>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlBasicSelectQueryBuilder<Derived>::GroupBy(
     SqlQualifiedTableColumnName const& columnName)
 {
-    if (_query.groupBy.empty())
-        _query.groupBy += "\n GROUP BY ";
-    else
-        _query.groupBy += ", ";
+    AppendGroupBySeparator();
 
     _query.groupBy += '"';
     _query.groupBy += columnName.tableName;
@@ -868,6 +1011,133 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlBasicSelectQueryBuilder<Derived>::Gr
     _query.groupBy += '"';
 
     return static_cast<Derived&>(*this);
+}
+
+template <typename Derived>
+inline void SqlBasicSelectQueryBuilder<Derived>::AppendGroupBySeparator()
+{
+    if (HasHavingClause())
+        throw std::logic_error { "GroupBy() was called after Having(); the GROUP BY columns must come first." };
+
+    if (_query.groupBy.empty())
+        _query.groupBy += "\n GROUP BY ";
+    else
+        _query.groupBy += ", ";
+}
+
+template <typename Derived>
+inline void SqlBasicSelectQueryBuilder<Derived>::AppendHavingJunctor()
+{
+    if (_query.groupBy.empty())
+        throw std::logic_error { "Having() requires a preceding GroupBy()." };
+
+    auto const pending = this->TakePendingConnective();
+
+    switch (_nextHavingTerm)
+    {
+        case NextHavingTerm::OpensClause:
+            _query.groupBy += "\n HAVING ";
+            break;
+        case NextHavingTerm::OpensGroup:
+            break;
+        case NextHavingTerm::Continues:
+            _query.groupBy += pending.isOr ? " OR " : " AND ";
+            break;
+    }
+
+    if (pending.isNot)
+        _query.groupBy += "NOT ";
+
+    _nextHavingTerm = NextHavingTerm::Continues;
+}
+
+template <typename Derived>
+template <typename T>
+inline Derived& SqlBasicSelectQueryBuilder<Derived>::Having(SqlFieldExpression const& aggregate,
+                                                            std::string_view binaryOp,
+                                                            T const& value)
+{
+    AppendHavingJunctor();
+
+    _query.groupBy += aggregate.expression;
+    _query.groupBy += ' ';
+    _query.groupBy += binaryOp;
+    _query.groupBy += ' ';
+
+    auto* const inputBindings = _query.searchCondition.inputBindings;
+    auto const bindingsBefore = inputBindings != nullptr ? inputBindings->size() : 0;
+    detail::AppendConditionValue(value, _query.groupBy, inputBindings, 0, this->DerivedFormatter());
+    if (inputBindings != nullptr)
+        _query.searchCondition.havingBindingCount += inputBindings->size() - bindingsBefore;
+
+    return static_cast<Derived&>(*this);
+}
+
+template <typename Derived>
+template <std::size_t N>
+inline Derived& SqlBasicSelectQueryBuilder<Derived>::Having(SqlFieldExpression const& aggregate,
+                                                            std::string_view binaryOp,
+                                                            char const (&value)[N])
+{
+    return Having(aggregate, binaryOp, std::string_view { value, N - 1 });
+}
+
+template <typename Derived>
+inline Derived& SqlBasicSelectQueryBuilder<Derived>::Having(std::string_view rawSqlCondition)
+{
+    AppendHavingJunctor();
+    _query.groupBy += rawSqlCondition;
+    return static_cast<Derived&>(*this);
+}
+
+template <typename Derived>
+template <typename Callable>
+    requires std::invocable<Callable, Derived&>
+inline Derived& SqlBasicSelectQueryBuilder<Derived>::Having(Callable const& group)
+{
+    auto const originalSize = _query.groupBy.size();
+    auto const originalNextTerm = _nextHavingTerm;
+
+    AppendHavingJunctor();
+    _nextHavingTerm = NextHavingTerm::OpensGroup;
+    _query.groupBy += '(';
+
+    auto const sizeBeforeGroup = _query.groupBy.size();
+    (void) group(static_cast<Derived&>(*this));
+
+    if (_query.groupBy.size() == sizeBeforeGroup)
+    {
+        // "()" is not valid SQL in any dialect, so an empty group leaves no trace.
+        _query.groupBy.resize(originalSize);
+        _nextHavingTerm = originalNextTerm;
+    }
+    else
+        _query.groupBy += ')';
+
+    return static_cast<Derived&>(*this);
+}
+
+template <typename Derived>
+template <typename T>
+inline Derived& SqlBasicSelectQueryBuilder<Derived>::OrHaving(SqlFieldExpression const& aggregate,
+                                                              std::string_view binaryOp,
+                                                              T const& value)
+{
+    return this->Or().Having(aggregate, binaryOp, value);
+}
+
+template <typename Derived>
+inline Derived& SqlBasicSelectQueryBuilder<Derived>::OrHaving(std::string_view rawSqlCondition)
+{
+    return this->Or().Having(rawSqlCondition);
+}
+
+template <typename Derived>
+template <typename Callable>
+    requires std::invocable<Callable, Derived&>
+inline Derived& SqlBasicSelectQueryBuilder<Derived>::OrHaving(Callable const& group)
+{
+    return this->Or().Having(group);
 }
 
 template <typename Derived>
@@ -1303,6 +1573,18 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereRa
 }
 
 template <typename Derived>
+inline auto SqlWhereClauseBuilder<Derived>::TakePendingConnective() noexcept -> PendingConnective
+{
+    auto const pending = PendingConnective { .isOr = m_nextWhereJunctor == WhereJunctor::Or, .isNot = m_nextIsNot };
+
+    m_nextIsNot = false;
+    if (m_nextWhereJunctor == WhereJunctor::And || m_nextWhereJunctor == WhereJunctor::Or)
+        m_nextWhereJunctor = DerivedSearchCondition().condition.empty() ? WhereJunctor::Where : WhereJunctor::And;
+
+    return pending;
+}
+
+template <typename Derived>
 inline LIGHTWEIGHT_FORCE_INLINE SqlSearchCondition& SqlWhereClauseBuilder<Derived>::DerivedSearchCondition() noexcept
 {
     return static_cast<Derived*>(this)->SearchCondition();
@@ -1362,36 +1644,11 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlWhereClauseBuilder<Derived>::AppendLiter
 {
     auto& searchCondition = DerivedSearchCondition();
 
-    if constexpr (std::is_same_v<LiteralType, SqlQualifiedTableColumnName>
-                  || detail::OneOf<LiteralType, SqlNullType, std::nullopt_t> || std::is_same_v<LiteralType, SqlWildcardType>
-                  || std::is_same_v<LiteralType, detail::RawSqlCondition>)
-    {
-        PopulateLiteralValueInto(value, searchCondition.condition);
-    }
-    else if (searchCondition.inputBindings)
-    {
-        searchCondition.condition += '?';
-        searchCondition.inputBindings->emplace_back(value);
-    }
-    else if constexpr (detail::IsBinaryLiteral<LiteralType>)
-    {
-        // Formatting it would put a description of the value, not the value, into the SQL text.
-        throw std::invalid_argument { "A binary value cannot be written into the SQL text as a literal. Compare it "
-                                      "through a query that binds its values (e.g. DataMapper::Query()), or bind it "
-                                      "to a SqlWildcard placeholder." };
-    }
-    else if constexpr (std::is_same_v<LiteralType, bool>)
-    {
-        searchCondition.condition += DerivedFormatter().BooleanLiteral(value);
-    }
-    else if constexpr (!WhereConditionLiteralType<LiteralType>::needsQuotes)
-    {
-        searchCondition.condition += std::format("{}", value);
-    }
-    else
-    {
-        searchCondition.condition += detail::MakeEscapedSqlString(std::format("{}", value));
-    }
+    detail::AppendConditionValue(value,
+                                 searchCondition.condition,
+                                 searchCondition.inputBindings,
+                                 searchCondition.havingBindingCount,
+                                 DerivedFormatter());
 }
 
 namespace detail
@@ -1431,6 +1688,38 @@ namespace detail
         else
         {
             target += detail::MakeEscapedSqlString(std::format("{}", value));
+        }
+    }
+
+    template <typename LiteralType>
+    void AppendConditionValue(LiteralType const& value,
+                              std::string& target,
+                              std::vector<SqlVariant>* inputBindings,
+                              std::size_t bindingsBehind,
+                              SqlQueryFormatter const& formatter)
+    {
+        if constexpr (std::is_same_v<LiteralType, SqlQualifiedTableColumnName>
+                      || detail::OneOf<LiteralType, SqlNullType, std::nullopt_t>
+                      || std::is_same_v<LiteralType, SqlWildcardType>
+                      || std::is_same_v<LiteralType, detail::RawSqlCondition>)
+        {
+            AppendLiteralValueInto(value, target, formatter);
+        }
+        else if (inputBindings)
+        {
+            target += '?';
+            inputBindings->emplace(inputBindings->end() - static_cast<std::ptrdiff_t>(bindingsBehind), value);
+        }
+        else if constexpr (detail::IsBinaryLiteral<LiteralType>)
+        {
+            // Formatting it would put a description of the value, not the value, into the SQL text.
+            throw std::invalid_argument { "A binary value cannot be written into the SQL text as a literal. Compare it "
+                                          "through a query that binds its values (e.g. DataMapper::Query()), or bind it "
+                                          "to a SqlWildcard placeholder." };
+        }
+        else
+        {
+            AppendLiteralValueInto(value, target, formatter);
         }
     }
 
@@ -1492,7 +1781,10 @@ detail::RawSqlCondition SqlWhereClauseBuilder<Derived>::PopulateSqlSetExpression
             if (bindValues)
             {
                 fragment << '?';
-                searchCondition.inputBindings->emplace_back(asBindable(value));
+                // Ahead of any HAVING values, because the WHERE clause precedes the HAVING clause.
+                searchCondition.inputBindings->emplace(searchCondition.inputBindings->end()
+                                                           - static_cast<std::ptrdiff_t>(searchCondition.havingBindingCount),
+                                                       asBindable(value));
                 return;
             }
         }
