@@ -44,7 +44,7 @@ if(PROJECT_IS_TOP_LEVEL)
     include(CompileCache)
 endif()
 
-find_package(reflection-cpp 0.4.0 QUIET)
+find_package(reflection-cpp 0.5.0 QUIET)
 find_package(Catch2 CONFIG REQUIRED)
 find_package(yaml-cpp CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG QUIET)
@@ -131,7 +131,7 @@ else()
     CPMAddPackage(
         NAME reflection-cpp
         GITHUB_REPOSITORY contour-terminal/reflection-cpp
-        GIT_TAG master
+        GIT_TAG v0.5.0
         EXCLUDE_FROM_ALL YES
         SYSTEM YES
     )

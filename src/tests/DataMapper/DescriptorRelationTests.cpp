@@ -31,7 +31,7 @@ struct DescribedAlbum;
 struct DescribedArtist
 {
     Field<int32_t, PrimaryKey::AutoAssign, SqlRealName { "ArtistId" }> artistId {};
-    Field<SqlAnsiString<64>, SqlRealName { "Name" }> name {};
+    Field<SqlAnsiString<64>, SqlRealName { "Name" }> name;
 
     HasMany<DescribedAlbum> albums {};
 };
@@ -39,8 +39,8 @@ struct DescribedArtist
 struct DescribedAlbum
 {
     Field<int32_t, PrimaryKey::AutoAssign, SqlRealName { "AlbumId" }> albumId {};
-    Field<SqlAnsiString<64>, SqlRealName { "Title" }> title {};
-    BelongsTo<Member(DescribedArtist::artistId), SqlRealName { "ArtistId" }> artist {};
+    Field<SqlAnsiString<64>, SqlRealName { "Title" }> title;
+    BelongsTo<Member(DescribedArtist::artistId), SqlRealName { "ArtistId" }> artist;
 };
 
 template <>

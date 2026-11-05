@@ -53,16 +53,16 @@ TEST_CASE("BelongsTo traits: IsMandatory / IsOptional / IsPrimaryKey", "[Belongs
 
 TEST_CASE("BelongsTo<&User::id>: default-constructed is empty", "[BelongsTo]")
 {
-    Email email;
-    CHECK_FALSE(static_cast<bool>(email.user));
-    CHECK(!email.user);
+    // Only a nullable relationship is default-constructible; a mandatory one must be given a key.
+    NullableForeignKeyUser const record;
+    CHECK_FALSE(static_cast<bool>(record.user));
+    CHECK(!record.user);
 }
 
 TEST_CASE("BelongsTo<&User::id>: construction from a SqlGuid", "[BelongsTo]")
 {
     auto const guid = SqlGuid::Create();
-    Email email;
-    email.user = guid;
+    auto const email = Email { .address = "", .user = guid };
 
     CHECK(static_cast<bool>(email.user));
     CHECK(email.user.Value() == guid);
@@ -74,7 +74,7 @@ TEST_CASE("BelongsTo<&User::id>: construction from a SqlGuid", "[BelongsTo]")
 
 TEST_CASE("BelongsTo<&User::id>: SetModified flips the dirty flag", "[BelongsTo]")
 {
-    Email email;
+    auto email = Email { .address = "", .user = SqlGuid {} };
     email.user.SetModified(false);
     CHECK_FALSE(email.user.IsModified());
 
@@ -85,7 +85,7 @@ TEST_CASE("BelongsTo<&User::id>: SetModified flips the dirty flag", "[BelongsTo]
 TEST_CASE("BelongsTo<&User::id>: assigning a referenced-record marks it modified", "[BelongsTo]")
 {
     User const u { .id = SqlGuid::Create(), .name = SqlAnsiString<30> { "Alice" } };
-    Email email;
+    auto email = Email { .address = "", .user = SqlGuid {} };
     email.user.SetModified(false);
 
     User mutableU = u;
@@ -100,7 +100,7 @@ TEST_CASE("BelongsTo<&User::id>: assigning a referenced-record marks it modified
 
 TEST_CASE("BelongsTo<&User::id>: assignment from SqlNullValue clears the foreign key", "[BelongsTo]")
 {
-    Email email;
+    auto email = Email { .address = "", .user = SqlGuid {} };
     email.user = SqlGuid::Create();
     REQUIRE(static_cast<bool>(email.user));
 
@@ -119,12 +119,9 @@ TEST_CASE("BelongsTo<&User::id>: equality and ordering against another BelongsTo
     auto const guid1 = RequireParsed("00000000-0000-1000-8000-000000000001");
     auto const guid2 = RequireParsed("00000000-0000-1000-8000-000000000002");
 
-    Email a;
-    Email b;
-    Email c;
-    a.user = guid1;
-    b.user = guid1;
-    c.user = guid2;
+    auto const a = Email { .address = "", .user = guid1 };
+    auto const b = Email { .address = "", .user = guid1 };
+    auto const c = Email { .address = "", .user = guid2 };
 
     CHECK(a.user == b.user);
     CHECK(a.user != c.user);
@@ -137,8 +134,7 @@ TEST_CASE("BelongsTo<&User::id>: equality against the underlying Field", "[Belon
     auto const guid = SqlGuid::Create();
     User u { .id = guid, .name = SqlAnsiString<30> { "X" } };
 
-    Email email;
-    email.user = guid;
+    auto const email = Email { .address = "", .user = guid };
 
     CHECK(email.user == u.id);
     CHECK_FALSE(email.user != u.id);
@@ -150,7 +146,7 @@ TEST_CASE("BelongsTo<&User::id>: equality against the underlying Field", "[Belon
 
 TEST_CASE("BelongsTo<&User::id>::EmplaceRecord constructs a fresh referenced record", "[BelongsTo]")
 {
-    Email email;
+    auto email = Email { .address = "", .user = SqlGuid {} };
     auto& user = email.user.EmplaceRecord();
     user.name = SqlAnsiString<30> { "Bob" };
 
@@ -165,7 +161,7 @@ TEST_CASE("BelongsTo<&User::id>::EmplaceRecord constructs a fresh referenced rec
 TEST_CASE("BelongsTo<&User::id>: copy preserves the foreign key", "[BelongsTo]")
 {
     auto const guid = SqlGuid::Create();
-    Email original;
+    auto original = Email { .address = "", .user = SqlGuid {} };
     original.user = guid;
 
     Email const copy = original;
@@ -187,7 +183,7 @@ TEST_CASE("BelongsTo<&User::id>: move preserves the foreign key", "[BelongsTo]")
 
 TEST_CASE("BelongsTo<&User::id>: operator bool reflects emptiness", "[BelongsTo]")
 {
-    Email email;
+    auto email = Email { .address = "", .user = SqlGuid {} };
     CHECK(!email.user);
     CHECK_FALSE(static_cast<bool>(email.user));
 

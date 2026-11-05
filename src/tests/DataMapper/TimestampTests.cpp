@@ -27,7 +27,7 @@ using namespace Lightweight;
 struct TimestampArticle
 {
     Field<SqlGuid, PrimaryKey::AutoAssign> id {};
-    Field<SqlAnsiString<40>> title {};
+    Field<SqlAnsiString<40>> title;
     Field<SqlDateTime, FieldTimestamp::CreatedAt> createdAt {};
     Field<SqlDateTime, FieldTimestamp::UpdatedAt, SqlRealName { "updated_at" }> updatedAt {};
 
@@ -38,7 +38,7 @@ struct TimestampArticle
 struct TimestampNote
 {
     Field<SqlGuid, PrimaryKey::AutoAssign> id {};
-    Field<SqlAnsiString<40>> body {};
+    Field<SqlAnsiString<40>> body;
     Field<std::optional<SqlDateTime>, SqlRealName { "created_at" }, FieldTimestamp::CreatedAt> createdAt {};
     Field<std::optional<SqlDateTime>, FieldTimestamp::UpdatedAt> updatedAt {};
 

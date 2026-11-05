@@ -453,9 +453,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlStatistics captures Execute and fetch throu
     auto dm = DataMapper {};
     dm.CreateTable<Person>();
 
-    auto person = Person {};
-    person.name = "John";
-    person.is_active = true;
+    auto person = Person { .name = "John", .is_active = true };
     dm.Create(person);
 
     auto const all = dm.Query<Person>().All();

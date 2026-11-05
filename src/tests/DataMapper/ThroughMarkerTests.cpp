@@ -32,7 +32,7 @@ struct Authorship;
 struct Author
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<32>> name {};
+    Field<SqlAnsiString<32>> name;
 
     // The deprecated spelling, kept compiling for one release.
     HasManyThrough<Book, Authorship> books {};
@@ -41,7 +41,7 @@ struct Author
 struct Book
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<32>> title {};
+    Field<SqlAnsiString<32>> title;
 
     // The spelling that replaces it.
     HasManyThrough<Author, Through<Authorship>> authors {};
@@ -50,8 +50,8 @@ struct Book
 struct Authorship
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    BelongsTo<Member(Author::id)> author {};
-    BelongsTo<Member(Book::id)> book {};
+    BelongsTo<Member(Author::id)> author;
+    BelongsTo<Member(Book::id)> book;
 };
 
 // The marker itself.
