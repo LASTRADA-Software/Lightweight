@@ -3980,4 +3980,79 @@ TEST_CASE_METHOD(SqlTestFixture, "Single-character string round-trip", "[SqlData
     }
 }
 
+// detail::ReadRawColumnArrayData is the body of GetRawColumnArrayData with its SQLGetData call made
+// replaceable. No conforming driver reports these indicators, so a scripted source is the only way to
+// reach the checks. An unchecked negative indicator became a huge size for resize(), and since the
+// function is noexcept the resulting std::length_error ended the process.
+TEST_CASE("GetRawColumnArrayData: length indicators", "[SqlDataBinder]")
+{
+    auto const read = [](std::vector<std::pair<SQLRETURN, SQLLEN>> const& script) {
+        auto result = std::u16string(8, u'x');
+        auto indicator = SQLLEN {};
+        auto next = std::size_t { 0 };
+        auto const returned = detail::ReadRawColumnArrayData<SQL_C_WCHAR>(
+            [&](SQLPOINTER /*buffer*/, SQLLEN /*bufferBytes*/, SQLLEN* reported) noexcept -> SQLRETURN {
+                if (next >= script.size())
+                    return SQL_ERROR;
+                auto const& [scriptedReturn, scriptedIndicator] = script[next++];
+                *reported = scriptedIndicator;
+                return scriptedReturn;
+            },
+            &result,
+            &indicator);
+        return std::pair { returned, result };
+    };
+
+    SECTION("values a conforming driver reports keep working")
+    {
+        CHECK(read({ { SQL_SUCCESS, 8 } }) == std::pair<SQLRETURN, std::u16string> { SQL_SUCCESS, u"xxxx" });
+        CHECK(read({ { SQL_SUCCESS, SQL_NULL_DATA } }) == std::pair<SQLRETURN, std::u16string> { SQL_SUCCESS, u"" });
+        CHECK(read({ { SQL_NO_DATA, 0 } }) == std::pair<SQLRETURN, std::u16string> { SQL_NO_DATA, u"" });
+
+        // Known total: 100 bytes are 50 characters, and 7 characters arrived with the first call.
+        auto const knownTotal = read({ { SQL_SUCCESS_WITH_INFO, 100 }, { SQL_SUCCESS, 86 } });
+        CHECK(knownTotal.first == SQL_SUCCESS);
+        CHECK(knownTotal.second.size() == 50);
+
+        // Unknown total: 7 characters arrived with the first call and 3 with the last.
+        auto const unknownTotal = read({ { SQL_SUCCESS_WITH_INFO, SQL_NO_TOTAL }, { SQL_SUCCESS, 6 } });
+        CHECK(unknownTotal.first == SQL_SUCCESS);
+        CHECK(unknownTotal.second.size() == 10);
+    }
+
+    SECTION("NULL alongside a warning is NULL")
+    {
+        CHECK(read({ { SQL_SUCCESS_WITH_INFO, SQL_NULL_DATA } })
+              == std::pair<SQLRETURN, std::u16string> { SQL_SUCCESS_WITH_INFO, u"" });
+    }
+
+    SECTION("first call, any negative value on SQL_SUCCESS")
+    {
+        CHECK(read({ { SQL_SUCCESS, -3 } }).first == SQL_ERROR);
+        // SQL_NO_TOTAL is valid only with SQL_SUCCESS_WITH_INFO; here no length can be derived from it.
+        CHECK(read({ { SQL_SUCCESS, SQL_NO_TOTAL } }).first == SQL_ERROR);
+    }
+
+    SECTION("first call, a negative value on SQL_SUCCESS_WITH_INFO")
+    {
+        CHECK(read({ { SQL_SUCCESS_WITH_INFO, -3 } }).first == SQL_ERROR);
+    }
+
+    SECTION("continuation of a known total")
+    {
+        CHECK(read({ { SQL_SUCCESS_WITH_INFO, 100 }, { SQL_SUCCESS, -3 } }).first == SQL_ERROR);
+        CHECK(read({ { SQL_SUCCESS_WITH_INFO, 100 }, { SQL_SUCCESS, SQL_NO_TOTAL } }).first == SQL_ERROR);
+    }
+
+    SECTION("continuation of an unknown total")
+    {
+        CHECK(read({ { SQL_SUCCESS_WITH_INFO, SQL_NO_TOTAL }, { SQL_SUCCESS, -3 } }).first == SQL_ERROR);
+    }
+
+    SECTION("a length the array cannot hold")
+    {
+        CHECK(read({ { SQL_SUCCESS_WITH_INFO, (std::numeric_limits<SQLLEN>::max)() } }).first == SQL_ERROR);
+    }
+}
+
 // NOLINTEND(readability-container-size-empty, bugprone-unchecked-optional-access)
