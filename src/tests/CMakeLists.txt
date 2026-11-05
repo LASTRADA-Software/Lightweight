@@ -89,6 +89,7 @@ set(SOURCE_FILES
     Int128Tests.cpp
     LargeTestDatabase/DataGenerator.cpp
     LargeTestDatabase/LargeTestDatabaseTests.cpp
+    LegacySqlServerDriverTests.cpp
     MigrationTests.cpp
     MigrationReflectionTests.cpp
     QueryBuilderTests.cpp
