@@ -97,6 +97,29 @@ TEST_CASE("ParseSchema: text / varchar / nvarchar / char / nchar carry the size"
     CHECK(std::get<TypeDefs::NChar>(cols[4].type).size == 5);
 }
 
+TEST_CASE("ParseSchema: legacyLob is restored for varchar / nvarchar / varbinary", "[SqlBackup][ParseSchema]")
+{
+    auto const meta = MakeOneColumnMetadata(
+        R"({"name":"a","is_primary_key":false,"is_auto_increment":false,"is_nullable":true,"is_unique":false,"type":"varchar","size":0,"legacyLob":true},
+           {"name":"b","is_primary_key":false,"is_auto_increment":false,"is_nullable":true,"is_unique":false,"type":"nvarchar","size":0,"legacyLob":true},
+           {"name":"c","is_primary_key":false,"is_auto_increment":false,"is_nullable":true,"is_unique":false,"type":"varbinary","size":0,"legacyLob":true},
+           {"name":"d","is_primary_key":false,"is_auto_increment":false,"is_nullable":true,"is_unique":false,"type":"varchar","size":10},
+           {"name":"e","is_primary_key":false,"is_auto_increment":false,"is_nullable":true,"is_unique":false,"type":"nvarchar","size":10},
+           {"name":"f","is_primary_key":false,"is_auto_increment":false,"is_nullable":true,"is_unique":false,"type":"varbinary","size":10})");
+
+    auto const schema = ParseSchema(meta);
+    auto const& cols = schema.at("t").columns;
+    REQUIRE(cols.size() == 6);
+    CHECK(std::get<TypeDefs::Varchar>(cols[0].type).legacyLob);
+    CHECK(std::get<TypeDefs::NVarchar>(cols[1].type).legacyLob);
+    CHECK(std::get<TypeDefs::VarBinary>(cols[2].type).legacyLob);
+
+    // Archives without the key (every archive written so far) keep the modern types.
+    CHECK_FALSE(std::get<TypeDefs::Varchar>(cols[3].type).legacyLob);
+    CHECK_FALSE(std::get<TypeDefs::NVarchar>(cols[4].type).legacyLob);
+    CHECK_FALSE(std::get<TypeDefs::VarBinary>(cols[5].type).legacyLob);
+}
+
 TEST_CASE("ParseSchema: binary and varbinary substitute 65535 when size is zero", "[SqlBackup][ParseSchema]")
 {
     // The fallback exists because some sources record binary columns as having size=0
