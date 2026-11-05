@@ -20,5 +20,6 @@ var index =
     ] ],
     [ "Generate example for the existing database", "index.html#generate-example-for-the-existing-database", null ],
     [ "Compile using C++26 reflection support", "index.html#compile-using-c26-reflection-support", null ],
-    [ "Building with C++20 Modules", "index.html#building-with-c20-modules", null ]
+    [ "Building with C++20 Modules", "index.html#building-with-c20-modules", null ],
+    [ "Embedding Lightweight from source", "index.html#embedding-lightweight-from-source", null ]
 ];
