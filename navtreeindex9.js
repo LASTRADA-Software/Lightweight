@@ -1,5 +1,13 @@
 var NAVTREEINDEX9 =
 {
+"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a8ee0594832c46d4679a3db0a139b77b9":[20,7,15,0],
+"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#aa91e611caafae9e19e8850e786baf5c0":[20,7,15,13],
+"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#ab7a7ef460d0a27d3104beb9c89757d28":[20,7,15,1],
+"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#abf76f7e1b5519cef9ca2aee981d9054b":[20,7,15,5],
+"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#ae34f5e169eb26bf9318270631669f8d4":[20,7,15,6],
+"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#af20606723a905996e482b453ed376886":[20,7,15,3],
+"de/dfe/structLightweight_1_1SqlText.html":[20,1,10],
+"de/dfe/structLightweight_1_1SqlText.html#a2626f10893b8f4a96e2a6d895a7dd0df":[20,1,10,2],
 "de/dfe/structLightweight_1_1SqlText.html#acb96ee68a3cc936ac16a50cb90d587d5":[20,1,10,0],
 "de/dfe/structLightweight_1_1SqlText.html#af5030d1caea50f2ac9251206e039201a":[20,1,10,1],
 "df/d0f/Pool_8hpp_source.html":[23,0,1,2,9],
@@ -241,13 +249,5 @@ var NAVTREEINDEX9 =
 "functions_vars_v.html":[22,2,2,21],
 "functions_vars_w.html":[22,2,2,22],
 "functions_w.html":[22,2,0,23],
-"functions_y.html":[22,2,0,24],
-"functions_z.html":[22,2,0,25],
-"functions_~.html":[22,2,0,26],
-"hierarchy.html":[22,1],
-"index.html":[0],
-"index.html":[],
-"index.html#asynchronous-api":[0,9],
-"index.html#backup-and-restore":[0,8],
-"index.html#building-with-c20-modules":[0,13]
+"functions_y.html":[22,2,0,24]
 };

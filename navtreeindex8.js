@@ -1,5 +1,13 @@
 var NAVTREEINDEX8 =
 {
+"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#af0bb9fac51166cdbd7346d78b668be09":[22,0,0,94,32],
+"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#af4ccd5e64aa4e1be75ee688d107afcee":[22,0,0,94,0],
+"de/d36/conceptLightweight_1_1DataMapperRecord.html":[20,3,1],
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html":[9],
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#add-profile":[9,3,16],
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#apply-timestamp":[9,3,5],
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup":[9,4,0],
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup--restore":[9,4],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup-before-migration":[9,7,1],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup-diff":[9,4,2],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup-folder-defaultbackupdir--backupdir":[9,2,2,0],
@@ -241,13 +249,5 @@ var NAVTREEINDEX8 =
 "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a27b0f6caa86899cd3c4fffc87b9d508c":[20,7,15,2],
 "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a2ec317eaae756e721addecb505082902":[20,7,15,8],
 "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a4d9ec4afc996dacc72bbe5948aa7db73":[20,7,15,9],
-"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a631eb7328bc52932cd15cd4f9ada9712":[20,7,15,10],
-"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a8ee0594832c46d4679a3db0a139b77b9":[20,7,15,0],
-"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#aa91e611caafae9e19e8850e786baf5c0":[20,7,15,13],
-"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#ab7a7ef460d0a27d3104beb9c89757d28":[20,7,15,1],
-"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#abf76f7e1b5519cef9ca2aee981d9054b":[20,7,15,5],
-"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#ae34f5e169eb26bf9318270631669f8d4":[20,7,15,6],
-"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#af20606723a905996e482b453ed376886":[20,7,15,3],
-"de/dfe/structLightweight_1_1SqlText.html":[20,1,10],
-"de/dfe/structLightweight_1_1SqlText.html#a2626f10893b8f4a96e2a6d895a7dd0df":[20,1,10,2]
+"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a631eb7328bc52932cd15cd4f9ada9712":[20,7,15,10]
 };

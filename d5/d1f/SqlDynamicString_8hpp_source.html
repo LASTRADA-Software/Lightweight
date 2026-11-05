@@ -581,9 +581,9 @@ $(document).ready(function(){initNavTree('d5/d1f/SqlDynamicString_8hpp_source.ht
 <div class="line"><a id="l00413" name="l00413"></a><span class="lineno">  413</span> </div>
 <div class="line"><a id="l00414" name="l00414"></a><span class="lineno">  414</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> SqlColumnTypeDefinition ColumnType = []() <span class="keyword">constexpr</span> {</div>
 <div class="line"><a id="l00415" name="l00415"></a><span class="lineno">  415</span>        <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (std::same_as&lt;CharType, char&gt;)</div>
-<div class="line"><a id="l00416" name="l00416"></a><span class="lineno">  416</span>            <span class="keywordflow">return</span> SqlColumnTypeDefinitions::Varchar { .size = N };</div>
+<div class="line"><a id="l00416" name="l00416"></a><span class="lineno">  416</span>            <span class="keywordflow">return</span> SqlColumnTypeDefinitions::Varchar { N };</div>
 <div class="line"><a id="l00417" name="l00417"></a><span class="lineno">  417</span>        <span class="keywordflow">else</span></div>
-<div class="line"><a id="l00418" name="l00418"></a><span class="lineno">  418</span>            <span class="keywordflow">return</span> SqlColumnTypeDefinitions::NVarchar { .size = N };</div>
+<div class="line"><a id="l00418" name="l00418"></a><span class="lineno">  418</span>            <span class="keywordflow">return</span> SqlColumnTypeDefinitions::NVarchar { N };</div>
 <div class="line"><a id="l00419" name="l00419"></a><span class="lineno">  419</span>    }();</div>
 <div class="line"><a id="l00420" name="l00420"></a><span class="lineno">  420</span> </div>
 <div class="line"><a id="l00421" name="l00421"></a><span class="lineno">  421</span>    <span class="keyword">static</span> CharType <span class="keyword">const</span>* Data(ValueType <span class="keyword">const</span>* str) <span class="keyword">noexcept</span></div>
