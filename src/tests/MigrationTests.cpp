@@ -2605,6 +2605,25 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: RawSql passes through unmodifie
     CHECK(raw->sql == "PRAGMA foreign_keys = ON");
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "RenameColumn renames the column on the live database", "[SqlMigration]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("RenameColumnLive").PrimaryKey("id", Integer {}).Column("old_name", Integer {});
+    });
+
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.AlterTable("RenameColumnLive").RenameColumn("old_name", "new_name");
+    });
+
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "RenameColumnLive" ("id", "new_name") VALUES (1, 42))");
+    CHECK(stmt.ExecuteDirectScalar<int>(R"(SELECT "new_name" FROM "RenameColumnLive")").value_or(0) == 42);
+    // An INSERT rather than a SELECT: SQLite reads an unknown double-quoted name in a SELECT as a string.
+    CHECK_THROWS((void) stmt.ExecuteDirect(R"(INSERT INTO "RenameColumnLive" ("id", "old_name") VALUES (2, 43))"));
+}
+
 TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: rename column propagates to FK references", "[SqlMigration][Fold]")
 {
     using namespace Lightweight::SqlColumnTypeDefinitions;
