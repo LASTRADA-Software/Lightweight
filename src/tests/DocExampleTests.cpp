@@ -328,6 +328,54 @@ TEST_CASE_METHOD(SqlTestFixture, "Doc.Select", "[DocExample]")
     }
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "Doc.Select.Having", "[DocExample]")
+{
+    auto dm = DataMapper();
+    auto const company = SeedCompany(dm);
+
+    SECTION("having")
+    {
+        //! [doc-having]
+        auto query = dm.FromTable("Employees")
+                         .Select()
+                         .Field("department_id")
+                         .Field(Aggregate::Count("*"))
+                         .As("headcount")
+                         .GroupBy("department_id")
+                         .Having(Aggregate::Count(), ">", 2)
+                         .All();
+        //! [doc-having]
+        auto stmt = SqlStatement { dm.Connection() };
+        auto cursor = stmt.ExecuteDirect(query.ToSql());
+        REQUIRE(cursor.FetchRow());
+        auto const department = cursor.GetColumn<uint64_t>(1);
+        auto const headcount = cursor.GetColumn<int>(2);
+        CHECK(department == company.engineering.id.Value());
+        CHECK(headcount == 3);
+        CHECK(!cursor.FetchRow());
+    }
+
+    SECTION("having with bound values")
+    {
+        //! [doc-having-bound]
+        // WHERE values are bound ahead of HAVING values, whichever is called first.
+        auto stmt = SqlStatement { dm.Connection() };
+        std::vector<SqlVariant> bound;
+        stmt.Prepare(dm.FromTable("Employees")
+                         .Select(&bound)
+                         .Field("department_id")
+                         .Where("salary", ">", 50'000)
+                         .GroupBy("department_id")
+                         .Having(Aggregate::Sum("salary"), ">=", 100'000)
+                         .All());
+        auto cursor = stmt.ExecuteWithVariants(bound);
+        //! [doc-having-bound]
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<uint64_t>(1) == company.sales.id.Value());
+        CHECK(!cursor.FetchRow());
+    }
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "Doc.Select.Raw", "[DocExample]")
 {
     auto dm = DataMapper();

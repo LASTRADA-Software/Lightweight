@@ -98,6 +98,12 @@ interface. Here we present a compressed list of functions that can be used to cr
 - (optional) Order and Group
   - `OrderBy`
   - `GroupBy`
+  - `Having`, after the last `GroupBy`; calling it without one, or `GroupBy` after it, throws `std::logic_error`
+    - `Having(Aggregate::Count(), ">", 1)` compares an aggregate from the `Aggregate` namespace (`Count`, `Sum`, `Avg`, `Min`, `Max`) against a value, translated into `HAVING COUNT(*) > 1`. Like a `Where` value, the value is bound when the query collects bindings, and the bindings stay in statement order (`ON`, `WHERE`, `HAVING`) in whichever order the calls are made
+    - `Having("COUNT(*) > 1")` writes a raw condition into the statement as given, so it must not contain untrusted input
+    - `Having([](auto& group) { return group.Having(...).OrHaving(...); })` adds a parenthesized group
+    - `OrHaving(...)` takes the same arguments and joins the term with `OR`; `And()`, `Or()` and `Not()` apply to the next term of either clause
+    - It is honored by `All`, `First`, `Range` and `Count`. `Count` then yields one row per surviving group, as it does for `GroupBy`. `DataMapper`'s `Delete()` throws `std::logic_error` on a query with `Having`, because a `DELETE` statement cannot express it
 - (optional) Additional option to build WHERE clause. See documentation for `SqlWhereClauseBuilder`
   - `Where`
     - `Where("a", 42)` specify simple condition that is equivalent to the sql query `WHERE "a" = 42`
