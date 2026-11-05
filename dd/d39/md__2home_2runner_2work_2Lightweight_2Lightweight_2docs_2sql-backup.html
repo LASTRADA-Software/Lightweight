@@ -26,7 +26,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Lightweight<span id="projectnumber">&#160;0.20261105.0</span>
+   <div id="projectname">Lightweight<span id="projectnumber">&#160;0.20261105.1</span>
    </div>
   </td>
  </tr>
@@ -145,6 +145,7 @@ Restore failures</h1>
 <li><b>An unreadable chunk</b> is skipped and counted; the rows read before it stay.</li>
 <li><b>A lost connection</b> that does not come back within <code>RetrySettings</code> stops the worker that hit it; the report lists the tables it left incomplete (<code>incompleteTables</code>; <code>WorkerStopped()</code>).</li>
 </ul>
+<p>A table that failed as a whole, that a stopped worker left incomplete, or that could not be created leaves the restore incomplete: the run reports an error, does not claim success, and does not apply foreign key constraints and indexes, because constraining a database that is missing a table's data only produces misleading <code>AddForeignKey failed</code> errors naming the referencing tables. Rerun the restore once the cause is fixed. Rows left out one by one and unreadable chunks do not count: the constraints and indexes are applied, and a constraint that the missing rows break is reported as an error.</p>
 <p>Each table gets at most one terminal update through the <code>ProgressManager</code> (<code>Error</code> if anything failed for it, with a message such as <code>2 rows failed, 3 cells set to NULL</code>; <code>Finished</code> otherwise). A table that failed as a whole or had an unreadable chunk may report additional <code>Error</code> updates before it, so a consumer that tallies failed tables must count a table once.</p>
 <p><code>RestoreReport</code> holds only tables with failures (<code>tables</code>, sorted by name; <code>TotalFailedRows()</code> and <code>NulledCellCount()</code> sum them up), and the run-level problems. Its memory and the progress traffic do not grow with the number of failed rows: per table, at most <code>MaxReportedRowRanges</code> (100) row ranges (<code>FailedRowRange</code>: chunk, first and last row) and <code>MaxReportedReasons</code> (20) distinct <code>FailureReason</code>s with <code>MaxSampleKeysPerReason</code> (3) sample keys each are kept; the rest is counted in <code>rowsBeyondRangeCap</code> and <code>occurrencesBeyondReasonCap</code>. <code>ColumnValueFailures</code> counts the NULLed cells per column. <code>report.HasFailures()</code> is the verdict.</p>
 <p>A restore that is refused before it moves any data (an unsupported archive, a refused target schema) returns an empty report and reports the error through the <code>ProgressManager</code>; check both (<code>progress.ErrorCount()</code> and <code>report.HasFailures()</code>), as <code>dbtool restore</code> does for its exit code. See <a href="../../dbtool.md#restore">dbtool</a> for the command-line output.</p>
