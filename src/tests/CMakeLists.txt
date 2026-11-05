@@ -100,6 +100,7 @@ set(SOURCE_FILES
     SqlGuidTests.cpp
     SqlLoggerTests.cpp
     SqlPreparedStatementCacheTests.cpp
+    SqlQueryTimeoutTests.cpp
     SqlStatisticsTests.cpp
     MigrationLockTests.cpp
     SqlConnectionBorrowTests.cpp

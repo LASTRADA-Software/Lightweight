@@ -25,6 +25,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <expected>
@@ -161,6 +162,36 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     ///
     /// @param caching Whether pooled handles may be reused by, and published from, this statement.
     LIGHTWEIGHT_API void SetPreparedStatementCaching(SqlPreparedStatementCaching caching) noexcept;
+
+    /// @brief Bounds how long each later execution of this statement may run, where the driver supports it.
+    ///
+    /// The timeout belongs to this statement: it stays in effect across @c Prepare() and @c ExecuteDirect(),
+    /// also when the prepared-statement cache gives the statement another ODBC handle, and it never reaches
+    /// another statement of the connection, not even one that takes over this statement's pooled handle.
+    /// It bounds a single execution rather than a sequence of them, and neither a @c DataMapper nor a
+    /// lazily loaded relation uses it.
+    ///
+    /// What the driver does with it (see docs/usage.md):
+    /// - MS SQL Server fails the execution with SQLSTATE @c HYT00.
+    /// - PostgreSQL fails it with SQLSTATE @c 57014.
+    /// - SQLite ignores it: the query runs to completion, and @ref QueryTimeout() reads @c 0.
+    ///
+    /// @c IsQueryTimeoutError recognises both failures. @ref SqlRetryPolicy treats SQL Server's @c HYT00 as
+    /// transient, so running such a statement under a retry policy spends the timeout once per attempt.
+    ///
+    /// @param timeout The bound in whole seconds; @c 0 lifts it.
+    /// @throws std::invalid_argument If @p timeout is negative.
+    /// @throws SqlException If the driver rejects the value.
+    LIGHTWEIGHT_API void SetQueryTimeout(std::chrono::seconds timeout);
+
+    /// @brief Reads the query timeout from the driver.
+    ///
+    /// A driver that ignores the timeout reports @c 0 here whatever was set, so this tells whether
+    /// @ref SetQueryTimeout() can have any effect.
+    ///
+    /// @return The timeout currently in effect on the statement handle; @c 0 means none.
+    /// @throws SqlException If the driver cannot report it.
+    [[nodiscard]] LIGHTWEIGHT_API std::chrono::seconds QueryTimeout() const;
 
     /// Binds an input parameter to the prepared statement at the given column index.
     ///
@@ -651,6 +682,9 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
 
     /// Allocates a statement handle if this statement currently has none.
     void EnsureStatementHandle();
+
+    /// Puts the timeout set through @ref SetQueryTimeout() on a handle this statement just took over.
+    void ApplyQueryTimeoutToNewHandle();
 
     // private data members
     struct Data;

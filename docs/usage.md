@@ -472,6 +472,50 @@ cache is worth far more than the loopback numbers suggest: at 50 ms it takes a P
 read from 202 ms to 61 ms.
 
 
+## Query timeouts
+
+`SqlStatement::SetQueryTimeout` bounds how long each later execution of one statement may run. It takes whole
+seconds, and `0s` lifts the bound:
+
+```cpp
+auto stmt = SqlStatement { connection };
+stmt.SetQueryTimeout(std::chrono::seconds { 5 });
+try
+{
+    auto cursor = stmt.ExecuteDirect("SELECT ...");
+}
+catch (SqlException const& error)
+{
+    if (!IsQueryTimeoutError(error.info()))
+        throw;
+    // The query was cancelled; the statement and the connection can be used again.
+}
+```
+
+The timeout belongs to the statement: `Prepare()` and `ExecuteDirect()` keep it, also when the
+[prepared-statement cache](#prepared-statement-cache-fewer-prepare-round-trips) gives the statement another
+handle, and a statement that takes over its pooled handle does not inherit it. Neither `DataMapper` nor a lazily
+loaded relation uses it, and it does not bound a sequence of statements.
+
+What the driver does with it was measured on ODBC Driver 18 for SQL Server, psqlODBC and the SQLite ODBC driver:
+
+| | MS SQL Server | PostgreSQL | SQLite |
+|---|---|---|---|
+| Enforced | yes | yes | **no**: accepted without a warning, and the query runs to completion |
+| `QueryTimeout()` after setting 5 s | 5 s | 5 s | 0 s |
+| SQLSTATE of the failure | `HYT00` | `57014` | |
+| The enclosing transaction after a timeout | stays open | stays open | |
+| `SqlRetryPolicy` retries the failure | **yes** | no | |
+
+- Read `QueryTimeout()` back to learn whether the driver honours the timeout. Do not rely on it to stop a query
+  on SQLite.
+- Under `SqlRetryPolicy` on SQL Server, `HYT00` counts as transient, so a statement can run for
+  `(maxRetries + 1) * timeout` plus the delays between attempts. Keep the timeout out of a retried operation, or
+  pass the policy a `SqlRetryClassifier` that refuses `IsQueryTimeoutError`.
+- `57014` also reports an explicit cancel, so `IsQueryTimeoutError` cannot tell the two apart on PostgreSQL.
+- PostgreSQL keeps the transaction open because psqlODBC wraps statements in a savepoint by default; a connection
+  string that sets `Protocol=7.4-0` turns that off, and then the failure aborts the transaction.
+
 ## SQL Query Builder
 
 Or construct statement using `SqlQueryBuilder`

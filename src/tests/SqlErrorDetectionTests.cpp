@@ -26,6 +26,23 @@ SqlErrorInfo MakeError(std::string sqlState, SQLINTEGER nativeCode = 0, std::str
 } // namespace
 
 // ================================================================================================
+// IsQueryTimeoutError
+// ================================================================================================
+
+TEST_CASE("IsQueryTimeoutError: recognises what the drivers report for an expired query timeout", "[SqlErrorDetection]")
+{
+    CHECK(IsQueryTimeoutError(MakeError("HYT00", 0, "[Microsoft][ODBC Driver 18 for SQL Server]Query timeout expired")));
+    CHECK(IsQueryTimeoutError(MakeError("57014", 1, "ERROR: canceling statement due to statement timeout")));
+}
+
+TEST_CASE("IsQueryTimeoutError: rejects other failures", "[SqlErrorDetection]")
+{
+    CHECK_FALSE(IsQueryTimeoutError(MakeError("HYT01", 0, "Connection timeout expired")));
+    CHECK_FALSE(IsQueryTimeoutError(MakeError("08S01", 0, "Communication link failure")));
+    CHECK_FALSE(IsQueryTimeoutError(MakeError("42S02", 208, "Invalid object name")));
+}
+
+// ================================================================================================
 // IsTableAlreadyExistsError
 // ================================================================================================
 

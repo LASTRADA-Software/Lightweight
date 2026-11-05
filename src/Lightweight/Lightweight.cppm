@@ -94,6 +94,7 @@ using Lightweight::IsHasManyThrough;
 using Lightweight::IsHasOneThrough;
 using Lightweight::IsOptionalBelongsTo;
 using Lightweight::IsPrimaryKey;
+using Lightweight::IsQueryTimeoutError;
 using Lightweight::IsSpecializationOf;
 using Lightweight::IsSqlDynamicBinary;
 using Lightweight::IsSqlDynamicString;

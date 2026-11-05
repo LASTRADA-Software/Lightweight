@@ -84,6 +84,21 @@ namespace Lightweight
     return std::ranges::contains(BindClassStates, std::string_view { error.sqlState });
 }
 
+/// Detects if a statement failed because its query timeout expired (see @c SqlStatement::SetQueryTimeout).
+///
+/// SQL Server reports SQLSTATE `HYT00`. psqlODBC implements the timeout through PostgreSQL's `statement_timeout`,
+/// so PostgreSQL reports `57014` (query_canceled), which it also reports for an explicit cancel: the only text
+/// telling those two apart is the server's message, and that is translated by `lc_messages`. A statement that
+/// is never cancelled by hand therefore sees `57014` only from its timeout.
+///
+/// @param error The SQL error info
+/// @return true for SQLSTATE `HYT00` and `57014`
+[[nodiscard]] inline bool IsQueryTimeoutError(SqlErrorInfo const& error) noexcept
+{
+    constexpr auto QueryTimeoutStates = std::array<std::string_view, 2> { "HYT00", "57014" };
+    return std::ranges::contains(QueryTimeoutStates, std::string_view { error.sqlState });
+}
+
 /// Detects if an error is transient (retryable).
 ///
 /// Transient errors are temporary conditions that may succeed if retried,
