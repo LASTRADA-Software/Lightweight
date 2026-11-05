@@ -3929,6 +3929,49 @@ void ConfigureWindowsConsole()
 }
 #endif
 
+/// A command that runs without a database connection.
+struct LocalCommand
+{
+    /// The command's name on the command line.
+    std::string_view name;
+    /// Runs the command and returns the process exit code.
+    int (*run)(Options const& options);
+};
+
+/// The commands that run without a database connection.
+constexpr auto LocalCommands = std::array<LocalCommand, 7> { {
+    { .name = "help",
+      .run =
+          [](Options const& /*options*/) {
+              PrintUsage();
+              return EXIT_SUCCESS;
+          } },
+    { .name = "show-examples",
+      .run =
+          [](Options const& /*options*/) {
+              PrintExamples();
+              return EXIT_SUCCESS;
+          } },
+    { .name = "resolve-secret", .run = ResolveSecretCommand },
+    { .name = "list-profiles", .run = ListProfiles },
+    { .name = "add-profile", .run = AddProfileCommand },
+    { .name = "backup-diff", .run = BackupDiffCommand },
+    { .name = "new-migration", .run = NewMigrationCommand },
+} };
+
+/// Runs @p options' command if it needs no database connection.
+/// @param options The parsed options.
+/// @return The process exit code, or `std::nullopt` if the command needs a connection.
+[[nodiscard]] std::optional<int> RunLocalCommand(Options const& options)
+{
+    for (auto const& command: LocalCommands)
+    {
+        if (command.name == options.command)
+            return command.run(options);
+    }
+    return std::nullopt;
+}
+
 } // namespace
 
 int main(int argc, char** argv)
@@ -3981,32 +4024,8 @@ int main(int argc, char** argv)
         }
         WarnIfAllSchemasIgnored(options);
 
-        if (options.command == "help")
-        {
-            PrintUsage();
-            return EXIT_SUCCESS;
-        }
-
-        if (options.command == "show-examples")
-        {
-            PrintExamples();
-            return EXIT_SUCCESS;
-        }
-
-        if (options.command == "resolve-secret")
-            return ResolveSecretCommand(options);
-
-        if (options.command == "list-profiles")
-            return ListProfiles(options);
-
-        if (options.command == "add-profile")
-            return AddProfileCommand(options);
-
-        if (options.command == "backup-diff")
-            return BackupDiffCommand(options);
-
-        if (options.command == "new-migration")
-            return NewMigrationCommand(options);
+        if (auto const exitCode = RunLocalCommand(options); exitCode.has_value())
+            return *exitCode;
 
         // Before anything connects: even a probe connection creates a missing SQLite file.
         if (!CheckWriteTarget(options))
