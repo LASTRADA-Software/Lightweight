@@ -376,7 +376,7 @@ $(document).ready(function(){initNavTree('d6/dc2/BasicStringBinder_8hpp_source.h
 <div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span>                                    SQL_PARAM_INPUT,</div>
 <div class="line"><a id="l00277" name="l00277"></a><span class="lineno">  277</span>                                    SQL_C_WCHAR,</div>
 <div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span>                                    sqlType,</div>
-<div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span>                                    detail::TextParameterColumnSize(charCount),</div>
+<div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span>                                    detail::NonZeroColumnSize(charCount),</div>
 <div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span>                                    0,</div>
 <div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span>                                    (SQLPOINTER) u16String-&gt;data(),</div>
 <div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span>                                    <span class="keyword">static_cast&lt;</span>SQLLEN<span class="keyword">&gt;</span>(byteCount),</div>
@@ -394,7 +394,7 @@ $(document).ready(function(){initNavTree('d6/dc2/BasicStringBinder_8hpp_source.h
 <div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span>                                SQL_PARAM_INPUT,</div>
 <div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span>                                SQL_C_CHAR,</div>
 <div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span>                                sqlType,</div>
-<div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span>                                detail::TextParameterColumnSize(charCount),</div>
+<div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span>                                detail::NonZeroColumnSize(charCount),</div>
 <div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span>                                0,</div>
 <div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span>                                (SQLPOINTER) StringTraits::Data(&amp;value),</div>
 <div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span>                                0,</div>
@@ -424,7 +424,7 @@ $(document).ready(function(){initNavTree('d6/dc2/BasicStringBinder_8hpp_source.h
 <div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span>                                SQL_PARAM_INPUT,</div>
 <div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span>                                SQL_C_CHAR,</div>
 <div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span>                                sqlType,</div>
-<div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span>                                detail::TextParameterColumnSize(maxLen),</div>
+<div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span>                                detail::NonZeroColumnSize(maxLen),</div>
 <div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span>                                0,</div>
 <div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span>                                (SQLPOINTER) values,</div>
 <div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span>                                <span class="keyword">sizeof</span>(AnsiStringType),</div>
@@ -794,7 +794,7 @@ $(document).ready(function(){initNavTree('d6/dc2/BasicStringBinder_8hpp_source.h
 <div class="line"><a id="l00694" name="l00694"></a><span class="lineno">  694</span>                                SQL_PARAM_INPUT,</div>
 <div class="line"><a id="l00695" name="l00695"></a><span class="lineno">  695</span>                                CType,</div>
 <div class="line"><a id="l00696" name="l00696"></a><span class="lineno">  696</span>                                sqlType,</div>
-<div class="line"><a id="l00697" name="l00697"></a><span class="lineno">  697</span>                                detail::TextParameterColumnSize(charCount),</div>
+<div class="line"><a id="l00697" name="l00697"></a><span class="lineno">  697</span>                                detail::NonZeroColumnSize(charCount),</div>
 <div class="line"><a id="l00698" name="l00698"></a><span class="lineno">  698</span>                                0,</div>
 <div class="line"><a id="l00699" name="l00699"></a><span class="lineno">  699</span>                                (SQLPOINTER) data,</div>
 <div class="line"><a id="l00700" name="l00700"></a><span class="lineno">  700</span>                                <span class="keyword">static_cast&lt;</span>SQLLEN<span class="keyword">&gt;</span>(sizeInBytes),</div>
@@ -897,7 +897,7 @@ $(document).ready(function(){initNavTree('d6/dc2/BasicStringBinder_8hpp_source.h
 <div class="line"><a id="l00797" name="l00797"></a><span class="lineno">  797</span>                                SQL_PARAM_INPUT,</div>
 <div class="line"><a id="l00798" name="l00798"></a><span class="lineno">  798</span>                                CType,</div>
 <div class="line"><a id="l00799" name="l00799"></a><span class="lineno">  799</span>                                sqlType,</div>
-<div class="line"><a id="l00800" name="l00800"></a><span class="lineno">  800</span>                                detail::TextParameterColumnSize(charCount),</div>
+<div class="line"><a id="l00800" name="l00800"></a><span class="lineno">  800</span>                                detail::NonZeroColumnSize(charCount),</div>
 <div class="line"><a id="l00801" name="l00801"></a><span class="lineno">  801</span>                                0,</div>
 <div class="line"><a id="l00802" name="l00802"></a><span class="lineno">  802</span>                                (SQLPOINTER) data,</div>
 <div class="line"><a id="l00803" name="l00803"></a><span class="lineno">  803</span>                                <span class="keyword">static_cast&lt;</span>SQLLEN<span class="keyword">&gt;</span>(sizeInBytes),</div>
@@ -969,7 +969,7 @@ $(document).ready(function(){initNavTree('d6/dc2/BasicStringBinder_8hpp_source.h
 <div class="line"><a id="l00869" name="l00869"></a><span class="lineno">  869</span>                                SQL_PARAM_INPUT,</div>
 <div class="line"><a id="l00870" name="l00870"></a><span class="lineno">  870</span>                                CType,</div>
 <div class="line"><a id="l00871" name="l00871"></a><span class="lineno">  871</span>                                sqlType,</div>
-<div class="line"><a id="l00872" name="l00872"></a><span class="lineno">  872</span>                                detail::TextParameterColumnSize(charCount),</div>
+<div class="line"><a id="l00872" name="l00872"></a><span class="lineno">  872</span>                                detail::NonZeroColumnSize(charCount),</div>
 <div class="line"><a id="l00873" name="l00873"></a><span class="lineno">  873</span>                                0,</div>
 <div class="line"><a id="l00874" name="l00874"></a><span class="lineno">  874</span>                                (SQLPOINTER) u16String-&gt;data(),</div>
 <div class="line"><a id="l00875" name="l00875"></a><span class="lineno">  875</span>                                <span class="keyword">static_cast&lt;</span>SQLLEN<span class="keyword">&gt;</span>(byteCount),</div>

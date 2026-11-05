@@ -123,7 +123,7 @@ $(document).ready(function(){initNavTree('d4/d46/StringLiteral_8hpp_source.html'
 <div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>                                SQL_PARAM_INPUT,</div>
 <div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span>                                SQL_C_CHAR,</div>
 <div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>                                SQL_VARCHAR,</div>
-<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>                                detail::TextParameterColumnSize(N - 1),</div>
+<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>                                detail::NonZeroColumnSize(N - 1),</div>
 <div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>                                0,</div>
 <div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>                                (SQLPOINTER) value,</div>
 <div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>                                0,</div>
@@ -150,7 +150,7 @@ $(document).ready(function(){initNavTree('d4/d46/StringLiteral_8hpp_source.html'
 <div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>                                SQL_PARAM_INPUT,</div>
 <div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>                                SQL_C_WCHAR,</div>
 <div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>                                SQL_WVARCHAR,</div>
-<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>                                detail::TextParameterColumnSize((N - 1) * <span class="keyword">sizeof</span>(T)),</div>
+<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>                                detail::NonZeroColumnSize((N - 1) * <span class="keyword">sizeof</span>(T)),</div>
 <div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>                                0,</div>
 <div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>                                (SQLPOINTER) value,</div>
 <div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>                                0,</div>
