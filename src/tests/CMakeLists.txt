@@ -161,6 +161,7 @@ set(SOURCE_FILES
     dbtool/BackupDiffTests.cpp
     dbtool/BackupRequirementReportTests.cpp
     dbtool/CommandAccessTests.cpp
+    dbtool/NewMigrationTests.cpp
     dbtool/TaskProgressRendererTests.cpp
     dbtool/UnicodeUpgradeReportTests.cpp
     UnicodeConverterTests.cpp

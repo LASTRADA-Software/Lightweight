@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import atexit
+import datetime
 import subprocess
 import sys
 import json
@@ -1348,6 +1349,67 @@ def test_unwritable_backup_records(dbtool, plugins_dir, connection_string):
         run_command(cmd + ["hard-reset", "--yes"])
 
 
+def test_new_migration(dbtool):
+    """`new-migration` scaffolds a source file without a database: no connection string, and no dbtool.yml read."""
+    print("--- 18. new-migration ---")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # No connection string anywhere, and a broken dbtool.yml nearby: neither may matter. The time zone
+        # is far from UTC, so a timestamp in local time would be many hours away from the check below.
+        with open(os.path.join(tmpdir, "dbtool.yml"), "w", encoding="utf-8") as f:
+            f.write("profiles: [this is: not valid\n")
+        env = {k: v for k, v in os.environ.items() if k not in ("SQL_CONNECTION_STRING", "ODBC_CONNECTION_STRING")}
+        env["LIGHTWEIGHT_DBTOOL_CONFIG_SEARCH_DIR"] = tmpdir
+        env["TZ"] = "Pacific/Kiritimati"  # UTC+14
+
+        def new_migration(*arguments, expected_exit=0, expected_output=""):
+            result = run_command([dbtool, "new-migration", *arguments], check=False, env=env, cwd=tmpdir)
+            expect_exit(result, expected_exit, expected_output)
+            return result
+
+        created = new_migration('Add "users" table')
+        path = created.stdout.strip()
+        name = os.path.basename(path)
+        match = re.fullmatch(r"(\d{14})_add_users_table\.cpp", name)
+        if not match:
+            print(f"Unexpected file name: {name}")
+            sys.exit(1)
+        if not os.path.isfile(os.path.join(tmpdir, name)):
+            print(f"new-migration reported {path}, but {name} is not in the current directory")
+            sys.exit(1)
+
+        stamped = datetime.datetime.strptime(match.group(1), "%Y%m%d%H%M%S").replace(tzinfo=datetime.timezone.utc)
+        drift = abs((datetime.datetime.now(datetime.timezone.utc) - stamped).total_seconds())
+        if drift > 300:
+            print(f"The timestamp {match.group(1)} is not UTC: {drift} seconds from now")
+            sys.exit(1)
+
+        with open(os.path.join(tmpdir, name), encoding="utf-8") as f:
+            source = f.read()
+        declaration = f'LIGHTWEIGHT_SQL_MIGRATION({match.group(1)}, "Add \\"users\\" table")'
+        if declaration not in source:
+            print(f"The file does not declare {declaration}:\n{source}")
+            sys.exit(1)
+
+        # A second migration in the same second still sorts after the first.
+        second = os.path.basename(new_migration("Second").stdout.strip())
+        if second[:14] <= name[:14]:
+            print(f"{second} does not sort after {name}")
+            sys.exit(1)
+
+        # --output-dir, and the refusals.
+        target = os.path.join(tmpdir, "migrations")
+        os.makedirs(target)
+        elsewhere = new_migration("Elsewhere", "--output-dir", target).stdout.strip()
+        if os.path.dirname(elsewhere) != target or not os.path.isfile(elsewhere):
+            print(f"--output-dir was not honoured: {elsewhere}")
+            sys.exit(1)
+
+        new_migration(expected_exit=1, expected_output="requires a title")
+        new_migration("   ", expected_exit=1, expected_output="must not be blank")
+        new_migration("x", "--output-dir", os.path.join(tmpdir, "nope"), expected_exit=1, expected_output="is not a directory")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Test dbtool integration")
     parser.add_argument("--dbtool", required=True, help="Path to dbtool executable")
@@ -1936,6 +1998,8 @@ def main():
 
     if is_sqlite:
         test_unwritable_backup_records(args.dbtool, args.plugins_dir, connection_string)
+
+    test_new_migration(args.dbtool)
 
     print("SUCCESS")
 
