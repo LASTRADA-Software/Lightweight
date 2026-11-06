@@ -345,7 +345,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatchNative", "[SqlStateme
 
     stmt.MigrateDirect([](Lightweight::SqlMigrationQueryBuilder& migration) {
         migration.CreateTable("Test")
-            .Column("A", Lightweight::SqlColumnTypeDefinitions::Varchar { 8 })
+            .Column("A", Lightweight::SqlColumnTypeDefinitions::Varchar { .size = 8 })
             .Column("B", Lightweight::SqlColumnTypeDefinitions::Real {})
             .Column("C", Lightweight::SqlColumnTypeDefinitions::Integer {});
     });
@@ -480,7 +480,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatch: row-major soft (str
     stmt.MigrateDirect([](Lightweight::SqlMigrationQueryBuilder& migration) {
         migration.CreateTable("RowMajorStr")
             .Column("Id", Lightweight::SqlColumnTypeDefinitions::Integer {})
-            .Column("Name", Lightweight::SqlColumnTypeDefinitions::Varchar { 64 })
+            .Column("Name", Lightweight::SqlColumnTypeDefinitions::Varchar { .size = 64 })
             .Column("Maybe", Lightweight::SqlColumnTypeDefinitions::Integer {}); // nullable by default
     });
 
@@ -744,8 +744,8 @@ TEST_CASE_METHOD(SqlTestFixture, "GetNullableColumn", "[SqlStatement]")
     auto stmt = Lightweight::SqlStatement {};
     stmt.MigrateDirect([](Lightweight::SqlMigrationQueryBuilder& migration) {
         migration.CreateTable("Test")
-            .Column("Remarks1", Lightweight::SqlColumnTypeDefinitions::Varchar { 50 })
-            .Column("Remarks2", Lightweight::SqlColumnTypeDefinitions::Varchar { 50 });
+            .Column("Remarks1", Lightweight::SqlColumnTypeDefinitions::Varchar { .size = 50 })
+            .Column("Remarks2", Lightweight::SqlColumnTypeDefinitions::Varchar { .size = 50 });
     });
     stmt.Prepare(R"(INSERT INTO "Test" ("Remarks1", "Remarks2") VALUES (?, ?))");
     (void) stmt.Execute("Blurb", Lightweight::SqlNullValue);
@@ -763,8 +763,8 @@ TEST_CASE_METHOD(SqlTestFixture, "GetColumnOr", "[SqlStatement]")
     auto stmt = Lightweight::SqlStatement {};
     stmt.MigrateDirect([](Lightweight::SqlMigrationQueryBuilder& migration) {
         migration.CreateTable("Test")
-            .Column("Remarks1", Lightweight::SqlColumnTypeDefinitions::Varchar { 50 })
-            .Column("Remarks2", Lightweight::SqlColumnTypeDefinitions::Varchar { 50 });
+            .Column("Remarks1", Lightweight::SqlColumnTypeDefinitions::Varchar { .size = 50 })
+            .Column("Remarks2", Lightweight::SqlColumnTypeDefinitions::Varchar { .size = 50 });
     });
     stmt.Prepare(R"(INSERT INTO "Test" ("Remarks1", "Remarks2") VALUES (?, ?))");
     (void) stmt.Execute("Blurb", Lightweight::SqlNullValue);
@@ -811,12 +811,12 @@ TEST_CASE_METHOD(SqlTestFixture, "SELECT into two structs", "[SqlStatement]")
             using namespace Lightweight::SqlColumnTypeDefinitions;
             migration.CreateTable(Lightweight::RecordTableName<Simple1>)
                 .PrimaryKeyWithAutoIncrement("pk", Bigint {})
-                .Column("c1", Varchar { 30 })
-                .Column("c2", Varchar { 30 });
+                .Column("c1", Varchar { .size = 30 })
+                .Column("c2", Varchar { .size = 30 });
             migration.CreateTable(Lightweight::RecordTableName<Simple2>)
                 .PrimaryKeyWithAutoIncrement("pk", Bigint {})
-                .Column("c1", Varchar { 30 })
-                .Column("c2", Varchar { 30 });
+                .Column("c1", Varchar { .size = 30 })
+                .Column("c2", Varchar { .size = 30 });
         });
 
         WHEN("inserting some data and getting it via multi struct query building")
@@ -865,8 +865,8 @@ TEST_CASE_METHOD(SqlTestFixture, "SELECT into SqlVariantRowIterator", "[SqlState
             using namespace Lightweight::SqlColumnTypeDefinitions;
             migration.CreateTable(Lightweight::RecordTableName<Simple1>)
                 .PrimaryKeyWithAutoIncrement("pk", Bigint {})
-                .Column("c1", Varchar { 30 })
-                .Column("c2", Varchar { 30 });
+                .Column("c1", Varchar { .size = 30 })
+                .Column("c2", Varchar { .size = 30 });
         });
 
         WHEN("inserting some data and getting it via multi struct query building")

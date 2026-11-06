@@ -469,12 +469,12 @@ TEST_CASE_METHOD(SqlTestFixture, "Query: SELECT into simple struct", "[DataMappe
         using namespace SqlColumnTypeDefinitions;
         migration.CreateTable("TableA")
             .PrimaryKeyWithAutoIncrement("pk", Bigint {})
-            .Column("c1", Varchar { 30 })
-            .Column("c2", Varchar { 30 });
+            .Column("c1", Varchar { .size = 30 })
+            .Column("c2", Varchar { .size = 30 });
         migration.CreateTable("TableB")
             .PrimaryKeyWithAutoIncrement("pk", Bigint {})
-            .Column("c1", Varchar { 30 })
-            .Column("c2", Varchar { 30 });
+            .Column("c1", Varchar { .size = 30 })
+            .Column("c2", Varchar { .size = 30 });
     });
 
     (void) SqlStatement(dm.Connection()).ExecuteDirect(dm.FromTable("TableA").Insert().Set("c1", "a").Set("c2", "b"));
@@ -509,12 +509,12 @@ TEST_CASE_METHOD(SqlTestFixture, "Query: SELECT into SqlVariantRow", "[DataMappe
         using namespace SqlColumnTypeDefinitions;
         migration.CreateTable("TableA")
             .PrimaryKeyWithAutoIncrement("pk", Bigint {})
-            .Column("c1", Varchar { 30 })
-            .Column("c2", Varchar { 30 });
+            .Column("c1", Varchar { .size = 30 })
+            .Column("c2", Varchar { .size = 30 });
         migration.CreateTable("TableB")
             .PrimaryKeyWithAutoIncrement("pk", Bigint {})
-            .Column("c1", Varchar { 30 })
-            .Column("c2", Varchar { 30 });
+            .Column("c1", Varchar { .size = 30 })
+            .Column("c2", Varchar { .size = 30 });
     });
 
     (void) SqlStatement(dm.Connection()).ExecuteDirect(dm.FromTable("TableA").Insert().Set("c1", "a").Set("c2", "b"));
@@ -627,7 +627,9 @@ TEST_CASE_METHOD(SqlTestFixture, "Query First: into simple struct", "[DataMapper
 
     SqlStatement(dm.Connection()).MigrateDirect([](SqlMigrationQueryBuilder& migration) {
         using namespace SqlColumnTypeDefinitions;
-        migration.CreateTable(RecordTableName<SimpleStruct2>).Column("name", NVarchar { 30 }).Column("age", Integer {});
+        migration.CreateTable(RecordTableName<SimpleStruct2>)
+            .Column("name", NVarchar { .size = 30 })
+            .Column("age", Integer {});
     });
 
     dm.CreateExplicit(SimpleStruct2 { .name = u8"John", .age = 42 });

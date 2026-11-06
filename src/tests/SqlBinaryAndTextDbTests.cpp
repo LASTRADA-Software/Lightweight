@@ -26,7 +26,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlBinary: small payload round-trip", "[SqlBin
 {
     auto stmt = SqlStatement {};
     stmt.MigrateDirect([](auto& migration) {
-        migration.CreateTable("Bin").RequiredColumn("payload", SqlColumnTypeDefinitions::VarBinary { 64 });
+        migration.CreateTable("Bin").RequiredColumn("payload", SqlColumnTypeDefinitions::VarBinary { .size = 64 });
     });
 
     auto const inputValue = SqlBinary { 0x00, 0x01, 0xFF, 0xAA, 0x55 };
@@ -45,7 +45,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlBinary: empty payload round-trip", "[SqlBin
     // VARBINARY on every supported DB (either NULL or empty SqlBinary on read).
     auto stmt = SqlStatement {};
     stmt.MigrateDirect([](auto& migration) {
-        migration.CreateTable("BinEmpty").Column("payload", SqlColumnTypeDefinitions::VarBinary { 64 });
+        migration.CreateTable("BinEmpty").Column("payload", SqlColumnTypeDefinitions::VarBinary { .size = 64 });
     });
 
     auto const empty = SqlBinary {};
@@ -77,7 +77,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicBinary: medium payload round-trip", 
 {
     auto stmt = SqlStatement {};
     stmt.MigrateDirect([](auto& migration) {
-        migration.CreateTable("DynBin").RequiredColumn("payload", SqlColumnTypeDefinitions::VarBinary { 256 });
+        migration.CreateTable("DynBin").RequiredColumn("payload", SqlColumnTypeDefinitions::VarBinary { .size = 256 });
     });
 
     std::array<uint8_t, 200> raw {};
@@ -243,7 +243,7 @@ void CreateNullableBinaryTable(SqlStatement& stmt)
     stmt.MigrateDirect([](auto& migration) {
         migration.CreateTable("NullBin")
             .RequiredColumn("id", SqlColumnTypeDefinitions::Integer {})
-            .Column("payload", SqlColumnTypeDefinitions::VarBinary { 64 });
+            .Column("payload", SqlColumnTypeDefinitions::VarBinary { .size = 64 });
     });
 }
 

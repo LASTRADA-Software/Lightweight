@@ -89,7 +89,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Foreign Key Restoration", "[SqlBack
             migration.DropTableIfExists("child");
             migration.DropTableIfExists("parent");
 
-            migration.CreateTable("parent").PrimaryKey("id", Integer {}).RequiredColumn("name", Varchar { 100 });
+            migration.CreateTable("parent").PrimaryKey("id", Integer {}).RequiredColumn("name", Varchar { .size = 100 });
 
             migration.CreateTable("child")
                 .PrimaryKey("id", Integer {})
@@ -305,7 +305,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Constraints and Defaults", "[SqlBac
                 .PrimaryKey("id", Integer {})
                 .Column(SqlColumnDeclaration {
                     .name = "u",
-                    .type = Varchar { 100 },
+                    .type = Varchar { .size = 100 },
                     .unique = true,
                 })
                 .Column(SqlColumnDeclaration {

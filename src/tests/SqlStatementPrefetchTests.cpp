@@ -275,7 +275,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Prefetch: text + temporal result set stays cor
     stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
         migration.CreateTable("PrefetchMixed")
             .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
-            .Column("Name", SqlColumnTypeDefinitions::Varchar { 64 })
+            .Column("Name", SqlColumnTypeDefinitions::Varchar { .size = 64 })
             .Column("When", SqlColumnTypeDefinitions::DateTime {});
     });
 
@@ -410,7 +410,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Prefetch: ineligible column types fall back to
     stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
         migration.CreateTable("PrefetchBinary")
             .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
-            .Column("Payload", SqlColumnTypeDefinitions::VarBinary { 64 });
+            .Column("Payload", SqlColumnTypeDefinitions::VarBinary { .size = 64 });
     });
 
     constexpr std::size_t rowCount = TestPrefetchDepth + 2;
@@ -460,10 +460,10 @@ TEST_CASE_METHOD(SqlTestFixture, "Prefetch: string, fixed-string, wide and nulla
     stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
         migration.CreateTable("PrefetchStr")
             .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
-            .Column("Name", SqlColumnTypeDefinitions::Varchar { 32 })  // narrow text (multibyte UTF-8)
-            .Column("Wide", SqlColumnTypeDefinitions::NVarchar { 32 }) // wide (UTF-16) text
-            .Column("Tag", SqlColumnTypeDefinitions::Char { 8 })       // CHAR(N): right-padded -> trim parity
-            .Column("Note", SqlColumnTypeDefinitions::Varchar { 16 }); // nullable text
+            .Column("Name", SqlColumnTypeDefinitions::Varchar { .size = 32 })  // narrow text (multibyte UTF-8)
+            .Column("Wide", SqlColumnTypeDefinitions::NVarchar { .size = 32 }) // wide (UTF-16) text
+            .Column("Tag", SqlColumnTypeDefinitions::Char { 8 })               // CHAR(N): right-padded -> trim parity
+            .Column("Note", SqlColumnTypeDefinitions::Varchar { .size = 16 }); // nullable text
     });
 
     constexpr std::size_t rowCount = TestPrefetchDepth + 6;
@@ -932,7 +932,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Per-row fallback: a GUID column reads into std
         migration.CreateTable("GuidText")
             .RequiredColumn("Id", SqlColumnTypeDefinitions::Integer {})
             .RequiredColumn("G", SqlColumnTypeDefinitions::Guid {})
-            .Column("B", SqlColumnTypeDefinitions::VarBinary { 64 });
+            .Column("B", SqlColumnTypeDefinitions::VarBinary { .size = 64 });
     });
 
     auto const guid = SqlGuid::Create();

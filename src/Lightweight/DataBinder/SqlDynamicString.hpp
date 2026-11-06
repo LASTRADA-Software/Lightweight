@@ -413,9 +413,9 @@ struct SqlBasicStringOperations<SqlDynamicString<N, T>>
 
     static constexpr SqlColumnTypeDefinition ColumnType = []() constexpr {
         if constexpr (std::same_as<CharType, char>)
-            return SqlColumnTypeDefinitions::Varchar { N };
+            return SqlColumnTypeDefinitions::Varchar { .size = N };
         else
-            return SqlColumnTypeDefinitions::NVarchar { N };
+            return SqlColumnTypeDefinitions::NVarchar { .size = N };
     }();
 
     static CharType const* Data(ValueType const* str) noexcept

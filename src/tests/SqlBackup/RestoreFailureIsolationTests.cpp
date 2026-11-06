@@ -65,7 +65,7 @@ void CreateTableWithRows(std::string const& tableName, int rowCount)
     using namespace SqlColumnTypeDefinitions;
     auto stmt = SqlStatement {};
     stmt.MigrateDirect([&](SqlMigrationQueryBuilder& migration) {
-        migration.CreateTable(tableName).PrimaryKey("ID", Integer {}).Column("V", Varchar { 20 });
+        migration.CreateTable(tableName).PrimaryKey("ID", Integer {}).Column("V", Varchar { .size = 20 });
     });
     for (auto const id: std::views::iota(1, rowCount + 1))
         (void) stmt.ExecuteDirect(std::format(R"(INSERT INTO "{0}" ("ID", "V") VALUES ({1}, 'row {1}'))", tableName, id));

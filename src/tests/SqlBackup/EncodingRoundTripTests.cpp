@@ -75,9 +75,9 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: round-trip preserves ASCII / code-p
             migration.DropTableIfExists("encoding_rt");
             migration.CreateTable("encoding_rt")
                 .PrimaryKey("id", Integer {})
-                .Column("ascii_v", Varchar { 64 })
-                .Column("cp_v", Varchar { 64 })
-                .Column("wide_v", NVarchar { 64 });
+                .Column("ascii_v", Varchar { .size = 64 })
+                .Column("cp_v", Varchar { .size = 64 })
+                .Column("wide_v", NVarchar { .size = 64 });
         });
 
         stmt.Prepare(R"(INSERT INTO "encoding_rt" ("id", "ascii_v", "cp_v", "wide_v") VALUES (?, ?, ?, ?))");

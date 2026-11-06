@@ -95,7 +95,7 @@ void CreateSubjectTable()
     auto stmt = SqlStatement {};
     stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
         migration.DropTableIfExists("rec_subject");
-        migration.CreateTable("rec_subject").PrimaryKey("id", Integer {}).Column("v", Varchar { 32 });
+        migration.CreateTable("rec_subject").PrimaryKey("id", Integer {}).Column("v", Varchar { .size = 32 });
     });
     stmt.Prepare(R"(INSERT INTO "rec_subject" ("id", "v") VALUES (?, ?))");
     (void) stmt.Execute(1, std::string { "alpha" });

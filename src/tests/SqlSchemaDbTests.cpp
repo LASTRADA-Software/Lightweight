@@ -22,7 +22,7 @@ void CreateOrdersAndItemsSchema(SqlStatement& stmt)
 {
     stmt.MigrateDirect([](auto& migration) {
         migration.CreateTable("Orders").PrimaryKeyWithAutoIncrement("OrderID").RequiredColumn(
-            "Description", SqlColumnTypeDefinitions::Varchar { 100 });
+            "Description", SqlColumnTypeDefinitions::Varchar { .size = 100 });
     });
     stmt.MigrateDirect([](auto& migration) {
         // FK column type must match the referenced PK type. PrimaryKeyWithAutoIncrement
@@ -345,7 +345,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     stmt.MigrateDirect([](auto& migration) {
         migration.CreateTable("WideKeyed")
             .PrimaryKeyWithAutoIncrement("id", Bigint {})
-            .RequiredColumn("name", Varchar { 32 });
+            .RequiredColumn("name", Varchar { .size = 32 });
     });
 
     CheckIsSixtyFourBitKey(stmt.Connection().ServerType(), LiveColumnType(stmt, "WideKeyed", "id"));
@@ -417,8 +417,8 @@ TEST_CASE("MakeColumnTypeFromMssqlSysType maps non-Unicode character types", "[s
     CHECK(Map("varchar", 255) == SqlColumnTypeDefinition { Varchar { .size = 255 } });
     // varchar(max) — max_length == -1 -> LOB sentinel (matches the legacy SQLColumns COLUMN_SIZE).
     CHECK(Map("varchar", -1) == SqlColumnTypeDefinition { Varchar { .size = 2147483647 } });
-    // text (LOB) -> Varchar with the same non-Unicode LOB sentinel.
-    CHECK(Map("text", 16) == SqlColumnTypeDefinition { Varchar { .size = 2147483647 } });
+    // text (LOB) -> Varchar with the same non-Unicode LOB sentinel, flagged as legacy.
+    CHECK(Map("text", 16) == SqlColumnTypeDefinition { Varchar { .size = 2147483647, .legacyLob = true } });
 }
 
 TEST_CASE("MakeColumnTypeFromMssqlSysType maps Unicode character types (size = bytes/2)", "[schema-mapping]")
@@ -429,8 +429,8 @@ TEST_CASE("MakeColumnTypeFromMssqlSysType maps Unicode character types (size = b
     CHECK(Map("nvarchar", 510) == SqlColumnTypeDefinition { NVarchar { .size = 255 } });
     // nvarchar(max) -> Unicode LOB sentinel (matches the legacy SQLColumns COLUMN_SIZE).
     CHECK(Map("nvarchar", -1) == SqlColumnTypeDefinition { NVarchar { .size = 1073741823 } });
-    // ntext (LOB) -> NVarchar with the same Unicode LOB sentinel.
-    CHECK(Map("ntext", 16) == SqlColumnTypeDefinition { NVarchar { .size = 1073741823 } });
+    // ntext (LOB) -> NVarchar with the same Unicode LOB sentinel, flagged as legacy.
+    CHECK(Map("ntext", 16) == SqlColumnTypeDefinition { NVarchar { .size = 1073741823, .legacyLob = true } });
 }
 
 TEST_CASE("MakeColumnTypeFromMssqlSysType maps binary types", "[schema-mapping]")
@@ -439,8 +439,8 @@ TEST_CASE("MakeColumnTypeFromMssqlSysType maps binary types", "[schema-mapping]"
     CHECK(Map("varbinary", 255) == SqlColumnTypeDefinition { VarBinary { .size = 255 } });
     // varbinary(max) -> LOB sentinel (matches the legacy SQLColumns COLUMN_SIZE).
     CHECK(Map("varbinary", -1) == SqlColumnTypeDefinition { VarBinary { .size = 2147483647 } });
-    // image (LOB) -> VarBinary with the same non-Unicode LOB sentinel.
-    CHECK(Map("image", 16) == SqlColumnTypeDefinition { VarBinary { .size = 2147483647 } });
+    // image (LOB) -> VarBinary with the same non-Unicode LOB sentinel, flagged as legacy.
+    CHECK(Map("image", 16) == SqlColumnTypeDefinition { VarBinary { .size = 2147483647, .legacyLob = true } });
 }
 
 TEST_CASE("MakeColumnTypeFromMssqlSysType maps identifier and temporal types", "[schema-mapping]")
@@ -745,7 +745,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlSchema does not carry a foreign key onto th
             .ForeignKey("customer_id",
                         SqlColumnTypeDefinitions::Integer {},
                         SqlForeignKeyReferenceDefinition { .tableName = "FkCustomer", .columnName = "id" })
-            .Column("note", SqlColumnTypeDefinitions::Varchar { 50 });
+            .Column("note", SqlColumnTypeDefinitions::Varchar { .size = 50 });
     });
 
     auto const assertNoPhantomForeignKey = [](SqlSchema::Table const& table) {
@@ -910,7 +910,7 @@ TEST_CASE_METHOD(SqlTestFixture, "ReadTable ColumnsAndPrimaryKey skips FKs and i
     stmt.MigrateDirect([](auto& migration) {
         migration.CreateTable("RtLightChild")
             .PrimaryKeyWithAutoIncrement("Id", SqlColumnTypeDefinitions::Integer {})
-            .RequiredColumn("Code", SqlColumnTypeDefinitions::Varchar { 32 })
+            .RequiredColumn("Code", SqlColumnTypeDefinitions::Varchar { .size = 32 })
             .Unique()
             .Column("Tag", SqlColumnTypeDefinitions::Integer {})
             .Index()

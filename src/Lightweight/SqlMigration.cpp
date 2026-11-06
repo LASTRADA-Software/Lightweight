@@ -2002,9 +2002,9 @@ namespace
         if (dataType == "nchar")
             return NChar { length };
         if (dataType == "varchar")
-            return Varchar { length };
+            return Varchar { .size = length };
         if (dataType == "nvarchar")
-            return NVarchar { length };
+            return NVarchar { .size = length };
         return std::nullopt;
     }
 

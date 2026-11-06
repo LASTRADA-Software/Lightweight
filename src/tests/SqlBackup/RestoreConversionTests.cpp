@@ -177,7 +177,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     // Archive the text as a VARCHAR column, then declare that column a GUID column in the metadata.
     auto stmt = SqlStatement {};
     stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
-        migration.CreateTable("guid_restore_invalid").PrimaryKey("ID", Integer {}).Column("TOKEN", Varchar { 40 });
+        migration.CreateTable("guid_restore_invalid").PrimaryKey("ID", Integer {}).Column("TOKEN", Varchar { .size = 40 });
     });
     (void) stmt.ExecuteDirect(R"(INSERT INTO "guid_restore_invalid" ("ID", "TOKEN") VALUES (1, 'not-a-guid'))");
 
@@ -226,8 +226,8 @@ TEST_CASE_METHOD(SqlTestFixture,
     // chunks in name order, so the one restore worker meets the bad value first.
     auto stmt = SqlStatement {};
     stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
-        migration.CreateTable("restore_bad_value").PrimaryKey("ID", Integer {}).Column("TOKEN", Varchar { 40 });
-        migration.CreateTable("restore_good_rows").PrimaryKey("ID", Integer {}).Column("NAME", Varchar { 20 });
+        migration.CreateTable("restore_bad_value").PrimaryKey("ID", Integer {}).Column("TOKEN", Varchar { .size = 40 });
+        migration.CreateTable("restore_good_rows").PrimaryKey("ID", Integer {}).Column("NAME", Varchar { .size = 20 });
     });
     (void) stmt.ExecuteDirect(R"(INSERT INTO "restore_bad_value" ("ID", "TOKEN") VALUES (1, 'not-a-guid'))");
     for (auto const id: std::views::iota(2, 7))

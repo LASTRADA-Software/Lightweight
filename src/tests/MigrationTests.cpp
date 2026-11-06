@@ -2159,7 +2159,7 @@ TEST_CASE("ToSql: lup-truncate off leaves oversize INSERT values intact", "[SqlM
     SqlCreateTablePlan const create {
         .schemaName = "",
         .tableName = "T",
-        .columns = { SqlColumnDeclaration { .name = "n", .type = NVarchar { 5 } } },
+        .columns = { SqlColumnDeclaration { .name = "n", .type = NVarchar { .size = 5 } } },
         .foreignKeys = {},
         .ifNotExists = false,
     };
@@ -2199,7 +2199,7 @@ TEST_CASE("ToSql: lup-truncate on clips oversize INSERT values and warns", "[Sql
     SqlCreateTablePlan const create {
         .schemaName = "",
         .tableName = "T",
-        .columns = { SqlColumnDeclaration { .name = "n", .type = NVarchar { 5 } } },
+        .columns = { SqlColumnDeclaration { .name = "n", .type = NVarchar { .size = 5 } } },
         .foreignKeys = {},
         .ifNotExists = false,
     };
@@ -2247,7 +2247,7 @@ TEST_CASE("ToSql: lup-truncate handles UTF-8 multi-byte by character count", "[S
     SqlCreateTablePlan const create {
         .schemaName = "",
         .tableName = "T",
-        .columns = { SqlColumnDeclaration { .name = "n", .type = NVarchar { 4 } } },
+        .columns = { SqlColumnDeclaration { .name = "n", .type = NVarchar { .size = 4 } } },
         .foreignKeys = {},
         .ifNotExists = false,
     };
@@ -2288,7 +2288,7 @@ TEST_CASE("ToSql: lup-truncate truncates string_view values from char-array lite
     SqlCreateTablePlan const create {
         .schemaName = "",
         .tableName = "T",
-        .columns = { SqlColumnDeclaration { .name = "n", .type = NVarchar { 5 } } },
+        .columns = { SqlColumnDeclaration { .name = "n", .type = NVarchar { .size = 5 } } },
         .foreignKeys = {},
         .ifNotExists = false,
     };
@@ -2326,7 +2326,7 @@ TEST_CASE("ToSql: DROP TABLE evicts column widths from the cache", "[SqlMigratio
     SqlCreateTablePlan const create {
         .schemaName = "",
         .tableName = "T",
-        .columns = { SqlColumnDeclaration { .name = "n", .type = NVarchar { 5 } } },
+        .columns = { SqlColumnDeclaration { .name = "n", .type = NVarchar { .size = 5 } } },
         .foreignKeys = {},
         .ifNotExists = false,
     };
@@ -2895,6 +2895,65 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     auto const liveTables = SqlSchema::ReadAllTables(stmt, std::string {}, std::string {});
     auto const it = std::ranges::find_if(liveTables, [](SqlSchema::Table const& t) { return t.name == "idem"; });
     REQUIRE(it != liveTables.end());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: a live TEXT column declared as Varchar is not drift",
+                 "[SqlMigration][UnicodeUpgrade][LegacyLob]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("TEXT as a type distinct from VARCHAR(MAX) exists on SQL Server only");
+
+    fold_test::FoldStub<20'10'13'00'00'01> m1 {
+        "create t",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("legacy_narrow").PrimaryKey("id", Bigint()).Column("note", Varchar(2147483647));
+        }
+    };
+    mgr.CreateMigrationHistory();
+    REQUIRE(mgr.ApplyPendingMigrations() == 1);
+
+    (void) stmt.ExecuteDirect("DROP TABLE legacy_narrow");
+    (void) stmt.ExecuteDirect("CREATE TABLE legacy_narrow (id BIGINT PRIMARY KEY, note TEXT NULL)");
+
+    CHECK(mgr.UnicodeUpgradeTables(ExecutionMode::DryRun).columns.empty());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: a live TEXT column declared as NVarchar is widened",
+                 "[SqlMigration][UnicodeUpgrade][LegacyLob]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("TEXT as a type distinct from VARCHAR(MAX) exists on SQL Server only");
+
+    fold_test::FoldStub<20'10'13'00'00'02> m1 {
+        "create t",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("legacy_wide").PrimaryKey("id", Bigint()).Column("note", NVarchar(2147483647));
+        }
+    };
+    mgr.CreateMigrationHistory();
+    REQUIRE(mgr.ApplyPendingMigrations() == 1);
+
+    (void) stmt.ExecuteDirect("DROP TABLE legacy_wide");
+    (void) stmt.ExecuteDirect("CREATE TABLE legacy_wide (id BIGINT PRIMARY KEY, note TEXT NULL)");
+    (void) stmt.ExecuteDirect("INSERT INTO legacy_wide (id, note) VALUES (1, 'kept')");
+
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
+    REQUIRE(result.columns.size() == 1);
+    CHECK(std::get<Varchar>(result.columns.front().liveType).legacyLob);
+
+    auto const type = stmt.ExecuteDirectScalar<std::string>(
+        "SELECT ty.name FROM sys.columns c INNER JOIN sys.types ty ON c.user_type_id = ty.user_type_id "
+        "WHERE c.object_id = OBJECT_ID('legacy_wide') AND c.name = 'note'");
+    CHECK(type == "nvarchar");
+    CHECK(stmt.ExecuteDirectScalar<int>("SELECT COUNT(*) FROM legacy_wide WHERE note = N'kept'") == 1);
 }
 
 // ============================================================================
@@ -3588,7 +3647,7 @@ TEST_CASE("ToSql: lup-truncate clips wide-string and SqlText variants, also on U
     SqlCreateTablePlan const create {
         .schemaName = "",
         .tableName = "T",
-        .columns = { SqlColumnDeclaration { .name = "n", .type = NVarchar { 5 } } },
+        .columns = { SqlColumnDeclaration { .name = "n", .type = NVarchar { .size = 5 } } },
         .foreignKeys = {},
         .ifNotExists = false,
     };
@@ -4013,7 +4072,7 @@ TEST_CASE("fk-match-referenced-text: single-column and ALTER TABLE foreign keys 
 {
     using namespace SqlColumnTypeDefinitions;
     {
-        auto context = FkTextContext(Varchar { 40 });
+        auto context = FkTextContext(Varchar { .size = 40 });
         auto const sql = RenderWithContext(SqlQueryFormatter::SqlServer(), context, [](SqlMigrationQueryBuilder& plan) {
             plan.CreateTable("fk_orders")
                 .PrimaryKey("NR", Integer())
@@ -4026,7 +4085,7 @@ TEST_CASE("fk-match-referenced-text: single-column and ALTER TABLE foreign keys 
         CHECK_FALSE(sql.contains("NVARCHAR(40)"));
     }
     {
-        auto context = FkTextContext(Varchar { 40 });
+        auto context = FkTextContext(Varchar { .size = 40 });
         auto const sql = RenderWithContext(SqlQueryFormatter::SqlServer(), context, [](SqlMigrationQueryBuilder& plan) {
             plan.AlterTable("fk_orders")
                 .AddForeignKeyColumn("USER_NAME",
@@ -4053,9 +4112,9 @@ TEST_CASE("fk-match-referenced-text: an existing FK column is retyped with ALTER
 
     for (auto const nullable: { SqlNullable::NotNull, SqlNullable::Null })
     {
-        auto context = FkTextContext(NVarchar { 30 });
+        auto context = FkTextContext(NVarchar { .size = 30 });
         context.lookupAttempted.insert(MigrationRenderContext::TableKey { .schema = "", .table = "fk_orders" });
-        context.textColumnTypes[ordersKey("USER_NAME")] = Varchar { 30 };
+        context.textColumnTypes[ordersKey("USER_NAME")] = Varchar { .size = 30 };
         context.columnNullability[ordersKey("USER_NAME")] = nullable;
 
         auto const sql = RenderWithContext(SqlQueryFormatter::SqlServer(), context, addFk);
@@ -4071,12 +4130,12 @@ TEST_CASE("fk-match-referenced-text: an existing FK column is retyped with ALTER
     }
 
     // Unknown or already matching columns, and other backends, are left alone.
-    auto unknown = FkTextContext(NVarchar { 30 });
+    auto unknown = FkTextContext(NVarchar { .size = 30 });
     unknown.lookupAttempted.insert(MigrationRenderContext::TableKey { .schema = "", .table = "fk_orders" });
     CHECK_FALSE(RenderWithContext(SqlQueryFormatter::SqlServer(), unknown, addFk).contains("ALTER COLUMN"));
 
-    auto sqlite = FkTextContext(NVarchar { 30 });
-    sqlite.textColumnTypes[ordersKey("USER_NAME")] = Varchar { 30 };
+    auto sqlite = FkTextContext(NVarchar { .size = 30 });
+    sqlite.textColumnTypes[ordersKey("USER_NAME")] = Varchar { .size = 30 };
     CHECK_FALSE(RenderWithContext(SqlQueryFormatter::Sqlite(), sqlite, addFk).contains("ALTER COLUMN"));
 }
 

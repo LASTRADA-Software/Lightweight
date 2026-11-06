@@ -35,7 +35,7 @@ void CreateBatchFetchTable(SqlStatement& stmt)
         migration.CreateTable("BatchFetch")
             .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
             .Column("Ratio", SqlColumnTypeDefinitions::Real {})
-            .Column("Name", SqlColumnTypeDefinitions::Varchar { 64 });
+            .Column("Name", SqlColumnTypeDefinitions::Varchar { .size = 64 });
     });
 }
 
@@ -222,7 +222,7 @@ TEST_CASE_METHOD(SqlTestFixture, "RowArrayCursor reads NVARCHAR cells as UTF-8 t
     stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
         migration.CreateTable("BatchFetchN")
             .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
-            .Column("Name", SqlColumnTypeDefinitions::NVarchar { 50 });
+            .Column("Name", SqlColumnTypeDefinitions::NVarchar { .size = 50 });
     });
 
     auto const names = std::vector<std::string> {
@@ -456,14 +456,14 @@ TEST_CASE_METHOD(SqlTestFixture, "RowArrayCursor adapts its depth to the per-cur
     stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
         migration.CreateTable("BatchFetchWide")
             .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
-            .Column("C0", SqlColumnTypeDefinitions::Varchar { 4000 })
-            .Column("C1", SqlColumnTypeDefinitions::Varchar { 4000 })
-            .Column("C2", SqlColumnTypeDefinitions::Varchar { 4000 })
-            .Column("C3", SqlColumnTypeDefinitions::Varchar { 4000 })
-            .Column("C4", SqlColumnTypeDefinitions::Varchar { 4000 })
-            .Column("C5", SqlColumnTypeDefinitions::Varchar { 4000 })
-            .Column("C6", SqlColumnTypeDefinitions::Varchar { 4000 })
-            .Column("C7", SqlColumnTypeDefinitions::Varchar { 4000 });
+            .Column("C0", SqlColumnTypeDefinitions::Varchar { .size = 4000 })
+            .Column("C1", SqlColumnTypeDefinitions::Varchar { .size = 4000 })
+            .Column("C2", SqlColumnTypeDefinitions::Varchar { .size = 4000 })
+            .Column("C3", SqlColumnTypeDefinitions::Varchar { .size = 4000 })
+            .Column("C4", SqlColumnTypeDefinitions::Varchar { .size = 4000 })
+            .Column("C5", SqlColumnTypeDefinitions::Varchar { .size = 4000 })
+            .Column("C6", SqlColumnTypeDefinitions::Varchar { .size = 4000 })
+            .Column("C7", SqlColumnTypeDefinitions::Varchar { .size = 4000 });
     });
     (void) stmt.ExecuteDirect(
         R"(INSERT INTO "BatchFetchWide" ("Id", "C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7")
@@ -575,7 +575,7 @@ TEST_CASE_METHOD(SqlTestFixture, "RowArrayCursor throws on a value truncated to 
     stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
         migration.CreateTable("BatchFetchTruncate")
             .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
-            .Column("Name", SqlColumnTypeDefinitions::Varchar { 4 });
+            .Column("Name", SqlColumnTypeDefinitions::Varchar { .size = 4 });
     });
     // 200 ASCII bytes into a VARCHAR(4): SQLite stores it verbatim, but the cursor binds a 4-char
     // buffer, so the driver reports a length far beyond it on fetch.

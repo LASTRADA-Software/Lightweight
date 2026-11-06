@@ -393,14 +393,14 @@ struct SqlBasicStringOperations<SqlFixedString<N, T, Mode>>
         if constexpr (std::same_as<CharType, char>)
         {
             if constexpr (Mode == SqlFixedStringMode::VARIABLE_SIZE)
-                return SqlColumnTypeDefinitions::Varchar { N };
+                return SqlColumnTypeDefinitions::Varchar { .size = N };
             else
                 return SqlColumnTypeDefinitions::Char { N };
         }
         else
         {
             if constexpr (Mode == SqlFixedStringMode::VARIABLE_SIZE)
-                return SqlColumnTypeDefinitions::NVarchar { N };
+                return SqlColumnTypeDefinitions::NVarchar { .size = N };
             else
                 return SqlColumnTypeDefinitions::NChar { N };
         }

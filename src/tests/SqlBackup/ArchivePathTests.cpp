@@ -30,7 +30,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Backup writes and reads an archive whose path 
         auto stmt = SqlStatement {};
         stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
             migration.DropTableIfExists("ArchivePathSubject");
-            migration.CreateTable("ArchivePathSubject").PrimaryKey("id", Integer {}).Column("v", Varchar { 32 });
+            migration.CreateTable("ArchivePathSubject").PrimaryKey("id", Integer {}).Column("v", Varchar { .size = 32 });
         });
         stmt.Prepare(R"(INSERT INTO "ArchivePathSubject" ("id", "v") VALUES (?, ?))");
         (void) stmt.Execute(1, std::string { "alpha" });

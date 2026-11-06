@@ -1139,8 +1139,8 @@ inline void CreateEmployeesTable(Lightweight::SqlStatement& stmt,
         [](Lightweight::SqlMigrationQueryBuilder& migration) {
             migration.CreateTable("Employees")
                 .PrimaryKeyWithAutoIncrement("EmployeeID")
-                .RequiredColumn("FirstName", Lightweight::SqlColumnTypeDefinitions::Varchar { 50 })
-                .Column("LastName", Lightweight::SqlColumnTypeDefinitions::Varchar { 50 })
+                .RequiredColumn("FirstName", Lightweight::SqlColumnTypeDefinitions::Varchar { .size = 50 })
+                .Column("LastName", Lightweight::SqlColumnTypeDefinitions::Varchar { .size = 50 })
                 .RequiredColumn("Salary", Lightweight::SqlColumnTypeDefinitions::Integer {});
         },
         location);
@@ -1152,7 +1152,7 @@ inline void CreateLargeTable(Lightweight::SqlStatement& stmt)
         auto table = migration.CreateTable("LargeTable");
         for (char c = 'A'; c <= 'Z'; ++c)
         {
-            table.Column(std::string(1, c), Lightweight::SqlColumnTypeDefinitions::Varchar { 50 });
+            table.Column(std::string(1, c), Lightweight::SqlColumnTypeDefinitions::Varchar { .size = 50 });
         }
     });
 }

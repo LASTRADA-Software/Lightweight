@@ -189,7 +189,7 @@ TEST_CASE_METHOD(SqlTestFixture, "VerifyArchive accepts what Backup writes", "[S
         auto stmt = SqlStatement {};
         stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
             migration.DropTableIfExists("VerifyArchiveSubject");
-            migration.CreateTable("VerifyArchiveSubject").PrimaryKey("id", Integer {}).Column("v", Varchar { 32 });
+            migration.CreateTable("VerifyArchiveSubject").PrimaryKey("id", Integer {}).Column("v", Varchar { .size = 32 });
         });
         stmt.Prepare(R"(INSERT INTO "VerifyArchiveSubject" ("id", "v") VALUES (?, ?))");
         (void) stmt.Execute(1, std::string { "alpha" });

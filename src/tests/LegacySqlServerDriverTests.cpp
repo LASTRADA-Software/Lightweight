@@ -536,8 +536,8 @@ void CheckEmptyTextBatch(SqlStatement& stmt, SqlColumnTypeDefinition const& text
 TEST_CASE_METHOD(SqlTestFixture, "Empty string parameter after another parameter", "[LegacySqlServerDriver]")
 {
     auto stmt = SqlStatement {};
-    auto const narrowText = SqlColumnTypeDefinitions::Varchar { 20 };
-    auto const wideText = SqlColumnTypeDefinitions::NVarchar { 20 };
+    auto const narrowText = SqlColumnTypeDefinitions::Varchar { .size = 20 };
+    auto const wideText = SqlColumnTypeDefinitions::NVarchar { .size = 20 };
 
     SECTION("std::string")
     {
@@ -591,8 +591,8 @@ TEST_CASE_METHOD(SqlTestFixture, "Empty string parameter after another parameter
 TEST_CASE_METHOD(SqlTestFixture, "Empty string batch insert", "[LegacySqlServerDriver]")
 {
     auto stmt = SqlStatement {};
-    auto const narrowText = SqlColumnTypeDefinitions::Varchar { 20 };
-    auto const wideText = SqlColumnTypeDefinitions::NVarchar { 20 };
+    auto const narrowText = SqlColumnTypeDefinitions::Varchar { .size = 20 };
+    auto const wideText = SqlColumnTypeDefinitions::NVarchar { .size = 20 };
 
     SECTION("std::string")
     {
@@ -727,7 +727,7 @@ TEST_CASE_METHOD(SqlTestFixture,
 TEST_CASE_METHOD(SqlTestFixture, "Empty string stays distinct from NULL", "[LegacySqlServerDriver]")
 {
     auto stmt = SqlStatement {};
-    CreateTextTable(stmt, "EmptyOrNull", SqlColumnTypeDefinitions::Varchar { 20 });
+    CreateTextTable(stmt, "EmptyOrNull", SqlColumnTypeDefinitions::Varchar { .size = 20 });
 
     stmt.Prepare(R"(INSERT INTO "EmptyOrNull" ("id", "name") VALUES (?, ?))");
     REQUIRE_NOTHROW((void) stmt.Execute(1, std::string {}));
@@ -799,12 +799,12 @@ TEST_CASE_METHOD(SqlTestFixture, "Empty string through raw batch columns", "[Leg
 
     SECTION("VARCHAR")
     {
-        CreateTextTable(stmt, "EmptyRawText", SqlColumnTypeDefinitions::Varchar { 20 });
+        CreateTextTable(stmt, "EmptyRawText", SqlColumnTypeDefinitions::Varchar { .size = 20 });
         CheckEmptyRawTextBatch<char>(stmt, SQL_C_CHAR, SQL_VARCHAR);
     }
     SECTION("NVARCHAR")
     {
-        CreateTextTable(stmt, "EmptyRawText", SqlColumnTypeDefinitions::NVarchar { 20 });
+        CreateTextTable(stmt, "EmptyRawText", SqlColumnTypeDefinitions::NVarchar { .size = 20 });
         CheckEmptyRawTextBatch<char16_t>(stmt, SQL_C_WCHAR, SQL_WVARCHAR);
     }
 }
@@ -815,7 +815,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Empty binary parameter after another parameter
     stmt.MigrateDirect([](auto& migration) {
         migration.CreateTable("EmptyBinary")
             .RequiredColumn("id", SqlColumnTypeDefinitions::Integer {})
-            .Column("data", SqlColumnTypeDefinitions::VarBinary { 20 });
+            .Column("data", SqlColumnTypeDefinitions::VarBinary { .size = 20 });
     });
 
     stmt.Prepare(R"(INSERT INTO "EmptyBinary" ("id", "data") VALUES (?, ?))");

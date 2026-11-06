@@ -116,6 +116,35 @@ namespace
         return std::nullopt;
     }
 
+    /// Tells whether a column that @c SQLColumns describes on MS SQL Server is @c text, @c ntext or @c image.
+    ///
+    /// The ODBC long types identify them, which also catches an alias type such as
+    /// `CREATE TYPE note FROM text`, reported under the alias's name. Current drivers report the `(max)`
+    /// types as the plain @c SQL_VARCHAR family, but the in-box @c {SQL Server} driver reports them as
+    /// long types too, under their own names, so those names are excluded.
+    ///
+    /// @param odbcType The column's @c DATA_TYPE.
+    /// @param typeName The column's @c TYPE_NAME.
+    /// @return @c true for a legacy large-object column.
+    constexpr bool IsMssqlLegacyLobColumn(int odbcType, std::string_view typeName) noexcept
+    {
+        return (odbcType == SQL_LONGVARCHAR || odbcType == SQL_WLONGVARCHAR || odbcType == SQL_LONGVARBINARY)
+               && typeName != "varchar"sv && typeName != "nvarchar"sv && typeName != "varbinary"sv;
+    }
+
+    /// Sets the @c legacyLob flag of @p type, if its kind of column type has one.
+    ///
+    /// @param type The column type to mark.
+    void MarkAsLegacyLob(SqlColumnTypeDefinition& type) noexcept
+    {
+        if (auto* const varchar = std::get_if<SqlColumnTypeDefinitions::Varchar>(&type))
+            varchar->legacyLob = true;
+        else if (auto* const nvarchar = std::get_if<SqlColumnTypeDefinitions::NVarchar>(&type))
+            nvarchar->legacyLob = true;
+        else if (auto* const varbinary = std::get_if<SqlColumnTypeDefinitions::VarBinary>(&type))
+            varbinary->legacyLob = true;
+    }
+
     /// Calls @c SQLTables for the tables of @p database and @p schema, narrowed to the
     /// @p tableName search pattern when given.
     SQLRETURN CallSqlTables(SqlStatement& stmt,
@@ -1251,9 +1280,10 @@ namespace detail
             // varchar(max) (max_length == -1) is a LOB: the driver reports COLUMN_SIZE 2147483647.
             if (sysTypeName == "varchar")
                 return Varchar { .size = isMax ? LobSizeNonUnicode : MssqlByteSize(maxLength) };
-            // text is always a LOB; legacy maps SQL_LONGVARCHAR -> Varchar{2147483647}.
+            // text is always a LOB, with the size varchar(max) reports. The flag is what keeps it text
+            // through a backup and restore.
             if (sysTypeName == "text")
-                return Varchar { .size = LobSizeNonUnicode };
+                return Varchar { .size = LobSizeNonUnicode, .legacyLob = true };
             // Unicode (size in characters == bytes / 2).
             if (sysTypeName == "nchar")
                 return NChar { .size = MssqlCharSize(maxLength) };
@@ -1261,7 +1291,7 @@ namespace detail
             if (sysTypeName == "nvarchar")
                 return NVarchar { .size = isMax ? LobSizeUnicode : MssqlCharSize(maxLength) };
             if (sysTypeName == "ntext")
-                return NVarchar { .size = LobSizeUnicode };
+                return NVarchar { .size = LobSizeUnicode, .legacyLob = true };
             return std::nullopt;
         }
 
@@ -1275,7 +1305,7 @@ namespace detail
             if (sysTypeName == "varbinary")
                 return VarBinary { .size = maxLength < 0 ? LobSizeNonUnicode : MssqlByteSize(maxLength) };
             if (sysTypeName == "image")
-                return VarBinary { .size = LobSizeNonUnicode };
+                return VarBinary { .size = LobSizeNonUnicode, .legacyLob = true };
             return std::nullopt;
         }
 
@@ -1588,6 +1618,10 @@ namespace detail
                 SqlLogger::GetLogger().OnError(SqlError::UNSUPPORTED_TYPE);
                 throw std::runtime_error(std::format("Unsupported data type: {}", type));
             }
+
+            if (serverType == SqlServerType::MICROSOFT_SQL
+                && IsMssqlLegacyLobColumn(type, column.dialectDependantTypeString))
+                MarkAsLegacyLob(column.type);
 
             try
             {
