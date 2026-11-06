@@ -46,6 +46,9 @@ enum class SqlNullable : uint8_t
 namespace SqlColumnTypeDefinitions
 {
 
+    // `legacyLob` on Varchar, NVarchar and VarBinary declares SQL Server's TEXT, NTEXT and IMAGE, and is what
+    // SqlSchema reports for such a column. Other databases ignore it. It takes part in comparisons, so a live
+    // TEXT column differs from a declared Varchar of the same size.
     // clang-format off
 struct Bigint { auto operator<=>(Bigint const&) const = default; };
 struct Binary { std::size_t size = 255; auto operator<=>(Binary const&) const = default; };

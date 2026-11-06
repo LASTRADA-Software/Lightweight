@@ -2897,6 +2897,65 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     REQUIRE(it != liveTables.end());
 }
 
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: a live TEXT column declared as Varchar is not drift",
+                 "[SqlMigration][UnicodeUpgrade][LegacyLob]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("TEXT as a type distinct from VARCHAR(MAX) exists on SQL Server only");
+
+    fold_test::FoldStub<20'10'13'00'00'01> m1 {
+        "create t",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("legacy_narrow").PrimaryKey("id", Bigint()).Column("note", Varchar(2147483647));
+        }
+    };
+    mgr.CreateMigrationHistory();
+    REQUIRE(mgr.ApplyPendingMigrations() == 1);
+
+    (void) stmt.ExecuteDirect("DROP TABLE legacy_narrow");
+    (void) stmt.ExecuteDirect("CREATE TABLE legacy_narrow (id BIGINT PRIMARY KEY, note TEXT NULL)");
+
+    CHECK(mgr.UnicodeUpgradeTables(ExecutionMode::DryRun).columns.empty());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: a live TEXT column declared as NVarchar is widened",
+                 "[SqlMigration][UnicodeUpgrade][LegacyLob]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("TEXT as a type distinct from VARCHAR(MAX) exists on SQL Server only");
+
+    fold_test::FoldStub<20'10'13'00'00'02> m1 {
+        "create t",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("legacy_wide").PrimaryKey("id", Bigint()).Column("note", NVarchar(2147483647));
+        }
+    };
+    mgr.CreateMigrationHistory();
+    REQUIRE(mgr.ApplyPendingMigrations() == 1);
+
+    (void) stmt.ExecuteDirect("DROP TABLE legacy_wide");
+    (void) stmt.ExecuteDirect("CREATE TABLE legacy_wide (id BIGINT PRIMARY KEY, note TEXT NULL)");
+    (void) stmt.ExecuteDirect("INSERT INTO legacy_wide (id, note) VALUES (1, 'kept')");
+
+    auto const result = mgr.UnicodeUpgradeTables(ExecutionMode::Execute);
+    REQUIRE(result.columns.size() == 1);
+    CHECK(std::get<Varchar>(result.columns.front().liveType).legacyLob);
+
+    auto const type = stmt.ExecuteDirectScalar<std::string>(
+        "SELECT ty.name FROM sys.columns c INNER JOIN sys.types ty ON c.user_type_id = ty.user_type_id "
+        "WHERE c.object_id = OBJECT_ID('legacy_wide') AND c.name = 'note'");
+    CHECK(type == "nvarchar");
+    CHECK(stmt.ExecuteDirectScalar<int>("SELECT COUNT(*) FROM legacy_wide WHERE note = N'kept'") == 1);
+}
+
 // ============================================================================
 // SplitFileWriter unit tests
 // ============================================================================

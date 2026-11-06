@@ -386,6 +386,11 @@ plan.RawSql("ALTER TABLE users ADD CONSTRAINT check_age CHECK (age >= 0)");
 | `Binary(n)` | BINARY(n) | Fixed-length binary |
 | `VarBinary(n)` | VARBINARY(n) | Variable-length binary |
 
+To declare one of SQL Server's legacy large-object types, set `legacyLob` on the matching type: `Varchar { .legacyLob = true }` is
+`TEXT`, `NVarchar { .legacyLob = true }` is `NTEXT` and `VarBinary { .legacyLob = true }` is `IMAGE`. Other databases ignore the flag.
+`SqlSchema` sets it on the columns it reads, so a backup and restore keeps these types. SQL Server has restrictions of its own here:
+these columns cannot be indexed, sorted or be part of a key, and `ALTER COLUMN` cannot turn a `TEXT` column into `NTEXT`.
+
 Usage:
 
 ```cpp

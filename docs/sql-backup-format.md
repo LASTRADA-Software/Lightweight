@@ -81,7 +81,7 @@ Each object in the `schema` array represents a table:
 | `is_unique` | Boolean | `true` if the column has a unique constraint. |
 | `default_value` | String | (Optional) The default value expression. |
 | `size` | Integer | (Optional) Size for `varchar`, `binary`, etc. |
-| `legacyLob` | Boolean | (Optional) Present and `true` on a `varchar`, `nvarchar` or `varbinary` column whose definition carries the `legacyLob` flag, so that restoring onto SQL Server recreates it as `TEXT`, `NTEXT` or `IMAGE`. Other databases ignore it. Missing means `false`. |
+| `legacyLob` | Boolean | (Optional) Present and `true` on a `varchar`, `nvarchar` or `varbinary` column that is `TEXT`, `NTEXT` or `IMAGE` on the SQL Server it was backed up from, so that restoring onto SQL Server recreates that type. Other databases ignore it. Missing means `false`. |
 | `precision` | Integer | (Optional) Precision for `decimal`. |
 | `scale` | Integer | (Optional) Scale for `decimal`. |
 

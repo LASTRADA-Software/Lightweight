@@ -125,6 +125,7 @@ set(SOURCE_FILES
     SqlBackup/AttachmentsTests.cpp
     SqlBackup/AllColumnTypesTests.cpp
     SqlBackup/EncodingRoundTripTests.cpp
+    SqlBackup/LegacyLobTests.cpp
     SqlBackup/RawColumnSliceTests.cpp
     SqlBackup/RestoreCharPaddingTests.cpp
     SqlBackup/RestoreConversionTests.cpp

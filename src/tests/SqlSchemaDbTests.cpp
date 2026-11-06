@@ -417,8 +417,8 @@ TEST_CASE("MakeColumnTypeFromMssqlSysType maps non-Unicode character types", "[s
     CHECK(Map("varchar", 255) == SqlColumnTypeDefinition { Varchar { .size = 255 } });
     // varchar(max) — max_length == -1 -> LOB sentinel (matches the legacy SQLColumns COLUMN_SIZE).
     CHECK(Map("varchar", -1) == SqlColumnTypeDefinition { Varchar { .size = 2147483647 } });
-    // text (LOB) -> Varchar with the same non-Unicode LOB sentinel.
-    CHECK(Map("text", 16) == SqlColumnTypeDefinition { Varchar { .size = 2147483647 } });
+    // text (LOB) -> Varchar with the same non-Unicode LOB sentinel, flagged as legacy.
+    CHECK(Map("text", 16) == SqlColumnTypeDefinition { Varchar { .size = 2147483647, .legacyLob = true } });
 }
 
 TEST_CASE("MakeColumnTypeFromMssqlSysType maps Unicode character types (size = bytes/2)", "[schema-mapping]")
@@ -429,8 +429,8 @@ TEST_CASE("MakeColumnTypeFromMssqlSysType maps Unicode character types (size = b
     CHECK(Map("nvarchar", 510) == SqlColumnTypeDefinition { NVarchar { .size = 255 } });
     // nvarchar(max) -> Unicode LOB sentinel (matches the legacy SQLColumns COLUMN_SIZE).
     CHECK(Map("nvarchar", -1) == SqlColumnTypeDefinition { NVarchar { .size = 1073741823 } });
-    // ntext (LOB) -> NVarchar with the same Unicode LOB sentinel.
-    CHECK(Map("ntext", 16) == SqlColumnTypeDefinition { NVarchar { .size = 1073741823 } });
+    // ntext (LOB) -> NVarchar with the same Unicode LOB sentinel, flagged as legacy.
+    CHECK(Map("ntext", 16) == SqlColumnTypeDefinition { NVarchar { .size = 1073741823, .legacyLob = true } });
 }
 
 TEST_CASE("MakeColumnTypeFromMssqlSysType maps binary types", "[schema-mapping]")
@@ -439,8 +439,8 @@ TEST_CASE("MakeColumnTypeFromMssqlSysType maps binary types", "[schema-mapping]"
     CHECK(Map("varbinary", 255) == SqlColumnTypeDefinition { VarBinary { .size = 255 } });
     // varbinary(max) -> LOB sentinel (matches the legacy SQLColumns COLUMN_SIZE).
     CHECK(Map("varbinary", -1) == SqlColumnTypeDefinition { VarBinary { .size = 2147483647 } });
-    // image (LOB) -> VarBinary with the same non-Unicode LOB sentinel.
-    CHECK(Map("image", 16) == SqlColumnTypeDefinition { VarBinary { .size = 2147483647 } });
+    // image (LOB) -> VarBinary with the same non-Unicode LOB sentinel, flagged as legacy.
+    CHECK(Map("image", 16) == SqlColumnTypeDefinition { VarBinary { .size = 2147483647, .legacyLob = true } });
 }
 
 TEST_CASE("MakeColumnTypeFromMssqlSysType maps identifier and temporal types", "[schema-mapping]")

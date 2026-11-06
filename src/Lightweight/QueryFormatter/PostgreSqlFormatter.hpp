@@ -189,6 +189,10 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
                           type);
     }
 
+    /// The widest `VARCHAR(n)` PostgreSQL accepts. A wider column, such as a SQL Server `VARCHAR(MAX)` or `TEXT`
+    /// column read from an archive, can only be `TEXT` here.
+    static constexpr std::size_t MaxVarcharLength = 10'485'760;
+
     [[nodiscard]] std::string ColumnType(SqlColumnTypeDefinition const& type) const override
     {
         using namespace SqlColumnTypeDefinitions;
@@ -208,7 +212,7 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
                               [](Integer const&) -> std::string { return "INTEGER"; },
                               [](NChar const& type) -> std::string { return std::format("CHAR({})", type.size); },
                               [](NVarchar const& type) -> std::string {
-                                  if (type.size == 0)
+                                  if (type.size == 0 || type.size > MaxVarcharLength)
                                       return "TEXT";
                                   return std::format("VARCHAR({})", type.size);
                               },
@@ -226,7 +230,7 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
                               [](Tinyint const&) -> std::string { return "SMALLINT"; },
                               [](VarBinary const& /*type*/) -> std::string { return std::format("BYTEA"); },
                               [](Varchar const& type) -> std::string {
-                                  if (type.size == 0)
+                                  if (type.size == 0 || type.size > MaxVarcharLength)
                                       return "TEXT";
                                   return std::format("VARCHAR({})", type.size);
                               },

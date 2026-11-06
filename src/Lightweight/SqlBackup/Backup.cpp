@@ -104,6 +104,28 @@ void AppendColumnProjection(std::string& sql, std::vector<SqlSchema::Column> con
     }
 }
 
+/// Finds the column to order by for a table without a primary key.
+///
+/// SQL Server rejects `ORDER BY` on `TEXT`, `NTEXT` and `IMAGE` (error 306), so those are passed over.
+///
+/// @param columns The column definitions.
+/// @return The name of the first sortable column, or an empty view if there is none.
+static std::string_view FirstSortableColumn(std::vector<SqlSchema::Column> const& columns)
+{
+    auto const isSortable = [](SqlSchema::Column const& column) {
+        return std::visit(
+            [](auto const& type) {
+                if constexpr (requires { type.legacyLob; })
+                    return !type.legacyLob;
+                else
+                    return true;
+            },
+            column.type);
+    };
+    auto const sortable = std::ranges::find_if(columns, isSortable);
+    return sortable != columns.end() ? std::string_view { sortable->name } : std::string_view {};
+}
+
 /// Builds a SELECT query for MSSQL with CONVERT for DECIMAL columns.
 ///
 /// MSSQL ODBC driver loses precision when reading DECIMAL as string directly.
@@ -149,7 +171,8 @@ std::string BuildMssqlDecimalSelectQuery(std::string_view schema,
     }
     else
     {
-        std::format_to(std::back_inserter(sql), "[{}] ASC", columns[0].name);
+        // The DECIMAL column this query exists for can be sorted, so a column is always found.
+        std::format_to(std::back_inserter(sql), "[{}] ASC", FirstSortableColumn(columns));
     }
 
     if (offset > 0)
@@ -255,10 +278,16 @@ std::string BuildSelectQueryWithOffset(SqlQueryFormatter const& formatter,
         for (auto const& pk: primaryKeys)
             query.OrderBy(pk, SqlResultOrdering::ASCENDING);
     }
-    else
+    else if (auto const sortable = FirstSortableColumn(columns); !sortable.empty())
     {
-        // Fallback: order by first column (less reliable but better than no order)
-        query.OrderBy(columns[0].name, SqlResultOrdering::ASCENDING);
+        // Fallback: order by the first sortable column (less reliable but better than no order)
+        query.OrderBy(sortable, SqlResultOrdering::ASCENDING);
+    }
+    else if (offset > 0)
+    {
+        // Without an order, the rows already read cannot be told from the others.
+        throw std::runtime_error(
+            std::format("Cannot resume the backup of table '{}': it has no primary key and no sortable column", tableName));
     }
 
     if (offset > 0)
