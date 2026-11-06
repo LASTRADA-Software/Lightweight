@@ -173,7 +173,7 @@ Example</h2>
 <div class="fragment"><div class="line">SqlMigrationQueryBuilder migration;</div>
 <div class="line">migration.CreateTable(<span class="stringliteral">&quot;Appointment&quot;</span>).PrimaryKeyWithAutoIncrement(<span class="stringliteral">&quot;id&quot;</span>, Guid{})</div>
 <div class="line">         .RequiredColumn(<span class="stringliteral">&quot;date&quot;</span>, DateTime {})</div>
-<div class="line">         .Column(<span class="stringliteral">&quot;comment&quot;</span>, Varchar { .size = 80 })</div>
+<div class="line">         .Column(<span class="stringliteral">&quot;comment&quot;</span>, Varchar { 80 })</div>
 <div class="line">         .ForeignKey(<span class="stringliteral">&quot;physician_id&quot;</span>, Guid {}, </div>
 <div class="line">                     SqlForeignKeyReferenceDefinition { .tableName = <span class="stringliteral">&quot;Physician&quot;</span>, .columnName = <span class="stringliteral">&quot;id&quot;</span> })</div>
 <div class="line">         .ForeignKey(<span class="stringliteral">&quot;patient_id&quot;</span>, Guid {}, </div>

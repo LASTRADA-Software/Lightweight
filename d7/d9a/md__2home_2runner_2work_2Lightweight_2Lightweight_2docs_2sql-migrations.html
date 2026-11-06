@@ -374,7 +374,6 @@ SQL Column Types</h1>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>VarBinary(n)</code>   </td><td class="markdownTableBodyNone">VARBINARY(n)   </td><td class="markdownTableBodyNone">Variable-length binary   </td></tr>
 </table>
-<p>To declare one of SQL Server's legacy large-object types, set <code>legacyLob</code> on the matching type: <code>Varchar { .legacyLob = true }</code> is <code>TEXT</code>, <code>NVarchar { .legacyLob = true }</code> is <code>NTEXT</code> and <code>VarBinary { .legacyLob = true }</code> is <code>IMAGE</code>. Other databases ignore the flag. <code>SqlSchema</code> sets it on the columns it reads, so a backup and restore keeps these types. SQL Server has restrictions of its own here: these columns cannot be indexed, sorted or be part of a key, and <code>ALTER COLUMN</code> cannot turn a <code>TEXT</code> column into <code>NTEXT</code>.</p>
 <p>Usage:</p>
 <div class="fragment"><div class="line"><span class="keyword">using namespace </span>Lightweight::SqlColumnTypeDefinitions;</div>
 <div class="line"> </div>

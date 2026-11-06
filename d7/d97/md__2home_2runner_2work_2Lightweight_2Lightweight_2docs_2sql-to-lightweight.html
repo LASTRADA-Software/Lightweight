@@ -642,7 +642,7 @@ CREATE TABLE</h1>
 <div class="line">migration.CreateTable(<span class="stringliteral">&quot;Appointment&quot;</span>)</div>
 <div class="line">    .PrimaryKeyWithAutoIncrement(<span class="stringliteral">&quot;id&quot;</span>)</div>
 <div class="line">    .RequiredColumn(<span class="stringliteral">&quot;date&quot;</span>, DateTime {})</div>
-<div class="line">    .Column(<span class="stringliteral">&quot;comment&quot;</span>, Varchar { .size = 80 })</div>
+<div class="line">    .Column(<span class="stringliteral">&quot;comment&quot;</span>, Varchar { 80 })</div>
 <div class="line">    .ForeignKey(</div>
 <div class="line">        <span class="stringliteral">&quot;physician_id&quot;</span>, Guid {}, <a class="code hl_struct" href="../../d5/d8f/structLightweight_1_1SqlForeignKeyReferenceDefinition.html">SqlForeignKeyReferenceDefinition</a> { .<a class="code hl_variable" href="../../d5/d8f/structLightweight_1_1SqlForeignKeyReferenceDefinition.html#a7337bbb0615e5f6eab7908828880f346">tableName</a> = <span class="stringliteral">&quot;Physician&quot;</span>, .columnName = <span class="stringliteral">&quot;id&quot;</span> })</div>
 <div class="line">    .ForeignKey(</div>

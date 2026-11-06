@@ -219,14 +219,14 @@ $(document).ready(function(){initNavTree('db/d47/MigrationPlan_8hpp_source.html'
 <div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span>        <span class="keyword">requires</span>(detail::OneOf&lt;CharT, char&gt;)</div>
 <div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span>    <span class="keyword">struct</span> SqlColumnTypeDefinitionOf&lt;SqlFixedString&lt;N, CharT, SqlFixedStringMode::VARIABLE_SIZE&gt;&gt;</div>
 <div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>    {</div>
-<div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span>        <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> value = SqlColumnTypeDefinitions::Varchar { .size = N };</div>
+<div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span>        <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> value = SqlColumnTypeDefinitions::Varchar { N };</div>
 <div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span>    };</div>
 <div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span> </div>
 <div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span>    <span class="keyword">template</span> &lt;<span class="keywordtype">size_t</span> N, <span class="keyword">typename</span> CharT&gt;</div>
 <div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span>        <span class="keyword">requires</span>(detail::OneOf&lt;CharT, char16_t, char32_t, wchar_t&gt;)</div>
 <div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span>    <span class="keyword">struct</span> SqlColumnTypeDefinitionOf&lt;SqlFixedString&lt;N, CharT, SqlFixedStringMode::VARIABLE_SIZE&gt;&gt;</div>
 <div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span>    {</div>
-<div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span>        <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> value = SqlColumnTypeDefinitions::NVarchar { .size = N };</div>
+<div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span>        <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> value = SqlColumnTypeDefinitions::NVarchar { N };</div>
 <div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span>    };</div>
 <div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span> </div>
 <div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>    <span class="keyword">template</span> &lt;<span class="keywordtype">size_t</span> N, <span class="keyword">typename</span> CharT&gt;</div>
@@ -260,14 +260,14 @@ $(document).ready(function(){initNavTree('db/d47/MigrationPlan_8hpp_source.html'
 <div class="line"><a id="l00160" name="l00160"></a><span class="lineno">  160</span>        <span class="keyword">requires</span>(detail::OneOf&lt;CharT, char&gt;)</div>
 <div class="line"><a id="l00161" name="l00161"></a><span class="lineno">  161</span>    <span class="keyword">struct</span> SqlColumnTypeDefinitionOf&lt;SqlDynamicString&lt;N, CharT&gt;&gt;</div>
 <div class="line"><a id="l00162" name="l00162"></a><span class="lineno">  162</span>    {</div>
-<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span>        <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> value = SqlColumnTypeDefinitions::Varchar { .size = N };</div>
+<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span>        <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> value = SqlColumnTypeDefinitions::Varchar { N };</div>
 <div class="line"><a id="l00164" name="l00164"></a><span class="lineno">  164</span>    };</div>
 <div class="line"><a id="l00165" name="l00165"></a><span class="lineno">  165</span> </div>
 <div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span>    <span class="keyword">template</span> &lt;<span class="keywordtype">size_t</span> N, <span class="keyword">typename</span> CharT&gt;</div>
 <div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span>        <span class="keyword">requires</span>(detail::OneOf&lt;CharT, char8_t, char16_t, char32_t, wchar_t&gt;)</div>
 <div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span>    <span class="keyword">struct</span> SqlColumnTypeDefinitionOf&lt;SqlDynamicString&lt;N, CharT&gt;&gt;</div>
 <div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span>    {</div>
-<div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span>        <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> value = SqlColumnTypeDefinitions::NVarchar { .size = N };</div>
+<div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span>        <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> value = SqlColumnTypeDefinitions::NVarchar { N };</div>
 <div class="line"><a id="l00171" name="l00171"></a><span class="lineno">  171</span>    };</div>
 <div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span> </div>
 <div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
@@ -285,7 +285,7 @@ $(document).ready(function(){initNavTree('db/d47/MigrationPlan_8hpp_source.html'
 <div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>    <span class="keyword">template</span> &lt;<span class="keywordtype">size_t</span> N&gt;</div>
 <div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>    <span class="keyword">struct </span><a class="code hl_variable" href="../../d6/daa/group__QueryBuilder.html#gaeba5ba4ebe64ce27d81a82bdf1ea11d7">SqlColumnTypeDefinitionOf</a>&lt;SqlDynamicBinary&lt;N&gt;&gt;</div>
 <div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>    {</div>
-<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>        <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> value = SqlColumnTypeDefinitions::VarBinary { .size = N };</div>
+<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>        <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> value = SqlColumnTypeDefinitions::VarBinary { N };</div>
 <div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span>    };</div>
 <div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span> </div>
 <div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span>} <span class="comment">// namespace detail</span></div>
