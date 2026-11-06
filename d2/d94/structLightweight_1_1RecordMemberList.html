@@ -106,9 +106,9 @@ $(document).ready(function(){initNavTree('d2/d94/structLightweight_1_1RecordMemb
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:a755b6c987aa831fc86887b48966467fd" id="r_a755b6c987aa831fc86887b48966467fd"><td class="memTemplParams" colspan="2">template&lt;std::size_t I&gt; </td></tr>
-<tr class="memitem:a755b6c987aa831fc86887b48966467fd"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d2/d94/structLightweight_1_1RecordMemberList.html#a755b6c987aa831fc86887b48966467fd">TypeAt</a> = detail::MemberPointee&lt; std::tuple_element_t&lt; I, std::tuple&lt; decltype(MemberPointers)... &gt; &gt; &gt;::type</td></tr>
-<tr class="separator:a755b6c987aa831fc86887b48966467fd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a83b10b79f041d5f92b3a3267f9132165" id="r_a83b10b79f041d5f92b3a3267f9132165"><td class="memTemplParams" colspan="2">template&lt;std::size_t I&gt; </td></tr>
+<tr class="memitem:a83b10b79f041d5f92b3a3267f9132165"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d2/d94/structLightweight_1_1RecordMemberList.html#a83b10b79f041d5f92b3a3267f9132165">TypeAt</a> = detail::MemberPointee&lt; detail::NthType&lt; I, decltype(MemberPointers)... &gt; &gt;::type</td></tr>
+<tr class="separator:a83b10b79f041d5f92b3a3267f9132165"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -138,10 +138,10 @@ Static Public Attributes</h2></td></tr>
 struct Lightweight::RecordMemberList&lt; MemberPointers &gt;</div><p>Compile-time list of a record's members, stored as pointers-to-member. </p>
 <p>This is the access vehicle used by <a class="el" href="../../de/d22/structLightweight_1_1Description.html" title="Customization point providing pre-computed reflection metadata for a record type.">Description</a>. It is an empty type — the members are carried as non-type template parameters — so it is far cheaper to parse and instantiate than a <code>std::tuple</code> of heterogeneous pointer values (no class storage, no CTAD). Member types are recovered by indexing the pointer-to-member pack (see <code>TypeAt</code>) and iteration uses element-wise pack expansion, both of which are essentially free at compile time. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00038">38</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00084">84</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
 </div><h2 class="groupheader">Member Typedef Documentation</h2>
-<a id="a755b6c987aa831fc86887b48966467fd" name="a755b6c987aa831fc86887b48966467fd"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a755b6c987aa831fc86887b48966467fd">&#9670;&#160;</a></span>TypeAt</h2>
+<a id="a83b10b79f041d5f92b3a3267f9132165" name="a83b10b79f041d5f92b3a3267f9132165"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a83b10b79f041d5f92b3a3267f9132165">&#9670;&#160;</a></span>TypeAt</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -151,14 +151,14 @@ template&lt;auto... MemberPointers&gt; </div>
 template&lt;std::size_t I&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">using <a class="el" href="../../d2/d94/structLightweight_1_1RecordMemberList.html">Lightweight::RecordMemberList</a>&lt; MemberPointers &gt;::TypeAt =  detail::MemberPointee&lt;std::tuple_element_t&lt;I, std::tuple&lt;decltype(MemberPointers)...&gt; &gt;&gt;::type</td>
+          <td class="memname">using <a class="el" href="../../d2/d94/structLightweight_1_1RecordMemberList.html">Lightweight::RecordMemberList</a>&lt; MemberPointers &gt;::TypeAt =  detail::MemberPointee&lt;detail::NthType&lt;I, decltype(MemberPointers)...&gt; &gt;::type</td>
         </tr>
       </table>
 </div><div class="memdoc">
 <p>The (unwrapped) type of the member at index <code>I</code>.</p>
-<p>Indexes the pointer-to-member pack via <code>std::tuple_element_t</code> rather than the <code>__type_pack_element</code> builtin: the latter is a Clang/GCC extension that MSVC does not accept as a type (it parses the bare identifier as a function template — error C7568). </p>
+<p>Indexes the pointer-to-member pack via <code>detail::NthType</code> rather than the <code>__type_pack_element</code> builtin: the latter is a Clang/GCC extension that MSVC does not accept as a type (it parses the bare identifier as a function template — error C7568). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00049">49</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00095">95</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
 
 </div>
 </div>
@@ -203,7 +203,7 @@ template&lt;typename Record , typename Callable &gt; </div>
 <p>Invokes <code>callable&lt;I&gt;(record.member_I)</code> for every member, in order.</p>
 <p>The callable is forwarded once into a named reference and then invoked for each member, so a <code>mutable</code> visitor (e.g. one carrying a running column offset) keeps its state across members. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00056">56</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00102">102</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
 
 </div>
 </div>
@@ -237,7 +237,7 @@ template&lt;typename Callable &gt; </div>
 
 <p>Invokes <code>callable&lt;I, MemberType&gt;()</code> for every member, in order. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00071">71</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00117">117</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
 
 </div>
 </div>
@@ -280,7 +280,7 @@ template&lt;typename ElementMask , typename Record , typename Callable &gt; </di
 </div><div class="memdoc">
 <p>Invokes <code>callable&lt;I&gt;(record.member_I)</code> for the members whose indices appear in <code>ElementMask</code> (a <code>std::integer_sequence&lt;std::size_t, ...&gt;</code>), in mask order. Backs partial-column queries. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00082">82</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00128">128</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
 
 </div>
 </div>
@@ -314,7 +314,7 @@ template&lt;std::size_t I, typename Record &gt; </div>
 
 <p>Returns a reference to the member at index <code>I</code> of <code>record</code>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00092">92</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00138">138</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
 
 </div>
 </div>
@@ -343,7 +343,7 @@ template&lt;auto... MemberPointers&gt; </div>
 
 <p>Number of members in the list. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00041">41</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00087">87</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
 
 </div>
 </div>
