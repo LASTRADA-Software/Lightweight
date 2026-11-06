@@ -3451,3 +3451,512 @@ TEST_CASE_METHOD(SqlTestFixture, "A bound SELECT and DELETE execute against the 
         CHECK(!cursor.FetchRow());
     }
 }
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Having renders between GROUP BY and ORDER BY", "[SqlQueryBuilder]")
+{
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            return q.FromTable("That")
+                .Select()
+                .Field("a")
+                .Where("b", 2)
+                .GroupBy("a")
+                .Having(Aggregate::Count(), ">", 1)
+                .OrderBy("a")
+                .All();
+        },
+        QueryExpectations::All(R"(SELECT "a" FROM "That"
+                                  WHERE "b" = 2
+                                  GROUP BY "a"
+                                  HAVING COUNT(*) > 1
+                                  ORDER BY "a" ASC)"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Having with First", "[SqlQueryBuilder]")
+{
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            return q.FromTable("That")
+                .Select()
+                .Field("a")
+                .GroupBy("a")
+                .Having(Aggregate::Count(), ">", 1)
+                .OrderBy("a")
+                .First(3);
+        },
+        QueryExpectations {
+            .sqlite = R"(SELECT "a" FROM "That"
+                         GROUP BY "a"
+                         HAVING COUNT(*) > 1
+                         ORDER BY "a" ASC LIMIT 3)",
+            .postgres = R"(SELECT "a" FROM "That"
+                           GROUP BY "a"
+                           HAVING COUNT(*) > 1
+                           ORDER BY "a" ASC LIMIT 3)",
+            .sqlServer = R"(SELECT TOP 3 "a" FROM "That"
+                            GROUP BY "a"
+                            HAVING COUNT(*) > 1
+                            ORDER BY "a" ASC)",
+        });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Having with Range", "[SqlQueryBuilder]")
+{
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            return q.FromTable("That")
+                .Select()
+                .Field("a")
+                .GroupBy("a")
+                .Having(Aggregate::Count(), ">", 1)
+                .OrderBy("a")
+                .Range(10, 5);
+        },
+        QueryExpectations {
+            .sqlite = R"(SELECT "a" FROM "That"
+                         GROUP BY "a"
+                         HAVING COUNT(*) > 1
+                         ORDER BY "a" ASC LIMIT 5 OFFSET 10)",
+            .postgres = R"(SELECT "a" FROM "That"
+                           GROUP BY "a"
+                           HAVING COUNT(*) > 1
+                           ORDER BY "a" ASC LIMIT 5 OFFSET 10)",
+            .sqlServer = R"(SELECT "a" FROM "That"
+                            GROUP BY "a"
+                            HAVING COUNT(*) > 1
+                            ORDER BY "a" ASC OFFSET 10 ROWS FETCH NEXT 5 ROWS ONLY)",
+        });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Having with Count", "[SqlQueryBuilder]")
+{
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            return q.FromTable("That").Select().GroupBy("a").Having(Aggregate::Count(), ">", 1).Count();
+        },
+        QueryExpectations::All(R"(SELECT COUNT(*) FROM "That"
+                                  GROUP BY "a"
+                                  HAVING COUNT(*) > 1)"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Having composes conditions", "[SqlQueryBuilder]")
+{
+    auto const check = [](auto const& addHaving, std::string_view expectedHaving) {
+        auto const expected = std::format("SELECT \"a\" FROM \"That\"\n GROUP BY \"a\"\n {}", expectedHaving);
+        CheckSqlQueryBuilder(
+            [&](SqlQueryBuilder& q) {
+                auto starter = q.FromTable("That").Select();
+                auto& query = starter.Field("a");
+                std::ignore = query.GroupBy("a");
+                return addHaving(query).All();
+            },
+            QueryExpectations::All(expected));
+    };
+
+    SECTION("every aggregate factory")
+    {
+        check([](SqlSelectQueryBuilder& q) -> SqlSelectQueryBuilder& { return q.Having(Aggregate::Count("b"), ">", 1); },
+              R"(HAVING COUNT("b") > 1)");
+        check([](SqlSelectQueryBuilder& q) -> SqlSelectQueryBuilder& { return q.Having(Aggregate::Sum("b"), ">=", 2); },
+              R"(HAVING SUM("b") >= 2)");
+        check([](SqlSelectQueryBuilder& q) -> SqlSelectQueryBuilder& { return q.Having(Aggregate::Min("b"), "<", 3); },
+              R"(HAVING MIN("b") < 3)");
+        check([](SqlSelectQueryBuilder& q) -> SqlSelectQueryBuilder& { return q.Having(Aggregate::Max("b"), "<=", 4); },
+              R"(HAVING MAX("b") <= 4)");
+        check([](SqlSelectQueryBuilder& q) -> SqlSelectQueryBuilder& { return q.Having(Aggregate::Avg("b"), "!=", 5); },
+              R"(HAVING AVG("b") != 5)");
+        check(
+            [](SqlSelectQueryBuilder& q) -> SqlSelectQueryBuilder& {
+                return q.Having(
+                    Aggregate::Sum(SqlQualifiedTableColumnName { .tableName = "That", .columnName = "b" }), ">", 6);
+            },
+            R"(HAVING SUM("That"."b") > 6)");
+    }
+
+    SECTION("consecutive terms are AND-ed, OrHaving OR-s")
+    {
+        check(
+            [](SqlSelectQueryBuilder& q) -> SqlSelectQueryBuilder& {
+                return q.Having(Aggregate::Count(), ">", 1)
+                    .Having(Aggregate::Sum("b"), "<", 2)
+                    .OrHaving(Aggregate::Max("b"), "=", 3);
+            },
+            R"(HAVING COUNT(*) > 1 AND SUM("b") < 2 OR MAX("b") = 3)");
+    }
+
+    SECTION("And(), Or() and Not() apply to the next HAVING term, as they do to the next WHERE term")
+    {
+        check(
+            [](SqlSelectQueryBuilder& q) -> SqlSelectQueryBuilder& {
+                return q.Having(Aggregate::Count(), ">", 1)
+                    .Or()
+                    .Having(Aggregate::Sum("b"), "<", 2)
+                    .And()
+                    .Not()
+                    .Having(Aggregate::Max("b"), "=", 3);
+            },
+            R"(HAVING COUNT(*) > 1 OR SUM("b") < 2 AND NOT MAX("b") = 3)");
+    }
+
+    SECTION("a raw condition is written as given")
+    {
+        check([](SqlSelectQueryBuilder& q) -> SqlSelectQueryBuilder& { return q.Having("COUNT(*) > 1"); },
+              "HAVING COUNT(*) > 1");
+        check(
+            [](SqlSelectQueryBuilder& q) -> SqlSelectQueryBuilder& {
+                return q.Having(Aggregate::Sum("b"), ">", 1).OrHaving("COUNT(*) > 2");
+            },
+            R"(HAVING SUM("b") > 1 OR COUNT(*) > 2)");
+    }
+
+    SECTION("a nested group is parenthesized")
+    {
+        check(
+            [](SqlSelectQueryBuilder& q) -> SqlSelectQueryBuilder& {
+                return q.Having(Aggregate::Count(), ">", 1)
+                    .Having([](SqlSelectQueryBuilder& group) -> SqlSelectQueryBuilder& {
+                        return group.Having(Aggregate::Sum("b"), "<", 2).OrHaving(Aggregate::Max("b"), "=", 3);
+                    });
+            },
+            R"(HAVING COUNT(*) > 1 AND (SUM("b") < 2 OR MAX("b") = 3))");
+        check(
+            [](SqlSelectQueryBuilder& q) -> SqlSelectQueryBuilder& {
+                return q
+                    .Having([](SqlSelectQueryBuilder& group) -> SqlSelectQueryBuilder& {
+                        return group.Having(Aggregate::Sum("b"), "<", 2);
+                    })
+                    .OrHaving([](SqlSelectQueryBuilder& group) -> SqlSelectQueryBuilder& {
+                        return group.Having(Aggregate::Max("b"), "=", 3);
+                    });
+            },
+            R"(HAVING (SUM("b") < 2) OR (MAX("b") = 3))");
+    }
+
+    SECTION("an empty group adds nothing")
+    {
+        check(
+            [](SqlSelectQueryBuilder& q) -> SqlSelectQueryBuilder& {
+                return q.Having([](SqlSelectQueryBuilder& group) -> SqlSelectQueryBuilder& { return group; })
+                    .Having(Aggregate::Count(), ">", 1)
+                    .OrHaving([](SqlSelectQueryBuilder& group) -> SqlSelectQueryBuilder& { return group; })
+                    .Having(Aggregate::Count(), "<", 9);
+            },
+            "HAVING COUNT(*) > 1 AND COUNT(*) < 9");
+    }
+
+    SECTION("values without a bindings vector go into the text, spelled as Where() spells them")
+    {
+        check(
+            [](SqlSelectQueryBuilder& q) -> SqlSelectQueryBuilder& { return q.Having(Aggregate::Min("b"), "=", "O'Brien"); },
+            R"(HAVING MIN("b") = 'O''Brien')");
+        check(
+            [](SqlSelectQueryBuilder& q) -> SqlSelectQueryBuilder& {
+                return q.Having(Aggregate::Min("b"), "=", std::string_view { "x" });
+            },
+            R"(HAVING MIN("b") = 'x')");
+        check([](SqlSelectQueryBuilder& q) -> SqlSelectQueryBuilder& { return q.Having(Aggregate::Avg("b"), ">", 1.5); },
+              R"(HAVING AVG("b") > 1.5)");
+        check(
+            [](SqlSelectQueryBuilder& q) -> SqlSelectQueryBuilder& {
+                return q.Having(Aggregate::Sum("b"), ">", SqlWildcard);
+            },
+            R"(HAVING SUM("b") > ?)");
+        check(
+            [](SqlSelectQueryBuilder& q) -> SqlSelectQueryBuilder& {
+                return q.Having(Aggregate::Max("b"), "IS", SqlNullValue);
+            },
+            R"(HAVING MAX("b") IS NULL)");
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Having consumes a pending junctor", "[SqlQueryBuilder]")
+{
+    // A pending And()/Or()/Not() must end with the HAVING term it was called for. Otherwise the
+    // next Where() starts with AND or OR instead of WHERE, which no dialect parses.
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            return q.FromTable("That")
+                .Select()
+                .Field("a")
+                .GroupBy("a")
+                .Having(Aggregate::Count(), ">", 1)
+                .And()
+                .Having(Aggregate::Count(), "<", 9)
+                .Where("b", 2)
+                .Or()
+                .Where("c", 3)
+                .All();
+        },
+        QueryExpectations::All(R"(SELECT "a" FROM "That"
+                                  WHERE "b" = 2 OR "c" = 3
+                                  GROUP BY "a"
+                                  HAVING COUNT(*) > 1 AND COUNT(*) < 9)"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Having usage errors", "[SqlQueryBuilder]")
+{
+    auto queryBuilder = SqlQueryBuilder(SqlQueryFormatter::Sqlite());
+
+    SECTION("Having without a preceding GroupBy")
+    {
+        auto starter = queryBuilder.FromTable("That").Select();
+        auto& query = starter.Field("a");
+        CHECK_THROWS_AS(std::ignore = query.Having(Aggregate::Count(), ">", 1), std::logic_error);
+        CHECK_THROWS_AS(std::ignore = query.Having("COUNT(*) > 1"), std::logic_error);
+        CHECK_THROWS_AS(std::ignore =
+                            query.Having([](SqlSelectQueryBuilder& group) -> SqlSelectQueryBuilder& { return group; }),
+                        std::logic_error);
+    }
+
+    SECTION("GroupBy after Having")
+    {
+        auto starter = queryBuilder.FromTable("That").Select();
+        auto& query = starter.Field("a");
+        std::ignore = query.GroupBy("a").Having(Aggregate::Count(), ">", 1);
+        CHECK_THROWS_AS(query.GroupBy("b"), std::logic_error);
+        CHECK_THROWS_AS(query.GroupBy(SqlQualifiedTableColumnName { .tableName = "That", .columnName = "b" }),
+                        std::logic_error);
+    }
+
+    SECTION("An empty group has not started the clause, so GroupBy stays allowed")
+    {
+        auto starter = queryBuilder.FromTable("That").Select();
+        auto& query = starter.Field("a");
+        std::ignore =
+            query.GroupBy("a").Having([](SqlSelectQueryBuilder& group) -> SqlSelectQueryBuilder& { return group; });
+        CHECK_NOTHROW(query.GroupBy("b"));
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Having keeps bindings in statement order", "[SqlQueryBuilder]")
+{
+    using namespace std::string_view_literals;
+
+    // Whatever order the caller builds in, the vector must read JOIN, WHERE, HAVING, because that
+    // is the order of the markers in the statement.
+    auto const checkOrder = [](auto const& build) {
+        ForEachQueryFormatter([&](SqlQueryFormatter const& formatter) {
+            std::vector<SqlVariant> inputBindings;
+            auto queryBuilder = SqlQueryBuilder(formatter);
+            auto starter = queryBuilder.FromTable("T").Select(&inputBindings);
+            auto& query = starter.Field("a");
+            build(query);
+            auto const sql = query.All().ToSql();
+
+            CHECK(std::ranges::count(sql, '?') == 4);
+            REQUIRE(inputBindings.size() == 4);
+            CHECK(std::get<int>(inputBindings[0].value) == 1); // ON
+            CHECK(std::get<int>(inputBindings[1].value) == 2); // WHERE
+            CHECK(std::get<int>(inputBindings[2].value) == 3); // WHERE
+            CHECK(std::get<int>(inputBindings[3].value) == 4); // HAVING
+            CHECK(sql.find("HAVING") > sql.rfind("WHERE"));
+        });
+    };
+
+    auto const addJoin = [](SqlSelectQueryBuilder& query) {
+        std::ignore = query.InnerJoin("U", [](SqlJoinConditionBuilder join) { return join.OnValue("x", "=", 1); });
+    };
+
+    SECTION("join, then where, then having")
+    {
+        checkOrder([&](SqlSelectQueryBuilder& query) {
+            addJoin(query);
+            std::ignore = query.Where("b", 2).Where("c", 3).GroupBy("a").Having(Aggregate::Count(), ">", 4);
+        });
+    }
+
+    SECTION("having, then where")
+    {
+        checkOrder([&](SqlSelectQueryBuilder& query) {
+            addJoin(query);
+            std::ignore = query.GroupBy("a").Having(Aggregate::Count(), ">", 4).Where("b", 2).Where("c", 3);
+        });
+    }
+
+    SECTION("having, then where in")
+    {
+        checkOrder([&](SqlSelectQueryBuilder& query) {
+            addJoin(query);
+            std::ignore = query.GroupBy("a").Having(Aggregate::Count(), ">", 4).WhereIn("b", std::array { 2, 3 });
+        });
+    }
+
+    SECTION("having, then join")
+    {
+        checkOrder([&](SqlSelectQueryBuilder& query) {
+            std::ignore = query.GroupBy("a").Having(Aggregate::Count(), ">", 4).Where("b", 2);
+            addJoin(query);
+            std::ignore = query.Where("c", 3);
+        });
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "A bound HAVING executes against the driver", "[SqlQueryBuilder]")
+{
+    auto stmt = SqlStatement {};
+
+    CreateEmployeesTable(stmt);
+    stmt.Prepare(stmt.Query("Employees")
+                     .Insert()
+                     .Set("FirstName", SqlWildcard)
+                     .Set("LastName", SqlWildcard)
+                     .Set("Salary", SqlWildcard));
+    (void) stmt.Execute("a", "Smith", 10);
+    (void) stmt.Execute("b", "Smith", 20);
+    (void) stmt.Execute("c", "Smith", 30);
+    (void) stmt.Execute("d", "Jones", 100);
+    (void) stmt.Execute("e", "Jones", 200);
+    (void) stmt.Execute("f", "Brown", 1000);
+
+    auto const lastNamesOf = [&](std::vector<SqlVariant> const& inputBindings) {
+        auto names = std::vector<std::string> {};
+        auto cursor = stmt.ExecuteWithVariants(inputBindings);
+        while (cursor.FetchRow())
+            names.emplace_back(cursor.GetColumn<std::string>(1));
+        return names;
+    };
+
+    // Salary > 20 leaves Smith 1 row, Jones 2 rows and Brown 1 row, so "COUNT(*) = 1" names Brown and
+    // Smith. Swapped, the statement says Salary > 1 and COUNT(*) = 20, which selects nothing.
+    auto const expected = std::vector<std::string> { "Brown", "Smith" };
+
+    SECTION("WHERE before HAVING")
+    {
+        std::vector<SqlVariant> inputBindings;
+        stmt.Prepare(stmt.Query("Employees")
+                         .Select(&inputBindings)
+                         .Field("LastName")
+                         .Where("Salary", ">", 20)
+                         .GroupBy("LastName")
+                         .Having(Aggregate::Count(), "=", 1)
+                         .OrderBy("LastName")
+                         .All());
+        CHECK(lastNamesOf(inputBindings) == expected);
+    }
+
+    SECTION("WHERE after HAVING")
+    {
+        std::vector<SqlVariant> inputBindings;
+        stmt.Prepare(stmt.Query("Employees")
+                         .Select(&inputBindings)
+                         .Field("LastName")
+                         .GroupBy("LastName")
+                         .Having(Aggregate::Count(), "=", 1)
+                         .Where("Salary", ">", 20)
+                         .OrderBy("LastName")
+                         .All());
+        CHECK(lastNamesOf(inputBindings) == expected);
+    }
+
+    SECTION("WHERE IN after HAVING")
+    {
+        std::vector<SqlVariant> inputBindings;
+        stmt.Prepare(stmt.Query("Employees")
+                         .Select(&inputBindings)
+                         .Field("LastName")
+                         .GroupBy("LastName")
+                         .Having(Aggregate::Sum("Salary"), ">", 25)
+                         .WhereIn("Salary", std::array { 10, 30, 1000 })
+                         .OrderBy("LastName")
+                         .All());
+        // Smith keeps 10 and 30, which sum to 40; Brown keeps 1000; Jones is filtered out entirely.
+        CHECK(lastNamesOf(inputBindings) == expected);
+    }
+
+    SECTION("every aggregate binds")
+    {
+        auto const namesFor = [&](SqlFieldExpression const& aggregate, std::string_view op, int value) {
+            std::vector<SqlVariant> inputBindings;
+            stmt.Prepare(stmt.Query("Employees")
+                             .Select(&inputBindings)
+                             .Field("LastName")
+                             .GroupBy("LastName")
+                             .Having(aggregate, op, value)
+                             .OrderBy("LastName")
+                             .All());
+            return lastNamesOf(inputBindings);
+        };
+
+        CHECK(namesFor(Aggregate::Count(), ">=", 3) == std::vector<std::string> { "Smith" });
+        CHECK(namesFor(Aggregate::Count("FirstName"), "=", 2) == std::vector<std::string> { "Jones" });
+        CHECK(namesFor(Aggregate::Sum("Salary"), "<", 100) == std::vector<std::string> { "Smith" });
+        CHECK(namesFor(Aggregate::Min("Salary"), ">", 50) == std::vector<std::string> { "Brown", "Jones" });
+        CHECK(namesFor(Aggregate::Max("Salary"), "<=", 200) == std::vector<std::string> { "Jones", "Smith" });
+        CHECK(namesFor(Aggregate::Avg("Salary"), ">", 500) == std::vector<std::string> { "Brown" });
+    }
+
+    SECTION("a bound string compares against the value it names")
+    {
+        std::vector<SqlVariant> inputBindings;
+        stmt.Prepare(stmt.Query("Employees")
+                         .Select(&inputBindings)
+                         .Field("LastName")
+                         .GroupBy("LastName")
+                         .Having(Aggregate::Min("FirstName"), "=", "d")
+                         .All());
+        CHECK(lastNamesOf(inputBindings) == std::vector<std::string> { "Jones" });
+    }
+
+    SECTION("a nested group binds in order")
+    {
+        std::vector<SqlVariant> inputBindings;
+        stmt.Prepare(stmt.Query("Employees")
+                         .Select(&inputBindings)
+                         .Field("LastName")
+                         .GroupBy("LastName")
+                         .Having(Aggregate::Min("Salary"), ">", 50)
+                         .Having([](SqlSelectQueryBuilder& group) -> SqlSelectQueryBuilder& {
+                             return group.Having(Aggregate::Count(), "=", 2).OrHaving(Aggregate::Max("Salary"), "=", 5);
+                         })
+                         .Where("Salary", ">", 0)
+                         .All());
+        CHECK(lastNamesOf(inputBindings) == std::vector<std::string> { "Jones" });
+    }
+
+    SECTION("First and Range")
+    {
+        std::vector<SqlVariant> firstBindings;
+        stmt.Prepare(stmt.Query("Employees")
+                         .Select(&firstBindings)
+                         .Field("LastName")
+                         .GroupBy("LastName")
+                         .Having(Aggregate::Count(), ">", 1)
+                         .OrderBy("LastName")
+                         .First());
+        CHECK(lastNamesOf(firstBindings) == std::vector<std::string> { "Jones" });
+
+        std::vector<SqlVariant> rangeBindings;
+        stmt.Prepare(stmt.Query("Employees")
+                         .Select(&rangeBindings)
+                         .Field("LastName")
+                         .GroupBy("LastName")
+                         .Having(Aggregate::Count(), ">", 1)
+                         .OrderBy("LastName")
+                         .Range(1, 5));
+        CHECK(lastNamesOf(rangeBindings) == std::vector<std::string> { "Smith" });
+    }
+
+    SECTION("Count yields one row per surviving group")
+    {
+        std::vector<SqlVariant> inputBindings;
+        stmt.Prepare(
+            stmt.Query("Employees").Select(&inputBindings).GroupBy("LastName").Having(Aggregate::Count(), "=", 3).Count());
+        auto cursor = stmt.ExecuteWithVariants(inputBindings);
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<int>(1) == 3);
+        CHECK(!cursor.FetchRow());
+    }
+
+    SECTION("without a bindings vector the value is written into the text and still runs")
+    {
+        auto cursor = stmt.ExecuteDirect(stmt.Query("Employees")
+                                             .Select()
+                                             .Field("LastName")
+                                             .GroupBy("LastName")
+                                             .Having(Aggregate::Min("FirstName"), "=", "f")
+                                             .All()
+                                             .ToSql());
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<std::string>(1) == "Brown");
+        CHECK(!cursor.FetchRow());
+    }
+}

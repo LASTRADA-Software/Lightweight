@@ -74,6 +74,9 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
     [[nodiscard]] virtual std::string QueryLastInsertId(std::string_view tableName) const = 0;
 
     /// Constructs an SQL SELECT query for all rows.
+    ///
+    /// In all Select* functions @p groupBy is the GROUP BY clause followed by the HAVING clause, if the
+    /// query has one, and has to be emitted as one piece between the WHERE and the ORDER BY clause.
     [[nodiscard]] virtual std::string SelectAll(bool distinct,
                                                 std::string_view fields,
                                                 std::string_view fromTable,

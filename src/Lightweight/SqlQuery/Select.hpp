@@ -15,11 +15,6 @@
 namespace Lightweight
 {
 
-struct [[nodiscard]] SqlFieldExpression final
-{
-    std::string expression;
-};
-
 namespace Aggregate
 {
 

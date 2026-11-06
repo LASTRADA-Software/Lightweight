@@ -1494,6 +1494,10 @@ bool SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::ExistImpl()
 template <typename Record, typename Derived, DataMapperOptions QueryOptions>
 void SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::DeleteImpl()
 {
+    // DELETE has no HAVING clause. Dropping the filter would delete more rows than the caller asked for.
+    if (this->HasHavingClause())
+        throw std::logic_error { "Delete() cannot honor Having(): a DELETE statement has no HAVING clause." };
+
     auto stmt = SqlStatement { _dm.Connection() };
 
     auto const query = _formatter.Delete(RecordTableName<Record>,

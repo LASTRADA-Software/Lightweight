@@ -367,6 +367,48 @@ auto query = dm.FromTable("Employees")
                  .All();
 ```
 
+### HAVING
+
+```sql
+SELECT "department_id", COUNT(*) AS "headcount" FROM "Employees"
+  GROUP BY "department_id"
+  HAVING COUNT(*) > 2;
+```
+
+<!-- snippet: doc-having -->
+```cpp
+auto query = dm.FromTable("Employees")
+                 .Select()
+                 .Field("department_id")
+                 .Field(Aggregate::Count("*"))
+                 .As("headcount")
+                 .GroupBy("department_id")
+                 .Having(Aggregate::Count(), ">", 2)
+                 .All();
+```
+
+```sql
+SELECT "department_id" FROM "Employees"
+  WHERE "salary" > ?
+  GROUP BY "department_id"
+  HAVING SUM("salary") >= ?;
+```
+
+<!-- snippet: doc-having-bound -->
+```cpp
+// WHERE values are bound ahead of HAVING values, whichever is called first.
+auto stmt = SqlStatement { dm.Connection() };
+std::vector<SqlVariant> bound;
+stmt.Prepare(dm.FromTable("Employees")
+                 .Select(&bound)
+                 .Field("department_id")
+                 .Where("salary", ">", 50'000)
+                 .GroupBy("department_id")
+                 .Having(Aggregate::Sum("salary"), ">=", 100'000)
+                 .All());
+auto cursor = stmt.ExecuteWithVariants(bound);
+```
+
 ---
 
 ## JOIN
