@@ -91,7 +91,9 @@ $(document).ready(function(){initNavTree('d7/d10/classLightweight_1_1SqlWhereCla
 
 <div class="header">
   <div class="summary">
+<a href="#nested-classes">Classes</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
+<a href="#pro-methods">Protected Member Functions</a> &#124;
 <a href="../../d7/db9/classLightweight_1_1SqlWhereClauseBuilder-members.html">List of all members</a>  </div>
   <div class="headertitle"><div class="title">Lightweight::SqlWhereClauseBuilder&lt; Derived &gt; Class Template Reference<div class="ingroups"><a class="el" href="../../d6/daa/group__QueryBuilder.html">Query Builder</a></div></div></div>
 </div><!--header-->
@@ -101,6 +103,12 @@ $(document).ready(function(){initNavTree('d7/d10/classLightweight_1_1SqlWhereCla
 
 <p>Inherited by Lightweight::SqlBasicSelectQueryBuilder&lt; SqlAllFieldsQueryBuilder&lt; Record, QueryOptions, SqlQueryExecutionMode::Synchronous &gt; &gt;, Lightweight::SqlBasicSelectQueryBuilder&lt; SqlAllFieldsQueryBuilder&lt; std::tuple&lt; FirstRecord, SecondRecord &gt;, QueryOptions, Execution &gt; &gt;, Lightweight::SqlBasicSelectQueryBuilder&lt; SqlSelectQueryBuilder &gt;, and Lightweight::SqlBasicSelectQueryBuilder&lt; Derived &gt;.</p>
 <table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="nested-classes" name="nested-classes"></a>
+Classes</h2></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d36/structLightweight_1_1SqlWhereClauseBuilder_1_1PendingConnective.html">PendingConnective</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">What <a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ac165a8f3c78ea465d7488b41e7af6ee7" title="Indicates, that the next WHERE clause should be AND-ed (default).">And()</a>, <a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ad63ee3002c9921bfb053c5b611d6511b" title="Indicates, that the next WHERE clause should be OR-ed.">Or()</a> and <a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a70eca9201efb0d7311b20cef6ef4db34" title="Indicates, that the next WHERE clause should be negated.">Not()</a> asked of the next condition.  <a href="../../de/d36/structLightweight_1_1SqlWhereClauseBuilder_1_1PendingConnective.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:ac165a8f3c78ea465d7488b41e7af6ee7" id="r_ac165a8f3c78ea465d7488b41e7af6ee7"><td class="memItemLeft" align="right" valign="top">Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ac165a8f3c78ea465d7488b41e7af6ee7">And</a> () noexcept</td></tr>
@@ -334,13 +342,21 @@ requires (std::same_as&lt;ColumnName, <a class="el" href="../../db/d8e/structLig
 <tr class="memitem:a8e7fe33501cc9bd570959f7e2ed5d0b0"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE Derived &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a8e7fe33501cc9bd570959f7e2ed5d0b0">Join</a> (JoinType joinType, TableName auto joinTable, Callable const &amp;onClauseBuilder)</td></tr>
 <tr class="memdesc:a8e7fe33501cc9bd570959f7e2ed5d0b0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs a JOIN clause with a custom ON clause builder.  <br /></td></tr>
 <tr class="separator:a8e7fe33501cc9bd570959f7e2ed5d0b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-methods" name="pro-methods"></a>
+Protected Member Functions</h2></td></tr>
+<tr class="memitem:a3eaf06010cae9201367f081a69365c23" id="r_a3eaf06010cae9201367f081a69365c23"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../de/d36/structLightweight_1_1SqlWhereClauseBuilder_1_1PendingConnective.html">PendingConnective</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a3eaf06010cae9201367f081a69365c23">TakePendingConnective</a> () noexcept</td></tr>
+<tr class="separator:a3eaf06010cae9201367f081a69365c23"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af817f8ac6fc3623cba582a574067de67" id="r_af817f8ac6fc3623cba582a574067de67"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#af817f8ac6fc3623cba582a574067de67">DerivedFormatter</a> () const noexcept</td></tr>
+<tr class="memdesc:af817f8ac6fc3623cba582a574067de67"><td class="mdescLeft">&#160;</td><td class="mdescRight">The formatter of the derived builder, which <a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html">SqlWhereClauseBuilder</a> does not own itself.  <br /></td></tr>
+<tr class="separator:af817f8ac6fc3623cba582a574067de67"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><div class="compoundTemplParams">template&lt;typename Derived&gt;<br />
 class Lightweight::SqlWhereClauseBuilder&lt; Derived &gt;</div><p>Helper CRTP-based class for building WHERE clauses.</p>
 <p>This class is inherited by the <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html" title="Query builder for building SELECT ... queries.">SqlSelectQueryBuilder</a>, SqlUpdateQueryBuilder, and <a class="el" href="../../d1/d57/classLightweight_1_1SqlDeleteQueryBuilder.html" title="Query builder for building DELETE FROM ... queries.">SqlDeleteQueryBuilder</a> </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00411">411</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00433">433</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="ac165a8f3c78ea465d7488b41e7af6ee7" name="ac165a8f3c78ea465d7488b41e7af6ee7"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ac165a8f3c78ea465d7488b41e7af6ee7">&#9670;&#160;</a></span>And()</h2>
@@ -369,7 +385,7 @@ template&lt;typename Derived &gt; </div>
 
 <p>Indicates, that the next WHERE clause should be AND-ed (default). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00874">874</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01144">1144</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -400,7 +416,7 @@ template&lt;typename Derived &gt; </div>
 
 <p>Indicates, that the next WHERE clause should be OR-ed. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00881">881</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01151">1151</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -431,7 +447,7 @@ template&lt;typename Derived &gt; </div>
 
 <p>Indicates, that the next WHERE clause should be negated. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00888">888</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01158">1158</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -463,7 +479,7 @@ template&lt;typename Derived &gt; </div>
 
 <p>Constructs or extends a raw WHERE clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01295">1295</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01565">1565</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -572,7 +588,7 @@ template&lt;typename Derived &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01108">1108</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01378">1378</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -620,7 +636,7 @@ template&lt;typename Derived &gt; </div>
 
 <p>Constructs an INNER JOIN clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01116">1116</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01386">1386</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -665,7 +681,7 @@ requires std::invocable&lt;OnChainCallable, <a class="el" href="../../dd/d97/cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The query builder, for chaining. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01144">1144</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01414">1414</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -698,7 +714,7 @@ template&lt;auto LeftField, auto RightField&gt; </div>
 <p>Example: </p><div class="fragment"><div class="line">InnerJoin&lt;&amp;JoinTestB::a_id, &amp;JoinTestA::id&gt;()</div>
 <div class="line"><span class="comment">// This will generate a INNER JOIN &quot;JoinTestB&quot; ON &quot;InnerTestB&quot;.&quot;a_id&quot; = &quot;JoinTestA&quot;.&quot;id&quot;</span></div>
 </div><!-- fragment --> 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01125">1125</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01395">1395</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00291">Lightweight::RecordTableName</a>.</p>
 
@@ -748,7 +764,7 @@ template&lt;typename Derived &gt; </div>
 
 <p>Constructs an LEFT OUTER JOIN clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01150">1150</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01420">1420</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -796,7 +812,7 @@ template&lt;typename Derived &gt; </div>
 
 <p>Constructs an LEFT OUTER JOIN clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01157">1157</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01427">1427</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -841,7 +857,7 @@ requires std::invocable&lt;OnChainCallable, <a class="el" href="../../dd/d97/cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The query builder, for chaining. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01167">1167</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01437">1437</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -889,7 +905,7 @@ template&lt;typename Derived &gt; </div>
 
 <p>Constructs an RIGHT OUTER JOIN clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01173">1173</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01443">1443</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -937,7 +953,7 @@ template&lt;typename Derived &gt; </div>
 
 <p>Constructs an RIGHT OUTER JOIN clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01180">1180</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01450">1450</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -982,7 +998,7 @@ requires std::invocable&lt;OnChainCallable, <a class="el" href="../../dd/d97/cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The query builder, for chaining. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01190">1190</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01460">1460</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1030,7 +1046,7 @@ template&lt;typename Derived &gt; </div>
 
 <p>Constructs an FULL OUTER JOIN clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01196">1196</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01466">1466</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1078,7 +1094,7 @@ template&lt;typename Derived &gt; </div>
 
 <p>Constructs an FULL OUTER JOIN clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01203">1203</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01473">1473</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1123,7 +1139,71 @@ requires std::invocable&lt;OnChainCallable, <a class="el" href="../../dd/d97/cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The query builder, for chaining. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01213">1213</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01483">1483</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a3eaf06010cae9201367f081a69365c23" name="a3eaf06010cae9201367f081a69365c23"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3eaf06010cae9201367f081a69365c23">&#9670;&#160;</a></span>TakePendingConnective()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Derived &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">auto <a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html">Lightweight::SqlWhereClauseBuilder</a>&lt; Derived &gt;::TakePendingConnective </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">protected</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Hands a pending <a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ac165a8f3c78ea465d7488b41e7af6ee7" title="Indicates, that the next WHERE clause should be AND-ed (default).">And()</a>, <a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ad63ee3002c9921bfb053c5b611d6511b" title="Indicates, that the next WHERE clause should be OR-ed.">Or()</a> or <a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a70eca9201efb0d7311b20cef6ef4db34" title="Indicates, that the next WHERE clause should be negated.">Not()</a> over to a term of the HAVING clause.</p>
+<p>They are called on the shared builder, so they cannot tell which clause they are for. Leaving them behind would make the next Where() begin with AND or OR rather than WHERE. </p><dl class="section return"><dt>Returns</dt><dd>The connective requested; the WHERE clause continues as though it had not been asked. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01576">1576</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+
+<p class="reference">References <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00659">Lightweight::SqlWhereClauseBuilder&lt; Derived &gt;::PendingConnective::isOr</a>.</p>
+
+</div>
+</div>
+<a id="af817f8ac6fc3623cba582a574067de67" name="af817f8ac6fc3623cba582a574067de67"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af817f8ac6fc3623cba582a574067de67">&#9670;&#160;</a></span>DerivedFormatter()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Derived &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const  &amp; <a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html">Lightweight::SqlWhereClauseBuilder</a>&lt; Derived &gt;::DerivedFormatter </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">protected</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>The formatter of the derived builder, which <a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html">SqlWhereClauseBuilder</a> does not own itself. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01594">1594</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1167,7 +1247,7 @@ template&lt;typename ColumnName , typename T &gt; </div>
 
 <p>Constructs or extends a WHERE clause to test for equality. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00897">897</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01167">1167</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1211,7 +1291,7 @@ template&lt;typename ColumnName , typename T &gt; </div>
 
 <p>Constructs or extends a WHERE/OR clause to test for equality. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00916">916</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01186">1186</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1246,7 +1326,7 @@ requires std::invocable&lt;Callable, <a class="el" href="../../d7/d10/classLight
 
 <p>Constructs or extends a WHERE/OR clause to test for a group of values. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00926">926</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01196">1196</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1281,7 +1361,7 @@ requires std::invocable&lt;Callable, <a class="el" href="../../d7/d10/classLight
 
 <p>Constructs or extends a WHERE/AND clause to test for a group of values. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00935">935</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01205">1205</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1325,7 +1405,7 @@ template&lt;typename ColumnName , std::ranges::input_range InputRange&gt; </div>
 
 <p>Constructs or extends a WHERE IN clause with an input range. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00960">960</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01230">1230</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1369,7 +1449,7 @@ template&lt;typename ColumnName , typename T &gt; </div>
 
 <p>Constructs or extends a WHERE IN clause with an initializer list. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00976">976</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01246">1246</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1414,7 +1494,7 @@ requires (std::is_invocable_r_v&lt;std::string, decltype(&amp;SubSelectQuery::To
 
 <p>Constructs or extends a WHERE IN clause with a sub-select query. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00989">989</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01259">1259</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1448,7 +1528,7 @@ template&lt;typename ColumnName &gt; </div>
 
 <p>Constructs or extends a WHERE clause to test for a value being not null. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00998">998</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01268">1268</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1482,7 +1562,7 @@ template&lt;typename ColumnName &gt; </div>
 
 <p>Constructs or extends a WHERE clause to test for a value being null. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01006">1006</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01276">1276</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1526,7 +1606,7 @@ template&lt;typename ColumnName , typename T &gt; </div>
 
 <p>Constructs or extends a WHERE clause to test for inequality. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01014">1014</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01284">1284</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1560,7 +1640,7 @@ template&lt;typename ColumnName &gt; </div>
 
 <p>Constructs or extends a WHERE clause to test for a value being true. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01026">1026</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01296">1296</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1594,7 +1674,7 @@ template&lt;typename ColumnName &gt; </div>
 
 <p>Constructs or extends a WHERE clause to test for a value being false. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01034">1034</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01304">1304</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1644,7 +1724,7 @@ template&lt;typename ColumnName , std::size_t N&gt; </div>
 
 <p>Constructs or extends a WHERE clause with a string literal value. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01060">1060</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01330">1330</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1694,7 +1774,7 @@ template&lt;typename ColumnName , typename T &gt; </div>
 
 <p>Constructs or extends a WHERE clause to test for a binary operation. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01070">1070</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01340">1340</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1745,7 +1825,7 @@ requires (std::is_invocable_r_v&lt;std::string, decltype(&amp;SubSelectQuery::To
 
 <p>Constructs or extends a WHERE clause with a sub-select query. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01090">1090</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01360">1360</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1795,7 +1875,7 @@ template&lt;typename ColumnName , typename T &gt; </div>
 
 <p>Constructs or extends a WHERE/OR clause with a binary operation. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01100">1100</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01370">1370</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a30f6074add24d19f3d657f17b1879963">Lightweight::SqlWhereClauseBuilder&lt; Derived &gt;::Where()</a>.</p>
 
@@ -1831,7 +1911,7 @@ template&lt;typename T &gt; </div>
 
 <p>Starts a conditional WHERE chain gated by a <code>std::optional</code> value. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01289">1289</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01559">1559</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1866,7 +1946,7 @@ requires (std::same_as&lt;ColumnName, <a class="el" href="../../db/d8e/structLig
 
 <p>Appends a column name to the WHERE condition. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01353">1353</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01635">1635</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1900,7 +1980,7 @@ template&lt;typename LiteralType &gt; </div>
 
 <p>Appends a literal value to the WHERE condition. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01361">1361</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01643">1643</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1944,7 +2024,7 @@ template&lt;typename LiteralType , typename TargetType &gt; </div>
 
 <p>Populates a literal value into the target string. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01442">1442</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01731">1731</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -1994,7 +2074,7 @@ template&lt;typename Callable &gt; </div>
 
 <p>Constructs a JOIN clause with a custom ON clause builder. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01578">1578</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01870">1870</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
