@@ -143,13 +143,17 @@ Writing a custom logger</h1>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>OnWarning</code> / <code>OnError</code>   </td><td class="markdownTableBodyNone">A warning or an ODBC error is raised. Two <code>OnError</code> overloads: one for a bare <code>SqlError</code>, one for a full <code>SqlErrorInfo</code> with SQL state and native code.    </td></tr>
 <tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>OnStatementError</code>   </td><td class="markdownTableBodyNone">An operation on a statement failed, with that statement's own query. Forwards to <code>OnError</code> by default.    </td></tr>
+<tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>OnConnectionOpened</code> / <code>OnConnectionClosed</code>   </td><td class="markdownTableBodyNone">A connection is established or torn down.    </td></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>OnConnectionIdle</code> / <code>OnConnectionReuse</code>   </td><td class="markdownTableBodyNone">A pooled connection goes idle or is handed out again.    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>OnExecuteDirect</code>   </td><td class="markdownTableBodyNone">A statement is executed without preparation.    </td></tr>
+<td class="markdownTableBodyNone"><code>OnConnectionIdle</code> / <code>OnConnectionReuse</code>   </td><td class="markdownTableBodyNone">A pooled connection goes idle or is handed out again.    </td></tr>
 <tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>OnExecuteDirect</code>   </td><td class="markdownTableBodyNone">A statement is executed without preparation.    </td></tr>
+<tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>OnPrepare</code> / <code>OnExecute</code> / <code>OnExecuteBatch</code>   </td><td class="markdownTableBodyNone">A statement is prepared, executed, or executed as a batch.    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>OnExecuteNativeBatch</code>   </td><td class="markdownTableBodyNone">A prepared query is executed as one native row-wise batch, with that query. Forwards to <code>OnExecuteBatch</code> by default.    </td></tr>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>OnBind</code>   </td><td class="markdownTableBodyNone">A parameter is bound. Only called when the logger was constructed with <code>SupportBindLogging::Yes</code>.    </td></tr>
 <tr class="markdownTableRowOdd">
@@ -157,7 +161,8 @@ Writing a custom logger</h1>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>OnScopedTimerStart</code> / <code>OnScopedTimerStop</code>   </td><td class="markdownTableBodyNone">A scoped timing region opens or closes.   </td></tr>
 </table>
-<p><code>OnFetchBlock</code> has a default no-op implementation, so an existing logger keeps compiling when block-prefetch reporting is added.</p>
+<p><code>OnFetchBlock</code>, <code>OnStatementError</code> and <code>OnExecuteNativeBatch</code> have default implementations, so an existing logger needs no change.</p>
+<p>A logger is shared by every statement of the process, so a query it remembers from <code>OnPrepare</code> or <code>OnExecute</code> may belong to another statement by the time something fails. <code>TraceLogger</code> therefore prints <code>Query:</code> only for a failure it was told the query of, and <code>Last logged query (not necessarily the failed one):</code> otherwise. <code>SqlException</code> carries no query, and throwing one does not call the logger, so a failed <code>Execute()</code> shows up in the trace only through the <code>OnExecute</code> line before it.</p>
 <h1><a class="anchor" id="restoring-the-previous-logger"></a>
 Restoring the previous logger</h1>
 <p><code>SetLogger</code> does not take ownership, so the logger must outlive its installation. In tests, where loggers are swapped repeatedly, an RAII guard keeps this honest:</p>

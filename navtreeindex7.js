@@ -32,7 +32,7 @@ var NAVTREEINDEX7 =
 "db/df6/group__SqlMigration.html#ggabaf087901def790003ba389480c7a458a3500ba09d0538297440ca620c9dd46bf":[20,7,26,0],
 "db/df6/group__SqlMigration.html#ggabaf087901def790003ba389480c7a458ab311e51ffba49c037096f860bf332d0b":[20,7,26,2],
 "db/dfd/classLightweight_1_1SqlLogger.html":[20,6,5],
-"db/dfd/classLightweight_1_1SqlLogger.html#a02804ba49a0fb98fe967aae9ae089fac":[20,6,5,26],
+"db/dfd/classLightweight_1_1SqlLogger.html#a02804ba49a0fb98fe967aae9ae089fac":[20,6,5,28],
 "db/dfd/classLightweight_1_1SqlLogger.html#a057052d128f3e34f363e33b2aac1d7bd":[20,6,5,17],
 "db/dfd/classLightweight_1_1SqlLogger.html#a1d04bb81c9f5d37e8b3690a657cd3f9d":[20,6,5,21],
 "db/dfd/classLightweight_1_1SqlLogger.html#a2af9309b27fd6bef80768c26080368ea":[20,6,5,9],
@@ -43,6 +43,7 @@ var NAVTREEINDEX7 =
 "db/dfd/classLightweight_1_1SqlLogger.html#a77db8e52d519c4f915b0bc66644560db":[20,6,5,7],
 "db/dfd/classLightweight_1_1SqlLogger.html#a7d32ec109f6a93e7680a8ac63c92f2de":[20,6,5,20],
 "db/dfd/classLightweight_1_1SqlLogger.html#a7eb165999b176c3be5fef997d15f852e":[20,6,5,16],
+"db/dfd/classLightweight_1_1SqlLogger.html#a81a256d4a5c86a69c6f1e0da71117772":[20,6,5,26],
 "db/dfd/classLightweight_1_1SqlLogger.html#a85df1dd0e63ccaa6c8b89874907205ce":[20,6,5,18],
 "db/dfd/classLightweight_1_1SqlLogger.html#a89a7b4c6fd89c71bfdab6e81b7f15f35":[20,6,5,22],
 "db/dfd/classLightweight_1_1SqlLogger.html#a8f14312f2f4bf2436d124947d9150716":[20,6,5,19],
@@ -60,6 +61,7 @@ var NAVTREEINDEX7 =
 "db/dfd/classLightweight_1_1SqlLogger.html#ae1c85dd1cbc748a950f23637fb202555":[20,6,5,5],
 "db/dfd/classLightweight_1_1SqlLogger.html#af7c5638382912daeb780c763c5711ee2":[20,6,5,23],
 "db/dfd/classLightweight_1_1SqlLogger.html#af7d984686564f12829697aaffa839395":[20,6,5,13],
+"db/dfd/classLightweight_1_1SqlLogger.html#af9a623042885ac2430a19f13da8c8ea3":[20,6,5,27],
 "db/dfd/classLightweight_1_1SqlLogger.html#af9ba5d916ab908a9a5a5d0ea7966751b":[20,6,5,4],
 "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html":[20,7,16],
 "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#a65e4336ec9a39cfd5a125fd89863cae6":[20,7,16,3],
@@ -247,7 +249,5 @@ var NAVTREEINDEX7 =
 "de/d36/conceptLightweight_1_1DataMapperRecord.html":[20,3,1],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html":[9],
 "de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#add-profile":[9,3,16],
-"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#apply-timestamp":[9,3,5],
-"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup":[9,4,0],
-"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#backup--restore":[9,4]
+"de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#apply-timestamp":[9,3,5]
 };
