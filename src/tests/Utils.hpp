@@ -253,6 +253,14 @@ class TestSuiteSqlLogger: public Lightweight::SqlLogger::Null
         WriteDetails(sourceLocation);
     }
 
+    void OnStatementError(Lightweight::SqlErrorInfo const& errorInfo,
+                          std::string_view query,
+                          std::source_location sourceLocation) override
+    {
+        WriteWarning("SQL Error: {}", errorInfo);
+        WriteDetails(sourceLocation, query);
+    }
+
     void OnWarning(std::string_view const& message) override
     {
         WriteWarning("{}", message);
@@ -292,12 +300,14 @@ class TestSuiteSqlLogger: public Lightweight::SqlLogger::Null
     }
 
   private:
-    void WriteDetails(std::source_location sourceLocation)
+    void WriteDetails(std::source_location sourceLocation, std::string_view failedQuery = {})
     {
         std::scoped_lock lock(m_mutex);
         WriteInfo("  Source: {}:{}", sourceLocation.file_name(), sourceLocation.line());
-        if (!m_lastPreparedQuery.empty())
-            WriteInfo("  Query: {}", m_lastPreparedQuery);
+        if (!failedQuery.empty())
+            WriteInfo("  Query: {}", failedQuery);
+        else if (!m_lastPreparedQuery.empty())
+            WriteInfo("  Last logged query (not necessarily the failed one): {}", m_lastPreparedQuery);
         WriteInfo("  Stack trace:");
 
 #if __has_include(<stacktrace>)

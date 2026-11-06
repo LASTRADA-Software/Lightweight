@@ -141,6 +141,15 @@ namespace
             WriteDetails(sourceLocation);
         }
 
+        void OnStatementError(SqlErrorInfo const& errorInfo,
+                              std::string_view query,
+                              std::source_location sourceLocation) override
+        {
+            _state = State::Error;
+            SqlStandardLogger::OnError(errorInfo, sourceLocation);
+            WriteDetails(sourceLocation, query);
+        }
+
         void OnScopedTimerStart(std::string const& tag) override
         {
             _scopedTimers[tag] = std::chrono::steady_clock::now();
@@ -227,6 +236,15 @@ namespace
             _fetchRowCount = 0;
         }
 
+        void OnExecuteNativeBatch(std::string_view query) override
+        {
+            if (_state == State::Executing || _state == State::Fetching)
+                OnFetchEnd();
+
+            _lastPreparedQuery = query;
+            OnExecuteBatch();
+        }
+
         void OnFetchRow() override
         {
             _state = State::Fetching;
@@ -283,13 +301,22 @@ namespace
         }
 
       private:
-        void WriteDetails(std::source_location sourceLocation)
+        /// Writes the details of an error.
+        ///
+        /// This logger is shared by every statement of the process, so what it last heard of is only a
+        /// hint, and it is labelled as one: the failed query is named as such only when it is known.
+        ///
+        /// @param sourceLocation Where the error was reported from.
+        /// @param failedQuery The query the error belongs to; empty if that is unknown.
+        void WriteDetails(std::source_location sourceLocation, std::string_view failedQuery = {})
         {
             auto stream = std::ostringstream {};
 
             stream << std::format("  Source: {}:{}", sourceLocation.file_name(), sourceLocation.line());
-            if (!_lastPreparedQuery.empty())
-                stream << std::format("  Query: {}", _lastPreparedQuery);
+            if (!failedQuery.empty())
+                stream << std::format("  Query: {}", failedQuery);
+            else if (!_lastPreparedQuery.empty())
+                stream << std::format("  Last logged query (not necessarily the failed one): {}", _lastPreparedQuery);
 
 #if __has_include(<stacktrace>)
             stream << std::format("  Stack trace:");

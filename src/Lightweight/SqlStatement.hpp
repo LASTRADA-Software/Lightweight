@@ -1779,7 +1779,7 @@ SqlResultCursor SqlStatement::ExecuteBatchNativeRowWise(Rows const& rows, Column
     };
     (bindColumn(accessors), ...);
 
-    SqlLogger::GetLogger().OnExecuteBatch();
+    SqlLogger::GetLogger().OnExecuteNativeBatch(m_preparedQuery);
     // Capture the result before reading processedCount: SQLExecute updates it via the bound pointer, and
     // function-argument evaluation order is unspecified.
     LIGHTWEIGHT_STATS_SCOPE(::Lightweight::SqlStatisticsOperation::ExecuteBatch);

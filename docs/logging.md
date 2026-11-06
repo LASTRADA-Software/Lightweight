@@ -71,16 +71,24 @@ The hooks available are:
 | Hook | Fires when |
 |------|-----------|
 | `OnWarning` / `OnError` | A warning or an ODBC error is raised. Two `OnError` overloads: one for a bare `SqlError`, one for a full `SqlErrorInfo` with SQL state and native code. |
+| `OnStatementError` | An operation on a statement failed, with that statement's own query. Forwards to `OnError` by default. |
 | `OnConnectionOpened` / `OnConnectionClosed` | A connection is established or torn down. |
 | `OnConnectionIdle` / `OnConnectionReuse` | A pooled connection goes idle or is handed out again. |
 | `OnExecuteDirect` | A statement is executed without preparation. |
 | `OnPrepare` / `OnExecute` / `OnExecuteBatch` | A statement is prepared, executed, or executed as a batch. |
+| `OnExecuteNativeBatch` | A prepared query is executed as one native row-wise batch, with that query. Forwards to `OnExecuteBatch` by default. |
 | `OnBind` | A parameter is bound. Only called when the logger was constructed with `SupportBindLogging::Yes`. |
 | `OnFetchRow` / `OnFetchBlock` / `OnFetchEnd` | Rows are fetched one at a time, in a prefetch block, or the result set is exhausted. |
 | `OnScopedTimerStart` / `OnScopedTimerStop` | A scoped timing region opens or closes. |
 
-`OnFetchBlock` has a default no-op implementation, so an existing logger keeps compiling when
-block-prefetch reporting is added.
+`OnFetchBlock`, `OnStatementError` and `OnExecuteNativeBatch` have default implementations, so an
+existing logger needs no change.
+
+A logger is shared by every statement of the process, so a query it remembers from `OnPrepare` or
+`OnExecute` may belong to another statement by the time something fails. `TraceLogger` therefore
+prints `Query:` only for a failure it was told the query of, and `Last logged query (not necessarily
+the failed one):` otherwise. `SqlException` carries no query, and throwing one does not call the
+logger, so a failed `Execute()` shows up in the trace only through the `OnExecute` line before it.
 
 ## Restoring the previous logger
 
