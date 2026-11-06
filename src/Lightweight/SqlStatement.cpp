@@ -60,6 +60,7 @@ struct SqlStatement::Data
     std::vector<std::function<void()>> prefetchDeferredBinds; // real SQLBindCol thunks for the fallback
     bool prefetchBindingUnsupported = false;                  // a bound output column's target type cannot be served
                                                               // from the block buffer, so the set keeps the per-row path
+    std::chrono::seconds queryTimeout {};                     // what SetQueryTimeout() asked for, to carry across handles
 
     static Data const NoData;
 };
@@ -307,6 +308,7 @@ SqlStatement::SqlStatement():
                  .prefetchRowInBlock = 0,
                  .prefetchScatters = {},
                  .prefetchDeferredBinds = {},
+                 .queryTimeout = {},
              },
 
              [](Data* data) {
@@ -421,6 +423,29 @@ void SqlStatement::SetPreparedStatementCaching(SqlPreparedStatementCaching cachi
     m_preparedStatementCaching = caching;
 }
 
+void SqlStatement::SetQueryTimeout(std::chrono::seconds timeout)
+{
+    if (timeout < std::chrono::seconds::zero())
+        throw std::invalid_argument("The query timeout must not be negative.");
+
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_QUERY_TIMEOUT, OdbcIntAttr(static_cast<SQLULEN>(timeout.count())), 0));
+    m_data->queryTimeout = timeout;
+}
+
+std::chrono::seconds SqlStatement::QueryTimeout() const
+{
+    auto timeout = SQLULEN {};
+    RequireSuccess(SQLGetStmtAttr(m_hStmt, SQL_ATTR_QUERY_TIMEOUT, &timeout, 0, nullptr));
+    return std::chrono::seconds { static_cast<std::chrono::seconds::rep>(timeout) };
+}
+
+void SqlStatement::ApplyQueryTimeoutToNewHandle()
+{
+    if (m_data->queryTimeout != std::chrono::seconds::zero())
+        RequireSuccess(SQLSetStmtAttr(
+            m_hStmt, SQL_ATTR_QUERY_TIMEOUT, OdbcIntAttr(static_cast<SQLULEN>(m_data->queryTimeout.count())), 0));
+}
+
 SqlPreparedStatementCache* SqlStatement::UsablePreparedStatementCache() const noexcept
 {
     if (m_preparedStatementCaching == SqlPreparedStatementCaching::Disabled || m_connection == nullptr)
@@ -457,6 +482,10 @@ bool SqlStatement::ReleasePreparedHandle(SqlPreparedStatementCache& cache) noexc
     SQLFreeStmt(m_hStmt, SQL_RESET_PARAMS);
     ResetParameterArrayBinding();
 
+    // A statement attribute outlives SQLFreeStmt, so the handle's next user would inherit this timeout.
+    if (m_data->queryTimeout != std::chrono::seconds::zero())
+        SQLSetStmtAttr(m_hStmt, SQL_ATTR_QUERY_TIMEOUT, OdbcIntAttr(0), 0);
+
     cache.Release(m_preparedQuery,
                   SqlPreparedStatementCache::PreparedHandle { .nativeHandle = m_hStmt, .parameterCount = parameterCount });
 
@@ -473,6 +502,7 @@ void SqlStatement::EnsureStatementHandle()
     {
         m_connection->RequireSuccess(SQLAllocHandle(SQL_HANDLE_STMT, m_connection->NativeHandle(), &m_hStmt));
         RegisterHandleTextEntry();
+        ApplyQueryTimeoutToNewHandle();
     }
 }
 
@@ -507,6 +537,7 @@ bool SqlStatement::AcquirePreparedHandle(SqlPreparedStatementCache& cache, std::
     }
 
     m_hStmt = pooled->nativeHandle;
+    ApplyQueryTimeoutToNewHandle();
     // Both counts: m_expectedParameterCount is what Execute() validates against, m_preparedParameterCount
     // is what a later release pools again (and what the own-handle reuse path restores).
     m_expectedParameterCount = pooled->parameterCount;
