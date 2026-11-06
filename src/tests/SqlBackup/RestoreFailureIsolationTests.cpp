@@ -835,8 +835,8 @@ void CreateIndexedTableWithRows(std::string const& tableName, int rowCount)
     stmt.MigrateDirect([&](SqlMigrationQueryBuilder& migration) {
         migration.CreateTable(tableName)
             .PrimaryKey("ID", Integer {})
-            .Column("V", Varchar { 20 })
-            .Column("W", Varchar { 20 });
+            .Column("V", Varchar { .size = 20 })
+            .Column("W", Varchar { .size = 20 });
     });
     for (auto const id: std::views::iota(1, rowCount + 1))
         (void) stmt.ExecuteDirect(
