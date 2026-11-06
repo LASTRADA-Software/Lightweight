@@ -56,7 +56,7 @@ namespace detail
 
     /// The type at index @p I of the pack @p Types.
     template <std::size_t I, typename... Types>
-    using NthType = typename decltype(SelectIndexedType<I>(
+    using NthType = decltype(SelectIndexedType<I>(
         std::declval<IndexedTypes<std::make_index_sequence<sizeof...(Types)>, Types...>>()))::type;
 
     /// The value at index @p I of the pack @p Values.
