@@ -47,6 +47,7 @@ var NAVTREE =
           [ "As network latency grows", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#as-network-latency-grows", null ]
         ] ]
       ] ],
+      [ "Query timeouts", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#query-timeouts", null ],
       [ "SQL Query Builder", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sql-query-builder", null ],
       [ "High level Data Mapping", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#high-level-data-mapping", [
         [ "Batched insert and update", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#batched-insert-and-update", null ],
@@ -434,11 +435,11 @@ var NAVTREEINDEX =
 "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a1f03a5faa280b0ae0ee688e3b9f40208",
 "d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html",
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1d973789fe4e659b30eb414dea1d6941",
-"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a3c38e58abdc7f00d611b073b68572837",
-"db/dad/classLightweight_1_1SqlStatement.html#af86e1a5ea750245ac769af55f2b124d5",
-"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#af4ccd5e64aa4e1be75ee688d107afcee",
-"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a4d9ec4afc996dacc72bbe5948aa7db73",
-"functions_w.html"
+"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a2f2d1f5684e8d4290b9ad733f0c77835",
+"db/dad/classLightweight_1_1SqlStatement.html#ade0634f2250c8cd5c1128a30823279e5",
+"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ae8b6c3c76aea2e0c65967424039ff48c",
+"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a1af4ea7db6effd658b141e8d599978dc",
+"functions_vars_u.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

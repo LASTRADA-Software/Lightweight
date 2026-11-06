@@ -192,6 +192,8 @@ var group__CoreApi =
       [ "PreparedQuery", "db/dad/classLightweight_1_1SqlStatement.html#a45fcc0bd954ae62ec4a9c26f943326e1", null ],
       [ "PreparedStatementCaching", "db/dad/classLightweight_1_1SqlStatement.html#a1805c1161886e575c4b9c16658ae84ef", null ],
       [ "SetPreparedStatementCaching", "db/dad/classLightweight_1_1SqlStatement.html#a9d2ca0ca6a074744e63c36623a7e2d2b", null ],
+      [ "SetQueryTimeout", "db/dad/classLightweight_1_1SqlStatement.html#a460e4f603be87624ee8568c966b6d948", null ],
+      [ "QueryTimeout", "db/dad/classLightweight_1_1SqlStatement.html#a92acae8f6ca99259600b45172a3f975b", null ],
       [ "BindInputParameter", "db/dad/classLightweight_1_1SqlStatement.html#a9267f1c1591f6d3a6d20a0a541ff9b0d", null ],
       [ "BindInputParameter", "db/dad/classLightweight_1_1SqlStatement.html#a789b8fc2cdfe67697cd6720a167e5b78", null ],
       [ "BindInputParameter", "db/dad/classLightweight_1_1SqlStatement.html#acaeacb45bb1f297e5978bf0e474f708b", null ],

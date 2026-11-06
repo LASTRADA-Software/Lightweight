@@ -360,6 +360,43 @@ As network latency grows</h3>
 <li><b>The two backends save different things.</b> psqlODBC spends about three extra round-trips per freshly prepared statement (Parse/Describe plus the deallocate when the handle goes away); the Microsoft driver folds the prepare into <code>sp_prepexec</code> and so spends exactly one extra — the <code>sp_unprepare</code> that follows a short-lived handle. That single round-trip is the whole of the MS SQL Server win, which is also why reusing <em>one</em> statement across several query texts gains nothing there (1.10x): no handle is torn down, so there is no round-trip to save.</li>
 </ul>
 <p>For a service talking to a database across an availability zone (~1–2 ms) or a region (~25–50 ms), the cache is worth far more than the loopback numbers suggest: at 50 ms it takes a PostgreSQL query-builder read from 202 ms to 61 ms.</p>
+<h1><a class="anchor" id="query-timeouts"></a>
+Query timeouts</h1>
+<p><code>SqlStatement::SetQueryTimeout</code> bounds how long each later execution of one statement may run. It takes whole seconds, and <code>0s</code> lifts the bound:</p>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> stmt = SqlStatement { connection };</div>
+<div class="line">stmt.SetQueryTimeout(std::chrono::seconds { 5 });</div>
+<div class="line"><span class="keywordflow">try</span></div>
+<div class="line">{</div>
+<div class="line">    <span class="keyword">auto</span> cursor = stmt.ExecuteDirect(<span class="stringliteral">&quot;SELECT ...&quot;</span>);</div>
+<div class="line">}</div>
+<div class="line"><span class="keywordflow">catch</span> (SqlException <span class="keyword">const</span>&amp; error)</div>
+<div class="line">{</div>
+<div class="line">    <span class="keywordflow">if</span> (!IsQueryTimeoutError(error.info()))</div>
+<div class="line">        <span class="keywordflow">throw</span>;</div>
+<div class="line">    <span class="comment">// The query was cancelled; the statement and the connection can be used again.</span></div>
+<div class="line">}</div>
+</div><!-- fragment --><p>The timeout belongs to the statement: <code>Prepare()</code> and <code>ExecuteDirect()</code> keep it, also when the <a class="el" href="../../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#prepared-statement-cache-fewer-prepare-round-trips">prepared-statement cache</a> gives the statement another handle, and a statement that takes over its pooled handle does not inherit it. Neither <code>DataMapper</code> nor a lazily loaded relation uses it, and it does not bound a sequence of statements.</p>
+<p>What the driver does with it was measured on ODBC Driver 18 for SQL Server, psqlODBC and the SQLite ODBC driver:</p>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone"></th><th class="markdownTableHeadNone">MS SQL Server   </th><th class="markdownTableHeadNone">PostgreSQL   </th><th class="markdownTableHeadNone">SQLite    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">Enforced   </td><td class="markdownTableBodyNone">yes   </td><td class="markdownTableBodyNone">yes   </td><td class="markdownTableBodyNone"><b>no</b>: accepted without a warning, and the query runs to completion    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>QueryTimeout()</code> after setting 5 s   </td><td class="markdownTableBodyNone">5 s   </td><td class="markdownTableBodyNone">5 s   </td><td class="markdownTableBodyNone">0 s    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">SQLSTATE of the failure   </td><td class="markdownTableBodyNone"><code>HYT00</code>   </td><td class="markdownTableBodyNone"><code>57014</code>   </td><td class="markdownTableBodyNone"></td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">The enclosing transaction after a timeout   </td><td class="markdownTableBodyNone">stays open   </td><td class="markdownTableBodyNone">stays open   </td><td class="markdownTableBodyNone"></td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>SqlRetryPolicy</code> retries the failure   </td><td class="markdownTableBodyNone"><b>yes</b>   </td><td class="markdownTableBodyNone">no   </td><td class="markdownTableBodyNone"></td></tr>
+</table>
+<ul>
+<li>Read <code>QueryTimeout()</code> back to learn whether the driver honours the timeout. Do not rely on it to stop a query on SQLite.</li>
+<li>Under <code>SqlRetryPolicy</code> on SQL Server, <code>HYT00</code> counts as transient, so a statement can run for <code>(maxRetries + 1) * timeout</code> plus the delays between attempts. Keep the timeout out of a retried operation, or pass the policy a <code>SqlRetryClassifier</code> that refuses <code>IsQueryTimeoutError</code>.</li>
+<li><code>57014</code> also reports an explicit cancel, so <code>IsQueryTimeoutError</code> cannot tell the two apart on PostgreSQL.</li>
+<li>PostgreSQL keeps the transaction open because psqlODBC wraps statements in a savepoint by default; a connection string that sets <code>Protocol=7.4-0</code> turns that off, and then the failure aborts the transaction.</li>
+</ul>
 <h1><a class="anchor" id="sql-query-builder"></a>
 SQL Query Builder</h1>
 <p>Or construct statement using <code>SqlQueryBuilder</code> </p><div class="fragment"><div class="line"><span class="keyword">auto</span> stmt = SqlStatement { };</div>
