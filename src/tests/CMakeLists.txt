@@ -208,8 +208,10 @@ install(FILES test_dbtool.py DESTINATION ${CMAKE_INSTALL_DATADIR}/Lightweight/te
 add_subdirectory(dummy_migration_plugin)
 add_subdirectory(dummy_migration_plugin_2)
 add_subdirectory(post_migrate_plugin)
-# PluginUnloadTests.cpp loads the post-migrate fixture plugin in-process.
-target_compile_definitions(LightweightTest PRIVATE LIGHTWEIGHT_TEST_POST_MIGRATE_PLUGIN="$<TARGET_FILE:post_migrate_plugin>")
+# PluginUnloadTests.cpp loads the post-migrate fixture plugin in-process and finds it relative to the
+# test executable. Only the file name is passed: an absolute path here would differ per checkout in the
+# compile command of every test object, and a shared compile cache could then never reuse them.
+target_compile_definitions(LightweightTest PRIVATE LIGHTWEIGHT_TEST_POST_MIGRATE_PLUGIN="$<TARGET_FILE_NAME:post_migrate_plugin>")
 add_dependencies(LightweightTest post_migrate_plugin)
 add_subdirectory(compat_policy_plugin)
 add_subdirectory(seed_row_fixture)
