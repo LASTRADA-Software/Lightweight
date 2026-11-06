@@ -664,9 +664,6 @@ class [[nodiscard]] SqlMigrationQueryBuilder final
     /// Creates a DELETE statement for the migration.
     LIGHTWEIGHT_API SqlMigrationDeleteBuilder Delete(std::string_view tableName);
 
-    /// Executes SQL interactively via a callback.
-    LIGHTWEIGHT_API SqlMigrationQueryBuilder& Native(std::function<std::string(SqlConnection&)> callback);
-
     /// Starts a transaction.
     LIGHTWEIGHT_API SqlMigrationQueryBuilder& BeginTransaction();
 
