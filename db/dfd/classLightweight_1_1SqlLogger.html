@@ -208,12 +208,6 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>OnFetchRow</b
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>OnFetchEnd</b> ()=0</td></tr>
 <tr class="memdesc:a531204f908c6870f7e7e589ac0e20c2f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Invoked when fetching is done. <br /></td></tr>
 <tr class="separator:a531204f908c6870f7e7e589ac0e20c2f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a81a256d4a5c86a69c6f1e0da71117772" id="r_a81a256d4a5c86a69c6f1e0da71117772"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a81a256d4a5c86a69c6f1e0da71117772">OnStatementError</a> (<a class="el" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html">SqlErrorInfo</a> const &amp;errorInfo, std::string_view query, std::source_location sourceLocation)</td></tr>
-<tr class="memdesc:a81a256d4a5c86a69c6f1e0da71117772"><td class="mdescLeft">&#160;</td><td class="mdescRight">Invoked when an operation on a statement failed, naming that statement's own query.  <br /></td></tr>
-<tr class="separator:a81a256d4a5c86a69c6f1e0da71117772"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af9a623042885ac2430a19f13da8c8ea3" id="r_af9a623042885ac2430a19f13da8c8ea3"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#af9a623042885ac2430a19f13da8c8ea3">OnExecuteNativeBatch</a> (std::string_view query)</td></tr>
-<tr class="memdesc:af9a623042885ac2430a19f13da8c8ea3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Invoked when a prepared query is executed as one native row-wise batch.  <br /></td></tr>
-<tr class="separator:af9a623042885ac2430a19f13da8c8ea3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -438,102 +432,6 @@ template&lt;typename T &gt; </div>
 
 </div>
 </div>
-<a id="a81a256d4a5c86a69c6f1e0da71117772" name="a81a256d4a5c86a69c6f1e0da71117772"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a81a256d4a5c86a69c6f1e0da71117772">&#9670;&#160;</a></span>OnStatementError()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">virtual void Lightweight::SqlLogger::OnStatementError </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html">SqlErrorInfo</a> const &amp;&#160;</td>
-          <td class="paramname"><em>errorInfo</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>query</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::source_location&#160;</td>
-          <td class="paramname"><em>sourceLocation</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Invoked when an operation on a statement failed, naming that statement's own query. </p>
-<p>Non-pure so existing loggers need no change: the default forwards to <a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a2af9309b27fd6bef80768c26080368ea">OnError</a>. Unlike a query remembered from <a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a85df1dd0e63ccaa6c8b89874907205ce">OnPrepare</a> or <a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a1d04bb81c9f5d37e8b3690a657cd3f9d">OnExecute</a>, which may belong to any statement of the process, <code>query</code> is the one the failure belongs to.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">errorInfo</td><td>The diagnostics of the failure. </td></tr>
-    <tr><td class="paramname">query</td><td>The statement's prepared query; empty if it has none, as after a direct execution. </td></tr>
-    <tr><td class="paramname">sourceLocation</td><td>Where the failure was reported from. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00137">137</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
-
-<p class="reference">References <a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a2af9309b27fd6bef80768c26080368ea">OnError()</a>.</p>
-
-</div>
-</div>
-<a id="af9a623042885ac2430a19f13da8c8ea3" name="af9a623042885ac2430a19f13da8c8ea3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af9a623042885ac2430a19f13da8c8ea3">&#9670;&#160;</a></span>OnExecuteNativeBatch()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">virtual void Lightweight::SqlLogger::OnExecuteNativeBatch </td>
-          <td>(</td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>query</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Invoked when a prepared query is executed as one native row-wise batch. </p>
-<p>Non-pure so existing loggers need no change: the default forwards to <a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a89a7b4c6fd89c71bfdab6e81b7f15f35">OnExecuteBatch</a>.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">query</td><td>The query being executed. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00149">149</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
-
-<p class="reference">References <a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a89a7b4c6fd89c71bfdab6e81b7f15f35">OnExecuteBatch()</a>.</p>
-
-</div>
-</div>
 <a id="a6e33664547f546dbb2c5561d76d24ffa" name="a6e33664547f546dbb2c5561d76d24ffa"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a6e33664547f546dbb2c5561d76d24ffa">&#9670;&#160;</a></span>SetLogger()</h2>
 
@@ -585,7 +483,7 @@ template&lt;typename T &gt; </div>
 
 <p>The function used to write log messages. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00179">179</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00153">153</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
 
 </div>
 </div>
