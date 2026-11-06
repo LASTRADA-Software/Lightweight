@@ -1359,6 +1359,50 @@ namespace
     }
 } // namespace
 
+namespace
+{
+    /// Counts the tables of @p report that are missing their data, not just some of their rows.
+    /// @param report The restore's failures.
+    /// @return The number of distinct tables that failed as a whole or were left unfinished.
+    [[nodiscard]] std::size_t CountUnrestoredTables(RestoreReport const& report)
+    {
+        auto tables = std::set<std::string_view>(report.incompleteTables.begin(), report.incompleteTables.end());
+        for (auto const& table: report.tables)
+        {
+            if (table.tableFailure.has_value())
+                tables.insert(table.tableName);
+        }
+        return tables.size();
+    }
+
+    /// Words the error of a table a stopped worker left unfinished, in the rows a user knows about.
+    /// @param restoredRows The rows of the table committed to the target.
+    /// @param archivedRows The rows the archive holds for the table; 0 if it does not know.
+    /// @return The message.
+    [[nodiscard]] std::string DescribeUnfinishedTable(std::uint64_t restoredRows, std::size_t archivedRows)
+    {
+        auto const restored = archivedRows > 0 ? std::format("{} of {} rows", restoredRows, archivedRows)
+                                               : std::format("{} rows", restoredRows);
+        return std::format("Not fully restored: {} restored, the restore stopped after an earlier error", restored);
+    }
+
+    /// Reports that an incomplete restore leaves foreign key constraints and indexes unapplied.
+    /// @param progress The progress manager.
+    /// @param unrestoredTables The number of tables that did not restore.
+    /// @param totalTables The number of tables to restore.
+    void ReportConstraintsSkipped(ProgressManager& progress, std::size_t unrestoredTables, std::size_t totalTables)
+    {
+        progress.Update({ .state = Progress::State::Error,
+                          .tableName = "",
+                          .currentRows = 0,
+                          .totalRows = std::nullopt,
+                          .message = std::format("Restore incomplete: {} of {} tables did not restore; "
+                                                 "foreign key constraints and indexes were not applied",
+                                                 unrestoredTables,
+                                                 totalTables) });
+    }
+} // namespace
+
 std::expected<ArchiveVerification, std::string> VerifyArchive(std::filesystem::path const& archiveFile)
 {
     return Guarded(archiveFile, "verify", [&archiveFile] { return VerifyArchiveUnguarded(archiveFile); });
@@ -1633,6 +1677,16 @@ RestoreReport Restore(std::filesystem::path const& inputFile,
                 filteredTableMap[name] = info;
         }
 
+        // A table that could not be created makes the schema partial; constraining it would only
+        // produce misleading foreign-key errors naming the referencing tables.
+        if (failedTables > 0)
+        {
+            ReportConstraintsSkipped(progress, failedTables, tableMap.size());
+            zip_close(zip);
+            progress.AllDone();
+            return {};
+        }
+
         detail::ApplyDatabaseConstraints(connectionString, effectiveSchema, filteredTableMap, progress);
         detail::RestoreIndexes(connectionString, effectiveSchema, filteredTableMap, progress);
 
@@ -1784,11 +1838,25 @@ RestoreReport Restore(std::filesystem::path const& inputFile,
         if (processed->load() >= totalChunksPerTable[tableName])
             continue;
         report.incompleteTables.push_back(tableName);
-        progress.Update({ .state = Progress::State::Error,
-                          .tableName = tableName,
-                          .currentRows = tableProgress.at(tableName)->load(),
-                          .totalRows = std::nullopt,
-                          .message = "Not fully restored: the restore stopped after an earlier error" });
+        progress.Update(
+            { .state = Progress::State::Error,
+              .tableName = tableName,
+              .currentRows = tableProgress.at(tableName)->load(),
+              .totalRows = std::nullopt,
+              .message = DescribeUnfinishedTable(committedRows.at(tableName)->load(), tableMap.at(tableName).rowCount) });
+    }
+
+    // A table that failed as a whole, that a stopped worker left unfinished, or that could not be
+    // created is missing its data. Constraining such a database only produces misleading foreign-key
+    // errors naming the referencing tables, so leave it unfinished for the caller to rerun the
+    // restore. Rows left out one by one, or an unreadable chunk, do not count: the table is there and
+    // holds everything else, and the report names what it lacks.
+    if (auto const unrestoredTables = CountUnrestoredTables(report) + failedTables; unrestoredTables > 0)
+    {
+        ReportConstraintsSkipped(progress, unrestoredTables, tableMap.size());
+        zip_close(zip);
+        progress.AllDone();
+        return report;
     }
 
     detail::ApplyDatabaseConstraints(connectionString, effectiveSchema, filteredTableMap, progress);

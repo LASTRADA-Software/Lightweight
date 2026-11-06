@@ -564,17 +564,11 @@ std::expected<RestoreChunkInfo, FetchChunkError> FetchNextRestoreChunk(RestoreCo
         ctx.dataQueue.pop_front();
     }
 
-    std::vector<uint8_t> content;
-    {
-        ZoneScopedN("Restore::UnzipChunk");
-        auto const lock = std::scoped_lock(ctx.fileMutex);
-        if (!entryInfo.valid)
-            return std::unexpected(
-                FetchChunkError { .tableName = "", .message = std::format("Invalid zip entry: {}", entryInfo.name) });
-        content = ReadZipEntry<std::vector<uint8_t>>(ctx.zip, entryInfo.index, entryInfo.size);
-    }
+    if (!entryInfo.valid)
+        return std::unexpected(
+            FetchChunkError { .tableName = "", .message = std::format("Invalid zip entry: {}", entryInfo.name) });
 
-    // Parse path FIRST to get tableName for chunk-based completion tracking.
+    // Parse the path before reading the chunk, so that a chunk of a failed table is neither read nor hashed.
     // Path format: data/<folder>/chunk_ID.msgpack, where <folder> is the table's ChunkDirectory.
     std::string const path = entryInfo.name;
     auto const directory = ChunkDirectoryOf(path);
@@ -587,6 +581,26 @@ std::expected<RestoreChunkInfo, FetchChunkError> FetchNextRestoreChunk(RestoreCo
         return std::unexpected(
             FetchChunkError { .tableName = "", .message = std::format("Unknown table in backup: {}", *directory) });
     std::string const& tableName = table->second;
+
+    auto const& tableInfo = ctx.tableMap.at(tableName);
+    std::optional<size_t> const displayTotal = tableInfo.rowCount > 0 ? std::optional { tableInfo.rowCount } : std::nullopt;
+
+    // A table never leaves the failed set, so RestoreWorker() skips this chunk without looking at its content.
+    if (ctx.failedTables.Contains(tableName))
+        return RestoreChunkInfo {
+            .tableName = tableName,
+            .chunkPath = path,
+            .content = {},
+            .tableInfo = &tableInfo,
+            .displayTotal = displayTotal,
+        };
+
+    std::vector<uint8_t> content;
+    {
+        ZoneScopedN("Restore::UnzipChunk");
+        auto const lock = std::scoped_lock(ctx.fileMutex);
+        content = ReadZipEntry<std::vector<uint8_t>>(ctx.zip, entryInfo.index, entryInfo.size);
+    }
 
     // Verify checksum if available
     if (ctx.checksums)
@@ -605,9 +619,6 @@ std::expected<RestoreChunkInfo, FetchChunkError> FetchNextRestoreChunk(RestoreCo
             }
         }
     }
-
-    auto const& tableInfo = ctx.tableMap.at(tableName);
-    std::optional<size_t> const displayTotal = tableInfo.rowCount > 0 ? std::optional { tableInfo.rowCount } : std::nullopt;
 
     return RestoreChunkInfo {
         .tableName = tableName,
