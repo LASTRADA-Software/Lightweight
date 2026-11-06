@@ -16,10 +16,13 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <array>
+#include <concepts>
 #include <cstddef>
 #include <set>
 #include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 using namespace Lightweight;
 
@@ -65,6 +68,46 @@ struct Lightweight::Description<DescribedAlbum>
 static_assert(RecordMemberCount<DescribedArtist> == 3);
 static_assert(RecordColumnCount<DescribedArtist> == 2);
 static_assert(RecordStorageFieldCount<DescribedArtist> == 2);
+
+// RecordMemberList is what a descriptor stands on, so how it indexes its packs must not show: a member
+// keeps its exact type, MemberAt yields the member itself, and constness follows the record.
+using DescribedAlbumMembers = Description<DescribedAlbum>::Members;
+static_assert(DescribedAlbumMembers::Count == 3);
+static_assert(std::same_as<DescribedAlbumMembers::TypeAt<0>, decltype(DescribedAlbum::albumId)>);
+static_assert(std::same_as<DescribedAlbumMembers::TypeAt<1>, decltype(DescribedAlbum::title)>);
+static_assert(std::same_as<DescribedAlbumMembers::TypeAt<2>, decltype(DescribedAlbum::artist)>);
+static_assert(std::same_as<decltype(DescribedAlbumMembers::MemberAt<1>(std::declval<DescribedAlbum&>())),
+                           decltype(DescribedAlbum::title)&>);
+static_assert(std::same_as<decltype(DescribedAlbumMembers::MemberAt<1>(std::declval<DescribedAlbum const&>())),
+                           decltype(DescribedAlbum::title) const&>);
+
+TEST_CASE("RecordMemberList reaches each member in declaration order", "[DataMapper][Description]")
+{
+    auto album = DescribedAlbum {};
+    auto const& constAlbum = album;
+
+    CHECK(static_cast<void const*>(&DescribedAlbumMembers::MemberAt<0>(album)) == &album.albumId);
+    CHECK(static_cast<void const*>(&DescribedAlbumMembers::MemberAt<1>(album)) == &album.title);
+    CHECK(static_cast<void const*>(&DescribedAlbumMembers::MemberAt<2>(album)) == &album.artist);
+    CHECK(static_cast<void const*>(&DescribedAlbumMembers::MemberAt<2>(constAlbum)) == &album.artist);
+    CHECK(static_cast<void const*>(&GetRecordMemberAt<1>(album)) == &album.title);
+
+    auto valueOrder = std::vector<void const*> {};
+    EnumerateRecordMembers(album, [&]<std::size_t I>(auto& member) { valueOrder.emplace_back(&member); });
+    CHECK(valueOrder == std::vector<void const*> { &album.albumId, &album.title, &album.artist });
+
+    auto typeOrder = std::vector<std::size_t> {};
+    EnumerateRecordMembers<DescribedAlbum>([&]<std::size_t I, typename MemberType>() {
+        static_assert(std::same_as<MemberType, DescribedAlbumMembers::TypeAt<I>>);
+        typeOrder.emplace_back(I);
+    });
+    CHECK(typeOrder == std::vector<std::size_t> { 0, 1, 2 });
+
+    using Mask = std::integer_sequence<std::size_t, 2, 0>;
+    auto maskedOrder = std::vector<void const*> {};
+    EnumerateRecordMembers<Mask>(album, [&]<std::size_t I>(auto& member) { maskedOrder.emplace_back(&member); });
+    CHECK(maskedOrder == std::vector<void const*> { &album.artist, &album.albumId });
+}
 
 TEST_CASE_METHOD(SqlTestFixture, "Description-carrying record auto-loads its HasMany", "[DataMapper][relations][issue556]")
 {
