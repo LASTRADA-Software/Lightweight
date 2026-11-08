@@ -1,6 +1,5 @@
 var NAVTREEINDEX5 =
 {
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1d973789fe4e659b30eb414dea1d6941":[22,0,0,77,37],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1dcb7e54bfcc84b7995643cd35a43c53":[22,0,0,77,3],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a21a962ad99398b3b0e882a11a38a7e9f":[22,0,0,77,38],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a28840705a0b4cc329d082cf327f486f3":[22,0,0,77,18],
@@ -249,5 +248,6 @@ var NAVTREEINDEX5 =
 "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a005b078df5fc4a050cff113564a3c03c":[20,3,15,1],
 "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a110f55753102b397dee9f26192fb1295":[20,3,15,9],
 "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a25a32f6bdaa186db2f20b2683bcede27":[20,3,15,8],
-"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a27f9b5b92afec1d8ca21de0eb978fbce":[20,3,15,4]
+"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a27f9b5b92afec1d8ca21de0eb978fbce":[20,3,15,4],
+"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a2f2d1f5684e8d4290b9ad733f0c77835":[20,3,15,7]
 };
