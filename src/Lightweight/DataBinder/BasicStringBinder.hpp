@@ -25,6 +25,114 @@ constexpr inline std::size_t SqlOptimalMaxColumnSize = 4000;
 
 namespace detail
 {
+    /// Reads raw column data of an array-like type, growing the array until the value fits.
+    ///
+    /// Takes the data source as a parameter so a test can make it report what no conforming driver
+    /// reports, which is the only way to reach the checks on the length indicator.
+    ///
+    /// @param getData Called as `getData(SQLPOINTER buffer, SQLLEN bufferBytes, SQLLEN* indicator)`; must not throw.
+    /// @param result The array-like type to store the data in.
+    /// @param indicator The indicator to store the length of the data.
+    ///
+    /// @return SQLRETURN indicating the result of the operation. An indicator no length can be derived
+    ///         from, or a length the array cannot hold, gives SQL_ERROR. The driver then posted no
+    ///         diagnostic for it, so the error the caller raises has an empty or stale SQLSTATE.
+    template <auto CType, typename ArrayType, typename GetData>
+        requires requires(ArrayType& arr) {
+            { arr.data() } -> std::convertible_to<typename ArrayType::value_type*>;
+            { arr.size() } -> std::convertible_to<std::size_t>;
+            { arr.resize(std::declval<std::size_t>()) };
+        }
+    SQLRETURN ReadRawColumnArrayData(GetData const& getData, ArrayType* result, SQLLEN* indicator) noexcept
+    {
+        using CharType = ArrayType::value_type;
+
+        // Character C types NUL-terminate every SQLGetData transfer, consuming the last buffer
+        // slot; SQL_C_BINARY transfers raw bytes WITHOUT a terminator, so every buffer slot holds
+        // data. Getting this wrong for binary loses the byte at each continuation boundary.
+        constexpr size_t TrailingNulTerminators = CType == SQL_C_BINARY ? 0 : 1;
+
+        // A length the array cannot hold, such as one a driver misreports as huge, must not escape as an
+        // exception: this function is noexcept, so that would terminate the process.
+        try
+        {
+            *indicator = 0;
+
+            // Resize the string to the size of the data
+            // Get the data (take care of SQL_NULL_DATA and SQL_NO_TOTAL)
+            auto sqlResult = getData(
+                static_cast<SQLPOINTER>(result->data()), static_cast<SQLLEN>(result->size() * sizeof(CharType)), indicator);
+
+            if (sqlResult == SQL_SUCCESS || sqlResult == SQL_NO_DATA)
+            {
+                // Data has been read successfully on first call to SQLGetData, or there is no data to read.
+                if (*indicator == SQL_NULL_DATA)
+                    result->clear();
+                else if (*indicator < 0)
+                    return SQL_ERROR; // SQL_NO_TOTAL is valid only with SQL_SUCCESS_WITH_INFO.
+                else
+                    result->resize(static_cast<size_t>(*indicator) / sizeof(CharType));
+                return sqlResult;
+            }
+
+            if (sqlResult == SQL_SUCCESS_WITH_INFO && *indicator < 0 && *indicator != SQL_NO_TOTAL)
+            {
+                if (*indicator != SQL_NULL_DATA)
+                    return SQL_ERROR;
+                result->clear();
+                return sqlResult;
+            }
+
+            if (sqlResult == SQL_SUCCESS_WITH_INFO && *indicator != SQL_NO_TOTAL
+                && (static_cast<size_t>(*indicator) / sizeof(CharType)) + TrailingNulTerminators > result->size())
+            {
+                // Truncation with a known total. Note the TrailingNulTerminators term: a CHARACTER value whose
+                // length exactly equals the buffer still truncates (the driver spends the last slot
+                // on the NUL terminator), so the continuation must run for indicator == buffer size.
+                // We have a truncation and the server knows how much data is left.
+                auto const totalCharCount = static_cast<size_t>(*indicator) / sizeof(CharType);
+                auto const charsWritten = result->size() - TrailingNulTerminators;
+                result->resize(totalCharCount + TrailingNulTerminators);
+                auto* bufferCont = result->data() + charsWritten;
+                auto const bufferCharsAvailable = (totalCharCount + TrailingNulTerminators) - charsWritten;
+                sqlResult = getData(bufferCont, static_cast<SQLLEN>(bufferCharsAvailable * sizeof(CharType)), indicator);
+                if (SQL_SUCCEEDED(sqlResult))
+                {
+                    if (*indicator < 0)
+                        return SQL_ERROR;
+                    result->resize(charsWritten + (static_cast<size_t>(*indicator) / sizeof(CharType)));
+                }
+                return sqlResult;
+            }
+
+            size_t writeIndex = 0;
+            // Chars offered to the previous SQLGetData call; a truncated transfer filled all but the terminator.
+            size_t lastTransferChars = result->size();
+            while (sqlResult == SQL_SUCCESS_WITH_INFO && *indicator == SQL_NO_TOTAL)
+            {
+                // We have a truncation and the server does not know how much data is left.
+                writeIndex += lastTransferChars - TrailingNulTerminators;
+                result->resize(result->size() * 2);
+                auto* const bufferStart = result->data() + writeIndex;
+                lastTransferChars = result->size() - writeIndex;
+                sqlResult = getData(bufferStart, static_cast<SQLLEN>(lastTransferChars * sizeof(CharType)), indicator);
+            }
+            // The unknown-total loop exits with the final transfer's char count in the indicator; trim
+            // the over-allocated buffer to the bytes actually written.
+            if (writeIndex > 0 && SQL_SUCCEEDED(sqlResult) && *indicator != SQL_NULL_DATA && *indicator != SQL_NO_TOTAL)
+            {
+                if (*indicator < 0)
+                    return SQL_ERROR;
+                result->resize(writeIndex + (static_cast<size_t>(*indicator) / sizeof(CharType)));
+            }
+            return sqlResult;
+        }
+        catch (...)
+        {
+            return SQL_ERROR;
+        }
+    }
+
     /// Helper function to get raw column data of an array-like type.
     ///
     /// @param stmt The SQL statement handle.
@@ -34,78 +142,14 @@ namespace detail
     ///
     /// @return SQLRETURN indicating the result of the operation.
     template <auto CType, typename ArrayType>
-        requires requires(ArrayType& arr) {
-            { arr.data() } -> std::convertible_to<typename ArrayType::value_type*>;
-            { arr.size() } -> std::convertible_to<std::size_t>;
-            { arr.resize(std::declval<std::size_t>()) };
-        }
     SQLRETURN GetRawColumnArrayData(SQLHSTMT stmt, SQLUSMALLINT column, ArrayType* result, SQLLEN* indicator) noexcept
     {
-        using CharType = ArrayType::value_type;
-
-        // Character C types NUL-terminate every SQLGetData transfer, consuming the last buffer
-        // slot; SQL_C_BINARY transfers raw bytes WITHOUT a terminator, so every buffer slot holds
-        // data. Getting this wrong for binary loses the byte at each continuation boundary.
-        constexpr size_t TrailingNulTerminators = CType == SQL_C_BINARY ? 0 : 1;
-
-        *indicator = 0;
-
-        // Resize the string to the size of the data
-        // Get the data (take care of SQL_NULL_DATA and SQL_NO_TOTAL)
-        auto sqlResult = SQLGetData(stmt,
-                                    column,
-                                    CType,
-                                    static_cast<SQLPOINTER>(result->data()),
-                                    static_cast<SQLLEN>(result->size() * sizeof(CharType)),
-                                    indicator);
-
-        if (sqlResult == SQL_SUCCESS || sqlResult == SQL_NO_DATA)
-        {
-            // Data has been read successfully on first call to SQLGetData, or there is no data to read.
-            if (*indicator == SQL_NULL_DATA)
-                result->clear();
-            else
-                result->resize(static_cast<size_t>(*indicator) / sizeof(CharType));
-            return sqlResult;
-        }
-
-        if (sqlResult == SQL_SUCCESS_WITH_INFO && *indicator != SQL_NO_TOTAL
-            && (static_cast<size_t>(*indicator) / sizeof(CharType)) + TrailingNulTerminators > result->size())
-        {
-            // Truncation with a known total. Note the TrailingNulTerminators term: a CHARACTER value whose
-            // length exactly equals the buffer still truncates (the driver spends the last slot
-            // on the NUL terminator), so the continuation must run for indicator == buffer size.
-            // We have a truncation and the server knows how much data is left.
-            auto const totalCharCount = static_cast<size_t>(*indicator) / sizeof(CharType);
-            auto const charsWritten = result->size() - TrailingNulTerminators;
-            result->resize(totalCharCount + TrailingNulTerminators);
-            auto* bufferCont = result->data() + charsWritten;
-            auto const bufferCharsAvailable = (totalCharCount + TrailingNulTerminators) - charsWritten;
-            sqlResult = SQLGetData(
-                stmt, column, CType, bufferCont, static_cast<SQLLEN>(bufferCharsAvailable * sizeof(CharType)), indicator);
-            if (SQL_SUCCEEDED(sqlResult))
-                result->resize(charsWritten + (static_cast<size_t>(*indicator) / sizeof(CharType)));
-            return sqlResult;
-        }
-
-        size_t writeIndex = 0;
-        // Chars offered to the previous SQLGetData call; a truncated transfer filled all but the terminator.
-        size_t lastTransferChars = result->size();
-        while (sqlResult == SQL_SUCCESS_WITH_INFO && *indicator == SQL_NO_TOTAL)
-        {
-            // We have a truncation and the server does not know how much data is left.
-            writeIndex += lastTransferChars - TrailingNulTerminators;
-            result->resize(result->size() * 2);
-            auto* const bufferStart = result->data() + writeIndex;
-            lastTransferChars = result->size() - writeIndex;
-            sqlResult = SQLGetData(
-                stmt, column, CType, bufferStart, static_cast<SQLLEN>(lastTransferChars * sizeof(CharType)), indicator);
-        }
-        // The unknown-total loop exits with the final transfer's char count in the indicator; trim
-        // the over-allocated buffer to the bytes actually written.
-        if (writeIndex > 0 && SQL_SUCCEEDED(sqlResult) && *indicator != SQL_NULL_DATA && *indicator != SQL_NO_TOTAL)
-            result->resize(writeIndex + (static_cast<size_t>(*indicator) / sizeof(CharType)));
-        return sqlResult;
+        return ReadRawColumnArrayData<CType>(
+            [stmt, column](SQLPOINTER buffer, SQLLEN bufferBytes, SQLLEN* reported) noexcept {
+                return SQLGetData(stmt, column, CType, buffer, bufferBytes, reported);
+            },
+            result,
+            indicator);
     }
 
     /// Size of the first buffer a growing SQL_C_CHAR read of @p column starts with, including the
