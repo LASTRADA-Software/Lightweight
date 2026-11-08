@@ -4,6 +4,7 @@
 #include "BackupRequirementReport.hpp"
 #include "CommandAccess.hpp"
 #include "Lightweight/SqlConnectInfo.hpp"
+#include "NewMigration.hpp"
 #include "ProgressText.hpp"
 #include "StandardProgressManager.hpp"
 #include "TaskProgressRenderer.hpp"
@@ -218,6 +219,9 @@ void PrintUsage()
     std::println("  {}unicode-upgrade-tables{}    Rewrites legacy VARCHAR/CHAR columns to NVARCHAR/NCHAR",
                  c.command, c.reset);
     std::println("                            where the registered migrations now declare wide types");
+    std::println("  {}new-migration{} {}<TITLE>{}    Creates an empty, timestamped migration source file",
+                 c.command, c.reset, c.param, c.reset);
+    std::println("                            in the current directory or --output-dir (no DB connection needed)");
     std::println("  {}exec{} {}<QUERY>{}             Executes the given SQL query and prints any result set.",
                  c.command, c.reset, c.param, c.reset);
     std::println("                            Pass `-` (or omit the argument) to read the query from stdin.");
@@ -271,6 +275,8 @@ void PrintUsage()
     std::println("  {}--profile{} {}<NAME>{}          Named profile from the config file (default: the file's",
                  c.option, c.reset, c.param, c.reset);
     std::println("                            defaultProfile, see --connection-string for when it applies)");
+    std::println("  {}--output-dir{} {}<DIR>{}        Directory new-migration creates its file in (default: current directory)",
+                 c.option, c.reset, c.param, c.reset);
     std::println("  {}--output{} {}<FILE>{}           Output file for backup. A bare file name, or no --output at all",
                  c.option, c.reset, c.param, c.reset);
     std::println("                            (generates <profile>-<timestamp>.zip), goes into the profile's");
@@ -342,6 +348,10 @@ void PrintExamples()
 
     std::println("  {}# Apply pending migrations using an SQLite database file via ODBC:{}", c.example, c.reset);
     std::println("  {}dbtool migrate --connection-string \"DRIVER=SQLite3;Database=test.db\"{}", c.code, c.reset);
+    std::println("");
+
+    std::println("  {}# Start a new migration, in UTC, as a source file in ./migrations:{}", c.example, c.reset);
+    std::println("  {}dbtool new-migration \"Add users table\" --output-dir migrations{}", c.code, c.reset);
     std::println("");
 
     std::println("  {}# List pending migrations for a specific plugins directory:{}", c.example, c.reset);
@@ -493,14 +503,16 @@ struct Options
     bool force = false;         ///< --force: replace an existing profile of the same name
 
     bool withoutBackup = false; ///< --without-backup: run although a required backup is missing (recorded as waived)
+    std::filesystem::path
+        outputDirectory; ///< --output-dir: where new-migration creates its file; empty for the current directory
 };
 
 /// The commands that apply migrations, the only ones `--backup-to` and `--without-backup` apply to.
 inline constexpr auto MigratingCommands = std::array<std::string_view, 3> { "migrate", "apply", "migrate-to-release" };
 
 /// Commands that never read a connection profile; `ResolveConnectionTargetOptions` is skipped for them.
-inline constexpr auto CommandsWithoutProfile = std::array<std::string_view, 7> {
-    "", "help", "show-examples", "add-profile", "resolve-secret", "list-profiles", "backup-diff",
+inline constexpr auto CommandsWithoutProfile = std::array<std::string_view, 8> {
+    "", "help", "show-examples", "add-profile", "resolve-secret", "list-profiles", "backup-diff", "new-migration",
 };
 
 /// Whether `command` reads a connection profile from dbtool.yml.
@@ -955,6 +967,12 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
                 return std::unexpected { "Error: --output requires an argument" };
             options.outputFile = argv[++i];
         }
+        else if (arg == "--output-dir")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --output-dir requires an argument" };
+            options.outputDirectory = argv[++i];
+        }
         else if (arg == "--backup-to")
         {
             if (i + 1 >= argc)
@@ -1300,6 +1318,30 @@ bool SetupConnectionString(SqlConnectionString const& connectionString, MissingS
         joined += effectiveDirs[idx].string();
     }
     return joined;
+}
+
+/// Implements the `new-migration` command: creates an empty migration source file and prints its path.
+/// @param options The parsed options; `argument` holds the title and `outputDirectory` the target directory.
+/// @return EXIT_SUCCESS, or EXIT_FAILURE with a message on stderr.
+int NewMigrationCommand(Options const& options)
+{
+    if (options.argument.empty())
+    {
+        std::println(std::cerr, "Error: new-migration requires a title.");
+        return EXIT_FAILURE;
+    }
+
+    auto const directory = options.outputDirectory.empty() ? std::filesystem::current_path() : options.outputDirectory;
+    auto const path = Tools::WriteNewMigrationFile(
+        options.argument, directory, std::chrono::floor<std::chrono::seconds>(std::chrono::system_clock::now()));
+    if (!path)
+    {
+        std::println(std::cerr, "Error: {}", path.error());
+        return EXIT_FAILURE;
+    }
+
+    std::println("{}", path->string());
+    return EXIT_SUCCESS;
 }
 
 /// Implements the `list-profiles` command: lists the merged dbtool.yml layers in precedence
@@ -3887,6 +3929,49 @@ void ConfigureWindowsConsole()
 }
 #endif
 
+/// A command that runs without a database connection.
+struct LocalCommand
+{
+    /// The command's name on the command line.
+    std::string_view name;
+    /// Runs the command and returns the process exit code.
+    int (*run)(Options const& options);
+};
+
+/// The commands that run without a database connection.
+constexpr auto LocalCommands = std::array<LocalCommand, 7> { {
+    { .name = "help",
+      .run =
+          [](Options const& /*options*/) {
+              PrintUsage();
+              return EXIT_SUCCESS;
+          } },
+    { .name = "show-examples",
+      .run =
+          [](Options const& /*options*/) {
+              PrintExamples();
+              return EXIT_SUCCESS;
+          } },
+    { .name = "resolve-secret", .run = ResolveSecretCommand },
+    { .name = "list-profiles", .run = ListProfiles },
+    { .name = "add-profile", .run = AddProfileCommand },
+    { .name = "backup-diff", .run = BackupDiffCommand },
+    { .name = "new-migration", .run = NewMigrationCommand },
+} };
+
+/// Runs @p options' command if it needs no database connection.
+/// @param options The parsed options.
+/// @return The process exit code, or `std::nullopt` if the command needs a connection.
+[[nodiscard]] std::optional<int> RunLocalCommand(Options const& options)
+{
+    for (auto const& command: LocalCommands)
+    {
+        if (command.name == options.command)
+            return command.run(options);
+    }
+    return std::nullopt;
+}
+
 } // namespace
 
 int main(int argc, char** argv)
@@ -3939,29 +4024,8 @@ int main(int argc, char** argv)
         }
         WarnIfAllSchemasIgnored(options);
 
-        if (options.command == "help")
-        {
-            PrintUsage();
-            return EXIT_SUCCESS;
-        }
-
-        if (options.command == "show-examples")
-        {
-            PrintExamples();
-            return EXIT_SUCCESS;
-        }
-
-        if (options.command == "resolve-secret")
-            return ResolveSecretCommand(options);
-
-        if (options.command == "list-profiles")
-            return ListProfiles(options);
-
-        if (options.command == "add-profile")
-            return AddProfileCommand(options);
-
-        if (options.command == "backup-diff")
-            return BackupDiffCommand(options);
+        if (auto const exitCode = RunLocalCommand(options); exitCode.has_value())
+            return *exitCode;
 
         // Before anything connects: even a probe connection creates a missing SQLite file.
         if (!CheckWriteTarget(options))

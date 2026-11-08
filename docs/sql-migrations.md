@@ -71,6 +71,9 @@ Migration timestamps use the format **YYYYMMDDHHMMSS** (14 digits):
 MigrationTimestamp { 20260126143052 }  // 2026-01-26 14:30:52
 ```
 
+`dbtool new-migration <title>` creates a source file with the current UTC time filled in (see
+[dbtool.md](dbtool.md#new-migration-title)).
+
 Timestamps must be:
 - **Unique** across all migrations
 - **Monotonically increasing** (newer migrations have higher timestamps)

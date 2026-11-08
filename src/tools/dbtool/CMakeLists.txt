@@ -5,6 +5,8 @@ add_library(dbtool_lib STATIC
     BackupRequirementReport.hpp
     CommandAccess.cpp
     CommandAccess.hpp
+    NewMigration.cpp
+    NewMigration.hpp
     ProgressText.cpp
     ProgressText.hpp
     StandardProgressManager.cpp

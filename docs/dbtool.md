@@ -401,6 +401,42 @@ DRIVER={PostgreSQL Unicode};Server=localhost;Port=5432;Database=mydb;Uid=postgre
 
 ## Migration Commands
 
+### new-migration \<TITLE\>
+
+Creates an empty migration source file, with its timestamp filled in, and prints its path. It needs no
+database and no profile:
+
+```bash
+dbtool new-migration "Add users table" --output-dir migrations
+# migrations/20261105213000_add_users_table.cpp
+```
+
+```cpp
+#include <Lightweight/SqlMigration.hpp>
+
+using namespace Lightweight::SqlColumnTypeDefinitions;
+
+LIGHTWEIGHT_SQL_MIGRATION(20261105213000, "Add users table")
+{
+    // Describe the schema change on `plan`, for example:
+    //     plan.CreateTable("users").PrimaryKeyWithAutoIncrement("id").RequiredColumn("email", Varchar(255));
+    // Remove the line below once `plan` is used. See docs/sql-migrations.md.
+    static_cast<void>(plan);
+}
+```
+
+- The timestamp is the current time in **UTC**, so developers in different time zones sort consistently.
+  When a file in the target directory already starts with that timestamp or a later one, the new
+  timestamp is one second after the latest of them: timestamps stay unique and increasing there.
+- The file goes into the current directory, or into `--output-dir`, which must exist. It is a plain
+  source file: add it to your plugin's build yourself, and keep `LIGHTWEIGHT_MIGRATION_PLUGIN()` in exactly
+  one source file of the plugin (see [Plugin System](#plugin-system)).
+- The file name holds the title's ASCII letters and digits, lowercased, joined by `_` and cut at 64
+  characters. The title itself is kept in full in the source.
+- A blank title and a title with control characters are refused. Nothing is overwritten.
+
+This is a scaffold: it does not compare your records with the database, and writes no schema change for you.
+
 ### migrate
 
 Apply all pending migrations:
@@ -1041,6 +1077,7 @@ archives of older versions hold it, and two of them differ in it by the record o
 | `--all-schemas` | For backup: every schema that holds a user table | |
 | `--config <FILE>` | Path to configuration file | every `dbtool.yml` from the executable's directory upward, merged, then the per-user file unless one sets `root: true` (see [Configuration](#configuration)) |
 | `--plugins-dir <DIR>` | Directory to scan for migration plugins | `.` (current directory) |
+| `--output-dir <DIR>` | Directory `new-migration` creates its file in. It must exist | `.` (current directory) |
 | `--output <FILE>` | Output file for backup. A bare file name, or no `--output`, goes into the profile's `backupDir` / `defaultBackupDir` when one is configured | |
 | `--input <FILE>` | Input file for restore | |
 | `--left <FILE>` | First (baseline) backup archive for `backup-diff` | |
