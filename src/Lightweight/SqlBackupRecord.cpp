@@ -18,11 +18,11 @@ namespace Lightweight::SqlMigration::detail
 /// A `schema_backups` row. Named namespace: reflection cannot see records with internal linkage.
 struct SchemaBackup
 {
-    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id;
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
     Field<SqlDateTime> created_at;
     Field<SqlUtf16String<255>> archive_file_name;
     Field<SqlString<64>> archive_sha256;
-    Field<std::optional<uint64_t>> last_migration;
+    Field<std::optional<uint64_t>> last_migration {};
     Field<SqlString<64>> migration_state_digest;
     Field<SqlString<128>> tool_version;
     Field<SqlString<16>> kind;
@@ -82,16 +82,17 @@ namespace
 
     detail::SchemaBackup ToRow(BackupRecord const& record)
     {
-        auto row = detail::SchemaBackup {};
-        row.created_at = record.createdAt;
-        row.archive_file_name = SqlUtf16String<255> { ToUtf16(std::u8string_view {
-            reinterpret_cast<char8_t const*>(record.archiveFileName.data()), record.archiveFileName.size() }) };
-        row.archive_sha256 = SqlString<64> { record.archiveSha256 };
+        auto row = detail::SchemaBackup {
+            .created_at = record.createdAt,
+            .archive_file_name = SqlUtf16String<255> { ToUtf16(std::u8string_view {
+                reinterpret_cast<char8_t const*>(record.archiveFileName.data()), record.archiveFileName.size() }) },
+            .archive_sha256 = SqlString<64> { record.archiveSha256 },
+            .migration_state_digest = SqlString<64> { record.observedState.digest },
+            .tool_version = SqlString<128> { record.toolVersion },
+            .kind = SqlString<16> { KindText(record.kind) },
+        };
         if (record.observedState.lastAppliedMigration)
             row.last_migration = record.observedState.lastAppliedMigration->value;
-        row.migration_state_digest = SqlString<64> { record.observedState.digest };
-        row.tool_version = SqlString<128> { record.toolVersion };
-        row.kind = SqlString<16> { KindText(record.kind) };
         return row;
     }
 

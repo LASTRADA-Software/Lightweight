@@ -46,7 +46,7 @@ struct Department
     static constexpr std::string_view TableName = "Departments";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<40>> name {};
+    Field<SqlAnsiString<40>> name;
 
     HasMany<Employee> employees {}; // one department, many employees
 };
@@ -56,9 +56,9 @@ struct Employee
     static constexpr std::string_view TableName = "Employees";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<30>> firstName {};
-    Field<SqlAnsiString<30>> lastName {};
-    Field<int> salary {};
+    Field<SqlAnsiString<30>> firstName;
+    Field<SqlAnsiString<30>> lastName;
+    Field<int> salary;
     Field<std::optional<int>> age {};
 
     // FK -> Departments.id. The inverse of Department::employees is matched by relationship
@@ -84,7 +84,7 @@ struct Human
     static constexpr std::string_view TableName = "Humans";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<30>> name {};
+    Field<SqlAnsiString<30>> name;
 
     // Two columns of Meetings point back here, so each relation names the one it means.
     HasMany<Meeting, SqlRealName { "organizer_id" }> organizedMeetings {};
@@ -99,10 +99,10 @@ struct Meeting
     static constexpr std::string_view TableName = "Meetings";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<40>> topic {};
+    Field<SqlAnsiString<40>> topic;
 
     // Each foreign key names its own column - exactly as it would without the second one.
-    BelongsTo<&Human::id, SqlRealName { "organizer_id" }> organizer {};
+    BelongsTo<&Human::id, SqlRealName { "organizer_id" }> organizer;
     BelongsTo<&Human::id, SqlRealName { "minute_taker_id" }, SqlNullable::Null> minuteTaker {};
 
     // Any number of attendees, through the join record below.
@@ -114,8 +114,8 @@ struct Attendance
     static constexpr std::string_view TableName = "Attendances";
 
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    BelongsTo<&Meeting::id, SqlRealName { "meeting_id" }> meeting {};
-    BelongsTo<&Human::id, SqlRealName { "human_id" }> human {};
+    BelongsTo<&Meeting::id, SqlRealName { "meeting_id" }> meeting;
+    BelongsTo<&Human::id, SqlRealName { "human_id" }> human;
 };
 //! [doc-meeting-schema]
 
