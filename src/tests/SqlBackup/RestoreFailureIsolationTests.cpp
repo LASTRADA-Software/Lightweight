@@ -821,3 +821,224 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK(tableReport.failedRowCount == missingRows);
     CHECK(report.TotalFailedRows() == missingRows);
 }
+
+namespace
+{
+
+/// Creates `<tableName>(ID INTEGER PRIMARY KEY, V VARCHAR(20), W VARCHAR(20))` holding rows 1..@p rowCount,
+/// with a unique index over `(V, W)`. Unlike a single-column one, which the restore declares in its
+/// CREATE TABLE, that index exists only if the restore applies the indexes.
+void CreateIndexedTableWithRows(std::string const& tableName, int rowCount)
+{
+    using namespace SqlColumnTypeDefinitions;
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([&](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable(tableName)
+            .PrimaryKey("ID", Integer {})
+            .Column("V", Varchar { .size = 20 })
+            .Column("W", Varchar { .size = 20 });
+    });
+    for (auto const id: std::views::iota(1, rowCount + 1))
+        (void) stmt.ExecuteDirect(
+            std::format(R"(INSERT INTO "{0}" ("ID", "V", "W") VALUES ({1}, 'row {1}', 'row {1}'))", tableName, id));
+    (void) stmt.ExecuteDirect(std::format(R"(CREATE UNIQUE INDEX "{0}_vw" ON "{0}" ("V", "W"))", tableName));
+}
+
+/// Tests whether the restore applied the index of CreateIndexedTableWithRows(), which a duplicate then violates.
+[[nodiscard]] bool UniqueIndexIsApplied(std::string const& tableName)
+{
+    auto stmt = SqlStatement {};
+    auto const insert = [&](int id) {
+        (void) stmt.ExecuteDirect(
+            std::format(R"(INSERT INTO "{}" ("ID", "V", "W") VALUES ({}, 'duplicate', 'duplicate'))", tableName, id));
+    };
+    insert(1001); // Outside the try: a table that cannot be inserted into at all must not look indexed.
+    try
+    {
+        insert(1002);
+        return false;
+    }
+    catch (SqlException const&)
+    {
+        return true;
+    }
+}
+
+/// Tests whether @p progress recorded the update that claims the whole restore succeeded.
+[[nodiscard]] bool ClaimsSuccess(RecordingProgressManager const& progress)
+{
+    return std::ranges::any_of(std::views::iota(std::size_t { 0 }, progress.messages.size()), [&](std::size_t index) {
+        return progress.states[index] == SqlBackup::Progress::State::Finished && progress.tables[index].empty();
+    });
+}
+
+/// The message of an incomplete restore that did not apply the constraints and indexes.
+constexpr auto ConstraintsSkipped = "foreign key constraints and indexes were not applied";
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "a failed table leaves the restore incomplete", "[SqlBackup][RestoreFailures]")
+{
+    std::filesystem::path const backupFile = "rfi_gate_failed_backup.zip";
+    auto const backupFileCleaner = ScopedFileRemoved { backupFile };
+
+    CreateIndexedTableWithRows("rfi_gate_failed_a", 3);
+    CreateIndexedTableWithRows("rfi_gate_failed_b", 4);
+    BackupTo(backupFile);
+    DropTables({ "rfi_gate_failed_a", "rfi_gate_failed_b" });
+
+    auto source = ScriptedFaultSource {
+        SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "HYC00", .message = "Driver does not support this parameter" },
+        1,
+        "ExecuteBatch"
+    };
+    auto report = SqlBackup::RestoreReport {};
+    RecordingProgressManager progress;
+    {
+        ScopedFaultSource const installed { &source };
+        report = SqlBackup::Restore(backupFile, GetConnectionString(), 1, progress);
+    }
+
+    // The other table's data still arrives, but no index is applied, not even on that table.
+    auto const aFailed = TableReportOf(report, "rfi_gate_failed_a").tableFailure.has_value();
+    auto const restoredName = std::string { aFailed ? "rfi_gate_failed_b" : "rfi_gate_failed_a" };
+    CHECK(CountRows(restoredName) == (aFailed ? 4 : 3));
+    CHECK(progress.HasErrorContaining(std::format("1 of 2 tables did not restore; {}", ConstraintsSkipped)));
+    CHECK_FALSE(UniqueIndexIsApplied(restoredName));
+    CHECK_FALSE(ClaimsSuccess(progress));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "a stopped worker leaves the restore incomplete", "[SqlBackup][RestoreFailures]")
+{
+    std::filesystem::path const backupFile = "rfi_gate_stopped_backup.zip";
+    auto const backupFileCleaner = ScopedFileRemoved { backupFile };
+
+    CreateIndexedTableWithRows("rfi_gate_stopped_a", 3);
+    CreateIndexedTableWithRows("rfi_gate_stopped_b", 4);
+    BackupTo(backupFile);
+    DropTables({ "rfi_gate_stopped_a", "rfi_gate_stopped_b" });
+
+    // The connection stays lost past the retry budget of FastRetry(), which stops the only worker.
+    auto source = ScriptedFaultSource {
+        SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "08S01", .message = "Communication link failure" },
+        1000,
+        "ExecuteBatch"
+    };
+    auto report = SqlBackup::RestoreReport {};
+    RecordingProgressManager progress;
+    {
+        ScopedFaultSource const installed { &source };
+        report = SqlBackup::Restore(backupFile, GetConnectionString(), 1, progress, {}, "*", FastRetry());
+    }
+
+    CHECK(report.WorkerStopped());
+    CHECK(report.incompleteTables.size() == 2);
+    // The user is told about rows: neither table got any of the rows the archive holds for it.
+    CHECK(progress.HasErrorContaining("Not fully restored: 0 of 3 rows restored"));
+    CHECK(progress.HasErrorContaining("Not fully restored: 0 of 4 rows restored"));
+    CHECK(progress.HasErrorContaining(std::format("2 of 2 tables did not restore; {}", ConstraintsSkipped)));
+    CHECK_FALSE(UniqueIndexIsApplied("rfi_gate_stopped_a"));
+    CHECK_FALSE(UniqueIndexIsApplied("rfi_gate_stopped_b"));
+    CHECK_FALSE(ClaimsSuccess(progress));
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "a table that cannot be created leaves the restore incomplete",
+                 "[SqlBackup][RestoreFailures]")
+{
+    std::filesystem::path const backupFile = "rfi_gate_schema_backup.zip";
+    auto const backupFileCleaner = ScopedFileRemoved { backupFile };
+
+    CreateIndexedTableWithRows("rfi_gate_schema_a", 3);
+    CreateIndexedTableWithRows("rfi_gate_schema_b", 4);
+    BackupTo(backupFile);
+    DropTables({ "rfi_gate_schema_a", "rfi_gate_schema_b" });
+
+    auto settings = SqlBackup::RestoreSettings {};
+    SECTION("restoring the data")
+    {
+        settings.schemaOnly = false;
+    }
+    SECTION("restoring only the schema")
+    {
+        settings.schemaOnly = true;
+    }
+
+    auto source = ScriptedFaultSource {
+        SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "HY000", .message = "injected schema creation failure" },
+        1,
+        "CreateTablesInOrder"
+    };
+    RecordingProgressManager progress;
+    {
+        ScopedFaultSource const installed { &source };
+        (void) SqlBackup::Restore(backupFile, GetConnectionString(), 1, progress, {}, "*", FastRetry(), settings);
+    }
+
+    CHECK(source.RemainingFailures() == 0);
+    CHECK(progress.HasErrorContaining(std::format("1 of 2 tables did not restore; {}", ConstraintsSkipped)));
+    CHECK_FALSE(ClaimsSuccess(progress));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "rows left out one by one still get the indexes applied", "[SqlBackup][RestoreFailures]")
+{
+    std::filesystem::path const backupFile = "rfi_gate_rows_backup.zip";
+    std::filesystem::path const brokenFile = "rfi_gate_rows_broken.zip";
+    auto const backupFileCleaner = ScopedFileRemoved { backupFile };
+    auto const brokenFileCleaner = ScopedFileRemoved { brokenFile };
+
+    CreateIndexedTableWithRows("rfi_gate_rows", 3);
+    BackupTo(backupFile);
+    DropTables({ "rfi_gate_rows" });
+    auto const chunks = ChunkNames(backupFile, "rfi_gate_rows");
+    REQUIRE(chunks.size() == 1);
+    // The second row duplicates the first row's ID, and only it is left out.
+    RewriteChunks(backupFile,
+                  brokenFile,
+                  { { chunks.front(),
+                      MakeChunk(std::vector<Row> {
+                          Row { int64_t { 1 }, "a", "a" },
+                          Row { int64_t { 1 }, "b", "b" },
+                          Row { int64_t { 3 }, "c", "c" },
+                      }) } });
+
+    RecordingProgressManager progress;
+    auto const report = SqlBackup::Restore(brokenFile, GetConnectionString(), 1, progress);
+
+    CHECK(report.TotalFailedRows() == 1);
+    CHECK_FALSE(progress.HasErrorContaining(ConstraintsSkipped));
+    CHECK(UniqueIndexIsApplied("rfi_gate_rows"));
+    CHECK(ClaimsSuccess(progress));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "a chunk of a failed table is neither read nor hashed", "[SqlBackup][RestoreFailures]")
+{
+    std::filesystem::path const backupFile = "rfi_gate_skip_backup.zip";
+    std::filesystem::path const brokenFile = "rfi_gate_skip_broken.zip";
+    auto const backupFileCleaner = ScopedFileRemoved { backupFile };
+    auto const brokenFileCleaner = ScopedFileRemoved { brokenFile };
+
+    CreateTableWithRows("rfi_gate_skip", 4);
+    BackupTo(backupFile, 2);
+    DropTables({ "rfi_gate_skip" });
+    auto const chunks = ChunkNames(backupFile, "rfi_gate_skip");
+    REQUIRE(chunks.size() == 2);
+    // Verifying the last chunk would report a mismatch, so its table failing first must prevent that.
+    RewriteChunks(backupFile, brokenFile, { { chunks.back(), "this is not a data chunk" } }, ChecksumUpdate::Keep);
+
+    auto source = ScriptedFaultSource {
+        SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "HYC00", .message = "Driver does not support this parameter" },
+        1,
+        "ExecuteBatch"
+    };
+    auto report = SqlBackup::RestoreReport {};
+    RecordingProgressManager progress;
+    {
+        ScopedFaultSource const installed { &source };
+        report = SqlBackup::Restore(brokenFile, GetConnectionString(), 1, progress);
+    }
+
+    CHECK(TableReportOf(report, "rfi_gate_skip").tableFailure.has_value());
+    CHECK(TableReportOf(report, "rfi_gate_skip").unreadableChunks == 0);
+    CHECK_FALSE(progress.HasErrorContaining("Checksum mismatch"));
+}

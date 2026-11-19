@@ -121,6 +121,13 @@ ignore it compile unchanged):
 - **A lost connection** that does not come back within `RetrySettings` stops the worker that hit it;
   the report lists the tables it left incomplete (`incompleteTables`; `WorkerStopped()`).
 
+A table that failed as a whole, that a stopped worker left incomplete, or that could not be created
+leaves the restore incomplete: the run reports an error, does not claim success, and does not apply
+foreign key constraints and indexes, because constraining a database that is missing a table's data
+only produces misleading `AddForeignKey failed` errors naming the referencing tables. Rerun the restore
+once the cause is fixed. Rows left out one by one and unreadable chunks do not count: the constraints
+and indexes are applied, and a constraint that the missing rows break is reported as an error.
+
 Each table gets at most one terminal update through the `ProgressManager` (`Error` if anything failed
 for it, with a message such as `2 rows failed, 3 cells set to NULL`; `Finished` otherwise). A table
 that failed as a whole or had an unreadable chunk may report additional `Error` updates before it, so a
